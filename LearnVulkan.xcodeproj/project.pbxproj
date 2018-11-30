@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		BD2435A121AD9B1C00027627 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BD2435A021AD9B1C00027627 /* main.cpp */; };
+		BD30819C21B1929300F30C2C /* utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BD30819A21B1929300F30C2C /* utils.cpp */; };
 		BD34960421AF3F4000F4C000 /* libglfw.3.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */; };
 		BD34960521AF3F4500F4C000 /* libglfw.3.3.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		BDA56D8B21ADB31600A4B992 /* libvulkan.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BDA56D8A21ADB31600A4B992 /* libvulkan.1.dylib */; };
@@ -31,6 +32,8 @@
 /* Begin PBXFileReference section */
 		BD24359D21AD9B1C00027627 /* LearnVulkan */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = LearnVulkan; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD2435A021AD9B1C00027627 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		BD30819A21B1929300F30C2C /* utils.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = utils.cpp; sourceTree = "<group>"; };
+		BD30819B21B1929300F30C2C /* utils.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = utils.hpp; sourceTree = "<group>"; };
 		BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libglfw.3.3.dylib; path = "../../../../../usr/local/Cellar/glfw/HEAD-bb2ca1d/lib/libglfw.3.3.dylib"; sourceTree = "<group>"; };
 		BDA56D8A21ADB31600A4B992 /* libvulkan.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libvulkan.1.dylib; path = ../../../Downloads/vulkansdk/macOS/lib/libvulkan.1.dylib; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -69,6 +72,8 @@
 			isa = PBXGroup;
 			children = (
 				BD2435A021AD9B1C00027627 /* main.cpp */,
+				BD30819B21B1929300F30C2C /* utils.hpp */,
+				BD30819A21B1929300F30C2C /* utils.cpp */,
 			);
 			path = LearnVulkan;
 			sourceTree = "<group>";
@@ -139,6 +144,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BD2435A121AD9B1C00027627 /* main.cpp in Sources */,
+				BD30819C21B1929300F30C2C /* utils.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
