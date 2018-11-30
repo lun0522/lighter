@@ -10,13 +10,12 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#include <string>
 #include <vector>
 
 namespace Utils {
-    extern const std::vector<const char*> validationLayers;
-    void checkVulkanSupport();
-    void checkExtensionSupport();
-    void checkValidationLayerSupport();
+    void checkExtensionSupport(const std::vector<std::string>& requiredExtensions);
+    void checkValidationLayerSupport(const std::vector<std::string>& requiredLayers);
 }
 
 #endif /* UTILS_HPP */

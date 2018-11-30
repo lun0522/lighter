@@ -10,21 +10,22 @@
 		BD2435A121AD9B1C00027627 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BD2435A021AD9B1C00027627 /* main.cpp */; };
 		BD30819C21B1929300F30C2C /* utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BD30819A21B1929300F30C2C /* utils.cpp */; };
 		BD34960421AF3F4000F4C000 /* libglfw.3.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */; };
-		BD34960521AF3F4500F4C000 /* libglfw.3.3.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		BD34960521AF3F4500F4C000 /* libglfw.3.3.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		BDA56D8B21ADB31600A4B992 /* libvulkan.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BDA56D8A21ADB31600A4B992 /* libvulkan.1.dylib */; };
-		BDA56D8C21ADB31B00A4B992 /* libvulkan.1.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = BDA56D8A21ADB31600A4B992 /* libvulkan.1.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		BDA56D8C21ADB31B00A4B992 /* libvulkan.1.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = BDA56D8A21ADB31600A4B992 /* libvulkan.1.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		BD24359B21AD9B1C00027627 /* CopyFiles */ = {
+		BD24359B21AD9B1C00027627 /* Copy Files */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 12;
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				BD34960521AF3F4500F4C000 /* libglfw.3.3.dylib in CopyFiles */,
-				BDA56D8C21ADB31B00A4B992 /* libvulkan.1.dylib in CopyFiles */,
+				BD34960521AF3F4500F4C000 /* libglfw.3.3.dylib in Copy Files */,
+				BDA56D8C21ADB31B00A4B992 /* libvulkan.1.dylib in Copy Files */,
 			);
+			name = "Copy Files";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -96,7 +97,7 @@
 			buildPhases = (
 				BD24359921AD9B1C00027627 /* Sources */,
 				BD24359A21AD9B1C00027627 /* Frameworks */,
-				BD24359B21AD9B1C00027627 /* CopyFiles */,
+				BD24359B21AD9B1C00027627 /* Copy Files */,
 			);
 			buildRules = (
 			);

@@ -29,6 +29,9 @@ private:
     
     const int WIDTH = 800;
     const int HEIGHT = 600;
+#ifdef DEBUG
+    const vector<const char*> validationLayers{"VK_LAYER_LUNARG_standard_validation"};
+#endif /* DEBUG */
     
     void initWindow() {
         glfwInit();
@@ -56,9 +59,23 @@ private:
 
 void VulkanApplication::createInstance() {
 #ifdef DEBUG
-    Utils::checkVulkanSupport();
-    Utils::checkExtensionSupport();
-    Utils::checkValidationLayerSupport();
+    if (glfwVulkanSupported() == GL_FALSE)
+        throw runtime_error("Vulkan not supported");
+#endif /* DEBUG */
+    
+    uint32_t glfwExtensionCount;
+    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    
+#ifdef DEBUG
+    vector<string> requiredExtensions(glfwExtensionCount);
+    for (auto i = 0; i != glfwExtensionCount; ++i)
+        requiredExtensions[i] = glfwExtensions[i];
+    Utils::checkExtensionSupport(requiredExtensions);
+    
+    vector<string> requiredLayers(validationLayers.size());
+    for (auto i = 0; i != validationLayers.size(); ++i)
+        requiredLayers[i] = validationLayers[i];
+    Utils::checkValidationLayerSupport(requiredLayers);
 #endif /* DEBUG */
     
     // optional. might be useful for the driver to optimize for some graphics engine
@@ -74,20 +91,15 @@ void VulkanApplication::createInstance() {
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
-    
-    uint32_t glfwExtensionCount;
-    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
     createInfo.enabledExtensionCount = glfwExtensionCount;
     createInfo.ppEnabledExtensionNames = glfwExtensions;
-    
 #ifdef DEBUG
-    createInfo.enabledLayerCount = static_cast<uint32_t>(Utils::validationLayers.size());
-    createInfo.ppEnabledLayerNames = Utils::validationLayers.data();
+    createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+    createInfo.ppEnabledLayerNames = validationLayers.data();
 #else
     createInfo.enabledLayerCount = 0;
 #endif /* DEBUG */
     
-    // the second parameter is a pointer to custom allocator callbacks
     if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
         throw runtime_error{"Failed to create instance"};
 }

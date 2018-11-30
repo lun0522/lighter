@@ -13,19 +13,11 @@
 #include <iostream>
 #include <unordered_set>
 
-#include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
 
 using namespace std;
 
 namespace Utils {
-    const vector<const char*> validationLayers{"VK_LAYER_LUNARG_standard_validation"};
-    
-    void checkVulkanSupport() {
-        if (glfwVulkanSupported() == GL_FALSE)
-            throw runtime_error("Vulkan not supported");
-    }
-    
     void checkRequirements(const unordered_set<string>& available,
                            const vector<string>& required) {
         for (const auto& req : required)
@@ -33,7 +25,7 @@ namespace Utils {
                 throw runtime_error{"Requirement not satisfied: " + req};
     }
     
-    void checkExtensionSupport() {
+    void checkExtensionSupport(const vector<string>& requiredExtensions) {
         uint32_t vkExtensionCount;
         vkEnumerateInstanceExtensionProperties(nullptr, &vkExtensionCount, nullptr);
         vector<VkExtensionProperties> vkExtensions(vkExtensionCount);
@@ -47,21 +39,15 @@ namespace Utils {
         }
         cout << endl;
         
-        uint32_t glfwExtensionCount;
-        const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-        vector<string> requiredExtensions(glfwExtensionCount);
-        
         cout << "Required extensions:" << endl;
-        for (uint32_t i = 0; i != glfwExtensionCount; ++i) {
-            cout << "\t" << glfwExtensions[i] << endl;
-            requiredExtensions[i] = glfwExtensions[i];
-        }
+        for (const auto& extension : requiredExtensions)
+            cout << "\t" << extension << endl;
         cout << endl;
         
         checkRequirements(availableExtensions, requiredExtensions);
     }
     
-    void checkValidationLayerSupport() {
+    void checkValidationLayerSupport(const vector<string>& requiredLayers) {
         uint32_t vkLayerCount;
         vkEnumerateInstanceLayerProperties(&vkLayerCount, nullptr);
         vector<VkLayerProperties> vkLayers(vkLayerCount);
@@ -75,13 +61,9 @@ namespace Utils {
         }
         cout << endl;
         
-        vector<string> requiredLayers(validationLayers.size());
-        
         cout << "Required validation layers:" << endl;
-        for (size_t i = 0; i != validationLayers.size(); ++i) {
-            cout << "\t" << validationLayers[i] << endl;
-            requiredLayers[i] = validationLayers[i];
-        }
+        for (const auto& layer : requiredLayers)
+            cout << "\t" << layer << endl;
         cout << endl;
         
         checkRequirements(availableLayers, requiredLayers);
