@@ -1,0 +1,115 @@
+//
+//  validation.cpp
+//  LearnVulkan
+//
+//  Created by Pujun Lun on 11/30/18.
+//  Copyright © 2018 Pujun Lun. All rights reserved.
+//
+
+#ifdef DEBUG
+
+#include "validation.hpp"
+
+#include <iostream>
+#include <unordered_set>
+
+using namespace std;
+
+namespace Validation {
+    void checkRequirements(const unordered_set<string>& available,
+                           const vector<string>& required) {
+        for (const auto& req : required)
+            if (available.find(req) == available.end())
+                throw runtime_error{"Requirement not satisfied: " + req};
+    }
+    
+    void checkExtensionSupport(const vector<string>& requiredExtensions) {
+        uint32_t count;
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
+        vector<VkExtensionProperties> extensions(count);
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, extensions.data());
+        unordered_set<string> availableExtensions(count);
+        
+        cout << "Available extensions:" << endl;
+        for (const auto& extension : extensions) {
+            cout << "\t" << extension.extensionName << endl;
+            availableExtensions.insert(extension.extensionName);
+        }
+        cout << endl;
+        
+        cout << "Required extensions:" << endl;
+        for (const auto& extension : requiredExtensions)
+            cout << "\t" << extension << endl;
+        cout << endl;
+        
+        checkRequirements(availableExtensions, requiredExtensions);
+    }
+    
+    void checkValidationLayerSupport(const vector<string>& requiredLayers) {
+        uint32_t count;
+        vkEnumerateInstanceLayerProperties(&count, nullptr);
+        vector<VkLayerProperties> layers(count);
+        vkEnumerateInstanceLayerProperties(&count, layers.data());
+        unordered_set<string> availableLayers(count);
+        
+        cout << "Available validation layers:" << endl;
+        for (const auto& layer : layers) {
+            cout << "\t" << layer.layerName << endl;
+            availableLayers.insert(layer.layerName);
+        }
+        cout << endl;
+        
+        cout << "Required validation layers:" << endl;
+        for (const auto& layer : requiredLayers)
+            cout << "\t" << layer << endl;
+        cout << endl;
+        
+        checkRequirements(availableLayers, requiredLayers);
+    }
+    
+    VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+         VkDebugUtilsMessageTypeFlagsEXT messageType,
+         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+         void* pUserData) {
+        // if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+        cerr << "Validation layer: " << pCallbackData->pMessage << endl;
+        return VK_FALSE;
+    }
+    
+    template<typename T>
+    T loadFunction(const VkInstance& instance, const char* funcName) {
+        auto func = (T)vkGetInstanceProcAddr(instance, funcName);
+        if (!func) throw runtime_error{"Failed to load: " + string{funcName}};
+        return func;
+    }
+    
+    void createDebugCallback(const VkInstance& instance,
+                             VkDebugUtilsMessengerEXT* pCallback,
+                             const VkAllocationCallbacks* pAllocator) {
+        VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        createInfo.messageSeverity =
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        createInfo.messageType =
+            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        createInfo.pfnUserCallback = debugCallback;
+        createInfo.pUserData = nullptr; // will be passed along to the callback
+        auto func = loadFunction<PFN_vkCreateDebugUtilsMessengerEXT>
+            (instance, "vkCreateDebugUtilsMessengerEXT");
+        func(instance, &createInfo, pAllocator, pCallback);
+    }
+    
+    void destroyDebugCallback(const VkInstance& instance,
+                              const VkDebugUtilsMessengerEXT* pCallback,
+                              const VkAllocationCallbacks* pAllocator) {
+        auto func = loadFunction<PFN_vkDestroyDebugUtilsMessengerEXT>
+            (instance, "vkDestroyDebugUtilsMessengerEXT");
+        func(instance, *pCallback, pAllocator);
+    }
+}
+
+#endif /* DEBUG */

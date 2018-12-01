@@ -11,25 +11,33 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
 
-#include "utils.hpp"
+#include "validation.hpp"
 
 using namespace std;
 
 class VulkanApplication {
 public:
-    void run() {
+    VulkanApplication() {
         initWindow();
         initVulkan();
-        mainLoop();
+    }
+    
+    void mainLoop() {
+        while (!glfwWindowShouldClose(window))
+            glfwPollEvents();
+    }
+    
+    ~VulkanApplication() {
         cleanup();
     }
 private:
     GLFWwindow *window;
     VkInstance instance;
-    
     const int WIDTH = 800;
     const int HEIGHT = 600;
+    
 #ifdef DEBUG
+    VkDebugUtilsMessengerEXT callback;
     const vector<const char*> validationLayers{"VK_LAYER_LUNARG_standard_validation"};
 #endif /* DEBUG */
     
@@ -41,14 +49,15 @@ private:
     
     void initVulkan() {
         createInstance();
-    }
-    
-    void mainLoop() {
-        while (!glfwWindowShouldClose(window))
-            glfwPollEvents();
+#ifdef DEBUG
+        Validation::createDebugCallback(instance, &callback, nullptr);
+#endif /* DEBUG */
     }
     
     void cleanup() {
+#ifdef DEBUG
+        Validation::destroyDebugCallback(instance, &callback, nullptr);
+#endif /* DEBUG */
         vkDestroyInstance(instance, nullptr);
         glfwDestroyWindow(window);
         glfwTerminate();
@@ -60,22 +69,17 @@ private:
 void VulkanApplication::createInstance() {
 #ifdef DEBUG
     if (glfwVulkanSupported() == GL_FALSE)
-        throw runtime_error("Vulkan not supported");
+        throw runtime_error{"Vulkan not supported"};
 #endif /* DEBUG */
     
     uint32_t glfwExtensionCount;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
     
 #ifdef DEBUG
-    vector<string> requiredExtensions(glfwExtensionCount);
-    for (auto i = 0; i != glfwExtensionCount; ++i)
-        requiredExtensions[i] = glfwExtensions[i];
-    Utils::checkExtensionSupport(requiredExtensions);
-    
-    vector<string> requiredLayers(validationLayers.size());
-    for (auto i = 0; i != validationLayers.size(); ++i)
-        requiredLayers[i] = validationLayers[i];
-    Utils::checkValidationLayerSupport(requiredLayers);
+    vector<const char*> requiredExtensions{glfwExtensions, glfwExtensions + glfwExtensionCount};
+    requiredExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME); // enable debug report
+    Validation::checkExtensionSupport({requiredExtensions.begin(), requiredExtensions.end()});
+    Validation::checkValidationLayerSupport({validationLayers.begin(), validationLayers.end()});
 #endif /* DEBUG */
     
     // optional. might be useful for the driver to optimize for some graphics engine
@@ -91,12 +95,14 @@ void VulkanApplication::createInstance() {
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
-    createInfo.enabledExtensionCount = glfwExtensionCount;
-    createInfo.ppEnabledExtensionNames = glfwExtensions;
 #ifdef DEBUG
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
+    createInfo.ppEnabledExtensionNames = requiredExtensions.data();
     createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
     createInfo.ppEnabledLayerNames = validationLayers.data();
 #else
+    createInfo.enabledExtensionCount = glfwExtensionCount;
+    createInfo.ppEnabledExtensionNames = glfwExtensions;
     createInfo.enabledLayerCount = 0;
 #endif /* DEBUG */
     
@@ -105,9 +111,9 @@ void VulkanApplication::createInstance() {
 }
 
 int main(int argc, const char * argv[]) {
-    VulkanApplication app;
+    VulkanApplication app{};
     try {
-        app.run();
+        app.mainLoop();
     } catch (const exception& e) {
         cerr << "Error: " << e.what() << endl;
         return EXIT_FAILURE;
