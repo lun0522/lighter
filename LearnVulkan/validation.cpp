@@ -26,9 +26,9 @@ namespace Validation {
     void checkExtensionSupport(const vector<string>& requiredExtensions) {
         uint32_t count;
         vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
-        vector<VkExtensionProperties> extensions(count);
+        vector<VkExtensionProperties> extensions{count};
         vkEnumerateInstanceExtensionProperties(nullptr, &count, extensions.data());
-        unordered_set<string> availableExtensions(count);
+        unordered_set<string> availableExtensions{count};
         
         cout << "Available extensions:" << endl;
         for (const auto& extension : extensions) {
@@ -48,9 +48,9 @@ namespace Validation {
     void checkValidationLayerSupport(const vector<string>& requiredLayers) {
         uint32_t count;
         vkEnumerateInstanceLayerProperties(&count, nullptr);
-        vector<VkLayerProperties> layers(count);
+        vector<VkLayerProperties> layers{count};
         vkEnumerateInstanceLayerProperties(&count, layers.data());
-        unordered_set<string> availableLayers(count);
+        unordered_set<string> availableLayers{count};
         
         cout << "Available validation layers:" << endl;
         for (const auto& layer : layers) {
@@ -79,23 +79,20 @@ namespace Validation {
     
     template<typename T>
     T loadFunction(const VkInstance& instance, const char* funcName) {
-        auto func = (T)vkGetInstanceProcAddr(instance, funcName);
+        auto func = reinterpret_cast<T>(vkGetInstanceProcAddr(instance, funcName));
         if (!func) throw runtime_error{"Failed to load: " + string{funcName}};
         return func;
     }
     
     void createDebugCallback(const VkInstance& instance,
                              VkDebugUtilsMessengerEXT* pCallback,
-                             const VkAllocationCallbacks* pAllocator) {
+                             const VkAllocationCallbacks* pAllocator,
+                             int messageSeverity,
+                             int messageType) {
         VkDebugUtilsMessengerCreateInfoEXT createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        createInfo.messageSeverity =
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-        createInfo.messageType =
-            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        createInfo.messageSeverity = messageSeverity;
+        createInfo.messageType = messageType;
         createInfo.pfnUserCallback = debugCallback;
         createInfo.pUserData = nullptr; // will be passed along to the callback
         auto func = loadFunction<PFN_vkCreateDebugUtilsMessengerEXT>
