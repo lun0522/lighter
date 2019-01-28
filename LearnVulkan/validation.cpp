@@ -16,6 +16,8 @@
 using namespace std;
 
 namespace Validation {
+    const vector<const char*> validationLayers{"VK_LAYER_LUNARG_standard_validation"};
+    
     void checkRequirements(const unordered_set<string>& available,
                            const vector<string>& required) {
         for (const auto& req : required)

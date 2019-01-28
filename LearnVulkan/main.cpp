@@ -7,7 +7,6 @@
 //
 
 #include <iostream>
-#include <utility>
 
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
@@ -15,6 +14,9 @@
 #include "validation.hpp"
 
 using namespace std;
+#ifdef DEBUG
+using Validation::validationLayers;
+#endif /* DEBUG */
 
 class VulkanApplication {
 public:
@@ -35,15 +37,14 @@ private:
     GLFWwindow *window;
     VkInstance instance;
     VkDevice device;
-    VkPhysicalDevice physicalDevice; // implicitly cleaned up
-    VkQueue graphicsQueue; // implicitly cleaned up with physical device
+    VkPhysicalDevice physicalDevice;    // implicitly cleaned up
+    VkQueue graphicsQueue;              // implicitly cleaned up with physical device
     uint32_t queueFamilyIndex;
     const int WIDTH = 800;
     const int HEIGHT = 600;
     
 #ifdef DEBUG
     VkDebugUtilsMessengerEXT callback;
-    const vector<const char*> validationLayers{"VK_LAYER_LUNARG_standard_validation"};
 #endif /* DEBUG */
     
     void initWindow() {
@@ -53,16 +54,15 @@ private:
     }
     
     void initVulkan() {
-        createInstance();
+        createInstance();                   // establish connection with Vulkan library
 #ifdef DEBUG
-        Validation::createDebugCallback(
+        Validation::createDebugCallback(    // relay debug messages back to application
             instance, &callback, nullptr,
             Validation::WARNING | Validation::ERROR,
             Validation::GENERAL | Validation::VALIDATION | Validation::PERFORMANCE);
 #endif /* DEBUG */
-        pickPhysicalDevice();
-        createLogicalDevice();
-        getDeviceQueue();
+        pickPhysicalDevice();               // select graphics card to use
+        createLogicalDevice();              // interface with physical device
     }
     
     void cleanup() {
@@ -78,7 +78,6 @@ private:
     void createInstance();
     void pickPhysicalDevice();
     void createLogicalDevice();
-    void getDeviceQueue();
 };
 
 void VulkanApplication::createInstance() {
@@ -190,9 +189,8 @@ void VulkanApplication::createLogicalDevice() {
     
     if (vkCreateDevice(physicalDevice, &deviceInfo, nullptr, &device) != VK_SUCCESS)
         throw runtime_error{"Failed to create logical device"};
-}
-
-void VulkanApplication::getDeviceQueue() {
+    
+    // retrieve queue handles for each queue family
     vkGetDeviceQueue(device, queueFamilyIndex, 0, &graphicsQueue);
 }
 

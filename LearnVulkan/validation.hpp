@@ -27,6 +27,8 @@ namespace Validation {
         VALIDATION  = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
         PERFORMANCE = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
     };
+    extern const std::vector<const char*> validationLayers;
+    
     void checkExtensionSupport(const std::vector<std::string>& requiredExtensions);
     void checkValidationLayerSupport(const std::vector<std::string>& requiredLayers);
     void createDebugCallback(const VkInstance& instance,
