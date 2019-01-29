@@ -7,7 +7,10 @@
 //
 
 #include <iostream>
+#include <unordered_set>
+#include <vector>
 
+#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
 
@@ -20,6 +23,11 @@ using Validation::validationLayers;
 
 class VulkanApplication {
 public:
+    struct QueueFamilyIndices {
+        uint32_t graphicsFamily;            // it is possible that one queue can render images
+        uint32_t presentFamily;             // while another one can present them to window system
+    };
+    
     VulkanApplication() {
         initWindow();
         initVulkan();
@@ -36,10 +44,12 @@ public:
 private:
     GLFWwindow *window;
     VkInstance instance;
+    VkSurfaceKHR surface;                   // backed by window created by GLFW, affects device selection
     VkDevice device;
-    VkPhysicalDevice physicalDevice;    // implicitly cleaned up
-    VkQueue graphicsQueue;              // implicitly cleaned up with physical device
-    uint32_t queueFamilyIndex;
+    VkPhysicalDevice physicalDevice;        // implicitly cleaned up
+    VkQueue graphicsQueue;                  // implicitly cleaned up with physical device
+    VkQueue presentQueue;
+    QueueFamilyIndices indices;
     const int WIDTH = 800;
     const int HEIGHT = 600;
     
@@ -61,6 +71,7 @@ private:
             Validation::WARNING | Validation::ERROR,
             Validation::GENERAL | Validation::VALIDATION | Validation::PERFORMANCE);
 #endif /* DEBUG */
+        createSurface();                    // interface with window system (not needed for off-screen rendering)
         pickPhysicalDevice();               // select graphics card to use
         createLogicalDevice();              // interface with physical device
     }
@@ -70,12 +81,14 @@ private:
         Validation::destroyDebugCallback(instance, &callback, nullptr);
 #endif /* DEBUG */
         vkDestroyDevice(device, nullptr);
+        vkDestroySurfaceKHR(instance, surface, nullptr);
         vkDestroyInstance(instance, nullptr);
         glfwDestroyWindow(window);
         glfwTerminate();
     }
     
     void createInstance();
+    void createSurface();
     void pickPhysicalDevice();
     void createLogicalDevice();
 };
@@ -124,7 +137,13 @@ void VulkanApplication::createInstance() {
         throw runtime_error{"Failed to create instance"};
 }
 
-pair<bool, uint32_t> isDeviceSuitable(const VkPhysicalDevice& device) {
+void VulkanApplication::createSurface() {
+    if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS)
+        throw runtime_error{"Failed to create window surface"};
+}
+
+pair<bool, VulkanApplication::QueueFamilyIndices> isDeviceSuitable(const VkPhysicalDevice& device,
+                                                                   const VkSurfaceKHR& surface) {
     VkPhysicalDeviceProperties properties;
     vkGetPhysicalDeviceProperties(device, &properties);
     cout << "Found device: " << properties.deviceName << endl;
@@ -139,11 +158,28 @@ pair<bool, uint32_t> isDeviceSuitable(const VkPhysicalDevice& device) {
     vector<VkQueueFamilyProperties> families{count};
     vkGetPhysicalDeviceQueueFamilyProperties(device, &count, families.data());
     
+    VulkanApplication::QueueFamilyIndices indices;
+    bool found = false;
     for (uint32_t i = 0; i < count; ++i) {
-        if (families[i].queueCount && families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
-            return {true, i};
+        if (families[i].queueCount && families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            indices.graphicsFamily = i;
+            found = true;
+            break;
+        }
     }
-    return {false, 0};
+    if (!found) return {false, {}};
+    
+    for (uint32_t i = 0; i < count; ++i) {
+        if (families[i].queueCount) {
+            VkBool32 presentSupport = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+            if (presentSupport) {
+                indices.presentFamily = i;
+                return {true, indices};
+            }
+        }
+    }
+    return {false, {}};
 }
 
 void VulkanApplication::pickPhysicalDevice() {
@@ -153,11 +189,11 @@ void VulkanApplication::pickPhysicalDevice() {
     vector<VkPhysicalDevice> devices{count};
     vkEnumeratePhysicalDevices(instance, &count, devices.data());
     
-    for (const auto& device : devices) {
-        auto res = isDeviceSuitable(device);
+    for (const auto& candidate : devices) {
+        auto res = isDeviceSuitable(candidate, surface);
         if (res.first) {
-            physicalDevice = device;
-            queueFamilyIndex = res.second;
+            physicalDevice = candidate;
+            indices = res.second;
             return;
         }
     }
@@ -165,19 +201,26 @@ void VulkanApplication::pickPhysicalDevice() {
 }
 
 void VulkanApplication::createLogicalDevice() {
+    vector<VkDeviceQueueCreateInfo> queueInfos{};
+    // graphics queue and present queue might be the same
+    unordered_set<uint32_t> queueFamilies{indices.graphicsFamily, indices.presentFamily};
+    
     float priority = 1.0f;
-    VkDeviceQueueCreateInfo queueInfo{};
-    queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueInfo.queueFamilyIndex = queueFamilyIndex;
-    queueInfo.queueCount = 1;
-    queueInfo.pQueuePriorities = &priority; // required even if only one queue
+    for (uint32_t queueFamily : queueFamilies) {
+        VkDeviceQueueCreateInfo queueInfo{};
+        queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueInfo.queueFamilyIndex = queueFamily;
+        queueInfo.queueCount = 1;
+        queueInfo.pQueuePriorities = &priority; // required even if only one queue
+        queueInfos.push_back(queueInfo);
+    }
     
     VkPhysicalDeviceFeatures features{};
     
     VkDeviceCreateInfo deviceInfo{};
     deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    deviceInfo.queueCreateInfoCount = 1;
-    deviceInfo.pQueueCreateInfos = &queueInfo;
+    deviceInfo.queueCreateInfoCount = (uint32_t)queueInfos.size();
+    deviceInfo.pQueueCreateInfos = queueInfos.data();
     deviceInfo.pEnabledFeatures = &features;
     deviceInfo.enabledExtensionCount = 0;
 #ifdef DEBUG
@@ -191,7 +234,8 @@ void VulkanApplication::createLogicalDevice() {
         throw runtime_error{"Failed to create logical device"};
     
     // retrieve queue handles for each queue family
-    vkGetDeviceQueue(device, queueFamilyIndex, 0, &graphicsQueue);
+    vkGetDeviceQueue(device, indices.graphicsFamily, 0, &graphicsQueue);
+    vkGetDeviceQueue(device, indices.presentFamily, 0, &presentQueue);
 }
 
 int main(int argc, const char * argv[]) {
