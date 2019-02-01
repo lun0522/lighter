@@ -17,6 +17,8 @@
 #include "validation.hpp"
 
 using namespace std;
+
+using Validation::swapChainExtensions;
 #ifdef DEBUG
 using Validation::validationLayers;
 #endif /* DEBUG */
@@ -26,6 +28,12 @@ public:
     struct QueueFamilyIndices {
         uint32_t graphicsFamily;            // it is possible that one queue can render images
         uint32_t presentFamily;             // while another one can present them to window system
+    };
+    
+    struct SwapChainSupport {
+        VkSurfaceCapabilitiesKHR surfaceCapabilities;
+        vector<VkSurfaceFormatKHR> surfaceFormats;
+        vector<VkPresentModeKHR> presentModes;
     };
     
     VulkanApplication() {
@@ -105,7 +113,7 @@ void VulkanApplication::createInstance() {
 #ifdef DEBUG
     vector<const char*> requiredExtensions{glfwExtensions, glfwExtensions + glfwExtensionCount};
     requiredExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME); // enable debug report
-    Validation::checkExtensionSupport({requiredExtensions.begin(), requiredExtensions.end()});
+    Validation::checkInstanceExtensionSupport({requiredExtensions.begin(), requiredExtensions.end()});
     Validation::checkValidationLayerSupport({validationLayers.begin(), validationLayers.end()});
 #endif /* DEBUG */
     
@@ -119,21 +127,21 @@ void VulkanApplication::createInstance() {
     appInfo.apiVersion = VK_API_VERSION_1_0;
     
     // required. tell the driver which global extensions and validation layers to use
-    VkInstanceCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    createInfo.pApplicationInfo = &appInfo;
+    VkInstanceCreateInfo instanceInfo{};
+    instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    instanceInfo.pApplicationInfo = &appInfo;
 #ifdef DEBUG
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
-    createInfo.ppEnabledExtensionNames = requiredExtensions.data();
-    createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-    createInfo.ppEnabledLayerNames = validationLayers.data();
+    instanceInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
+    instanceInfo.ppEnabledExtensionNames = requiredExtensions.data();
+    instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+    instanceInfo.ppEnabledLayerNames = validationLayers.data();
 #else
-    createInfo.enabledExtensionCount = glfwExtensionCount;
-    createInfo.ppEnabledExtensionNames = glfwExtensions;
-    createInfo.enabledLayerCount = 0;
+    instanceInfo.enabledExtensionCount = glfwExtensionCount;
+    instanceInfo.ppEnabledExtensionNames = glfwExtensions;
+    instanceInfo.enabledLayerCount = 0;
 #endif /* DEBUG */
     
-    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
+    if (vkCreateInstance(&instanceInfo, nullptr, &instance) != VK_SUCCESS)
         throw runtime_error{"Failed to create instance"};
 }
 
@@ -142,8 +150,42 @@ void VulkanApplication::createSurface() {
         throw runtime_error{"Failed to create window surface"};
 }
 
-pair<bool, VulkanApplication::QueueFamilyIndices> isDeviceSuitable(const VkPhysicalDevice& device,
-                                                                   const VkSurfaceKHR& surface) {
+bool hasSwapChainSupport(const VkPhysicalDevice& device,
+                         const VkSurfaceKHR& surface) {
+    try {
+        Validation::checkDeviceExtensionSupport(
+            device, {swapChainExtensions.begin(), swapChainExtensions.end()});
+    } catch (const exception& e) {
+        return false;
+    }
+    
+    // physical device may support swapchain but maybe not compatible with window system
+    // so we need to query details
+    VulkanApplication::SwapChainSupport support;
+    
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &support.surfaceCapabilities);
+    
+    uint32_t formatCount;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+    support.surfaceFormats.resize(formatCount);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, support.surfaceFormats.data());
+    
+    uint32_t modeCount;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &modeCount, nullptr);
+    support.presentModes.resize(modeCount);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &modeCount, support.presentModes.data());
+    
+    return !support.surfaceFormats.empty() && !support.presentModes.empty();
+}
+
+
+bool isDeviceSuitable(const VkPhysicalDevice& device,
+                      const VkSurfaceKHR& surface,
+                      VulkanApplication::QueueFamilyIndices& indices) {
+    // require swapchain support
+    if (!hasSwapChainSupport(device, surface))
+        return false;
+    
     VkPhysicalDeviceProperties properties;
     vkGetPhysicalDeviceProperties(device, &properties);
     cout << "Found device: " << properties.deviceName << endl;
@@ -158,42 +200,41 @@ pair<bool, VulkanApplication::QueueFamilyIndices> isDeviceSuitable(const VkPhysi
     vector<VkQueueFamilyProperties> families{count};
     vkGetPhysicalDeviceQueueFamilyProperties(device, &count, families.data());
     
-    VulkanApplication::QueueFamilyIndices indices;
+    VulkanApplication::QueueFamilyIndices candidates;
+    
     bool found = false;
     for (uint32_t i = 0; i < count; ++i) {
         if (families[i].queueCount && families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-            indices.graphicsFamily = i;
+            candidates.graphicsFamily = i;
             found = true;
             break;
         }
     }
-    if (!found) return {false, {}};
+    if (!found) return false;
     
     for (uint32_t i = 0; i < count; ++i) {
         if (families[i].queueCount) {
             VkBool32 presentSupport = false;
             vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
             if (presentSupport) {
-                indices.presentFamily = i;
-                return {true, indices};
+                candidates.presentFamily = i;
+                indices = candidates;
+                return true;
             }
         }
     }
-    return {false, {}};
+    return false;
 }
 
 void VulkanApplication::pickPhysicalDevice() {
     uint32_t count;
     vkEnumeratePhysicalDevices(instance, &count, nullptr);
-    if (!count) throw runtime_error{"Failed to find GPU with Vulkan support"};
     vector<VkPhysicalDevice> devices{count};
     vkEnumeratePhysicalDevices(instance, &count, devices.data());
     
     for (const auto& candidate : devices) {
-        auto res = isDeviceSuitable(candidate, surface);
-        if (res.first) {
+        if (isDeviceSuitable(candidate, surface, indices)) {
             physicalDevice = candidate;
-            indices = res.second;
             return;
         }
     }
@@ -222,7 +263,8 @@ void VulkanApplication::createLogicalDevice() {
     deviceInfo.queueCreateInfoCount = (uint32_t)queueInfos.size();
     deviceInfo.pQueueCreateInfos = queueInfos.data();
     deviceInfo.pEnabledFeatures = &features;
-    deviceInfo.enabledExtensionCount = 0;
+    deviceInfo.enabledExtensionCount = static_cast<uint32_t>(swapChainExtensions.size());
+    deviceInfo.ppEnabledExtensionNames = swapChainExtensions.data();
 #ifdef DEBUG
     deviceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
     deviceInfo.ppEnabledLayerNames = validationLayers.data();
@@ -238,7 +280,7 @@ void VulkanApplication::createLogicalDevice() {
     vkGetDeviceQueue(device, indices.presentFamily, 0, &presentQueue);
 }
 
-int main(int argc, const char * argv[]) {
+int main(int argc, const char* argv[]) {
     try {
         VulkanApplication app{};
         app.mainLoop();

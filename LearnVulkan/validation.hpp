@@ -16,6 +16,8 @@
 #include <vulkan/vulkan.hpp>
 
 namespace Validation {
+    using namespace std;
+    
     enum Severity {
         VERBOSE = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT,
         INFO    = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT,
@@ -27,10 +29,15 @@ namespace Validation {
         VALIDATION  = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
         PERFORMANCE = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
     };
-    extern const std::vector<const char*> validationLayers;
     
-    void checkExtensionSupport(const std::vector<std::string>& requiredExtensions);
-    void checkValidationLayerSupport(const std::vector<std::string>& requiredLayers);
+    extern const vector<const char*> swapChainExtensions;
+    extern const vector<const char*> validationLayers;
+    
+    void checkInstanceExtensionSupport(const vector<string>& requiredExtensions);
+    void checkDeviceExtensionSupport(const VkPhysicalDevice& physicalDevice,
+                                     const vector<string>& requiredExtensions);
+    void checkValidationLayerSupport(const vector<string>& requiredLayers);
+    
     void createDebugCallback(const VkInstance& instance,
                              VkDebugUtilsMessengerEXT* pCallback,
                              const VkAllocationCallbacks* pAllocator,

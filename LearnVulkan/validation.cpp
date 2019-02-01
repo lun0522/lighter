@@ -13,9 +13,8 @@
 #include <iostream>
 #include <unordered_set>
 
-using namespace std;
-
 namespace Validation {
+    const vector<const char*> swapChainExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
     const vector<const char*> validationLayers{"VK_LAYER_LUNARG_standard_validation"};
     
     void checkRequirements(const unordered_set<string>& available,
@@ -25,21 +24,44 @@ namespace Validation {
                 throw runtime_error{"Requirement not satisfied: " + req};
     }
     
-    void checkExtensionSupport(const vector<string>& requiredExtensions) {
+    void checkInstanceExtensionSupport(const vector<string>& requiredExtensions) {
         uint32_t count;
         vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
         vector<VkExtensionProperties> extensions{count};
         vkEnumerateInstanceExtensionProperties(nullptr, &count, extensions.data());
         unordered_set<string> availableExtensions{count};
         
-        cout << "Available extensions:" << endl;
+        cout << "Available instance extensions:" << endl;
         for (const auto& extension : extensions) {
             cout << "\t" << extension.extensionName << endl;
             availableExtensions.insert(extension.extensionName);
         }
         cout << endl;
         
-        cout << "Required extensions:" << endl;
+        cout << "Required instance extensions:" << endl;
+        for (const auto& extension : requiredExtensions)
+            cout << "\t" << extension << endl;
+        cout << endl;
+        
+        checkRequirements(availableExtensions, requiredExtensions);
+    }
+    
+    void checkDeviceExtensionSupport(const VkPhysicalDevice& physicalDevice,
+                                     const vector<string>& requiredExtensions) {
+        uint32_t count;
+        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &count, nullptr);
+        vector<VkExtensionProperties> extensions{count};
+        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &count, extensions.data());
+        unordered_set<string> availableExtensions{count};
+        
+        cout << "Available device extensions:" << endl;
+        for (const auto& extension : extensions) {
+            cout << "\t" << extension.extensionName << endl;
+            availableExtensions.insert(extension.extensionName);
+        }
+        cout << endl;
+        
+        cout << "Required device extensions:" << endl;
         for (const auto& extension : requiredExtensions)
             cout << "\t" << extension << endl;
         cout << endl;
