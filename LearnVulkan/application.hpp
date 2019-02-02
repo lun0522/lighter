@@ -68,9 +68,9 @@ private:
         createInstance();                   // establish connection with Vulkan library
 #ifdef DEBUG
         Validation::createDebugCallback(    // relay debug messages back to application
-                                        instance, &callback, nullptr,
-                                        Validation::WARNING | Validation::ERROR,
-                                        Validation::GENERAL | Validation::VALIDATION | Validation::PERFORMANCE);
+            instance, &callback, nullptr,
+            Validation::WARNING | Validation::ERROR,
+            Validation::GENERAL | Validation::VALIDATION | Validation::PERFORMANCE);
 #endif /* DEBUG */
         createSurface();                    // interface with window system (not needed for off-screen rendering)
         pickPhysicalDevice();               // select graphics card to use

@@ -20,14 +20,17 @@ namespace VulkanWrappers {
                                         const VkPhysicalDevice &device) {
         try {
             cout << "Checking extension support required for swap chain..." << endl << endl;
-            const auto enumerate = [&](uint32_t *count, VkExtensionProperties *properties) {
-                return vkEnumerateDeviceExtensionProperties(device, nullptr, count, properties);
+            
+            vector<string> required{requiredExtensions.begin(), requiredExtensions.end()};
+            auto extensions {Utils::queryAttribute<VkExtensionProperties>
+                ([&device](uint32_t *count, VkExtensionProperties *properties) {
+                    return vkEnumerateDeviceExtensionProperties(device, nullptr, count, properties);
+                })
             };
-            const auto getName = [](const VkExtensionProperties &property) -> const char* {
+            auto getName = [](const VkExtensionProperties &property) -> const char* {
                 return property.extensionName;
             };
-            vector<string> required{requiredExtensions.begin(), requiredExtensions.end()};
-            Utils::checkSupport<VkExtensionProperties>(required, enumerate, getName);
+            Utils::checkSupport<VkExtensionProperties>(required, extensions, getName);
         } catch (const exception &e) {
             return false;
         }
@@ -97,17 +100,19 @@ namespace VulkanWrappers {
         VkExtent2D extent = chooseSwapExtent(surfaceCapabilities, currentExtent);
         
         // surface formats
-        uint32_t formatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
-        vector<VkSurfaceFormatKHR> surfaceFormats{formatCount};
-        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, surfaceFormats.data());
+        auto surfaceFormats{Utils::queryAttribute<VkSurfaceFormatKHR>
+            ([&surface, &physicalDevice](uint32_t *count, VkSurfaceFormatKHR *formats) {
+                return vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, count, formats);
+            })
+        };
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(surfaceFormats);
         
         // present modes
-        uint32_t modeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &modeCount, nullptr);
-        vector<VkPresentModeKHR> presentModes{modeCount};
-        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &modeCount, presentModes.data());
+        auto presentModes{Utils::queryAttribute<VkPresentModeKHR>
+            ([&surface, &physicalDevice](uint32_t *count, VkPresentModeKHR *modes) {
+                return vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, count, modes);
+            })
+        };
         VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes);
         
         // how many images we want to have in swap chain

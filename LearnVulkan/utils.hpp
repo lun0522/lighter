@@ -17,18 +17,22 @@
 namespace Utils {
     using namespace std;
     
-    template<typename PropertyType>
-    void checkSupport(const vector<string> &required,
-                      const function<void (uint32_t*, PropertyType*)> &enumerate,
-                      const function<const char* (const PropertyType&)> &getName) {
+    template<typename AttribType>
+    vector<AttribType> queryAttribute(const function<void (uint32_t*, AttribType*)> &enumerate) {
         uint32_t count;
         enumerate(&count, nullptr);
-        vector<PropertyType> properties{count};
-        enumerate(&count, properties.data());
-        
-        unordered_set<string> available{count};
-        for (const auto &prop : properties)
-            available.insert(getName(prop));
+        vector<AttribType> attribs{count};
+        enumerate(&count, attribs.data());
+        return attribs;
+    }
+    
+    template<typename AttribType>
+    void checkSupport(const vector<string> &required,
+                      const vector<AttribType> &attribs,
+                      const function<const char* (const AttribType&)> &getName) {
+        unordered_set<string> available{attribs.size()};
+        for (const auto &atr : attribs)
+            available.insert(getName(atr));
         
         cout << "Available:" << endl;
         for (const auto &avl : available)

@@ -18,32 +18,32 @@
 namespace Validation {
     const vector<const char*> validationLayers{"VK_LAYER_LUNARG_standard_validation"};
     
-    void checkInstanceExtensionSupport(const vector<string>& requiredExtensions) {
+    void checkInstanceExtensionSupport(const vector<string>& required) {
         cout << "Checking instance extension support..." << endl << endl;
         
-        const auto enumerate = [](uint32_t *count, VkExtensionProperties *properties) {
-            return vkEnumerateInstanceExtensionProperties(nullptr, count, properties);
+        auto properties {Utils::queryAttribute<VkExtensionProperties>
+            ([](uint32_t *count, VkExtensionProperties *properties) {
+                return vkEnumerateInstanceExtensionProperties(nullptr, count, properties);
+            })
         };
-        
-        const auto getName = [](const VkExtensionProperties &property) -> const char* {
+        auto getName = [](const VkExtensionProperties &property) -> const char* {
             return property.extensionName;
         };
-        
-        Utils::checkSupport<VkExtensionProperties>(requiredExtensions, enumerate, getName);
+        Utils::checkSupport<VkExtensionProperties>(required, properties, getName);
     }
     
-    void checkValidationLayerSupport(const vector<string>& requiredLayers) {
+    void checkValidationLayerSupport(const vector<string>& required) {
         cout << "Checking validation layer support..." << endl << endl;
         
-        const auto enumerate = [](uint32_t *count, VkLayerProperties *properties) {
-            return vkEnumerateInstanceLayerProperties(count, properties);
+        auto properties {Utils::queryAttribute<VkLayerProperties>
+            ([](uint32_t *count, VkLayerProperties *properties) {
+                return vkEnumerateInstanceLayerProperties(count, properties);
+            })
         };
-        
-        const auto getName = [](const VkLayerProperties &property) -> const char* {
+        auto getName = [](const VkLayerProperties &property) -> const char* {
             return property.layerName;
         };
-        
-        Utils::checkSupport<VkLayerProperties>(requiredLayers, enumerate, getName);
+        Utils::checkSupport<VkLayerProperties>(required, properties, getName);
     }
     
     VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(

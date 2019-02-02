@@ -12,6 +12,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "utils.hpp"
+
 using namespace std;
 
 #ifdef DEBUG
@@ -83,15 +85,16 @@ bool isDeviceSuitable(const VkPhysicalDevice& device,
     vkGetPhysicalDeviceFeatures(device, &features);
     
     // find queue family that holds graphics queue
-    uint32_t count;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &count, nullptr);
-    vector<VkQueueFamilyProperties> families{count};
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &count, families.data());
+    auto families{Utils::queryAttribute<VkQueueFamilyProperties>
+        ([&device](uint32_t *count, VkQueueFamilyProperties *properties) {
+            return vkGetPhysicalDeviceQueueFamilyProperties(device, count, properties);
+        })
+    };
     
     VulkanApplication::QueueFamilyIndices candidates;
-    
     bool found = false;
-    for (uint32_t i = 0; i < count; ++i) {
+    
+    for (uint32_t i = 0; i < families.size(); ++i) {
         if (families[i].queueCount && families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             candidates.graphicsFamily = i;
             found = true;
@@ -100,7 +103,7 @@ bool isDeviceSuitable(const VkPhysicalDevice& device,
     }
     if (!found) return false;
     
-    for (uint32_t i = 0; i < count; ++i) {
+    for (uint32_t i = 0; i < families.size(); ++i) {
         if (families[i].queueCount) {
             VkBool32 presentSupport = false;
             vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
@@ -115,10 +118,11 @@ bool isDeviceSuitable(const VkPhysicalDevice& device,
 }
 
 void VulkanApplication::pickPhysicalDevice() {
-    uint32_t count;
-    vkEnumeratePhysicalDevices(instance, &count, nullptr);
-    vector<VkPhysicalDevice> devices{count};
-    vkEnumeratePhysicalDevices(instance, &count, devices.data());
+    auto devices{Utils::queryAttribute<VkPhysicalDevice>
+        ([this](uint32_t *count, VkPhysicalDevice *devices) {
+            return vkEnumeratePhysicalDevices(instance, count, devices);
+        })
+    };
     
     for (const auto& candidate : devices) {
         if (isDeviceSuitable(candidate, surface, indices)) {
@@ -148,7 +152,7 @@ void VulkanApplication::createLogicalDevice() {
     
     VkDeviceCreateInfo deviceInfo{};
     deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    deviceInfo.queueCreateInfoCount = (uint32_t)queueInfos.size();
+    deviceInfo.queueCreateInfoCount = static_cast<uint32_t>(queueInfos.size());
     deviceInfo.pQueueCreateInfos = queueInfos.data();
     deviceInfo.pEnabledFeatures = &features;
     deviceInfo.enabledExtensionCount = static_cast<uint32_t>(SwapChain::requiredExtensions.size());
