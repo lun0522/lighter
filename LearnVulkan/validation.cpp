@@ -16,36 +16,13 @@
 #include "utils.hpp"
 
 namespace Validation {
-    const vector<const char*> swapChainExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
     const vector<const char*> validationLayers{"VK_LAYER_LUNARG_standard_validation"};
-    
-    void checkRequirements(const unordered_set<string>& available,
-                           const vector<string>& required) {
-        for (const auto& req : required)
-            if (available.find(req) == available.end())
-                throw runtime_error{"Requirement not satisfied: " + req};
-    }
     
     void checkInstanceExtensionSupport(const vector<string>& requiredExtensions) {
         cout << "Checking instance extension support..." << endl << endl;
         
         const auto enumerate = [](uint32_t *count, VkExtensionProperties *properties) {
             return vkEnumerateInstanceExtensionProperties(nullptr, count, properties);
-        };
-        
-        const auto getName = [](const VkExtensionProperties &property) -> const char* {
-            return property.extensionName;
-        };
-        
-        Utils::checkSupport<VkExtensionProperties>(requiredExtensions, enumerate, getName);
-    }
-    
-    void checkDeviceExtensionSupport(const VkPhysicalDevice& physicalDevice,
-                                     const vector<string>& requiredExtensions) {
-        cout << "Checking device extension support..." << endl << endl;
-        
-        const auto enumerate = [&](uint32_t *count, VkExtensionProperties *properties) {
-            return vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, count, properties);
         };
         
         const auto getName = [](const VkExtensionProperties &property) -> const char* {

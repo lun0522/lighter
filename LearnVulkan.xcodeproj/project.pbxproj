@@ -13,6 +13,8 @@
 		BD34960521AF3F4500F4C000 /* libglfw.3.3.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		BD5F5F1121FA43DD006BD2AC /* libvulkan.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */; };
 		BD5F5F1221FA43E0006BD2AC /* libvulkan.1.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		BDA11AB12206323F003092B8 /* swapchain.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BDA11AAF2206323F003092B8 /* swapchain.cpp */; };
+		BDA11AB422064E07003092B8 /* application.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BDA11AB222064E07003092B8 /* application.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -38,6 +40,10 @@
 		BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libglfw.3.3.dylib; path = "../../../../../usr/local/Cellar/glfw/HEAD-bb2ca1d/lib/libglfw.3.3.dylib"; sourceTree = "<group>"; };
 		BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libvulkan.1.dylib; path = ../libs/vulkan/macOS/lib/libvulkan.1.dylib; sourceTree = "<group>"; };
 		BDA11AAD22061C7B003092B8 /* utils.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = utils.hpp; sourceTree = "<group>"; };
+		BDA11AAF2206323F003092B8 /* swapchain.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = swapchain.cpp; sourceTree = "<group>"; };
+		BDA11AB02206323F003092B8 /* swapchain.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = swapchain.hpp; sourceTree = "<group>"; };
+		BDA11AB222064E07003092B8 /* application.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = application.cpp; sourceTree = "<group>"; };
+		BDA11AB322064E07003092B8 /* application.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = application.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,6 +80,10 @@
 			isa = PBXGroup;
 			children = (
 				BD2435A021AD9B1C00027627 /* main.cpp */,
+				BDA11AB322064E07003092B8 /* application.hpp */,
+				BDA11AB222064E07003092B8 /* application.cpp */,
+				BDA11AB02206323F003092B8 /* swapchain.hpp */,
+				BDA11AAF2206323F003092B8 /* swapchain.cpp */,
 				BD30819B21B1929300F30C2C /* validation.hpp */,
 				BD30819A21B1929300F30C2C /* validation.cpp */,
 				BDA11AAD22061C7B003092B8 /* utils.hpp */,
@@ -146,7 +156,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BDA11AB422064E07003092B8 /* application.cpp in Sources */,
 				BD2435A121AD9B1C00027627 /* main.cpp in Sources */,
+				BDA11AB12206323F003092B8 /* swapchain.cpp in Sources */,
 				BD30819C21B1929300F30C2C /* validation.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
