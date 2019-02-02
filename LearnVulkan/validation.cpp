@@ -13,6 +13,8 @@
 #include <iostream>
 #include <unordered_set>
 
+#include "utils.hpp"
+
 namespace Validation {
     const vector<const char*> swapChainExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
     const vector<const char*> validationLayers{"VK_LAYER_LUNARG_standard_validation"};
@@ -25,70 +27,46 @@ namespace Validation {
     }
     
     void checkInstanceExtensionSupport(const vector<string>& requiredExtensions) {
-        uint32_t count;
-        vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
-        vector<VkExtensionProperties> extensions{count};
-        vkEnumerateInstanceExtensionProperties(nullptr, &count, extensions.data());
-        unordered_set<string> availableExtensions{count};
+        cout << "Checking instance extension support..." << endl << endl;
         
-        cout << "Available instance extensions:" << endl;
-        for (const auto& extension : extensions) {
-            cout << "\t" << extension.extensionName << endl;
-            availableExtensions.insert(extension.extensionName);
-        }
-        cout << endl;
+        const auto enumerate = [](uint32_t *count, VkExtensionProperties *properties) {
+            return vkEnumerateInstanceExtensionProperties(nullptr, count, properties);
+        };
         
-        cout << "Required instance extensions:" << endl;
-        for (const auto& extension : requiredExtensions)
-            cout << "\t" << extension << endl;
-        cout << endl;
+        const auto getName = [](const VkExtensionProperties &property) -> const char* {
+            return property.extensionName;
+        };
         
-        checkRequirements(availableExtensions, requiredExtensions);
+        Utils::checkSupport<VkExtensionProperties>(requiredExtensions, enumerate, getName);
     }
     
     void checkDeviceExtensionSupport(const VkPhysicalDevice& physicalDevice,
                                      const vector<string>& requiredExtensions) {
-        uint32_t count;
-        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &count, nullptr);
-        vector<VkExtensionProperties> extensions{count};
-        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &count, extensions.data());
-        unordered_set<string> availableExtensions{count};
+        cout << "Checking device extension support..." << endl << endl;
         
-        cout << "Available device extensions:" << endl;
-        for (const auto& extension : extensions) {
-            cout << "\t" << extension.extensionName << endl;
-            availableExtensions.insert(extension.extensionName);
-        }
-        cout << endl;
+        const auto enumerate = [&](uint32_t *count, VkExtensionProperties *properties) {
+            return vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, count, properties);
+        };
         
-        cout << "Required device extensions:" << endl;
-        for (const auto& extension : requiredExtensions)
-            cout << "\t" << extension << endl;
-        cout << endl;
+        const auto getName = [](const VkExtensionProperties &property) -> const char* {
+            return property.extensionName;
+        };
         
-        checkRequirements(availableExtensions, requiredExtensions);
+        Utils::checkSupport<VkExtensionProperties>(requiredExtensions, enumerate, getName);
     }
     
     void checkValidationLayerSupport(const vector<string>& requiredLayers) {
-        uint32_t count;
-        vkEnumerateInstanceLayerProperties(&count, nullptr);
-        vector<VkLayerProperties> layers{count};
-        vkEnumerateInstanceLayerProperties(&count, layers.data());
-        unordered_set<string> availableLayers{count};
+        cout << "Checking validation layer support..." << endl << endl;
         
-        cout << "Available validation layers:" << endl;
-        for (const auto& layer : layers) {
-            cout << "\t" << layer.layerName << endl;
-            availableLayers.insert(layer.layerName);
-        }
-        cout << endl;
+        const auto enumerate = [](uint32_t *count, VkLayerProperties *properties) {
+            return vkEnumerateInstanceLayerProperties(count, properties);
+        };
         
-        cout << "Required validation layers:" << endl;
-        for (const auto& layer : requiredLayers)
-            cout << "\t" << layer << endl;
-        cout << endl;
+        const auto getName = [](const VkLayerProperties &property) -> const char* {
+            return property.layerName;
+        };
         
-        checkRequirements(availableLayers, requiredLayers);
+        Utils::checkSupport<VkLayerProperties>(requiredLayers, enumerate, getName);
     }
     
     VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(

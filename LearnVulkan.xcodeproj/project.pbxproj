@@ -37,6 +37,7 @@
 		BD30819B21B1929300F30C2C /* validation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = validation.hpp; sourceTree = "<group>"; };
 		BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libglfw.3.3.dylib; path = "../../../../../usr/local/Cellar/glfw/HEAD-bb2ca1d/lib/libglfw.3.3.dylib"; sourceTree = "<group>"; };
 		BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libvulkan.1.dylib; path = ../libs/vulkan/macOS/lib/libvulkan.1.dylib; sourceTree = "<group>"; };
+		BDA11AAD22061C7B003092B8 /* utils.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = utils.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -75,6 +76,7 @@
 				BD2435A021AD9B1C00027627 /* main.cpp */,
 				BD30819B21B1929300F30C2C /* validation.hpp */,
 				BD30819A21B1929300F30C2C /* validation.cpp */,
+				BDA11AAD22061C7B003092B8 /* utils.hpp */,
 			);
 			path = LearnVulkan;
 			sourceTree = "<group>";
