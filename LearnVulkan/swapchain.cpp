@@ -150,17 +150,48 @@ namespace VulkanWrappers {
         
         if (vkCreateSwapchainKHR(device, &swapChainInfo, nullptr, &swapChain) != VK_SUCCESS)
             throw runtime_error{"Failed to create swap chain"};
-
-        // image count might be different since we only set a minimum
-        vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
-        swapChainImages.resize(imageCount);
-        vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
         
-        swapChainImageFormat = surfaceFormat.format;
-        swapChainExtent = extent;
+        imageFormat = surfaceFormat.format;
+        imageExtent = extent;
+        createImages();
+    }
+    
+    void SwapChain::createImages() {
+        // image count might be different since previously we only set a minimum
+        uint32_t imageCount;
+        vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
+        images.resize(imageCount);
+        vkGetSwapchainImagesKHR(device, swapChain, &imageCount, images.data());
+        
+        // use image view to specify how will we use these images
+        // (color, depth, stencil, etc)
+        imageViews.resize(imageCount);
+        for (uint32_t i = 0; i < imageCount; ++i) {
+            VkImageViewCreateInfo imageViewInfo{};
+            imageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            imageViewInfo.image = images[i];
+            imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D; // 1D, 2D, 3D, cube maps
+            imageViewInfo.format = imageFormat;
+            // `components` enables swizzling color channels around
+            imageViewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+            imageViewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+            imageViewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+            imageViewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+            // `subresourceRange` specifies image's purpose and which part should be accessed
+            imageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            imageViewInfo.subresourceRange.baseMipLevel = 0;
+            imageViewInfo.subresourceRange.levelCount = 1;
+            imageViewInfo.subresourceRange.baseArrayLayer = 0;
+            imageViewInfo.subresourceRange.layerCount = 1;
+            
+            if (vkCreateImageView(device, &imageViewInfo, nullptr, &imageViews[i]) != VK_SUCCESS)
+                throw runtime_error{"Failed to create image view"};
+        }
     }
     
     SwapChain::~SwapChain() {
+        for (const auto& imageView : imageViews)
+            vkDestroyImageView(device, imageView, nullptr);
         vkDestroySwapchainKHR(device, swapChain, nullptr);
     }
 }

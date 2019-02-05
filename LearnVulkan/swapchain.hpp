@@ -21,9 +21,11 @@ namespace VulkanWrappers {
     class SwapChain {
         const VkDevice &device;
         VkSwapchainKHR swapChain;
-        vector<VkImage> swapChainImages;
-        VkFormat swapChainImageFormat;
-        VkExtent2D swapChainExtent;
+        vector<VkImage> images;
+        vector<VkImageView> imageViews;
+        VkFormat imageFormat;
+        VkExtent2D imageExtent;
+        void createImages();
     public:
         static const vector<const char*> requiredExtensions;
         static bool hasSwapChainSupport(const VkSurfaceKHR &surface,
