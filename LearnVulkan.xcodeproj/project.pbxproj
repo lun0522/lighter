@@ -141,7 +141,6 @@
 				BD24359921AD9B1C00027627 /* Sources */,
 				BD24359A21AD9B1C00027627 /* Frameworks */,
 				BD24359B21AD9B1C00027627 /* Copy Files */,
-				BDA71388220AA211007FD13C /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -182,27 +181,6 @@
 			);
 		};
 /* End PBXProject section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		BDA71388220AA211007FD13C /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "
-";
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		BD24359921AD9B1C00027627 /* Sources */ = {
