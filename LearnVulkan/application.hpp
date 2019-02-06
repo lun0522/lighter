@@ -76,6 +76,7 @@ private:
         pickPhysicalDevice();               // select graphics card to use
         createLogicalDevice();              // interface with physical device
         createSwapChain();                  // queue of images to present to screen
+        createGraphicsPipeline();
     }
     
     void cleanup() {
@@ -95,6 +96,7 @@ private:
     void pickPhysicalDevice();
     void createLogicalDevice();
     void createSwapChain();
+    void createGraphicsPipeline();
 };
 
 #endif /* application_hpp */

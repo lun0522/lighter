@@ -72,6 +72,16 @@
             value = "/Users/lun/Desktop/Code/libs/vulkan/macOS/etc/vulkan/icd.d/MoltenVK_icd.json"
             isEnabled = "YES">
          </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "VK_GLSL_VALIDATOR"
+            value = "/Users/lun/Desktop/Code/libs/vulkan/macOS/bin/glslangValidator"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "SHADERS_DIR"
+            value = "/Users/lun/Desktop/Code/LearnVulkan/LearnVulkan/shaders"
+            isEnabled = "YES">
+         </EnvironmentVariable>
       </EnvironmentVariables>
       <AdditionalOptions>
       </AdditionalOptions>

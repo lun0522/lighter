@@ -10,11 +10,14 @@
 		BD2435A121AD9B1C00027627 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BD2435A021AD9B1C00027627 /* main.cpp */; };
 		BD30819C21B1929300F30C2C /* validation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BD30819A21B1929300F30C2C /* validation.cpp */; };
 		BD34960421AF3F4000F4C000 /* libglfw.3.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */; };
-		BD34960521AF3F4500F4C000 /* libglfw.3.3.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		BD34960521AF3F4500F4C000 /* libglfw.3.3.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */; };
 		BD5F5F1121FA43DD006BD2AC /* libvulkan.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */; };
-		BD5F5F1221FA43E0006BD2AC /* libvulkan.1.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		BD5F5F1221FA43E0006BD2AC /* libvulkan.1.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */; };
 		BDA11AB12206323F003092B8 /* swapchain.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BDA11AAF2206323F003092B8 /* swapchain.cpp */; };
 		BDA11AB422064E07003092B8 /* application.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BDA11AB222064E07003092B8 /* application.cpp */; };
+		BDA71392220AA6E0007FD13C /* triangle.frag.spv in Copy Files */ = {isa = PBXBuildFile; fileRef = BDA71390220AA6D7007FD13C /* triangle.frag.spv */; };
+		BDA71393220AA6E0007FD13C /* triangle.vert.spv in Copy Files */ = {isa = PBXBuildFile; fileRef = BDA71391220AA6D7007FD13C /* triangle.vert.spv */; };
+		BDA71395220AB1E2007FD13C /* utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BDA71394220AB1E2007FD13C /* utils.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -22,8 +25,10 @@
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 12;
 			dstPath = "";
-			dstSubfolderSpec = 10;
+			dstSubfolderSpec = 7;
 			files = (
+				BDA71392220AA6E0007FD13C /* triangle.frag.spv in Copy Files */,
+				BDA71393220AA6E0007FD13C /* triangle.vert.spv in Copy Files */,
 				BD5F5F1221FA43E0006BD2AC /* libvulkan.1.dylib in Copy Files */,
 				BD34960521AF3F4500F4C000 /* libglfw.3.3.dylib in Copy Files */,
 			);
@@ -44,6 +49,11 @@
 		BDA11AB02206323F003092B8 /* swapchain.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = swapchain.hpp; sourceTree = "<group>"; };
 		BDA11AB222064E07003092B8 /* application.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = application.cpp; sourceTree = "<group>"; };
 		BDA11AB322064E07003092B8 /* application.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = application.hpp; sourceTree = "<group>"; };
+		BDA71386220A9997007FD13C /* triangle.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = triangle.vert; sourceTree = "<group>"; };
+		BDA71387220A9A90007FD13C /* triangle.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = triangle.frag; sourceTree = "<group>"; };
+		BDA71390220AA6D7007FD13C /* triangle.frag.spv */ = {isa = PBXFileReference; lastKnownFileType = file; path = triangle.frag.spv; sourceTree = "<group>"; };
+		BDA71391220AA6D7007FD13C /* triangle.vert.spv */ = {isa = PBXFileReference; lastKnownFileType = file; path = triangle.vert.spv; sourceTree = "<group>"; };
+		BDA71394220AB1E2007FD13C /* utils.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = utils.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -87,6 +97,9 @@
 				BD30819B21B1929300F30C2C /* validation.hpp */,
 				BD30819A21B1929300F30C2C /* validation.cpp */,
 				BDA11AAD22061C7B003092B8 /* utils.hpp */,
+				BDA71394220AB1E2007FD13C /* utils.cpp */,
+				BDA71385220A96B5007FD13C /* shaders */,
+				BDA7138F220AA6B2007FD13C /* compiled */,
 			);
 			path = LearnVulkan;
 			sourceTree = "<group>";
@@ -100,6 +113,24 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		BDA71385220A96B5007FD13C /* shaders */ = {
+			isa = PBXGroup;
+			children = (
+				BDA71386220A9997007FD13C /* triangle.vert */,
+				BDA71387220A9A90007FD13C /* triangle.frag */,
+			);
+			path = shaders;
+			sourceTree = "<group>";
+		};
+		BDA7138F220AA6B2007FD13C /* compiled */ = {
+			isa = PBXGroup;
+			children = (
+				BDA71391220AA6D7007FD13C /* triangle.vert.spv */,
+				BDA71390220AA6D7007FD13C /* triangle.frag.spv */,
+			);
+			path = compiled;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -110,6 +141,7 @@
 				BD24359921AD9B1C00027627 /* Sources */,
 				BD24359A21AD9B1C00027627 /* Frameworks */,
 				BD24359B21AD9B1C00027627 /* Copy Files */,
+				BDA71388220AA211007FD13C /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -151,12 +183,34 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		BDA71388220AA211007FD13C /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "
+";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		BD24359921AD9B1C00027627 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				BDA11AB422064E07003092B8 /* application.cpp in Sources */,
+				BDA71395220AB1E2007FD13C /* utils.cpp in Sources */,
 				BD2435A121AD9B1C00027627 /* main.cpp in Sources */,
 				BDA11AB12206323F003092B8 /* swapchain.cpp in Sources */,
 				BD30819C21B1929300F30C2C /* validation.cpp in Sources */,
