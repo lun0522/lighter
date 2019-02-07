@@ -35,6 +35,7 @@ namespace VulkanWrappers {
                   const VkPhysicalDevice &physicalDevice,
                   VkExtent2D currentExtent,
                   const unordered_set<uint32_t> &queueFamilies);
+        VkExtent2D extent() const { return imageExtent; }
         ~SwapChain();
     };
 }

@@ -27,7 +27,7 @@ void VulkanApplication::createInstance() {
 #endif /* DEBUG */
     
     uint32_t glfwExtensionCount;
-    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    const char **glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
     
 #ifdef DEBUG
     vector<const char*> requiredExtensions{glfwExtensions, glfwExtensions + glfwExtensionCount};
@@ -69,9 +69,9 @@ void VulkanApplication::createSurface() {
         throw runtime_error{"Failed to create window surface"};
 }
 
-bool isDeviceSuitable(const VkPhysicalDevice& device,
-                      const VkSurfaceKHR& surface,
-                      VulkanApplication::QueueFamilyIndices& indices) {
+bool isDeviceSuitable(const VkPhysicalDevice &device,
+                      const VkSurfaceKHR &surface,
+                      VulkanApplication::QueueFamilyIndices &indices) {
     // require swap chain support
     if (!SwapChain::hasSwapChainSupport(surface, device))
         return false;
@@ -124,7 +124,7 @@ void VulkanApplication::pickPhysicalDevice() {
         })
     };
     
-    for (const auto& candidate : devices) {
+    for (const auto &candidate : devices) {
         if (isDeviceSuitable(candidate, surface, indices)) {
             physicalDevice = candidate;
             return;
@@ -177,46 +177,6 @@ void VulkanApplication::createSwapChain() {
         {indices.graphicsFamily, indices.presentFamily}};
 }
 
-namespace {
-    VkShaderModule createShaderModule(const VkDevice& device, const vector<char>& code) {
-        VkShaderModuleCreateInfo shaderModuleInfo{};
-        shaderModuleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        shaderModuleInfo.codeSize = code.size();
-        shaderModuleInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-        
-        VkShaderModule shaderModule{};
-        if (vkCreateShaderModule(device, &shaderModuleInfo, nullptr, &shaderModule) != VK_SUCCESS)
-            throw runtime_error{"Failed to create shader module"};
-        
-        return shaderModule;
-    }
-}
-
 void VulkanApplication::createGraphicsPipeline() {
-    vector<char> vertCode = Utils::readFile("triangle.vert.spv");
-    vector<char> fragCode = Utils::readFile("triangle.frag.spv");
-    
-    VkShaderModule vertShaderModule = createShaderModule(device, vertCode);
-    VkShaderModule fragShaderModule = createShaderModule(device, fragCode);
-    
-    VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageInfo.module = vertShaderModule;
-    vertShaderStageInfo.pName = "main"; // entry point of this shader
-    // may use .pSpecializationInfo to specify shader constants
-    
-    VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageInfo.module = fragShaderModule;
-    fragShaderStageInfo.pName = "main"; // entry point of this shader
-    
-    VkPipelineShaderStageCreateInfo shaderStages[] = {
-        vertShaderStageInfo,
-        fragShaderStageInfo,
-    };
-    
-    vkDestroyShaderModule(device, vertShaderModule, nullptr);
-    vkDestroyShaderModule(device, fragShaderModule, nullptr);
+    pipeline = new Pipeline{device, swapChain->extent()};
 }

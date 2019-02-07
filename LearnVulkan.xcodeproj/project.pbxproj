@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BD151CB4220BF9A300A6FC75 /* pipeline.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BD151CB2220BF9A300A6FC75 /* pipeline.cpp */; };
 		BD2435A121AD9B1C00027627 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BD2435A021AD9B1C00027627 /* main.cpp */; };
 		BD30819C21B1929300F30C2C /* validation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BD30819A21B1929300F30C2C /* validation.cpp */; };
 		BD34960421AF3F4000F4C000 /* libglfw.3.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */; };
@@ -38,6 +39,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		BD151CB2220BF9A300A6FC75 /* pipeline.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = pipeline.cpp; sourceTree = "<group>"; };
+		BD151CB3220BF9A300A6FC75 /* pipeline.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = pipeline.hpp; sourceTree = "<group>"; };
 		BD24359D21AD9B1C00027627 /* LearnVulkan */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = LearnVulkan; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD2435A021AD9B1C00027627 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		BD30819A21B1929300F30C2C /* validation.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = validation.cpp; sourceTree = "<group>"; };
@@ -92,6 +95,8 @@
 				BD2435A021AD9B1C00027627 /* main.cpp */,
 				BDA11AB322064E07003092B8 /* application.hpp */,
 				BDA11AB222064E07003092B8 /* application.cpp */,
+				BD151CB3220BF9A300A6FC75 /* pipeline.hpp */,
+				BD151CB2220BF9A300A6FC75 /* pipeline.cpp */,
 				BDA11AB02206323F003092B8 /* swapchain.hpp */,
 				BDA11AAF2206323F003092B8 /* swapchain.cpp */,
 				BD30819B21B1929300F30C2C /* validation.hpp */,
@@ -190,6 +195,7 @@
 				BDA11AB422064E07003092B8 /* application.cpp in Sources */,
 				BDA71395220AB1E2007FD13C /* utils.cpp in Sources */,
 				BD2435A121AD9B1C00027627 /* main.cpp in Sources */,
+				BD151CB4220BF9A300A6FC75 /* pipeline.cpp in Sources */,
 				BDA11AB12206323F003092B8 /* swapchain.cpp in Sources */,
 				BD30819C21B1929300F30C2C /* validation.cpp in Sources */,
 			);

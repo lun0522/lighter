@@ -190,7 +190,7 @@ namespace VulkanWrappers {
     }
     
     SwapChain::~SwapChain() {
-        for (const auto& imageView : imageViews)
+        for (const auto &imageView : imageViews)
             vkDestroyImageView(device, imageView, nullptr);
         vkDestroySwapchainKHR(device, swapChain, nullptr);
     }

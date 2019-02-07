@@ -13,9 +13,11 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
 
+#include "pipeline.hpp"
 #include "swapchain.hpp"
 #include "validation.hpp"
 
+using VulkanWrappers::Pipeline;
 using VulkanWrappers::SwapChain;
 
 class VulkanApplication {
@@ -36,6 +38,7 @@ private:
     VkQueue presentQueue;
     QueueFamilyIndices indices;
     SwapChain *swapChain;
+    Pipeline *pipeline;
     
 #ifdef DEBUG
     VkDebugUtilsMessengerEXT callback;
@@ -84,6 +87,7 @@ private:
         Validation::destroyDebugCallback(instance, &callback, nullptr);
 #endif /* DEBUG */
         delete swapChain;
+        delete pipeline;
         vkDestroyDevice(device, nullptr);
         vkDestroySurfaceKHR(instance, surface, nullptr);
         vkDestroyInstance(instance, nullptr);

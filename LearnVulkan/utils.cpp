@@ -9,7 +9,7 @@
 #include "utils.hpp"
 
 namespace Utils {
-    vector<char> readFile(const string& filename) {
+    vector<char> readFile(const string &filename) {
         // ios::ate means start reading from end of file
         // so that we know how large buffer do we need
         ifstream file{filename, ios::ate | ios::binary};

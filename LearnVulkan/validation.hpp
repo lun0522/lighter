@@ -32,16 +32,16 @@ namespace Validation {
     
     extern const vector<const char*> validationLayers;
     
-    void checkInstanceExtensionSupport(const vector<string>& requiredExtensions);
-    void checkValidationLayerSupport(const vector<string>& requiredLayers);
-    void createDebugCallback(const VkInstance& instance,
-                             VkDebugUtilsMessengerEXT* pCallback,
-                             const VkAllocationCallbacks* pAllocator,
+    void checkInstanceExtensionSupport(const vector<string> &requiredExtensions);
+    void checkValidationLayerSupport(const vector<string> &requiredLayers);
+    void createDebugCallback(const VkInstance &instance,
+                             VkDebugUtilsMessengerEXT *pCallback,
+                             const VkAllocationCallbacks *pAllocator,
                              int messageSeverity,
                              int messageType);
-    void destroyDebugCallback(const VkInstance& instance,
-                              const VkDebugUtilsMessengerEXT* pCallback,
-                              const VkAllocationCallbacks* pAllocator);
+    void destroyDebugCallback(const VkInstance &instance,
+                              const VkDebugUtilsMessengerEXT *pCallback,
+                              const VkAllocationCallbacks *pAllocator);
 }
 
 #endif /* VALIDATION_HPP */
