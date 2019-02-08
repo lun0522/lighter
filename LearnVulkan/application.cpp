@@ -177,6 +177,10 @@ void VulkanApplication::createSwapChain() {
         {indices.graphicsFamily, indices.presentFamily}};
 }
 
+void VulkanApplication::createRenderPass() {
+    renderPass = new RenderPass{device, swapChain->format()};
+}
+
 void VulkanApplication::createGraphicsPipeline() {
-    pipeline = new Pipeline{device, swapChain->extent()};
+    pipeline = new Pipeline{device, renderPass->handle(), swapChain->extent()};
 }

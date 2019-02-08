@@ -14,10 +14,12 @@
 #include <vulkan/vulkan.hpp>
 
 #include "pipeline.hpp"
+#include "renderpass.hpp"
 #include "swapchain.hpp"
 #include "validation.hpp"
 
 using VulkanWrappers::Pipeline;
+using VulkanWrappers::RenderPass;
 using VulkanWrappers::SwapChain;
 
 class VulkanApplication {
@@ -37,6 +39,7 @@ private:
     VkQueue graphicsQueue;                  // implicitly cleaned up with physical device
     VkQueue presentQueue;
     QueueFamilyIndices indices;
+    RenderPass *renderPass;
     SwapChain *swapChain;
     Pipeline *pipeline;
     
@@ -79,6 +82,7 @@ private:
         pickPhysicalDevice();               // select graphics card to use
         createLogicalDevice();              // interface with physical device
         createSwapChain();                  // queue of images to present to screen
+        createRenderPass();                 // specify how to use color and depth buffers
         createGraphicsPipeline();
     }
     
@@ -87,6 +91,7 @@ private:
         Validation::destroyDebugCallback(instance, &callback, nullptr);
 #endif /* DEBUG */
         delete swapChain;
+        delete renderPass;
         delete pipeline;
         vkDestroyDevice(device, nullptr);
         vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -100,6 +105,7 @@ private:
     void pickPhysicalDevice();
     void createLogicalDevice();
     void createSwapChain();
+    void createRenderPass();
     void createGraphicsPipeline();
 };
 

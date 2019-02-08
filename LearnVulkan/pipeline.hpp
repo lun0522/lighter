@@ -11,14 +11,19 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "renderpass.hpp"
+
 namespace VulkanWrappers {
     using namespace std;
     
     class Pipeline {
         const VkDevice &device;
         VkPipelineLayout layout;
+        VkPipeline pipeline;
     public:
-        Pipeline(const VkDevice &device, VkExtent2D currentExtent);
+        Pipeline(const VkDevice &device,
+                 const VkRenderPass &renderPass,
+                 VkExtent2D currentExtent);
         ~Pipeline();
     };
 }

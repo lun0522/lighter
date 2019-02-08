@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BD098BC9220D4D2600E34A0A /* renderpass.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BD098BC7220D4D2600E34A0A /* renderpass.cpp */; };
 		BD151CB4220BF9A300A6FC75 /* pipeline.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BD151CB2220BF9A300A6FC75 /* pipeline.cpp */; };
 		BD2435A121AD9B1C00027627 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BD2435A021AD9B1C00027627 /* main.cpp */; };
 		BD30819C21B1929300F30C2C /* validation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BD30819A21B1929300F30C2C /* validation.cpp */; };
@@ -39,6 +40,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		BD098BC7220D4D2600E34A0A /* renderpass.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = renderpass.cpp; sourceTree = "<group>"; };
+		BD098BC8220D4D2600E34A0A /* renderpass.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = renderpass.hpp; sourceTree = "<group>"; };
 		BD151CB2220BF9A300A6FC75 /* pipeline.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = pipeline.cpp; sourceTree = "<group>"; };
 		BD151CB3220BF9A300A6FC75 /* pipeline.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = pipeline.hpp; sourceTree = "<group>"; };
 		BD24359D21AD9B1C00027627 /* LearnVulkan */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = LearnVulkan; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -97,6 +100,8 @@
 				BDA11AB222064E07003092B8 /* application.cpp */,
 				BD151CB3220BF9A300A6FC75 /* pipeline.hpp */,
 				BD151CB2220BF9A300A6FC75 /* pipeline.cpp */,
+				BD098BC8220D4D2600E34A0A /* renderpass.hpp */,
+				BD098BC7220D4D2600E34A0A /* renderpass.cpp */,
 				BDA11AB02206323F003092B8 /* swapchain.hpp */,
 				BDA11AAF2206323F003092B8 /* swapchain.cpp */,
 				BD30819B21B1929300F30C2C /* validation.hpp */,
@@ -198,6 +203,7 @@
 				BD151CB4220BF9A300A6FC75 /* pipeline.cpp in Sources */,
 				BDA11AB12206323F003092B8 /* swapchain.cpp in Sources */,
 				BD30819C21B1929300F30C2C /* validation.cpp in Sources */,
+				BD098BC9220D4D2600E34A0A /* renderpass.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

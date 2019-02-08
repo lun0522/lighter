@@ -26,7 +26,9 @@ namespace VulkanWrappers {
         return shaderModule;
     }
     
-    Pipeline::Pipeline(const VkDevice &device, VkExtent2D currentExtent)
+    Pipeline::Pipeline(const VkDevice &device,
+                       const VkRenderPass &renderPass,
+                       VkExtent2D currentExtent)
     : device{device} {
         vector<char> vertCode = Utils::readFile("triangle.vert.spv");
         vector<char> fragCode = Utils::readFile("triangle.frag.spv");
@@ -123,11 +125,32 @@ namespace VulkanWrappers {
         if ((vkCreatePipelineLayout(device, &layoutInfo, nullptr, &layout)) != VK_SUCCESS)
             throw runtime_error{"Failed to create pipeline layout"};
         
+        VkGraphicsPipelineCreateInfo pipelineInfo{};
+        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipelineInfo.stageCount = 2;
+        pipelineInfo.pStages = shaderStages;
+        pipelineInfo.pVertexInputState = &vertexInputInfo;
+        pipelineInfo.pInputAssemblyState = &inputAssemblyInfo;
+        pipelineInfo.pViewportState = &viewportInfo;
+        pipelineInfo.pRasterizationState = &rasterizerInfo;
+        pipelineInfo.pMultisampleState = &multisampleInfo;
+        pipelineInfo.pDepthStencilState = nullptr;
+        pipelineInfo.pColorBlendState = &colorBlendInfo;
+        pipelineInfo.pDynamicState = &dynamicStateInfo;
+        pipelineInfo.layout = layout;
+        pipelineInfo.renderPass = renderPass;
+        pipelineInfo.subpass = 0; // index of subpass where this pipeline will be used
+        // .basePipeline{Handle, Index} can be used to copy settings from another piepeline
+        
+        if ((vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS))
+            throw runtime_error{"Failed to create graphics pipeline"};
+        
         vkDestroyShaderModule(device, vertShaderModule, nullptr);
         vkDestroyShaderModule(device, fragShaderModule, nullptr);
     }
     
     Pipeline::~Pipeline() {
+        vkDestroyPipeline(device, pipeline, nullptr);
         vkDestroyPipelineLayout(device, layout, nullptr);
     }
 }
