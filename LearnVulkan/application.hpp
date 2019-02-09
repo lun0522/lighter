@@ -42,6 +42,8 @@ private:
     RenderPass *renderPass;
     SwapChain *swapChain;
     Pipeline *pipeline;
+    VkCommandPool commandPool;
+    std::vector<VkCommandBuffer> commandBuffers; // implicitly cleaned up with command pool
     
 #ifdef DEBUG
     VkDebugUtilsMessengerEXT callback;
@@ -83,16 +85,18 @@ private:
         createLogicalDevice();              // interface with physical device
         createSwapChain();                  // queue of images to present to screen
         createRenderPass();                 // specify how to use color and depth buffers
-        createGraphicsPipeline();
+        createGraphicsPipeline();           // fixed and programmable parts
+        createCommandPool();                // record all operations we want to perform in command buffers
     }
     
     void cleanup() {
 #ifdef DEBUG
         Validation::destroyDebugCallback(instance, &callback, nullptr);
 #endif /* DEBUG */
-        delete swapChain;
         delete renderPass;
+        delete swapChain;
         delete pipeline;
+        vkDestroyCommandPool(device, commandPool, nullptr);
         vkDestroyDevice(device, nullptr);
         vkDestroySurfaceKHR(instance, surface, nullptr);
         vkDestroyInstance(instance, nullptr);
@@ -107,6 +111,7 @@ private:
     void createSwapChain();
     void createRenderPass();
     void createGraphicsPipeline();
+    void createCommandPool();
 };
 
 #endif /* application_hpp */

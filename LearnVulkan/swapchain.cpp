@@ -148,8 +148,8 @@ namespace VulkanWrappers {
             swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         }
         
-        if (vkCreateSwapchainKHR(device, &swapChainInfo, nullptr, &swapChain) != VK_SUCCESS)
-            throw runtime_error{"Failed to create swap chain"};
+        ASSERT_TRUE(vkCreateSwapchainKHR(device, &swapChainInfo, nullptr, &swapChain),
+                    "Failed to create swap chain");
         
         imageFormat = surfaceFormat.format;
         imageExtent = extent;
@@ -172,20 +172,20 @@ namespace VulkanWrappers {
             imageViewInfo.image = images[i];
             imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D; // 1D, 2D, 3D, cube maps
             imageViewInfo.format = imageFormat;
-            // `components` enables swizzling color channels around
+            // .components enables swizzling color channels around
             imageViewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
             imageViewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
             imageViewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
             imageViewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-            // `subresourceRange` specifies image's purpose and which part should be accessed
+            // .subresourceRange specifies image's purpose and which part should be accessed
             imageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             imageViewInfo.subresourceRange.baseMipLevel = 0;
             imageViewInfo.subresourceRange.levelCount = 1;
             imageViewInfo.subresourceRange.baseArrayLayer = 0;
             imageViewInfo.subresourceRange.layerCount = 1;
             
-            if (vkCreateImageView(device, &imageViewInfo, nullptr, &imageViews[i]) != VK_SUCCESS)
-                throw runtime_error{"Failed to create image view"};
+            ASSERT_TRUE(vkCreateImageView(device, &imageViewInfo, nullptr, &imageViews[i]),
+                        "Failed to create image view");
         }
     }
     

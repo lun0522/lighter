@@ -8,8 +8,13 @@
 
 #include "renderpass.hpp"
 
+#include "utils.hpp"
+
 namespace VulkanWrappers {
-    RenderPass::RenderPass(const VkDevice &device, VkFormat colorAttFormat)
+    RenderPass::RenderPass(const VkDevice &device,
+                           VkFormat colorAttFormat,
+                           VkExtent2D imageExtent,
+                           const vector<VkImageView> &imageViews)
     : device{device} {
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = colorAttFormat;
@@ -41,11 +46,28 @@ namespace VulkanWrappers {
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpassDesc;
         
-        if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS)
-            throw runtime_error{"Failed to create render pass"};
+        ASSERT_TRUE(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass),
+                    "Failed to create render pass");
+        
+        framebuffers.resize(imageViews.size());
+        for (size_t i = 0; i < imageViews.size(); ++i) {
+            VkFramebufferCreateInfo framebufferInfo{};
+            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferInfo.renderPass = renderPass;
+            framebufferInfo.attachmentCount = 1;
+            framebufferInfo.pAttachments = &imageViews[i];
+            framebufferInfo.width = imageExtent.width;
+            framebufferInfo.height = imageExtent.height;
+            framebufferInfo.layers = 1;
+            
+            ASSERT_TRUE(vkCreateFramebuffer(device, &framebufferInfo, nullptr, &framebuffers[i]),
+                        "Failed to create framebuffer");
+        }
     }
     
     RenderPass::~RenderPass() {
+        for (const auto &framebuffer : framebuffers)
+            vkDestroyFramebuffer(device, framebuffer, nullptr);
         vkDestroyRenderPass(device, renderPass, nullptr);
     }
 }

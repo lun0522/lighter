@@ -60,13 +60,13 @@ void VulkanApplication::createInstance() {
     instanceInfo.enabledLayerCount = 0;
 #endif /* DEBUG */
     
-    if (vkCreateInstance(&instanceInfo, nullptr, &instance) != VK_SUCCESS)
-        throw runtime_error{"Failed to create instance"};
+    ASSERT_TRUE(vkCreateInstance(&instanceInfo, nullptr, &instance),
+                "Failed to create instance");
 }
 
 void VulkanApplication::createSurface() {
-    if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS)
-        throw runtime_error{"Failed to create window surface"};
+    ASSERT_TRUE(glfwCreateWindowSurface(instance, window, nullptr, &surface),
+                "Failed to create window surface");
 }
 
 bool isDeviceSuitable(const VkPhysicalDevice &device,
@@ -164,8 +164,8 @@ void VulkanApplication::createLogicalDevice() {
     deviceInfo.enabledLayerCount = 0;
 #endif /* DEBUG */
     
-    if (vkCreateDevice(physicalDevice, &deviceInfo, nullptr, &device) != VK_SUCCESS)
-        throw runtime_error{"Failed to create logical device"};
+    ASSERT_TRUE(vkCreateDevice(physicalDevice, &deviceInfo, nullptr, &device),
+                "Failed to create logical device");
     
     // retrieve queue handles for each queue family
     vkGetDeviceQueue(device, indices.graphicsFamily, 0, &graphicsQueue);
@@ -178,9 +178,71 @@ void VulkanApplication::createSwapChain() {
 }
 
 void VulkanApplication::createRenderPass() {
-    renderPass = new RenderPass{device, swapChain->format()};
+    renderPass = new RenderPass{device,
+        swapChain->getFormat(),
+        swapChain->getExtent(),
+        swapChain->getImageViews()};
 }
 
 void VulkanApplication::createGraphicsPipeline() {
-    pipeline = new Pipeline{device, renderPass->handle(), swapChain->extent()};
+    pipeline = new Pipeline{device,
+        renderPass->getRenderPass(),
+        swapChain->getExtent()};
+}
+
+void VulkanApplication::createCommandPool() {
+    // create command pool
+    VkCommandPoolCreateInfo commandPoolInfo{};
+    commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    commandPoolInfo.queueFamilyIndex = indices.graphicsFamily;
+    
+    ASSERT_TRUE(vkCreateCommandPool(device, &commandPoolInfo, nullptr, &commandPool),
+                "Failed to create command pool");
+    
+    // allocate command buffers
+    const auto &framebuffers = renderPass->getFramebuffers();
+    commandBuffers.resize(framebuffers.size());
+    VkCommandBufferAllocateInfo cmdAllocInfo{};
+    cmdAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cmdAllocInfo.commandPool = commandPool;
+    // secondary level command buffers can be called from primary level
+    cmdAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmdAllocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
+    
+    ASSERT_TRUE(vkAllocateCommandBuffers(device, &cmdAllocInfo, commandBuffers.data()),
+                "Failed to allocate command buffers");
+    
+    for (size_t i = 0; i < commandBuffers.size(); ++i) {
+        // start command buffer recording
+        VkCommandBufferBeginInfo cmdBeginInfo{};
+        cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+        // .pInheritanceInfo sets what to inherit from primary buffers to secondary buffers
+        
+        ASSERT_TRUE(vkBeginCommandBuffer(commandBuffers[i], &cmdBeginInfo),
+                    "Failed to begin recording command buffer");
+        
+        // start render pass
+        VkRenderPassBeginInfo rpBeginInfo{};
+        rpBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        rpBeginInfo.renderPass = renderPass->getRenderPass();
+        rpBeginInfo.framebuffer = framebuffers[i];
+        rpBeginInfo.renderArea.offset = {0, 0};
+        rpBeginInfo.renderArea.extent = swapChain->getExtent();
+        VkClearValue clearColor{0.0f, 0.0f, 0.0f, 1.0f};
+        rpBeginInfo.clearValueCount = 1;
+        rpBeginInfo.pClearValues = &clearColor; // used for VK_ATTACHMENT_LOAD_OP_CLEAR
+        
+        // record commends. options:
+        //   - VK_SUBPASS_CONTENTS_INLINE: use primary commmand buffer
+        //   - VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: use secondary
+        vkCmdBeginRenderPass(commandBuffers[i], &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipeline());
+        vkCmdDraw(commandBuffers[i], 3, 1, 0, 0); // (vertexCount, instanceCount, firstVertex, firstInstance)
+        vkCmdEndRenderPass(commandBuffers[i]);
+        
+        // end recording
+        ASSERT_TRUE(vkEndCommandBuffer(commandBuffers[i]),
+                    "Failed to end recording command buffer");
+    }
 }

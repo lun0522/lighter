@@ -20,15 +20,15 @@ namespace VulkanWrappers {
         shaderModuleInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
         
         VkShaderModule shaderModule{};
-        if (vkCreateShaderModule(device, &shaderModuleInfo, nullptr, &shaderModule) != VK_SUCCESS)
-            throw runtime_error{"Failed to create shader module"};
+        ASSERT_TRUE(vkCreateShaderModule(device, &shaderModuleInfo, nullptr, &shaderModule),
+                    "Failed to create shader module");
         
         return shaderModule;
     }
     
     Pipeline::Pipeline(const VkDevice &device,
                        const VkRenderPass &renderPass,
-                       VkExtent2D currentExtent)
+                       VkExtent2D imageExtent)
     : device{device} {
         vector<char> vertCode = Utils::readFile("triangle.vert.spv");
         vector<char> fragCode = Utils::readFile("triangle.frag.spv");
@@ -70,14 +70,14 @@ namespace VulkanWrappers {
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
-        viewport.width  = currentExtent.width;
-        viewport.height = currentExtent.height;
+        viewport.width  = imageExtent.width;
+        viewport.height = imageExtent.height;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
         
         VkRect2D scissor{};
         scissor.offset = {0, 0};
-        scissor.extent = currentExtent;
+        scissor.extent = imageExtent;
         
         VkPipelineViewportStateCreateInfo viewportInfo{};
         viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -122,8 +122,8 @@ namespace VulkanWrappers {
         VkPipelineLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         
-        if ((vkCreatePipelineLayout(device, &layoutInfo, nullptr, &layout)) != VK_SUCCESS)
-            throw runtime_error{"Failed to create pipeline layout"};
+        ASSERT_TRUE(vkCreatePipelineLayout(device, &layoutInfo, nullptr, &layout),
+                    "Failed to create pipeline layout");
         
         VkGraphicsPipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -142,8 +142,8 @@ namespace VulkanWrappers {
         pipelineInfo.subpass = 0; // index of subpass where this pipeline will be used
         // .basePipeline{Handle, Index} can be used to copy settings from another piepeline
         
-        if ((vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS))
-            throw runtime_error{"Failed to create graphics pipeline"};
+        ASSERT_TRUE(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline),
+                    "Failed to create graphics pipeline");
         
         vkDestroyShaderModule(device, vertShaderModule, nullptr);
         vkDestroyShaderModule(device, fragShaderModule, nullptr);

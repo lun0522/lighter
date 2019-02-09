@@ -35,8 +35,9 @@ namespace VulkanWrappers {
                   const VkPhysicalDevice &physicalDevice,
                   VkExtent2D currentExtent,
                   const unordered_set<uint32_t> &queueFamilies);
-        VkFormat format() const { return imageFormat; }
-        VkExtent2D extent() const { return imageExtent; }
+        const vector<VkImageView> &getImageViews() const { return imageViews; }
+        VkFormat getFormat() const { return imageFormat; }
+        VkExtent2D getExtent() const { return imageExtent; }
         ~SwapChain();
     };
 }

@@ -23,7 +23,8 @@ namespace VulkanWrappers {
     public:
         Pipeline(const VkDevice &device,
                  const VkRenderPass &renderPass,
-                 VkExtent2D currentExtent);
+                 VkExtent2D imageExtent);
+        const VkPipeline &getPipeline() const { return pipeline; }
         ~Pipeline();
     };
 }

@@ -9,6 +9,8 @@
 #ifndef renderpass_hpp
 #define renderpass_hpp
 
+#include <vector>
+
 #include <vulkan/vulkan.hpp>
 
 namespace VulkanWrappers {
@@ -17,9 +19,14 @@ namespace VulkanWrappers {
     class RenderPass {
         const VkDevice &device;
         VkRenderPass renderPass;
+        vector<VkFramebuffer> framebuffers;
     public:
-        RenderPass(const VkDevice &device, VkFormat colorAttFormat);
-        const VkRenderPass &handle() const { return renderPass; }
+        RenderPass(const VkDevice &device,
+                   VkFormat colorAttFormat,
+                   VkExtent2D imageExtent,
+                   const vector<VkImageView> &imageViews);
+        const VkRenderPass &getRenderPass() const { return renderPass; }
+        const vector<VkFramebuffer> &getFramebuffers() const { return framebuffers; }
         ~RenderPass();
     };
 }

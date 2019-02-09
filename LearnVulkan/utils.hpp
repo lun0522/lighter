@@ -15,6 +15,8 @@
 #include <unordered_set>
 #include <vector>
 
+#define ASSERT_TRUE(event, error) if (event != VK_SUCCESS) throw runtime_error{error}
+
 namespace Utils {
     using namespace std;
     
