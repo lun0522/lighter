@@ -24,7 +24,7 @@ namespace VulkanWrappers {
         Pipeline(const VkDevice &device,
                  const VkRenderPass &renderPass,
                  VkExtent2D imageExtent);
-        const VkPipeline &getPipeline() const { return pipeline; }
+        const VkPipeline &getVkPipeline() const { return pipeline; }
         ~Pipeline();
     };
 }

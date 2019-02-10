@@ -13,14 +13,15 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
 
+#include "commandbuffer.hpp"
 #include "pipeline.hpp"
 #include "renderpass.hpp"
 #include "swapchain.hpp"
+#include "utils.hpp"
 #include "validation.hpp"
 
-using VulkanWrappers::Pipeline;
-using VulkanWrappers::RenderPass;
-using VulkanWrappers::SwapChain;
+using std::vector;
+using namespace VulkanWrappers;
 
 class VulkanApplication {
 public:
@@ -42,10 +43,7 @@ private:
     RenderPass *renderPass;
     SwapChain *swapChain;
     Pipeline *pipeline;
-    VkCommandPool commandPool;
-    std::vector<VkCommandBuffer> commandBuffers; // implicitly cleaned up with command pool
-    VkSemaphore imageAvailableSema;
-    VkSemaphore renderFinishedSema;
+    CommandBuffer *cmdBuffer;
     
 #ifdef DEBUG
     VkDebugUtilsMessengerEXT callback;
@@ -61,9 +59,29 @@ public:
     void mainLoop() {
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
-            drawFrame();
+            cmdBuffer->drawFrame();
         }
-        vkDeviceWaitIdle(device); // wait for all async operations finish
+        vkDeviceWaitIdle(device);           // wait for all async operations finish
+    }
+    
+    const VkDevice &getDevice() const { return device; }
+    const VkQueue &getGraphicsQueue() const { return graphicsQueue; }
+    const VkQueue &getPresentQueue() const { return presentQueue; }
+    const QueueFamilyIndices &getIndices() const { return indices; }
+    
+    const RenderPass &getRenderPass() const {
+        ASSERT_NONNULL(renderPass, "No render pass");
+        return *renderPass;
+    }
+    
+    const SwapChain &getSwapChain() const {
+        ASSERT_NONNULL(swapChain, "No swap chain");
+        return *swapChain;
+    }
+    
+    const Pipeline &getPipeline() const {
+        ASSERT_NONNULL(pipeline, "No graphics pipeline");
+        return *pipeline;
     }
     
     ~VulkanApplication() {
@@ -92,7 +110,6 @@ private:
         createRenderPass();                 // specify how to use color and depth buffers
         createGraphicsPipeline();           // fixed and programmable parts
         createCommandBuffers();             // record all operations we want to perform in command buffers
-        createSemaphores();                 // sync draw commands and presentation
     }
     
     void cleanup() {
@@ -102,9 +119,7 @@ private:
         delete renderPass;
         delete swapChain;
         delete pipeline;
-        vkDestroyCommandPool(device, commandPool, nullptr);
-        vkDestroySemaphore(device, imageAvailableSema, nullptr);
-        vkDestroySemaphore(device, renderFinishedSema, nullptr);
+        delete cmdBuffer;
         vkDestroyDevice(device, nullptr);
         vkDestroySurfaceKHR(instance, surface, nullptr);
         vkDestroyInstance(instance, nullptr);
@@ -120,8 +135,6 @@ private:
     void createRenderPass();
     void createGraphicsPipeline();
     void createCommandBuffers();
-    void createSemaphores();
-    void drawFrame();
 };
 
 #endif /* application_hpp */

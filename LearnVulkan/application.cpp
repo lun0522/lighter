@@ -12,8 +12,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "utils.hpp"
-
 using namespace std;
 
 #ifdef DEBUG
@@ -186,111 +184,10 @@ void VulkanApplication::createRenderPass() {
 
 void VulkanApplication::createGraphicsPipeline() {
     pipeline = new Pipeline{device,
-        renderPass->getRenderPass(),
+        renderPass->getVkRenderPass(),
         swapChain->getExtent()};
 }
 
 void VulkanApplication::createCommandBuffers() {
-    // create command pool
-    VkCommandPoolCreateInfo commandPoolInfo{};
-    commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    commandPoolInfo.queueFamilyIndex = indices.graphicsFamily;
-    
-    ASSERT_TRUE(vkCreateCommandPool(device, &commandPoolInfo, nullptr, &commandPool),
-                "Failed to create command pool");
-    
-    // allocate command buffers
-    const auto &framebuffers = renderPass->getFramebuffers();
-    commandBuffers.resize(framebuffers.size());
-    VkCommandBufferAllocateInfo cmdAllocInfo{};
-    cmdAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    cmdAllocInfo.commandPool = commandPool;
-    // secondary level command buffers can be called from primary level
-    cmdAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    cmdAllocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
-    
-    ASSERT_TRUE(vkAllocateCommandBuffers(device, &cmdAllocInfo, commandBuffers.data()),
-                "Failed to allocate command buffers");
-    
-    for (size_t i = 0; i < commandBuffers.size(); ++i) {
-        // start command buffer recording
-        VkCommandBufferBeginInfo cmdBeginInfo{};
-        cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-        // .pInheritanceInfo sets what to inherit from primary buffers to secondary buffers
-        
-        ASSERT_TRUE(vkBeginCommandBuffer(commandBuffers[i], &cmdBeginInfo),
-                    "Failed to begin recording command buffer");
-        
-        // start render pass
-        VkRenderPassBeginInfo rpBeginInfo{};
-        rpBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        rpBeginInfo.renderPass = renderPass->getRenderPass();
-        rpBeginInfo.framebuffer = framebuffers[i];
-        rpBeginInfo.renderArea.offset = {0, 0};
-        rpBeginInfo.renderArea.extent = swapChain->getExtent();
-        VkClearValue clearColor{0.0f, 0.0f, 0.0f, 1.0f};
-        rpBeginInfo.clearValueCount = 1;
-        rpBeginInfo.pClearValues = &clearColor; // used for VK_ATTACHMENT_LOAD_OP_CLEAR
-        
-        // record commends. options:
-        //   - VK_SUBPASS_CONTENTS_INLINE: use primary commmand buffer
-        //   - VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: use secondary
-        vkCmdBeginRenderPass(commandBuffers[i], &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipeline());
-        vkCmdDraw(commandBuffers[i], 3, 1, 0, 0); // (vertexCount, instanceCount, firstVertex, firstInstance)
-        vkCmdEndRenderPass(commandBuffers[i]);
-        
-        // end recording
-        ASSERT_TRUE(vkEndCommandBuffer(commandBuffers[i]),
-                    "Failed to end recording command buffer");
-    }
-}
-
-void VulkanApplication::createSemaphores() {
-    VkSemaphoreCreateInfo semaphoreInfo{};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    
-    for (const auto semaphore : {&imageAvailableSema, &renderFinishedSema})
-        ASSERT_TRUE(vkCreateSemaphore(device, &semaphoreInfo, nullptr, semaphore),
-                    "Failed to create semaphore");
-}
-
-void VulkanApplication::drawFrame() {
-    uint32_t imageIndex;
-    vkAcquireNextImageKHR(device, swapChain->getSwapChain(), numeric_limits<uint64_t>::max(),
-                          imageAvailableSema, VK_NULL_HANDLE, &imageIndex);
-    
-    // wait for image available
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    VkSemaphore waitSemas[]{imageAvailableSema};
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = waitSemas;
-    // we have to wait only if we want to write to color attachment
-    // so we actually can start running pipeline long before that image is ready
-    // we specify one stage for each semaphore, so it doesn't need a separate count
-    VkPipelineStageFlags waitStages[]{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
-    VkSemaphore signalSemas[]{renderFinishedSema};
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = signalSemas; // will be signaled once command buffer finishes
-    
-    ASSERT_TRUE(vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE),
-                "Failed to submit draw command buffer");
-    
-    // present image to screen
-    VkPresentInfoKHR presentInfo{};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = signalSemas;
-    VkSwapchainKHR swapChains[]{swapChain->getSwapChain()};
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapChains;
-    presentInfo.pImageIndices = &imageIndex; // image for each swap chain
-    // may use .pResults to check wether each swap chain rendered successfully
-    
-    vkQueuePresentKHR(presentQueue, &presentInfo);
+    cmdBuffer = new CommandBuffer{*this};
 }

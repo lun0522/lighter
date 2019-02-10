@@ -25,7 +25,7 @@ namespace VulkanWrappers {
                    VkFormat colorAttFormat,
                    VkExtent2D imageExtent,
                    const vector<VkImageView> &imageViews);
-        const VkRenderPass &getRenderPass() const { return renderPass; }
+        const VkRenderPass &getVkRenderPass() const { return renderPass; }
         const vector<VkFramebuffer> &getFramebuffers() const { return framebuffers; }
         ~RenderPass();
     };
