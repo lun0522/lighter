@@ -190,7 +190,7 @@ void VulkanApplication::createGraphicsPipeline() {
         swapChain->getExtent()};
 }
 
-void VulkanApplication::createCommandPool() {
+void VulkanApplication::createCommandBuffers() {
     // create command pool
     VkCommandPoolCreateInfo commandPoolInfo{};
     commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -245,4 +245,52 @@ void VulkanApplication::createCommandPool() {
         ASSERT_TRUE(vkEndCommandBuffer(commandBuffers[i]),
                     "Failed to end recording command buffer");
     }
+}
+
+void VulkanApplication::createSemaphores() {
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    
+    for (const auto semaphore : {&imageAvailableSema, &renderFinishedSema})
+        ASSERT_TRUE(vkCreateSemaphore(device, &semaphoreInfo, nullptr, semaphore),
+                    "Failed to create semaphore");
+}
+
+void VulkanApplication::drawFrame() {
+    uint32_t imageIndex;
+    vkAcquireNextImageKHR(device, swapChain->getSwapChain(), numeric_limits<uint64_t>::max(),
+                          imageAvailableSema, VK_NULL_HANDLE, &imageIndex);
+    
+    // wait for image available
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    VkSemaphore waitSemas[]{imageAvailableSema};
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemas;
+    // we have to wait only if we want to write to color attachment
+    // so we actually can start running pipeline long before that image is ready
+    // we specify one stage for each semaphore, so it doesn't need a separate count
+    VkPipelineStageFlags waitStages[]{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+    VkSemaphore signalSemas[]{renderFinishedSema};
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemas; // will be signaled once command buffer finishes
+    
+    ASSERT_TRUE(vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE),
+                "Failed to submit draw command buffer");
+    
+    // present image to screen
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemas;
+    VkSwapchainKHR swapChains[]{swapChain->getSwapChain()};
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapChains;
+    presentInfo.pImageIndices = &imageIndex; // image for each swap chain
+    // may use .pResults to check wether each swap chain rendered successfully
+    
+    vkQueuePresentKHR(presentQueue, &presentInfo);
 }

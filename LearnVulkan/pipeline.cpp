@@ -49,7 +49,7 @@ namespace VulkanWrappers {
         fragShaderInfo.module = fragShaderModule;
         fragShaderInfo.pName = "main"; // entry point of this shader
         
-        VkPipelineShaderStageCreateInfo shaderStages[] = {
+        VkPipelineShaderStageCreateInfo shaderStages[]{
             vertShaderInfo,
             fragShaderInfo,
         };

@@ -39,12 +39,24 @@ namespace VulkanWrappers {
         subpassDesc.colorAttachmentCount = 1; // layout (location = 0) will be rendered to the first attachement
         subpassDesc.pColorAttachments = &colorAttachmentRef;
         
+        // render pass takes scre of layout transition, so it has to wait until image is ready
+        // VK_SUBPASS_EXTERNAL means subpass before (if .srcSubpass) / after (if .dstSubpass) render pass
+        VkSubpassDependency subpassDep{};
+        subpassDep.srcSubpass = VK_SUBPASS_EXTERNAL;
+        subpassDep.dstSubpass = 0; // refer to our subpass
+        subpassDep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        subpassDep.srcAccessMask = 0;
+        subpassDep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        subpassDep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        
         VkRenderPassCreateInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
         renderPassInfo.attachmentCount = 1;
         renderPassInfo.pAttachments = &colorAttachment;
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpassDesc;
+        renderPassInfo.dependencyCount = 1;
+        renderPassInfo.pDependencies = &subpassDep;
         
         ASSERT_TRUE(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass),
                     "Failed to create render pass");

@@ -44,6 +44,8 @@ private:
     Pipeline *pipeline;
     VkCommandPool commandPool;
     std::vector<VkCommandBuffer> commandBuffers; // implicitly cleaned up with command pool
+    VkSemaphore imageAvailableSema;
+    VkSemaphore renderFinishedSema;
     
 #ifdef DEBUG
     VkDebugUtilsMessengerEXT callback;
@@ -57,8 +59,11 @@ public:
     }
     
     void mainLoop() {
-        while (!glfwWindowShouldClose(window))
+        while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
+            drawFrame();
+        }
+        vkDeviceWaitIdle(device); // wait for all async operations finish
     }
     
     ~VulkanApplication() {
@@ -86,7 +91,8 @@ private:
         createSwapChain();                  // queue of images to present to screen
         createRenderPass();                 // specify how to use color and depth buffers
         createGraphicsPipeline();           // fixed and programmable parts
-        createCommandPool();                // record all operations we want to perform in command buffers
+        createCommandBuffers();             // record all operations we want to perform in command buffers
+        createSemaphores();                 // sync draw commands and presentation
     }
     
     void cleanup() {
@@ -97,6 +103,8 @@ private:
         delete swapChain;
         delete pipeline;
         vkDestroyCommandPool(device, commandPool, nullptr);
+        vkDestroySemaphore(device, imageAvailableSema, nullptr);
+        vkDestroySemaphore(device, renderFinishedSema, nullptr);
         vkDestroyDevice(device, nullptr);
         vkDestroySurfaceKHR(instance, surface, nullptr);
         vkDestroyInstance(instance, nullptr);
@@ -111,7 +119,9 @@ private:
     void createSwapChain();
     void createRenderPass();
     void createGraphicsPipeline();
-    void createCommandPool();
+    void createCommandBuffers();
+    void createSemaphores();
+    void drawFrame();
 };
 
 #endif /* application_hpp */
