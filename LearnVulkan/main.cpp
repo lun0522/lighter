@@ -12,11 +12,11 @@
 
 using namespace std;
 
-int main(int argc, const char* argv[]) {
+int main(int argc, const char *argv[]) {
     try {
         VulkanWrappers::Application app{};
         app.mainLoop();
-    } catch (const exception& e) {
+    } catch (const exception &e) {
         cerr << "Error: " << e.what() << endl;
         return EXIT_FAILURE;
     }

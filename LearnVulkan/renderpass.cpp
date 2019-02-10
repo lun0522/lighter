@@ -55,8 +55,8 @@ namespace VulkanWrappers {
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &subpassDep;
         
-        ASSERT_TRUE(vkCreateRenderPass(app.getDevice(), &renderPassInfo, nullptr, &renderPass),
-                    "Failed to create render pass");
+        ASSERT_SUCCESS(vkCreateRenderPass(app.getDevice(), &renderPassInfo, nullptr, &renderPass),
+                       "Failed to create render pass");
         
         const auto &imageViews = app.getSwapChain().getImageViews();
         const auto &imageExtent = app.getSwapChain().getExtent();
@@ -71,8 +71,8 @@ namespace VulkanWrappers {
             framebufferInfo.height = imageExtent.height;
             framebufferInfo.layers = 1;
             
-            ASSERT_TRUE(vkCreateFramebuffer(app.getDevice(), &framebufferInfo, nullptr, &framebuffers[i]),
-                        "Failed to create framebuffer");
+            ASSERT_SUCCESS(vkCreateFramebuffer(app.getDevice(), &framebufferInfo, nullptr, &framebuffers[i]),
+                           "Failed to create framebuffer");
         }
     }
     

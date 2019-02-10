@@ -22,10 +22,10 @@ namespace VulkanWrappers {
         // create a pool to hold command buffers
         VkCommandPoolCreateInfo commandPoolInfo{};
         commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        commandPoolInfo.queueFamilyIndex = app.getIndices().graphicsFamily;
+        commandPoolInfo.queueFamilyIndex = app.getQueues().graphicsFamily;
         
-        ASSERT_TRUE(vkCreateCommandPool(app.getDevice(), &commandPoolInfo, nullptr, &commandPool),
-                    "Failed to create command pool");
+        ASSERT_SUCCESS(vkCreateCommandPool(app.getDevice(), &commandPoolInfo, nullptr, &commandPool),
+                       "Failed to create command pool");
         
         // allocate command buffers
         commandBuffers.resize(app.getRenderPass().getFramebuffers().size());
@@ -36,8 +36,8 @@ namespace VulkanWrappers {
         cmdAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         cmdAllocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
         
-        ASSERT_TRUE(vkAllocateCommandBuffers(app.getDevice(), &cmdAllocInfo, commandBuffers.data()),
-                    "Failed to allocate command buffers");
+        ASSERT_SUCCESS(vkAllocateCommandBuffers(app.getDevice(), &cmdAllocInfo, commandBuffers.data()),
+                       "Failed to allocate command buffers");
     }
     
     void CommandBuffer::recordCommandBuffers() {
@@ -48,8 +48,8 @@ namespace VulkanWrappers {
             cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
             // .pInheritanceInfo sets what to inherit from primary buffers to secondary buffers
             
-            ASSERT_TRUE(vkBeginCommandBuffer(commandBuffers[i], &cmdBeginInfo),
-                        "Failed to begin recording command buffer");
+            ASSERT_SUCCESS(vkBeginCommandBuffer(commandBuffers[i], &cmdBeginInfo),
+                           "Failed to begin recording command buffer");
             
             // start render pass
             VkRenderPassBeginInfo rpBeginInfo{};
@@ -71,8 +71,8 @@ namespace VulkanWrappers {
             vkCmdEndRenderPass(commandBuffers[i]);
             
             // end recording
-            ASSERT_TRUE(vkEndCommandBuffer(commandBuffers[i]),
-                        "Failed to end recording command buffer");
+            ASSERT_SUCCESS(vkEndCommandBuffer(commandBuffers[i]),
+                           "Failed to end recording command buffer");
         }
     }
     
@@ -90,12 +90,12 @@ namespace VulkanWrappers {
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
         
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-            ASSERT_TRUE(vkCreateSemaphore(app.getDevice(), &semaphoreInfo, nullptr, &imageAvailableSemas[i]),
-                        "Failed to create image available semaphore");
-            ASSERT_TRUE(vkCreateSemaphore(app.getDevice(), &semaphoreInfo, nullptr, &renderFinishedSemas[i]),
-                        "Failed to create render finished semaphore");
-            ASSERT_TRUE(vkCreateFence(app.getDevice(), &fenceInfo, nullptr, &inFlightFences[i]),
-                        "Failed to create in flight fence");
+            ASSERT_SUCCESS(vkCreateSemaphore(app.getDevice(), &semaphoreInfo, nullptr, &imageAvailableSemas[i]),
+                           "Failed to create image available semaphore");
+            ASSERT_SUCCESS(vkCreateSemaphore(app.getDevice(), &semaphoreInfo, nullptr, &renderFinishedSemas[i]),
+                           "Failed to create render finished semaphore");
+            ASSERT_SUCCESS(vkCreateFence(app.getDevice(), &fenceInfo, nullptr, &inFlightFences[i]),
+                           "Failed to create in flight fence");
         }
     }
     
@@ -125,8 +125,8 @@ namespace VulkanWrappers {
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemas; // will be signaled once command buffer finishes
         
-        ASSERT_TRUE(vkQueueSubmit(app.getGraphicsQueue(), 1, &submitInfo, inFlightFences[currentFrame]),
-                    "Failed to submit draw command buffer");
+        ASSERT_SUCCESS(vkQueueSubmit(app.getQueues().graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]),
+                       "Failed to submit draw command buffer");
         
         // present image to screen
         VkPresentInfoKHR presentInfo{};
@@ -139,7 +139,7 @@ namespace VulkanWrappers {
         presentInfo.pImageIndices = &imageIndex; // image for each swap chain
         // may use .pResults to check wether each swap chain rendered successfully
         
-        vkQueuePresentKHR(app.getPresentQueue(), &presentInfo);
+        vkQueuePresentKHR(app.getQueues().presentQueue, &presentInfo);
         
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }

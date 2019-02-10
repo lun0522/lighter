@@ -16,7 +16,8 @@
 #include <vector>
 
 #define ASSERT_NONNULL(object, error)   if (object == nullptr)      throw runtime_error{error}
-#define ASSERT_TRUE(event, error)       if (event != VK_SUCCESS)    throw runtime_error{error}
+#define ASSERT_SUCCESS(event, error)    if (event != VK_SUCCESS)    throw runtime_error{error}
+#define GET_NONNULL(object, error)      ASSERT_NONNULL(object, error);          return *object
 
 namespace Utils {
     using namespace std;

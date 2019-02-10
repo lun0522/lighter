@@ -20,14 +20,14 @@ namespace VulkanWrappers {
     const vector<const char*> SwapChain::requiredExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
     
     bool SwapChain::hasSwapChainSupport(const VkSurfaceKHR &surface,
-                                        const VkPhysicalDevice &device) {
+                                        const VkPhysicalDevice &phyDevice) {
         try {
             cout << "Checking extension support required for swap chain..." << endl << endl;
             
             vector<string> required{requiredExtensions.begin(), requiredExtensions.end()};
             auto extensions {Utils::queryAttribute<VkExtensionProperties>
-                ([&device](uint32_t *count, VkExtensionProperties *properties) {
-                    return vkEnumerateDeviceExtensionProperties(device, nullptr, count, properties);
+                ([&phyDevice](uint32_t *count, VkExtensionProperties *properties) {
+                    return vkEnumerateDeviceExtensionProperties(phyDevice, nullptr, count, properties);
                 })
             };
             auto getName = [](const VkExtensionProperties &property) -> const char* {
@@ -41,8 +41,8 @@ namespace VulkanWrappers {
         // physical device may support swap chain but maybe not compatible with window system
         // so we need to query details
         uint32_t formatCount, modeCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &modeCount, nullptr);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(phyDevice, surface, &formatCount, nullptr);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(phyDevice, surface, &modeCount, nullptr);
         return formatCount != 0 && modeCount != 0;
     }
     
@@ -93,25 +93,25 @@ namespace VulkanWrappers {
     
     SwapChain::SwapChain(const Application &app) : app{app} {
         const auto &surface = app.getSurface();
-        const auto &physicalDevice = app.getPhysicalDevice();
+        const auto &phyDevice = app.getPhysicalDevice();
         
         // surface capabilities
         VkSurfaceCapabilitiesKHR surfaceCapabilities;
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, app.getSurface(), &surfaceCapabilities);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(phyDevice, app.getSurface(), &surfaceCapabilities);
         VkExtent2D extent = chooseSwapExtent(surfaceCapabilities, app.getExtent());
         
         // surface formats
         auto surfaceFormats{Utils::queryAttribute<VkSurfaceFormatKHR>
-            ([&surface, &physicalDevice](uint32_t *count, VkSurfaceFormatKHR *formats) {
-                return vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, count, formats);
+            ([&surface, &phyDevice](uint32_t *count, VkSurfaceFormatKHR *formats) {
+                return vkGetPhysicalDeviceSurfaceFormatsKHR(phyDevice, surface, count, formats);
             })
         };
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(surfaceFormats);
         
         // present modes
         auto presentModes{Utils::queryAttribute<VkPresentModeKHR>
-            ([&surface, &physicalDevice](uint32_t *count, VkPresentModeKHR *modes) {
-                return vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, count, modes);
+            ([&surface, &phyDevice](uint32_t *count, VkPresentModeKHR *modes) {
+                return vkGetPhysicalDeviceSurfacePresentModesKHR(phyDevice, surface, count, modes);
             })
         };
         VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes);
@@ -136,7 +136,8 @@ namespace VulkanWrappers {
         swapChainInfo.clipped = VK_TRUE; // don't care about color of pixels obscured
         swapChainInfo.oldSwapchain = VK_NULL_HANDLE;
         
-        unordered_set<uint32_t> queueFamilies{app.getIndices().graphicsFamily, app.getIndices().presentFamily};
+        // graphics queue and present queue might be the same
+        unordered_set<uint32_t> queueFamilies{app.getQueues().graphicsFamily, app.getQueues().presentFamily};
         if (queueFamilies.size() == 1) {
             // if only one queue family will access this swap chain
             swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -150,8 +151,8 @@ namespace VulkanWrappers {
             swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         }
         
-        ASSERT_TRUE(vkCreateSwapchainKHR(app.getDevice(), &swapChainInfo, nullptr, &swapChain),
-                    "Failed to create swap chain");
+        ASSERT_SUCCESS(vkCreateSwapchainKHR(app.getDevice(), &swapChainInfo, nullptr, &swapChain),
+                       "Failed to create swap chain");
         
         imageFormat = surfaceFormat.format;
         imageExtent = extent;
@@ -186,8 +187,8 @@ namespace VulkanWrappers {
             imageViewInfo.subresourceRange.baseArrayLayer = 0;
             imageViewInfo.subresourceRange.layerCount = 1;
             
-            ASSERT_TRUE(vkCreateImageView(app.getDevice(), &imageViewInfo, nullptr, &imageViews[i]),
-                        "Failed to create image view");
+            ASSERT_SUCCESS(vkCreateImageView(app.getDevice(), &imageViewInfo, nullptr, &imageViews[i]),
+                           "Failed to create image view");
         }
     }
     

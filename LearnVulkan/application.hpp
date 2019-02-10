@@ -9,8 +9,6 @@
 #ifndef application_hpp
 #define application_hpp
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
 
 #include "commandbuffer.hpp"
@@ -18,131 +16,51 @@
 #include "renderpass.hpp"
 #include "swapchain.hpp"
 #include "utils.hpp"
-#include "validation.hpp"
+
+class GLFWwindow;
 
 namespace VulkanWrappers {
-    using namespace std;
-    
     class Application {
     public:
-        struct QueueFamilyIndices {
-            uint32_t graphicsFamily;            // it is possible that one queue can render images
-            uint32_t presentFamily;             // while another one can present them to window system
+        struct Queues {
+            VkQueue graphicsQueue;
+            VkQueue presentQueue;
+            uint32_t graphicsFamily;
+            uint32_t presentFamily;
         };
+        
+        Application(uint32_t width = 800, uint32_t height = 600);
+        void mainLoop();
+        ~Application();
+        
+        VkExtent2D getExtent() const { return {width, height}; }
+        const VkSurfaceKHR &getSurface() const { return surface; }
+        const VkDevice &getDevice() const { return device; }
+        const VkPhysicalDevice &getPhysicalDevice() const { return phyDevice; }
+        const Queues &getQueues() const { return queues; }
+        const RenderPass &getRenderPass() const { GET_NONNULL(renderPass, "No render pass"); }
+        const SwapChain &getSwapChain() const { GET_NONNULL(swapChain, "No swap chain"); }
+        const Pipeline &getPipeline() const { GET_NONNULL(pipeline, "No graphics pipeline"); }
+        const CommandBuffer &getCommandBuffer() const { GET_NONNULL(cmdBuffer, "No command buffer"); }
         
     private:
         GLFWwindow *window;
         uint32_t width, height;
         VkInstance instance;
-        VkSurfaceKHR surface;                   // backed by window created by GLFW, affects device selection
+        VkSurfaceKHR surface;
         VkDevice device;
-        VkPhysicalDevice physicalDevice;        // implicitly cleaned up
-        VkQueue graphicsQueue;                  // implicitly cleaned up with physical device
-        VkQueue presentQueue;
-        QueueFamilyIndices indices;
+        VkPhysicalDevice phyDevice;
+        Queues queues;
         RenderPass *renderPass;
         SwapChain *swapChain;
         Pipeline *pipeline;
         CommandBuffer *cmdBuffer;
-        
 #ifdef DEBUG
         VkDebugUtilsMessengerEXT callback;
 #endif /* DEBUG */
         
-    public:
-        Application(uint32_t width = 800, uint32_t height = 600)
-        : width{width}, height{height} {
-            initWindow();
-            initVulkan();
-        }
-        
-        void mainLoop() {
-            while (!glfwWindowShouldClose(window)) {
-                glfwPollEvents();
-                cmdBuffer->drawFrame();
-            }
-            vkDeviceWaitIdle(device);           // wait for all async operations finish
-        }
-        
-        VkExtent2D getExtent() const { return {width, height}; }
-        const VkSurfaceKHR &getSurface() const { return surface; }
-        const VkDevice &getDevice() const { return device; }
-        const VkPhysicalDevice &getPhysicalDevice() const { return physicalDevice; }
-        const VkQueue &getGraphicsQueue() const { return graphicsQueue; }
-        const VkQueue &getPresentQueue() const { return presentQueue; }
-        const QueueFamilyIndices &getIndices() const { return indices; }
-        
-        const RenderPass &getRenderPass() const {
-            ASSERT_NONNULL(renderPass, "No render pass");
-            return *renderPass;
-        }
-        
-        const SwapChain &getSwapChain() const {
-            ASSERT_NONNULL(swapChain, "No swap chain");
-            return *swapChain;
-        }
-        
-        const Pipeline &getPipeline() const {
-            ASSERT_NONNULL(pipeline, "No graphics pipeline");
-            return *pipeline;
-        }
-        
-        const CommandBuffer &getCommandBuffer() const {
-            ASSERT_NONNULL(cmdBuffer, "No command buffer");
-            return *cmdBuffer;
-        }
-        
-        ~Application() {
-            cleanup();
-        }
-        
-    private:
-        void initWindow() {
-            glfwInit();
-            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-            window = glfwCreateWindow(width, height, "Learn Vulkan", nullptr, nullptr);
-        }
-        
-        void initVulkan() {
-            createInstance();                   // establish connection with Vulkan library
-#ifdef DEBUG
-            Validation::createDebugCallback(    // relay debug messages back to application
-                                            instance, &callback, nullptr,
-                                            Validation::WARNING | Validation::ERROR,
-                                            Validation::GENERAL | Validation::VALIDATION | Validation::PERFORMANCE);
-#endif /* DEBUG */
-            createSurface();                    // interface with window system (not needed for off-screen rendering)
-            pickPhysicalDevice();               // select graphics card to use
-            createLogicalDevice();              // interface with physical device
-            createSwapChain();                  // queue of images to present to screen
-            createRenderPass();                 // specify how to use color and depth buffers
-            createGraphicsPipeline();           // fixed and programmable parts
-            createCommandBuffers();             // record all operations we want to perform in command buffers
-        }
-        
-        void cleanup() {
-#ifdef DEBUG
-            Validation::destroyDebugCallback(instance, &callback, nullptr);
-#endif /* DEBUG */
-            delete renderPass;
-            delete swapChain;
-            delete pipeline;
-            delete cmdBuffer;
-            vkDestroyDevice(device, nullptr);
-            vkDestroySurfaceKHR(instance, surface, nullptr);
-            vkDestroyInstance(instance, nullptr);
-            glfwDestroyWindow(window);
-            glfwTerminate();
-        }
-        
-        void createInstance();
-        void createSurface();
-        void pickPhysicalDevice();
-        void createLogicalDevice();
-        void createSwapChain();
-        void createRenderPass();
-        void createGraphicsPipeline();
-        void createCommandBuffers();
+        void initWindow();
+        void initVulkan();
     };
     
 #endif /* application_hpp */

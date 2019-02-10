@@ -29,7 +29,7 @@ namespace VulkanWrappers {
     public:
         static const vector<const char*> requiredExtensions;
         static bool hasSwapChainSupport(const VkSurfaceKHR &surface,
-                                        const VkPhysicalDevice &device);
+                                        const VkPhysicalDevice &phyDevice);
         SwapChain(const Application &app);
         const VkSwapchainKHR &operator*(void) const { return swapChain; }
         const vector<VkImageView> &getImageViews() const { return imageViews; }

@@ -12,8 +12,6 @@
 #include <vulkan/vulkan.hpp>
 
 namespace VulkanWrappers {
-    using std::vector;
-    
     class Application;
     
     class Pipeline {

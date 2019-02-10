@@ -14,6 +14,8 @@
 #include "utils.hpp"
 
 namespace VulkanWrappers {
+    using std::vector;
+    
     VkShaderModule createShaderModule(const VkDevice &device, const vector<char> &code) {
         VkShaderModuleCreateInfo shaderModuleInfo{};
         shaderModuleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -21,8 +23,8 @@ namespace VulkanWrappers {
         shaderModuleInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
         
         VkShaderModule shaderModule{};
-        ASSERT_TRUE(vkCreateShaderModule(device, &shaderModuleInfo, nullptr, &shaderModule),
-                    "Failed to create shader module");
+        ASSERT_SUCCESS(vkCreateShaderModule(device, &shaderModuleInfo, nullptr, &shaderModule),
+                       "Failed to create shader module");
         
         return shaderModule;
     }
@@ -121,8 +123,8 @@ namespace VulkanWrappers {
         VkPipelineLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         
-        ASSERT_TRUE(vkCreatePipelineLayout(app.getDevice(), &layoutInfo, nullptr, &layout),
-                    "Failed to create pipeline layout");
+        ASSERT_SUCCESS(vkCreatePipelineLayout(app.getDevice(), &layoutInfo, nullptr, &layout),
+                       "Failed to create pipeline layout");
         
         VkGraphicsPipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -141,8 +143,8 @@ namespace VulkanWrappers {
         pipelineInfo.subpass = 0; // index of subpass where this pipeline will be used
         // .basePipeline{Handle, Index} can be used to copy settings from another piepeline
         
-        ASSERT_TRUE(vkCreateGraphicsPipelines(app.getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline),
-                    "Failed to create graphics pipeline");
+        ASSERT_SUCCESS(vkCreateGraphicsPipelines(app.getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline),
+                       "Failed to create graphics pipeline");
         
         vkDestroyShaderModule(app.getDevice(), vertShaderModule, nullptr);
         vkDestroyShaderModule(app.getDevice(), fragShaderModule, nullptr);
