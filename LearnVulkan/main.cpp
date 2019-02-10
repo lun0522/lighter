@@ -14,7 +14,7 @@ using namespace std;
 
 int main(int argc, const char *argv[]) {
     try {
-        VulkanWrappers::Application app{};
+        VulkanWrappers::Application app{"triangle.vert.spv", "triangle.frag.spv"};
         app.mainLoop();
     } catch (const exception &e) {
         cerr << "Error: " << e.what() << endl;

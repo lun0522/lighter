@@ -18,60 +18,40 @@
 #include "validation.hpp"
 
 namespace VulkanWrappers {
+    using Queues = Application::Queues;
 #ifdef DEBUG
     using Validation::validationLayers;
 #endif /* DEBUG */
     
-    using namespace std;
-    using Queues = Application::Queues;
-    void createInstance(VkInstance&);
-    void createSurface(VkSurfaceKHR&, GLFWwindow*, const VkInstance&);
-    void pickPhysicalDevice(Queues&, VkPhysicalDevice&, const VkInstance&, const VkSurfaceKHR&);
-    void createLogicalDevice(VkDevice&, Queues&, const VkPhysicalDevice&);
+    void createInstance(Instance&);
+    void createSurface(Surface&, GLFWwindow*, Instance&);
+    void pickPhysicalDevice(Queues&, PhysicalDevice&, Instance&, const Surface&);
+    void createLogicalDevice(Device&, Queues&, const PhysicalDevice&);
+    void framebufferResizeCallback(GLFWwindow *window, int width, int height);
     
-    Application::Application(uint32_t width, uint32_t height)
-    : width{width}, height{height} {
-        initWindow();
+    Application::Application(const string &vertFile,
+                             const string &fragFile,
+                             uint32_t width,
+                             uint32_t height)
+    : surface{*instance}, swapChain{*this}, renderPass{*this},
+      pipeline{*this, vertFile, fragFile}, cmdBuffer{*this} {
+        initWindow(width, height);
         initVulkan();
     }
     
-    void Application::mainLoop() {
-        ASSERT_NONNULL(cmdBuffer, "No command buffer");
-        while (!glfwWindowShouldClose(window)) {
-            glfwPollEvents();
-            cmdBuffer->drawFrame();
-        }
-        vkDeviceWaitIdle(device); // wait for all async operations finish
-    }
-    
-    Application::~Application() {
-#ifdef DEBUG
-        Validation::destroyDebugCallback(instance, &callback, nullptr);
-#endif /* DEBUG */
-        delete renderPass;
-        delete swapChain;
-        delete pipeline;
-        delete cmdBuffer;
-        // physical device is implicitly cleaned up
-        // queues are implicitly cleaned up with physical device
-        vkDestroyDevice(device, nullptr);
-        vkDestroySurfaceKHR(instance, surface, nullptr);
-        vkDestroyInstance(instance, nullptr);
-        glfwDestroyWindow(window);
-        glfwTerminate();
-    }
-    
-    void Application::initWindow() {
+    void Application::initWindow(uint32_t width, uint32_t height) {
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         window = glfwCreateWindow(width, height, "Learn Vulkan", nullptr, nullptr);
+        glfwSetWindowUserPointer(window, this); // so that we can retrive `this` in callback
+        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
     }
     
     void Application::initVulkan() {
         createInstance(instance); // establish connection with Vulkan library
 #ifdef DEBUG
         Validation::createDebugCallback( // relay debug messages back to application
-                                        instance, &callback, nullptr,
+                                        *instance, &callback, nullptr,
                                         Validation::WARNING | Validation::ERROR,
                                         Validation::GENERAL | Validation::VALIDATION | Validation::PERFORMANCE);
 #endif /* DEBUG */
@@ -80,13 +60,62 @@ namespace VulkanWrappers {
         createSurface(surface, window, instance); // not needed for off-screen rendering
         pickPhysicalDevice(queues, phyDevice, instance, surface); // select graphics card
         createLogicalDevice(device, queues, phyDevice); // interface with physical device
-        swapChain = new SwapChain{*this}; // queue of images to present to screen
-        renderPass = new RenderPass{*this}; // specify how to use color and depth buffers
-        pipeline = new Pipeline{*this}; // fixed and programmable parts
-        cmdBuffer = new CommandBuffer{*this}; // record all operations we want to perform
+        initAll();
     }
     
-    void createInstance(VkInstance &instance) {
+    void Application::mainLoop() {
+        while (!glfwWindowShouldClose(window)) {
+            glfwPollEvents();
+            if (cmdBuffer.drawFrame() != VK_SUCCESS || frameBufferResized)
+                recreate();
+        }
+        vkDeviceWaitIdle(*device); // wait for all async operations finish
+    }
+    
+    void Application::recreate() {
+        // do nothing if window is minimized
+        int width = 0, height = 0;
+        while (width == 0 || height == 0) {
+            glfwGetFramebufferSize(window, &width, &height);
+            glfwWaitEvents();
+        }
+        
+        vkDeviceWaitIdle(*device);
+        cleanupAll();
+        initAll();
+    }
+    
+    void Application::initAll() {
+        swapChain.init();   // queue of images to present to screen
+        renderPass.init();  // specify how to use color and depth buffers
+        pipeline.init();    // fixed and programmable statges
+        cmdBuffer.init();   // record all operations we want to perform
+    }
+    
+    void Application::cleanupAll() {
+        cmdBuffer.cleanup();
+        pipeline.cleanup();
+        renderPass.cleanup();
+        swapChain.cleanup();
+    }
+    
+    VkExtent2D Application::getCurrentExtent() const {
+        int width, height;
+        glfwGetFramebufferSize(window, &width, &height);
+        return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+    }
+    
+    Application::~Application() {
+#ifdef DEBUG
+        Validation::destroyDebugCallback(*instance, &callback, nullptr);
+#endif /* DEBUG */
+        // physical device is implicitly cleaned up
+        // queues are implicitly cleaned up with physical device
+        glfwDestroyWindow(window);
+        glfwTerminate();
+    }
+    
+    void createInstance(Instance &instance) {
 #ifdef DEBUG
         if (glfwVulkanSupported() == GL_FALSE)
             throw runtime_error{"Vulkan not supported"};
@@ -126,36 +155,36 @@ namespace VulkanWrappers {
         instanceInfo.enabledLayerCount = 0;
 #endif /* DEBUG */
         
-        ASSERT_SUCCESS(vkCreateInstance(&instanceInfo, nullptr, &instance),
+        ASSERT_SUCCESS(vkCreateInstance(&instanceInfo, nullptr, &*instance),
                        "Failed to create instance");
     }
     
-    void createSurface(VkSurfaceKHR &surface,
+    void createSurface(Surface &surface,
                        GLFWwindow *window,
-                       const VkInstance &instance) {
-        ASSERT_SUCCESS(glfwCreateWindowSurface(instance, window, nullptr, &surface),
+                       Instance &instance) {
+        ASSERT_SUCCESS(glfwCreateWindowSurface(*instance, window, nullptr, &*surface),
                        "Failed to create window surface");
     }
     
     bool isDeviceSuitable(Queues &queues,
-                          const VkPhysicalDevice &phyDevice,
-                          const VkSurfaceKHR &surface) {
+                          const PhysicalDevice &phyDevice,
+                          const Surface &surface) {
         // require swap chain support
         if (!SwapChain::hasSwapChainSupport(surface, phyDevice))
             return false;
         
         VkPhysicalDeviceProperties properties;
-        vkGetPhysicalDeviceProperties(phyDevice, &properties);
+        vkGetPhysicalDeviceProperties(*phyDevice, &properties);
         cout << "Found device: " << properties.deviceName << endl;
         cout << endl;
         
         VkPhysicalDeviceFeatures features;
-        vkGetPhysicalDeviceFeatures(phyDevice, &features);
+        vkGetPhysicalDeviceFeatures(*phyDevice, &features);
         
         // find queue family that holds graphics queue
         auto families{Utils::queryAttribute<VkQueueFamilyProperties>
             ([&phyDevice](uint32_t *count, VkQueueFamilyProperties *properties) {
-                return vkGetPhysicalDeviceQueueFamilyProperties(phyDevice, count, properties);
+                return vkGetPhysicalDeviceQueueFamilyProperties(*phyDevice, count, properties);
             })
         };
         
@@ -172,7 +201,7 @@ namespace VulkanWrappers {
         for (uint32_t i = 0; i < families.size(); ++i) {
             if (families[i].queueCount) {
                 VkBool32 presentSupport = false;
-                vkGetPhysicalDeviceSurfaceSupportKHR(phyDevice, i, surface, &presentSupport);
+                vkGetPhysicalDeviceSurfaceSupportKHR(*phyDevice, i, *surface, &presentSupport);
                 if (presentSupport) {
                     queues.presentFamily = i;
                     return true;
@@ -183,27 +212,27 @@ namespace VulkanWrappers {
     }
     
     void pickPhysicalDevice(Queues &queues,
-                            VkPhysicalDevice &phyDevice,
-                            const VkInstance &instance,
-                            const VkSurfaceKHR &surface) {
+                            PhysicalDevice &phyDevice,
+                            Instance &instance,
+                            const Surface &surface) {
         auto devices{Utils::queryAttribute<VkPhysicalDevice>
-            ([instance](uint32_t *count, VkPhysicalDevice *phyDevices) {
-                return vkEnumeratePhysicalDevices(instance, count, phyDevices);
+            ([&instance](uint32_t *count, VkPhysicalDevice *phyDevices) {
+                return vkEnumeratePhysicalDevices(*instance, count, &*phyDevices);
             })
         };
         
         for (const auto &candidate : devices) {
             if (isDeviceSuitable(queues, candidate, surface)) {
-                phyDevice = candidate;
+                *phyDevice = candidate;
                 return;
             }
         }
         throw runtime_error{"Failed to find suitable GPU"};
     }
     
-    void createLogicalDevice(VkDevice &device,
+    void createLogicalDevice(Device &device,
                              Queues &queues,
-                             const VkPhysicalDevice &phyDevice) {
+                             const PhysicalDevice &phyDevice) {
         vector<VkDeviceQueueCreateInfo> queueInfos{};
         // graphics queue and present queue might be the same
         unordered_set<uint32_t> queueFamilies{queues.graphicsFamily, queues.presentFamily};
@@ -234,11 +263,16 @@ namespace VulkanWrappers {
         deviceInfo.enabledLayerCount = 0;
 #endif /* DEBUG */
         
-        ASSERT_SUCCESS(vkCreateDevice(phyDevice, &deviceInfo, nullptr, &device),
+        ASSERT_SUCCESS(vkCreateDevice(*phyDevice, &deviceInfo, nullptr, &*device),
                        "Failed to create logical device");
         
         // retrieve queue handles for each queue family
-        vkGetDeviceQueue(device, queues.graphicsFamily, 0, &queues.graphicsQueue);
-        vkGetDeviceQueue(device, queues.presentFamily, 0, &queues.presentQueue);
+        vkGetDeviceQueue(*device, queues.graphicsFamily, 0, &queues.graphicsQueue);
+        vkGetDeviceQueue(*device, queues.presentFamily, 0, &queues.presentQueue);
+    }
+    
+    void framebufferResizeCallback(GLFWwindow *window, int width, int height) {
+        auto app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
+        app->frameBufferResized = true;
     }
 }

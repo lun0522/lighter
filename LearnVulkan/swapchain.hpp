@@ -13,6 +13,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "vkobjects.hpp"
+
 namespace VulkanWrappers {
     using namespace std;
     
@@ -25,17 +27,21 @@ namespace VulkanWrappers {
         vector<VkImageView> imageViews;
         VkFormat imageFormat;
         VkExtent2D imageExtent;
-        void createImages();
+        
     public:
         static const vector<const char*> requiredExtensions;
-        static bool hasSwapChainSupport(const VkSurfaceKHR &surface,
-                                        const VkPhysicalDevice &phyDevice);
-        SwapChain(const Application &app);
-        const VkSwapchainKHR &operator*(void) const { return swapChain; }
-        const vector<VkImageView> &getImageViews() const { return imageViews; }
-        VkFormat getFormat() const { return imageFormat; }
-        VkExtent2D getExtent() const { return imageExtent; }
+        static bool hasSwapChainSupport(const Surface &surface,
+                                        const PhysicalDevice &phyDevice);
+        
+        SwapChain(const Application &app) : app{app} {}
+        void init();
+        void cleanup();
         ~SwapChain();
+        
+        const VkSwapchainKHR &operator*(void)       const { return swapChain; }
+        const vector<VkImageView> &getImageViews()  const { return imageViews; }
+        VkFormat getFormat()                        const { return imageFormat; }
+        VkExtent2D getExtent()                      const { return imageExtent; }
     };
 }
 

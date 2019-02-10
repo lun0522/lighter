@@ -12,21 +12,17 @@
 #include "utils.hpp"
 
 namespace VulkanWrappers {
-    CommandBuffer::CommandBuffer(const Application &app) : app{app} {
-        createCommandObjects();
-        recordCommandBuffers();
-        createSyncObjects();
-    }
-    
-    void CommandBuffer::createCommandObjects() {
+    void CommandBuffer::createCommandPool() {
         // create a pool to hold command buffers
         VkCommandPoolCreateInfo commandPoolInfo{};
         commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         commandPoolInfo.queueFamilyIndex = app.getQueues().graphicsFamily;
         
-        ASSERT_SUCCESS(vkCreateCommandPool(app.getDevice(), &commandPoolInfo, nullptr, &commandPool),
+        ASSERT_SUCCESS(vkCreateCommandPool(*app.getDevice(), &commandPoolInfo, nullptr, &commandPool),
                        "Failed to create command pool");
-        
+    }
+    
+    void CommandBuffer::createCommandBuffers() {
         // allocate command buffers
         commandBuffers.resize(app.getRenderPass().getFramebuffers().size());
         VkCommandBufferAllocateInfo cmdAllocInfo{};
@@ -36,11 +32,11 @@ namespace VulkanWrappers {
         cmdAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         cmdAllocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
         
-        ASSERT_SUCCESS(vkAllocateCommandBuffers(app.getDevice(), &cmdAllocInfo, commandBuffers.data()),
+        ASSERT_SUCCESS(vkAllocateCommandBuffers(*app.getDevice(), &cmdAllocInfo, commandBuffers.data()),
                        "Failed to allocate command buffers");
     }
     
-    void CommandBuffer::recordCommandBuffers() {
+    void CommandBuffer::recordCommands() {
         for (size_t i = 0; i < commandBuffers.size(); ++i) {
             // start command buffer recording
             VkCommandBufferBeginInfo cmdBeginInfo{};
@@ -90,23 +86,27 @@ namespace VulkanWrappers {
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
         
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-            ASSERT_SUCCESS(vkCreateSemaphore(app.getDevice(), &semaphoreInfo, nullptr, &imageAvailableSemas[i]),
+            ASSERT_SUCCESS(vkCreateSemaphore(*app.getDevice(), &semaphoreInfo, nullptr, &imageAvailableSemas[i]),
                            "Failed to create image available semaphore");
-            ASSERT_SUCCESS(vkCreateSemaphore(app.getDevice(), &semaphoreInfo, nullptr, &renderFinishedSemas[i]),
+            ASSERT_SUCCESS(vkCreateSemaphore(*app.getDevice(), &semaphoreInfo, nullptr, &renderFinishedSemas[i]),
                            "Failed to create render finished semaphore");
-            ASSERT_SUCCESS(vkCreateFence(app.getDevice(), &fenceInfo, nullptr, &inFlightFences[i]),
+            ASSERT_SUCCESS(vkCreateFence(*app.getDevice(), &fenceInfo, nullptr, &inFlightFences[i]),
                            "Failed to create in flight fence");
         }
     }
     
-    void CommandBuffer::drawFrame() {
+    VkResult CommandBuffer::drawFrame() {
         // fence was initialized to signaled state, so that waiting for it at the beginning is fine
-        vkWaitForFences(app.getDevice(), 1, &inFlightFences[currentFrame], VK_TRUE, numeric_limits<uint64_t>::max());
-        vkResetFences(app.getDevice(), 1, &inFlightFences[currentFrame]); // manually resetting, unlike semophore
+        vkWaitForFences(*app.getDevice(), 1, &inFlightFences[currentFrame], VK_TRUE, numeric_limits<uint64_t>::max());
         
+        // acquire swap chain image
         uint32_t imageIndex;
-        vkAcquireNextImageKHR(app.getDevice(), *app.getSwapChain(), numeric_limits<uint64_t>::max(),
-                              imageAvailableSemas[currentFrame], VK_NULL_HANDLE, &imageIndex);
+        VkResult acquireResult = vkAcquireNextImageKHR(*app.getDevice(), *app.getSwapChain(), numeric_limits<uint64_t>::max(),
+                                                       imageAvailableSemas[currentFrame], VK_NULL_HANDLE, &imageIndex);
+        if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) // triggered when swap chain can no longer present image
+            return acquireResult;
+        if (acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR)
+            throw runtime_error{"Failed to acquire swap chain image"};
         
         // wait for image available
         VkSubmitInfo submitInfo{};
@@ -125,6 +125,7 @@ namespace VulkanWrappers {
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemas; // will be signaled once command buffer finishes
         
+        vkResetFences(*app.getDevice(), 1, &inFlightFences[currentFrame]); // reset to unsignaled state
         ASSERT_SUCCESS(vkQueueSubmit(app.getQueues().graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]),
                        "Failed to submit draw command buffer");
         
@@ -139,18 +140,38 @@ namespace VulkanWrappers {
         presentInfo.pImageIndices = &imageIndex; // image for each swap chain
         // may use .pResults to check wether each swap chain rendered successfully
         
-        vkQueuePresentKHR(app.getQueues().presentQueue, &presentInfo);
+        VkResult presentResult = vkQueuePresentKHR(app.getQueues().presentQueue, &presentInfo);
+        if (presentResult == VK_ERROR_OUT_OF_DATE_KHR) // triggered when swap chain can no longer present image
+            return presentResult;
+        if (presentResult != VK_SUCCESS && presentResult != VK_SUBOPTIMAL_KHR)
+            throw runtime_error{"Failed to present swap chain image"};
         
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+        return VK_SUCCESS;
+    }
+    
+    void CommandBuffer::init() {
+        if (firstTime) {
+            createCommandPool();
+            createSyncObjects();
+            firstTime = false;
+        }
+        createCommandBuffers();
+        recordCommands();
+    }
+    
+    void CommandBuffer::cleanup() {
+        vkFreeCommandBuffers(*app.getDevice(), commandPool,
+                             static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
     }
     
     CommandBuffer::~CommandBuffer() {
-        vkDestroyCommandPool(app.getDevice(), commandPool, nullptr);
+        vkDestroyCommandPool(*app.getDevice(), commandPool, nullptr);
         // command buffers are implicitly cleaned up with command pool
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-            vkDestroySemaphore(app.getDevice(), imageAvailableSemas[i], nullptr);
-            vkDestroySemaphore(app.getDevice(), renderFinishedSemas[i], nullptr);
-            vkDestroyFence(app.getDevice(), inFlightFences[i], nullptr);
+            vkDestroySemaphore(*app.getDevice(), imageAvailableSemas[i], nullptr);
+            vkDestroySemaphore(*app.getDevice(), renderFinishedSemas[i], nullptr);
+            vkDestroyFence(*app.getDevice(), inFlightFences[i], nullptr);
         }
     }
 }

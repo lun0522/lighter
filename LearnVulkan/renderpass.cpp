@@ -12,7 +12,7 @@
 #include "utils.hpp"
 
 namespace VulkanWrappers {
-    RenderPass::RenderPass(const Application &app) : app{app} {
+    void RenderPass::init() {
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = app.getSwapChain().getFormat();
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT; // no multisampling
@@ -55,7 +55,7 @@ namespace VulkanWrappers {
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &subpassDep;
         
-        ASSERT_SUCCESS(vkCreateRenderPass(app.getDevice(), &renderPassInfo, nullptr, &renderPass),
+        ASSERT_SUCCESS(vkCreateRenderPass(*app.getDevice(), &renderPassInfo, nullptr, &renderPass),
                        "Failed to create render pass");
         
         const auto &imageViews = app.getSwapChain().getImageViews();
@@ -71,14 +71,18 @@ namespace VulkanWrappers {
             framebufferInfo.height = imageExtent.height;
             framebufferInfo.layers = 1;
             
-            ASSERT_SUCCESS(vkCreateFramebuffer(app.getDevice(), &framebufferInfo, nullptr, &framebuffers[i]),
+            ASSERT_SUCCESS(vkCreateFramebuffer(*app.getDevice(), &framebufferInfo, nullptr, &framebuffers[i]),
                            "Failed to create framebuffer");
         }
     }
     
-    RenderPass::~RenderPass() {
+    void RenderPass::cleanup() {
         for (const auto &framebuffer : framebuffers)
-            vkDestroyFramebuffer(app.getDevice(), framebuffer, nullptr);
-        vkDestroyRenderPass(app.getDevice(), renderPass, nullptr);
+            vkDestroyFramebuffer(*app.getDevice(), framebuffer, nullptr);
+        vkDestroyRenderPass(*app.getDevice(), renderPass, nullptr);
+    }
+    
+    RenderPass::~RenderPass() {
+        cleanup();
     }
 }

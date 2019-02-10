@@ -9,6 +9,8 @@
 #ifndef application_hpp
 #define application_hpp
 
+#include <string>
+
 #include <vulkan/vulkan.hpp>
 
 #include "commandbuffer.hpp"
@@ -16,10 +18,13 @@
 #include "renderpass.hpp"
 #include "swapchain.hpp"
 #include "utils.hpp"
+#include "vkobjects.hpp"
 
 class GLFWwindow;
 
 namespace VulkanWrappers {
+    using namespace std;
+    
     class Application {
     public:
         struct Queues {
@@ -29,37 +34,43 @@ namespace VulkanWrappers {
             uint32_t presentFamily;
         };
         
-        Application(uint32_t width = 800, uint32_t height = 600);
+        Application(const string &vertFile,
+                    const string &fragFile,
+                    uint32_t width  = 800,
+                    uint32_t height = 600);
         void mainLoop();
+        void recreate();
+        void initAll();
+        void cleanupAll();
         ~Application();
         
-        VkExtent2D getExtent() const { return {width, height}; }
-        const VkSurfaceKHR &getSurface() const { return surface; }
-        const VkDevice &getDevice() const { return device; }
-        const VkPhysicalDevice &getPhysicalDevice() const { return phyDevice; }
-        const Queues &getQueues() const { return queues; }
-        const RenderPass &getRenderPass() const { GET_NONNULL(renderPass, "No render pass"); }
-        const SwapChain &getSwapChain() const { GET_NONNULL(swapChain, "No swap chain"); }
-        const Pipeline &getPipeline() const { GET_NONNULL(pipeline, "No graphics pipeline"); }
-        const CommandBuffer &getCommandBuffer() const { GET_NONNULL(cmdBuffer, "No command buffer"); }
+        bool frameBufferResized = false;
+        VkExtent2D getCurrentExtent()               const;
+        const Surface &getSurface()                 const { return surface; }
+        const Device &getDevice()                   const { return device; }
+        const PhysicalDevice &getPhysicalDevice()   const { return phyDevice; }
+        const Queues &getQueues()                   const { return queues; }
+        const SwapChain &getSwapChain()             const { return swapChain; }
+        const RenderPass &getRenderPass()           const { return renderPass; }
+        const Pipeline &getPipeline()               const { return pipeline; }
+        const CommandBuffer &getCommandBuffer()     const { return cmdBuffer; }
         
     private:
         GLFWwindow *window;
-        uint32_t width, height;
-        VkInstance instance;
-        VkSurfaceKHR surface;
-        VkDevice device;
-        VkPhysicalDevice phyDevice;
+        Instance instance;
+        Surface surface;
+        Device device;
+        PhysicalDevice phyDevice;
         Queues queues;
-        RenderPass *renderPass;
-        SwapChain *swapChain;
-        Pipeline *pipeline;
-        CommandBuffer *cmdBuffer;
+        SwapChain swapChain;
+        RenderPass renderPass;
+        Pipeline pipeline;
+        CommandBuffer cmdBuffer;
 #ifdef DEBUG
         VkDebugUtilsMessengerEXT callback;
 #endif /* DEBUG */
         
-        void initWindow();
+        void initWindow(uint32_t width, uint32_t height);
         void initVulkan();
     };
     

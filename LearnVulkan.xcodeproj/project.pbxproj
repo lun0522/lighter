@@ -53,6 +53,7 @@
 		BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libvulkan.1.dylib; path = ../libs/vulkan/macOS/lib/libvulkan.1.dylib; sourceTree = "<group>"; };
 		BD6D210D221000E800FF1910 /* commandbuffer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = commandbuffer.cpp; sourceTree = "<group>"; };
 		BD6D210E221000E800FF1910 /* commandbuffer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = commandbuffer.hpp; sourceTree = "<group>"; };
+		BD9728B02210EA5F003F1779 /* vkobjects.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = vkobjects.hpp; sourceTree = "<group>"; };
 		BDA11AAD22061C7B003092B8 /* utils.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = utils.hpp; sourceTree = "<group>"; };
 		BDA11AAF2206323F003092B8 /* swapchain.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = swapchain.cpp; sourceTree = "<group>"; };
 		BDA11AB02206323F003092B8 /* swapchain.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = swapchain.hpp; sourceTree = "<group>"; };
@@ -109,10 +110,11 @@
 				BD098BC7220D4D2600E34A0A /* renderpass.cpp */,
 				BDA11AB02206323F003092B8 /* swapchain.hpp */,
 				BDA11AAF2206323F003092B8 /* swapchain.cpp */,
-				BD30819B21B1929300F30C2C /* validation.hpp */,
-				BD30819A21B1929300F30C2C /* validation.cpp */,
 				BDA11AAD22061C7B003092B8 /* utils.hpp */,
 				BDA71394220AB1E2007FD13C /* utils.cpp */,
+				BD30819B21B1929300F30C2C /* validation.hpp */,
+				BD30819A21B1929300F30C2C /* validation.cpp */,
+				BD9728B02210EA5F003F1779 /* vkobjects.hpp */,
 				BDA71385220A96B5007FD13C /* shaders */,
 				BDA7138F220AA6B2007FD13C /* compiled */,
 			);

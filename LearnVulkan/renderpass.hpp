@@ -22,11 +22,15 @@ namespace VulkanWrappers {
         const Application &app;
         VkRenderPass renderPass;
         vector<VkFramebuffer> framebuffers;
+        
     public:
-        RenderPass(const Application &app);
-        const VkRenderPass &operator*(void) const { return renderPass; }
-        const vector<VkFramebuffer> &getFramebuffers() const { return framebuffers; }
+        RenderPass(const Application &app) : app{app} {}
+        void init();
+        void cleanup();
         ~RenderPass();
+        
+        const VkRenderPass &operator*(void)             const { return renderPass; }
+        const vector<VkFramebuffer> &getFramebuffers()  const { return framebuffers; }
     };
 }
 

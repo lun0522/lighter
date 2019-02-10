@@ -22,19 +22,23 @@ namespace VulkanWrappers {
         const Application &app;
         const size_t MAX_FRAMES_IN_FLIGHT = 2;
         size_t currentFrame = 0;
+        bool firstTime = true;
         vector<VkSemaphore> imageAvailableSemas;
         vector<VkSemaphore> renderFinishedSemas;
         vector<VkFence> inFlightFences;
         VkCommandPool commandPool;
         vector<VkCommandBuffer> commandBuffers;
         
-        void createCommandObjects();
-        void recordCommandBuffers();
+        void createCommandPool();
+        void createCommandBuffers();
+        void recordCommands();
         void createSyncObjects();
         
     public:
-        CommandBuffer(const Application &app);
-        void drawFrame();
+        CommandBuffer(const Application &app) : app{app} {}
+        void init();
+        void cleanup();
+        VkResult drawFrame();
         ~CommandBuffer();
     };
 }

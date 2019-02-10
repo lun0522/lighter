@@ -18,16 +18,20 @@
 
 namespace VulkanWrappers {
     const vector<const char*> SwapChain::requiredExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const vector<VkSurfaceFormatKHR>&);
+    VkPresentModeKHR chooseSwapPresentMode(const vector<VkPresentModeKHR>&);
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR&, VkExtent2D);
+    void createImages(vector<VkImage>&, vector<VkImageView>&, const VkSwapchainKHR&, const Device&, VkFormat);
     
-    bool SwapChain::hasSwapChainSupport(const VkSurfaceKHR &surface,
-                                        const VkPhysicalDevice &phyDevice) {
+    bool SwapChain::hasSwapChainSupport(const Surface &surface,
+                                        const PhysicalDevice &phyDevice) {
         try {
             cout << "Checking extension support required for swap chain..." << endl << endl;
             
             vector<string> required{requiredExtensions.begin(), requiredExtensions.end()};
             auto extensions {Utils::queryAttribute<VkExtensionProperties>
                 ([&phyDevice](uint32_t *count, VkExtensionProperties *properties) {
-                    return vkEnumerateDeviceExtensionProperties(phyDevice, nullptr, count, properties);
+                    return vkEnumerateDeviceExtensionProperties(*phyDevice, nullptr, count, properties);
                 })
             };
             auto getName = [](const VkExtensionProperties &property) -> const char* {
@@ -41,9 +45,88 @@ namespace VulkanWrappers {
         // physical device may support swap chain but maybe not compatible with window system
         // so we need to query details
         uint32_t formatCount, modeCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(phyDevice, surface, &formatCount, nullptr);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(phyDevice, surface, &modeCount, nullptr);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(*phyDevice, *surface, &formatCount, nullptr);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(*phyDevice, *surface, &modeCount, nullptr);
         return formatCount != 0 && modeCount != 0;
+    }
+    
+    void SwapChain::init() {
+        const auto &surface = app.getSurface();
+        const auto &phyDevice = app.getPhysicalDevice();
+        
+        // surface capabilities
+        VkSurfaceCapabilitiesKHR surfaceCapabilities;
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*phyDevice, *app.getSurface(), &surfaceCapabilities);
+        VkExtent2D extent = chooseSwapExtent(surfaceCapabilities, app.getCurrentExtent());
+        
+        // surface formats
+        auto surfaceFormats{Utils::queryAttribute<VkSurfaceFormatKHR>
+            ([&surface, &phyDevice](uint32_t *count, VkSurfaceFormatKHR *formats) {
+                return vkGetPhysicalDeviceSurfaceFormatsKHR(*phyDevice, *surface, count, formats);
+            })
+        };
+        VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(surfaceFormats);
+        
+        // present modes
+        auto presentModes{Utils::queryAttribute<VkPresentModeKHR>
+            ([&surface, &phyDevice](uint32_t *count, VkPresentModeKHR *modes) {
+                return vkGetPhysicalDeviceSurfacePresentModesKHR(*phyDevice, *surface, count, modes);
+            })
+        };
+        VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes);
+        
+        // how many images we want to have in swap chain
+        uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
+        if (surfaceCapabilities.maxImageCount > 0) // can be 0 if no maximum
+            imageCount = min(surfaceCapabilities.maxImageCount, imageCount);
+        
+        VkSwapchainCreateInfoKHR swapChainInfo{};
+        swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        swapChainInfo.surface = *surface;
+        swapChainInfo.minImageCount = imageCount;
+        swapChainInfo.imageFormat = surfaceFormat.format;
+        swapChainInfo.imageColorSpace = surfaceFormat.colorSpace;
+        swapChainInfo.imageExtent = extent;
+        swapChainInfo.imageArrayLayers = 1;
+        swapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // can be different for post-processing
+        swapChainInfo.preTransform = surfaceCapabilities.currentTransform; // may apply transformations
+        swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR; // may change alpha channel
+        swapChainInfo.presentMode = presentMode;
+        swapChainInfo.clipped = VK_TRUE; // don't care about color of pixels obscured
+        swapChainInfo.oldSwapchain = VK_NULL_HANDLE;
+        
+        // graphics queue and present queue might be the same
+        unordered_set<uint32_t> queueFamilies{app.getQueues().graphicsFamily, app.getQueues().presentFamily};
+        if (queueFamilies.size() == 1) {
+            // if only one queue family will access this swap chain
+            swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        } else {
+            // specify which queue families will share access to images
+            // we will draw on images in swap chain from graphics queue
+            // and submit on presentation queue
+            vector<uint32_t> indices{queueFamilies.begin(), queueFamilies.end()};
+            swapChainInfo.queueFamilyIndexCount = static_cast<uint32_t>(indices.size());
+            swapChainInfo.pQueueFamilyIndices = indices.data();
+            swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        }
+        
+        ASSERT_SUCCESS(vkCreateSwapchainKHR(*app.getDevice(), &swapChainInfo, nullptr, &swapChain),
+                       "Failed to create swap chain");
+        
+        imageFormat = surfaceFormat.format;
+        imageExtent = extent;
+        createImages(images, imageViews, swapChain, app.getDevice(), imageFormat);
+    }
+    
+    void SwapChain::cleanup() {
+        // images are implicitly cleaned up with swap chain
+        for (const auto &imageView : imageViews)
+            vkDestroyImageView(*app.getDevice(), imageView, nullptr);
+        vkDestroySwapchainKHR(*app.getDevice(), swapChain, nullptr);
+    }
+    
+    SwapChain::~SwapChain() {
+        cleanup();
     }
     
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const vector<VkSurfaceFormatKHR> &available) {
@@ -79,7 +162,8 @@ namespace VulkanWrappers {
     
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities,
                                 VkExtent2D currentExtent) {
-        
+        // .currentExtentis the suggested resolution
+        // if it is UINT32_MAX, window manager suggests us to be flexible
         if (capabilities.currentExtent.width != numeric_limits<uint32_t>::max()) {
             return capabilities.currentExtent;
         } else {
@@ -91,80 +175,16 @@ namespace VulkanWrappers {
         }
     }
     
-    SwapChain::SwapChain(const Application &app) : app{app} {
-        const auto &surface = app.getSurface();
-        const auto &phyDevice = app.getPhysicalDevice();
-        
-        // surface capabilities
-        VkSurfaceCapabilitiesKHR surfaceCapabilities;
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(phyDevice, app.getSurface(), &surfaceCapabilities);
-        VkExtent2D extent = chooseSwapExtent(surfaceCapabilities, app.getExtent());
-        
-        // surface formats
-        auto surfaceFormats{Utils::queryAttribute<VkSurfaceFormatKHR>
-            ([&surface, &phyDevice](uint32_t *count, VkSurfaceFormatKHR *formats) {
-                return vkGetPhysicalDeviceSurfaceFormatsKHR(phyDevice, surface, count, formats);
-            })
-        };
-        VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(surfaceFormats);
-        
-        // present modes
-        auto presentModes{Utils::queryAttribute<VkPresentModeKHR>
-            ([&surface, &phyDevice](uint32_t *count, VkPresentModeKHR *modes) {
-                return vkGetPhysicalDeviceSurfacePresentModesKHR(phyDevice, surface, count, modes);
-            })
-        };
-        VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes);
-        
-        // how many images we want to have in swap chain
-        uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
-        if (surfaceCapabilities.maxImageCount > 0) // can be 0 if no maximum
-            imageCount = min(surfaceCapabilities.maxImageCount, imageCount);
-        
-        VkSwapchainCreateInfoKHR swapChainInfo{};
-        swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        swapChainInfo.surface = surface;
-        swapChainInfo.minImageCount = imageCount;
-        swapChainInfo.imageFormat = surfaceFormat.format;
-        swapChainInfo.imageColorSpace = surfaceFormat.colorSpace;
-        swapChainInfo.imageExtent = extent;
-        swapChainInfo.imageArrayLayers = 1;
-        swapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // can be different for post-processing
-        swapChainInfo.preTransform = surfaceCapabilities.currentTransform; // may apply transformations
-        swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR; // may change alpha channel
-        swapChainInfo.presentMode = presentMode;
-        swapChainInfo.clipped = VK_TRUE; // don't care about color of pixels obscured
-        swapChainInfo.oldSwapchain = VK_NULL_HANDLE;
-        
-        // graphics queue and present queue might be the same
-        unordered_set<uint32_t> queueFamilies{app.getQueues().graphicsFamily, app.getQueues().presentFamily};
-        if (queueFamilies.size() == 1) {
-            // if only one queue family will access this swap chain
-            swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        } else {
-            // specify which queue families will share access to images
-            // we will draw on images in swap chain from graphics queue
-            // and submit on presentation queue
-            vector<uint32_t> indices{queueFamilies.begin(), queueFamilies.end()};
-            swapChainInfo.queueFamilyIndexCount = static_cast<uint32_t>(indices.size());
-            swapChainInfo.pQueueFamilyIndices = indices.data();
-            swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        }
-        
-        ASSERT_SUCCESS(vkCreateSwapchainKHR(app.getDevice(), &swapChainInfo, nullptr, &swapChain),
-                       "Failed to create swap chain");
-        
-        imageFormat = surfaceFormat.format;
-        imageExtent = extent;
-        createImages();
-    }
-    
-    void SwapChain::createImages() {
+    void createImages(vector<VkImage> &images,
+                      vector<VkImageView> &imageViews,
+                      const VkSwapchainKHR &swapChain,
+                      const Device &device,
+                      VkFormat imageFormat) {
         // image count might be different since previously we only set a minimum
         uint32_t imageCount;
-        vkGetSwapchainImagesKHR(app.getDevice(), swapChain, &imageCount, nullptr);
+        vkGetSwapchainImagesKHR(*device, swapChain, &imageCount, nullptr);
         images.resize(imageCount);
-        vkGetSwapchainImagesKHR(app.getDevice(), swapChain, &imageCount, images.data());
+        vkGetSwapchainImagesKHR(*device, swapChain, &imageCount, images.data());
         
         // use image view to specify how will we use these images
         // (color, depth, stencil, etc)
@@ -187,14 +207,8 @@ namespace VulkanWrappers {
             imageViewInfo.subresourceRange.baseArrayLayer = 0;
             imageViewInfo.subresourceRange.layerCount = 1;
             
-            ASSERT_SUCCESS(vkCreateImageView(app.getDevice(), &imageViewInfo, nullptr, &imageViews[i]),
+            ASSERT_SUCCESS(vkCreateImageView(*device, &imageViewInfo, nullptr, &imageViews[i]),
                            "Failed to create image view");
         }
-    }
-    
-    SwapChain::~SwapChain() {
-        for (const auto &imageView : imageViews)
-            vkDestroyImageView(app.getDevice(), imageView, nullptr);
-        vkDestroySwapchainKHR(app.getDevice(), swapChain, nullptr);
     }
 }
