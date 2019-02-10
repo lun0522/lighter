@@ -14,18 +14,17 @@
 #include <vulkan/vulkan.hpp>
 
 namespace VulkanWrappers {
-    using namespace std;
+    using std::vector;
+    
+    class Application;
     
     class RenderPass {
-        const VkDevice &device;
+        const Application &app;
         VkRenderPass renderPass;
         vector<VkFramebuffer> framebuffers;
     public:
-        RenderPass(const VkDevice &device,
-                   VkFormat colorAttFormat,
-                   VkExtent2D imageExtent,
-                   const vector<VkImageView> &imageViews);
-        const VkRenderPass &getVkRenderPass() const { return renderPass; }
+        RenderPass(const Application &app);
+        const VkRenderPass &operator*(void) const { return renderPass; }
         const vector<VkFramebuffer> &getFramebuffers() const { return framebuffers; }
         ~RenderPass();
     };

@@ -13,13 +13,13 @@
 
 #include <vulkan/vulkan.hpp>
 
-class VulkanApplication;
-
 namespace VulkanWrappers {
-    using namespace std;
+    using std::vector;
+    
+    class Application;
     
     class CommandBuffer {
-        const VulkanApplication &app;
+        const Application &app;
         const size_t MAX_FRAMES_IN_FLIGHT = 2;
         size_t currentFrame = 0;
         vector<VkSemaphore> imageAvailableSemas;
@@ -33,7 +33,7 @@ namespace VulkanWrappers {
         void createSyncObjects();
         
     public:
-        CommandBuffer(const VulkanApplication &app);
+        CommandBuffer(const Application &app);
         void drawFrame();
         ~CommandBuffer();
     };

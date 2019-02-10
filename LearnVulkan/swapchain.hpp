@@ -9,8 +9,6 @@
 #ifndef swapchain_hpp
 #define swapchain_hpp
 
-#include <string>
-#include <unordered_set>
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
@@ -18,8 +16,10 @@
 namespace VulkanWrappers {
     using namespace std;
     
+    class Application;
+    
     class SwapChain {
-        const VkDevice &device;
+        const Application &app;
         VkSwapchainKHR swapChain;
         vector<VkImage> images;
         vector<VkImageView> imageViews;
@@ -30,12 +30,8 @@ namespace VulkanWrappers {
         static const vector<const char*> requiredExtensions;
         static bool hasSwapChainSupport(const VkSurfaceKHR &surface,
                                         const VkPhysicalDevice &device);
-        SwapChain(const VkSurfaceKHR &surface,
-                  const VkDevice &device,
-                  const VkPhysicalDevice &physicalDevice,
-                  VkExtent2D currentExtent,
-                  const unordered_set<uint32_t> &queueFamilies);
-        const VkSwapchainKHR &getVkSwapChain() const { return swapChain; }
+        SwapChain(const Application &app);
+        const VkSwapchainKHR &operator*(void) const { return swapChain; }
         const vector<VkImageView> &getImageViews() const { return imageViews; }
         VkFormat getFormat() const { return imageFormat; }
         VkExtent2D getExtent() const { return imageExtent; }

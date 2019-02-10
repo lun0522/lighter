@@ -10,7 +10,10 @@
 
 #include <algorithm>
 #include <iostream>
+#include <string>
+#include <unordered_set>
 
+#include "application.hpp"
 #include "utils.hpp"
 
 namespace VulkanWrappers {
@@ -88,16 +91,14 @@ namespace VulkanWrappers {
         }
     }
     
-    SwapChain::SwapChain(const VkSurfaceKHR &surface,
-                         const VkDevice &device,
-                         const VkPhysicalDevice &physicalDevice,
-                         VkExtent2D currentExtent,
-                         const unordered_set<uint32_t> &queueFamilies)
-    : device{device} {
+    SwapChain::SwapChain(const Application &app) : app{app} {
+        const auto &surface = app.getSurface();
+        const auto &physicalDevice = app.getPhysicalDevice();
+        
         // surface capabilities
         VkSurfaceCapabilitiesKHR surfaceCapabilities;
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCapabilities);
-        VkExtent2D extent = chooseSwapExtent(surfaceCapabilities, currentExtent);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, app.getSurface(), &surfaceCapabilities);
+        VkExtent2D extent = chooseSwapExtent(surfaceCapabilities, app.getExtent());
         
         // surface formats
         auto surfaceFormats{Utils::queryAttribute<VkSurfaceFormatKHR>
@@ -135,6 +136,7 @@ namespace VulkanWrappers {
         swapChainInfo.clipped = VK_TRUE; // don't care about color of pixels obscured
         swapChainInfo.oldSwapchain = VK_NULL_HANDLE;
         
+        unordered_set<uint32_t> queueFamilies{app.getIndices().graphicsFamily, app.getIndices().presentFamily};
         if (queueFamilies.size() == 1) {
             // if only one queue family will access this swap chain
             swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -148,7 +150,7 @@ namespace VulkanWrappers {
             swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         }
         
-        ASSERT_TRUE(vkCreateSwapchainKHR(device, &swapChainInfo, nullptr, &swapChain),
+        ASSERT_TRUE(vkCreateSwapchainKHR(app.getDevice(), &swapChainInfo, nullptr, &swapChain),
                     "Failed to create swap chain");
         
         imageFormat = surfaceFormat.format;
@@ -159,9 +161,9 @@ namespace VulkanWrappers {
     void SwapChain::createImages() {
         // image count might be different since previously we only set a minimum
         uint32_t imageCount;
-        vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
+        vkGetSwapchainImagesKHR(app.getDevice(), swapChain, &imageCount, nullptr);
         images.resize(imageCount);
-        vkGetSwapchainImagesKHR(device, swapChain, &imageCount, images.data());
+        vkGetSwapchainImagesKHR(app.getDevice(), swapChain, &imageCount, images.data());
         
         // use image view to specify how will we use these images
         // (color, depth, stencil, etc)
@@ -184,14 +186,14 @@ namespace VulkanWrappers {
             imageViewInfo.subresourceRange.baseArrayLayer = 0;
             imageViewInfo.subresourceRange.layerCount = 1;
             
-            ASSERT_TRUE(vkCreateImageView(device, &imageViewInfo, nullptr, &imageViews[i]),
+            ASSERT_TRUE(vkCreateImageView(app.getDevice(), &imageViewInfo, nullptr, &imageViews[i]),
                         "Failed to create image view");
         }
     }
     
     SwapChain::~SwapChain() {
         for (const auto &imageView : imageViews)
-            vkDestroyImageView(device, imageView, nullptr);
-        vkDestroySwapchainKHR(device, swapChain, nullptr);
+            vkDestroyImageView(app.getDevice(), imageView, nullptr);
+        vkDestroySwapchainKHR(app.getDevice(), swapChain, nullptr);
     }
 }

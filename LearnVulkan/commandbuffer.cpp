@@ -12,7 +12,7 @@
 #include "utils.hpp"
 
 namespace VulkanWrappers {
-    CommandBuffer::CommandBuffer(const VulkanApplication &app) : app{app} {
+    CommandBuffer::CommandBuffer(const Application &app) : app{app} {
         createCommandObjects();
         recordCommandBuffers();
         createSyncObjects();
@@ -54,7 +54,7 @@ namespace VulkanWrappers {
             // start render pass
             VkRenderPassBeginInfo rpBeginInfo{};
             rpBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            rpBeginInfo.renderPass = app.getRenderPass().getVkRenderPass();
+            rpBeginInfo.renderPass = *app.getRenderPass();
             rpBeginInfo.framebuffer = app.getRenderPass().getFramebuffers()[i];
             rpBeginInfo.renderArea.offset = {0, 0};
             rpBeginInfo.renderArea.extent = app.getSwapChain().getExtent();
@@ -66,7 +66,7 @@ namespace VulkanWrappers {
             //   - VK_SUBPASS_CONTENTS_INLINE: use primary commmand buffer
             //   - VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: use secondary
             vkCmdBeginRenderPass(commandBuffers[i], &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-            vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, app.getPipeline().getVkPipeline());
+            vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *app.getPipeline());
             vkCmdDraw(commandBuffers[i], 3, 1, 0, 0); // (vertexCount, instanceCount, firstVertex, firstInstance)
             vkCmdEndRenderPass(commandBuffers[i]);
             
@@ -105,7 +105,7 @@ namespace VulkanWrappers {
         vkResetFences(app.getDevice(), 1, &inFlightFences[currentFrame]); // manually resetting, unlike semophore
         
         uint32_t imageIndex;
-        vkAcquireNextImageKHR(app.getDevice(), app.getSwapChain().getVkSwapChain(), numeric_limits<uint64_t>::max(),
+        vkAcquireNextImageKHR(app.getDevice(), *app.getSwapChain(), numeric_limits<uint64_t>::max(),
                               imageAvailableSemas[currentFrame], VK_NULL_HANDLE, &imageIndex);
         
         // wait for image available
@@ -133,7 +133,7 @@ namespace VulkanWrappers {
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
         presentInfo.waitSemaphoreCount = 1;
         presentInfo.pWaitSemaphores = signalSemas;
-        VkSwapchainKHR swapChains[]{app.getSwapChain().getVkSwapChain()};
+        VkSwapchainKHR swapChains[]{*app.getSwapChain()};
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains;
         presentInfo.pImageIndices = &imageIndex; // image for each swap chain

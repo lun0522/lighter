@@ -8,16 +8,13 @@
 
 #include "renderpass.hpp"
 
+#include "application.hpp"
 #include "utils.hpp"
 
 namespace VulkanWrappers {
-    RenderPass::RenderPass(const VkDevice &device,
-                           VkFormat colorAttFormat,
-                           VkExtent2D imageExtent,
-                           const vector<VkImageView> &imageViews)
-    : device{device} {
+    RenderPass::RenderPass(const Application &app) : app{app} {
         VkAttachmentDescription colorAttachment{};
-        colorAttachment.format = colorAttFormat;
+        colorAttachment.format = app.getSwapChain().getFormat();
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT; // no multisampling
         // loadOp and storeOp affect color and depth buffers
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; // LOAD / CLEAR / DONT_CARE
@@ -58,9 +55,11 @@ namespace VulkanWrappers {
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &subpassDep;
         
-        ASSERT_TRUE(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass),
+        ASSERT_TRUE(vkCreateRenderPass(app.getDevice(), &renderPassInfo, nullptr, &renderPass),
                     "Failed to create render pass");
         
+        const auto &imageViews = app.getSwapChain().getImageViews();
+        const auto &imageExtent = app.getSwapChain().getExtent();
         framebuffers.resize(imageViews.size());
         for (size_t i = 0; i < imageViews.size(); ++i) {
             VkFramebufferCreateInfo framebufferInfo{};
@@ -72,14 +71,14 @@ namespace VulkanWrappers {
             framebufferInfo.height = imageExtent.height;
             framebufferInfo.layers = 1;
             
-            ASSERT_TRUE(vkCreateFramebuffer(device, &framebufferInfo, nullptr, &framebuffers[i]),
+            ASSERT_TRUE(vkCreateFramebuffer(app.getDevice(), &framebufferInfo, nullptr, &framebuffers[i]),
                         "Failed to create framebuffer");
         }
     }
     
     RenderPass::~RenderPass() {
         for (const auto &framebuffer : framebuffers)
-            vkDestroyFramebuffer(device, framebuffer, nullptr);
-        vkDestroyRenderPass(device, renderPass, nullptr);
+            vkDestroyFramebuffer(app.getDevice(), framebuffer, nullptr);
+        vkDestroyRenderPass(app.getDevice(), renderPass, nullptr);
     }
 }

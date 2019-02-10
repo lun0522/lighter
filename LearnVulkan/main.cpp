@@ -14,7 +14,7 @@ using namespace std;
 
 int main(int argc, const char* argv[]) {
     try {
-        VulkanApplication app{};
+        VulkanWrappers::Application app{};
         app.mainLoop();
     } catch (const exception& e) {
         cerr << "Error: " << e.what() << endl;

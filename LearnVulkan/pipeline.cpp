@@ -10,6 +10,7 @@
 
 #include <vector>
 
+#include "application.hpp"
 #include "utils.hpp"
 
 namespace VulkanWrappers {
@@ -26,15 +27,12 @@ namespace VulkanWrappers {
         return shaderModule;
     }
     
-    Pipeline::Pipeline(const VkDevice &device,
-                       const VkRenderPass &renderPass,
-                       VkExtent2D imageExtent)
-    : device{device} {
+    Pipeline::Pipeline(const Application &app) : app{app} {
         vector<char> vertCode = Utils::readFile("triangle.vert.spv");
         vector<char> fragCode = Utils::readFile("triangle.frag.spv");
         
-        VkShaderModule vertShaderModule = createShaderModule(device, vertCode);
-        VkShaderModule fragShaderModule = createShaderModule(device, fragCode);
+        VkShaderModule vertShaderModule = createShaderModule(app.getDevice(), vertCode);
+        VkShaderModule fragShaderModule = createShaderModule(app.getDevice(), fragCode);
         
         VkPipelineShaderStageCreateInfo vertShaderInfo{};
         vertShaderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -70,14 +68,15 @@ namespace VulkanWrappers {
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
-        viewport.width  = imageExtent.width;
-        viewport.height = imageExtent.height;
+        VkExtent2D targetExtent = app.getSwapChain().getExtent();
+        viewport.width  = targetExtent.width;
+        viewport.height = targetExtent.height;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
         
         VkRect2D scissor{};
         scissor.offset = {0, 0};
-        scissor.extent = imageExtent;
+        scissor.extent = targetExtent;
         
         VkPipelineViewportStateCreateInfo viewportInfo{};
         viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -122,7 +121,7 @@ namespace VulkanWrappers {
         VkPipelineLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         
-        ASSERT_TRUE(vkCreatePipelineLayout(device, &layoutInfo, nullptr, &layout),
+        ASSERT_TRUE(vkCreatePipelineLayout(app.getDevice(), &layoutInfo, nullptr, &layout),
                     "Failed to create pipeline layout");
         
         VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -138,19 +137,19 @@ namespace VulkanWrappers {
         pipelineInfo.pColorBlendState = &colorBlendInfo;
         pipelineInfo.pDynamicState = &dynamicStateInfo;
         pipelineInfo.layout = layout;
-        pipelineInfo.renderPass = renderPass;
+        pipelineInfo.renderPass = *app.getRenderPass();
         pipelineInfo.subpass = 0; // index of subpass where this pipeline will be used
         // .basePipeline{Handle, Index} can be used to copy settings from another piepeline
         
-        ASSERT_TRUE(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline),
+        ASSERT_TRUE(vkCreateGraphicsPipelines(app.getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline),
                     "Failed to create graphics pipeline");
         
-        vkDestroyShaderModule(device, vertShaderModule, nullptr);
-        vkDestroyShaderModule(device, fragShaderModule, nullptr);
+        vkDestroyShaderModule(app.getDevice(), vertShaderModule, nullptr);
+        vkDestroyShaderModule(app.getDevice(), fragShaderModule, nullptr);
     }
     
     Pipeline::~Pipeline() {
-        vkDestroyPipeline(device, pipeline, nullptr);
-        vkDestroyPipelineLayout(device, layout, nullptr);
+        vkDestroyPipeline(app.getDevice(), pipeline, nullptr);
+        vkDestroyPipelineLayout(app.getDevice(), layout, nullptr);
     }
 }

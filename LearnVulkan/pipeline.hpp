@@ -11,20 +11,18 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "renderpass.hpp"
-
 namespace VulkanWrappers {
-    using namespace std;
+    using std::vector;
+    
+    class Application;
     
     class Pipeline {
-        const VkDevice &device;
+        const Application &app;
         VkPipelineLayout layout;
         VkPipeline pipeline;
     public:
-        Pipeline(const VkDevice &device,
-                 const VkRenderPass &renderPass,
-                 VkExtent2D imageExtent);
-        const VkPipeline &getVkPipeline() const { return pipeline; }
+        Pipeline(const Application &app);
+        const VkPipeline &operator*(void) const { return pipeline; }
         ~Pipeline();
     };
 }
