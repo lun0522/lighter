@@ -14,6 +14,7 @@
 #include <unordered_set>
 
 #include "application.hpp"
+#include "basicobject.hpp"
 #include "utils.hpp"
 
 namespace VulkanWrappers {

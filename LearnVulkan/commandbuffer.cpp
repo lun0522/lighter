@@ -12,87 +12,18 @@
 #include "utils.hpp"
 
 namespace VulkanWrappers {
-    void CommandBuffer::createCommandPool() {
-        // create a pool to hold command buffers
-        VkCommandPoolCreateInfo commandPoolInfo{};
-        commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        commandPoolInfo.queueFamilyIndex = app.getQueues().graphicsFamily;
-        
-        ASSERT_SUCCESS(vkCreateCommandPool(*app.getDevice(), &commandPoolInfo, nullptr, &commandPool),
-                       "Failed to create command pool");
-    }
-    
-    void CommandBuffer::createCommandBuffers() {
-        // allocate command buffers
-        commandBuffers.resize(app.getRenderPass().getFramebuffers().size());
-        VkCommandBufferAllocateInfo cmdAllocInfo{};
-        cmdAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        cmdAllocInfo.commandPool = commandPool;
-        // secondary level command buffers can be called from primary level
-        cmdAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        cmdAllocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
-        
-        ASSERT_SUCCESS(vkAllocateCommandBuffers(*app.getDevice(), &cmdAllocInfo, commandBuffers.data()),
-                       "Failed to allocate command buffers");
-    }
-    
-    void CommandBuffer::recordCommands() {
-        for (size_t i = 0; i < commandBuffers.size(); ++i) {
-            // start command buffer recording
-            VkCommandBufferBeginInfo cmdBeginInfo{};
-            cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-            // .pInheritanceInfo sets what to inherit from primary buffers to secondary buffers
-            
-            ASSERT_SUCCESS(vkBeginCommandBuffer(commandBuffers[i], &cmdBeginInfo),
-                           "Failed to begin recording command buffer");
-            
-            // start render pass
-            VkRenderPassBeginInfo rpBeginInfo{};
-            rpBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            rpBeginInfo.renderPass = *app.getRenderPass();
-            rpBeginInfo.framebuffer = app.getRenderPass().getFramebuffers()[i];
-            rpBeginInfo.renderArea.offset = {0, 0};
-            rpBeginInfo.renderArea.extent = app.getSwapChain().getExtent();
-            VkClearValue clearColor{0.0f, 0.0f, 0.0f, 1.0f};
-            rpBeginInfo.clearValueCount = 1;
-            rpBeginInfo.pClearValues = &clearColor; // used for VK_ATTACHMENT_LOAD_OP_CLEAR
-            
-            // record commends. options:
-            //   - VK_SUBPASS_CONTENTS_INLINE: use primary commmand buffer
-            //   - VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: use secondary
-            vkCmdBeginRenderPass(commandBuffers[i], &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-            vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *app.getPipeline());
-            vkCmdDraw(commandBuffers[i], 3, 1, 0, 0); // (vertexCount, instanceCount, firstVertex, firstInstance)
-            vkCmdEndRenderPass(commandBuffers[i]);
-            
-            // end recording
-            ASSERT_SUCCESS(vkEndCommandBuffer(commandBuffers[i]),
-                           "Failed to end recording command buffer");
-        }
-    }
+    void createCommandPool(VkCommandPool&, uint32_t, const Device&);
+    void createCommandBuffers(vector<VkCommandBuffer>&, size_t,
+                              const Device&, const VkCommandPool&);
+    void recordCommands(const vector<VkCommandBuffer>&, const RenderPass&,
+                        const SwapChain&, const Pipeline&);
+    void createSemaphore(vector<VkSemaphore>&, size_t, const Device&);
+    void createFence(vector<VkFence>&, size_t, const Device&);
     
     void CommandBuffer::createSyncObjects() {
-        // used to sync draw commands and presentation
-        imageAvailableSemas.resize(MAX_FRAMES_IN_FLIGHT);
-        renderFinishedSemas.resize(MAX_FRAMES_IN_FLIGHT);
-        inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-        
-        VkSemaphoreCreateInfo semaphoreInfo{};
-        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        
-        VkFenceCreateInfo fenceInfo{};
-        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-            ASSERT_SUCCESS(vkCreateSemaphore(*app.getDevice(), &semaphoreInfo, nullptr, &imageAvailableSemas[i]),
-                           "Failed to create image available semaphore");
-            ASSERT_SUCCESS(vkCreateSemaphore(*app.getDevice(), &semaphoreInfo, nullptr, &renderFinishedSemas[i]),
-                           "Failed to create render finished semaphore");
-            ASSERT_SUCCESS(vkCreateFence(*app.getDevice(), &fenceInfo, nullptr, &inFlightFences[i]),
-                           "Failed to create in flight fence");
-        }
+        createSemaphore(imageAvailableSemas, MAX_FRAMES_IN_FLIGHT, app.getDevice());
+        createSemaphore(renderFinishedSemas, MAX_FRAMES_IN_FLIGHT, app.getDevice());
+        createFence(inFlightFences, MAX_FRAMES_IN_FLIGHT, app.getDevice());
     }
     
     VkResult CommandBuffer::drawFrame() {
@@ -152,12 +83,13 @@ namespace VulkanWrappers {
     
     void CommandBuffer::init() {
         if (firstTime) {
-            createCommandPool();
+            createCommandPool(commandPool, app.getQueues().graphicsFamily, app.getDevice());
             createSyncObjects();
             firstTime = false;
         }
-        createCommandBuffers();
-        recordCommands();
+        createCommandBuffers(commandBuffers, app.getRenderPass().getFramebuffers().size(),
+                             app.getDevice(), commandPool);
+        recordCommands(commandBuffers, app.getRenderPass(), app.getSwapChain(), app.getPipeline());
     }
     
     void CommandBuffer::cleanup() {
@@ -172,6 +104,101 @@ namespace VulkanWrappers {
             vkDestroySemaphore(*app.getDevice(), imageAvailableSemas[i], nullptr);
             vkDestroySemaphore(*app.getDevice(), renderFinishedSemas[i], nullptr);
             vkDestroyFence(*app.getDevice(), inFlightFences[i], nullptr);
+        }
+    }
+    
+    void createCommandPool(VkCommandPool &pool,
+                           uint32_t queueIdx,
+                           const Device &device) {
+        // create a pool to hold command buffers
+        VkCommandPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.queueFamilyIndex = queueIdx;
+        
+        ASSERT_SUCCESS(vkCreateCommandPool(*device, &poolInfo, nullptr, &pool),
+                       "Failed to create command pool");
+    }
+    
+    void createCommandBuffers(vector<VkCommandBuffer> &buffers,
+                              size_t count,
+                              const Device &device,
+                              const VkCommandPool &pool) {
+        // allocate command buffers
+        buffers.resize(count);
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = pool;
+        // secondary level command buffers can be called from primary level
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = static_cast<uint32_t>(count);
+        
+        ASSERT_SUCCESS(vkAllocateCommandBuffers(*device, &allocInfo, buffers.data()),
+                       "Failed to allocate command buffers");
+    }
+    
+    void recordCommands(const vector<VkCommandBuffer> &buffers,
+                        const RenderPass &renderPass,
+                        const SwapChain &swapChain,
+                        const Pipeline &pipeline) {
+        for (size_t i = 0; i < buffers.size(); ++i) {
+            // start command buffer recording
+            VkCommandBufferBeginInfo cmdBeginInfo{};
+            cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+            // .pInheritanceInfo sets what to inherit from primary buffers to secondary buffers
+            
+            ASSERT_SUCCESS(vkBeginCommandBuffer(buffers[i], &cmdBeginInfo),
+                           "Failed to begin recording command buffer");
+            
+            // start render pass
+            VkRenderPassBeginInfo rpBeginInfo{};
+            rpBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            rpBeginInfo.renderPass = *renderPass;
+            rpBeginInfo.framebuffer = renderPass.getFramebuffers()[i];
+            rpBeginInfo.renderArea.offset = {0, 0};
+            rpBeginInfo.renderArea.extent = swapChain.getExtent();
+            VkClearValue clearColor{0.0f, 0.0f, 0.0f, 1.0f};
+            rpBeginInfo.clearValueCount = 1;
+            rpBeginInfo.pClearValues = &clearColor; // used for VK_ATTACHMENT_LOAD_OP_CLEAR
+            
+            // record commends. options:
+            //   - VK_SUBPASS_CONTENTS_INLINE: use primary commmand buffer
+            //   - VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: use secondary
+            vkCmdBeginRenderPass(buffers[i], &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBindPipeline(buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *pipeline);
+            vkCmdDraw(buffers[i], 3, 1, 0, 0); // (vertexCount, instanceCount, firstVertex, firstInstance)
+            vkCmdEndRenderPass(buffers[i]);
+            
+            // end recording
+            ASSERT_SUCCESS(vkEndCommandBuffer(buffers[i]),
+                           "Failed to end recording command buffer");
+        }
+    }
+    
+    void createSemaphore(vector<VkSemaphore> &semas,
+                         size_t count,
+                         const Device &device) {
+        VkSemaphoreCreateInfo semaInfo{};
+        semaInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        
+        semas.resize(count);
+        for (auto &sema : semas) {
+            ASSERT_SUCCESS(vkCreateSemaphore(*device, &semaInfo, nullptr, &sema),
+                           "Failed to create semaphore");
+        }
+    }
+    
+    void createFence(vector<VkFence> &fences,
+                     size_t count,
+                     const Device &device) {
+        VkFenceCreateInfo fenceInfo{};
+        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        
+        fences.resize(count);
+        for (auto &fence : fences) {
+            ASSERT_SUCCESS(vkCreateFence(*device, &fenceInfo, nullptr, &fence),
+                           "Failed to create in flight fence");
         }
     }
 }

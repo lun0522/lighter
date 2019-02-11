@@ -12,7 +12,6 @@
 
 #include "application.hpp"
 #include "utils.hpp"
-#include "vkobjects.hpp"
 
 namespace VulkanWrappers {
     VkShaderModule createShaderModule(const Device&, const vector<char>&);

@@ -13,12 +13,12 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "vkobjects.hpp"
-
 namespace VulkanWrappers {
     using namespace std;
     
     class Application;
+    class Surface;
+    class PhysicalDevice;
     
     class SwapChain {
         const Application &app;

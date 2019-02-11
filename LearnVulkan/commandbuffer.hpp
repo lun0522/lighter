@@ -28,17 +28,13 @@ namespace VulkanWrappers {
         vector<VkFence> inFlightFences;
         VkCommandPool commandPool;
         vector<VkCommandBuffer> commandBuffers;
-        
-        void createCommandPool();
-        void createCommandBuffers();
-        void recordCommands();
         void createSyncObjects();
         
     public:
         CommandBuffer(const Application &app) : app{app} {}
+        VkResult drawFrame();
         void init();
         void cleanup();
-        VkResult drawFrame();
         ~CommandBuffer();
     };
 }

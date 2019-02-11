@@ -13,9 +13,45 @@
 #include <iostream>
 #include <unordered_set>
 
+#include "application.hpp"
 #include "utils.hpp"
 
-namespace Validation {
+namespace VulkanWrappers {
+    VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                 VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                 const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+                                                 void *pUserData) {
+        // if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+        cerr << "Validation layer: " << pCallbackData->pMessage << endl;
+        return VK_FALSE;
+    }
+    
+    template<typename T>
+    T loadFunction(const VkInstance &instance, const char *funcName) {
+        auto func = reinterpret_cast<T>(vkGetInstanceProcAddr(instance, funcName));
+        if (!func) throw runtime_error{"Failed to load: " + string{funcName}};
+        return func;
+    }
+    
+    void DebugCallback::init(int messageSeverity,
+                             int messageType) {
+        VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        createInfo.messageSeverity = messageSeverity;
+        createInfo.messageType = messageType;
+        createInfo.pfnUserCallback = debugCallback;
+        createInfo.pUserData = nullptr; // will be passed along to the callback
+        auto func = loadFunction<PFN_vkCreateDebugUtilsMessengerEXT>
+            (*app.getInstance(), "vkCreateDebugUtilsMessengerEXT");
+        func(*app.getInstance(), &createInfo, nullptr, &callback);
+    }
+    
+    DebugCallback::~DebugCallback() {
+        auto func = loadFunction<PFN_vkDestroyDebugUtilsMessengerEXT>
+            (*app.getInstance(), "vkDestroyDebugUtilsMessengerEXT");
+        func(*app.getInstance(), callback, nullptr);
+    }
+    
     const vector<const char*> validationLayers{"VK_LAYER_LUNARG_standard_validation"};
     
     void checkInstanceExtensionSupport(const vector<string> &required) {
@@ -44,47 +80,6 @@ namespace Validation {
             return property.layerName;
         };
         Utils::checkSupport<VkLayerProperties>(required, properties, getName);
-    }
-    
-    VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-         VkDebugUtilsMessageTypeFlagsEXT messageType,
-         const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-         void *pUserData) {
-        // if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-        cerr << "Validation layer: " << pCallbackData->pMessage << endl;
-        return VK_FALSE;
-    }
-    
-    template<typename T>
-    T loadFunction(const VkInstance &instance, const char *funcName) {
-        auto func = reinterpret_cast<T>(vkGetInstanceProcAddr(instance, funcName));
-        if (!func) throw runtime_error{"Failed to load: " + string{funcName}};
-        return func;
-    }
-    
-    void createDebugCallback(const VkInstance &instance,
-                             VkDebugUtilsMessengerEXT *pCallback,
-                             const VkAllocationCallbacks *pAllocator,
-                             int messageSeverity,
-                             int messageType) {
-        VkDebugUtilsMessengerCreateInfoEXT createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        createInfo.messageSeverity = messageSeverity;
-        createInfo.messageType = messageType;
-        createInfo.pfnUserCallback = debugCallback;
-        createInfo.pUserData = nullptr; // will be passed along to the callback
-        auto func = loadFunction<PFN_vkCreateDebugUtilsMessengerEXT>
-            (instance, "vkCreateDebugUtilsMessengerEXT");
-        func(instance, &createInfo, pAllocator, pCallback);
-    }
-    
-    void destroyDebugCallback(const VkInstance &instance,
-                              const VkDebugUtilsMessengerEXT *pCallback,
-                              const VkAllocationCallbacks *pAllocator) {
-        auto func = loadFunction<PFN_vkDestroyDebugUtilsMessengerEXT>
-            (instance, "vkDestroyDebugUtilsMessengerEXT");
-        func(instance, *pCallback, pAllocator);
     }
 }
 
