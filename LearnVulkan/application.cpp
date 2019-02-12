@@ -25,8 +25,8 @@ namespace VulkanWrappers {
                              const string &fragFile,
                              uint32_t width,
                              uint32_t height)
-    : instance{}, surface{*this}, device{*this},
-      phyDevice{*this}, swapChain{*this}, renderPass{*this},
+    : instance{}, surface{*this}, phyDevice{*this},
+      device{*this}, swapChain{*this}, renderPass{*this},
       pipeline{*this, vertFile, fragFile}, cmdBuffer{*this}
 #ifdef DEBUG
       , callback{*this}
@@ -72,8 +72,10 @@ namespace VulkanWrappers {
     void Application::mainLoop() {
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
-            if (cmdBuffer.drawFrame() != VK_SUCCESS || frameBufferResized)
+            if (cmdBuffer.drawFrame() != VK_SUCCESS || frameBufferResized) {
+                frameBufferResized = false;
                 recreate();
+            }
         }
         vkDeviceWaitIdle(*device); // wait for all async operations finish
     }

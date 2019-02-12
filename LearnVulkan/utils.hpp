@@ -21,8 +21,6 @@
 namespace Utils {
     using namespace std;
     
-    vector<char> readFile(const string &filename);
-    
     template<typename AttribType>
     vector<AttribType> queryAttribute(const function<void (uint32_t*, AttribType*)> &enumerate) {
         uint32_t count;

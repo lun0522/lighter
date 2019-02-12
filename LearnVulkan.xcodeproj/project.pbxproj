@@ -21,7 +21,6 @@
 		BDA11AB422064E07003092B8 /* application.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BDA11AB222064E07003092B8 /* application.cpp */; };
 		BDA71392220AA6E0007FD13C /* triangle.frag.spv in Copy Files */ = {isa = PBXBuildFile; fileRef = BDA71390220AA6D7007FD13C /* triangle.frag.spv */; };
 		BDA71393220AA6E0007FD13C /* triangle.vert.spv in Copy Files */ = {isa = PBXBuildFile; fileRef = BDA71391220AA6D7007FD13C /* triangle.vert.spv */; };
-		BDA71395220AB1E2007FD13C /* utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BDA71394220AB1E2007FD13C /* utils.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -65,7 +64,6 @@
 		BDA71387220A9A90007FD13C /* triangle.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = triangle.frag; sourceTree = "<group>"; };
 		BDA71390220AA6D7007FD13C /* triangle.frag.spv */ = {isa = PBXFileReference; lastKnownFileType = file; path = triangle.frag.spv; sourceTree = "<group>"; };
 		BDA71391220AA6D7007FD13C /* triangle.vert.spv */ = {isa = PBXFileReference; lastKnownFileType = file; path = triangle.vert.spv; sourceTree = "<group>"; };
-		BDA71394220AB1E2007FD13C /* utils.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = utils.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -115,7 +113,6 @@
 				BDA11AB02206323F003092B8 /* swapchain.hpp */,
 				BDA11AAF2206323F003092B8 /* swapchain.cpp */,
 				BDA11AAD22061C7B003092B8 /* utils.hpp */,
-				BDA71394220AB1E2007FD13C /* utils.cpp */,
 				BD30819B21B1929300F30C2C /* validation.hpp */,
 				BD30819A21B1929300F30C2C /* validation.cpp */,
 				BDA71385220A96B5007FD13C /* shaders */,
@@ -208,7 +205,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				BDA11AB422064E07003092B8 /* application.cpp in Sources */,
-				BDA71395220AB1E2007FD13C /* utils.cpp in Sources */,
 				BD2435A121AD9B1C00027627 /* main.cpp in Sources */,
 				BD6D210F221000E800FF1910 /* commandbuffer.cpp in Sources */,
 				BD151CB4220BF9A300A6FC75 /* pipeline.cpp in Sources */,

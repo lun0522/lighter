@@ -8,17 +8,19 @@
 
 #include "pipeline.hpp"
 
+#include <unordered_map>
 #include <vector>
 
 #include "application.hpp"
 #include "utils.hpp"
 
 namespace VulkanWrappers {
+    const vector<char> &readFile(const string &filename);
     VkShaderModule createShaderModule(const Device&, const vector<char>&);
     
     void Pipeline::init() {
-        vector<char> vertCode = Utils::readFile(vertFile);
-        vector<char> fragCode = Utils::readFile(fragFile);
+        vector<char> vertCode = readFile(vertFile);
+        vector<char> fragCode = readFile(fragFile);
         
         VkShaderModule vertShaderModule = createShaderModule(app.getDevice(), vertCode);
         VkShaderModule fragShaderModule = createShaderModule(app.getDevice(), fragCode);
@@ -144,6 +146,23 @@ namespace VulkanWrappers {
     
     Pipeline::~Pipeline() {
         cleanup();
+    }
+    
+    static unordered_map<string, vector<char>> loadedText{};
+    const vector<char> &readFile(const string &filename) {
+        auto res = loadedText.find(filename);
+        if (res == loadedText.end()) {
+            // ios::ate means start reading from end of file
+            // so that we know how large buffer do we need
+            ifstream file{filename, ios::ate | ios::binary};
+            size_t size{static_cast<size_t>(file.tellg())};
+            vector<char> buffer(size);
+            file.seekg(0);
+            file.read(buffer.data(), size);
+            file.close();
+            res = loadedText.insert({filename, move(buffer)}).first;
+        }
+        return res->second;
     }
     
     VkShaderModule createShaderModule(const Device &device, const vector<char> &code) {

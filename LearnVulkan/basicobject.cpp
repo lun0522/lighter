@@ -144,7 +144,7 @@ namespace VulkanWrappers {
             queueInfo.queueFamilyIndex = queueFamily;
             queueInfo.queueCount = 1;
             queueInfo.pQueuePriorities = &priority; // required even if only one queue
-            queueInfos.push_back(queueInfo);
+            queueInfos.emplace_back(queueInfo);
         }
         
         VkPhysicalDeviceFeatures features{};
