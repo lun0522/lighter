@@ -18,6 +18,14 @@ namespace VulkanWrappers {
     
     class Application;
     
+    /** VkInstance is used to establish connection with Vulkan library and
+     *      maintain per-application states.
+     *
+     *  Initialization:
+     *      VkApplicationInfo       (App/Engine/API name and version)[Optional]
+     *      Extensions to enable    (Required by GLFW and debugging)
+     *      Layers to enable        (Required by validation layers)
+     */
     class Instance {
         VkInstance instance;
         
@@ -31,6 +39,14 @@ namespace VulkanWrappers {
         const VkInstance &operator*(void) const { return instance; }
     };
     
+    /** VkSurfaceKHR interfaces with platform-specific window systems. It is
+     *      backed by the window created by GLFW, which hides platform-specific
+     *      details. It is not needed for off-screen rendering.
+     *
+     *  Initialization (by GLFW):
+     *      VkInstance
+     *      GLFWwindow
+     */
     class Surface {
         const Application &app;
         VkSurfaceKHR surface;
@@ -45,14 +61,13 @@ namespace VulkanWrappers {
         const VkSurfaceKHR &operator*(void) const { return surface; }
     };
     
-    struct Queues {
-        VkQueue graphicsQueue;
-        VkQueue presentQueue;
-        uint32_t graphicsFamily;
-        uint32_t presentFamily;
-        // queues are implicitly cleaned up with physical device
-    };
-    
+    /** VkPhysicalDevice is a handle to a physical graphics card. We iterate
+     *      through graphics devices to find one that supports swap chains.
+     *      Then, we iterate through its queue families to find one family
+     *      supporting graphics, and another one supporting presentation
+     *      (possibly them are identical). All queues in one family share the
+     *      same property, so we only need to find out the index of the family.
+     */
     struct PhysicalDevice {
         Application &app;
         VkPhysicalDevice phyDevice;
@@ -68,6 +83,19 @@ namespace VulkanWrappers {
         const VkPhysicalDevice &operator*(void) const { return phyDevice; }
     };
     
+    /** VkDevice interfaces with the physical device. We have to tell Vulkan
+     *      how many queues we want to use. Noticed that the graphics queue and
+     *      the present queue might be the same queue, we use a set to remove
+     *      duplicated queue family indices.
+     *
+     *  Initialization:
+     *      VkPhysicalDevice
+     *      Physical device features to enable
+     *      List of VkDeviceQueueCreateInfo (queue family index and how many
+     *                                       queues do we want from this family)
+     *      Extensions to enable            (Required by swap chains)
+     *      Layers to enable                (Required by validation layers)
+     */
     struct Device {
         Application &app;
         VkDevice device;
@@ -80,6 +108,18 @@ namespace VulkanWrappers {
         
         VkDevice &operator*(void) { return device; }
         const VkDevice &operator*(void) const { return device; }
+    };
+    
+    /** VkQueue is the queue associated with the logical device. When we create
+     *      it, we can specify both queue family index and queue index (within
+     *      that family).
+     */
+    struct Queues {
+        VkQueue graphicsQueue;
+        VkQueue presentQueue;
+        uint32_t graphicsFamily;
+        uint32_t presentFamily;
+        // queues are implicitly cleaned up with physical device
     };
 }
 

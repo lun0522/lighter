@@ -52,15 +52,15 @@ namespace VulkanWrappers {
     
     void Application::initVulkan() {
         if (firstTime) {
-            instance.init(); // establish connection with Vulkan library
+            instance.init();
 #ifdef DEBUG
             // relay debug messages back to application
             callback.init(Debug::WARNING | Debug::ERROR,
                           Debug::GENERAL | Debug::VALIDATION | Debug::PERFORMANCE);
 #endif /* DEBUG */
-            surface.init(); // interfaces with window system, not needed for off-screen rendering
-            phyDevice.init(); // select graphics card
-            device.init(); // interface with physical device
+            surface.init();
+            phyDevice.init();
+            device.init();
             firstTime = false;
         }
         swapChain.init();   // queue of images to present to screen

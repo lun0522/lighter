@@ -15,8 +15,8 @@
 #include <unordered_set>
 #include <vector>
 
-#define ASSERT_NONNULL(object, error)   if (object == nullptr)      throw runtime_error{error}
-#define ASSERT_SUCCESS(event, error)    if (event != VK_SUCCESS)    throw runtime_error{error}
+#define ASSERT_NONNULL(object, error)   if (object == nullptr)      throw std::runtime_error{error}
+#define ASSERT_SUCCESS(event, error)    if (event != VK_SUCCESS)    throw std::runtime_error{error}
 
 namespace Utils {
     using namespace std;
@@ -52,6 +52,13 @@ namespace Utils {
             if (available.find(req) == available.end())
                 throw runtime_error{"Requirement not satisfied: " + req};
         }
+    }
+    
+    template <typename ContentType, typename Predicate>
+    bool findFirst(const vector<ContentType> &container, Predicate predicate, uint32_t &first) {
+        auto firstIter = find_if(container.begin(), container.end(), predicate);
+        first = static_cast<uint32_t>(distance(container.begin(), firstIter));
+        return firstIter != container.end();
     }
 }
 

@@ -28,7 +28,7 @@ namespace VulkanWrappers {
         
 #ifdef DEBUG
         vector<const char*> requiredExtensions{glfwExtensions, glfwExtensions + glfwExtensionCount};
-        requiredExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME); // enable debug report
+        requiredExtensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME); // enable debug report
         checkInstanceExtensionSupport({requiredExtensions.begin(), requiredExtensions.end()});
         checkValidationLayerSupport({validationLayers.begin(), validationLayers.end()});
 #endif /* DEBUG */
@@ -85,34 +85,31 @@ namespace VulkanWrappers {
         VkPhysicalDeviceFeatures features;
         vkGetPhysicalDeviceFeatures(*phyDevice, &features);
         
-        // find queue family that holds graphics queue
         auto families{Utils::queryAttribute<VkQueueFamilyProperties>
             ([&phyDevice](uint32_t *count, VkQueueFamilyProperties *properties) {
                 return vkGetPhysicalDeviceQueueFamilyProperties(*phyDevice, count, properties);
             })
         };
         
-        bool found = false;
-        for (uint32_t i = 0; i < families.size(); ++i) {
-            if (families[i].queueCount && families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-                queues.graphicsFamily = i;
-                found = true;
-                break;
-            }
-        }
-        if (!found) return false;
+        // find queue family that holds graphics queue
+        auto graphicsSupport = [](const VkQueueFamilyProperties &family) -> bool {
+            return family.queueCount && (family.queueFlags & VK_QUEUE_GRAPHICS_BIT);
+        };
+        if (!Utils::findFirst(families, graphicsSupport, queues.graphicsFamily))
+            return false;
         
-        for (uint32_t i = 0; i < families.size(); ++i) {
-            if (families[i].queueCount) {
-                VkBool32 presentSupport = false;
-                vkGetPhysicalDeviceSurfaceSupportKHR(*phyDevice, i, *surface, &presentSupport);
-                if (presentSupport) {
-                    queues.presentFamily = i;
-                    return true;
-                }
-            }
-        }
-        return false;
+        // find queue family that holds present queue
+        uint32_t index = 0;
+        auto presentSupport = [&phyDevice, &surface, index]
+            (const VkQueueFamilyProperties &family) mutable -> bool {
+            VkBool32 support = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(*phyDevice, index++, *surface, &support);
+            return support;
+        };
+        if (!Utils::findFirst(families, presentSupport, queues.presentFamily))
+            return false;
+        
+        return true;
     }
     
     void PhysicalDevice::init() {
@@ -151,9 +148,9 @@ namespace VulkanWrappers {
         
         VkDeviceCreateInfo deviceInfo{};
         deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        deviceInfo.pEnabledFeatures = &features;
         deviceInfo.queueCreateInfoCount = static_cast<uint32_t>(queueInfos.size());
         deviceInfo.pQueueCreateInfos = queueInfos.data();
-        deviceInfo.pEnabledFeatures = &features;
         deviceInfo.enabledExtensionCount = static_cast<uint32_t>(SwapChain::requiredExtensions.size());
         deviceInfo.ppEnabledExtensionNames = SwapChain::requiredExtensions.data();
 #ifdef DEBUG

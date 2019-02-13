@@ -56,9 +56,9 @@ namespace VulkanWrappers {
         GLFWwindow *window;
         Instance instance;
         Surface surface;
-        Queues queues;
         PhysicalDevice phyDevice;
         Device device;
+        Queues queues;
         SwapChain swapChain;
         RenderPass renderPass;
         Pipeline pipeline;
