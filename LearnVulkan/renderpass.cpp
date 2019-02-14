@@ -59,7 +59,7 @@ namespace VulkanWrappers {
                        "Failed to create render pass");
         
         const auto &imageViews = app.getSwapChain().getImageViews();
-        const auto &imageExtent = app.getSwapChain().getExtent();
+        auto imageExtent = app.getSwapChain().getExtent();
         framebuffers.resize(imageViews.size());
         for (size_t i = 0; i < imageViews.size(); ++i) {
             VkFramebufferCreateInfo framebufferInfo{};

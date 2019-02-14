@@ -22,7 +22,7 @@ namespace VulkanWrappers {
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const vector<VkSurfaceFormatKHR>&);
     VkPresentModeKHR chooseSwapPresentMode(const vector<VkPresentModeKHR>&);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR&, VkExtent2D);
-    void createImages(vector<VkImage>&, vector<VkImageView>&, const VkSwapchainKHR&, const Device&, VkFormat);
+    void createImages(vector<VkImage>&, vector<VkImageView>&, const SwapChain&, const Device&, VkFormat);
     
     bool SwapChain::hasSwapChainSupport(const Surface &surface,
                                         const PhysicalDevice &phyDevice) {
@@ -57,7 +57,7 @@ namespace VulkanWrappers {
         
         // surface capabilities
         VkSurfaceCapabilitiesKHR surfaceCapabilities;
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*phyDevice, *app.getSurface(), &surfaceCapabilities);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*phyDevice, *surface, &surfaceCapabilities);
         VkExtent2D extent = chooseSwapExtent(surfaceCapabilities, app.getCurrentExtent());
         
         // surface formats
@@ -116,7 +116,7 @@ namespace VulkanWrappers {
         
         imageFormat = surfaceFormat.format;
         imageExtent = extent;
-        createImages(images, imageViews, swapChain, app.getDevice(), imageFormat);
+        createImages(images, imageViews, *this, app.getDevice(), imageFormat);
     }
     
     void SwapChain::cleanup() {
@@ -135,7 +135,7 @@ namespace VulkanWrappers {
         if (available.size() == 1 && available[0].format == VK_FORMAT_UNDEFINED)
             return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
         
-        for (const auto& candidate : available) {
+        for (const auto &candidate : available) {
             if (candidate.format == VK_FORMAT_B8G8R8A8_UNORM &&
                 candidate.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
                 return candidate;
@@ -150,7 +150,7 @@ namespace VulkanWrappers {
         // we will prefer IMMEDIATE mode over it
         VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
         
-        for (const auto& candidate : available) {
+        for (const auto &candidate : available) {
             if (candidate == VK_PRESENT_MODE_MAILBOX_KHR) {
                 return candidate;
             } else if (candidate == VK_PRESENT_MODE_IMMEDIATE_KHR) {
@@ -163,7 +163,7 @@ namespace VulkanWrappers {
     
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities,
                                 VkExtent2D currentExtent) {
-        // .currentExtentis the suggested resolution
+        // .currentExtent is the suggested resolution
         // if it is UINT32_MAX, window manager suggests us to be flexible
         if (capabilities.currentExtent.width != numeric_limits<uint32_t>::max()) {
             return capabilities.currentExtent;
@@ -178,14 +178,14 @@ namespace VulkanWrappers {
     
     void createImages(vector<VkImage> &images,
                       vector<VkImageView> &imageViews,
-                      const VkSwapchainKHR &swapChain,
+                      const SwapChain &swapChain,
                       const Device &device,
                       VkFormat imageFormat) {
         // image count might be different since previously we only set a minimum
         uint32_t imageCount;
-        vkGetSwapchainImagesKHR(*device, swapChain, &imageCount, nullptr);
+        vkGetSwapchainImagesKHR(*device, *swapChain, &imageCount, nullptr);
         images.resize(imageCount);
-        vkGetSwapchainImagesKHR(*device, swapChain, &imageCount, images.data());
+        vkGetSwapchainImagesKHR(*device, *swapChain, &imageCount, images.data());
         
         // use image view to specify how will we use these images
         // (color, depth, stencil, etc)

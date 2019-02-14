@@ -22,9 +22,9 @@ namespace VulkanWrappers {
      *      maintain per-application states.
      *
      *  Initialization:
-     *      VkApplicationInfo       (App/Engine/API name and version)[Optional]
-     *      Extensions to enable    (Required by GLFW and debugging)
-     *      Layers to enable        (Required by validation layers)
+     *      VkApplicationInfo (App/Engine/API name and version)
+     *      Extensions to enable (required by GLFW and debugging)
+     *      Layers to enable (required by validation layers)
      */
     class Instance {
         VkInstance instance;
@@ -67,6 +67,10 @@ namespace VulkanWrappers {
      *      supporting graphics, and another one supporting presentation
      *      (possibly them are identical). All queues in one family share the
      *      same property, so we only need to find out the index of the family.
+     *
+     *  Initialization:
+     *      VkInstance
+     *      VkSurfaceKHR (since we need presentation support)
      */
     struct PhysicalDevice {
         Application &app;
@@ -92,9 +96,9 @@ namespace VulkanWrappers {
      *      VkPhysicalDevice
      *      Physical device features to enable
      *      List of VkDeviceQueueCreateInfo (queue family index and how many
-     *                                       queues do we want from this family)
-     *      Extensions to enable            (Required by swap chains)
-     *      Layers to enable                (Required by validation layers)
+     *          queues do we want from this family)
+     *      Extensions to enable (required by swap chains)
+     *      Layers to enable (required by validation layers)
      */
     struct Device {
         Application &app;

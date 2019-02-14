@@ -130,9 +130,9 @@ namespace VulkanWrappers {
     
     void Device::init() {
         Queues &queues = app.getQueues();
-        vector<VkDeviceQueueCreateInfo> queueInfos{};
         // graphics queue and present queue might be the same
         unordered_set<uint32_t> queueFamilies{queues.graphicsFamily, queues.presentFamily};
+        vector<VkDeviceQueueCreateInfo> queueInfos{};
         
         float priority = 1.0f;
         for (uint32_t queueFamily : queueFamilies) {

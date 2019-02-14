@@ -63,7 +63,7 @@ namespace VulkanWrappers {
             device.init();
             firstTime = false;
         }
-        swapChain.init();   // queue of images to present to screen
+        swapChain.init();
         renderPass.init();  // specify how to use color and depth buffers
         pipeline.init();    // fixed and programmable statges
         cmdBuffer.init();   // record all operations we want to perform
