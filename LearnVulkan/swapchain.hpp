@@ -47,7 +47,8 @@ namespace VulkanWrappers {
      *--------------------------------------------------------------------------
      *
      *  VkImage represents multidimensional data in the swap chain. They can be
-     *      color/depth/stencil attachements, textures, etc.
+     *      color/depth/stencil attachements, textures, etc. The exact purpose
+     *      is not specified until we create an image view.
      *
      *  Initialization:
      *      VkDevice
@@ -56,6 +57,7 @@ namespace VulkanWrappers {
      *--------------------------------------------------------------------------
      *
      *  VkImageView determines how to access and what part of images to access.
+     *      We might convert the image format on the fly with it.
      *
      *  Initialization:
      *      VkDevice

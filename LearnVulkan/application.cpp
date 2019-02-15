@@ -64,7 +64,7 @@ namespace VulkanWrappers {
             firstTime = false;
         }
         swapChain.init();
-        renderPass.init();  // specify how to use color and depth buffers
+        renderPass.init();
         pipeline.init();    // fixed and programmable statges
         cmdBuffer.init();   // record all operations we want to perform
     }
