@@ -13,6 +13,7 @@
 
 #include "application.hpp"
 #include "utils.hpp"
+#include "vertex.hpp"
 
 namespace VulkanWrappers {
     const vector<char> &readFile(const string &filename);
@@ -43,13 +44,17 @@ namespace VulkanWrappers {
             fragShaderInfo,
         };
         
-        // currently no need to pass data
+        // currently pass static data
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexBindingDescriptionCount = 0;
-        vertexInputInfo.pVertexBindingDescriptions = nullptr;
-        vertexInputInfo.vertexAttributeDescriptionCount = 0;
-        vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+        
+        auto bindingDescs = Vertex::getBindingDescriptions();
+        vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescs.size());
+        vertexInputInfo.pVertexBindingDescriptions = bindingDescs.data();
+        
+        auto attributeDescs = Vertex::getAttributeDescriptions();
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescs.size());
+        vertexInputInfo.pVertexAttributeDescriptions = attributeDescs.data();
         
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo{};
         inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
