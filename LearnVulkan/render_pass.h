@@ -1,20 +1,20 @@
 //
-//  renderpass.hpp
+//  render_pass.h
 //  LearnVulkan
 //
 //  Created by Pujun Lun on 2/7/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef renderpass_hpp
-#define renderpass_hpp
+#ifndef LEARNVULKAN_RENDER_PASS_H
+#define LEARNVULKAN_RENDER_PASS_H
 
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
 
-namespace VulkanWrappers {
-    using std::vector;
+namespace vulkan {
+    using namespace std;
     
     class Application;
     
@@ -51,4 +51,4 @@ namespace VulkanWrappers {
     };
 }
 
-#endif /* renderpass_hpp */
+#endif /* LEARNVULKAN_RENDER_PASS_H */

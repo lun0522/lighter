@@ -1,30 +1,40 @@
 //
-//  pipeline.cpp
+//  pipeline.cc
 //  LearnVulkan
 //
 //  Created by Pujun Lun on 2/6/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "pipeline.hpp"
+#include "pipeline.h"
 
-#include <unordered_map>
-#include <vector>
+#include "application.h"
+#include "util.h"
+#include "vertex_buffer.h"
 
-#include "application.hpp"
-#include "utils.hpp"
-#include "vertex.hpp"
-
-namespace VulkanWrappers {
-    const vector<char> &readFile(const string &filename);
-    VkShaderModule createShaderModule(const Device&, const vector<char>&);
+namespace vulkan {
+    namespace {
+        VkShaderModule createShaderModule(const Device &device,
+                                          const string &code) {
+            VkShaderModuleCreateInfo shaderModuleInfo{};
+            shaderModuleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+            shaderModuleInfo.codeSize = code.length();
+            shaderModuleInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+            
+            VkShaderModule shaderModule{};
+            ASSERT_SUCCESS(vkCreateShaderModule(*device, &shaderModuleInfo, nullptr, &shaderModule),
+                           "Failed to create shader module");
+            
+            return shaderModule;
+        }
+    }
     
     void Pipeline::init() {
-        vector<char> vertCode = readFile(vertFile);
-        vector<char> fragCode = readFile(fragFile);
+        const string &vertCode = util::readFile(vertFile);
+        const string &fragCode = util::readFile(fragFile);
         
-        VkShaderModule vertShaderModule = createShaderModule(app.getDevice(), vertCode);
-        VkShaderModule fragShaderModule = createShaderModule(app.getDevice(), fragCode);
+        VkShaderModule vertShaderModule = createShaderModule(app.device(), vertCode);
+        VkShaderModule fragShaderModule = createShaderModule(app.device(), fragCode);
         
         VkPipelineShaderStageCreateInfo vertShaderInfo{};
         vertShaderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -64,7 +74,7 @@ namespace VulkanWrappers {
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
-        VkExtent2D targetExtent = app.getSwapChain().getExtent();
+        VkExtent2D targetExtent = app.swap_chain().getExtent();
         viewport.width  = targetExtent.width;
         viewport.height = targetExtent.height;
         viewport.minDepth = 0.0f;
@@ -117,7 +127,7 @@ namespace VulkanWrappers {
         VkPipelineLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         
-        ASSERT_SUCCESS(vkCreatePipelineLayout(*app.getDevice(), &layoutInfo, nullptr, &layout),
+        ASSERT_SUCCESS(vkCreatePipelineLayout(*app.device(), &layoutInfo, nullptr, &layout),
                        "Failed to create pipeline layout");
         
         VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -133,53 +143,23 @@ namespace VulkanWrappers {
         pipelineInfo.pColorBlendState = &colorBlendInfo;
         pipelineInfo.pDynamicState = &dynamicStateInfo;
         pipelineInfo.layout = layout;
-        pipelineInfo.renderPass = *app.getRenderPass();
+        pipelineInfo.renderPass = *app.render_pass();
         pipelineInfo.subpass = 0; // index of subpass where this pipeline will be used
         // .basePipeline{Handle, Index} can be used to copy settings from another piepeline
         
-        ASSERT_SUCCESS(vkCreateGraphicsPipelines(*app.getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline),
+        ASSERT_SUCCESS(vkCreateGraphicsPipelines(*app.device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline),
                        "Failed to create graphics pipeline");
         
-        vkDestroyShaderModule(*app.getDevice(), vertShaderModule, nullptr);
-        vkDestroyShaderModule(*app.getDevice(), fragShaderModule, nullptr);
+        vkDestroyShaderModule(*app.device(), vertShaderModule, nullptr);
+        vkDestroyShaderModule(*app.device(), fragShaderModule, nullptr);
     }
     
     void Pipeline::cleanup() {
-        vkDestroyPipeline(*app.getDevice(), pipeline, nullptr);
-        vkDestroyPipelineLayout(*app.getDevice(), layout, nullptr);
+        vkDestroyPipeline(*app.device(), pipeline, nullptr);
+        vkDestroyPipelineLayout(*app.device(), layout, nullptr);
     }
     
     Pipeline::~Pipeline() {
         cleanup();
-    }
-    
-    static unordered_map<string, vector<char>> loadedText{};
-    const vector<char> &readFile(const string &filename) {
-        auto res = loadedText.find(filename);
-        if (res == loadedText.end()) {
-            // ios::ate means start reading from end of file
-            // so that we know how large buffer do we need
-            ifstream file{filename, ios::ate | ios::binary};
-            size_t size{static_cast<size_t>(file.tellg())};
-            vector<char> buffer(size);
-            file.seekg(0);
-            file.read(buffer.data(), size);
-            file.close();
-            res = loadedText.insert({filename, move(buffer)}).first;
-        }
-        return res->second;
-    }
-    
-    VkShaderModule createShaderModule(const Device &device, const vector<char> &code) {
-        VkShaderModuleCreateInfo shaderModuleInfo{};
-        shaderModuleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        shaderModuleInfo.codeSize = code.size();
-        shaderModuleInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-        
-        VkShaderModule shaderModule{};
-        ASSERT_SUCCESS(vkCreateShaderModule(*device, &shaderModuleInfo, nullptr, &shaderModule),
-                       "Failed to create shader module");
-        
-        return shaderModule;
     }
 }

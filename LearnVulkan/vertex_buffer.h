@@ -1,13 +1,13 @@
 //
-//  vertex.hpp
+//  vertex_buffer.h
 //  LearnVulkan
 //
 //  Created by Pujun Lun on 2/15/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef vertex_hpp
-#define vertex_hpp
+#ifndef LEARNVULKAN_VERTEX_BUFFER_H
+#define LEARNVULKAN_VERTEX_BUFFER_H
 
 #include <array>
 #include <vector>
@@ -15,7 +15,7 @@
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>
 
-namespace VulkanWrappers {
+namespace vulkan {
     using namespace glm;
     using namespace std;
     
@@ -57,4 +57,4 @@ namespace VulkanWrappers {
     };
 }
 
-#endif /* vertex_hpp */
+#endif /* LEARNVULKAN_VERTEX_BUFFER_H */

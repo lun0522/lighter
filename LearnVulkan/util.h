@@ -1,13 +1,13 @@
 //
-//  utils.hpp
+//  util.h
 //  LearnVulkan
 //
 //  Created by Pujun Lun on 2/2/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef utils_hpp
-#define utils_hpp
+#ifndef LEARNVULKAN_UTIL_H
+#define LEARNVULKAN_UTIL_H
 
 #include <fstream>
 #include <iostream>
@@ -18,7 +18,7 @@
 #define ASSERT_NONNULL(object, error)   if (object == nullptr)      throw std::runtime_error{error}
 #define ASSERT_SUCCESS(event, error)    if (event != VK_SUCCESS)    throw std::runtime_error{error}
 
-namespace Utils {
+namespace util {
     using namespace std;
     
     template<typename AttribType>
@@ -28,6 +28,15 @@ namespace Utils {
         vector<AttribType> attribs{count};
         enumerate(&count, attribs.data());
         return attribs;
+    }
+    
+    template<typename AttribType>
+    void queryAttribute(vector<AttribType> &attribs,
+                        const function<void (uint32_t*, AttribType*)> &enumerate) {
+        uint32_t count;
+        enumerate(&count, nullptr);
+        attribs.resize(count);
+        enumerate(&count, attribs.data());
     }
     
     template<typename AttribType>
@@ -60,6 +69,8 @@ namespace Utils {
         first = static_cast<uint32_t>(distance(container.begin(), firstIter));
         return firstIter != container.end();
     }
+    
+    const string &readFile(const string &path);
 }
 
-#endif /* utils_hpp */
+#endif /* LEARNVULKAN_UTIL_H */

@@ -1,20 +1,20 @@
 //
-//  commandbuffer.hpp
+//  command_buffer.h
 //  LearnVulkan
 //
 //  Created by Pujun Lun on 2/9/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef commandbuffer_hpp
-#define commandbuffer_hpp
+#ifndef LEARNVULKAN_COMMAND_BUFFER_H
+#define LEARNVULKAN_COMMAND_BUFFER_H
 
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
 
-namespace VulkanWrappers {
-    using std::vector;
+namespace vulkan {
+    using namespace std;
     
     class Application;
     
@@ -39,4 +39,4 @@ namespace VulkanWrappers {
     };
 }
 
-#endif /* commandbuffer_hpp */
+#endif /* LEARNVULKAN_COMMAND_BUFFER_H */

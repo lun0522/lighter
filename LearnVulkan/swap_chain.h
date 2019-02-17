@@ -1,24 +1,24 @@
 //
-//  swapchain.hpp
+//  swap_chain.h
 //  LearnVulkan
 //
 //  Created by Pujun Lun on 2/2/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef swapchain_hpp
-#define swapchain_hpp
+#ifndef LEARNVULKAN_SWAP_CHAIN_H
+#define LEARNVULKAN_SWAP_CHAIN_H
 
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
 
-namespace VulkanWrappers {
+#include "basic_object.h"
+
+namespace vulkan {
     using namespace std;
     
     class Application;
-    class Surface;
-    class PhysicalDevice;
     
     /** VkSwapchainKHR holds a queue of images to present to the screen.
      *
@@ -93,4 +93,4 @@ namespace VulkanWrappers {
     };
 }
 
-#endif /* swapchain_hpp */
+#endif /* LEARNVULKAN_SWAP_CHAIN_H */

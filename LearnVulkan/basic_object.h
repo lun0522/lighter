@@ -1,19 +1,19 @@
 //
-//  basicobject.hpp
+//  basic_object.h
 //  LearnVulkan
 //
 //  Created by Pujun Lun on 2/10/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef basicobject_hpp
-#define basicobject_hpp
+#ifndef LEARNVULKAN_BASIC_OBJECT_H
+#define LEARNVULKAN_BASIC_OBJECT_H
 
 #include <vulkan/vulkan.hpp>
 
 class GLFWwindow;
 
-namespace VulkanWrappers {
+namespace vulkan {
     using namespace std;
     
     class Application;
@@ -27,16 +27,16 @@ namespace VulkanWrappers {
      *      Layers to enable (required by validation layers)
      */
     class Instance {
-        VkInstance instance;
+        VkInstance instance_;
         
     public:
         Instance() {}
-        void init();
-        void cleanup() { vkDestroyInstance(instance, nullptr); }
-        ~Instance() { cleanup(); }
+        void Init();
+        void Cleanup() { vkDestroyInstance(instance_, nullptr); }
+        ~Instance() { Cleanup(); }
         
-        VkInstance &operator*(void) { return instance; }
-        const VkInstance &operator*(void) const { return instance; }
+        VkInstance& operator*(void) { return instance_; }
+        const VkInstance& operator*(void) const { return instance_; }
     };
     
     /** VkSurfaceKHR interfaces with platform-specific window systems. It is
@@ -48,17 +48,17 @@ namespace VulkanWrappers {
      *      GLFWwindow
      */
     class Surface {
-        const Application &app;
-        VkSurfaceKHR surface;
+        const Application& app_;
+        VkSurfaceKHR surface_;
         
     public:
-        Surface(const Application &app) : app{app} {}
-        void init();
-        void cleanup();
-        ~Surface() { cleanup(); }
+        Surface(const Application& app) : app_{app} {}
+        void Init();
+        void Cleanup();
+        ~Surface() { Cleanup(); }
         
-        VkSurfaceKHR &operator*(void) { return surface; }
-        const VkSurfaceKHR &operator*(void) const { return surface; }
+        VkSurfaceKHR& operator*(void) { return surface_; }
+        const VkSurfaceKHR& operator*(void) const { return surface_; }
     };
     
     /** VkPhysicalDevice is a handle to a physical graphics card. We iterate
@@ -73,18 +73,18 @@ namespace VulkanWrappers {
      *      VkSurfaceKHR (since we need presentation support)
      */
     struct PhysicalDevice {
-        Application &app;
-        VkPhysicalDevice phyDevice;
+        Application& app_;
+        VkPhysicalDevice physical_device_;
         
     public:
-        PhysicalDevice(Application &app) : app{app} {}
-        PhysicalDevice(Application &app, const VkPhysicalDevice& vkPhyDevice)
-        : app{app}, phyDevice{vkPhyDevice} {}
-        void init();
-        void cleanup() {} // implicitly cleaned up
+        PhysicalDevice(Application& app) : app_{app} {}
+        PhysicalDevice(Application& app, const VkPhysicalDevice& physical_device)
+        : app_{app}, physical_device_{physical_device} {}
+        void Init();
+        void Cleanup() {} // implicitly cleaned up
         
-        VkPhysicalDevice &operator*(void) { return phyDevice; }
-        const VkPhysicalDevice &operator*(void) const { return phyDevice; }
+        VkPhysicalDevice& operator*(void) { return physical_device_; }
+        const VkPhysicalDevice& operator*(void) const { return physical_device_; }
     };
     
     /** VkDevice interfaces with the physical device. We have to tell Vulkan
@@ -101,17 +101,17 @@ namespace VulkanWrappers {
      *      Layers to enable (required by validation layers)
      */
     struct Device {
-        Application &app;
-        VkDevice device;
+        Application& app_;
+        VkDevice device_;
         
     public:
-        Device(Application &app) : app{app} {}
-        void init();
-        void cleanup() { vkDestroyDevice(device, nullptr); }
-        ~Device() { cleanup(); }
+        Device(Application& app) : app_{app} {}
+        void Init();
+        void Cleanup() { vkDestroyDevice(device_, nullptr); }
+        ~Device() { Cleanup(); }
         
-        VkDevice &operator*(void) { return device; }
-        const VkDevice &operator*(void) const { return device; }
+        VkDevice& operator*(void) { return device_; }
+        const VkDevice& operator*(void) const { return device_; }
     };
     
     /** VkQueue is the queue associated with the logical device. When we create
@@ -119,12 +119,12 @@ namespace VulkanWrappers {
      *      that family).
      */
     struct Queues {
-        VkQueue graphicsQueue;
-        VkQueue presentQueue;
-        uint32_t graphicsFamily;
-        uint32_t presentFamily;
-        // queues are implicitly cleaned up with physical device
+        struct Queue {
+            VkQueue queue; // implicitly cleaned up with physical device
+            uint32_t family_index;
+        };
+        Queue graphics, present;
     };
 }
 
-#endif /* basicobject_hpp */
+#endif /* LEARNVULKAN_BASIC_OBJECT_H */

@@ -1,5 +1,5 @@
 //
-//  validation.hpp
+//  validation.h
 //  LearnVulkan
 //
 //  Created by Pujun Lun on 11/30/18.
@@ -7,30 +7,33 @@
 //
 
 #ifdef DEBUG
-#ifndef VALIDATION_HPP
-#define VALIDATION_HPP
+#ifndef LEARNVULKAN_VALIDATION_H
+#define LEARNVULKAN_VALIDATION_H
 
 #include <string>
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
 
-namespace VulkanWrappers {
+namespace vulkan {
     using namespace std;
     
     class Application;
     
-    namespace Debug {
+    namespace MessageSeverity {
         enum Severity {
-            VERBOSE = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT,
-            INFO    = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT,
-            WARNING = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT,
-            ERROR   = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+            kVerbose    = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT,
+            kInfo       = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT,
+            kWarning    = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT,
+            kError      = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
         };
+    }
+    
+    namespace MessageType {
         enum Type {
-            GENERAL     = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT,
-            VALIDATION  = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
-            PERFORMANCE = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+            kGeneral        = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT,
+            kValidation     = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
+            kPerformance    = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
         };
     }
     
@@ -49,5 +52,5 @@ namespace VulkanWrappers {
     void checkValidationLayerSupport(const vector<string> &requiredLayers);
 }
 
-#endif /* VALIDATION_HPP */
+#endif /* LEARNVULKAN_VALIDATION_H */
 #endif /* DEBUG */

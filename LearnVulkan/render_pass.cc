@@ -1,23 +1,43 @@
 //
-//  renderpass.cpp
+//  render_pass.cc
 //  LearnVulkan
 //
 //  Created by Pujun Lun on 2/7/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "renderpass.hpp"
+#include "render_pass.h"
 
-#include "application.hpp"
-#include "utils.hpp"
+#include "application.h"
+#include "util.h"
 
-namespace VulkanWrappers {
-    void createFramebuffers(vector<VkFramebuffer>&, const vector<VkImageView>&,
-                            VkExtent2D, const Device&, const RenderPass&);
+namespace vulkan {
+    namespace {
+        void createFramebuffers(vector<VkFramebuffer> &framebuffers,
+                                const vector<VkImageView> &imageViews,
+                                VkExtent2D imageExtent,
+                                const Device &device,
+                                const RenderPass &renderPass) {
+            framebuffers.resize(imageViews.size());
+            for (size_t i = 0; i < imageViews.size(); ++i) {
+                VkFramebufferCreateInfo framebufferInfo{};
+                framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+                framebufferInfo.renderPass = *renderPass;
+                framebufferInfo.attachmentCount = 1;
+                framebufferInfo.pAttachments = &imageViews[i];
+                framebufferInfo.width = imageExtent.width;
+                framebufferInfo.height = imageExtent.height;
+                framebufferInfo.layers = 1;
+                
+                ASSERT_SUCCESS(vkCreateFramebuffer(*device, &framebufferInfo, nullptr, &framebuffers[i]),
+                               "Failed to create framebuffer");
+            }
+        }
+    }
     
     void RenderPass::init() {
         VkAttachmentDescription colorAttDesc{};
-        colorAttDesc.format = app.getSwapChain().getFormat();
+        colorAttDesc.format = app.swap_chain().getFormat();
         colorAttDesc.samples = VK_SAMPLE_COUNT_1_BIT; // no multisampling
         // loadOp and storeOp affect color and depth buffers
         colorAttDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; // LOAD / CLEAR / DONT_CARE
@@ -58,38 +78,17 @@ namespace VulkanWrappers {
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &subpassDep;
         
-        ASSERT_SUCCESS(vkCreateRenderPass(*app.getDevice(), &renderPassInfo, nullptr, &renderPass),
+        ASSERT_SUCCESS(vkCreateRenderPass(*app.device(), &renderPassInfo, nullptr, &renderPass),
                        "Failed to create render pass");
         
-        createFramebuffers(framebuffers, app.getSwapChain().getImageViews(),
-                           app.getSwapChain().getExtent(), app.getDevice(), *this);
-    }
-    
-    void createFramebuffers(vector<VkFramebuffer> &framebuffers,
-                            const vector<VkImageView> &imageViews,
-                            VkExtent2D imageExtent,
-                            const Device &device,
-                            const RenderPass &renderPass) {
-        framebuffers.resize(imageViews.size());
-        for (size_t i = 0; i < imageViews.size(); ++i) {
-            VkFramebufferCreateInfo framebufferInfo{};
-            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = *renderPass;
-            framebufferInfo.attachmentCount = 1;
-            framebufferInfo.pAttachments = &imageViews[i];
-            framebufferInfo.width = imageExtent.width;
-            framebufferInfo.height = imageExtent.height;
-            framebufferInfo.layers = 1;
-            
-            ASSERT_SUCCESS(vkCreateFramebuffer(*device, &framebufferInfo, nullptr, &framebuffers[i]),
-                           "Failed to create framebuffer");
-        }
+        createFramebuffers(framebuffers, app.swap_chain().getImageViews(),
+                           app.swap_chain().getExtent(), app.device(), *this);
     }
     
     void RenderPass::cleanup() {
         for (const auto &framebuffer : framebuffers)
-            vkDestroyFramebuffer(*app.getDevice(), framebuffer, nullptr);
-        vkDestroyRenderPass(*app.getDevice(), renderPass, nullptr);
+            vkDestroyFramebuffer(*app.device(), framebuffer, nullptr);
+        vkDestroyRenderPass(*app.device(), renderPass, nullptr);
     }
     
     RenderPass::~RenderPass() {

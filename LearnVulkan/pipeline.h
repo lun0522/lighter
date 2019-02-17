@@ -1,19 +1,19 @@
 //
-//  pipeline.hpp
+//  pipeline.h
 //  LearnVulkan
 //
 //  Created by Pujun Lun on 2/6/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef pipeline_hpp
-#define pipeline_hpp
+#ifndef LEARNVULKAN_PIPELINE_H
+#define LEARNVULKAN_PIPELINE_H
 
 #include <string>
 
 #include <vulkan/vulkan.hpp>
 
-namespace VulkanWrappers {
+namespace vulkan {
     using namespace std;
     
     class Application;
@@ -37,4 +37,4 @@ namespace VulkanWrappers {
     };
 }
 
-#endif /* pipeline_hpp */
+#endif /* LEARNVULKAN_PIPELINE_H */
