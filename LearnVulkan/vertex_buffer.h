@@ -16,45 +16,48 @@
 #include <vulkan/vulkan.hpp>
 
 namespace vulkan {
-    using namespace glm;
-    using namespace std;
+
+using namespace glm;
+using namespace std;
+
+struct Vertex {
+    vec2 pos;
+    vec3 color;
     
-    struct Vertex {
-        vec2 pos;
-        vec3 color;
+    static array<VkVertexInputBindingDescription, 1> binding_descriptions() {
+        array<VkVertexInputBindingDescription, 1> binding_descs{};
         
-        static array<VkVertexInputBindingDescription, 1> getBindingDescriptions() {
-            array<VkVertexInputBindingDescription, 1> bindingDescs{};
-            
-            bindingDescs[0].binding = 0;
-            bindingDescs[0].stride = sizeof(Vertex);
-            bindingDescs[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // for instancing, use _INSTANCE instead
-            
-            return bindingDescs;
-        }
+        binding_descs[0].binding = 0;
+        binding_descs[0].stride = sizeof(Vertex);
+        // for instancing, use _INSTANCE for .inputRate
+        binding_descs[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
         
-        static array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
-            array<VkVertexInputAttributeDescription, 2> attributeDescs{};
-            
-            attributeDescs[0].binding = 0; // which binding point does the data come from
-            attributeDescs[0].location = 0; // layout (location = 0) in
-            attributeDescs[0].format = VK_FORMAT_R32G32_SFLOAT; // implies total size
-            attributeDescs[0].offset = offsetof(Vertex, pos); // start reading offset
-            
-            attributeDescs[1].binding = 0;
-            attributeDescs[1].location = 1;
-            attributeDescs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-            attributeDescs[1].offset = offsetof(Vertex, color);
-            
-            return attributeDescs;
-        }
-    };
+        return binding_descs;
+    }
     
-    static const vector<Vertex> vertices {
-        {{ 0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-        {{ 0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}},
-        {{-0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}},
-    };
-}
+    static array<VkVertexInputAttributeDescription, 2> attrib_descriptions() {
+        array<VkVertexInputAttributeDescription, 2> attrib_descs{};
+        
+        attrib_descs[0].binding = 0; // which binding point does data come from
+        attrib_descs[0].location = 0; // layout (location = 0) in
+        attrib_descs[0].format = VK_FORMAT_R32G32_SFLOAT; // implies total size
+        attrib_descs[0].offset = offsetof(Vertex, pos); // start reading offset
+        
+        attrib_descs[1].binding = 0;
+        attrib_descs[1].location = 1;
+        attrib_descs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attrib_descs[1].offset = offsetof(Vertex, color);
+        
+        return attrib_descs;
+    }
+};
+
+static const vector<Vertex> vertices {
+    {{ 0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{ 0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{-0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}},
+};
+
+} /* namespace vulkan */
 
 #endif /* LEARNVULKAN_VERTEX_BUFFER_H */

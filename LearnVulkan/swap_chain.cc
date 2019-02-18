@@ -17,196 +17,233 @@
 #include "util.h"
 
 namespace vulkan {
-    namespace {
-        VkSurfaceFormatKHR chooseSwapSurfaceFormat(const vector<VkSurfaceFormatKHR> &available) {
-            // if surface has no preferred format, we can choose any format
-            if (available.size() == 1 && available[0].format == VK_FORMAT_UNDEFINED)
-                return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
-            
-            for (const auto &candidate : available) {
-                if (candidate.format == VK_FORMAT_B8G8R8A8_UNORM &&
-                    candidate.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-                    return candidate;
-            }
-            
-            // if our preferred format is not supported, simply choose the first one
-            return available[0];
-        }
-        
-        VkPresentModeKHR chooseSwapPresentMode(const vector<VkPresentModeKHR> &available) {
-            // FIFO mode is guaranteed to be available, but not properly supported by some drivers
-            // we will prefer IMMEDIATE mode over it
-            VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
-            
-            for (const auto &candidate : available) {
-                if (candidate == VK_PRESENT_MODE_MAILBOX_KHR) {
-                    return candidate;
-                } else if (candidate == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-                    bestMode = candidate;
-                }
-            }
-            
-            return bestMode;
-        }
-        
-        VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities,
-                                    VkExtent2D currentExtent) {
-            // .currentExtent is the suggested resolution
-            // if it is UINT32_MAX, window manager suggests us to be flexible
-            if (capabilities.currentExtent.width != numeric_limits<uint32_t>::max()) {
-                return capabilities.currentExtent;
-            } else {
-                currentExtent.width = max(capabilities.minImageExtent.width, currentExtent.width);
-                currentExtent.width = min(capabilities.maxImageExtent.width, currentExtent.width);
-                currentExtent.height = max(capabilities.minImageExtent.height, currentExtent.height);
-                currentExtent.height = min(capabilities.maxImageExtent.height, currentExtent.height);
-                return currentExtent;
-            }
-        }
-        
-        void createImages(vector<VkImage> &images,
-                          vector<VkImageView> &imageViews,
-                          const SwapChain &swapChain,
-                          const Device &device,
-                          VkFormat imageFormat) {
-            // image count might be different since previously we only set a minimum
-            util::queryAttribute<VkImage>
-                (images, [&device, &swapChain](uint32_t *count, VkImage *images) {
-                vkGetSwapchainImagesKHR(*device, *swapChain, count, images);
-            });
-            
-            // use image view to specify how will we use these images
-            // (color, depth, stencil, etc)
-            imageViews.resize(images.size());
-            for (uint32_t i = 0; i < images.size(); ++i) {
-                VkImageViewCreateInfo imageViewInfo{};
-                imageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-                imageViewInfo.image = images[i];
-                imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D; // 1D, 2D, 3D, cube maps
-                imageViewInfo.format = imageFormat;
-                // .components enables swizzling color channels around
-                imageViewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-                imageViewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-                imageViewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-                imageViewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-                // .subresourceRange specifies image's purpose and which part should be accessed
-                imageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                imageViewInfo.subresourceRange.baseMipLevel = 0;
-                imageViewInfo.subresourceRange.levelCount = 1;
-                imageViewInfo.subresourceRange.baseArrayLayer = 0;
-                imageViewInfo.subresourceRange.layerCount = 1;
-                
-                ASSERT_SUCCESS(vkCreateImageView(*device, &imageViewInfo, nullptr, &imageViews[i]),
-                               "Failed to create image view");
-            }
+
+namespace {
+
+VkSurfaceFormatKHR ChooseSurfaceFormat(
+    const vector<VkSurfaceFormatKHR>& available) {
+    // if surface has no preferred format, we can choose any format
+    if (available.size() == 1 && available[0].format == VK_FORMAT_UNDEFINED)
+        return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+    
+    for (auto candidate : available) {
+        if (candidate.format == VK_FORMAT_B8G8R8A8_UNORM &&
+            candidate.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            return candidate;
+    }
+    
+    // if our preferred format is not supported, simply choose the first one
+    return available[0];
+}
+
+VkPresentModeKHR ChoosePresentMode(const vector<VkPresentModeKHR>& available) {
+    // FIFO mode is guaranteed to be available, but not properly supported by
+    // some drivers. we will prefer MAILBOX and IMMEDIATE mode over it
+    VkPresentModeKHR best_mode = VK_PRESENT_MODE_FIFO_KHR;
+    
+    for (auto candidate : available) {
+        switch (candidate) {
+          case VK_PRESENT_MODE_MAILBOX_KHR:
+            return candidate;
+          case VK_PRESENT_MODE_IMMEDIATE_KHR:
+            best_mode = candidate;
+          default:
+            break;
         }
     }
     
-    const vector<const char*> SwapChain::requiredExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-    bool SwapChain::hasSwapChainSupport(const Surface &surface,
-                                        const PhysicalDevice &phyDevice) {
-        try {
-            cout << "Checking extension support required for swap chain..." << endl << endl;
-            
-            vector<string> required{requiredExtensions.begin(), requiredExtensions.end()};
-            auto extensions {util::queryAttribute<VkExtensionProperties>
-                ([&phyDevice](uint32_t *count, VkExtensionProperties *properties) {
-                    return vkEnumerateDeviceExtensionProperties(*phyDevice, nullptr, count, properties);
-                })
-            };
-            auto getName = [](const VkExtensionProperties &property) -> const char* {
-                return property.extensionName;
-            };
-            util::checkSupport<VkExtensionProperties>(required, extensions, getName);
-        } catch (const exception &e) {
-            return false;
-        }
-        
-        // physical device may support swap chain but maybe not compatible with window system
-        // so we need to query details
-        uint32_t formatCount, modeCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(*phyDevice, *surface, &formatCount, nullptr);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(*phyDevice, *surface, &modeCount, nullptr);
-        return formatCount != 0 && modeCount != 0;
-    }
-    
-    void SwapChain::init() {
-        const auto &surface = app.surface();
-        const auto &phyDevice = app.physical_device();
-        
-        // surface capabilities
-        VkSurfaceCapabilitiesKHR surfaceCapabilities;
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*phyDevice, *surface, &surfaceCapabilities);
-        VkExtent2D extent = chooseSwapExtent(surfaceCapabilities, app.current_extent());
-        
-        // surface formats
-        auto surfaceFormats{util::queryAttribute<VkSurfaceFormatKHR>
-            ([&surface, &phyDevice](uint32_t *count, VkSurfaceFormatKHR *formats) {
-                return vkGetPhysicalDeviceSurfaceFormatsKHR(*phyDevice, *surface, count, formats);
-            })
-        };
-        VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(surfaceFormats);
-        
-        // present modes
-        auto presentModes{util::queryAttribute<VkPresentModeKHR>
-            ([&surface, &phyDevice](uint32_t *count, VkPresentModeKHR *modes) {
-                return vkGetPhysicalDeviceSurfacePresentModesKHR(*phyDevice, *surface, count, modes);
-            })
-        };
-        VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes);
-        
-        // how many images we want to have in swap chain
-        uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
-        if (surfaceCapabilities.maxImageCount > 0) // can be 0 if no maximum
-            imageCount = min(surfaceCapabilities.maxImageCount, imageCount);
-        
-        VkSwapchainCreateInfoKHR swapChainInfo{};
-        swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        swapChainInfo.surface = *surface;
-        swapChainInfo.minImageCount = imageCount;
-        swapChainInfo.imageFormat = surfaceFormat.format;
-        swapChainInfo.imageColorSpace = surfaceFormat.colorSpace;
-        swapChainInfo.imageExtent = extent;
-        swapChainInfo.imageArrayLayers = 1;
-        swapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // can be different for post-processing
-        swapChainInfo.preTransform = surfaceCapabilities.currentTransform; // may apply transformations
-        swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR; // may change alpha channel
-        swapChainInfo.presentMode = presentMode;
-        swapChainInfo.clipped = VK_TRUE; // don't care about color of pixels obscured
-        swapChainInfo.oldSwapchain = VK_NULL_HANDLE;
-        
-        // graphics queue and present queue might be the same
-        unordered_set<uint32_t> queueFamilies{app.queues().graphics.family_index,
-                                              app.queues().present.family_index};
-        if (queueFamilies.size() == 1) {
-            // if only one queue family will access this swap chain
-            swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        } else {
-            // specify which queue families will share access to images
-            // we will draw on images in swap chain from graphics queue
-            // and submit on presentation queue
-            vector<uint32_t> indices{queueFamilies.begin(), queueFamilies.end()};
-            swapChainInfo.queueFamilyIndexCount = static_cast<uint32_t>(indices.size());
-            swapChainInfo.pQueueFamilyIndices = indices.data();
-            swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        }
-        
-        ASSERT_SUCCESS(vkCreateSwapchainKHR(*app.device(), &swapChainInfo, nullptr, &swapChain),
-                       "Failed to create swap chain");
-        
-        imageFormat = surfaceFormat.format;
-        imageExtent = extent;
-        createImages(images, imageViews, *this, app.device(), imageFormat);
-    }
-    
-    void SwapChain::cleanup() {
-        // images are implicitly cleaned up with swap chain
-        for (const auto &imageView : imageViews)
-            vkDestroyImageView(*app.device(), imageView, nullptr);
-        vkDestroySwapchainKHR(*app.device(), swapChain, nullptr);
-    }
-    
-    SwapChain::~SwapChain() {
-        cleanup();
+    return best_mode;
+}
+
+VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities,
+                        VkExtent2D current_extent) {
+    // .currentExtent is the suggested resolution
+    // if it is UINT32_MAX, window manager suggests us to be flexible
+    if (capabilities.currentExtent.width != numeric_limits<uint32_t>::max()) {
+        return capabilities.currentExtent;
+    } else {
+        current_extent.width = max(capabilities.minImageExtent.width,
+                                   current_extent.width);
+        current_extent.width = min(capabilities.maxImageExtent.width,
+                                   current_extent.width);
+        current_extent.height = max(capabilities.minImageExtent.height,
+                                    current_extent.height);
+        current_extent.height = min(capabilities.maxImageExtent.height,
+                                    current_extent.height);
+        return current_extent;
     }
 }
+
+void CreateImages(vector<VkImage>& images,
+                  vector<VkImageView>& image_views,
+                  const SwapChain& swap_chain,
+                  const Device& device,
+                  VkFormat image_format) {
+    // image count might be different since previously we only set a minimum
+    util::QueryAttribute<VkImage>
+        (images, [&device, &swap_chain](uint32_t *count, VkImage *images) {
+        vkGetSwapchainImagesKHR(*device, *swap_chain, count, images);
+    });
+    
+    // use image view to specify how will we use these images
+    // (color, depth, stencil, etc)
+    image_views.resize(images.size());
+    for (uint32_t i = 0; i < images.size(); ++i) {
+        VkImageViewCreateInfo image_view_info{};
+        image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        image_view_info.image = images[i];
+        image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D; // 2D, 3D, cube maps
+        image_view_info.format = image_format;
+        // .components enables swizzling color channels around
+        image_view_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        image_view_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        image_view_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        image_view_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        // .subresourceRange specifies image's purpose and which part to access
+        image_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        image_view_info.subresourceRange.baseMipLevel = 0;
+        image_view_info.subresourceRange.levelCount = 1;
+        image_view_info.subresourceRange.baseArrayLayer = 0;
+        image_view_info.subresourceRange.layerCount = 1;
+        
+        ASSERT_SUCCESS(vkCreateImageView(
+                           *device, &image_view_info, nullptr, &image_views[i]),
+                       "Failed to create image view");
+    }
+}
+
+} /* namespace */
+
+bool SwapChain::HasSwapChainSupport(const Surface& surface,
+                                    const PhysicalDevice& physical_device) {
+    try {
+        cout << "Checking extension support required for swap chain..."
+             << endl << endl;
+        
+        vector<string> required{
+            kSwapChainExtensions.begin(),
+            kSwapChainExtensions.end(),
+        };
+        auto extensions {util::QueryAttribute<VkExtensionProperties>
+            ([&physical_device]
+            (uint32_t* count, VkExtensionProperties* properties) {
+                return vkEnumerateDeviceExtensionProperties(
+                    *physical_device, nullptr, count, properties);
+            })
+        };
+        auto get_name = [](const VkExtensionProperties& property)
+            -> const char* {
+            return property.extensionName;
+        };
+        util::CheckSupport<VkExtensionProperties>(
+            required, extensions, get_name);
+    } catch (const exception& e) {
+        return false;
+    }
+    
+    // physical device may support swap chain but maybe not compatible with
+    // window system, so we need to query details
+    uint32_t format_count, mode_count;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(
+        *physical_device, *surface, &format_count, nullptr);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(
+        *physical_device, *surface, &mode_count, nullptr);
+    return format_count != 0 && mode_count != 0;
+}
+
+void SwapChain::Init() {
+    const auto& surface = app_.surface();
+    const auto& physical_device = app_.physical_device();
+    
+    // surface capabilities
+    VkSurfaceCapabilitiesKHR surface_capabilities;
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+        *physical_device, *surface, &surface_capabilities);
+    VkExtent2D extent = ChooseExtent(
+        surface_capabilities, app_.current_extent());
+    
+    // surface formats
+    auto surface_formats{util::QueryAttribute<VkSurfaceFormatKHR>
+        ([&surface, &physical_device]
+        (uint32_t* count, VkSurfaceFormatKHR* formats) {
+            return vkGetPhysicalDeviceSurfaceFormatsKHR(
+                *physical_device, *surface, count, formats);
+        })
+    };
+    VkSurfaceFormatKHR surface_format = ChooseSurfaceFormat(surface_formats);
+    
+    // present modes
+    auto present_modes{util::QueryAttribute<VkPresentModeKHR>
+        ([&surface, &physical_device]
+        (uint32_t* count, VkPresentModeKHR* modes) {
+            return vkGetPhysicalDeviceSurfacePresentModesKHR(
+                *physical_device, *surface, count, modes);
+        })
+    };
+    VkPresentModeKHR presentMode = ChoosePresentMode(present_modes);
+    
+    // how many images we want to have in swap chain
+    uint32_t image_count = surface_capabilities.minImageCount + 1;
+    if (surface_capabilities.maxImageCount > 0) // can be 0 if no maximum
+        image_count = min(surface_capabilities.maxImageCount, image_count);
+    
+    VkSwapchainCreateInfoKHR swap_chain_info{};
+    swap_chain_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    swap_chain_info.surface = *surface;
+    swap_chain_info.minImageCount = image_count;
+    swap_chain_info.imageFormat = surface_format.format;
+    swap_chain_info.imageColorSpace = surface_format.colorSpace;
+    swap_chain_info.imageExtent = extent;
+    swap_chain_info.imageArrayLayers = 1;
+    // .imageUsage can be different for post-processing
+    swap_chain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    // we may apply transformations
+    swap_chain_info.preTransform = surface_capabilities.currentTransform;
+    // we may change alpha channel
+    swap_chain_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    swap_chain_info.presentMode = presentMode;
+    // don't care about color of pixels obscured
+    swap_chain_info.clipped = VK_TRUE;
+    swap_chain_info.oldSwapchain = VK_NULL_HANDLE;
+    
+    // graphics queue and present queue might be the same
+    unordered_set<uint32_t> queue_families{
+        app_.queues().graphics.family_index,
+        app_.queues().present.family_index,
+    };
+    if (queue_families.size() == 1) {
+        // if only one queue family will access this swap chain
+        swap_chain_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    } else {
+        // specify which queue families will share access to images
+        // we will draw on images in swap chain from graphics queue
+        // and submit on presentation queue
+        vector<uint32_t> indices{queue_families.begin(), queue_families.end()};
+        swap_chain_info.queueFamilyIndexCount = CONTAINER_SIZE(indices);
+        swap_chain_info.pQueueFamilyIndices = indices.data();
+        swap_chain_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+    }
+    
+    ASSERT_SUCCESS(vkCreateSwapchainKHR(
+                       *app_.device(), &swap_chain_info, nullptr, &swap_chain_),
+                   "Failed to create swap chain");
+    
+    image_format_ = surface_format.format;
+    image_extent_ = extent;
+    CreateImages(images_, image_views_, *this, app_.device(), image_format_);
+}
+
+void SwapChain::Cleanup() {
+    // images are implicitly cleaned up with swap chain
+    for (auto& image_view : image_views_)
+        vkDestroyImageView(*app_.device(), image_view, nullptr);
+    vkDestroySwapchainKHR(*app_.device(), swap_chain_, nullptr);
+}
+
+SwapChain::~SwapChain() {
+    Cleanup();
+}
+
+const vector<const char*> kSwapChainExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+} /* namespace vulkan */

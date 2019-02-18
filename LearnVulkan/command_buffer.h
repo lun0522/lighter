@@ -14,29 +14,30 @@
 #include <vulkan/vulkan.hpp>
 
 namespace vulkan {
-    using namespace std;
+
+using namespace std;
+class Application;
+
+class CommandBuffer {
+    static const size_t kMaxFrameInFlight = 2;
     
-    class Application;
+    const Application& app_;
+    size_t current_frame_ = 0;
+    bool first_time_ = true;
+    vector<VkSemaphore> image_available_semas_;
+    vector<VkSemaphore> render_finished_semas_;
+    vector<VkFence> in_flight_fences_;
+    VkCommandPool command_pool_;
+    vector<VkCommandBuffer> command_buffers_;
     
-    class CommandBuffer {
-        const Application &app;
-        const size_t MAX_FRAMES_IN_FLIGHT = 2;
-        size_t currentFrame = 0;
-        bool firstTime = true;
-        vector<VkSemaphore> imageAvailableSemas;
-        vector<VkSemaphore> renderFinishedSemas;
-        vector<VkFence> inFlightFences;
-        VkCommandPool commandPool;
-        vector<VkCommandBuffer> commandBuffers;
-        void createSyncObjects();
-        
-    public:
-        CommandBuffer(const Application &app) : app{app} {}
-        VkResult drawFrame();
-        void init();
-        void cleanup();
-        ~CommandBuffer();
-    };
-}
+public:
+    CommandBuffer(const Application& app) : app_{app} {}
+    VkResult DrawFrame();
+    void Init();
+    void Cleanup();
+    ~CommandBuffer();
+};
+
+} /* namespace vulkan */
 
 #endif /* LEARNVULKAN_COMMAND_BUFFER_H */

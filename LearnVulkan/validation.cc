@@ -17,70 +17,81 @@
 #include "util.h"
 
 namespace vulkan {
-    VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                                 VkDebugUtilsMessageTypeFlagsEXT messageType,
-                                                 const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-                                                 void *pUserData) {
-        // if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-        cerr << "Validation layer: " << pCallbackData->pMessage << endl;
-        return VK_FALSE;
-    }
-    
-    template<typename T>
-    T loadFunction(const Instance &instance, const char *funcName) {
-        auto func = reinterpret_cast<T>(vkGetInstanceProcAddr(*instance, funcName));
-        if (!func) throw runtime_error{"Failed to load: " + string{funcName}};
-        return func;
-    }
-    
-    void DebugCallback::init(int messageSeverity,
-                             int messageType) {
-        VkDebugUtilsMessengerCreateInfoEXT createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        createInfo.messageSeverity = messageSeverity;
-        createInfo.messageType = messageType;
-        createInfo.pfnUserCallback = debugCallback;
-        createInfo.pUserData = nullptr; // will be passed along to the callback
-        auto func = loadFunction<PFN_vkCreateDebugUtilsMessengerEXT>
-            (app.instance(), "vkCreateDebugUtilsMessengerEXT");
-        func(*app.instance(), &createInfo, nullptr, &callback);
-    }
-    
-    DebugCallback::~DebugCallback() {
-        auto func = loadFunction<PFN_vkDestroyDebugUtilsMessengerEXT>
-            (app.instance(), "vkDestroyDebugUtilsMessengerEXT");
-        func(*app.instance(), callback, nullptr);
-    }
-    
-    const vector<const char*> validationLayers{"VK_LAYER_LUNARG_standard_validation"};
-    
-    void checkInstanceExtensionSupport(const vector<string> &required) {
-        cout << "Checking instance extension support..." << endl << endl;
-        
-        auto properties {util::queryAttribute<VkExtensionProperties>
-            ([](uint32_t *count, VkExtensionProperties *properties) {
-                return vkEnumerateInstanceExtensionProperties(nullptr, count, properties);
-            })
-        };
-        auto getName = [](const VkExtensionProperties &property) -> const char* {
-            return property.extensionName;
-        };
-        util::checkSupport<VkExtensionProperties>(required, properties, getName);
-    }
-    
-    void checkValidationLayerSupport(const vector<string> &required) {
-        cout << "Checking validation layer support..." << endl << endl;
-        
-        auto properties {util::queryAttribute<VkLayerProperties>
-            ([](uint32_t *count, VkLayerProperties *properties) {
-                return vkEnumerateInstanceLayerProperties(count, properties);
-            })
-        };
-        auto getName = [](const VkLayerProperties &property) -> const char* {
-            return property.layerName;
-        };
-        util::checkSupport<VkLayerProperties>(required, properties, getName);
-    }
+
+namespace {
+
+VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+    VkDebugUtilsMessageTypeFlagsEXT message_type,
+    const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+    void* user_data) {
+    // if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+    cerr << "Validation layer: " << callback_data->pMessage << endl;
+    return VK_FALSE;
 }
+
+template<typename T>
+T LoadFunction(const Instance& instance, const string& func_name) {
+    auto func = reinterpret_cast<T>(
+        vkGetInstanceProcAddr(*instance, func_name.c_str()));
+    if (!func)
+        throw runtime_error{"Failed to load: " + func_name};
+    return func;
+}
+
+} /* namespace */
+
+void DebugCallback::Init(int message_severity,
+                         int message_type) {
+    VkDebugUtilsMessengerCreateInfoEXT create_info{};
+    create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    create_info.messageSeverity = message_severity;
+    create_info.messageType = message_type;
+    create_info.pfnUserCallback = UserCallback;
+    create_info.pUserData = nullptr; // will be passed along to the callback
+    auto func = LoadFunction<PFN_vkCreateDebugUtilsMessengerEXT>(
+        app_.instance(), "vkCreateDebugUtilsMessengerEXT");
+    func(*app_.instance(), &create_info, nullptr, &callback_);
+}
+
+DebugCallback::~DebugCallback() {
+    auto func = LoadFunction<PFN_vkDestroyDebugUtilsMessengerEXT>(
+        app_.instance(), "vkDestroyDebugUtilsMessengerEXT");
+    func(*app_.instance(), callback_, nullptr);
+}
+
+const vector<const char*> kValidationLayers{
+    "VK_LAYER_LUNARG_standard_validation"};
+
+void CheckInstanceExtensionSupport(const vector<string>& required) {
+    cout << "Checking instance extension support..." << endl << endl;
+    
+    auto properties {util::QueryAttribute<VkExtensionProperties>
+        ([](uint32_t* count, VkExtensionProperties* properties) {
+            return vkEnumerateInstanceExtensionProperties(
+                nullptr, count, properties);
+        })
+    };
+    auto get_name = [](const VkExtensionProperties &property) -> const char* {
+        return property.extensionName;
+    };
+    util::CheckSupport<VkExtensionProperties>(required, properties, get_name);
+}
+
+void CheckValidationLayerSupport(const vector<string>& required) {
+    cout << "Checking validation layer support..." << endl << endl;
+    
+    auto properties {util::QueryAttribute<VkLayerProperties>
+        ([](uint32_t* count, VkLayerProperties* properties) {
+            return vkEnumerateInstanceLayerProperties(count, properties);
+        })
+    };
+    auto get_name = [](const VkLayerProperties& property) -> const char* {
+        return property.layerName;
+    };
+    util::CheckSupport<VkLayerProperties>(required, properties, get_name);
+}
+
+} /* namespace vulkan */
 
 #endif /* DEBUG */

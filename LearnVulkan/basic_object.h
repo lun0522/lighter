@@ -14,117 +14,117 @@
 class GLFWwindow;
 
 namespace vulkan {
-    using namespace std;
+
+using namespace std;
+class Application;
+
+/** VkInstance is used to establish connection with Vulkan library and
+ *      maintain per-application states.
+ *
+ *  Initialization:
+ *      VkApplicationInfo (App/Engine/API name and version)
+ *      Extensions to enable (required by GLFW and debugging)
+ *      Layers to enable (required by validation layers)
+ */
+class Instance {
+    VkInstance instance_;
     
-    class Application;
+public:
+    Instance() {}
+    void Init();
+    void Cleanup() { vkDestroyInstance(instance_, nullptr); }
+    ~Instance() { Cleanup(); }
     
-    /** VkInstance is used to establish connection with Vulkan library and
-     *      maintain per-application states.
-     *
-     *  Initialization:
-     *      VkApplicationInfo (App/Engine/API name and version)
-     *      Extensions to enable (required by GLFW and debugging)
-     *      Layers to enable (required by validation layers)
-     */
-    class Instance {
-        VkInstance instance_;
-        
-    public:
-        Instance() {}
-        void Init();
-        void Cleanup() { vkDestroyInstance(instance_, nullptr); }
-        ~Instance() { Cleanup(); }
-        
-        VkInstance& operator*(void) { return instance_; }
-        const VkInstance& operator*(void) const { return instance_; }
+    VkInstance& operator*(void) { return instance_; }
+    const VkInstance& operator*(void) const { return instance_; }
+};
+
+/** VkSurfaceKHR interfaces with platform-specific window systems. It is backed
+ *      by the window created by GLFW, which hides platform-specific details.
+ *      It is not needed for off-screen rendering.
+ *
+ *  Initialization (by GLFW):
+ *      VkInstance
+ *      GLFWwindow
+ */
+class Surface {
+    const Application& app_;
+    VkSurfaceKHR surface_;
+    
+public:
+    Surface(const Application& app) : app_{app} {}
+    void Init();
+    void Cleanup();
+    ~Surface() { Cleanup(); }
+    
+    VkSurfaceKHR& operator*(void) { return surface_; }
+    const VkSurfaceKHR& operator*(void) const { return surface_; }
+};
+
+/** VkPhysicalDevice is a handle to a physical graphics card. We iterate through
+ *      graphics devices to find one that supports swap chains. Then, we iterate
+ *      through its queue families to find one family supporting graphics, and
+ *      another one supporting presentation (possibly them are identical).
+ *      All queues in one family share the same property, so we only need to
+ *      find out the index of the family.
+ *
+ *  Initialization:
+ *      VkInstance
+ *      VkSurfaceKHR (since we need presentation support)
+ */
+struct PhysicalDevice {
+    Application& app_;
+    VkPhysicalDevice physical_device_;
+    
+public:
+    PhysicalDevice(Application& app) : app_{app} {}
+    PhysicalDevice(Application& app, const VkPhysicalDevice& physical_device)
+    : app_{app}, physical_device_{physical_device} {}
+    void Init();
+    void Cleanup() {} // implicitly cleaned up
+    
+    VkPhysicalDevice& operator*(void) { return physical_device_; }
+    const VkPhysicalDevice& operator*(void) const { return physical_device_; }
+};
+
+/** VkDevice interfaces with the physical device. We have to tell Vulkan
+ *      how many queues we want to use. Noticed that the graphics queue and
+ *      the present queue might be the same queue, we use a set to remove
+ *      duplicated queue family indices.
+ *
+ *  Initialization:
+ *      VkPhysicalDevice
+ *      Physical device features to enable
+ *      List of VkDeviceQueueCreateInfo (queue family index and how many
+ *          queues do we want from this family)
+ *      Extensions to enable (required by swap chains)
+ *      Layers to enable (required by validation layers)
+ */
+struct Device {
+    Application& app_;
+    VkDevice device_;
+    
+public:
+    Device(Application& app) : app_{app} {}
+    void Init();
+    void Cleanup() { vkDestroyDevice(device_, nullptr); }
+    ~Device() { Cleanup(); }
+    
+    VkDevice& operator*(void) { return device_; }
+    const VkDevice& operator*(void) const { return device_; }
+};
+
+/** VkQueue is the queue associated with the logical device. When we create it,
+ *      we can specify both queue family index and queue index (within family).
+ */
+struct Queues {
+    struct Queue {
+        VkQueue queue; // implicitly cleaned up with physical device
+        uint32_t family_index;
     };
-    
-    /** VkSurfaceKHR interfaces with platform-specific window systems. It is
-     *      backed by the window created by GLFW, which hides platform-specific
-     *      details. It is not needed for off-screen rendering.
-     *
-     *  Initialization (by GLFW):
-     *      VkInstance
-     *      GLFWwindow
-     */
-    class Surface {
-        const Application& app_;
-        VkSurfaceKHR surface_;
-        
-    public:
-        Surface(const Application& app) : app_{app} {}
-        void Init();
-        void Cleanup();
-        ~Surface() { Cleanup(); }
-        
-        VkSurfaceKHR& operator*(void) { return surface_; }
-        const VkSurfaceKHR& operator*(void) const { return surface_; }
-    };
-    
-    /** VkPhysicalDevice is a handle to a physical graphics card. We iterate
-     *      through graphics devices to find one that supports swap chains.
-     *      Then, we iterate through its queue families to find one family
-     *      supporting graphics, and another one supporting presentation
-     *      (possibly them are identical). All queues in one family share the
-     *      same property, so we only need to find out the index of the family.
-     *
-     *  Initialization:
-     *      VkInstance
-     *      VkSurfaceKHR (since we need presentation support)
-     */
-    struct PhysicalDevice {
-        Application& app_;
-        VkPhysicalDevice physical_device_;
-        
-    public:
-        PhysicalDevice(Application& app) : app_{app} {}
-        PhysicalDevice(Application& app, const VkPhysicalDevice& physical_device)
-        : app_{app}, physical_device_{physical_device} {}
-        void Init();
-        void Cleanup() {} // implicitly cleaned up
-        
-        VkPhysicalDevice& operator*(void) { return physical_device_; }
-        const VkPhysicalDevice& operator*(void) const { return physical_device_; }
-    };
-    
-    /** VkDevice interfaces with the physical device. We have to tell Vulkan
-     *      how many queues we want to use. Noticed that the graphics queue and
-     *      the present queue might be the same queue, we use a set to remove
-     *      duplicated queue family indices.
-     *
-     *  Initialization:
-     *      VkPhysicalDevice
-     *      Physical device features to enable
-     *      List of VkDeviceQueueCreateInfo (queue family index and how many
-     *          queues do we want from this family)
-     *      Extensions to enable (required by swap chains)
-     *      Layers to enable (required by validation layers)
-     */
-    struct Device {
-        Application& app_;
-        VkDevice device_;
-        
-    public:
-        Device(Application& app) : app_{app} {}
-        void Init();
-        void Cleanup() { vkDestroyDevice(device_, nullptr); }
-        ~Device() { Cleanup(); }
-        
-        VkDevice& operator*(void) { return device_; }
-        const VkDevice& operator*(void) const { return device_; }
-    };
-    
-    /** VkQueue is the queue associated with the logical device. When we create
-     *      it, we can specify both queue family index and queue index (within
-     *      that family).
-     */
-    struct Queues {
-        struct Queue {
-            VkQueue queue; // implicitly cleaned up with physical device
-            uint32_t family_index;
-        };
-        Queue graphics, present;
-    };
-}
+    Queue graphics, present;
+};
+
+} /* namespace vulkan */
 
 #endif /* LEARNVULKAN_BASIC_OBJECT_H */

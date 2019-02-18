@@ -12,187 +12,221 @@
 #include "util.h"
 
 namespace vulkan {
-    namespace {
-        void createCommandPool(VkCommandPool &pool,
-                               uint32_t queueIdx,
-                               const Device &device) {
-            // create a pool to hold command buffers
-            VkCommandPoolCreateInfo poolInfo{};
-            poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-            poolInfo.queueFamilyIndex = queueIdx;
-            
-            ASSERT_SUCCESS(vkCreateCommandPool(*device, &poolInfo, nullptr, &pool),
-                           "Failed to create command pool");
-        }
-        
-        void createCommandBuffers(vector<VkCommandBuffer> &buffers,
-                                  size_t count,
-                                  const Device &device,
-                                  const VkCommandPool &pool) {
-            // allocate command buffers
-            buffers.resize(count);
-            VkCommandBufferAllocateInfo allocInfo{};
-            allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-            allocInfo.commandPool = pool;
-            // secondary level command buffers can be called from primary level
-            allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-            allocInfo.commandBufferCount = static_cast<uint32_t>(count);
-            
-            ASSERT_SUCCESS(vkAllocateCommandBuffers(*device, &allocInfo, buffers.data()),
-                           "Failed to allocate command buffers");
-        }
-        
-        void recordCommands(const vector<VkCommandBuffer> &buffers,
-                            const RenderPass &renderPass,
-                            const SwapChain &swapChain,
-                            const Pipeline &pipeline) {
-            for (size_t i = 0; i < buffers.size(); ++i) {
-                // start command buffer recording
-                VkCommandBufferBeginInfo cmdBeginInfo{};
-                cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-                cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-                // .pInheritanceInfo sets what to inherit from primary buffers to secondary buffers
-                
-                ASSERT_SUCCESS(vkBeginCommandBuffer(buffers[i], &cmdBeginInfo),
-                               "Failed to begin recording command buffer");
-                
-                // start render pass
-                VkRenderPassBeginInfo rpBeginInfo{};
-                rpBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-                rpBeginInfo.renderPass = *renderPass;
-                rpBeginInfo.framebuffer = renderPass.getFramebuffers()[i];
-                rpBeginInfo.renderArea.offset = {0, 0};
-                rpBeginInfo.renderArea.extent = swapChain.getExtent();
-                VkClearValue clearColor{0.0f, 0.0f, 0.0f, 1.0f};
-                rpBeginInfo.clearValueCount = 1;
-                rpBeginInfo.pClearValues = &clearColor; // used for VK_ATTACHMENT_LOAD_OP_CLEAR
-                
-                // record commends. options:
-                //   - VK_SUBPASS_CONTENTS_INLINE: use primary commmand buffer
-                //   - VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: use secondary
-                vkCmdBeginRenderPass(buffers[i], &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-                vkCmdBindPipeline(buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *pipeline);
-                vkCmdDraw(buffers[i], 3, 1, 0, 0); // (vertexCount, instanceCount, firstVertex, firstInstance)
-                vkCmdEndRenderPass(buffers[i]);
-                
-                // end recording
-                ASSERT_SUCCESS(vkEndCommandBuffer(buffers[i]),
-                               "Failed to end recording command buffer");
-            }
-        }
-        
-        void createSemaphore(vector<VkSemaphore> &semas,
-                             size_t count,
-                             const Device &device) {
-            VkSemaphoreCreateInfo semaInfo{};
-            semaInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-            
-            semas.resize(count);
-            for (auto &sema : semas) {
-                ASSERT_SUCCESS(vkCreateSemaphore(*device, &semaInfo, nullptr, &sema),
-                               "Failed to create semaphore");
-            }
-        }
-        
-        void createFence(vector<VkFence> &fences,
-                         size_t count,
-                         const Device &device) {
-            VkFenceCreateInfo fenceInfo{};
-            fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-            fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-            
-            fences.resize(count);
-            for (auto &fence : fences) {
-                ASSERT_SUCCESS(vkCreateFence(*device, &fenceInfo, nullptr, &fence),
-                               "Failed to create in flight fence");
-            }
-        }
-    }
+
+namespace {
+
+void CreateCommandPool(VkCommandPool& command_pool,
+                       uint32_t queue_family_index,
+                       const Device& device) {
+    // create a pool to hold command buffers
+    VkCommandPoolCreateInfo pool_info{};
+    pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    pool_info.queueFamilyIndex = queue_family_index;
     
-    void CommandBuffer::createSyncObjects() {
-        createSemaphore(imageAvailableSemas, MAX_FRAMES_IN_FLIGHT, app.device());
-        createSemaphore(renderFinishedSemas, MAX_FRAMES_IN_FLIGHT, app.device());
-        createFence(inFlightFences, MAX_FRAMES_IN_FLIGHT, app.device());
-    }
+    ASSERT_SUCCESS(vkCreateCommandPool(
+                       *device, &pool_info, nullptr, &command_pool),
+                   "Failed to create command pool");
+}
+
+void CreateCommandBuffers(vector<VkCommandBuffer>& command_buffers,
+                          size_t count,
+                          const Device& device,
+                          const VkCommandPool& command_pool) {
+    // allocate command buffers
+    command_buffers.resize(count);
+    VkCommandBufferAllocateInfo alloc_info{};
+    alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    alloc_info.commandPool = command_pool;
+    // secondary level command buffers can be called from primary level
+    alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    alloc_info.commandBufferCount = static_cast<uint32_t>(count);
     
-    VkResult CommandBuffer::drawFrame() {
-        // fence was initialized to signaled state, so that waiting for it at the beginning is fine
-        vkWaitForFences(*app.device(), 1, &inFlightFences[currentFrame], VK_TRUE, numeric_limits<uint64_t>::max());
+    ASSERT_SUCCESS(vkAllocateCommandBuffers(*device, &alloc_info,
+                                            command_buffers.data()),
+                   "Failed to allocate command buffers");
+}
+
+void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
+                    const RenderPass& render_pass,
+                    const SwapChain& swap_chain,
+                    const Pipeline& pipeline) {
+    for (size_t i = 0; i < command_buffers.size(); ++i) {
+        // start command buffer recording
+        VkCommandBufferBeginInfo cmd_begin_info{};
+        cmd_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        cmd_begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+        // .pInheritanceInfo sets what to inherit from primary buffers
+        // to secondary buffers
         
-        // acquire swap chain image
-        uint32_t imageIndex;
-        VkResult acquireResult = vkAcquireNextImageKHR(*app.device(), *app.swap_chain(), numeric_limits<uint64_t>::max(),
-                                                       imageAvailableSemas[currentFrame], VK_NULL_HANDLE, &imageIndex);
-        if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) // triggered when swap chain can no longer present image
-            return acquireResult;
-        if (acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR)
-            throw runtime_error{"Failed to acquire swap chain image"};
+        ASSERT_SUCCESS(vkBeginCommandBuffer(command_buffers[i],
+                                            &cmd_begin_info),
+                       "Failed to begin recording command buffer");
         
-        // wait for image available
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        VkSemaphore waitSemas[]{imageAvailableSemas[currentFrame]};
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = waitSemas;
-        // we have to wait only if we want to write to color attachment
-        // so we actually can start running pipeline long before that image is ready
-        // we specify one stage for each semaphore, so it doesn't need a separate count
-        VkPipelineStageFlags waitStages[]{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-        submitInfo.pWaitDstStageMask = waitStages;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
-        VkSemaphore signalSemas[]{renderFinishedSemas[currentFrame]};
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = signalSemas; // will be signaled once command buffer finishes
+        // start render pass
+        VkRenderPassBeginInfo rp_begin_info{};
+        rp_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        rp_begin_info.renderPass = *render_pass;
+        rp_begin_info.framebuffer = render_pass.framebuffers()[i];
+        rp_begin_info.renderArea.offset = {0, 0};
+        rp_begin_info.renderArea.extent = swap_chain.extent();
+        VkClearValue clear_color{0.0f, 0.0f, 0.0f, 1.0f};
+        rp_begin_info.clearValueCount = 1;
+        rp_begin_info.pClearValues = &clear_color; // used for _OP_CLEAR
         
-        vkResetFences(*app.device(), 1, &inFlightFences[currentFrame]); // reset to unsignaled state
-        ASSERT_SUCCESS(vkQueueSubmit(app.queues().graphics.queue, 1, &submitInfo, inFlightFences[currentFrame]),
-                       "Failed to submit draw command buffer");
+        // record commends. options:
+        //   - VK_SUBPASS_CONTENTS_INLINE: use primary commmand buffer
+        //   - VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: use secondary
+        vkCmdBeginRenderPass(
+            command_buffers[i], &rp_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(
+            command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *pipeline);
+        // (vertexCount, instanceCount, firstVertex, firstInstance)
+        vkCmdDraw(command_buffers[i], 3, 1, 0, 0);
+        vkCmdEndRenderPass(command_buffers[i]);
         
-        // present image to screen
-        VkPresentInfoKHR presentInfo{};
-        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-        presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = signalSemas;
-        VkSwapchainKHR swapChains[]{*app.swap_chain()};
-        presentInfo.swapchainCount = 1;
-        presentInfo.pSwapchains = swapChains;
-        presentInfo.pImageIndices = &imageIndex; // image for each swap chain
-        // may use .pResults to check wether each swap chain rendered successfully
-        
-        VkResult presentResult = vkQueuePresentKHR(app.queues().present.queue, &presentInfo);
-        if (presentResult == VK_ERROR_OUT_OF_DATE_KHR) // triggered when swap chain can no longer present image
-            return presentResult;
-        if (presentResult != VK_SUCCESS && presentResult != VK_SUBOPTIMAL_KHR)
-            throw runtime_error{"Failed to present swap chain image"};
-        
-        currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-        return VK_SUCCESS;
-    }
-    
-    void CommandBuffer::init() {
-        if (firstTime) {
-            createCommandPool(commandPool, app.queues().graphics.family_index, app.device());
-            createSyncObjects();
-            firstTime = false;
-        }
-        createCommandBuffers(commandBuffers, app.render_pass().getFramebuffers().size(),
-                             app.device(), commandPool);
-        recordCommands(commandBuffers, app.render_pass(), app.swap_chain(), app.pipeline());
-    }
-    
-    void CommandBuffer::cleanup() {
-        vkFreeCommandBuffers(*app.device(), commandPool,
-                             static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
-    }
-    
-    CommandBuffer::~CommandBuffer() {
-        vkDestroyCommandPool(*app.device(), commandPool, nullptr);
-        // command buffers are implicitly cleaned up with command pool
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-            vkDestroySemaphore(*app.device(), imageAvailableSemas[i], nullptr);
-            vkDestroySemaphore(*app.device(), renderFinishedSemas[i], nullptr);
-            vkDestroyFence(*app.device(), inFlightFences[i], nullptr);
-        }
+        // end recording
+        ASSERT_SUCCESS(vkEndCommandBuffer(command_buffers[i]),
+                       "Failed to end recording command buffer");
     }
 }
+
+void CreateSemaphore(vector<VkSemaphore>& semas,
+                     size_t count,
+                     const Device& device) {
+    VkSemaphoreCreateInfo sema_info{};
+    sema_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    
+    semas.resize(count);
+    for (auto& sema : semas) {
+        ASSERT_SUCCESS(vkCreateSemaphore(*device, &sema_info, nullptr, &sema),
+                       "Failed to create semaphore");
+    }
+}
+
+void CreateFence(vector<VkFence>& fences,
+                 size_t count,
+                 const Device& device) {
+    VkFenceCreateInfo fence_info{};
+    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    
+    fences.resize(count);
+    for (auto& fence : fences) {
+        ASSERT_SUCCESS(vkCreateFence(*device, &fence_info, nullptr, &fence),
+                       "Failed to create in flight fence");
+    }
+}
+
+} /* namespace */
+
+VkResult CommandBuffer::DrawFrame() {
+    // fence was initialized to signaled state
+    // so that waiting for it at the beginning is fine
+    vkWaitForFences(*app_.device(), 1, &in_flight_fences_[current_frame_],
+                    VK_TRUE, numeric_limits<uint64_t>::max());
+    
+    // acquire swap chain image
+    uint32_t image_index;
+    VkResult acquire_result = vkAcquireNextImageKHR(
+        *app_.device(), *app_.swap_chain(), numeric_limits<uint64_t>::max(),
+        image_available_semas_[current_frame_], VK_NULL_HANDLE, &image_index);
+    switch (acquire_result) {
+      case VK_ERROR_OUT_OF_DATE_KHR: // swap chain can no longer present image
+        return acquire_result;
+      case VK_SUCCESS:
+      case VK_SUBOPTIMAL_KHR: // may be considered as good state as well
+        break;
+      default:
+        throw runtime_error{"Failed to acquire swap chain image"};
+    }
+    
+    // wait for image available
+    VkSubmitInfo submit_info{};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    VkSemaphore wait_semas[]{image_available_semas_[current_frame_]};
+    submit_info.waitSemaphoreCount = 1;
+    submit_info.pWaitSemaphores = wait_semas;
+    // we have to wait only if we want to write to color attachment
+    // so we actually can start running pipeline long before that image is ready
+    // we specify one stage for each semaphore, so we don't need to pass count
+    VkPipelineStageFlags wait_stages[]{
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    submit_info.pWaitDstStageMask = wait_stages;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &command_buffers_[image_index];
+    // these semas will be signaled once command buffer finishes
+    VkSemaphore signal_semas[]{render_finished_semas_[current_frame_]};
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = signal_semas;
+    
+    // reset to fences unsignaled state
+    vkResetFences(*app_.device(), 1, &in_flight_fences_[current_frame_]);
+    ASSERT_SUCCESS(vkQueueSubmit(app_.queues().graphics.queue, 1, &submit_info,
+                                 in_flight_fences_[current_frame_]),
+                   "Failed to submit draw command buffer");
+    
+    // present image to screen
+    VkPresentInfoKHR present_info{};
+    present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    present_info.waitSemaphoreCount = 1;
+    present_info.pWaitSemaphores = signal_semas;
+    VkSwapchainKHR swap_chains[]{*app_.swap_chain()};
+    present_info.swapchainCount = 1;
+    present_info.pSwapchains = swap_chains;
+    present_info.pImageIndices = &image_index; // image for each swap chain
+    // may use .pResults to check wether each swap chain rendered successfully
+    
+    VkResult present_result = vkQueuePresentKHR(
+        app_.queues().present.queue, &present_info);
+    switch (present_result) {
+      case VK_ERROR_OUT_OF_DATE_KHR: // swap chain can no longer present image
+        return present_result;
+        break;
+      case VK_SUCCESS:
+      case VK_SUBOPTIMAL_KHR: // may be considered as good state as well
+        break;
+      default:
+        throw runtime_error{"Failed to present swap chain image"};
+    }
+    
+    current_frame_ = (current_frame_ + 1) % kMaxFrameInFlight;
+    return VK_SUCCESS;
+}
+
+void CommandBuffer::Init() {
+    if (first_time_) {
+        CreateCommandPool(
+            command_pool_, app_.queues().graphics.family_index, app_.device());
+        CreateSemaphore(
+            image_available_semas_, kMaxFrameInFlight, app_.device());
+        CreateSemaphore(
+            render_finished_semas_, kMaxFrameInFlight, app_.device());
+        CreateFence(
+            in_flight_fences_, kMaxFrameInFlight, app_.device());
+        first_time_ = false;
+    }
+    CreateCommandBuffers(
+        command_buffers_, app_.render_pass().framebuffers().size(),
+        app_.device(), command_pool_);
+    RecordCommands(
+        command_buffers_, app_.render_pass(), app_.swap_chain(),
+        app_.pipeline());
+}
+
+void CommandBuffer::Cleanup() {
+    vkFreeCommandBuffers(
+        *app_.device(), command_pool_, CONTAINER_SIZE(command_buffers_),
+        command_buffers_.data());
+}
+
+CommandBuffer::~CommandBuffer() {
+    vkDestroyCommandPool(*app_.device(), command_pool_, nullptr);
+    // command buffers are implicitly cleaned up with command pool
+    for (size_t i = 0; i < kMaxFrameInFlight; ++i) {
+        vkDestroySemaphore(*app_.device(), image_available_semas_[i], nullptr);
+        vkDestroySemaphore(*app_.device(), render_finished_semas_[i], nullptr);
+        vkDestroyFence(*app_.device(), in_flight_fences_[i], nullptr);
+    }
+}
+
+} /* namespace vulkan */
