@@ -15,7 +15,7 @@
 
 namespace vulkan {
 
-using namespace std;
+using std::string;
 class Application;
 
 class Pipeline {
@@ -31,7 +31,7 @@ public:
     : app_{app}, vert_file_{vert_file}, frag_file_{frag_file} {}
     void Init();
     void Cleanup();
-    ~Pipeline();
+    ~Pipeline() { Cleanup(); }
     
     const VkPipeline& operator*(void) const { return pipeline_; }
 };

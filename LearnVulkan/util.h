@@ -36,16 +36,6 @@ vector<AttribType> QueryAttribute(
 }
 
 template<typename AttribType>
-void QueryAttribute(
-    vector<AttribType> &attribs,
-    const function<void (uint32_t*, AttribType*)>& enumerate) {
-    uint32_t count;
-    enumerate(&count, nullptr);
-    attribs.resize(count);
-    enumerate(&count, attribs.data());
-}
-
-template<typename AttribType>
 void CheckSupport(
     const vector<string>& required,
     const vector<AttribType>& attribs,

@@ -15,7 +15,6 @@ class GLFWwindow;
 
 namespace vulkan {
 
-using namespace std;
 class Application;
 
 /** VkInstance is used to establish connection with Vulkan library and
@@ -32,8 +31,7 @@ class Instance {
 public:
     Instance() {}
     void Init();
-    void Cleanup() { vkDestroyInstance(instance_, nullptr); }
-    ~Instance() { Cleanup(); }
+    ~Instance() { vkDestroyInstance(instance_, nullptr); }
     
     VkInstance& operator*(void) { return instance_; }
     const VkInstance& operator*(void) const { return instance_; }
@@ -54,8 +52,7 @@ class Surface {
 public:
     Surface(const Application& app) : app_{app} {}
     void Init();
-    void Cleanup();
-    ~Surface() { Cleanup(); }
+    ~Surface();
     
     VkSurfaceKHR& operator*(void) { return surface_; }
     const VkSurfaceKHR& operator*(void) const { return surface_; }
@@ -78,10 +75,8 @@ struct PhysicalDevice {
     
 public:
     PhysicalDevice(Application& app) : app_{app} {}
-    PhysicalDevice(Application& app, const VkPhysicalDevice& physical_device)
-    : app_{app}, physical_device_{physical_device} {}
     void Init();
-    void Cleanup() {} // implicitly cleaned up
+    ~PhysicalDevice() {} // implicitly cleaned up
     
     VkPhysicalDevice& operator*(void) { return physical_device_; }
     const VkPhysicalDevice& operator*(void) const { return physical_device_; }
@@ -107,8 +102,7 @@ struct Device {
 public:
     Device(Application& app) : app_{app} {}
     void Init();
-    void Cleanup() { vkDestroyDevice(device_, nullptr); }
-    ~Device() { Cleanup(); }
+    ~Device() { vkDestroyDevice(device_, nullptr); }
     
     VkDevice& operator*(void) { return device_; }
     const VkDevice& operator*(void) const { return device_; }

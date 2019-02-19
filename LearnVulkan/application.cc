@@ -8,10 +8,6 @@
 
 #include "application.h"
 
-#include <iostream>
-#include <unordered_set>
-#include <vector>
-
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -32,7 +28,8 @@ Application::Application(const string& vert_file,
                          uint32_t height)
 : instance_{}, surface_{*this}, physical_device_{*this},
   device_{*this}, swap_chain_{*this}, render_pass_{*this},
-  pipeline_{*this, vert_file, frag_file}, command_buffer_{*this}
+  pipeline_{*this, vert_file, frag_file}, command_buffer_{*this},
+  vertex_buffer_{*this}
 #ifdef DEBUG
   , callback_{*this}
 #endif /* DEBUG */
@@ -69,6 +66,9 @@ void Application::InitVulkan() {
         surface_.Init();
         physical_device_.Init();
         device_.Init();
+        const auto& vertices = kTriangleVertices;
+        vertex_buffer_.Init(
+            vertices.data(), sizeof(vertices[0]) * vertices.size());
         first_time_ = false;
     }
     swap_chain_.Init();

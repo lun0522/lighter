@@ -16,7 +16,7 @@ namespace vulkan {
 
 namespace {
 
-VkShaderModule CreateShaderModule(const Device& device,
+VkShaderModule CreateShaderModule(const VkDevice& device,
                                   const string& code) {
     VkShaderModuleCreateInfo shader_module_info{};
     shader_module_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -26,7 +26,7 @@ VkShaderModule CreateShaderModule(const Device& device,
     
     VkShaderModule shader_module{};
     ASSERT_SUCCESS(vkCreateShaderModule(
-                       *device, &shader_module_info, nullptr, &shader_module),
+                       device, &shader_module_info, nullptr, &shader_module),
                    "Failed to create shader module");
     
     return shader_module;
@@ -35,13 +35,15 @@ VkShaderModule CreateShaderModule(const Device& device,
 } /* namespace */
 
 void Pipeline::Init() {
+    const VkDevice& device = *app_.device();
+    const VkRenderPass& render_pass = *app_.render_pass();
+    const SwapChain& swap_chain = app_.swap_chain();
+    
     const string& vert_code = util::ReadFile(vert_file_);
     const string& frag_code = util::ReadFile(frag_file_);
     
-    VkShaderModule vert_shader_module =
-        CreateShaderModule(app_.device(), vert_code);
-    VkShaderModule frag_shader_module =
-        CreateShaderModule(app_.device(), frag_code);
+    VkShaderModule vert_shader_module = CreateShaderModule(device, vert_code);
+    VkShaderModule frag_shader_module = CreateShaderModule(device, frag_code);
     
     VkPipelineShaderStageCreateInfo vert_shader_info{};
     vert_shader_info.sType =
@@ -68,12 +70,12 @@ void Pipeline::Init() {
     vertex_input_info.sType =
         VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     
-    auto binding_descs = Vertex::binding_descriptions();
+    auto binding_descs = VertexAttrib::binding_descriptions();
     vertex_input_info.vertexBindingDescriptionCount =
         CONTAINER_SIZE(binding_descs);
     vertex_input_info.pVertexBindingDescriptions = binding_descs.data();
     
-    auto attrib_descs = Vertex::attrib_descriptions();
+    auto attrib_descs = VertexAttrib::attrib_descriptions();
     vertex_input_info.vertexAttributeDescriptionCount =
         CONTAINER_SIZE(attrib_descs);
     vertex_input_info.pVertexAttributeDescriptions = attrib_descs.data();
@@ -86,7 +88,7 @@ void Pipeline::Init() {
     // .primitiveRestartEnable matters for drawing line/triangle strips
     input_assembly_info.primitiveRestartEnable = false;
     
-    VkExtent2D target_extent = app_.swap_chain().extent();
+    VkExtent2D target_extent = swap_chain.extent();
     
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -156,7 +158,7 @@ void Pipeline::Init() {
     layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     
     ASSERT_SUCCESS(vkCreatePipelineLayout(
-                       *app_.device(), &layout_info, nullptr, &layout_),
+                       device, &layout_info, nullptr, &layout_),
                    "Failed to create pipeline layout");
     
     VkGraphicsPipelineCreateInfo pipeline_info{};
@@ -172,26 +174,23 @@ void Pipeline::Init() {
     pipeline_info.pColorBlendState = &color_blend_info;
     pipeline_info.pDynamicState = &dynamic_state_info;
     pipeline_info.layout = layout_;
-    pipeline_info.renderPass = *app_.render_pass();
+    pipeline_info.renderPass = render_pass;
     pipeline_info.subpass = 0; // index of subpass where pipeline will be used
     // .basePipeline can be used to copy settings from another piepeline
     
     ASSERT_SUCCESS(vkCreateGraphicsPipelines(
-                       *app_.device(), VK_NULL_HANDLE, 1, &pipeline_info,
-                       nullptr, &pipeline_),
+                       device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr,
+                       &pipeline_),
                    "Failed to create graphics pipeline");
     
-    vkDestroyShaderModule(*app_.device(), vert_shader_module, nullptr);
-    vkDestroyShaderModule(*app_.device(), frag_shader_module, nullptr);
+    vkDestroyShaderModule(device, vert_shader_module, nullptr);
+    vkDestroyShaderModule(device, frag_shader_module, nullptr);
 }
 
 void Pipeline::Cleanup() {
-    vkDestroyPipeline(*app_.device(), pipeline_, nullptr);
-    vkDestroyPipelineLayout(*app_.device(), layout_, nullptr);
-}
-
-Pipeline::~Pipeline() {
-    Cleanup();
+    const VkDevice& device = *app_.device();
+    vkDestroyPipeline(device, pipeline_, nullptr);
+    vkDestroyPipelineLayout(device, layout_, nullptr);
 }
 
 } /* namespace vulkan */

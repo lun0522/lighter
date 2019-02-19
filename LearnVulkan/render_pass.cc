@@ -18,13 +18,13 @@ namespace {
 void CreateFramebuffers(vector<VkFramebuffer>& framebuffers,
                         VkExtent2D image_extent,
                         const vector<VkImageView>& image_views,
-                        const Device& device,
-                        const RenderPass& render_pass) {
+                        const VkDevice& device,
+                        const VkRenderPass& render_pass) {
     framebuffers.resize(image_views.size());
     for (size_t i = 0; i < image_views.size(); ++i) {
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = *render_pass;
+        framebufferInfo.renderPass = render_pass;
         framebufferInfo.attachmentCount = 1;
         framebufferInfo.pAttachments = &image_views[i];
         framebufferInfo.width = image_extent.width;
@@ -32,8 +32,7 @@ void CreateFramebuffers(vector<VkFramebuffer>& framebuffers,
         framebufferInfo.layers = 1;
         
         ASSERT_SUCCESS(vkCreateFramebuffer(
-                           *device, &framebufferInfo, nullptr,
-                           &framebuffers[i]),
+                           device, &framebufferInfo, nullptr, &framebuffers[i]),
                        "Failed to create framebuffer");
     }
 }
@@ -41,8 +40,11 @@ void CreateFramebuffers(vector<VkFramebuffer>& framebuffers,
 } /* namespace */
 
 void RenderPass::Init() {
+    const VkDevice& device = *app_.device();
+    const SwapChain& swap_chain = app_.swap_chain();
+    
     VkAttachmentDescription color_att_desc{};
-    color_att_desc.format = app_.swap_chain().format();
+    color_att_desc.format = swap_chain.format();
     color_att_desc.samples = VK_SAMPLE_COUNT_1_BIT; // no multisampling
     // .loadOp and .storeOp affect color and depth buffers
     // .loadOp options: LOAD / CLEAR / DONT_CARE
@@ -92,23 +94,19 @@ void RenderPass::Init() {
     render_pass_info.pDependencies = &subpass_dep;
     
     ASSERT_SUCCESS(vkCreateRenderPass(
-                       *app_.device(), &render_pass_info, nullptr,
-                       &render_pass_),
+                       device, &render_pass_info, nullptr, &render_pass_),
                    "Failed to create render pass");
     
     CreateFramebuffers(
-        framebuffers_, app_.swap_chain().extent(),
-        app_.swap_chain().image_views(), app_.device(), *this);
+        framebuffers_, swap_chain.extent(), swap_chain.image_views(),
+        device, render_pass_);
 }
 
 void RenderPass::Cleanup() {
+    const VkDevice& device = *app_.device();
     for (const auto& framebuffer : framebuffers_)
-        vkDestroyFramebuffer(*app_.device(), framebuffer, nullptr);
-    vkDestroyRenderPass(*app_.device(), render_pass_, nullptr);
-}
-
-RenderPass::~RenderPass() {
-    Cleanup();
+        vkDestroyFramebuffer(device, framebuffer, nullptr);
+    vkDestroyRenderPass(device, render_pass_, nullptr);
 }
 
 } /* namespace vulkan */

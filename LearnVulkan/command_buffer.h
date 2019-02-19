@@ -15,7 +15,7 @@
 
 namespace vulkan {
 
-using namespace std;
+using std::vector;
 class Application;
 
 class CommandBuffer {

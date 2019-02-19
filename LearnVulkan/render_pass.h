@@ -15,7 +15,7 @@
 
 namespace vulkan {
 
-using namespace std;
+using std::vector;
 class Application;
 
 /** VkRenderPass specifies how to use color and depth buffers.
@@ -44,7 +44,7 @@ public:
     RenderPass(const Application& app) : app_{app} {}
     void Init();
     void Cleanup();
-    ~RenderPass();
+    ~RenderPass() { Cleanup(); }
     
     const VkRenderPass& operator*(void)         const { return render_pass_; }
     const vector<VkFramebuffer>& framebuffers() const { return framebuffers_; }

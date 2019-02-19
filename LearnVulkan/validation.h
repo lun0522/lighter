@@ -17,7 +17,8 @@
 
 namespace vulkan {
 
-using namespace std;
+using std::string;
+using std::vector;
 class Application;
 
 namespace MessageSeverity {

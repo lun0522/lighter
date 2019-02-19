@@ -13,24 +13,27 @@
 
 namespace vulkan {
 
+using std::numeric_limits;
+using std::runtime_error;
+
 namespace {
 
 void CreateCommandPool(VkCommandPool& command_pool,
                        uint32_t queue_family_index,
-                       const Device& device) {
+                       const VkDevice& device) {
     // create a pool to hold command buffers
     VkCommandPoolCreateInfo pool_info{};
     pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     pool_info.queueFamilyIndex = queue_family_index;
     
     ASSERT_SUCCESS(vkCreateCommandPool(
-                       *device, &pool_info, nullptr, &command_pool),
+                       device, &pool_info, nullptr, &command_pool),
                    "Failed to create command pool");
 }
 
 void CreateCommandBuffers(vector<VkCommandBuffer>& command_buffers,
                           size_t count,
-                          const Device& device,
+                          const VkDevice& device,
                           const VkCommandPool& command_pool) {
     // allocate command buffers
     command_buffers.resize(count);
@@ -41,15 +44,17 @@ void CreateCommandBuffers(vector<VkCommandBuffer>& command_buffers,
     alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     alloc_info.commandBufferCount = static_cast<uint32_t>(count);
     
-    ASSERT_SUCCESS(vkAllocateCommandBuffers(*device, &alloc_info,
-                                            command_buffers.data()),
+    ASSERT_SUCCESS(vkAllocateCommandBuffers(
+                       device, &alloc_info, command_buffers.data()),
                    "Failed to allocate command buffers");
 }
 
 void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
-                    const RenderPass& render_pass,
-                    const SwapChain& swap_chain,
-                    const Pipeline& pipeline) {
+                    const vector<VkFramebuffer>& framebuffers,
+                    const VkExtent2D extent,
+                    const VkRenderPass& render_pass,
+                    const VkPipeline& pipeline,
+                    const vector<VkBuffer>& buffers) {
     for (size_t i = 0; i < command_buffers.size(); ++i) {
         // start command buffer recording
         VkCommandBufferBeginInfo cmd_begin_info{};
@@ -58,17 +63,17 @@ void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
         // .pInheritanceInfo sets what to inherit from primary buffers
         // to secondary buffers
         
-        ASSERT_SUCCESS(vkBeginCommandBuffer(command_buffers[i],
-                                            &cmd_begin_info),
+        ASSERT_SUCCESS(vkBeginCommandBuffer(
+                           command_buffers[i], &cmd_begin_info),
                        "Failed to begin recording command buffer");
         
         // start render pass
         VkRenderPassBeginInfo rp_begin_info{};
         rp_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        rp_begin_info.renderPass = *render_pass;
-        rp_begin_info.framebuffer = render_pass.framebuffers()[i];
+        rp_begin_info.renderPass = render_pass;
+        rp_begin_info.framebuffer = framebuffers[i];
         rp_begin_info.renderArea.offset = {0, 0};
-        rp_begin_info.renderArea.extent = swap_chain.extent();
+        rp_begin_info.renderArea.extent = extent;
         VkClearValue clear_color{0.0f, 0.0f, 0.0f, 1.0f};
         rp_begin_info.clearValueCount = 1;
         rp_begin_info.pClearValues = &clear_color; // used for _OP_CLEAR
@@ -79,7 +84,14 @@ void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
         vkCmdBeginRenderPass(
             command_buffers[i], &rp_begin_info, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(
-            command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *pipeline);
+            command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+        
+        // bind vertex buffers
+        vector<VkDeviceSize> offsets(buffers.size());
+        vkCmdBindVertexBuffers(
+            command_buffers[i], 0, static_cast<uint32_t>(buffers.size()),
+            buffers.data(), offsets.data());
+        
         // (vertexCount, instanceCount, firstVertex, firstInstance)
         vkCmdDraw(command_buffers[i], 3, 1, 0, 0);
         vkCmdEndRenderPass(command_buffers[i]);
@@ -92,27 +104,27 @@ void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
 
 void CreateSemaphore(vector<VkSemaphore>& semas,
                      size_t count,
-                     const Device& device) {
+                     const VkDevice& device) {
     VkSemaphoreCreateInfo sema_info{};
     sema_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
     
     semas.resize(count);
     for (auto& sema : semas) {
-        ASSERT_SUCCESS(vkCreateSemaphore(*device, &sema_info, nullptr, &sema),
+        ASSERT_SUCCESS(vkCreateSemaphore(device, &sema_info, nullptr, &sema),
                        "Failed to create semaphore");
     }
 }
 
 void CreateFence(vector<VkFence>& fences,
                  size_t count,
-                 const Device& device) {
+                 const VkDevice& device) {
     VkFenceCreateInfo fence_info{};
     fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
     
     fences.resize(count);
     for (auto& fence : fences) {
-        ASSERT_SUCCESS(vkCreateFence(*device, &fence_info, nullptr, &fence),
+        ASSERT_SUCCESS(vkCreateFence(device, &fence_info, nullptr, &fence),
                        "Failed to create in flight fence");
     }
 }
@@ -120,15 +132,19 @@ void CreateFence(vector<VkFence>& fences,
 } /* namespace */
 
 VkResult CommandBuffer::DrawFrame() {
+    const VkDevice& device = *app_.device();
+    const VkSwapchainKHR& swap_chain = *app_.swap_chain();
+    const Queues& queues = app_.queues();
+    
     // fence was initialized to signaled state
     // so that waiting for it at the beginning is fine
-    vkWaitForFences(*app_.device(), 1, &in_flight_fences_[current_frame_],
+    vkWaitForFences(device, 1, &in_flight_fences_[current_frame_],
                     VK_TRUE, numeric_limits<uint64_t>::max());
     
     // acquire swap chain image
     uint32_t image_index;
     VkResult acquire_result = vkAcquireNextImageKHR(
-        *app_.device(), *app_.swap_chain(), numeric_limits<uint64_t>::max(),
+        device, swap_chain, numeric_limits<uint64_t>::max(),
         image_available_semas_[current_frame_], VK_NULL_HANDLE, &image_index);
     switch (acquire_result) {
       case VK_ERROR_OUT_OF_DATE_KHR: // swap chain can no longer present image
@@ -160,8 +176,8 @@ VkResult CommandBuffer::DrawFrame() {
     submit_info.pSignalSemaphores = signal_semas;
     
     // reset to fences unsignaled state
-    vkResetFences(*app_.device(), 1, &in_flight_fences_[current_frame_]);
-    ASSERT_SUCCESS(vkQueueSubmit(app_.queues().graphics.queue, 1, &submit_info,
+    vkResetFences(device, 1, &in_flight_fences_[current_frame_]);
+    ASSERT_SUCCESS(vkQueueSubmit(queues.graphics.queue, 1, &submit_info,
                                  in_flight_fences_[current_frame_]),
                    "Failed to submit draw command buffer");
     
@@ -170,14 +186,14 @@ VkResult CommandBuffer::DrawFrame() {
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present_info.waitSemaphoreCount = 1;
     present_info.pWaitSemaphores = signal_semas;
-    VkSwapchainKHR swap_chains[]{*app_.swap_chain()};
+    VkSwapchainKHR swap_chains[]{swap_chain};
     present_info.swapchainCount = 1;
     present_info.pSwapchains = swap_chains;
     present_info.pImageIndices = &image_index; // image for each swap chain
     // may use .pResults to check wether each swap chain rendered successfully
     
     VkResult present_result = vkQueuePresentKHR(
-        app_.queues().present.queue, &present_info);
+        queues.present.queue, &present_info);
     switch (present_result) {
       case VK_ERROR_OUT_OF_DATE_KHR: // swap chain can no longer present image
         return present_result;
@@ -194,38 +210,43 @@ VkResult CommandBuffer::DrawFrame() {
 }
 
 void CommandBuffer::Init() {
+    const VkDevice& device = *app_.device();
+    const VkRenderPass& render_pass = *app_.render_pass();
+    const VkPipeline& pipeline = *app_.pipeline();
+    const VkBuffer& buffer = *app_.vertex_buffer();
+    const Queues::Queue& graphics_queue = app_.queues().graphics;
+    const vector<VkFramebuffer>& framebuffers =
+        app_.render_pass().framebuffers();
+    const VkExtent2D extent = app_.swap_chain().extent();
+    
     if (first_time_) {
-        CreateCommandPool(
-            command_pool_, app_.queues().graphics.family_index, app_.device());
-        CreateSemaphore(
-            image_available_semas_, kMaxFrameInFlight, app_.device());
-        CreateSemaphore(
-            render_finished_semas_, kMaxFrameInFlight, app_.device());
-        CreateFence(
-            in_flight_fences_, kMaxFrameInFlight, app_.device());
+        CreateCommandPool(command_pool_, graphics_queue.family_index, device);
+        CreateSemaphore(image_available_semas_, kMaxFrameInFlight, device);
+        CreateSemaphore(render_finished_semas_, kMaxFrameInFlight, device);
+        CreateFence(in_flight_fences_, kMaxFrameInFlight, device);
         first_time_ = false;
     }
     CreateCommandBuffers(
-        command_buffers_, app_.render_pass().framebuffers().size(),
-        app_.device(), command_pool_);
+        command_buffers_, framebuffers.size(), device, command_pool_);
     RecordCommands(
-        command_buffers_, app_.render_pass(), app_.swap_chain(),
-        app_.pipeline());
+        command_buffers_, framebuffers, extent, render_pass, pipeline, {buffer});
 }
 
 void CommandBuffer::Cleanup() {
+    const VkDevice& device = *app_.device();
     vkFreeCommandBuffers(
-        *app_.device(), command_pool_, CONTAINER_SIZE(command_buffers_),
+        device, command_pool_, CONTAINER_SIZE(command_buffers_),
         command_buffers_.data());
 }
 
 CommandBuffer::~CommandBuffer() {
-    vkDestroyCommandPool(*app_.device(), command_pool_, nullptr);
+    const VkDevice& device = *app_.device();
+    vkDestroyCommandPool(device, command_pool_, nullptr);
     // command buffers are implicitly cleaned up with command pool
     for (size_t i = 0; i < kMaxFrameInFlight; ++i) {
-        vkDestroySemaphore(*app_.device(), image_available_semas_[i], nullptr);
-        vkDestroySemaphore(*app_.device(), render_finished_semas_[i], nullptr);
-        vkDestroyFence(*app_.device(), in_flight_fences_[i], nullptr);
+        vkDestroySemaphore(device, image_available_semas_[i], nullptr);
+        vkDestroySemaphore(device, render_finished_semas_[i], nullptr);
+        vkDestroyFence(device, in_flight_fences_[i], nullptr);
     }
 }
 

@@ -17,7 +17,7 @@
 
 namespace vulkan {
 
-using namespace std;
+using std::vector;
 class Application;
 
 /** VkSwapchainKHR holds a queue of images to present to the screen.
@@ -77,13 +77,13 @@ class SwapChain {
     VkExtent2D image_extent_;
     
 public:
-    static bool HasSwapChainSupport(const Surface& surface,
-                                    const PhysicalDevice& physical_device);
+    static bool HasSwapChainSupport(const VkSurfaceKHR& surface,
+                                    const VkPhysicalDevice& physical_device);
     
     SwapChain(const Application& app) : app_{app} {}
     void Init();
     void Cleanup();
-    ~SwapChain();
+    ~SwapChain() { Cleanup(); }
     
     const VkSwapchainKHR& operator*(void)       const { return swap_chain_; }
     const vector<VkImageView>& image_views()    const { return image_views_; }

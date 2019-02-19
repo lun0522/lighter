@@ -18,14 +18,14 @@
 #include "pipeline_.h"
 #include "render_pass.h"
 #include "swap_chain.h"
-#include "util.h"
 #include "validation.h"
+#include "vertex_buffer.h"
 
 class GLFWwindow;
 
 namespace vulkan {
 
-using namespace std;
+using std::string;
 
 class Application {
 public:
@@ -49,6 +49,7 @@ public:
     const RenderPass& render_pass()         const { return render_pass_; }
     const Pipeline& pipeline()              const { return pipeline_; }
     const CommandBuffer& command_buffer()   const { return command_buffer_; }
+    const VertexBuffer& vertex_buffer()     const { return vertex_buffer_; }
     const Queues& queues()                  const { return queues_; }
     Queues& queues()                              { return queues_; }
     
@@ -65,6 +66,7 @@ private:
     RenderPass render_pass_;
     Pipeline pipeline_;
     CommandBuffer command_buffer_;
+    VertexBuffer vertex_buffer_;
 #ifdef DEBUG
     DebugCallback callback_;
 #endif /* DEBUG */

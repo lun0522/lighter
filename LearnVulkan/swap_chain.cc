@@ -18,6 +18,8 @@
 
 namespace vulkan {
 
+using namespace std;
+
 namespace {
 
 VkSurfaceFormatKHR ChooseSurfaceFormat(
@@ -62,27 +64,27 @@ VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities,
     if (capabilities.currentExtent.width != numeric_limits<uint32_t>::max()) {
         return capabilities.currentExtent;
     } else {
-        current_extent.width = max(capabilities.minImageExtent.width,
-                                   current_extent.width);
-        current_extent.width = min(capabilities.maxImageExtent.width,
-                                   current_extent.width);
-        current_extent.height = max(capabilities.minImageExtent.height,
-                                    current_extent.height);
-        current_extent.height = min(capabilities.maxImageExtent.height,
-                                    current_extent.height);
+        current_extent.width = std::max(capabilities.minImageExtent.width,
+                                        current_extent.width);
+        current_extent.width = std::min(capabilities.maxImageExtent.width,
+                                        current_extent.width);
+        current_extent.height = std::max(capabilities.minImageExtent.height,
+                                         current_extent.height);
+        current_extent.height = std::min(capabilities.maxImageExtent.height,
+                                         current_extent.height);
         return current_extent;
     }
 }
 
 void CreateImages(vector<VkImage>& images,
                   vector<VkImageView>& image_views,
-                  const SwapChain& swap_chain,
-                  const Device& device,
+                  const VkSwapchainKHR& swap_chain,
+                  const VkDevice& device,
                   VkFormat image_format) {
     // image count might be different since previously we only set a minimum
-    util::QueryAttribute<VkImage>
-        (images, [&device, &swap_chain](uint32_t *count, VkImage *images) {
-        vkGetSwapchainImagesKHR(*device, *swap_chain, count, images);
+    images = util::QueryAttribute<VkImage>(
+        [&device, &swap_chain](uint32_t *count, VkImage *images) {
+        vkGetSwapchainImagesKHR(device, swap_chain, count, images);
     });
     
     // use image view to specify how will we use these images
@@ -107,15 +109,15 @@ void CreateImages(vector<VkImage>& images,
         image_view_info.subresourceRange.layerCount = 1;
         
         ASSERT_SUCCESS(vkCreateImageView(
-                           *device, &image_view_info, nullptr, &image_views[i]),
+                           device, &image_view_info, nullptr, &image_views[i]),
                        "Failed to create image view");
     }
 }
 
 } /* namespace */
 
-bool SwapChain::HasSwapChainSupport(const Surface& surface,
-                                    const PhysicalDevice& physical_device) {
+bool SwapChain::HasSwapChainSupport(const VkSurfaceKHR& surface,
+                                    const VkPhysicalDevice& physical_device) {
     try {
         cout << "Checking extension support required for swap chain..."
              << endl << endl;
@@ -124,11 +126,11 @@ bool SwapChain::HasSwapChainSupport(const Surface& surface,
             kSwapChainExtensions.begin(),
             kSwapChainExtensions.end(),
         };
-        auto extensions {util::QueryAttribute<VkExtensionProperties>
-            ([&physical_device]
+        auto extensions {util::QueryAttribute<VkExtensionProperties>(
+            [&physical_device]
             (uint32_t* count, VkExtensionProperties* properties) {
                 return vkEnumerateDeviceExtensionProperties(
-                    *physical_device, nullptr, count, properties);
+                    physical_device, nullptr, count, properties);
             })
         };
         auto get_name = [](const VkExtensionProperties& property)
@@ -145,39 +147,41 @@ bool SwapChain::HasSwapChainSupport(const Surface& surface,
     // window system, so we need to query details
     uint32_t format_count, mode_count;
     vkGetPhysicalDeviceSurfaceFormatsKHR(
-        *physical_device, *surface, &format_count, nullptr);
+        physical_device, surface, &format_count, nullptr);
     vkGetPhysicalDeviceSurfacePresentModesKHR(
-        *physical_device, *surface, &mode_count, nullptr);
-    return format_count != 0 && mode_count != 0;
+        physical_device, surface, &mode_count, nullptr);
+    return format_count && mode_count;
 }
 
 void SwapChain::Init() {
-    const auto& surface = app_.surface();
-    const auto& physical_device = app_.physical_device();
+    const VkSurfaceKHR& surface = *app_.surface();
+    const VkPhysicalDevice& physical_device = *app_.physical_device();
+    const VkDevice& device = *app_.device();
+    const Queues& queues = app_.queues();
     
     // surface capabilities
     VkSurfaceCapabilitiesKHR surface_capabilities;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-        *physical_device, *surface, &surface_capabilities);
+        physical_device, surface, &surface_capabilities);
     VkExtent2D extent = ChooseExtent(
         surface_capabilities, app_.current_extent());
     
     // surface formats
-    auto surface_formats{util::QueryAttribute<VkSurfaceFormatKHR>
-        ([&surface, &physical_device]
+    auto surface_formats{util::QueryAttribute<VkSurfaceFormatKHR>(
+        [&surface, &physical_device]
         (uint32_t* count, VkSurfaceFormatKHR* formats) {
             return vkGetPhysicalDeviceSurfaceFormatsKHR(
-                *physical_device, *surface, count, formats);
+                physical_device, surface, count, formats);
         })
     };
     VkSurfaceFormatKHR surface_format = ChooseSurfaceFormat(surface_formats);
     
     // present modes
-    auto present_modes{util::QueryAttribute<VkPresentModeKHR>
-        ([&surface, &physical_device]
+    auto present_modes{util::QueryAttribute<VkPresentModeKHR>(
+        [&surface, &physical_device]
         (uint32_t* count, VkPresentModeKHR* modes) {
             return vkGetPhysicalDeviceSurfacePresentModesKHR(
-                *physical_device, *surface, count, modes);
+                physical_device, surface, count, modes);
         })
     };
     VkPresentModeKHR presentMode = ChoosePresentMode(present_modes);
@@ -185,11 +189,11 @@ void SwapChain::Init() {
     // how many images we want to have in swap chain
     uint32_t image_count = surface_capabilities.minImageCount + 1;
     if (surface_capabilities.maxImageCount > 0) // can be 0 if no maximum
-        image_count = min(surface_capabilities.maxImageCount, image_count);
+        image_count = std::min(surface_capabilities.maxImageCount, image_count);
     
     VkSwapchainCreateInfoKHR swap_chain_info{};
     swap_chain_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swap_chain_info.surface = *surface;
+    swap_chain_info.surface = surface;
     swap_chain_info.minImageCount = image_count;
     swap_chain_info.imageFormat = surface_format.format;
     swap_chain_info.imageColorSpace = surface_format.colorSpace;
@@ -208,8 +212,8 @@ void SwapChain::Init() {
     
     // graphics queue and present queue might be the same
     unordered_set<uint32_t> queue_families{
-        app_.queues().graphics.family_index,
-        app_.queues().present.family_index,
+        queues.graphics.family_index,
+        queues.present.family_index,
     };
     if (queue_families.size() == 1) {
         // if only one queue family will access this swap chain
@@ -225,23 +229,20 @@ void SwapChain::Init() {
     }
     
     ASSERT_SUCCESS(vkCreateSwapchainKHR(
-                       *app_.device(), &swap_chain_info, nullptr, &swap_chain_),
+                       device, &swap_chain_info, nullptr, &swap_chain_),
                    "Failed to create swap chain");
     
     image_format_ = surface_format.format;
     image_extent_ = extent;
-    CreateImages(images_, image_views_, *this, app_.device(), image_format_);
+    CreateImages(images_, image_views_, swap_chain_, device, image_format_);
 }
 
 void SwapChain::Cleanup() {
     // images are implicitly cleaned up with swap chain
+    const VkDevice& device = *app_.device();
     for (auto& image_view : image_views_)
-        vkDestroyImageView(*app_.device(), image_view, nullptr);
-    vkDestroySwapchainKHR(*app_.device(), swap_chain_, nullptr);
-}
-
-SwapChain::~SwapChain() {
-    Cleanup();
+        vkDestroyImageView(device, image_view, nullptr);
+    vkDestroySwapchainKHR(device, swap_chain_, nullptr);
 }
 
 const vector<const char*> kSwapChainExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};

@@ -18,6 +18,8 @@
 
 namespace vulkan {
 
+using namespace std;
+
 namespace {
 
 VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
@@ -26,20 +28,23 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
     const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
     void* user_data) {
     // if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-    cerr << "Validation layer: " << callback_data->pMessage << endl;
+    cout << "Validation layer: " << callback_data->pMessage << endl;
     return VK_FALSE;
 }
 
 template<typename T>
-T LoadFunction(const Instance& instance, const string& func_name) {
+T LoadFunction(const VkInstance& instance, const string& func_name) {
     auto func = reinterpret_cast<T>(
-        vkGetInstanceProcAddr(*instance, func_name.c_str()));
+        vkGetInstanceProcAddr(instance, func_name.c_str()));
     if (!func)
         throw runtime_error{"Failed to load: " + func_name};
     return func;
 }
 
 } /* namespace */
+
+const vector<const char*> kValidationLayers{
+    "VK_LAYER_LUNARG_standard_validation"};
 
 void DebugCallback::Init(int message_severity,
                          int message_type) {
@@ -49,25 +54,25 @@ void DebugCallback::Init(int message_severity,
     create_info.messageType = message_type;
     create_info.pfnUserCallback = UserCallback;
     create_info.pUserData = nullptr; // will be passed along to the callback
+    
+    const VkInstance& instance = *app_.instance();
     auto func = LoadFunction<PFN_vkCreateDebugUtilsMessengerEXT>(
-        app_.instance(), "vkCreateDebugUtilsMessengerEXT");
-    func(*app_.instance(), &create_info, nullptr, &callback_);
+        instance, "vkCreateDebugUtilsMessengerEXT");
+    func(instance, &create_info, nullptr, &callback_);
 }
 
 DebugCallback::~DebugCallback() {
+    const VkInstance& instance = *app_.instance();
     auto func = LoadFunction<PFN_vkDestroyDebugUtilsMessengerEXT>(
-        app_.instance(), "vkDestroyDebugUtilsMessengerEXT");
-    func(*app_.instance(), callback_, nullptr);
+        instance, "vkDestroyDebugUtilsMessengerEXT");
+    func(instance, callback_, nullptr);
 }
-
-const vector<const char*> kValidationLayers{
-    "VK_LAYER_LUNARG_standard_validation"};
 
 void CheckInstanceExtensionSupport(const vector<string>& required) {
     cout << "Checking instance extension support..." << endl << endl;
     
-    auto properties {util::QueryAttribute<VkExtensionProperties>
-        ([](uint32_t* count, VkExtensionProperties* properties) {
+    auto properties {util::QueryAttribute<VkExtensionProperties>(
+        [](uint32_t* count, VkExtensionProperties* properties) {
             return vkEnumerateInstanceExtensionProperties(
                 nullptr, count, properties);
         })
@@ -81,8 +86,8 @@ void CheckInstanceExtensionSupport(const vector<string>& required) {
 void CheckValidationLayerSupport(const vector<string>& required) {
     cout << "Checking validation layer support..." << endl << endl;
     
-    auto properties {util::QueryAttribute<VkLayerProperties>
-        ([](uint32_t* count, VkLayerProperties* properties) {
+    auto properties {util::QueryAttribute<VkLayerProperties>(
+        [](uint32_t* count, VkLayerProperties* properties) {
             return vkEnumerateInstanceLayerProperties(count, properties);
         })
     };
