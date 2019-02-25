@@ -9,7 +9,6 @@
 #include "pipeline_.h"
 
 #include "application.h"
-#include "util.h"
 #include "vertex_buffer.h"
 
 namespace vulkan {

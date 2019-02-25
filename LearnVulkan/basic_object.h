@@ -11,6 +11,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "util.h"
+
 class GLFWwindow;
 
 namespace vulkan {
@@ -32,6 +34,7 @@ public:
     Instance() {}
     void Init();
     ~Instance() { vkDestroyInstance(instance_, nullptr); }
+    MARK_NOT_COPYABLE_OR_MOVABLE(Instance);
     
     VkInstance& operator*(void) { return instance_; }
     const VkInstance& operator*(void) const { return instance_; }
@@ -53,6 +56,7 @@ public:
     Surface(const Application& app) : app_{app} {}
     void Init();
     ~Surface();
+    MARK_NOT_COPYABLE_OR_MOVABLE(Surface);
     
     VkSurfaceKHR& operator*(void) { return surface_; }
     const VkSurfaceKHR& operator*(void) const { return surface_; }
@@ -77,6 +81,7 @@ public:
     PhysicalDevice(Application& app) : app_{app} {}
     void Init();
     ~PhysicalDevice() {} // implicitly cleaned up
+    MARK_NOT_COPYABLE_OR_MOVABLE(PhysicalDevice);
     
     VkPhysicalDevice& operator*(void) { return physical_device_; }
     const VkPhysicalDevice& operator*(void) const { return physical_device_; }
@@ -103,6 +108,7 @@ public:
     Device(Application& app) : app_{app} {}
     void Init();
     ~Device() { vkDestroyDevice(device_, nullptr); }
+    MARK_NOT_COPYABLE_OR_MOVABLE(Device);
     
     VkDevice& operator*(void) { return device_; }
     const VkDevice& operator*(void) const { return device_; }
@@ -117,6 +123,8 @@ struct Queues {
         uint32_t family_index;
     };
     Queue graphics, present;
+    Queues() = default;
+    MARK_NOT_COPYABLE_OR_MOVABLE(Queues);
 };
 
 } /* namespace vulkan */

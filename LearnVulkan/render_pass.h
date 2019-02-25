@@ -13,6 +13,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "util.h"
+
 namespace vulkan {
 
 using std::vector;
@@ -45,6 +47,7 @@ public:
     void Init();
     void Cleanup();
     ~RenderPass() { Cleanup(); }
+    MARK_NOT_COPYABLE_OR_MOVABLE(RenderPass);
     
     const VkRenderPass& operator*(void)         const { return render_pass_; }
     const vector<VkFramebuffer>& framebuffers() const { return framebuffers_; }

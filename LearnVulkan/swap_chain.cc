@@ -14,7 +14,6 @@
 #include <unordered_set>
 
 #include "application.h"
-#include "util.h"
 
 namespace vulkan {
 

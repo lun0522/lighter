@@ -18,6 +18,7 @@
 #include "pipeline_.h"
 #include "render_pass.h"
 #include "swap_chain.h"
+#include "util.h"
 #include "validation.h"
 #include "vertex_buffer.h"
 
@@ -37,6 +38,7 @@ public:
     void Recreate();
     void Cleanup();
     ~Application();
+    MARK_NOT_COPYABLE_OR_MOVABLE(Application);
     
     bool& resized()                               { return resized_; }
     VkExtent2D current_extent()             const;

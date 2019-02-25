@@ -9,7 +9,7 @@
 #include "command_buffer.h"
 
 #include "application.h"
-#include "util.h"
+#include "vertex_buffer.h"
 
 namespace vulkan {
 
@@ -54,7 +54,7 @@ void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
                     const VkExtent2D extent,
                     const VkRenderPass& render_pass,
                     const VkPipeline& pipeline,
-                    const vector<VkBuffer>& buffers) {
+                    const VertexBuffer& buffer) {
     for (size_t i = 0; i < command_buffers.size(); ++i) {
         // start command buffer recording
         VkCommandBufferBeginInfo cmd_begin_info{};
@@ -85,15 +85,7 @@ void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
             command_buffers[i], &rp_begin_info, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(
             command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-        
-        // bind vertex buffers
-        vector<VkDeviceSize> offsets(buffers.size());
-        vkCmdBindVertexBuffers(
-            command_buffers[i], 0, static_cast<uint32_t>(buffers.size()),
-            buffers.data(), offsets.data());
-        
-        // (vertexCount, instanceCount, firstVertex, firstInstance)
-        vkCmdDraw(command_buffers[i], 3, 1, 0, 0);
+        buffer.Draw(command_buffers[i]);
         vkCmdEndRenderPass(command_buffers[i]);
         
         // end recording
@@ -213,7 +205,7 @@ void CommandBuffer::Init() {
     const VkDevice& device = *app_.device();
     const VkRenderPass& render_pass = *app_.render_pass();
     const VkPipeline& pipeline = *app_.pipeline();
-    const VkBuffer& buffer = *app_.vertex_buffer();
+    const VertexBuffer& buffer = app_.vertex_buffer();
     const Queues::Queue& graphics_queue = app_.queues().graphics;
     const vector<VkFramebuffer>& framebuffers =
         app_.render_pass().framebuffers();
@@ -229,7 +221,7 @@ void CommandBuffer::Init() {
     CreateCommandBuffers(
         command_buffers_, framebuffers.size(), device, command_pool_);
     RecordCommands(
-        command_buffers_, framebuffers, extent, render_pass, pipeline, {buffer});
+        command_buffers_, framebuffers, extent, render_pass, pipeline, buffer);
 }
 
 void CommandBuffer::Cleanup() {

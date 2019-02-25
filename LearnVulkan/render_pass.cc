@@ -9,7 +9,6 @@
 #include "render_pass.h"
 
 #include "application.h"
-#include "util.h"
 
 namespace vulkan {
 

@@ -13,6 +13,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "util.h"
+
 namespace vulkan {
 
 using std::string;
@@ -32,6 +34,7 @@ public:
     void Init();
     void Cleanup();
     ~Pipeline() { Cleanup(); }
+    MARK_NOT_COPYABLE_OR_MOVABLE(Pipeline);
     
     const VkPipeline& operator*(void) const { return pipeline_; }
 };

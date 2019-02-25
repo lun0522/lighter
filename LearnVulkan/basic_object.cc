@@ -17,7 +17,6 @@
 
 #include "application.h"
 #include "swap_chain.h"
-#include "util.h"
 #include "validation.h"
 
 namespace vulkan {
@@ -113,8 +112,8 @@ bool IsDeviceSuitable(Queues& queues,
     auto graphics_support = [](const VkQueueFamilyProperties& family) -> bool {
         return family.queueCount && (family.queueFlags & VK_QUEUE_GRAPHICS_BIT);
     };
-    if (!util::FindFirst(families, graphics_support,
-                         queues.graphics.family_index))
+    if (!util::FindFirst<VkQueueFamilyProperties>(
+        families, graphics_support, queues.graphics.family_index))
         return false;
     
     // find queue family that holds present queue
@@ -126,8 +125,8 @@ bool IsDeviceSuitable(Queues& queues,
             physical_device, index++, surface, &support);
         return support;
     };
-    if (!util::FindFirst(families, present_support,
-                         queues.present.family_index))
+    if (!util::FindFirst<VkQueueFamilyProperties>(
+        families, present_support, queues.present.family_index))
         return false;
     
     return true;

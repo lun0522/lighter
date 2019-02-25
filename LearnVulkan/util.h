@@ -20,6 +20,9 @@
 #define ASSERT_SUCCESS(event, error) \
     if (event != VK_SUCCESS)    throw std::runtime_error{error}
 #define CONTAINER_SIZE(container)   static_cast<uint32_t>(container.size())
+#define MARK_NOT_COPYABLE_OR_MOVABLE(typename) \
+        typename(const typename&) = delete; \
+        typename& operator=(const typename&) = delete
 
 namespace util {
 
@@ -60,9 +63,9 @@ void CheckSupport(
     }
 }
 
-template <typename ContentType, typename Predicate>
+template <typename ContentType>
 bool FindFirst(const vector<ContentType>& container,
-               Predicate predicate,
+               const function<bool (const ContentType&)>& predicate,
                uint32_t& first) {
     auto first_itr = find_if(container.begin(), container.end(), predicate);
     first = static_cast<uint32_t>(distance(container.begin(), first_itr));

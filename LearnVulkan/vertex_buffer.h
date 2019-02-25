@@ -15,6 +15,8 @@
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>
 
+#include "util.h"
+
 namespace vulkan {
 
 using glm::vec2;
@@ -36,13 +38,14 @@ class VertexBuffer { // allocate space on device; doesn't depend on swap chain
     const Application &app_;
     VkBuffer buffer_;
     VkDeviceMemory device_memory_;
+    uint32_t vertex_count_;
     
 public:
     VertexBuffer(const Application& app) : app_{app} {}
-    void Init(const void* data, size_t size);
+    void Init(const void* data, size_t data_size, size_t vertex_count);
+    void Draw(const VkCommandBuffer& command_buffer) const;
     ~VertexBuffer();
-    
-    const VkBuffer& operator*(void) const { return buffer_; }
+    MARK_NOT_COPYABLE_OR_MOVABLE(VertexBuffer);
 };
 
 } /* namespace vulkan */

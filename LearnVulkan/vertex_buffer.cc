@@ -9,8 +9,6 @@
 #include "vertex_buffer.h"
 
 #include "application.h"
-#include "basic_object.h"
-#include "util.h"
 
 namespace vulkan {
 
@@ -29,12 +27,12 @@ uint32_t FindMemoryType(uint32_t type_filter,
     vkGetPhysicalDeviceMemoryProperties(physical_device, &mem_properties);
     
     for (uint32_t i = 0; i < mem_properties.memoryTypeCount; ++i) {
-        bool has_properties = (mem_properties.memoryTypes[i].propertyFlags
-            & properties) == properties;
-        if (has_properties && (type_filter & (1 << i)))
-            return i;
+        if (type_filter & (1 << i)) { // type is suitable for buffer
+            auto flags = mem_properties.memoryTypes[i].propertyFlags;
+            if ((flags & properties) == properties) // has required properties
+                return i;
+        }
     }
-    
     throw runtime_error{"Failed to find suitable memory type"};
 }
 
@@ -75,6 +73,10 @@ void CopyToDeviceMemory(const void* source,
                         VkDeviceSize size,
                         const VkDeviceMemory& memory,
                         const VkDevice& device) {
+    // data transfer may not happen immediately, for example because it is only
+    // written to cache and not yet to device. we can either flush host writes
+    // with vkFlushMappedMemoryRanges and vkInvalidateMappedMemoryRanges, or
+    // specify VK_MEMORY_PROPERTY_HOST_COHERENT_BIT (a little less efficient)
     void* data;
     vkMapMemory(device, memory, 0, size, 0, &data);
     memcpy(data, source, static_cast<size_t>(size));
@@ -116,13 +118,15 @@ array<VkVertexInputAttributeDescription, 2> VertexAttrib::attrib_descriptions() 
     return attrib_descs;
 }
 
-void VertexBuffer::Init(const void* data, size_t size) {
+void VertexBuffer::Init(const void* data,
+                        size_t data_size,
+                        size_t vertex_count) {
     const VkPhysicalDevice& physical_device = *app_.physical_device();
     const VkDevice& device = *app_.device();
     
     VkBufferCreateInfo buffer_info{};
     buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    buffer_info.size = size;
+    buffer_info.size = data_size;
     buffer_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     // buffer can be accessed from multiple queues
     // while we only need to access from graphics queue
@@ -131,9 +135,17 @@ void VertexBuffer::Init(const void* data, size_t size) {
     ASSERT_SUCCESS(vkCreateBuffer(device, &buffer_info, nullptr, &buffer_),
                    "Failed to create vertex buffer");
     
+    vertex_count_ = static_cast<uint32_t>(vertex_count);
     VkDeviceSize mem_size = AllocateBufferMemory(
         device_memory_, buffer_, physical_device, device);
     CopyToDeviceMemory(data, mem_size, device_memory_, device);
+}
+
+void VertexBuffer::Draw(const VkCommandBuffer& command_buffer) const {
+    VkDeviceSize offset = 0;
+    vkCmdBindVertexBuffers(command_buffer, 0, 1, &buffer_, &offset);
+    // (vertex_count, instance_count, first_vertex, first_instance)
+    vkCmdDraw(command_buffer, vertex_count_, 1, 0, 0);
 }
 
 VertexBuffer::~VertexBuffer() {

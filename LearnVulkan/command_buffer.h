@@ -13,6 +13,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "util.h"
+
 namespace vulkan {
 
 using std::vector;
@@ -36,6 +38,7 @@ public:
     void Init();
     void Cleanup();
     ~CommandBuffer();
+    MARK_NOT_COPYABLE_OR_MOVABLE(CommandBuffer);
 };
 
 } /* namespace vulkan */

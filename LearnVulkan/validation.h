@@ -15,6 +15,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "util.h"
+
 namespace vulkan {
 
 using std::string;
@@ -46,6 +48,7 @@ public:
     void Init(int message_severity,
               int message_type);
     ~DebugCallback();
+    MARK_NOT_COPYABLE_OR_MOVABLE(DebugCallback);
 };
 
 extern const vector<const char*> kValidationLayers;

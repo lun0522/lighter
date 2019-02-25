@@ -13,7 +13,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "basic_object.h"
+#include "util.h"
 
 namespace vulkan {
 
@@ -84,6 +84,7 @@ public:
     void Init();
     void Cleanup();
     ~SwapChain() { Cleanup(); }
+    MARK_NOT_COPYABLE_OR_MOVABLE(SwapChain);
     
     const VkSwapchainKHR& operator*(void)       const { return swap_chain_; }
     const vector<VkImageView>& image_views()    const { return image_views_; }

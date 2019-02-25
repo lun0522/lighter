@@ -14,7 +14,6 @@
 #include <unordered_set>
 
 #include "application.h"
-#include "util.h"
 
 namespace vulkan {
 
@@ -32,9 +31,9 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
     return VK_FALSE;
 }
 
-template<typename T>
-T LoadFunction(const VkInstance& instance, const string& func_name) {
-    auto func = reinterpret_cast<T>(
+template<typename FuncType>
+FuncType LoadFunction(const VkInstance& instance, const string& func_name) {
+    auto func = reinterpret_cast<FuncType>(
         vkGetInstanceProcAddr(instance, func_name.c_str()));
     if (!func)
         throw runtime_error{"Failed to load: " + func_name};
