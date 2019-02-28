@@ -15,9 +15,9 @@
 
 #include "application.h"
 
-namespace vulkan {
-
 using namespace std;
+
+namespace vulkan {
 
 namespace {
 

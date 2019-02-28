@@ -10,16 +10,18 @@
 
 #include "application.h"
 
+using namespace std;
+
 namespace vulkan {
 
 namespace {
 
-void CreateFramebuffers(vector<VkFramebuffer>& framebuffers,
+void CreateFramebuffers(vector<VkFramebuffer>* framebuffers,
                         VkExtent2D image_extent,
                         const vector<VkImageView>& image_views,
                         const VkDevice& device,
                         const VkRenderPass& render_pass) {
-    framebuffers.resize(image_views.size());
+    framebuffers->resize(image_views.size());
     for (size_t i = 0; i < image_views.size(); ++i) {
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -31,7 +33,8 @@ void CreateFramebuffers(vector<VkFramebuffer>& framebuffers,
         framebufferInfo.layers = 1;
         
         ASSERT_SUCCESS(vkCreateFramebuffer(
-                           device, &framebufferInfo, nullptr, &framebuffers[i]),
+                           device, &framebufferInfo, nullptr,
+                           &(*framebuffers)[i]),
                        "Failed to create framebuffer");
     }
 }
@@ -97,7 +100,7 @@ void RenderPass::Init() {
                    "Failed to create render pass");
     
     CreateFramebuffers(
-        framebuffers_, swap_chain.extent(), swap_chain.image_views(),
+        &framebuffers_, swap_chain.extent(), swap_chain.image_views(),
         device, render_pass_);
 }
 

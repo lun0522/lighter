@@ -17,19 +17,13 @@
 
 namespace vulkan {
 
-using std::string;
 class Application;
 
 class Pipeline {
-    const Application& app_;
-    const string vert_file_, frag_file_;
-    VkPipelineLayout layout_;
-    VkPipeline pipeline_;
-    
-public:
+  public:
     Pipeline(const Application& app,
-             const string& vert_file,
-             const string& frag_file)
+             const std::string& vert_file,
+             const std::string& frag_file)
     : app_{app}, vert_file_{vert_file}, frag_file_{frag_file} {}
     void Init();
     void Cleanup();
@@ -37,6 +31,12 @@ public:
     MARK_NOT_COPYABLE_OR_MOVABLE(Pipeline);
     
     const VkPipeline& operator*(void) const { return pipeline_; }
+    
+  private:
+    const Application& app_;
+    const std::string vert_file_, frag_file_;
+    VkPipelineLayout layout_;
+    VkPipeline pipeline_;
 };
 
 } /* namespace vulkan */

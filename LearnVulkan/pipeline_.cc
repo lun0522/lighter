@@ -11,6 +11,8 @@
 #include "application.h"
 #include "vertex_buffer.h"
 
+using namespace std;
+
 namespace vulkan {
 
 namespace {

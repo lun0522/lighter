@@ -10,9 +10,10 @@
 
 #include "application.h"
 
-namespace vulkan {
+using namespace glm;
+using namespace std;
 
-using std::runtime_error;
+namespace vulkan {
 
 namespace {
 
@@ -36,7 +37,7 @@ uint32_t FindMemoryType(uint32_t type_filter,
     throw runtime_error{"Failed to find suitable memory type"};
 }
 
-VkDeviceSize AllocateBufferMemory(VkDeviceMemory& memory,
+VkDeviceSize AllocateBufferMemory(VkDeviceMemory* memory,
                                   const VkBuffer& buffer,
                                   const VkPhysicalDevice& physical_device,
                                   const VkDevice& device) {
@@ -57,14 +58,14 @@ VkDeviceSize AllocateBufferMemory(VkDeviceMemory& memory,
       | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, // see host cache management
         physical_device);
     
-    ASSERT_SUCCESS(vkAllocateMemory(device, &alloc_info, nullptr, &memory),
+    ASSERT_SUCCESS(vkAllocateMemory(device, &alloc_info, nullptr, memory),
                    "Failed to allocate buffer memory");
     
     // associate allocated memory with buffer
     // since this memory is specifically allocated for this buffer, last
     // parameter (`memoryOffset`) is simply 0
     // otherwise it should be selected according to mem_requirements.alignment
-    vkBindBufferMemory(device, buffer, memory, 0);
+    vkBindBufferMemory(device, buffer, *memory, 0);
     
     return mem_requirements.size;
 }
@@ -137,7 +138,7 @@ void VertexBuffer::Init(const void* data,
     
     vertex_count_ = static_cast<uint32_t>(vertex_count);
     VkDeviceSize mem_size = AllocateBufferMemory(
-        device_memory_, buffer_, physical_device, device);
+        &device_memory_, buffer_, physical_device, device);
     CopyToDeviceMemory(data, mem_size, device_memory_, device);
 }
 

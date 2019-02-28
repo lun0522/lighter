@@ -17,7 +17,6 @@
 
 namespace vulkan {
 
-using std::vector;
 class Application;
 
 /** VkRenderPass specifies how to use color and depth buffers.
@@ -38,19 +37,21 @@ class Application;
  *      Image extent (width, height and number of layers)
  */
 class RenderPass {
-    const Application& app_;
-    VkRenderPass render_pass_;
-    vector<VkFramebuffer> framebuffers_;
-    
-public:
+  public:
     RenderPass(const Application& app) : app_{app} {}
     void Init();
     void Cleanup();
     ~RenderPass() { Cleanup(); }
     MARK_NOT_COPYABLE_OR_MOVABLE(RenderPass);
     
-    const VkRenderPass& operator*(void)         const { return render_pass_; }
-    const vector<VkFramebuffer>& framebuffers() const { return framebuffers_; }
+    const VkRenderPass& operator*(void) const { return render_pass_; }
+    const std::vector<VkFramebuffer>&
+        framebuffers() const { return framebuffers_; }
+    
+  private:
+    const Application& app_;
+    VkRenderPass render_pass_;
+    std::vector<VkFramebuffer> framebuffers_;
 };
 
 } /* namespace vulkan */

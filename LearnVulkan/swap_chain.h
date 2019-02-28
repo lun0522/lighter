@@ -17,7 +17,6 @@
 
 namespace vulkan {
 
-using std::vector;
 class Application;
 
 /** VkSwapchainKHR holds a queue of images to present to the screen.
@@ -69,14 +68,7 @@ class Application;
  *      Set of mipmap levels and array layers to be accessible
  */
 class SwapChain {
-    const Application& app_;
-    VkSwapchainKHR swap_chain_;
-    vector<VkImage> images_;
-    vector<VkImageView> image_views_;
-    VkFormat image_format_;
-    VkExtent2D image_extent_;
-    
-public:
+  public:
     static bool HasSwapChainSupport(const VkSurfaceKHR& surface,
                                     const VkPhysicalDevice& physical_device);
     
@@ -86,13 +78,21 @@ public:
     ~SwapChain() { Cleanup(); }
     MARK_NOT_COPYABLE_OR_MOVABLE(SwapChain);
     
-    const VkSwapchainKHR& operator*(void)       const { return swap_chain_; }
-    const vector<VkImageView>& image_views()    const { return image_views_; }
-    VkFormat format()                           const { return image_format_; }
-    VkExtent2D extent()                         const { return image_extent_; }
+    const VkSwapchainKHR& operator*(void)   const { return swap_chain_; }
+    VkFormat format()                       const { return image_format_; }
+    VkExtent2D extent()                     const { return image_extent_; }
+    const std::vector<VkImageView>& image_views() const { return image_views_; }
+    
+  private:
+    const Application& app_;
+    VkSwapchainKHR swap_chain_;
+    std::vector<VkImage> images_;
+    std::vector<VkImageView> image_views_;
+    VkFormat image_format_;
+    VkExtent2D image_extent_;
 };
 
-extern const vector<const char*> kSwapChainExtensions;
+extern const std::vector<const char*> kSwapChainExtensions;
 
 } /* namespace vulkan */
 

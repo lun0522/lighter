@@ -19,8 +19,6 @@
 
 namespace vulkan {
 
-using std::string;
-using std::vector;
 class Application;
 
 namespace MessageSeverity {
@@ -41,19 +39,21 @@ namespace MessageType {
 }
 
 class DebugCallback {
-    const Application& app_;
-    VkDebugUtilsMessengerEXT callback_;
-public:
+  public:
     DebugCallback(const Application& app) : app_{app} {}
     void Init(int message_severity,
               int message_type);
     ~DebugCallback();
     MARK_NOT_COPYABLE_OR_MOVABLE(DebugCallback);
+    
+  private:
+    const Application& app_;
+    VkDebugUtilsMessengerEXT callback_;
 };
 
-extern const vector<const char*> kValidationLayers;
-void CheckInstanceExtensionSupport(const vector<string>& required);
-void CheckValidationLayerSupport(const vector<string>& required);
+extern const std::vector<const char*> kValidationLayers;
+void CheckInstanceExtensionSupport(const std::vector<std::string>& required);
+void CheckValidationLayerSupport(const std::vector<std::string>& required);
 
 } /* namespace vulkan */
 

@@ -11,14 +11,13 @@
 #include "application.h"
 #include "vertex_buffer.h"
 
-namespace vulkan {
+using namespace std;
 
-using std::numeric_limits;
-using std::runtime_error;
+namespace vulkan {
 
 namespace {
 
-void CreateCommandPool(VkCommandPool& command_pool,
+void CreateCommandPool(VkCommandPool* command_pool,
                        uint32_t queue_family_index,
                        const VkDevice& device) {
     // create a pool to hold command buffers
@@ -27,16 +26,16 @@ void CreateCommandPool(VkCommandPool& command_pool,
     pool_info.queueFamilyIndex = queue_family_index;
     
     ASSERT_SUCCESS(vkCreateCommandPool(
-                       device, &pool_info, nullptr, &command_pool),
+                       device, &pool_info, nullptr, command_pool),
                    "Failed to create command pool");
 }
 
-void CreateCommandBuffers(vector<VkCommandBuffer>& command_buffers,
+void CreateCommandBuffers(vector<VkCommandBuffer>* command_buffers,
                           size_t count,
                           const VkDevice& device,
                           const VkCommandPool& command_pool) {
     // allocate command buffers
-    command_buffers.resize(count);
+    command_buffers->resize(count);
     VkCommandBufferAllocateInfo alloc_info{};
     alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     alloc_info.commandPool = command_pool;
@@ -45,7 +44,7 @@ void CreateCommandBuffers(vector<VkCommandBuffer>& command_buffers,
     alloc_info.commandBufferCount = static_cast<uint32_t>(count);
     
     ASSERT_SUCCESS(vkAllocateCommandBuffers(
-                       device, &alloc_info, command_buffers.data()),
+                       device, &alloc_info, command_buffers->data()),
                    "Failed to allocate command buffers");
 }
 
@@ -94,34 +93,36 @@ void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
     }
 }
 
-void CreateSemaphore(vector<VkSemaphore>& semas,
+void CreateSemaphore(vector<VkSemaphore>* semas,
                      size_t count,
                      const VkDevice& device) {
     VkSemaphoreCreateInfo sema_info{};
     sema_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
     
-    semas.resize(count);
-    for (auto& sema : semas) {
+    semas->resize(count);
+    for (auto& sema : *semas) {
         ASSERT_SUCCESS(vkCreateSemaphore(device, &sema_info, nullptr, &sema),
                        "Failed to create semaphore");
     }
 }
 
-void CreateFence(vector<VkFence>& fences,
+void CreateFence(vector<VkFence>* fences,
                  size_t count,
                  const VkDevice& device) {
     VkFenceCreateInfo fence_info{};
     fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
     
-    fences.resize(count);
-    for (auto& fence : fences) {
+    fences->resize(count);
+    for (auto& fence : *fences) {
         ASSERT_SUCCESS(vkCreateFence(device, &fence_info, nullptr, &fence),
                        "Failed to create in flight fence");
     }
 }
 
 } /* namespace */
+
+const size_t CommandBuffer::kMaxFrameInFlight{2};
 
 VkResult CommandBuffer::DrawFrame() {
     const VkDevice& device = *app_.device();
@@ -211,15 +212,15 @@ void CommandBuffer::Init() {
         app_.render_pass().framebuffers();
     const VkExtent2D extent = app_.swap_chain().extent();
     
-    if (first_time_) {
-        CreateCommandPool(command_pool_, graphics_queue.family_index, device);
-        CreateSemaphore(image_available_semas_, kMaxFrameInFlight, device);
-        CreateSemaphore(render_finished_semas_, kMaxFrameInFlight, device);
-        CreateFence(in_flight_fences_, kMaxFrameInFlight, device);
-        first_time_ = false;
+    if (is_first_time_) {
+        CreateCommandPool(&command_pool_, graphics_queue.family_index, device);
+        CreateSemaphore(&image_available_semas_, kMaxFrameInFlight, device);
+        CreateSemaphore(&render_finished_semas_, kMaxFrameInFlight, device);
+        CreateFence(&in_flight_fences_, kMaxFrameInFlight, device);
+        is_first_time_ = false;
     }
     CreateCommandBuffers(
-        command_buffers_, framebuffers.size(), device, command_pool_);
+        &command_buffers_, framebuffers.size(), device, command_pool_);
     RecordCommands(
         command_buffers_, framebuffers, extent, render_pass, pipeline, buffer);
 }

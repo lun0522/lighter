@@ -26,12 +26,10 @@ class GLFWwindow;
 
 namespace vulkan {
 
-using std::string;
-
 class Application {
-public:
-    Application(const string& vert_file,
-                const string& frag_file,
+  public:
+    Application(const std::string& vert_file,
+                const std::string& frag_file,
                 uint32_t width  = 800,
                 uint32_t height = 600);
     void MainLoop();
@@ -40,7 +38,7 @@ public:
     ~Application();
     MARK_NOT_COPYABLE_OR_MOVABLE(Application);
     
-    bool& resized()                               { return resized_; }
+    bool& resized()                               { return has_resized_; }
     VkExtent2D current_extent()             const;
     GLFWwindow* window()                    const { return window_; }
     const Instance& instance()              const { return instance_; }
@@ -55,9 +53,9 @@ public:
     const Queues& queues()                  const { return queues_; }
     Queues& queues()                              { return queues_; }
     
-private:
-    bool resized_ = false;
-    bool first_time_ = true;
+  private:
+    bool has_resized_{false};
+    bool is_first_time_{true};
     GLFWwindow* window_;
     Instance instance_;
     Surface surface_;

@@ -11,6 +11,8 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+using namespace std;
+
 namespace vulkan {
 
 namespace {
@@ -58,7 +60,7 @@ VkExtent2D Application::current_extent() const {
 }
 
 void Application::InitVulkan() {
-    if (first_time_) {
+    if (is_first_time_) {
         instance_.Init();
 #ifdef DEBUG
         // relay debug messages back to application
@@ -75,7 +77,7 @@ void Application::InitVulkan() {
             kTriangleVertices.data(),
             sizeof(kTriangleVertices[0]) * kTriangleVertices.size(),
             kTriangleVertices.size());
-        first_time_ = false;
+        is_first_time_ = false;
     }
     swap_chain_.Init();
     render_pass_.Init();
@@ -86,8 +88,8 @@ void Application::InitVulkan() {
 void Application::MainLoop() {
     while (!glfwWindowShouldClose(window_)) {
         glfwPollEvents();
-        if (command_buffer_.DrawFrame() != VK_SUCCESS || resized_) {
-            resized_ = false;
+        if (command_buffer_.DrawFrame() != VK_SUCCESS || has_resized_) {
+            has_resized_ = false;
             Recreate();
         }
     }

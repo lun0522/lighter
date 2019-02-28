@@ -28,9 +28,7 @@ class Application;
  *      Layers to enable (required by validation layers)
  */
 class Instance {
-    VkInstance instance_;
-    
-public:
+  public:
     Instance() {}
     void Init();
     ~Instance() { vkDestroyInstance(instance_, nullptr); }
@@ -38,6 +36,9 @@ public:
     
     VkInstance& operator*(void) { return instance_; }
     const VkInstance& operator*(void) const { return instance_; }
+    
+  private:
+    VkInstance instance_;
 };
 
 /** VkSurfaceKHR interfaces with platform-specific window systems. It is backed
@@ -49,10 +50,7 @@ public:
  *      GLFWwindow
  */
 class Surface {
-    const Application& app_;
-    VkSurfaceKHR surface_;
-    
-public:
+  public:
     Surface(const Application& app) : app_{app} {}
     void Init();
     ~Surface();
@@ -60,6 +58,10 @@ public:
     
     VkSurfaceKHR& operator*(void) { return surface_; }
     const VkSurfaceKHR& operator*(void) const { return surface_; }
+    
+  private:
+    const Application& app_;
+    VkSurfaceKHR surface_;
 };
 
 /** VkPhysicalDevice is a handle to a physical graphics card. We iterate through
@@ -74,10 +76,7 @@ public:
  *      VkSurfaceKHR (since we need presentation support)
  */
 struct PhysicalDevice {
-    Application& app_;
-    VkPhysicalDevice physical_device_;
-    
-public:
+  public:
     PhysicalDevice(Application& app) : app_{app} {}
     void Init();
     ~PhysicalDevice() {} // implicitly cleaned up
@@ -85,6 +84,10 @@ public:
     
     VkPhysicalDevice& operator*(void) { return physical_device_; }
     const VkPhysicalDevice& operator*(void) const { return physical_device_; }
+    
+  private:
+    Application& app_;
+    VkPhysicalDevice physical_device_;
 };
 
 /** VkDevice interfaces with the physical device. We have to tell Vulkan
@@ -101,10 +104,7 @@ public:
  *      Layers to enable (required by validation layers)
  */
 struct Device {
-    Application& app_;
-    VkDevice device_;
-    
-public:
+  public:
     Device(Application& app) : app_{app} {}
     void Init();
     ~Device() { vkDestroyDevice(device_, nullptr); }
@@ -112,6 +112,10 @@ public:
     
     VkDevice& operator*(void) { return device_; }
     const VkDevice& operator*(void) const { return device_; }
+    
+  private:
+    Application& app_;
+    VkDevice device_;
 };
 
 /** VkQueue is the queue associated with the logical device. When we create it,

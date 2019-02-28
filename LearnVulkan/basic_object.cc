@@ -19,9 +19,9 @@
 #include "swap_chain.h"
 #include "validation.h"
 
-namespace vulkan {
-
 using namespace std;
+
+namespace vulkan {
 
 void Instance::Init() {
     if (glfwVulkanSupported() == GL_FALSE)

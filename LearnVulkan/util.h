@@ -26,53 +26,51 @@
 
 namespace util {
 
-using namespace std;
-
 template<typename AttribType>
-vector<AttribType> QueryAttribute(
-    const function<void (uint32_t*, AttribType*)>& enumerate) {
+std::vector<AttribType> QueryAttribute(
+    const std::function<void (uint32_t*, AttribType*)>& enumerate) {
     uint32_t count;
     enumerate(&count, nullptr);
-    vector<AttribType> attribs{count};
+    std::vector<AttribType> attribs{count};
     enumerate(&count, attribs.data());
     return attribs;
 }
 
 template<typename AttribType>
 void CheckSupport(
-    const vector<string>& required,
-    const vector<AttribType>& attribs,
-    const function<const char* (const AttribType&)>& get_name) {
-    unordered_set<string> available{attribs.size()};
+    const std::vector<std::string>& required,
+    const std::vector<AttribType>& attribs,
+    const std::function<const char* (const AttribType&)>& get_name) {
+    std::unordered_set<std::string> available{attribs.size()};
     for (const auto& atr : attribs)
         available.insert(get_name(atr));
     
-    cout << "Available:" << endl;
+    std::cout << "Available:" << std::endl;
     for (const auto& avl : available)
-        cout << "\t" << avl << endl;
-    cout << endl;
+        std::cout << "\t" << avl << std::endl;
+    std::cout << std::endl;
     
-    cout << "Required:" << endl;
+    std::cout << "Required:" << std::endl;
     for (const auto& req : required)
-        cout << "\t" << req << endl;
-    cout << endl;
+        std::cout << "\t" << req << std::endl;
+    std::cout << std::endl;
     
     for (const auto& req : required) {
         if (available.find(req) == available.end())
-            throw runtime_error{"Requirement not satisfied: " + req};
+            throw std::runtime_error{"Requirement not satisfied: " + req};
     }
 }
 
 template <typename ContentType>
-bool FindFirst(const vector<ContentType>& container,
-               const function<bool (const ContentType&)>& predicate,
+bool FindFirst(const std::vector<ContentType>& container,
+               const std::function<bool (const ContentType&)>& predicate,
                uint32_t& first) {
     auto first_itr = find_if(container.begin(), container.end(), predicate);
     first = static_cast<uint32_t>(distance(container.begin(), first_itr));
     return first_itr != container.end();
 }
 
-const string& ReadFile(const string& path);
+const std::string& ReadFile(const std::string& path);
 
 }  /* namespace util */
 

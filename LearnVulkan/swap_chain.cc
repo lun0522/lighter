@@ -15,9 +15,9 @@
 
 #include "application.h"
 
-namespace vulkan {
-
 using namespace std;
+
+namespace vulkan {
 
 namespace {
 
@@ -75,24 +75,24 @@ VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities,
     }
 }
 
-void CreateImages(vector<VkImage>& images,
-                  vector<VkImageView>& image_views,
+void CreateImages(vector<VkImage>* images,
+                  vector<VkImageView>* image_views,
                   const VkSwapchainKHR& swap_chain,
                   const VkDevice& device,
                   VkFormat image_format) {
     // image count might be different since previously we only set a minimum
-    images = util::QueryAttribute<VkImage>(
+    *images = util::QueryAttribute<VkImage>(
         [&device, &swap_chain](uint32_t *count, VkImage *images) {
         vkGetSwapchainImagesKHR(device, swap_chain, count, images);
     });
     
     // use image view to specify how will we use these images
     // (color, depth, stencil, etc)
-    image_views.resize(images.size());
-    for (uint32_t i = 0; i < images.size(); ++i) {
+    image_views->resize(images->size());
+    for (uint32_t i = 0; i < images->size(); ++i) {
         VkImageViewCreateInfo image_view_info{};
         image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        image_view_info.image = images[i];
+        image_view_info.image = (*images)[i];
         image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D; // 2D, 3D, cube maps
         image_view_info.format = image_format;
         // .components enables swizzling color channels around
@@ -108,7 +108,8 @@ void CreateImages(vector<VkImage>& images,
         image_view_info.subresourceRange.layerCount = 1;
         
         ASSERT_SUCCESS(vkCreateImageView(
-                           device, &image_view_info, nullptr, &image_views[i]),
+                           device, &image_view_info, nullptr,
+                           &(*image_views)[i]),
                        "Failed to create image view");
     }
 }
@@ -119,7 +120,7 @@ bool SwapChain::HasSwapChainSupport(const VkSurfaceKHR& surface,
                                     const VkPhysicalDevice& physical_device) {
     try {
         cout << "Checking extension support required for swap chain..."
-             << endl << endl;
+                  << endl << endl;
         
         vector<string> required{
             kSwapChainExtensions.begin(),
@@ -233,7 +234,7 @@ void SwapChain::Init() {
     
     image_format_ = surface_format.format;
     image_extent_ = extent;
-    CreateImages(images_, image_views_, swap_chain_, device, image_format_);
+    CreateImages(&images_, &image_views_, swap_chain_, device, image_format_);
 }
 
 void SwapChain::Cleanup() {
