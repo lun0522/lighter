@@ -28,17 +28,17 @@ class Application;
  *      Layers to enable (required by validation layers)
  */
 class Instance {
-  public:
-    Instance() {}
-    void Init();
-    ~Instance() { vkDestroyInstance(instance_, nullptr); }
-    MARK_NOT_COPYABLE_OR_MOVABLE(Instance);
-    
-    VkInstance& operator*(void) { return instance_; }
-    const VkInstance& operator*(void) const { return instance_; }
-    
-  private:
-    VkInstance instance_;
+ public:
+  Instance() {}
+  void Init();
+  ~Instance() { vkDestroyInstance(instance_, nullptr); }
+  MARK_NOT_COPYABLE_OR_MOVABLE(Instance);
+  
+  VkInstance& operator*(void) { return instance_; }
+  const VkInstance& operator*(void) const { return instance_; }
+  
+ private:
+  VkInstance instance_;
 };
 
 /** VkSurfaceKHR interfaces with platform-specific window systems. It is backed
@@ -50,18 +50,18 @@ class Instance {
  *      GLFWwindow
  */
 class Surface {
-  public:
-    Surface(const Application& app) : app_{app} {}
-    void Init();
-    ~Surface();
-    MARK_NOT_COPYABLE_OR_MOVABLE(Surface);
-    
-    VkSurfaceKHR& operator*(void) { return surface_; }
-    const VkSurfaceKHR& operator*(void) const { return surface_; }
-    
-  private:
-    const Application& app_;
-    VkSurfaceKHR surface_;
+ public:
+  Surface(const Application& app) : app_{app} {}
+  void Init();
+  ~Surface();
+  MARK_NOT_COPYABLE_OR_MOVABLE(Surface);
+  
+  VkSurfaceKHR& operator*(void) { return surface_; }
+  const VkSurfaceKHR& operator*(void) const { return surface_; }
+  
+ private:
+  const Application& app_;
+  VkSurfaceKHR surface_;
 };
 
 /** VkPhysicalDevice is a handle to a physical graphics card. We iterate through
@@ -76,18 +76,18 @@ class Surface {
  *      VkSurfaceKHR (since we need presentation support)
  */
 struct PhysicalDevice {
-  public:
-    PhysicalDevice(Application& app) : app_{app} {}
-    void Init();
-    ~PhysicalDevice() {} // implicitly cleaned up
-    MARK_NOT_COPYABLE_OR_MOVABLE(PhysicalDevice);
-    
-    VkPhysicalDevice& operator*(void) { return physical_device_; }
-    const VkPhysicalDevice& operator*(void) const { return physical_device_; }
-    
-  private:
-    Application& app_;
-    VkPhysicalDevice physical_device_;
+ public:
+  PhysicalDevice(Application& app) : app_{app} {}
+  void Init();
+  ~PhysicalDevice() {} // implicitly cleaned up
+  MARK_NOT_COPYABLE_OR_MOVABLE(PhysicalDevice);
+  
+  VkPhysicalDevice& operator*(void) { return physical_device_; }
+  const VkPhysicalDevice& operator*(void) const { return physical_device_; }
+  
+ private:
+  Application& app_;
+  VkPhysicalDevice physical_device_;
 };
 
 /** VkDevice interfaces with the physical device. We have to tell Vulkan
@@ -104,31 +104,31 @@ struct PhysicalDevice {
  *      Layers to enable (required by validation layers)
  */
 struct Device {
-  public:
-    Device(Application& app) : app_{app} {}
-    void Init();
-    ~Device() { vkDestroyDevice(device_, nullptr); }
-    MARK_NOT_COPYABLE_OR_MOVABLE(Device);
-    
-    VkDevice& operator*(void) { return device_; }
-    const VkDevice& operator*(void) const { return device_; }
-    
-  private:
-    Application& app_;
-    VkDevice device_;
+ public:
+  Device(Application& app) : app_{app} {}
+  void Init();
+  ~Device() { vkDestroyDevice(device_, nullptr); }
+  MARK_NOT_COPYABLE_OR_MOVABLE(Device);
+  
+  VkDevice& operator*(void) { return device_; }
+  const VkDevice& operator*(void) const { return device_; }
+  
+ private:
+  Application& app_;
+  VkDevice device_;
 };
 
 /** VkQueue is the queue associated with the logical device. When we create it,
  *      we can specify both queue family index and queue index (within family).
  */
 struct Queues {
-    struct Queue {
-        VkQueue queue; // implicitly cleaned up with physical device
-        uint32_t family_index;
-    };
-    Queue graphics, present;
-    Queues() = default;
-    MARK_NOT_COPYABLE_OR_MOVABLE(Queues);
+  struct Queue {
+    VkQueue queue; // implicitly cleaned up with physical device
+    uint32_t family_index;
+  };
+  Queue graphics, present;
+  Queues() = default;
+  MARK_NOT_COPYABLE_OR_MOVABLE(Queues);
 };
 
 } /* namespace vulkan */

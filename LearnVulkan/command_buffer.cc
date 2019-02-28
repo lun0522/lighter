@@ -17,6 +17,8 @@ namespace vulkan {
 
 namespace {
 
+size_t kMaxFrameInFlight{2};
+
 void CreateCommandPool(VkCommandPool* command_pool,
                        uint32_t queue_family_index,
                        const VkDevice& device) {
@@ -121,8 +123,6 @@ void CreateFence(vector<VkFence>* fences,
 }
 
 } /* namespace */
-
-const size_t CommandBuffer::kMaxFrameInFlight{2};
 
 VkResult CommandBuffer::DrawFrame() {
     const VkDevice& device = *app_.device();

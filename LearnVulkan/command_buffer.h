@@ -29,7 +29,6 @@ class CommandBuffer {
     MARK_NOT_COPYABLE_OR_MOVABLE(CommandBuffer);
     
   private:
-    static const size_t kMaxFrameInFlight;
     const Application& app_;
     size_t current_frame_{0};
     bool is_first_time_{true};
