@@ -27,7 +27,7 @@ class CommandBuffer {
   void Cleanup();
   ~CommandBuffer();
   MARK_NOT_COPYABLE_OR_MOVABLE(CommandBuffer);
-  
+
  private:
   const Application& app_;
   size_t current_frame_{0};

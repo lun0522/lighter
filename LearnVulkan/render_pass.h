@@ -43,11 +43,11 @@ class RenderPass {
   void Cleanup();
   ~RenderPass() { Cleanup(); }
   MARK_NOT_COPYABLE_OR_MOVABLE(RenderPass);
-  
+
   const VkRenderPass& operator*(void) const { return render_pass_; }
   const std::vector<VkFramebuffer>&
     framebuffers() const { return framebuffers_; }
-  
+
  private:
   const Application& app_;
   VkRenderPass render_pass_;

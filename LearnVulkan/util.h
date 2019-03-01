@@ -16,13 +16,14 @@
 #include <vector>
 
 #define ASSERT_NONNULL(object, error) \
-    if (object == nullptr)      throw std::runtime_error{error}
+  if (object == nullptr)    throw std::runtime_error{error}
 #define ASSERT_SUCCESS(event, error) \
-    if (event != VK_SUCCESS)    throw std::runtime_error{error}
-#define CONTAINER_SIZE(container)   static_cast<uint32_t>(container.size())
+  if (event != VK_SUCCESS)  throw std::runtime_error{error}
+#define CONTAINER_SIZE(container) \
+  static_cast<uint32_t>(container.size())
 #define MARK_NOT_COPYABLE_OR_MOVABLE(typename) \
-        typename(const typename&) = delete; \
-        typename& operator=(const typename&) = delete
+  typename(const typename&) = delete; \
+  typename& operator=(const typename&) = delete
 
 namespace util {
 
@@ -38,9 +39,9 @@ std::vector<AttribType> QueryAttribute(
 
 template<typename AttribType>
 void CheckSupport(
-    const std::vector<std::string>& required,
-    const std::vector<AttribType>& attribs,
-    const std::function<const char* (const AttribType&)>& get_name) {
+  const std::vector<std::string>& required,
+  const std::vector<AttribType>& attribs,
+  const std::function<const char* (const AttribType&)>& get_name) {
   std::unordered_set<std::string> available{attribs.size()};
   for (const auto& atr : attribs)
     available.insert(get_name(atr));

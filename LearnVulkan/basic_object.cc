@@ -33,13 +33,19 @@ void Instance::Init() {
 
 #ifdef DEBUG
   vector<const char*> required_extensions{
-    glfw_extensions, glfw_extensions + glfw_extension_count};
+    glfw_extensions,
+    glfw_extensions + glfw_extension_count
+  };
   // one extra extension to enable debug report
   required_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-  CheckInstanceExtensionSupport(
-    {required_extensions.begin(), required_extensions.end()});
-  CheckValidationLayerSupport(
-    {kValidationLayers.begin(), kValidationLayers.end()});
+  CheckInstanceExtensionSupport({
+    required_extensions.begin(),
+    required_extensions.end()
+  });
+  CheckValidationLayerSupport({
+    kValidationLayers.begin(),
+    kValidationLayers.end()
+  });
 #endif /* DEBUG */
 
   // [optional]
@@ -93,8 +99,7 @@ bool IsDeviceSuitable(Queues& queues,
 
   VkPhysicalDeviceProperties properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
-  cout << "Found device: " << properties.deviceName << endl;
-  cout << endl;
+  cout << "Found device: " << properties.deviceName << endl << endl;
 
   VkPhysicalDeviceFeatures features;
   vkGetPhysicalDeviceFeatures(physical_device, &features);

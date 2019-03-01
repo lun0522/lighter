@@ -85,7 +85,7 @@ void CreateImages(vector<VkImage>* images,
     [&device, &swap_chain](uint32_t *count, VkImage *images) {
     vkGetSwapchainImagesKHR(device, swap_chain, count, images);
   });
-  
+
   // use image view to specify how will we use these images
   // (color, depth, stencil, etc)
   image_views->resize(images->size());

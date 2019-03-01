@@ -23,7 +23,7 @@ const string& ReadFile(const string& path) {
     file.exceptions(ifstream::failbit | ifstream::badbit);
     if (!file.is_open())
       throw runtime_error{"Failed to open file: " + path};
-  
+
     try {
       ostringstream stream;
       stream << file.rdbuf();

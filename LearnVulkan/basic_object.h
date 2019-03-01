@@ -33,10 +33,10 @@ class Instance {
   void Init();
   ~Instance() { vkDestroyInstance(instance_, nullptr); }
   MARK_NOT_COPYABLE_OR_MOVABLE(Instance);
-  
+
   VkInstance& operator*(void) { return instance_; }
   const VkInstance& operator*(void) const { return instance_; }
-  
+
  private:
   VkInstance instance_;
 };
@@ -55,10 +55,10 @@ class Surface {
   void Init();
   ~Surface();
   MARK_NOT_COPYABLE_OR_MOVABLE(Surface);
-  
+
   VkSurfaceKHR& operator*(void) { return surface_; }
   const VkSurfaceKHR& operator*(void) const { return surface_; }
-  
+
  private:
   const Application& app_;
   VkSurfaceKHR surface_;
@@ -81,10 +81,10 @@ struct PhysicalDevice {
   void Init();
   ~PhysicalDevice() {} // implicitly cleaned up
   MARK_NOT_COPYABLE_OR_MOVABLE(PhysicalDevice);
-  
+
   VkPhysicalDevice& operator*(void) { return physical_device_; }
   const VkPhysicalDevice& operator*(void) const { return physical_device_; }
-  
+
  private:
   Application& app_;
   VkPhysicalDevice physical_device_;
@@ -109,10 +109,10 @@ struct Device {
   void Init();
   ~Device() { vkDestroyDevice(device_, nullptr); }
   MARK_NOT_COPYABLE_OR_MOVABLE(Device);
-  
+
   VkDevice& operator*(void) { return device_; }
   const VkDevice& operator*(void) const { return device_; }
-  
+
  private:
   Application& app_;
   VkDevice device_;
