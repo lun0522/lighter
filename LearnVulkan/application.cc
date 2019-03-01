@@ -73,10 +73,9 @@ void Application::InitVulkan() {
     surface_.Init();
     physical_device_.Init();
     device_.Init();
-    vertex_buffer_.Init(
-      kTriangleVertices.data(),
-      sizeof(kTriangleVertices[0]) * kTriangleVertices.size(),
-      kTriangleVertices.size());
+    vertex_buffer_.Init(kTriangleVertices.data(),
+                        sizeof(kTriangleVertices[0]) * kTriangleVertices.size(),
+                        kTriangleVertices.size());
     is_first_time_ = false;
   }
   swap_chain_.Init();

@@ -68,28 +68,28 @@ class Application;
  *      Set of mipmap levels and array layers to be accessible
  */
 class SwapChain {
-  public:
-    static bool HasSwapChainSupport(const VkSurfaceKHR& surface,
-                                    const VkPhysicalDevice& physical_device);
-    
-    SwapChain(const Application& app) : app_{app} {}
-    void Init();
-    void Cleanup();
-    ~SwapChain() { Cleanup(); }
-    MARK_NOT_COPYABLE_OR_MOVABLE(SwapChain);
-    
-    const VkSwapchainKHR& operator*(void)   const { return swap_chain_; }
-    VkFormat format()                       const { return image_format_; }
-    VkExtent2D extent()                     const { return image_extent_; }
-    const std::vector<VkImageView>& image_views() const { return image_views_; }
-    
-  private:
-    const Application& app_;
-    VkSwapchainKHR swap_chain_;
-    std::vector<VkImage> images_;
-    std::vector<VkImageView> image_views_;
-    VkFormat image_format_;
-    VkExtent2D image_extent_;
+ public:
+  static bool HasSwapChainSupport(const VkSurfaceKHR& surface,
+                                  const VkPhysicalDevice& physical_device);
+
+  SwapChain(const Application& app) : app_{app} {}
+  void Init();
+  void Cleanup();
+  ~SwapChain() { Cleanup(); }
+  MARK_NOT_COPYABLE_OR_MOVABLE(SwapChain);
+
+  const VkSwapchainKHR& operator*(void)         const { return swap_chain_; }
+  VkFormat format()                             const { return image_format_; }
+  VkExtent2D extent()                           const { return image_extent_; }
+  const std::vector<VkImageView>& image_views() const { return image_views_; }
+
+ private:
+  const Application& app_;
+  VkSwapchainKHR swap_chain_;
+  std::vector<VkImage> images_;
+  std::vector<VkImageView> image_views_;
+  VkFormat image_format_;
+  VkExtent2D image_extent_;
 };
 
 extern const std::vector<const char*> kSwapChainExtensions;

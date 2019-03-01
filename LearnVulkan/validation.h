@@ -22,33 +22,33 @@ namespace vulkan {
 class Application;
 
 namespace MessageSeverity {
-    enum Severity {
-        kVerbose    = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT,
-        kInfo       = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT,
-        kWarning    = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT,
-        kError      = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-    };
+  enum Severity {
+    kVerbose  = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT,
+    kInfo     = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT,
+    kWarning  = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT,
+    kError    = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+  };
 }
 
 namespace MessageType {
-    enum Type {
-        kGeneral        = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT,
-        kValidation     = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
-        kPerformance    = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-    };
+  enum Type {
+    kGeneral      = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT,
+    kValidation   = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
+    kPerformance  = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+  };
 }
 
 class DebugCallback {
-  public:
-    DebugCallback(const Application& app) : app_{app} {}
-    void Init(int message_severity,
-              int message_type);
-    ~DebugCallback();
-    MARK_NOT_COPYABLE_OR_MOVABLE(DebugCallback);
-    
-  private:
-    const Application& app_;
-    VkDebugUtilsMessengerEXT callback_;
+ public:
+  DebugCallback(const Application& app) : app_{app} {}
+  void Init(int message_severity,
+            int message_type);
+  ~DebugCallback();
+  MARK_NOT_COPYABLE_OR_MOVABLE(DebugCallback);
+
+ private:
+  const Application& app_;
+  VkDebugUtilsMessengerEXT callback_;
 };
 
 extern const std::vector<const char*> kValidationLayers;

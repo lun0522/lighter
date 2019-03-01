@@ -28,7 +28,7 @@ void Instance::Init() {
     throw runtime_error{"Vulkan not supported"};
 
   uint32_t glfw_extension_count;
-  const char **glfw_extensions =
+  const char** glfw_extensions =
     glfwGetRequiredInstanceExtensions(&glfw_extension_count);
 
 #ifdef DEBUG
