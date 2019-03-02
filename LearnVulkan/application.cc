@@ -11,6 +11,8 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include "triangle_data.h"
+
 using namespace std;
 
 namespace vulkan {
@@ -75,7 +77,10 @@ void Application::InitVulkan() {
     device_.Init();
     vertex_buffer_.Init(kTriangleVertices.data(),
                         sizeof(kTriangleVertices[0]) * kTriangleVertices.size(),
-                        kTriangleVertices.size());
+                        kTriangleVertices.size(),
+                        kTrangleIndices.data(),
+                        sizeof(kTrangleIndices[0]) * kTrangleIndices.size(),
+                        kTrangleIndices.size());
     is_first_time_ = false;
   }
   swap_chain_.Init();

@@ -9,6 +9,7 @@
 #include "pipeline_.h"
 
 #include "application.h"
+#include "triangle_data.h"
 #include "vertex_buffer.h"
 
 using namespace std;

@@ -50,29 +50,31 @@ void Instance::Init() {
 
   // [optional]
   // might be useful for the driver to optimize for some graphics engine
-  VkApplicationInfo app_info{};
-  app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-  app_info.pApplicationName = "Learn Vulkan";
-  app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-  app_info.pEngineName = "No Engine";
-  app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-  app_info.apiVersion = VK_API_VERSION_1_0;
+  VkApplicationInfo app_info{
+    .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+    .pApplicationName = "Learn Vulkan",
+    .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+    .pEngineName = "No Engine",
+    .engineVersion = VK_MAKE_VERSION(1, 0, 0),
+    .apiVersion = VK_API_VERSION_1_0,
+  };
 
   // [required]
   // tell the driver which global extensions and validation layers to use
-  VkInstanceCreateInfo instance_info{};
-  instance_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-  instance_info.pApplicationInfo = &app_info;
+  VkInstanceCreateInfo instance_info{
+    .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+    .pApplicationInfo = &app_info,
 #ifdef DEBUG
-  instance_info.enabledExtensionCount = CONTAINER_SIZE(required_extensions);
-  instance_info.ppEnabledExtensionNames = required_extensions.data();
-  instance_info.enabledLayerCount = CONTAINER_SIZE(kValidationLayers);
-  instance_info.ppEnabledLayerNames = kValidationLayers.data();
+    .enabledExtensionCount = CONTAINER_SIZE(required_extensions),
+    .ppEnabledExtensionNames = required_extensions.data(),
+    .enabledLayerCount = CONTAINER_SIZE(kValidationLayers),
+    .ppEnabledLayerNames = kValidationLayers.data(),
 #else
-  instanceInfo.enabledExtensionCount = glfw_extension_count;
-  instanceInfo.ppEnabledExtensionNames = glfw_extensions;
-  instanceInfo.enabledLayerCount = 0;
+    .enabledExtensionCount = glfw_extension_count,
+    .ppEnabledExtensionNames = glfw_extensions,
+    .enabledLayerCount = 0,
 #endif /* DEBUG */
+  };
 
   ASSERT_SUCCESS(vkCreateInstance(&instance_info, nullptr, &instance_),
                  "Failed to create instance");
@@ -168,29 +170,31 @@ void Device::Init() {
 
   float priority = 1.0f;
   for (uint32_t queue_family : queue_families) {
-    VkDeviceQueueCreateInfo queue_info{};
-    queue_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queue_info.queueFamilyIndex = queue_family;
-    queue_info.queueCount = 1;
-    queue_info.pQueuePriorities = &priority; // always required
-    queue_infos.emplace_back(queue_info);
+    VkDeviceQueueCreateInfo queue_info{
+      .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+      .queueFamilyIndex = queue_family,
+      .queueCount = 1,
+      .pQueuePriorities = &priority, // always required
+    };
+    queue_infos.emplace_back(move(queue_info));
   }
 
   VkPhysicalDeviceFeatures features{};
 
-  VkDeviceCreateInfo device_info{};
-  device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-  device_info.pEnabledFeatures = &features;
-  device_info.queueCreateInfoCount = CONTAINER_SIZE(queue_infos);
-  device_info.pQueueCreateInfos = queue_infos.data();
-  device_info.enabledExtensionCount = CONTAINER_SIZE(kSwapChainExtensions);
-  device_info.ppEnabledExtensionNames = kSwapChainExtensions.data();
+  VkDeviceCreateInfo device_info{
+    .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+    .pEnabledFeatures = &features,
+    .queueCreateInfoCount = CONTAINER_SIZE(queue_infos),
+    .pQueueCreateInfos = queue_infos.data(),
+    .enabledExtensionCount = CONTAINER_SIZE(kSwapChainExtensions),
+    .ppEnabledExtensionNames = kSwapChainExtensions.data(),
 #ifdef DEBUG
-  device_info.enabledLayerCount = CONTAINER_SIZE(kValidationLayers);
-  device_info.ppEnabledLayerNames = kValidationLayers.data();
+    .enabledLayerCount = CONTAINER_SIZE(kValidationLayers),
+    .ppEnabledLayerNames = kValidationLayers.data(),
 #else
-  deviceInfo.enabledLayerCount = 0;
+    .enabledLayerCount = 0,
 #endif /* DEBUG */
+  };
 
   ASSERT_SUCCESS(vkCreateDevice(
                      physical_device, &device_info, nullptr, &device_),

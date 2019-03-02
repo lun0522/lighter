@@ -9,7 +9,7 @@
 #include "command_buffer.h"
 
 #include "application.h"
-#include "synchronize.hpp"
+#include "synchronize.h"
 #include "vertex_buffer.h"
 
 using namespace std;
@@ -28,9 +28,10 @@ void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
                     const VertexBuffer& buffer) {
   for (size_t i = 0; i < command_buffers.size(); ++i) {
     // start command buffer recording
-    VkCommandBufferBeginInfo cmd_begin_info{};
-    cmd_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    cmd_begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+    VkCommandBufferBeginInfo cmd_begin_info{
+      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+      .flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+    };
     // .pInheritanceInfo sets what to inherit from primary buffers
     // to secondary buffers
 
@@ -38,15 +39,16 @@ void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
                    "Failed to begin recording command buffer");
 
     // start render pass
-    VkRenderPassBeginInfo rp_begin_info{};
-    rp_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    rp_begin_info.renderPass = render_pass;
-    rp_begin_info.framebuffer = framebuffers[i];
-    rp_begin_info.renderArea.offset = {0, 0};
-    rp_begin_info.renderArea.extent = extent;
     VkClearValue clear_color{0.0f, 0.0f, 0.0f, 1.0f};
-    rp_begin_info.clearValueCount = 1;
-    rp_begin_info.pClearValues = &clear_color; // used for _OP_CLEAR
+    VkRenderPassBeginInfo rp_begin_info{
+      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+      .renderPass = render_pass,
+      .framebuffer = framebuffers[i],
+      .renderArea.offset = {0, 0},
+      .renderArea.extent = extent,
+      .clearValueCount = 1,
+      .pClearValues = &clear_color, // used for _OP_CLEAR
+    };
 
     // record commends. options:
     //   - VK_SUBPASS_CONTENTS_INLINE: use primary commmand buffer
@@ -70,9 +72,10 @@ VkCommandPool CreateCommandPool(uint32_t queue_family_index,
                                 const VkDevice& device,
                                 bool is_transient) {
   // create pool to hold command buffers
-  VkCommandPoolCreateInfo pool_info{};
-  pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  pool_info.queueFamilyIndex = queue_family_index;
+  VkCommandPoolCreateInfo pool_info{
+    .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+    .queueFamilyIndex = queue_family_index,
+  };
   if (is_transient)
     pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 
@@ -85,14 +88,15 @@ VkCommandPool CreateCommandPool(uint32_t queue_family_index,
 VkCommandBuffer CreateCommandBuffer(const VkDevice& device,
                                     const VkCommandPool& pool) {
   // allocate command buffer
-  VkCommandBufferAllocateInfo buffer_info{};
-  buffer_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  buffer_info.commandPool = pool;
-  // secondary level command buffer can be called from primary level
-  buffer_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  buffer_info.commandBufferCount = 1;
+  VkCommandBufferAllocateInfo buffer_info{
+    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+    .commandPool = pool,
+    // secondary level command buffer can be called from primary level
+    .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+    .commandBufferCount = 1,
+  };
 
-  VkCommandBuffer buffer;
+  VkCommandBuffer buffer{};
   ASSERT_SUCCESS(vkAllocateCommandBuffers(device, &buffer_info, &buffer),
                  "Failed to allocate command buffer");
   return buffer;
@@ -103,12 +107,13 @@ vector<VkCommandBuffer> CreateCommandBuffers(
     const VkDevice& device,
     const VkCommandPool& command_pool) {
   // allocate command buffers
-  VkCommandBufferAllocateInfo buffer_info{};
-  buffer_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  buffer_info.commandPool = command_pool;
-  // secondary level command buffers can be called from primary level
-  buffer_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  buffer_info.commandBufferCount = static_cast<uint32_t>(count);
+  VkCommandBufferAllocateInfo buffer_info{
+    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+    .commandPool = command_pool,
+    // secondary level command buffers can be called from primary level
+    .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+    .commandBufferCount = static_cast<uint32_t>(count),
+  };
 
   vector<VkCommandBuffer> buffers(count);
   ASSERT_SUCCESS(vkAllocateCommandBuffers(device, &buffer_info, buffers.data()),
@@ -142,28 +147,30 @@ VkResult CommandBuffer::DrawFrame() {
   }
 
   // wait for image available
-  VkSubmitInfo submit_info{};
-  submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   VkSemaphore wait_semas[]{
     image_available_semas_[current_frame_],
   };
-  submit_info.waitSemaphoreCount = 1;
-  submit_info.pWaitSemaphores = wait_semas;
   // we have to wait only if we want to write to color attachment
   // so we actually can start running pipeline long before that image is ready
-  // we specify one stage for each semaphore, so we don't need to pass count
   VkPipelineStageFlags wait_stages[]{
     VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
   };
-  submit_info.pWaitDstStageMask = wait_stages;
-  submit_info.commandBufferCount = 1;
-  submit_info.pCommandBuffers = &command_buffers_[image_index];
   // these semas will be signaled once command buffer finishes
   VkSemaphore signal_semas[]{
     render_finished_semas_[current_frame_],
   };
-  submit_info.signalSemaphoreCount = 1;
-  submit_info.pSignalSemaphores = signal_semas;
+  
+  VkSubmitInfo submit_info{
+    .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+    .waitSemaphoreCount = 1,
+    .pWaitSemaphores = wait_semas,
+    // we specify one stage for each semaphore, so we don't need to pass count
+    .pWaitDstStageMask = wait_stages,
+    .commandBufferCount = 1,
+    .pCommandBuffers = &command_buffers_[image_index],
+    .signalSemaphoreCount = 1,
+    .pSignalSemaphores = signal_semas,
+  };
 
   // reset to fences unsignaled state
   vkResetFences(device, 1, &in_flight_fences_[current_frame_]);
@@ -172,17 +179,19 @@ VkResult CommandBuffer::DrawFrame() {
                  "Failed to submit draw command buffer");
 
   // present image to screen
-  VkPresentInfoKHR present_info{};
-  present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-  present_info.waitSemaphoreCount = 1;
-  present_info.pWaitSemaphores = signal_semas;
   VkSwapchainKHR swap_chains[]{
     swap_chain,
   };
-  present_info.swapchainCount = 1;
-  present_info.pSwapchains = swap_chains;
-  present_info.pImageIndices = &image_index; // image for each swap chain
-  // may use .pResults to check wether each swap chain rendered successfully
+  
+  VkPresentInfoKHR present_info{
+    .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+    .waitSemaphoreCount = 1,
+    .pWaitSemaphores = signal_semas,
+    .swapchainCount = 1,
+    .pSwapchains = swap_chains,
+    .pImageIndices = &image_index, // image for each swap chain
+    // may use .pResults to check wether each swap chain rendered successfully
+  };
 
   VkResult present_result = vkQueuePresentKHR(
       queues.present.queue, &present_info);
@@ -214,7 +223,7 @@ void CommandBuffer::Init() {
     command_pool_ = CreateCommandPool(graphics_queue.family_index, device);
     image_available_semas_ = CreateSemaphores(kMaxFrameInFlight, device);
     render_finished_semas_ = CreateSemaphores(kMaxFrameInFlight, device);
-    in_flight_fences_ = CreateFences(kMaxFrameInFlight, device);
+    in_flight_fences_ = CreateFences(kMaxFrameInFlight, device, true);
     is_first_time_ = false;
   }
   command_buffers_ = CreateCommandBuffers(

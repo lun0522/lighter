@@ -1,12 +1,12 @@
 //
-//  synchronize.cpp
+//  synchronize.cc
 //  LearnVulkan
 //
 //  Created by Pujun Lun on 3/1/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "synchronize.hpp"
+#include "synchronize.h"
 
 #include "util.h"
 
@@ -16,13 +16,12 @@ namespace vulkan {
 
 namespace {
 
-VkSemaphoreCreateInfo kSemaInfo {
+const VkSemaphoreCreateInfo kSemaInfo {
   .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
 };
 
-VkFenceCreateInfo kFenceInfo {
+const VkFenceCreateInfo kFenceInfo {
   .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-  .flags = VK_FENCE_CREATE_SIGNALED_BIT,
 };
 
 } /* namespace */
@@ -42,18 +41,26 @@ vector<VkSemaphore> CreateSemaphores(size_t count,
   return semas;
 }
 
-VkFence CreateFence(const VkDevice& device) {
+VkFence CreateFence(const VkDevice& device, bool is_signaled) {
   VkFence fence{};
-  ASSERT_SUCCESS(vkCreateFence(device, &kFenceInfo, nullptr, &fence),
-                 "Failed to create fence");
+  if (!is_signaled) {
+    ASSERT_SUCCESS(vkCreateFence(device, &kFenceInfo, nullptr, &fence),
+                   "Failed to create fence");
+  } else {
+    VkFenceCreateInfo fence_info = kFenceInfo;
+    fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    ASSERT_SUCCESS(vkCreateFence(device, &fence_info, nullptr, &fence),
+                   "Failed to create fence");
+  }
   return fence;
 }
 
 vector<VkFence> CreateFences(size_t count,
-                             const VkDevice& device) {
+                             const VkDevice& device,
+                             bool is_signaled) {
   vector<VkFence> fences(count);
   for (auto& fence : fences)
-    fence = CreateFence(device);
+    fence = CreateFence(device, is_signaled);
   return fences;
 }
 
