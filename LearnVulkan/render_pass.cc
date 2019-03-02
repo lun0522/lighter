@@ -95,7 +95,7 @@ void RenderPass::Init() {
   render_pass_info.pDependencies = &subpass_dep;
 
   ASSERT_SUCCESS(vkCreateRenderPass(
-                   device, &render_pass_info, nullptr, &render_pass_),
+                     device, &render_pass_info, nullptr, &render_pass_),
                  "Failed to create render pass");
 
   CreateFramebuffers(&framebuffers_, swap_chain.extent(),

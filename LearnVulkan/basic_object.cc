@@ -29,7 +29,7 @@ void Instance::Init() {
 
   uint32_t glfw_extension_count;
   const char** glfw_extensions =
-    glfwGetRequiredInstanceExtensions(&glfw_extension_count);
+      glfwGetRequiredInstanceExtensions(&glfw_extension_count);
 
 #ifdef DEBUG
   vector<const char*> required_extensions{
@@ -105,31 +105,31 @@ bool IsDeviceSuitable(Queues& queues,
   vkGetPhysicalDeviceFeatures(physical_device, &features);
 
   auto families{util::QueryAttribute<VkQueueFamilyProperties>(
-    [&physical_device](uint32_t* count, VkQueueFamilyProperties* properties) {
-      return vkGetPhysicalDeviceQueueFamilyProperties(
-        physical_device, count, properties);
-    })
-  };
+      [&physical_device](uint32_t* count, VkQueueFamilyProperties* properties) {
+        return vkGetPhysicalDeviceQueueFamilyProperties(
+            physical_device, count, properties);
+      }
+  )};
 
   // find queue family that holds graphics queue
   auto graphics_support = [](const VkQueueFamilyProperties& family) -> bool {
     return family.queueCount && (family.queueFlags & VK_QUEUE_GRAPHICS_BIT);
   };
   if (!util::FindFirst<VkQueueFamilyProperties>(
-    families, graphics_support, queues.graphics.family_index))
+      families, graphics_support, queues.graphics.family_index))
     return false;
 
   // find queue family that holds present queue
   uint32_t index = 0;
   auto present_support = [&physical_device, &surface, index]
-    (const VkQueueFamilyProperties& family) mutable -> bool {
-    VkBool32 support = false;
-    vkGetPhysicalDeviceSurfaceSupportKHR(
-      physical_device, index++, surface, &support);
-    return support;
+      (const VkQueueFamilyProperties& family) mutable -> bool {
+      VkBool32 support = false;
+      vkGetPhysicalDeviceSurfaceSupportKHR(
+          physical_device, index++, surface, &support);
+      return support;
   };
   if (!util::FindFirst<VkQueueFamilyProperties>(
-    families, present_support, queues.present.family_index))
+      families, present_support, queues.present.family_index))
     return false;
 
   return true;
@@ -141,10 +141,10 @@ void PhysicalDevice::Init() {
   Queues& queues = app_.queues();
 
   auto devices{util::QueryAttribute<VkPhysicalDevice>(
-    [&instance](uint32_t* count, VkPhysicalDevice* physical_device) {
-      return vkEnumeratePhysicalDevices(instance, count, physical_device);
-    })
-  };
+      [&instance](uint32_t* count, VkPhysicalDevice* physical_device) {
+        return vkEnumeratePhysicalDevices(instance, count, physical_device);
+      }
+  )};
 
   for (const auto& candidate : devices) {
     if (IsDeviceSuitable(queues, candidate, surface)) {
@@ -193,7 +193,7 @@ void Device::Init() {
 #endif /* DEBUG */
 
   ASSERT_SUCCESS(vkCreateDevice(
-                   physical_device, &device_info, nullptr, &device_),
+                     physical_device, &device_info, nullptr, &device_),
                  "Failed to create logical device");
 
   // retrieve queue handles for each queue family

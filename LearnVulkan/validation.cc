@@ -22,10 +22,10 @@ namespace vulkan {
 namespace {
 
 VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
-  VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
-  VkDebugUtilsMessageTypeFlagsEXT message_type,
-  const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
-  void* user_data) {
+    VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+    VkDebugUtilsMessageTypeFlagsEXT message_type,
+    const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+    void* user_data) {
   // if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
   cout << "Validation layer: " << callback_data->pMessage << endl;
   return VK_FALSE;
@@ -56,14 +56,14 @@ void DebugCallback::Init(int message_severity,
 
   const VkInstance& instance = *app_.instance();
   auto func = LoadFunction<PFN_vkCreateDebugUtilsMessengerEXT>(
-    instance, "vkCreateDebugUtilsMessengerEXT");
+      instance, "vkCreateDebugUtilsMessengerEXT");
   func(instance, &create_info, nullptr, &callback_);
 }
 
 DebugCallback::~DebugCallback() {
   const VkInstance& instance = *app_.instance();
   auto func = LoadFunction<PFN_vkDestroyDebugUtilsMessengerEXT>(
-    instance, "vkDestroyDebugUtilsMessengerEXT");
+      instance, "vkDestroyDebugUtilsMessengerEXT");
   func(instance, callback_, nullptr);
 }
 
@@ -71,10 +71,11 @@ void CheckInstanceExtensionSupport(const vector<string>& required) {
   cout << "Checking instance extension support..." << endl << endl;
 
   auto properties {util::QueryAttribute<VkExtensionProperties>(
-    [](uint32_t* count, VkExtensionProperties* properties) {
-      return vkEnumerateInstanceExtensionProperties(nullptr, count, properties);
-    })
-  };
+      [](uint32_t* count, VkExtensionProperties* properties) {
+        return vkEnumerateInstanceExtensionProperties(
+            nullptr, count, properties);
+      }
+  )};
   auto get_name = [](const VkExtensionProperties &property) -> const char* {
     return property.extensionName;
   };
@@ -85,10 +86,10 @@ void CheckValidationLayerSupport(const vector<string>& required) {
   cout << "Checking validation layer support..." << endl << endl;
 
   auto properties {util::QueryAttribute<VkLayerProperties>(
-    [](uint32_t* count, VkLayerProperties* properties) {
-      return vkEnumerateInstanceLayerProperties(count, properties);
-    })
-  };
+      [](uint32_t* count, VkLayerProperties* properties) {
+        return vkEnumerateInstanceLayerProperties(count, properties);
+      }
+  )};
   auto get_name = [](const VkLayerProperties& property) -> const char* {
     return property.layerName;
   };

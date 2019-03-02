@@ -29,7 +29,7 @@ namespace util {
 
 template<typename AttribType>
 std::vector<AttribType> QueryAttribute(
-  const std::function<void (uint32_t*, AttribType*)>& enumerate) {
+    const std::function<void (uint32_t*, AttribType*)>& enumerate) {
   uint32_t count;
   enumerate(&count, nullptr);
   std::vector<AttribType> attribs{count};
@@ -39,9 +39,9 @@ std::vector<AttribType> QueryAttribute(
 
 template<typename AttribType>
 void CheckSupport(
-  const std::vector<std::string>& required,
-  const std::vector<AttribType>& attribs,
-  const std::function<const char* (const AttribType&)>& get_name) {
+    const std::vector<std::string>& required,
+    const std::vector<AttribType>& attribs,
+    const std::function<const char* (const AttribType&)>& get_name) {
   std::unordered_set<std::string> available{attribs.size()};
   for (const auto& atr : attribs)
     available.insert(get_name(atr));

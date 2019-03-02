@@ -46,7 +46,7 @@ class RenderPass {
 
   const VkRenderPass& operator*(void) const { return render_pass_; }
   const std::vector<VkFramebuffer>&
-    framebuffers() const { return framebuffers_; }
+      framebuffers() const { return framebuffers_; }
 
  private:
   const Application& app_;

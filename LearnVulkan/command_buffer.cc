@@ -19,36 +19,6 @@ namespace {
 
 size_t kMaxFrameInFlight{2};
 
-void CreateCommandPool(VkCommandPool* command_pool,
-                       uint32_t queue_family_index,
-                       const VkDevice& device) {
-  // create a pool to hold command buffers
-  VkCommandPoolCreateInfo pool_info{};
-  pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  pool_info.queueFamilyIndex = queue_family_index;
-
-  ASSERT_SUCCESS(vkCreateCommandPool(device, &pool_info, nullptr, command_pool),
-                 "Failed to create command pool");
-}
-
-void CreateCommandBuffers(vector<VkCommandBuffer>* command_buffers,
-                          size_t count,
-                          const VkDevice& device,
-                          const VkCommandPool& command_pool) {
-  // allocate command buffers
-  command_buffers->resize(count);
-  VkCommandBufferAllocateInfo alloc_info{};
-  alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  alloc_info.commandPool = command_pool;
-  // secondary level command buffers can be called from primary level
-  alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  alloc_info.commandBufferCount = static_cast<uint32_t>(count);
-
-  ASSERT_SUCCESS(vkAllocateCommandBuffers(
-                   device, &alloc_info, command_buffers->data()),
-                 "Failed to allocate command buffers");
-}
-
 void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
                     const vector<VkFramebuffer>& framebuffers,
                     const VkExtent2D extent,
@@ -93,34 +63,84 @@ void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
   }
 }
 
-void CreateSemaphore(vector<VkSemaphore>* semas,
-                     size_t count,
-                     const VkDevice& device) {
+} /* namespace */
+
+VkCommandPool CreateCommandPool(uint32_t queue_family_index,
+                                const VkDevice& device,
+                                bool is_transient) {
+  // create pool to hold command buffers
+  VkCommandPoolCreateInfo pool_info{};
+  pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+  pool_info.queueFamilyIndex = queue_family_index;
+  if (is_transient)
+    pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+
+  VkCommandPool pool{};
+  ASSERT_SUCCESS(vkCreateCommandPool(device, &pool_info, nullptr, &pool),
+                 "Failed to create command pool");
+  return pool;
+}
+
+VkCommandBuffer CreateCommandBuffer(const VkDevice& device,
+                                    const VkCommandPool& pool) {
+  // allocate command buffer
+  VkCommandBufferAllocateInfo buffer_info{};
+  buffer_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  buffer_info.commandPool = pool;
+  // secondary level command buffer can be called from primary level
+  buffer_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  buffer_info.commandBufferCount = 1;
+
+  VkCommandBuffer buffer;
+  ASSERT_SUCCESS(vkAllocateCommandBuffers(device, &buffer_info, &buffer),
+                 "Failed to allocate command buffer");
+  return buffer;
+}
+
+vector<VkCommandBuffer> CreateCommandBuffers(
+    size_t count,
+    const VkDevice& device,
+    const VkCommandPool& command_pool) {
+  // allocate command buffers
+  VkCommandBufferAllocateInfo buffer_info{};
+  buffer_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  buffer_info.commandPool = command_pool;
+  // secondary level command buffers can be called from primary level
+  buffer_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  buffer_info.commandBufferCount = static_cast<uint32_t>(count);
+
+  vector<VkCommandBuffer> buffers(count);
+  ASSERT_SUCCESS(vkAllocateCommandBuffers(device, &buffer_info, buffers.data()),
+                 "Failed to allocate command buffers");
+  return buffers;
+}
+
+vector<VkSemaphore> CreateSemaphores(size_t count,
+                                     const VkDevice& device) {
   VkSemaphoreCreateInfo sema_info{};
   sema_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-  semas->resize(count);
-  for (auto& sema : *semas) {
+  vector<VkSemaphore> semas(count);
+  for (auto& sema : semas) {
     ASSERT_SUCCESS(vkCreateSemaphore(device, &sema_info, nullptr, &sema),
                    "Failed to create semaphore");
   }
+  return semas;
 }
 
-void CreateFence(vector<VkFence>* fences,
-                 size_t count,
-                 const VkDevice& device) {
+vector<VkFence> CreateFences(size_t count,
+                             const VkDevice& device) {
   VkFenceCreateInfo fence_info{};
   fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
   fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-  fences->resize(count);
-  for (auto& fence : *fences) {
+  vector<VkFence> fences(count);
+  for (auto& fence : fences) {
     ASSERT_SUCCESS(vkCreateFence(device, &fence_info, nullptr, &fence),
                    "Failed to create in flight fence");
   }
+  return fences;
 }
-
-} /* namespace */
 
 VkResult CommandBuffer::DrawFrame() {
   const VkDevice& device = *app_.device();
@@ -135,8 +155,8 @@ VkResult CommandBuffer::DrawFrame() {
   // acquire swap chain image
   uint32_t image_index;
   VkResult acquire_result = vkAcquireNextImageKHR(
-    device, swap_chain, numeric_limits<uint64_t>::max(),
-    image_available_semas_[current_frame_], VK_NULL_HANDLE, &image_index);
+      device, swap_chain, numeric_limits<uint64_t>::max(),
+      image_available_semas_[current_frame_], VK_NULL_HANDLE, &image_index);
   switch (acquire_result) {
     case VK_ERROR_OUT_OF_DATE_KHR: // swap chain can no longer present image
       return acquire_result;
@@ -150,19 +170,24 @@ VkResult CommandBuffer::DrawFrame() {
   // wait for image available
   VkSubmitInfo submit_info{};
   submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  VkSemaphore wait_semas[]{image_available_semas_[current_frame_]};
+  VkSemaphore wait_semas[]{
+    image_available_semas_[current_frame_],
+  };
   submit_info.waitSemaphoreCount = 1;
   submit_info.pWaitSemaphores = wait_semas;
   // we have to wait only if we want to write to color attachment
   // so we actually can start running pipeline long before that image is ready
   // we specify one stage for each semaphore, so we don't need to pass count
   VkPipelineStageFlags wait_stages[]{
-    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+  };
   submit_info.pWaitDstStageMask = wait_stages;
   submit_info.commandBufferCount = 1;
   submit_info.pCommandBuffers = &command_buffers_[image_index];
   // these semas will be signaled once command buffer finishes
-  VkSemaphore signal_semas[]{render_finished_semas_[current_frame_]};
+  VkSemaphore signal_semas[]{
+    render_finished_semas_[current_frame_],
+  };
   submit_info.signalSemaphoreCount = 1;
   submit_info.pSignalSemaphores = signal_semas;
 
@@ -177,14 +202,16 @@ VkResult CommandBuffer::DrawFrame() {
   present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
   present_info.waitSemaphoreCount = 1;
   present_info.pWaitSemaphores = signal_semas;
-  VkSwapchainKHR swap_chains[]{swap_chain};
+  VkSwapchainKHR swap_chains[]{
+    swap_chain,
+  };
   present_info.swapchainCount = 1;
   present_info.pSwapchains = swap_chains;
   present_info.pImageIndices = &image_index; // image for each swap chain
   // may use .pResults to check wether each swap chain rendered successfully
 
   VkResult present_result = vkQueuePresentKHR(
-    queues.present.queue, &present_info);
+      queues.present.queue, &present_info);
   switch (present_result) {
     case VK_ERROR_OUT_OF_DATE_KHR: // swap chain can no longer present image
       return present_result;
@@ -210,14 +237,14 @@ void CommandBuffer::Init() {
   const VkExtent2D extent = app_.swap_chain().extent();
 
   if (is_first_time_) {
-    CreateCommandPool(&command_pool_, graphics_queue.family_index, device);
-    CreateSemaphore(&image_available_semas_, kMaxFrameInFlight, device);
-    CreateSemaphore(&render_finished_semas_, kMaxFrameInFlight, device);
-    CreateFence(&in_flight_fences_, kMaxFrameInFlight, device);
+    command_pool_ = CreateCommandPool(graphics_queue.family_index, device);
+    image_available_semas_ = CreateSemaphores(kMaxFrameInFlight, device);
+    render_finished_semas_ = CreateSemaphores(kMaxFrameInFlight, device);
+    in_flight_fences_ = CreateFences(kMaxFrameInFlight, device);
     is_first_time_ = false;
   }
-  CreateCommandBuffers(&command_buffers_, framebuffers.size(), device,
-                       command_pool_);
+  command_buffers_ = CreateCommandBuffers(
+      framebuffers.size(), device, command_pool_);
   RecordCommands(command_buffers_, framebuffers, extent, render_pass, pipeline,
                  buffer);
 }

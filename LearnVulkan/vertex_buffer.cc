@@ -9,6 +9,7 @@
 #include "vertex_buffer.h"
 
 #include "application.h"
+#include "command_buffer.h"
 
 using namespace glm;
 using namespace std;
@@ -41,7 +42,6 @@ void CreateBuffer(VkBuffer* buffer,
                   VkDeviceMemory* device_memory,
                   VkDeviceSize data_size,
                   VkBufferUsageFlags buffer_usage,
-                  VkSharingMode sharing_mode,
                   VkMemoryPropertyFlags mem_properties,
                   const VkDevice& device,
                   const VkPhysicalDevice& physical_device) {
@@ -50,7 +50,8 @@ void CreateBuffer(VkBuffer* buffer,
   buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
   buffer_info.size = data_size;
   buffer_info.usage = buffer_usage;
-  buffer_info.sharingMode = sharing_mode;
+  // only graphics queue will access it
+  buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
   ASSERT_SUCCESS(vkCreateBuffer(device, &buffer_info, nullptr, buffer),
                  "Failed to create buffer");
@@ -63,14 +64,14 @@ void CreateBuffer(VkBuffer* buffer,
   vkGetBufferMemoryRequirements(device, *buffer, &mem_requirements);
 
   // allocate memory on device
-  VkMemoryAllocateInfo mem_alloc_info{};
-  mem_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  mem_alloc_info.allocationSize = mem_requirements.size;
-  mem_alloc_info.memoryTypeIndex = FindMemoryType(
-    mem_requirements.memoryTypeBits, mem_properties, physical_device);
+  VkMemoryAllocateInfo memory_info{};
+  memory_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  memory_info.allocationSize = mem_requirements.size;
+  memory_info.memoryTypeIndex = FindMemoryType(
+      mem_requirements.memoryTypeBits, mem_properties, physical_device);
 
   ASSERT_SUCCESS(vkAllocateMemory(
-                   device, &mem_alloc_info, nullptr, device_memory),
+                     device, &memory_info, nullptr, device_memory),
                  "Failed to allocate buffer memory");
 
   // associate allocated memory with buffer
@@ -80,10 +81,10 @@ void CreateBuffer(VkBuffer* buffer,
   vkBindBufferMemory(device, *buffer, *device_memory, 0);
 }
 
-void CopyToDeviceMemory(const void* source,
-                        VkDeviceSize size,
-                        const VkDeviceMemory& memory,
-                        const VkDevice& device) {
+void CopyHostToBuffer(const void* source,
+                      VkDeviceSize size,
+                      const VkDeviceMemory& memory,
+                      const VkDevice& device) {
   // data transfer may not happen immediately, for example because it is only
   // written to cache and not yet to device. we can either flush host writes
   // with vkFlushMappedMemoryRanges and vkInvalidateMappedMemoryRanges, or
@@ -92,6 +93,42 @@ void CopyToDeviceMemory(const void* source,
   vkMapMemory(device, memory, 0, size, 0, &data);
   memcpy(data, source, static_cast<size_t>(size));
   vkUnmapMemory(device, memory);
+}
+
+void CopyBufferToBuffer(const VkBuffer& src_buffer,
+                        const VkBuffer& dst_buffer,
+                        uint32_t queue_family_index,
+                        VkDeviceSize data_size,
+                        const VkDevice& device,
+                        const VkQueue& transfer_queue) {
+  // construct command pool, buffer and record info
+  VkCommandPool command_pool = CreateCommandPool(
+      queue_family_index, device, true);
+  VkCommandBuffer command_buffer = CreateCommandBuffer(device, command_pool);
+  VkCommandBufferBeginInfo cmd_begin_info{};
+  cmd_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  cmd_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+  // record command (just copy)
+  vkBeginCommandBuffer(command_buffer, &cmd_begin_info);
+  VkBufferCopy copy_region{};
+  copy_region.srcOffset = 0;
+  copy_region.dstOffset = 0;
+  copy_region.size = data_size;
+  vkCmdCopyBuffer(command_buffer, src_buffer, dst_buffer, 1, &copy_region);
+  vkEndCommandBuffer(command_buffer);
+
+  // submit command buffer
+  VkSubmitInfo submit_info{};
+  submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submit_info.commandBufferCount = 1;
+  submit_info.pCommandBuffers = &command_buffer;
+
+  // execute, wait until finish and cleanup
+  // may use a fence if we have multiple transfer
+  vkQueueSubmit(transfer_queue, 1, &submit_info, VK_NULL_HANDLE);
+  vkQueueWaitIdle(transfer_queue);
+  vkDestroyCommandPool(device, command_pool, nullptr);
 }
 
 } /* namespace */
@@ -133,13 +170,35 @@ void VertexBuffer::Init(const void* data,
                         size_t data_size,
                         size_t vertex_count) {
   vertex_count_ = static_cast<uint32_t>(vertex_count);
+
+  const VkDevice& device = *app_.device();
+  const VkPhysicalDevice& physical_device = *app_.physical_device();
+
+  // vertex buffer cannot be most efficient if it has to be visible to both host
+  // and device, so we create vertex buffer that is only visible to device, and
+  // staging buffer that is visible to both, and transfers data to vertex buffer
+  VkBuffer staging_buffer{};
+  VkDeviceMemory staging_memory{};
+  CreateBuffer(&staging_buffer, &staging_memory, data_size,
+               VK_BUFFER_USAGE_TRANSFER_SRC_BIT,      // source of transfer
+               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT    // host can write to it
+             | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,  // host cache management
+               device, physical_device);
+  CopyHostToBuffer(data, data_size, staging_memory, device);
+
   CreateBuffer(&buffer_, &device_memory_, data_size,
-               VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-               VK_SHARING_MODE_EXCLUSIVE, // only graphics queue will access it
-               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT   // host can write to it
-             | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, // host cache management
-               *app_.device(), *app_.physical_device());
-  CopyToDeviceMemory(data, data_size, device_memory_, *app_.device());
+               VK_BUFFER_USAGE_TRANSFER_DST_BIT       // destination of transfer
+             | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,     // as vertex buffer
+               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,   // just for device
+               device, physical_device);
+  // graphics or compute queues implicitly have transfer capability
+  CopyBufferToBuffer(staging_buffer, buffer_,
+                     app_.queues().graphics.family_index,
+                     data_size, device, app_.queues().graphics.queue);
+
+  // cleanup transient objects
+  vkDestroyBuffer(device, staging_buffer, nullptr);
+  vkFreeMemory(device, staging_memory, nullptr);
 }
 
 void VertexBuffer::Draw(const VkCommandBuffer& command_buffer) const {

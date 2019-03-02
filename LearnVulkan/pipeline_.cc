@@ -26,7 +26,7 @@ VkShaderModule CreateShaderModule(const VkDevice& device,
 
   VkShaderModule shader_module{};
   ASSERT_SUCCESS(vkCreateShaderModule(
-                   device, &shader_module_info, nullptr, &shader_module),
+                     device, &shader_module_info, nullptr, &shader_module),
                  "Failed to create shader module");
 
   return shader_module;
@@ -66,21 +66,21 @@ void Pipeline::Init() {
   // currently pass static data
   VkPipelineVertexInputStateCreateInfo vertex_input_info{};
   vertex_input_info.sType =
-    VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
   auto binding_descs = VertexAttrib::binding_descriptions();
   vertex_input_info.vertexBindingDescriptionCount =
-    CONTAINER_SIZE(binding_descs);
+      CONTAINER_SIZE(binding_descs);
   vertex_input_info.pVertexBindingDescriptions = binding_descs.data();
 
   auto attrib_descs = VertexAttrib::attrib_descriptions();
   vertex_input_info.vertexAttributeDescriptionCount =
-    CONTAINER_SIZE(attrib_descs);
+      CONTAINER_SIZE(attrib_descs);
   vertex_input_info.pVertexAttributeDescriptions = attrib_descs.data();
 
   VkPipelineInputAssemblyStateCreateInfo input_assembly_info{};
   input_assembly_info.sType =
-    VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+      VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
   // .topology can be line, line strp, triangle fan, etc
   input_assembly_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
   // .primitiveRestartEnable matters for drawing line/triangle strips
@@ -109,7 +109,7 @@ void Pipeline::Init() {
 
   VkPipelineRasterizationStateCreateInfo rasterizer_info{};
   rasterizer_info.sType =
-    VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+      VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
   // fragments beyond clip space will be discarded, not clamped
   rasterizer_info.depthClampEnable = VK_FALSE;
   // disable outputs to framebuffer if TRUE
@@ -124,7 +124,7 @@ void Pipeline::Init() {
 
   VkPipelineMultisampleStateCreateInfo multisample_info{};
   multisample_info.sType =
-    VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+      VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
   multisample_info.sampleShadingEnable = VK_FALSE;
   multisample_info.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
@@ -139,7 +139,7 @@ void Pipeline::Init() {
   // global color blending settings
   VkPipelineColorBlendStateCreateInfo color_blend_info{};
   color_blend_info.sType =
-    VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+      VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
   color_blend_info.logicOpEnable = VK_FALSE;
   color_blend_info.attachmentCount = 1;
   color_blend_info.pAttachments = &color_blend_attachment;
@@ -148,7 +148,7 @@ void Pipeline::Init() {
   // some properties can be modified without recreating entire pipeline
   VkPipelineDynamicStateCreateInfo dynamic_state_info{};
   dynamic_state_info.sType =
-    VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+      VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
   dynamic_state_info.dynamicStateCount = 0;
 
   // used to set uniform values
@@ -156,7 +156,7 @@ void Pipeline::Init() {
   layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
   ASSERT_SUCCESS(vkCreatePipelineLayout(
-                   device, &layout_info, nullptr, &layout_),
+                     device, &layout_info, nullptr, &layout_),
                  "Failed to create pipeline layout");
 
   VkGraphicsPipelineCreateInfo pipeline_info{};
@@ -177,8 +177,8 @@ void Pipeline::Init() {
   // .basePipeline can be used to copy settings from another piepeline
 
   ASSERT_SUCCESS(vkCreateGraphicsPipelines(
-                   device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr,
-                   &pipeline_),
+                     device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr,
+                     &pipeline_),
                  "Failed to create graphics pipeline");
 
   vkDestroyShaderModule(device, vert_shader_module, nullptr);

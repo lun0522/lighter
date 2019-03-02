@@ -28,17 +28,17 @@ Application::Application(const string& vert_file,
                          const string& frag_file,
                          uint32_t width,
                          uint32_t height)
-: instance_{},
-  surface_{*this},
-  physical_device_{*this},
-  device_{*this},
-  swap_chain_{*this},
-  render_pass_{*this},
-  pipeline_{*this, vert_file, frag_file},
-  command_buffer_{*this},
-  vertex_buffer_{*this}
+    : instance_{},
+      surface_{*this},
+      physical_device_{*this},
+      device_{*this},
+      swap_chain_{*this},
+      render_pass_{*this},
+      pipeline_{*this, vert_file, frag_file},
+      command_buffer_{*this},
+      vertex_buffer_{*this}
 #ifdef DEBUG
-  , callback_{*this}
+      , callback_{*this}
 #endif /* DEBUG */
 {
   InitWindow(width, height);

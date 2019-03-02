@@ -39,6 +39,28 @@ class CommandBuffer {
   std::vector<VkCommandBuffer> command_buffers_;
 };
 
+VkCommandPool CreateCommandPool(
+    uint32_t queue_family_index,
+    const VkDevice& device,
+    bool is_transient = false);
+
+VkCommandBuffer CreateCommandBuffer(
+    const VkDevice& device,
+    const VkCommandPool& pool);
+
+std::vector<VkCommandBuffer> CreateCommandBuffers(
+    size_t count,
+    const VkDevice& device,
+    const VkCommandPool& command_pool);
+
+std::vector<VkSemaphore> CreateSemaphores(
+    size_t count,
+    const VkDevice& device);
+
+std::vector<VkFence> CreateFences(
+    size_t count,
+    const VkDevice& device);
+
 } /* namespace vulkan */
 
 #endif /* LEARNVULKAN_COMMAND_BUFFER_H */

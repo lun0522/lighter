@@ -22,7 +22,7 @@ namespace vulkan {
 namespace {
 
 VkSurfaceFormatKHR ChooseSurfaceFormat(
-  const vector<VkSurfaceFormatKHR>& available) {
+    const vector<VkSurfaceFormatKHR>& available) {
   // if surface has no preferred format, we can choose any format
   if (available.size() == 1 && available[0].format == VK_FORMAT_UNDEFINED)
     return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
@@ -82,9 +82,10 @@ void CreateImages(vector<VkImage>* images,
                   VkFormat image_format) {
   // image count might be different since previously we only set a minimum
   *images = util::QueryAttribute<VkImage>(
-    [&device, &swap_chain](uint32_t *count, VkImage *images) {
-    vkGetSwapchainImagesKHR(device, swap_chain, count, images);
-  });
+      [&device, &swap_chain](uint32_t *count, VkImage *images) {
+        vkGetSwapchainImagesKHR(device, swap_chain, count, images);
+      }
+  );
 
   // use image view to specify how will we use these images
   // (color, depth, stencil, etc)
@@ -108,7 +109,7 @@ void CreateImages(vector<VkImage>* images,
     image_view_info.subresourceRange.layerCount = 1;
 
     ASSERT_SUCCESS(vkCreateImageView(
-                     device, &image_view_info, nullptr, &(*image_views)[i]),
+                       device, &image_view_info, nullptr, &(*image_views)[i]),
                    "Failed to create image view");
   }
 }
@@ -126,12 +127,11 @@ bool SwapChain::HasSwapChainSupport(const VkSurfaceKHR& surface,
       kSwapChainExtensions.end(),
     };
     auto extensions {util::QueryAttribute<VkExtensionProperties>(
-      [&physical_device]
-      (uint32_t* count, VkExtensionProperties* properties) {
-        return vkEnumerateDeviceExtensionProperties(
-          physical_device, nullptr, count, properties);
-      })
-    };
+        [&physical_device](uint32_t* count, VkExtensionProperties* properties) {
+          return vkEnumerateDeviceExtensionProperties(
+              physical_device, nullptr, count, properties);
+        }
+    )};
     auto get_name = [](const VkExtensionProperties& property) -> const char* {
       return property.extensionName;
     };
@@ -144,9 +144,9 @@ bool SwapChain::HasSwapChainSupport(const VkSurfaceKHR& surface,
   // window system, so we need to query details
   uint32_t format_count, mode_count;
   vkGetPhysicalDeviceSurfaceFormatsKHR(
-    physical_device, surface, &format_count, nullptr);
+      physical_device, surface, &format_count, nullptr);
   vkGetPhysicalDeviceSurfacePresentModesKHR(
-    physical_device, surface, &mode_count, nullptr);
+      physical_device, surface, &mode_count, nullptr);
   return format_count && mode_count;
 }
 
@@ -159,25 +159,26 @@ void SwapChain::Init() {
   // surface capabilities
   VkSurfaceCapabilitiesKHR surface_capabilities;
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-    physical_device, surface, &surface_capabilities);
+      physical_device, surface, &surface_capabilities);
   VkExtent2D extent = ChooseExtent(surface_capabilities, app_.current_extent());
 
   // surface formats
   auto surface_formats{util::QueryAttribute<VkSurfaceFormatKHR>(
-    [&surface, &physical_device](uint32_t* count, VkSurfaceFormatKHR* formats) {
-      return vkGetPhysicalDeviceSurfaceFormatsKHR(
-        physical_device, surface, count, formats);
-    })
-  };
+      [&surface, &physical_device]
+      (uint32_t* count, VkSurfaceFormatKHR* formats) {
+        return vkGetPhysicalDeviceSurfaceFormatsKHR(
+            physical_device, surface, count, formats);
+      }
+  )};
   VkSurfaceFormatKHR surface_format = ChooseSurfaceFormat(surface_formats);
 
   // present modes
   auto present_modes{util::QueryAttribute<VkPresentModeKHR>(
-    [&surface, &physical_device](uint32_t* count, VkPresentModeKHR* modes) {
-      return vkGetPhysicalDeviceSurfacePresentModesKHR(
-        physical_device, surface, count, modes);
-    })
-  };
+      [&surface, &physical_device](uint32_t* count, VkPresentModeKHR* modes) {
+        return vkGetPhysicalDeviceSurfacePresentModesKHR(
+            physical_device, surface, count, modes);
+      }
+  )};
   VkPresentModeKHR presentMode = ChoosePresentMode(present_modes);
 
   // how many images we want to have in swap chain
