@@ -18,6 +18,7 @@
 		BD5F5F1221FA43E0006BD2AC /* libvulkan.1.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */; };
 		BD6BAC282211432500906E78 /* basic_object.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD6BAC262211432500906E78 /* basic_object.cc */; };
 		BD6D210F221000E800FF1910 /* command_buffer.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD6D210D221000E800FF1910 /* command_buffer.cc */; };
+		BD7B1E94222A63AD00EF0956 /* synchronize.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BD7B1E92222A63AD00EF0956 /* synchronize.cpp */; };
 		BD7C0CAD2217C74200009BE5 /* vertex_buffer.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD7C0CAB2217C74200009BE5 /* vertex_buffer.cc */; };
 		BDA11AB12206323F003092B8 /* swap_chain.cc in Sources */ = {isa = PBXBuildFile; fileRef = BDA11AAF2206323F003092B8 /* swap_chain.cc */; };
 		BDA11AB422064E07003092B8 /* application.cc in Sources */ = {isa = PBXBuildFile; fileRef = BDA11AB222064E07003092B8 /* application.cc */; };
@@ -58,6 +59,8 @@
 		BD6BAC272211432500906E78 /* basic_object.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = basic_object.h; sourceTree = "<group>"; };
 		BD6D210D221000E800FF1910 /* command_buffer.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = command_buffer.cc; sourceTree = "<group>"; };
 		BD6D210E221000E800FF1910 /* command_buffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = command_buffer.h; sourceTree = "<group>"; };
+		BD7B1E92222A63AD00EF0956 /* synchronize.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = synchronize.cpp; sourceTree = "<group>"; };
+		BD7B1E93222A63AD00EF0956 /* synchronize.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = synchronize.hpp; sourceTree = "<group>"; };
 		BD7C0CAB2217C74200009BE5 /* vertex_buffer.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = vertex_buffer.cc; sourceTree = "<group>"; };
 		BD7C0CAC2217C74200009BE5 /* vertex_buffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = vertex_buffer.h; sourceTree = "<group>"; };
 		BDA11AAD22061C7B003092B8 /* util.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
@@ -117,6 +120,8 @@
 				BD098BC8220D4D2600E34A0A /* render_pass.h */,
 				BDA11AAF2206323F003092B8 /* swap_chain.cc */,
 				BDA11AB02206323F003092B8 /* swap_chain.h */,
+				BD7B1E92222A63AD00EF0956 /* synchronize.cpp */,
+				BD7B1E93222A63AD00EF0956 /* synchronize.hpp */,
 				BD4717B82219E9AB00B860D0 /* util.cc */,
 				BDA11AAD22061C7B003092B8 /* util.h */,
 				BD30819A21B1929300F30C2C /* validation.cc */,
@@ -217,6 +222,7 @@
 				BD2435A121AD9B1C00027627 /* main.cc in Sources */,
 				BD6D210F221000E800FF1910 /* command_buffer.cc in Sources */,
 				BD7C0CAD2217C74200009BE5 /* vertex_buffer.cc in Sources */,
+				BD7B1E94222A63AD00EF0956 /* synchronize.cpp in Sources */,
 				BD151CB4220BF9A300A6FC75 /* pipeline_.cc in Sources */,
 				BD6BAC282211432500906E78 /* basic_object.cc in Sources */,
 				BDA11AB12206323F003092B8 /* swap_chain.cc in Sources */,

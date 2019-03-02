@@ -9,6 +9,7 @@
 #include "command_buffer.h"
 
 #include "application.h"
+#include "synchronize.hpp"
 #include "vertex_buffer.h"
 
 using namespace std;
@@ -113,33 +114,6 @@ vector<VkCommandBuffer> CreateCommandBuffers(
   ASSERT_SUCCESS(vkAllocateCommandBuffers(device, &buffer_info, buffers.data()),
                  "Failed to allocate command buffers");
   return buffers;
-}
-
-vector<VkSemaphore> CreateSemaphores(size_t count,
-                                     const VkDevice& device) {
-  VkSemaphoreCreateInfo sema_info{};
-  sema_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-  vector<VkSemaphore> semas(count);
-  for (auto& sema : semas) {
-    ASSERT_SUCCESS(vkCreateSemaphore(device, &sema_info, nullptr, &sema),
-                   "Failed to create semaphore");
-  }
-  return semas;
-}
-
-vector<VkFence> CreateFences(size_t count,
-                             const VkDevice& device) {
-  VkFenceCreateInfo fence_info{};
-  fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-  fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-  vector<VkFence> fences(count);
-  for (auto& fence : fences) {
-    ASSERT_SUCCESS(vkCreateFence(device, &fence_info, nullptr, &fence),
-                   "Failed to create in flight fence");
-  }
-  return fences;
 }
 
 VkResult CommandBuffer::DrawFrame() {

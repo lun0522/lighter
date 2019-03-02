@@ -53,14 +53,6 @@ std::vector<VkCommandBuffer> CreateCommandBuffers(
     const VkDevice& device,
     const VkCommandPool& command_pool);
 
-std::vector<VkSemaphore> CreateSemaphores(
-    size_t count,
-    const VkDevice& device);
-
-std::vector<VkFence> CreateFences(
-    size_t count,
-    const VkDevice& device);
-
 } /* namespace vulkan */
 
 #endif /* LEARNVULKAN_COMMAND_BUFFER_H */
