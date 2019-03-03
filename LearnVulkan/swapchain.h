@@ -1,13 +1,13 @@
 //
-//  swap_chain.h
+//  swapchain.h
 //  LearnVulkan
 //
 //  Created by Pujun Lun on 2/2/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LEARNVULKAN_SWAP_CHAIN_H
-#define LEARNVULKAN_SWAP_CHAIN_H
+#ifndef LEARNVULKAN_SWAPCHAIN_H
+#define LEARNVULKAN_SWAPCHAIN_H
 
 #include <vector>
 
@@ -67,25 +67,25 @@ class Application;
  *      Purpose of the image (color, depth, stencil, etc)
  *      Set of mipmap levels and array layers to be accessible
  */
-class SwapChain {
+class Swapchain {
  public:
-  static bool HasSwapChainSupport(const VkSurfaceKHR& surface,
+  static bool HasSwapchainSupport(const VkSurfaceKHR& surface,
                                   const VkPhysicalDevice& physical_device);
 
-  SwapChain(const Application& app) : app_{app} {}
+  Swapchain(const Application& app) : app_{app} {}
   void Init();
   void Cleanup();
-  ~SwapChain() { Cleanup(); }
-  MARK_NOT_COPYABLE_OR_MOVABLE(SwapChain);
+  ~Swapchain() { Cleanup(); }
+  MARK_NOT_COPYABLE_OR_MOVABLE(Swapchain);
 
-  const VkSwapchainKHR& operator*(void)         const { return swap_chain_; }
+  const VkSwapchainKHR& operator*(void)         const { return swapchain_; }
   VkFormat format()                             const { return image_format_; }
   VkExtent2D extent()                           const { return image_extent_; }
   const std::vector<VkImageView>& image_views() const { return image_views_; }
 
  private:
   const Application& app_;
-  VkSwapchainKHR swap_chain_;
+  VkSwapchainKHR swapchain_;
   std::vector<VkImage> images_;
   std::vector<VkImageView> image_views_;
   VkFormat image_format_;
@@ -96,4 +96,4 @@ extern const std::vector<const char*> kSwapChainExtensions;
 
 } /* namespace vulkan */
 
-#endif /* LEARNVULKAN_SWAP_CHAIN_H */
+#endif /* LEARNVULKAN_SWAPCHAIN_H */

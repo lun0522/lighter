@@ -16,7 +16,7 @@
 #include <GLFW/glfw3.h>
 
 #include "application.h"
-#include "swap_chain.h"
+#include "swapchain.h"
 #include "validation.h"
 
 using namespace std;
@@ -96,7 +96,7 @@ bool IsDeviceSuitable(Queues& queues,
                       const VkPhysicalDevice& physical_device,
                       const VkSurfaceKHR& surface) {
   // require swap chain support
-  if (!SwapChain::HasSwapChainSupport(surface, physical_device))
+  if (!Swapchain::HasSwapchainSupport(surface, physical_device))
     return false;
 
   VkPhysicalDeviceProperties properties;

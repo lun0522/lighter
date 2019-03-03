@@ -45,14 +45,15 @@ FuncType LoadFunction(const VkInstance& instance, const string& func_name) {
 const vector<const char*> kValidationLayers{
   "VK_LAYER_LUNARG_standard_validation"};
 
-void DebugCallback::Init(int message_severity,
-                         int message_type) {
-  VkDebugUtilsMessengerCreateInfoEXT create_info{};
-  create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-  create_info.messageSeverity = message_severity;
-  create_info.messageType = message_type;
-  create_info.pfnUserCallback = UserCallback;
-  create_info.pUserData = nullptr; // will be passed along to the callback
+void DebugCallback::Init(VkDebugUtilsMessageSeverityFlagsEXT message_severity,
+                         VkDebugUtilsMessageTypeFlagsEXT message_type) {
+  VkDebugUtilsMessengerCreateInfoEXT create_info{
+    .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+    .messageSeverity = message_severity,
+    .messageType = message_type,
+    .pfnUserCallback = UserCallback,
+    .pUserData = nullptr, // will be passed along to the callback
+  };
 
   const VkInstance& instance = *app_.instance();
   auto func = LoadFunction<PFN_vkCreateDebugUtilsMessengerEXT>(

@@ -1,12 +1,12 @@
 //
-//  swap_chain.cc
+//  swapchain.cc
 //  LearnVulkan
 //
 //  Created by Pujun Lun on 2/2/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "swap_chain.h"
+#include "swapchain.h"
 
 #include <algorithm>
 #include <iostream>
@@ -77,13 +77,13 @@ VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities,
 
 void CreateImages(vector<VkImage>* images,
                   vector<VkImageView>* image_views,
-                  const VkSwapchainKHR& swap_chain,
+                  const VkSwapchainKHR& swapchain,
                   const VkDevice& device,
                   VkFormat image_format) {
   // image count might be different since previously we only set a minimum
   *images = util::QueryAttribute<VkImage>(
-      [&device, &swap_chain](uint32_t *count, VkImage *images) {
-        vkGetSwapchainImagesKHR(device, swap_chain, count, images);
+      [&device, &swapchain](uint32_t *count, VkImage *images) {
+        vkGetSwapchainImagesKHR(device, swapchain, count, images);
       }
   );
 
@@ -91,22 +91,23 @@ void CreateImages(vector<VkImage>* images,
   // (color, depth, stencil, etc)
   image_views->resize(images->size());
   for (uint32_t i = 0; i < images->size(); ++i) {
-    VkImageViewCreateInfo image_view_info{};
-    image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    image_view_info.image = (*images)[i];
-    image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D; // 2D, 3D, cube maps
-    image_view_info.format = image_format;
-    // .components enables swizzling color channels around
-    image_view_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-    image_view_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-    image_view_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-    image_view_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-    // .subresourceRange specifies image's purpose and which part to access
-    image_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    image_view_info.subresourceRange.baseMipLevel = 0;
-    image_view_info.subresourceRange.levelCount = 1;
-    image_view_info.subresourceRange.baseArrayLayer = 0;
-    image_view_info.subresourceRange.layerCount = 1;
+    VkImageViewCreateInfo image_view_info{
+      .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+      .image = (*images)[i],
+      .viewType = VK_IMAGE_VIEW_TYPE_2D, // 2D, 3D, cube maps
+      .format = image_format,
+      // .components enables swizzling color channels around
+      .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+      .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+      .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+      .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
+      // .subresourceRange specifies image's purpose and which part to access
+      .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+      .subresourceRange.baseMipLevel = 0,
+      .subresourceRange.levelCount = 1,
+      .subresourceRange.baseArrayLayer = 0,
+      .subresourceRange.layerCount = 1,
+    };
 
     ASSERT_SUCCESS(vkCreateImageView(
                        device, &image_view_info, nullptr, &(*image_views)[i]),
@@ -116,7 +117,7 @@ void CreateImages(vector<VkImage>* images,
 
 } /* namespace */
 
-bool SwapChain::HasSwapChainSupport(const VkSurfaceKHR& surface,
+bool Swapchain::HasSwapchainSupport(const VkSurfaceKHR& surface,
                                     const VkPhysicalDevice& physical_device) {
   try {
     cout << "Checking extension support required for swap chain..."
@@ -150,7 +151,7 @@ bool SwapChain::HasSwapChainSupport(const VkSurfaceKHR& surface,
   return format_count && mode_count;
 }
 
-void SwapChain::Init() {
+void Swapchain::Init() {
   const VkSurfaceKHR& surface = *app_.surface();
   const VkPhysicalDevice& physical_device = *app_.physical_device();
   const VkDevice& device = *app_.device();
@@ -186,24 +187,25 @@ void SwapChain::Init() {
   if (surface_capabilities.maxImageCount > 0) // can be 0 if no maximum
     image_count = std::min(surface_capabilities.maxImageCount, image_count);
 
-  VkSwapchainCreateInfoKHR swap_chain_info{};
-  swap_chain_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-  swap_chain_info.surface = surface;
-  swap_chain_info.minImageCount = image_count;
-  swap_chain_info.imageFormat = surface_format.format;
-  swap_chain_info.imageColorSpace = surface_format.colorSpace;
-  swap_chain_info.imageExtent = extent;
-  swap_chain_info.imageArrayLayers = 1;
-  // .imageUsage can be different for post-processing
-  swap_chain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-  // we may apply transformations
-  swap_chain_info.preTransform = surface_capabilities.currentTransform;
-  // we may change alpha channel
-  swap_chain_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-  swap_chain_info.presentMode = presentMode;
-  // don't care about color of pixels obscured
-  swap_chain_info.clipped = VK_TRUE;
-  swap_chain_info.oldSwapchain = VK_NULL_HANDLE;
+  VkSwapchainCreateInfoKHR swapchain_info{
+    .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+    .surface = surface,
+    .minImageCount = image_count,
+    .imageFormat = surface_format.format,
+    .imageColorSpace = surface_format.colorSpace,
+    .imageExtent = extent,
+    .imageArrayLayers = 1,
+    // .imageUsage can be different for post-processing
+    .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+    // we may apply transformations
+    .preTransform = surface_capabilities.currentTransform,
+    // we may change alpha channel
+    .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+    .presentMode = presentMode,
+    // don't care about color of pixels obscured
+    .clipped = VK_TRUE,
+    .oldSwapchain = VK_NULL_HANDLE,
+  };
 
   // graphics queue and present queue might be the same
   unordered_set<uint32_t> queue_families{
@@ -212,32 +214,32 @@ void SwapChain::Init() {
   };
   if (queue_families.size() == 1) {
     // if only one queue family will access this swap chain
-    swap_chain_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    swapchain_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
   } else {
     // specify which queue families will share access to images
     // we will draw on images in swap chain from graphics queue
     // and submit on presentation queue
     vector<uint32_t> indices{queue_families.begin(), queue_families.end()};
-    swap_chain_info.queueFamilyIndexCount = CONTAINER_SIZE(indices);
-    swap_chain_info.pQueueFamilyIndices = indices.data();
-    swap_chain_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+    swapchain_info.queueFamilyIndexCount = CONTAINER_SIZE(indices);
+    swapchain_info.pQueueFamilyIndices = indices.data();
+    swapchain_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
   }
 
   ASSERT_SUCCESS(vkCreateSwapchainKHR(
-                   device, &swap_chain_info, nullptr, &swap_chain_),
+                   device, &swapchain_info, nullptr, &swapchain_),
                  "Failed to create swap chain");
 
   image_format_ = surface_format.format;
   image_extent_ = extent;
-  CreateImages(&images_, &image_views_, swap_chain_, device, image_format_);
+  CreateImages(&images_, &image_views_, swapchain_, device, image_format_);
 }
 
-void SwapChain::Cleanup() {
+void Swapchain::Cleanup() {
   // images are implicitly cleaned up with swap chain
   const VkDevice& device = *app_.device();
   for (auto& image_view : image_views_)
     vkDestroyImageView(device, image_view, nullptr);
-  vkDestroySwapchainKHR(device, swap_chain_, nullptr);
+  vkDestroySwapchainKHR(device, swapchain_, nullptr);
 }
 
 const vector<const char*> kSwapChainExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};

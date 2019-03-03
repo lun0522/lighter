@@ -41,8 +41,8 @@ namespace MessageType {
 class DebugCallback {
  public:
   DebugCallback(const Application& app) : app_{app} {}
-  void Init(int message_severity,
-            int message_type);
+  void Init(VkDebugUtilsMessageSeverityFlagsEXT message_severity,
+            VkDebugUtilsMessageTypeFlagsEXT message_type);
   ~DebugCallback();
   MARK_NOT_COPYABLE_OR_MOVABLE(DebugCallback);
 

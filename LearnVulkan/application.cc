@@ -34,7 +34,7 @@ Application::Application(const string& vert_file,
       surface_{*this},
       physical_device_{*this},
       device_{*this},
-      swap_chain_{*this},
+      swapchain_{*this},
       render_pass_{*this},
       pipeline_{*this, vert_file, frag_file},
       command_buffer_{*this},
@@ -83,7 +83,7 @@ void Application::InitVulkan() {
                         kTrangleIndices.size());
     is_first_time_ = false;
   }
-  swap_chain_.Init();
+  swapchain_.Init();
   render_pass_.Init();
   pipeline_.Init();    // fixed and programmable statges
   command_buffer_.Init();   // record all operations we want to perform
@@ -117,7 +117,7 @@ void Application::Cleanup() {
   command_buffer_.Cleanup();
   pipeline_.Cleanup();
   render_pass_.Cleanup();
-  swap_chain_.Cleanup();
+  swapchain_.Cleanup();
 }
 
 Application::~Application() {

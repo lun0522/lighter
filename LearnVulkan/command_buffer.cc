@@ -123,7 +123,7 @@ vector<VkCommandBuffer> CreateCommandBuffers(
 
 VkResult CommandBuffer::DrawFrame() {
   const VkDevice& device = *app_.device();
-  const VkSwapchainKHR& swap_chain = *app_.swap_chain();
+  const VkSwapchainKHR& swapchain = *app_.swapchain();
   const Queues& queues = app_.queues();
 
   // fence was initialized to signaled state
@@ -134,7 +134,7 @@ VkResult CommandBuffer::DrawFrame() {
   // acquire swap chain image
   uint32_t image_index;
   VkResult acquire_result = vkAcquireNextImageKHR(
-      device, swap_chain, numeric_limits<uint64_t>::max(),
+      device, swapchain, numeric_limits<uint64_t>::max(),
       image_available_semas_[current_frame_], VK_NULL_HANDLE, &image_index);
   switch (acquire_result) {
     case VK_ERROR_OUT_OF_DATE_KHR: // swap chain can no longer present image
@@ -179,8 +179,8 @@ VkResult CommandBuffer::DrawFrame() {
                  "Failed to submit draw command buffer");
 
   // present image to screen
-  VkSwapchainKHR swap_chains[]{
-    swap_chain,
+  VkSwapchainKHR swapchains[]{
+    swapchain,
   };
   
   VkPresentInfoKHR present_info{
@@ -188,7 +188,7 @@ VkResult CommandBuffer::DrawFrame() {
     .waitSemaphoreCount = 1,
     .pWaitSemaphores = signal_semas,
     .swapchainCount = 1,
-    .pSwapchains = swap_chains,
+    .pSwapchains = swapchains,
     .pImageIndices = &image_index, // image for each swap chain
     // may use .pResults to check wether each swap chain rendered successfully
   };
@@ -217,7 +217,7 @@ void CommandBuffer::Init() {
   const VertexBuffer& buffer = app_.vertex_buffer();
   const Queues::Queue& graphics_queue = app_.queues().graphics;
   const vector<VkFramebuffer>& framebuffers = app_.render_pass().framebuffers();
-  const VkExtent2D extent = app_.swap_chain().extent();
+  const VkExtent2D extent = app_.swapchain().extent();
 
   if (is_first_time_) {
     command_pool_ = CreateCommandPool(graphics_queue.family_index, device);

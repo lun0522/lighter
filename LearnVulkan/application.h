@@ -17,7 +17,7 @@
 #include "command_buffer.h"
 #include "pipeline_.h"
 #include "render_pass.h"
-#include "swap_chain.h"
+#include "swapchain.h"
 #include "util.h"
 #include "validation.h"
 #include "vertex_buffer.h"
@@ -45,7 +45,7 @@ class Application {
   const Surface& surface()                const { return surface_; }
   const PhysicalDevice& physical_device() const { return physical_device_; }
   const Device& device()                  const { return device_; }
-  const SwapChain& swap_chain()           const { return swap_chain_; }
+  const Swapchain& swapchain()            const { return swapchain_; }
   const RenderPass& render_pass()         const { return render_pass_; }
   const Pipeline& pipeline()              const { return pipeline_; }
   const CommandBuffer& command_buffer()   const { return command_buffer_; }
@@ -62,7 +62,7 @@ class Application {
   PhysicalDevice physical_device_;
   Device device_;
   Queues queues_;
-  SwapChain swap_chain_;
+  Swapchain swapchain_;
   RenderPass render_pass_;
   Pipeline pipeline_;
   CommandBuffer command_buffer_;
