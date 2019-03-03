@@ -14,13 +14,13 @@
 #include <vulkan/vulkan.hpp>
 
 #include "basic_object.h"
-#include "command_buffer.h"
+#include "command.h"
 #include "pipeline_.h"
 #include "render_pass.h"
 #include "swapchain.h"
 #include "util.h"
 #include "validation.h"
-#include "vertex_buffer.h"
+#include "buffer.h"
 
 class GLFWwindow;
 
@@ -48,8 +48,8 @@ class Application {
   const Swapchain& swapchain()            const { return swapchain_; }
   const RenderPass& render_pass()         const { return render_pass_; }
   const Pipeline& pipeline()              const { return pipeline_; }
-  const CommandBuffer& command_buffer()   const { return command_buffer_; }
-  const VertexBuffer& vertex_buffer()     const { return vertex_buffer_; }
+  const Command& command()                const { return command_; }
+  const wrapper::Buffer& vertex_buffer()  const { return vertex_buffer_; }
   const Queues& queues()                  const { return queues_; }
   Queues& queues()                              { return queues_; }
 
@@ -65,8 +65,8 @@ class Application {
   Swapchain swapchain_;
   RenderPass render_pass_;
   Pipeline pipeline_;
-  CommandBuffer command_buffer_;
-  VertexBuffer vertex_buffer_;
+  Command command_;
+  wrapper::Buffer vertex_buffer_;
 #ifdef DEBUG
   DebugCallback callback_;
 #endif /* DEBUG */

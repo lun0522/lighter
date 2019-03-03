@@ -92,7 +92,7 @@ struct PhysicalDevice {
 
 /** VkDevice interfaces with the physical device. We have to tell Vulkan
  *      how many queues we want to use. Noticed that the graphics queue and
- *      the present queue might be the same queue, we use a set to remove
+ *      the present queue might be the same queue, we use hash set to remove
  *      duplicated queue family indices.
  *
  *  Initialization:

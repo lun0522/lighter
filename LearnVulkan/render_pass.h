@@ -27,7 +27,7 @@ class Application;
  *      List of VkSubpassDescription
  *      List of VkSubpassDependency
  *
- *--------------------------------------------------------------------------
+ *------------------------------------------------------------------------------
  *
  *  VkFramebuffer associates each VkImageView with an attachment.
  *

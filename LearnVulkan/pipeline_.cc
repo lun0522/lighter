@@ -10,7 +10,7 @@
 
 #include "application.h"
 #include "triangle_data.h"
-#include "vertex_buffer.h"
+#include "buffer.h"
 
 using namespace std;
 

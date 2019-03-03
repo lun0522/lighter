@@ -37,7 +37,7 @@ Application::Application(const string& vert_file,
       swapchain_{*this},
       render_pass_{*this},
       pipeline_{*this, vert_file, frag_file},
-      command_buffer_{*this},
+      command_{*this},
       vertex_buffer_{*this}
 #ifdef DEBUG
       , callback_{*this}
@@ -51,7 +51,7 @@ void Application::InitWindow(uint32_t width, uint32_t height) {
   glfwInit();
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   window_ = glfwCreateWindow(width, height, "Learn Vulkan", nullptr, nullptr);
-  glfwSetWindowUserPointer(window_, this); // may retrive `this` in callback
+  glfwSetWindowUserPointer(window_, this); // may retrive |this| in callback
   glfwSetFramebufferSizeCallback(window_, FramebufferResizeCallback);
 }
 
@@ -85,14 +85,14 @@ void Application::InitVulkan() {
   }
   swapchain_.Init();
   render_pass_.Init();
-  pipeline_.Init();    // fixed and programmable statges
-  command_buffer_.Init();   // record all operations we want to perform
+  pipeline_.Init();
+  command_.Init();
 }
 
 void Application::MainLoop() {
   while (!glfwWindowShouldClose(window_)) {
     glfwPollEvents();
-    if (command_buffer_.DrawFrame() != VK_SUCCESS || has_resized_) {
+    if (command_.DrawFrame() != VK_SUCCESS || has_resized_) {
       has_resized_ = false;
       Recreate();
     }
@@ -114,7 +114,7 @@ void Application::Recreate() {
 }
 
 void Application::Cleanup() {
-  command_buffer_.Cleanup();
+  command_.Cleanup();
   pipeline_.Cleanup();
   render_pass_.Cleanup();
   swapchain_.Cleanup();

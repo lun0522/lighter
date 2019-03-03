@@ -1,18 +1,19 @@
 //
-//  command_buffer.cc
+//  command.cc
 //  LearnVulkan
 //
 //  Created by Pujun Lun on 2/9/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "command_buffer.h"
+#include "command.h"
 
 #include "application.h"
 #include "synchronize.h"
-#include "vertex_buffer.h"
+#include "buffer.h"
 
 using namespace std;
+using namespace vulkan::wrapper; // TODO: remove
 
 namespace vulkan {
 
@@ -25,7 +26,7 @@ void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
                     const VkExtent2D extent,
                     const VkRenderPass& render_pass,
                     const VkPipeline& pipeline,
-                    const VertexBuffer& buffer) {
+                    const Buffer& buffer) {
   for (size_t i = 0; i < command_buffers.size(); ++i) {
     // start command buffer recording
     VkCommandBufferBeginInfo cmd_begin_info{
@@ -121,7 +122,7 @@ vector<VkCommandBuffer> CreateCommandBuffers(
   return buffers;
 }
 
-VkResult CommandBuffer::DrawFrame() {
+VkResult Command::DrawFrame() {
   const VkDevice& device = *app_.device();
   const VkSwapchainKHR& swapchain = *app_.swapchain();
   const Queues& queues = app_.queues();
@@ -210,11 +211,11 @@ VkResult CommandBuffer::DrawFrame() {
   return VK_SUCCESS;
 }
 
-void CommandBuffer::Init() {
+void Command::Init() {
   const VkDevice& device = *app_.device();
   const VkRenderPass& render_pass = *app_.render_pass();
   const VkPipeline& pipeline = *app_.pipeline();
-  const VertexBuffer& buffer = app_.vertex_buffer();
+  const Buffer& buffer = app_.vertex_buffer();
   const Queues::Queue& graphics_queue = app_.queues().graphics;
   const vector<VkFramebuffer>& framebuffers = app_.render_pass().framebuffers();
   const VkExtent2D extent = app_.swapchain().extent();
@@ -232,13 +233,13 @@ void CommandBuffer::Init() {
                  buffer);
 }
 
-void CommandBuffer::Cleanup() {
+void Command::Cleanup() {
   const VkDevice& device = *app_.device();
   vkFreeCommandBuffers(device, command_pool_, CONTAINER_SIZE(command_buffers_),
                        command_buffers_.data());
 }
 
-CommandBuffer::~CommandBuffer() {
+Command::~Command() {
   const VkDevice& device = *app_.device();
   vkDestroyCommandPool(device, command_pool_, nullptr);
   // command buffers are implicitly cleaned up with command pool

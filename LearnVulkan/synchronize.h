@@ -15,6 +15,10 @@
 
 namespace vulkan {
 
+/** VkSemaphore and VkFence are used for synchronization. Their constructions
+ *      only requires VkDevice.
+ */
+
 VkSemaphore CreateSemaphore(
     const VkDevice& device);
 

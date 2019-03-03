@@ -1,19 +1,17 @@
 //
-//  vertex_buffer.cc
-//  LearnVulkan
+//  buffer.cc
 //
 //  Created by Pujun Lun on 2/15/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "vertex_buffer.h"
+#include "buffer.h"
 
 #include "application.h"
-#include "command_buffer.h"
-
-using namespace std;
+#include "command.h"
 
 namespace vulkan {
+namespace wrapper {
 
 namespace {
 
@@ -34,7 +32,7 @@ uint32_t FindMemoryType(uint32_t type_filter,
         return i;
     }
   }
-  throw runtime_error{"Failed to find suitable memory type"};
+  throw std::runtime_error{"Failed to find suitable memory type"};
 }
 
 VkBuffer CreateBuffer(VkBufferUsageFlags buffer_usage,
@@ -78,8 +76,8 @@ VkDeviceMemory CreateBufferMemory(VkMemoryPropertyFlags mem_properties,
                  "Failed to allocate buffer memory");
 
   // associate allocated memory with buffer
-  // since this memory is specifically allocated for this buffer, last
-  // parameter (`memoryOffset`) is simply 0
+  // since this memory is specifically allocated for this buffer, the last
+  // parameter |memoryOffset| is simply 0
   // otherwise it should be selected according to mem_requirements.alignment
   vkBindBufferMemory(device, buffer, memory, 0);
 
@@ -94,7 +92,7 @@ struct HostToBufferCopyInfo {
 void CopyHostToBuffer(VkDeviceSize total_size,
                       const VkDeviceMemory& device_memory,
                       const VkDevice& device,
-                      const vector<HostToBufferCopyInfo>& copy_infos) {
+                      const std::vector<HostToBufferCopyInfo>& copy_infos) {
   // data transfer may not happen immediately, for example because it is only
   // written to cache and not yet to device. we can either flush host writes
   // with vkFlushMappedMemoryRanges and vkInvalidateMappedMemoryRanges, or
@@ -151,7 +149,7 @@ void CopyBufferToBuffer(VkDeviceSize data_size,
 
 } /* namespace */
 
-void VertexBuffer::Init(
+void Buffer::Init(
     const void* vertex_data, size_t vertex_size, size_t vertex_count,
     const void*  index_data, size_t  index_size, size_t  index_count) {
   VkDeviceSize total_size = vertex_size + index_size;
@@ -165,15 +163,14 @@ void VertexBuffer::Init(
   // vertex/index buffer cannot be most efficient if it has to be visible to
   // both host and device, so we create vertex/index buffer that is only visible
   // to device, and staging buffer that is visible to both and transfers data
-  // to vertex/index buffer. for more efficient memory usage, we put vertex and
-  // index data in the same buffer
+  // to vertex/index buffer
   VkBuffer staging_buffer = CreateBuffer(       // source of transfer
       VK_BUFFER_USAGE_TRANSFER_SRC_BIT, total_size, device);
   VkDeviceMemory staging_memory = CreateBufferMemory(
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT       // host can access it
     | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,     // see host cache management
       staging_buffer, device, physical_device);
-  
+
   // copy from host to staging buffer
   CopyHostToBuffer(total_size, staging_memory, device, {
     {.data_src = vertex_data, .data_size = vertex_size},
@@ -181,6 +178,7 @@ void VertexBuffer::Init(
   });
 
   // create final buffer that is only visible to device
+  // for more efficient memory usage, we put vertex and index data in one buffer
   buffer_ = CreateBuffer(
       VK_BUFFER_USAGE_TRANSFER_DST_BIT          // destination of transfer
     | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
@@ -189,7 +187,7 @@ void VertexBuffer::Init(
   device_memory_ = CreateBufferMemory(
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,      // only accessible for device
       buffer_, device, physical_device);
-  
+
   // copy from staging buffer to final buffer
   // graphics or compute queues implicitly have transfer capability
   CopyBufferToBuffer(total_size, staging_buffer, buffer_, device,
@@ -200,7 +198,7 @@ void VertexBuffer::Init(
   vkFreeMemory(device, staging_memory, nullptr);
 }
 
-void VertexBuffer::Draw(const VkCommandBuffer& command_buffer) const {
+void Buffer::Draw(const VkCommandBuffer& command_buffer) const {
   VkDeviceSize vertex_offset = 0;
   vkCmdBindVertexBuffers(command_buffer, 0, 1, &buffer_, &vertex_offset);
   vkCmdBindIndexBuffer(command_buffer, buffer_, vertex_size_,  // note offset
@@ -209,10 +207,11 @@ void VertexBuffer::Draw(const VkCommandBuffer& command_buffer) const {
   vkCmdDrawIndexed(command_buffer, index_count_, 1, 0, 0, 0);
 }
 
-VertexBuffer::~VertexBuffer() {
+Buffer::~Buffer() {
   const VkDevice& device = *app_.device();
   vkDestroyBuffer(device, buffer_, nullptr);
   vkFreeMemory(device, device_memory_, nullptr);
 }
 
+} /* namespace wrapper */
 } /* namespace vulkan */

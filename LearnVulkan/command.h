@@ -1,13 +1,13 @@
 //
-//  command_buffer.h
+//  command.h
 //  LearnVulkan
 //
 //  Created by Pujun Lun on 2/9/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LEARNVULKAN_COMMAND_BUFFER_H
-#define LEARNVULKAN_COMMAND_BUFFER_H
+#ifndef LEARNVULKAN_COMMAND_H
+#define LEARNVULKAN_COMMAND_H
 
 #include <vector>
 
@@ -19,14 +19,30 @@ namespace vulkan {
 
 class Application;
 
-class CommandBuffer {
+/** VkCommandPool allocates command buffer memory.
+ *
+ *  Initialization:
+ *      Queue family index
+ *
+ *------------------------------------------------------------------------------
+ *
+ *  VkCommandBuffer records all operations we want to perform and submit to a
+ *      device queue for execution. Primary level command buffers can call
+ *      secondary level ones and submit to queues, while secondary levels ones
+ *      are not directly submitted.
+ *
+ *  Initialization:
+ *      VkCommandPool
+ *      Level (either primary or secondary)
+ */
+class Command {
  public:
-  CommandBuffer(const Application& app) : app_{app} {}
+  Command(const Application& app) : app_{app} {}
   VkResult DrawFrame();
   void Init();
   void Cleanup();
-  ~CommandBuffer();
-  MARK_NOT_COPYABLE_OR_MOVABLE(CommandBuffer);
+  ~Command();
+  MARK_NOT_COPYABLE_OR_MOVABLE(Command);
 
  private:
   const Application& app_;
@@ -55,4 +71,4 @@ std::vector<VkCommandBuffer> CreateCommandBuffers(
 
 } /* namespace vulkan */
 
-#endif /* LEARNVULKAN_COMMAND_BUFFER_H */
+#endif /* LEARNVULKAN_COMMAND_H */

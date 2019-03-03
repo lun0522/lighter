@@ -43,7 +43,7 @@ class Application;
  *          create a new one and inform it of the old one, so that the
  *          transition is more seamless)
  *
- *--------------------------------------------------------------------------
+ *------------------------------------------------------------------------------
  *
  *  VkImage represents multidimensional data in the swap chain. They can be
  *      color/depth/stencil attachements, textures, etc. The exact purpose
@@ -53,7 +53,7 @@ class Application;
  *      VkDevice
  *      VkSwapchainKHR
  *
- *--------------------------------------------------------------------------
+ *------------------------------------------------------------------------------
  *
  *  VkImageView determines how to access and what part of images to access.
  *      We might convert the image format on the fly with it.

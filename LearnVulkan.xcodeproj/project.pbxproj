@@ -18,9 +18,9 @@
 		BD5F5F1121FA43DD006BD2AC /* libvulkan.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */; };
 		BD5F5F1221FA43E0006BD2AC /* libvulkan.1.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */; };
 		BD6BAC282211432500906E78 /* basic_object.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD6BAC262211432500906E78 /* basic_object.cc */; };
-		BD6D210F221000E800FF1910 /* command_buffer.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD6D210D221000E800FF1910 /* command_buffer.cc */; };
+		BD6D210F221000E800FF1910 /* command.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD6D210D221000E800FF1910 /* command.cc */; };
 		BD7B1E94222A63AD00EF0956 /* synchronize.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD7B1E92222A63AD00EF0956 /* synchronize.cc */; };
-		BD7C0CAD2217C74200009BE5 /* vertex_buffer.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD7C0CAB2217C74200009BE5 /* vertex_buffer.cc */; };
+		BD7C0CAD2217C74200009BE5 /* buffer.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD7C0CAB2217C74200009BE5 /* buffer.cc */; };
 		BDA11AB12206323F003092B8 /* swapchain.cc in Sources */ = {isa = PBXBuildFile; fileRef = BDA11AAF2206323F003092B8 /* swapchain.cc */; };
 		BDA11AB422064E07003092B8 /* application.cc in Sources */ = {isa = PBXBuildFile; fileRef = BDA11AB222064E07003092B8 /* application.cc */; };
 		BDA71392220AA6E0007FD13C /* triangle.frag.spv in Copy Files */ = {isa = PBXBuildFile; fileRef = BDA71390220AA6D7007FD13C /* triangle.frag.spv */; };
@@ -60,12 +60,12 @@
 		BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libvulkan.1.dylib; path = ../libs/vulkan/macOS/lib/libvulkan.1.dylib; sourceTree = "<group>"; };
 		BD6BAC262211432500906E78 /* basic_object.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = basic_object.cc; sourceTree = "<group>"; };
 		BD6BAC272211432500906E78 /* basic_object.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = basic_object.h; sourceTree = "<group>"; };
-		BD6D210D221000E800FF1910 /* command_buffer.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = command_buffer.cc; sourceTree = "<group>"; };
-		BD6D210E221000E800FF1910 /* command_buffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = command_buffer.h; sourceTree = "<group>"; };
+		BD6D210D221000E800FF1910 /* command.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = command.cc; sourceTree = "<group>"; };
+		BD6D210E221000E800FF1910 /* command.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = command.h; sourceTree = "<group>"; };
 		BD7B1E92222A63AD00EF0956 /* synchronize.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = synchronize.cc; sourceTree = "<group>"; };
 		BD7B1E93222A63AD00EF0956 /* synchronize.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = synchronize.h; sourceTree = "<group>"; };
-		BD7C0CAB2217C74200009BE5 /* vertex_buffer.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = vertex_buffer.cc; sourceTree = "<group>"; };
-		BD7C0CAC2217C74200009BE5 /* vertex_buffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = vertex_buffer.h; sourceTree = "<group>"; };
+		BD7C0CAB2217C74200009BE5 /* buffer.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = buffer.cc; sourceTree = "<group>"; };
+		BD7C0CAC2217C74200009BE5 /* buffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = buffer.h; sourceTree = "<group>"; };
 		BDA11AAD22061C7B003092B8 /* util.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
 		BDA11AAF2206323F003092B8 /* swapchain.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = swapchain.cc; sourceTree = "<group>"; };
 		BDA11AB02206323F003092B8 /* swapchain.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = swapchain.h; sourceTree = "<group>"; };
@@ -115,8 +115,8 @@
 				BDA11AB322064E07003092B8 /* application.h */,
 				BD6BAC262211432500906E78 /* basic_object.cc */,
 				BD6BAC272211432500906E78 /* basic_object.h */,
-				BD6D210D221000E800FF1910 /* command_buffer.cc */,
-				BD6D210E221000E800FF1910 /* command_buffer.h */,
+				BD6D210D221000E800FF1910 /* command.cc */,
+				BD6D210E221000E800FF1910 /* command.h */,
 				BD151CB2220BF9A300A6FC75 /* pipeline_.cc */,
 				BD151CB3220BF9A300A6FC75 /* pipeline_.h */,
 				BD098BC7220D4D2600E34A0A /* render_pass.cc */,
@@ -131,12 +131,19 @@
 				BDA11AAD22061C7B003092B8 /* util.h */,
 				BD30819A21B1929300F30C2C /* validation.cc */,
 				BD30819B21B1929300F30C2C /* validation.h */,
-				BD7C0CAB2217C74200009BE5 /* vertex_buffer.cc */,
-				BD7C0CAC2217C74200009BE5 /* vertex_buffer.h */,
 				BDA71385220A96B5007FD13C /* shaders */,
-				BDA7138F220AA6B2007FD13C /* compiled */,
+				BD2F0E9F222B71E000B4ACD5 /* wrappers */,
 			);
 			path = LearnVulkan;
+			sourceTree = "<group>";
+		};
+		BD2F0E9F222B71E000B4ACD5 /* wrappers */ = {
+			isa = PBXGroup;
+			children = (
+				BD7C0CAB2217C74200009BE5 /* buffer.cc */,
+				BD7C0CAC2217C74200009BE5 /* buffer.h */,
+			);
+			path = wrappers;
 			sourceTree = "<group>";
 		};
 		BDA56D7A21ADA0B700A4B992 /* Frameworks */ = {
@@ -151,6 +158,7 @@
 		BDA71385220A96B5007FD13C /* shaders */ = {
 			isa = PBXGroup;
 			children = (
+				BDA7138F220AA6B2007FD13C /* compiled */,
 				BDA71386220A9997007FD13C /* triangle.vert */,
 				BDA71387220A9A90007FD13C /* triangle.frag */,
 			);
@@ -226,8 +234,8 @@
 				BD4717B92219E9AB00B860D0 /* util.cc in Sources */,
 				BD2435A121AD9B1C00027627 /* main.cc in Sources */,
 				BD2F0E9E222B2D5800B4ACD5 /* triangle_data.cc in Sources */,
-				BD6D210F221000E800FF1910 /* command_buffer.cc in Sources */,
-				BD7C0CAD2217C74200009BE5 /* vertex_buffer.cc in Sources */,
+				BD6D210F221000E800FF1910 /* command.cc in Sources */,
+				BD7C0CAD2217C74200009BE5 /* buffer.cc in Sources */,
 				BD7B1E94222A63AD00EF0956 /* synchronize.cc in Sources */,
 				BD151CB4220BF9A300A6FC75 /* pipeline_.cc in Sources */,
 				BD6BAC282211432500906E78 /* basic_object.cc in Sources */,
