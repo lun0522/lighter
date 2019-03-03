@@ -1,6 +1,5 @@
 //
 //  basic_object.cc
-//  LearnVulkan
 //
 //  Created by Pujun Lun on 2/10/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
@@ -19,9 +18,61 @@
 #include "swapchain.h"
 #include "validation.h"
 
-using namespace std;
+using std::runtime_error;
+using std::vector;
 
 namespace vulkan {
+namespace wrapper {
+
+namespace {
+
+bool IsDeviceSuitable(Queues& queues,
+                      const VkPhysicalDevice& physical_device,
+                      const VkSurfaceKHR& surface) {
+  // require swap chain support
+  if (!Swapchain::HasSwapchainSupport(surface, physical_device))
+    return false;
+
+  VkPhysicalDeviceProperties properties;
+  vkGetPhysicalDeviceProperties(physical_device, &properties);
+  std::cout << "Found device: " << properties.deviceName
+            << std::endl << std::endl;
+
+  VkPhysicalDeviceFeatures features;
+  vkGetPhysicalDeviceFeatures(physical_device, &features);
+
+  auto families{util::QueryAttribute<VkQueueFamilyProperties>(
+      [&physical_device](uint32_t* count, VkQueueFamilyProperties* properties) {
+        return vkGetPhysicalDeviceQueueFamilyProperties(
+            physical_device, count, properties);
+      }
+  )};
+
+  // find queue family that holds graphics queue
+  auto graphics_support = [](const VkQueueFamilyProperties& family) -> bool {
+    return family.queueCount && (family.queueFlags & VK_QUEUE_GRAPHICS_BIT);
+  };
+  if (!util::FindFirst<VkQueueFamilyProperties>(
+      families, graphics_support, queues.graphics.family_index))
+    return false;
+
+  // find queue family that holds present queue
+  uint32_t index = 0;
+  auto present_support = [&physical_device, &surface, index]
+      (const VkQueueFamilyProperties& family) mutable -> bool {
+      VkBool32 support = false;
+      vkGetPhysicalDeviceSurfaceSupportKHR(
+          physical_device, index++, surface, &support);
+      return support;
+  };
+  if (!util::FindFirst<VkQueueFamilyProperties>(
+      families, present_support, queues.present.family_index))
+    return false;
+
+  return true;
+}
+
+} /* namespace */
 
 void Instance::Init() {
   if (glfwVulkanSupported() == GL_FALSE)
@@ -34,7 +85,7 @@ void Instance::Init() {
 #ifdef DEBUG
   vector<const char*> required_extensions{
     glfw_extensions,
-    glfw_extensions + glfw_extension_count
+    glfw_extensions + glfw_extension_count,
   };
   // one extra extension to enable debug report
   required_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -92,51 +143,6 @@ Surface::~Surface() {
   vkDestroySurfaceKHR(instance, surface_, nullptr);
 }
 
-bool IsDeviceSuitable(Queues& queues,
-                      const VkPhysicalDevice& physical_device,
-                      const VkSurfaceKHR& surface) {
-  // require swap chain support
-  if (!Swapchain::HasSwapchainSupport(surface, physical_device))
-    return false;
-
-  VkPhysicalDeviceProperties properties;
-  vkGetPhysicalDeviceProperties(physical_device, &properties);
-  cout << "Found device: " << properties.deviceName << endl << endl;
-
-  VkPhysicalDeviceFeatures features;
-  vkGetPhysicalDeviceFeatures(physical_device, &features);
-
-  auto families{util::QueryAttribute<VkQueueFamilyProperties>(
-      [&physical_device](uint32_t* count, VkQueueFamilyProperties* properties) {
-        return vkGetPhysicalDeviceQueueFamilyProperties(
-            physical_device, count, properties);
-      }
-  )};
-
-  // find queue family that holds graphics queue
-  auto graphics_support = [](const VkQueueFamilyProperties& family) -> bool {
-    return family.queueCount && (family.queueFlags & VK_QUEUE_GRAPHICS_BIT);
-  };
-  if (!util::FindFirst<VkQueueFamilyProperties>(
-      families, graphics_support, queues.graphics.family_index))
-    return false;
-
-  // find queue family that holds present queue
-  uint32_t index = 0;
-  auto present_support = [&physical_device, &surface, index]
-      (const VkQueueFamilyProperties& family) mutable -> bool {
-      VkBool32 support = false;
-      vkGetPhysicalDeviceSurfaceSupportKHR(
-          physical_device, index++, surface, &support);
-      return support;
-  };
-  if (!util::FindFirst<VkQueueFamilyProperties>(
-      families, present_support, queues.present.family_index))
-    return false;
-
-  return true;
-}
-
 void PhysicalDevice::Init() {
   const VkInstance& instance = *app_.instance();
   const VkSurfaceKHR& surface = *app_.surface();
@@ -162,13 +168,12 @@ void Device::Init() {
   Queues& queues = app_.queues();
 
   // graphics queue and present queue might be the same
-  unordered_set<uint32_t> queue_families{
+  std::unordered_set<uint32_t> queue_families{
     queues.graphics.family_index,
-    queues.present.family_index
+    queues.present.family_index,
   };
-  vector<VkDeviceQueueCreateInfo> queue_infos{};
-
   float priority = 1.0f;
+  vector<VkDeviceQueueCreateInfo> queue_infos{};
   for (uint32_t queue_family : queue_families) {
     VkDeviceQueueCreateInfo queue_info{
       .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
@@ -176,7 +181,7 @@ void Device::Init() {
       .queueCount = 1,
       .pQueuePriorities = &priority, // always required
     };
-    queue_infos.emplace_back(move(queue_info));
+    queue_infos.emplace_back(std::move(queue_info));
   }
 
   VkPhysicalDeviceFeatures features{};
@@ -207,4 +212,5 @@ void Device::Init() {
                    &queues.present.queue);
 }
 
+} /* namespace wrapper */
 } /* namespace vulkan */

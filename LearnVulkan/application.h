@@ -13,18 +13,20 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "basic_object.h"
 #include "command.h"
 #include "pipeline_.h"
 #include "render_pass.h"
 #include "swapchain.h"
 #include "util.h"
 #include "validation.h"
-#include "buffer.h"
+#include "wrapper/basic_object.h" // TODO: remove wrapper/
+#include "wrapper/buffer.h" // TODO: remove wrapper/
 
 class GLFWwindow;
 
 namespace vulkan {
+
+using namespace wrapper; // TODO: remove
 
 class Application {
  public:
@@ -49,7 +51,7 @@ class Application {
   const RenderPass& render_pass()         const { return render_pass_; }
   const Pipeline& pipeline()              const { return pipeline_; }
   const Command& command()                const { return command_; }
-  const wrapper::Buffer& vertex_buffer()  const { return vertex_buffer_; }
+  const Buffer& vertex_buffer()           const { return vertex_buffer_; }
   const Queues& queues()                  const { return queues_; }
   Queues& queues()                              { return queues_; }
 
@@ -66,7 +68,7 @@ class Application {
   RenderPass render_pass_;
   Pipeline pipeline_;
   Command command_;
-  wrapper::Buffer vertex_buffer_;
+  Buffer vertex_buffer_;
 #ifdef DEBUG
   DebugCallback callback_;
 #endif /* DEBUG */

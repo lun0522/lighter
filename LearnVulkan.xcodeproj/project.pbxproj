@@ -113,8 +113,6 @@
 				BD2435A021AD9B1C00027627 /* main.cc */,
 				BDA11AB222064E07003092B8 /* application.cc */,
 				BDA11AB322064E07003092B8 /* application.h */,
-				BD6BAC262211432500906E78 /* basic_object.cc */,
-				BD6BAC272211432500906E78 /* basic_object.h */,
 				BD6D210D221000E800FF1910 /* command.cc */,
 				BD6D210E221000E800FF1910 /* command.h */,
 				BD151CB2220BF9A300A6FC75 /* pipeline_.cc */,
@@ -123,27 +121,29 @@
 				BD098BC8220D4D2600E34A0A /* render_pass.h */,
 				BDA11AAF2206323F003092B8 /* swapchain.cc */,
 				BDA11AB02206323F003092B8 /* swapchain.h */,
-				BD7B1E92222A63AD00EF0956 /* synchronize.cc */,
-				BD7B1E93222A63AD00EF0956 /* synchronize.h */,
 				BD2F0E9C222B2D5800B4ACD5 /* triangle_data.cc */,
 				BD2F0E9D222B2D5800B4ACD5 /* triangle_data.h */,
 				BD4717B82219E9AB00B860D0 /* util.cc */,
 				BDA11AAD22061C7B003092B8 /* util.h */,
 				BD30819A21B1929300F30C2C /* validation.cc */,
 				BD30819B21B1929300F30C2C /* validation.h */,
-				BDA71385220A96B5007FD13C /* shaders */,
-				BD2F0E9F222B71E000B4ACD5 /* wrappers */,
+				BDA71385220A96B5007FD13C /* shader */,
+				BD2F0E9F222B71E000B4ACD5 /* wrapper */,
 			);
 			path = LearnVulkan;
 			sourceTree = "<group>";
 		};
-		BD2F0E9F222B71E000B4ACD5 /* wrappers */ = {
+		BD2F0E9F222B71E000B4ACD5 /* wrapper */ = {
 			isa = PBXGroup;
 			children = (
+				BD6BAC262211432500906E78 /* basic_object.cc */,
+				BD6BAC272211432500906E78 /* basic_object.h */,
 				BD7C0CAB2217C74200009BE5 /* buffer.cc */,
 				BD7C0CAC2217C74200009BE5 /* buffer.h */,
+				BD7B1E92222A63AD00EF0956 /* synchronize.cc */,
+				BD7B1E93222A63AD00EF0956 /* synchronize.h */,
 			);
-			path = wrappers;
+			path = wrapper;
 			sourceTree = "<group>";
 		};
 		BDA56D7A21ADA0B700A4B992 /* Frameworks */ = {
@@ -155,14 +155,14 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		BDA71385220A96B5007FD13C /* shaders */ = {
+		BDA71385220A96B5007FD13C /* shader */ = {
 			isa = PBXGroup;
 			children = (
 				BDA7138F220AA6B2007FD13C /* compiled */,
 				BDA71386220A9997007FD13C /* triangle.vert */,
 				BDA71387220A9A90007FD13C /* triangle.frag */,
 			);
-			path = shaders;
+			path = shader;
 			sourceTree = "<group>";
 		};
 		BDA7138F220AA6B2007FD13C /* compiled */ = {

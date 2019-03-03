@@ -1,6 +1,5 @@
 //
 //  synchronize.cc
-//  LearnVulkan
 //
 //  Created by Pujun Lun on 3/1/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
@@ -13,14 +12,20 @@
 using std::vector;
 
 namespace vulkan {
+namespace wrapper {
 
 namespace {
 
-const VkSemaphoreCreateInfo kSemaInfo {
+constexpr VkSemaphoreCreateInfo kSemaInfo {
   .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
 };
 
-const VkFenceCreateInfo kFenceInfo {
+constexpr VkFenceCreateInfo kSignaledFenceInfo {
+  .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+  .flags = VK_FENCE_CREATE_SIGNALED_BIT,
+};
+
+constexpr VkFenceCreateInfo kUnsignaledFenceInfo {
   .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
 };
 
@@ -43,15 +48,10 @@ vector<VkSemaphore> CreateSemaphores(size_t count,
 
 VkFence CreateFence(const VkDevice& device, bool is_signaled) {
   VkFence fence{};
-  if (!is_signaled) {
-    ASSERT_SUCCESS(vkCreateFence(device, &kFenceInfo, nullptr, &fence),
-                   "Failed to create fence");
-  } else {
-    VkFenceCreateInfo fence_info = kFenceInfo;
-    fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-    ASSERT_SUCCESS(vkCreateFence(device, &fence_info, nullptr, &fence),
-                   "Failed to create fence");
-  }
+  const VkFenceCreateInfo& fence_info = is_signaled ?
+      kSignaledFenceInfo : kUnsignaledFenceInfo;
+  ASSERT_SUCCESS(vkCreateFence(device, &fence_info, nullptr, &fence),
+                 "Failed to create fence");
   return fence;
 }
 
@@ -64,4 +64,5 @@ vector<VkFence> CreateFences(size_t count,
   return fences;
 }
 
+} /* namespace wrapper */
 } /* namespace vulkan */

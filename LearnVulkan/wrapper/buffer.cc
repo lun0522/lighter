@@ -113,38 +113,18 @@ void CopyBufferToBuffer(VkDeviceSize data_size,
                         const VkBuffer& dst_buffer,
                         const VkDevice& device,
                         const Queues::Queue& transfer_queue) {
-  // construct command pool, buffer and record info
-  VkCommandPool command_pool = CreateCommandPool(
-      transfer_queue.family_index, device, true);
-
-  // specify region to copy
-  VkBufferCopy copy_region{
-    .srcOffset = 0,
-    .dstOffset = 0,
-    .size = data_size,
+  // one-time copy command
+  Command::RecordCommand copy_command{
+    [&](const VkCommandBuffer& command_buffer) {
+      VkBufferCopy copy_region{
+        .srcOffset = 0,
+        .dstOffset = 0,
+        .size = data_size,
+      };
+      vkCmdCopyBuffer(command_buffer, src_buffer, dst_buffer, 1, &copy_region);
+    }
   };
-
-  // record command (just one-time copy)
-  VkCommandBuffer command_buffer = CreateCommandBuffer(device, command_pool);
-  VkCommandBufferBeginInfo begin_info{
-    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-    .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-  };
-  vkBeginCommandBuffer(command_buffer, &begin_info);
-  vkCmdCopyBuffer(command_buffer, src_buffer, dst_buffer, 1, &copy_region);
-  vkEndCommandBuffer(command_buffer);
-
-  // submit command buffers
-  VkSubmitInfo submit_info{
-    .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-    .commandBufferCount = 1,
-    .pCommandBuffers = &command_buffer,
-  };
-
-  // execute, wait until finish and cleanup
-  vkQueueSubmit(transfer_queue.queue, 1, &submit_info, VK_NULL_HANDLE);
-  vkQueueWaitIdle(transfer_queue.queue);
-  vkDestroyCommandPool(device, command_pool, nullptr);
+  Command::OneTimeCommand(device, transfer_queue, copy_command);
 }
 
 } /* namespace */

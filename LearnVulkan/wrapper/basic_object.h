@@ -1,23 +1,23 @@
 //
 //  basic_object.h
-//  LearnVulkan
 //
 //  Created by Pujun Lun on 2/10/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LEARNVULKAN_BASIC_OBJECT_H
-#define LEARNVULKAN_BASIC_OBJECT_H
+#ifndef VULKAN_WRAPPER_BASIC_OBJECT_H
+#define VULKAN_WRAPPER_BASIC_OBJECT_H
 
 #include <vulkan/vulkan.hpp>
 
 #include "util.h"
 
-class GLFWwindow;
+namespace vulkan {
+class Application; // TODO: move to namespace wrapper
+} /* namespace vulkan */
 
 namespace vulkan {
-
-class Application;
+namespace wrapper {
 
 /** VkInstance is used to establish connection with Vulkan library and
  *      maintain per-application states.
@@ -123,14 +123,16 @@ struct Device {
  */
 struct Queues {
   struct Queue {
-    VkQueue queue; // implicitly cleaned up with physical device
+    VkQueue queue;
     uint32_t family_index;
   };
   Queue graphics, present;
   Queues() = default;
+  ~Queues() {} // implicitly cleaned up with physical device
   MARK_NOT_COPYABLE_OR_MOVABLE(Queues);
 };
 
+} /* namespace wrapper */
 } /* namespace vulkan */
 
-#endif /* LEARNVULKAN_BASIC_OBJECT_H */
+#endif /* VULKAN_WRAPPER_BASIC_OBJECT_H */

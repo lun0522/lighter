@@ -67,8 +67,6 @@ void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
   }
 }
 
-} /* namespace */
-
 VkCommandPool CreateCommandPool(uint32_t queue_family_index,
                                 const VkDevice& device,
                                 bool is_transient) {
@@ -120,6 +118,37 @@ vector<VkCommandBuffer> CreateCommandBuffers(
   ASSERT_SUCCESS(vkAllocateCommandBuffers(device, &buffer_info, buffers.data()),
                  "Failed to allocate command buffers");
   return buffers;
+}
+
+} /* namespace */
+
+void Command::OneTimeCommand(
+    const VkDevice& device,
+    const Queues::Queue& queue,
+    const RecordCommand& on_record) {
+  // construct command pool and buffer
+  VkCommandPool command_pool = CreateCommandPool(
+      queue.family_index, device, true);
+  VkCommandBuffer command_buffer = CreateCommandBuffer(device, command_pool);
+
+  // record command
+  VkCommandBufferBeginInfo begin_info{
+    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+    .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+  };
+  vkBeginCommandBuffer(command_buffer, &begin_info);
+  on_record(command_buffer);
+  vkEndCommandBuffer(command_buffer);
+
+  // submit command buffers, wait until finish and cleanup
+  VkSubmitInfo submit_info{
+    .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+    .commandBufferCount = 1,
+    .pCommandBuffers = &command_buffer,
+  };
+  vkQueueSubmit(queue.queue, 1, &submit_info, VK_NULL_HANDLE);
+  vkQueueWaitIdle(queue.queue);
+  vkDestroyCommandPool(device, command_pool, nullptr);
 }
 
 VkResult Command::DrawFrame() {
@@ -221,7 +250,8 @@ void Command::Init() {
   const VkExtent2D extent = app_.swapchain().extent();
 
   if (is_first_time_) {
-    command_pool_ = CreateCommandPool(graphics_queue.family_index, device);
+    command_pool_ = CreateCommandPool(
+        graphics_queue.family_index, device, false);
     image_available_semas_ = CreateSemaphores(kMaxFrameInFlight, device);
     render_finished_semas_ = CreateSemaphores(kMaxFrameInFlight, device);
     in_flight_fences_ = CreateFences(kMaxFrameInFlight, device, true);

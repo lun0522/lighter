@@ -9,15 +9,19 @@
 #ifndef LEARNVULKAN_COMMAND_H
 #define LEARNVULKAN_COMMAND_H
 
+#include <functional>
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
 
+#include "wrapper/basic_object.h" // TODO: remove wrapper/
+#include "wrapper/buffer.h" // TODO: remove wrapper/
 #include "util.h"
 
 namespace vulkan {
 
 class Application;
+using namespace wrapper; // TODO: remove
 
 /** VkCommandPool allocates command buffer memory.
  *
@@ -37,6 +41,12 @@ class Application;
  */
 class Command {
  public:
+  using RecordCommand = std::function<void (const VkCommandBuffer&)>;
+  static void OneTimeCommand(
+      const VkDevice& device,
+      const Queues::Queue& queue,
+      const RecordCommand& on_record);
+  
   Command(const Application& app) : app_{app} {}
   VkResult DrawFrame();
   void Init();
@@ -54,20 +64,6 @@ class Command {
   VkCommandPool command_pool_;
   std::vector<VkCommandBuffer> command_buffers_;
 };
-
-VkCommandPool CreateCommandPool(
-    uint32_t queue_family_index,
-    const VkDevice& device,
-    bool is_transient = false);
-
-VkCommandBuffer CreateCommandBuffer(
-    const VkDevice& device,
-    const VkCommandPool& pool);
-
-std::vector<VkCommandBuffer> CreateCommandBuffers(
-    size_t count,
-    const VkDevice& device,
-    const VkCommandPool& command_pool);
 
 } /* namespace vulkan */
 

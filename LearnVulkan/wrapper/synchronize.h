@@ -1,19 +1,19 @@
 //
 //  synchronize.h
-//  LearnVulkan
 //
 //  Created by Pujun Lun on 3/1/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef SYNCHRONIZE_H
-#define SYNCHRONIZE_H
+#ifndef VULKAN_WRAPPER_SYNCHRONIZE_H
+#define VULKAN_WRAPPER_SYNCHRONIZE_H
 
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
 
 namespace vulkan {
+namespace wrapper {
 
 /** VkSemaphore and VkFence are used for synchronization. Their constructions
  *      only requires VkDevice.
@@ -35,6 +35,7 @@ std::vector<VkFence> CreateFences(
     const VkDevice& device,
     bool is_signaled = false);
 
+} /* namespace wrapper */
 } /* namespace vulkan */
 
-#endif /* SYNCHRONIZE_H */
+#endif /* VULKAN_WRAPPER_SYNCHRONIZE_H */
