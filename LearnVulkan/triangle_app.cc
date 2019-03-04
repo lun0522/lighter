@@ -6,8 +6,14 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "triangle_data.h"
+#include "triangle_app.h"
 
+#include <chrono>
+
+#define GLM_FORCE_RADIANS
+#include <glm/gtc/matrix_transform.hpp>
+
+using namespace glm;
 using namespace std;
 
 namespace vulkan {
@@ -48,6 +54,24 @@ array<VkVertexInputAttributeDescription, 2> VertexAttrib::attrib_descriptions() 
   attrib_descs[1].offset = offsetof(VertexAttrib, color);
 
   return attrib_descs;
+}
+
+static std::array<UniformBufferObject, 2> kUbo{};  //  TODO: ~2
+
+const void* VertexAttrib::ubo() {
+  return &kUbo[0];
+}
+
+void VertexAttrib::UpdateUbo(size_t current_frame, float screen_aspect) {
+  static auto start_time = chrono::high_resolution_clock::now();
+  auto current_time = chrono::high_resolution_clock::now();
+  auto time = chrono::duration<float, chrono::seconds::period>(
+      current_time - start_time).count();
+  UniformBufferObject ubo = kUbo[current_frame];
+  ubo.model = rotate(mat4{1.0f}, time * radians(90.0f), {0.0f, 0.0f, 1.0f});
+  ubo.view = lookAt(vec3{2.0f}, vec3{0.0f}, {0.0f, 0.0f, 1.0f});
+  ubo.proj = perspective(radians(45.0f), screen_aspect, 0.1f, 10.0f);
+  ubo.proj[1][1] *= -1;  // no need to invert Y-axis as OpenGL
 }
 
 } /* namespace vulkan */

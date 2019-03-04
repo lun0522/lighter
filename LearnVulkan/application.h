@@ -51,7 +51,8 @@ class Application {
   const RenderPass& render_pass()         const { return render_pass_; }
   const Pipeline& pipeline()              const { return pipeline_; }
   const Command& command()                const { return command_; }
-  const Buffer& vertex_buffer()           const { return vertex_buffer_; }
+  const VertexBuffer& vertex_buffer()     const { return vertex_buffer_; }
+  const UniformBuffer& uniform_buffer()   const { return uniform_buffer_; }
   const Queues& queues()                  const { return queues_; }
   Queues& queues()                              { return queues_; }
 
@@ -68,7 +69,8 @@ class Application {
   RenderPass render_pass_;
   Pipeline pipeline_;
   Command command_;
-  Buffer vertex_buffer_;
+  VertexBuffer vertex_buffer_;
+  UniformBuffer uniform_buffer_;
 #ifdef DEBUG
   DebugCallback callback_;
 #endif /* DEBUG */

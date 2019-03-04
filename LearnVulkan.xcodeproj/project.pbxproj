@@ -10,7 +10,7 @@
 		BD098BC9220D4D2600E34A0A /* render_pass.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD098BC7220D4D2600E34A0A /* render_pass.cc */; };
 		BD151CB4220BF9A300A6FC75 /* pipeline_.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD151CB2220BF9A300A6FC75 /* pipeline_.cc */; };
 		BD2435A121AD9B1C00027627 /* main.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD2435A021AD9B1C00027627 /* main.cc */; };
-		BD2F0E9E222B2D5800B4ACD5 /* triangle_data.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD2F0E9C222B2D5800B4ACD5 /* triangle_data.cc */; };
+		BD2F0E9E222B2D5800B4ACD5 /* triangle_app.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD2F0E9C222B2D5800B4ACD5 /* triangle_app.cc */; };
 		BD30819C21B1929300F30C2C /* validation.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD30819A21B1929300F30C2C /* validation.cc */; };
 		BD34960421AF3F4000F4C000 /* libglfw.3.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */; };
 		BD34960521AF3F4500F4C000 /* libglfw.3.3.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */; };
@@ -51,8 +51,8 @@
 		BD151CB3220BF9A300A6FC75 /* pipeline_.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pipeline_.h; sourceTree = "<group>"; };
 		BD24359D21AD9B1C00027627 /* LearnVulkan */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = LearnVulkan; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD2435A021AD9B1C00027627 /* main.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cc; sourceTree = "<group>"; };
-		BD2F0E9C222B2D5800B4ACD5 /* triangle_data.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = triangle_data.cc; sourceTree = "<group>"; };
-		BD2F0E9D222B2D5800B4ACD5 /* triangle_data.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = triangle_data.h; sourceTree = "<group>"; };
+		BD2F0E9C222B2D5800B4ACD5 /* triangle_app.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = triangle_app.cc; sourceTree = "<group>"; };
+		BD2F0E9D222B2D5800B4ACD5 /* triangle_app.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = triangle_app.h; sourceTree = "<group>"; };
 		BD30819A21B1929300F30C2C /* validation.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = validation.cc; sourceTree = "<group>"; };
 		BD30819B21B1929300F30C2C /* validation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = validation.h; sourceTree = "<group>"; };
 		BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libglfw.3.3.dylib; path = "../../../../../usr/local/Cellar/glfw/HEAD-bb2ca1d/lib/libglfw.3.3.dylib"; sourceTree = "<group>"; };
@@ -121,8 +121,8 @@
 				BD098BC8220D4D2600E34A0A /* render_pass.h */,
 				BDA11AAF2206323F003092B8 /* swapchain.cc */,
 				BDA11AB02206323F003092B8 /* swapchain.h */,
-				BD2F0E9C222B2D5800B4ACD5 /* triangle_data.cc */,
-				BD2F0E9D222B2D5800B4ACD5 /* triangle_data.h */,
+				BD2F0E9C222B2D5800B4ACD5 /* triangle_app.cc */,
+				BD2F0E9D222B2D5800B4ACD5 /* triangle_app.h */,
 				BD4717B82219E9AB00B860D0 /* util.cc */,
 				BDA11AAD22061C7B003092B8 /* util.h */,
 				BD30819A21B1929300F30C2C /* validation.cc */,
@@ -233,7 +233,7 @@
 				BDA11AB422064E07003092B8 /* application.cc in Sources */,
 				BD4717B92219E9AB00B860D0 /* util.cc in Sources */,
 				BD2435A121AD9B1C00027627 /* main.cc in Sources */,
-				BD2F0E9E222B2D5800B4ACD5 /* triangle_data.cc in Sources */,
+				BD2F0E9E222B2D5800B4ACD5 /* triangle_app.cc in Sources */,
 				BD6D210F221000E800FF1910 /* command.cc in Sources */,
 				BD7C0CAD2217C74200009BE5 /* buffer.cc in Sources */,
 				BD7B1E94222A63AD00EF0956 /* synchronize.cc in Sources */,

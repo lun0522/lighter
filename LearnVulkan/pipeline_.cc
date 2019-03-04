@@ -9,7 +9,7 @@
 #include "pipeline_.h"
 
 #include "application.h"
-#include "triangle_data.h"
+#include "triangle_app.h"
 #include "buffer.h"
 
 using namespace std;
@@ -159,10 +159,12 @@ void Pipeline::Init() {
   // used to set uniform values
   VkPipelineLayoutCreateInfo layout_info{
     .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+    .setLayoutCount = 1,
+    .pSetLayouts = &app_.uniform_buffer().desc_set_layout(),
   };
 
   ASSERT_SUCCESS(vkCreatePipelineLayout(
-                     device, &layout_info, nullptr, &layout_),
+                     device, &layout_info, nullptr, &pipeline_layout_),
                  "Failed to create pipeline layout");
 
   VkGraphicsPipelineCreateInfo pipeline_info{
@@ -177,7 +179,7 @@ void Pipeline::Init() {
     .pDepthStencilState = nullptr,
     .pColorBlendState = &color_blend_info,
     .pDynamicState = &dynamic_state_info,
-    .layout = layout_,
+    .layout = pipeline_layout_,
     .renderPass = render_pass,
     .subpass = 0, // index of subpass where pipeline will be used
     // .basePipeline can be used to copy settings from another piepeline
@@ -195,7 +197,7 @@ void Pipeline::Init() {
 void Pipeline::Cleanup() {
   const VkDevice& device = *app_.device();
   vkDestroyPipeline(device, pipeline_, nullptr);
-  vkDestroyPipelineLayout(device, layout_, nullptr);
+  vkDestroyPipelineLayout(device, pipeline_layout_, nullptr);
 }
 
 } /* namespace vulkan */

@@ -8,8 +8,8 @@
 #include "basic_object.h"
 
 #include <iostream>
-#include <vector>
 #include <unordered_set>
+#include <vector>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -30,8 +30,7 @@ bool IsDeviceSuitable(Queues& queues,
                       const VkPhysicalDevice& physical_device,
                       const VkSurfaceKHR& surface) {
   // require swap chain support
-  if (!Swapchain::HasSwapchainSupport(surface, physical_device))
-    return false;
+  if (!Swapchain::HasSwapchainSupport(surface, physical_device)) return false;
 
   VkPhysicalDeviceProperties properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
@@ -84,46 +83,46 @@ void Instance::Init() {
 
 #ifdef DEBUG
   vector<const char*> required_extensions{
-    glfw_extensions,
-    glfw_extensions + glfw_extension_count,
+      glfw_extensions,
+      glfw_extensions + glfw_extension_count,
   };
   // one extra extension to enable debug report
   required_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   CheckInstanceExtensionSupport({
-    required_extensions.begin(),
-    required_extensions.end()
+      required_extensions.begin(),
+      required_extensions.end()
   });
   CheckValidationLayerSupport({
-    kValidationLayers.begin(),
-    kValidationLayers.end()
+      kValidationLayers.begin(),
+      kValidationLayers.end()
   });
 #endif /* DEBUG */
 
   // [optional]
   // might be useful for the driver to optimize for some graphics engine
   VkApplicationInfo app_info{
-    .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-    .pApplicationName = "Learn Vulkan",
-    .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-    .pEngineName = "No Engine",
-    .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-    .apiVersion = VK_API_VERSION_1_0,
+      .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+      .pApplicationName = "Learn Vulkan",
+      .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+      .pEngineName = "No Engine",
+      .engineVersion = VK_MAKE_VERSION(1, 0, 0),
+      .apiVersion = VK_API_VERSION_1_0,
   };
 
   // [required]
   // tell the driver which global extensions and validation layers to use
   VkInstanceCreateInfo instance_info{
-    .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-    .pApplicationInfo = &app_info,
+      .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+      .pApplicationInfo = &app_info,
 #ifdef DEBUG
-    .enabledExtensionCount = CONTAINER_SIZE(required_extensions),
-    .ppEnabledExtensionNames = required_extensions.data(),
-    .enabledLayerCount = CONTAINER_SIZE(kValidationLayers),
-    .ppEnabledLayerNames = kValidationLayers.data(),
+      .enabledExtensionCount = CONTAINER_SIZE(required_extensions),
+      .ppEnabledExtensionNames = required_extensions.data(),
+      .enabledLayerCount = CONTAINER_SIZE(kValidationLayers),
+      .ppEnabledLayerNames = kValidationLayers.data(),
 #else
-    .enabledExtensionCount = glfw_extension_count,
-    .ppEnabledExtensionNames = glfw_extensions,
-    .enabledLayerCount = 0,
+      .enabledExtensionCount = glfw_extension_count,
+      .ppEnabledExtensionNames = glfw_extensions,
+      .enabledLayerCount = 0,
 #endif /* DEBUG */
   };
 
@@ -132,30 +131,25 @@ void Instance::Init() {
 }
 
 void Surface::Init() {
-  const VkInstance& instance = *app_.instance();
-  GLFWwindow* window = app_.window();
-  ASSERT_SUCCESS(glfwCreateWindowSurface(instance, window, nullptr, &surface_),
+  ASSERT_SUCCESS(glfwCreateWindowSurface(
+                     *app_.instance(), app_.window(), nullptr, &surface_),
                  "Failed to create window surface");
 }
 
 Surface::~Surface() {
-  const VkInstance& instance = *app_.instance();
-  vkDestroySurfaceKHR(instance, surface_, nullptr);
+  vkDestroySurfaceKHR(*app_.instance(), surface_, nullptr);
 }
 
 void PhysicalDevice::Init() {
-  const VkInstance& instance = *app_.instance();
-  const VkSurfaceKHR& surface = *app_.surface();
-  Queues& queues = app_.queues();
-
   auto devices{util::QueryAttribute<VkPhysicalDevice>(
-      [&instance](uint32_t* count, VkPhysicalDevice* physical_device) {
-        return vkEnumeratePhysicalDevices(instance, count, physical_device);
+      [this](uint32_t* count, VkPhysicalDevice* physical_device) {
+        return vkEnumeratePhysicalDevices(
+            *app_.instance(), count, physical_device);
       }
   )};
 
   for (const auto& candidate : devices) {
-    if (IsDeviceSuitable(queues, candidate, surface)) {
+    if (IsDeviceSuitable(app_.queues(), candidate, *app_.surface())) {
       physical_device_ = candidate;
       return;
     }
@@ -164,22 +158,20 @@ void PhysicalDevice::Init() {
 }
 
 void Device::Init() {
-  const VkPhysicalDevice& physical_device = *app_.physical_device();
-  Queues& queues = app_.queues();
-
   // graphics queue and present queue might be the same
+  Queues& queues = app_.queues();
   std::unordered_set<uint32_t> queue_families{
-    queues.graphics.family_index,
-    queues.present.family_index,
+      queues.graphics.family_index,
+      queues.present.family_index,
   };
   float priority = 1.0f;
   vector<VkDeviceQueueCreateInfo> queue_infos{};
   for (uint32_t queue_family : queue_families) {
     VkDeviceQueueCreateInfo queue_info{
-      .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-      .queueFamilyIndex = queue_family,
-      .queueCount = 1,
-      .pQueuePriorities = &priority, // always required
+        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        .queueFamilyIndex = queue_family,
+        .queueCount = 1,
+        .pQueuePriorities = &priority,  // always required
     };
     queue_infos.emplace_back(std::move(queue_info));
   }
@@ -187,23 +179,23 @@ void Device::Init() {
   VkPhysicalDeviceFeatures features{};
 
   VkDeviceCreateInfo device_info{
-    .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-    .pEnabledFeatures = &features,
-    .queueCreateInfoCount = CONTAINER_SIZE(queue_infos),
-    .pQueueCreateInfos = queue_infos.data(),
-    .enabledExtensionCount = CONTAINER_SIZE(kSwapChainExtensions),
-    .ppEnabledExtensionNames = kSwapChainExtensions.data(),
+      .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+      .pEnabledFeatures = &features,
+      .queueCreateInfoCount = CONTAINER_SIZE(queue_infos),
+      .pQueueCreateInfos = queue_infos.data(),
+      .enabledExtensionCount = CONTAINER_SIZE(kSwapChainExtensions),
+      .ppEnabledExtensionNames = kSwapChainExtensions.data(),
 #ifdef DEBUG
-    .enabledLayerCount = CONTAINER_SIZE(kValidationLayers),
-    .ppEnabledLayerNames = kValidationLayers.data(),
+      .enabledLayerCount = CONTAINER_SIZE(kValidationLayers),
+      .ppEnabledLayerNames = kValidationLayers.data(),
 #else
-    .enabledLayerCount = 0,
+      .enabledLayerCount = 0,
 #endif /* DEBUG */
   };
 
-  ASSERT_SUCCESS(vkCreateDevice(
-                     physical_device, &device_info, nullptr, &device_),
-                 "Failed to create logical device");
+  ASSERT_SUCCESS(
+      vkCreateDevice(*app_.physical_device(), &device_info, nullptr, &device_),
+      "Failed to create logical device");
 
   // retrieve queue handles for each queue family
   vkGetDeviceQueue(device_, queues.graphics.family_index, 0,

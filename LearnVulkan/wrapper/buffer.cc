@@ -26,9 +26,9 @@ uint32_t FindMemoryType(uint32_t type_filter,
   vkGetPhysicalDeviceMemoryProperties(physical_device, &properties);
 
   for (uint32_t i = 0; i < properties.memoryTypeCount; ++i) {
-    if (type_filter & (1 << i)) { // type is suitable for buffer
+    if (type_filter & (1 << i)) {  // type is suitable for buffer
       auto flags = properties.memoryTypes[i].propertyFlags;
-      if ((flags & mem_properties) == mem_properties) // has required properties
+      if ((flags & mem_properties) == mem_properties)  // has required property
         return i;
     }
   }
@@ -40,10 +40,10 @@ VkBuffer CreateBuffer(VkBufferUsageFlags buffer_usage,
                       const VkDevice& device) {
   // create buffer
   VkBufferCreateInfo buffer_info{
-    .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-    .size = data_size,
-    .usage = buffer_usage,
-    .sharingMode = VK_SHARING_MODE_EXCLUSIVE, // only graphics queue will access
+      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+      .size = data_size,
+      .usage = buffer_usage,
+      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,  // only graphics queue access
   };
 
   VkBuffer buffer{};
@@ -65,10 +65,10 @@ VkDeviceMemory CreateBufferMemory(VkMemoryPropertyFlags mem_properties,
 
   // allocate memory on device
   VkMemoryAllocateInfo memory_info{
-    .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-    .allocationSize = mem_requirements.size,
-    .memoryTypeIndex = FindMemoryType(
-        mem_requirements.memoryTypeBits, mem_properties, physical_device),
+      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+      .allocationSize = mem_requirements.size,
+      .memoryTypeIndex = FindMemoryType(
+          mem_requirements.memoryTypeBits, mem_properties, physical_device),
   };
 
   VkDeviceMemory memory{};
@@ -89,7 +89,8 @@ struct HostToBufferCopyInfo {
   VkDeviceSize data_size;
 };
 
-void CopyHostToBuffer(VkDeviceSize total_size,
+void CopyHostToBuffer(VkDeviceSize map_offset,
+                      VkDeviceSize map_size,
                       const VkDeviceMemory& device_memory,
                       const VkDevice& device,
                       const std::vector<HostToBufferCopyInfo>& copy_infos) {
@@ -98,7 +99,7 @@ void CopyHostToBuffer(VkDeviceSize total_size,
   // with vkFlushMappedMemoryRanges and vkInvalidateMappedMemoryRanges, or
   // specify VK_MEMORY_PROPERTY_HOST_COHERENT_BIT (a little less efficient)
   void* dst;
-  vkMapMemory(device, device_memory, 0, total_size, 0, &dst);
+  vkMapMemory(device, device_memory, map_offset, map_size, 0, &dst);
   VkDeviceSize offset = 0;
   for (const auto& info : copy_infos) {
     memcpy(static_cast<char*>(dst) + offset, info.data_src,
@@ -114,26 +115,25 @@ void CopyBufferToBuffer(VkDeviceSize data_size,
                         const VkDevice& device,
                         const Queues::Queue& transfer_queue) {
   // one-time copy command
-  Command::RecordCommand copy_command{
-    [&](const VkCommandBuffer& command_buffer) {
-      VkBufferCopy copy_region{
-        .srcOffset = 0,
-        .dstOffset = 0,
-        .size = data_size,
-      };
-      vkCmdCopyBuffer(command_buffer, src_buffer, dst_buffer, 1, &copy_region);
-    }
-  };
-  Command::OneTimeCommand(device, transfer_queue, copy_command);
+  Command::OneTimeCommand(device, transfer_queue,
+      [&](const VkCommandBuffer& command_buffer) {
+        VkBufferCopy region{
+            .srcOffset = 0,
+            .dstOffset = 0,
+            .size = data_size,
+        };
+        vkCmdCopyBuffer(command_buffer, src_buffer, dst_buffer, 1, &region);
+      }
+  );
 }
 
 } /* namespace */
 
-void Buffer::Init(
+void VertexBuffer::Init(
     const void* vertex_data, size_t vertex_size, size_t vertex_count,
     const void*  index_data, size_t  index_size, size_t  index_count) {
   VkDeviceSize total_size = vertex_size + index_size;
-  vertex_size_ = vertex_size;
+  vertex_size_  = vertex_size;
   vertex_count_ = static_cast<uint32_t>(vertex_count);
   index_count_  = static_cast<uint32_t>(index_count);
 
@@ -144,15 +144,15 @@ void Buffer::Init(
   // both host and device, so we create vertex/index buffer that is only visible
   // to device, and staging buffer that is visible to both and transfers data
   // to vertex/index buffer
-  VkBuffer staging_buffer = CreateBuffer(       // source of transfer
+  VkBuffer staging_buffer = CreateBuffer(           // source of transfer
       VK_BUFFER_USAGE_TRANSFER_SRC_BIT, total_size, device);
   VkDeviceMemory staging_memory = CreateBufferMemory(
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT       // host can access it
-    | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,     // see host cache management
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT           // host can access it
+          | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,   // see host cache management
       staging_buffer, device, physical_device);
 
   // copy from host to staging buffer
-  CopyHostToBuffer(total_size, staging_memory, device, {
+  CopyHostToBuffer(0, total_size, staging_memory, device, {
     {.data_src = vertex_data, .data_size = vertex_size},
     {.data_src =  index_data, .data_size =  index_size},
   });
@@ -160,12 +160,12 @@ void Buffer::Init(
   // create final buffer that is only visible to device
   // for more efficient memory usage, we put vertex and index data in one buffer
   buffer_ = CreateBuffer(
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT          // destination of transfer
-    | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
-    | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT      // destination of transfer
+          | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+          | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
       total_size, device);
   device_memory_ = CreateBufferMemory(
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,      // only accessible for device
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,  // only accessible for device
       buffer_, device, physical_device);
 
   // copy from staging buffer to final buffer
@@ -178,7 +178,7 @@ void Buffer::Init(
   vkFreeMemory(device, staging_memory, nullptr);
 }
 
-void Buffer::Draw(const VkCommandBuffer& command_buffer) const {
+void VertexBuffer::Draw(const VkCommandBuffer& command_buffer) const {
   VkDeviceSize vertex_offset = 0;
   vkCmdBindVertexBuffers(command_buffer, 0, 1, &buffer_, &vertex_offset);
   vkCmdBindIndexBuffer(command_buffer, buffer_, vertex_size_,  // note offset
@@ -187,8 +187,56 @@ void Buffer::Draw(const VkCommandBuffer& command_buffer) const {
   vkCmdDrawIndexed(command_buffer, index_count_, 1, 0, 0, 0);
 }
 
-Buffer::~Buffer() {
+VertexBuffer::~VertexBuffer() {
   const VkDevice& device = *app_.device();
+  vkDestroyBuffer(device, buffer_, nullptr);
+  vkFreeMemory(device, device_memory_, nullptr);
+}
+
+void UniformBuffer::Init(const void* data,
+                         size_t num_chunk,
+                         size_t chunk_size) {
+  data_ = static_cast<const char*>(data);
+  chunk_size_ = chunk_size;
+
+  const VkDevice& device = *app_.device();
+  const VkPhysicalDevice& physical_device = *app_.physical_device();
+
+  buffer_ = CreateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                         num_chunk * chunk_size, device);
+  device_memory_ = CreateBufferMemory(
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+          | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+      buffer_, device, physical_device);
+
+  VkDescriptorSetLayoutBinding layout_binding{
+      .binding = 0,
+      .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      .descriptorCount = 1,
+      .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
+  };
+
+  VkDescriptorSetLayoutCreateInfo layout_info{
+      .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+      .bindingCount = 1,
+      .pBindings = &layout_binding,
+  };
+
+  ASSERT_SUCCESS(vkCreateDescriptorSetLayout(
+                     device, &layout_info, nullptr, &desc_set_layout_),
+                 "Failed to create descriptor set layout");
+}
+
+void UniformBuffer::Update(size_t chunk_index) const {
+  VkDeviceSize offset = chunk_size_ * chunk_index;
+  CopyHostToBuffer(offset, chunk_size_, device_memory_, *app_.device(), {
+      {.data_src = data_ + offset, .data_size = chunk_size_},
+  });
+}
+
+UniformBuffer::~UniformBuffer() {
+  const VkDevice& device = *app_.device();
+  vkDestroyDescriptorSetLayout(device, desc_set_layout_, nullptr);
   vkDestroyBuffer(device, buffer_, nullptr);
   vkFreeMemory(device, device_memory_, nullptr);
 }

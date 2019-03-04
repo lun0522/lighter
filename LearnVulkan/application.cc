@@ -11,7 +11,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include "triangle_data.h"
+#include "triangle_app.h"
 
 using namespace std;
 
@@ -38,7 +38,8 @@ Application::Application(const string& vert_file,
       render_pass_{*this},
       pipeline_{*this, vert_file, frag_file},
       command_{*this},
-      vertex_buffer_{*this}
+      vertex_buffer_{*this},
+      uniform_buffer_{*this}
 #ifdef DEBUG
       , callback_{*this}
 #endif /* DEBUG */
@@ -81,6 +82,8 @@ void Application::InitVulkan() {
                         kTrangleIndices.data(),
                         sizeof(kTrangleIndices[0]) * kTrangleIndices.size(),
                         kTrangleIndices.size());
+    uniform_buffer_.Init(VertexAttrib::ubo(), 2,  // TODO: remove hardcoded 2
+                         VertexAttrib::ubo_size());
     is_first_time_ = false;
   }
   swapchain_.Init();

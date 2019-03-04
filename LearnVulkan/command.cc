@@ -11,6 +11,7 @@
 #include "application.h"
 #include "synchronize.h"
 #include "buffer.h"
+#include "triangle_app.h"
 
 using namespace std;
 using namespace vulkan::wrapper; // TODO: remove
@@ -26,7 +27,7 @@ void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
                     const VkExtent2D extent,
                     const VkRenderPass& render_pass,
                     const VkPipeline& pipeline,
-                    const Buffer& buffer) {
+                    const VertexBuffer& buffer) {
   for (size_t i = 0; i < command_buffers.size(); ++i) {
     // start command buffer recording
     VkCommandBufferBeginInfo cmd_begin_info{
@@ -161,6 +162,11 @@ VkResult Command::DrawFrame() {
   vkWaitForFences(device, 1, &in_flight_fences_[current_frame_], VK_TRUE,
                   numeric_limits<uint64_t>::max());
 
+  // update uniform data
+  const VkExtent2D extent = app_.swapchain().extent();
+  VertexAttrib::UpdateUbo(current_frame_, (float)extent.width / extent.height);
+  app_.uniform_buffer().Update(current_frame_);
+
   // acquire swap chain image
   uint32_t image_index;
   VkResult acquire_result = vkAcquireNextImageKHR(
@@ -244,7 +250,7 @@ void Command::Init() {
   const VkDevice& device = *app_.device();
   const VkRenderPass& render_pass = *app_.render_pass();
   const VkPipeline& pipeline = *app_.pipeline();
-  const Buffer& buffer = app_.vertex_buffer();
+  const VertexBuffer& buffer = app_.vertex_buffer();
   const Queues::Queue& graphics_queue = app_.queues().graphics;
   const vector<VkFramebuffer>& framebuffers = app_.render_pass().framebuffers();
   const VkExtent2D extent = app_.swapchain().extent();

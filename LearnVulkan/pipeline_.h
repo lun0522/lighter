@@ -53,7 +53,7 @@ class Pipeline {
  private:
   const Application& app_;
   const std::string vert_file_, frag_file_;
-  VkPipelineLayout layout_;
+  VkPipelineLayout pipeline_layout_;
   VkPipeline pipeline_;
 };
 

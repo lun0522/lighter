@@ -13,7 +13,7 @@
 #include "util.h"
 
 namespace vulkan {
-class Application; // TODO: move to namespace wrapper
+class Application;  // TODO: move to namespace wrapper
 } /* namespace vulkan */
 
 namespace vulkan {
@@ -79,7 +79,7 @@ struct PhysicalDevice {
  public:
   PhysicalDevice(Application& app) : app_{app} {}
   void Init();
-  ~PhysicalDevice() {} // implicitly cleaned up
+  ~PhysicalDevice() {}  // implicitly cleaned up
   MARK_NOT_COPYABLE_OR_MOVABLE(PhysicalDevice);
 
   VkPhysicalDevice& operator*(void) { return physical_device_; }
@@ -128,7 +128,7 @@ struct Queues {
   };
   Queue graphics, present;
   Queues() = default;
-  ~Queues() {} // implicitly cleaned up with physical device
+  ~Queues() {}  // implicitly cleaned up with physical device
   MARK_NOT_COPYABLE_OR_MOVABLE(Queues);
 };
 

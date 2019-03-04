@@ -19,7 +19,7 @@ namespace vulkan {
 
 class Application;
 
-/** VkRenderPass specifies how to use color and depth buffers.
+/** VkRenderPass specifies types of attachments that will be accessed.
  *
  *  Initialization:
  *      VkDevice
@@ -29,7 +29,7 @@ class Application;
  *
  *------------------------------------------------------------------------------
  *
- *  VkFramebuffer associates each VkImageView with an attachment.
+ *  VkFramebuffer specifies actual image views to bind to attachments.
  *
  *  Initialization:
  *      VkRenderPass

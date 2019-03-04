@@ -16,17 +16,17 @@ namespace wrapper {
 
 namespace {
 
-constexpr VkSemaphoreCreateInfo kSemaInfo {
-  .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+constexpr VkSemaphoreCreateInfo kSemaInfo{
+    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
 };
 
-constexpr VkFenceCreateInfo kSignaledFenceInfo {
-  .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-  .flags = VK_FENCE_CREATE_SIGNALED_BIT,
+constexpr VkFenceCreateInfo kSignaledFenceInfo{
+    .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+    .flags = VK_FENCE_CREATE_SIGNALED_BIT,
 };
 
-constexpr VkFenceCreateInfo kUnsignaledFenceInfo {
-  .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+constexpr VkFenceCreateInfo kUnsignaledFenceInfo{
+    .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
 };
 
 } /* namespace */
@@ -48,8 +48,8 @@ vector<VkSemaphore> CreateSemaphores(size_t count,
 
 VkFence CreateFence(const VkDevice& device, bool is_signaled) {
   VkFence fence{};
-  const VkFenceCreateInfo& fence_info = is_signaled ?
-      kSignaledFenceInfo : kUnsignaledFenceInfo;
+  const VkFenceCreateInfo& fence_info =
+      is_signaled ? kSignaledFenceInfo : kUnsignaledFenceInfo;
   ASSERT_SUCCESS(vkCreateFence(device, &fence_info, nullptr, &fence),
                  "Failed to create fence");
   return fence;
