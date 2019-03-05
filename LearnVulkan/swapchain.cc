@@ -90,7 +90,7 @@ void CreateImages(vector<VkImage>* images,
   // use image view to specify how will we use these images
   // (color, depth, stencil, etc)
   image_views->resize(images->size());
-  for (uint32_t i = 0; i < images->size(); ++i) {
+  for (size_t i = 0; i < images->size(); ++i) {
     VkImageViewCreateInfo image_view_info{
       .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       .image = (*images)[i],

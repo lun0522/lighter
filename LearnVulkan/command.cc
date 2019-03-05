@@ -26,8 +26,9 @@ void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
                     const vector<VkFramebuffer>& framebuffers,
                     const VkExtent2D extent,
                     const VkRenderPass& render_pass,
-                    const VkPipeline& pipeline,
-                    const VertexBuffer& buffer) {
+                    const Pipeline& pipeline,
+                    const VertexBuffer& vertex_buffer,
+                    const UniformBuffer& uniform_buffer) {
   for (size_t i = 0; i < command_buffers.size(); ++i) {
     // start command buffer recording
     VkCommandBufferBeginInfo cmd_begin_info{
@@ -58,8 +59,9 @@ void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
     vkCmdBeginRenderPass(command_buffers[i], &rp_begin_info,
                          VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                      pipeline);
-    buffer.Draw(command_buffers[i]);
+                      *pipeline);
+    uniform_buffer.Bind(command_buffers[i], pipeline.layout(), i);
+    vertex_buffer.Draw(command_buffers[i]);
     vkCmdEndRenderPass(command_buffers[i]);
 
     // end recording
@@ -249,8 +251,6 @@ VkResult Command::DrawFrame() {
 void Command::Init() {
   const VkDevice& device = *app_.device();
   const VkRenderPass& render_pass = *app_.render_pass();
-  const VkPipeline& pipeline = *app_.pipeline();
-  const VertexBuffer& buffer = app_.vertex_buffer();
   const Queues::Queue& graphics_queue = app_.queues().graphics;
   const vector<VkFramebuffer>& framebuffers = app_.render_pass().framebuffers();
   const VkExtent2D extent = app_.swapchain().extent();
@@ -265,8 +265,8 @@ void Command::Init() {
   }
   command_buffers_ = CreateCommandBuffers(
       framebuffers.size(), device, command_pool_);
-  RecordCommands(command_buffers_, framebuffers, extent, render_pass, pipeline,
-                 buffer);
+  RecordCommands(command_buffers_, framebuffers, extent, render_pass,
+                 app_.pipeline(), app_.vertex_buffer(), app_.uniform_buffer());
 }
 
 void Command::Cleanup() {

@@ -23,7 +23,6 @@ using std::vector;
 
 namespace vulkan {
 namespace wrapper {
-
 namespace {
 
 bool IsDeviceSuitable(Queues& queues,

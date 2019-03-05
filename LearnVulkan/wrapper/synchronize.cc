@@ -13,7 +13,6 @@ using std::vector;
 
 namespace vulkan {
 namespace wrapper {
-
 namespace {
 
 constexpr VkSemaphoreCreateInfo kSemaInfo{
@@ -31,36 +30,26 @@ constexpr VkFenceCreateInfo kUnsignaledFenceInfo{
 
 } /* namespace */
 
-VkSemaphore CreateSemaphore(const VkDevice& device) {
-  VkSemaphore sema{};
-  ASSERT_SUCCESS(vkCreateSemaphore(device, &kSemaInfo, nullptr, &sema),
-                 "Failed to create semaphore");
-  return sema;
-}
-
 vector<VkSemaphore> CreateSemaphores(size_t count,
                                      const VkDevice& device) {
   vector<VkSemaphore> semas(count);
-  for (auto& sema : semas)
-    sema = CreateSemaphore(device);
+  for (auto& sema : semas) {
+    ASSERT_SUCCESS(vkCreateSemaphore(device, &kSemaInfo, nullptr, &sema),
+                   "Failed to create semaphore");
+  }
   return semas;
-}
-
-VkFence CreateFence(const VkDevice& device, bool is_signaled) {
-  VkFence fence{};
-  const VkFenceCreateInfo& fence_info =
-      is_signaled ? kSignaledFenceInfo : kUnsignaledFenceInfo;
-  ASSERT_SUCCESS(vkCreateFence(device, &fence_info, nullptr, &fence),
-                 "Failed to create fence");
-  return fence;
 }
 
 vector<VkFence> CreateFences(size_t count,
                              const VkDevice& device,
                              bool is_signaled) {
+  const VkFenceCreateInfo& fence_info =
+      is_signaled ? kSignaledFenceInfo : kUnsignaledFenceInfo;
   vector<VkFence> fences(count);
-  for (auto& fence : fences)
-    fence = CreateFence(device, is_signaled);
+  for (auto& fence : fences) {
+    ASSERT_SUCCESS(vkCreateFence(device, &fence_info, nullptr, &fence),
+                   "Failed to create fence");
+  }
   return fences;
 }
 

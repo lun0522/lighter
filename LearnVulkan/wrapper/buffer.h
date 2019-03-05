@@ -64,17 +64,23 @@ class UniformBuffer {
   UniformBuffer(const Application& app) : app_{app} {}
   void Init(const void* data, size_t num_chunk, size_t chunk_size);
   void Update(size_t chunk_index) const;
+  void Bind(const VkCommandBuffer& command_buffer,
+            const VkPipelineLayout& pipeline_layout,
+            size_t chunk_index) const;
   ~UniformBuffer();
   MARK_NOT_COPYABLE_OR_MOVABLE(UniformBuffer);
 
-  const VkDescriptorSetLayout& desc_set_layout() const
-      { return desc_set_layout_; }  // TODO: temporary
+  // TODO: temporary
+  const VkDescriptorSetLayout& descriptor_set_layout() const
+      { return descriptor_set_layout_; }
 
  private:
   const Application& app_;
   const char* data_;
   size_t chunk_size_;
-  VkDescriptorSetLayout desc_set_layout_;
+  VkDescriptorPool descriptor_pool_;
+  VkDescriptorSetLayout descriptor_set_layout_;
+  VkDescriptorSet descriptor_set_;
   VkBuffer buffer_;
   VkDeviceMemory device_memory_;
 };

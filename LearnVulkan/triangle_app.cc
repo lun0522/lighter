@@ -71,7 +71,6 @@ void VertexAttrib::UpdateUbo(size_t current_frame, float screen_aspect) {
   ubo.model = rotate(mat4{1.0f}, time * radians(90.0f), {0.0f, 0.0f, 1.0f});
   ubo.view = lookAt(vec3{2.0f}, vec3{0.0f}, {0.0f, 0.0f, 1.0f});
   ubo.proj = perspective(radians(45.0f), screen_aspect, 0.1f, 10.0f);
-  ubo.proj[1][1] *= -1;  // no need to invert Y-axis as OpenGL
 }
 
 } /* namespace vulkan */

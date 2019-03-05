@@ -7,12 +7,13 @@
 
 #include "buffer.h"
 
+#include <vector>
+
 #include "application.h"
 #include "command.h"
 
 namespace vulkan {
 namespace wrapper {
-
 namespace {
 
 uint32_t FindMemoryType(uint32_t type_filter,
@@ -209,6 +210,22 @@ void UniformBuffer::Init(const void* data,
           | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
       buffer_, device, physical_device);
 
+  VkDescriptorPoolSize pool_size{
+      .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      .descriptorCount = 1,
+  };
+
+  VkDescriptorPoolCreateInfo pool_info{
+      .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+      .poolSizeCount = 1,
+      .pPoolSizes = &pool_size,
+      .maxSets = 1,
+  };
+
+  ASSERT_SUCCESS(
+      vkCreateDescriptorPool(device, &pool_info, nullptr, &descriptor_pool_),
+      "Failed to create descriptor pool");
+
   VkDescriptorSetLayoutBinding layout_binding{
       .binding = 0,
       .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -223,8 +240,41 @@ void UniformBuffer::Init(const void* data,
   };
 
   ASSERT_SUCCESS(vkCreateDescriptorSetLayout(
-                     device, &layout_info, nullptr, &desc_set_layout_),
+                     device, &layout_info, nullptr, &descriptor_set_layout_),
                  "Failed to create descriptor set layout");
+
+  VkDescriptorSetAllocateInfo alloc_info{
+      .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+      .descriptorPool = descriptor_pool_,
+      .descriptorSetCount = 1,
+      .pSetLayouts = &descriptor_set_layout_,
+  };
+
+  ASSERT_SUCCESS(
+      vkAllocateDescriptorSets(device, &alloc_info, &descriptor_set_),
+      "Failed to allocate descriptor set");
+
+  VkDeviceSize offset = 0;
+  std::vector<VkWriteDescriptorSet> write_descriptor_sets(num_chunk);
+  for (size_t i = 0; i < num_chunk; ++i) {
+    VkDescriptorBufferInfo buffer_info{
+      .buffer = buffer_,
+      .offset = offset,
+      .range = chunk_size_,
+    };
+    offset += chunk_size;
+
+    write_descriptor_sets[i] = {
+      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+      .dstSet = descriptor_set_,
+      .dstBinding = 0,  // uniform buffer binding index
+      .dstArrayElement = 0,  // target first descriptor in set
+      .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      .descriptorCount = 1,  // possible to update multiple descriptors
+      .pBufferInfo = &buffer_info,
+    };
+  }
+  vkUpdateDescriptorSets(device, 1, write_descriptor_sets.data(), 0, nullptr);
 }
 
 void UniformBuffer::Update(size_t chunk_index) const {
@@ -234,9 +284,19 @@ void UniformBuffer::Update(size_t chunk_index) const {
   });
 }
 
+void UniformBuffer::Bind(const VkCommandBuffer& command_buffer,
+                         const VkPipelineLayout& pipeline_layout,
+                         size_t chunk_index) const {
+  vkCmdBindDescriptorSets(
+      command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout,
+      static_cast<uint32_t>(chunk_index), 1, &descriptor_set_, 0, nullptr);
+}
+
 UniformBuffer::~UniformBuffer() {
   const VkDevice& device = *app_.device();
-  vkDestroyDescriptorSetLayout(device, desc_set_layout_, nullptr);
+  vkDestroyDescriptorPool(device, descriptor_pool_, nullptr);
+  // descriptor sets are implicitly cleaned up with descriptor pool
+  vkDestroyDescriptorSetLayout(device, descriptor_set_layout_, nullptr);
   vkDestroyBuffer(device, buffer_, nullptr);
   vkFreeMemory(device, device_memory_, nullptr);
 }

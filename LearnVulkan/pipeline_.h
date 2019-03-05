@@ -49,6 +49,7 @@ class Pipeline {
   MARK_NOT_COPYABLE_OR_MOVABLE(Pipeline);
 
   const VkPipeline& operator*(void) const { return pipeline_; }
+  const VkPipelineLayout& layout()  const { return pipeline_layout_; }
 
  private:
   const Application& app_;
