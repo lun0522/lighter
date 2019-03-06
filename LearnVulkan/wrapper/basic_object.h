@@ -84,6 +84,7 @@ struct PhysicalDevice {
 
   VkPhysicalDevice& operator*(void) { return physical_device_; }
   const VkPhysicalDevice& operator*(void) const { return physical_device_; }
+  VkPhysicalDeviceLimits limits() const;
 
  private:
   Application& app_;

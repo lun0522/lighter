@@ -8,6 +8,8 @@
 #ifndef VULKAN_WRAPPER_BUFFER_H
 #define VULKAN_WRAPPER_BUFFER_H
 
+#include <vector>
+
 #include <vulkan/vulkan.hpp>
 
 #include "util.h"
@@ -71,16 +73,16 @@ class UniformBuffer {
   MARK_NOT_COPYABLE_OR_MOVABLE(UniformBuffer);
 
   // TODO: temporary
-  const VkDescriptorSetLayout& descriptor_set_layout() const
-      { return descriptor_set_layout_; }
+  const std::vector<VkDescriptorSetLayout>& descriptor_set_layouts() const
+      { return descriptor_set_layouts_; }
 
  private:
   const Application& app_;
   const char* data_;
-  size_t chunk_size_;
+  size_t chunk_memory_size_, chunk_data_size_;
   VkDescriptorPool descriptor_pool_;
-  VkDescriptorSetLayout descriptor_set_layout_;
-  VkDescriptorSet descriptor_set_;
+  std::vector<VkDescriptorSetLayout> descriptor_set_layouts_;
+  std::vector<VkDescriptorSet> descriptor_sets_;
   VkBuffer buffer_;
   VkDeviceMemory device_memory_;
 };

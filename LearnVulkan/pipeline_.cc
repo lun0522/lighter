@@ -121,7 +121,7 @@ void Pipeline::Init() {
     .polygonMode = VK_POLYGON_MODE_FILL,
     .lineWidth = 1.0f,
     .cullMode = VK_CULL_MODE_BACK_BIT,
-    .frontFace = VK_FRONT_FACE_CLOCKWISE,
+    .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
     // don't let rasterizer alter depth values
     .depthBiasEnable = VK_FALSE,
   };
@@ -157,10 +157,12 @@ void Pipeline::Init() {
   };
 
   // used to set uniform values
+  const auto& descriptor_set_layouts =
+      app_.uniform_buffer().descriptor_set_layouts();
   VkPipelineLayoutCreateInfo layout_info{
     .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-    .setLayoutCount = 1,
-    .pSetLayouts = &app_.uniform_buffer().descriptor_set_layout(),
+    .setLayoutCount = CONTAINER_SIZE(descriptor_set_layouts),
+    .pSetLayouts = descriptor_set_layouts.data(),
   };
 
   ASSERT_SUCCESS(vkCreatePipelineLayout(

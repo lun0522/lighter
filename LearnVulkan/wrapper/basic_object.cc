@@ -156,6 +156,12 @@ void PhysicalDevice::Init() {
   throw runtime_error{"Failed to find suitable GPU"};
 }
 
+VkPhysicalDeviceLimits PhysicalDevice::limits() const {
+  VkPhysicalDeviceProperties properties;
+  vkGetPhysicalDeviceProperties(physical_device_, &properties);
+  return properties.limits;
+}
+
 void Device::Init() {
   // graphics queue and present queue might be the same
   Queues& queues = app_.queues();

@@ -29,7 +29,7 @@ struct VertexAttrib {
   static std::array<VkVertexInputBindingDescription, 1> binding_descriptions();
   static std::array<VkVertexInputAttributeDescription, 2> attrib_descriptions();
   static const void* ubo();
-  static size_t ubo_size() { return sizeof(glm::mat4) * 3 * 2; }  // TODO: ~2
+  static size_t ubo_size() { return sizeof(glm::mat4) * 3; }
   static void UpdateUbo(size_t current_frame, float screen_aspect);
 };
 

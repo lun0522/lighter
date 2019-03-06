@@ -59,7 +59,7 @@ array<VkVertexInputAttributeDescription, 2> VertexAttrib::attrib_descriptions() 
 static std::array<UniformBufferObject, 2> kUbo{};  //  TODO: ~2
 
 const void* VertexAttrib::ubo() {
-  return &kUbo[0];
+  return kUbo.data();
 }
 
 void VertexAttrib::UpdateUbo(size_t current_frame, float screen_aspect) {
@@ -67,10 +67,12 @@ void VertexAttrib::UpdateUbo(size_t current_frame, float screen_aspect) {
   auto current_time = chrono::high_resolution_clock::now();
   auto time = chrono::duration<float, chrono::seconds::period>(
       current_time - start_time).count();
-  UniformBufferObject ubo = kUbo[current_frame];
+  UniformBufferObject& ubo = kUbo[current_frame];
   ubo.model = rotate(mat4{1.0f}, time * radians(90.0f), {0.0f, 0.0f, 1.0f});
   ubo.view = lookAt(vec3{2.0f}, vec3{0.0f}, {0.0f, 0.0f, 1.0f});
   ubo.proj = perspective(radians(45.0f), screen_aspect, 0.1f, 10.0f);
+  // No need to flip Y-axis as OpenGL
+  ubo.proj[1][1] *= -1;
 }
 
 } /* namespace vulkan */
