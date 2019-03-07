@@ -14,7 +14,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include "application.h"
+#include "context.h"
 #include "swapchain.h"
 #include "validation.h"
 
@@ -129,26 +129,27 @@ void Instance::Init() {
                  "Failed to create instance");
 }
 
-void Surface::Init() {
-  ASSERT_SUCCESS(glfwCreateWindowSurface(
-                     *app_.instance(), app_.window(), nullptr, &surface_),
+void Surface::Init(std::shared_ptr<Context> context) {
+  context_ = context;
+  ASSERT_SUCCESS(glfwCreateWindowSurface(*context->instance(),
+                                         context->window(), nullptr, &surface_),
                  "Failed to create window surface");
 }
 
 Surface::~Surface() {
-  vkDestroySurfaceKHR(*app_.instance(), surface_, nullptr);
+  vkDestroySurfaceKHR(*context_->instance(), surface_, nullptr);
 }
 
-void PhysicalDevice::Init() {
+void PhysicalDevice::Init(std::shared_ptr<Context> context) {
   auto devices{util::QueryAttribute<VkPhysicalDevice>(
       [this](uint32_t* count, VkPhysicalDevice* physical_device) {
         return vkEnumeratePhysicalDevices(
-            *app_.instance(), count, physical_device);
+            *context_->instance(), count, physical_device);
       }
   )};
 
   for (const auto& candidate : devices) {
-    if (IsDeviceSuitable(app_.queues(), candidate, *app_.surface())) {
+    if (IsDeviceSuitable(context_->queues(), candidate, *context_->surface())) {
       physical_device_ = candidate;
       return;
     }
@@ -162,9 +163,11 @@ VkPhysicalDeviceLimits PhysicalDevice::limits() const {
   return properties.limits;
 }
 
-void Device::Init() {
+void Device::Init(std::shared_ptr<Context> context) {
+  context_ = context;
+
   // graphics queue and present queue might be the same
-  Queues& queues = app_.queues();
+  Queues& queues = context->queues();
   std::unordered_set<uint32_t> queue_families{
       queues.graphics.family_index,
       queues.present.family_index,
@@ -198,9 +201,9 @@ void Device::Init() {
 #endif /* DEBUG */
   };
 
-  ASSERT_SUCCESS(
-      vkCreateDevice(*app_.physical_device(), &device_info, nullptr, &device_),
-      "Failed to create logical device");
+  ASSERT_SUCCESS(vkCreateDevice(*context->physical_device(), &device_info,
+                                nullptr, &device_),
+                 "Failed to create logical device");
 
   // retrieve queue handles for each queue family
   vkGetDeviceQueue(device_, queues.graphics.family_index, 0,

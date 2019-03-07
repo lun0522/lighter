@@ -1,6 +1,5 @@
 //
 //  validation.cc
-//  LearnVulkan
 //
 //  Created by Pujun Lun on 11/30/18.
 //  Copyright © 2018 Pujun Lun. All rights reserved.
@@ -11,14 +10,16 @@
 #include "validation.h"
 
 #include <iostream>
-#include <unordered_set>
 
-#include "application.h"
+#include "context.h"
 
-using namespace std;
+using std::cout;
+using std::endl;
+using std::string;
+using std::vector;
 
 namespace vulkan {
-
+namespace wrapper {
 namespace {
 
 VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
@@ -34,19 +35,22 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
 template<typename FuncType>
 FuncType LoadFunction(const VkInstance& instance, const string& func_name) {
   auto func = reinterpret_cast<FuncType>(
-    vkGetInstanceProcAddr(instance, func_name.c_str()));
+      vkGetInstanceProcAddr(instance, func_name.c_str()));
   if (!func)
-    throw runtime_error{"Failed to load: " + func_name};
+    throw std::runtime_error{"Failed to load: " + func_name};
   return func;
 }
 
 } /* namespace */
 
 const vector<const char*> kValidationLayers{
-  "VK_LAYER_LUNARG_standard_validation"};
+    "VK_LAYER_LUNARG_standard_validation",
+};
 
-void DebugCallback::Init(VkDebugUtilsMessageSeverityFlagsEXT message_severity,
+void DebugCallback::Init(std::shared_ptr<Context> context,
+                         VkDebugUtilsMessageSeverityFlagsEXT message_severity,
                          VkDebugUtilsMessageTypeFlagsEXT message_type) {
+  context_ = context;
   VkDebugUtilsMessengerCreateInfoEXT create_info{
     .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
     .messageSeverity = message_severity,
@@ -55,17 +59,15 @@ void DebugCallback::Init(VkDebugUtilsMessageSeverityFlagsEXT message_severity,
     .pUserData = nullptr, // will be passed along to the callback
   };
 
-  const VkInstance& instance = *app_.instance();
   auto func = LoadFunction<PFN_vkCreateDebugUtilsMessengerEXT>(
-      instance, "vkCreateDebugUtilsMessengerEXT");
-  func(instance, &create_info, nullptr, &callback_);
+      *context_->instance(), "vkCreateDebugUtilsMessengerEXT");
+  func(*context_->instance(), &create_info, nullptr, &callback_);
 }
 
 DebugCallback::~DebugCallback() {
-  const VkInstance& instance = *app_.instance();
   auto func = LoadFunction<PFN_vkDestroyDebugUtilsMessengerEXT>(
-      instance, "vkDestroyDebugUtilsMessengerEXT");
-  func(instance, callback_, nullptr);
+      *context_->instance(), "vkDestroyDebugUtilsMessengerEXT");
+  func(*context_->instance(), callback_, nullptr);
 }
 
 void CheckInstanceExtensionSupport(const vector<string>& required) {
@@ -77,7 +79,7 @@ void CheckInstanceExtensionSupport(const vector<string>& required) {
             nullptr, count, properties);
       }
   )};
-  auto get_name = [](const VkExtensionProperties &property) -> const char* {
+  auto get_name = [](const VkExtensionProperties& property) -> const char* {
     return property.extensionName;
   };
   util::CheckSupport<VkExtensionProperties>(required, properties, get_name);
@@ -97,6 +99,7 @@ void CheckValidationLayerSupport(const vector<string>& required) {
   util::CheckSupport<VkLayerProperties>(required, properties, get_name);
 }
 
+} /* namespace wrapper */
 } /* namespace vulkan */
 
 #endif /* DEBUG */

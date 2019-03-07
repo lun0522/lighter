@@ -15,11 +15,9 @@
 #include "util.h"
 
 namespace vulkan {
-class Application;  // TODO: move to namespace wrapper
-} /* namespace vulkan */
-
-namespace vulkan {
 namespace wrapper {
+
+class Context;
 
 /** VkSwapchainKHR holds a queue of images to present to the screen.
  *
@@ -74,8 +72,7 @@ class Swapchain {
   static bool HasSwapchainSupport(const VkSurfaceKHR& surface,
                                   const VkPhysicalDevice& physical_device);
 
-  Swapchain(const Application& app) : app_{app} {}
-  void Init();
+  void Init(std::shared_ptr<Context> context);
   void Cleanup();
   ~Swapchain() { Cleanup(); }
   MARK_NOT_COPYABLE_OR_MOVABLE(Swapchain);
@@ -86,7 +83,7 @@ class Swapchain {
   const std::vector<VkImageView>& image_views() const { return image_views_; }
 
  private:
-  const Application& app_;
+  std::shared_ptr<Context> context_;
   VkSwapchainKHR swapchain_;
   std::vector<VkImage> images_;
   std::vector<VkImageView> image_views_;

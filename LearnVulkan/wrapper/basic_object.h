@@ -13,11 +13,9 @@
 #include "util.h"
 
 namespace vulkan {
-class Application;  // TODO: move to namespace wrapper
-} /* namespace vulkan */
-
-namespace vulkan {
 namespace wrapper {
+
+class Context;
 
 /** VkInstance is used to establish connection with Vulkan library and
  *      maintain per-application states.
@@ -51,8 +49,7 @@ class Instance {
  */
 class Surface {
  public:
-  Surface(const Application& app) : app_{app} {}
-  void Init();
+  void Init(std::shared_ptr<Context> context);
   ~Surface();
   MARK_NOT_COPYABLE_OR_MOVABLE(Surface);
 
@@ -60,7 +57,7 @@ class Surface {
   const VkSurfaceKHR& operator*(void) const { return surface_; }
 
  private:
-  const Application& app_;
+  std::shared_ptr<Context> context_;
   VkSurfaceKHR surface_;
 };
 
@@ -77,8 +74,7 @@ class Surface {
  */
 struct PhysicalDevice {
  public:
-  PhysicalDevice(Application& app) : app_{app} {}
-  void Init();
+  void Init(std::shared_ptr<Context> context);
   ~PhysicalDevice() {}  // implicitly cleaned up
   MARK_NOT_COPYABLE_OR_MOVABLE(PhysicalDevice);
 
@@ -87,7 +83,7 @@ struct PhysicalDevice {
   VkPhysicalDeviceLimits limits() const;
 
  private:
-  Application& app_;
+  std::shared_ptr<Context> context_;
   VkPhysicalDevice physical_device_;
 };
 
@@ -106,8 +102,7 @@ struct PhysicalDevice {
  */
 struct Device {
  public:
-  Device(Application& app) : app_{app} {}
-  void Init();
+  void Init(std::shared_ptr<Context> context);
   ~Device() { vkDestroyDevice(device_, nullptr); }
   MARK_NOT_COPYABLE_OR_MOVABLE(Device);
 
@@ -115,7 +110,7 @@ struct Device {
   const VkDevice& operator*(void) const { return device_; }
 
  private:
-  Application& app_;
+  std::shared_ptr<Context> context_;
   VkDevice device_;
 };
 

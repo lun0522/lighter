@@ -1,14 +1,13 @@
 //
 //  validation.h
-//  LearnVulkan
 //
 //  Created by Pujun Lun on 11/30/18.
 //  Copyright © 2018 Pujun Lun. All rights reserved.
 //
 
 #ifdef DEBUG
-#ifndef LEARNVULKAN_VALIDATION_H
-#define LEARNVULKAN_VALIDATION_H
+#ifndef VULKAN_WRAPPER_VALIDATION_H
+#define VULKAN_WRAPPER_VALIDATION_H
 
 #include <string>
 #include <vector>
@@ -18,8 +17,9 @@
 #include "util.h"
 
 namespace vulkan {
+namespace wrapper {
 
-class Application;
+class Context;
 
 namespace MessageSeverity {
   enum Severity {
@@ -40,14 +40,14 @@ namespace MessageType {
 
 class DebugCallback {
  public:
-  DebugCallback(const Application& app) : app_{app} {}
-  void Init(VkDebugUtilsMessageSeverityFlagsEXT message_severity,
+  void Init(std::shared_ptr<Context> context,
+            VkDebugUtilsMessageSeverityFlagsEXT message_severity,
             VkDebugUtilsMessageTypeFlagsEXT message_type);
   ~DebugCallback();
   MARK_NOT_COPYABLE_OR_MOVABLE(DebugCallback);
 
  private:
-  const Application& app_;
+  std::shared_ptr<Context> context_;
   VkDebugUtilsMessengerEXT callback_;
 };
 
@@ -55,7 +55,8 @@ extern const std::vector<const char*> kValidationLayers;
 void CheckInstanceExtensionSupport(const std::vector<std::string>& required);
 void CheckValidationLayerSupport(const std::vector<std::string>& required);
 
+} /* namespace wrapper */
 } /* namespace vulkan */
 
-#endif /* LEARNVULKAN_VALIDATION_H */
+#endif /* VULKAN_WRAPPER_VALIDATION_H */
 #endif /* DEBUG */

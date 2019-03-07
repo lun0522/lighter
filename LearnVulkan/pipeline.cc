@@ -6,7 +6,7 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "pipeline_.h"
+#include "pipeline.h"
 
 #include "application.h"
 #include "triangle_app.h"

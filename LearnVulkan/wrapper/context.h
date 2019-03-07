@@ -1,44 +1,38 @@
 //
-//  application.h
-//  LearnVulkan
+//  context.h
 //
-//  Created by Pujun Lun on 2/2/19.
+//  Created by Pujun Lun on 3/6/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LEARNVULKAN_APPLICATION_H
-#define LEARNVULKAN_APPLICATION_H
+#ifndef VULKAN_WRAPPER_CONTEXT_H
+#define VULKAN_WRAPPER_CONTEXT_H
 
-#include <string>
+#include <memory>
 
 #include <vulkan/vulkan.hpp>
 
-#include "command.h"
+#include "basic_object.h"
 #include "pipeline.h"
 #include "render_pass.h"
+#include "swapchain.h"
 #include "util.h"
 #include "validation.h"
-#include "wrapper/basic_object.h" // TODO: remove wrapper/
-#include "wrapper/buffer.h" // TODO: remove wrapper/
-#include "wrapper/swapchain.h" // TODO: remove wrapper/
 
 class GLFWwindow;
 
 namespace vulkan {
+namespace wrapper {
 
-using namespace wrapper; // TODO: remove
-
-class Application {
+class Context : std::enable_shared_from_this<Context> {
  public:
-  Application(const std::string& vert_file,
-              const std::string& frag_file,
-              uint32_t width  = 800,
-              uint32_t height = 600);
+  Context(uint32_t width  = 800,
+          uint32_t height = 600);
   void MainLoop();
   void Recreate();
   void Cleanup();
-  ~Application();
-  MARK_NOT_COPYABLE_OR_MOVABLE(Application);
+  ~Context();
+  MARK_NOT_COPYABLE_OR_MOVABLE(Context);
 
   bool& resized()                               { return has_resized_; }
   VkExtent2D current_extent()             const;
@@ -50,9 +44,6 @@ class Application {
   const Swapchain& swapchain()            const { return swapchain_; }
   const RenderPass& render_pass()         const { return render_pass_; }
   const Pipeline& pipeline()              const { return pipeline_; }
-  const Command& command()                const { return command_; }
-  const VertexBuffer& vertex_buffer()     const { return vertex_buffer_; }
-  const UniformBuffer& uniform_buffer()   const { return uniform_buffer_; }
   const Queues& queues()                  const { return queues_; }
   Queues& queues()                              { return queues_; }
 
@@ -68,17 +59,12 @@ class Application {
   Swapchain swapchain_;
   RenderPass render_pass_;
   Pipeline pipeline_;
-  Command command_;
-  VertexBuffer vertex_buffer_;
-  UniformBuffer uniform_buffer_;
 #ifdef DEBUG
   DebugCallback callback_;
 #endif /* DEBUG */
-
-  void InitWindow(uint32_t width, uint32_t height);
-  void InitVulkan();
 };
 
+} /* namespace wrapper */
 } /* namespace vulkan */
 
-#endif /* LEARNVULKAN_APPLICATION_H */
+#endif /* VULKAN_WRAPPER_CONTEXT_H */

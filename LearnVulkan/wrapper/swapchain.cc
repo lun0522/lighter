@@ -12,7 +12,7 @@
 #include <string>
 #include <unordered_set>
 
-#include "application.h"
+#include "context.h"
 
 using std::vector;
 
@@ -135,9 +135,9 @@ bool Swapchain::HasSwapchainSupport(const VkSurfaceKHR& surface,
               physical_device, nullptr, count, properties);
         }
     )};
-    auto get_name{[](const VkExtensionProperties& property) -> const char* {
+    auto get_name = [](const VkExtensionProperties& property) -> const char* {
       return property.extensionName;
-    }};
+    };
     util::CheckSupport<VkExtensionProperties>(required, extensions, get_name);
   } catch (const std::exception& e) {
     return false;
@@ -153,16 +153,18 @@ bool Swapchain::HasSwapchainSupport(const VkSurfaceKHR& surface,
   return format_count && mode_count;
 }
 
-void Swapchain::Init() {
-  const VkSurfaceKHR& surface = *app_.surface();
-  const VkPhysicalDevice& physical_device = *app_.physical_device();
-  const VkDevice& device = *app_.device();
+void Swapchain::Init(std::shared_ptr<Context> context) {
+  context_ = context;
+  const VkSurfaceKHR& surface = *context_->surface();
+  const VkPhysicalDevice& physical_device = *context_->physical_device();
+  const VkDevice& device = *context_->device();
 
   // surface capabilities
   VkSurfaceCapabilitiesKHR surface_capabilities{};
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
       physical_device, surface, &surface_capabilities);
-  VkExtent2D extent = ChooseExtent(surface_capabilities, app_.current_extent());
+  VkExtent2D extent = ChooseExtent(
+      surface_capabilities, context_->current_extent());
 
   // surface formats
   auto surface_formats{util::QueryAttribute<VkSurfaceFormatKHR>(
@@ -210,8 +212,8 @@ void Swapchain::Init() {
 
   // graphics queue and present queue might be the same
   std::unordered_set<uint32_t> queue_families{
-    app_.queues().graphics.family_index,
-    app_.queues().present.family_index,
+    context_->queues().graphics.family_index,
+    context_->queues().present.family_index,
   };
   if (queue_families.size() == 1) {
     // if only one queue family will access this swapchain
@@ -239,8 +241,8 @@ void Swapchain::Init() {
 void Swapchain::Cleanup() {
   // images are implicitly cleaned up with swapchain
   for (auto& image_view : image_views_)
-    vkDestroyImageView(*app_.device(), image_view, nullptr);
-  vkDestroySwapchainKHR(*app_.device(), swapchain_, nullptr);
+    vkDestroyImageView(*context_->device(), image_view, nullptr);
+  vkDestroySwapchainKHR(*context_->device(), swapchain_, nullptr);
 }
 
 const vector<const char*> kSwapChainExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
