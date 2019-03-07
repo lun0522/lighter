@@ -1,6 +1,5 @@
 //
 //  swapchain.cc
-//  LearnVulkan
 //
 //  Created by Pujun Lun on 2/2/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
@@ -15,10 +14,10 @@
 
 #include "application.h"
 
-using namespace std;
+using std::vector;
 
 namespace vulkan {
-
+namespace wrapper {
 namespace {
 
 VkSurfaceFormatKHR ChooseSurfaceFormat(
@@ -60,7 +59,8 @@ VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities,
                         VkExtent2D current_extent) {
   // .currentExtent is the suggested resolution
   // if it is UINT32_MAX, window manager suggests us to be flexible
-  if (capabilities.currentExtent.width != numeric_limits<uint32_t>::max()) {
+  if (capabilities.currentExtent.width !=
+      std::numeric_limits<uint32_t>::max()) {
     return capabilities.currentExtent;
   } else {
     current_extent.width = std::max(capabilities.minImageExtent.width,
@@ -75,44 +75,46 @@ VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities,
   }
 }
 
-void CreateImages(vector<VkImage>* images,
-                  vector<VkImageView>* image_views,
-                  const VkSwapchainKHR& swapchain,
-                  const VkDevice& device,
-                  VkFormat image_format) {
-  // image count might be different since previously we only set a minimum
-  *images = util::QueryAttribute<VkImage>(
+vector<VkImage> CreateImages(const VkSwapchainKHR& swapchain,
+                             const VkDevice& device) {
+  // image count might be different from the minimum we set
+  return util::QueryAttribute<VkImage>(
       [&device, &swapchain](uint32_t *count, VkImage *images) {
         vkGetSwapchainImagesKHR(device, swapchain, count, images);
       }
   );
+}
 
+vector<VkImageView> CreateImageViews(const vector<VkImage>& images,
+                                     const VkDevice& device,
+                                     VkFormat image_format) {
   // use image view to specify how will we use these images
   // (color, depth, stencil, etc)
-  image_views->resize(images->size());
-  for (size_t i = 0; i < images->size(); ++i) {
+  vector<VkImageView> image_views(images.size());
+  for (size_t i = 0; i < images.size(); ++i) {
     VkImageViewCreateInfo image_view_info{
-      .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-      .image = (*images)[i],
-      .viewType = VK_IMAGE_VIEW_TYPE_2D, // 2D, 3D, cube maps
-      .format = image_format,
-      // .components enables swizzling color channels around
-      .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
-      .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
-      .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
-      .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
-      // .subresourceRange specifies image's purpose and which part to access
-      .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-      .subresourceRange.baseMipLevel = 0,
-      .subresourceRange.levelCount = 1,
-      .subresourceRange.baseArrayLayer = 0,
-      .subresourceRange.layerCount = 1,
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .image = images[i],
+        .viewType = VK_IMAGE_VIEW_TYPE_2D, // 2D, 3D, cube maps
+        .format = image_format,
+        // .components enables swizzling color channels around
+        .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+        .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+        .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+        .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
+        // .subresourceRange specifies image's purpose and which part to access
+        .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .subresourceRange.baseMipLevel = 0,
+        .subresourceRange.levelCount = 1,
+        .subresourceRange.baseArrayLayer = 0,
+        .subresourceRange.layerCount = 1,
     };
 
-    ASSERT_SUCCESS(vkCreateImageView(
-                       device, &image_view_info, nullptr, &(*image_views)[i]),
-                   "Failed to create image view");
+    ASSERT_SUCCESS(
+        vkCreateImageView(device, &image_view_info, nullptr, &image_views[i]),
+        "Failed to create image view");
   }
+  return image_views;
 }
 
 } /* namespace */
@@ -120,28 +122,28 @@ void CreateImages(vector<VkImage>* images,
 bool Swapchain::HasSwapchainSupport(const VkSurfaceKHR& surface,
                                     const VkPhysicalDevice& physical_device) {
   try {
-    cout << "Checking extension support required for swap chain..."
-         << endl << endl;
+    std::cout << "Checking extension support required for swapchain..."
+              << std::endl << std::endl;
 
-    vector<string> required{
+    vector<std::string> required{
       kSwapChainExtensions.begin(),
       kSwapChainExtensions.end(),
     };
-    auto extensions {util::QueryAttribute<VkExtensionProperties>(
+    auto extensions{util::QueryAttribute<VkExtensionProperties>(
         [&physical_device](uint32_t* count, VkExtensionProperties* properties) {
           return vkEnumerateDeviceExtensionProperties(
               physical_device, nullptr, count, properties);
         }
     )};
-    auto get_name = [](const VkExtensionProperties& property) -> const char* {
+    auto get_name{[](const VkExtensionProperties& property) -> const char* {
       return property.extensionName;
-    };
+    }};
     util::CheckSupport<VkExtensionProperties>(required, extensions, get_name);
-  } catch (const exception& e) {
+  } catch (const std::exception& e) {
     return false;
   }
 
-  // physical device may support swap chain but maybe not compatible with
+  // physical device may support swapchain but maybe not compatible with
   // window system, so we need to query details
   uint32_t format_count, mode_count;
   vkGetPhysicalDeviceSurfaceFormatsKHR(
@@ -155,10 +157,9 @@ void Swapchain::Init() {
   const VkSurfaceKHR& surface = *app_.surface();
   const VkPhysicalDevice& physical_device = *app_.physical_device();
   const VkDevice& device = *app_.device();
-  const Queues& queues = app_.queues();
 
   // surface capabilities
-  VkSurfaceCapabilitiesKHR surface_capabilities;
+  VkSurfaceCapabilitiesKHR surface_capabilities{};
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
       physical_device, surface, &surface_capabilities);
   VkExtent2D extent = ChooseExtent(surface_capabilities, app_.current_extent());
@@ -182,42 +183,42 @@ void Swapchain::Init() {
   )};
   VkPresentModeKHR presentMode = ChoosePresentMode(present_modes);
 
-  // how many images we want to have in swap chain
+  // minimum amount of images we want to have in swapchain
   uint32_t image_count = surface_capabilities.minImageCount + 1;
   if (surface_capabilities.maxImageCount > 0) // can be 0 if no maximum
     image_count = std::min(surface_capabilities.maxImageCount, image_count);
 
   VkSwapchainCreateInfoKHR swapchain_info{
-    .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-    .surface = surface,
-    .minImageCount = image_count,
-    .imageFormat = surface_format.format,
-    .imageColorSpace = surface_format.colorSpace,
-    .imageExtent = extent,
-    .imageArrayLayers = 1,
-    // .imageUsage can be different for post-processing
-    .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-    // we may apply transformations
-    .preTransform = surface_capabilities.currentTransform,
-    // we may change alpha channel
-    .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-    .presentMode = presentMode,
-    // don't care about color of pixels obscured
-    .clipped = VK_TRUE,
-    .oldSwapchain = VK_NULL_HANDLE,
+      .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+      .surface = surface,
+      .minImageCount = image_count,
+      .imageFormat = surface_format.format,
+      .imageColorSpace = surface_format.colorSpace,
+      .imageExtent = extent,
+      .imageArrayLayers = 1,
+      // .imageUsage can be different for post-processing
+      .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+      // we may apply transformations
+      .preTransform = surface_capabilities.currentTransform,
+      // we may change alpha channel
+      .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+      .presentMode = presentMode,
+      // don't care about color of pixels obscured
+      .clipped = VK_TRUE,
+      .oldSwapchain = VK_NULL_HANDLE,
   };
 
   // graphics queue and present queue might be the same
-  unordered_set<uint32_t> queue_families{
-    queues.graphics.family_index,
-    queues.present.family_index,
+  std::unordered_set<uint32_t> queue_families{
+    app_.queues().graphics.family_index,
+    app_.queues().present.family_index,
   };
   if (queue_families.size() == 1) {
-    // if only one queue family will access this swap chain
+    // if only one queue family will access this swapchain
     swapchain_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
   } else {
     // specify which queue families will share access to images
-    // we will draw on images in swap chain from graphics queue
+    // we will draw on images in swapchain from graphics queue
     // and submit on presentation queue
     vector<uint32_t> indices{queue_families.begin(), queue_families.end()};
     swapchain_info.queueFamilyIndexCount = CONTAINER_SIZE(indices);
@@ -225,23 +226,24 @@ void Swapchain::Init() {
     swapchain_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
   }
 
-  ASSERT_SUCCESS(vkCreateSwapchainKHR(
-                   device, &swapchain_info, nullptr, &swapchain_),
-                 "Failed to create swap chain");
+  ASSERT_SUCCESS(
+      vkCreateSwapchainKHR(device, &swapchain_info, nullptr, &swapchain_),
+      "Failed to create swapchain");
 
   image_format_ = surface_format.format;
   image_extent_ = extent;
-  CreateImages(&images_, &image_views_, swapchain_, device, image_format_);
+  images_ = CreateImages(swapchain_, device);
+  image_views_ = CreateImageViews(images_, device, image_format_);
 }
 
 void Swapchain::Cleanup() {
-  // images are implicitly cleaned up with swap chain
-  const VkDevice& device = *app_.device();
+  // images are implicitly cleaned up with swapchain
   for (auto& image_view : image_views_)
-    vkDestroyImageView(device, image_view, nullptr);
-  vkDestroySwapchainKHR(device, swapchain_, nullptr);
+    vkDestroyImageView(*app_.device(), image_view, nullptr);
+  vkDestroySwapchainKHR(*app_.device(), swapchain_, nullptr);
 }
 
 const vector<const char*> kSwapChainExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
+} /* namespace wrapper */
 } /* namespace vulkan */

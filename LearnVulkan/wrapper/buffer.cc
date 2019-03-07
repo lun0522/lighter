@@ -187,23 +187,21 @@ void VertexBuffer::Draw(const VkCommandBuffer& command_buffer) const {
 }
 
 VertexBuffer::~VertexBuffer() {
-  const VkDevice& device = *app_.device();
-  vkDestroyBuffer(device, buffer_, nullptr);
-  vkFreeMemory(device, device_memory_, nullptr);
+  vkDestroyBuffer(*app_.device(), buffer_, nullptr);
+  vkFreeMemory(*app_.device(), device_memory_, nullptr);
 }
 
 void UniformBuffer::Init(const void* data,
                          size_t num_chunk,
                          size_t chunk_size) {
   const VkDevice& device = *app_.device();
-  const PhysicalDevice& physical_device = app_.physical_device();
 
   data_ = static_cast<const char*>(data);
   // offset is required to be multiple of minUniformBufferOffsetAlignment
   // which is why we have actual data size |chunk_data_size_| and its
   // aligned size |chunk_memory_size_|
   VkDeviceSize alignment =
-      physical_device.limits().minUniformBufferOffsetAlignment;
+      app_.physical_device().limits().minUniformBufferOffsetAlignment;
   chunk_data_size_ = chunk_size;
   chunk_memory_size_ = (chunk_data_size_ + alignment) / alignment * alignment;
 
@@ -212,7 +210,7 @@ void UniformBuffer::Init(const void* data,
   device_memory_ = CreateBufferMemory(
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
           | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-      buffer_, device, *physical_device);
+      buffer_, device, *app_.physical_device());
 
   VkDescriptorPoolSize pool_size{
       .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,

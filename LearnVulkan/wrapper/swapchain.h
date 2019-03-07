@@ -1,13 +1,12 @@
 //
 //  swapchain.h
-//  LearnVulkan
 //
 //  Created by Pujun Lun on 2/2/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LEARNVULKAN_SWAPCHAIN_H
-#define LEARNVULKAN_SWAPCHAIN_H
+#ifndef VULKAN_WRAPPER_SWAPCHAIN_H
+#define VULKAN_WRAPPER_SWAPCHAIN_H
 
 #include <vector>
 
@@ -16,8 +15,11 @@
 #include "util.h"
 
 namespace vulkan {
+class Application;  // TODO: move to namespace wrapper
+} /* namespace vulkan */
 
-class Application;
+namespace vulkan {
+namespace wrapper {
 
 /** VkSwapchainKHR holds a queue of images to present to the screen.
  *
@@ -94,6 +96,7 @@ class Swapchain {
 
 extern const std::vector<const char*> kSwapChainExtensions;
 
+} /* namespace wrapper */
 } /* namespace vulkan */
 
-#endif /* LEARNVULKAN_SWAPCHAIN_H */
+#endif /* VULKAN_WRAPPER_SWAPCHAIN_H */

@@ -119,8 +119,6 @@
 				BD151CB3220BF9A300A6FC75 /* pipeline_.h */,
 				BD098BC7220D4D2600E34A0A /* render_pass.cc */,
 				BD098BC8220D4D2600E34A0A /* render_pass.h */,
-				BDA11AAF2206323F003092B8 /* swapchain.cc */,
-				BDA11AB02206323F003092B8 /* swapchain.h */,
 				BD2F0E9C222B2D5800B4ACD5 /* triangle_app.cc */,
 				BD2F0E9D222B2D5800B4ACD5 /* triangle_app.h */,
 				BD4717B82219E9AB00B860D0 /* util.cc */,
@@ -140,6 +138,8 @@
 				BD6BAC272211432500906E78 /* basic_object.h */,
 				BD7C0CAB2217C74200009BE5 /* buffer.cc */,
 				BD7C0CAC2217C74200009BE5 /* buffer.h */,
+				BDA11AAF2206323F003092B8 /* swapchain.cc */,
+				BDA11AB02206323F003092B8 /* swapchain.h */,
 				BD7B1E92222A63AD00EF0956 /* synchronize.cc */,
 				BD7B1E93222A63AD00EF0956 /* synchronize.h */,
 			);

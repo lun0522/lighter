@@ -16,11 +16,11 @@
 #include "command.h"
 #include "pipeline_.h"
 #include "render_pass.h"
-#include "swapchain.h"
 #include "util.h"
 #include "validation.h"
 #include "wrapper/basic_object.h" // TODO: remove wrapper/
 #include "wrapper/buffer.h" // TODO: remove wrapper/
+#include "wrapper/swapchain.h" // TODO: remove wrapper/
 
 class GLFWwindow;
 
