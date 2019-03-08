@@ -21,9 +21,6 @@
   if (event != VK_SUCCESS)  throw std::runtime_error{error}
 #define CONTAINER_SIZE(container) \
   static_cast<uint32_t>(container.size())
-#define MARK_NOT_COPYABLE_OR_MOVABLE(typename) \
-  typename(const typename&) = delete;          \
-  typename& operator=(const typename&) = delete
 
 namespace util {
 

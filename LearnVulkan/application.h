@@ -16,7 +16,6 @@
 #include "command.h"
 #include "pipeline.h"
 #include "render_pass.h"
-#include "util.h"
 #include "validation.h"
 #include "wrapper/basic_object.h" // TODO: remove wrapper/
 #include "wrapper/buffer.h" // TODO: remove wrapper/
@@ -38,7 +37,10 @@ class Application {
   void Recreate();
   void Cleanup();
   ~Application();
-  MARK_NOT_COPYABLE_OR_MOVABLE(Application);
+
+  // This class is not copyable or movable
+  Application(const Application&) = delete;
+  Application& operator=(const Application&) = delete;
 
   bool& resized()                               { return has_resized_; }
   VkExtent2D current_extent()             const;

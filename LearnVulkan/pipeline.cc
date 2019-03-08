@@ -9,8 +9,9 @@
 #include "pipeline.h"
 
 #include "application.h"
-#include "triangle_app.h"
 #include "buffer.h"
+#include "triangle_app.h"
+#include "util.h"
 
 using namespace std;
 

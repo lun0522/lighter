@@ -16,6 +16,7 @@
 
 #include "context.h"
 #include "swapchain.h"
+#include "util.h"
 #include "validation.h"
 
 using std::runtime_error;

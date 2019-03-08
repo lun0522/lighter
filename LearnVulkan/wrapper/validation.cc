@@ -12,6 +12,7 @@
 #include <iostream>
 
 #include "context.h"
+#include "util.h"
 
 using std::cout;
 using std::endl;

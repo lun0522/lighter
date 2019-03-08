@@ -12,6 +12,7 @@
 #include <GLFW/glfw3.h>
 
 #include "triangle_app.h"
+#include "util.h"
 
 using namespace std;
 

@@ -12,8 +12,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "util.h"
-
 namespace vulkan {
 class Application;  // TODO: move to namespace wrapper
 } /* namespace vulkan */
@@ -51,7 +49,10 @@ class VertexBuffer {
             const void*  index_data, size_t  index_size, size_t  index_count);
   void Draw(const VkCommandBuffer& command_buffer) const;
   ~VertexBuffer();
-  MARK_NOT_COPYABLE_OR_MOVABLE(VertexBuffer);
+
+  // This class is not copyable or movable
+  VertexBuffer(const VertexBuffer&) = delete;
+  VertexBuffer& operator=(const VertexBuffer&) = delete;
 
  private:
   const Application& app_;
@@ -70,7 +71,10 @@ class UniformBuffer {
             const VkPipelineLayout& pipeline_layout,
             size_t chunk_index) const;
   ~UniformBuffer();
-  MARK_NOT_COPYABLE_OR_MOVABLE(UniformBuffer);
+
+  // This class is not copyable or movable
+  UniformBuffer(const UniformBuffer&) = delete;
+  UniformBuffer& operator=(const UniformBuffer&) = delete;
 
   // TODO: temporary
   const std::vector<VkDescriptorSetLayout>& descriptor_set_layouts() const

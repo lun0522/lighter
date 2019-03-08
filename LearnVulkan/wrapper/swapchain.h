@@ -12,8 +12,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "util.h"
-
 namespace vulkan {
 namespace wrapper {
 
@@ -75,7 +73,10 @@ class Swapchain {
   void Init(std::shared_ptr<Context> context);
   void Cleanup();
   ~Swapchain() { Cleanup(); }
-  MARK_NOT_COPYABLE_OR_MOVABLE(Swapchain);
+
+  // This class is not copyable or movable
+  Swapchain(const Swapchain&) = delete;
+  Swapchain& operator=(const Swapchain&) = delete;
 
   const VkSwapchainKHR& operator*(void)         const { return swapchain_; }
   VkFormat format()                             const { return image_format_; }

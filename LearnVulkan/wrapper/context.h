@@ -32,7 +32,10 @@ class Context : std::enable_shared_from_this<Context> {
   void Recreate();
   void Cleanup();
   ~Context();
-  MARK_NOT_COPYABLE_OR_MOVABLE(Context);
+
+  // This class is not copyable or movable
+  Context(const Context&) = delete;
+  Context& operator=(const Context&) = delete;
 
   bool& resized()                               { return has_resized_; }
   VkExtent2D current_extent()             const;

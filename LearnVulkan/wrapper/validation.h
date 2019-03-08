@@ -14,29 +14,31 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "util.h"
-
 namespace vulkan {
 namespace wrapper {
 
 class Context;
 
 namespace MessageSeverity {
-  enum Severity {
-    kVerbose  = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT,
-    kInfo     = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT,
-    kWarning  = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT,
-    kError    = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-  };
-}
+
+enum Severity {
+  kVerbose  = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT,
+  kInfo     = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT,
+  kWarning  = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT,
+  kError    = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+};
+
+} /* namespace MessageSeverity */
 
 namespace MessageType {
-  enum Type {
-    kGeneral      = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT,
-    kValidation   = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
-    kPerformance  = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-  };
-}
+
+enum Type {
+  kGeneral      = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT,
+  kValidation   = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
+  kPerformance  = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+};
+
+} /* namespace MessageType */
 
 class DebugCallback {
  public:
@@ -44,7 +46,10 @@ class DebugCallback {
             VkDebugUtilsMessageSeverityFlagsEXT message_severity,
             VkDebugUtilsMessageTypeFlagsEXT message_type);
   ~DebugCallback();
-  MARK_NOT_COPYABLE_OR_MOVABLE(DebugCallback);
+
+  // This class is not copyable or movable
+  DebugCallback(const DebugCallback&) = delete;
+  DebugCallback& operator=(const DebugCallback&) = delete;
 
  private:
   std::shared_ptr<Context> context_;

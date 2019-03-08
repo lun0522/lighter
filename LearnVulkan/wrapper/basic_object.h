@@ -10,8 +10,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "util.h"
-
 namespace vulkan {
 namespace wrapper {
 
@@ -30,7 +28,10 @@ class Instance {
   Instance() {}
   void Init();
   ~Instance() { vkDestroyInstance(instance_, nullptr); }
-  MARK_NOT_COPYABLE_OR_MOVABLE(Instance);
+
+  // This class is not copyable or movable
+  Instance(const Instance&) = delete;
+  Instance& operator=(const Instance&) = delete;
 
   VkInstance& operator*(void) { return instance_; }
   const VkInstance& operator*(void) const { return instance_; }
@@ -51,7 +52,10 @@ class Surface {
  public:
   void Init(std::shared_ptr<Context> context);
   ~Surface();
-  MARK_NOT_COPYABLE_OR_MOVABLE(Surface);
+
+  // This class is not copyable or movable
+  Surface(const Surface&) = delete;
+  Surface& operator=(const Surface&) = delete;
 
   VkSurfaceKHR& operator*(void) { return surface_; }
   const VkSurfaceKHR& operator*(void) const { return surface_; }
@@ -76,7 +80,10 @@ struct PhysicalDevice {
  public:
   void Init(std::shared_ptr<Context> context);
   ~PhysicalDevice() {}  // implicitly cleaned up
-  MARK_NOT_COPYABLE_OR_MOVABLE(PhysicalDevice);
+
+  // This class is not copyable or movable
+  PhysicalDevice(const PhysicalDevice&) = delete;
+  PhysicalDevice& operator=(const PhysicalDevice&) = delete;
 
   VkPhysicalDevice& operator*(void) { return physical_device_; }
   const VkPhysicalDevice& operator*(void) const { return physical_device_; }
@@ -104,7 +111,10 @@ struct Device {
  public:
   void Init(std::shared_ptr<Context> context);
   ~Device() { vkDestroyDevice(device_, nullptr); }
-  MARK_NOT_COPYABLE_OR_MOVABLE(Device);
+
+  // This class is not copyable or movable
+  Device(const Device&) = delete;
+  Device& operator=(const Device&) = delete;
 
   VkDevice& operator*(void) { return device_; }
   const VkDevice& operator*(void) const { return device_; }
@@ -125,7 +135,10 @@ struct Queues {
   Queue graphics, present;
   Queues() = default;
   ~Queues() {}  // implicitly cleaned up with physical device
-  MARK_NOT_COPYABLE_OR_MOVABLE(Queues);
+
+  // This class is not copyable or movable
+  Queues(const Queues&) = delete;
+  Queues& operator=(const Queues&) = delete;
 };
 
 } /* namespace wrapper */

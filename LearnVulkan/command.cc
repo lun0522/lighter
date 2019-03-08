@@ -12,6 +12,7 @@
 #include "synchronize.h"
 #include "buffer.h"
 #include "triangle_app.h"
+#include "util.h"
 
 using namespace std;
 using namespace vulkan::wrapper; // TODO: remove

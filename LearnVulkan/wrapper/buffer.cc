@@ -9,6 +9,7 @@
 
 #include "application.h"
 #include "command.h"
+#include "util.h"
 
 using std::vector;
 

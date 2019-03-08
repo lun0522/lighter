@@ -16,7 +16,6 @@
 
 #include "wrapper/basic_object.h" // TODO: remove wrapper/
 #include "wrapper/buffer.h" // TODO: remove wrapper/
-#include "util.h"
 
 namespace vulkan {
 
@@ -52,7 +51,10 @@ class Command {
   void Init();
   void Cleanup();
   ~Command();
-  MARK_NOT_COPYABLE_OR_MOVABLE(Command);
+
+  // This class is not copyable or movable
+  Command(const Command&) = delete;
+  Command& operator=(const Command&) = delete;
 
  private:
   const Application& app_;

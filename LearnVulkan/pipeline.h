@@ -13,8 +13,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "util.h"
-
 namespace vulkan {
 
 class Application;
@@ -46,7 +44,10 @@ class Pipeline {
   void Init();
   void Cleanup();
   ~Pipeline() { Cleanup(); }
-  MARK_NOT_COPYABLE_OR_MOVABLE(Pipeline);
+
+  // This class is not copyable or movable
+  Pipeline(const Pipeline&) = delete;
+  Pipeline& operator=(const Pipeline&) = delete;
 
   const VkPipeline& operator*(void) const { return pipeline_; }
   const VkPipelineLayout& layout()  const { return pipeline_layout_; }
