@@ -10,16 +10,18 @@
 #include "context.h"
 #include "util.h"
 
+using std::vector;
+
 namespace vulkan {
 namespace wrapper {
 namespace {
 
-void CreateFramebuffers(std::vector<VkFramebuffer>* framebuffers,
-                        VkExtent2D image_extent,
-                        const std::vector<VkImageView>& image_views,
-                        const VkDevice& device,
-                        const VkRenderPass& render_pass) {
-  framebuffers->resize(image_views.size());
+vector<VkFramebuffer> CreateFramebuffers(
+    VkExtent2D image_extent,
+    const vector<VkImageView>& image_views,
+    const VkDevice& device,
+    const VkRenderPass& render_pass) {
+  vector<VkFramebuffer> framebuffers(image_views.size());
   for (size_t i = 0; i < image_views.size(); ++i) {
     VkFramebufferCreateInfo framebuffer_info{
         .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -32,9 +34,10 @@ void CreateFramebuffers(std::vector<VkFramebuffer>* framebuffers,
     };
 
     ASSERT_SUCCESS(vkCreateFramebuffer(
-                       device, &framebuffer_info, nullptr, &(*framebuffers)[i]),
+                       device, &framebuffer_info, nullptr, &framebuffers[i]),
                    "Failed to create framebuffer");
   }
+  return framebuffers;
 }
 
 } /* namespace */
@@ -102,9 +105,9 @@ void RenderPass::Init(std::shared_ptr<Context> context) {
                                     nullptr, &render_pass_),
                  "Failed to create render pass");
 
-  CreateFramebuffers(&framebuffers_, context_->swapchain().extent(),
-                     context_->swapchain().image_views(), *context_->device(),
-                     render_pass_);
+  framebuffers_ = CreateFramebuffers(
+      context_->swapchain().extent(), context_->swapchain().image_views(),
+      *context_->device(), render_pass_);
 }
 
 void RenderPass::Cleanup() {

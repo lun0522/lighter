@@ -127,8 +127,8 @@ bool Swapchain::HasSwapchainSupport(const VkSurfaceKHR& surface,
               << std::endl << std::endl;
 
     vector<std::string> required{
-      kSwapChainExtensions.begin(),
-      kSwapChainExtensions.end(),
+        kSwapChainExtensions.begin(),
+        kSwapChainExtensions.end(),
     };
     auto extensions{util::QueryAttribute<VkExtensionProperties>(
         [&physical_device](uint32_t* count, VkExtensionProperties* properties) {
@@ -184,7 +184,7 @@ void Swapchain::Init(std::shared_ptr<Context> context) {
             physical_device, surface, count, modes);
       }
   )};
-  VkPresentModeKHR presentMode = ChoosePresentMode(present_modes);
+  VkPresentModeKHR present_mode = ChoosePresentMode(present_modes);
 
   // minimum amount of images we want to have in swapchain
   uint32_t image_count = surface_capabilities.minImageCount + 1;
@@ -205,7 +205,7 @@ void Swapchain::Init(std::shared_ptr<Context> context) {
       .preTransform = surface_capabilities.currentTransform,
       // we may change alpha channel
       .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-      .presentMode = presentMode,
+      .presentMode = present_mode,
       // don't care about color of pixels obscured
       .clipped = VK_TRUE,
       .oldSwapchain = VK_NULL_HANDLE,

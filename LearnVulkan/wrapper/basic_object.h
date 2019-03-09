@@ -29,7 +29,7 @@ class Instance {
   void Init();
   ~Instance() { vkDestroyInstance(instance_, nullptr); }
 
-  // This class is not copyable or movable
+  // This class is neither copyable nor movable
   Instance(const Instance&) = delete;
   Instance& operator=(const Instance&) = delete;
 
@@ -53,7 +53,7 @@ class Surface {
   void Init(std::shared_ptr<Context> context);
   ~Surface();
 
-  // This class is not copyable or movable
+  // This class is neither copyable nor movable
   Surface(const Surface&) = delete;
   Surface& operator=(const Surface&) = delete;
 
@@ -81,7 +81,7 @@ struct PhysicalDevice {
   void Init(std::shared_ptr<Context> context);
   ~PhysicalDevice() {}  // implicitly cleaned up
 
-  // This class is not copyable or movable
+  // This class is neither copyable nor movable
   PhysicalDevice(const PhysicalDevice&) = delete;
   PhysicalDevice& operator=(const PhysicalDevice&) = delete;
 
@@ -112,7 +112,7 @@ struct Device {
   void Init(std::shared_ptr<Context> context);
   ~Device() { vkDestroyDevice(device_, nullptr); }
 
-  // This class is not copyable or movable
+  // This class is neither copyable nor movable
   Device(const Device&) = delete;
   Device& operator=(const Device&) = delete;
 
@@ -136,7 +136,7 @@ struct Queues {
   Queues() = default;
   ~Queues() {}  // implicitly cleaned up with physical device
 
-  // This class is not copyable or movable
+  // This class is neither copyable nor movable
   Queues(const Queues&) = delete;
   Queues& operator=(const Queues&) = delete;
 };

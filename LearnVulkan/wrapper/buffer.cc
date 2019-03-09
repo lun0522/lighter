@@ -7,7 +7,7 @@
 
 #include "buffer.h"
 
-#include "application.h"
+#include "context.h"
 #include "command.h"
 #include "util.h"
 
@@ -130,15 +130,16 @@ void CopyBufferToBuffer(VkDeviceSize data_size,
 } /* namespace */
 
 void VertexBuffer::Init(
+    std::shared_ptr<Context> context,
     const void* vertex_data, size_t vertex_size, size_t vertex_count,
     const void*  index_data, size_t  index_size, size_t  index_count) {
+  context_ = context;
+  const VkDevice& device = *context_->device();
+
   VkDeviceSize total_size = vertex_size + index_size;
   vertex_size_  = vertex_size;
   vertex_count_ = static_cast<uint32_t>(vertex_count);
   index_count_  = static_cast<uint32_t>(index_count);
-
-  const VkDevice& device = *app_.device();
-  const VkPhysicalDevice& physical_device = *app_.physical_device();
 
   // vertex/index buffer cannot be most efficient if it has to be visible to
   // both host and device, so we create vertex/index buffer that is only visible
@@ -149,12 +150,12 @@ void VertexBuffer::Init(
   VkDeviceMemory staging_memory = CreateBufferMemory(
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT           // host can access it
           | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,   // see host cache management
-      staging_buffer, device, physical_device);
+      staging_buffer, device, *context_->physical_device());
 
   // copy from host to staging buffer
   CopyHostToBuffer(0, total_size, staging_memory, device, {
-    {.ptr = vertex_data, .size = vertex_size, .offset = 0},
-    {.ptr =  index_data, .size =  index_size, .offset = vertex_size},
+      {.ptr = vertex_data, .size = vertex_size, .offset = 0},
+      {.ptr =  index_data, .size =  index_size, .offset = vertex_size},
   });
 
   // create final buffer that is only visible to device
@@ -166,12 +167,12 @@ void VertexBuffer::Init(
       total_size, device);
   device_memory_ = CreateBufferMemory(
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,  // only accessible for device
-      buffer_, device, physical_device);
+      buffer_, device, *context_->physical_device());
 
   // copy from staging buffer to final buffer
   // graphics or compute queues implicitly have transfer capability
   CopyBufferToBuffer(total_size, staging_buffer, buffer_, device,
-                     app_.queues().graphics);
+                     context_->queues().graphics);
 
   // cleanup transient objects
   vkDestroyBuffer(device, staging_buffer, nullptr);
@@ -188,21 +189,22 @@ void VertexBuffer::Draw(const VkCommandBuffer& command_buffer) const {
 }
 
 VertexBuffer::~VertexBuffer() {
-  vkDestroyBuffer(*app_.device(), buffer_, nullptr);
-  vkFreeMemory(*app_.device(), device_memory_, nullptr);
+  vkDestroyBuffer(*context_->device(), buffer_, nullptr);
+  vkFreeMemory(*context_->device(), device_memory_, nullptr);
 }
 
-void UniformBuffer::Init(const void* data,
-                         size_t num_chunk,
-                         size_t chunk_size) {
-  const VkDevice& device = *app_.device();
+void UniformBuffer::Init(
+    std::shared_ptr<Context> context,
+    const void* data, size_t num_chunk, size_t chunk_size) {
+  context_ = context;
+  const VkDevice& device = *context->device();
 
   data_ = static_cast<const char*>(data);
   // offset is required to be multiple of minUniformBufferOffsetAlignment
   // which is why we have actual data size |chunk_data_size_| and its
   // aligned size |chunk_memory_size_|
   VkDeviceSize alignment =
-      app_.physical_device().limits().minUniformBufferOffsetAlignment;
+      context_->physical_device().limits().minUniformBufferOffsetAlignment;
   chunk_data_size_ = chunk_size;
   chunk_memory_size_ = (chunk_data_size_ + alignment) / alignment * alignment;
 
@@ -211,7 +213,7 @@ void UniformBuffer::Init(const void* data,
   device_memory_ = CreateBufferMemory(
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
           | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-      buffer_, device, *app_.physical_device());
+      buffer_, device, *context_->physical_device());
 
   VkDescriptorPoolSize pool_size{
       .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -282,7 +284,8 @@ void UniformBuffer::Init(const void* data,
 void UniformBuffer::Update(size_t chunk_index) const {
   VkDeviceSize src_offset = chunk_data_size_ * chunk_index;
   VkDeviceSize dst_offset = chunk_memory_size_ * chunk_index;
-  CopyHostToBuffer(dst_offset, chunk_data_size_, device_memory_, *app_.device(),
+  CopyHostToBuffer(
+      dst_offset, chunk_data_size_, device_memory_, *context_->device(),
       {{.ptr = data_ + src_offset, .size = chunk_data_size_, .offset = 0}});
 }
 
@@ -295,7 +298,7 @@ void UniformBuffer::Bind(const VkCommandBuffer& command_buffer,
 }
 
 UniformBuffer::~UniformBuffer() {
-  const VkDevice& device = *app_.device();
+  const VkDevice& device = *context_->device();
   vkDestroyDescriptorPool(device, descriptor_pool_, nullptr);
   // descriptor sets are implicitly cleaned up with descriptor pool
   for (auto& layout : descriptor_set_layouts_)

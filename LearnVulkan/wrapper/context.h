@@ -24,7 +24,7 @@ class GLFWwindow;
 namespace vulkan {
 namespace wrapper {
 
-class Context : std::enable_shared_from_this<Context> {
+class Context : public std::enable_shared_from_this<Context> {
  public:
   Context(uint32_t width  = 800,
           uint32_t height = 600);
@@ -33,7 +33,7 @@ class Context : std::enable_shared_from_this<Context> {
   void Cleanup();
   ~Context();
 
-  // This class is not copyable or movable
+  // This class is neither copyable nor movable
   Context(const Context&) = delete;
   Context& operator=(const Context&) = delete;
 

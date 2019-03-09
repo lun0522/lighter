@@ -89,14 +89,20 @@ void Application::InitVulkan() {
   }
   swapchain_.Init();
   render_pass_.Init();
-  pipeline_.Init();
+  pipeline_.Init(unifrom_buffer_, VertexAttrib::binding_descriptions(),
+                 VertexAttrib::attrib_descriptions());
   command_.Init();
 }
 
 void Application::MainLoop() {
   while (!glfwWindowShouldClose(window_)) {
     glfwPollEvents();
-    if (command_.DrawFrame() != VK_SUCCESS || has_resized_) {
+    const VkExtent2D extent = context_->swapchain().extent();
+    auto update_func = [extent](size_t current_frame_) {
+      VertexAttrib::UpdateUbo(
+          current_frame, (float)extent.width / extent.height);
+    };
+    if (command_.DrawFrame(update_func) != VK_SUCCESS || has_resized_) {
       has_resized_ = false;
       Recreate();
     }

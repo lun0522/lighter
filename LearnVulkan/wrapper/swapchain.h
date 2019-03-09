@@ -74,7 +74,7 @@ class Swapchain {
   void Cleanup();
   ~Swapchain() { Cleanup(); }
 
-  // This class is not copyable or movable
+  // This class is neither copyable nor movable
   Swapchain(const Swapchain&) = delete;
   Swapchain& operator=(const Swapchain&) = delete;
 

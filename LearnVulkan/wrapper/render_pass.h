@@ -40,7 +40,7 @@ class RenderPass {
   void Cleanup();
   ~RenderPass() { Cleanup(); }
 
-  // This class is not copyable or movable
+  // This class is neither copyable nor movable
   RenderPass(const RenderPass&) = delete;
   RenderPass& operator=(const RenderPass&) = delete;
 

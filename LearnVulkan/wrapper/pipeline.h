@@ -1,23 +1,24 @@
 //
 //  pipeline.h
-//  LearnVulkan
 //
 //  Created by Pujun Lun on 2/6/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LEARNVULKAN_PIPELINE_H
-#define LEARNVULKAN_PIPELINE_H
+#ifndef VULKAN_WRAPPER_PIPELINE_H
+#define VULKAN_WRAPPER_PIPELINE_H
 
 #include <string>
+#include <vector>
 
 #include <vulkan/vulkan.hpp>
 
+#include "buffer.h"
+
 namespace vulkan {
+namespace wrapper {
 
-class Application;
-
-// fixed and programmable statges
+class Context;
 
 /** VkPipeline stores the entire graphics pipeline.
  *
@@ -37,15 +38,17 @@ class Application;
  */
 class Pipeline {
  public:
-  Pipeline(const Application& app,
+  Pipeline(std::shared_ptr<Context> context,
            const std::string& vert_file,
            const std::string& frag_file)
-  : app_{app}, vert_file_{vert_file}, frag_file_{frag_file} {}
-  void Init();
+  : context_{context}, vert_file_{vert_file}, frag_file_{frag_file} {}
+  void Init(const UniformBuffer& uniform_buffer,
+            const std::vector<VkVertexInputBindingDescription>& binding_descs,
+            const std::vector<VkVertexInputAttributeDescription>& attrib_descs);
   void Cleanup();
   ~Pipeline() { Cleanup(); }
 
-  // This class is not copyable or movable
+  // This class is neither copyable nor movable
   Pipeline(const Pipeline&) = delete;
   Pipeline& operator=(const Pipeline&) = delete;
 
@@ -53,12 +56,13 @@ class Pipeline {
   const VkPipelineLayout& layout()  const { return pipeline_layout_; }
 
  private:
-  const Application& app_;
+  std::shared_ptr<Context> context_;
   const std::string vert_file_, frag_file_;
   VkPipelineLayout pipeline_layout_;
   VkPipeline pipeline_;
 };
 
+} /* namespace wrapper */
 } /* namespace vulkan */
 
-#endif /* LEARNVULKAN_PIPELINE_H */
+#endif /* VULKAN_WRAPPER_PIPELINE_H */

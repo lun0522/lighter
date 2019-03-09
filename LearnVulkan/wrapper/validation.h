@@ -47,7 +47,7 @@ class DebugCallback {
             VkDebugUtilsMessageTypeFlagsEXT message_type);
   ~DebugCallback();
 
-  // This class is not copyable or movable
+  // This class is neither copyable nor movable
   DebugCallback(const DebugCallback&) = delete;
   DebugCallback& operator=(const DebugCallback&) = delete;
 

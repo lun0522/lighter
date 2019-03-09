@@ -9,7 +9,6 @@
 #ifndef TRIANGLE_APP_H
 #define TRIANGLE_APP_H
 
-#include <array>
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -29,8 +28,8 @@ struct UniformBufferObject {
 struct VertexAttrib {
   glm::vec2 pos;
   glm::vec3 color;
-  static std::array<VkVertexInputBindingDescription, 1> binding_descriptions();
-  static std::array<VkVertexInputAttributeDescription, 2> attrib_descriptions();
+  static std::vector<VkVertexInputBindingDescription> binding_descriptions();
+  static std::vector<VkVertexInputAttributeDescription> attrib_descriptions();
   static const void* ubo();
   static size_t ubo_size() { return sizeof(glm::mat4) * 3; }
   static void UpdateUbo(size_t current_frame, float screen_aspect);

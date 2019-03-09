@@ -29,8 +29,8 @@ const vector<uint32_t> kTrangleIndices {
   0, 1, 2, 2, 3, 0,
 };
 
-array<VkVertexInputBindingDescription, 1> VertexAttrib::binding_descriptions() {
-  array<VkVertexInputBindingDescription, 1> binding_descs{};
+vector<VkVertexInputBindingDescription> VertexAttrib::binding_descriptions() {
+  vector<VkVertexInputBindingDescription> binding_descs(1);
 
   binding_descs[0].binding = 0;
   binding_descs[0].stride = sizeof(VertexAttrib);
@@ -40,8 +40,8 @@ array<VkVertexInputBindingDescription, 1> VertexAttrib::binding_descriptions() {
   return binding_descs;
 }
 
-array<VkVertexInputAttributeDescription, 2> VertexAttrib::attrib_descriptions() {
-  array<VkVertexInputAttributeDescription, 2> attrib_descs{};
+vector<VkVertexInputAttributeDescription> VertexAttrib::attrib_descriptions() {
+  vector<VkVertexInputAttributeDescription> attrib_descs(2);
 
   attrib_descs[0].binding = 0; // which binding point does data come from
   attrib_descs[0].location = 0; // layout (location = 0) in

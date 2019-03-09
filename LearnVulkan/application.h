@@ -38,7 +38,7 @@ class Application {
   void Cleanup();
   ~Application();
 
-  // This class is not copyable or movable
+  // This class is neither copyable nor movable
   Application(const Application&) = delete;
   Application& operator=(const Application&) = delete;
 
@@ -55,8 +55,6 @@ class Application {
   const Command& command()                const { return command_; }
   const VertexBuffer& vertex_buffer()     const { return vertex_buffer_; }
   const UniformBuffer& uniform_buffer()   const { return uniform_buffer_; }
-  const Queues& queues()                  const { return queues_; }
-  Queues& queues()                              { return queues_; }
 
  private:
   bool has_resized_{false};

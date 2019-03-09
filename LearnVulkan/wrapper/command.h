@@ -1,26 +1,25 @@
 //
 //  command.h
-//  LearnVulkan
 //
 //  Created by Pujun Lun on 2/9/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LEARNVULKAN_COMMAND_H
-#define LEARNVULKAN_COMMAND_H
+#ifndef VULKAN_WRAPPER_COMMAND_H
+#define VULKAN_WRAPPER_COMMAND_H
 
 #include <functional>
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
 
-#include "wrapper/basic_object.h" // TODO: remove wrapper/
-#include "wrapper/buffer.h" // TODO: remove wrapper/
+#include "basic_object.h"
+#include "buffer.h"
 
 namespace vulkan {
+namespace wrapper {
 
-class Application;
-using namespace wrapper; // TODO: remove
+class Context;
 
 /** VkCommandPool allocates command buffer memory.
  *
@@ -45,19 +44,21 @@ class Command {
       const VkDevice& device,
       const Queues::Queue& queue,
       const RecordCommand& on_record);
-  
-  Command(const Application& app) : app_{app} {}
-  VkResult DrawFrame();
-  void Init();
+
+  VkResult DrawFrame(const UniformBuffer& uniform_buffer,
+                     const std::function<void (size_t)>& update_func);
+  void Init(std::shared_ptr<Context> context,
+            const VertexBuffer& vertex_buffer,
+            const UniformBuffer& uniform_buffer);
   void Cleanup();
   ~Command();
 
-  // This class is not copyable or movable
+  // This class is neither copyable nor movable
   Command(const Command&) = delete;
   Command& operator=(const Command&) = delete;
 
  private:
-  const Application& app_;
+  std::shared_ptr<Context> context_;
   size_t current_frame_{0};
   bool is_first_time_{true};
   std::vector<VkSemaphore> image_available_semas_;
@@ -67,6 +68,7 @@ class Command {
   std::vector<VkCommandBuffer> command_buffers_;
 };
 
+} /* namespace wrapper */
 } /* namespace vulkan */
 
-#endif /* LEARNVULKAN_COMMAND_H */
+#endif /* VULKAN_WRAPPER_COMMAND_H */
