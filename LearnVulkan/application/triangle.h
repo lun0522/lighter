@@ -42,12 +42,14 @@ struct VertexAttrib {
 
 class TriangleApplication {
  public:
-  TriangleApplication() : context_{"Triangle"} {};
+  TriangleApplication() : context_{wrapper::Context::CreateContext()} {
+      context_->Init("Triangle");
+  };
   void MainLoop();
 
  private:
   bool is_first_time{true};
-  wrapper::Context context_;
+  std::shared_ptr<wrapper::Context> context_;
   wrapper::Pipeline pipeline_;
   wrapper::Command command_;
   wrapper::VertexBuffer vertex_buffer_;

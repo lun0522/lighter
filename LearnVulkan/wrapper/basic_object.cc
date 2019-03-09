@@ -142,6 +142,8 @@ Surface::~Surface() {
 }
 
 void PhysicalDevice::Init(std::shared_ptr<Context> context) {
+  context_ = context;
+
   auto devices{util::QueryAttribute<VkPhysicalDevice>(
       [this](uint32_t* count, VkPhysicalDevice* physical_device) {
         return vkEnumeratePhysicalDevices(

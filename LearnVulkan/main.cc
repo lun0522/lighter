@@ -9,15 +9,16 @@
 
 #include "application/triangle.h"
 
-using namespace std;
-
 int main(int argc, const char* argv[]) {
-  try {
-    vulkan::application::TriangleApplication app;
-    app.MainLoop();
-  } catch (const exception& e) {
-    cerr << "Error: " << e.what() << endl;
-    return EXIT_FAILURE;
-  }
+  vulkan::application::TriangleApplication app;
+  app.MainLoop();
+
+//  try {
+//    vulkan::application::TriangleApplication app;
+//    app.MainLoop();
+//  } catch (const std::exception& e) {
+//    std::cerr << "Error: " << e.what() << std::endl;
+//    return EXIT_FAILURE;
+//  }
   return EXIT_SUCCESS;
 }

@@ -21,7 +21,7 @@ void FramebufferResizeCallback(GLFWwindow* window, int width, int height) {
 
 } /* namespace */
 
-Context::Context(const std::string& name, uint32_t width, uint32_t height) {
+void Context::Init(const std::string& name, uint32_t width, uint32_t height) {
   InitWindow(name, width, height);
   InitVulkan();
 }
@@ -56,7 +56,7 @@ void Context::InitVulkan() {
   render_pass_.Init(ptr());
 }
 
-VkExtent2D Context::current_extent() const {
+VkExtent2D Context::screen_size() const {
   int width, height;
   glfwGetFramebufferSize(window_, &width, &height);
   return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};

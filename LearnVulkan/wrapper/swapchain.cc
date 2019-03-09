@@ -165,7 +165,7 @@ void Swapchain::Init(std::shared_ptr<Context> context) {
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
       physical_device, surface, &surface_capabilities);
   VkExtent2D extent = ChooseExtent(
-      surface_capabilities, context_->current_extent());
+      surface_capabilities, context_->screen_size());
 
   // surface formats
   auto surface_formats{util::QueryAttribute<VkSurfaceFormatKHR>(

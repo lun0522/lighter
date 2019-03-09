@@ -1,13 +1,12 @@
 //
 //  util.h
-//  LearnVulkan
 //
 //  Created by Pujun Lun on 2/2/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LEARNVULKAN_UTIL_H
-#define LEARNVULKAN_UTIL_H
+#ifndef PUBLIC_UTIL_H
+#define PUBLIC_UTIL_H
 
 #include <fstream>
 #include <iostream>
@@ -72,4 +71,4 @@ const std::string& ReadFile(const std::string& path);
 
 } /* namespace util */
 
-#endif /* LEARNVULKAN_UTIL_H */
+#endif /* PUBLIC_UTIL_H */

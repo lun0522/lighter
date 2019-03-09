@@ -27,9 +27,12 @@ namespace wrapper {
 
 class Context : public std::enable_shared_from_this<Context> {
  public:
-  Context(const std::string& name,
-          uint32_t width  = 800,
-          uint32_t height = 600);
+  static std::shared_ptr<Context> CreateContext() {
+    return std::shared_ptr<Context>{new Context};
+  }
+  void Init(const std::string& name,
+            uint32_t width = 800,
+            uint32_t height = 600);
   void Recreate();
   void Cleanup();
   bool ShouldQuit() const;
@@ -42,7 +45,7 @@ class Context : public std::enable_shared_from_this<Context> {
 
   std::shared_ptr<Context> ptr()                { return shared_from_this(); }
   bool& resized()                               { return has_resized_; }
-  VkExtent2D current_extent()             const;
+  VkExtent2D screen_size()                const;
   GLFWwindow* window()                    const { return window_; }
   const Instance& instance()              const { return instance_; }
   const Surface& surface()                const { return surface_; }
@@ -68,6 +71,7 @@ class Context : public std::enable_shared_from_this<Context> {
   DebugCallback callback_;
 #endif /* DEBUG */
 
+  Context() {}
   void InitWindow(const std::string& name, uint32_t width, uint32_t height);
   void InitVulkan();
 };
