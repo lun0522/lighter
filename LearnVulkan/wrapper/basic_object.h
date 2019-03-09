@@ -25,7 +25,7 @@ class Context;
  */
 class Instance {
  public:
-  Instance() {}
+  Instance() = default;
   void Init();
   ~Instance() { vkDestroyInstance(instance_, nullptr); }
 
@@ -50,6 +50,7 @@ class Instance {
  */
 class Surface {
  public:
+  Surface() = default;
   void Init(std::shared_ptr<Context> context);
   ~Surface();
 
@@ -78,6 +79,7 @@ class Surface {
  */
 struct PhysicalDevice {
  public:
+  PhysicalDevice() = default;
   void Init(std::shared_ptr<Context> context);
   ~PhysicalDevice() {}  // implicitly cleaned up
 
@@ -109,6 +111,7 @@ struct PhysicalDevice {
  */
 struct Device {
  public:
+  Device() = default;
   void Init(std::shared_ptr<Context> context);
   ~Device() { vkDestroyDevice(device_, nullptr); }
 

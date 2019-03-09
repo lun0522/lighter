@@ -17,8 +17,6 @@ namespace vulkan {
 namespace wrapper {
 namespace {
 
-size_t kMaxFrameInFlight{2};
-
 void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
                     const vector<VkFramebuffer>& framebuffers,
                     const VkExtent2D extent,
@@ -239,6 +237,7 @@ VkResult Command::DrawFrame(const UniformBuffer& uniform_buffer,
 }
 
 void Command::Init(std::shared_ptr<Context> context,
+                   const Pipeline& pipeline,
                    const VertexBuffer& vertex_buffer,
                    const UniformBuffer& uniform_buffer) {
   context_ = context;
@@ -256,7 +255,7 @@ void Command::Init(std::shared_ptr<Context> context,
       context_->render_pass().framebuffers().size(), device, command_pool_);
   RecordCommands(command_buffers_, context_->render_pass().framebuffers(),
                  context_->swapchain().extent(), *context_->render_pass(),
-                 context_->pipeline(), vertex_buffer, uniform_buffer);
+                 pipeline, vertex_buffer, uniform_buffer);
 }
 
 void Command::Cleanup() {

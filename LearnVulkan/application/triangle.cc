@@ -1,12 +1,11 @@
 //
-//  triangle_data.cc
-//  LearnVulkan
+//  triangle.cc
 //
 //  Created by Pujun Lun on 3/2/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "triangle_app.h"
+#include "triangle.h"
 
 #include <chrono>
 
@@ -17,17 +16,21 @@ using namespace glm;
 using namespace std;
 
 namespace vulkan {
+namespace application {
+namespace {
 
 const vector<VertexAttrib> kTriangleVertices {
-  {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-  {{ 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-  {{ 0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}},
-  {{-0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}},
+    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{ 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{ 0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}},
+    {{-0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}},
 };
 
 const vector<uint32_t> kTrangleIndices {
-  0, 1, 2, 2, 3, 0,
+    0, 1, 2, 2, 3, 0,
 };
+
+} /* namespace */
 
 vector<VkVertexInputBindingDescription> VertexAttrib::binding_descriptions() {
   vector<VkVertexInputBindingDescription> binding_descs(1);
@@ -56,7 +59,8 @@ vector<VkVertexInputAttributeDescription> VertexAttrib::attrib_descriptions() {
   return attrib_descs;
 }
 
-static std::array<UniformBufferObject, 2> kUbo{};  //  TODO: ~2
+static std::array<UniformBufferObject, wrapper::Command::kMaxFrameInFlight>
+    kUbo{};
 
 const void* VertexAttrib::ubo() {
   return kUbo.data();
@@ -75,4 +79,50 @@ void VertexAttrib::UpdateUbo(size_t current_frame, float screen_aspect) {
   ubo.proj[1][1] *= -1;
 }
 
+void TriangleApplication::Init() {
+  vertex_buffer_.Init(context_.ptr(),
+                      kTriangleVertices.data(),
+                      sizeof(kTriangleVertices[0]) * kTriangleVertices.size(),
+                      kTriangleVertices.size(),
+                      kTrangleIndices.data(),
+                      sizeof(kTrangleIndices[0]) * kTrangleIndices.size(),
+                      kTrangleIndices.size());
+  uniform_buffer_.Init(context_.ptr(),
+                       VertexAttrib::ubo(), wrapper::Command::kMaxFrameInFlight,
+                       VertexAttrib::ubo_size());
+
+  if (is_first_time) {
+    pipeline_.Init(context_.ptr(), "triangle.vert.spv", "triangle.frag.spv",
+                   uniform_buffer_, VertexAttrib::binding_descriptions(),
+                   VertexAttrib::attrib_descriptions());
+    command_.Init(context_.ptr(), pipeline_, vertex_buffer_, uniform_buffer_);
+    is_first_time = false;
+  }
+}
+
+void TriangleApplication::Cleanup() {
+  command_.Cleanup();
+  pipeline_.Cleanup();
+}
+
+void TriangleApplication::MainLoop() {
+  while (!context_.ShouldQuit()) {
+    const VkExtent2D extent = context_.swapchain().extent();
+    size_t current_frame = command_.current_frame();
+    auto update_func = [=](size_t current_frame_) {
+      VertexAttrib::UpdateUbo(
+          current_frame, (float)extent.width / extent.height);
+    };
+    if (command_.DrawFrame(uniform_buffer_, update_func) != VK_SUCCESS ||
+        context_.resized()) {
+      context_.resized() = false;
+      Cleanup();
+      context_.Recreate();
+      Init();
+    }
+  }
+  context_.WaitIdle(); // wait for all async operations finish
+}
+
+} /* namespace application */
 } /* namespace vulkan */

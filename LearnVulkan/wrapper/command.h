@@ -15,6 +15,7 @@
 
 #include "basic_object.h"
 #include "buffer.h"
+#include "pipeline.h"
 
 namespace vulkan {
 namespace wrapper {
@@ -39,15 +40,19 @@ class Context;
  */
 class Command {
  public:
+  static const size_t kMaxFrameInFlight{2};
+
   using RecordCommand = std::function<void (const VkCommandBuffer&)>;
   static void OneTimeCommand(
       const VkDevice& device,
       const Queues::Queue& queue,
       const RecordCommand& on_record);
 
+  Command() = default;
   VkResult DrawFrame(const UniformBuffer& uniform_buffer,
                      const std::function<void (size_t)>& update_func);
   void Init(std::shared_ptr<Context> context,
+            const Pipeline& pipeline,
             const VertexBuffer& vertex_buffer,
             const UniformBuffer& uniform_buffer);
   void Cleanup();
@@ -56,6 +61,8 @@ class Command {
   // This class is neither copyable nor movable
   Command(const Command&) = delete;
   Command& operator=(const Command&) = delete;
+
+  size_t current_frame() const { return current_frame_; }
 
  private:
   std::shared_ptr<Context> context_;

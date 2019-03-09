@@ -1,20 +1,25 @@
 //
-//  triangle_app.h
-//  LearnVulkan
+//  triangle.h
 //
 //  Created by Pujun Lun on 3/2/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef TRIANGLE_APP_H
-#define TRIANGLE_APP_H
+#ifndef VULKAN_APPLICATION_TRIANGLE_H
+#define VULKAN_APPLICATION_TRIANGLE_H
 
 #include <vector>
 
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>
 
+#include "buffer.h"
+#include "command.h"
+#include "context.h"
+#include "pipeline.h"
+
 namespace vulkan {
+namespace application {
 
 // alignment requirement:
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/
@@ -35,9 +40,24 @@ struct VertexAttrib {
   static void UpdateUbo(size_t current_frame, float screen_aspect);
 };
 
-extern const std::vector<VertexAttrib> kTriangleVertices;
-extern const std::vector<uint32_t> kTrangleIndices;
+class TriangleApplication {
+ public:
+  TriangleApplication() : context_{"Triangle"} {};
+  void MainLoop();
 
+ private:
+  bool is_first_time{true};
+  wrapper::Context context_;
+  wrapper::Pipeline pipeline_;
+  wrapper::Command command_;
+  wrapper::VertexBuffer vertex_buffer_;
+  wrapper::UniformBuffer uniform_buffer_;
+
+  void Init();
+  void Cleanup();
+};
+
+} /* namespace application */
 } /* namespace vulkan */
 
-#endif /* TRIANGLE_APP_H */
+#endif /* VULKAN_APPLICATION_TRIANGLE_H */

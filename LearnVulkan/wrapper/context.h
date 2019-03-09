@@ -9,6 +9,7 @@
 #define VULKAN_WRAPPER_CONTEXT_H
 
 #include <memory>
+#include <string>
 
 #include <vulkan/vulkan.hpp>
 
@@ -26,17 +27,20 @@ namespace wrapper {
 
 class Context : public std::enable_shared_from_this<Context> {
  public:
-  Context(uint32_t width  = 800,
+  Context(const std::string& name,
+          uint32_t width  = 800,
           uint32_t height = 600);
-  void MainLoop();
   void Recreate();
   void Cleanup();
+  bool ShouldQuit() const;
+  void WaitIdle() const { vkDeviceWaitIdle(*device_); }
   ~Context();
 
   // This class is neither copyable nor movable
   Context(const Context&) = delete;
   Context& operator=(const Context&) = delete;
 
+  std::shared_ptr<Context> ptr()                { return shared_from_this(); }
   bool& resized()                               { return has_resized_; }
   VkExtent2D current_extent()             const;
   GLFWwindow* window()                    const { return window_; }
@@ -46,7 +50,6 @@ class Context : public std::enable_shared_from_this<Context> {
   const Device& device()                  const { return device_; }
   const Swapchain& swapchain()            const { return swapchain_; }
   const RenderPass& render_pass()         const { return render_pass_; }
-  const Pipeline& pipeline()              const { return pipeline_; }
   const Queues& queues()                  const { return queues_; }
   Queues& queues()                              { return queues_; }
 
@@ -61,10 +64,12 @@ class Context : public std::enable_shared_from_this<Context> {
   Queues queues_;
   Swapchain swapchain_;
   RenderPass render_pass_;
-  Pipeline pipeline_;
 #ifdef DEBUG
   DebugCallback callback_;
 #endif /* DEBUG */
+
+  void InitWindow(const std::string& name, uint32_t width, uint32_t height);
+  void InitVulkan();
 };
 
 } /* namespace wrapper */

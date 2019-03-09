@@ -38,11 +38,11 @@ class Context;
  */
 class Pipeline {
  public:
-  Pipeline(std::shared_ptr<Context> context,
-           const std::string& vert_file,
-           const std::string& frag_file)
-  : context_{context}, vert_file_{vert_file}, frag_file_{frag_file} {}
-  void Init(const UniformBuffer& uniform_buffer,
+  Pipeline() = default;
+  void Init(std::shared_ptr<Context> context,
+            const std::string& vert_file,
+            const std::string& frag_file,
+            const UniformBuffer& uniform_buffer,
             const std::vector<VkVertexInputBindingDescription>& binding_descs,
             const std::vector<VkVertexInputAttributeDescription>& attrib_descs);
   void Cleanup();
@@ -57,7 +57,7 @@ class Pipeline {
 
  private:
   std::shared_ptr<Context> context_;
-  const std::string vert_file_, frag_file_;
+  std::string vert_file_, frag_file_;
   VkPipelineLayout pipeline_layout_;
   VkPipeline pipeline_;
 };

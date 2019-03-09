@@ -42,6 +42,7 @@ class Context;
  */
 class VertexBuffer {
  public:
+  VertexBuffer() = default;
   void Init(std::shared_ptr<Context> context,
             const void* vertex_data, size_t vertex_size, size_t vertex_count,
             const void*  index_data, size_t  index_size, size_t  index_count);
@@ -62,6 +63,7 @@ class VertexBuffer {
 
 class UniformBuffer {
  public:
+  UniformBuffer() = default;
   void Init(std::shared_ptr<Context> context,
             const void* data, size_t num_chunk, size_t chunk_size);
   void Update(size_t chunk_index) const;

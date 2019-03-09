@@ -35,9 +35,15 @@ VkShaderModule CreateShaderModule(const VkDevice& device,
 } /* namespace */
 
 void Pipeline::Init(
+    std::shared_ptr<Context> context,
+    const string& vert_file,
+    const string& frag_file,
     const UniformBuffer& uniform_buffer,
     const std::vector<VkVertexInputBindingDescription>& binding_descs,
     const std::vector<VkVertexInputAttributeDescription>& attrib_descs) {
+  context_ = context;
+  vert_file_ = vert_file;
+  frag_file_ = frag_file;
   const VkDevice& device = *context_->device();
 
   const string& vert_code = util::ReadFile(vert_file_);
