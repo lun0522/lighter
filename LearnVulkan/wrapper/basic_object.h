@@ -26,8 +26,8 @@ class Context;
 class Instance {
  public:
   Instance() = default;
-  void Init();
-  ~Instance() { vkDestroyInstance(instance_, nullptr); }
+  void Init(std::shared_ptr<Context> context);
+  ~Instance();
 
   // This class is neither copyable nor movable
   Instance(const Instance&) = delete;
@@ -37,6 +37,7 @@ class Instance {
   const VkInstance& operator*(void) const { return instance_; }
 
  private:
+  std::shared_ptr<Context> context_;
   VkInstance instance_;
 };
 
@@ -113,7 +114,7 @@ struct Device {
  public:
   Device() = default;
   void Init(std::shared_ptr<Context> context);
-  ~Device() { vkDestroyDevice(device_, nullptr); }
+  ~Device();
 
   // This class is neither copyable nor movable
   Device(const Device&) = delete;

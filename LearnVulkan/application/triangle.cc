@@ -18,6 +18,13 @@ namespace vulkan {
 namespace application {
 namespace {
 
+size_t kNumFrame = wrapper::Command::kMaxFrameInFlight;
+
+struct VertexAttrib {
+  glm::vec2 pos;
+  glm::vec3 color;
+};
+
 const vector<VertexAttrib> kTriangleVertices {
     {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
     {{ 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
@@ -29,43 +36,51 @@ const vector<uint32_t> kTrangleIndices {
     0, 1, 2, 2, 3, 0,
 };
 
-} /* namespace */
-
-vector<VkVertexInputBindingDescription> VertexAttrib::binding_descriptions() {
+vector<VkVertexInputBindingDescription> BindingDescriptions() {
   vector<VkVertexInputBindingDescription> binding_descs(1);
 
-  binding_descs[0].binding = 0;
-  binding_descs[0].stride = sizeof(VertexAttrib);
-  // for instancing, use _INSTANCE for .inputRate
-  binding_descs[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+  binding_descs[0] = VkVertexInputBindingDescription{
+      /*binding=*/0,
+      /*stride=*/sizeof(VertexAttrib),
+      // for instancing, use _INSTANCE for .inputRate
+      /*inputRate=*/VK_VERTEX_INPUT_RATE_VERTEX,
+  };
 
   return binding_descs;
 }
 
-vector<VkVertexInputAttributeDescription> VertexAttrib::attrib_descriptions() {
+vector<VkVertexInputAttributeDescription> AttribDescriptions() {
   vector<VkVertexInputAttributeDescription> attrib_descs(2);
 
-  attrib_descs[0].binding = 0; // which binding point does data come from
-  attrib_descs[0].location = 0; // layout (location = 0) in
-  attrib_descs[0].format = VK_FORMAT_R32G32_SFLOAT; // implies total size
-  attrib_descs[0].offset = offsetof(VertexAttrib, pos); // reading offset
+  attrib_descs[0] = VkVertexInputAttributeDescription{
+      /*location=*/0, // layout (location = 0) in
+      /*binding=*/0, // which binding point does data come from
+      /*format=*/VK_FORMAT_R32G32_SFLOAT, // implies total size
+      /*offset=*/offsetof(VertexAttrib, pos), // reading offset
+  };
 
-  attrib_descs[1].binding = 0;
-  attrib_descs[1].location = 1;
-  attrib_descs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-  attrib_descs[1].offset = offsetof(VertexAttrib, color);
+  attrib_descs[1] = VkVertexInputAttributeDescription{
+      /*location=*/1,
+      /*binding=*/0,
+      /*format=*/VK_FORMAT_R32G32B32_SFLOAT,
+      /*offset=*/offsetof(VertexAttrib, color),
+  };
 
   return attrib_descs;
 }
 
-static std::array<UniformBufferObject, wrapper::Command::kMaxFrameInFlight>
-    kUbo{};
+// alignment requirement:
+// https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/
+//    chap14.html#interfaces-resources-layout
+struct UniformBufferObject {
+  alignas(16) glm::mat4 model;
+  alignas(16) glm::mat4 view;
+  alignas(16) glm::mat4 proj;
+};
 
-const void* VertexAttrib::ubo() {
-  return kUbo.data();
-}
+vector<UniformBufferObject> kUbo(kNumFrame);
 
-void VertexAttrib::UpdateUbo(size_t current_frame, float screen_aspect) {
+void UpdateUbo(size_t current_frame, float screen_aspect) {
   static auto start_time = std::chrono::high_resolution_clock::now();
   auto current_time = std::chrono::high_resolution_clock::now();
   auto time = std::chrono::duration<float, std::chrono::seconds::period>(
@@ -79,6 +94,8 @@ void VertexAttrib::UpdateUbo(size_t current_frame, float screen_aspect) {
   ubo.proj[1][1] *= -1;
 }
 
+} /* namespace */
+
 void TriangleApplication::Init() {
   if (is_first_time) {
     vertex_buffer_.Init(context_->ptr(),
@@ -88,16 +105,13 @@ void TriangleApplication::Init() {
                         kTrangleIndices.data(),
                         sizeof(kTrangleIndices[0]) * kTrangleIndices.size(),
                         kTrangleIndices.size());
-    uniform_buffer_.Init(context_->ptr(),
-                         VertexAttrib::ubo(),
-                         wrapper::Command::kMaxFrameInFlight,
-                         VertexAttrib::ubo_size());
+    uniform_buffer_.Init(context_->ptr(), kUbo.data(), kNumFrame,
+                         sizeof(UniformBufferObject));
     is_first_time = false;
   }
 
   pipeline_.Init(context_->ptr(), "triangle.vert.spv", "triangle.frag.spv",
-                 uniform_buffer_, VertexAttrib::binding_descriptions(),
-                 VertexAttrib::attrib_descriptions());
+                 uniform_buffer_, BindingDescriptions(), AttribDescriptions());
   command_.Init(context_->ptr(), pipeline_, vertex_buffer_, uniform_buffer_);
 }
 
@@ -112,8 +126,7 @@ void TriangleApplication::MainLoop() {
     const VkExtent2D extent = context_->swapchain().extent();
     size_t current_frame = command_.current_frame();
     auto update_func = [=](size_t current_frame_) {
-      VertexAttrib::UpdateUbo(
-          current_frame, (float)extent.width / extent.height);
+      UpdateUbo(current_frame, (float)extent.width / extent.height);
     };
     if (command_.DrawFrame(uniform_buffer_, update_func) != VK_SUCCESS ||
         context_->resized()) {

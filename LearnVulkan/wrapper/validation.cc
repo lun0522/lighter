@@ -62,13 +62,13 @@ void DebugCallback::Init(std::shared_ptr<Context> context,
 
   auto func = LoadFunction<PFN_vkCreateDebugUtilsMessengerEXT>(
       *context_->instance(), "vkCreateDebugUtilsMessengerEXT");
-  func(*context_->instance(), &create_info, nullptr, &callback_);
+  func(*context_->instance(), &create_info, context_->allocator(), &callback_);
 }
 
 DebugCallback::~DebugCallback() {
   auto func = LoadFunction<PFN_vkDestroyDebugUtilsMessengerEXT>(
       *context_->instance(), "vkDestroyDebugUtilsMessengerEXT");
-  func(*context_->instance(), callback_, nullptr);
+  func(*context_->instance(), callback_, context_->allocator());
 }
 
 void CheckInstanceExtensionSupport(const vector<string>& required) {

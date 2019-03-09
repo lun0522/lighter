@@ -17,7 +17,8 @@ namespace wrapper {
 namespace {
 
 VkShaderModule CreateShaderModule(const VkDevice& device,
-                                  const string& code) {
+                                  const string& code,
+                                  const VkAllocationCallbacks* allocator) {
   VkShaderModuleCreateInfo shader_module_info{
       .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
       .codeSize = code.length(),
@@ -26,7 +27,7 @@ VkShaderModule CreateShaderModule(const VkDevice& device,
 
   VkShaderModule shader_module{};
   ASSERT_SUCCESS(vkCreateShaderModule(
-                     device, &shader_module_info, nullptr, &shader_module),
+                     device, &shader_module_info, allocator, &shader_module),
                  "Failed to create shader module");
 
   return shader_module;
@@ -45,12 +46,15 @@ void Pipeline::Init(
   vert_file_ = vert_file;
   frag_file_ = frag_file;
   const VkDevice& device = *context_->device();
+  const VkAllocationCallbacks* allocator = context_->allocator();
 
   const string& vert_code = util::ReadFile(vert_file_);
   const string& frag_code = util::ReadFile(frag_file_);
 
-  VkShaderModule vert_shader_module = CreateShaderModule(device, vert_code);
-  VkShaderModule frag_shader_module = CreateShaderModule(device, frag_code);
+  VkShaderModule vert_shader_module =
+      CreateShaderModule(device, vert_code, allocator);
+  VkShaderModule frag_shader_module =
+      CreateShaderModule(device, frag_code, allocator);
 
   VkPipelineShaderStageCreateInfo vert_shader_info{
       .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -166,9 +170,9 @@ void Pipeline::Init(
       .pSetLayouts = descriptor_set_layouts.data(),
   };
 
-  ASSERT_SUCCESS(
-      vkCreatePipelineLayout(device, &layout_info, nullptr, &pipeline_layout_),
-      "Failed to create pipeline layout");
+  ASSERT_SUCCESS(vkCreatePipelineLayout(
+                     device, &layout_info, allocator, &pipeline_layout_),
+                 "Failed to create pipeline layout");
 
   VkGraphicsPipelineCreateInfo pipeline_info{
       .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -190,16 +194,17 @@ void Pipeline::Init(
 
   ASSERT_SUCCESS(
       vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_info,
-                                nullptr, &pipeline_),
+                                allocator, &pipeline_),
       "Failed to create graphics pipeline");
 
-  vkDestroyShaderModule(device, vert_shader_module, nullptr);
-  vkDestroyShaderModule(device, frag_shader_module, nullptr);
+  vkDestroyShaderModule(device, vert_shader_module, allocator);
+  vkDestroyShaderModule(device, frag_shader_module, allocator);
 }
 
 void Pipeline::Cleanup() {
-  vkDestroyPipeline(*context_->device(), pipeline_, nullptr);
-  vkDestroyPipelineLayout(*context_->device(), pipeline_layout_, nullptr);
+  vkDestroyPipeline(*context_->device(), pipeline_, context_->allocator());
+  vkDestroyPipelineLayout(*context_->device(), pipeline_layout_,
+                          context_->allocator());
 }
 
 } /* namespace wrapper */

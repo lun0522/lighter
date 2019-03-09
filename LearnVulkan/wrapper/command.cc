@@ -8,7 +8,6 @@
 #include "command.h"
 
 #include "context.h"
-#include "synchronize.h"
 #include "util.h"
 
 using std::vector;
@@ -67,7 +66,8 @@ void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
 
 VkCommandPool CreateCommandPool(uint32_t queue_family_index,
                                 const VkDevice& device,
-                                bool is_transient) {
+                                bool is_transient,
+                                const VkAllocationCallbacks* allocator) {
   // create pool to hold command buffers
   VkCommandPoolCreateInfo pool_info{
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -77,7 +77,7 @@ VkCommandPool CreateCommandPool(uint32_t queue_family_index,
     pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 
   VkCommandPool pool{};
-  ASSERT_SUCCESS(vkCreateCommandPool(device, &pool_info, nullptr, &pool),
+  ASSERT_SUCCESS(vkCreateCommandPool(device, &pool_info, allocator, &pool),
                  "Failed to create command pool");
   return pool;
 }
@@ -123,10 +123,11 @@ vector<VkCommandBuffer> CreateCommandBuffers(
 void Command::OneTimeCommand(
     const VkDevice& device,
     const Queues::Queue& queue,
+    const VkAllocationCallbacks* allocator,
     const RecordCommand& on_record) {
   // construct command pool and buffer
   VkCommandPool command_pool = CreateCommandPool(
-      queue.family_index, device, true);
+      queue.family_index, device, true, allocator);
   VkCommandBuffer command_buffer = CreateCommandBuffer(device, command_pool);
 
   // record command
@@ -146,7 +147,7 @@ void Command::OneTimeCommand(
   };
   vkQueueSubmit(queue.queue, 1, &submit_info, VK_NULL_HANDLE);
   vkQueueWaitIdle(queue.queue);
-  vkDestroyCommandPool(device, command_pool, nullptr);
+  vkDestroyCommandPool(device, command_pool, allocator);
 }
 
 VkResult Command::DrawFrame(const UniformBuffer& uniform_buffer,
@@ -189,7 +190,7 @@ VkResult Command::DrawFrame(const UniformBuffer& uniform_buffer,
   VkSemaphore signal_semas[]{
       render_finished_semas_[current_frame_],
   };
-  
+
   VkSubmitInfo submit_info{
       .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
       .waitSemaphoreCount = 1,
@@ -204,9 +205,10 @@ VkResult Command::DrawFrame(const UniformBuffer& uniform_buffer,
 
   // reset to fences unsignaled state
   vkResetFences(*context_->device(), 1, &in_flight_fences_[current_frame_]);
-  ASSERT_SUCCESS(vkQueueSubmit(context_->queues().graphics.queue, 1,
-                               &submit_info, in_flight_fences_[current_frame_]),
-                 "Failed to submit draw command buffer");
+  ASSERT_SUCCESS(
+      vkQueueSubmit(context_->queues().graphics.queue, 1, &submit_info,
+                    in_flight_fences_[current_frame_]),
+      "Failed to submit draw command buffer");
 
   // present image to screen
   VkPresentInfoKHR present_info{
@@ -214,7 +216,7 @@ VkResult Command::DrawFrame(const UniformBuffer& uniform_buffer,
       .waitSemaphoreCount = 1,
       .pWaitSemaphores = signal_semas,
       .swapchainCount = 1,
-      .pSwapchains = &(*context_->swapchain()),
+      .pSwapchains = &*context_->swapchain(),
       .pImageIndices = &image_index, // image for each swap chain
       // may use .pResults to check wether each swap chain rendered successfully
   };
@@ -241,18 +243,19 @@ void Command::Init(std::shared_ptr<Context> context,
                    const VertexBuffer& vertex_buffer,
                    const UniformBuffer& uniform_buffer) {
   context_ = context;
-  const VkDevice& device = *context_->device();
 
   if (is_first_time_) {
     command_pool_ = CreateCommandPool(
-        context_->queues().graphics.family_index, device, false);
-    image_available_semas_ = CreateSemaphores(kMaxFrameInFlight, device);
-    render_finished_semas_ = CreateSemaphores(kMaxFrameInFlight, device);
-    in_flight_fences_ = CreateFences(kMaxFrameInFlight, device, true);
+        context_->queues().graphics.family_index, *context_->device(),
+        false, context_->allocator());
+    image_available_semas_.Init(context_, kMaxFrameInFlight);
+    render_finished_semas_.Init(context_, kMaxFrameInFlight);
+    in_flight_fences_.Init(context_, kMaxFrameInFlight, true);
     is_first_time_ = false;
   }
   command_buffers_ = CreateCommandBuffers(
-      context_->render_pass().framebuffers().size(), device, command_pool_);
+      context_->render_pass().framebuffers().size(), *context_->device(),
+      command_pool_);
   RecordCommands(command_buffers_, context_->render_pass().framebuffers(),
                  context_->swapchain().extent(), *context_->render_pass(),
                  pipeline, vertex_buffer, uniform_buffer);
@@ -265,14 +268,9 @@ void Command::Cleanup() {
 }
 
 Command::~Command() {
-  const VkDevice& device = *context_->device();
-  vkDestroyCommandPool(device, command_pool_, nullptr);
+  vkDestroyCommandPool(*context_->device(), command_pool_,
+                       context_->allocator());
   // command buffers are implicitly cleaned up with command pool
-  for (size_t i = 0; i < kMaxFrameInFlight; ++i) {
-    vkDestroySemaphore(device, image_available_semas_[i], nullptr);
-    vkDestroySemaphore(device, render_finished_semas_[i], nullptr);
-    vkDestroyFence(device, in_flight_fences_[i], nullptr);
-  }
 }
 
 } /* namespace wrapper */

@@ -37,7 +37,7 @@ void Context::InitWindow(
 
 void Context::InitVulkan() {
   if (is_first_time_) {
-    instance_.Init();
+    instance_.Init(ptr());
 #ifdef DEBUG
     // relay debug messages back to application
     callback_.Init(ptr(),

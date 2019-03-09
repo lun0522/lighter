@@ -43,22 +43,28 @@ class Context : public std::enable_shared_from_this<Context> {
   Context(const Context&) = delete;
   Context& operator=(const Context&) = delete;
 
-  std::shared_ptr<Context> ptr()                { return shared_from_this(); }
-  bool& resized()                               { return has_resized_; }
-  VkExtent2D screen_size()                const;
-  GLFWwindow* window()                    const { return window_; }
-  const Instance& instance()              const { return instance_; }
-  const Surface& surface()                const { return surface_; }
-  const PhysicalDevice& physical_device() const { return physical_device_; }
-  const Device& device()                  const { return device_; }
-  const Swapchain& swapchain()            const { return swapchain_; }
-  const RenderPass& render_pass()         const { return render_pass_; }
-  const Queues& queues()                  const { return queues_; }
-  Queues& queues()                              { return queues_; }
+  std::shared_ptr<Context> ptr()                  { return shared_from_this(); }
+  bool& resized()                                 { return has_resized_; }
+  VkExtent2D screen_size()                  const;
+  const VkAllocationCallbacks* allocator()  const { return allocator_; }
+  GLFWwindow* window()                      const { return window_; }
+  const Instance& instance()                const { return instance_; }
+  const Surface& surface()                  const { return surface_; }
+  const PhysicalDevice& physical_device()   const { return physical_device_; }
+  const Device& device()                    const { return device_; }
+  const Swapchain& swapchain()              const { return swapchain_; }
+  const RenderPass& render_pass()           const { return render_pass_; }
+  const Queues& queues()                    const { return queues_; }
+  Queues& queues()                                { return queues_; }
+
+  void set_allocator(VkAllocationCallbacks* allocator) {
+    allocator_ = allocator;
+  }
 
  private:
   bool has_resized_{false};
   bool is_first_time_{true};
+  VkAllocationCallbacks* allocator_{nullptr};
   GLFWwindow* window_;
   Instance instance_;
   Surface surface_;

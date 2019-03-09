@@ -88,7 +88,8 @@ vector<VkImage> CreateImages(const VkSwapchainKHR& swapchain,
 
 vector<VkImageView> CreateImageViews(const vector<VkImage>& images,
                                      const VkDevice& device,
-                                     VkFormat image_format) {
+                                     VkFormat image_format,
+                                     const VkAllocationCallbacks* allocator) {
   // use image view to specify how will we use these images
   // (color, depth, stencil, etc)
   vector<VkImageView> image_views(images.size());
@@ -112,7 +113,7 @@ vector<VkImageView> CreateImageViews(const vector<VkImage>& images,
     };
 
     ASSERT_SUCCESS(
-        vkCreateImageView(device, &image_view_info, nullptr, &image_views[i]),
+        vkCreateImageView(device, &image_view_info, allocator, &image_views[i]),
         "Failed to create image view");
   }
   return image_views;
@@ -229,21 +230,22 @@ void Swapchain::Init(std::shared_ptr<Context> context) {
     swapchain_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
   }
 
-  ASSERT_SUCCESS(
-      vkCreateSwapchainKHR(device, &swapchain_info, nullptr, &swapchain_),
-      "Failed to create swapchain");
+  ASSERT_SUCCESS(vkCreateSwapchainKHR(device, &swapchain_info,
+                                      context_->allocator(), &swapchain_),
+                 "Failed to create swapchain");
 
   image_format_ = surface_format.format;
   image_extent_ = extent;
   images_ = CreateImages(swapchain_, device);
-  image_views_ = CreateImageViews(images_, device, image_format_);
+  image_views_ = CreateImageViews(images_, device, image_format_,
+                                  context_->allocator());
 }
 
 void Swapchain::Cleanup() {
   // images are implicitly cleaned up with swapchain
   for (auto& image_view : image_views_)
-    vkDestroyImageView(*context_->device(), image_view, nullptr);
-  vkDestroySwapchainKHR(*context_->device(), swapchain_, nullptr);
+    vkDestroyImageView(*context_->device(), image_view, context_->allocator());
+  vkDestroySwapchainKHR(*context_->device(), swapchain_, context_->allocator());
 }
 
 const vector<const char*> kSwapChainExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};

@@ -20,7 +20,8 @@ vector<VkFramebuffer> CreateFramebuffers(
     VkExtent2D image_extent,
     const vector<VkImageView>& image_views,
     const VkDevice& device,
-    const VkRenderPass& render_pass) {
+    const VkRenderPass& render_pass,
+    const VkAllocationCallbacks* allocator) {
   vector<VkFramebuffer> framebuffers(image_views.size());
   for (size_t i = 0; i < image_views.size(); ++i) {
     VkFramebufferCreateInfo framebuffer_info{
@@ -34,7 +35,7 @@ vector<VkFramebuffer> CreateFramebuffers(
     };
 
     ASSERT_SUCCESS(vkCreateFramebuffer(
-                       device, &framebuffer_info, nullptr, &framebuffers[i]),
+                       device, &framebuffer_info, allocator, &framebuffers[i]),
                    "Failed to create framebuffer");
   }
   return framebuffers;
@@ -102,18 +103,19 @@ void RenderPass::Init(std::shared_ptr<Context> context) {
   };
 
   ASSERT_SUCCESS(vkCreateRenderPass(*context_->device(), &render_pass_info,
-                                    nullptr, &render_pass_),
+                                    context_->allocator(), &render_pass_),
                  "Failed to create render pass");
 
   framebuffers_ = CreateFramebuffers(
       context_->swapchain().extent(), context_->swapchain().image_views(),
-      *context_->device(), render_pass_);
+      *context_->device(), render_pass_, context_->allocator());
 }
 
 void RenderPass::Cleanup() {
   for (const auto& framebuffer : framebuffers_)
-    vkDestroyFramebuffer(*context_->device(), framebuffer, nullptr);
-  vkDestroyRenderPass(*context_->device(), render_pass_, nullptr);
+    vkDestroyFramebuffer(*context_->device(), framebuffer,
+                         context_->allocator());
+  vkDestroyRenderPass(*context_->device(), render_pass_, context_->allocator());
 }
 
 } /* namespace wrapper */

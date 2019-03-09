@@ -73,7 +73,9 @@ bool IsDeviceSuitable(Queues& queues,
 
 } /* namespace */
 
-void Instance::Init() {
+void Instance::Init(std::shared_ptr<Context> context) {
+  context_ = context;
+
   if (glfwVulkanSupported() == GL_FALSE)
     throw runtime_error{"Vulkan not supported"};
 
@@ -101,44 +103,54 @@ void Instance::Init() {
   // [optional]
   // might be useful for the driver to optimize for some graphics engine
   VkApplicationInfo app_info{
-      .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-      .pApplicationName = "Learn Vulkan",
-      .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-      .pEngineName = "No Engine",
-      .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-      .apiVersion = VK_API_VERSION_1_0,
+      /*sType=*/VK_STRUCTURE_TYPE_APPLICATION_INFO,
+      /*pNext=*/nullptr,
+      /*pApplicationName=*/"Vulkan Application",
+      /*applicationVersion=*/VK_MAKE_VERSION(1, 0, 0),
+      /*pEngineName=*/"No Engine",
+      /*engineVersion=*/VK_MAKE_VERSION(1, 0, 0),
+      /*apiVersion=*/VK_API_VERSION_1_0,
   };
 
   // [required]
   // tell the driver which global extensions and validation layers to use
   VkInstanceCreateInfo instance_info{
-      .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-      .pApplicationInfo = &app_info,
+      /*sType=*/VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/0,
+      /*pApplicationInfo=*/&app_info,
 #ifdef DEBUG
-      .enabledExtensionCount = CONTAINER_SIZE(required_extensions),
-      .ppEnabledExtensionNames = required_extensions.data(),
-      .enabledLayerCount = CONTAINER_SIZE(kValidationLayers),
-      .ppEnabledLayerNames = kValidationLayers.data(),
+      /*enabledLayerCount=*/CONTAINER_SIZE(kValidationLayers),
+      /*ppEnabledLayerNames=*/kValidationLayers.data(),
+      /*enabledExtensionCount=*/CONTAINER_SIZE(required_extensions),
+      /*ppEnabledExtensionNames=*/required_extensions.data(),
 #else
-      .enabledExtensionCount = glfw_extension_count,
-      .ppEnabledExtensionNames = glfw_extensions,
-      .enabledLayerCount = 0,
+      /*enabledLayerCount=*/0,
+      /*ppEnabledLayerNames=*/nullptr,
+      /*enabledExtensionCount=*/glfw_extension_count,
+      /*ppEnabledExtensionNames=*/glfw_extensions,
 #endif /* DEBUG */
   };
 
-  ASSERT_SUCCESS(vkCreateInstance(&instance_info, nullptr, &instance_),
-                 "Failed to create instance");
+  ASSERT_SUCCESS(
+      vkCreateInstance(&instance_info, context_->allocator(), &instance_),
+      "Failed to create instance");
+}
+
+Instance::~Instance() {
+  vkDestroyInstance(instance_, context_->allocator());
 }
 
 void Surface::Init(std::shared_ptr<Context> context) {
   context_ = context;
-  ASSERT_SUCCESS(glfwCreateWindowSurface(*context->instance(),
-                                         context->window(), nullptr, &surface_),
-                 "Failed to create window surface");
+  ASSERT_SUCCESS(
+      glfwCreateWindowSurface(*context->instance(), context->window(),
+                              context_->allocator(), &surface_),
+      "Failed to create window surface");
 }
 
 Surface::~Surface() {
-  vkDestroySurfaceKHR(*context_->instance(), surface_, nullptr);
+  vkDestroySurfaceKHR(*context_->instance(), surface_, context_->allocator());
 }
 
 void PhysicalDevice::Init(std::shared_ptr<Context> context) {
@@ -179,33 +191,36 @@ void Device::Init(std::shared_ptr<Context> context) {
   vector<VkDeviceQueueCreateInfo> queue_infos{};
   for (uint32_t queue_family : queue_families) {
     VkDeviceQueueCreateInfo queue_info{
-        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-        .queueFamilyIndex = queue_family,
-        .queueCount = 1,
-        .pQueuePriorities = &priority,  // always required
+        /*sType=*/VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        /*pNext=*/nullptr,
+        /*flags=*/0,
+        /*queueFamilyIndex=*/queue_family,
+        /*queueCount=*/1,
+        /*pQueuePriorities=*/&priority,  // always required
     };
     queue_infos.emplace_back(std::move(queue_info));
   }
 
-  VkPhysicalDeviceFeatures features{};
-
   VkDeviceCreateInfo device_info{
-      .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-      .pEnabledFeatures = &features,
-      .queueCreateInfoCount = CONTAINER_SIZE(queue_infos),
-      .pQueueCreateInfos = queue_infos.data(),
-      .enabledExtensionCount = CONTAINER_SIZE(kSwapChainExtensions),
-      .ppEnabledExtensionNames = kSwapChainExtensions.data(),
+      /*sType=*/VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/0,
+      /*queueCreateInfoCount=*/CONTAINER_SIZE(queue_infos),
+      /*pQueueCreateInfos=*/queue_infos.data(),
 #ifdef DEBUG
-      .enabledLayerCount = CONTAINER_SIZE(kValidationLayers),
-      .ppEnabledLayerNames = kValidationLayers.data(),
+      /*enabledLayerCount=*/CONTAINER_SIZE(kValidationLayers),
+      /*ppEnabledLayerNames=*/kValidationLayers.data(),
 #else
-      .enabledLayerCount = 0,
+      /*enabledLayerCount=*/0,
+      /*ppEnabledLayerNames=*/nullptr,
 #endif /* DEBUG */
+      /*enabledExtensionCount=*/CONTAINER_SIZE(kSwapChainExtensions),
+      /*ppEnabledExtensionNames=*/kSwapChainExtensions.data(),
+      /*pEnabledFeatures=*/nullptr,
   };
 
   ASSERT_SUCCESS(vkCreateDevice(*context->physical_device(), &device_info,
-                                nullptr, &device_),
+                                context_->allocator(), &device_),
                  "Failed to create logical device");
 
   // retrieve queue handles for each queue family
@@ -213,6 +228,10 @@ void Device::Init(std::shared_ptr<Context> context) {
                    &queues.graphics.queue);
   vkGetDeviceQueue(device_, queues.present.family_index, 0,
                    &queues.present.queue);
+}
+
+Device::~Device() {
+  vkDestroyDevice(device_, context_->allocator());
 }
 
 } /* namespace wrapper */

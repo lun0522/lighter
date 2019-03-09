@@ -21,25 +21,6 @@
 namespace vulkan {
 namespace application {
 
-// alignment requirement:
-// https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/
-//    chap14.html#interfaces-resources-layout
-struct UniformBufferObject {
-  alignas(16) glm::mat4 model;
-  alignas(16) glm::mat4 view;
-  alignas(16) glm::mat4 proj;
-};
-
-struct VertexAttrib {
-  glm::vec2 pos;
-  glm::vec3 color;
-  static std::vector<VkVertexInputBindingDescription> binding_descriptions();
-  static std::vector<VkVertexInputAttributeDescription> attrib_descriptions();
-  static const void* ubo();
-  static size_t ubo_size() { return sizeof(glm::mat4) * 3; }
-  static void UpdateUbo(size_t current_frame, float screen_aspect);
-};
-
 class TriangleApplication {
  public:
   TriangleApplication() : context_{wrapper::Context::CreateContext()} {

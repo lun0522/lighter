@@ -16,6 +16,7 @@
 #include "basic_object.h"
 #include "buffer.h"
 #include "pipeline.h"
+#include "synchronize.h"
 
 namespace vulkan {
 namespace wrapper {
@@ -46,6 +47,7 @@ class Command {
   static void OneTimeCommand(
       const VkDevice& device,
       const Queues::Queue& queue,
+      const VkAllocationCallbacks* allocator,
       const RecordCommand& on_record);
 
   Command() = default;
@@ -68,9 +70,9 @@ class Command {
   std::shared_ptr<Context> context_;
   size_t current_frame_{0};
   bool is_first_time_{true};
-  std::vector<VkSemaphore> image_available_semas_;
-  std::vector<VkSemaphore> render_finished_semas_;
-  std::vector<VkFence> in_flight_fences_;
+  Semaphores image_available_semas_;
+  Semaphores render_finished_semas_;
+  Fences in_flight_fences_;
   VkCommandPool command_pool_;
   std::vector<VkCommandBuffer> command_buffers_;
 };
