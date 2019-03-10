@@ -19,8 +19,8 @@ using std::endl;
 using std::string;
 using std::vector;
 
-namespace vulkan {
 namespace wrapper {
+namespace vulkan {
 namespace {
 
 VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
@@ -53,11 +53,11 @@ void DebugCallback::Init(std::shared_ptr<Context> context,
                          VkDebugUtilsMessageTypeFlagsEXT message_type) {
   context_ = context;
   VkDebugUtilsMessengerCreateInfoEXT create_info{
-    .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-    .messageSeverity = message_severity,
-    .messageType = message_type,
-    .pfnUserCallback = UserCallback,
-    .pUserData = nullptr, // will be passed along to the callback
+      .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+      .messageSeverity = message_severity,
+      .messageType = message_type,
+      .pfnUserCallback = UserCallback,
+      .pUserData = nullptr, // will be passed along to the callback
   };
 
   auto func = LoadFunction<PFN_vkCreateDebugUtilsMessengerEXT>(
@@ -100,7 +100,7 @@ void CheckValidationLayerSupport(const vector<string>& required) {
   util::CheckSupport<VkLayerProperties>(required, properties, get_name);
 }
 
-} /* namespace wrapper */
 } /* namespace vulkan */
+} /* namespace wrapper */
 
 #endif /* DEBUG */

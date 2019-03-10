@@ -12,8 +12,8 @@
 
 using std::vector;
 
-namespace vulkan {
 namespace wrapper {
+namespace vulkan {
 namespace {
 
 void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
@@ -273,5 +273,5 @@ Command::~Command() {
   // command buffers are implicitly cleaned up with command pool
 }
 
-} /* namespace wrapper */
 } /* namespace vulkan */
+} /* namespace wrapper */

@@ -5,15 +5,15 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef VULKAN_WRAPPER_BUFFER_H
-#define VULKAN_WRAPPER_BUFFER_H
+#ifndef WRAPPER_VULKAN_BUFFER_H
+#define WRAPPER_VULKAN_BUFFER_H
 
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
 
-namespace vulkan {
 namespace wrapper {
+namespace vulkan {
 
 class Context;
 
@@ -91,7 +91,7 @@ class UniformBuffer {
   VkDeviceMemory device_memory_;
 };
 
-} /* namespace wrapper */
 } /* namespace vulkan */
+} /* namespace wrapper */
 
-#endif /* VULKAN_WRAPPER_BUFFER_H */
+#endif /* WRAPPER_VULKAN_BUFFER_H */

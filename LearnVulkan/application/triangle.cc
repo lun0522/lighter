@@ -14,11 +14,11 @@
 
 using std::vector;
 
-namespace vulkan {
 namespace application {
+namespace vulkan {
 namespace {
 
-size_t kNumFrame = wrapper::Command::kMaxFrameInFlight;
+size_t kNumFrame = wrapper::vulkan::Command::kMaxFrameInFlight;
 
 struct VertexAttrib {
   glm::vec2 pos;
@@ -140,5 +140,5 @@ void TriangleApplication::MainLoop() {
   context_->WaitIdle(); // wait for all async operations finish
 }
 
-} /* namespace application */
 } /* namespace vulkan */
+} /* namespace application */

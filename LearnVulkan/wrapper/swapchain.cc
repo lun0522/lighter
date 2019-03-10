@@ -17,8 +17,8 @@
 
 using std::vector;
 
-namespace vulkan {
 namespace wrapper {
+namespace vulkan {
 namespace {
 
 VkSurfaceFormatKHR ChooseSurfaceFormat(
@@ -250,5 +250,5 @@ void Swapchain::Cleanup() {
 
 const vector<const char*> kSwapChainExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-} /* namespace wrapper */
 } /* namespace vulkan */
+} /* namespace wrapper */

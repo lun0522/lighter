@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef VULKAN_WRAPPER_CONTEXT_H
-#define VULKAN_WRAPPER_CONTEXT_H
+#ifndef WRAPPER_VULKAN_CONTEXT_H
+#define WRAPPER_VULKAN_CONTEXT_H
 
 #include <memory>
 #include <string>
@@ -17,13 +17,12 @@
 #include "pipeline.h"
 #include "render_pass.h"
 #include "swapchain.h"
-#include "util.h"
 #include "validation.h"
 
 class GLFWwindow;
 
-namespace vulkan {
 namespace wrapper {
+namespace vulkan {
 
 class Context : public std::enable_shared_from_this<Context> {
  public:
@@ -82,7 +81,7 @@ class Context : public std::enable_shared_from_this<Context> {
   void InitVulkan();
 };
 
-} /* namespace wrapper */
 } /* namespace vulkan */
+} /* namespace wrapper */
 
-#endif /* VULKAN_WRAPPER_CONTEXT_H */
+#endif /* WRAPPER_VULKAN_CONTEXT_H */

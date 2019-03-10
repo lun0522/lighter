@@ -12,8 +12,8 @@
 
 using std::string;
 
-namespace vulkan {
 namespace wrapper {
+namespace vulkan {
 namespace {
 
 VkShaderModule CreateShaderModule(const VkDevice& device,
@@ -207,5 +207,5 @@ void Pipeline::Cleanup() {
                           context_->allocator());
 }
 
-} /* namespace wrapper */
 } /* namespace vulkan */
+} /* namespace wrapper */

@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef VULKAN_WRAPPER_PIPELINE_H
-#define VULKAN_WRAPPER_PIPELINE_H
+#ifndef WRAPPER_VULKAN_PIPELINE_H
+#define WRAPPER_VULKAN_PIPELINE_H
 
 #include <string>
 #include <vector>
@@ -15,8 +15,8 @@
 
 #include "buffer.h"
 
-namespace vulkan {
 namespace wrapper {
+namespace vulkan {
 
 class Context;
 
@@ -62,7 +62,7 @@ class Pipeline {
   VkPipeline pipeline_;
 };
 
-} /* namespace wrapper */
 } /* namespace vulkan */
+} /* namespace wrapper */
 
-#endif /* VULKAN_WRAPPER_PIPELINE_H */
+#endif /* WRAPPER_VULKAN_PIPELINE_H */

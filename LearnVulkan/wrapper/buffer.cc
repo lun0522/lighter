@@ -13,8 +13,8 @@
 
 using std::vector;
 
-namespace vulkan {
 namespace wrapper {
+namespace vulkan {
 namespace {
 
 uint32_t FindMemoryType(uint32_t type_filter,
@@ -313,5 +313,5 @@ UniformBuffer::~UniformBuffer() {
   vkFreeMemory(device, device_memory_, allocator);
 }
 
-} /* namespace wrapper */
 } /* namespace vulkan */
+} /* namespace wrapper */

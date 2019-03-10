@@ -12,8 +12,8 @@
 
 using std::vector;
 
-namespace vulkan {
 namespace wrapper {
+namespace vulkan {
 namespace {
 
 vector<VkFramebuffer> CreateFramebuffers(
@@ -118,5 +118,5 @@ void RenderPass::Cleanup() {
   vkDestroyRenderPass(*context_->device(), render_pass_, context_->allocator());
 }
 
-} /* namespace wrapper */
 } /* namespace vulkan */
+} /* namespace wrapper */

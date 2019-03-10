@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef VULKAN_APPLICATION_TRIANGLE_H
-#define VULKAN_APPLICATION_TRIANGLE_H
+#ifndef APPLICATION_VULKAN_TRIANGLE_H
+#define APPLICATION_VULKAN_TRIANGLE_H
 
 #include <vector>
 
@@ -18,29 +18,29 @@
 #include "context.h"
 #include "pipeline.h"
 
-namespace vulkan {
 namespace application {
+namespace vulkan {
 
 class TriangleApplication {
  public:
-  TriangleApplication() : context_{wrapper::Context::CreateContext()} {
+  TriangleApplication() : context_{wrapper::vulkan::Context::CreateContext()} {
       context_->Init("Triangle");
   };
   void MainLoop();
 
  private:
   bool is_first_time{true};
-  std::shared_ptr<wrapper::Context> context_;
-  wrapper::Pipeline pipeline_;
-  wrapper::Command command_;
-  wrapper::VertexBuffer vertex_buffer_;
-  wrapper::UniformBuffer uniform_buffer_;
+  std::shared_ptr<wrapper::vulkan::Context> context_;
+  wrapper::vulkan::Pipeline pipeline_;
+  wrapper::vulkan::Command command_;
+  wrapper::vulkan::VertexBuffer vertex_buffer_;
+  wrapper::vulkan::UniformBuffer uniform_buffer_;
 
   void Init();
   void Cleanup();
 };
 
-} /* namespace application */
 } /* namespace vulkan */
+} /* namespace application */
 
-#endif /* VULKAN_APPLICATION_TRIANGLE_H */
+#endif /* APPLICATION_VULKAN_TRIANGLE_H */

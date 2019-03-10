@@ -5,15 +5,15 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef VULKAN_WRAPPER_SWAPCHAIN_H
-#define VULKAN_WRAPPER_SWAPCHAIN_H
+#ifndef WRAPPER_VULKAN_SWAPCHAIN_H
+#define WRAPPER_VULKAN_SWAPCHAIN_H
 
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
 
-namespace vulkan {
 namespace wrapper {
+namespace vulkan {
 
 class Context;
 
@@ -95,7 +95,7 @@ class Swapchain {
 
 extern const std::vector<const char*> kSwapChainExtensions;
 
-} /* namespace wrapper */
 } /* namespace vulkan */
+} /* namespace wrapper */
 
-#endif /* VULKAN_WRAPPER_SWAPCHAIN_H */
+#endif /* WRAPPER_VULKAN_SWAPCHAIN_H */

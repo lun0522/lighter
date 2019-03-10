@@ -6,16 +6,16 @@
 //
 
 #ifdef DEBUG
-#ifndef VULKAN_WRAPPER_VALIDATION_H
-#define VULKAN_WRAPPER_VALIDATION_H
+#ifndef WRAPPER_VULKAN_VALIDATION_H
+#define WRAPPER_VULKAN_VALIDATION_H
 
 #include <string>
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
 
-namespace vulkan {
 namespace wrapper {
+namespace vulkan {
 
 class Context;
 
@@ -61,8 +61,8 @@ extern const std::vector<const char*> kValidationLayers;
 void CheckInstanceExtensionSupport(const std::vector<std::string>& required);
 void CheckValidationLayerSupport(const std::vector<std::string>& required);
 
-} /* namespace wrapper */
 } /* namespace vulkan */
+} /* namespace wrapper */
 
-#endif /* VULKAN_WRAPPER_VALIDATION_H */
+#endif /* WRAPPER_VULKAN_VALIDATION_H */
 #endif /* DEBUG */

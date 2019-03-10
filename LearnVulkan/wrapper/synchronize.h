@@ -5,15 +5,15 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef VULKAN_WRAPPER_SYNCHRONIZE_H
-#define VULKAN_WRAPPER_SYNCHRONIZE_H
+#ifndef WRAPPER_VULKAN_SYNCHRONIZE_H
+#define WRAPPER_VULKAN_SYNCHRONIZE_H
 
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
 
-namespace vulkan {
 namespace wrapper {
+namespace vulkan {
 
 class Context;
 
@@ -57,7 +57,7 @@ class Fences {
   std::vector<VkFence> fences_;
 };
 
-} /* namespace wrapper */
 } /* namespace vulkan */
+} /* namespace wrapper */
 
-#endif /* VULKAN_WRAPPER_SYNCHRONIZE_H */
+#endif /* WRAPPER_VULKAN_SYNCHRONIZE_H */

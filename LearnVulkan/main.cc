@@ -11,7 +11,7 @@
 
 int main(int argc, const char* argv[]) {
   try {
-    vulkan::application::TriangleApplication app;
+    application::vulkan::TriangleApplication app;
     app.MainLoop();
   } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;

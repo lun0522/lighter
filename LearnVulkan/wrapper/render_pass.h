@@ -5,15 +5,15 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef VULKAN_WRAPPER_RENDER_PASS_H
-#define VULKAN_WRAPPER_RENDER_PASS_H
+#ifndef WRAPPER_VULKAN_RENDER_PASS_H
+#define WRAPPER_VULKAN_RENDER_PASS_H
 
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
 
-namespace vulkan {
 namespace wrapper {
+namespace vulkan {
 
 class Context;
 
@@ -55,7 +55,7 @@ class RenderPass {
   std::vector<VkFramebuffer> framebuffers_;
 };
 
-} /* namespace wrapper */
 } /* namespace vulkan */
+} /* namespace wrapper */
 
-#endif /* VULKAN_WRAPPER_RENDER_PASS_H */
+#endif /* WRAPPER_VULKAN_RENDER_PASS_H */

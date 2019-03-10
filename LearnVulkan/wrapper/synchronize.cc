@@ -12,8 +12,8 @@
 
 using std::vector;
 
-namespace vulkan {
 namespace wrapper {
+namespace vulkan {
 namespace {
 
 constexpr VkSemaphoreCreateInfo kSemaInfo{
@@ -65,5 +65,5 @@ Fences::~Fences() {
     vkDestroyFence(*context_->device(), fence, context_->allocator());
 }
 
-} /* namespace wrapper */
 } /* namespace vulkan */
+} /* namespace wrapper */

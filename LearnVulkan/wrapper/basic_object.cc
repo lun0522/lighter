@@ -22,8 +22,8 @@
 using std::runtime_error;
 using std::vector;
 
-namespace vulkan {
 namespace wrapper {
+namespace vulkan {
 namespace {
 
 bool IsDeviceSuitable(Queues& queues,
@@ -234,5 +234,5 @@ Device::~Device() {
   vkDestroyDevice(device_, context_->allocator());
 }
 
-} /* namespace wrapper */
 } /* namespace vulkan */
+} /* namespace wrapper */

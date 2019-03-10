@@ -10,8 +10,8 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-namespace vulkan {
 namespace wrapper {
+namespace vulkan {
 namespace {
 
 void FramebufferResizeCallback(GLFWwindow* window, int width, int height) {
@@ -82,7 +82,8 @@ void Context::Cleanup() {
 
 bool Context::ShouldQuit() const {
   glfwPollEvents();
-  return glfwWindowShouldClose(window_);
+  return glfwGetKey(window_, GLFW_KEY_ESCAPE) == GLFW_PRESS ||
+         glfwWindowShouldClose(window_);
 }
 
 Context::~Context() {
@@ -90,5 +91,5 @@ Context::~Context() {
   glfwTerminate();
 }
 
-} /* namespace wrapper */
 } /* namespace vulkan */
+} /* namespace wrapper */

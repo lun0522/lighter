@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef VULKAN_WRAPPER_COMMAND_H
-#define VULKAN_WRAPPER_COMMAND_H
+#ifndef WRAPPER_VULKAN_COMMAND_H
+#define WRAPPER_VULKAN_COMMAND_H
 
 #include <functional>
 #include <vector>
@@ -18,8 +18,8 @@
 #include "pipeline.h"
 #include "synchronize.h"
 
-namespace vulkan {
 namespace wrapper {
+namespace vulkan {
 
 class Context;
 
@@ -77,7 +77,7 @@ class Command {
   std::vector<VkCommandBuffer> command_buffers_;
 };
 
-} /* namespace wrapper */
 } /* namespace vulkan */
+} /* namespace wrapper */
 
-#endif /* VULKAN_WRAPPER_COMMAND_H */
+#endif /* WRAPPER_VULKAN_COMMAND_H */

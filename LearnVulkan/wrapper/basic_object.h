@@ -5,13 +5,13 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef VULKAN_WRAPPER_BASIC_OBJECT_H
-#define VULKAN_WRAPPER_BASIC_OBJECT_H
+#ifndef WRAPPER_VULKAN_BASIC_OBJECT_H
+#define WRAPPER_VULKAN_BASIC_OBJECT_H
 
 #include <vulkan/vulkan.hpp>
 
-namespace vulkan {
 namespace wrapper {
+namespace vulkan {
 
 class Context;
 
@@ -145,7 +145,7 @@ struct Queues {
   Queues& operator=(const Queues&) = delete;
 };
 
-} /* namespace wrapper */
 } /* namespace vulkan */
+} /* namespace wrapper */
 
-#endif /* VULKAN_WRAPPER_BASIC_OBJECT_H */
+#endif /* WRAPPER_VULKAN_BASIC_OBJECT_H */
