@@ -10,6 +10,10 @@
 #include "application/triangle.h"
 
 int main(int argc, const char* argv[]) {
+#ifdef DEBUG
+  application::vulkan::TriangleApplication app;
+  app.MainLoop();
+#else
   try {
     application::vulkan::TriangleApplication app;
     app.MainLoop();
@@ -17,5 +21,6 @@ int main(int argc, const char* argv[]) {
     std::cerr << "Error: " << e.what() << std::endl;
     return EXIT_FAILURE;
   }
+#endif /* DEBUG */
   return EXIT_SUCCESS;
 }

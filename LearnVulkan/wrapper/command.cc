@@ -26,8 +26,10 @@ void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
   for (size_t i = 0; i < command_buffers.size(); ++i) {
     // start command buffer recording
     VkCommandBufferBeginInfo cmd_begin_info{
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+        /*sType=*/VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        /*pNext=*/nullptr,
+        /*flags=*/VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+        /*pInheritanceInfo=*/nullptr,
     };
     // .pInheritanceInfo sets what to inherit from primary buffers
     // to secondary buffers
@@ -38,13 +40,13 @@ void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
     // start render pass
     VkClearValue clear_color{0.0f, 0.0f, 0.0f, 1.0f};
     VkRenderPassBeginInfo rp_begin_info{
-        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-        .renderPass = render_pass,
-        .framebuffer = framebuffers[i],
-        .renderArea.offset = {0, 0},
-        .renderArea.extent = extent,
-        .clearValueCount = 1,
-        .pClearValues = &clear_color, // used for _OP_CLEAR
+        /*sType=*/VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+        /*pNext=*/nullptr,
+        /*renderPass=*/render_pass,
+        /*framebuffer=*/framebuffers[i],
+        /*renderArea=*/{/*offset=*/{0, 0}, /*extent=*/extent},
+        /*clearValueCount=*/1,
+        /*pClearValues=*/&clear_color,  // used for _OP_CLEAR
     };
 
     // record commends. options:
@@ -70,8 +72,10 @@ VkCommandPool CreateCommandPool(uint32_t queue_family_index,
                                 const VkAllocationCallbacks* allocator) {
   // create pool to hold command buffers
   VkCommandPoolCreateInfo pool_info{
-      .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-      .queueFamilyIndex = queue_family_index,
+      /*sType=*/VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/0,
+      /*queueFamilyIndex=*/queue_family_index,
   };
   if (is_transient)
     pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
@@ -83,14 +87,15 @@ VkCommandPool CreateCommandPool(uint32_t queue_family_index,
 }
 
 VkCommandBuffer CreateCommandBuffer(const VkDevice& device,
-                                    const VkCommandPool& pool) {
+                                    const VkCommandPool& command_pool) {
   // allocate command buffer
   VkCommandBufferAllocateInfo buffer_info{
-      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-      .commandPool = pool,
+      /*sType=*/VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+      /*pNext=*/nullptr,
+      /*commandPool=*/command_pool,
       // secondary level command buffer can be called from primary level
-      .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-      .commandBufferCount = 1,
+      /*level=*/VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+      /*commandBufferCount=*/1,
   };
 
   VkCommandBuffer buffer{};
@@ -105,11 +110,12 @@ vector<VkCommandBuffer> CreateCommandBuffers(
     const VkCommandPool& command_pool) {
   // allocate command buffers
   VkCommandBufferAllocateInfo buffer_info{
-      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-      .commandPool = command_pool,
+      /*sType=*/VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+      /*pNext=*/nullptr,
+      /*commandPool=*/command_pool,
       // secondary level command buffers can be called from primary level
-      .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-      .commandBufferCount = static_cast<uint32_t>(count),
+      /*level=*/VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+      /*commandBufferCount=*/static_cast<uint32_t>(count),
   };
 
   vector<VkCommandBuffer> buffers(count);
@@ -132,8 +138,10 @@ void Command::OneTimeCommand(
 
   // record command
   VkCommandBufferBeginInfo begin_info{
-      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-      .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+      /*sType=*/VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+      /*pInheritanceInfo=*/nullptr,
   };
   vkBeginCommandBuffer(command_buffer, &begin_info);
   on_record(command_buffer);
@@ -141,9 +149,15 @@ void Command::OneTimeCommand(
 
   // submit command buffers, wait until finish and cleanup
   VkSubmitInfo submit_info{
-      .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-      .commandBufferCount = 1,
-      .pCommandBuffers = &command_buffer,
+      /*sType=*/VK_STRUCTURE_TYPE_SUBMIT_INFO,
+      /*pNext=*/nullptr,
+      /*waitSemaphoreCount=*/0,
+      /*pWaitSemaphores=*/nullptr,
+      /*pWaitDstStageMask=*/nullptr,
+      /*commandBufferCount=*/1,
+      /*pCommandBuffers=*/&command_buffer,
+      /*signalSemaphoreCount=*/0,
+      /*pSignalSemaphores=*/nullptr,
   };
   vkQueueSubmit(queue.queue, 1, &submit_info, VK_NULL_HANDLE);
   vkQueueWaitIdle(queue.queue);
@@ -192,15 +206,16 @@ VkResult Command::DrawFrame(const UniformBuffer& uniform_buffer,
   };
 
   VkSubmitInfo submit_info{
-      .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-      .waitSemaphoreCount = 1,
-      .pWaitSemaphores = wait_semas,
+      /*sType=*/VK_STRUCTURE_TYPE_SUBMIT_INFO,
+      /*pNext=*/nullptr,
+      /*waitSemaphoreCount=*/1,
+      /*pWaitSemaphores=*/wait_semas,
       // we specify one stage for each semaphore, so we don't need to pass count
-      .pWaitDstStageMask = wait_stages,
-      .commandBufferCount = 1,
-      .pCommandBuffers = &command_buffers_[image_index],
-      .signalSemaphoreCount = 1,
-      .pSignalSemaphores = signal_semas,
+      /*pWaitDstStageMask=*/wait_stages,
+      /*commandBufferCount=*/1,
+      /*pCommandBuffers=*/&command_buffers_[image_index],
+      /*signalSemaphoreCount=*/1,
+      /*pSignalSemaphores=*/signal_semas,
   };
 
   // reset to fences unsignaled state
@@ -212,12 +227,14 @@ VkResult Command::DrawFrame(const UniformBuffer& uniform_buffer,
 
   // present image to screen
   VkPresentInfoKHR present_info{
-      .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-      .waitSemaphoreCount = 1,
-      .pWaitSemaphores = signal_semas,
-      .swapchainCount = 1,
-      .pSwapchains = &*context_->swapchain(),
-      .pImageIndices = &image_index, // image for each swap chain
+      /*sType=*/VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+      /*pNext=*/nullptr,
+      /*waitSemaphoreCount=*/1,
+      /*pWaitSemaphores=*/signal_semas,
+      /*swapchainCount=*/1,
+      /*pSwapchains=*/&*context_->swapchain(),
+      /*pImageIndices=*/&image_index, // image for each swap chain
+      /*pResults=*/nullptr,
       // may use .pResults to check wether each swap chain rendered successfully
   };
 
