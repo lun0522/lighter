@@ -12,11 +12,11 @@
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
 
-using std::vector;
-
 namespace application {
 namespace vulkan {
 namespace {
+
+using std::vector;
 
 size_t kNumFrame = wrapper::vulkan::Command::kMaxFrameInFlight;
 
@@ -110,8 +110,9 @@ void TriangleApplication::Init() {
     is_first_time = false;
   }
 
-  pipeline_.Init(context_->ptr(), "triangle.vert.spv", "triangle.frag.spv",
-                 uniform_buffer_, BindingDescriptions(), AttribDescriptions());
+  pipeline_.Init(context_->ptr(), "compiled/triangle.vert.spv",
+                 "compiled/triangle.frag.spv", uniform_buffer_,
+                 BindingDescriptions(), AttribDescriptions());
   command_.Init(context_->ptr(), pipeline_, vertex_buffer_, uniform_buffer_);
 }
 

@@ -22,9 +22,8 @@
 		BD7B1E94222A63AD00EF0956 /* synchronize.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD7B1E92222A63AD00EF0956 /* synchronize.cc */; };
 		BD7C0CAD2217C74200009BE5 /* buffer.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD7C0CAB2217C74200009BE5 /* buffer.cc */; };
 		BDA11AB12206323F003092B8 /* swapchain.cc in Sources */ = {isa = PBXBuildFile; fileRef = BDA11AAF2206323F003092B8 /* swapchain.cc */; };
-		BDA71392220AA6E0007FD13C /* triangle.frag.spv in Copy Files */ = {isa = PBXBuildFile; fileRef = BDA71390220AA6D7007FD13C /* triangle.frag.spv */; };
-		BDA71393220AA6E0007FD13C /* triangle.vert.spv in Copy Files */ = {isa = PBXBuildFile; fileRef = BDA71391220AA6D7007FD13C /* triangle.vert.spv */; };
 		BDC658292230EC5D00505B22 /* context.cc in Sources */ = {isa = PBXBuildFile; fileRef = BDC658272230EC5D00505B22 /* context.cc */; };
+		BDE3C01F2238A9B100AE8701 /* compiled in Copy Files */ = {isa = PBXBuildFile; fileRef = BDE3C01E2238A9B100AE8701 /* compiled */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -34,8 +33,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 7;
 			files = (
-				BDA71392220AA6E0007FD13C /* triangle.frag.spv in Copy Files */,
-				BDA71393220AA6E0007FD13C /* triangle.vert.spv in Copy Files */,
+				BDE3C01F2238A9B100AE8701 /* compiled in Copy Files */,
 				BD5F5F1221FA43E0006BD2AC /* libvulkan.1.dylib in Copy Files */,
 				BD34960521AF3F4500F4C000 /* libglfw.3.3.dylib in Copy Files */,
 			);
@@ -71,10 +69,9 @@
 		BDA11AB02206323F003092B8 /* swapchain.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = swapchain.h; sourceTree = "<group>"; };
 		BDA71386220A9997007FD13C /* triangle.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = triangle.vert; sourceTree = "<group>"; };
 		BDA71387220A9A90007FD13C /* triangle.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = triangle.frag; sourceTree = "<group>"; };
-		BDA71390220AA6D7007FD13C /* triangle.frag.spv */ = {isa = PBXFileReference; lastKnownFileType = file; path = triangle.frag.spv; sourceTree = "<group>"; };
-		BDA71391220AA6D7007FD13C /* triangle.vert.spv */ = {isa = PBXFileReference; lastKnownFileType = file; path = triangle.vert.spv; sourceTree = "<group>"; };
 		BDC658272230EC5D00505B22 /* context.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = context.cc; sourceTree = "<group>"; };
 		BDC658282230EC5D00505B22 /* context.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = context.h; sourceTree = "<group>"; };
+		BDE3C01E2238A9B100AE8701 /* compiled */ = {isa = PBXFileReference; lastKnownFileType = folder; path = compiled; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -157,20 +154,11 @@
 		BDA71385220A96B5007FD13C /* shader */ = {
 			isa = PBXGroup;
 			children = (
-				BDA7138F220AA6B2007FD13C /* compiled */,
+				BDE3C01E2238A9B100AE8701 /* compiled */,
 				BDA71386220A9997007FD13C /* triangle.vert */,
 				BDA71387220A9A90007FD13C /* triangle.frag */,
 			);
 			path = shader;
-			sourceTree = "<group>";
-		};
-		BDA7138F220AA6B2007FD13C /* compiled */ = {
-			isa = PBXGroup;
-			children = (
-				BDA71391220AA6D7007FD13C /* triangle.vert.spv */,
-				BDA71390220AA6D7007FD13C /* triangle.frag.spv */,
-			);
-			path = compiled;
 			sourceTree = "<group>";
 		};
 		BDC34001223393FC003CD06D /* application */ = {

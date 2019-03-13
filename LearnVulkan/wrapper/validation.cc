@@ -14,14 +14,14 @@
 #include "context.h"
 #include "util.h"
 
+namespace wrapper {
+namespace vulkan {
+namespace {
+
 using std::cout;
 using std::endl;
 using std::string;
 using std::vector;
-
-namespace wrapper {
-namespace vulkan {
-namespace {
 
 VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
@@ -53,11 +53,13 @@ void DebugCallback::Init(std::shared_ptr<Context> context,
                          VkDebugUtilsMessageTypeFlagsEXT message_type) {
   context_ = context;
   VkDebugUtilsMessengerCreateInfoEXT create_info{
-      .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-      .messageSeverity = message_severity,
-      .messageType = message_type,
-      .pfnUserCallback = UserCallback,
-      .pUserData = nullptr, // will be passed along to the callback
+      VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+      /*pNext=*/nullptr,
+      /*flags=*/NULL_FLAG,
+      message_severity,
+      message_type,
+      UserCallback,
+      /*pUserData=*/nullptr,  // will be passed along to the callback
   };
 
   auto func = LoadFunction<PFN_vkCreateDebugUtilsMessengerEXT>(

@@ -19,12 +19,12 @@
 #include "util.h"
 #include "validation.h"
 
-using std::runtime_error;
-using std::vector;
-
 namespace wrapper {
 namespace vulkan {
 namespace {
+
+using std::runtime_error;
+using std::vector;
 
 bool IsDeviceSuitable(Queues& queues,
                       const VkPhysicalDevice& physical_device,
@@ -103,7 +103,7 @@ void Instance::Init(std::shared_ptr<Context> context) {
   // [optional]
   // might be useful for the driver to optimize for some graphics engine
   VkApplicationInfo app_info{
-      /*sType=*/VK_STRUCTURE_TYPE_APPLICATION_INFO,
+      VK_STRUCTURE_TYPE_APPLICATION_INFO,
       /*pNext=*/nullptr,
       /*pApplicationName=*/"Vulkan Application",
       /*applicationVersion=*/VK_MAKE_VERSION(1, 0, 0),
@@ -115,20 +115,23 @@ void Instance::Init(std::shared_ptr<Context> context) {
   // [required]
   // tell the driver which global extensions and validation layers to use
   VkInstanceCreateInfo instance_info{
-      /*sType=*/VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+      VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
       /*pNext=*/nullptr,
-      /*flags=*/0,
-      /*pApplicationInfo=*/&app_info,
+      /*flags=*/NULL_FLAG,
+      &app_info,
 #ifdef DEBUG
-      /*enabledLayerCount=*/CONTAINER_SIZE(kValidationLayers),
-      /*ppEnabledLayerNames=*/kValidationLayers.data(),
-      /*enabledExtensionCount=*/CONTAINER_SIZE(required_extensions),
-      /*ppEnabledExtensionNames=*/required_extensions.data(),
+      // enabled layers
+      CONTAINER_SIZE(kValidationLayers),
+      kValidationLayers.data(),
+      // enabled extensions
+      CONTAINER_SIZE(required_extensions),
+      required_extensions.data(),
 #else
       /*enabledLayerCount=*/0,
       /*ppEnabledLayerNames=*/nullptr,
-      /*enabledExtensionCount=*/glfw_extension_count,
-      /*ppEnabledExtensionNames=*/glfw_extensions,
+      // enabled extensions
+      glfw_extension_count,
+      glfw_extensions,
 #endif /* DEBUG */
   };
 
@@ -191,31 +194,34 @@ void Device::Init(std::shared_ptr<Context> context) {
   vector<VkDeviceQueueCreateInfo> queue_infos{};
   for (uint32_t queue_family : queue_families) {
     VkDeviceQueueCreateInfo queue_info{
-        /*sType=*/VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
         /*pNext=*/nullptr,
-        /*flags=*/0,
-        /*queueFamilyIndex=*/queue_family,
+        /*flags=*/NULL_FLAG,
+        queue_family,
         /*queueCount=*/1,
-        /*pQueuePriorities=*/&priority,  // always required
+        &priority,  // always required even if only one queue
     };
     queue_infos.emplace_back(std::move(queue_info));
   }
 
   VkDeviceCreateInfo device_info{
-      /*sType=*/VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+      VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
       /*pNext=*/nullptr,
-      /*flags=*/0,
-      /*queueCreateInfoCount=*/CONTAINER_SIZE(queue_infos),
-      /*pQueueCreateInfos=*/queue_infos.data(),
+      /*flags=*/NULL_FLAG,
+      // queue create infos
+      CONTAINER_SIZE(queue_infos),
+      queue_infos.data(),
 #ifdef DEBUG
-      /*enabledLayerCount=*/CONTAINER_SIZE(kValidationLayers),
-      /*ppEnabledLayerNames=*/kValidationLayers.data(),
+      // enabled layers
+      CONTAINER_SIZE(kValidationLayers),
+      kValidationLayers.data(),
 #else
       /*enabledLayerCount=*/0,
       /*ppEnabledLayerNames=*/nullptr,
 #endif /* DEBUG */
-      /*enabledExtensionCount=*/CONTAINER_SIZE(kSwapChainExtensions),
-      /*ppEnabledExtensionNames=*/kSwapChainExtensions.data(),
+      // enabled extensions
+      CONTAINER_SIZE(kSwapChainExtensions),
+      kSwapChainExtensions.data(),
       /*pEnabledFeatures=*/nullptr,
   };
 

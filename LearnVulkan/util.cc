@@ -10,10 +10,13 @@
 #include <sstream>
 #include <unordered_map>
 
+namespace util {
+namespace {
+
 using std::ifstream;
 using std::string;
 
-namespace util {
+} /* namespace */
 
 const string& ReadFile(const string& path) {
   static std::unordered_map<string, string> kLoadedText{};

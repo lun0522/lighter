@@ -15,11 +15,13 @@
 #include "context.h"
 #include "util.h"
 
-using std::vector;
-
 namespace wrapper {
 namespace vulkan {
 namespace {
+
+using std::max;
+using std::min;
+using std::vector;
 
 VkSurfaceFormatKHR ChooseSurfaceFormat(
     const vector<VkSurfaceFormatKHR>& available) {
@@ -64,14 +66,14 @@ VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities,
       std::numeric_limits<uint32_t>::max()) {
     return capabilities.currentExtent;
   } else {
-    current_extent.width = std::max(capabilities.minImageExtent.width,
-                                    current_extent.width);
-    current_extent.width = std::min(capabilities.maxImageExtent.width,
-                                    current_extent.width);
-    current_extent.height = std::max(capabilities.minImageExtent.height,
-                                     current_extent.height);
-    current_extent.height = std::min(capabilities.maxImageExtent.height,
-                                     current_extent.height);
+    current_extent.width = max(capabilities.minImageExtent.width,
+                               current_extent.width);
+    current_extent.width = min(capabilities.maxImageExtent.width,
+                               current_extent.width);
+    current_extent.height = max(capabilities.minImageExtent.height,
+                                current_extent.height);
+    current_extent.height = min(capabilities.maxImageExtent.height,
+                                current_extent.height);
     return current_extent;
   }
 }
@@ -95,21 +97,27 @@ vector<VkImageView> CreateImageViews(const vector<VkImage>& images,
   vector<VkImageView> image_views(images.size());
   for (size_t i = 0; i < images.size(); ++i) {
     VkImageViewCreateInfo image_view_info{
-        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        .image = images[i],
-        .viewType = VK_IMAGE_VIEW_TYPE_2D, // 2D, 3D, cube maps
-        .format = image_format,
-        // .components enables swizzling color channels around
-        .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
-        .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
-        .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
-        .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
-        // .subresourceRange specifies image's purpose and which part to access
-        .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-        .subresourceRange.baseMipLevel = 0,
-        .subresourceRange.levelCount = 1,
-        .subresourceRange.baseArrayLayer = 0,
-        .subresourceRange.layerCount = 1,
+        VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        /*pNext=*/nullptr,
+        /*flags=*/NULL_FLAG,
+        images[i],
+        /*viewType=*/VK_IMAGE_VIEW_TYPE_2D,  // 2D, 3D, cube maps
+        image_format,
+        // enable swizzling color channels around
+        VkComponentMapping{
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+            VK_COMPONENT_SWIZZLE_IDENTITY
+        },
+        // specify image's purpose and which part to access
+        VkImageSubresourceRange{
+            /*aspectMask=*/VK_IMAGE_ASPECT_COLOR_BIT,
+            /*baseMipLevel=*/0,
+            /*levelCount=*/1,
+            /*baseArrayLayer=*/0,
+            /*layerCount=*/1,
+        },
     };
 
     ASSERT_SUCCESS(
@@ -165,7 +173,7 @@ void Swapchain::Init(std::shared_ptr<Context> context) {
   VkSurfaceCapabilitiesKHR surface_capabilities{};
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
       physical_device, surface, &surface_capabilities);
-  VkExtent2D extent = ChooseExtent(
+  VkExtent2D image_extent = ChooseExtent(
       surface_capabilities, context_->screen_size());
 
   // surface formats
@@ -188,42 +196,43 @@ void Swapchain::Init(std::shared_ptr<Context> context) {
   VkPresentModeKHR present_mode = ChoosePresentMode(present_modes);
 
   // minimum amount of images we want to have in swapchain
-  uint32_t image_count = surface_capabilities.minImageCount + 1;
+  uint32_t min_image_count = surface_capabilities.minImageCount + 1;
   if (surface_capabilities.maxImageCount > 0) // can be 0 if no maximum
-    image_count = std::min(surface_capabilities.maxImageCount, image_count);
+    min_image_count = min(surface_capabilities.maxImageCount, min_image_count);
 
   VkSwapchainCreateInfoKHR swapchain_info{
-      .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-      .surface = surface,
-      .minImageCount = image_count,
-      .imageFormat = surface_format.format,
-      .imageColorSpace = surface_format.colorSpace,
-      .imageExtent = extent,
-      .imageArrayLayers = 1,
-      // .imageUsage can be different for post-processing
-      .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-      // we may apply transformations
-      .preTransform = surface_capabilities.currentTransform,
-      // we may change alpha channel
-      .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-      .presentMode = present_mode,
-      // don't care about color of pixels obscured
-      .clipped = VK_TRUE,
-      .oldSwapchain = VK_NULL_HANDLE,
+      VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+      /*pNext=*/nullptr,
+      /*flags=*/NULL_FLAG,
+      surface,
+      min_image_count,
+      surface_format.format,
+      surface_format.colorSpace,
+      image_extent,
+      /*imageArrayLayers=*/1,
+      // can be different for post-processing
+      /*imageUsage=*/VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+      /*imageSharingMode=*/VK_SHARING_MODE_EXCLUSIVE,
+      /*queueFamilyIndexCount=*/0,
+      /*pQueueFamilyIndices=*/nullptr,
+      // may apply transformations
+      /*preTransform=*/surface_capabilities.currentTransform,
+      // may change alpha channel
+      /*compositeAlpha=*/VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+      present_mode,
+      /*clipped=*/VK_TRUE,  // don't care about color of pixels obscured
+      /*oldSwapchain=*/VK_NULL_HANDLE,
   };
 
   // graphics queue and present queue might be the same
   std::unordered_set<uint32_t> queue_families{
-    context_->queues().graphics.family_index,
-    context_->queues().present.family_index,
+      context_->queues().graphics.family_index,
+      context_->queues().present.family_index,
   };
-  if (queue_families.size() == 1) {
-    // if only one queue family will access this swapchain
-    swapchain_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-  } else {
-    // specify which queue families will share access to images
-    // we will draw on images in swapchain from graphics queue
-    // and submit on presentation queue
+  if (queue_families.size() > 1) {
+    // specify which queue families will share access to images. we will draw on
+    // images in swapchain from graphics queue and submit on presentation queue.
+    // otherwise set to VK_SHARING_MODE_EXCLUSIVE
     vector<uint32_t> indices{queue_families.begin(), queue_families.end()};
     swapchain_info.queueFamilyIndexCount = CONTAINER_SIZE(indices);
     swapchain_info.pQueueFamilyIndices = indices.data();
@@ -235,7 +244,7 @@ void Swapchain::Init(std::shared_ptr<Context> context) {
                  "Failed to create swapchain");
 
   image_format_ = surface_format.format;
-  image_extent_ = extent;
+  image_extent_ = image_extent;
   images_ = CreateImages(swapchain_, device);
   image_views_ = CreateImageViews(images_, device, image_format_,
                                   context_->allocator());

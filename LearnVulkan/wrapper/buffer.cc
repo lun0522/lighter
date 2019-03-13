@@ -11,11 +11,11 @@
 #include "command.h"
 #include "util.h"
 
-using std::vector;
-
 namespace wrapper {
 namespace vulkan {
 namespace {
+
+using std::vector;
 
 uint32_t FindMemoryType(uint32_t type_filter,
                         VkMemoryPropertyFlags mem_properties,
@@ -43,11 +43,11 @@ VkBuffer CreateBuffer(VkBufferUsageFlags buffer_usage,
                       const VkAllocationCallbacks* allocator) {
   // create buffer
   VkBufferCreateInfo buffer_info{
-      /*sType=*/VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+      VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
       /*pNext=*/nullptr,
-      /*flags=*/0,
-      /*size=*/data_size,
-      /*usage=*/buffer_usage,
+      /*flags=*/NULL_FLAG,
+      data_size,
+      buffer_usage,
       /*sharingMode=*/VK_SHARING_MODE_EXCLUSIVE,  // only graphics queue access
       /*queueFamilyIndexCount=*/0,
       /*pQueueFamilyIndices=*/nullptr,
@@ -73,7 +73,7 @@ VkDeviceMemory CreateBufferMemory(VkMemoryPropertyFlags mem_properties,
 
   // allocate memory on device
   VkMemoryAllocateInfo memory_info{
-      /*sType=*/VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
       /*pNext=*/nullptr,
       /*allocationSize=*/mem_requirements.size,
       /*memoryTypeIndex=*/FindMemoryType(
@@ -127,7 +127,7 @@ void CopyBufferToBuffer(VkDeviceSize data_size,
         VkBufferCopy region{
             /*srcOffset=*/0,
             /*dstOffset=*/0,
-            /*size=*/data_size,
+            data_size,
         };
         vkCmdCopyBuffer(command_buffer, src_buffer, dst_buffer, 1, &region);
       }
@@ -162,8 +162,8 @@ void VertexBuffer::Init(
 
   // copy from host to staging buffer
   CopyHostToBuffer(0, total_size, staging_memory, device, {
-      {/*ptr=*/vertex_data, /*size=*/vertex_size, /*offset=*/0},
-      {/*ptr=*/ index_data, /*size=*/ index_size, /*offset=*/vertex_size},
+      {vertex_data, vertex_size, /*offset=*/0},
+      { index_data,  index_size, /*offset=*/vertex_size},
   });
 
   // create final buffer that is only visible to device
@@ -230,12 +230,12 @@ void UniformBuffer::Init(
   };
 
   VkDescriptorPoolCreateInfo pool_info{
-      /*sType=*/VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+      VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
       /*pNext=*/nullptr,
-      /*flags=*/0,
+      /*flags=*/NULL_FLAG,
       /*maxSets=*/static_cast<uint32_t>(num_chunk),
       /*poolSizeCount=*/1,
-      /*pPoolSizes=*/&pool_size,
+      &pool_size,
   };
 
   ASSERT_SUCCESS(
@@ -251,11 +251,11 @@ void UniformBuffer::Init(
   };
 
   VkDescriptorSetLayoutCreateInfo layout_info{
-      /*sType=*/VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+      VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
       /*pNext=*/nullptr,
-      /*flags=*/0,
+      /*flags=*/NULL_FLAG,
       /*bindingCount=*/1,
-      /*pBindings=*/&layout_binding,
+      &layout_binding,
   };
 
   descriptor_set_layouts_.resize(num_chunk);
@@ -265,11 +265,11 @@ void UniformBuffer::Init(
                    "Failed to create descriptor set layout");
 
   VkDescriptorSetAllocateInfo alloc_info{
-      /*sType=*/VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+      VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
       /*pNext=*/nullptr,
-      /*descriptorPool=*/descriptor_pool_,
+      descriptor_pool_,
       /*descriptorSetCount=*/static_cast<uint32_t>(num_chunk),
-      /*pSetLayouts=*/descriptor_set_layouts_.data(),
+      descriptor_set_layouts_.data(),
   };
 
   descriptor_sets_.resize(num_chunk);
@@ -279,20 +279,20 @@ void UniformBuffer::Init(
 
   for (size_t i = 0; i < num_chunk; ++i) {
     VkDescriptorBufferInfo buffer_info{
-        /*buffer=*/buffer_,
+        buffer_,
         /*offset=*/chunk_memory_size_ * i,
         /*range=*/chunk_data_size_,
     };
     VkWriteDescriptorSet write_descriptor_set{
-        /*sType=*/VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         /*pNext=*/nullptr,
-        /*dstSet=*/descriptor_sets_[i],
+        descriptor_sets_[i],
         /*dstBinding=*/0,  // uniform buffer binding index
         /*dstArrayElement=*/0,  // target first descriptor in set
         /*descriptorCount=*/1,  // possible to update multiple descriptors
         /*descriptorType=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         /*pImageInfo=*/nullptr,
-        /*pBufferInfo=*/&buffer_info,
+        &buffer_info,
         /*pTexelBufferView=*/nullptr,
     };
     vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, nullptr);
@@ -304,7 +304,7 @@ void UniformBuffer::Update(size_t chunk_index) const {
   VkDeviceSize dst_offset = chunk_memory_size_ * chunk_index;
   CopyHostToBuffer(
       dst_offset, chunk_data_size_, device_memory_, *context_->device(),
-      {{/*ptr=*/data_ + src_offset, /*size=*/chunk_data_size_, /*offset=*/0}});
+      {{data_ + src_offset, chunk_data_size_, /*offset=*/0}});
 }
 
 void UniformBuffer::Bind(const VkCommandBuffer& command_buffer,

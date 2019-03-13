@@ -14,6 +14,7 @@
 #include <unordered_set>
 #include <vector>
 
+#define NULL_FLAG 0
 #define ASSERT_NONNULL(object, error) \
   if (object == nullptr)    throw std::runtime_error{error}
 #define ASSERT_SUCCESS(event, error) \

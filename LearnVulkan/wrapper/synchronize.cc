@@ -10,23 +10,28 @@
 #include "context.h"
 #include "util.h"
 
-using std::vector;
-
 namespace wrapper {
 namespace vulkan {
 namespace {
 
+using std::vector;
+
 constexpr VkSemaphoreCreateInfo kSemaInfo{
-    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+    VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+    /*pNext=*/nullptr,
+    /*flags=*/NULL_FLAG,
 };
 
 constexpr VkFenceCreateInfo kSignaledFenceInfo{
-    .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-    .flags = VK_FENCE_CREATE_SIGNALED_BIT,
+    VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+    /*pNext=*/nullptr,
+    /*flags=*/VK_FENCE_CREATE_SIGNALED_BIT,
 };
 
 constexpr VkFenceCreateInfo kUnsignaledFenceInfo{
-    .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+    VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+    /*pNext=*/nullptr,
+    /*flags=*/NULL_FLAG,
 };
 
 } /* namespace */
