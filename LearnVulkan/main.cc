@@ -18,7 +18,7 @@ int main(int argc, const char* argv[]) {
     application::vulkan::TriangleApplication app;
     app.MainLoop();
   } catch (const std::exception& e) {
-    std::cerr << "Error: " << e.what() << std::endl;
+    std::cerr << "Error: /n/t" << e.what() << std::endl;
     return EXIT_FAILURE;
   }
 #endif /* DEBUG */

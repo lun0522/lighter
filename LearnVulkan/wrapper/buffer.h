@@ -8,6 +8,7 @@
 #ifndef WRAPPER_VULKAN_BUFFER_H
 #define WRAPPER_VULKAN_BUFFER_H
 
+#include <string>
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
@@ -88,6 +89,19 @@ class UniformBuffer {
   std::vector<VkDescriptorSetLayout> descriptor_set_layouts_;
   std::vector<VkDescriptorSet> descriptor_sets_;
   VkBuffer buffer_;
+  VkDeviceMemory device_memory_;
+};
+
+class ImageBuffer {
+ public:
+  ImageBuffer() = default;
+  void Init(std::shared_ptr<Context> context,
+            const std::string& path);
+  ~ImageBuffer();
+
+ private:
+  std::shared_ptr<Context> context_;
+  VkImage image_;
   VkDeviceMemory device_memory_;
 };
 

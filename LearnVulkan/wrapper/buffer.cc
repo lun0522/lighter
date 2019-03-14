@@ -7,6 +7,9 @@
 
 #include "buffer.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <image/stb_image.h>
+
 #include "context.h"
 #include "command.h"
 #include "util.h"
@@ -93,14 +96,73 @@ VkDeviceMemory CreateBufferMemory(VkMemoryPropertyFlags mem_properties,
   return memory;
 }
 
+VkImage CreateImage(VkFormat format,
+                    VkExtent3D extent,
+                    VkImageUsageFlags usage,
+                    const VkDevice& device,
+                    const VkAllocationCallbacks* allocator) {
+  VkImageCreateInfo image_info{
+      VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/NULL_FLAG,
+      /*imageType=*/VK_IMAGE_TYPE_2D,
+      format,
+      extent,
+      /*mipLevels=*/1,
+      /*arrayLayers=*/1,
+      /*samples=*/VK_SAMPLE_COUNT_1_BIT,
+      // use VK_IMAGE_TILING_LINEAR if we want to directly access texels of
+      // image, otherwise use VK_IMAGE_TILING_OPTIMAL for optimal layout
+      /*tiling=*/VK_IMAGE_TILING_OPTIMAL,
+      usage,
+      /*sharingMode=*/VK_SHARING_MODE_EXCLUSIVE,
+      /*queueFamilyIndexCount=*/0,
+      /*pQueueFamilyIndices=*/nullptr,
+      // can only be VK_IMAGE_LAYOUT_UNDEFINED or VK_IMAGE_LAYOUT_PREINITIALIZED
+      // the first one discards texels while the latter one preserves texels, so
+      // the latter one can be used with VK_IMAGE_TILING_LINEAR
+      /*initialLayout=*/VK_IMAGE_LAYOUT_UNDEFINED,
+  };
+
+  VkImage image{};
+  ASSERT_SUCCESS(vkCreateImage(device, &image_info, allocator, &image),
+                 "Failed to create image");
+  return image;
+}
+
+VkDeviceMemory CreateImageMemory(VkMemoryPropertyFlags mem_properties,
+                                 const VkImage& image,
+                                 const VkDevice& device,
+                                 const VkPhysicalDevice& physical_device,
+                                 const VkAllocationCallbacks* allocator) {
+  // query memory requirements for this image
+  VkMemoryRequirements mem_requirements;
+  vkGetImageMemoryRequirements(device, image, &mem_requirements);
+
+  // allocate memory on device
+  VkMemoryAllocateInfo memory_info{
+      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+      /*pNext=*/nullptr,
+      /*allocationSize=*/mem_requirements.size,
+      /*memoryTypeIndex=*/FindMemoryType(
+          mem_requirements.memoryTypeBits, mem_properties, physical_device),
+  };
+
+  VkDeviceMemory memory{};
+  ASSERT_SUCCESS(vkAllocateMemory(device, &memory_info, allocator, &memory),
+                 "Failed to allocate image memory");
+  vkBindImageMemory(device, image, memory, 0);
+  return memory;
+}
+
 struct HostToBufferCopyInfo {
   const void* ptr;
   VkDeviceSize size;
   VkDeviceSize offset;
 };
 
-void CopyHostToBuffer(VkDeviceSize map_offset,
-                      VkDeviceSize map_size,
+void CopyHostToBuffer(VkDeviceSize map_size,
+                      VkDeviceSize map_offset,
                       const VkDeviceMemory& device_memory,
                       const VkDevice& device,
                       const vector<HostToBufferCopyInfo>& copy_infos) {
@@ -161,7 +223,7 @@ void VertexBuffer::Init(
       staging_buffer, device, *context_->physical_device(), allocator);
 
   // copy from host to staging buffer
-  CopyHostToBuffer(0, total_size, staging_memory, device, {
+  CopyHostToBuffer(total_size, 0, staging_memory, device, {
       {vertex_data, vertex_size, /*offset=*/0},
       { index_data,  index_size, /*offset=*/vertex_size},
   });
@@ -303,7 +365,7 @@ void UniformBuffer::Update(size_t chunk_index) const {
   VkDeviceSize src_offset = chunk_data_size_ * chunk_index;
   VkDeviceSize dst_offset = chunk_memory_size_ * chunk_index;
   CopyHostToBuffer(
-      dst_offset, chunk_data_size_, device_memory_, *context_->device(),
+      chunk_data_size_, dst_offset, device_memory_, *context_->device(),
       {{data_ + src_offset, chunk_data_size_, /*offset=*/0}});
 }
 
@@ -324,6 +386,65 @@ UniformBuffer::~UniformBuffer() {
     vkDestroyDescriptorSetLayout(device, layout, allocator);
   vkDestroyBuffer(device, buffer_, allocator);
   vkFreeMemory(device, device_memory_, allocator);
+}
+
+void ImageBuffer::Init(std::shared_ptr<Context> context,
+                       const std::string &path) {
+  context_ = context;
+  const VkDevice& device = *context_->device();
+  const VkAllocationCallbacks* allocator = context_->allocator();
+
+  int width, height, channel;
+  stbi_uc* image_data = stbi_load(path.c_str(), &width, &height, &channel, 0);
+  VkFormat image_format;
+  switch (channel) {
+    case 1:
+      image_format = VK_FORMAT_R8_UNORM;
+      break;
+    case 3:
+      image_format = VK_FORMAT_R8G8B8_UNORM;
+      break;
+    case 4:
+      image_format = VK_FORMAT_R8G8B8A8_UNORM;
+      break;
+    default:
+      throw std::runtime_error{"Unrecognized image format: channel = " +
+                               std::to_string(channel)};
+  }
+  VkExtent3D image_extent{
+      static_cast<uint32_t>(width),
+      static_cast<uint32_t>(height),
+      /*depth=*/1,
+  };
+  VkDeviceSize data_size = width * height * channel;
+
+  // create staging buffer and associated memory
+  VkBuffer staging_buffer = CreateBuffer(           // source of transfer
+      VK_BUFFER_USAGE_TRANSFER_SRC_BIT, data_size, device, allocator);
+  VkDeviceMemory staging_memory = CreateBufferMemory(
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT           // host can access it
+          | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,   // see host cache management
+      staging_buffer, device, *context_->physical_device(), allocator);
+
+  // copy from host to staging buffer
+  CopyHostToBuffer(data_size, 0, staging_memory, device, {
+      {image_data, data_size, /*offset=*/0},
+  });
+  stbi_image_free(image_data);
+
+  // create final image that is only visible to device
+  image_ = CreateImage(image_format, image_extent,
+                       VK_IMAGE_USAGE_TRANSFER_DST_BIT
+                           | VK_IMAGE_USAGE_SAMPLED_BIT,
+                       device, allocator);
+  device_memory_ = CreateImageMemory(
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image_, device,
+      *context_->physical_device(), allocator);
+}
+
+ImageBuffer::~ImageBuffer() {
+  vkDestroyImage(*context_->device(), image_, context_->allocator());
+  vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
 }
 
 } /* namespace vulkan */

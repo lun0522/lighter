@@ -17,6 +17,7 @@
 		BD4717B92219E9AB00B860D0 /* util.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD4717B82219E9AB00B860D0 /* util.cc */; };
 		BD5F5F1121FA43DD006BD2AC /* libvulkan.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */; };
 		BD5F5F1221FA43E0006BD2AC /* libvulkan.1.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */; };
+		BD6B371B223A03C700D69CDB /* texture in Copy Files */ = {isa = PBXBuildFile; fileRef = BD6B371A223A03C700D69CDB /* texture */; };
 		BD6BAC282211432500906E78 /* basic_object.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD6BAC262211432500906E78 /* basic_object.cc */; };
 		BD6D210F221000E800FF1910 /* command.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD6D210D221000E800FF1910 /* command.cc */; };
 		BD7B1E94222A63AD00EF0956 /* synchronize.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD7B1E92222A63AD00EF0956 /* synchronize.cc */; };
@@ -33,6 +34,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 7;
 			files = (
+				BD6B371B223A03C700D69CDB /* texture in Copy Files */,
 				BDE3C01F2238A9B100AE8701 /* compiled in Copy Files */,
 				BD5F5F1221FA43E0006BD2AC /* libvulkan.1.dylib in Copy Files */,
 				BD34960521AF3F4500F4C000 /* libglfw.3.3.dylib in Copy Files */,
@@ -56,6 +58,7 @@
 		BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libglfw.3.3.dylib; path = "../../../../../usr/local/Cellar/glfw/HEAD-bb2ca1d/lib/libglfw.3.3.dylib"; sourceTree = "<group>"; };
 		BD4717B82219E9AB00B860D0 /* util.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = util.cc; sourceTree = "<group>"; };
 		BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libvulkan.1.dylib; path = ../libs/vulkan/macOS/lib/libvulkan.1.dylib; sourceTree = "<group>"; };
+		BD6B371A223A03C700D69CDB /* texture */ = {isa = PBXFileReference; lastKnownFileType = folder; path = texture; sourceTree = "<group>"; };
 		BD6BAC262211432500906E78 /* basic_object.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = basic_object.cc; sourceTree = "<group>"; };
 		BD6BAC272211432500906E78 /* basic_object.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = basic_object.h; sourceTree = "<group>"; };
 		BD6D210D221000E800FF1910 /* command.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = command.cc; sourceTree = "<group>"; };
@@ -112,6 +115,7 @@
 				BDA11AAD22061C7B003092B8 /* util.h */,
 				BDC34001223393FC003CD06D /* application */,
 				BDA71385220A96B5007FD13C /* shader */,
+				BD6B371A223A03C700D69CDB /* texture */,
 				BD2F0E9F222B71E000B4ACD5 /* wrapper */,
 			);
 			path = LearnVulkan;
