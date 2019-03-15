@@ -70,7 +70,7 @@ vector<VkVertexInputAttributeDescription> AttribDescriptions() {
 }
 
 // alignment requirement:
-// https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/
+// https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/\
 //    chap14.html#interfaces-resources-layout
 struct UniformBufferObject {
   alignas(16) glm::mat4 model;
@@ -107,6 +107,7 @@ void TriangleApplication::Init() {
                         kTrangleIndices.size());
     uniform_buffer_.Init(context_->ptr(), kUbo.data(), kNumFrame,
                          sizeof(UniformBufferObject));
+    image_buffer_.Init(context_->ptr(), "texture/statue.jpg");
     is_first_time = false;
   }
 

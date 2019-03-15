@@ -35,6 +35,7 @@ class TriangleApplication {
   wrapper::vulkan::Command command_;
   wrapper::vulkan::VertexBuffer vertex_buffer_;
   wrapper::vulkan::UniformBuffer uniform_buffer_;
+  wrapper::vulkan::ImageBuffer image_buffer_;
 
   void Init();
   void Cleanup();

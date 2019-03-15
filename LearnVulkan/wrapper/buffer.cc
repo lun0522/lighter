@@ -7,6 +7,7 @@
 
 #include "buffer.h"
 
+#include <array>
 #define STB_IMAGE_IMPLEMENTATION
 #include <image/stb_image.h>
 
@@ -18,6 +19,7 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
+using std::array;
 using std::vector;
 
 uint32_t FindMemoryType(uint32_t type_filter,
@@ -98,6 +100,7 @@ VkDeviceMemory CreateBufferMemory(VkMemoryPropertyFlags mem_properties,
 
 VkImage CreateImage(VkFormat format,
                     VkExtent3D extent,
+                    VkImageLayout layout,
                     VkImageUsageFlags usage,
                     const VkDevice& device,
                     const VkAllocationCallbacks* allocator) {
@@ -155,6 +158,57 @@ VkDeviceMemory CreateImageMemory(VkMemoryPropertyFlags mem_properties,
   return memory;
 }
 
+void TransitionImageLayout(const VkImage& image,
+                           array<VkImageLayout, 2> image_layouts,
+                           array<VkAccessFlags, 2> barrier_access_flags,
+                           array<VkPipelineStageFlags, 2> pipeline_stages,
+                           const VkDevice& device,
+                           const Queues::Queue& transfer_queue,
+                           const VkAllocationCallbacks* allocator) {
+  // one-time transition command
+  Command::OneTimeCommand(device, transfer_queue, allocator,
+      [&](const VkCommandBuffer& command_buffer) {
+        VkImageMemoryBarrier barrier{
+            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            /*pNext=*/nullptr,
+            barrier_access_flags[0],  // operations before barrier
+            barrier_access_flags[1],  // operations waiting on barrier
+            image_layouts[0],
+            image_layouts[1],
+            /*srcQueueFamilyIndex=*/transfer_queue.family_index,
+            /*dstQueueFamilyIndex=*/transfer_queue.family_index,
+            image,
+            // specify which part of image to use
+            VkImageSubresourceRange{
+                /*aspectMask=*/VK_IMAGE_ASPECT_COLOR_BIT,
+                /*baseMipLevel=*/0,
+                /*levelCount=*/1,
+                /*baseArrayLayer=*/0,
+                /*layerCount=*/1,
+            },
+        };
+
+        // wait for barrier
+        vkCmdPipelineBarrier(
+            command_buffer,
+            // operations before barrier should occur in which pipeline stage
+            pipeline_stages[0],
+            // operations waiting on barrier should occur in which stage
+            pipeline_stages[1],
+            // either 0 or VK_DEPENDENCY_BY_REGION_BIT. the latter one allows
+            // reading from regions that have been written, even if entire
+            // writing has not yet finished
+            /*dependencyFlags=*/0,
+            /*memoryBarrierCount=*/0,
+            /*pMemoryBarriers=*/nullptr,
+            /*bufferMemoryBarrierCount=*/0,
+            /*pBufferMemoryBarriers=*/nullptr,
+            /*imageMemoryBarrierCount=*/1,
+            &barrier);
+      }
+  );
+}
+
 struct HostToBufferCopyInfo {
   const void* ptr;
   VkDeviceSize size;
@@ -192,6 +246,37 @@ void CopyBufferToBuffer(VkDeviceSize data_size,
             data_size,
         };
         vkCmdCopyBuffer(command_buffer, src_buffer, dst_buffer, 1, &region);
+      }
+  );
+}
+
+void CopyBufferToImage(const VkBuffer& buffer,
+                       const VkImage& image,
+                       const VkExtent3D& image_extent,
+                       VkImageLayout image_layout,
+                       const VkDevice& device,
+                       const Queues::Queue& transfer_queue,
+                       const VkAllocationCallbacks* allocator) {
+  // one-time copy command
+  Command::OneTimeCommand(device, transfer_queue, allocator,
+      [&](const VkCommandBuffer& command_buffer) {
+        VkBufferImageCopy region{
+            // first three parameters specify pixels layout in buffer
+            // setting all of them to 0 means pixels are tightly packed
+            /*bufferOffset=*/0,
+            /*bufferRowLength=*/0,
+            /*bufferImageHeight=*/0,
+            VkImageSubresourceLayers{
+                /*aspectMask=*/VK_IMAGE_ASPECT_COLOR_BIT,
+                /*mipLevel=*/0,
+                /*baseArrayLayer=*/0,
+                /*layerCount=*/1,
+            },
+            /*imageOffset=*/{0, 0, 0},
+            image_extent,
+        };
+        vkCmdCopyBufferToImage(
+            command_buffer, buffer, image, image_layout, 1, &region);
       }
   );
 }
@@ -392,25 +477,14 @@ void ImageBuffer::Init(std::shared_ptr<Context> context,
                        const std::string &path) {
   context_ = context;
   const VkDevice& device = *context_->device();
+  const Queues::Queue& transfer_queue = context_->queues().graphics;
   const VkAllocationCallbacks* allocator = context_->allocator();
 
   int width, height, channel;
-  stbi_uc* image_data = stbi_load(path.c_str(), &width, &height, &channel, 0);
-  VkFormat image_format;
-  switch (channel) {
-    case 1:
-      image_format = VK_FORMAT_R8_UNORM;
-      break;
-    case 3:
-      image_format = VK_FORMAT_R8G8B8_UNORM;
-      break;
-    case 4:
-      image_format = VK_FORMAT_R8G8B8A8_UNORM;
-      break;
-    default:
-      throw std::runtime_error{"Unrecognized image format: channel = " +
-                               std::to_string(channel)};
-  }
+  stbi_uc* image_data = stbi_load(path.c_str(), &width, &height, &channel,
+                                  STBI_rgb_alpha);  // force to have alpha
+  VkFormat image_format = VK_FORMAT_R8G8B8A8_UNORM;  // TODO: other formats
+  channel = 4;                                       // TODO: other formats
   VkExtent3D image_extent{
       static_cast<uint32_t>(width),
       static_cast<uint32_t>(height),
@@ -432,14 +506,36 @@ void ImageBuffer::Init(std::shared_ptr<Context> context,
   });
   stbi_image_free(image_data);
 
-  // create final image that is only visible to device
+  // create final image and copy data from staging buffer to it. we need to do
+  // some transitions so that image is eventually only visible to device
   image_ = CreateImage(image_format, image_extent,
+                       VK_IMAGE_LAYOUT_UNDEFINED,
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT
                            | VK_IMAGE_USAGE_SAMPLED_BIT,
                        device, allocator);
   device_memory_ = CreateImageMemory(
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image_, device,
       *context_->physical_device(), allocator);
+  TransitionImageLayout(
+      image_,
+      {VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL},
+      {VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT},
+      {VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT},
+      device, transfer_queue, allocator);
+  CopyBufferToImage(staging_buffer, image_, image_extent,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    device, transfer_queue, allocator);
+  TransitionImageLayout(
+      image_,
+      {VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
+      {VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT},
+      {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT},
+      device, transfer_queue, allocator);
+
+  // cleanup transient objects
+  vkDestroyBuffer(device, staging_buffer, allocator);
+  vkFreeMemory(device, staging_memory, allocator);
 }
 
 ImageBuffer::~ImageBuffer() {
