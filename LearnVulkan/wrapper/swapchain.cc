@@ -78,20 +78,19 @@ VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities,
   }
 }
 
-vector<VkImage> CreateImages(const VkSwapchainKHR& swapchain,
-                             const VkDevice& device) {
+vector<VkImage> CreateImages(SharedContext context) {
   // image count might be different from the minimum we set
   return util::QueryAttribute<VkImage>(
-      [&device, &swapchain](uint32_t *count, VkImage *images) {
-        vkGetSwapchainImagesKHR(device, swapchain, count, images);
+      [&context](uint32_t *count, VkImage *images) {
+        vkGetSwapchainImagesKHR(
+            *context->device(), *context->swapchain(), count, images);
       }
   );
 }
 
-vector<VkImageView> CreateImageViews(const vector<VkImage>& images,
-                                     const VkDevice& device,
-                                     VkFormat image_format,
-                                     const VkAllocationCallbacks* allocator) {
+vector<VkImageView> CreateImageViews(SharedContext context,
+                                     const vector<VkImage>& images,
+                                     VkFormat image_format) {
   // use image view to specify how will we use these images
   // (color, depth, stencil, etc)
   vector<VkImageView> image_views(images.size());
@@ -120,16 +119,16 @@ vector<VkImageView> CreateImageViews(const vector<VkImage>& images,
         },
     };
 
-    ASSERT_SUCCESS(
-        vkCreateImageView(device, &image_view_info, allocator, &image_views[i]),
-        "Failed to create image view");
+    ASSERT_SUCCESS(vkCreateImageView(*context->device(), &image_view_info,
+                                     context->allocator(), &image_views[i]),
+                   "Failed to create image view");
   }
   return image_views;
 }
 
 } /* namespace */
 
-bool Swapchain::HasSwapchainSupport(const VkSurfaceKHR& surface,
+bool Swapchain::HasSwapchainSupport(SharedContext context,
                                     const VkPhysicalDevice& physical_device) {
   try {
     std::cout << "Checking extension support required for swapchain..."
@@ -157,17 +156,16 @@ bool Swapchain::HasSwapchainSupport(const VkSurfaceKHR& surface,
   // window system, so we need to query details
   uint32_t format_count, mode_count;
   vkGetPhysicalDeviceSurfaceFormatsKHR(
-      physical_device, surface, &format_count, nullptr);
+      physical_device, *context->surface(), &format_count, nullptr);
   vkGetPhysicalDeviceSurfacePresentModesKHR(
-      physical_device, surface, &mode_count, nullptr);
+      physical_device, *context->surface(), &mode_count, nullptr);
   return format_count && mode_count;
 }
 
-void Swapchain::Init(std::shared_ptr<Context> context) {
+void Swapchain::Init(SharedContext context) {
   context_ = context;
   const VkSurfaceKHR& surface = *context_->surface();
   const VkPhysicalDevice& physical_device = *context_->physical_device();
-  const VkDevice& device = *context_->device();
 
   // surface capabilities
   VkSurfaceCapabilitiesKHR surface_capabilities;
@@ -239,15 +237,14 @@ void Swapchain::Init(std::shared_ptr<Context> context) {
     swapchain_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
   }
 
-  ASSERT_SUCCESS(vkCreateSwapchainKHR(device, &swapchain_info,
+  ASSERT_SUCCESS(vkCreateSwapchainKHR(*context_->device(), &swapchain_info,
                                       context_->allocator(), &swapchain_),
                  "Failed to create swapchain");
 
   image_format_ = surface_format.format;
   image_extent_ = image_extent;
-  images_ = CreateImages(swapchain_, device);
-  image_views_ = CreateImageViews(images_, device, image_format_,
-                                  context_->allocator());
+  images_ = CreateImages(context_);
+  image_views_ = CreateImageViews(context_, images_, image_format_);
 }
 
 void Swapchain::Cleanup() {

@@ -59,13 +59,13 @@ void CheckSupport(
   }
 }
 
+extern const size_t kInvalidIndex;
 template <typename ContentType>
-bool FindFirst(const std::vector<ContentType>& container,
-               const std::function<bool (const ContentType&)>& predicate,
-               uint32_t& first) {
+size_t FindFirst(const std::vector<ContentType>& container,
+                 const std::function<bool(const ContentType&)>& predicate) {
   auto first_itr = find_if(container.begin(), container.end(), predicate);
-  first = static_cast<uint32_t>(std::distance(container.begin(), first_itr));
-  return first_itr != container.end();
+  return first_itr == container.end() ?
+      kInvalidIndex : std::distance(container.begin(), first_itr);
 }
 
 const std::string& ReadFile(const std::string& path);

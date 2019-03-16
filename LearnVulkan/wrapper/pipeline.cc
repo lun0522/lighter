@@ -16,9 +16,8 @@ namespace {
 
 using std::string;
 
-VkShaderModule CreateShaderModule(const VkDevice& device,
-                                  const string& code,
-                                  const VkAllocationCallbacks* allocator) {
+VkShaderModule CreateShaderModule(SharedContext context,
+                                  const string& code) {
   VkShaderModuleCreateInfo shader_module_info{
       /*sType=*/VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -28,8 +27,8 @@ VkShaderModule CreateShaderModule(const VkDevice& device,
   };
 
   VkShaderModule shader_module;
-  ASSERT_SUCCESS(vkCreateShaderModule(
-                     device, &shader_module_info, allocator, &shader_module),
+  ASSERT_SUCCESS(vkCreateShaderModule(*context->device(), &shader_module_info,
+                                      context->allocator(), &shader_module),
                  "Failed to create shader module");
 
   return shader_module;
@@ -38,7 +37,7 @@ VkShaderModule CreateShaderModule(const VkDevice& device,
 } /* namespace */
 
 void Pipeline::Init(
-    std::shared_ptr<Context> context,
+    SharedContext context,
     const string& vert_file,
     const string& frag_file,
     const UniformBuffer& uniform_buffer,
@@ -47,16 +46,15 @@ void Pipeline::Init(
   context_ = context;
   vert_file_ = vert_file;
   frag_file_ = frag_file;
+
   const VkDevice& device = *context_->device();
   const VkAllocationCallbacks* allocator = context_->allocator();
 
   const string& vert_code = util::ReadFile(vert_file_);
   const string& frag_code = util::ReadFile(frag_file_);
 
-  VkShaderModule vert_shader_module =
-      CreateShaderModule(device, vert_code, allocator);
-  VkShaderModule frag_shader_module =
-      CreateShaderModule(device, frag_code, allocator);
+  VkShaderModule vert_shader_module = CreateShaderModule(context_, vert_code);
+  VkShaderModule frag_shader_module = CreateShaderModule(context_, frag_code);
 
   VkPipelineShaderStageCreateInfo vert_shader_info{
       VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,

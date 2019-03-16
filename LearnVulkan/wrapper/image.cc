@@ -17,10 +17,9 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-VkImageView CreateImageView(const VkImage& image,
-                            VkFormat image_format,
-                            const VkDevice& device,
-                            const VkAllocationCallbacks* allocator) {
+VkImageView CreateImageView(SharedContext context,
+                            const VkImage& image,
+                            VkFormat image_format) {
   VkImageViewCreateInfo image_view_info{
       VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -46,14 +45,13 @@ VkImageView CreateImageView(const VkImage& image,
   };
 
   VkImageView image_view;
-  ASSERT_SUCCESS(
-      vkCreateImageView(device, &image_view_info, allocator, &image_view),
-      "Failed to create image view");
+  ASSERT_SUCCESS(vkCreateImageView(*context->device(), &image_view_info,
+                                   context->allocator(), &image_view),
+                 "Failed to create image view");
   return image_view;
 }
 
-VkSampler CreateSampler(const VkDevice& device,
-                        const VkAllocationCallbacks* allocator) {
+VkSampler CreateSampler(SharedContext context) {
   VkSamplerCreateInfo sampler_info{
       VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -77,14 +75,15 @@ VkSampler CreateSampler(const VkDevice& device,
   };
 
   VkSampler sampler;
-  ASSERT_SUCCESS(vkCreateSampler(device, &sampler_info, allocator, &sampler),
+  ASSERT_SUCCESS(vkCreateSampler(*context->device(), &sampler_info,
+                                 context->allocator(), &sampler),
                  "Failed to create sampler");
   return sampler;
 }
 
 } /* namespace */
 
-void Image::Init(std::shared_ptr<Context> context,
+void Image::Init(SharedContext context,
                  const std::string& path) {
   context_ = context;
 
@@ -95,9 +94,8 @@ void Image::Init(std::shared_ptr<Context> context,
   image_buffer_.Init(context_, data, format, width, height, 4);
   stbi_image_free(data);
 
-  image_view_ = CreateImageView(image_buffer_.image(), format,
-                                *context_->device(), context_->allocator());
-  sampler_ = CreateSampler(*context_->device(), context_->allocator());
+  image_view_ = CreateImageView(context_, image_buffer_.image(), format);
+  sampler_ = CreateSampler(context_);
 }
 
 Image::~Image() {

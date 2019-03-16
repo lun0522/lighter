@@ -26,23 +26,49 @@ namespace {
 using std::runtime_error;
 using std::vector;
 
-bool IsDeviceSuitable(Queues& queues,
-                      const VkPhysicalDevice& physical_device,
-                      const VkSurfaceKHR& surface) {
+struct QueueIndices {
+  size_t graphics, present;
+
+  static QueueIndices Invalid() {
+    return QueueIndices{util::kInvalidIndex, util::kInvalidIndex};
+  }
+
+  bool IsValid() const {
+    return graphics != util::kInvalidIndex && present != util::kInvalidIndex;
+  }
+};
+
+QueueIndices FindDeviceQueues(SharedContext context,
+                              const VkPhysicalDevice& physical_device) {
   VkPhysicalDeviceProperties properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
   std::cout << "Found device: " << properties.deviceName
             << std::endl << std::endl;
 
   // require swap chain support
-  if (!Swapchain::HasSwapchainSupport(surface, physical_device))
-    return false;
+  if (!Swapchain::HasSwapchainSupport(context, physical_device))
+    return QueueIndices::Invalid();
 
   // require anisotropy filtering support
   VkPhysicalDeviceFeatures feature_support;
   vkGetPhysicalDeviceFeatures(physical_device, &feature_support);
   if (!feature_support.samplerAnisotropy)
-    return false;
+    return QueueIndices::Invalid();
+
+  // find queue family that holds graphics queue
+  auto graphics_support = [](const VkQueueFamilyProperties& family) -> bool {
+    return family.queueCount && (family.queueFlags & VK_QUEUE_GRAPHICS_BIT);
+  };
+
+  // find queue family that holds present queue
+  uint32_t index = 0;
+  auto present_support = [&physical_device, &context, index]
+      (const VkQueueFamilyProperties& family) mutable -> bool {
+      VkBool32 support = false;
+      vkGetPhysicalDeviceSurfaceSupportKHR(
+          physical_device, index++, *context->surface(), &support);
+      return support;
+  };
 
   auto families{util::QueryAttribute<VkQueueFamilyProperties>(
       [&physical_device](uint32_t* count, VkQueueFamilyProperties* properties) {
@@ -51,33 +77,15 @@ bool IsDeviceSuitable(Queues& queues,
       }
   )};
 
-  // find queue family that holds graphics queue
-  auto graphics_support = [](const VkQueueFamilyProperties& family) -> bool {
-    return family.queueCount && (family.queueFlags & VK_QUEUE_GRAPHICS_BIT);
+  return QueueIndices{
+      util::FindFirst<VkQueueFamilyProperties>(families, graphics_support),
+      util::FindFirst<VkQueueFamilyProperties>(families, present_support),
   };
-  if (!util::FindFirst<VkQueueFamilyProperties>(
-      families, graphics_support, queues.graphics.family_index))
-    return false;
-
-  // find queue family that holds present queue
-  uint32_t index = 0;
-  auto present_support = [&physical_device, &surface, index]
-      (const VkQueueFamilyProperties& family) mutable -> bool {
-      VkBool32 support = false;
-      vkGetPhysicalDeviceSurfaceSupportKHR(
-          physical_device, index++, surface, &support);
-      return support;
-  };
-  if (!util::FindFirst<VkQueueFamilyProperties>(
-      families, present_support, queues.present.family_index))
-    return false;
-
-  return true;
 }
 
 } /* namespace */
 
-void Instance::Init(std::shared_ptr<Context> context) {
+void Instance::Init(SharedContext context) {
   context_ = context;
 
   if (glfwVulkanSupported() == GL_FALSE)
@@ -148,7 +156,7 @@ Instance::~Instance() {
   vkDestroyInstance(instance_, context_->allocator());
 }
 
-void Surface::Init(std::shared_ptr<Context> context) {
+void Surface::Init(SharedContext context) {
   context_ = context;
   ASSERT_SUCCESS(
       glfwCreateWindowSurface(*context->instance(), context->window(),
@@ -160,7 +168,7 @@ Surface::~Surface() {
   vkDestroySurfaceKHR(*context_->instance(), surface_, context_->allocator());
 }
 
-void PhysicalDevice::Init(std::shared_ptr<Context> context) {
+void PhysicalDevice::Init(SharedContext context) {
   context_ = context;
 
   auto devices{util::QueryAttribute<VkPhysicalDevice>(
@@ -171,8 +179,13 @@ void PhysicalDevice::Init(std::shared_ptr<Context> context) {
   )};
 
   for (const auto& candidate : devices) {
-    if (IsDeviceSuitable(context_->queues(), candidate, *context_->surface())) {
+    auto indices = FindDeviceQueues(context_, candidate);
+    if (indices.IsValid()) {
       physical_device_ = candidate;
+      context_->queues().set_family_indices(
+          static_cast<uint32_t>(indices.graphics),
+          static_cast<uint32_t>(indices.present)
+      );
       return;
     }
   }
@@ -185,7 +198,7 @@ VkPhysicalDeviceLimits PhysicalDevice::limits() const {
   return properties.limits;
 }
 
-void Device::Init(std::shared_ptr<Context> context) {
+void Device::Init(SharedContext context) {
   context_ = context;
 
   // request anisotropy filtering support
@@ -238,10 +251,10 @@ void Device::Init(std::shared_ptr<Context> context) {
                  "Failed to create logical device");
 
   // retrieve queue handles for each queue family
-  vkGetDeviceQueue(device_, queues.graphics.family_index, 0,
-                   &queues.graphics.queue);
-  vkGetDeviceQueue(device_, queues.present.family_index, 0,
-                   &queues.present.queue);
+  VkQueue graphics_queue, present_queue;
+  vkGetDeviceQueue(device_, queues.graphics.family_index, 0, &graphics_queue);
+  vkGetDeviceQueue(device_, queues.present.family_index, 0, &present_queue);
+  queues.set_queues(graphics_queue, present_queue);
 }
 
 Device::~Device() {

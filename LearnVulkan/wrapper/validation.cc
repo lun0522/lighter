@@ -34,9 +34,9 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
 }
 
 template<typename FuncType>
-FuncType LoadFunction(const VkInstance& instance, const string& func_name) {
+FuncType LoadFunction(SharedContext context, const string& func_name) {
   auto func = reinterpret_cast<FuncType>(
-      vkGetInstanceProcAddr(instance, func_name.c_str()));
+      vkGetInstanceProcAddr(*context->instance(), func_name.c_str()));
   if (!func)
     throw std::runtime_error{"Failed to load: " + func_name};
   return func;
@@ -48,7 +48,7 @@ const vector<const char*> kValidationLayers{
     "VK_LAYER_LUNARG_standard_validation",
 };
 
-void DebugCallback::Init(std::shared_ptr<Context> context,
+void DebugCallback::Init(SharedContext context,
                          VkDebugUtilsMessageSeverityFlagsEXT message_severity,
                          VkDebugUtilsMessageTypeFlagsEXT message_type) {
   context_ = context;
@@ -63,13 +63,13 @@ void DebugCallback::Init(std::shared_ptr<Context> context,
   };
 
   auto func = LoadFunction<PFN_vkCreateDebugUtilsMessengerEXT>(
-      *context_->instance(), "vkCreateDebugUtilsMessengerEXT");
+      context_, "vkCreateDebugUtilsMessengerEXT");
   func(*context_->instance(), &create_info, context_->allocator(), &callback_);
 }
 
 DebugCallback::~DebugCallback() {
   auto func = LoadFunction<PFN_vkDestroyDebugUtilsMessengerEXT>(
-      *context_->instance(), "vkDestroyDebugUtilsMessengerEXT");
+      context_, "vkDestroyDebugUtilsMessengerEXT");
   func(*context_->instance(), callback_, context_->allocator());
 }
 

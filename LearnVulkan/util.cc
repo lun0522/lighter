@@ -18,6 +18,8 @@ using std::string;
 
 } /* namespace */
 
+const size_t kInvalidIndex = std::numeric_limits<size_t>::max();
+
 const string& ReadFile(const string& path) {
   static std::unordered_map<string, string> kLoadedText;
   auto loaded = kLoadedText.find(path);

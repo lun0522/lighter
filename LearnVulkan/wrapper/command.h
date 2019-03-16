@@ -73,9 +73,8 @@ class Command {
 namespace command {
 
 using RecordCommand = std::function<void (const VkCommandBuffer&)>;
-void OneTimeCommand(const VkDevice& device,
+void OneTimeCommand(std::shared_ptr<Context> context,
                     const Queues::Queue& queue,
-                    const VkAllocationCallbacks* allocator,
                     const RecordCommand& on_record);
 
 } /* namespace command */

@@ -132,13 +132,26 @@ struct Queues {
     VkQueue queue;
     uint32_t family_index;
   };
-  Queue graphics, present;
+  Queue graphics, transfer, present;
+
   Queues() = default;
   ~Queues() {}  // implicitly cleaned up with physical device
 
   // This class is neither copyable nor movable
   Queues(const Queues&) = delete;
   Queues& operator=(const Queues&) = delete;
+
+  void set_queues(const VkQueue& graphics_queue, const VkQueue& present_queue) {
+    graphics.queue = graphics_queue;
+    transfer.queue = graphics_queue;
+    present.queue = present_queue;
+  }
+
+  void set_family_indices(uint32_t graphics_index, uint32_t present_index) {
+    graphics.family_index = graphics_index;
+    transfer.family_index = graphics_index;
+    present.family_index = present_index;
+  }
 };
 
 } /* namespace vulkan */

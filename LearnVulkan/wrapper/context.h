@@ -24,6 +24,8 @@ class GLFWwindow;
 namespace wrapper {
 namespace vulkan {
 
+using SharedContext = std::shared_ptr<Context>;
+
 class Context : public std::enable_shared_from_this<Context> {
  public:
   static std::shared_ptr<Context> CreateContext() {

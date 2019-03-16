@@ -36,7 +36,7 @@ constexpr VkFenceCreateInfo kUnsignaledFenceInfo{
 
 } /* namespace */
 
-void Semaphores::Init(std::shared_ptr<Context> context, size_t count) {
+void Semaphores::Init(SharedContext context, size_t count) {
   context_ = context;
   semas_.resize(count);
   for (auto& sema : semas_) {
@@ -51,7 +51,7 @@ Semaphores::~Semaphores() {
     vkDestroySemaphore(*context_->device(), sema, context_->allocator());
 }
 
-void Fences::Init(std::shared_ptr<Context> context,
+void Fences::Init(SharedContext context,
                   size_t count,
                   bool is_signaled) {
   context_ = context;

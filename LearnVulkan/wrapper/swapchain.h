@@ -67,7 +67,7 @@ class Context;
  */
 class Swapchain {
  public:
-  static bool HasSwapchainSupport(const VkSurfaceKHR& surface,
+  static bool HasSwapchainSupport(std::shared_ptr<Context> context,
                                   const VkPhysicalDevice& physical_device);
 
   Swapchain() = default;

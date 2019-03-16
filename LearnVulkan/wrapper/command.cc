@@ -69,27 +69,27 @@ void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
   }
 }
 
-VkCommandPool CreateCommandPool(uint32_t queue_family_index,
-                                const VkDevice& device,
-                                bool is_transient,
-                                const VkAllocationCallbacks* allocator) {
+VkCommandPool CreateCommandPool(SharedContext context,
+                                const Queues::Queue& queue,
+                                bool is_transient) {
   // create pool to hold command buffers
   VkCommandPoolCreateInfo pool_info{
       VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/NULL_FLAG,
-      queue_family_index,
+      queue.family_index,
   };
   if (is_transient)
     pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 
   VkCommandPool pool;
-  ASSERT_SUCCESS(vkCreateCommandPool(device, &pool_info, allocator, &pool),
+  ASSERT_SUCCESS(vkCreateCommandPool(*context->device(), &pool_info,
+                                     context->allocator(), &pool),
                  "Failed to create command pool");
   return pool;
 }
 
-VkCommandBuffer CreateCommandBuffer(const VkDevice& device,
+VkCommandBuffer CreateCommandBuffer(SharedContext context,
                                     const VkCommandPool& command_pool) {
   // allocate command buffer
   VkCommandBufferAllocateInfo buffer_info{
@@ -102,15 +102,15 @@ VkCommandBuffer CreateCommandBuffer(const VkDevice& device,
   };
 
   VkCommandBuffer buffer;
-  ASSERT_SUCCESS(vkAllocateCommandBuffers(device, &buffer_info, &buffer),
-                 "Failed to allocate command buffer");
+  ASSERT_SUCCESS(
+      vkAllocateCommandBuffers(*context->device(), &buffer_info, &buffer),
+      "Failed to allocate command buffer");
   return buffer;
 }
 
-vector<VkCommandBuffer> CreateCommandBuffers(
-    size_t count,
-    const VkDevice& device,
-    const VkCommandPool& command_pool) {
+vector<VkCommandBuffer> CreateCommandBuffers(SharedContext context,
+                                             const VkCommandPool& command_pool,
+                                             size_t count) {
   // allocate command buffers
   VkCommandBufferAllocateInfo buffer_info{
       VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -122,7 +122,8 @@ vector<VkCommandBuffer> CreateCommandBuffers(
   };
 
   vector<VkCommandBuffer> buffers(count);
-  ASSERT_SUCCESS(vkAllocateCommandBuffers(device, &buffer_info, buffers.data()),
+  ASSERT_SUCCESS(vkAllocateCommandBuffers(*context->device(), &buffer_info,
+                                          buffers.data()),
                  "Failed to allocate command buffers");
   return buffers;
 }
@@ -131,14 +132,14 @@ vector<VkCommandBuffer> CreateCommandBuffers(
 
 namespace command {
 
-void OneTimeCommand(const VkDevice& device,
+void OneTimeCommand(SharedContext context,
                     const Queues::Queue& queue,
-                    const VkAllocationCallbacks* allocator,
                     const RecordCommand& on_record) {
+  const VkDevice& device = *context->device();
+
   // construct command pool and buffer
-  VkCommandPool command_pool = CreateCommandPool(
-      queue.family_index, device, true, allocator);
-  VkCommandBuffer command_buffer = CreateCommandBuffer(device, command_pool);
+  VkCommandPool command_pool = CreateCommandPool(context, queue, true);
+  VkCommandBuffer command_buffer = CreateCommandBuffer(context, command_pool);
 
   // record command
   VkCommandBufferBeginInfo begin_info{
@@ -165,7 +166,7 @@ void OneTimeCommand(const VkDevice& device,
   };
   vkQueueSubmit(queue.queue, 1, &submit_info, VK_NULL_HANDLE);
   vkQueueWaitIdle(queue.queue);
-  vkDestroyCommandPool(device, command_pool, allocator);
+  vkDestroyCommandPool(device, command_pool, context->allocator());
 }
 
 } /* namespace command */
@@ -261,7 +262,7 @@ VkResult Command::DrawFrame(const UniformBuffer& uniform_buffer,
   return VK_SUCCESS;
 }
 
-void Command::Init(std::shared_ptr<Context> context,
+void Command::Init(SharedContext context,
                    const Pipeline& pipeline,
                    const VertexBuffer& vertex_buffer,
                    const UniformBuffer& uniform_buffer) {
@@ -269,16 +270,14 @@ void Command::Init(std::shared_ptr<Context> context,
 
   if (is_first_time_) {
     command_pool_ = CreateCommandPool(
-        context_->queues().graphics.family_index, *context_->device(),
-        false, context_->allocator());
+        context_, context_->queues().graphics, false);
     image_available_semas_.Init(context_, kMaxFrameInFlight);
     render_finished_semas_.Init(context_, kMaxFrameInFlight);
     in_flight_fences_.Init(context_, kMaxFrameInFlight, true);
     is_first_time_ = false;
   }
   command_buffers_ = CreateCommandBuffers(
-      context_->render_pass().framebuffers().size(), *context_->device(),
-      command_pool_);
+      context_, command_pool_, context_->render_pass().framebuffers().size());
   RecordCommands(command_buffers_, context_->render_pass().framebuffers(),
                  context_->swapchain().extent(), *context_->render_pass(),
                  pipeline, vertex_buffer, uniform_buffer);

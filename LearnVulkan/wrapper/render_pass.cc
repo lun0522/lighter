@@ -16,28 +16,25 @@ namespace {
 
 using std::vector;
 
-vector<VkFramebuffer> CreateFramebuffers(
-    VkExtent2D image_extent,
-    const vector<VkImageView>& image_views,
-    const VkDevice& device,
-    const VkRenderPass& render_pass,
-    const VkAllocationCallbacks* allocator) {
-  vector<VkFramebuffer> framebuffers(image_views.size());
-  for (size_t i = 0; i < image_views.size(); ++i) {
+vector<VkFramebuffer> CreateFramebuffers(SharedContext context) {
+  const Swapchain& swapchain = context->swapchain();
+
+  vector<VkFramebuffer> framebuffers(swapchain.image_views().size());
+  for (size_t i = 0; i < swapchain.image_views().size(); ++i) {
     VkFramebufferCreateInfo framebuffer_info{
         VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
         /*pNext=*/nullptr,
         /*flags*/NULL_FLAG,
-        render_pass,
+        *context->render_pass(),
         /*attachmentCount=*/1,
-        &image_views[i],
-        image_extent.width,
-        image_extent.height,
+        &swapchain.image_views()[i],
+        swapchain.extent().width,
+        swapchain.extent().height,
         /*layers=*/1,
     };
 
-    ASSERT_SUCCESS(vkCreateFramebuffer(
-                       device, &framebuffer_info, allocator, &framebuffers[i]),
+    ASSERT_SUCCESS(vkCreateFramebuffer(*context->device(), &framebuffer_info,
+                                       context->allocator(), &framebuffers[i]),
                    "Failed to create framebuffer");
   }
   return framebuffers;
@@ -45,7 +42,7 @@ vector<VkFramebuffer> CreateFramebuffers(
 
 } /* namespace */
 
-void RenderPass::Init(std::shared_ptr<Context> context) {
+void RenderPass::Init(SharedContext context) {
   context_ = context;
 
   VkAttachmentDescription color_att_desc{
@@ -119,9 +116,7 @@ void RenderPass::Init(std::shared_ptr<Context> context) {
                                     context_->allocator(), &render_pass_),
                  "Failed to create render pass");
 
-  framebuffers_ = CreateFramebuffers(
-      context_->swapchain().extent(), context_->swapchain().image_views(),
-      *context_->device(), render_pass_, context_->allocator());
+  framebuffers_ = CreateFramebuffers(context_);
 }
 
 void RenderPass::Cleanup() {
