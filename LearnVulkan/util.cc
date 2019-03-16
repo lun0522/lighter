@@ -19,10 +19,10 @@ using std::string;
 } /* namespace */
 
 const string& ReadFile(const string& path) {
-  static std::unordered_map<string, string> kLoadedText{};
+  static std::unordered_map<string, string> kLoadedText;
   auto loaded = kLoadedText.find(path);
   if (loaded == kLoadedText.end()) {
-    ifstream file(path);
+    ifstream file{path};
     file.exceptions(ifstream::failbit | ifstream::badbit);
     if (!file.is_open())
       throw std::runtime_error{"Failed to open file: " + path};

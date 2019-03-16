@@ -170,7 +170,7 @@ void Swapchain::Init(std::shared_ptr<Context> context) {
   const VkDevice& device = *context_->device();
 
   // surface capabilities
-  VkSurfaceCapabilitiesKHR surface_capabilities{};
+  VkSurfaceCapabilitiesKHR surface_capabilities;
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
       physical_device, surface, &surface_capabilities);
   VkExtent2D image_extent = ChooseExtent(

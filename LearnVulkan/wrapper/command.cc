@@ -83,7 +83,7 @@ VkCommandPool CreateCommandPool(uint32_t queue_family_index,
   if (is_transient)
     pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 
-  VkCommandPool pool{};
+  VkCommandPool pool;
   ASSERT_SUCCESS(vkCreateCommandPool(device, &pool_info, allocator, &pool),
                  "Failed to create command pool");
   return pool;
@@ -101,7 +101,7 @@ VkCommandBuffer CreateCommandBuffer(const VkDevice& device,
       /*commandBufferCount=*/1,
   };
 
-  VkCommandBuffer buffer{};
+  VkCommandBuffer buffer;
   ASSERT_SUCCESS(vkAllocateCommandBuffers(device, &buffer_info, &buffer),
                  "Failed to allocate command buffer");
   return buffer;
@@ -129,11 +129,12 @@ vector<VkCommandBuffer> CreateCommandBuffers(
 
 } /* namespace */
 
-void Command::OneTimeCommand(
-    const VkDevice& device,
-    const Queues::Queue& queue,
-    const VkAllocationCallbacks* allocator,
-    const RecordCommand& on_record) {
+namespace command {
+
+void OneTimeCommand(const VkDevice& device,
+                    const Queues::Queue& queue,
+                    const VkAllocationCallbacks* allocator,
+                    const RecordCommand& on_record) {
   // construct command pool and buffer
   VkCommandPool command_pool = CreateCommandPool(
       queue.family_index, device, true, allocator);
@@ -166,6 +167,8 @@ void Command::OneTimeCommand(
   vkQueueWaitIdle(queue.queue);
   vkDestroyCommandPool(device, command_pool, allocator);
 }
+
+} /* namespace command */
 
 VkResult Command::DrawFrame(const UniformBuffer& uniform_buffer,
                             const std::function<void (size_t)>& update_func) {

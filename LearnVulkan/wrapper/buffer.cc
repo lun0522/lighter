@@ -8,8 +8,6 @@
 #include "buffer.h"
 
 #include <array>
-#define STB_IMAGE_IMPLEMENTATION
-#include <image/stb_image.h>
 
 #include "context.h"
 #include "command.h"
@@ -20,7 +18,6 @@ namespace vulkan {
 namespace {
 
 using std::array;
-using std::vector;
 
 uint32_t FindMemoryType(uint32_t type_filter,
                         VkMemoryPropertyFlags mem_properties,
@@ -29,7 +26,7 @@ uint32_t FindMemoryType(uint32_t type_filter,
   //   .memoryHeaps: memory heaps from which memory can be allocated
   //   .memoryTypes: memory types that can be used to access memory allocated
   //                 from heaps
-  VkPhysicalDeviceMemoryProperties properties{};
+  VkPhysicalDeviceMemoryProperties properties;
   vkGetPhysicalDeviceMemoryProperties(physical_device, &properties);
 
   for (uint32_t i = 0; i < properties.memoryTypeCount; ++i) {
@@ -58,7 +55,7 @@ VkBuffer CreateBuffer(VkBufferUsageFlags buffer_usage,
       /*pQueueFamilyIndices=*/nullptr,
   };
 
-  VkBuffer buffer{};
+  VkBuffer buffer;
   ASSERT_SUCCESS(vkCreateBuffer(device, &buffer_info, allocator, &buffer),
                  "Failed to create buffer");
   return buffer;
@@ -73,7 +70,7 @@ VkDeviceMemory CreateBufferMemory(VkMemoryPropertyFlags mem_properties,
   //   .size: size of required amount of memory
   //   .alignment: offset where this buffer begins in allocated region
   //   .memoryTypeBits: memory type suitable for this buffer
-  VkMemoryRequirements mem_requirements{};
+  VkMemoryRequirements mem_requirements;
   vkGetBufferMemoryRequirements(device, buffer, &mem_requirements);
 
   // allocate memory on device
@@ -85,7 +82,7 @@ VkDeviceMemory CreateBufferMemory(VkMemoryPropertyFlags mem_properties,
           mem_requirements.memoryTypeBits, mem_properties, physical_device),
   };
 
-  VkDeviceMemory memory{};
+  VkDeviceMemory memory;
   ASSERT_SUCCESS(vkAllocateMemory(device, &memory_info, allocator, &memory),
                  "Failed to allocate buffer memory");
 
@@ -127,7 +124,7 @@ VkImage CreateImage(VkFormat format,
       /*initialLayout=*/VK_IMAGE_LAYOUT_UNDEFINED,
   };
 
-  VkImage image{};
+  VkImage image;
   ASSERT_SUCCESS(vkCreateImage(device, &image_info, allocator, &image),
                  "Failed to create image");
   return image;
@@ -151,7 +148,7 @@ VkDeviceMemory CreateImageMemory(VkMemoryPropertyFlags mem_properties,
           mem_requirements.memoryTypeBits, mem_properties, physical_device),
   };
 
-  VkDeviceMemory memory{};
+  VkDeviceMemory memory;
   ASSERT_SUCCESS(vkAllocateMemory(device, &memory_info, allocator, &memory),
                  "Failed to allocate image memory");
   vkBindImageMemory(device, image, memory, 0);
@@ -166,7 +163,7 @@ void TransitionImageLayout(const VkImage& image,
                            const Queues::Queue& transfer_queue,
                            const VkAllocationCallbacks* allocator) {
   // one-time transition command
-  Command::OneTimeCommand(device, transfer_queue, allocator,
+  command::OneTimeCommand(device, transfer_queue, allocator,
       [&](const VkCommandBuffer& command_buffer) {
         VkImageMemoryBarrier barrier{
             VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -219,7 +216,7 @@ void CopyHostToBuffer(VkDeviceSize map_size,
                       VkDeviceSize map_offset,
                       const VkDeviceMemory& device_memory,
                       const VkDevice& device,
-                      const vector<HostToBufferCopyInfo>& copy_infos) {
+                      const std::vector<HostToBufferCopyInfo>& copy_infos) {
   // data transfer may not happen immediately, for example because it is only
   // written to cache and not yet to device. we can either flush host writes
   // with vkFlushMappedMemoryRanges and vkInvalidateMappedMemoryRanges, or
@@ -238,7 +235,7 @@ void CopyBufferToBuffer(VkDeviceSize data_size,
                         const Queues::Queue& transfer_queue,
                         const VkAllocationCallbacks* allocator) {
   // one-time copy command
-  Command::OneTimeCommand(device, transfer_queue, allocator,
+  command::OneTimeCommand(device, transfer_queue, allocator,
       [&](const VkCommandBuffer& command_buffer) {
         VkBufferCopy region{
             /*srcOffset=*/0,
@@ -258,7 +255,7 @@ void CopyBufferToImage(const VkBuffer& buffer,
                        const Queues::Queue& transfer_queue,
                        const VkAllocationCallbacks* allocator) {
   // one-time copy command
-  Command::OneTimeCommand(device, transfer_queue, allocator,
+  command::OneTimeCommand(device, transfer_queue, allocator,
       [&](const VkCommandBuffer& command_buffer) {
         VkBufferImageCopy region{
             // first three parameters specify pixels layout in buffer
@@ -474,22 +471,17 @@ UniformBuffer::~UniformBuffer() {
 }
 
 void ImageBuffer::Init(std::shared_ptr<Context> context,
-                       const std::string &path) {
+                       const void* image_data,
+                       VkFormat image_format,
+                       uint32_t width,
+                       uint32_t height,
+                       uint32_t channel) {
   context_ = context;
   const VkDevice& device = *context_->device();
   const Queues::Queue& transfer_queue = context_->queues().graphics;
   const VkAllocationCallbacks* allocator = context_->allocator();
 
-  int width, height, channel;
-  stbi_uc* image_data = stbi_load(path.c_str(), &width, &height, &channel,
-                                  STBI_rgb_alpha);  // force to have alpha
-  VkFormat image_format = VK_FORMAT_R8G8B8A8_UNORM;  // TODO: other formats
-  channel = 4;                                       // TODO: other formats
-  VkExtent3D image_extent{
-      static_cast<uint32_t>(width),
-      static_cast<uint32_t>(height),
-      /*depth=*/1,
-  };
+  VkExtent3D image_extent{width, height, /*depth=*/1};
   VkDeviceSize data_size = width * height * channel;
 
   // create staging buffer and associated memory
@@ -504,7 +496,6 @@ void ImageBuffer::Init(std::shared_ptr<Context> context,
   CopyHostToBuffer(data_size, 0, staging_memory, device, {
       {image_data, data_size, /*offset=*/0},
   });
-  stbi_image_free(image_data);
 
   // create final image and copy data from staging buffer to it. we need to do
   // some transitions so that image is eventually only visible to device

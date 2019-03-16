@@ -27,7 +27,7 @@ VkShaderModule CreateShaderModule(const VkDevice& device,
       reinterpret_cast<const uint32_t*>(code.data()),
   };
 
-  VkShaderModule shader_module{};
+  VkShaderModule shader_module;
   ASSERT_SUCCESS(vkCreateShaderModule(
                      device, &shader_module_info, allocator, &shader_module),
                  "Failed to create shader module");

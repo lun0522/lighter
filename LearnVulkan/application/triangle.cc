@@ -107,7 +107,7 @@ void TriangleApplication::Init() {
                         kTrangleIndices.size());
     uniform_buffer_.Init(context_->ptr(), kUbo.data(), kNumFrame,
                          sizeof(UniformBufferObject));
-    image_buffer_.Init(context_->ptr(), "texture/statue.jpg");
+    image_.Init(context_->ptr(), "texture/statue.jpg");
     is_first_time = false;
   }
 

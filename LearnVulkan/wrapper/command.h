@@ -43,13 +43,6 @@ class Command {
  public:
   static const size_t kMaxFrameInFlight{2};
 
-  using RecordCommand = std::function<void (const VkCommandBuffer&)>;
-  static void OneTimeCommand(
-      const VkDevice& device,
-      const Queues::Queue& queue,
-      const VkAllocationCallbacks* allocator,
-      const RecordCommand& on_record);
-
   Command() = default;
   VkResult DrawFrame(const UniformBuffer& uniform_buffer,
                      const std::function<void (size_t)>& update_func);
@@ -76,6 +69,16 @@ class Command {
   VkCommandPool command_pool_;
   std::vector<VkCommandBuffer> command_buffers_;
 };
+
+namespace command {
+
+using RecordCommand = std::function<void (const VkCommandBuffer&)>;
+void OneTimeCommand(const VkDevice& device,
+                    const Queues::Queue& queue,
+                    const VkAllocationCallbacks* allocator,
+                    const RecordCommand& on_record);
+
+} /* namespace command */
 
 } /* namespace vulkan */
 } /* namespace wrapper */

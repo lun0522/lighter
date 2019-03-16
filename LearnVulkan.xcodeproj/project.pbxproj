@@ -17,6 +17,7 @@
 		BD4717B92219E9AB00B860D0 /* util.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD4717B82219E9AB00B860D0 /* util.cc */; };
 		BD5F5F1121FA43DD006BD2AC /* libvulkan.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */; };
 		BD5F5F1221FA43E0006BD2AC /* libvulkan.1.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */; };
+		BD60051E223CA5D300D17D03 /* image.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD60051C223CA5D300D17D03 /* image.cc */; };
 		BD6B371B223A03C700D69CDB /* texture in Copy Files */ = {isa = PBXBuildFile; fileRef = BD6B371A223A03C700D69CDB /* texture */; };
 		BD6BAC282211432500906E78 /* basic_object.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD6BAC262211432500906E78 /* basic_object.cc */; };
 		BD6D210F221000E800FF1910 /* command.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD6D210D221000E800FF1910 /* command.cc */; };
@@ -58,6 +59,8 @@
 		BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libglfw.3.3.dylib; path = "../../../../../usr/local/Cellar/glfw/HEAD-bb2ca1d/lib/libglfw.3.3.dylib"; sourceTree = "<group>"; };
 		BD4717B82219E9AB00B860D0 /* util.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = util.cc; sourceTree = "<group>"; };
 		BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libvulkan.1.dylib; path = ../libs/vulkan/macOS/lib/libvulkan.1.dylib; sourceTree = "<group>"; };
+		BD60051C223CA5D300D17D03 /* image.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = image.cc; sourceTree = "<group>"; };
+		BD60051D223CA5D300D17D03 /* image.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = image.h; sourceTree = "<group>"; };
 		BD6B371A223A03C700D69CDB /* texture */ = {isa = PBXFileReference; lastKnownFileType = folder; path = texture; sourceTree = "<group>"; };
 		BD6BAC262211432500906E78 /* basic_object.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = basic_object.cc; sourceTree = "<group>"; };
 		BD6BAC272211432500906E78 /* basic_object.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = basic_object.h; sourceTree = "<group>"; };
@@ -132,6 +135,8 @@
 				BD6D210E221000E800FF1910 /* command.h */,
 				BDC658272230EC5D00505B22 /* context.cc */,
 				BDC658282230EC5D00505B22 /* context.h */,
+				BD60051C223CA5D300D17D03 /* image.cc */,
+				BD60051D223CA5D300D17D03 /* image.h */,
 				BD151CB2220BF9A300A6FC75 /* pipeline.cc */,
 				BD151CB3220BF9A300A6FC75 /* pipeline.h */,
 				BD098BC7220D4D2600E34A0A /* render_pass.cc */,
@@ -240,6 +245,7 @@
 				BD151CB4220BF9A300A6FC75 /* pipeline.cc in Sources */,
 				BD6BAC282211432500906E78 /* basic_object.cc in Sources */,
 				BDA11AB12206323F003092B8 /* swapchain.cc in Sources */,
+				BD60051E223CA5D300D17D03 /* image.cc in Sources */,
 				BD30819C21B1929300F30C2C /* validation.cc in Sources */,
 				BD098BC9220D4D2600E34A0A /* render_pass.cc in Sources */,
 			);

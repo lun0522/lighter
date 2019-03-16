@@ -41,6 +41,7 @@ class Context;
  *      VkDevice
  *      VkPhysicalDevice
  */
+
 class VertexBuffer {
  public:
   VertexBuffer() = default;
@@ -96,8 +97,18 @@ class ImageBuffer {
  public:
   ImageBuffer() = default;
   void Init(std::shared_ptr<Context> context,
-            const std::string& path);
+            const void* image_data,
+            VkFormat image_format,
+            uint32_t width,
+            uint32_t height,
+            uint32_t channel);
   ~ImageBuffer();
+
+  // This class is neither copyable nor movable
+  ImageBuffer(const ImageBuffer&) = delete;
+  ImageBuffer& operator=(const ImageBuffer&) = delete;
+
+  const VkImage& image() const { return image_; }
 
  private:
   std::shared_ptr<Context> context_;

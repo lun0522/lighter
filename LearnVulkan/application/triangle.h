@@ -16,6 +16,7 @@
 #include "buffer.h"
 #include "command.h"
 #include "context.h"
+#include "image.h"
 #include "pipeline.h"
 
 namespace application {
@@ -35,7 +36,7 @@ class TriangleApplication {
   wrapper::vulkan::Command command_;
   wrapper::vulkan::VertexBuffer vertex_buffer_;
   wrapper::vulkan::UniformBuffer uniform_buffer_;
-  wrapper::vulkan::ImageBuffer image_buffer_;
+  wrapper::vulkan::Image image_;
 
   void Init();
   void Cleanup();

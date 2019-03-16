@@ -29,16 +29,20 @@ using std::vector;
 bool IsDeviceSuitable(Queues& queues,
                       const VkPhysicalDevice& physical_device,
                       const VkSurfaceKHR& surface) {
-  // require swap chain support
-  if (!Swapchain::HasSwapchainSupport(surface, physical_device)) return false;
-
   VkPhysicalDeviceProperties properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
   std::cout << "Found device: " << properties.deviceName
             << std::endl << std::endl;
 
-  VkPhysicalDeviceFeatures features;
-  vkGetPhysicalDeviceFeatures(physical_device, &features);
+  // require swap chain support
+  if (!Swapchain::HasSwapchainSupport(surface, physical_device))
+    return false;
+
+  // require anisotropy filtering support
+  VkPhysicalDeviceFeatures feature_support;
+  vkGetPhysicalDeviceFeatures(physical_device, &feature_support);
+  if (!feature_support.samplerAnisotropy)
+    return false;
 
   auto families{util::QueryAttribute<VkQueueFamilyProperties>(
       [&physical_device](uint32_t* count, VkQueueFamilyProperties* properties) {
@@ -184,6 +188,10 @@ VkPhysicalDeviceLimits PhysicalDevice::limits() const {
 void Device::Init(std::shared_ptr<Context> context) {
   context_ = context;
 
+  // request anisotropy filtering support
+  VkPhysicalDeviceFeatures enabled_features{};
+  enabled_features.samplerAnisotropy = VK_TRUE;
+
   // graphics queue and present queue might be the same
   Queues& queues = context->queues();
   std::unordered_set<uint32_t> queue_families{
@@ -191,7 +199,7 @@ void Device::Init(std::shared_ptr<Context> context) {
       queues.present.family_index,
   };
   float priority = 1.0f;
-  vector<VkDeviceQueueCreateInfo> queue_infos{};
+  vector<VkDeviceQueueCreateInfo> queue_infos;
   for (uint32_t queue_family : queue_families) {
     VkDeviceQueueCreateInfo queue_info{
         VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
@@ -222,7 +230,7 @@ void Device::Init(std::shared_ptr<Context> context) {
       // enabled extensions
       CONTAINER_SIZE(kSwapChainExtensions),
       kSwapChainExtensions.data(),
-      /*pEnabledFeatures=*/nullptr,
+      &enabled_features,
   };
 
   ASSERT_SUCCESS(vkCreateDevice(*context->physical_device(), &device_info,

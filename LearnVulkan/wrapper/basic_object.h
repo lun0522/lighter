@@ -33,7 +33,6 @@ class Instance {
   Instance(const Instance&) = delete;
   Instance& operator=(const Instance&) = delete;
 
-  VkInstance& operator*(void) { return instance_; }
   const VkInstance& operator*(void) const { return instance_; }
 
  private:
@@ -59,7 +58,6 @@ class Surface {
   Surface(const Surface&) = delete;
   Surface& operator=(const Surface&) = delete;
 
-  VkSurfaceKHR& operator*(void) { return surface_; }
   const VkSurfaceKHR& operator*(void) const { return surface_; }
 
  private:
@@ -88,7 +86,6 @@ struct PhysicalDevice {
   PhysicalDevice(const PhysicalDevice&) = delete;
   PhysicalDevice& operator=(const PhysicalDevice&) = delete;
 
-  VkPhysicalDevice& operator*(void) { return physical_device_; }
   const VkPhysicalDevice& operator*(void) const { return physical_device_; }
   VkPhysicalDeviceLimits limits() const;
 
@@ -120,7 +117,6 @@ struct Device {
   Device(const Device&) = delete;
   Device& operator=(const Device&) = delete;
 
-  VkDevice& operator*(void) { return device_; }
   const VkDevice& operator*(void) const { return device_; }
 
  private:

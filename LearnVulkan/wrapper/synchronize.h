@@ -31,7 +31,6 @@ class Semaphores {
   Semaphores(const Semaphores&) = delete;
   Semaphores& operator=(const Semaphores&) = delete;
 
-  VkSemaphore& operator[](size_t index) { return semas_[index]; }
   const VkSemaphore& operator[](size_t index) const { return semas_[index]; }
 
  private:
@@ -49,7 +48,6 @@ class Fences {
   Fences(const Fences&) = delete;
   Fences& operator=(const Fences&) = delete;
 
-  VkFence& operator[](size_t index) { return fences_[index]; }
   const VkFence& operator[](size_t index) const { return fences_[index]; }
 
  private:
