@@ -19,14 +19,14 @@ namespace {
 
 VkImageView CreateImageView(SharedContext context,
                             const VkImage& image,
-                            VkFormat image_format) {
+                            VkFormat format) {
   VkImageViewCreateInfo image_view_info{
       VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/NULL_FLAG,
       image,
       /*viewType=*/VK_IMAGE_VIEW_TYPE_2D,  // 2D, 3D, cube maps
-      image_format,
+      format,
       // enable swizzling color channels around
       VkComponentMapping{
           VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -91,7 +91,8 @@ void Image::Init(SharedContext context,
   VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;  // TODO: other formats
   stbi_uc* data = stbi_load(path.c_str(), &width, &height, &channel,
                             STBI_rgb_alpha);  // force to have alpha
-  image_buffer_.Init(context_, data, format, width, height, 4);
+  image_buffer_.Init(context_, {data, format, static_cast<uint32_t>(width),
+                                static_cast<uint32_t>(height), 4});
   stbi_image_free(data);
 
   image_view_ = CreateImageView(context_, image_buffer_.image(), format);

@@ -13,6 +13,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "descriptor.h"
+
 namespace wrapper {
 namespace vulkan {
 
@@ -42,12 +44,39 @@ class Context;
  *      VkPhysicalDevice
  */
 
+namespace buffer {
+
+struct DataInfo {
+  const void* data;
+  size_t data_size;
+  uint32_t unit_count;
+};
+
+struct ChunkInfo {
+  const void* data;
+  size_t chunk_size;
+  size_t num_chunk;
+};
+
+struct ImageInfo{
+  const void* data;
+  VkFormat format;
+  uint32_t width;
+  uint32_t height;
+  uint32_t channel;
+
+  VkExtent3D   extent()    const { return {width, height, /*depth=*/1}; }
+  VkDeviceSize data_size() const { return width * height * channel; }
+};
+
+} /* namespace buffer */
+
 class VertexBuffer {
  public:
   VertexBuffer() = default;
   void Init(std::shared_ptr<Context> context,
-            const void* vertex_data, size_t vertex_size, size_t vertex_count,
-            const void*  index_data, size_t  index_size, size_t  index_count);
+            const buffer::DataInfo& vertex_info,
+            const buffer::DataInfo& index_info);
   void Draw(const VkCommandBuffer& command_buffer) const;
   ~VertexBuffer();
 
@@ -59,15 +88,17 @@ class VertexBuffer {
   std::shared_ptr<Context> context_;
   VkBuffer buffer_;
   VkDeviceMemory device_memory_;
-  VkDeviceSize vertex_size_;
-  uint32_t vertex_count_, index_count_;
+  VkDeviceSize index_offset_;
+  uint32_t index_count_;
 };
 
 class UniformBuffer {
  public:
   UniformBuffer() = default;
   void Init(std::shared_ptr<Context> context,
-            const void* data, size_t num_chunk, size_t chunk_size);
+            const buffer::ChunkInfo& chunk_info,
+            uint32_t binding_point,
+            VkShaderStageFlags shader_stage);
   void Update(size_t chunk_index) const;
   void Bind(const VkCommandBuffer& command_buffer,
             const VkPipelineLayout& pipeline_layout,
@@ -78,30 +109,22 @@ class UniformBuffer {
   UniformBuffer(const UniformBuffer&) = delete;
   UniformBuffer& operator=(const UniformBuffer&) = delete;
 
-  // TODO: temporary
-  const std::vector<VkDescriptorSetLayout>& descriptor_set_layouts() const
-      { return descriptor_set_layouts_; }
+  const Descriptor& descriptor() const { return descriptor_; }
 
  private:
   std::shared_ptr<Context> context_;
   const char* data_;
   size_t chunk_memory_size_, chunk_data_size_;
-  VkDescriptorPool descriptor_pool_;
-  std::vector<VkDescriptorSetLayout> descriptor_set_layouts_;
-  std::vector<VkDescriptorSet> descriptor_sets_;
   VkBuffer buffer_;
   VkDeviceMemory device_memory_;
+  Descriptor descriptor_;
 };
 
 class ImageBuffer {
  public:
   ImageBuffer() = default;
   void Init(std::shared_ptr<Context> context,
-            const void* image_data,
-            VkFormat image_format,
-            uint32_t width,
-            uint32_t height,
-            uint32_t channel);
+            const buffer::ImageInfo& image_info);
   ~ImageBuffer();
 
   // This class is neither copyable nor movable

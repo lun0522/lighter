@@ -200,8 +200,7 @@ void Pipeline::Init(
   };
 
   // used to set uniform values
-  const auto& descriptor_set_layouts =
-      uniform_buffer.descriptor_set_layouts();
+  const auto& descriptor_set_layouts = uniform_buffer.descriptor().layouts();
   VkPipelineLayoutCreateInfo layout_info{
       VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -213,8 +212,8 @@ void Pipeline::Init(
       /*pPushConstantRanges=*/nullptr,
   };
 
-  ASSERT_SUCCESS(vkCreatePipelineLayout(
-                     device, &layout_info, allocator, &pipeline_layout_),
+  ASSERT_SUCCESS(vkCreatePipelineLayout(device, &layout_info, allocator,
+                                        &pipeline_layout_),
                  "Failed to create pipeline layout");
 
   VkGraphicsPipelineCreateInfo pipeline_info{

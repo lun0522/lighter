@@ -135,8 +135,6 @@ namespace command {
 void OneTimeCommand(SharedContext context,
                     const Queues::Queue& queue,
                     const RecordCommand& on_record) {
-  const VkDevice& device = *context->device();
-
   // construct command pool and buffer
   VkCommandPool command_pool = CreateCommandPool(context, queue, true);
   VkCommandBuffer command_buffer = CreateCommandBuffer(context, command_pool);
@@ -166,7 +164,7 @@ void OneTimeCommand(SharedContext context,
   };
   vkQueueSubmit(queue.queue, 1, &submit_info, VK_NULL_HANDLE);
   vkQueueWaitIdle(queue.queue);
-  vkDestroyCommandPool(device, command_pool, context->allocator());
+  vkDestroyCommandPool(*context->device(), command_pool, context->allocator());
 }
 
 } /* namespace command */

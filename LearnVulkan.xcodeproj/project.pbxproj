@@ -24,6 +24,7 @@
 		BD7B1E94222A63AD00EF0956 /* synchronize.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD7B1E92222A63AD00EF0956 /* synchronize.cc */; };
 		BD7C0CAD2217C74200009BE5 /* buffer.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD7C0CAB2217C74200009BE5 /* buffer.cc */; };
 		BDA11AB12206323F003092B8 /* swapchain.cc in Sources */ = {isa = PBXBuildFile; fileRef = BDA11AAF2206323F003092B8 /* swapchain.cc */; };
+		BDAA32D7223EA99D00448A2A /* descriptor.cc in Sources */ = {isa = PBXBuildFile; fileRef = BDAA32D5223EA99D00448A2A /* descriptor.cc */; };
 		BDC658292230EC5D00505B22 /* context.cc in Sources */ = {isa = PBXBuildFile; fileRef = BDC658272230EC5D00505B22 /* context.cc */; };
 		BDE3C01F2238A9B100AE8701 /* compiled in Copy Files */ = {isa = PBXBuildFile; fileRef = BDE3C01E2238A9B100AE8701 /* compiled */; };
 /* End PBXBuildFile section */
@@ -75,6 +76,8 @@
 		BDA11AB02206323F003092B8 /* swapchain.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = swapchain.h; sourceTree = "<group>"; };
 		BDA71386220A9997007FD13C /* triangle.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = triangle.vert; sourceTree = "<group>"; };
 		BDA71387220A9A90007FD13C /* triangle.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = triangle.frag; sourceTree = "<group>"; };
+		BDAA32D5223EA99D00448A2A /* descriptor.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = descriptor.cc; sourceTree = "<group>"; };
+		BDAA32D6223EA99D00448A2A /* descriptor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = descriptor.h; sourceTree = "<group>"; };
 		BDC658272230EC5D00505B22 /* context.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = context.cc; sourceTree = "<group>"; };
 		BDC658282230EC5D00505B22 /* context.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = context.h; sourceTree = "<group>"; };
 		BDE3C01E2238A9B100AE8701 /* compiled */ = {isa = PBXFileReference; lastKnownFileType = folder; path = compiled; sourceTree = "<group>"; };
@@ -135,6 +138,8 @@
 				BD6D210E221000E800FF1910 /* command.h */,
 				BDC658272230EC5D00505B22 /* context.cc */,
 				BDC658282230EC5D00505B22 /* context.h */,
+				BDAA32D5223EA99D00448A2A /* descriptor.cc */,
+				BDAA32D6223EA99D00448A2A /* descriptor.h */,
 				BD60051C223CA5D300D17D03 /* image.cc */,
 				BD60051D223CA5D300D17D03 /* image.h */,
 				BD151CB2220BF9A300A6FC75 /* pipeline.cc */,
@@ -237,6 +242,7 @@
 			files = (
 				BD4717B92219E9AB00B860D0 /* util.cc in Sources */,
 				BD2435A121AD9B1C00027627 /* main.cc in Sources */,
+				BDAA32D7223EA99D00448A2A /* descriptor.cc in Sources */,
 				BDC658292230EC5D00505B22 /* context.cc in Sources */,
 				BD2F0E9E222B2D5800B4ACD5 /* triangle.cc in Sources */,
 				BD6D210F221000E800FF1910 /* command.cc in Sources */,

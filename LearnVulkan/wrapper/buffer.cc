@@ -18,6 +18,7 @@ namespace vulkan {
 namespace {
 
 using std::array;
+using std::vector;
 
 uint32_t FindMemoryType(SharedContext context,
                         uint32_t type_filter,
@@ -218,7 +219,7 @@ void CopyHostToBuffer(SharedContext context,
                       VkDeviceSize map_size,
                       VkDeviceSize map_offset,
                       const VkDeviceMemory& device_memory,
-                      const std::vector<HostToBufferCopyInfo>& copy_infos) {
+                      const vector<HostToBufferCopyInfo>& copy_infos) {
   // data transfer may not happen immediately, for example because it is only
   // written to cache and not yet to device. we can either flush host writes
   // with vkFlushMappedMemoryRanges and vkInvalidateMappedMemoryRanges, or
@@ -278,16 +279,14 @@ void CopyBufferToImage(SharedContext context,
 
 } /* namespace */
 
-void VertexBuffer::Init(
-    SharedContext context,
-    const void* vertex_data, size_t vertex_size, size_t vertex_count,
-    const void*  index_data, size_t  index_size, size_t  index_count) {
+void VertexBuffer::Init(SharedContext context,
+                        const buffer::DataInfo& vertex_info,
+                        const buffer::DataInfo& index_info) {
   context_ = context;
 
-  VkDeviceSize total_size = vertex_size + index_size;
-  vertex_size_  = vertex_size;
-  vertex_count_ = static_cast<uint32_t>(vertex_count);
-  index_count_  = static_cast<uint32_t>(index_count);
+  VkDeviceSize total_size = vertex_info.data_size + index_info.data_size;
+  index_offset_ = vertex_info.data_size;
+  index_count_  = index_info.unit_count;
 
   // vertex/index buffer cannot be most efficient if it has to be visible to
   // both host and device, so we create vertex/index buffer that is only visible
@@ -302,8 +301,8 @@ void VertexBuffer::Init(
 
   // copy from host to staging buffer
   CopyHostToBuffer(context_, total_size, 0, staging_memory, {
-      {vertex_data, vertex_size, /*offset=*/0},
-      { index_data,  index_size, /*offset=*/vertex_size},
+      {vertex_info.data, vertex_info.data_size, /*offset=*/0},
+      { index_info.data,  index_info.data_size, /*offset=*/index_offset_},
   });
 
   // create final buffer that is only visible to device
@@ -327,7 +326,7 @@ void VertexBuffer::Init(
 void VertexBuffer::Draw(const VkCommandBuffer& command_buffer) const {
   static const VkDeviceSize offset = 0;
   vkCmdBindVertexBuffers(command_buffer, 0, 1, &buffer_, &offset);
-  vkCmdBindIndexBuffer(command_buffer, buffer_, vertex_size_,  // note offset
+  vkCmdBindIndexBuffer(command_buffer, buffer_, index_offset_,
                        VK_INDEX_TYPE_UINT32);
   // (index_count, instance_count, first_index, vertex_offset, first_instance)
   vkCmdDrawIndexed(command_buffer, index_count_, 1, 0, 0, 0);
@@ -338,101 +337,42 @@ VertexBuffer::~VertexBuffer() {
   vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
 }
 
-void UniformBuffer::Init(SharedContext context, const void* data,
-                         size_t num_chunk, size_t chunk_size) {
+void UniformBuffer::Init(SharedContext context,
+                         const buffer::ChunkInfo& chunk_info,
+                         uint32_t binding_point,
+                         VkShaderStageFlags shader_stage) {
   context_ = context;
-  const VkDevice& device = *context->device();
-  const VkAllocationCallbacks* allocator = context_->allocator();
 
-  data_ = static_cast<const char*>(data);
+  data_ = static_cast<const char*>(chunk_info.data);
   // offset is required to be multiple of minUniformBufferOffsetAlignment
   // which is why we have actual data size |chunk_data_size_| and its
   // aligned size |chunk_memory_size_|
   VkDeviceSize alignment =
       context_->physical_device().limits().minUniformBufferOffsetAlignment;
-  chunk_data_size_ = chunk_size;
+  chunk_data_size_ = chunk_info.chunk_size;
   chunk_memory_size_ = (chunk_data_size_ + alignment) / alignment * alignment;
 
-  buffer_ = CreateBuffer(context_, num_chunk * chunk_memory_size_,
+  buffer_ = CreateBuffer(context_, chunk_info.num_chunk * chunk_memory_size_,
                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
   device_memory_ = CreateBufferMemory(
       context_, buffer_,
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
           | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-  VkDescriptorPoolSize pool_size{
-      /*type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-      /*descriptorCount=*/static_cast<uint32_t>(num_chunk),
-  };
+  // create descriptor so that shader knows how to interpret data in buffer
+  vector<uint32_t> binding_points(chunk_info.num_chunk, binding_point);
+  descriptor_.Init(context_, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, binding_points,
+                   shader_stage);
 
-  VkDescriptorPoolCreateInfo pool_info{
-      VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/NULL_FLAG,
-      /*maxSets=*/static_cast<uint32_t>(num_chunk),
-      /*poolSizeCount=*/1,
-      &pool_size,
-  };
-
-  ASSERT_SUCCESS(
-      vkCreateDescriptorPool(device, &pool_info, allocator, &descriptor_pool_),
-      "Failed to create descriptor pool");
-
-  VkDescriptorSetLayoutBinding layout_binding{
-      /*binding=*/0,
-      /*descriptorType=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-      /*descriptorCount=*/1,
-      /*stageFlags=*/VK_SHADER_STAGE_ALL_GRAPHICS,
-      /*pImmutableSamplers=*/nullptr,
-  };
-
-  VkDescriptorSetLayoutCreateInfo layout_info{
-      VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/NULL_FLAG,
-      /*bindingCount=*/1,
-      &layout_binding,
-  };
-
-  descriptor_set_layouts_.resize(num_chunk);
-  for (auto& layout : descriptor_set_layouts_)
-    ASSERT_SUCCESS(vkCreateDescriptorSetLayout(
-                       device, &layout_info, allocator, &layout),
-                   "Failed to create descriptor set layout");
-
-  VkDescriptorSetAllocateInfo alloc_info{
-      VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-      /*pNext=*/nullptr,
-      descriptor_pool_,
-      /*descriptorSetCount=*/static_cast<uint32_t>(num_chunk),
-      descriptor_set_layouts_.data(),
-  };
-
-  descriptor_sets_.resize(num_chunk);
-  ASSERT_SUCCESS(
-      vkAllocateDescriptorSets(device, &alloc_info, descriptor_sets_.data()),
-      "Failed to allocate descriptor set");
-
-  for (size_t i = 0; i < num_chunk; ++i) {
-    VkDescriptorBufferInfo buffer_info{
+  vector<VkDescriptorBufferInfo> buffer_infos(binding_points.size());
+  for (size_t i = 0; i < chunk_info.num_chunk; ++i) {
+    buffer_infos[i] = VkDescriptorBufferInfo{
         buffer_,
         /*offset=*/chunk_memory_size_ * i,
         /*range=*/chunk_data_size_,
     };
-    VkWriteDescriptorSet write_descriptor_set{
-        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        /*pNext=*/nullptr,
-        descriptor_sets_[i],
-        /*dstBinding=*/0,  // uniform buffer binding index
-        /*dstArrayElement=*/0,  // target first descriptor in set
-        /*descriptorCount=*/1,  // possible to update multiple descriptors
-        /*descriptorType=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        /*pImageInfo=*/nullptr,
-        &buffer_info,
-        /*pTexelBufferView=*/nullptr,
-    };
-    vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, nullptr);
   }
+  descriptor_.UpdateBufferInfos(buffer_infos);
 }
 
 void UniformBuffer::Update(size_t chunk_index) const {
@@ -448,30 +388,20 @@ void UniformBuffer::Bind(const VkCommandBuffer& command_buffer,
                          size_t chunk_index) const {
   vkCmdBindDescriptorSets(
       command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout,
-      0, 1, &descriptor_sets_[chunk_index], 0, nullptr);
+      0, 1, &descriptor_.sets()[chunk_index], 0, nullptr);
 }
 
 UniformBuffer::~UniformBuffer() {
-  const VkDevice& device = *context_->device();
-  const VkAllocationCallbacks* allocator = context_->allocator();
-  vkDestroyDescriptorPool(device, descriptor_pool_, allocator);
-  // descriptor sets are implicitly cleaned up with descriptor pool
-  for (auto& layout : descriptor_set_layouts_)
-    vkDestroyDescriptorSetLayout(device, layout, allocator);
-  vkDestroyBuffer(device, buffer_, allocator);
-  vkFreeMemory(device, device_memory_, allocator);
+  vkDestroyBuffer(*context_->device(), buffer_, context_->allocator());
+  vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
 }
 
 void ImageBuffer::Init(SharedContext context,
-                       const void* image_data,
-                       VkFormat image_format,
-                       uint32_t width,
-                       uint32_t height,
-                       uint32_t channel) {
+                       const buffer::ImageInfo& image_info) {
   context_ = context;
 
-  VkExtent3D image_extent{width, height, /*depth=*/1};
-  VkDeviceSize data_size = width * height * channel;
+  VkExtent3D image_extent = image_info.extent();
+  VkDeviceSize data_size = image_info.data_size();
 
   // create staging buffer and associated memory
   VkBuffer staging_buffer = CreateBuffer(           // source of transfer
@@ -483,17 +413,19 @@ void ImageBuffer::Init(SharedContext context,
 
   // copy from host to staging buffer
   CopyHostToBuffer(context_, data_size, 0, staging_memory, {
-      {image_data, data_size, /*offset=*/0},
+      {image_info.data, data_size, /*offset=*/0},
   });
 
-  // create final image and copy data from staging buffer to it. we need to do
-  // some transitions so that image is eventually only visible to device
-  image_ = CreateImage(context_, image_format, image_extent,
+  // create final image buffer
+  image_ = CreateImage(context_, image_info.format, image_extent,
                        VK_IMAGE_LAYOUT_UNDEFINED,
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT
                            | VK_IMAGE_USAGE_SAMPLED_BIT);
   device_memory_ = CreateImageMemory(
       context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+  // copy data from staging buffer to image buffer. we need to do some
+  // transitions so that image buffer is eventually only visible to device
   TransitionImageLayout(
       context_, image_,
       {VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL},

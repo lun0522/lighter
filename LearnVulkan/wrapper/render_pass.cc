@@ -120,9 +120,10 @@ void RenderPass::Init(SharedContext context) {
 }
 
 void RenderPass::Cleanup() {
-  for (const auto& framebuffer : framebuffers_)
+  for (const auto& framebuffer : framebuffers_) {
     vkDestroyFramebuffer(*context_->device(), framebuffer,
                          context_->allocator());
+  }
   vkDestroyRenderPass(*context_->device(), render_pass_, context_->allocator());
 }
 

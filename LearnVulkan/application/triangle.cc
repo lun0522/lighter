@@ -12,11 +12,15 @@
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "util.h"
+
 namespace application {
 namespace vulkan {
 namespace {
 
 using std::vector;
+using wrapper::vulkan::buffer::DataInfo;
+using wrapper::vulkan::buffer::ChunkInfo;
 
 size_t kNumFrame = wrapper::vulkan::Command::kMaxFrameInFlight;
 
@@ -98,15 +102,24 @@ void UpdateUbo(size_t current_frame, float screen_aspect) {
 
 void TriangleApplication::Init() {
   if (is_first_time) {
-    vertex_buffer_.Init(context_->ptr(),
-                        kTriangleVertices.data(),
-                        sizeof(kTriangleVertices[0]) * kTriangleVertices.size(),
-                        kTriangleVertices.size(),
-                        kTrangleIndices.data(),
-                        sizeof(kTrangleIndices[0]) * kTrangleIndices.size(),
-                        kTrangleIndices.size());
-    uniform_buffer_.Init(context_->ptr(), kUbo.data(), kNumFrame,
-                         sizeof(UniformBufferObject));
+    DataInfo vertex_info{
+        kTriangleVertices.data(),
+        sizeof(kTriangleVertices[0]) * kTriangleVertices.size(),
+        CONTAINER_SIZE(kTriangleVertices),
+    };
+    DataInfo index_info{
+        kTrangleIndices.data(),
+        sizeof(kTrangleIndices[0]) * kTrangleIndices.size(),
+        CONTAINER_SIZE(kTrangleIndices),
+    };
+    ChunkInfo chunk_info{
+        kUbo.data(),
+        sizeof(UniformBufferObject),
+        CONTAINER_SIZE(kUbo),
+    };
+    vertex_buffer_.Init(context_->ptr(), vertex_info, index_info);
+    uniform_buffer_.Init(context_->ptr(), chunk_info, 0,
+                         VK_SHADER_STAGE_VERTEX_BIT);
     image_.Init(context_->ptr(), "texture/statue.jpg");
     is_first_time = false;
   }
