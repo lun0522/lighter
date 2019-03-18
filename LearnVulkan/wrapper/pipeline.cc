@@ -15,6 +15,7 @@ namespace vulkan {
 namespace {
 
 using std::string;
+using std::vector;
 
 VkShaderModule CreateShaderModule(SharedContext context,
                                   const string& code) {
@@ -40,9 +41,9 @@ void Pipeline::Init(
     SharedContext context,
     const string& vert_file,
     const string& frag_file,
-    const UniformBuffer& uniform_buffer,
-    const std::vector<VkVertexInputBindingDescription>& binding_descs,
-    const std::vector<VkVertexInputAttributeDescription>& attrib_descs) {
+    const vector<VkDescriptorSetLayout>& desc_set_layouts,
+    const vector<VkVertexInputBindingDescription>& binding_descs,
+    const vector<VkVertexInputAttributeDescription>& attrib_descs) {
   context_ = context;
   vert_file_ = vert_file;
   frag_file_ = frag_file;
@@ -200,14 +201,13 @@ void Pipeline::Init(
   };
 
   // used to set uniform values
-  const auto& descriptor_set_layouts = uniform_buffer.descriptor().layouts();
   VkPipelineLayoutCreateInfo layout_info{
       VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/NULL_FLAG,
       // set layouts
-      CONTAINER_SIZE(descriptor_set_layouts),
-      descriptor_set_layouts.data(),
+      CONTAINER_SIZE(desc_set_layouts),
+      desc_set_layouts.data(),
       /*pushConstantRangeCount=*/0,
       /*pPushConstantRanges=*/nullptr,
   };

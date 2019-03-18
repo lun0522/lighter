@@ -31,12 +31,15 @@ class TriangleApplication {
 
  private:
   bool is_first_time{true};
+  size_t current_frame_{0};
   std::shared_ptr<wrapper::vulkan::Context> context_;
   wrapper::vulkan::Pipeline pipeline_;
   wrapper::vulkan::Command command_;
   wrapper::vulkan::VertexBuffer vertex_buffer_;
   wrapper::vulkan::UniformBuffer uniform_buffer_;
+  wrapper::vulkan::Descriptor uniform_desc_;
   wrapper::vulkan::Image image_;
+  std::vector<wrapper::vulkan::Descriptor> image_descs_;
 
   void Init();
   void Cleanup();

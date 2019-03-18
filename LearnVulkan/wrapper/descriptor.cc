@@ -134,6 +134,30 @@ void Descriptor::UpdateBufferInfos(
                          write_desc_sets.data(), 0, nullptr);
 }
 
+void Descriptor::UpdateImageInfos(
+    const vector<VkDescriptorImageInfo>& image_infos) {
+  if (image_infos.size() != descriptor_sets_.size())
+    throw std::runtime_error{"Failed to update image infos"};
+
+  vector<VkWriteDescriptorSet> write_desc_sets(image_infos.size());
+  for (size_t i = 0; i < image_infos.size(); ++i) {
+    write_desc_sets[i] = VkWriteDescriptorSet{
+        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        /*pNext=*/nullptr,
+        descriptor_sets_[i],
+        binding_points_[i],
+        /*dstArrayElement=*/0,  // target first descriptor in set
+        /*descriptorCount=*/1,  // possible to update multiple descriptors
+        descriptor_type_,
+        &image_infos[i],
+        /*pBufferInfo=*/nullptr,
+        /*pTexelBufferView=*/nullptr,
+    };
+  }
+  vkUpdateDescriptorSets(*context_->device(), CONTAINER_SIZE(write_desc_sets),
+                         write_desc_sets.data(), 0, nullptr);
+}
+
 Descriptor::~Descriptor() {
   vkDestroyDescriptorPool(*context_->device(), descriptor_pool_,
                           context_->allocator());

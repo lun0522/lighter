@@ -338,9 +338,7 @@ VertexBuffer::~VertexBuffer() {
 }
 
 void UniformBuffer::Init(SharedContext context,
-                         const buffer::ChunkInfo& chunk_info,
-                         uint32_t binding_point,
-                         VkShaderStageFlags shader_stage) {
+                         const buffer::ChunkInfo& chunk_info) {
   context_ = context;
 
   data_ = static_cast<const char*>(chunk_info.data);
@@ -358,21 +356,6 @@ void UniformBuffer::Init(SharedContext context,
       context_, buffer_,
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
           | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-  // create descriptor so that shader knows how to interpret data in buffer
-  vector<uint32_t> binding_points(chunk_info.num_chunk, binding_point);
-  descriptor_.Init(context_, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, binding_points,
-                   shader_stage);
-
-  vector<VkDescriptorBufferInfo> buffer_infos(binding_points.size());
-  for (size_t i = 0; i < chunk_info.num_chunk; ++i) {
-    buffer_infos[i] = VkDescriptorBufferInfo{
-        buffer_,
-        /*offset=*/chunk_memory_size_ * i,
-        /*range=*/chunk_data_size_,
-    };
-  }
-  descriptor_.UpdateBufferInfos(buffer_infos);
 }
 
 void UniformBuffer::Update(size_t chunk_index) const {
@@ -383,12 +366,13 @@ void UniformBuffer::Update(size_t chunk_index) const {
       {{data_ + src_offset, chunk_data_size_, /*offset=*/0}});
 }
 
-void UniformBuffer::Bind(const VkCommandBuffer& command_buffer,
-                         const VkPipelineLayout& pipeline_layout,
-                         size_t chunk_index) const {
-  vkCmdBindDescriptorSets(
-      command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout,
-      0, 1, &descriptor_.sets()[chunk_index], 0, nullptr);
+VkDescriptorBufferInfo UniformBuffer::descriptor_info(
+    size_t chunk_index) const {
+  return VkDescriptorBufferInfo{
+      buffer_,
+      /*offset=*/chunk_memory_size_ * chunk_index,
+      /*range=*/chunk_data_size_,
+  };
 }
 
 UniformBuffer::~UniformBuffer() {

@@ -96,20 +96,15 @@ class UniformBuffer {
  public:
   UniformBuffer() = default;
   void Init(std::shared_ptr<Context> context,
-            const buffer::ChunkInfo& chunk_info,
-            uint32_t binding_point,
-            VkShaderStageFlags shader_stage);
+            const buffer::ChunkInfo& chunk_info);
   void Update(size_t chunk_index) const;
-  void Bind(const VkCommandBuffer& command_buffer,
-            const VkPipelineLayout& pipeline_layout,
-            size_t chunk_index) const;
   ~UniformBuffer();
 
   // This class is neither copyable nor movable
   UniformBuffer(const UniformBuffer&) = delete;
   UniformBuffer& operator=(const UniformBuffer&) = delete;
 
-  const Descriptor& descriptor() const { return descriptor_; }
+  VkDescriptorBufferInfo descriptor_info(size_t chunk_index) const;
 
  private:
   std::shared_ptr<Context> context_;
@@ -117,7 +112,6 @@ class UniformBuffer {
   size_t chunk_memory_size_, chunk_data_size_;
   VkBuffer buffer_;
   VkDeviceMemory device_memory_;
-  Descriptor descriptor_;
 };
 
 class ImageBuffer {

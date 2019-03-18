@@ -82,6 +82,7 @@ class Swapchain {
   const VkSwapchainKHR& operator*(void)         const { return swapchain_; }
   VkFormat format()                             const { return image_format_; }
   VkExtent2D extent()                           const { return image_extent_; }
+  size_t size()                                 const { return images_.size(); }
   const std::vector<VkImageView>& image_views() const { return image_views_; }
 
  private:

@@ -23,6 +23,20 @@ namespace vulkan {
 
 class Context;
 
+namespace command {
+
+using OneTimeRecordCommand = std::function<void(
+    const VkCommandBuffer& command_buffer)>;
+using MultiTimeRecordCommand = std::function<void(
+    const VkCommandBuffer& command_buffer, size_t image_index)>;
+using UpdateDataFunc = std::function<void (size_t image_index)>;
+
+void OneTimeCommand(std::shared_ptr<Context> context,
+                    const Queues::Queue& queue,
+                    const OneTimeRecordCommand& on_record);
+
+} /* namespace command */
+
 /** VkCommandPool allocates command buffer memory.
  *
  *  Initialization:
@@ -41,15 +55,13 @@ class Context;
  */
 class Command {
  public:
-  static const size_t kMaxFrameInFlight{2};
-
   Command() = default;
-  VkResult DrawFrame(const UniformBuffer& uniform_buffer,
-                     const std::function<void (size_t)>& update_func);
+  VkResult DrawFrame(size_t current_frame,
+                     const command::UpdateDataFunc& update_func);
   void Init(std::shared_ptr<Context> context,
-            const Pipeline& pipeline,
-            const VertexBuffer& vertex_buffer,
-            const UniformBuffer& uniform_buffer);
+            size_t num_frame,
+            const command::MultiTimeRecordCommand& on_record);
+  void RecordCommand();
   void Cleanup();
   ~Command();
 
@@ -57,27 +69,16 @@ class Command {
   Command(const Command&) = delete;
   Command& operator=(const Command&) = delete;
 
-  size_t current_frame() const { return current_frame_; }
-
  private:
   std::shared_ptr<Context> context_;
-  size_t current_frame_{0};
   bool is_first_time_{true};
   Semaphores image_available_semas_;
   Semaphores render_finished_semas_;
   Fences in_flight_fences_;
   VkCommandPool command_pool_;
   std::vector<VkCommandBuffer> command_buffers_;
+  command::MultiTimeRecordCommand on_record_;
 };
-
-namespace command {
-
-using RecordCommand = std::function<void (const VkCommandBuffer&)>;
-void OneTimeCommand(std::shared_ptr<Context> context,
-                    const Queues::Queue& queue,
-                    const RecordCommand& on_record);
-
-} /* namespace command */
 
 } /* namespace vulkan */
 } /* namespace wrapper */

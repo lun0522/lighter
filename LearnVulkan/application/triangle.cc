@@ -22,7 +22,7 @@ using std::vector;
 using wrapper::vulkan::buffer::DataInfo;
 using wrapper::vulkan::buffer::ChunkInfo;
 
-size_t kNumFrame = wrapper::vulkan::Command::kMaxFrameInFlight;
+size_t kNumFrameInFlight{2};
 
 struct VertexAttrib {
   glm::vec2 pos;
@@ -82,7 +82,7 @@ struct UniformBufferObject {
   alignas(16) glm::mat4 proj;
 };
 
-vector<UniformBufferObject> kUbo(kNumFrame);
+vector<UniformBufferObject> kUbo;
 
 void UpdateUbo(size_t current_frame, float screen_aspect) {
   static auto start_time = std::chrono::high_resolution_clock::now();
@@ -102,6 +102,7 @@ void UpdateUbo(size_t current_frame, float screen_aspect) {
 
 void TriangleApplication::Init() {
   if (is_first_time) {
+    // vertex buffer
     DataInfo vertex_info{
         kTriangleVertices.data(),
         sizeof(kTriangleVertices[0]) * kTriangleVertices.size(),
@@ -112,22 +113,66 @@ void TriangleApplication::Init() {
         sizeof(kTrangleIndices[0]) * kTrangleIndices.size(),
         CONTAINER_SIZE(kTrangleIndices),
     };
+    vertex_buffer_.Init(context_->ptr(), vertex_info, index_info);
+
+    // uniform buffer
+    kUbo.resize(context_->swapchain().size());
     ChunkInfo chunk_info{
         kUbo.data(),
         sizeof(UniformBufferObject),
         CONTAINER_SIZE(kUbo),
     };
-    vertex_buffer_.Init(context_->ptr(), vertex_info, index_info);
-    uniform_buffer_.Init(context_->ptr(), chunk_info, 0,
-                         VK_SHADER_STAGE_VERTEX_BIT);
+    uniform_buffer_.Init(context_->ptr(), chunk_info);
+    vector<uint32_t> binding_points(kUbo.size(), 0);
+    uniform_desc_.Init(context_, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                       binding_points, VK_SHADER_STAGE_VERTEX_BIT);
+    vector<VkDescriptorBufferInfo> buffer_infos(binding_points.size());
+    for (size_t i = 0; i < binding_points.size(); ++i)
+      buffer_infos[i] = uniform_buffer_.descriptor_info(i);
+    uniform_desc_.UpdateBufferInfos(buffer_infos);
+
+    // texture
     image_.Init(context_->ptr(), "texture/statue.jpg");
+    // TODO: bind image
+
     is_first_time = false;
   }
 
   pipeline_.Init(context_->ptr(), "compiled/triangle.vert.spv",
-                 "compiled/triangle.frag.spv", uniform_buffer_,
+                 "compiled/triangle.frag.spv", uniform_desc_.layouts(),
                  BindingDescriptions(), AttribDescriptions());
-  command_.Init(context_->ptr(), pipeline_, vertex_buffer_, uniform_buffer_);
+  command_.Init(context_->ptr(), kNumFrameInFlight,
+                [&](const VkCommandBuffer& command_buffer, size_t image_index) {
+    // start render pass
+    VkClearValue clear_color{0.0f, 0.0f, 0.0f, 1.0f};
+    VkRenderPassBeginInfo begin_info{
+        VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+        /*pNext=*/nullptr,
+        *context_->render_pass(),
+        context_->render_pass().framebuffers()[image_index],
+        /*renderArea=*/{
+            /*offset=*/{0, 0},
+            context_->swapchain().extent(),
+        },
+        /*clearValueCount=*/1,
+        &clear_color,  // used for _OP_CLEAR
+    };
+
+    // record commends. options:
+    //   - VK_SUBPASS_CONTENTS_INLINE: use primary commmand buffer
+    //   - VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: use secondary
+    vkCmdBeginRenderPass(command_buffer, &begin_info,
+                         VK_SUBPASS_CONTENTS_INLINE);
+
+    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      *pipeline_);
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipeline_.layout(), 0, 1,
+                            &uniform_desc_.sets()[image_index], 0, nullptr);
+    vertex_buffer_.Draw(command_buffer);
+
+    vkCmdEndRenderPass(command_buffer);
+  });
 }
 
 void TriangleApplication::Cleanup() {
@@ -139,11 +184,11 @@ void TriangleApplication::MainLoop() {
   Init();
   while (!context_->ShouldQuit()) {
     const VkExtent2D extent = context_->swapchain().extent();
-    size_t current_frame = command_.current_frame();
-    auto update_func = [=](size_t current_frame_) {
-      UpdateUbo(current_frame, (float)extent.width / extent.height);
+    auto update_func = [this, extent](size_t image_index) {
+      UpdateUbo(image_index, (float)extent.width / extent.height);
+      uniform_buffer_.Update(image_index);
     };
-    if (command_.DrawFrame(uniform_buffer_, update_func) != VK_SUCCESS ||
+    if (command_.DrawFrame(current_frame_, update_func) != VK_SUCCESS ||
         context_->resized()) {
       context_->resized() = false;
       context_->WaitIdle();
@@ -151,6 +196,7 @@ void TriangleApplication::MainLoop() {
       context_->Recreate();
       Init();
     }
+    current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
   }
   context_->WaitIdle(); // wait for all async operations finish
 }

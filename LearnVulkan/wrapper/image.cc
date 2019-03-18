@@ -83,6 +83,17 @@ VkSampler CreateSampler(SharedContext context) {
 
 } /* namespace */
 
+void image::BindImages(const std::vector<Image*>& images,
+                       const std::vector<uint32_t>& binding_points) {
+  if (images.size() != binding_points.size())
+    throw std::runtime_error{"Failed to bind images"};
+
+  // TODO: bind multiple images in one pass
+  for (size_t i = 0; i < images.size(); ++i) {
+    
+  }
+}
+
 void Image::Init(SharedContext context,
                  const std::string& path) {
   context_ = context;
@@ -102,6 +113,14 @@ void Image::Init(SharedContext context,
 Image::~Image() {
   vkDestroySampler(*context_->device(), sampler_, context_->allocator());
   vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
+}
+
+VkDescriptorImageInfo Image::descriptor_info() const {
+  return VkDescriptorImageInfo{
+        sampler_,
+        image_view_,
+        /*imageLayout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+  };
 }
 
 } /* namespace vulkan */

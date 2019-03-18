@@ -16,59 +16,6 @@ namespace {
 
 using std::vector;
 
-void RecordCommands(const vector<VkCommandBuffer>& command_buffers,
-                    const vector<VkFramebuffer>& framebuffers,
-                    const VkExtent2D image_extent,
-                    const VkRenderPass& render_pass,
-                    const Pipeline& pipeline,
-                    const VertexBuffer& vertex_buffer,
-                    const UniformBuffer& uniform_buffer) {
-  for (size_t i = 0; i < command_buffers.size(); ++i) {
-    // start command buffer recording
-    VkCommandBufferBeginInfo cmd_begin_info{
-        VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        /*pNext=*/nullptr,
-        /*flags=*/VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
-        /*pInheritanceInfo=*/nullptr,
-        // .pInheritanceInfo sets what to inherit from primary buffers
-        // to secondary buffers
-    };
-
-    ASSERT_SUCCESS(vkBeginCommandBuffer(command_buffers[i], &cmd_begin_info),
-                   "Failed to begin recording command buffer");
-
-    // start render pass
-    VkClearValue clear_color{0.0f, 0.0f, 0.0f, 1.0f};
-    VkRenderPassBeginInfo rp_begin_info{
-        VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-        /*pNext=*/nullptr,
-        render_pass,
-        framebuffers[i],
-        /*renderArea=*/{
-            /*offset=*/{0, 0},
-            image_extent,
-        },
-        /*clearValueCount=*/1,
-        &clear_color,  // used for _OP_CLEAR
-    };
-
-    // record commends. options:
-    //   - VK_SUBPASS_CONTENTS_INLINE: use primary commmand buffer
-    //   - VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: use secondary
-    vkCmdBeginRenderPass(command_buffers[i], &rp_begin_info,
-                         VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                      *pipeline);
-    uniform_buffer.Bind(command_buffers[i], pipeline.layout(), i);
-    vertex_buffer.Draw(command_buffers[i]);
-    vkCmdEndRenderPass(command_buffers[i]);
-
-    // end recording
-    ASSERT_SUCCESS(vkEndCommandBuffer(command_buffers[i]),
-                   "Failed to end recording command buffer");
-  }
-}
-
 VkCommandPool CreateCommandPool(SharedContext context,
                                 const Queues::Queue& queue,
                                 bool is_transient) {
@@ -130,11 +77,9 @@ vector<VkCommandBuffer> CreateCommandBuffers(SharedContext context,
 
 } /* namespace */
 
-namespace command {
-
-void OneTimeCommand(SharedContext context,
-                    const Queues::Queue& queue,
-                    const RecordCommand& on_record) {
+void command::OneTimeCommand(SharedContext context,
+                             const Queues::Queue& queue,
+                             const OneTimeRecordCommand& on_record) {
   // construct command pool and buffer
   VkCommandPool command_pool = CreateCommandPool(context, queue, true);
   VkCommandBuffer command_buffer = CreateCommandBuffer(context, command_pool);
@@ -146,9 +91,11 @@ void OneTimeCommand(SharedContext context,
       /*flags=*/VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
       /*pInheritanceInfo=*/nullptr,
   };
-  vkBeginCommandBuffer(command_buffer, &begin_info);
+  ASSERT_SUCCESS(vkBeginCommandBuffer(command_buffer, &begin_info),
+                 "Failed to begin recording command buffer");
   on_record(command_buffer);
-  vkEndCommandBuffer(command_buffer);
+  ASSERT_SUCCESS(vkEndCommandBuffer(command_buffer),
+                 "Failed to end recording command buffer");
 
   // submit command buffers, wait until finish and cleanup
   VkSubmitInfo submit_info{
@@ -167,25 +114,19 @@ void OneTimeCommand(SharedContext context,
   vkDestroyCommandPool(*context->device(), command_pool, context->allocator());
 }
 
-} /* namespace command */
-
-VkResult Command::DrawFrame(const UniformBuffer& uniform_buffer,
-                            const std::function<void (size_t)>& update_func) {
+VkResult Command::DrawFrame(size_t current_frame,
+                            const command::UpdateDataFunc& update_func) {
   // fence was initialized to signaled state
   // so that waiting for it at the beginning is fine
-  vkWaitForFences(*context_->device(), 1, &in_flight_fences_[current_frame_],
+  vkWaitForFences(*context_->device(), 1, &in_flight_fences_[current_frame],
                   VK_TRUE, std::numeric_limits<uint64_t>::max());
-
-  // update uniform data
-  update_func(current_frame_);
-  uniform_buffer.Update(current_frame_);
 
   // acquire swap chain image
   uint32_t image_index;
   VkResult acquire_result = vkAcquireNextImageKHR(
       *context_->device(), *context_->swapchain(),
       std::numeric_limits<uint64_t>::max(),
-      image_available_semas_[current_frame_], VK_NULL_HANDLE, &image_index);
+      image_available_semas_[current_frame], VK_NULL_HANDLE, &image_index);
   switch (acquire_result) {
     case VK_ERROR_OUT_OF_DATE_KHR: // swap chain can no longer present image
       return acquire_result;
@@ -196,9 +137,12 @@ VkResult Command::DrawFrame(const UniformBuffer& uniform_buffer,
       throw std::runtime_error{"Failed to acquire swap chain image"};
   }
 
+  // update per-frame data
+  update_func(image_index);
+
   // wait for image available
   VkSemaphore wait_semas[]{
-      image_available_semas_[current_frame_],
+      image_available_semas_[current_frame],
   };
   // we have to wait only if we want to write to color attachment
   // so we actually can start running pipeline long before that image is ready
@@ -207,7 +151,7 @@ VkResult Command::DrawFrame(const UniformBuffer& uniform_buffer,
   };
   // these semas will be signaled once command buffer finishes
   VkSemaphore signal_semas[]{
-      render_finished_semas_[current_frame_],
+      render_finished_semas_[current_frame],
   };
 
   VkSubmitInfo submit_info{
@@ -224,10 +168,10 @@ VkResult Command::DrawFrame(const UniformBuffer& uniform_buffer,
   };
 
   // reset to fences unsignaled state
-  vkResetFences(*context_->device(), 1, &in_flight_fences_[current_frame_]);
+  vkResetFences(*context_->device(), 1, &in_flight_fences_[current_frame]);
   ASSERT_SUCCESS(
       vkQueueSubmit(context_->queues().graphics.queue, 1, &submit_info,
-                    in_flight_fences_[current_frame_]),
+                    in_flight_fences_[current_frame]),
       "Failed to submit draw command buffer");
 
   // present image to screen
@@ -256,29 +200,46 @@ VkResult Command::DrawFrame(const UniformBuffer& uniform_buffer,
       throw std::runtime_error{"Failed to present swap chain image"};
   }
 
-  current_frame_ = (current_frame_ + 1) % kMaxFrameInFlight;
   return VK_SUCCESS;
 }
 
 void Command::Init(SharedContext context,
-                   const Pipeline& pipeline,
-                   const VertexBuffer& vertex_buffer,
-                   const UniformBuffer& uniform_buffer) {
+                   size_t num_frame,
+                   const command::MultiTimeRecordCommand& on_record) {
   context_ = context;
+  on_record_ = on_record;
 
   if (is_first_time_) {
     command_pool_ = CreateCommandPool(
         context_, context_->queues().graphics, false);
-    image_available_semas_.Init(context_, kMaxFrameInFlight);
-    render_finished_semas_.Init(context_, kMaxFrameInFlight);
-    in_flight_fences_.Init(context_, kMaxFrameInFlight, true);
+    image_available_semas_.Init(context_, num_frame);
+    render_finished_semas_.Init(context_, num_frame);
+    in_flight_fences_.Init(context_, num_frame, true);
     is_first_time_ = false;
   }
   command_buffers_ = CreateCommandBuffers(
-      context_, command_pool_, context_->render_pass().framebuffers().size());
-  RecordCommands(command_buffers_, context_->render_pass().framebuffers(),
-                 context_->swapchain().extent(), *context_->render_pass(),
-                 pipeline, vertex_buffer, uniform_buffer);
+      context_, command_pool_, context_->swapchain().size());
+  RecordCommand();
+}
+
+void Command::RecordCommand() {
+  for (size_t i = 0; i < command_buffers_.size(); ++i) {
+    // start command buffer recording
+    VkCommandBufferBeginInfo begin_info{
+        VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        /*pNext=*/nullptr,
+        /*flags=*/VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+        /*pInheritanceInfo=*/nullptr,
+        // .pInheritanceInfo sets what to inherit from primary buffers
+        // to secondary buffers
+    };
+
+    ASSERT_SUCCESS(vkBeginCommandBuffer(command_buffers_[i], &begin_info),
+                   "Failed to begin recording command buffer");
+    on_record_(command_buffers_[i], i);
+    ASSERT_SUCCESS(vkEndCommandBuffer(command_buffers_[i]),
+                   "Failed to end recording command buffer");
+  }
 }
 
 void Command::Cleanup() {

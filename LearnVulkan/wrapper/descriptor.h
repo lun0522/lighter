@@ -26,6 +26,7 @@ class Descriptor {
             VkShaderStageFlags shader_stage);
   void UpdateBufferInfos(
       const std::vector<VkDescriptorBufferInfo>& buffer_infos);
+  void UpdateImageInfos(const std::vector<VkDescriptorImageInfo>& image_infos);
   ~Descriptor();
 
   // This class is neither copyable nor movable

@@ -19,8 +19,8 @@ using std::vector;
 vector<VkFramebuffer> CreateFramebuffers(SharedContext context) {
   const Swapchain& swapchain = context->swapchain();
 
-  vector<VkFramebuffer> framebuffers(swapchain.image_views().size());
-  for (size_t i = 0; i < swapchain.image_views().size(); ++i) {
+  vector<VkFramebuffer> framebuffers(swapchain.size());
+  for (size_t i = 0; i < swapchain.size(); ++i) {
     VkFramebufferCreateInfo framebuffer_info{
         VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
         /*pNext=*/nullptr,

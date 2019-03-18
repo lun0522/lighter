@@ -42,7 +42,7 @@ class Pipeline {
   void Init(std::shared_ptr<Context> context,
             const std::string& vert_file,
             const std::string& frag_file,
-            const UniformBuffer& uniform_buffer,
+            const std::vector<VkDescriptorSetLayout>& desc_set_layouts,
             const std::vector<VkVertexInputBindingDescription>& binding_descs,
             const std::vector<VkVertexInputAttributeDescription>& attrib_descs);
   void Cleanup();
