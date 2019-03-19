@@ -37,8 +37,9 @@ template<typename FuncType>
 FuncType LoadFunction(SharedContext context, const string& func_name) {
   auto func = reinterpret_cast<FuncType>(
       vkGetInstanceProcAddr(*context->instance(), func_name.c_str()));
-  if (!func)
+  if (!func) {
     throw std::runtime_error{"Failed to load: " + func_name};
+  }
   return func;
 }
 

@@ -27,13 +27,14 @@ size_t kNumFrameInFlight{2};
 struct VertexAttrib {
   glm::vec2 pos;
   glm::vec3 color;
+  glm::vec2 tex_coord;
 };
 
 const vector<VertexAttrib> kTriangleVertices {
-    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-    {{ 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{ 0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}},
-    {{-0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}},
+    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+    {{ 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+    {{ 0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+    {{-0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
 };
 
 const vector<uint32_t> kTrangleIndices {
@@ -54,7 +55,7 @@ vector<VkVertexInputBindingDescription> BindingDescriptions() {
 }
 
 vector<VkVertexInputAttributeDescription> AttribDescriptions() {
-  vector<VkVertexInputAttributeDescription> attrib_descs(2);
+  vector<VkVertexInputAttributeDescription> attrib_descs(3);
 
   attrib_descs[0] = VkVertexInputAttributeDescription{
       /*location=*/0, // layout (location = 0) in
@@ -68,6 +69,13 @@ vector<VkVertexInputAttributeDescription> AttribDescriptions() {
       /*binding=*/0,
       /*format=*/VK_FORMAT_R32G32B32_SFLOAT,
       /*offset=*/offsetof(VertexAttrib, color),
+  };
+
+  attrib_descs[2] = VkVertexInputAttributeDescription{
+      /*location=*/2,
+      /*binding=*/0,
+      /*format=*/VK_FORMAT_R32G32_SFLOAT,
+      /*offset=*/offsetof(VertexAttrib, tex_coord),
   };
 
   return attrib_descs;
@@ -127,19 +135,29 @@ void TriangleApplication::Init() {
     uniform_desc_.Init(context_, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                        binding_points, VK_SHADER_STAGE_VERTEX_BIT);
     vector<VkDescriptorBufferInfo> buffer_infos(binding_points.size());
-    for (size_t i = 0; i < binding_points.size(); ++i)
+    for (size_t i = 0; i < binding_points.size(); ++i) {
       buffer_infos[i] = uniform_buffer_.descriptor_info(i);
+    }
     uniform_desc_.UpdateBufferInfos(buffer_infos);
 
     // texture
-    image_.Init(context_->ptr(), "texture/statue.jpg");
-    // TODO: bind image
+    images_.Init(context_, {"texture/statue.jpg"}, {1},
+                 VK_SHADER_STAGE_FRAGMENT_BIT);
 
     is_first_time = false;
   }
 
+  vector<VkDescriptorSetLayout> desc_set_layouts;
+  // TODO: enable using multiple descriptor sets for uniform buffer
+  desc_set_layouts.insert(desc_set_layouts.end(),
+                          uniform_desc_.layouts().begin(),
+                          uniform_desc_.layouts().end() - 1);
+  desc_set_layouts.insert(desc_set_layouts.end(),
+                          images_.descriptor().layouts().begin(),
+                          images_.descriptor().layouts().end());
+
   pipeline_.Init(context_->ptr(), "compiled/triangle.vert.spv",
-                 "compiled/triangle.frag.spv", uniform_desc_.layouts(),
+                 "compiled/triangle.frag.spv", desc_set_layouts,
                  BindingDescriptions(), AttribDescriptions());
   command_.Init(context_->ptr(), kNumFrameInFlight,
                 [&](const VkCommandBuffer& command_buffer, size_t image_index) {
@@ -166,9 +184,13 @@ void TriangleApplication::Init() {
 
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                       *pipeline_);
+    vector<VkDescriptorSet> desc_sets{
+        uniform_desc_.sets()[image_index],
+        images_.descriptor().sets()[0]
+    };
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipeline_.layout(), 0, 1,
-                            &uniform_desc_.sets()[image_index], 0, nullptr);
+                            pipeline_.layout(), 0, CONTAINER_SIZE(desc_sets),
+                            desc_sets.data(), 0, nullptr);
     vertex_buffer_.Draw(command_buffer);
 
     vkCmdEndRenderPass(command_buffer);

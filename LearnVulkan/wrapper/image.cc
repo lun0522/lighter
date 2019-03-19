@@ -17,6 +17,8 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
+using std::vector;
+
 VkImageView CreateImageView(SharedContext context,
                             const VkImage& image,
                             VkFormat format) {
@@ -83,17 +85,6 @@ VkSampler CreateSampler(SharedContext context) {
 
 } /* namespace */
 
-void image::BindImages(const std::vector<Image*>& images,
-                       const std::vector<uint32_t>& binding_points) {
-  if (images.size() != binding_points.size())
-    throw std::runtime_error{"Failed to bind images"};
-
-  // TODO: bind multiple images in one pass
-  for (size_t i = 0; i < images.size(); ++i) {
-    
-  }
-}
-
 void Image::Init(SharedContext context,
                  const std::string& path) {
   context_ = context;
@@ -110,17 +101,39 @@ void Image::Init(SharedContext context,
   sampler_ = CreateSampler(context_);
 }
 
-Image::~Image() {
-  vkDestroySampler(*context_->device(), sampler_, context_->allocator());
-  vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
-}
-
 VkDescriptorImageInfo Image::descriptor_info() const {
   return VkDescriptorImageInfo{
         sampler_,
         image_view_,
         /*imageLayout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
   };
+}
+
+Image::~Image() {
+  vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
+  vkDestroySampler(*context_->device(), sampler_, context_->allocator());
+}
+
+void Images::Init(SharedContext context,
+                  const vector<std::string>& paths,
+                  const vector<uint32_t>& binding_points,
+                  VkShaderStageFlags shader_stage) {
+  if (paths.size() != binding_points.size()) {
+    throw std::runtime_error{"Failed to create images"};
+  }
+
+  images_.resize(paths.size());
+  vector<VkDescriptorImageInfo> image_infos(images_.size());
+  for (size_t i = 0; i < images_.size(); ++i) {
+    std::unique_ptr<Image> image = std::make_unique<Image>();
+    image->Init(context, paths[i]);
+    image_infos[i] = image->descriptor_info();
+    images_[i] = std::move(image);
+  }
+
+  descriptor_.Init(context, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                   binding_points, shader_stage);
+  descriptor_.UpdateImageInfos(image_infos);
 }
 
 } /* namespace vulkan */

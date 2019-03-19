@@ -112,8 +112,9 @@ void Descriptor::Init(SharedContext context,
 
 void Descriptor::UpdateBufferInfos(
     const vector<VkDescriptorBufferInfo>& buffer_infos) {
-  if (buffer_infos.size() != descriptor_sets_.size())
+  if (buffer_infos.size() != descriptor_sets_.size()) {
     throw std::runtime_error{"Failed to update buffer infos"};
+  }
 
   vector<VkWriteDescriptorSet> write_desc_sets(buffer_infos.size());
   for (size_t i = 0; i < buffer_infos.size(); ++i) {
@@ -136,8 +137,9 @@ void Descriptor::UpdateBufferInfos(
 
 void Descriptor::UpdateImageInfos(
     const vector<VkDescriptorImageInfo>& image_infos) {
-  if (image_infos.size() != descriptor_sets_.size())
+  if (image_infos.size() != descriptor_sets_.size()) {
     throw std::runtime_error{"Failed to update image infos"};
+  }
 
   vector<VkWriteDescriptorSet> write_desc_sets(image_infos.size());
   for (size_t i = 0; i < image_infos.size(); ++i) {

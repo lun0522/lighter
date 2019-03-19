@@ -47,8 +47,9 @@ void Semaphores::Init(SharedContext context, size_t count) {
 }
 
 Semaphores::~Semaphores() {
-  for (auto& sema : semas_)
+  for (auto& sema : semas_) {
     vkDestroySemaphore(*context_->device(), sema, context_->allocator());
+  }
 }
 
 void Fences::Init(SharedContext context,
@@ -66,8 +67,9 @@ void Fences::Init(SharedContext context,
 }
 
 Fences::~Fences() {
-  for (auto& fence : fences_)
+  for (auto& fence : fences_) {
     vkDestroyFence(*context_->device(), fence, context_->allocator());
+  }
 }
 
 } /* namespace vulkan */

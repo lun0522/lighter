@@ -33,8 +33,9 @@ uint32_t FindMemoryType(SharedContext context,
   for (uint32_t i = 0; i < properties.memoryTypeCount; ++i) {
     if (type_filter & (1 << i)) {  // type is suitable for buffer
       auto flags = properties.memoryTypes[i].propertyFlags;
-      if ((flags & mem_properties) == mem_properties)  // has required property
+      if ((flags & mem_properties) == mem_properties) { // has required property
         return i;
+      }
     }
   }
   throw std::runtime_error{"Failed to find suitable memory type"};
@@ -226,8 +227,9 @@ void CopyHostToBuffer(SharedContext context,
   // specify VK_MEMORY_PROPERTY_HOST_COHERENT_BIT (a little less efficient)
   void* dst;
   vkMapMemory(*context->device(), device_memory, map_offset, map_size, 0, &dst);
-  for (const auto& info : copy_infos)
+  for (const auto& info : copy_infos) {
     memcpy(static_cast<char*>(dst) + info.offset, info.data, info.size);
+  }
   vkUnmapMemory(*context->device(), device_memory);
 }
 

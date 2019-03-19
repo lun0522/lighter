@@ -26,13 +26,15 @@ using std::vector;
 VkSurfaceFormatKHR ChooseSurfaceFormat(
     const vector<VkSurfaceFormatKHR>& available) {
   // if surface has no preferred format, we can choose any format
-  if (available.size() == 1 && available[0].format == VK_FORMAT_UNDEFINED)
+  if (available.size() == 1 && available[0].format == VK_FORMAT_UNDEFINED) {
     return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+  }
 
   for (auto candidate : available) {
     if (candidate.format == VK_FORMAT_B8G8R8A8_UNORM &&
-        candidate.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+        candidate.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
       return candidate;
+    }
   }
 
   // if our preferred format is not supported, simply choose the first one
@@ -195,8 +197,9 @@ void Swapchain::Init(SharedContext context) {
 
   // minimum amount of images we want to have in swapchain
   uint32_t min_image_count = surface_capabilities.minImageCount + 1;
-  if (surface_capabilities.maxImageCount > 0) // can be 0 if no maximum
+  if (surface_capabilities.maxImageCount > 0) {  // can be 0 if no maximum
     min_image_count = min(surface_capabilities.maxImageCount, min_image_count);
+  }
 
   VkSwapchainCreateInfoKHR swapchain_info{
       VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -249,8 +252,9 @@ void Swapchain::Init(SharedContext context) {
 
 void Swapchain::Cleanup() {
   // images are implicitly cleaned up with swapchain
-  for (auto& image_view : image_views_)
+  for (auto& image_view : image_views_) {
     vkDestroyImageView(*context_->device(), image_view, context_->allocator());
+  }
   vkDestroySwapchainKHR(*context_->device(), swapchain_, context_->allocator());
 }
 

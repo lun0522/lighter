@@ -46,14 +46,16 @@ QueueIndices FindDeviceQueues(SharedContext context,
             << std::endl << std::endl;
 
   // require swap chain support
-  if (!Swapchain::HasSwapchainSupport(context, physical_device))
+  if (!Swapchain::HasSwapchainSupport(context, physical_device)) {
     return QueueIndices::Invalid();
+  }
 
   // require anisotropy filtering support
   VkPhysicalDeviceFeatures feature_support;
   vkGetPhysicalDeviceFeatures(physical_device, &feature_support);
-  if (!feature_support.samplerAnisotropy)
+  if (!feature_support.samplerAnisotropy) {
     return QueueIndices::Invalid();
+  }
 
   // find queue family that holds graphics queue
   auto graphics_support = [](const VkQueueFamilyProperties& family) -> bool {
@@ -88,8 +90,9 @@ QueueIndices FindDeviceQueues(SharedContext context,
 void Instance::Init(SharedContext context) {
   context_ = context;
 
-  if (glfwVulkanSupported() == GL_FALSE)
+  if (glfwVulkanSupported() == GL_FALSE) {
     throw runtime_error{"Vulkan not supported"};
+  }
 
   uint32_t glfw_extension_count;
   const char** glfw_extensions =

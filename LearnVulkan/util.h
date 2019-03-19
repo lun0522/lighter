@@ -40,22 +40,26 @@ void CheckSupport(
     const std::vector<AttribType>& attribs,
     const std::function<const char*(const AttribType&)>& get_name) {
   std::unordered_set<std::string> available{attribs.size()};
-  for (const auto& atr : attribs)
+  for (const auto& atr : attribs) {
     available.insert(get_name(atr));
+  }
 
   std::cout << "Available:" << std::endl;
-  for (const auto& avl : available)
+  for (const auto& avl : available) {
     std::cout << "\t" << avl << std::endl;
+  }
   std::cout << std::endl;
 
   std::cout << "Required:" << std::endl;
-  for (const auto& req : required)
+  for (const auto& req : required) {
     std::cout << "\t" << req << std::endl;
+  }
   std::cout << std::endl;
 
   for (const auto& req : required) {
-    if (available.find(req) == available.end())
+    if (available.find(req) == available.end()) {
       throw std::runtime_error{"Requirement not satisfied: " + req};
+    }
   }
 }
 

@@ -26,8 +26,9 @@ VkCommandPool CreateCommandPool(SharedContext context,
       /*flags=*/NULL_FLAG,
       queue.family_index,
   };
-  if (is_transient)
+  if (is_transient) {
     pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+  }
 
   VkCommandPool pool;
   ASSERT_SUCCESS(vkCreateCommandPool(*context->device(), &pool_info,
@@ -112,6 +113,26 @@ void command::OneTimeCommand(SharedContext context,
   vkQueueSubmit(queue.queue, 1, &submit_info, VK_NULL_HANDLE);
   vkQueueWaitIdle(queue.queue);
   vkDestroyCommandPool(*context->device(), command_pool, context->allocator());
+}
+
+void Command::RecordCommand(const command::MultiTimeRecordCommand& on_record) {
+  for (size_t i = 0; i < command_buffers_.size(); ++i) {
+    // start command buffer recording
+    VkCommandBufferBeginInfo begin_info{
+        VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        /*pNext=*/nullptr,
+        /*flags=*/VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+        /*pInheritanceInfo=*/nullptr,
+        // .pInheritanceInfo sets what to inherit from primary buffers
+        // to secondary buffers
+    };
+
+    ASSERT_SUCCESS(vkBeginCommandBuffer(command_buffers_[i], &begin_info),
+                   "Failed to begin recording command buffer");
+    on_record(command_buffers_[i], i);
+    ASSERT_SUCCESS(vkEndCommandBuffer(command_buffers_[i]),
+                   "Failed to end recording command buffer");
+  }
 }
 
 VkResult Command::DrawFrame(size_t current_frame,
@@ -207,7 +228,6 @@ void Command::Init(SharedContext context,
                    size_t num_frame,
                    const command::MultiTimeRecordCommand& on_record) {
   context_ = context;
-  on_record_ = on_record;
 
   if (is_first_time_) {
     command_pool_ = CreateCommandPool(
@@ -219,27 +239,7 @@ void Command::Init(SharedContext context,
   }
   command_buffers_ = CreateCommandBuffers(
       context_, command_pool_, context_->swapchain().size());
-  RecordCommand();
-}
-
-void Command::RecordCommand() {
-  for (size_t i = 0; i < command_buffers_.size(); ++i) {
-    // start command buffer recording
-    VkCommandBufferBeginInfo begin_info{
-        VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        /*pNext=*/nullptr,
-        /*flags=*/VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
-        /*pInheritanceInfo=*/nullptr,
-        // .pInheritanceInfo sets what to inherit from primary buffers
-        // to secondary buffers
-    };
-
-    ASSERT_SUCCESS(vkBeginCommandBuffer(command_buffers_[i], &begin_info),
-                   "Failed to begin recording command buffer");
-    on_record_(command_buffers_[i], i);
-    ASSERT_SUCCESS(vkEndCommandBuffer(command_buffers_[i]),
-                   "Failed to end recording command buffer");
-  }
+  RecordCommand(on_record);
 }
 
 void Command::Cleanup() {

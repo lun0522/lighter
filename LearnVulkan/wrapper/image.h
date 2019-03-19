@@ -8,6 +8,7 @@
 #ifndef WRAPPER_VULKAN_IMAGE_H
 #define WRAPPER_VULKAN_IMAGE_H
 
+#include <memory>
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
@@ -18,14 +19,6 @@ namespace wrapper {
 namespace vulkan {
 
 class Context;
-class Image;
-
-namespace image {
-
-void BindImages(const std::vector<Image*>& images,
-                const std::vector<uint32_t>& binding_points);
-
-} /* namespace image */
 
 class Image {
  public:
@@ -45,6 +38,25 @@ class Image {
   ImageBuffer image_buffer_;
   VkImageView image_view_;
   VkSampler sampler_;
+};
+
+class Images {
+ public:
+  Images() = default;
+  void Init(std::shared_ptr<Context> context,
+            const std::vector<std::string>& paths,
+            const std::vector<uint32_t>& binding_points,
+            VkShaderStageFlags shader_stage);
+
+  // This class is neither copyable nor movable
+  Images(const Images&) = delete;
+  Images& operator=(const Images&) = delete;
+
+  const Descriptor& descriptor() const { return descriptor_; }
+
+ private:
+  std::vector<std::unique_ptr<Image>> images_;
+  Descriptor descriptor_;
 };
 
 } /* namespace vulkan */

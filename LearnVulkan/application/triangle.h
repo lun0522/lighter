@@ -38,8 +38,7 @@ class TriangleApplication {
   wrapper::vulkan::VertexBuffer vertex_buffer_;
   wrapper::vulkan::UniformBuffer uniform_buffer_;
   wrapper::vulkan::Descriptor uniform_desc_;
-  wrapper::vulkan::Image image_;
-  std::vector<wrapper::vulkan::Descriptor> image_descs_;
+  wrapper::vulkan::Images images_;
 
   void Init();
   void Cleanup();

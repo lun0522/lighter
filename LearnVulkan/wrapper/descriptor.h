@@ -33,9 +33,9 @@ class Descriptor {
   Descriptor(const Descriptor&) = delete;
   Descriptor& operator=(const Descriptor&) = delete;
 
-  const std::vector<VkDescriptorSetLayout> layouts() const
+  const std::vector<VkDescriptorSetLayout>& layouts() const
       { return descriptor_set_layouts_; }
-  const std::vector<VkDescriptorSet> sets() const { return descriptor_sets_; }
+  const std::vector<VkDescriptorSet>& sets() const { return descriptor_sets_; }
 
  private:
   std::shared_ptr<Context> context_;

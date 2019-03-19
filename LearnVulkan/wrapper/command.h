@@ -61,7 +61,6 @@ class Command {
   void Init(std::shared_ptr<Context> context,
             size_t num_frame,
             const command::MultiTimeRecordCommand& on_record);
-  void RecordCommand();
   void Cleanup();
   ~Command();
 
@@ -77,7 +76,8 @@ class Command {
   Fences in_flight_fences_;
   VkCommandPool command_pool_;
   std::vector<VkCommandBuffer> command_buffers_;
-  command::MultiTimeRecordCommand on_record_;
+
+  void RecordCommand(const command::MultiTimeRecordCommand& on_record);
 };
 
 } /* namespace vulkan */

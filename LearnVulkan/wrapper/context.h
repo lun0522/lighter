@@ -35,7 +35,6 @@ class Context : public std::enable_shared_from_this<Context> {
             uint32_t width = 800,
             uint32_t height = 600);
   void Recreate();
-  void Cleanup();
   bool ShouldQuit() const;
   void WaitIdle() const { vkDeviceWaitIdle(*device_); }
   ~Context();
@@ -81,6 +80,7 @@ class Context : public std::enable_shared_from_this<Context> {
   Context() {}
   void InitWindow(const std::string& name, uint32_t width, uint32_t height);
   void InitVulkan();
+  void Cleanup();
 };
 
 } /* namespace vulkan */

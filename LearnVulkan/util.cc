@@ -26,8 +26,9 @@ const string& ReadFile(const string& path) {
   if (loaded == kLoadedText.end()) {
     ifstream file{path};
     file.exceptions(ifstream::failbit | ifstream::badbit);
-    if (!file.is_open())
+    if (!file.is_open()) {
       throw std::runtime_error{"Failed to open file: " + path};
+    }
 
     try {
       std::ostringstream stream;
