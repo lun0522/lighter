@@ -41,7 +41,7 @@ void Pipeline::Init(
     SharedContext context,
     const string& vert_file,
     const string& frag_file,
-    const vector<VkDescriptorSetLayout>& desc_set_layouts,
+    const VkDescriptorSetLayout& desc_set_layout,
     const vector<VkVertexInputBindingDescription>& binding_descs,
     const vector<VkVertexInputAttributeDescription>& attrib_descs) {
   context_ = context;
@@ -206,8 +206,8 @@ void Pipeline::Init(
       /*pNext=*/nullptr,
       /*flags=*/NULL_FLAG,
       // set layouts
-      CONTAINER_SIZE(desc_set_layouts),
-      desc_set_layouts.data(),
+      1,
+      &desc_set_layout,
       /*pushConstantRangeCount=*/0,
       /*pPushConstantRanges=*/nullptr,
   };

@@ -114,28 +114,6 @@ Image::~Image() {
   vkDestroySampler(*context_->device(), sampler_, context_->allocator());
 }
 
-void Images::Init(SharedContext context,
-                  const vector<std::string>& paths,
-                  const vector<uint32_t>& binding_points,
-                  VkShaderStageFlags shader_stage) {
-  if (paths.size() != binding_points.size()) {
-    throw std::runtime_error{"Failed to create images"};
-  }
-
-  images_.resize(paths.size());
-  vector<VkDescriptorImageInfo> image_infos(images_.size());
-  for (size_t i = 0; i < images_.size(); ++i) {
-    std::unique_ptr<Image> image = std::make_unique<Image>();
-    image->Init(context, paths[i]);
-    image_infos[i] = image->descriptor_info();
-    images_[i] = std::move(image);
-  }
-
-  descriptor_.Init(context, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                   binding_points, shader_stage);
-  descriptor_.UpdateImageInfos(image_infos);
-}
-
 } /* namespace vulkan */
 } /* namespace wrapper */
 

@@ -21,6 +21,8 @@ namespace {
 using std::vector;
 using wrapper::vulkan::buffer::DataInfo;
 using wrapper::vulkan::buffer::ChunkInfo;
+using wrapper::vulkan::descriptor::ResourceInfo;
+using wrapper::vulkan::Descriptor;
 
 size_t kNumFrameInFlight{2};
 
@@ -131,33 +133,32 @@ void TriangleApplication::Init() {
         CONTAINER_SIZE(kUbo),
     };
     uniform_buffer_.Init(context_->ptr(), chunk_info);
-    vector<uint32_t> binding_points(kUbo.size(), 0);
-    uniform_desc_.Init(context_, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                       binding_points, VK_SHADER_STAGE_VERTEX_BIT);
-    vector<VkDescriptorBufferInfo> buffer_infos(binding_points.size());
-    for (size_t i = 0; i < binding_points.size(); ++i) {
-      buffer_infos[i] = uniform_buffer_.descriptor_info(i);
-    }
-    uniform_desc_.UpdateBufferInfos(buffer_infos);
 
     // texture
-    images_.Init(context_, {"texture/statue.jpg"}, {1},
-                 VK_SHADER_STAGE_FRAGMENT_BIT);
+    image_.Init(context_, "texture/statue.jpg");
+
+    // descriptor
+    resource_infos_ = {
+        ResourceInfo{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, {0},
+                     VK_SHADER_STAGE_VERTEX_BIT},
+        ResourceInfo{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, {1},
+                     VK_SHADER_STAGE_FRAGMENT_BIT},
+    };
+    descriptors_.reserve(kNumFrameInFlight);
+    for (size_t i = 0; i < kNumFrameInFlight; ++i) {
+      descriptors_.emplace_back(std::make_unique<Descriptor>());
+      descriptors_[i]->Init(context_, resource_infos_);
+      descriptors_[i]->UpdateBufferInfos(resource_infos_[0],
+                                         {uniform_buffer_.descriptor_info(i)});
+      descriptors_[i]->UpdateImageInfos(resource_infos_[1],
+                                        {image_.descriptor_info()});
+    }
 
     is_first_time = false;
   }
 
-  vector<VkDescriptorSetLayout> desc_set_layouts;
-  // TODO: enable using multiple descriptor sets for uniform buffer
-  desc_set_layouts.insert(desc_set_layouts.end(),
-                          uniform_desc_.layouts().begin(),
-                          uniform_desc_.layouts().end() - 1);
-  desc_set_layouts.insert(desc_set_layouts.end(),
-                          images_.descriptor().layouts().begin(),
-                          images_.descriptor().layouts().end());
-
   pipeline_.Init(context_->ptr(), "compiled/triangle.vert.spv",
-                 "compiled/triangle.frag.spv", desc_set_layouts,
+                 "compiled/triangle.frag.spv", descriptors_[0]->layout(),
                  BindingDescriptions(), AttribDescriptions());
   command_.Init(context_->ptr(), kNumFrameInFlight,
                 [&](const VkCommandBuffer& command_buffer, size_t image_index) {
@@ -184,13 +185,9 @@ void TriangleApplication::Init() {
 
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                       *pipeline_);
-    vector<VkDescriptorSet> desc_sets{
-        uniform_desc_.sets()[image_index],
-        images_.descriptor().sets()[0]
-    };
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipeline_.layout(), 0, CONTAINER_SIZE(desc_sets),
-                            desc_sets.data(), 0, nullptr);
+                            pipeline_.layout(), 0, 1,
+                            &descriptors_[image_index]->set(), 0, nullptr);
     vertex_buffer_.Draw(command_buffer);
 
     vkCmdEndRenderPass(command_buffer);

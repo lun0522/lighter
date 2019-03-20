@@ -14,20 +14,28 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
+using descriptor::ResourceInfo;
 using std::vector;
 
-VkDescriptorPool CreateDescriptorPool(SharedContext context,
-                                      VkDescriptorType type,
-                                      uint32_t count) {
-  VkDescriptorPoolSize pool_size{type, count};
+VkDescriptorPool CreateDescriptorPool(
+    SharedContext context,
+    const vector<ResourceInfo>& resource_infos) {
+  vector<VkDescriptorPoolSize> pool_sizes;
+  pool_sizes.reserve(resource_infos.size());
+  for (const auto& info : resource_infos) {
+    pool_sizes.emplace_back(VkDescriptorPoolSize{
+        info.descriptor_type,
+        CONTAINER_SIZE(info.binding_points),
+    });
+  }
 
   VkDescriptorPoolCreateInfo pool_info{
       VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/NULL_FLAG,
-      /*maxSets=*/count,
-      /*poolSizeCount=*/1,
-      &pool_size,
+      /*maxSets=*/1,
+      CONTAINER_SIZE(pool_sizes),
+      pool_sizes.data(),
   };
 
   VkDescriptorPool pool;
@@ -37,83 +45,76 @@ VkDescriptorPool CreateDescriptorPool(SharedContext context,
   return pool;
 }
 
-vector<VkDescriptorSetLayout> CreateDescriptorSetLayouts(
+VkDescriptorSetLayout CreateDescriptorSetLayout(
     SharedContext context,
-    VkDescriptorType descriptor_type,
-    const vector<uint32_t>& binding_points,
-    VkShaderStageFlags shader_stage) {
-  // it is possible to use layout(set = 0, binding = 0) to bind multiple
-  // descriptor sets to one binding point, which can be useful if we render
-  // different objects with different buffers and descriptors, but use the same
-  // uniform values. here we don't use this, so |descriptorCount| is simply 1
-  VkDescriptorSetLayoutBinding layout_binding{
-      0,  // will be set to actual binding points
-      descriptor_type,
-      /*descriptorCount=*/1,
-      shader_stage,
-      /*pImmutableSamplers=*/nullptr,
-  };
+    const vector<ResourceInfo>& resource_infos) {
+  size_t total_bindings = 0;
+  for (const auto& info : resource_infos) {
+    total_bindings += info.binding_points.size();
+  }
+
+  vector<VkDescriptorSetLayoutBinding> layout_bindings;
+  layout_bindings.reserve(total_bindings);
+  for (const auto& info : resource_infos) {
+    for (auto binding : info.binding_points) {
+      layout_bindings.emplace_back(VkDescriptorSetLayoutBinding{
+          binding,
+          info.descriptor_type,
+          /*descriptorCount=*/1,  // will be different for uniform array
+          info.shader_stage,
+          /*pImmutableSamplers=*/nullptr,
+      });
+    }
+  }
 
   VkDescriptorSetLayoutCreateInfo layout_info{
       VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/NULL_FLAG,
-      /*bindingCount=*/1,
-      &layout_binding,
+      /*bindingCount=*/CONTAINER_SIZE(layout_bindings),
+      layout_bindings.data(),
   };
 
-  vector<VkDescriptorSetLayout> layouts(binding_points.size());
-  for (size_t i = 0; i < binding_points.size(); ++i) {
-    layout_binding.binding = binding_points[i];
-    ASSERT_SUCCESS(
-        vkCreateDescriptorSetLayout(*context->device(), &layout_info,
-                                    context->allocator(), &layouts[i]),
-        "Failed to create descriptor set layout");
-  }
-  return layouts;
+  VkDescriptorSetLayout layout;
+  ASSERT_SUCCESS(vkCreateDescriptorSetLayout(*context->device(), &layout_info,
+                                             context->allocator(), &layout),
+                 "Failed to create descriptor set layout");
+  return layout;
 }
 
-vector<VkDescriptorSet> CreateDescriptorSets(
-    SharedContext context,
-    const VkDescriptorPool pool,
-    const vector<VkDescriptorSetLayout>& layouts) {
+VkDescriptorSet CreateDescriptorSet(SharedContext context,
+                                    const VkDescriptorPool& pool,
+                                    const VkDescriptorSetLayout& layout) {
   VkDescriptorSetAllocateInfo alloc_info{
       VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
       /*pNext=*/nullptr,
       pool,
-      CONTAINER_SIZE(layouts),
-      layouts.data(),
+      1,
+      &layout,
   };
 
-  vector<VkDescriptorSet> sets(layouts.size());
+  VkDescriptorSet set;
   ASSERT_SUCCESS(
-      vkAllocateDescriptorSets(*context->device(), &alloc_info, sets.data()),
-      "Failed to allocate descriptor sets");
-  return sets;
+      vkAllocateDescriptorSets(*context->device(), &alloc_info, &set),
+      "Failed to allocate descriptor set");
+  return set;
 }
 
 } /* namespace */
 
 void Descriptor::Init(SharedContext context,
-                      VkDescriptorType descriptor_type,
-                      const vector<uint32_t>& binding_points,
-                      VkShaderStageFlags shader_stage) {
+                      const vector<ResourceInfo>& resource_infos) {
   context_ = context;
-  descriptor_type_ = descriptor_type;
-  binding_points_ = binding_points;
-
-  descriptor_pool_ = CreateDescriptorPool(
-      context_, descriptor_type_, CONTAINER_SIZE(binding_points_));
-  descriptor_set_layouts_ = CreateDescriptorSetLayouts(
-      context_, descriptor_type_, binding_points_, shader_stage);
-  descriptor_sets_ = CreateDescriptorSets(
-      context_, descriptor_pool_, descriptor_set_layouts_);
+  pool_ = CreateDescriptorPool(context_, resource_infos);
+  layout_ = CreateDescriptorSetLayout(context_, resource_infos);
+  set_ = CreateDescriptorSet(context_, pool_, layout_);
 }
 
 void Descriptor::UpdateBufferInfos(
+    const ResourceInfo& resource_info,
     const vector<VkDescriptorBufferInfo>& buffer_infos) {
-  if (buffer_infos.size() != descriptor_sets_.size()) {
-    throw std::runtime_error{"Failed to update buffer infos"};
+  if (resource_info.binding_points.size() != buffer_infos.size()) {
+    throw std::runtime_error{"Failed to update image infos"};
   }
 
   vector<VkWriteDescriptorSet> write_desc_sets(buffer_infos.size());
@@ -121,11 +122,11 @@ void Descriptor::UpdateBufferInfos(
     write_desc_sets[i] = VkWriteDescriptorSet{
         VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         /*pNext=*/nullptr,
-        descriptor_sets_[i],
-        binding_points_[i],
+        set_,
+        resource_info.binding_points[i],
         /*dstArrayElement=*/0,  // target first descriptor in set
         /*descriptorCount=*/1,  // possible to update multiple descriptors
-        descriptor_type_,
+        resource_info.descriptor_type,
         /*pImageInfo=*/nullptr,
         &buffer_infos[i],
         /*pTexelBufferView=*/nullptr,
@@ -136,8 +137,9 @@ void Descriptor::UpdateBufferInfos(
 }
 
 void Descriptor::UpdateImageInfos(
+    const ResourceInfo& resource_info,
     const vector<VkDescriptorImageInfo>& image_infos) {
-  if (image_infos.size() != descriptor_sets_.size()) {
+  if (resource_info.binding_points.size() != image_infos.size()) {
     throw std::runtime_error{"Failed to update image infos"};
   }
 
@@ -146,11 +148,11 @@ void Descriptor::UpdateImageInfos(
     write_desc_sets[i] = VkWriteDescriptorSet{
         VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         /*pNext=*/nullptr,
-        descriptor_sets_[i],
-        binding_points_[i],
+        set_,
+        resource_info.binding_points[i],
         /*dstArrayElement=*/0,  // target first descriptor in set
         /*descriptorCount=*/1,  // possible to update multiple descriptors
-        descriptor_type_,
+        resource_info.descriptor_type,
         &image_infos[i],
         /*pBufferInfo=*/nullptr,
         /*pTexelBufferView=*/nullptr,
@@ -161,13 +163,10 @@ void Descriptor::UpdateImageInfos(
 }
 
 Descriptor::~Descriptor() {
-  vkDestroyDescriptorPool(*context_->device(), descriptor_pool_,
-                          context_->allocator());
-  // descriptor sets are implicitly cleaned up with descriptor pool
-  for (auto& layout : descriptor_set_layouts_) {
-    vkDestroyDescriptorSetLayout(*context_->device(), layout,
-                                 context_->allocator());
-  }
+  vkDestroyDescriptorPool(*context_->device(), pool_, context_->allocator());
+  // descriptor set is implicitly cleaned up with descriptor pool
+  vkDestroyDescriptorSetLayout(*context_->device(), layout_,
+                               context_->allocator());
 }
 
 } /* namespace vulkan */

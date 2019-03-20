@@ -17,33 +17,6 @@
 
 namespace wrapper {
 namespace vulkan {
-
-class Context;
-
-/** VkBuffer represents linear arrays of data and configures usage of the data.
- *      Data can be transfered between buffers with the help of transfer queues.
- *
- *  Initialization:
- *      Data size
- *      Buffer usage (vertex/index buffer, src/dst of transfer)
- *      Shared by which device queues
- *      VkDevice
- *
- *------------------------------------------------------------------------------
- *
- *  VkDeviceMemory is a handle to the actual data stored in device memory.
- *      When we transfer data from host to device, we interact with
- *      VkPhysicalDevice rather than VkBuffer.
- *
- *  Initialization:
- *      Data size (can be different from the size we allocate for the buffer
- *          because of alignments)
- *      Memory type (visibility to host and device)
- *      VkBuffer that will be binded with it
- *      VkDevice
- *      VkPhysicalDevice
- */
-
 namespace buffer {
 
 struct DataInfo {
@@ -71,6 +44,31 @@ struct ImageInfo{
 
 } /* namespace buffer */
 
+class Context;
+
+/** VkBuffer represents linear arrays of data and configures usage of the data.
+ *      Data can be transfered between buffers with the help of transfer queues.
+ *
+ *  Initialization:
+ *      Data size
+ *      Buffer usage (vertex/index buffer, src/dst of transfer)
+ *      Shared by which device queues
+ *      VkDevice
+ *
+ *------------------------------------------------------------------------------
+ *
+ *  VkDeviceMemory is a handle to the actual data stored in device memory.
+ *      When we transfer data from host to device, we interact with
+ *      VkPhysicalDevice rather than VkBuffer.
+ *
+ *  Initialization:
+ *      Data size (can be different from the size we allocate for the buffer
+ *          because of alignments)
+ *      Memory type (visibility to host and device)
+ *      VkBuffer that will be binded with it
+ *      VkDevice
+ *      VkPhysicalDevice
+ */
 class VertexBuffer {
  public:
   VertexBuffer() = default;

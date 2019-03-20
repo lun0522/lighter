@@ -40,25 +40,6 @@ class Image {
   VkSampler sampler_;
 };
 
-class Images {
- public:
-  Images() = default;
-  void Init(std::shared_ptr<Context> context,
-            const std::vector<std::string>& paths,
-            const std::vector<uint32_t>& binding_points,
-            VkShaderStageFlags shader_stage);
-
-  // This class is neither copyable nor movable
-  Images(const Images&) = delete;
-  Images& operator=(const Images&) = delete;
-
-  const Descriptor& descriptor() const { return descriptor_; }
-
- private:
-  std::vector<std::unique_ptr<Image>> images_;
-  Descriptor descriptor_;
-};
-
 } /* namespace vulkan */
 } /* namespace wrapper */
 

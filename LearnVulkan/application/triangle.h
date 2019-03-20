@@ -8,6 +8,7 @@
 #ifndef APPLICATION_VULKAN_TRIANGLE_H
 #define APPLICATION_VULKAN_TRIANGLE_H
 
+#include <memory>
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -37,8 +38,9 @@ class TriangleApplication {
   wrapper::vulkan::Command command_;
   wrapper::vulkan::VertexBuffer vertex_buffer_;
   wrapper::vulkan::UniformBuffer uniform_buffer_;
-  wrapper::vulkan::Descriptor uniform_desc_;
-  wrapper::vulkan::Images images_;
+  wrapper::vulkan::Image image_;
+  std::vector<wrapper::vulkan::descriptor::ResourceInfo> resource_infos_;
+  std::vector<std::unique_ptr<wrapper::vulkan::Descriptor>> descriptors_;
 
   void Init();
   void Cleanup();

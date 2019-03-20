@@ -14,6 +14,15 @@
 
 namespace wrapper {
 namespace vulkan {
+namespace descriptor {
+
+struct ResourceInfo {
+  VkDescriptorType descriptor_type;
+  std::vector<uint32_t> binding_points;
+  VkShaderStageFlags shader_stage;
+};
+
+} /* namespace descriptor */
 
 class Context;
 
@@ -21,29 +30,26 @@ class Descriptor {
  public:
   Descriptor() = default;
   void Init(std::shared_ptr<Context> context,
-            VkDescriptorType descriptor_type,
-            const std::vector<uint32_t>& binding_points,
-            VkShaderStageFlags shader_stage);
+            const std::vector<descriptor::ResourceInfo>& resource_infos);
   void UpdateBufferInfos(
+      const descriptor::ResourceInfo& resource_info,
       const std::vector<VkDescriptorBufferInfo>& buffer_infos);
-  void UpdateImageInfos(const std::vector<VkDescriptorImageInfo>& image_infos);
+  void UpdateImageInfos(const descriptor::ResourceInfo& resource_info,
+                        const std::vector<VkDescriptorImageInfo>& image_infos);
   ~Descriptor();
 
   // This class is neither copyable nor movable
   Descriptor(const Descriptor&) = delete;
   Descriptor& operator=(const Descriptor&) = delete;
 
-  const std::vector<VkDescriptorSetLayout>& layouts() const
-      { return descriptor_set_layouts_; }
-  const std::vector<VkDescriptorSet>& sets() const { return descriptor_sets_; }
+  const VkDescriptorSetLayout& layout() const { return layout_; }
+  const VkDescriptorSet& set()          const { return set_; }
 
  private:
   std::shared_ptr<Context> context_;
-  VkDescriptorPool descriptor_pool_;
-  VkDescriptorType descriptor_type_;
-  std::vector<uint32_t> binding_points_;
-  std::vector<VkDescriptorSetLayout> descriptor_set_layouts_;
-  std::vector<VkDescriptorSet> descriptor_sets_;
+  VkDescriptorPool pool_;
+  VkDescriptorSetLayout layout_;
+  VkDescriptorSet set_;
 };
 
 } /* namespace vulkan */
