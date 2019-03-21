@@ -14,6 +14,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include <glm/glm.hpp>
+
 #define NULL_FLAG 0
 #define ASSERT_NONNULL(object, error) \
   if (object == nullptr)    throw std::runtime_error{error}
@@ -23,6 +25,17 @@
   static_cast<uint32_t>(container.size())
 
 namespace util {
+
+struct VertexAttrib {
+  glm::vec3 pos;
+  glm::vec3 norm;
+  glm::vec2 tex_coord;
+
+  VertexAttrib(const glm::vec3& pos,
+               const glm::vec3& norm,
+               const glm::vec2& tex_coord)
+      : pos{pos}, norm{norm}, tex_coord{tex_coord} {}
+};
 
 template <typename AttribType>
 std::vector<AttribType> QueryAttribute(
@@ -73,6 +86,11 @@ size_t FindFirst(const std::vector<ContentType>& container,
 }
 
 const std::string& ReadFile(const std::string& path);
+
+void LoadObjFile(const std::string& path,
+                 int index_base,
+                 std::vector<VertexAttrib>& vertices,
+                 std::vector<uint32_t>& indices);
 
 } /* namespace util */
 

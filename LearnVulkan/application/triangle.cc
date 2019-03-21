@@ -19,29 +19,13 @@ namespace vulkan {
 namespace {
 
 using std::vector;
+using util::VertexAttrib;
 using wrapper::vulkan::buffer::DataInfo;
 using wrapper::vulkan::buffer::ChunkInfo;
 using wrapper::vulkan::descriptor::ResourceInfo;
 using wrapper::vulkan::Descriptor;
 
 size_t kNumFrameInFlight{2};
-
-struct VertexAttrib {
-  glm::vec2 pos;
-  glm::vec3 color;
-  glm::vec2 tex_coord;
-};
-
-const vector<VertexAttrib> kTriangleVertices {
-    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-    {{ 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-    {{ 0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-    {{-0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-};
-
-const vector<uint32_t> kTrangleIndices {
-    0, 1, 2, 2, 3, 0,
-};
 
 vector<VkVertexInputBindingDescription> BindingDescriptions() {
   vector<VkVertexInputBindingDescription> binding_descs(1);
@@ -62,7 +46,7 @@ vector<VkVertexInputAttributeDescription> AttribDescriptions() {
   attrib_descs[0] = VkVertexInputAttributeDescription{
       /*location=*/0, // layout (location = 0) in
       /*binding=*/0, // which binding point does data come from
-      /*format=*/VK_FORMAT_R32G32_SFLOAT, // implies total size
+      /*format=*/VK_FORMAT_R32G32B32_SFLOAT, // implies total size
       /*offset=*/offsetof(VertexAttrib, pos), // reading offset
   };
 
@@ -70,7 +54,7 @@ vector<VkVertexInputAttributeDescription> AttribDescriptions() {
       /*location=*/1,
       /*binding=*/0,
       /*format=*/VK_FORMAT_R32G32B32_SFLOAT,
-      /*offset=*/offsetof(VertexAttrib, color),
+      /*offset=*/offsetof(VertexAttrib, norm),
   };
 
   attrib_descs[2] = VkVertexInputAttributeDescription{
@@ -101,8 +85,9 @@ void UpdateUbo(size_t current_frame, float screen_aspect) {
       current_time - start_time).count();
   UniformBufferObject& ubo = kUbo[current_frame];
   ubo.model = glm::rotate(glm::mat4{1.0f}, time * glm::radians(90.0f),
-                          {0.0f, 0.0f, 1.0f});
-  ubo.view = glm::lookAt(glm::vec3{2.0f}, glm::vec3{0.0f}, {0.0f, 0.0f, 1.0f});
+                          glm::vec3{0.0f, 0.0f, 1.0f});
+  ubo.view = glm::lookAt(glm::vec3{2.0f}, glm::vec3{0.0f},
+                         glm::vec3{0.0f, 0.0f, 1.0f});
   ubo.proj = glm::perspective(glm::radians(45.0f), screen_aspect, 0.1f, 10.0f);
   // No need to flip Y-axis as OpenGL
   ubo.proj[1][1] *= -1;
@@ -112,16 +97,20 @@ void UpdateUbo(size_t current_frame, float screen_aspect) {
 
 void TriangleApplication::Init() {
   if (is_first_time) {
+    vector<VertexAttrib> vertices;
+    vector<uint32_t> indices;
+    util::LoadObjFile("texture/square.obj", 1, vertices, indices);
+
     // vertex buffer
     DataInfo vertex_info{
-        kTriangleVertices.data(),
-        sizeof(kTriangleVertices[0]) * kTriangleVertices.size(),
-        CONTAINER_SIZE(kTriangleVertices),
+        vertices.data(),
+        sizeof(vertices[0]) * vertices.size(),
+        CONTAINER_SIZE(vertices),
     };
     DataInfo index_info{
-        kTrangleIndices.data(),
-        sizeof(kTrangleIndices[0]) * kTrangleIndices.size(),
-        CONTAINER_SIZE(kTrangleIndices),
+        indices.data(),
+        sizeof(indices[0]) * indices.size(),
+        CONTAINER_SIZE(indices),
     };
     vertex_buffer_.Init(context_->ptr(), vertex_info, index_info);
 
