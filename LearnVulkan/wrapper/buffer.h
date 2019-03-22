@@ -112,16 +112,16 @@ class UniformBuffer {
   VkDeviceMemory device_memory_;
 };
 
-class ImageBuffer {
+class TextureBuffer {
  public:
-  ImageBuffer() = default;
+  TextureBuffer() = default;
   void Init(std::shared_ptr<Context> context,
             const buffer::ImageInfo& image_info);
-  ~ImageBuffer();
+  ~TextureBuffer();
 
   // This class is neither copyable nor movable
-  ImageBuffer(const ImageBuffer&) = delete;
-  ImageBuffer& operator=(const ImageBuffer&) = delete;
+  TextureBuffer(const TextureBuffer&) = delete;
+  TextureBuffer& operator=(const TextureBuffer&) = delete;
 
   const VkImage& image() const { return image_; }
 
@@ -129,6 +129,28 @@ class ImageBuffer {
   std::shared_ptr<Context> context_;
   VkImage image_;
   VkDeviceMemory device_memory_;
+};
+
+class DepthStencilBuffer {
+ public:
+  DepthStencilBuffer() = default;
+  void Init(std::shared_ptr<Context> context,
+            VkExtent2D extent);
+  void Cleanup();
+  ~DepthStencilBuffer() { Cleanup(); }
+
+  // This class is neither copyable nor movable
+  DepthStencilBuffer(const DepthStencilBuffer&) = delete;
+  DepthStencilBuffer& operator=(const DepthStencilBuffer&) = delete;
+
+  const VkImage& image() const { return image_; }
+  VkFormat format()      const { return format_; }
+
+ private:
+  std::shared_ptr<Context> context_;
+  VkImage image_;
+  VkDeviceMemory device_memory_;
+  VkFormat format_;
 };
 
 } /* namespace vulkan */

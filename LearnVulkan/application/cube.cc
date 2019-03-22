@@ -7,9 +7,12 @@
 
 #include "cube.h"
 
+#include <array>
 #include <chrono>
 
 #define GLM_FORCE_RADIANS
+// different from OpenGL, where depth values are in range [-1.0, 1.0]
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "util.h"
@@ -99,7 +102,7 @@ void CubeApplication::Init() {
   if (is_first_time) {
     vector<VertexAttrib> vertices;
     vector<uint32_t> indices;
-    util::LoadObjFile("texture/cube.obj", 1, vertices, indices);
+    util::LoadObjFile("texture/cube.obj", 1, &vertices, &indices);
 
     // vertex buffer
     DataInfo vertex_info{
@@ -146,13 +149,18 @@ void CubeApplication::Init() {
     is_first_time = false;
   }
 
+  depth_stencil_.Init(context_, context_->swapchain().extent());
+  context_->render_pass().Config(depth_stencil_);
   pipeline_.Init(context_->ptr(), "compiled/simple.vert.spv",
                  "compiled/simple.frag.spv", descriptors_[0]->layout(),
                  BindingDescriptions(), AttribDescriptions());
   command_.Init(context_->ptr(), kNumFrameInFlight,
                 [&](const VkCommandBuffer& command_buffer, size_t image_index) {
     // start render pass
-    VkClearValue clear_color{0.0f, 0.0f, 0.0f, 1.0f};
+    std::array<VkClearValue, 2> clear_values;
+    clear_values[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+    clear_values[1].depthStencil = {1.0f, 0};  // initial depth value set to 1.0
+
     VkRenderPassBeginInfo begin_info{
         VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
         /*pNext=*/nullptr,
@@ -162,8 +170,8 @@ void CubeApplication::Init() {
             /*offset=*/{0, 0},
             context_->swapchain().extent(),
         },
-        /*clearValueCount=*/1,
-        &clear_color,  // used for _OP_CLEAR
+        CONTAINER_SIZE(clear_values),
+        clear_values.data(),  // used for _OP_CLEAR
     };
 
     // record commends. options:

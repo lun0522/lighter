@@ -38,7 +38,8 @@ class CubeApplication {
   wrapper::vulkan::Command command_;
   wrapper::vulkan::VertexBuffer vertex_buffer_;
   wrapper::vulkan::UniformBuffer uniform_buffer_;
-  wrapper::vulkan::Image image_;
+  wrapper::vulkan::TextureImage image_;
+  wrapper::vulkan::DepthStencilImage depth_stencil_;
   std::vector<wrapper::vulkan::descriptor::ResourceInfo> resource_infos_;
   std::vector<std::unique_ptr<wrapper::vulkan::Descriptor>> descriptors_;
 

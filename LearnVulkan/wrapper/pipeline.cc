@@ -163,6 +163,22 @@ void Pipeline::Init(
       /*alphaToOneEnable=*/VK_FALSE,
   };
 
+  VkPipelineDepthStencilStateCreateInfo depth_stencil_info{
+      VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/NULL_FLAG,
+      /*depthTestEnable=*/VK_TRUE,
+      /*depthWriteEnable=*/VK_TRUE,  // should disable for transparent objects
+      /*depthCompareOp=*/VK_COMPARE_OP_LESS,
+      // may only keep fragments in a specific depth range
+      /*depthBoundsTestEnable=*/VK_FALSE,
+      /*stencilTestEnable=*/VK_FALSE,  // temporarily disable
+      /*front=*/VkStencilOpState{},
+      /*back=*/VkStencilOpState{},
+      /*minDepthBounds=*/0.0f,
+      /*maxDepthBounds=*/1.0f,
+  };
+
   // config per attached framebuffer
   VkPipelineColorBlendAttachmentState color_blend_attachment{
       /*blendEnable=*/VK_FALSE,
@@ -228,7 +244,7 @@ void Pipeline::Init(
       &viewport_info,
       &rasterizer_info,
       &multisample_info,
-      /*pDepthStencilState=*/nullptr,
+      &depth_stencil_info,
       &color_blend_info,
       &dynamic_state_info,
       pipeline_layout_,

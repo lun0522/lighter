@@ -54,6 +54,7 @@ class Context : public std::enable_shared_from_this<Context> {
   const Device& device()                    const { return device_; }
   const Swapchain& swapchain()              const { return swapchain_; }
   const RenderPass& render_pass()           const { return render_pass_; }
+  RenderPass& render_pass()                       { return render_pass_; }
   const Queues& queues()                    const { return queues_; }
   Queues& queues()                                { return queues_; }
 

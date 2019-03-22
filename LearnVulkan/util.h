@@ -89,8 +89,8 @@ const std::string& ReadFile(const std::string& path);
 
 void LoadObjFile(const std::string& path,
                  int index_base,
-                 std::vector<VertexAttrib>& vertices,
-                 std::vector<uint32_t>& indices);
+                 std::vector<VertexAttrib>* vertices,
+                 std::vector<uint32_t>* indices);
 
 } /* namespace util */
 

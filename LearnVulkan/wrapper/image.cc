@@ -21,7 +21,8 @@ using std::vector;
 
 VkImageView CreateImageView(SharedContext context,
                             const VkImage& image,
-                            VkFormat format) {
+                            VkFormat format,
+                            VkImageAspectFlags aspect_mask) {
   VkImageViewCreateInfo image_view_info{
       VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -38,7 +39,7 @@ VkImageView CreateImageView(SharedContext context,
       },
       // specify image's purpose and which part to access
       VkImageSubresourceRange{
-          /*aspectMask=*/VK_IMAGE_ASPECT_COLOR_BIT,
+          /*aspectMask=*/aspect_mask,
           /*baseMipLevel=*/0,
           /*levelCount=*/1,
           /*baseArrayLayer=*/0,
@@ -85,23 +86,24 @@ VkSampler CreateSampler(SharedContext context) {
 
 } /* namespace */
 
-void Image::Init(SharedContext context,
-                 const std::string& path) {
+void TextureImage::Init(SharedContext context,
+                        const std::string& path) {
   context_ = context;
 
   int width, height, channel;
   VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;  // TODO: other formats
   stbi_uc* data = stbi_load(path.c_str(), &width, &height, &channel,
                             STBI_rgb_alpha);  // force to have alpha
-  image_buffer_.Init(context_, {data, format, static_cast<uint32_t>(width),
-                                static_cast<uint32_t>(height), 4});
+  buffer_.Init(context_, {data, format, static_cast<uint32_t>(width),
+                          static_cast<uint32_t>(height), 4});
   stbi_image_free(data);
 
-  image_view_ = CreateImageView(context_, image_buffer_.image(), format);
+  image_view_ = CreateImageView(context_, buffer_.image(), format,
+                                VK_IMAGE_ASPECT_COLOR_BIT);
   sampler_ = CreateSampler(context_);
 }
 
-VkDescriptorImageInfo Image::descriptor_info() const {
+VkDescriptorImageInfo TextureImage::descriptor_info() const {
   return VkDescriptorImageInfo{
         sampler_,
         image_view_,
@@ -109,9 +111,22 @@ VkDescriptorImageInfo Image::descriptor_info() const {
   };
 }
 
-Image::~Image() {
+TextureImage::~TextureImage() {
   vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
   vkDestroySampler(*context_->device(), sampler_, context_->allocator());
+}
+
+void DepthStencilImage::Init(SharedContext context,
+                             VkExtent2D extent) {
+  context_ = context;
+  buffer_.Init(context_, extent);
+  image_view_ = CreateImageView(
+      context_, buffer_.image(), format(),
+      VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+}
+
+void DepthStencilImage::Cleanup() {
+  vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
 }
 
 } /* namespace vulkan */

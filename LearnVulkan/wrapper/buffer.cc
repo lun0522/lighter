@@ -18,6 +18,7 @@ namespace vulkan {
 namespace {
 
 using std::array;
+using std::runtime_error;
 using std::vector;
 
 uint32_t FindMemoryType(SharedContext context,
@@ -38,7 +39,21 @@ uint32_t FindMemoryType(SharedContext context,
       }
     }
   }
-  throw std::runtime_error{"Failed to find suitable memory type"};
+  throw runtime_error{"Failed to find suitable memory type"};
+}
+
+VkFormat FindImageFormat(SharedContext context,
+                         const vector<VkFormat>& candidates,
+                         VkFormatFeatureFlags features) {
+  for (auto format : candidates) {
+    VkFormatProperties properties;
+    vkGetPhysicalDeviceFormatProperties(*context->physical_device(),
+                                        format, &properties);
+    if ((properties.optimalTilingFeatures & features) == features) {
+      return format;
+    }
+  }
+  throw runtime_error{"Failed to find suitable image type"};
 }
 
 VkBuffer CreateBuffer(SharedContext context,
@@ -101,7 +116,6 @@ VkDeviceMemory CreateBufferMemory(SharedContext context,
 VkImage CreateImage(SharedContext context,
                     VkFormat format,
                     VkExtent3D extent,
-                    VkImageLayout layout,
                     VkImageUsageFlags usage) {
   VkImageCreateInfo image_info{
       VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -161,6 +175,7 @@ VkDeviceMemory CreateImageMemory(SharedContext context,
 
 void TransitionImageLayout(SharedContext context,
                            const VkImage& image,
+                           VkImageAspectFlags image_aspect_mask,
                            array<VkImageLayout, 2> image_layouts,
                            array<VkAccessFlags, 2> barrier_access_flags,
                            array<VkPipelineStageFlags, 2> pipeline_stages) {
@@ -181,7 +196,7 @@ void TransitionImageLayout(SharedContext context,
             image,
             // specify which part of image to use
             VkImageSubresourceRange{
-                /*aspectMask=*/VK_IMAGE_ASPECT_COLOR_BIT,
+                /*aspectMask=*/image_aspect_mask,
                 /*baseMipLevel=*/0,
                 /*levelCount=*/1,
                 /*baseArrayLayer=*/0,
@@ -382,8 +397,8 @@ UniformBuffer::~UniformBuffer() {
   vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
 }
 
-void ImageBuffer::Init(SharedContext context,
-                       const buffer::ImageInfo& image_info) {
+void TextureBuffer::Init(SharedContext context,
+                         const buffer::ImageInfo& image_info) {
   context_ = context;
 
   VkExtent3D image_extent = image_info.extent();
@@ -404,7 +419,6 @@ void ImageBuffer::Init(SharedContext context,
 
   // create final image buffer
   image_ = CreateImage(context_, image_info.format, image_extent,
-                       VK_IMAGE_LAYOUT_UNDEFINED,
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT
                            | VK_IMAGE_USAGE_SAMPLED_BIT);
   device_memory_ = CreateImageMemory(
@@ -413,14 +427,14 @@ void ImageBuffer::Init(SharedContext context,
   // copy data from staging buffer to image buffer. we need to do some
   // transitions so that image buffer is eventually only visible to device
   TransitionImageLayout(
-      context_, image_,
+      context_, image_, VK_IMAGE_ASPECT_COLOR_BIT,
       {VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL},
       {VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT},
       {VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT});
   CopyBufferToImage(context_, staging_buffer, image_, image_extent,
                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
   TransitionImageLayout(
-      context_, image_,
+      context_, image_, VK_IMAGE_ASPECT_COLOR_BIT,
       {VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
       {VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT},
@@ -431,7 +445,36 @@ void ImageBuffer::Init(SharedContext context,
   vkFreeMemory(*context_->device(), staging_memory, context_->allocator());
 }
 
-ImageBuffer::~ImageBuffer() {
+TextureBuffer::~TextureBuffer() {
+  vkDestroyImage(*context_->device(), image_, context_->allocator());
+  vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
+}
+
+void DepthStencilBuffer::Init(SharedContext context,
+                              VkExtent2D extent) {
+  context_ = context;
+
+  // no need to send any data to buffer
+  format_ = FindImageFormat(
+      context_, {VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT_S8_UINT},
+      VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+  image_ = CreateImage(context_, format_,
+                       {extent.width, extent.height, /*depth=*/1},
+                       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+  device_memory_ = CreateImageMemory(
+      context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  TransitionImageLayout(context_, image_,
+                        VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
+                        {VK_IMAGE_LAYOUT_UNDEFINED,
+                         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL},
+                        {VK_ACCESS_HOST_WRITE_BIT,
+                         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT
+                             | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT},
+                        {VK_PIPELINE_STAGE_HOST_BIT,
+                         VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT});
+}
+
+void DepthStencilBuffer::Cleanup() {
   vkDestroyImage(*context_->device(), image_, context_->allocator());
   vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
 }

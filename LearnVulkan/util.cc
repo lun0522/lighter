@@ -54,7 +54,7 @@ const string& ReadFile(const string& path) {
       stream << file.rdbuf();
       string code = stream.str();
       loaded = kLoadedText.insert({path, code}).first;
-    } catch (ifstream::failure e) {
+    } catch (const ifstream::failure& e) {
       throw runtime_error{"Failed to read file: " + e.code().message()};
     }
   }
@@ -63,8 +63,8 @@ const string& ReadFile(const string& path) {
 
 void LoadObjFile(const string& path,
                  int index_base,
-                 vector<VertexAttrib>& vertices,
-                 vector<uint32_t>& indices) {
+                 vector<VertexAttrib>* vertices,
+                 vector<uint32_t>* indices) {
   std::ifstream file{path};
   if (!file.is_open()) {
     throw runtime_error{"Failed to open file: " + path};
@@ -110,12 +110,12 @@ void LoadObjFile(const string& path,
         for (const auto& seg : segs) {
           auto found = loaded_vertices.find(seg);
           if (found != loaded_vertices.end()) {
-            indices.emplace_back(found->second);
+            indices->emplace_back(found->second);
           } else {
-            indices.emplace_back(vertices.size());
-            loaded_vertices.emplace(seg, vertices.size());
+            indices->emplace_back(vertices->size());
+            loaded_vertices.emplace(seg, vertices->size());
             auto idxs = SplitText<3>(seg, '/');
-            vertices.emplace_back(
+            vertices->emplace_back(
                 positions.at(stoi(idxs[0]) - index_base),
                 normals.at(stoi(idxs[2]) - index_base),
                 tex_coords.at(stoi(idxs[1]) - index_base)

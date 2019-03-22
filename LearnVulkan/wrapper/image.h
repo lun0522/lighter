@@ -20,24 +20,45 @@ namespace vulkan {
 
 class Context;
 
-class Image {
+class TextureImage {
  public:
-  Image() = default;
+  TextureImage() = default;
   void Init(std::shared_ptr<Context> context,
             const std::string& path);
-  ~Image();
+  ~TextureImage();
 
   // This class is neither copyable nor movable
-  Image(const Image&) = delete;
-  Image& operator=(const Image&) = delete;
+  TextureImage(const TextureImage&) = delete;
+  TextureImage& operator=(const TextureImage&) = delete;
 
   VkDescriptorImageInfo descriptor_info() const;
 
  private:
   std::shared_ptr<Context> context_;
-  ImageBuffer image_buffer_;
+  TextureBuffer buffer_;
   VkImageView image_view_;
   VkSampler sampler_;
+};
+
+class DepthStencilImage {
+ public:
+  DepthStencilImage() = default;
+  void Init(std::shared_ptr<Context> context,
+            VkExtent2D extent);
+  void Cleanup();
+  ~DepthStencilImage() { Cleanup(); }
+
+  // This class is neither copyable nor movable
+  DepthStencilImage(const DepthStencilImage&) = delete;
+  DepthStencilImage& operator=(const DepthStencilImage&) = delete;
+
+  VkFormat format()               const { return buffer_.format(); }
+  const VkImageView& image_view() const { return image_view_; }
+
+ private:
+  std::shared_ptr<Context> context_;
+  DepthStencilBuffer buffer_;
+  VkImageView image_view_;
 };
 
 } /* namespace vulkan */

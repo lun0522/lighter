@@ -7,6 +7,8 @@
 
 #include "render_pass.h"
 
+#include <array>
+
 #include "context.h"
 #include "util.h"
 
@@ -16,18 +18,25 @@ namespace {
 
 using std::vector;
 
-vector<VkFramebuffer> CreateFramebuffers(SharedContext context) {
+vector<VkFramebuffer> CreateFramebuffers(
+    SharedContext context,
+    const DepthStencilImage& depth_stencil_image) {
   const Swapchain& swapchain = context->swapchain();
 
   vector<VkFramebuffer> framebuffers(swapchain.size());
   for (size_t i = 0; i < swapchain.size(); ++i) {
+    std::array<VkImageView, 2> attachments{
+        swapchain.image_views()[i],
+        depth_stencil_image.image_view(),
+    };
+
     VkFramebufferCreateInfo framebuffer_info{
         VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
         /*pNext=*/nullptr,
         /*flags*/NULL_FLAG,
         *context->render_pass(),
-        /*attachmentCount=*/1,
-        &swapchain.image_views()[i],
+        CONTAINER_SIZE(attachments),
+        attachments.data(),
         swapchain.extent().width,
         swapchain.extent().height,
         /*layers=*/1,
@@ -44,7 +53,9 @@ vector<VkFramebuffer> CreateFramebuffers(SharedContext context) {
 
 void RenderPass::Init(SharedContext context) {
   context_ = context;
+}
 
+void RenderPass::Config(const DepthStencilImage &depth_stencil_image) {
   VkAttachmentDescription color_att_desc{
       /*flags=*/NULL_FLAG,
       context_->swapchain().format(),
@@ -68,8 +79,25 @@ void RenderPass::Init(SharedContext context) {
   };
 
   VkAttachmentReference color_att_ref{
-      /*attachment=*/0, // index of attachment to reference to
+      /*attachment=*/0,  // index of attachment to reference to
       /*layout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+  };
+
+  VkAttachmentDescription depth_stencil_att_desc{
+      /*flags=*/NULL_FLAG,
+      depth_stencil_image.format(),
+      /*samples=*/VK_SAMPLE_COUNT_1_BIT,  // no multisampling
+      /*loadOp=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+      /*storeOp=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
+      /*stencilLoadOp=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+      /*stencilStoreOp=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
+      /*initialLayout=*/VK_IMAGE_LAYOUT_UNDEFINED,
+      /*finalLayout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+  };
+
+  VkAttachmentReference depth_stencil_att_ref{
+      /*attachment=*/1,
+      /*layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
   };
 
   VkSubpassDescription subpass_desc{
@@ -81,7 +109,8 @@ void RenderPass::Init(SharedContext context) {
       /*colorAttachmentCount=*/1,
       &color_att_ref,
       /*pResolveAttachments=*/nullptr,
-      /*pDepthStencilAttachment=*/nullptr,
+      // a render pass can only use one depth stencil buffer, so no count needed
+      &depth_stencil_att_ref,
       /*preserveAttachmentCount=*/0,
       /*pPreserveAttachments=*/nullptr,
   };
@@ -100,12 +129,17 @@ void RenderPass::Init(SharedContext context) {
       /*dependencyFlags=*/NULL_FLAG,
   };
 
+  std::array<VkAttachmentDescription, 2> att_descs{
+    color_att_desc,
+    depth_stencil_att_desc,
+  };
+
   VkRenderPassCreateInfo render_pass_info{
       VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/NULL_FLAG,
-      /*attachmentCount=*/1,
-      &color_att_desc,
+      CONTAINER_SIZE(att_descs),
+      att_descs.data(),
       /*subpassCount=*/1,
       &subpass_desc,
       /*dependencyCount=*/1,
@@ -116,7 +150,7 @@ void RenderPass::Init(SharedContext context) {
                                     context_->allocator(), &render_pass_),
                  "Failed to create render pass");
 
-  framebuffers_ = CreateFramebuffers(context_);
+  framebuffers_ = CreateFramebuffers(context_, depth_stencil_image);
 }
 
 void RenderPass::Cleanup() {
