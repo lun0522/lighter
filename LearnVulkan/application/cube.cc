@@ -1,11 +1,11 @@
 //
-//  triangle.cc
+//  cube.cc
 //
 //  Created by Pujun Lun on 3/2/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "triangle.h"
+#include "cube.h"
 
 #include <chrono>
 
@@ -85,8 +85,8 @@ void UpdateUbo(size_t current_frame, float screen_aspect) {
       current_time - start_time).count();
   UniformBufferObject& ubo = kUbo[current_frame];
   ubo.model = glm::rotate(glm::mat4{1.0f}, time * glm::radians(90.0f),
-                          glm::vec3{0.0f, 0.0f, 1.0f});
-  ubo.view = glm::lookAt(glm::vec3{2.0f}, glm::vec3{0.0f},
+                          glm::vec3{1.0f});
+  ubo.view = glm::lookAt(glm::vec3{3.0f}, glm::vec3{0.0f},
                          glm::vec3{0.0f, 0.0f, 1.0f});
   ubo.proj = glm::perspective(glm::radians(45.0f), screen_aspect, 0.1f, 10.0f);
   // No need to flip Y-axis as OpenGL
@@ -95,11 +95,11 @@ void UpdateUbo(size_t current_frame, float screen_aspect) {
 
 } /* namespace */
 
-void TriangleApplication::Init() {
+void CubeApplication::Init() {
   if (is_first_time) {
     vector<VertexAttrib> vertices;
     vector<uint32_t> indices;
-    util::LoadObjFile("texture/square.obj", 1, vertices, indices);
+    util::LoadObjFile("texture/cube.obj", 1, vertices, indices);
 
     // vertex buffer
     DataInfo vertex_info{
@@ -146,8 +146,8 @@ void TriangleApplication::Init() {
     is_first_time = false;
   }
 
-  pipeline_.Init(context_->ptr(), "compiled/triangle.vert.spv",
-                 "compiled/triangle.frag.spv", descriptors_[0]->layout(),
+  pipeline_.Init(context_->ptr(), "compiled/simple.vert.spv",
+                 "compiled/simple.frag.spv", descriptors_[0]->layout(),
                  BindingDescriptions(), AttribDescriptions());
   command_.Init(context_->ptr(), kNumFrameInFlight,
                 [&](const VkCommandBuffer& command_buffer, size_t image_index) {
@@ -183,12 +183,12 @@ void TriangleApplication::Init() {
   });
 }
 
-void TriangleApplication::Cleanup() {
+void CubeApplication::Cleanup() {
   command_.Cleanup();
   pipeline_.Cleanup();
 }
 
-void TriangleApplication::MainLoop() {
+void CubeApplication::MainLoop() {
   Init();
   while (!context_->ShouldQuit()) {
     const VkExtent2D extent = context_->swapchain().extent();

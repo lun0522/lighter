@@ -7,15 +7,15 @@
 
 #include <iostream>
 
-#include "application/triangle.h"
+#include "application/cube.h"
 
 int main(int argc, const char* argv[]) {
 #ifdef DEBUG
-  application::vulkan::TriangleApplication app{};
+  application::vulkan::CubeApplication app{};
   app.MainLoop();
 #else
   try {
-    application::vulkan::TriangleApplication app{};
+    application::vulkan::CubeApplication app{};
     app.MainLoop();
   } catch (const std::exception& e) {
     std::cerr << "Error: /n/t" << e.what() << std::endl;

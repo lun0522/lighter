@@ -1,12 +1,12 @@
 //
-//  triangle.h
+//  cube.h
 //
 //  Created by Pujun Lun on 3/2/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef APPLICATION_VULKAN_TRIANGLE_H
-#define APPLICATION_VULKAN_TRIANGLE_H
+#ifndef APPLICATION_VULKAN_CUBE_H
+#define APPLICATION_VULKAN_CUBE_H
 
 #include <memory>
 #include <vector>
@@ -23,10 +23,10 @@
 namespace application {
 namespace vulkan {
 
-class TriangleApplication {
+class CubeApplication {
  public:
-  TriangleApplication() : context_{wrapper::vulkan::Context::CreateContext()} {
-      context_->Init("Triangle");
+  CubeApplication() : context_{wrapper::vulkan::Context::CreateContext()} {
+      context_->Init("Cube");
   };
   void MainLoop();
 
@@ -49,4 +49,4 @@ class TriangleApplication {
 } /* namespace vulkan */
 } /* namespace application */
 
-#endif /* APPLICATION_VULKAN_TRIANGLE_H */
+#endif /* APPLICATION_VULKAN_CUBE_H */

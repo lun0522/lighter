@@ -10,7 +10,7 @@
 		BD098BC9220D4D2600E34A0A /* render_pass.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD098BC7220D4D2600E34A0A /* render_pass.cc */; };
 		BD151CB4220BF9A300A6FC75 /* pipeline.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD151CB2220BF9A300A6FC75 /* pipeline.cc */; };
 		BD2435A121AD9B1C00027627 /* main.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD2435A021AD9B1C00027627 /* main.cc */; };
-		BD2F0E9E222B2D5800B4ACD5 /* triangle.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD2F0E9C222B2D5800B4ACD5 /* triangle.cc */; };
+		BD2F0E9E222B2D5800B4ACD5 /* cube.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD2F0E9C222B2D5800B4ACD5 /* cube.cc */; };
 		BD30819C21B1929300F30C2C /* validation.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD30819A21B1929300F30C2C /* validation.cc */; };
 		BD34960421AF3F4000F4C000 /* libglfw.3.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */; };
 		BD34960521AF3F4500F4C000 /* libglfw.3.3.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */; };
@@ -53,8 +53,8 @@
 		BD151CB3220BF9A300A6FC75 /* pipeline.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pipeline.h; sourceTree = "<group>"; };
 		BD24359D21AD9B1C00027627 /* LearnVulkan */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = LearnVulkan; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD2435A021AD9B1C00027627 /* main.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cc; sourceTree = "<group>"; };
-		BD2F0E9C222B2D5800B4ACD5 /* triangle.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = triangle.cc; sourceTree = "<group>"; };
-		BD2F0E9D222B2D5800B4ACD5 /* triangle.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = triangle.h; sourceTree = "<group>"; };
+		BD2F0E9C222B2D5800B4ACD5 /* cube.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cube.cc; sourceTree = "<group>"; };
+		BD2F0E9D222B2D5800B4ACD5 /* cube.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cube.h; sourceTree = "<group>"; };
 		BD30819A21B1929300F30C2C /* validation.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = validation.cc; sourceTree = "<group>"; };
 		BD30819B21B1929300F30C2C /* validation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = validation.h; sourceTree = "<group>"; };
 		BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libglfw.3.3.dylib; path = "../../../../../usr/local/Cellar/glfw/HEAD-bb2ca1d/lib/libglfw.3.3.dylib"; sourceTree = "<group>"; };
@@ -74,8 +74,8 @@
 		BDA11AAD22061C7B003092B8 /* util.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
 		BDA11AAF2206323F003092B8 /* swapchain.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = swapchain.cc; sourceTree = "<group>"; };
 		BDA11AB02206323F003092B8 /* swapchain.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = swapchain.h; sourceTree = "<group>"; };
-		BDA71386220A9997007FD13C /* triangle.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = triangle.vert; sourceTree = "<group>"; };
-		BDA71387220A9A90007FD13C /* triangle.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = triangle.frag; sourceTree = "<group>"; };
+		BDA71386220A9997007FD13C /* simple.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = simple.vert; sourceTree = "<group>"; };
+		BDA71387220A9A90007FD13C /* simple.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = simple.frag; sourceTree = "<group>"; };
 		BDAA32D5223EA99D00448A2A /* descriptor.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = descriptor.cc; sourceTree = "<group>"; };
 		BDAA32D6223EA99D00448A2A /* descriptor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = descriptor.h; sourceTree = "<group>"; };
 		BDC658272230EC5D00505B22 /* context.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = context.cc; sourceTree = "<group>"; };
@@ -169,8 +169,8 @@
 			isa = PBXGroup;
 			children = (
 				BDE3C01E2238A9B100AE8701 /* compiled */,
-				BDA71386220A9997007FD13C /* triangle.vert */,
-				BDA71387220A9A90007FD13C /* triangle.frag */,
+				BDA71386220A9997007FD13C /* simple.vert */,
+				BDA71387220A9A90007FD13C /* simple.frag */,
 			);
 			path = shader;
 			sourceTree = "<group>";
@@ -178,8 +178,8 @@
 		BDC34001223393FC003CD06D /* application */ = {
 			isa = PBXGroup;
 			children = (
-				BD2F0E9C222B2D5800B4ACD5 /* triangle.cc */,
-				BD2F0E9D222B2D5800B4ACD5 /* triangle.h */,
+				BD2F0E9C222B2D5800B4ACD5 /* cube.cc */,
+				BD2F0E9D222B2D5800B4ACD5 /* cube.h */,
 			);
 			path = application;
 			sourceTree = "<group>";
@@ -244,7 +244,7 @@
 				BD2435A121AD9B1C00027627 /* main.cc in Sources */,
 				BDAA32D7223EA99D00448A2A /* descriptor.cc in Sources */,
 				BDC658292230EC5D00505B22 /* context.cc in Sources */,
-				BD2F0E9E222B2D5800B4ACD5 /* triangle.cc in Sources */,
+				BD2F0E9E222B2D5800B4ACD5 /* cube.cc in Sources */,
 				BD6D210F221000E800FF1910 /* command.cc in Sources */,
 				BD7C0CAD2217C74200009BE5 /* buffer.cc in Sources */,
 				BD7B1E94222A63AD00EF0956 /* synchronize.cc in Sources */,
