@@ -86,6 +86,19 @@ VkSampler CreateSampler(SharedContext context) {
 
 } /* namespace */
 
+void SwapChainImage::Init(SharedContext context,
+                          const VkImage& image,
+                          VkFormat format) {
+  context_ = context;
+  image_view_ = CreateImageView(context_, image, format,
+                                VK_IMAGE_ASPECT_COLOR_BIT);
+}
+
+SwapChainImage::~SwapChainImage() {
+  // images are implicitly cleaned up with swapchain
+  vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
+}
+
 void TextureImage::Init(SharedContext context,
                         const std::string& path) {
   context_ = context;

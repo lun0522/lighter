@@ -49,8 +49,8 @@ class RenderPass {
   RenderPass& operator=(const RenderPass&) = delete;
 
   const VkRenderPass& operator*(void) const { return render_pass_; }
-  const std::vector<VkFramebuffer>&
-      framebuffers() const { return framebuffers_; }
+  const VkFramebuffer& framebuffer(size_t index) const
+      { return framebuffers_[index]; }
 
  private:
   std::shared_ptr<Context> context_;

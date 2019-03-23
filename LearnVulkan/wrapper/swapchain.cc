@@ -80,54 +80,6 @@ VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities,
   }
 }
 
-vector<VkImage> CreateImages(SharedContext context) {
-  // image count might be different from the minimum we set
-  return util::QueryAttribute<VkImage>(
-      [&context](uint32_t *count, VkImage *images) {
-        vkGetSwapchainImagesKHR(
-            *context->device(), *context->swapchain(), count, images);
-      }
-  );
-}
-
-vector<VkImageView> CreateImageViews(SharedContext context,
-                                     const vector<VkImage>& images,
-                                     VkFormat image_format) {
-  // use image view to specify how will we use these images
-  // (color, depth, stencil, etc)
-  vector<VkImageView> image_views(images.size());
-  for (size_t i = 0; i < images.size(); ++i) {
-    VkImageViewCreateInfo image_view_info{
-        VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        /*pNext=*/nullptr,
-        /*flags=*/NULL_FLAG,
-        images[i],
-        /*viewType=*/VK_IMAGE_VIEW_TYPE_2D,  // 2D, 3D, cube maps
-        image_format,
-        // enable swizzling color channels around
-        VkComponentMapping{
-            VK_COMPONENT_SWIZZLE_IDENTITY,
-            VK_COMPONENT_SWIZZLE_IDENTITY,
-            VK_COMPONENT_SWIZZLE_IDENTITY,
-            VK_COMPONENT_SWIZZLE_IDENTITY
-        },
-        // specify image's purpose and which part to access
-        VkImageSubresourceRange{
-            /*aspectMask=*/VK_IMAGE_ASPECT_COLOR_BIT,
-            /*baseMipLevel=*/0,
-            /*levelCount=*/1,
-            /*baseArrayLayer=*/0,
-            /*layerCount=*/1,
-        },
-    };
-
-    ASSERT_SUCCESS(vkCreateImageView(*context->device(), &image_view_info,
-                                     context->allocator(), &image_views[i]),
-                   "Failed to create image view");
-  }
-  return image_views;
-}
-
 } /* namespace */
 
 bool Swapchain::HasSwapchainSupport(SharedContext context,
@@ -246,15 +198,23 @@ void Swapchain::Init(SharedContext context) {
 
   image_format_ = surface_format.format;
   image_extent_ = image_extent;
-  images_ = CreateImages(context_);
-  image_views_ = CreateImageViews(context_, images_, image_format_);
+
+  // fetch swapchain images and create image views for them
+  auto images{util::QueryAttribute<VkImage>(
+      [&context](uint32_t *count, VkImage *images) {
+        vkGetSwapchainImagesKHR(
+            *context->device(), *context->swapchain(), count, images);
+      }
+  )};
+  images_.reserve(images.size());
+  for (size_t i = 0; i < images.size(); ++i) {
+    images_.emplace_back(std::make_unique<SwapChainImage>());
+    images_[i]->Init(context_, images[i], image_format_);
+  }
 }
 
 void Swapchain::Cleanup() {
-  // images are implicitly cleaned up with swapchain
-  for (auto& image_view : image_views_) {
-    vkDestroyImageView(*context_->device(), image_view, context_->allocator());
-  }
+  images_.clear();
   vkDestroySwapchainKHR(*context_->device(), swapchain_, context_->allocator());
 }
 

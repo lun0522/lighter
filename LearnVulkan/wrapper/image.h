@@ -20,6 +20,48 @@ namespace vulkan {
 
 class Context;
 
+/** VkImage represents multidimensional data in the swap chain. They can be
+ *      color/depth/stencil attachements, textures, etc. The exact purpose
+ *      is not specified until we create an image view.
+ *
+ *  Initialization:
+ *      VkDevice
+ *      VkSwapchainKHR
+ *
+ *------------------------------------------------------------------------------
+ *
+ *  VkImageView determines how to access and what part of images to access.
+ *      We might convert the image format on the fly with it.
+ *
+ *  Initialization:
+ *      VkDevice
+ *      Image referenced by it
+ *      View type (1D, 2D, 3D, cube, etc.)
+ *      Format of the image
+ *      Whether and how to remap RGBA channels
+ *      Purpose of the image (color, depth, stencil, etc)
+ *      Set of mipmap levels and array layers to be accessible
+ */
+
+class SwapChainImage {
+ public:
+  SwapChainImage() = default;
+  void Init(std::shared_ptr<Context> context,
+            const VkImage& image,
+            VkFormat format);
+  ~SwapChainImage();
+
+  // This class is neither copyable nor movable
+  SwapChainImage(const SwapChainImage&) = delete;
+  SwapChainImage& operator=(const SwapChainImage&) = delete;
+
+  const VkImageView& image_view() const { return image_view_; }
+
+ private:
+  std::shared_ptr<Context> context_;
+  VkImageView image_view_;
+};
+
 class TextureImage {
  public:
   TextureImage() = default;

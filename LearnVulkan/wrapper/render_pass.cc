@@ -26,7 +26,7 @@ vector<VkFramebuffer> CreateFramebuffers(
   vector<VkFramebuffer> framebuffers(swapchain.size());
   for (size_t i = 0; i < swapchain.size(); ++i) {
     std::array<VkImageView, 2> attachments{
-        swapchain.image_views()[i],
+        swapchain.image_view(i),
         depth_stencil_image.image_view(),
     };
 

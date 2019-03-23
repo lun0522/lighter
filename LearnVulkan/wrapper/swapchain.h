@@ -8,9 +8,12 @@
 #ifndef WRAPPER_VULKAN_SWAPCHAIN_H
 #define WRAPPER_VULKAN_SWAPCHAIN_H
 
+#include <memory>
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
+
+#include "image.h"
 
 namespace wrapper {
 namespace vulkan {
@@ -40,30 +43,6 @@ class Context;
  *          wait until the old one finishes all operations, but go ahead to
  *          create a new one and inform it of the old one, so that the
  *          transition is more seamless)
- *
- *------------------------------------------------------------------------------
- *
- *  VkImage represents multidimensional data in the swap chain. They can be
- *      color/depth/stencil attachements, textures, etc. The exact purpose
- *      is not specified until we create an image view.
- *
- *  Initialization:
- *      VkDevice
- *      VkSwapchainKHR
- *
- *------------------------------------------------------------------------------
- *
- *  VkImageView determines how to access and what part of images to access.
- *      We might convert the image format on the fly with it.
- *
- *  Initialization:
- *      VkDevice
- *      Image referenced by it
- *      View type (1D, 2D, 3D, cube, etc.)
- *      Format of the image
- *      Whether and how to remap RGBA channels
- *      Purpose of the image (color, depth, stencil, etc)
- *      Set of mipmap levels and array layers to be accessible
  */
 class Swapchain {
  public:
@@ -79,17 +58,17 @@ class Swapchain {
   Swapchain(const Swapchain&) = delete;
   Swapchain& operator=(const Swapchain&) = delete;
 
-  const VkSwapchainKHR& operator*(void)         const { return swapchain_; }
-  VkFormat format()                             const { return image_format_; }
-  VkExtent2D extent()                           const { return image_extent_; }
-  size_t size()                                 const { return images_.size(); }
-  const std::vector<VkImageView>& image_views() const { return image_views_; }
+  const VkSwapchainKHR& operator*(void) const { return swapchain_; }
+  VkFormat format()                     const { return image_format_; }
+  VkExtent2D extent()                   const { return image_extent_; }
+  size_t size()                         const { return images_.size(); }
+  const VkImageView& image_view(size_t index) const
+      { return images_[index]->image_view(); }
 
  private:
   std::shared_ptr<Context> context_;
   VkSwapchainKHR swapchain_;
-  std::vector<VkImage> images_;
-  std::vector<VkImageView> image_views_;
+  std::vector<std::unique_ptr<SwapChainImage>> images_;
   VkFormat image_format_;
   VkExtent2D image_extent_;
 };

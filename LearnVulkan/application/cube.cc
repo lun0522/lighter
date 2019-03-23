@@ -111,7 +111,7 @@ void CubeApplication::Init() {
         VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
         /*pNext=*/nullptr,
         *context_->render_pass(),
-        context_->render_pass().framebuffers()[image_index],
+        context_->render_pass().framebuffer(image_index),
         /*renderArea=*/{
             /*offset=*/{0, 0},
             context_->swapchain().extent(),

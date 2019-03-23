@@ -22,7 +22,7 @@ using util::VertexAttrib;
 } /* namespace */
 
 void Model::Init(SharedContext context,
-                 const std::string &path,
+                 const std::string& path,
                  int index_base) {
   std::vector<VertexAttrib> vertices;
   std::vector<uint32_t> indices;
