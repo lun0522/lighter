@@ -18,6 +18,7 @@
 #include "command.h"
 #include "context.h"
 #include "image.h"
+#include "model.h"
 #include "pipeline.h"
 
 namespace application {
@@ -36,7 +37,7 @@ class CubeApplication {
   std::shared_ptr<wrapper::vulkan::Context> context_;
   wrapper::vulkan::Pipeline pipeline_;
   wrapper::vulkan::Command command_;
-  wrapper::vulkan::VertexBuffer vertex_buffer_;
+  wrapper::vulkan::Model model_;
   wrapper::vulkan::UniformBuffer uniform_buffer_;
   wrapper::vulkan::TextureImage image_;
   wrapper::vulkan::DepthStencilImage depth_stencil_;

@@ -26,17 +26,6 @@
 
 namespace util {
 
-struct VertexAttrib {
-  glm::vec3 pos;
-  glm::vec3 norm;
-  glm::vec2 tex_coord;
-
-  VertexAttrib(const glm::vec3& pos,
-               const glm::vec3& norm,
-               const glm::vec2& tex_coord)
-      : pos{pos}, norm{norm}, tex_coord{tex_coord} {}
-};
-
 template <typename AttribType>
 std::vector<AttribType> QueryAttribute(
     const std::function<void(uint32_t*, AttribType*)>& enumerate) {
@@ -86,6 +75,17 @@ size_t FindFirst(const std::vector<ContentType>& container,
 }
 
 const std::string& ReadFile(const std::string& path);
+
+struct VertexAttrib {
+  glm::vec3 pos;
+  glm::vec3 norm;
+  glm::vec2 tex_coord;
+
+  VertexAttrib(const glm::vec3& pos,
+               const glm::vec3& norm,
+               const glm::vec2& tex_coord)
+      : pos{pos}, norm{norm}, tex_coord{tex_coord} {}
+};
 
 void LoadObjFile(const std::string& path,
                  int index_base,

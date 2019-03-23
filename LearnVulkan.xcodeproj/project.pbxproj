@@ -21,6 +21,7 @@
 		BD6B371B223A03C700D69CDB /* texture in Copy Files */ = {isa = PBXBuildFile; fileRef = BD6B371A223A03C700D69CDB /* texture */; };
 		BD6BAC282211432500906E78 /* basic_object.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD6BAC262211432500906E78 /* basic_object.cc */; };
 		BD6D210F221000E800FF1910 /* command.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD6D210D221000E800FF1910 /* command.cc */; };
+		BD7AF4F62245DFF800F657A7 /* model.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD7AF4F42245DFF800F657A7 /* model.cc */; };
 		BD7B1E94222A63AD00EF0956 /* synchronize.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD7B1E92222A63AD00EF0956 /* synchronize.cc */; };
 		BD7C0CAD2217C74200009BE5 /* buffer.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD7C0CAB2217C74200009BE5 /* buffer.cc */; };
 		BDA11AB12206323F003092B8 /* swapchain.cc in Sources */ = {isa = PBXBuildFile; fileRef = BDA11AAF2206323F003092B8 /* swapchain.cc */; };
@@ -67,6 +68,8 @@
 		BD6BAC272211432500906E78 /* basic_object.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = basic_object.h; sourceTree = "<group>"; };
 		BD6D210D221000E800FF1910 /* command.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = command.cc; sourceTree = "<group>"; };
 		BD6D210E221000E800FF1910 /* command.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = command.h; sourceTree = "<group>"; };
+		BD7AF4F42245DFF800F657A7 /* model.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = model.cc; sourceTree = "<group>"; };
+		BD7AF4F52245DFF800F657A7 /* model.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = model.h; sourceTree = "<group>"; };
 		BD7B1E92222A63AD00EF0956 /* synchronize.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = synchronize.cc; sourceTree = "<group>"; };
 		BD7B1E93222A63AD00EF0956 /* synchronize.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = synchronize.h; sourceTree = "<group>"; };
 		BD7C0CAB2217C74200009BE5 /* buffer.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = buffer.cc; sourceTree = "<group>"; };
@@ -142,6 +145,8 @@
 				BDAA32D6223EA99D00448A2A /* descriptor.h */,
 				BD60051C223CA5D300D17D03 /* image.cc */,
 				BD60051D223CA5D300D17D03 /* image.h */,
+				BD7AF4F42245DFF800F657A7 /* model.cc */,
+				BD7AF4F52245DFF800F657A7 /* model.h */,
 				BD151CB2220BF9A300A6FC75 /* pipeline.cc */,
 				BD151CB3220BF9A300A6FC75 /* pipeline.h */,
 				BD098BC7220D4D2600E34A0A /* render_pass.cc */,
@@ -245,6 +250,7 @@
 				BDAA32D7223EA99D00448A2A /* descriptor.cc in Sources */,
 				BDC658292230EC5D00505B22 /* context.cc in Sources */,
 				BD2F0E9E222B2D5800B4ACD5 /* cube.cc in Sources */,
+				BD7AF4F62245DFF800F657A7 /* model.cc in Sources */,
 				BD6D210F221000E800FF1910 /* command.cc in Sources */,
 				BD7C0CAD2217C74200009BE5 /* buffer.cc in Sources */,
 				BD7B1E94222A63AD00EF0956 /* synchronize.cc in Sources */,

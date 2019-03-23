@@ -30,46 +30,6 @@ using wrapper::vulkan::Descriptor;
 
 size_t kNumFrameInFlight{2};
 
-vector<VkVertexInputBindingDescription> BindingDescriptions() {
-  vector<VkVertexInputBindingDescription> binding_descs(1);
-
-  binding_descs[0] = VkVertexInputBindingDescription{
-      /*binding=*/0,
-      /*stride=*/sizeof(VertexAttrib),
-      // for instancing, use _INSTANCE for .inputRate
-      /*inputRate=*/VK_VERTEX_INPUT_RATE_VERTEX,
-  };
-
-  return binding_descs;
-}
-
-vector<VkVertexInputAttributeDescription> AttribDescriptions() {
-  vector<VkVertexInputAttributeDescription> attrib_descs(3);
-
-  attrib_descs[0] = VkVertexInputAttributeDescription{
-      /*location=*/0, // layout (location = 0) in
-      /*binding=*/0, // which binding point does data come from
-      /*format=*/VK_FORMAT_R32G32B32_SFLOAT, // implies total size
-      /*offset=*/offsetof(VertexAttrib, pos), // reading offset
-  };
-
-  attrib_descs[1] = VkVertexInputAttributeDescription{
-      /*location=*/1,
-      /*binding=*/0,
-      /*format=*/VK_FORMAT_R32G32B32_SFLOAT,
-      /*offset=*/offsetof(VertexAttrib, norm),
-  };
-
-  attrib_descs[2] = VkVertexInputAttributeDescription{
-      /*location=*/2,
-      /*binding=*/0,
-      /*format=*/VK_FORMAT_R32G32_SFLOAT,
-      /*offset=*/offsetof(VertexAttrib, tex_coord),
-  };
-
-  return attrib_descs;
-}
-
 // alignment requirement:
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/\
 //    chap14.html#interfaces-resources-layout
@@ -88,7 +48,7 @@ void UpdateUbo(size_t current_frame, float screen_aspect) {
       current_time - start_time).count();
   UniformBufferObject& ubo = kUbo[current_frame];
   ubo.model = glm::rotate(glm::mat4{1.0f}, time * glm::radians(90.0f),
-                          glm::vec3{1.0f});
+                          glm::vec3{1.0f, 1.0f, 0.0f});
   ubo.view = glm::lookAt(glm::vec3{3.0f}, glm::vec3{0.0f},
                          glm::vec3{0.0f, 0.0f, 1.0f});
   ubo.proj = glm::perspective(glm::radians(45.0f), screen_aspect, 0.1f, 10.0f);
@@ -100,22 +60,8 @@ void UpdateUbo(size_t current_frame, float screen_aspect) {
 
 void CubeApplication::Init() {
   if (is_first_time) {
-    vector<VertexAttrib> vertices;
-    vector<uint32_t> indices;
-    util::LoadObjFile("texture/cube.obj", 1, &vertices, &indices);
-
-    // vertex buffer
-    DataInfo vertex_info{
-        vertices.data(),
-        sizeof(vertices[0]) * vertices.size(),
-        CONTAINER_SIZE(vertices),
-    };
-    DataInfo index_info{
-        indices.data(),
-        sizeof(indices[0]) * indices.size(),
-        CONTAINER_SIZE(indices),
-    };
-    vertex_buffer_.Init(context_->ptr(), vertex_info, index_info);
+    // model (vertex buffer)
+    model_.Init(context_->ptr(), "texture/cube.obj", 1);
 
     // uniform buffer
     kUbo.resize(context_->swapchain().size());
@@ -153,7 +99,7 @@ void CubeApplication::Init() {
   context_->render_pass().Config(depth_stencil_);
   pipeline_.Init(context_->ptr(), "compiled/simple.vert.spv",
                  "compiled/simple.frag.spv", descriptors_[0]->layout(),
-                 BindingDescriptions(), AttribDescriptions());
+                 model_.binding_descs(), model_.attrib_descs());
   command_.Init(context_->ptr(), kNumFrameInFlight,
                 [&](const VkCommandBuffer& command_buffer, size_t image_index) {
     // start render pass
@@ -185,7 +131,7 @@ void CubeApplication::Init() {
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipeline_.layout(), 0, 1,
                             &descriptors_[image_index]->set(), 0, nullptr);
-    vertex_buffer_.Draw(command_buffer);
+    model_.Draw(command_buffer);
 
     vkCmdEndRenderPass(command_buffer);
   });
@@ -199,7 +145,7 @@ void CubeApplication::Cleanup() {
 void CubeApplication::MainLoop() {
   Init();
   while (!context_->ShouldQuit()) {
-    const VkExtent2D extent = context_->swapchain().extent();
+    VkExtent2D extent = context_->swapchain().extent();
     auto update_func = [this, extent](size_t image_index) {
       UpdateUbo(image_index, (float)extent.width / extent.height);
       uniform_buffer_.Update(image_index);
