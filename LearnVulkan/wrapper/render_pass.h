@@ -22,19 +22,19 @@ class Context;
 /** VkRenderPass specifies types of attachments that will be accessed.
  *
  *  Initialization:
- *      VkDevice
- *      List of VkAttachmentDescription
- *      List of VkSubpassDescription
- *      List of VkSubpassDependency
+ *    VkDevice
+ *    List of VkAttachmentDescription
+ *    List of VkSubpassDescription
+ *    List of VkSubpassDependency
  *
  *------------------------------------------------------------------------------
  *
  *  VkFramebuffer specifies actual image views to bind to attachments.
  *
  *  Initialization:
- *      VkRenderPass
- *      List of VkImageView
- *      Image extent (width, height and number of layers)
+ *    VkRenderPass
+ *    List of VkImageView
+ *    Image extent (width, height and number of layers)
  */
 class RenderPass {
  public:

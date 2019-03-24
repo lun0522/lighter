@@ -18,7 +18,9 @@ namespace vulkan {
 class Context;
 
 /** VkSemaphore and VkFence are used for synchronization. Their constructions
- *      only requires VkDevice.
+ *    only requires VkDevice. Both of them can only be signaled by GPU, but
+ *    fences can only be waited on by CPU (GPU->CPU sync) while semaphores
+ *    can only be waited on by GPU (GPU->GPU sync, possibly across queues).
  */
 
 class Semaphores {

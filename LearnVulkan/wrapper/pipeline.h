@@ -23,18 +23,18 @@ class Context;
 /** VkPipeline stores the entire graphics pipeline.
  *
  *  Initialization:
- *      ShaderStage (vertex and fragment shaders)
- *      VertexInputState (how to interpret vertex attributes)
- *      InputAssemblyState (what topology to use)
- *      ViewportState (viewport and scissor)
- *      RasterizationState (lines, polygons, face culling, etc)
- *      MultisampleState (how many sample points)
- *      DepthStencilState
- *      ColorBlendState
- *      DynamicState (which properties of this pipeline will be dynamic)
- *      VkPipelineLayout (set uniform values)
- *      VkRenderPass and subpass
- *      BasePipeline (may copy settings from another pipeline)
+ *    ShaderStage (vertex and fragment shaders)
+ *    VertexInputState (how to interpret vertex attributes)
+ *    InputAssemblyState (what topology to use)
+ *    ViewportState (viewport and scissor)
+ *    RasterizationState (lines, polygons, face culling, etc)
+ *    MultisampleState (how many sample points)
+ *    DepthStencilState
+ *    ColorBlendState
+ *    DynamicState (which properties of this pipeline will be dynamic)
+ *    VkPipelineLayout (set uniform values)
+ *    VkRenderPass and subpass
+ *    BasePipeline (may copy settings from another pipeline)
  */
 class Pipeline {
  public:

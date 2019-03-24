@@ -89,7 +89,7 @@ VkDescriptorSet CreateDescriptorSet(SharedContext context,
       VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
       /*pNext=*/nullptr,
       pool,
-      1,
+      /*descriptorSetCount=*/1,
       &layout,
   };
 

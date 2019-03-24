@@ -20,27 +20,40 @@ namespace vulkan {
 
 class Context;
 
-/** VkImage represents multidimensional data in the swap chain. They can be
- *      color/depth/stencil attachements, textures, etc. The exact purpose
- *      is not specified until we create an image view.
+/** VkImage represents multidimensional data in the swapchain. They can be
+ *    color/depth/stencil attachements, textures, etc. The exact purpose
+ *    is not specified until we create an image view.
  *
  *  Initialization:
- *      VkDevice
- *      VkSwapchainKHR
+ *    VkDevice
+ *    VkSwapchainKHR
  *
  *------------------------------------------------------------------------------
  *
  *  VkImageView determines how to access and what part of images to access.
- *      We might convert the image format on the fly with it.
+ *    We might convert the image format on the fly with it.
  *
  *  Initialization:
- *      VkDevice
- *      Image referenced by it
- *      View type (1D, 2D, 3D, cube, etc.)
- *      Format of the image
- *      Whether and how to remap RGBA channels
- *      Purpose of the image (color, depth, stencil, etc)
- *      Set of mipmap levels and array layers to be accessible
+ *    VkDevice
+ *    Image referenced by it
+ *    View type (1D, 2D, 3D, cube, etc.)
+ *    Format of the image
+ *    Whether and how to remap RGBA channels
+ *    Purpose of the image (color, depth, stencil, etc)
+ *    Set of mipmap levels and array layers to be accessible
+ *
+ *------------------------------------------------------------------------------
+ *
+ *  VkSampler configures how do we sample and filter images.
+ *
+ *  Initialization:
+ *    Minification/magnification filter mode (either nearest or linear)
+ *    Mipmap mode (either nearest or linear)
+ *    Address mode for u/v/w ([mirror] repeat, [mirror] clamp to edge/border)
+ *    Mipmap setting (bias/min/max/compare op)
+ *    Anisotropy filter setting (enable or not/max amount of samples)
+ *    Border color
+ *    Use image coordinates or normalized coordianates
  */
 
 class SwapChainImage {

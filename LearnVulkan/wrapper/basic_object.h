@@ -16,12 +16,12 @@ namespace vulkan {
 class Context;
 
 /** VkInstance is used to establish connection with Vulkan library and
- *      maintain per-application states.
+ *    maintain per-application states.
  *
  *  Initialization:
- *      VkApplicationInfo (App/Engine/API name and version)
- *      Extensions to enable (required by GLFW and debugging)
- *      Layers to enable (required by validation layers)
+ *    VkApplicationInfo (App/Engine/API name and version)
+ *    Extensions to enable (required by GLFW and debugging)
+ *    Layers to enable (required by validation layers)
  */
 class Instance {
  public:
@@ -41,12 +41,12 @@ class Instance {
 };
 
 /** VkSurfaceKHR interfaces with platform-specific window systems. It is backed
- *      by the window created by GLFW, which hides platform-specific details.
- *      It is not needed for off-screen rendering.
+ *    by the window created by GLFW, which hides platform-specific details.
+ *    It is not needed for off-screen rendering.
  *
  *  Initialization (by GLFW):
- *      VkInstance
- *      GLFWwindow
+ *    VkInstance
+ *    GLFWwindow
  */
 class Surface {
  public:
@@ -66,15 +66,15 @@ class Surface {
 };
 
 /** VkPhysicalDevice is a handle to a physical graphics card. We iterate through
- *      graphics devices to find one that supports swap chains. Then, we iterate
- *      through its queue families to find one family supporting graphics, and
- *      another one supporting presentation (possibly them are identical).
- *      All queues in one family share the same property, so we only need to
- *      find out the index of the family.
+ *    graphics devices to find one that supports swapchains. Then, we iterate
+ *    through its queue families to find one family supporting graphics, and
+ *    another one supporting presentation (possibly them are identical).
+ *    All queues in one family share the same property, so we only need to
+ *    find out the index of the family.
  *
  *  Initialization:
- *      VkInstance
- *      VkSurfaceKHR (since we need presentation support)
+ *    VkInstance
+ *    VkSurfaceKHR (since we need presentation support)
  */
 struct PhysicalDevice {
  public:
@@ -95,17 +95,17 @@ struct PhysicalDevice {
 };
 
 /** VkDevice interfaces with the physical device. We have to tell Vulkan
- *      how many queues we want to use. Noticed that the graphics queue and
- *      the present queue might be the same queue, we use hash set to remove
- *      duplicated queue family indices.
+ *    how many queues we want to use. Noticed that the graphics queue and
+ *    the present queue might be the same queue, we use hash set to remove
+ *    duplicated queue family indices.
  *
  *  Initialization:
- *      VkPhysicalDevice
- *      Physical device features to enable
- *      List of VkDeviceQueueCreateInfo (queue family index and how many
- *          queues do we want from this family)
- *      Extensions to enable (required by swap chains)
- *      Layers to enable (required by validation layers)
+ *    VkPhysicalDevice
+ *    Physical device features to enable
+ *    List of VkDeviceQueueCreateInfo (queue family index and how many queues
+ *      do we want from this family)
+ *    Extensions to enable (required by swapchains)
+ *    Layers to enable (required by validation layers)
  */
 struct Device {
  public:
@@ -125,7 +125,7 @@ struct Device {
 };
 
 /** VkQueue is the queue associated with the logical device. When we create it,
- *      we can specify both queue family index and queue index (within family).
+ *    we can specify both queue family index and queue index (within family).
  */
 struct Queues {
   struct Queue {

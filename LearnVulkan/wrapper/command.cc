@@ -137,55 +137,53 @@ void Command::RecordCommand(const command::MultiTimeRecordCommand& on_record) {
 
 VkResult Command::DrawFrame(size_t current_frame,
                             const command::UpdateDataFunc& update_func) {
+  // Action  |  Acquire image  | Submit commands |  Present image  |
+  // Wait on |        -        | Image available | Render finished |
+  // Signal  | Image available | Render finished |        -        |
+  //         ^                                   ^
+  //   Wait for fence                       Signal fence
+
   // fence was initialized to signaled state
-  // so that waiting for it at the beginning is fine
+  // so waiting for it at the beginning is fine
   vkWaitForFences(*context_->device(), 1, &in_flight_fences_[current_frame],
                   VK_TRUE, std::numeric_limits<uint64_t>::max());
 
-  // acquire swap chain image
+  // acquire swapchain image
   uint32_t image_index;
   VkResult acquire_result = vkAcquireNextImageKHR(
       *context_->device(), *context_->swapchain(),
       std::numeric_limits<uint64_t>::max(),
       image_available_semas_[current_frame], VK_NULL_HANDLE, &image_index);
   switch (acquire_result) {
-    case VK_ERROR_OUT_OF_DATE_KHR: // swap chain can no longer present image
+    case VK_ERROR_OUT_OF_DATE_KHR:  // swapchain can no longer present image
       return acquire_result;
     case VK_SUCCESS:
-    case VK_SUBOPTIMAL_KHR: // may be considered as good state as well
+    case VK_SUBOPTIMAL_KHR:  // may be considered as good state as well
       break;
     default:
-      throw std::runtime_error{"Failed to acquire swap chain image"};
+      throw std::runtime_error{"Failed to acquire swapchain image"};
   }
 
   // update per-frame data
   update_func(image_index);
 
-  // wait for image available
-  VkSemaphore wait_semas[]{
-      image_available_semas_[current_frame],
-  };
   // we have to wait only if we want to write to color attachment
   // so we actually can start running pipeline long before that image is ready
   VkPipelineStageFlags wait_stages[]{
       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-  };
-  // these semas will be signaled once command buffer finishes
-  VkSemaphore signal_semas[]{
-      render_finished_semas_[current_frame],
   };
 
   VkSubmitInfo submit_info{
       VK_STRUCTURE_TYPE_SUBMIT_INFO,
       /*pNext=*/nullptr,
       /*waitSemaphoreCount=*/1,
-      wait_semas,
+      &image_available_semas_[current_frame],
       // we specify one stage for each semaphore, so no need to pass count
       wait_stages,
       /*commandBufferCount=*/1,
       &command_buffers_[image_index],
       /*signalSemaphoreCount=*/1,
-      signal_semas,
+      &render_finished_semas_[current_frame],
   };
 
   // reset to fences unsignaled state
@@ -200,25 +198,25 @@ VkResult Command::DrawFrame(size_t current_frame,
       VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
       /*pNext=*/nullptr,
       /*waitSemaphoreCount=*/1,
-      signal_semas,
+      &render_finished_semas_[current_frame],
       /*swapchainCount=*/1,
       &*context_->swapchain(),
-      &image_index,  // image for each swap chain
+      &image_index,  // image for each swapchain
       /*pResults=*/nullptr,
-      // may use .pResults to check wether each swap chain rendered successfully
+      // may use .pResults to check wether each swapchain rendered successfully
   };
 
   VkResult present_result = vkQueuePresentKHR(
       context_->queues().present.queue, &present_info);
   switch (present_result) {
-    case VK_ERROR_OUT_OF_DATE_KHR: // swap chain can no longer present image
+    case VK_ERROR_OUT_OF_DATE_KHR:  // swapchain can no longer present image
       return present_result;
       break;
     case VK_SUCCESS:
-    case VK_SUBOPTIMAL_KHR: // may be considered as good state as well
+    case VK_SUBOPTIMAL_KHR:  // may be considered as good state as well
       break;
     default:
-      throw std::runtime_error{"Failed to present swap chain image"};
+      throw std::runtime_error{"Failed to present swapchain image"};
   }
 
   return VK_SUCCESS;

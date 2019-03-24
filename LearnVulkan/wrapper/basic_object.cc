@@ -45,7 +45,7 @@ QueueIndices FindDeviceQueues(SharedContext context,
   std::cout << "Found device: " << properties.deviceName
             << std::endl << std::endl;
 
-  // require swap chain support
+  // require swapchain support
   if (!Swapchain::HasSwapchainSupport(context, physical_device)) {
     return QueueIndices::Invalid();
   }

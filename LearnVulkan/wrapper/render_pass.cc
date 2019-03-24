@@ -23,6 +23,9 @@ vector<VkFramebuffer> CreateFramebuffers(
     const DepthStencilImage& depth_stencil_image) {
   const Swapchain& swapchain = context->swapchain();
 
+  // although we have multiple swapchain images, we will share one depth stencil
+  // image, because we only use one graphics queue, which only renders on one
+  // swapchain image at a time
   vector<VkFramebuffer> framebuffers(swapchain.size());
   for (size_t i = 0; i < swapchain.size(); ++i) {
     std::array<VkImageView, 2> attachments{
@@ -69,7 +72,7 @@ void RenderPass::Config(const DepthStencilImage &depth_stencil_image) {
       /*stencilStoreOp=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
       // layout of pixels in memory. commonly used options:
       //   - VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL: for color attachment
-      //   - VK_IMAGE_LAYOUT_PRESENT_SRC_KHR: for images in swap chain
+      //   - VK_IMAGE_LAYOUT_PRESENT_SRC_KHR: for images in swapchain
       //   - VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL: for images as dstination
       //                                           for memory copy
       //   - VK_IMAGE_LAYOUT_UNDEFINED: don't care about layout before this

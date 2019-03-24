@@ -17,8 +17,6 @@
 #include <glm/glm.hpp>
 
 #define NULL_FLAG 0
-#define ASSERT_NONNULL(object, error) \
-  if (object == nullptr)    throw std::runtime_error{error}
 #define ASSERT_SUCCESS(event, error) \
   if (event != VK_SUCCESS)  throw std::runtime_error{error}
 #define CONTAINER_SIZE(container) \

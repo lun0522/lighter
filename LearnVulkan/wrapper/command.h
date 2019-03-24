@@ -40,18 +40,18 @@ void OneTimeCommand(std::shared_ptr<Context> context,
 /** VkCommandPool allocates command buffer memory.
  *
  *  Initialization:
- *      Queue family index
+ *    Queue family index
  *
  *------------------------------------------------------------------------------
  *
  *  VkCommandBuffer records all operations we want to perform and submit to a
- *      device queue for execution. Primary level command buffers can call
- *      secondary level ones and submit to queues, while secondary levels ones
- *      are not directly submitted.
+ *    device queue for execution. Primary level command buffers can call
+ *    secondary level ones and submit to queues, while secondary levels ones
+ *    are not directly submitted.
  *
  *  Initialization:
- *      VkCommandPool
- *      Level (either primary or secondary)
+ *    VkCommandPool
+ *    Level (either primary or secondary)
  */
 class Command {
  public:
