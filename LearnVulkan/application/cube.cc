@@ -97,8 +97,10 @@ void CubeApplication::Init() {
 
   depth_stencil_.Init(context_, context_->swapchain().extent());
   context_->render_pass().Config(depth_stencil_);
-  pipeline_.Init(context_->ptr(), "compiled/simple.vert.spv",
-                 "compiled/simple.frag.spv", descriptors_[0]->layout(),
+  pipeline_.Init(context_->ptr(),
+                 {{"compiled/simple.vert.spv", VK_SHADER_STAGE_VERTEX_BIT},
+                  {"compiled/simple.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT}},
+                 descriptors_[0]->layout(),
                  model_.binding_descs(), model_.attrib_descs());
   command_.Init(context_->ptr(), kNumFrameInFlight,
                 [&](const VkCommandBuffer& command_buffer, size_t image_index) {

@@ -18,8 +18,9 @@ using std::string;
 using std::vector;
 
 VkShaderModule CreateShaderModule(SharedContext context,
-                                  const string& code) {
-  VkShaderModuleCreateInfo shader_module_info{
+                                  const string& file) {
+  const string& code = util::ReadFile(file);
+  VkShaderModuleCreateInfo module_info{
       /*sType=*/VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/NULL_FLAG,
@@ -27,61 +28,51 @@ VkShaderModule CreateShaderModule(SharedContext context,
       reinterpret_cast<const uint32_t*>(code.data()),
   };
 
-  VkShaderModule shader_module;
-  ASSERT_SUCCESS(vkCreateShaderModule(*context->device(), &shader_module_info,
-                                      context->allocator(), &shader_module),
+  VkShaderModule module;
+  ASSERT_SUCCESS(vkCreateShaderModule(*context->device(), &module_info,
+                                      context->allocator(), &module),
                  "Failed to create shader module");
 
-  return shader_module;
+  return module;
+}
+
+VkPipelineShaderStageCreateInfo CreateShaderStage(const VkShaderModule& module,
+                                                  VkShaderStageFlagBits stage) {
+  return VkPipelineShaderStageCreateInfo{
+      VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/NULL_FLAG,
+      stage,
+      module,
+      /*pName=*/"main",  // entry point of this shader
+      /*pSpecializationInfo=*/nullptr,
+      // may use .pSpecializationInfo to specify shader constants
+  };
 }
 
 } /* namespace */
 
 void Pipeline::Init(
     SharedContext context,
-    const string& vert_file,
-    const string& frag_file,
+    const vector<ShaderInfo>& shader_infos,
     const VkDescriptorSetLayout& desc_set_layout,
     const vector<VkVertexInputBindingDescription>& binding_descs,
     const vector<VkVertexInputAttributeDescription>& attrib_descs) {
   context_ = context;
-  vert_file_ = vert_file;
-  frag_file_ = frag_file;
 
   const VkDevice& device = *context_->device();
   const VkAllocationCallbacks* allocator = context_->allocator();
 
-  const string& vert_code = util::ReadFile(vert_file_);
-  const string& frag_code = util::ReadFile(frag_file_);
-
-  VkShaderModule vert_shader_module = CreateShaderModule(context_, vert_code);
-  VkShaderModule frag_shader_module = CreateShaderModule(context_, frag_code);
-
-  VkPipelineShaderStageCreateInfo vert_shader_info{
-      VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/NULL_FLAG,
-      /*stage=*/VK_SHADER_STAGE_VERTEX_BIT,
-      vert_shader_module,
-      /*pName=*/"main", // entry point of this shader
-      /*pSpecializationInfo=*/nullptr,
-      // may use .pSpecializationInfo to specify shader constants
-  };
-
-  VkPipelineShaderStageCreateInfo frag_shader_info{
-      VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/NULL_FLAG,
-      /*stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
-      frag_shader_module,
-      /*pName=*/"main", // entry point of this shader
-      /*pSpecializationInfo=*/nullptr,
-  };
-
-  VkPipelineShaderStageCreateInfo shader_infos[]{
-      vert_shader_info,
-      frag_shader_info,
-  };
+  // create shaders
+  vector<VkShaderModule> shader_modules;
+  shader_modules.reserve(shader_infos.size());
+  vector<VkPipelineShaderStageCreateInfo> shader_stages;
+  shader_stages.reserve(shader_infos.size());
+  for (const auto& info : shader_infos) {
+    shader_modules.emplace_back(CreateShaderModule(context_, info.first));
+    shader_stages.emplace_back(
+        CreateShaderStage(shader_modules.back(), info.second));
+  }
 
   VkPipelineVertexInputStateCreateInfo vertex_input_info{
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -221,8 +212,7 @@ void Pipeline::Init(
       VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/NULL_FLAG,
-      // set layouts
-      1,
+      /*setLayoutCount=*/1,
       &desc_set_layout,
       /*pushConstantRangeCount=*/0,
       /*pPushConstantRanges=*/nullptr,
@@ -236,8 +226,8 @@ void Pipeline::Init(
       VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/NULL_FLAG,
-      /*stageCount=*/2,
-      shader_infos,
+      CONTAINER_SIZE(shader_stages),
+      shader_stages.data(),
       &vertex_input_info,
       &input_assembly_info,
       /*pTessellationState=*/nullptr,
@@ -260,8 +250,10 @@ void Pipeline::Init(
                                 allocator, &pipeline_),
       "Failed to create graphics pipeline");
 
-  vkDestroyShaderModule(device, vert_shader_module, allocator);
-  vkDestroyShaderModule(device, frag_shader_module, allocator);
+  // shader modules can be destroyed after pipeline is constructed
+  for (auto& module : shader_modules) {
+    vkDestroyShaderModule(device, module, allocator);
+  }
 }
 
 void Pipeline::Cleanup() {

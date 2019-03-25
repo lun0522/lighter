@@ -22,7 +22,13 @@ class Context;
 
 /** VkImage represents multidimensional data in the swapchain. They can be
  *    color/depth/stencil attachements, textures, etc. The exact purpose
- *    is not specified until we create an image view.
+ *    is not specified until we create an image view. For texture images, we use
+ *    staging buffers to transfer data to the actual storage. During this
+ *    process, the image layout wil change from UNDEFINED (since it may have
+ *    very different layouts when it is on host, which makes it unusable for
+ *    device) to TRANSFER_DST_OPTIMAL (so that we can transfer data from the
+ *    staging buffer to it), and eventually to SHADER_READ_ONLY_OPTIMAL (optimal
+ *    for device access).
  *
  *  Initialization:
  *    VkDevice

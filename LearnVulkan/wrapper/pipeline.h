@@ -9,6 +9,7 @@
 #define WRAPPER_VULKAN_PIPELINE_H
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
@@ -17,6 +18,8 @@
 
 namespace wrapper {
 namespace vulkan {
+
+using ShaderInfo = std::pair<std::string, VkShaderStageFlagBits>;
 
 class Context;
 
@@ -40,8 +43,7 @@ class Pipeline {
  public:
   Pipeline() = default;
   void Init(std::shared_ptr<Context> context,
-            const std::string& vert_file,
-            const std::string& frag_file,
+            const std::vector<ShaderInfo>& shader_infos,
             const VkDescriptorSetLayout& desc_set_layout,
             const std::vector<VkVertexInputBindingDescription>& binding_descs,
             const std::vector<VkVertexInputAttributeDescription>& attrib_descs);
@@ -57,7 +59,6 @@ class Pipeline {
 
  private:
   std::shared_ptr<Context> context_;
-  std::string vert_file_, frag_file_;
   VkPipelineLayout pipeline_layout_;
   VkPipeline pipeline_;
 };

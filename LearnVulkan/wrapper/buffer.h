@@ -48,6 +48,12 @@ class Context;
 
 /** VkBuffer represents linear arrays of data and configures usage of the data.
  *    Data can be transfered between buffers with the help of transfer queues.
+ *    For buffers that contain large amount of data and do not change very
+ *    often, we will create a staging buffer (which is visible to both host and
+ *    device, and thus is not the most effient for device) and a final buffer
+ *    (which is only visible to device, and thus is optimal for device access).
+ *    The staging buffer will only be used to transfer data to the final buffer,
+ *    and then it will be destroyed.
  *
  *  Initialization:
  *    VkDevice

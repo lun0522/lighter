@@ -305,10 +305,7 @@ void VertexBuffer::Init(SharedContext context,
   index_offset_ = vertex_info.data_size;
   index_count_  = index_info.unit_count;
 
-  // vertex/index buffer cannot be most efficient if it has to be visible to
-  // both host and device, so we create vertex/index buffer that is only visible
-  // to device, and staging buffer that is visible to both and transfers data
-  // to vertex/index buffer
+  // create staging buffer and associated memory
   VkBuffer staging_buffer = CreateBuffer(           // source of transfer
       context_, total_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
   VkDeviceMemory staging_memory = CreateBufferMemory(
@@ -424,8 +421,7 @@ void TextureBuffer::Init(SharedContext context,
   device_memory_ = CreateImageMemory(
       context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-  // copy data from staging buffer to image buffer. we need to do some
-  // transitions so that image buffer is eventually only visible to device
+  // copy data from staging buffer to image buffer
   TransitionImageLayout(
       context_, image_, VK_IMAGE_ASPECT_COLOR_BIT,
       {VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL},
