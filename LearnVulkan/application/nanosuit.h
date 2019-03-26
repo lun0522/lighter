@@ -1,12 +1,12 @@
 //
-//  cube.h
+//  nanosuit.h
 //
-//  Created by Pujun Lun on 3/2/19.
+//  Created by Pujun Lun on 3/25/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef APPLICATION_VULKAN_CUBE_H
-#define APPLICATION_VULKAN_CUBE_H
+#ifndef APPLICATION_VULKAN_NANOSUIT_H
+#define APPLICATION_VULKAN_NANOSUIT_H
 
 #include <memory>
 #include <vector>
@@ -26,14 +26,15 @@ namespace vulkan {
 
 using namespace wrapper::vulkan;
 
-class CubeApp {
+class NanosuitApp {
  public:
-  CubeApp() : context_{Context::CreateContext()} {
-      context_->Init("Cube");
+  NanosuitApp() : context_{Context::CreateContext()} {
+      context_->Init("Nanosuit");
   };
   void MainLoop();
 
  private:
+  bool should_quit_{false};
   bool is_first_time{true};
   size_t current_frame_{0};
   std::shared_ptr<Context> context_;
@@ -53,4 +54,4 @@ class CubeApp {
 } /* namespace vulkan */
 } /* namespace application */
 
-#endif /* APPLICATION_VULKAN_CUBE_H */
+#endif /* APPLICATION_VULKAN_NANOSUIT_H */

@@ -82,6 +82,8 @@ VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities,
 
 } /* namespace */
 
+const vector<const char*> kSwapChainExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
 bool Swapchain::HasSwapchainSupport(SharedContext context,
                                     const VkPhysicalDevice& physical_device) {
   try {
@@ -217,8 +219,6 @@ void Swapchain::Cleanup() {
   images_.clear();
   vkDestroySwapchainKHR(*context_->device(), swapchain_, context_->allocator());
 }
-
-const vector<const char*> kSwapChainExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 } /* namespace vulkan */
 } /* namespace wrapper */

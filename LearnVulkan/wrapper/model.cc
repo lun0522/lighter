@@ -16,7 +16,7 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::array;
+using std::vector;
 using util::VertexAttrib;
 
 } /* namespace */
@@ -24,9 +24,9 @@ using util::VertexAttrib;
 void Model::Init(SharedContext context,
                  const std::string& path,
                  int index_base) {
-  std::vector<VertexAttrib> vertices;
-  std::vector<uint32_t> indices;
-  util::LoadObjFile("texture/cube.obj", 1, &vertices, &indices);
+  vector<VertexAttrib> vertices;
+  vector<uint32_t> indices;
+  util::LoadObjFile(path, 1, &vertices, &indices);
 
   buffer::DataInfo vertex_info{
       vertices.data(),
@@ -41,8 +41,8 @@ void Model::Init(SharedContext context,
   vertex_buffer_.Init(context, vertex_info, index_info);
 }
 
-std::vector<VkVertexInputBindingDescription> Model::binding_descs() {
-  return {
+const vector<VkVertexInputBindingDescription>& Model::binding_descs() {
+  static const vector<VkVertexInputBindingDescription> descriptions{
       VkVertexInputBindingDescription{
           /*binding=*/0,
           /*stride=*/sizeof(VertexAttrib),
@@ -50,15 +50,16 @@ std::vector<VkVertexInputBindingDescription> Model::binding_descs() {
           /*inputRate=*/VK_VERTEX_INPUT_RATE_VERTEX,
       },
   };
+  return descriptions;
 }
 
-std::vector<VkVertexInputAttributeDescription> Model::attrib_descs() {
-  return {
+const vector<VkVertexInputAttributeDescription>& Model::attrib_descs() {
+  static const vector<VkVertexInputAttributeDescription> descriptions{
       VkVertexInputAttributeDescription{
-          /*location=*/0, // layout (location = 0) in
-          /*binding=*/0, // which binding point does data come from
-          /*format=*/VK_FORMAT_R32G32B32_SFLOAT, // implies total size
-          /*offset=*/offsetof(VertexAttrib, pos), // reading offset
+          /*location=*/0,  // layout (location = 0) in
+          /*binding=*/0,  // which binding point does data come from
+          /*format=*/VK_FORMAT_R32G32B32_SFLOAT,  // implies total size
+          /*offset=*/offsetof(VertexAttrib, pos),  // reading offset
       },
       VkVertexInputAttributeDescription{
           /*location=*/1,
@@ -73,6 +74,7 @@ std::vector<VkVertexInputAttributeDescription> Model::attrib_descs() {
           /*offset=*/offsetof(VertexAttrib, tex_coord),
       },
   };
+  return descriptions;
 }
 
 } /* namespace vulkan */

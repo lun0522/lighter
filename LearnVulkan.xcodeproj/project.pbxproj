@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BD03CE862249E93E00235611 /* camera.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD03CE842249E93D00235611 /* camera.cc */; };
+		BD03CE892249EA5400235611 /* nanosuit.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD03CE872249EA5400235611 /* nanosuit.cc */; };
 		BD098BC9220D4D2600E34A0A /* render_pass.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD098BC7220D4D2600E34A0A /* render_pass.cc */; };
 		BD151CB4220BF9A300A6FC75 /* pipeline.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD151CB2220BF9A300A6FC75 /* pipeline.cc */; };
 		BD2435A121AD9B1C00027627 /* main.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD2435A021AD9B1C00027627 /* main.cc */; };
@@ -48,6 +50,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		BD03CE842249E93D00235611 /* camera.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = camera.cc; sourceTree = "<group>"; };
+		BD03CE852249E93D00235611 /* camera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = camera.h; sourceTree = "<group>"; };
+		BD03CE872249EA5400235611 /* nanosuit.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = nanosuit.cc; sourceTree = "<group>"; };
+		BD03CE882249EA5400235611 /* nanosuit.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = nanosuit.h; sourceTree = "<group>"; };
 		BD098BC7220D4D2600E34A0A /* render_pass.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = render_pass.cc; sourceTree = "<group>"; };
 		BD098BC8220D4D2600E34A0A /* render_pass.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = render_pass.h; sourceTree = "<group>"; };
 		BD151CB2220BF9A300A6FC75 /* pipeline.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = pipeline.cc; sourceTree = "<group>"; };
@@ -120,6 +126,8 @@
 			isa = PBXGroup;
 			children = (
 				BD2435A021AD9B1C00027627 /* main.cc */,
+				BD03CE842249E93D00235611 /* camera.cc */,
+				BD03CE852249E93D00235611 /* camera.h */,
 				BD4717B82219E9AB00B860D0 /* util.cc */,
 				BDA11AAD22061C7B003092B8 /* util.h */,
 				BDC34001223393FC003CD06D /* application */,
@@ -185,6 +193,8 @@
 			children = (
 				BD2F0E9C222B2D5800B4ACD5 /* cube.cc */,
 				BD2F0E9D222B2D5800B4ACD5 /* cube.h */,
+				BD03CE872249EA5400235611 /* nanosuit.cc */,
+				BD03CE882249EA5400235611 /* nanosuit.h */,
 			);
 			path = application;
 			sourceTree = "<group>";
@@ -251,9 +261,11 @@
 				BDC658292230EC5D00505B22 /* context.cc in Sources */,
 				BD2F0E9E222B2D5800B4ACD5 /* cube.cc in Sources */,
 				BD7AF4F62245DFF800F657A7 /* model.cc in Sources */,
+				BD03CE862249E93E00235611 /* camera.cc in Sources */,
 				BD6D210F221000E800FF1910 /* command.cc in Sources */,
 				BD7C0CAD2217C74200009BE5 /* buffer.cc in Sources */,
 				BD7B1E94222A63AD00EF0956 /* synchronize.cc in Sources */,
+				BD03CE892249EA5400235611 /* nanosuit.cc in Sources */,
 				BD151CB4220BF9A300A6FC75 /* pipeline.cc in Sources */,
 				BD6BAC282211432500906E78 /* basic_object.cc in Sources */,
 				BDA11AB12206323F003092B8 /* swapchain.cc in Sources */,

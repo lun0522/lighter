@@ -7,9 +7,6 @@
 
 #include "context.h"
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
 namespace wrapper {
 namespace vulkan {
 namespace {
@@ -80,10 +77,22 @@ void Context::Cleanup() {
   swapchain_.Cleanup();
 }
 
-bool Context::ShouldQuit() const {
+void Context::RegisterKeyCallback(keymap::KeyMap key,
+                                  const std::function<void()>& callback) {
+  key_callbacks_.insert({key, callback});
+}
+
+void Context::UnregisterKeyCallback(keymap::KeyMap key) {
+  key_callbacks_.erase(key);
+}
+
+void Context::PollEvents() {
   glfwPollEvents();
-  return glfwGetKey(window_, GLFW_KEY_ESCAPE) == GLFW_PRESS ||
-         glfwWindowShouldClose(window_);
+  for (const auto& pair : key_callbacks_) {
+    if (glfwGetKey(window_, pair.first) == GLFW_PRESS) {
+      pair.second();
+    }
+  }
 }
 
 Context::~Context() {

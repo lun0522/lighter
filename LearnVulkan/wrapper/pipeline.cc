@@ -14,12 +14,11 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::string;
 using std::vector;
 
 VkShaderModule CreateShaderModule(SharedContext context,
-                                  const string& file) {
-  const string& code = util::ReadFile(file);
+                                  const std::string& file) {
+  const std::string& code = util::ReadFile(file);
   VkShaderModuleCreateInfo module_info{
       /*sType=*/VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
       /*pNext=*/nullptr,

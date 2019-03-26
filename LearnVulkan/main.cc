@@ -7,15 +7,15 @@
 
 #include <iostream>
 
-#include "application/cube.h"
+#include "application/nanosuit.h"
 
 int main(int argc, const char* argv[]) {
 #ifdef DEBUG
-  application::vulkan::CubeApplication app{};
+  application::vulkan::NanosuitApp app{};
   app.MainLoop();
 #else
   try {
-    application::vulkan::CubeApplication app{};
+    application::vulkan::NanosuitApp app{};
     app.MainLoop();
   } catch (const std::exception& e) {
     std::cerr << "Error: /n/t" << e.what() << std::endl;

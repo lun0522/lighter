@@ -20,6 +20,8 @@ namespace vulkan {
 
 class Context;
 
+extern const std::vector<const char*> kSwapChainExtensions;
+
 /** VkSwapchainKHR holds a queue of images to present to the screen.
  *
  *  Initialization:
@@ -72,8 +74,6 @@ class Swapchain {
   VkFormat image_format_;
   VkExtent2D image_extent_;
 };
-
-extern const std::vector<const char*> kSwapChainExtensions;
 
 } /* namespace vulkan */
 } /* namespace wrapper */

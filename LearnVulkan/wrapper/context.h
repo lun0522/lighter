@@ -8,9 +8,13 @@
 #ifndef WRAPPER_VULKAN_CONTEXT_H
 #define WRAPPER_VULKAN_CONTEXT_H
 
+#include <functional>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
 
 #include "basic_object.h"
@@ -23,6 +27,17 @@ class GLFWwindow;
 
 namespace wrapper {
 namespace vulkan {
+namespace keymap {
+
+enum KeyMap {
+  kKeyEscape = GLFW_KEY_ESCAPE,
+  kKeyUp     = GLFW_KEY_UP,
+  kKeyDown   = GLFW_KEY_DOWN,
+  kKeyLeft   = GLFW_KEY_LEFT,
+  kKeyRight  = GLFW_KEY_RIGHT,
+};
+
+} /* namespace keymap */
 
 using SharedContext = std::shared_ptr<Context>;
 
@@ -35,8 +50,12 @@ class Context : public std::enable_shared_from_this<Context> {
             uint32_t width = 800,
             uint32_t height = 600);
   void Recreate();
-  bool ShouldQuit() const;
-  void WaitIdle() const { vkDeviceWaitIdle(*device_); }
+  void RegisterKeyCallback(keymap::KeyMap key,
+                           const std::function<void()>& callback);
+  void UnregisterKeyCallback(keymap::KeyMap key);
+  void PollEvents();
+  bool ShouldQuit() const { return glfwWindowShouldClose(window_); }
+  void WaitIdle()   const { vkDeviceWaitIdle(*device_); }
   ~Context();
 
   // This class is neither copyable nor movable
@@ -74,6 +93,7 @@ class Context : public std::enable_shared_from_this<Context> {
   Queues queues_;
   Swapchain swapchain_;
   RenderPass render_pass_;
+  std::unordered_map<keymap::KeyMap, std::function<void()>> key_callbacks_;
 #ifdef DEBUG
   DebugCallback callback_;
 #endif /* DEBUG */

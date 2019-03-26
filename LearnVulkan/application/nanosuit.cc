@@ -1,11 +1,11 @@
 //
-//  cube.cc
+//  nanosuit.cc
 //
-//  Created by Pujun Lun on 3/2/19.
+//  Created by Pujun Lun on 3/25/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "cube.h"
+#include "nanosuit.h"
 
 #include <array>
 #include <chrono>
@@ -54,8 +54,11 @@ void UpdateTrans(size_t current_frame, float screen_aspect) {
 
 } /* namespace */
 
-void CubeApp::Init() {
+void NanosuitApp::Init() {
   if (is_first_time) {
+    context_->RegisterKeyCallback(keymap::kKeyEscape,
+                                  [this]() { should_quit_ = true; });
+
     // model (vertex buffer)
     model_.Init(context_->ptr(), "texture/cube.obj", 1);
 
@@ -135,14 +138,14 @@ void CubeApp::Init() {
   });
 }
 
-void CubeApp::Cleanup() {
+void NanosuitApp::Cleanup() {
   command_.Cleanup();
   pipeline_.Cleanup();
 }
 
-void CubeApp::MainLoop() {
+void NanosuitApp::MainLoop() {
   Init();
-  while (!context_->ShouldQuit()) {
+  while (!should_quit_ && !context_->ShouldQuit()) {
     VkExtent2D extent = context_->swapchain().extent();
     auto update_func = [this, extent](size_t image_index) {
       UpdateTrans(image_index, (float)extent.width / extent.height);

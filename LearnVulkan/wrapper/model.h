@@ -34,8 +34,8 @@ class Model {
   Model(const Model&) = delete;
   Model& operator=(const Model&) = delete;
 
-  std::vector<VkVertexInputBindingDescription> binding_descs();
-  std::vector<VkVertexInputAttributeDescription> attrib_descs();
+  static const std::vector<VkVertexInputBindingDescription>& binding_descs();
+  static const std::vector<VkVertexInputAttributeDescription>& attrib_descs();
 
  private:
   VertexBuffer vertex_buffer_;
