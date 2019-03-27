@@ -34,8 +34,8 @@ class CubeApp {
   void MainLoop();
 
  private:
-  bool is_first_time{true};
-  size_t current_frame_{0};
+  bool is_first_time = true;
+  size_t current_frame_ = 0;
   std::shared_ptr<Context> context_;
   Pipeline pipeline_;
   Command command_;

@@ -8,6 +8,7 @@
 #ifndef PUBLIC_UTIL_H
 #define PUBLIC_UTIL_H
 
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -23,6 +24,12 @@
   static_cast<uint32_t>(container.size())
 
 namespace util {
+
+using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
+
+TimePoint Now();
+
+float TimeInterval(const TimePoint& t1, const TimePoint& t2);
 
 template <typename AttribType>
 std::vector<AttribType> QueryAttribute(

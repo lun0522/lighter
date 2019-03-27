@@ -127,8 +127,10 @@ void Swapchain::Init(SharedContext context) {
   VkSurfaceCapabilitiesKHR surface_capabilities;
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
       physical_device, surface, &surface_capabilities);
+  auto screen_size = context_->screen_size();
   VkExtent2D image_extent = ChooseExtent(
-      surface_capabilities, context_->screen_size());
+      surface_capabilities, {static_cast<uint32_t>(screen_size.x),
+                             static_cast<uint32_t>(screen_size.y)});
 
   // surface formats
   auto surface_formats{util::QueryAttribute<VkSurfaceFormatKHR>(

@@ -15,10 +15,10 @@
 		BD2F0E9E222B2D5800B4ACD5 /* cube.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD2F0E9C222B2D5800B4ACD5 /* cube.cc */; };
 		BD30819C21B1929300F30C2C /* validation.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD30819A21B1929300F30C2C /* validation.cc */; };
 		BD34960421AF3F4000F4C000 /* libglfw.3.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */; };
-		BD34960521AF3F4500F4C000 /* libglfw.3.3.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */; };
+		BD34960521AF3F4500F4C000 /* libglfw.3.3.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		BD4717B92219E9AB00B860D0 /* util.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD4717B82219E9AB00B860D0 /* util.cc */; };
 		BD5F5F1121FA43DD006BD2AC /* libvulkan.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */; };
-		BD5F5F1221FA43E0006BD2AC /* libvulkan.1.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */; };
+		BD5F5F1221FA43E0006BD2AC /* libvulkan.1.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		BD60051E223CA5D300D17D03 /* image.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD60051C223CA5D300D17D03 /* image.cc */; };
 		BD6B371B223A03C700D69CDB /* texture in Copy Files */ = {isa = PBXBuildFile; fileRef = BD6B371A223A03C700D69CDB /* texture */; };
 		BD6BAC282211432500906E78 /* basic_object.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD6BAC262211432500906E78 /* basic_object.cc */; };
@@ -225,7 +225,7 @@
 		BD24359521AD9B1C00027627 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1010;
+				LastUpgradeCheck = 1020;
 				ORGANIZATIONNAME = "Pujun Lun";
 				TargetAttributes = {
 					BD24359C21AD9B1C00027627 = {
@@ -239,6 +239,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				Base,
 			);
 			mainGroup = BD24359421AD9B1C00027627;
 			productRefGroup = BD24359E21AD9B1C00027627 /* Products */;

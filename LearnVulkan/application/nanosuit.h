@@ -15,11 +15,13 @@
 #include <vulkan/vulkan.hpp>
 
 #include "buffer.h"
+#include "camera.h"
 #include "command.h"
 #include "context.h"
 #include "image.h"
 #include "model.h"
 #include "pipeline.h"
+#include "util.h"
 
 namespace application {
 namespace vulkan {
@@ -34,10 +36,12 @@ class NanosuitApp {
   void MainLoop();
 
  private:
-  bool should_quit_{false};
-  bool is_first_time{true};
-  size_t current_frame_{0};
+  bool should_quit_ = false;
+  bool is_first_time = true;
+  size_t current_frame_ = 0;
+  util::TimePoint last_time_;
   std::shared_ptr<Context> context_;
+  std::unique_ptr<camera::Camera> camera_;
   Pipeline pipeline_;
   Command command_;
   Model model_;
@@ -49,6 +53,7 @@ class NanosuitApp {
 
   void Init();
   void Cleanup();
+  void UpdateTrans(size_t image_index);
 };
 
 } /* namespace vulkan */

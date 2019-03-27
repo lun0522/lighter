@@ -7,9 +7,6 @@
 
 #include "camera.h"
 
-#include <chrono>
-#include <iostream>
-
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -46,18 +43,18 @@ void Camera::UpdateViewMatrix() {
 }
 
 void Camera::UpdateProjMatrix() {
-  if (width_ == 0.0f || height_ == 0.0f) {
-    throw std::runtime_error{"Screen size has not been set"};
-  }
   proj_ = glm::perspective(radians(fov_), width_ / height_, near_, far_);
 }
 
+void Camera::Init(const glm::vec2& screen_size, const glm::vec2& mouse_pos) {
+  width_ = screen_size.x;
+  height_ = screen_size.y;
+  last_x_ = mouse_pos.x;
+  last_y_ = mouse_pos.y;
+  UpdateProjMatrix();
+}
+
 void Camera::ProcessMouseMove(double x, double y) {
-  if (is_first_time_) {
-    last_x_ = x;
-    last_y_ = y;
-    is_first_time_ = false;
-  }
   float x_offset = (x - last_x_) * sensitivity_;
   float y_offset = (last_y_ - y) * sensitivity_;
   last_x_ = x;
@@ -75,16 +72,9 @@ void Camera::ProcessMouseScroll(double y, double min_val, double max_val) {
   UpdateProjMatrix();
 }
 
-void Camera::set_screen_size(int width, int height) {
-  width_ = width;
-  height_ = height;
-  last_x_ = width / 2.0f;
-  last_y_ = height / 2.0f;
-  UpdateProjMatrix();
-}
-
 void Camera::ProcessKeyboardInput(CameraMoveDirection direction,
-                                  float distance) {
+                                  float elapsed_time) {
+  float distance = elapsed_time * 5.0f;
   switch (direction) {
     case CameraMoveDirection::kUp:
       pos_ += front_ * distance;
@@ -93,10 +83,10 @@ void Camera::ProcessKeyboardInput(CameraMoveDirection direction,
       pos_ -= front_ * distance;
       break;
     case CameraMoveDirection::kLeft:
-      pos_ += right_ * distance;
+      pos_ -= right_ * distance;
       break;
     case CameraMoveDirection::kRight:
-      pos_ -= right_ * distance;
+      pos_ += right_ * distance;
       break;
   }
   UpdateViewMatrix();

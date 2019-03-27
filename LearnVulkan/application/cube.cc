@@ -23,7 +23,7 @@ namespace {
 
 using std::vector;
 
-size_t kNumFrameInFlight{2};
+constexpr size_t kNumFrameInFlight = 2;
 
 // alignment requirement:
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/\
@@ -37,13 +37,11 @@ struct Transformation {
 vector<Transformation> kTrans;
 
 void UpdateTrans(size_t current_frame, float screen_aspect) {
-  static auto start_time = std::chrono::high_resolution_clock::now();
-  auto current_time = std::chrono::high_resolution_clock::now();
-  auto time = std::chrono::duration<float, std::chrono::seconds::period>(
-      current_time - start_time).count();
+  static auto start_time = util::Now();
+  auto elapsed_time = util::TimeInterval(start_time, util::Now());
   Transformation& trans = kTrans[current_frame];
   trans = {
-    glm::rotate(glm::mat4{1.0f}, time * glm::radians(90.0f),
+    glm::rotate(glm::mat4{1.0f}, elapsed_time * glm::radians(90.0f),
                 glm::vec3{1.0f, 1.0f, 0.0f}),
     glm::lookAt(glm::vec3{3.0f}, glm::vec3{0.0f}, glm::vec3{0.0f, 0.0f, 1.0f}),
     glm::perspective(glm::radians(45.0f), screen_aspect, 0.1f, 100.0f),
@@ -143,6 +141,7 @@ void CubeApp::Cleanup() {
 void CubeApp::MainLoop() {
   Init();
   while (!context_->ShouldQuit()) {
+    context_->PollEvents();
     VkExtent2D extent = context_->swapchain().extent();
     auto update_func = [this, extent](size_t image_index) {
       UpdateTrans(image_index, (float)extent.width / extent.height);
@@ -157,7 +156,6 @@ void CubeApp::MainLoop() {
       Init();
     }
     current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
-    context_->PollEvents();
   }
   context_->WaitIdle(); // wait for all async operations finish
 }

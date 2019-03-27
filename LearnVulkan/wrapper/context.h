@@ -15,6 +15,7 @@
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>
 
 #include "basic_object.h"
@@ -40,6 +41,8 @@ enum KeyMap {
 } /* namespace keymap */
 
 using SharedContext = std::shared_ptr<Context>;
+using MouseMoveCallback = std::function<void(double x_pos, double y_pos)>;
+using MouseScrollCallback = std::function<void(double x_pos, double y_pos)>;
 
 class Context : public std::enable_shared_from_this<Context> {
  public:
@@ -50,6 +53,8 @@ class Context : public std::enable_shared_from_this<Context> {
             uint32_t width = 800,
             uint32_t height = 600);
   void Recreate();
+  void RegisterMouseMoveCallback(const MouseMoveCallback& callback);
+  void RegisterMouseScrollCallback(const MouseScrollCallback& callback);
   void RegisterKeyCallback(keymap::KeyMap key,
                            const std::function<void()>& callback);
   void UnregisterKeyCallback(keymap::KeyMap key);
@@ -64,7 +69,8 @@ class Context : public std::enable_shared_from_this<Context> {
 
   std::shared_ptr<Context> ptr()                  { return shared_from_this(); }
   bool& resized()                                 { return has_resized_; }
-  VkExtent2D screen_size()                  const;
+  glm::vec2 screen_size()                   const;
+  glm::vec2 mouse_pos()                     const;
   const VkAllocationCallbacks* allocator()  const { return allocator_; }
   GLFWwindow* window()                      const { return window_; }
   const Instance& instance()                const { return instance_; }
@@ -82,9 +88,9 @@ class Context : public std::enable_shared_from_this<Context> {
   }
 
  private:
-  bool has_resized_{false};
-  bool is_first_time_{true};
-  VkAllocationCallbacks* allocator_{nullptr};
+  bool has_resized_ = false;
+  bool is_first_time_ = true;
+  VkAllocationCallbacks* allocator_ = nullptr;
   GLFWwindow* window_;
   Instance instance_;
   Surface surface_;

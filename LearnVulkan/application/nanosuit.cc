@@ -15,17 +15,15 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "util.h"
-
 namespace application {
 namespace vulkan {
 namespace {
 
 using std::vector;
 
-size_t kNumFrameInFlight{2};
+constexpr size_t kNumFrameInFlight = 2;
 
-// alignment requirement:
+// alignment requirement:z
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/\
 //    chap14.html#interfaces-resources-layout
 struct Transformation {
@@ -36,28 +34,41 @@ struct Transformation {
 
 vector<Transformation> kTrans;
 
-void UpdateTrans(size_t current_frame, float screen_aspect) {
-  static auto start_time = std::chrono::high_resolution_clock::now();
-  auto current_time = std::chrono::high_resolution_clock::now();
-  auto time = std::chrono::duration<float, std::chrono::seconds::period>(
-      current_time - start_time).count();
-  Transformation& trans = kTrans[current_frame];
-  trans = {
-    glm::rotate(glm::mat4{1.0f}, time * glm::radians(90.0f),
-                glm::vec3{1.0f, 1.0f, 0.0f}),
-    glm::lookAt(glm::vec3{3.0f}, glm::vec3{0.0f}, glm::vec3{0.0f, 0.0f, 1.0f}),
-    glm::perspective(glm::radians(45.0f), screen_aspect, 0.1f, 100.0f),
-  };
-  // No need to flip Y-axis as OpenGL
-  trans.proj[1][1] *= -1;
-}
-
 } /* namespace */
 
 void NanosuitApp::Init() {
   if (is_first_time) {
     context_->RegisterKeyCallback(keymap::kKeyEscape,
                                   [this]() { should_quit_ = true; });
+
+    // camera
+    camera_ = std::make_unique<camera::Camera>();
+    context_->RegisterMouseMoveCallback([this](double x_pos, double y_pos) {
+      camera_->ProcessMouseMove(x_pos, y_pos);
+    });
+    context_->RegisterMouseScrollCallback([this](double x_pos, double y_pos) {
+      camera_->ProcessMouseScroll(y_pos, 1.0f, 60.0f);
+    });
+    context_->RegisterKeyCallback(keymap::kKeyUp, [this]() {
+      camera_->ProcessKeyboardInput(
+          camera::CameraMoveDirection::kUp,
+          util::TimeInterval(last_time_, util::Now()));
+    });
+    context_->RegisterKeyCallback(keymap::kKeyDown, [this]() {
+      camera_->ProcessKeyboardInput(
+          camera::CameraMoveDirection::kDown,
+          util::TimeInterval(last_time_, util::Now()));
+    });
+    context_->RegisterKeyCallback(keymap::kKeyLeft, [this]() {
+      camera_->ProcessKeyboardInput(
+          camera::CameraMoveDirection::kLeft,
+          util::TimeInterval(last_time_, util::Now()));
+    });
+    context_->RegisterKeyCallback(keymap::kKeyRight, [this]() {
+      camera_->ProcessKeyboardInput(
+          camera::CameraMoveDirection::kRight,
+          util::TimeInterval(last_time_, util::Now()));
+    });
 
     // model (vertex buffer)
     model_.Init(context_->ptr(), "texture/cube.obj", 1);
@@ -94,6 +105,8 @@ void NanosuitApp::Init() {
     is_first_time = false;
   }
 
+  last_time_ = util::Now();
+  camera_->Init(context_->screen_size(), context_->mouse_pos());
   depth_stencil_.Init(context_, context_->swapchain().extent());
   context_->render_pass().Config(depth_stencil_);
   pipeline_.Init(context_->ptr(),
@@ -143,12 +156,28 @@ void NanosuitApp::Cleanup() {
   pipeline_.Cleanup();
 }
 
+void NanosuitApp::UpdateTrans(size_t image_index) {
+  glm::mat4 model{1.0f};
+  model = glm::translate(model, glm::vec3{0.0f, 0.0f, -5.0f});
+  static auto start_time = util::Now();
+  auto elapsed_time = util::TimeInterval(start_time, util::Now());
+  model = glm::rotate(model, elapsed_time * glm::radians(90.0f),
+                      glm::vec3{1.0f});
+
+  Transformation& trans = kTrans[image_index];
+  trans = {std::move(model), camera_->view_matrix(), camera_->proj_matrix()};
+  // no need to flip Y-axis as OpenGL
+  trans.proj[1][1] *= -1;
+}
+
 void NanosuitApp::MainLoop() {
   Init();
   while (!should_quit_ && !context_->ShouldQuit()) {
-    VkExtent2D extent = context_->swapchain().extent();
-    auto update_func = [this, extent](size_t image_index) {
-      UpdateTrans(image_index, (float)extent.width / extent.height);
+    context_->PollEvents();
+    last_time_ = util::Now();
+
+    auto update_func = [this](size_t image_index) {
+      UpdateTrans(image_index);
       uniform_buffer_.Update(image_index);
     };
     if (command_.DrawFrame(current_frame_, update_func) != VK_SUCCESS ||
@@ -160,7 +189,6 @@ void NanosuitApp::MainLoop() {
       Init();
     }
     current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
-    context_->PollEvents();
   }
   context_->WaitIdle(); // wait for all async operations finish
 }

@@ -27,18 +27,21 @@ class Camera {
          float yaw = -90.0f,
          float pitch = 0.0f,
          float sensitivity = 0.05f);
+  void Init(const glm::vec2& screen_size, const glm::vec2& mouse_pos);
   void ProcessMouseMove(double x, double y);
   void ProcessMouseScroll(double y, double min_val, double max_val);
-  void ProcessKeyboardInput(CameraMoveDirection direction, float distance);
+  void ProcessKeyboardInput(CameraMoveDirection direction, float elapsed_time);
 
-  void set_screen_size(int width, int height);
+  // This class is neither copyable nor movable
+  Camera(const Camera&) = delete;
+  Camera& operator=(const Camera&) = delete;
+
   const glm::vec3& position()     const { return pos_; }
   const glm::vec3& direction()    const { return front_; }
   const glm::mat4& view_matrix()  const { return view_; }
   const glm::mat4& proj_matrix()  const { return proj_; }
 
  private:
-  bool is_first_time_;
   float fov_, near_, far_, yaw_, pitch_;
   float width_, height_, last_x_, last_y_, sensitivity_;
   glm::vec3 pos_, front_, up_, right_;
