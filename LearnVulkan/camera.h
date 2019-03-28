@@ -27,7 +27,7 @@ class Camera {
          float yaw = -90.0f,
          float pitch = 0.0f,
          float sensitivity = 0.05f);
-  void Init(const glm::vec2& screen_size, const glm::vec2& mouse_pos);
+  void Init(const glm::ivec2& screen_size, const glm::dvec2& mouse_pos);
   void ProcessMouseMove(double x, double y);
   void ProcessMouseScroll(double y, double min_val, double max_val);
   void ProcessKeyboardInput(CameraMoveDirection direction, float elapsed_time);
@@ -42,8 +42,9 @@ class Camera {
   const glm::mat4& proj_matrix()  const { return proj_; }
 
  private:
+  int width_, height_;
   float fov_, near_, far_, yaw_, pitch_;
-  float width_, height_, last_x_, last_y_, sensitivity_;
+  float last_x_, last_y_, sensitivity_;
   glm::vec3 pos_, front_, up_, right_;
   glm::mat4 view_, proj_;
 

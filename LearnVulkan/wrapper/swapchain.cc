@@ -100,7 +100,7 @@ bool Swapchain::HasSwapchainSupport(SharedContext context,
               physical_device, nullptr, count, properties);
         }
     )};
-    auto get_name = [](const VkExtensionProperties& property) -> const char* {
+    auto get_name = [](const VkExtensionProperties& property) {
       return property.extensionName;
     };
     util::CheckSupport<VkExtensionProperties>(required, extensions, get_name);
@@ -127,7 +127,7 @@ void Swapchain::Init(SharedContext context) {
   VkSurfaceCapabilitiesKHR surface_capabilities;
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
       physical_device, surface, &surface_capabilities);
-  auto screen_size = context_->screen_size();
+  auto screen_size = context_->window().screen_size();
   VkExtent2D image_extent = ChooseExtent(
       surface_capabilities, {static_cast<uint32_t>(screen_size.x),
                              static_cast<uint32_t>(screen_size.y)});

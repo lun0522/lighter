@@ -62,7 +62,7 @@ const string& ReadFile(const string& path) {
       std::ostringstream stream;
       stream << file.rdbuf();
       string code = stream.str();
-      loaded = kLoadedText.insert({path, code}).first;
+      loaded = kLoadedText.emplace(path, std::move(code)).first;
     } catch (const ifstream::failure& e) {
       throw runtime_error{"Failed to read file: " + e.code().message()};
     }

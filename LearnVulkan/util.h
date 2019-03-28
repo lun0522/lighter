@@ -48,7 +48,7 @@ void CheckSupport(
     const std::function<const char*(const AttribType&)>& get_name) {
   std::unordered_set<std::string> available{attribs.size()};
   for (const auto& atr : attribs) {
-    available.insert(get_name(atr));
+    available.emplace(get_name(atr));
   }
 
   std::cout << "Available:" << std::endl;

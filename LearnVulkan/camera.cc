@@ -43,10 +43,10 @@ void Camera::UpdateViewMatrix() {
 }
 
 void Camera::UpdateProjMatrix() {
-  proj_ = glm::perspective(radians(fov_), width_ / height_, near_, far_);
+  proj_ = glm::perspective(radians(fov_), (float)width_ / height_, near_, far_);
 }
 
-void Camera::Init(const glm::vec2& screen_size, const glm::vec2& mouse_pos) {
+void Camera::Init(const glm::ivec2& screen_size, const glm::dvec2& mouse_pos) {
   width_ = screen_size.x;
   height_ = screen_size.y;
   last_x_ = mouse_pos.x;

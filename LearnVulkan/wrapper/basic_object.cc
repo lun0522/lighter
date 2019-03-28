@@ -58,14 +58,14 @@ QueueIndices FindDeviceQueues(SharedContext context,
   }
 
   // find queue family that holds graphics queue
-  auto graphics_support = [](const VkQueueFamilyProperties& family) -> bool {
+  auto graphics_support = [](const VkQueueFamilyProperties& family) {
     return family.queueCount && (family.queueFlags & VK_QUEUE_GRAPHICS_BIT);
   };
 
   // find queue family that holds present queue
   uint32_t index = 0;
   auto present_support = [&physical_device, &context, index]
-      (const VkQueueFamilyProperties& family) mutable -> bool {
+      (const VkQueueFamilyProperties& family) mutable {
       VkBool32 support = false;
       vkGetPhysicalDeviceSurfaceSupportKHR(
           physical_device, index++, *context->surface(), &support);
@@ -161,10 +161,7 @@ Instance::~Instance() {
 
 void Surface::Init(SharedContext context) {
   context_ = context;
-  ASSERT_SUCCESS(
-      glfwCreateWindowSurface(*context->instance(), context->window(),
-                              context_->allocator(), &surface_),
-      "Failed to create window surface");
+  surface_ = context_->window().CreateSurface(context_);
 }
 
 Surface::~Surface() {
@@ -209,7 +206,7 @@ void Device::Init(SharedContext context) {
   enabled_features.samplerAnisotropy = VK_TRUE;
 
   // graphics queue and present queue might be the same
-  Queues& queues = context->queues();
+  Queues& queues = context_->queues();
   std::unordered_set<uint32_t> queue_families{
       queues.graphics.family_index,
       queues.present.family_index,
@@ -249,7 +246,7 @@ void Device::Init(SharedContext context) {
       &enabled_features,
   };
 
-  ASSERT_SUCCESS(vkCreateDevice(*context->physical_device(), &device_info,
+  ASSERT_SUCCESS(vkCreateDevice(*context_->physical_device(), &device_info,
                                 context_->allocator(), &device_),
                  "Failed to create logical device");
 

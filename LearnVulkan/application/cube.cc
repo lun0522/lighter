@@ -26,8 +26,7 @@ using std::vector;
 constexpr size_t kNumFrameInFlight = 2;
 
 // alignment requirement:
-// https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/\
-//    chap14.html#interfaces-resources-layout
+// https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
 struct Transformation {
   alignas(16) glm::mat4 model;
   alignas(16) glm::mat4 view;
@@ -140,16 +139,16 @@ void CubeApp::Cleanup() {
 
 void CubeApp::MainLoop() {
   Init();
-  while (!context_->ShouldQuit()) {
-    context_->PollEvents();
+  auto& window = context_->window();
+  while (!window.ShouldQuit()) {
+    window.PollEvents();
     VkExtent2D extent = context_->swapchain().extent();
     auto update_func = [this, extent](size_t image_index) {
       UpdateTrans(image_index, (float)extent.width / extent.height);
       uniform_buffer_.Update(image_index);
     };
     if (command_.DrawFrame(current_frame_, update_func) != VK_SUCCESS ||
-        context_->resized()) {
-      context_->resized() = false;
+        window.IsResized()) {
       context_->WaitIdle();
       Cleanup();
       context_->Recreate();

@@ -23,6 +23,7 @@
 		BD6B371B223A03C700D69CDB /* texture in Copy Files */ = {isa = PBXBuildFile; fileRef = BD6B371A223A03C700D69CDB /* texture */; };
 		BD6BAC282211432500906E78 /* basic_object.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD6BAC262211432500906E78 /* basic_object.cc */; };
 		BD6D210F221000E800FF1910 /* command.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD6D210D221000E800FF1910 /* command.cc */; };
+		BD73B87A224C6E48008373CA /* window.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD73B878224C6E48008373CA /* window.cc */; };
 		BD7AF4F62245DFF800F657A7 /* model.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD7AF4F42245DFF800F657A7 /* model.cc */; };
 		BD7B1E94222A63AD00EF0956 /* synchronize.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD7B1E92222A63AD00EF0956 /* synchronize.cc */; };
 		BD7C0CAD2217C74200009BE5 /* buffer.cc in Sources */ = {isa = PBXBuildFile; fileRef = BD7C0CAB2217C74200009BE5 /* buffer.cc */; };
@@ -74,6 +75,8 @@
 		BD6BAC272211432500906E78 /* basic_object.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = basic_object.h; sourceTree = "<group>"; };
 		BD6D210D221000E800FF1910 /* command.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = command.cc; sourceTree = "<group>"; };
 		BD6D210E221000E800FF1910 /* command.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = command.h; sourceTree = "<group>"; };
+		BD73B878224C6E48008373CA /* window.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = window.cc; sourceTree = "<group>"; };
+		BD73B879224C6E48008373CA /* window.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = window.h; sourceTree = "<group>"; };
 		BD7AF4F42245DFF800F657A7 /* model.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = model.cc; sourceTree = "<group>"; };
 		BD7AF4F52245DFF800F657A7 /* model.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = model.h; sourceTree = "<group>"; };
 		BD7B1E92222A63AD00EF0956 /* synchronize.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = synchronize.cc; sourceTree = "<group>"; };
@@ -130,6 +133,8 @@
 				BD03CE852249E93D00235611 /* camera.h */,
 				BD4717B82219E9AB00B860D0 /* util.cc */,
 				BDA11AAD22061C7B003092B8 /* util.h */,
+				BD73B878224C6E48008373CA /* window.cc */,
+				BD73B879224C6E48008373CA /* window.h */,
 				BDC34001223393FC003CD06D /* application */,
 				BDA71385220A96B5007FD13C /* shader */,
 				BD6B371A223A03C700D69CDB /* texture */,
@@ -271,6 +276,7 @@
 				BD6BAC282211432500906E78 /* basic_object.cc in Sources */,
 				BDA11AB12206323F003092B8 /* swapchain.cc in Sources */,
 				BD60051E223CA5D300D17D03 /* image.cc in Sources */,
+				BD73B87A224C6E48008373CA /* window.cc in Sources */,
 				BD30819C21B1929300F30C2C /* validation.cc in Sources */,
 				BD098BC9220D4D2600E34A0A /* render_pass.cc in Sources */,
 			);

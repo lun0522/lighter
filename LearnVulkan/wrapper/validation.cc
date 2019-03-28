@@ -83,7 +83,7 @@ void CheckInstanceExtensionSupport(const vector<string>& required) {
             nullptr, count, properties);
       }
   )};
-  auto get_name = [](const VkExtensionProperties& property) -> const char* {
+  auto get_name = [](const VkExtensionProperties& property) {
     return property.extensionName;
   };
   util::CheckSupport<VkExtensionProperties>(required, properties, get_name);
@@ -97,7 +97,7 @@ void CheckValidationLayerSupport(const vector<string>& required) {
         return vkEnumerateInstanceLayerProperties(count, properties);
       }
   )};
-  auto get_name = [](const VkLayerProperties& property) -> const char* {
+  auto get_name = [](const VkLayerProperties& property) {
     return property.layerName;
   };
   util::CheckSupport<VkLayerProperties>(required, properties, get_name);
