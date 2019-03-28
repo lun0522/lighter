@@ -7,6 +7,8 @@
 
 #include "descriptor.h"
 
+#include <stdexcept>
+
 #include "context.h"
 #include "util.h"
 

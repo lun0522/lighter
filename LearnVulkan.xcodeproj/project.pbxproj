@@ -108,6 +108,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		BD04A014224CA0EE008876E3 /* common */ = {
+			isa = PBXGroup;
+			children = (
+				BD03CE842249E93D00235611 /* camera.cc */,
+				BD03CE852249E93D00235611 /* camera.h */,
+				BD4717B82219E9AB00B860D0 /* util.cc */,
+				BDA11AAD22061C7B003092B8 /* util.h */,
+				BD73B878224C6E48008373CA /* window.cc */,
+				BD73B879224C6E48008373CA /* window.h */,
+			);
+			path = common;
+			sourceTree = "<group>";
+		};
 		BD24359421AD9B1C00027627 = {
 			isa = PBXGroup;
 			children = (
@@ -129,12 +142,7 @@
 			isa = PBXGroup;
 			children = (
 				BD2435A021AD9B1C00027627 /* main.cc */,
-				BD03CE842249E93D00235611 /* camera.cc */,
-				BD03CE852249E93D00235611 /* camera.h */,
-				BD4717B82219E9AB00B860D0 /* util.cc */,
-				BDA11AAD22061C7B003092B8 /* util.h */,
-				BD73B878224C6E48008373CA /* window.cc */,
-				BD73B879224C6E48008373CA /* window.h */,
+				BD04A014224CA0EE008876E3 /* common */,
 				BDC34001223393FC003CD06D /* application */,
 				BDA71385220A96B5007FD13C /* shader */,
 				BD6B371A223A03C700D69CDB /* texture */,

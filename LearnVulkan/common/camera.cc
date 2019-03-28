@@ -7,6 +7,8 @@
 
 #include "camera.h"
 
+#include <stdexcept>
+
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -15,6 +17,7 @@ namespace {
 
 using glm::radians;
 using glm::vec3;
+using window::key_map::KeyMap;
 
 } /* namespace */
 
@@ -46,15 +49,15 @@ void Camera::UpdateProjMatrix() {
   proj_ = glm::perspective(radians(fov_), (float)width_ / height_, near_, far_);
 }
 
-void Camera::Init(const glm::ivec2& screen_size, const glm::dvec2& mouse_pos) {
+void Camera::Init(const glm::ivec2& screen_size, const glm::dvec2& cursor_pos) {
   width_ = screen_size.x;
   height_ = screen_size.y;
-  last_x_ = mouse_pos.x;
-  last_y_ = mouse_pos.y;
+  last_x_ = cursor_pos.x;
+  last_y_ = cursor_pos.y;
   UpdateProjMatrix();
 }
 
-void Camera::ProcessMouseMove(double x, double y) {
+void Camera::ProcessCursorMove(double x, double y) {
   float x_offset = (x - last_x_) * sensitivity_;
   float y_offset = (last_y_ - y) * sensitivity_;
   last_x_ = x;
@@ -67,27 +70,28 @@ void Camera::ProcessMouseMove(double x, double y) {
   UpdateViewMatrix();
 }
 
-void Camera::ProcessMouseScroll(double y, double min_val, double max_val) {
+void Camera::ProcessScroll(double y, double min_val, double max_val) {
   fov_ = glm::clamp(fov_ + y, min_val, max_val);
   UpdateProjMatrix();
 }
 
-void Camera::ProcessKeyboardInput(CameraMoveDirection direction,
-                                  float elapsed_time) {
+void Camera::ProcessKey(KeyMap key, float elapsed_time) {
   float distance = elapsed_time * 5.0f;
-  switch (direction) {
-    case CameraMoveDirection::kUp:
+  switch (key) {
+    case KeyMap::kUp:
       pos_ += front_ * distance;
       break;
-    case CameraMoveDirection::kDown:
+    case KeyMap::kDown:
       pos_ -= front_ * distance;
       break;
-    case CameraMoveDirection::kLeft:
+    case KeyMap::kLeft:
       pos_ -= right_ * distance;
       break;
-    case CameraMoveDirection::kRight:
+    case KeyMap::kRight:
       pos_ += right_ * distance;
       break;
+    default:
+      throw std::runtime_error{"Unsupported key"};
   }
   UpdateViewMatrix();
 }

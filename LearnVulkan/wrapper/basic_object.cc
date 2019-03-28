@@ -8,6 +8,7 @@
 #include "basic_object.h"
 
 #include <iostream>
+#include <stdexcept>
 #include <unordered_set>
 #include <vector>
 

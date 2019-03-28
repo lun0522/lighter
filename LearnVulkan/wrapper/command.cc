@@ -7,6 +7,8 @@
 
 #include "command.h"
 
+#include <stdexcept>
+
 #include "context.h"
 #include "util.h"
 

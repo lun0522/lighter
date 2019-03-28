@@ -29,18 +29,12 @@ class Context;
 namespace window {
 namespace key_map {
 
-enum class KeyMap {
-  kKeyEscape,
-  kKeyUp,
-  kKeyDown,
-  kKeyLeft,
-  kKeyRight,
-};
+enum class KeyMap { kEscape, kUp, kDown, kLeft, kRight };
 
 } /* namespace keymap */
 
 using KeyCallback = std::function<void()>;
-using CursorPosCallback = std::function<void(double x_pos, double y_pos)>;
+using CursorMoveCallback = std::function<void(double x_pos, double y_pos)>;
 using ScrollCallback = std::function<void(double x_pos, double y_pos)>;
 
 class Window {
@@ -51,7 +45,7 @@ class Window {
   virtual void SetCursorHidden(bool hidden) = 0;
   virtual void RegisterKeyCallback(key_map::KeyMap key,
                                    KeyCallback callback) = 0;
-  virtual void RegisterCursorPosCallback(CursorPosCallback callback) = 0;
+  virtual void RegisterCursorMoveCallback(CursorMoveCallback callback) = 0;
   virtual void RegisterScrollCallback(ScrollCallback callback) = 0;
   virtual void PollEvents() = 0;
   virtual bool ShouldQuit() const = 0;
@@ -61,7 +55,7 @@ class Window {
   virtual ~Window() {};
 
   virtual glm::ivec2 screen_size() const = 0;
-  virtual glm::dvec2 mouse_pos() const = 0;
+  virtual glm::dvec2 cursor_pos() const = 0;
 
  protected:
   bool is_resized_ = false;
@@ -75,7 +69,7 @@ class GlfwWindow : public Window {
       std::shared_ptr<wrapper::vulkan::Context> context) override;
   void SetCursorHidden(bool hidden) override;
   void RegisterKeyCallback(key_map::KeyMap key, KeyCallback callback) override;
-  void RegisterCursorPosCallback(CursorPosCallback callback) override;
+  void RegisterCursorMoveCallback(CursorMoveCallback callback) override;
   void RegisterScrollCallback(ScrollCallback callback) override;
   void PollEvents() override;
   bool ShouldQuit() const override { return glfwWindowShouldClose(window_); }
@@ -87,7 +81,7 @@ class GlfwWindow : public Window {
   GlfwWindow& operator=(const GlfwWindow&) = delete;
 
   glm::ivec2 screen_size() const override;
-  glm::dvec2 mouse_pos() const override;
+  glm::dvec2 cursor_pos() const override;
 
  private:
   GLFWwindow* window_;

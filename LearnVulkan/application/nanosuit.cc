@@ -22,6 +22,7 @@ namespace vulkan {
 namespace {
 
 using std::vector;
+using window::key_map::KeyMap;
 
 constexpr size_t kNumFrameInFlight = 2;
 
@@ -41,36 +42,32 @@ void NanosuitApp::Init() {
   if (is_first_time) {
     auto& window = context_->window();
     window.SetCursorHidden(true);
-    window.RegisterKeyCallback(window::key_map::KeyMap::kKeyEscape,
+    window.RegisterKeyCallback(KeyMap::kEscape,
                                [this]() { should_quit_ = true; });
 
     // camera
     camera_ = std::make_unique<camera::Camera>();
-    window.RegisterCursorPosCallback([this](double x_pos, double y_pos) {
-      camera_->ProcessMouseMove(x_pos, y_pos);
+    window.RegisterCursorMoveCallback([this](double x_pos, double y_pos) {
+      camera_->ProcessCursorMove(x_pos, y_pos);
     });
     window.RegisterScrollCallback([this](double x_pos, double y_pos) {
-      camera_->ProcessMouseScroll(y_pos, 1.0f, 60.0f);
+      camera_->ProcessScroll(y_pos, 1.0f, 60.0f);
     });
-    window.RegisterKeyCallback(window::key_map::KeyMap::kKeyUp, [this]() {
-      camera_->ProcessKeyboardInput(
-          camera::CameraMoveDirection::kUp,
-          util::TimeInterval(last_time_, util::Now()));
+    window.RegisterKeyCallback(KeyMap::kUp, [this]() {
+      camera_->ProcessKey(KeyMap::kUp,
+                          util::TimeInterval(last_time_, util::Now()));
     });
-    window.RegisterKeyCallback(window::key_map::KeyMap::kKeyDown, [this]() {
-      camera_->ProcessKeyboardInput(
-          camera::CameraMoveDirection::kDown,
-          util::TimeInterval(last_time_, util::Now()));
+    window.RegisterKeyCallback(KeyMap::kDown, [this]() {
+      camera_->ProcessKey(KeyMap::kDown,
+                          util::TimeInterval(last_time_, util::Now()));
     });
-    window.RegisterKeyCallback(window::key_map::KeyMap::kKeyLeft, [this]() {
-      camera_->ProcessKeyboardInput(
-          camera::CameraMoveDirection::kLeft,
-          util::TimeInterval(last_time_, util::Now()));
+    window.RegisterKeyCallback(KeyMap::kLeft, [this]() {
+      camera_->ProcessKey(KeyMap::kLeft,
+                          util::TimeInterval(last_time_, util::Now()));
     });
-    window.RegisterKeyCallback(window::key_map::KeyMap::kKeyRight, [this]() {
-      camera_->ProcessKeyboardInput(
-          camera::CameraMoveDirection::kRight,
-          util::TimeInterval(last_time_, util::Now()));
+    window.RegisterKeyCallback(KeyMap::kRight, [this]() {
+      camera_->ProcessKey(KeyMap::kRight,
+                          util::TimeInterval(last_time_, util::Now()));
     });
 
     // model (vertex buffer)
@@ -110,7 +107,7 @@ void NanosuitApp::Init() {
 
   last_time_ = util::Now();
   camera_->Init(context_->window().screen_size(),
-                context_->window().mouse_pos());
+                context_->window().cursor_pos());
   depth_stencil_.Init(context_, context_->swapchain().extent());
   context_->render_pass().Config(depth_stencil_);
   pipeline_.Init(context_->ptr(),

@@ -9,6 +9,7 @@
 
 #include <array>
 #include <sstream>
+#include <stdexcept>
 #include <unordered_map>
 
 namespace util {

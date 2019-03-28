@@ -8,6 +8,7 @@
 #include "buffer.h"
 
 #include <array>
+#include <stdexcept>
 
 #include "context.h"
 #include "command.h"

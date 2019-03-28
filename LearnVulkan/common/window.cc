@@ -16,7 +16,7 @@ namespace glfw_window {
 using SetResizedFlag = std::function<void()>;
 
 SetResizedFlag set_resized_flag = nullptr;
-CursorPosCallback cursor_pos_callback = nullptr;
+CursorMoveCallback cursor_move_callback = nullptr;
 ScrollCallback scroll_callback = nullptr;
 
 void DidResizeWindow(GLFWwindow* window, int width, int height) {
@@ -24,8 +24,8 @@ void DidResizeWindow(GLFWwindow* window, int width, int height) {
 }
 
 void DidMoveCursor(GLFWwindow* window, double x_pos, double y_pos) {
-  if (cursor_pos_callback) {
-    cursor_pos_callback(x_pos, y_pos);
+  if (cursor_move_callback) {
+    cursor_move_callback(x_pos, y_pos);
   }
 }
 
@@ -43,7 +43,6 @@ void GlfwWindow::Init(const std::string& name, glm::ivec2 screen_size) {
   window_ = glfwCreateWindow(screen_size.x, screen_size.y, name.c_str(),
                              nullptr, nullptr);
 
-  glfwSetWindowUserPointer(window_, this); // may retrive |this| in callback
   glfw_window::set_resized_flag = [this]() { Window::is_resized_ = true; };
   glfwSetFramebufferSizeCallback(window_, glfw_window::DidResizeWindow);
   glfwSetCursorPosCallback(window_, glfw_window::DidMoveCursor);
@@ -66,19 +65,19 @@ void GlfwWindow::SetCursorHidden(bool hidden) {
 void GlfwWindow::RegisterKeyCallback(key_map::KeyMap key, KeyCallback callback) {
   int glfw_key;
   switch (key) {
-    case key_map::KeyMap::kKeyEscape:
+    case key_map::KeyMap::kEscape:
       glfw_key = GLFW_KEY_ESCAPE;
       break;
-    case key_map::KeyMap::kKeyUp:
+    case key_map::KeyMap::kUp:
       glfw_key = GLFW_KEY_UP;
       break;
-    case key_map::KeyMap::kKeyDown:
+    case key_map::KeyMap::kDown:
       glfw_key = GLFW_KEY_DOWN;
       break;
-    case key_map::KeyMap::kKeyLeft:
+    case key_map::KeyMap::kLeft:
       glfw_key = GLFW_KEY_LEFT;
       break;
-    case key_map::KeyMap::kKeyRight:
+    case key_map::KeyMap::kRight:
       glfw_key = GLFW_KEY_RIGHT;
       break;
   }
@@ -90,8 +89,8 @@ void GlfwWindow::RegisterKeyCallback(key_map::KeyMap key, KeyCallback callback) 
   }
 }
 
-void GlfwWindow::RegisterCursorPosCallback(CursorPosCallback callback) {
-  glfw_window::cursor_pos_callback = callback;
+void GlfwWindow::RegisterCursorMoveCallback(CursorMoveCallback callback) {
+  glfw_window::cursor_move_callback = callback;
 }
 
 void GlfwWindow::RegisterScrollCallback(ScrollCallback callback) {
@@ -118,7 +117,7 @@ glm::ivec2 GlfwWindow::screen_size() const {
   return extent;
 }
 
-glm::dvec2 GlfwWindow::mouse_pos() const {
+glm::dvec2 GlfwWindow::cursor_pos() const {
   glm::dvec2 pos;
   glfwGetCursorPos(window_, &pos.x, &pos.y);
   return pos;
