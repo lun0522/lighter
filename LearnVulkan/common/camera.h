@@ -40,9 +40,10 @@ class Camera {
   const glm::mat4& proj_matrix()  const { return proj_; }
 
  private:
-  int width_, height_;
   float fov_, near_, far_, yaw_, pitch_;
-  float last_x_, last_y_, sensitivity_;
+  float sensitivity_;
+  glm::ivec2 screen_size_;
+  glm::dvec2 cursor_pos_;
   glm::vec3 pos_, front_, up_, right_;
   glm::mat4 view_, proj_;
 

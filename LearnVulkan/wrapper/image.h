@@ -85,7 +85,7 @@ class TextureImage {
  public:
   TextureImage() = default;
   void Init(std::shared_ptr<Context> context,
-            const std::string& path);
+            const std::vector<std::string>& paths);
   ~TextureImage();
 
   // This class is neither copyable nor movable

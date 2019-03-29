@@ -66,7 +66,7 @@ void CubeApp::Init() {
     uniform_buffer_.Init(context_->ptr(), chunk_info);
 
     // texture
-    image_.Init(context_, "texture/statue.jpg");
+    image_.Init(context_, {"texture/statue.jpg"});
 
     // descriptor
     resource_infos_ = {

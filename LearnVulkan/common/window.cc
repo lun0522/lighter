@@ -90,11 +90,11 @@ void GlfwWindow::RegisterKeyCallback(key_map::KeyMap key, KeyCallback callback) 
 }
 
 void GlfwWindow::RegisterCursorMoveCallback(CursorMoveCallback callback) {
-  glfw_window::cursor_move_callback = callback;
+  glfw_window::cursor_move_callback = std::move(callback);
 }
 
 void GlfwWindow::RegisterScrollCallback(ScrollCallback callback) {
-  glfw_window::scroll_callback = callback;
+  glfw_window::scroll_callback = std::move(callback);
 }
 
 void GlfwWindow::PollEvents() {

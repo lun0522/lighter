@@ -32,14 +32,18 @@ struct ChunkInfo {
 };
 
 struct ImageInfo{
-  const void* data;
+  bool is_cube_map;
+  std::vector<const void*> datas;
   VkFormat format;
   uint32_t width;
   uint32_t height;
   uint32_t channel;
 
-  VkExtent3D   extent()    const { return {width, height, /*depth=*/1}; }
-  VkDeviceSize data_size() const { return width * height * channel; }
+  VkExtent3D extent() const { return {width, height, /*depth=*/1}; }
+  VkDeviceSize data_size() const {
+    int batch = is_cube_map ? 6 : 1;
+    return batch* width * height * channel;
+  }
 };
 
 } /* namespace buffer */

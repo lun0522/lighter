@@ -22,6 +22,8 @@ using std::array;
 using std::runtime_error;
 using std::vector;
 
+const int kCubeMapImageCount = 6;
+
 uint32_t FindMemoryType(SharedContext context,
                         uint32_t type_filter,
                         VkMemoryPropertyFlags mem_properties) {
@@ -115,9 +117,11 @@ VkDeviceMemory CreateBufferMemory(SharedContext context,
 }
 
 VkImage CreateImage(SharedContext context,
+                    VkImageCreateFlags flags,
                     VkFormat format,
                     VkExtent3D extent,
-                    VkImageUsageFlags usage) {
+                    VkImageUsageFlags usage,
+                    uint32_t layer_count) {
   VkImageCreateInfo image_info{
       VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -126,7 +130,7 @@ VkImage CreateImage(SharedContext context,
       format,
       extent,
       /*mipLevels=*/1,
-      /*arrayLayers=*/1,
+      layer_count,
       /*samples=*/VK_SAMPLE_COUNT_1_BIT,
       // use VK_IMAGE_TILING_LINEAR if we want to directly access texels of
       // image, otherwise use VK_IMAGE_TILING_OPTIMAL for optimal layout
@@ -179,7 +183,8 @@ void TransitionImageLayout(SharedContext context,
                            VkImageAspectFlags image_aspect_mask,
                            array<VkImageLayout, 2> image_layouts,
                            array<VkAccessFlags, 2> barrier_access_flags,
-                           array<VkPipelineStageFlags, 2> pipeline_stages) {
+                           array<VkPipelineStageFlags, 2> pipeline_stages,
+                           uint32_t layer_count) {
   const Queues::Queue transfer_queue = context->queues().transfer;
 
   // one-time transition command
@@ -201,7 +206,7 @@ void TransitionImageLayout(SharedContext context,
                 /*baseMipLevel=*/0,
                 /*levelCount=*/1,
                 /*baseArrayLayer=*/0,
-                /*layerCount=*/1,
+                layer_count,
             },
         };
 
@@ -270,7 +275,8 @@ void CopyBufferToImage(SharedContext context,
                        const VkBuffer& buffer,
                        const VkImage& image,
                        const VkExtent3D& image_extent,
-                       VkImageLayout image_layout) {
+                       VkImageLayout image_layout,
+                       uint32_t layer_count) {
   // one-time copy command
   command::OneTimeCommand(context, context->queues().transfer,
                           [&](const VkCommandBuffer& command_buffer) {
@@ -284,7 +290,7 @@ void CopyBufferToImage(SharedContext context,
                 /*aspectMask=*/VK_IMAGE_ASPECT_COLOR_BIT,
                 /*mipLevel=*/0,
                 /*baseArrayLayer=*/0,
-                /*layerCount=*/1,
+                layer_count,
             },
             /*imageOffset=*/{0, 0, 0},
             image_extent,
@@ -401,6 +407,12 @@ void TextureBuffer::Init(SharedContext context,
 
   VkExtent3D image_extent = image_info.extent();
   VkDeviceSize data_size = image_info.data_size();
+  uint32_t layer_count = image_info.is_cube_map ? kCubeMapImageCount : 1;
+
+  if (image_info.datas.size() != layer_count) {
+    throw runtime_error{"Wrong number of images: " +
+                        std::to_string(image_info.datas.size())};
+  }
 
   // create staging buffer and associated memory
   VkBuffer staging_buffer = CreateBuffer(           // source of transfer
@@ -411,14 +423,19 @@ void TextureBuffer::Init(SharedContext context,
           | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);  // see host cache management
 
   // copy from host to staging buffer
-  CopyHostToBuffer(context_, data_size, 0, staging_memory, {
-      {image_info.data, data_size, /*offset=*/0},
-  });
+  VkDeviceSize image_size = data_size / layer_count;
+  for (int i = 0; i < layer_count; ++i) {
+    CopyHostToBuffer(context_, image_size, image_size * i, staging_memory, {
+        {image_info.datas[i], image_size, /*offset=*/0},
+    });
+  }
 
   // create final image buffer
-  image_ = CreateImage(context_, image_info.format, image_extent,
+  VkImageCreateFlags flags =
+      image_info.is_cube_map ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : NULL_FLAG;
+  image_ = CreateImage(context_, flags, image_info.format, image_extent,
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT
-                           | VK_IMAGE_USAGE_SAMPLED_BIT);
+                           | VK_IMAGE_USAGE_SAMPLED_BIT, layer_count);
   device_memory_ = CreateImageMemory(
       context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
@@ -427,15 +444,17 @@ void TextureBuffer::Init(SharedContext context,
       context_, image_, VK_IMAGE_ASPECT_COLOR_BIT,
       {VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL},
       {VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT},
-      {VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT});
+      {VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT},
+      layer_count);
   CopyBufferToImage(context_, staging_buffer, image_, image_extent,
-                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, layer_count);
   TransitionImageLayout(
       context_, image_, VK_IMAGE_ASPECT_COLOR_BIT,
       {VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
       {VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT},
-      {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT});
+      {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT},
+      layer_count);
 
   // cleanup transient objects
   vkDestroyBuffer(*context_->device(), staging_buffer, context_->allocator());
@@ -455,9 +474,10 @@ void DepthStencilBuffer::Init(SharedContext context,
   format_ = FindImageFormat(
       context_, {VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT_S8_UINT},
       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-  image_ = CreateImage(context_, format_,
+  image_ = CreateImage(context_, /*flags=*/NULL_FLAG, format_,
                        {extent.width, extent.height, /*depth=*/1},
-                       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+                       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                       /*layer_count=*/1);
   device_memory_ = CreateImageMemory(
       context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
   TransitionImageLayout(context_, image_,
@@ -468,7 +488,8 @@ void DepthStencilBuffer::Init(SharedContext context,
                          VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT
                              | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT},
                         {VK_PIPELINE_STAGE_HOST_BIT,
-                         VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT});
+                         VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT},
+                        /*layer_count=*/1);
 }
 
 void DepthStencilBuffer::Cleanup() {

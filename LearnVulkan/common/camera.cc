@@ -46,22 +46,20 @@ void Camera::UpdateViewMatrix() {
 }
 
 void Camera::UpdateProjMatrix() {
-  proj_ = glm::perspective(radians(fov_), (float)width_ / height_, near_, far_);
+  proj_ = glm::perspective(radians(fov_),
+                           (float)screen_size_.x / screen_size_.y, near_, far_);
 }
 
 void Camera::Init(const glm::ivec2& screen_size, const glm::dvec2& cursor_pos) {
-  width_ = screen_size.x;
-  height_ = screen_size.y;
-  last_x_ = cursor_pos.x;
-  last_y_ = cursor_pos.y;
+  screen_size_ = screen_size;
+  cursor_pos_ = cursor_pos;
   UpdateProjMatrix();
 }
 
 void Camera::ProcessCursorMove(double x, double y) {
-  float x_offset = (x - last_x_) * sensitivity_;
-  float y_offset = (last_y_ - y) * sensitivity_;
-  last_x_ = x;
-  last_y_ = y;
+  float x_offset = (x - cursor_pos_.x) * sensitivity_;
+  float y_offset = (cursor_pos_.y - y) * sensitivity_;
+  cursor_pos_ = glm::dvec2{x, y};
   yaw_ = glm::mod(yaw_ + x_offset, 360.0f);
   pitch_ = glm::clamp(pitch_ + y_offset, -89.0f, 89.0f);
 
