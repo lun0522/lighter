@@ -67,6 +67,8 @@
 		BD30819B21B1929300F30C2C /* validation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = validation.h; sourceTree = "<group>"; };
 		BD34960321AF3F4000F4C000 /* libglfw.3.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libglfw.3.3.dylib; path = "../../../../../usr/local/Cellar/glfw/HEAD-bb2ca1d/lib/libglfw.3.3.dylib"; sourceTree = "<group>"; };
 		BD4717B82219E9AB00B860D0 /* util.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = util.cc; sourceTree = "<group>"; };
+		BD585A08224F0FA400361424 /* skybox.frag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.glsl; path = skybox.frag; sourceTree = "<group>"; };
+		BD585A09224F0FA400361424 /* skybox.vert */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.glsl; path = skybox.vert; sourceTree = "<group>"; };
 		BD5F5F1021FA43DD006BD2AC /* libvulkan.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libvulkan.1.dylib; path = ../libs/vulkan/macOS/lib/libvulkan.1.dylib; sourceTree = "<group>"; };
 		BD60051C223CA5D300D17D03 /* image.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = image.cc; sourceTree = "<group>"; };
 		BD60051D223CA5D300D17D03 /* image.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = image.h; sourceTree = "<group>"; };
@@ -197,6 +199,8 @@
 				BDE3C01E2238A9B100AE8701 /* compiled */,
 				BDA71386220A9997007FD13C /* simple.vert */,
 				BDA71387220A9A90007FD13C /* simple.frag */,
+				BD585A09224F0FA400361424 /* skybox.vert */,
+				BD585A08224F0FA400361424 /* skybox.frag */,
 			);
 			path = shader;
 			sourceTree = "<group>";

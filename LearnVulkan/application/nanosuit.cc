@@ -71,7 +71,8 @@ void NanosuitApp::Init() {
     });
 
     // model (vertex buffer)
-    model_.Init(context_->ptr(), "texture/cube.obj", 1);
+    cube_model_.Init(context_->ptr(), "texture/cube.obj", 1);
+    skybox_model_.Init(context_->ptr(), "texture/skybox.obj", 1);
 
     // uniform buffer
     kTrans.resize(context_->swapchain().size());
@@ -83,38 +84,78 @@ void NanosuitApp::Init() {
     uniform_buffer_.Init(context_->ptr(), chunk_info);
 
     // texture
-    image_.Init(context_, {"texture/statue.jpg"});
+    cube_tex_.Init(context_, {"texture/statue.jpg"});
+    const std::string skybox_dir{"texture/tidepool/"};
+    skybox_tex_.Init(context_, {skybox_dir + "right.tga",
+                                skybox_dir + "left.tga",
+                                skybox_dir + "top.tga",
+                                skybox_dir + "bottom.tga",
+                                skybox_dir + "back.tga",
+                                skybox_dir + "front.tga"});
 
     // descriptor
-    resource_infos_ = {
+    cude_rsrc_infos_ = {
         descriptor::ResourceInfo{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, {0},
                                  VK_SHADER_STAGE_VERTEX_BIT},
         descriptor::ResourceInfo{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, {1},
                                  VK_SHADER_STAGE_FRAGMENT_BIT},
     };
-    descriptors_.reserve(kNumFrameInFlight);
+    cube_dscs_.reserve(kNumFrameInFlight);
     for (size_t i = 0; i < kNumFrameInFlight; ++i) {
-      descriptors_.emplace_back(std::make_unique<Descriptor>());
-      descriptors_[i]->Init(context_, resource_infos_);
-      descriptors_[i]->UpdateBufferInfos(resource_infos_[0],
+      cube_dscs_.emplace_back(std::make_unique<Descriptor>());
+      cube_dscs_[i]->Init(context_, cude_rsrc_infos_);
+      cube_dscs_[i]->UpdateBufferInfos(cude_rsrc_infos_[0],
+                                       {uniform_buffer_.descriptor_info(i)});
+      cube_dscs_[i]->UpdateImageInfos(cude_rsrc_infos_[1],
+                                      {cube_tex_.descriptor_info()});
+    }
+
+    skybox_rsrc_infos_ = {
+        descriptor::ResourceInfo{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, {0},
+                                 VK_SHADER_STAGE_VERTEX_BIT},
+        descriptor::ResourceInfo{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, {1},
+                                 VK_SHADER_STAGE_FRAGMENT_BIT},
+    };
+    skybox_dscs_.reserve(kNumFrameInFlight);
+    for (size_t i = 0; i < kNumFrameInFlight; ++i) {
+      skybox_dscs_.emplace_back(std::make_unique<Descriptor>());
+      skybox_dscs_[i]->Init(context_, skybox_rsrc_infos_);
+      skybox_dscs_[i]->UpdateBufferInfos(skybox_rsrc_infos_[0],
                                          {uniform_buffer_.descriptor_info(i)});
-      descriptors_[i]->UpdateImageInfos(resource_infos_[1],
-                                        {image_.descriptor_info()});
+      skybox_dscs_[i]->UpdateImageInfos(skybox_rsrc_infos_[1],
+                                        {skybox_tex_.descriptor_info()});
     }
 
     is_first_time = false;
   }
 
+  // time
   last_time_ = util::Now();
+
+  // camera
   camera_->Init(context_->window().screen_size(),
                 context_->window().cursor_pos());
+
+  // depth stencil
   depth_stencil_.Init(context_, context_->swapchain().extent());
   context_->render_pass().Config(depth_stencil_);
-  pipeline_.Init(context_->ptr(),
-                 {{"compiled/simple.vert.spv", VK_SHADER_STAGE_VERTEX_BIT},
-                  {"compiled/simple.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT}},
-                 descriptors_[0]->layout(),
-                 model_.binding_descs(), model_.attrib_descs());
+
+  // pipeline
+  cube_pipeline_.Init(
+      context_->ptr(),
+      {{"compiled/simple.vert.spv", VK_SHADER_STAGE_VERTEX_BIT},
+       {"compiled/simple.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT}},
+      cube_dscs_[0]->layout(), cube_model_.binding_descs(),
+      cube_model_.attrib_descs());
+
+  skybox_pipeline_.Init(
+      context_->ptr(),
+      {{"compiled/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT},
+       {"compiled/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT}},
+      skybox_dscs_[0]->layout(), skybox_model_.binding_descs(),
+      skybox_model_.attrib_descs());
+
+  // command
   command_.Init(context_->ptr(), kNumFrameInFlight,
                 [&](const VkCommandBuffer& command_buffer, size_t image_index) {
     // start render pass
@@ -142,11 +183,18 @@ void NanosuitApp::Init() {
                          VK_SUBPASS_CONTENTS_INLINE);
 
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                      *pipeline_);
+                      *cube_pipeline_);
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipeline_.layout(), 0, 1,
-                            &descriptors_[image_index]->set(), 0, nullptr);
-    model_.Draw(command_buffer);
+                            cube_pipeline_.layout(), 0, 1,
+                            &cube_dscs_[image_index]->set(), 0, nullptr);
+    cube_model_.Draw(command_buffer);
+
+    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      *skybox_pipeline_);
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            skybox_pipeline_.layout(), 0, 1,
+                            &skybox_dscs_[image_index]->set(), 0, nullptr);
+    skybox_model_.Draw(command_buffer);
 
     vkCmdEndRenderPass(command_buffer);
   });
@@ -154,7 +202,8 @@ void NanosuitApp::Init() {
 
 void NanosuitApp::Cleanup() {
   command_.Cleanup();
-  pipeline_.Cleanup();
+  cube_pipeline_.Cleanup();
+  skybox_pipeline_.Cleanup();
 }
 
 void NanosuitApp::UpdateTrans(size_t image_index) {

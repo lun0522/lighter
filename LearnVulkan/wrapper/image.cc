@@ -107,13 +107,13 @@ void TextureImage::Init(std::shared_ptr<Context> context,
                         const vector<std::string>& paths) {
   context_ = context;
 
-  bool is_cube_map;
+  bool is_cubemap;
   switch (paths.size()) {
     case 1:
-      is_cube_map = false;
+      is_cubemap = false;
       break;
     case 6:
-      is_cube_map = true;
+      is_cubemap = true;
       break;
     default:
       throw std::runtime_error{"Wrong number of paths: " +
@@ -128,7 +128,7 @@ void TextureImage::Init(std::shared_ptr<Context> context,
     datas.emplace_back(stbi_load(path.c_str(), &width, &height, &channel,
                                  STBI_rgb_alpha));  // force to have alpha
   }
-  buffer_.Init(context_, {is_cube_map, {datas.begin(), datas.end()},
+  buffer_.Init(context_, {is_cubemap, {datas.begin(), datas.end()},
                           format, static_cast<uint32_t>(width),
                           static_cast<uint32_t>(height), 4});
   for (auto* data : datas) {
@@ -136,7 +136,7 @@ void TextureImage::Init(std::shared_ptr<Context> context,
   }
 
   VkImageViewType view_type =
-      is_cube_map ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
+      is_cubemap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
   image_view_ = CreateImageView(context_, buffer_.image(), view_type, format,
                                 VK_IMAGE_ASPECT_COLOR_BIT,
                                 CONTAINER_SIZE(paths));

@@ -7,6 +7,8 @@
 
 #include "window.h"
 
+#include <stdexcept>
+
 #include "context.h"
 #include "util.h"
 
@@ -40,8 +42,17 @@ void DidScroll(GLFWwindow *window, double x_pos, double y_pos) {
 void GlfwWindow::Init(const std::string& name, glm::ivec2 screen_size) {
   glfwInit();
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifdef __APPLE__
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+
   window_ = glfwCreateWindow(screen_size.x, screen_size.y, name.c_str(),
                              nullptr, nullptr);
+  if (window_ == nullptr) {
+    throw std::runtime_error{"Failed to create window"};
+  }
+  glfwMakeContextCurrent(window_);
 
   glfw_window::set_resized_flag = [this]() { Window::is_resized_ = true; };
   glfwSetFramebufferSizeCallback(window_, glfw_window::DidResizeWindow);
@@ -59,7 +70,7 @@ VkSurfaceKHR GlfwWindow::CreateSurface(wrapper::vulkan::SharedContext context) {
 
 void GlfwWindow::SetCursorHidden(bool hidden) {
   glfwSetInputMode(window_, GLFW_CURSOR,
-                   hidden ? GLFW_CURSOR_HIDDEN : GLFW_CURSOR_DISABLED);
+                   hidden ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 }
 
 void GlfwWindow::RegisterKeyCallback(key_map::KeyMap key, KeyCallback callback) {

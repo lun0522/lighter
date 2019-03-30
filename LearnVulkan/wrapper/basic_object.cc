@@ -183,7 +183,7 @@ void PhysicalDevice::Init(SharedContext context) {
     auto indices = FindDeviceQueues(context_, candidate);
     if (indices.IsValid()) {
       physical_device_ = candidate;
-      context_->queues().set_family_indices(
+      context_->set_queue_family_indices(
           static_cast<uint32_t>(indices.graphics),
           static_cast<uint32_t>(indices.present)
       );
@@ -207,7 +207,7 @@ void Device::Init(SharedContext context) {
   enabled_features.samplerAnisotropy = VK_TRUE;
 
   // graphics queue and present queue might be the same
-  Queues& queues = context_->queues();
+  const Queues& queues = context_->queues();
   std::unordered_set<uint32_t> queue_families{
       queues.graphics.family_index,
       queues.present.family_index,
@@ -255,7 +255,7 @@ void Device::Init(SharedContext context) {
   VkQueue graphics_queue, present_queue;
   vkGetDeviceQueue(device_, queues.graphics.family_index, 0, &graphics_queue);
   vkGetDeviceQueue(device_, queues.present.family_index, 0, &present_queue);
-  queues.set_queues(graphics_queue, present_queue);
+  context_->set_queues(graphics_queue, present_queue);
 }
 
 Device::~Device() {

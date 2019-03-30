@@ -42,14 +42,14 @@ class NanosuitApp {
   util::TimePoint last_time_;
   std::shared_ptr<Context> context_;
   std::unique_ptr<camera::Camera> camera_;
-  Pipeline pipeline_;
   Command command_;
-  Model model_;
   UniformBuffer uniform_buffer_;
-  TextureImage image_;
   DepthStencilImage depth_stencil_;
-  std::vector<descriptor::ResourceInfo> resource_infos_;
-  std::vector<std::unique_ptr<Descriptor>> descriptors_;
+  Pipeline cube_pipeline_, skybox_pipeline_;
+  Model cube_model_, skybox_model_;
+  TextureImage cube_tex_, skybox_tex_;
+  std::vector<descriptor::ResourceInfo> cude_rsrc_infos_, skybox_rsrc_infos_;
+  std::vector<std::unique_ptr<Descriptor>> cube_dscs_, skybox_dscs_;
 
   void Init();
   void Cleanup();

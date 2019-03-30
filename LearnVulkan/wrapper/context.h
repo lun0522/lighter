@@ -50,10 +50,19 @@ class Context : public std::enable_shared_from_this<Context> {
   const RenderPass& render_pass()           const { return render_pass_; }
   RenderPass& render_pass()                       { return render_pass_; }
   const Queues& queues()                    const { return queues_; }
-  Queues& queues()                                { return queues_; }
 
   void set_allocator(VkAllocationCallbacks* allocator) {
     allocator_ = allocator;
+  }
+
+  void set_queues(const VkQueue& graphics_queue,
+                  const VkQueue& present_queue) {
+    queues_.set_queues(graphics_queue, present_queue);
+  }
+
+  void set_queue_family_indices(uint32_t graphics_index,
+                                uint32_t present_index) {
+    queues_.set_family_indices(graphics_index, present_index);
   }
 
  private:

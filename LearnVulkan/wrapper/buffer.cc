@@ -125,7 +125,7 @@ VkImage CreateImage(SharedContext context,
   VkImageCreateInfo image_info{
       VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
       /*pNext=*/nullptr,
-      /*flags=*/NULL_FLAG,
+      flags,
       /*imageType=*/VK_IMAGE_TYPE_2D,
       format,
       extent,
@@ -407,7 +407,7 @@ void TextureBuffer::Init(SharedContext context,
 
   VkExtent3D image_extent = image_info.extent();
   VkDeviceSize data_size = image_info.data_size();
-  uint32_t layer_count = image_info.is_cube_map ? kCubeMapImageCount : 1;
+  uint32_t layer_count = image_info.is_cubemap ? kCubeMapImageCount : 1;
 
   if (image_info.datas.size() != layer_count) {
     throw runtime_error{"Wrong number of images: " +
@@ -432,7 +432,7 @@ void TextureBuffer::Init(SharedContext context,
 
   // create final image buffer
   VkImageCreateFlags flags =
-      image_info.is_cube_map ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : NULL_FLAG;
+      image_info.is_cubemap ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : NULL_FLAG;
   image_ = CreateImage(context_, flags, image_info.format, image_extent,
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT
                            | VK_IMAGE_USAGE_SAMPLED_BIT, layer_count);
