@@ -1,8 +1,8 @@
 #!/bin/sh
 
 VK_GLSL_VALIDATOR="/Users/lun/Desktop/Code/libs/vulkan/macOS/bin/glslangValidator"
-SHADERS_DIR="/Users/lun/Desktop/Code/LearnVulkan/LearnVulkan/shader"
-COMPILED_DIR="/Users/lun/Desktop/Code/LearnVulkan/LearnVulkan/shader/compiled"
+SHADERS_DIR="/Users/lun/Desktop/Code/LearnVulkan/jessie_engine/shader"
+COMPILED_DIR="/Users/lun/Desktop/Code/LearnVulkan/jessie_engine/shader/compiled"
 COMPILED_EXT=".spv"
 
 echo "Compiling shaders..."
