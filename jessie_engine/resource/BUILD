@@ -1,5 +1,5 @@
 filegroup(
     name = "resource",
     srcs = glob(["**/*"]),
-    visibility = ["//visibility:public"],
+    visibility = ["//jessie_engine:__subpackages__"],
 )

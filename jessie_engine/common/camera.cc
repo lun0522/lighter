@@ -9,7 +9,7 @@
 
 #include <stdexcept>
 
-#include "third_party/glm/gtc/matrix_transform.hpp"
+#include "external/lib-glm/gtc/matrix_transform.hpp"
 
 namespace camera {
 namespace {

@@ -8,8 +8,8 @@
 #ifndef JESSIE_ENGINE_COMMON_CAMERA_H
 #define JESSIE_ENGINE_COMMON_CAMERA_H
 
+#include "external/lib-glm/glm.hpp"
 #include "jessie_engine/common/window.h"
-#include "third_party/glm/glm.hpp"
 
 namespace camera {
 

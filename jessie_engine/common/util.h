@@ -15,7 +15,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "third_party/glm/glm.hpp"
+#include "external/lib-glm/glm.hpp"
 
 #define NULL_FLAG 0
 #define ASSERT_SUCCESS(event, error) \

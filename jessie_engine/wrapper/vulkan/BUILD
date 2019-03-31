@@ -1,5 +1,3 @@
-package(default_visibility = ["//visibility:public"])
-
 cc_library(
     name = "vulkan_wrapper",
     srcs = [
@@ -31,10 +29,12 @@ cc_library(
         "validation.h",
     ],
     deps = [
+        "//external:glm",
+        "//external:stb",
         "//jessie_engine/common:util",
         "//jessie_engine/common:window",
         "//third_party/glfw",
-        "//third_party/stb_image",
         "//third_party/vulkan",
     ],
+    visibility = ["//jessie_engine:__subpackages__"],
 )

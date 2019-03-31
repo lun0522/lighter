@@ -10,10 +10,10 @@
 #include <memory>
 #include <stdexcept>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "external/lib-stb/stb_image.h"
 #include "jessie_engine/common/util.h"
 #include "jessie_engine/wrapper/vulkan/context.h"
-#define STB_IMAGE_IMPLEMENTATION
-#include "third_party/stb_image/stb_image.h"
 
 namespace wrapper {
 namespace vulkan {
