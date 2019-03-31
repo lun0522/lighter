@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef COMMON_WINDOW_H
-#define COMMON_WINDOW_H
+#ifndef JESSIE_ENGINE_COMMON_WINDOW_H
+#define JESSIE_ENGINE_COMMON_WINDOW_H
 
 #include <functional>
 #include <memory>
@@ -91,4 +91,4 @@ class GlfwWindow : public Window {
 
 } /* namespace window */
 
-#endif /* COMMON_WINDOW_H */
+#endif /* JESSIE_ENGINE_COMMON_WINDOW_H */

@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef COMMON_UTIL_H
-#define COMMON_UTIL_H
+#ifndef JESSIE_ENGINE_COMMON_UTIL_H
+#define JESSIE_ENGINE_COMMON_UTIL_H
 
 #include <chrono>
 #include <fstream>
@@ -99,4 +99,4 @@ void LoadObjFile(const std::string& path,
 
 } /* namespace util */
 
-#endif /* COMMON_UTIL_H */
+#endif /* JESSIE_ENGINE_COMMON_UTIL_H */

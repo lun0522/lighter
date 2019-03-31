@@ -5,8 +5,8 @@
 //  Copyright © 2018 Pujun Lun. All rights reserved.
 //
 
-#ifndef COMMON_CAMERA_H
-#define COMMON_CAMERA_H
+#ifndef JESSIE_ENGINE_COMMON_CAMERA_H
+#define JESSIE_ENGINE_COMMON_CAMERA_H
 
 #include "jessie_engine/common/window.h"
 #include "third_party/glm/glm.hpp"
@@ -54,4 +54,4 @@ class Camera {
 
 } /* namespace camera */
 
-#endif /* COMMON_CAMERA_H */
+#endif /* JESSIE_ENGINE_COMMON_CAMERA_H */

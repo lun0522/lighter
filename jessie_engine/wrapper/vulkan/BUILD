@@ -1,0 +1,40 @@
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "vulkan_wrapper",
+    srcs = [
+        "basic_object.cc",
+        "buffer.cc",
+        "command.cc",
+        "context.cc",
+        "descriptor.cc",
+        "image.cc",
+        "model.cc",
+        "pipeline.cc",
+        "render_pass.cc",
+        "swapchain.cc",
+        "synchronize.cc",
+        "validation.cc",
+    ],
+    hdrs = [
+        "basic_object.h",
+        "buffer.h",
+        "command.h",
+        "context.h",
+        "descriptor.h",
+        "image.h",
+        "model.h",
+        "pipeline.h",
+        "render_pass.h",
+        "swapchain.h",
+        "synchronize.h",
+        "validation.h",
+    ],
+    deps = [
+        "//jessie_engine/common:util",
+        "//jessie_engine/common:window",
+        "//third_party/glfw",
+        "//third_party/stb_image",
+        "//third_party/vulkan",
+    ],
+)
