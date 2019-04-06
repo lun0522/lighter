@@ -13,9 +13,9 @@
 #include <string>
 #include <unordered_map>
 
-#include "external/lib-glm/glm.hpp"
 #define GLFW_INCLUDE_VULKAN
 #include "third_party/glfw/glfw3.h"
+#include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
 namespace wrapper {

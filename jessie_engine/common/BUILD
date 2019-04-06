@@ -6,7 +6,7 @@ cc_library(
     hdrs = ["camera.h"],
     deps = [
         ":window",
-        "//external:glm",
+        "//third_party:glm",
     ],
 )
 
@@ -14,7 +14,7 @@ cc_library(
     name = "util",
     srcs = ["util.cc"],
     hdrs = ["util.h"],
-    deps = ["//external:glm"],
+    deps = ["//third_party:glm"],
 )
 
 cc_library(
@@ -23,8 +23,8 @@ cc_library(
     hdrs = ["window.h"],
     deps = [
         ":util",
-        "//external:glm",
-        "//third_party/glfw",
+        "//third_party:glm",
+        "//third_party:glfw",
         "//third_party/vulkan",
     ],
 )

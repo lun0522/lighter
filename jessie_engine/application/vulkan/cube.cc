@@ -12,10 +12,6 @@
 #include <memory>
 #include <vector>
 
-#include "external/lib-glm/glm.hpp"
-// different from OpenGL, where depth values are in range [-1.0, 1.0]
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "external/lib-glm/gtc/matrix_transform.hpp"
 #include "jessie_engine/common/util.h"
 #include "jessie_engine/wrapper/vulkan/buffer.h"
 #include "jessie_engine/wrapper/vulkan/command.h"
@@ -23,6 +19,10 @@
 #include "jessie_engine/wrapper/vulkan/image.h"
 #include "jessie_engine/wrapper/vulkan/model.h"
 #include "jessie_engine/wrapper/vulkan/pipeline.h"
+#include "third_party/glm/glm.hpp"
+// different from OpenGL, where depth values are in range [-1.0, 1.0]
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include "third_party/glm/gtc/matrix_transform.hpp"
 #include "third_party/vulkan/vulkan.h"
 
 namespace application {
@@ -201,6 +201,7 @@ void CubeApp::MainLoop() {
 
 int main(int argc, const char* argv[]) {
 #ifdef DEBUG
+  INSERT_DEBUG_REQUIREMENT(/*overwrite=*/true);
   application::vulkan::cube::CubeApp app{};
   app.MainLoop();
 #else

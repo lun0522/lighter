@@ -9,19 +9,30 @@
 #define JESSIE_ENGINE_COMMON_UTIL_H
 
 #include <chrono>
+#include <cstdlib>
+#include <stdexcept>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <unordered_set>
 #include <vector>
 
-#include "external/lib-glm/glm.hpp"
+#include "third_party/glm/glm.hpp"
 
 #define NULL_FLAG 0
 #define ASSERT_SUCCESS(event, error) \
   if (event != VK_SUCCESS)  throw std::runtime_error{error}
 #define CONTAINER_SIZE(container) \
   static_cast<uint32_t>(container.size())
+#define INSERT_DEBUG_REQUIREMENT(overwrite) \
+  if (argc != 3) { \
+    std::cout << "Usage: exec <VK_ICD_FILENAMES> <VK_LAYER_PATH>" \
+              << std::endl; \
+    return EXIT_FAILURE; \
+  } else { \
+    setenv("VK_ICD_FILENAMES", argv[1], overwrite); \
+    setenv("VK_LAYER_PATH", argv[2], overwrite); \
+  }
 
 namespace util {
 

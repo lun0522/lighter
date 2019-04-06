@@ -6,5 +6,6 @@ cc_library(
         "stb_image.h",
         "stb_image_write.h",
     ],
+    include_prefix = "third_party/stb",
     visibility = ["//visibility:public"],
 )

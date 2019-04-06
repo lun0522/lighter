@@ -7,5 +7,6 @@ cc_library(
         "**/*.h",
         "**/*.inl",
     ]),
+    include_prefix = "third_party/glm",
     visibility = ["//visibility:public"],
 )

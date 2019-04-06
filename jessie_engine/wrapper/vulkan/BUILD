@@ -29,11 +29,10 @@ cc_library(
         "validation.h",
     ],
     deps = [
-        "//external:glm",
-        "//external:stb",
         "//jessie_engine/common:util",
         "//jessie_engine/common:window",
-        "//third_party/glfw",
+        "//third_party:glm",
+        "//third_party:stb",
         "//third_party/vulkan",
     ],
     visibility = ["//jessie_engine:__subpackages__"],
