@@ -1,8 +1,9 @@
 #!/bin/sh
 
-VK_GLSL_VALIDATOR="/Users/lun/Desktop/Code/libs/vulkan/macOS/bin/glslangValidator"
-SHADERS_DIR="/Users/lun/Desktop/Code/LearnVulkan/jessie_engine/shader"
-COMPILED_DIR="/Users/lun/Desktop/Code/LearnVulkan/jessie_engine/shader/compiled"
+VK_GLSL_VALIDATOR=$1
+BASEDIR=$(dirname "$0")
+SHADERS_DIR="${BASEDIR}/jessie_steamer/shader"
+COMPILED_DIR="${SHADERS_DIR}/compiled"
 COMPILED_EXT=".spv"
 
 echo "Compiling shaders..."
@@ -12,3 +13,4 @@ for ext in ".vert" ".frag"; do
     ${VK_GLSL_VALIDATOR} -V ${file} -o ${output}
   done
 done
+echo "Finished!"

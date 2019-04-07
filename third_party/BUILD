@@ -19,3 +19,8 @@ cc_library(
     name = "stb",
     deps = ["@lib-stb//:stb"],
 )
+
+cc_library(
+    name = "vulkan",
+    deps = ["@lib-vulkan//:vulkan"],
+)
