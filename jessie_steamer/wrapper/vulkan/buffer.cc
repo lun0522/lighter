@@ -8,6 +8,7 @@
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 
 #include <array>
+#include <cstring>
 #include <stdexcept>
 
 #include "jessie_steamer/common/util.h"
@@ -66,7 +67,7 @@ VkBuffer CreateBuffer(SharedContext context,
   VkBufferCreateInfo buffer_info{
       VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
       /*pNext=*/nullptr,
-      /*flags=*/NULL_FLAG,
+      util::nullflag,
       data_size,
       buffer_usage,
       /*sharingMode=*/VK_SHARING_MODE_EXCLUSIVE,  // only graphics queue access
@@ -306,7 +307,7 @@ void CopyBufferToImage(SharedContext context,
 void VertexBuffer::Init(SharedContext context,
                         const buffer::DataInfo& vertex_info,
                         const buffer::DataInfo& index_info) {
-  context_ = context;
+  context_ = std::move(context);
 
   VkDeviceSize total_size = vertex_info.data_size + index_info.data_size;
   index_offset_ = vertex_info.data_size;
@@ -360,7 +361,7 @@ VertexBuffer::~VertexBuffer() {
 
 void UniformBuffer::Init(SharedContext context,
                          const buffer::ChunkInfo& chunk_info) {
-  context_ = context;
+  context_ = std::move(context);
 
   data_ = static_cast<const char*>(chunk_info.data);
   // offset is required to be multiple of minUniformBufferOffsetAlignment
@@ -403,7 +404,7 @@ UniformBuffer::~UniformBuffer() {
 
 void TextureBuffer::Init(SharedContext context,
                          const buffer::ImageInfo& image_info) {
-  context_ = context;
+  context_ = std::move(context);
 
   VkExtent3D image_extent = image_info.extent();
   VkDeviceSize data_size = image_info.data_size();
@@ -431,8 +432,9 @@ void TextureBuffer::Init(SharedContext context,
   }
 
   // create final image buffer
-  VkImageCreateFlags flags =
-      image_info.is_cubemap ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : NULL_FLAG;
+  VkImageCreateFlags flags = image_info.is_cubemap
+                                 ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT
+                                 : util::nullflag;
   image_ = CreateImage(context_, flags, image_info.format, image_extent,
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT
                            | VK_IMAGE_USAGE_SAMPLED_BIT, layer_count);
@@ -468,13 +470,13 @@ TextureBuffer::~TextureBuffer() {
 
 void DepthStencilBuffer::Init(SharedContext context,
                               VkExtent2D extent) {
-  context_ = context;
+  context_ = std::move(context);
 
   // no need to send any data to buffer
   format_ = FindImageFormat(
       context_, {VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT_S8_UINT},
       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-  image_ = CreateImage(context_, /*flags=*/NULL_FLAG, format_,
+  image_ = CreateImage(context_, util::nullflag, format_,
                        {extent.width, extent.height, /*depth=*/1},
                        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                        /*layer_count=*/1);

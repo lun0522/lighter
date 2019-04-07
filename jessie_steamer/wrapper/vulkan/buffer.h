@@ -96,8 +96,8 @@ class VertexBuffer {
   std::shared_ptr<Context> context_;
   VkBuffer buffer_;
   VkDeviceMemory device_memory_;
-  VkDeviceSize index_offset_;
-  uint32_t index_count_;
+  VkDeviceSize index_offset_ = 0;
+  uint32_t index_count_ = 0;
 };
 
 class UniformBuffer {
@@ -116,8 +116,8 @@ class UniformBuffer {
 
  private:
   std::shared_ptr<Context> context_;
-  const char* data_;
-  size_t chunk_memory_size_, chunk_data_size_;
+  const char* data_ = nullptr;
+  size_t chunk_memory_size_ = 0, chunk_data_size_ = 0;
   VkBuffer buffer_;
   VkDeviceMemory device_memory_;
 };

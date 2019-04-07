@@ -48,7 +48,7 @@ class RenderPass {
   RenderPass(const RenderPass&) = delete;
   RenderPass& operator=(const RenderPass&) = delete;
 
-  const VkRenderPass& operator*(void) const { return render_pass_; }
+  const VkRenderPass& operator*() const { return render_pass_; }
   const VkFramebuffer& framebuffer(size_t index) const
       { return framebuffers_[index]; }
 

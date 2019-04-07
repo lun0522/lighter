@@ -53,7 +53,7 @@ class Pipeline {
   Pipeline(const Pipeline&) = delete;
   Pipeline& operator=(const Pipeline&) = delete;
 
-  const VkPipeline& operator*(void) const { return pipeline_; }
+  const VkPipeline& operator*() const { return pipeline_; }
   const VkPipelineLayout& layout()  const { return pipeline_layout_; }
 
  private:

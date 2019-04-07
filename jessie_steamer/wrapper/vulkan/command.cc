@@ -25,7 +25,7 @@ VkCommandPool CreateCommandPool(SharedContext context,
   VkCommandPoolCreateInfo pool_info{
       VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       /*pNext=*/nullptr,
-      /*flags=*/NULL_FLAG,
+      util::nullflag,
       queue.family_index,
   };
   if (is_transient) {
@@ -213,7 +213,6 @@ VkResult Command::DrawFrame(size_t current_frame,
   switch (present_result) {
     case VK_ERROR_OUT_OF_DATE_KHR:  // swapchain can no longer present image
       return present_result;
-      break;
     case VK_SUCCESS:
     case VK_SUBOPTIMAL_KHR:  // may be considered as good state as well
       break;
@@ -227,7 +226,7 @@ VkResult Command::DrawFrame(size_t current_frame,
 void Command::Init(SharedContext context,
                    size_t num_frame,
                    const command::MultiTimeRecordCommand& on_record) {
-  context_ = context;
+  context_ = std::move(context);
 
   if (is_first_time_) {
     command_pool_ = CreateCommandPool(

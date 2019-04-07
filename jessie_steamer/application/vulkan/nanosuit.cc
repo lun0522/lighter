@@ -190,8 +190,8 @@ void NanosuitApp::Init() {
         VK_SHADER_STAGE_VERTEX_BIT},
        {"jessie_steamer/shader/compiled/simple.frag.spv",
         VK_SHADER_STAGE_FRAGMENT_BIT}},
-      cube_dscs_[0]->layout(), cube_model_.binding_descs(),
-      cube_model_.attrib_descs());
+      cube_dscs_[0]->layout(), Model::binding_descs(),
+      Model::attrib_descs());
 
   skybox_pipeline_.Init(
       context_->ptr(),
@@ -199,15 +199,18 @@ void NanosuitApp::Init() {
         VK_SHADER_STAGE_VERTEX_BIT},
        {"jessie_steamer/shader/compiled/skybox.frag.spv",
         VK_SHADER_STAGE_FRAGMENT_BIT}},
-      skybox_dscs_[0]->layout(), skybox_model_.binding_descs(),
-      skybox_model_.attrib_descs());
+      skybox_dscs_[0]->layout(), Model::binding_descs(),
+      Model::attrib_descs());
 
   // command
   command_.Init(context_->ptr(), kNumFrameInFlight,
                 [&](const VkCommandBuffer& command_buffer, size_t image_index) {
     // start render pass
-    std::array<VkClearValue, 2> clear_values;
-    clear_values[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+    std::array<VkClearValue, 2> clear_values{};
+    clear_values[0].color.float32[0] = 0.0f;
+    clear_values[0].color.float32[1] = 0.0f;
+    clear_values[0].color.float32[2] = 0.0f;
+    clear_values[0].color.float32[3] = 1.0f;
     clear_values[1].depthStencil = {1.0f, 0};  // initial depth value set to 1.0
 
     VkRenderPassBeginInfo begin_info{

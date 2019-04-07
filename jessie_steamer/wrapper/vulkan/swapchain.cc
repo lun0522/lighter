@@ -160,7 +160,7 @@ void Swapchain::Init(SharedContext context) {
   VkSwapchainCreateInfoKHR swapchain_info{
       VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
       /*pNext=*/nullptr,
-      /*flags=*/NULL_FLAG,
+      util::nullflag,
       surface,
       min_image_count,
       surface_format.format,

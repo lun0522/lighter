@@ -36,7 +36,7 @@ vector<VkFramebuffer> CreateFramebuffers(
     VkFramebufferCreateInfo framebuffer_info{
         VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
         /*pNext=*/nullptr,
-        /*flags*/NULL_FLAG,
+        util::nullflag,
         *context->render_pass(),
         CONTAINER_SIZE(attachments),
         attachments.data(),
@@ -55,12 +55,12 @@ vector<VkFramebuffer> CreateFramebuffers(
 } /* namespace */
 
 void RenderPass::Init(SharedContext context) {
-  context_ = context;
+  context_ = std::move(context);
 }
 
 void RenderPass::Config(const DepthStencilImage &depth_stencil_image) {
   VkAttachmentDescription color_att_desc{
-      /*flags=*/NULL_FLAG,
+      util::nullflag,
       context_->swapchain().format(),
       /*samples=*/VK_SAMPLE_COUNT_1_BIT,  // no multisampling
       // .loadOp and .storeOp affect color and depth buffers
@@ -87,7 +87,7 @@ void RenderPass::Config(const DepthStencilImage &depth_stencil_image) {
   };
 
   VkAttachmentDescription depth_stencil_att_desc{
-      /*flags=*/NULL_FLAG,
+      util::nullflag,
       depth_stencil_image.format(),
       /*samples=*/VK_SAMPLE_COUNT_1_BIT,  // no multisampling
       /*loadOp=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -104,7 +104,7 @@ void RenderPass::Config(const DepthStencilImage &depth_stencil_image) {
   };
 
   VkSubpassDescription subpass_desc{
-      /*flags=*/NULL_FLAG,
+      util::nullflag,
       /*pipelineBindPoint=*/VK_PIPELINE_BIND_POINT_GRAPHICS,
       /*inputAttachmentCount=*/0,
       /*pInputAttachments=*/nullptr,
@@ -129,7 +129,7 @@ void RenderPass::Config(const DepthStencilImage &depth_stencil_image) {
       /*srcAccessMask=*/0,
       /*dstAccessMask=*/VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
                             | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-      /*dependencyFlags=*/NULL_FLAG,
+      /*dependencyFlags=*/util::nullflag,
   };
 
   std::array<VkAttachmentDescription, 2> att_descs{
@@ -140,7 +140,7 @@ void RenderPass::Config(const DepthStencilImage &depth_stencil_image) {
   VkRenderPassCreateInfo render_pass_info{
       VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
       /*pNext=*/nullptr,
-      /*flags=*/NULL_FLAG,
+      util::nullflag,
       CONTAINER_SIZE(att_descs),
       att_descs.data(),
       /*subpassCount=*/1,

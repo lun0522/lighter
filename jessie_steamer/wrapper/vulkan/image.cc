@@ -30,7 +30,7 @@ VkImageView CreateImageView(SharedContext context,
   VkImageViewCreateInfo image_view_info{
       VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       /*pNext=*/nullptr,
-      /*flags=*/NULL_FLAG,
+      util::nullflag,
       image,
       view_type,
       format,
@@ -62,7 +62,7 @@ VkSampler CreateSampler(SharedContext context) {
   VkSamplerCreateInfo sampler_info{
       VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
       /*pNext=*/nullptr,
-      /*flags=*/NULL_FLAG,
+      util::nullflag,
       /*magFilter=*/VK_FILTER_LINEAR,
       /*minFilter=*/VK_FILTER_LINEAR,
       /*mipmapMode=*/VK_SAMPLER_MIPMAP_MODE_LINEAR,
@@ -93,7 +93,7 @@ VkSampler CreateSampler(SharedContext context) {
 void SwapChainImage::Init(SharedContext context,
                           const VkImage& image,
                           VkFormat format) {
-  context_ = context;
+  context_ = std::move(context);
   image_view_ = CreateImageView(context_, image, VK_IMAGE_VIEW_TYPE_2D, format,
                                 VK_IMAGE_ASPECT_COLOR_BIT, /*layer_count=*/1);
 }
@@ -105,7 +105,7 @@ SwapChainImage::~SwapChainImage() {
 
 void TextureImage::Init(std::shared_ptr<Context> context,
                         const vector<std::string>& paths) {
-  context_ = context;
+  context_ = std::move(context);
 
   bool is_cubemap;
   switch (paths.size()) {
@@ -162,7 +162,7 @@ TextureImage::~TextureImage() {
 
 void DepthStencilImage::Init(SharedContext context,
                              VkExtent2D extent) {
-  context_ = context;
+  context_ = std::move(context);
   buffer_.Init(context_, extent);
   image_view_ = CreateImageView(context_, buffer_.image(),
                                 VK_IMAGE_VIEW_TYPE_2D, format(),

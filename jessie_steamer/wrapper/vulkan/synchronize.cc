@@ -19,7 +19,7 @@ using std::vector;
 constexpr VkSemaphoreCreateInfo kSemaInfo{
     VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
     /*pNext=*/nullptr,
-    /*flags=*/NULL_FLAG,
+    util::nullflag,
 };
 
 constexpr VkFenceCreateInfo kSignaledFenceInfo{
@@ -31,13 +31,13 @@ constexpr VkFenceCreateInfo kSignaledFenceInfo{
 constexpr VkFenceCreateInfo kUnsignaledFenceInfo{
     VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
     /*pNext=*/nullptr,
-    /*flags=*/NULL_FLAG,
+    util::nullflag,
 };
 
 } /* namespace */
 
 void Semaphores::Init(SharedContext context, size_t count) {
-  context_ = context;
+  context_ = std::move(context);
   semas_.resize(count);
   for (auto& sema : semas_) {
     ASSERT_SUCCESS(vkCreateSemaphore(*context_->device(), &kSemaInfo,
@@ -55,7 +55,7 @@ Semaphores::~Semaphores() {
 void Fences::Init(SharedContext context,
                   size_t count,
                   bool is_signaled) {
-  context_ = context;
+  context_ = std::move(context);
   fences_.resize(count);
   const VkFenceCreateInfo& fence_info =
       is_signaled ? kSignaledFenceInfo : kUnsignaledFenceInfo;

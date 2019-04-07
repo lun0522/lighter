@@ -34,7 +34,7 @@ VkDescriptorPool CreateDescriptorPool(
   VkDescriptorPoolCreateInfo pool_info{
       VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
       /*pNext=*/nullptr,
-      /*flags=*/NULL_FLAG,
+      util::nullflag,
       /*maxSets=*/1,
       CONTAINER_SIZE(pool_sizes),
       pool_sizes.data(),
@@ -72,7 +72,7 @@ VkDescriptorSetLayout CreateDescriptorSetLayout(
   VkDescriptorSetLayoutCreateInfo layout_info{
       VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
       /*pNext=*/nullptr,
-      /*flags=*/NULL_FLAG,
+      util::nullflag,
       /*bindingCount=*/CONTAINER_SIZE(layout_bindings),
       layout_bindings.data(),
   };
@@ -106,7 +106,7 @@ VkDescriptorSet CreateDescriptorSet(SharedContext context,
 
 void Descriptor::Init(SharedContext context,
                       const vector<ResourceInfo>& resource_infos) {
-  context_ = context;
+  context_ = std::move(context);
   pool_ = CreateDescriptorPool(context_, resource_infos);
   layout_ = CreateDescriptorSetLayout(context_, resource_infos);
   set_ = CreateDescriptorSet(context_, pool_, layout_);

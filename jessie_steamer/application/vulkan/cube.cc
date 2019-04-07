@@ -130,12 +130,15 @@ void CubeApp::Init() {
                   {"jessie_steamer/shader/compiled/simple.frag.spv",
                    VK_SHADER_STAGE_FRAGMENT_BIT}},
                  descriptors_[0]->layout(),
-                 model_.binding_descs(), model_.attrib_descs());
+                 Model::binding_descs(), Model::attrib_descs());
   command_.Init(context_->ptr(), kNumFrameInFlight,
                 [&](const VkCommandBuffer& command_buffer, size_t image_index) {
     // start render pass
-    std::array<VkClearValue, 2> clear_values;
-    clear_values[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+    std::array<VkClearValue, 2> clear_values{};
+    clear_values[0].color.float32[0] = 0.0f;
+    clear_values[0].color.float32[1] = 0.0f;
+    clear_values[0].color.float32[2] = 0.0f;
+    clear_values[0].color.float32[3] = 1.0f;
     clear_values[1].depthStencil = {1.0f, 0};  // initial depth value set to 1.0
 
     VkRenderPassBeginInfo begin_info{

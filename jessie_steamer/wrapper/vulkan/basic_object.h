@@ -35,7 +35,7 @@ class Instance {
   Instance(const Instance&) = delete;
   Instance& operator=(const Instance&) = delete;
 
-  const VkInstance& operator*(void) const { return instance_; }
+  const VkInstance& operator*() const { return instance_; }
 
  private:
   std::shared_ptr<Context> context_;
@@ -60,7 +60,7 @@ class Surface {
   Surface(const Surface&) = delete;
   Surface& operator=(const Surface&) = delete;
 
-  const VkSurfaceKHR& operator*(void) const { return surface_; }
+  const VkSurfaceKHR& operator*() const { return surface_; }
 
  private:
   std::shared_ptr<Context> context_;
@@ -82,13 +82,13 @@ struct PhysicalDevice {
  public:
   PhysicalDevice() = default;
   void Init(std::shared_ptr<Context> context);
-  ~PhysicalDevice() {}  // implicitly cleaned up
+  ~PhysicalDevice() = default;  // implicitly cleaned up
 
   // This class is neither copyable nor movable
   PhysicalDevice(const PhysicalDevice&) = delete;
   PhysicalDevice& operator=(const PhysicalDevice&) = delete;
 
-  const VkPhysicalDevice& operator*(void) const { return physical_device_; }
+  const VkPhysicalDevice& operator*() const { return physical_device_; }
   VkPhysicalDeviceLimits limits() const;
 
  private:
@@ -119,7 +119,7 @@ struct Device {
   Device(const Device&) = delete;
   Device& operator=(const Device&) = delete;
 
-  const VkDevice& operator*(void) const { return device_; }
+  const VkDevice& operator*() const { return device_; }
 
  private:
   std::shared_ptr<Context> context_;
@@ -137,7 +137,7 @@ struct Queues {
   Queue graphics, transfer, present;
 
   Queues() = default;
-  ~Queues() {}  // implicitly cleaned up with physical device
+  ~Queues() = default;  // implicitly cleaned up with physical device
 
   // This class is neither copyable nor movable
   Queues(const Queues&) = delete;

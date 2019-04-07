@@ -57,7 +57,7 @@ void DebugCallback::Init(SharedContext context,
   VkDebugUtilsMessengerCreateInfoEXT create_info{
       VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
       /*pNext=*/nullptr,
-      /*flags=*/NULL_FLAG,
+      util::nullflag,
       message_severity,
       message_type,
       UserCallback,

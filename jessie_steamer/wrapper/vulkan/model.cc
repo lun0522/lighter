@@ -26,7 +26,7 @@ void Model::Init(SharedContext context,
                  int index_base) {
   vector<VertexAttrib> vertices;
   vector<uint32_t> indices;
-  util::LoadObjFile(path, 1, &vertices, &indices);
+  util::LoadObjFile(path, index_base, &vertices, &indices);
 
   buffer::DataInfo vertex_info{
       vertices.data(),
@@ -38,7 +38,7 @@ void Model::Init(SharedContext context,
       sizeof(indices[0]) * indices.size(),
       CONTAINER_SIZE(indices),
   };
-  vertex_buffer_.Init(context, vertex_info, index_info);
+  vertex_buffer_.Init(std::move(context), vertex_info, index_info);
 }
 
 const vector<VkVertexInputBindingDescription>& Model::binding_descs() {

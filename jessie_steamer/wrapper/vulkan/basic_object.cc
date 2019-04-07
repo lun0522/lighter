@@ -65,7 +65,7 @@ QueueIndices FindDeviceQueues(SharedContext context,
   uint32_t index = 0;
   auto present_support = [&physical_device, &context, index]
       (const VkQueueFamilyProperties& family) mutable {
-      VkBool32 support = false;
+      VkBool32 support = VK_FALSE;
       vkGetPhysicalDeviceSurfaceSupportKHR(
           physical_device, index++, *context->surface(), &support);
       return support;
@@ -87,7 +87,7 @@ QueueIndices FindDeviceQueues(SharedContext context,
 } /* namespace */
 
 void Instance::Init(SharedContext context) {
-  context_ = context;
+  context_ = std::move(context);
 
   if (glfwVulkanSupported() == GL_FALSE) {
     throw runtime_error{"Vulkan not supported"};
@@ -131,7 +131,7 @@ void Instance::Init(SharedContext context) {
   VkInstanceCreateInfo instance_info{
       VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
       /*pNext=*/nullptr,
-      /*flags=*/NULL_FLAG,
+      util::nullflag,
       &app_info,
 #ifdef DEBUG
       // enabled layers
@@ -159,7 +159,7 @@ Instance::~Instance() {
 }
 
 void Surface::Init(SharedContext context) {
-  context_ = context;
+  context_ = std::move(context);
   surface_ = context_->window().CreateSurface(*context_->instance(),
                                               context_->allocator());
 }
@@ -169,7 +169,7 @@ Surface::~Surface() {
 }
 
 void PhysicalDevice::Init(SharedContext context) {
-  context_ = context;
+  context_ = std::move(context);
 
   auto devices{util::QueryAttribute<VkPhysicalDevice>(
       [this](uint32_t* count, VkPhysicalDevice* physical_device) {
@@ -199,7 +199,7 @@ VkPhysicalDeviceLimits PhysicalDevice::limits() const {
 }
 
 void Device::Init(SharedContext context) {
-  context_ = context;
+  context_ = std::move(context);
 
   // request anisotropy filtering support
   VkPhysicalDeviceFeatures enabled_features{};
@@ -217,18 +217,18 @@ void Device::Init(SharedContext context) {
     VkDeviceQueueCreateInfo queue_info{
         VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
         /*pNext=*/nullptr,
-        /*flags=*/NULL_FLAG,
+        util::nullflag,
         queue_family,
         /*queueCount=*/1,
         &priority,  // always required even if only one queue
     };
-    queue_infos.emplace_back(std::move(queue_info));
+    queue_infos.emplace_back(queue_info);
   }
 
   VkDeviceCreateInfo device_info{
       VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
       /*pNext=*/nullptr,
-      /*flags=*/NULL_FLAG,
+      util::nullflag,
       // queue create infos
       CONTAINER_SIZE(queue_infos),
       queue_infos.data(),

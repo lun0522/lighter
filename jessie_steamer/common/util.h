@@ -19,7 +19,6 @@
 
 #include "third_party/glm/glm.hpp"
 
-#define NULL_FLAG 0
 #define ASSERT_SUCCESS(event, error) \
   if (event != VK_SUCCESS) { \
     throw std::runtime_error{"Error " + std::to_string(event) + ": " error}; \
@@ -39,6 +38,8 @@
 namespace util {
 
 using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
+
+const uint32_t nullflag = 0;
 
 TimePoint Now();
 

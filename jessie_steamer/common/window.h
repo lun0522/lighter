@@ -53,7 +53,7 @@ class Window {
   virtual bool IsMinimized() const = 0;
   virtual bool IsResized() const { return is_resized_; }
   virtual void ResetResizedFlag() { is_resized_ = false; }
-  virtual ~Window() {};
+  virtual ~Window() = default;
 
   virtual glm::ivec2 screen_size() const = 0;
   virtual glm::dvec2 cursor_pos() const = 0;
@@ -85,7 +85,7 @@ class GlfwWindow : public Window {
   glm::dvec2 cursor_pos() const override;
 
  private:
-  GLFWwindow* window_;
+  GLFWwindow* window_ = nullptr;
   std::unordered_map<int, std::function<void()>> key_callbacks_;
 };
 
