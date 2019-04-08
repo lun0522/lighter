@@ -16,7 +16,7 @@ namespace {
 
 using std::vector;
 
-VkShaderModule CreateShaderModule(SharedContext context,
+VkShaderModule CreateShaderModule(const SharedContext& context,
                                   const std::string& file) {
   const std::string& code = util::ReadFile(file);
   VkShaderModuleCreateInfo module_info{
@@ -44,8 +44,8 @@ VkPipelineShaderStageCreateInfo CreateShaderStage(const VkShaderModule& module,
       stage,
       module,
       /*pName=*/"main",  // entry point of this shader
-      /*pSpecializationInfo=*/nullptr,
       // may use .pSpecializationInfo to specify shader constants
+      /*pSpecializationInfo=*/nullptr,
   };
 }
 

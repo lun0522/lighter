@@ -25,7 +25,7 @@ using std::vector;
 
 const int kCubeMapImageCount = 6;
 
-uint32_t FindMemoryType(SharedContext context,
+uint32_t FindMemoryType(const SharedContext& context,
                         uint32_t type_filter,
                         VkMemoryPropertyFlags mem_properties) {
   // query available types of memory
@@ -46,7 +46,7 @@ uint32_t FindMemoryType(SharedContext context,
   throw runtime_error{"Failed to find suitable memory type"};
 }
 
-VkFormat FindImageFormat(SharedContext context,
+VkFormat FindImageFormat(const SharedContext& context,
                          const vector<VkFormat>& candidates,
                          VkFormatFeatureFlags features) {
   for (auto format : candidates) {
@@ -60,7 +60,7 @@ VkFormat FindImageFormat(SharedContext context,
   throw runtime_error{"Failed to find suitable image type"};
 }
 
-VkBuffer CreateBuffer(SharedContext context,
+VkBuffer CreateBuffer(const SharedContext& context,
                       VkDeviceSize data_size,
                       VkBufferUsageFlags buffer_usage) {
   // create buffer
@@ -82,7 +82,7 @@ VkBuffer CreateBuffer(SharedContext context,
   return buffer;
 }
 
-VkDeviceMemory CreateBufferMemory(SharedContext context,
+VkDeviceMemory CreateBufferMemory(const SharedContext& context,
                                   const VkBuffer& buffer,
                                   VkMemoryPropertyFlags mem_properties) {
   const VkDevice& device = *context->device();
@@ -117,7 +117,7 @@ VkDeviceMemory CreateBufferMemory(SharedContext context,
   return memory;
 }
 
-VkImage CreateImage(SharedContext context,
+VkImage CreateImage(const SharedContext& context,
                     VkImageCreateFlags flags,
                     VkFormat format,
                     VkExtent3D extent,
@@ -153,7 +153,7 @@ VkImage CreateImage(SharedContext context,
   return image;
 }
 
-VkDeviceMemory CreateImageMemory(SharedContext context,
+VkDeviceMemory CreateImageMemory(const SharedContext& context,
                                  const VkImage& image,
                                  VkMemoryPropertyFlags mem_properties) {
   const VkDevice& device = *context->device();
@@ -179,7 +179,7 @@ VkDeviceMemory CreateImageMemory(SharedContext context,
   return memory;
 }
 
-void TransitionImageLayout(SharedContext context,
+void TransitionImageLayout(const SharedContext& context,
                            const VkImage& image,
                            VkImageAspectFlags image_aspect_mask,
                            array<VkImageLayout, 2> image_layouts,
@@ -238,7 +238,7 @@ struct HostToBufferCopyInfo {
   VkDeviceSize offset;
 };
 
-void CopyHostToBuffer(SharedContext context,
+void CopyHostToBuffer(const SharedContext& context,
                       VkDeviceSize map_size,
                       VkDeviceSize map_offset,
                       const VkDeviceMemory& device_memory,
@@ -255,7 +255,7 @@ void CopyHostToBuffer(SharedContext context,
   vkUnmapMemory(*context->device(), device_memory);
 }
 
-void CopyBufferToBuffer(SharedContext context,
+void CopyBufferToBuffer(const SharedContext& context,
                         VkDeviceSize data_size,
                         const VkBuffer& src_buffer,
                         const VkBuffer& dst_buffer) {
@@ -272,7 +272,7 @@ void CopyBufferToBuffer(SharedContext context,
   );
 }
 
-void CopyBufferToImage(SharedContext context,
+void CopyBufferToImage(const SharedContext& context,
                        const VkBuffer& buffer,
                        const VkImage& image,
                        const VkExtent3D& image_extent,

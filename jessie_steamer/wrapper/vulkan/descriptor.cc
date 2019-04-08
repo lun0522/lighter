@@ -20,7 +20,7 @@ using descriptor::ResourceInfo;
 using std::vector;
 
 VkDescriptorPool CreateDescriptorPool(
-    SharedContext context,
+ const SharedContext& context,
     const vector<ResourceInfo>& resource_infos) {
   vector<VkDescriptorPoolSize> pool_sizes;
   pool_sizes.reserve(resource_infos.size());
@@ -48,7 +48,7 @@ VkDescriptorPool CreateDescriptorPool(
 }
 
 VkDescriptorSetLayout CreateDescriptorSetLayout(
-    SharedContext context,
+ const SharedContext& context,
     const vector<ResourceInfo>& resource_infos) {
   size_t total_bindings = 0;
   for (const auto& info : resource_infos) {
@@ -84,7 +84,7 @@ VkDescriptorSetLayout CreateDescriptorSetLayout(
   return layout;
 }
 
-VkDescriptorSet CreateDescriptorSet(SharedContext context,
+VkDescriptorSet CreateDescriptorSet(const SharedContext& context,
                                     const VkDescriptorPool& pool,
                                     const VkDescriptorSetLayout& layout) {
   VkDescriptorSetAllocateInfo alloc_info{

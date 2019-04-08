@@ -12,6 +12,7 @@ cc_library(
         "render_pass.cc",
         "swapchain.cc",
         "synchronize.cc",
+        "text.cc",
         "validation.cc",
     ],
     hdrs = [
@@ -26,11 +27,13 @@ cc_library(
         "render_pass.h",
         "swapchain.h",
         "synchronize.h",
+        "text.h",
         "validation.h",
     ],
     deps = [
         "//jessie_steamer/common:util",
         "//jessie_steamer/common:window",
+        "//third_party:freetype",
         "//third_party:glm",
         "//third_party:stb",
         "//third_party:vulkan",

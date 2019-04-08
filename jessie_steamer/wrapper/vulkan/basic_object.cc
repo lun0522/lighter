@@ -222,7 +222,7 @@ void Device::Init(SharedContext context) {
         /*queueCount=*/1,
         &priority,  // always required even if only one queue
     };
-    queue_infos.emplace_back(queue_info);
+    queue_infos.emplace_back(std::move(queue_info));
   }
 
   VkDeviceCreateInfo device_info{

@@ -21,7 +21,7 @@ namespace {
 
 using std::vector;
 
-VkImageView CreateImageView(SharedContext context,
+VkImageView CreateImageView(const SharedContext& context,
                             const VkImage& image,
                             VkImageViewType view_type,
                             VkFormat format,
@@ -58,7 +58,7 @@ VkImageView CreateImageView(SharedContext context,
   return image_view;
 }
 
-VkSampler CreateSampler(SharedContext context) {
+VkSampler CreateSampler(const SharedContext& context) {
   VkSamplerCreateInfo sampler_info{
       VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
       /*pNext=*/nullptr,

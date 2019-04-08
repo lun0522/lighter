@@ -3,6 +3,14 @@ package(default_visibility = ["//visibility:public"])
 licenses(["notice"])
 
 cc_library(
+    name = "freetype",
+    srcs = ["libfreetype.6.dylib"],
+    hdrs = ["@lib-freetype//:freetype"],
+    strip_include_prefix = "/external/lib-freetype/file",
+    include_prefix = "third_party/freetype",
+)
+
+cc_library(
     name = "glfw",
     srcs = ["libglfw.3.3.dylib"],
     hdrs = ["@lib-glfw//file"],

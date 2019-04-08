@@ -4,6 +4,14 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
 
+http_archive(
+    name = "lib-freetype",
+    url = "https://download.savannah.gnu.org/releases/freetype/freetype-2.10.0.tar.gz",
+    sha256 = "955e17244e9b38adb0c98df66abb50467312e6bb70eac07e49ce6bd1a20e809a",
+    strip_prefix = "freetype-2.10.0/include",
+    build_file = "//:third_party/BUILD.freetype",
+)
+
 # TODO: replace with stable release
 http_file(
     name = "lib-glfw",

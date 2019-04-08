@@ -35,7 +35,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
 }
 
 template<typename FuncType>
-FuncType LoadFunction(SharedContext context, const string& func_name) {
+FuncType LoadFunction(const SharedContext& context, const string& func_name) {
   auto func = reinterpret_cast<FuncType>(
       vkGetInstanceProcAddr(*context->instance(), func_name.c_str()));
   if (!func) {
@@ -53,7 +53,7 @@ const vector<const char*> kValidationLayers{
 void DebugCallback::Init(SharedContext context,
                          VkDebugUtilsMessageSeverityFlagsEXT message_severity,
                          VkDebugUtilsMessageTypeFlagsEXT message_type) {
-  context_ = context;
+  context_ = std::move(context);
   VkDebugUtilsMessengerCreateInfoEXT create_info{
       VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
       /*pNext=*/nullptr,

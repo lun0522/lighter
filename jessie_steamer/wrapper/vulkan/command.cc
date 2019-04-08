@@ -18,7 +18,7 @@ namespace {
 
 using std::vector;
 
-VkCommandPool CreateCommandPool(SharedContext context,
+VkCommandPool CreateCommandPool(const SharedContext& context,
                                 const Queues::Queue& queue,
                                 bool is_transient) {
   // create pool to hold command buffers
@@ -39,7 +39,7 @@ VkCommandPool CreateCommandPool(SharedContext context,
   return pool;
 }
 
-VkCommandBuffer CreateCommandBuffer(SharedContext context,
+VkCommandBuffer CreateCommandBuffer(const SharedContext& context,
                                     const VkCommandPool& command_pool) {
   // allocate command buffer
   VkCommandBufferAllocateInfo buffer_info{
@@ -58,7 +58,7 @@ VkCommandBuffer CreateCommandBuffer(SharedContext context,
   return buffer;
 }
 
-vector<VkCommandBuffer> CreateCommandBuffers(SharedContext context,
+vector<VkCommandBuffer> CreateCommandBuffers(const SharedContext& context,
                                              const VkCommandPool& command_pool,
                                              size_t count) {
   // allocate command buffers

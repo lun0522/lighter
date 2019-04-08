@@ -19,7 +19,7 @@ namespace {
 using std::vector;
 
 vector<VkFramebuffer> CreateFramebuffers(
-    SharedContext context,
+ const SharedContext& context,
     const DepthStencilImage& depth_stencil_image) {
   const Swapchain& swapchain = context->swapchain();
 
