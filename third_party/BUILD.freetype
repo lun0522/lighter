@@ -2,6 +2,8 @@ licenses(["notice"])
 
 cc_library(
     name = "freetype",
-    hdrs = ["**/*.h"],
+    hdrs = glob(["**/*.h"]),
+    include_prefix = "third_party/freetype",
+    includes = ["."],
     visibility = ["//visibility:public"],
 )

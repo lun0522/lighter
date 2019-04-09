@@ -5,9 +5,7 @@ licenses(["notice"])
 cc_library(
     name = "freetype",
     srcs = ["libfreetype.6.dylib"],
-    hdrs = ["@lib-freetype//:freetype"],
-    strip_include_prefix = "/external/lib-freetype/file",
-    include_prefix = "third_party/freetype",
+    deps = ["@lib-freetype//:freetype"],
 )
 
 cc_library(
