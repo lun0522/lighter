@@ -13,6 +13,7 @@
 
 #include "third_party/vulkan/vulkan.h"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
@@ -60,5 +61,6 @@ class Fences {
 
 } /* namespace vulkan */
 } /* namespace wrapper */
+} /* namespace jessie_steamer */
 
 #endif /* JESSIE_STEAMER_WRAPPER_VULKAN_SYNCHRONIZE_H */

@@ -15,6 +15,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "third_party/stb/stb_image.h"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace {
@@ -30,7 +31,7 @@ VkImageView CreateImageView(const SharedContext& context,
   VkImageViewCreateInfo image_view_info{
       VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      common::util::nullflag,
       image,
       view_type,
       format,
@@ -62,7 +63,7 @@ VkSampler CreateSampler(const SharedContext& context) {
   VkSamplerCreateInfo sampler_info{
       VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      common::util::nullflag,
       /*magFilter=*/VK_FILTER_LINEAR,
       /*minFilter=*/VK_FILTER_LINEAR,
       /*mipmapMode=*/VK_SAMPLER_MIPMAP_MODE_LINEAR,
@@ -177,4 +178,4 @@ void DepthStencilImage::Cleanup() {
 
 } /* namespace vulkan */
 } /* namespace wrapper */
-
+} /* namespace jessie_steamer */

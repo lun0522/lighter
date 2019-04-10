@@ -11,6 +11,8 @@
 
 #include "third_party/glm/gtc/matrix_transform.hpp"
 
+namespace jessie_steamer {
+namespace common {
 namespace camera {
 namespace {
 
@@ -94,3 +96,5 @@ void Camera::ProcessKey(KeyMap key, float elapsed_time) {
 }
 
 } /* namespace camera */
+} /* namespace common */
+} /* namespace jessie_steamer */

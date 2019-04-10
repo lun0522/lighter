@@ -12,6 +12,7 @@
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace {
@@ -34,7 +35,7 @@ VkDescriptorPool CreateDescriptorPool(
   VkDescriptorPoolCreateInfo pool_info{
       VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      common::util::nullflag,
       /*maxSets=*/1,
       CONTAINER_SIZE(pool_sizes),
       pool_sizes.data(),
@@ -72,7 +73,7 @@ VkDescriptorSetLayout CreateDescriptorSetLayout(
   VkDescriptorSetLayoutCreateInfo layout_info{
       VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      common::util::nullflag,
       /*bindingCount=*/CONTAINER_SIZE(layout_bindings),
       layout_bindings.data(),
   };
@@ -173,3 +174,4 @@ Descriptor::~Descriptor() {
 
 } /* namespace vulkan */
 } /* namespace wrapper */
+} /* namespace jessie_steamer */

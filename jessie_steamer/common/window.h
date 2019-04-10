@@ -18,6 +18,8 @@
 // import GLFW after Vulkan
 #include "third_party/glfw/glfw3.h"
 
+namespace jessie_steamer {
+namespace common {
 namespace wrapper {
 namespace vulkan {
 
@@ -90,5 +92,7 @@ class GlfwWindow : public Window {
 };
 
 } /* namespace window */
+} /* namespace common */
+} /* namespace jessie_steamer */
 
 #endif /* JESSIE_STEAMER_COMMON_WINDOW_H */

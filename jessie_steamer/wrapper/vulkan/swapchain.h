@@ -14,6 +14,7 @@
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "third_party/vulkan/vulkan.h"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
@@ -76,5 +77,6 @@ class Swapchain {
 
 } /* namespace vulkan */
 } /* namespace wrapper */
+} /* namespace jessie_steamer */
 
 #endif /* JESSIE_STEAMER_WRAPPER_VULKAN_SWAPCHAIN_H */

@@ -15,10 +15,12 @@
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace {
 
+namespace util = common::util;
 using std::cout;
 using std::endl;
 using std::string;
@@ -106,5 +108,6 @@ void CheckValidationLayerSupport(const vector<string>& required) {
 
 } /* namespace vulkan */
 } /* namespace wrapper */
+} /* namespace jessie_steamer */
 
 #endif /* DEBUG */

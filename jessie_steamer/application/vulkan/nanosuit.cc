@@ -27,17 +27,19 @@
 #include "third_party/glm/gtc/matrix_transform.hpp"
 #include "third_party/vulkan/vulkan.h"
 
+namespace jessie_steamer {
 namespace application {
 namespace vulkan {
 namespace nanosuit {
 namespace {
 
+namespace util = common::util;
 using std::vector;
-using window::key_map::KeyMap;
+using common::camera::Camera;
+using common::window::key_map::KeyMap;
+using namespace wrapper::vulkan;
 
 constexpr size_t kNumFrameInFlight = 2;
-
-using namespace wrapper::vulkan;
 
 class NanosuitApp {
  public:
@@ -52,7 +54,7 @@ class NanosuitApp {
   size_t current_frame_ = 0;
   util::TimePoint last_time_;
   std::shared_ptr<Context> context_;
-  std::unique_ptr<camera::Camera> camera_;
+  std::unique_ptr<Camera> camera_;
   Command command_;
   UniformBuffer uniform_buffer_;
   DepthStencilImage depth_stencil_;
@@ -87,7 +89,7 @@ void NanosuitApp::Init() {
                                [this]() { should_quit_ = true; });
 
     // camera
-    camera_ = std::unique_ptr<camera::Camera>(new camera::Camera);
+    camera_ = std::unique_ptr<Camera>(new Camera);
     window.RegisterCursorMoveCallback([this](double x_pos, double y_pos) {
       camera_->ProcessCursorMove(x_pos, y_pos);
     });
@@ -296,11 +298,12 @@ void NanosuitApp::MainLoop() {
 } /* namespace nanosuit */
 } /* namespace vulkan */
 } /* namespace application */
+} /* namespace jessie_steamer */
 
 int main(int argc, const char* argv[]) {
 #ifdef DEBUG
   INSERT_DEBUG_REQUIREMENT(/*overwrite=*/true);
-  application::vulkan::nanosuit::NanosuitApp app{};
+  jessie_steamer::application::vulkan::nanosuit::NanosuitApp app{};
   app.MainLoop();
 #else
   try {

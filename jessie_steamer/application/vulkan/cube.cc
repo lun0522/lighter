@@ -25,11 +25,13 @@
 #include "third_party/glm/gtc/matrix_transform.hpp"
 #include "third_party/vulkan/vulkan.h"
 
+namespace jessie_steamer {
 namespace application {
 namespace vulkan {
 namespace cube{
 namespace {
 
+namespace util = common::util;
 using std::vector;
 using namespace wrapper::vulkan;
 
@@ -201,11 +203,12 @@ void CubeApp::MainLoop() {
 } /* namespace cube */
 } /* namespace vulkan */
 } /* namespace application */
+} /* namespace jessie_steamer */
 
 int main(int argc, const char* argv[]) {
 #ifdef DEBUG
   INSERT_DEBUG_REQUIREMENT(/*overwrite=*/true);
-  application::vulkan::cube::CubeApp app{};
+  jessie_steamer::application::vulkan::cube::CubeApp app{};
   app.MainLoop();
 #else
   try {

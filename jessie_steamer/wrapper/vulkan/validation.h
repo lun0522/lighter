@@ -15,6 +15,7 @@
 
 #include "third_party/vulkan/vulkan.h"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
@@ -64,6 +65,7 @@ void CheckValidationLayerSupport(const std::vector<std::string>& required);
 
 } /* namespace vulkan */
 } /* namespace wrapper */
+} /* namespace jessie_steamer */
 
 #endif /* JESSIE_STEAMER_WRAPPER_VULKAN_VALIDATION_H */
 #endif /* DEBUG */

@@ -18,10 +18,12 @@
 #include "jessie_steamer/wrapper/vulkan/validation.h"
 #include "third_party/glfw/glfw3.h"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace {
 
+namespace util = common::util;
 using std::runtime_error;
 using std::vector;
 
@@ -263,3 +265,4 @@ Device::~Device() {
 
 } /* namespace vulkan */
 } /* namespace wrapper */
+} /* namespace jessie_steamer */

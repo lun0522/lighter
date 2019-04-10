@@ -10,6 +10,7 @@
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace {
@@ -19,7 +20,7 @@ using std::vector;
 constexpr VkSemaphoreCreateInfo kSemaInfo{
     VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
     /*pNext=*/nullptr,
-    util::nullflag,
+    common::util::nullflag,
 };
 
 constexpr VkFenceCreateInfo kSignaledFenceInfo{
@@ -31,7 +32,7 @@ constexpr VkFenceCreateInfo kSignaledFenceInfo{
 constexpr VkFenceCreateInfo kUnsignaledFenceInfo{
     VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
     /*pNext=*/nullptr,
-    util::nullflag,
+    common::util::nullflag,
 };
 
 } /* namespace */
@@ -74,3 +75,4 @@ Fences::~Fences() {
 
 } /* namespace vulkan */
 } /* namespace wrapper */
+} /* namespace jessie_steamer */

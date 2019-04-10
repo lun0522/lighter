@@ -7,13 +7,14 @@
 
 #include "jessie_steamer/wrapper/vulkan/text.h"
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
 #include <stdexcept>
 #include <unordered_map>
 
-#include "third_party/freetype/ft2build.h"
-#include FT_FREETYPE_H
 #include "jessie_steamer/common/util.h"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace {
@@ -60,6 +61,6 @@ std::unordered_map<char, Character> LoadCharLib(const std::string& font_path,
 
 } /* namespace */
 
-
 } /* namespace vulkan */
 } /* namespace wrapper */
+} /* namespace jessie_steamer */

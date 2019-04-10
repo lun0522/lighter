@@ -15,6 +15,7 @@
 
 #include "third_party/vulkan/vulkan.h"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
@@ -64,5 +65,6 @@ class Pipeline {
 
 } /* namespace vulkan */
 } /* namespace wrapper */
+} /* namespace jessie_steamer */
 
 #endif /* JESSIE_STEAMER_WRAPPER_VULKAN_PIPELINE_H */

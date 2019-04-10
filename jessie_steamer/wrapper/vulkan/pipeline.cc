@@ -10,19 +10,21 @@
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace {
 
+using common::util::nullflag;
 using std::vector;
 
 VkShaderModule CreateShaderModule(const SharedContext& context,
                                   const std::string& file) {
-  const std::string& code = util::ReadFile(file);
+  const std::string& code = common::util::ReadFile(file);
   VkShaderModuleCreateInfo module_info{
       /*sType=*/VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      nullflag,
       code.length(),
       reinterpret_cast<const uint32_t*>(code.data()),
   };
@@ -40,7 +42,7 @@ VkPipelineShaderStageCreateInfo CreateShaderStage(const VkShaderModule& module,
   return VkPipelineShaderStageCreateInfo{
       VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      nullflag,
       stage,
       module,
       /*pName=*/"main",  // entry point of this shader
@@ -76,7 +78,7 @@ void Pipeline::Init(
   VkPipelineVertexInputStateCreateInfo vertex_input_info{
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      nullflag,
       // vertex binding descriptions
       CONTAINER_SIZE(binding_descs),
       binding_descs.data(),
@@ -88,7 +90,7 @@ void Pipeline::Init(
   VkPipelineInputAssemblyStateCreateInfo input_assembly_info{
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      nullflag,
       // .topology can be line, line strp, triangle fan, etc
       /*topology=*/VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
       // .primitiveRestartEnable matters for drawing line/triangle strips
@@ -114,7 +116,7 @@ void Pipeline::Init(
   VkPipelineViewportStateCreateInfo viewport_info{
       VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      nullflag,
       /*viewportCount=*/1,
       &viewport,
       /*scissorCount=*/1,
@@ -124,7 +126,7 @@ void Pipeline::Init(
   VkPipelineRasterizationStateCreateInfo rasterizer_info{
       VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      nullflag,
       // fragments beyond clip space will be discarded, not clamped
       /*depthClampEnable=*/VK_FALSE,
       // disable outputs to framebuffer if TRUE
@@ -144,7 +146,7 @@ void Pipeline::Init(
   VkPipelineMultisampleStateCreateInfo multisample_info{
       VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      nullflag,
       /*rasterizationSamples=*/VK_SAMPLE_COUNT_1_BIT,
       /*sampleShadingEnable=*/VK_FALSE,
       /*minSampleShading=*/0.0f,
@@ -156,7 +158,7 @@ void Pipeline::Init(
   VkPipelineDepthStencilStateCreateInfo depth_stencil_info{
       VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      nullflag,
       /*depthTestEnable=*/VK_TRUE,
       /*depthWriteEnable=*/VK_TRUE,  // should disable for transparent objects
       /*depthCompareOp=*/VK_COMPARE_OP_LESS,
@@ -188,7 +190,7 @@ void Pipeline::Init(
   VkPipelineColorBlendStateCreateInfo color_blend_info{
       VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      nullflag,
       /*logicOpEnable=*/VK_FALSE,
       /*logicOp=*/VK_LOGIC_OP_CLEAR,
       /*attachmentCount=*/1,
@@ -201,7 +203,7 @@ void Pipeline::Init(
   VkPipelineDynamicStateCreateInfo dynamic_state_info{
       VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      nullflag,
       /*dynamicStateCount=*/0,
       /*pDynamicStates=*/nullptr,
   };
@@ -210,7 +212,7 @@ void Pipeline::Init(
   VkPipelineLayoutCreateInfo layout_info{
       VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      nullflag,
       /*setLayoutCount=*/1,
       &desc_set_layout,
       /*pushConstantRangeCount=*/0,
@@ -224,7 +226,7 @@ void Pipeline::Init(
   VkGraphicsPipelineCreateInfo pipeline_info{
       VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      nullflag,
       CONTAINER_SIZE(shader_stages),
       shader_stages.data(),
       &vertex_input_info,
@@ -263,3 +265,4 @@ void Pipeline::Cleanup() {
 
 } /* namespace vulkan */
 } /* namespace wrapper */
+} /* namespace jessie_steamer */

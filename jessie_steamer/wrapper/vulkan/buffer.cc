@@ -15,10 +15,12 @@
 #include "jessie_steamer/wrapper/vulkan/context.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace {
 
+using common::util::nullflag;
 using std::array;
 using std::runtime_error;
 using std::vector;
@@ -67,7 +69,7 @@ VkBuffer CreateBuffer(const SharedContext& context,
   VkBufferCreateInfo buffer_info{
       VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      nullflag,
       data_size,
       buffer_usage,
       /*sharingMode=*/VK_SHARING_MODE_EXCLUSIVE,  // only graphics queue access
@@ -434,7 +436,7 @@ void TextureBuffer::Init(SharedContext context,
   // create final image buffer
   VkImageCreateFlags flags = image_info.is_cubemap
                                  ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT
-                                 : util::nullflag;
+                                 : nullflag;
   image_ = CreateImage(context_, flags, image_info.format, image_extent,
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT
                            | VK_IMAGE_USAGE_SAMPLED_BIT, layer_count);
@@ -476,7 +478,7 @@ void DepthStencilBuffer::Init(SharedContext context,
   format_ = FindImageFormat(
       context_, {VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT_S8_UINT},
       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-  image_ = CreateImage(context_, util::nullflag, format_,
+  image_ = CreateImage(context_, nullflag, format_,
                        {extent.width, extent.height, /*depth=*/1},
                        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                        /*layer_count=*/1);
@@ -501,3 +503,4 @@ void DepthStencilBuffer::Cleanup() {
 
 } /* namespace vulkan */
 } /* namespace wrapper */
+} /* namespace jessie_steamer */

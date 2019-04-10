@@ -11,6 +11,8 @@
 #include "jessie_steamer/common/window.h"
 #include "third_party/glm/glm.hpp"
 
+namespace jessie_steamer {
+namespace common {
 namespace camera {
 
 class Camera {
@@ -53,5 +55,7 @@ class Camera {
 };
 
 } /* namespace camera */
+} /* namespace common */
+} /* namespace jessie_steamer */
 
 #endif /* JESSIE_STEAMER_COMMON_CAMERA_H */

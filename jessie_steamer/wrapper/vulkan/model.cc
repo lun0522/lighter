@@ -12,12 +12,13 @@
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace {
 
 using std::vector;
-using util::VertexAttrib;
+using common::util::VertexAttrib;
 
 } /* namespace */
 
@@ -26,7 +27,7 @@ void Model::Init(SharedContext context,
                  int index_base) {
   vector<VertexAttrib> vertices;
   vector<uint32_t> indices;
-  util::LoadObjFile(path, index_base, &vertices, &indices);
+  common::util::LoadObjFile(path, index_base, &vertices, &indices);
 
   buffer::DataInfo vertex_info{
       vertices.data(),
@@ -79,3 +80,4 @@ const vector<VkVertexInputAttributeDescription>& Model::attrib_descs() {
 
 } /* namespace vulkan */
 } /* namespace wrapper */
+} /* namespace jessie_steamer */

@@ -11,6 +11,8 @@
 
 #include "jessie_steamer/common/util.h"
 
+namespace jessie_steamer {
+namespace common {
 namespace window {
 namespace glfw_window {
 
@@ -139,3 +141,5 @@ GlfwWindow::~GlfwWindow() {
 }
 
 } /* namespace window */
+} /* namespace common */
+} /* namespace jessie_steamer */

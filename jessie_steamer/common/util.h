@@ -35,6 +35,8 @@
     setenv("VK_LAYER_PATH", argv[2], overwrite); \
   }
 
+namespace jessie_steamer {
+namespace common {
 namespace util {
 
 using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
@@ -112,5 +114,7 @@ void LoadObjFile(const std::string& path,
                  std::vector<uint32_t>* indices);
 
 } /* namespace util */
+} /* namespace common */
+} /* namespace jessie_steamer */
 
 #endif /* JESSIE_STEAMER_COMMON_UTIL_H */

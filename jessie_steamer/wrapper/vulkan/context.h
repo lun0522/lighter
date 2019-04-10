@@ -19,6 +19,7 @@
 #include "jessie_steamer/wrapper/vulkan/validation.h"
 #include "third_party/vulkan/vulkan.h"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
@@ -39,7 +40,7 @@ class Context : public std::enable_shared_from_this<Context> {
   Context& operator=(const Context&) = delete;
 
   std::shared_ptr<Context> ptr()                  { return shared_from_this(); }
-  window::Window& window()                        { return window_; }
+  common::window::Window& window()                { return window_; }
   const VkAllocationCallbacks* allocator()  const { return allocator_; }
   const Instance& instance()                const { return instance_; }
   const Surface& surface()                  const { return surface_; }
@@ -66,7 +67,7 @@ class Context : public std::enable_shared_from_this<Context> {
 
  private:
   bool is_first_time_ = true;
-  window::GlfwWindow window_;
+  common::window::GlfwWindow window_;
   VkAllocationCallbacks* allocator_ = nullptr;
   Instance instance_;
   Surface surface_;
@@ -84,5 +85,6 @@ class Context : public std::enable_shared_from_this<Context> {
 
 } /* namespace vulkan */
 } /* namespace wrapper */
+} /* namespace jessie_steamer */
 
 #endif /* JESSIE_STEAMER_WRAPPER_VULKAN_CONTEXT_H */

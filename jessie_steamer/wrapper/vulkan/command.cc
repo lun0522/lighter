@@ -12,6 +12,7 @@
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace {
@@ -25,7 +26,7 @@ VkCommandPool CreateCommandPool(const SharedContext& context,
   VkCommandPoolCreateInfo pool_info{
       VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      common::util::nullflag,
       queue.family_index,
   };
   if (is_transient) {
@@ -255,3 +256,4 @@ Command::~Command() {
 
 } /* namespace vulkan */
 } /* namespace wrapper */
+} /* namespace jessie_steamer */

@@ -12,10 +12,12 @@
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace {
 
+using common::util::nullflag;
 using std::vector;
 
 vector<VkFramebuffer> CreateFramebuffers(
@@ -36,7 +38,7 @@ vector<VkFramebuffer> CreateFramebuffers(
     VkFramebufferCreateInfo framebuffer_info{
         VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
         /*pNext=*/nullptr,
-        util::nullflag,
+        nullflag,
         *context->render_pass(),
         CONTAINER_SIZE(attachments),
         attachments.data(),
@@ -60,7 +62,7 @@ void RenderPass::Init(SharedContext context) {
 
 void RenderPass::Config(const DepthStencilImage &depth_stencil_image) {
   VkAttachmentDescription color_att_desc{
-      util::nullflag,
+      nullflag,
       context_->swapchain().format(),
       /*samples=*/VK_SAMPLE_COUNT_1_BIT,  // no multisampling
       // .loadOp and .storeOp affect color and depth buffers
@@ -87,7 +89,7 @@ void RenderPass::Config(const DepthStencilImage &depth_stencil_image) {
   };
 
   VkAttachmentDescription depth_stencil_att_desc{
-      util::nullflag,
+      nullflag,
       depth_stencil_image.format(),
       /*samples=*/VK_SAMPLE_COUNT_1_BIT,  // no multisampling
       /*loadOp=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -104,7 +106,7 @@ void RenderPass::Config(const DepthStencilImage &depth_stencil_image) {
   };
 
   VkSubpassDescription subpass_desc{
-      util::nullflag,
+      nullflag,
       /*pipelineBindPoint=*/VK_PIPELINE_BIND_POINT_GRAPHICS,
       /*inputAttachmentCount=*/0,
       /*pInputAttachments=*/nullptr,
@@ -129,7 +131,7 @@ void RenderPass::Config(const DepthStencilImage &depth_stencil_image) {
       /*srcAccessMask=*/0,
       /*dstAccessMask=*/VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
                             | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-      /*dependencyFlags=*/util::nullflag,
+      /*dependencyFlags=*/nullflag,
   };
 
   std::array<VkAttachmentDescription, 2> att_descs{
@@ -140,7 +142,7 @@ void RenderPass::Config(const DepthStencilImage &depth_stencil_image) {
   VkRenderPassCreateInfo render_pass_info{
       VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      nullflag,
       CONTAINER_SIZE(att_descs),
       att_descs.data(),
       /*subpassCount=*/1,
@@ -166,3 +168,4 @@ void RenderPass::Cleanup() {
 
 } /* namespace vulkan */
 } /* namespace wrapper */
+} /* namespace jessie_steamer */

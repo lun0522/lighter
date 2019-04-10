@@ -13,6 +13,7 @@
 
 #include "third_party/vulkan/vulkan.h"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace descriptor {
@@ -100,5 +101,6 @@ class Descriptor {
 
 } /* namespace vulkan */
 } /* namespace wrapper */
+} /* namespace jessie_steamer */
 
 #endif /* JESSIE_STEAMER_WRAPPER_VULKAN_DESCRIPTOR_H */

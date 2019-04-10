@@ -12,6 +12,7 @@
 
 #include "third_party/glm/glm.hpp"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
@@ -24,5 +25,6 @@ struct Character {
 
 } /* namespace vulkan */
 } /* namespace wrapper */
+} /* namespace jessie_steamer */
 
 #endif //JESSIE_STEAMER_WRAPPER_VULKAN_TEXT_H

@@ -12,6 +12,8 @@
 #include <stdexcept>
 #include <unordered_map>
 
+namespace jessie_steamer {
+namespace common {
 namespace util {
 namespace {
 
@@ -158,3 +160,5 @@ void LoadObjFile(const string& path,
 }
 
 } /* namespace util */
+} /* namespace common */
+} /* namespace jessie_steamer */

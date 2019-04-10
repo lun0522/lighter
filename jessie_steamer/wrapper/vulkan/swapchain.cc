@@ -15,10 +15,12 @@
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
 
+namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace {
 
+namespace util = common::util;
 using std::max;
 using std::min;
 using std::vector;
@@ -224,3 +226,4 @@ void Swapchain::Cleanup() {
 
 } /* namespace vulkan */
 } /* namespace wrapper */
+} /* namespace jessie_steamer */
