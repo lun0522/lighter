@@ -10,7 +10,6 @@
 #include <array>
 #include <sstream>
 #include <stdexcept>
-#include <unordered_map>
 
 namespace jessie_steamer {
 namespace common {
@@ -157,6 +156,48 @@ void LoadObjFile(const string& path,
                           to_string(line_num) + ": " + line};
     }
   }
+}
+
+CharLib::CharLib(const vector<string>& texts,
+                 const string &font_path,
+                 glm::uvec2 font_size) {
+  if (FT_Init_FreeType(&lib_)) {
+    throw runtime_error{"Failed to init FreeType library"};
+  }
+
+  if (FT_New_Face(lib_, font_path.c_str(), 0, &face_)) {
+    throw runtime_error{"Failed to load font"};
+  }
+  FT_Set_Pixel_Sizes(face_, font_size.x, font_size.y);
+
+  std::unordered_set<char> to_load;
+  for (const auto& text : texts) {
+    for (auto c : text) {
+      to_load.emplace(c);
+    }
+  }
+
+  for (auto c : to_load) {
+    if (FT_Load_Char(face_, c, FT_LOAD_RENDER)) {
+      throw runtime_error{"Failed to load glyph"};
+    }
+
+    Character ch{
+        /*size=*/{face_->glyph->bitmap.width,
+                  face_->glyph->bitmap.rows},
+        /*bearing=*/{face_->glyph->bitmap_left,
+                     face_->glyph->bitmap_top},
+        // measured with number of 1/64 pixels
+        /*advance=*/(unsigned int)face_->glyph->advance.x >> 6,
+        /*data=*/face_->glyph->bitmap.buffer,
+    };
+    chars_.emplace(c, std::move(ch));
+  }
+}
+
+CharLib::~CharLib() {
+  FT_Done_Face(face_);
+  FT_Done_FreeType(lib_);
 }
 
 } /* namespace util */

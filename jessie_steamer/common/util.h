@@ -12,9 +12,12 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <fstream>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 #include <iostream>
 #include <string>
 #include <unordered_set>
+#include <unordered_map>
 #include <vector>
 
 #include "third_party/glm/glm.hpp"
@@ -112,6 +115,32 @@ void LoadObjFile(const std::string& path,
                  int index_base,
                  std::vector<VertexAttrib>* vertices,
                  std::vector<uint32_t>* indices);
+
+class CharLib {
+ public:
+  struct Character {
+    glm::ivec2 size;
+    glm::ivec2 bearing;
+    unsigned int advance;
+    unsigned char* data;
+  };
+
+  CharLib(const std::vector<std::string>& texts,
+          const std::string& font_path,
+          glm::uvec2 font_size);
+  ~CharLib();
+
+  // This class is neither copyable nor movable
+  CharLib(const CharLib&) = delete;
+  CharLib& operator=(const CharLib&) = delete;
+
+  const Character& operator[](char c) { return chars_[c]; }
+
+ private:
+  std::unordered_map<char, Character> chars_;
+  FT_Library lib_;
+  FT_Face face_;
+};
 
 } /* namespace util */
 } /* namespace common */

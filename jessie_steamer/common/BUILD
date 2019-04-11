@@ -14,7 +14,10 @@ cc_library(
     name = "util",
     srcs = ["util.cc"],
     hdrs = ["util.h"],
-    deps = ["//third_party:glm"],
+    deps = [
+        "//third_party:freetype",
+        "//third_party:glm"
+    ],
 )
 
 cc_library(

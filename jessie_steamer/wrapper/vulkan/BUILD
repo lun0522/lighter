@@ -33,7 +33,6 @@ cc_library(
     deps = [
         "//jessie_steamer/common:util",
         "//jessie_steamer/common:window",
-        "//third_party:freetype",
         "//third_party:glm",
         "//third_party:stb",
         "//third_party:vulkan",

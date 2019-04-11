@@ -16,11 +16,6 @@ namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
-struct Character {
-  glm::ivec2 size;
-  glm::ivec2 bearing;
-  unsigned int advance;
-};
 
 
 } /* namespace vulkan */
