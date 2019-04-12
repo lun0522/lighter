@@ -18,14 +18,14 @@ namespace vulkan {
 namespace {
 
 using std::vector;
-using common::util::VertexAttrib;
+using common::util::VertexAttrib3D;
 
 } /* namespace */
 
 void Model::Init(SharedContext context,
                  const std::string& path,
                  int index_base) {
-  vector<VertexAttrib> vertices;
+  vector<VertexAttrib3D> vertices;
   vector<uint32_t> indices;
   common::util::LoadObjFile(path, index_base, &vertices, &indices);
 
@@ -46,7 +46,7 @@ const vector<VkVertexInputBindingDescription>& Model::binding_descs() {
   static const vector<VkVertexInputBindingDescription> descriptions{
       VkVertexInputBindingDescription{
           /*binding=*/0,
-          /*stride=*/sizeof(VertexAttrib),
+          /*stride=*/sizeof(VertexAttrib3D),
           // for instancing, use _INSTANCE for .inputRate
           /*inputRate=*/VK_VERTEX_INPUT_RATE_VERTEX,
       },
@@ -60,19 +60,19 @@ const vector<VkVertexInputAttributeDescription>& Model::attrib_descs() {
           /*location=*/0,  // layout (location = 0) in
           /*binding=*/0,  // which binding point does data come from
           /*format=*/VK_FORMAT_R32G32B32_SFLOAT,  // implies total size
-          /*offset=*/offsetof(VertexAttrib, pos),  // reading offset
+          /*offset=*/offsetof(VertexAttrib3D, pos),  // reading offset
       },
       VkVertexInputAttributeDescription{
           /*location=*/1,
           /*binding=*/0,
           /*format=*/VK_FORMAT_R32G32B32_SFLOAT,
-          /*offset=*/offsetof(VertexAttrib, norm),
+          /*offset=*/offsetof(VertexAttrib3D, norm),
       },
       VkVertexInputAttributeDescription{
           /*location=*/2,
           /*binding=*/0,
           /*format=*/VK_FORMAT_R32G32_SFLOAT,
-          /*offset=*/offsetof(VertexAttrib, tex_coord),
+          /*offset=*/offsetof(VertexAttrib3D, tex_coord),
       },
   };
   return descriptions;

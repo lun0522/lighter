@@ -9,6 +9,7 @@
 #define JESSIE_STEAMER_WRAPPER_VULKAN_TEXT_H
 
 #include <string>
+#include <vector>
 
 #include "third_party/glm/glm.hpp"
 
@@ -16,7 +17,28 @@ namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
+enum class Font {
+  kGeorgia,
+  kOstrich,
+};
 
+class StaticText {
+ public:
+  StaticText(const std::vector<std::string>& texts,
+             Font font, glm::uvec2 font_size);
+
+ private:
+
+};
+
+class DynamicText {
+ public:
+  DynamicText(const std::vector<std::string>& texts,
+              Font font, glm::uvec2 font_size);
+
+ private:
+
+};
 
 } /* namespace vulkan */
 } /* namespace wrapper */

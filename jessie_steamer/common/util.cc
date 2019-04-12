@@ -74,7 +74,7 @@ const string& ReadFile(const string& path) {
 
 void LoadObjFile(const string& path,
                  int index_base,
-                 vector<VertexAttrib>* vertices,
+                 vector<VertexAttrib3D>* vertices,
                  vector<uint32_t>* indices) {
   std::ifstream file{path};
   if (!file.is_open()) {

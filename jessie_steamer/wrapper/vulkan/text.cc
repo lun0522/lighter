@@ -12,8 +12,31 @@
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
+namespace {
 
+using std::string;
 
+string GetFontPath(Font font) {
+  string prefix = "jessie_steamer/resource/font/";
+  switch (font) {
+    case Font::kGeorgia:
+      return prefix + "georgia.ttf";
+    case Font::kOstrich:
+      return prefix + "ostrich.ttf";
+  }
+};
+
+} /* namespace */
+
+StaticText::StaticText(const std::vector<string>& texts,
+                       Font font, glm::uvec2 font_size) {
+  common::util::CharLib lib{texts, GetFontPath(font), font_size};
+}
+
+DynamicText::DynamicText(const std::vector<std::string>& texts,
+                         Font font, glm::uvec2 font_size) {
+  common::util::CharLib lib{texts, GetFontPath(font), font_size};
+}
 
 } /* namespace vulkan */
 } /* namespace wrapper */

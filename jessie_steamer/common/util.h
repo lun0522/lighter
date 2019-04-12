@@ -22,20 +22,20 @@
 
 #include "third_party/glm/glm.hpp"
 
-#define ASSERT_SUCCESS(event, error) \
-  if (event != VK_SUCCESS) { \
-    throw std::runtime_error{"Error " + std::to_string(event) + ": " error}; \
+#define ASSERT_SUCCESS(event, error)                                          \
+  if (event != VK_SUCCESS) {                                                  \
+    throw std::runtime_error{"Error " + std::to_string(event) + ": " error};  \
   }
-#define CONTAINER_SIZE(container) \
+#define CONTAINER_SIZE(container)                                             \
   static_cast<uint32_t>(container.size())
-#define INSERT_DEBUG_REQUIREMENT(overwrite) \
-  if (argc != 3) { \
-    std::cout << "Usage: exec <VK_ICD_FILENAMES> <VK_LAYER_PATH>" \
-              << std::endl; \
-    return EXIT_FAILURE; \
-  } else { \
-    setenv("VK_ICD_FILENAMES", argv[1], overwrite); \
-    setenv("VK_LAYER_PATH", argv[2], overwrite); \
+#define INSERT_DEBUG_REQUIREMENT(overwrite)                                   \
+  if (argc != 3) {                                                            \
+    std::cout << "Usage: exec <VK_ICD_FILENAMES> <VK_LAYER_PATH>"             \
+              << std::endl;                                                   \
+    return EXIT_FAILURE;                                                      \
+  } else {                                                                    \
+    setenv("VK_ICD_FILENAMES", argv[1], overwrite);                           \
+    setenv("VK_LAYER_PATH", argv[2], overwrite);                              \
   }
 
 namespace jessie_steamer {
@@ -100,20 +100,29 @@ size_t FindFirst(const std::vector<ContentType>& container,
 
 const std::string& ReadFile(const std::string& path);
 
-struct VertexAttrib {
+struct VertexAttrib2D {
+  glm::vec2 pos;
+  glm::vec2 tex_coord;
+
+  VertexAttrib2D(const glm::vec2& pos,
+                 const glm::vec2& tex_coord)
+   : pos{pos}, tex_coord{tex_coord} {}
+};
+
+struct VertexAttrib3D {
   glm::vec3 pos;
   glm::vec3 norm;
   glm::vec2 tex_coord;
 
-  VertexAttrib(const glm::vec3& pos,
-               const glm::vec3& norm,
-               const glm::vec2& tex_coord)
+  VertexAttrib3D(const glm::vec3& pos,
+                 const glm::vec3& norm,
+                 const glm::vec2& tex_coord)
       : pos{pos}, norm{norm}, tex_coord{tex_coord} {}
 };
 
 void LoadObjFile(const std::string& path,
                  int index_base,
-                 std::vector<VertexAttrib>* vertices,
+                 std::vector<VertexAttrib3D>* vertices,
                  std::vector<uint32_t>* indices);
 
 class CharLib {

@@ -37,5 +37,6 @@ cc_library(
         "//third_party:stb",
         "//third_party:vulkan",
     ],
+    data = ["//jessie_steamer/resource"],
     visibility = ["//jessie_steamer:__subpackages__"],
 )
