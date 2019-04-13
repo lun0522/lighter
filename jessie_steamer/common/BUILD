@@ -15,6 +15,7 @@ cc_library(
     srcs = ["util.cc"],
     hdrs = ["util.h"],
     deps = [
+        "//third_party:assimp",
         "//third_party:freetype",
         "//third_party:glm"
     ],

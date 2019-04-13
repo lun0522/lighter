@@ -12,14 +12,14 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <fstream>
-#include <ft2build.h>
-#include FT_FREETYPE_H
 #include <iostream>
 #include <string>
 #include <unordered_set>
 #include <unordered_map>
 #include <vector>
 
+#include "third_party/freetype/ft2build.h"
+#include FT_FREETYPE_H
 #include "third_party/glm/glm.hpp"
 
 #define ASSERT_SUCCESS(event, error)                                          \

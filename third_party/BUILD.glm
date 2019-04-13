@@ -3,8 +3,8 @@ licenses(["notice"])
 cc_library(
     name = "glm",
     hdrs = glob([
-        "**/*.hpp",
         "**/*.h",
+        "**/*.hpp",
         "**/*.inl",
     ]),
     include_prefix = "third_party/glm",

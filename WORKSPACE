@@ -4,6 +4,15 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
 
+new_git_repository(
+    name = "lib-assimp",
+    remote = "https://github.com/assimp/assimp.git",
+    commit = "80799bdbf90ce626475635815ee18537718a05b1",
+    shallow_since = "1512998565 +0100",
+    strip_prefix = "include",
+    build_file = "//:third_party/BUILD.assimp",
+)
+
 http_archive(
     name = "lib-freetype",
     url = "https://download.savannah.gnu.org/releases/freetype/freetype-2.10.0.tar.gz",

@@ -1,0 +1,28 @@
+load("@//third_party:expand_template.bzl", "expand_template")
+
+licenses(["notice"])
+
+cc_library(
+    name = "assimp",
+    textual_hdrs = glob([
+        "**/*.h",
+        "**/*.hpp",
+        "**/*.inl",
+    ]) + [
+        ":config_tmpl",
+    ],
+    includes = ["."],
+    hdrs = glob([
+        "**/*.h",
+        "**/*.hpp",
+    ]),
+    include_prefix = "third_party",
+    visibility = ["//visibility:public"],
+)
+
+expand_template(
+    name = "config_tmpl",
+    out = "assimp/config.h",
+    substitutions = {"#cmakedefine": "// #undef"},
+    template = "assimp/config.h.in",
+)
