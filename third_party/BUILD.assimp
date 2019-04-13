@@ -15,6 +15,7 @@ cc_library(
     hdrs = glob([
         "**/*.h",
         "**/*.hpp",
+        "**/*.inl",
     ]),
     include_prefix = "third_party",
     visibility = ["//visibility:public"],

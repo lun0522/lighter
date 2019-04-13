@@ -5,11 +5,14 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "util.h"
+#include "jessie_steamer/common/util.h"
 
 #include <array>
 #include <sstream>
 #include <stdexcept>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "third_party/stb/stb_image.h"
 
 namespace jessie_steamer {
 namespace common {
@@ -198,6 +201,18 @@ CharLib::CharLib(const vector<string>& texts,
 CharLib::~CharLib() {
   FT_Done_Face(face_);
   FT_Done_FreeType(lib_);
+}
+
+Image::Image(const string& path) {
+  // force to have alpha channel
+  data = stbi_load(path.c_str(), &width, &height, &channel, STBI_rgb_alpha);
+  if (data == nullptr) {
+    throw runtime_error{"Failed to read image from " + path};
+  }
+}
+
+Image::~Image() {
+  stbi_image_free(const_cast<void*>(data));
 }
 
 } /* namespace util */

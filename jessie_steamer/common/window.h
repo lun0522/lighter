@@ -28,26 +28,20 @@ class Context;
 } /* namespace vulkan */
 } /* namespace wrapper */
 
-namespace window {
-namespace key_map {
-
-enum class KeyMap { kEscape, kUp, kDown, kLeft, kRight };
-
-} /* namespace keymap */
-
-using KeyCallback = std::function<void()>;
-using CursorMoveCallback = std::function<void(double x_pos, double y_pos)>;
-using ScrollCallback = std::function<void(double x_pos, double y_pos)>;
-
 class Window {
  public:
+  using KeyCallback = std::function<void()>;
+  using CursorMoveCallback = std::function<void(double x_pos, double y_pos)>;
+  using ScrollCallback = std::function<void(double x_pos, double y_pos)>;
+
+  enum class KeyMap { kEscape, kUp, kDown, kLeft, kRight };
+
   virtual void Init(const std::string& name, glm::ivec2 screen_size) = 0;
   virtual VkSurfaceKHR CreateSurface(
       const VkInstance& instance,
       const VkAllocationCallbacks* allocator) = 0;
   virtual void SetCursorHidden(bool hidden) = 0;
-  virtual void RegisterKeyCallback(key_map::KeyMap key,
-                                   KeyCallback callback) = 0;
+  virtual void RegisterKeyCallback(KeyMap key, KeyCallback callback) = 0;
   virtual void RegisterCursorMoveCallback(CursorMoveCallback callback) = 0;
   virtual void RegisterScrollCallback(ScrollCallback callback) = 0;
   virtual void PollEvents() = 0;
@@ -71,7 +65,7 @@ class GlfwWindow : public Window {
   VkSurfaceKHR CreateSurface(const VkInstance& instance,
                              const VkAllocationCallbacks* allocator) override;
   void SetCursorHidden(bool hidden) override;
-  void RegisterKeyCallback(key_map::KeyMap key, KeyCallback callback) override;
+  void RegisterKeyCallback(KeyMap key, KeyCallback callback) override;
   void RegisterCursorMoveCallback(CursorMoveCallback callback) override;
   void RegisterScrollCallback(ScrollCallback callback) override;
   void PollEvents() override;
@@ -91,7 +85,6 @@ class GlfwWindow : public Window {
   std::unordered_map<int, std::function<void()>> key_callbacks_;
 };
 
-} /* namespace window */
 } /* namespace common */
 } /* namespace jessie_steamer */
 

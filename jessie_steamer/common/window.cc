@@ -5,7 +5,7 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "window.h"
+#include "jessie_steamer/common/window.h"
 
 #include <stdexcept>
 
@@ -13,14 +13,13 @@
 
 namespace jessie_steamer {
 namespace common {
-namespace window {
 namespace glfw_window {
 
 using SetResizedFlag = std::function<void()>;
 
 SetResizedFlag set_resized_flag = nullptr;
-CursorMoveCallback cursor_move_callback = nullptr;
-ScrollCallback scroll_callback = nullptr;
+Window::CursorMoveCallback cursor_move_callback = nullptr;
+Window::ScrollCallback scroll_callback = nullptr;
 
 void DidResizeWindow(GLFWwindow* window, int width, int height) {
   set_resized_flag();
@@ -74,22 +73,22 @@ void GlfwWindow::SetCursorHidden(bool hidden) {
                    hidden ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 }
 
-void GlfwWindow::RegisterKeyCallback(key_map::KeyMap key, KeyCallback callback) {
+void GlfwWindow::RegisterKeyCallback(KeyMap key, KeyCallback callback) {
   int glfw_key;
   switch (key) {
-    case key_map::KeyMap::kEscape:
+    case KeyMap::kEscape:
       glfw_key = GLFW_KEY_ESCAPE;
       break;
-    case key_map::KeyMap::kUp:
+    case KeyMap::kUp:
       glfw_key = GLFW_KEY_UP;
       break;
-    case key_map::KeyMap::kDown:
+    case KeyMap::kDown:
       glfw_key = GLFW_KEY_DOWN;
       break;
-    case key_map::KeyMap::kLeft:
+    case KeyMap::kLeft:
       glfw_key = GLFW_KEY_LEFT;
       break;
-    case key_map::KeyMap::kRight:
+    case KeyMap::kRight:
       glfw_key = GLFW_KEY_RIGHT;
       break;
   }
@@ -140,6 +139,5 @@ GlfwWindow::~GlfwWindow() {
   glfwTerminate();
 }
 
-} /* namespace window */
 } /* namespace common */
 } /* namespace jessie_steamer */

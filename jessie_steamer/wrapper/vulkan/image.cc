@@ -12,8 +12,6 @@
 
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
-#define STB_IMAGE_IMPLEMENTATION
-#include "third_party/stb/stb_image.h"
 
 namespace jessie_steamer {
 namespace wrapper {
@@ -120,26 +118,19 @@ void TextureImage::Init(std::shared_ptr<Context> context,
       throw std::runtime_error{"Wrong number of paths: " +
                                std::to_string(paths.size())};
   }
-  int width = 0, height = 0, channel = 0;
-  VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;  // TODO: other formats
 
-  std::vector<void*> datas;
-  datas.reserve(paths.size());
-  for (const auto& path : paths) {
-    auto* data = stbi_load(path.c_str(), &width, &height, &channel,
-                           STBI_rgb_alpha);  // force to have alpha
-    if (data == nullptr) {
-      throw std::runtime_error{"Failed to read image from " + path};
-    }
-    datas.emplace_back(data);
+  vector<std::unique_ptr<common::util::Image>> images;
+  images.reserve(paths.size());
+  vector<const void*> datas(paths.size());
+  for (size_t i = 0; i < paths.size(); ++i) {
+    images.emplace_back(new common::util::Image{paths[i]});
+    datas[i] = images.back()->data;
   }
+
+  constexpr VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
   buffer_.Init(context_, {is_cubemap, {datas.begin(), datas.end()},
-                          format, static_cast<uint32_t>(width),
-                          static_cast<uint32_t>(height), 4});
-  for (auto* data : datas) {
-    stbi_image_free(data);
-  }
-
+                          format, static_cast<uint32_t>(images[0]->width),
+                          static_cast<uint32_t>(images[0]->height), 4});
   VkImageViewType view_type =
       is_cubemap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
   image_view_ = CreateImageView(context_, buffer_.image(), view_type, format,

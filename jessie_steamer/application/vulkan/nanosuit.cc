@@ -35,8 +35,7 @@ namespace {
 
 namespace util = common::util;
 using std::vector;
-using common::camera::Camera;
-using common::window::key_map::KeyMap;
+using KeyMap = common::Window::KeyMap;
 using namespace wrapper::vulkan;
 
 constexpr size_t kNumFrameInFlight = 2;
@@ -54,7 +53,7 @@ class NanosuitApp {
   size_t current_frame_ = 0;
   util::TimePoint last_time_;
   std::shared_ptr<Context> context_;
-  std::unique_ptr<Camera> camera_;
+  std::unique_ptr<common::Camera> camera_;
   Command command_;
   UniformBuffer uniform_buffer_;
   DepthStencilImage depth_stencil_;
@@ -89,7 +88,7 @@ void NanosuitApp::Init() {
                                [this]() { should_quit_ = true; });
 
     // camera
-    camera_ = std::unique_ptr<Camera>(new Camera);
+    camera_ = std::unique_ptr<common::Camera>(new common::Camera);
     window.RegisterCursorMoveCallback([this](double x_pos, double y_pos) {
       camera_->ProcessCursorMove(x_pos, y_pos);
     });

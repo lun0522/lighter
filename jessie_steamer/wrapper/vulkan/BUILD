@@ -31,10 +31,10 @@ cc_library(
         "validation.h",
     ],
     deps = [
+        "//jessie_steamer/common:model_loader",
         "//jessie_steamer/common:util",
         "//jessie_steamer/common:window",
         "//third_party:glm",
-        "//third_party:stb",
         "//third_party:vulkan",
     ],
     data = ["//jessie_steamer/resource"],

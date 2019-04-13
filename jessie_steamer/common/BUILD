@@ -11,13 +11,23 @@ cc_library(
 )
 
 cc_library(
+    name = "model_loader",
+    srcs = ["model_loader.cc"],
+    hdrs = ["model_loader.h"],
+    deps = [
+        ":util",
+        "//third_party:assimp",
+    ],
+)
+
+cc_library(
     name = "util",
     srcs = ["util.cc"],
     hdrs = ["util.h"],
     deps = [
-        "//third_party:assimp",
         "//third_party:freetype",
-        "//third_party:glm"
+        "//third_party:glm",
+        "//third_party:stb",
     ],
 )
 

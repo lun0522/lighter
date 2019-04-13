@@ -13,7 +13,6 @@
 
 namespace jessie_steamer {
 namespace common {
-namespace camera {
 
 class Camera {
  public:
@@ -27,7 +26,7 @@ class Camera {
                   float pitch = 0.0f,
                   float sensitivity = 0.05f);
   void Init(const glm::ivec2& screen_size, const glm::dvec2& cursor_pos);
-  void ProcessKey(window::key_map::KeyMap key, float elapsed_time);
+  void ProcessKey(Window::KeyMap key, float elapsed_time);
   void ProcessCursorMove(double x, double y);
   void ProcessScroll(double y, double min_val, double max_val);
 
@@ -54,7 +53,6 @@ class Camera {
   void UpdateProjMatrix();
 };
 
-} /* namespace camera */
 } /* namespace common */
 } /* namespace jessie_steamer */
 

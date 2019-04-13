@@ -42,8 +42,7 @@ struct ImageInfo{
 
   VkExtent3D extent() const { return {width, height, /*depth=*/1}; }
   VkDeviceSize data_size() const {
-    int batch = is_cubemap ? 6 : 1;
-    return batch* width * height * channel;
+    return datas.size() * width * height * channel;
   }
 };
 

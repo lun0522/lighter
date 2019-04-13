@@ -13,6 +13,7 @@
 #include <stdexcept>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <string>
 #include <unordered_set>
 #include <unordered_map>
@@ -89,6 +90,15 @@ void CheckSupport(
   }
 }
 
+template <typename ContainerType>
+void MoveAll(ContainerType* dst, ContainerType* src) {
+  using MoveIterator =
+      typename std::move_iterator<typename ContainerType::iterator>;
+  dst->insert(dst->begin(),
+              MoveIterator(src->begin()),
+              MoveIterator(src->end()));
+}
+
 extern const size_t kInvalidIndex;
 template <typename ContentType>
 size_t FindFirst(const std::vector<ContentType>& container,
@@ -149,6 +159,20 @@ class CharLib {
   std::unordered_map<char, Character> chars_;
   FT_Library lib_;
   FT_Face face_;
+};
+
+struct Image {
+  int width;
+  int height;
+  int channel;
+  const void* data;
+
+  explicit Image(const std::string& path);
+  ~Image();
+
+  // This class is neither copyable nor movable
+  Image(const Image&) = delete;
+  Image& operator=(const Image&) = delete;
 };
 
 } /* namespace util */

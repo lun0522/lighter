@@ -5,7 +5,7 @@
 //  Copyright © 2018 Pujun Lun. All rights reserved.
 //
 
-#include "camera.h"
+#include "jessie_steamer/common/camera.h"
 
 #include <stdexcept>
 
@@ -13,12 +13,11 @@
 
 namespace jessie_steamer {
 namespace common {
-namespace camera {
 namespace {
 
 using glm::radians;
 using glm::vec3;
-using window::key_map::KeyMap;
+using KeyMap = Window::KeyMap;
 
 } /* namespace */
 
@@ -95,6 +94,5 @@ void Camera::ProcessKey(KeyMap key, float elapsed_time) {
   UpdateViewMatrix();
 }
 
-} /* namespace camera */
 } /* namespace common */
 } /* namespace jessie_steamer */
