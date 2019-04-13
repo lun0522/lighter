@@ -19,10 +19,11 @@ namespace jessie_steamer {
 namespace common {
 namespace {
 
+using std::move;
 using std::string;
 using std::vector;
 
-}
+} /* namespace */
 
 ModelLoader::ModelLoader(const string& obj_path,
                          const string& tex_path,
@@ -52,16 +53,16 @@ void ModelLoader::ProcessNode(const string& directory,
                               const aiScene* scene) {
   for (int i = 0; i < node->mNumMeshes; ++i) {
     aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-    meshes_.emplace_back(ProcessMesh(directory, mesh, scene));
+    ProcessMesh(directory, mesh, scene);
   }
   for (int i = 0; i < node->mNumChildren; ++i) {
     ProcessNode(directory, node->mChildren[i], scene);
   }
 }
 
-ModelLoader::Mesh ModelLoader::ProcessMesh(const string& directory,
-                                           const aiMesh* mesh,
-                                           const aiScene* scene) {
+void ModelLoader::ProcessMesh(const string& directory,
+                              const aiMesh* mesh,
+                              const aiScene* scene) {
   // load vertices
   vector<util::VertexAttrib3D> vertices;
   vertices.reserve(mesh->mNumVertices);
@@ -102,13 +103,13 @@ ModelLoader::Mesh ModelLoader::ProcessMesh(const string& directory,
     util::MoveAll(&textures, &refl_maps);
   }
 
-  return Mesh{std::move(vertices), std::move(indices), std::move(textures)};
+  meshes_.emplace_back(move(vertices), move(indices), move(textures));
 }
 
 vector<ModelLoader::Texture> ModelLoader::LoadTextures(
     const string& directory,
     const aiMaterial* material,
-    ModelLoader::Texture::Type type) {
+    Texture::Type type) {
   aiTextureType ai_type;
   switch (type) {
     case Texture::Type::kDiffuse:
@@ -122,13 +123,14 @@ vector<ModelLoader::Texture> ModelLoader::LoadTextures(
       break;
   }
 
-  vector<Texture> textures(material->GetTextureCount(ai_type));
-  for (int i = 0; i < textures.size(); ++i) {
+  size_t num_texture = material->GetTextureCount(ai_type);
+  vector<Texture> textures;
+  textures.reserve(num_texture);
+  for (int i = 0; i < num_texture; ++i) {
     aiString path;
     material->GetTexture(ai_type, i, &path);
-    std::unique_ptr<util::Image> image{
-        new util::Image{directory + "/" + path.C_Str()}};
-    textures[i] = Texture{std::move(image), type};
+    util::Image image{directory + "/" + path.C_Str()};
+    textures.emplace_back(move(image), type);
   }
   return textures;
 }

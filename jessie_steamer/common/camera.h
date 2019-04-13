@@ -30,9 +30,9 @@ class Camera {
   void ProcessCursorMove(double x, double y);
   void ProcessScroll(double y, double min_val, double max_val);
 
-  // This class is neither copyable nor movable
-  Camera(const Camera&) = delete;
-  Camera& operator=(const Camera&) = delete;
+  // This class is only movable
+  Camera(Camera&&) = default;
+  Camera& operator=(Camera&&) = default;
 
   const glm::vec3& position()     const { return pos_; }
   const glm::vec3& direction()    const { return front_; }

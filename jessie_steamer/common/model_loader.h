@@ -25,14 +25,32 @@ class ModelLoader {
  public:
   struct Texture {
     enum class Type { kDiffuse, kSpecular, kReflection };
-    std::unique_ptr<util::Image> image;
+    util::Image image;
     Type type;
+
+    Texture(util::Image&& image, Type type)
+        : image{std::move(image)}, type{type} {}
+
+    // This class is only movable
+    Texture(Texture&&) = default;
+    Texture& operator=(Texture&&) = default;
   };
 
   struct Mesh {
     std::vector<util::VertexAttrib3D> vertices;
     std::vector<unsigned int> indices;
     std::vector<Texture> textures;
+
+    Mesh(std::vector<util::VertexAttrib3D>&& vertices,
+         std::vector<unsigned int>&& indices,
+         std::vector<Texture>&& textures)
+        : vertices{std::move(vertices)},
+          indices{std::move(indices)},
+          textures{std::move(textures)} {}
+
+    // This class is only movable
+    Mesh(Mesh&&) = default;
+    Mesh& operator=(Mesh&&) = default;
   };
 
   ModelLoader(const std::string& obj_path,
@@ -51,7 +69,7 @@ class ModelLoader {
   void ProcessNode(const std::string& directory,
                    const aiNode* node,
                    const aiScene* scene);
-  Mesh ProcessMesh(const std::string& directory,
+  void ProcessMesh(const std::string& directory,
                    const aiMesh* mesh,
                    const aiScene* scene);
   std::vector<Texture> LoadTextures(const std::string& directory,

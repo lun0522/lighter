@@ -119,18 +119,30 @@ void TextureImage::Init(std::shared_ptr<Context> context,
                                std::to_string(paths.size())};
   }
 
-  vector<std::unique_ptr<common::util::Image>> images;
+  vector<common::util::Image> images;
   images.reserve(paths.size());
   vector<const void*> datas(paths.size());
   for (size_t i = 0; i < paths.size(); ++i) {
-    images.emplace_back(new common::util::Image{paths[i]});
-    datas[i] = images.back()->data;
+    images.emplace_back(paths[i]);
+    datas[i] = images.back().data;
   }
 
-  constexpr VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
+  VkFormat format;
+  switch (images[0].channel) {
+    case 1:
+      format = VK_FORMAT_R8_UNORM;
+      break;
+    case 4:
+      format = VK_FORMAT_R8G8B8A8_UNORM;
+      break;
+    default:
+      throw std::runtime_error{"Unsupported number of channels: " +
+                               std::to_string(images[0].channel)};
+  }
+
   buffer_.Init(context_, {is_cubemap, {datas.begin(), datas.end()},
-                          format, static_cast<uint32_t>(images[0]->width),
-                          static_cast<uint32_t>(images[0]->height), 4});
+                          format, static_cast<uint32_t>(images[0].width),
+                          static_cast<uint32_t>(images[0].height), 4});
   VkImageViewType view_type =
       is_cubemap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
   image_view_ = CreateImageView(context_, buffer_.image(), view_type, format,

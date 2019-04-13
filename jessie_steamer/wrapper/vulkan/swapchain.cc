@@ -212,10 +212,9 @@ void Swapchain::Init(SharedContext context) {
             *context->device(), *context->swapchain(), count, images);
       }
   )};
-  images_.reserve(images.size());
+  images_.resize(images.size());
   for (size_t i = 0; i < images.size(); ++i) {
-    images_.emplace_back(new SwapChainImage);
-    images_[i]->Init(context_, images[i], image_format_);
+    images_[i].Init(context_, images[i], image_format_);
   }
 }
 

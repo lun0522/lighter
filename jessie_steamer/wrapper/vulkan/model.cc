@@ -17,8 +17,8 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::vector;
 using common::util::VertexAttrib3D;
+using std::vector;
 
 } /* namespace */
 
@@ -27,7 +27,7 @@ void Model::Init(SharedContext context,
                  int index_base) {
   vector<VertexAttrib3D> vertices;
   vector<uint32_t> indices;
-  common::util::LoadObjFile(path, index_base, &vertices, &indices);
+  common::util::LoadObjFromFile(path, index_base, &vertices, &indices);
 
   buffer::DataInfo vertex_info{
       vertices.data(),

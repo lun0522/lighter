@@ -26,6 +26,7 @@ namespace {
 namespace util = common::util;
 using std::runtime_error;
 using std::vector;
+using util::nullflag;
 
 struct QueueIndices {
   size_t graphics, present;
@@ -133,7 +134,7 @@ void Instance::Init(SharedContext context) {
   VkInstanceCreateInfo instance_info{
       VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      nullflag,
       &app_info,
 #ifdef DEBUG
       // enabled layers
@@ -219,7 +220,7 @@ void Device::Init(SharedContext context) {
     VkDeviceQueueCreateInfo queue_info{
         VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
         /*pNext=*/nullptr,
-        util::nullflag,
+        nullflag,
         queue_family,
         /*queueCount=*/1,
         &priority,  // always required even if only one queue
@@ -230,7 +231,7 @@ void Device::Init(SharedContext context) {
   VkDeviceCreateInfo device_info{
       VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
       /*pNext=*/nullptr,
-      util::nullflag,
+      nullflag,
       // queue create infos
       CONTAINER_SIZE(queue_infos),
       queue_infos.data(),

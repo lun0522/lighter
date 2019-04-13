@@ -70,9 +70,9 @@ class SwapChainImage {
             VkFormat format);
   ~SwapChainImage();
 
-  // This class is neither copyable nor movable
-  SwapChainImage(const SwapChainImage&) = delete;
-  SwapChainImage& operator=(const SwapChainImage&) = delete;
+  // This class is only movable
+  SwapChainImage(SwapChainImage&&) = default;
+  SwapChainImage& operator=(SwapChainImage&&) = default;
 
   const VkImageView& image_view() const { return image_view_; }
 
@@ -88,9 +88,9 @@ class TextureImage {
             const std::vector<std::string>& paths);
   ~TextureImage();
 
-  // This class is neither copyable nor movable
-  TextureImage(const TextureImage&) = delete;
-  TextureImage& operator=(const TextureImage&) = delete;
+  // This class is only movable
+  TextureImage(TextureImage&&) = default;
+  TextureImage& operator=(TextureImage&&) = default;
 
   VkDescriptorImageInfo descriptor_info() const;
 
@@ -109,9 +109,9 @@ class DepthStencilImage {
   void Cleanup();
   ~DepthStencilImage() { Cleanup(); }
 
-  // This class is neither copyable nor movable
-  DepthStencilImage(const DepthStencilImage&) = delete;
-  DepthStencilImage& operator=(const DepthStencilImage&) = delete;
+  // This class is only movable
+  DepthStencilImage(DepthStencilImage&&) = default;
+  DepthStencilImage& operator=(DepthStencilImage&&) = default;
 
   VkFormat format()               const { return buffer_.format(); }
   const VkImageView& image_view() const { return image_view_; }

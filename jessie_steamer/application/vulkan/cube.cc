@@ -32,8 +32,8 @@ namespace cube{
 namespace {
 
 namespace util = common::util;
-using std::vector;
 using namespace wrapper::vulkan;
+using std::vector;
 
 constexpr size_t kNumFrameInFlight = 2;
 
@@ -55,7 +55,7 @@ class CubeApp {
   TextureImage image_;
   DepthStencilImage depth_stencil_;
   std::vector<descriptor::ResourceInfo> resource_infos_;
-  std::vector<std::unique_ptr<Descriptor>> descriptors_;
+  std::vector<Descriptor> descriptors_;
 
   void Init();
   void Cleanup();
@@ -111,14 +111,13 @@ void CubeApp::Init() {
         descriptor::ResourceInfo{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, {1},
                                  VK_SHADER_STAGE_FRAGMENT_BIT},
     };
-    descriptors_.reserve(kNumFrameInFlight);
+    descriptors_.resize(kNumFrameInFlight);
     for (size_t i = 0; i < kNumFrameInFlight; ++i) {
-      descriptors_.emplace_back(new Descriptor);
-      descriptors_[i]->Init(context_, resource_infos_);
-      descriptors_[i]->UpdateBufferInfos(resource_infos_[0],
-                                         {uniform_buffer_.descriptor_info(i)});
-      descriptors_[i]->UpdateImageInfos(resource_infos_[1],
-                                        {image_.descriptor_info()});
+      descriptors_[i].Init(context_, resource_infos_);
+      descriptors_[i].UpdateBufferInfos(resource_infos_[0],
+                                        {uniform_buffer_.descriptor_info(i)});
+      descriptors_[i].UpdateImageInfos(resource_infos_[1],
+                                       {image_.descriptor_info()});
     }
 
     is_first_time = false;
@@ -131,7 +130,7 @@ void CubeApp::Init() {
                    VK_SHADER_STAGE_VERTEX_BIT},
                   {"jessie_steamer/shader/compiled/simple.frag.spv",
                    VK_SHADER_STAGE_FRAGMENT_BIT}},
-                 descriptors_[0]->layout(),
+                 descriptors_[0].layout(),
                  Model::binding_descs(), Model::attrib_descs());
   command_.Init(context_->ptr(), kNumFrameInFlight,
                 [&](const VkCommandBuffer& command_buffer, size_t image_index) {
@@ -166,7 +165,7 @@ void CubeApp::Init() {
                       *pipeline_);
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipeline_.layout(), 0, 1,
-                            &descriptors_[image_index]->set(), 0, nullptr);
+                            &descriptors_[image_index].set(), 0, nullptr);
     model_.Draw(command_buffer);
 
     vkCmdEndRenderPass(command_buffer);
@@ -212,7 +211,7 @@ int main(int argc, const char* argv[]) {
   app.MainLoop();
 #else
   try {
-    application::vulkan::cube::CubeApp app{};
+    jessie_steamer::application::vulkan::cube::CubeApp app{};
     app.MainLoop();
   } catch (const std::exception& e) {
     std::cerr << "Error: /n/t" << e.what() << std::endl;

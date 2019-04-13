@@ -34,9 +34,8 @@ namespace nanosuit {
 namespace {
 
 namespace util = common::util;
-using std::vector;
-using KeyMap = common::Window::KeyMap;
 using namespace wrapper::vulkan;
+using std::vector;
 
 constexpr size_t kNumFrameInFlight = 2;
 
@@ -53,7 +52,7 @@ class NanosuitApp {
   size_t current_frame_ = 0;
   util::TimePoint last_time_;
   std::shared_ptr<Context> context_;
-  std::unique_ptr<common::Camera> camera_;
+  common::Camera camera_;
   Command command_;
   UniformBuffer uniform_buffer_;
   DepthStencilImage depth_stencil_;
@@ -61,7 +60,7 @@ class NanosuitApp {
   Model cube_model_, skybox_model_;
   TextureImage cube_tex_, skybox_tex_;
   std::vector<descriptor::ResourceInfo> cude_rsrc_infos_, skybox_rsrc_infos_;
-  std::vector<std::unique_ptr<Descriptor>> cube_dscs_, skybox_dscs_;
+  std::vector<Descriptor> cube_dscs_, skybox_dscs_;
 
   void Init();
   void Cleanup();
@@ -82,34 +81,35 @@ vector<Transformation> kTrans;
 
 void NanosuitApp::Init() {
   if (is_first_time) {
+    using KeyMap = common::Window::KeyMap;
+
     auto& window = context_->window();
     window.SetCursorHidden(true);
     window.RegisterKeyCallback(KeyMap::kEscape,
                                [this]() { should_quit_ = true; });
 
     // camera
-    camera_ = std::unique_ptr<common::Camera>(new common::Camera);
     window.RegisterCursorMoveCallback([this](double x_pos, double y_pos) {
-      camera_->ProcessCursorMove(x_pos, y_pos);
+      camera_.ProcessCursorMove(x_pos, y_pos);
     });
     window.RegisterScrollCallback([this](double x_pos, double y_pos) {
-      camera_->ProcessScroll(y_pos, 1.0f, 60.0f);
+      camera_.ProcessScroll(y_pos, 1.0f, 60.0f);
     });
     window.RegisterKeyCallback(KeyMap::kUp, [this]() {
-      camera_->ProcessKey(KeyMap::kUp,
-                          util::TimeInterval(last_time_, util::Now()));
+      camera_.ProcessKey(KeyMap::kUp,
+                         util::TimeInterval(last_time_, util::Now()));
     });
     window.RegisterKeyCallback(KeyMap::kDown, [this]() {
-      camera_->ProcessKey(KeyMap::kDown,
-                          util::TimeInterval(last_time_, util::Now()));
+      camera_.ProcessKey(KeyMap::kDown,
+                         util::TimeInterval(last_time_, util::Now()));
     });
     window.RegisterKeyCallback(KeyMap::kLeft, [this]() {
-      camera_->ProcessKey(KeyMap::kLeft,
-                          util::TimeInterval(last_time_, util::Now()));
+      camera_.ProcessKey(KeyMap::kLeft,
+                         util::TimeInterval(last_time_, util::Now()));
     });
     window.RegisterKeyCallback(KeyMap::kRight, [this]() {
-      camera_->ProcessKey(KeyMap::kRight,
-                          util::TimeInterval(last_time_, util::Now()));
+      camera_.ProcessKey(KeyMap::kRight,
+                         util::TimeInterval(last_time_, util::Now()));
     });
 
     // model (vertex buffer)
@@ -144,14 +144,13 @@ void NanosuitApp::Init() {
         descriptor::ResourceInfo{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, {1},
                                  VK_SHADER_STAGE_FRAGMENT_BIT},
     };
-    cube_dscs_.reserve(kNumFrameInFlight);
+    cube_dscs_.resize(kNumFrameInFlight);
     for (size_t i = 0; i < kNumFrameInFlight; ++i) {
-      cube_dscs_.emplace_back(new Descriptor);
-      cube_dscs_[i]->Init(context_, cude_rsrc_infos_);
-      cube_dscs_[i]->UpdateBufferInfos(cude_rsrc_infos_[0],
-                                       {uniform_buffer_.descriptor_info(i)});
-      cube_dscs_[i]->UpdateImageInfos(cude_rsrc_infos_[1],
-                                      {cube_tex_.descriptor_info()});
+      cube_dscs_[i].Init(context_, cude_rsrc_infos_);
+      cube_dscs_[i].UpdateBufferInfos(cude_rsrc_infos_[0],
+                                      {uniform_buffer_.descriptor_info(i)});
+      cube_dscs_[i].UpdateImageInfos(cude_rsrc_infos_[1],
+                                     {cube_tex_.descriptor_info()});
     }
 
     skybox_rsrc_infos_ = {
@@ -160,14 +159,13 @@ void NanosuitApp::Init() {
         descriptor::ResourceInfo{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, {1},
                                  VK_SHADER_STAGE_FRAGMENT_BIT},
     };
-    skybox_dscs_.reserve(kNumFrameInFlight);
+    skybox_dscs_.resize(kNumFrameInFlight);
     for (size_t i = 0; i < kNumFrameInFlight; ++i) {
-      skybox_dscs_.emplace_back(new Descriptor);
-      skybox_dscs_[i]->Init(context_, skybox_rsrc_infos_);
-      skybox_dscs_[i]->UpdateBufferInfos(skybox_rsrc_infos_[0],
-                                         {uniform_buffer_.descriptor_info(i)});
-      skybox_dscs_[i]->UpdateImageInfos(skybox_rsrc_infos_[1],
-                                        {skybox_tex_.descriptor_info()});
+      skybox_dscs_[i].Init(context_, skybox_rsrc_infos_);
+      skybox_dscs_[i].UpdateBufferInfos(skybox_rsrc_infos_[0],
+                                        {uniform_buffer_.descriptor_info(i)});
+      skybox_dscs_[i].UpdateImageInfos(skybox_rsrc_infos_[1],
+                                       {skybox_tex_.descriptor_info()});
     }
 
     is_first_time = false;
@@ -177,8 +175,8 @@ void NanosuitApp::Init() {
   last_time_ = util::Now();
 
   // camera
-  camera_->Init(context_->window().screen_size(),
-                context_->window().cursor_pos());
+  camera_.Init(context_->window().screen_size(),
+               context_->window().cursor_pos());
 
   // depth stencil
   depth_stencil_.Init(context_, context_->swapchain().extent());
@@ -191,7 +189,7 @@ void NanosuitApp::Init() {
         VK_SHADER_STAGE_VERTEX_BIT},
        {"jessie_steamer/shader/compiled/simple.frag.spv",
         VK_SHADER_STAGE_FRAGMENT_BIT}},
-      cube_dscs_[0]->layout(), Model::binding_descs(),
+      cube_dscs_[0].layout(), Model::binding_descs(),
       Model::attrib_descs());
 
   skybox_pipeline_.Init(
@@ -200,7 +198,7 @@ void NanosuitApp::Init() {
         VK_SHADER_STAGE_VERTEX_BIT},
        {"jessie_steamer/shader/compiled/skybox.frag.spv",
         VK_SHADER_STAGE_FRAGMENT_BIT}},
-      skybox_dscs_[0]->layout(), Model::binding_descs(),
+      skybox_dscs_[0].layout(), Model::binding_descs(),
       Model::attrib_descs());
 
   // command
@@ -237,14 +235,14 @@ void NanosuitApp::Init() {
                       *cube_pipeline_);
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                             cube_pipeline_.layout(), 0, 1,
-                            &cube_dscs_[image_index]->set(), 0, nullptr);
+                            &cube_dscs_[image_index].set(), 0, nullptr);
     cube_model_.Draw(command_buffer);
 
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                       *skybox_pipeline_);
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                             skybox_pipeline_.layout(), 0, 1,
-                            &skybox_dscs_[image_index]->set(), 0, nullptr);
+                            &skybox_dscs_[image_index].set(), 0, nullptr);
     skybox_model_.Draw(command_buffer);
 
     vkCmdEndRenderPass(command_buffer);
@@ -266,7 +264,7 @@ void NanosuitApp::UpdateTrans(size_t image_index) {
                       glm::vec3{1.0f});
 
   Transformation& trans = kTrans[image_index];
-  trans = {std::move(model), camera_->view_matrix(), camera_->proj_matrix()};
+  trans = {std::move(model), camera_.view_matrix(), camera_.proj_matrix()};
   // no need to flip Y-axis as OpenGL
   trans.proj[1][1] *= -1;
 }
@@ -306,7 +304,7 @@ int main(int argc, const char* argv[]) {
   app.MainLoop();
 #else
   try {
-    application::vulkan::nanosuit::NanosuitApp app{};
+    jessie_steamer::application::vulkan::nanosuit::NanosuitApp app{};
     app.MainLoop();
   } catch (const std::exception& e) {
     std::cerr << "Error: /n/t" << e.what() << std::endl;

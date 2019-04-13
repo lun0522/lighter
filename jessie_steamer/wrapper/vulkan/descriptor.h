@@ -85,9 +85,9 @@ class Descriptor {
                         const std::vector<VkDescriptorImageInfo>& image_infos);
   ~Descriptor();
 
-  // This class is neither copyable nor movable
-  Descriptor(const Descriptor&) = delete;
-  Descriptor& operator=(const Descriptor&) = delete;
+  // This class is only movable
+  Descriptor(Descriptor&&) = default;
+  Descriptor& operator=(Descriptor&&) = default;
 
   const VkDescriptorSetLayout& layout() const { return layout_; }
   const VkDescriptorSet& set()          const { return set_; }

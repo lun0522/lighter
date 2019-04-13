@@ -108,7 +108,22 @@ size_t FindFirst(const std::vector<ContentType>& container,
       kInvalidIndex : std::distance(container.begin(), first_itr);
 }
 
-const std::string& ReadFile(const std::string& path);
+const std::string& LoadTextFromFile(const std::string& path);
+
+struct FileContent {
+  size_t size;
+  char* data;
+
+  explicit FileContent(size_t size) : size{size}, data{new char[size]} {}
+  ~FileContent() { delete[] data; }
+
+  // This class is only movable
+  FileContent(const FileContent&) = delete;
+  FileContent& operator=(const FileContent&) = delete;
+  FileContent(FileContent&& rhs) = default;
+};
+
+FileContent LoadRawDataFromFile(const std::string& path);
 
 struct VertexAttrib2D {
   glm::vec2 pos;
@@ -130,10 +145,10 @@ struct VertexAttrib3D {
       : pos{pos}, norm{norm}, tex_coord{tex_coord} {}
 };
 
-void LoadObjFile(const std::string& path,
-                 int index_base,
-                 std::vector<VertexAttrib3D>* vertices,
-                 std::vector<uint32_t>* indices);
+void LoadObjFromFile(const std::string& path,
+                     int index_base,
+                     std::vector<VertexAttrib3D>* vertices,
+                     std::vector<uint32_t>* indices);
 
 class CharLib {
  public:
@@ -170,9 +185,9 @@ struct Image {
   explicit Image(const std::string& path);
   ~Image();
 
-  // This class is neither copyable nor movable
-  Image(const Image&) = delete;
-  Image& operator=(const Image&) = delete;
+  // This class is only movable
+  Image(Image&&) = default;
+  Image& operator=(Image&&) = default;
 };
 
 } /* namespace util */

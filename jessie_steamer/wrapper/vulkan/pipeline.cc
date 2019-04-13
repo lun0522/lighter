@@ -20,7 +20,7 @@ using std::vector;
 
 VkShaderModule CreateShaderModule(const SharedContext& context,
                                   const std::string& file) {
-  const std::string& code = common::util::ReadFile(file);
+  const std::string& code = common::util::LoadTextFromFile(file);
   VkShaderModuleCreateInfo module_info{
       /*sType=*/VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
       /*pNext=*/nullptr,

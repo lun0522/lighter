@@ -8,6 +8,7 @@
 #include "jessie_steamer/common/util.h"
 
 #include <array>
+#include <fstream>
 #include <sstream>
 #include <stdexcept>
 
@@ -40,6 +41,14 @@ std::array<string, N> SplitText(const string& text, char delimiter) {
   return result;
 }
 
+ifstream OpenFile(const string& path) {
+  ifstream file{path};
+  if (!file.is_open() || file.bad() || file.fail()) {
+    throw runtime_error{"Failed to open file: " + path};
+  }
+  return file;
+}
+
 } /* namespace */
 
 TimePoint Now() {
@@ -53,21 +62,16 @@ float TimeInterval(const TimePoint& t1, const TimePoint& t2) {
 
 const size_t kInvalidIndex = std::numeric_limits<size_t>::max();
 
-const string& ReadFile(const string& path) {
+const string& LoadTextFromFile(const string &path) {
   static std::unordered_map<string, string> kLoadedText;
   auto loaded = kLoadedText.find(path);
   if (loaded == kLoadedText.end()) {
-    ifstream file{path};
-    file.exceptions(ifstream::failbit | ifstream::badbit);
-    if (!file.is_open()) {
-      throw runtime_error{"Failed to open file: " + path};
-    }
-
     try {
+      ifstream file = OpenFile(path);
       std::ostringstream stream;
       stream << file.rdbuf();
-      string code = stream.str();
-      loaded = kLoadedText.emplace(path, std::move(code)).first;
+      string text = stream.str();
+      loaded = kLoadedText.emplace(path, std::move(text)).first;
     } catch (const ifstream::failure& e) {
       throw runtime_error{"Failed to read file: " + e.code().message()};
     }
@@ -75,14 +79,20 @@ const string& ReadFile(const string& path) {
   return loaded->second;
 }
 
-void LoadObjFile(const string& path,
-                 int index_base,
-                 vector<VertexAttrib3D>* vertices,
-                 vector<uint32_t>* indices) {
-  std::ifstream file{path};
-  if (!file.is_open()) {
-    throw runtime_error{"Failed to open file: " + path};
-  }
+FileContent LoadRawDataFromFile(const string& path) {
+  ifstream file = OpenFile(path);
+  file.seekg(0, std::ios::end);
+  FileContent content{static_cast<size_t>(file.tellg())};
+  file.seekg(0, std::ios::beg);
+  file.read(content.data, content.size);
+  return content;
+}
+
+void LoadObjFromFile(const string& path,
+                     int index_base,
+                     vector<VertexAttrib3D>* vertices,
+                     vector<uint32_t>* indices) {
+  ifstream file = OpenFile(path);
 
   vector<glm::vec3> positions;
   vector<glm::vec3> normals;
@@ -204,10 +214,29 @@ CharLib::~CharLib() {
 }
 
 Image::Image(const string& path) {
-  // force to have alpha channel
-  data = stbi_load(path.c_str(), &width, &height, &channel, STBI_rgb_alpha);
+  FileContent content = LoadRawDataFromFile(path);
+  data = stbi_load_from_memory(reinterpret_cast<stbi_uc*>(content.data),
+                               content.size, &width, &height, &channel,
+                               STBI_default);
   if (data == nullptr) {
     throw runtime_error{"Failed to read image from " + path};
+  }
+
+  switch (channel) {
+    case 1:
+    case 4:
+      break;
+    case 3: {  // force to have alpha channel
+      stbi_image_free(const_cast<void*>(data));
+      data = stbi_load_from_memory(reinterpret_cast<stbi_uc*>(content.data),
+                                   content.size, &width, &height, &channel,
+                                   STBI_rgb_alpha);
+      channel = STBI_rgb_alpha;
+      break;
+    }
+    default:
+      throw runtime_error{"Unsupported number of channels: " +
+                          std::to_string(channel)};
   }
 }
 

@@ -17,7 +17,6 @@ namespace {
 
 using glm::radians;
 using glm::vec3;
-using KeyMap = Window::KeyMap;
 
 } /* namespace */
 
@@ -73,7 +72,8 @@ void Camera::ProcessScroll(double y, double min_val, double max_val) {
   UpdateProjMatrix();
 }
 
-void Camera::ProcessKey(KeyMap key, float elapsed_time) {
+void Camera::ProcessKey(Window::KeyMap key, float elapsed_time) {
+  using KeyMap = Window::KeyMap;
   float distance = elapsed_time * 5.0f;
   switch (key) {
     case KeyMap::kUp:
