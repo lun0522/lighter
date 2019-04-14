@@ -16,15 +16,6 @@
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
-namespace descriptor {
-
-struct ResourceInfo {
-  VkDescriptorType descriptor_type;
-  std::vector<uint32_t> binding_points;
-  VkShaderStageFlags shader_stage;
-};
-
-} /* namespace descriptor */
 
 class Context;
 
@@ -75,14 +66,24 @@ class Context;
  */
 class Descriptor {
  public:
+  struct Info {
+    struct Subfield {
+      uint32_t binding_point, array_length;
+    };
+    VkDescriptorType descriptor_type;
+    VkShaderStageFlags shader_stage;
+    std::vector<Subfield> subfields;
+  };
+
   Descriptor() = default;
   void Init(std::shared_ptr<Context> context,
-            const std::vector<descriptor::ResourceInfo>& resource_infos);
+            const std::vector<Info>& infos);
   void UpdateBufferInfos(
-      const descriptor::ResourceInfo& resource_info,
+      const Info& descriptor_info,
       const std::vector<VkDescriptorBufferInfo>& buffer_infos);
-  void UpdateImageInfos(const descriptor::ResourceInfo& resource_info,
-                        const std::vector<VkDescriptorImageInfo>& image_infos);
+  void UpdateImageInfos(
+      const Info& descriptor_info,
+      const std::vector<std::vector<VkDescriptorImageInfo>>& image_infos);
   ~Descriptor();
 
   // This class is only movable

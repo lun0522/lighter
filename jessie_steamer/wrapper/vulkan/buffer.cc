@@ -307,13 +307,31 @@ void CopyBufferToImage(const SharedContext& context,
 } /* namespace */
 
 void VertexBuffer::Init(SharedContext context,
-                        const buffer::DataInfo& vertex_info,
-                        const buffer::DataInfo& index_info) {
+                        const vector<Info>& infos) {
   context_ = std::move(context);
 
-  VkDeviceSize total_size = vertex_info.data_size + index_info.data_size;
-  index_offset_ = vertex_info.data_size;
-  index_count_  = index_info.unit_count;
+  segments_.reserve(infos.size());
+  vector<HostToBufferCopyInfo> copy_infos;
+  copy_infos.reserve(infos.size() * 2);
+  VkDeviceSize total_size = 0;
+  for (const auto& info : infos) {
+    segments_.emplace_back(Segment{
+        total_size,
+        total_size + info.vertices.data_size,
+        info.indices.unit_count,
+    });
+    copy_infos.emplace_back(HostToBufferCopyInfo{
+        info.vertices.data,
+        info.vertices.data_size,
+        total_size,
+    });
+    copy_infos.emplace_back(HostToBufferCopyInfo{
+        info.indices.data,
+        info.indices.data_size,
+        total_size + info.vertices.data_size,
+    });
+    total_size += info.vertices.data_size + info.indices.data_size;
+  }
 
   // create staging buffer and associated memory
   VkBuffer staging_buffer = CreateBuffer(           // source of transfer
@@ -324,10 +342,7 @@ void VertexBuffer::Init(SharedContext context,
           | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);  // see host cache management
 
   // copy from host to staging buffer
-  CopyHostToBuffer(context_, total_size, 0, staging_memory, {
-      {vertex_info.data, vertex_info.data_size, /*offset=*/0},
-      { index_info.data,  index_info.data_size, /*offset=*/index_offset_},
-  });
+  CopyHostToBuffer(context_, total_size, 0, staging_memory, copy_infos);
 
   // create final buffer that is only visible to device
   // for more efficient memory usage, we put vertex and index data in one buffer
@@ -348,12 +363,14 @@ void VertexBuffer::Init(SharedContext context,
 }
 
 void VertexBuffer::Draw(const VkCommandBuffer& command_buffer) const {
-  static const VkDeviceSize offset = 0;
-  vkCmdBindVertexBuffers(command_buffer, 0, 1, &buffer_, &offset);
-  vkCmdBindIndexBuffer(command_buffer, buffer_, index_offset_,
-                       VK_INDEX_TYPE_UINT32);
-  // (index_count, instance_count, first_index, vertex_offset, first_instance)
-  vkCmdDrawIndexed(command_buffer, index_count_, 1, 0, 0, 0);
+  for (const auto& segment : segments_) {
+    vkCmdBindVertexBuffers(command_buffer, 0, 1, &buffer_,
+                           &segment.vertices_offset);
+    vkCmdBindIndexBuffer(command_buffer, buffer_, segment.indices_offset,
+                         VK_INDEX_TYPE_UINT32);
+    // (index_count, instance_count, first_index, vertex_offset, first_instance)
+    vkCmdDrawIndexed(command_buffer, segment.indices_count, 1, 0, 0, 0);
+  }
 }
 
 VertexBuffer::~VertexBuffer() {
@@ -362,19 +379,20 @@ VertexBuffer::~VertexBuffer() {
 }
 
 void UniformBuffer::Init(SharedContext context,
-                         const buffer::ChunkInfo& chunk_info) {
+                         const Info& info) {
   context_ = std::move(context);
 
-  data_ = static_cast<const char*>(chunk_info.data);
+  data_ = static_cast<const char*>(info.data);
   // offset is required to be multiple of minUniformBufferOffsetAlignment
   // which is why we have actual data size |chunk_data_size_| and its
   // aligned size |chunk_memory_size_|
   VkDeviceSize alignment =
       context_->physical_device().limits().minUniformBufferOffsetAlignment;
-  chunk_data_size_ = chunk_info.chunk_size;
-  chunk_memory_size_ = (chunk_data_size_ + alignment) / alignment * alignment;
+  chunk_data_size_ = info.chunk_size;
+  chunk_memory_size_ =
+      (chunk_data_size_ + alignment - 1) / alignment * alignment;
 
-  buffer_ = CreateBuffer(context_, chunk_info.num_chunk * chunk_memory_size_,
+  buffer_ = CreateBuffer(context_, info.num_chunk * chunk_memory_size_,
                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
   device_memory_ = CreateBufferMemory(
       context_, buffer_,
@@ -405,16 +423,16 @@ UniformBuffer::~UniformBuffer() {
 }
 
 void TextureBuffer::Init(SharedContext context,
-                         const buffer::ImageInfo& image_info) {
+                         const Info& info) {
   context_ = std::move(context);
 
-  VkExtent3D image_extent = image_info.extent();
-  VkDeviceSize data_size = image_info.data_size();
-  uint32_t layer_count = image_info.is_cubemap ? kCubeMapImageCount : 1;
+  VkExtent3D image_extent = info.extent();
+  VkDeviceSize data_size = info.data_size();
+  uint32_t layer_count = info.is_cubemap ? kCubeMapImageCount : 1;
 
-  if (image_info.datas.size() != layer_count) {
+  if (info.datas.size() != layer_count) {
     throw runtime_error{"Wrong number of images: " +
-                        std::to_string(image_info.datas.size())};
+                        std::to_string(info.datas.size())};
   }
 
   // create staging buffer and associated memory
@@ -429,15 +447,15 @@ void TextureBuffer::Init(SharedContext context,
   VkDeviceSize image_size = data_size / layer_count;
   for (int i = 0; i < layer_count; ++i) {
     CopyHostToBuffer(context_, image_size, image_size * i, staging_memory, {
-        {image_info.datas[i], image_size, /*offset=*/0},
+        {info.datas[i], image_size, /*offset=*/0},
     });
   }
 
   // create final image buffer
-  VkImageCreateFlags flags = image_info.is_cubemap
+  VkImageCreateFlags flags = info.is_cubemap
                                  ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT
                                  : nullflag;
-  image_ = CreateImage(context_, flags, image_info.format, image_extent,
+  image_ = CreateImage(context_, flags, info.format, image_extent,
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT
                            | VK_IMAGE_USAGE_SAMPLED_BIT, layer_count);
   device_memory_ = CreateImageMemory(

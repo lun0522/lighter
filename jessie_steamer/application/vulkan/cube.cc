@@ -54,8 +54,7 @@ class CubeApp {
   UniformBuffer uniform_buffer_;
   TextureImage image_;
   DepthStencilImage depth_stencil_;
-  std::vector<descriptor::ResourceInfo> resource_infos_;
-  std::vector<Descriptor> descriptors_;
+  vector<Descriptor> descriptors_;
 
   void Init();
   void Cleanup();
@@ -94,7 +93,7 @@ void CubeApp::Init() {
 
     // uniform buffer
     kTrans.resize(context_->swapchain().size());
-    buffer::ChunkInfo chunk_info{
+    UniformBuffer::Info chunk_info{
         kTrans.data(),
         sizeof(Transformation),
         CONTAINER_SIZE(kTrans),
@@ -105,19 +104,21 @@ void CubeApp::Init() {
     image_.Init(context_, {"jessie_steamer/resource/texture/statue.jpg"});
 
     // descriptor
-    resource_infos_ = {
-        descriptor::ResourceInfo{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, {0},
-                                 VK_SHADER_STAGE_VERTEX_BIT},
-        descriptor::ResourceInfo{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, {1},
-                                 VK_SHADER_STAGE_FRAGMENT_BIT},
+    vector<Descriptor::Info> resource_infos{
+        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+         VK_SHADER_STAGE_VERTEX_BIT,
+         {{/*binding_point=*/0, /*array_length=*/1}}},
+        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+         VK_SHADER_STAGE_FRAGMENT_BIT,
+         {{/*binding_point=*/1, /*array_length=*/1}}},
     };
     descriptors_.resize(kNumFrameInFlight);
     for (size_t i = 0; i < kNumFrameInFlight; ++i) {
-      descriptors_[i].Init(context_, resource_infos_);
-      descriptors_[i].UpdateBufferInfos(resource_infos_[0],
+      descriptors_[i].Init(context_, resource_infos);
+      descriptors_[i].UpdateBufferInfos(resource_infos[0],
                                         {uniform_buffer_.descriptor_info(i)});
-      descriptors_[i].UpdateImageInfos(resource_infos_[1],
-                                       {image_.descriptor_info()});
+      descriptors_[i].UpdateImageInfos(resource_infos[1],
+                                       {{image_.descriptor_info()}});
     }
 
     is_first_time = false;

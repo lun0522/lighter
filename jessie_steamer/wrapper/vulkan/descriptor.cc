@@ -17,18 +17,17 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using descriptor::ResourceInfo;
 using std::vector;
 
 VkDescriptorPool CreateDescriptorPool(
  const SharedContext& context,
-    const vector<ResourceInfo>& resource_infos) {
+    const vector<Descriptor::Info>& descriptor_infos) {
   vector<VkDescriptorPoolSize> pool_sizes;
-  pool_sizes.reserve(resource_infos.size());
-  for (const auto& info : resource_infos) {
+  pool_sizes.reserve(descriptor_infos.size());
+  for (const auto& info : descriptor_infos) {
     pool_sizes.emplace_back(VkDescriptorPoolSize{
         info.descriptor_type,
-        CONTAINER_SIZE(info.binding_points),
+        CONTAINER_SIZE(info.subfields),
     });
   }
 
@@ -49,21 +48,21 @@ VkDescriptorPool CreateDescriptorPool(
 }
 
 VkDescriptorSetLayout CreateDescriptorSetLayout(
- const SharedContext& context,
-    const vector<ResourceInfo>& resource_infos) {
+    const SharedContext& context,
+    const vector<Descriptor::Info>& descriptor_infos) {
   size_t total_bindings = 0;
-  for (const auto& info : resource_infos) {
-    total_bindings += info.binding_points.size();
+  for (const auto& info : descriptor_infos) {
+    total_bindings += info.subfields.size();
   }
 
   vector<VkDescriptorSetLayoutBinding> layout_bindings;
   layout_bindings.reserve(total_bindings);
-  for (const auto& info : resource_infos) {
-    for (auto binding : info.binding_points) {
+  for (const auto& info : descriptor_infos) {
+    for (size_t i = 0; i < info.subfields.size(); ++i) {
       layout_bindings.emplace_back(VkDescriptorSetLayoutBinding{
-          binding,
+          info.subfields[i].binding_point,
           info.descriptor_type,
-          /*descriptorCount=*/1,  // will be different for uniform array
+          info.subfields[i].array_length,
           info.shader_stage,
           /*pImmutableSamplers=*/nullptr,
       });
@@ -106,17 +105,17 @@ VkDescriptorSet CreateDescriptorSet(const SharedContext& context,
 } /* namespace */
 
 void Descriptor::Init(SharedContext context,
-                      const vector<ResourceInfo>& resource_infos) {
+                      const vector<Info>& infos) {
   context_ = std::move(context);
-  pool_ = CreateDescriptorPool(context_, resource_infos);
-  layout_ = CreateDescriptorSetLayout(context_, resource_infos);
+  pool_ = CreateDescriptorPool(context_, infos);
+  layout_ = CreateDescriptorSetLayout(context_, infos);
   set_ = CreateDescriptorSet(context_, pool_, layout_);
 }
 
 void Descriptor::UpdateBufferInfos(
-    const ResourceInfo& resource_info,
+    const Info& descriptor_info,
     const vector<VkDescriptorBufferInfo>& buffer_infos) {
-  if (resource_info.binding_points.size() != buffer_infos.size()) {
+  if (descriptor_info.subfields.size() != buffer_infos.size()) {
     throw std::runtime_error{"Failed to update image infos"};
   }
 
@@ -126,10 +125,10 @@ void Descriptor::UpdateBufferInfos(
         VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         /*pNext=*/nullptr,
         set_,
-        resource_info.binding_points[i],
+        descriptor_info.subfields[i].binding_point,
         /*dstArrayElement=*/0,  // target first descriptor in set
         /*descriptorCount=*/1,  // possible to update multiple descriptors
-        resource_info.descriptor_type,
+        descriptor_info.descriptor_type,
         /*pImageInfo=*/nullptr,
         &buffer_infos[i],
         /*pTexelBufferView=*/nullptr,
@@ -140,9 +139,9 @@ void Descriptor::UpdateBufferInfos(
 }
 
 void Descriptor::UpdateImageInfos(
-    const ResourceInfo& resource_info,
-    const vector<VkDescriptorImageInfo>& image_infos) {
-  if (resource_info.binding_points.size() != image_infos.size()) {
+    const Info& descriptor_info,
+    const vector<vector<VkDescriptorImageInfo>>& image_infos) {
+  if (descriptor_info.subfields.size() != image_infos.size()) {
     throw std::runtime_error{"Failed to update image infos"};
   }
 
@@ -152,11 +151,11 @@ void Descriptor::UpdateImageInfos(
         VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         /*pNext=*/nullptr,
         set_,
-        resource_info.binding_points[i],
+        descriptor_info.subfields[i].binding_point,
         /*dstArrayElement=*/0,  // target first descriptor in set
-        /*descriptorCount=*/1,  // possible to update multiple descriptors
-        resource_info.descriptor_type,
-        &image_infos[i],
+        CONTAINER_SIZE(image_infos[i]),
+        descriptor_info.descriptor_type,
+        image_infos[i].data(),
         /*pBufferInfo=*/nullptr,
         /*pTexelBufferView=*/nullptr,
     };

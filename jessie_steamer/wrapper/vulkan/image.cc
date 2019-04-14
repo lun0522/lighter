@@ -140,9 +140,15 @@ void TextureImage::Init(std::shared_ptr<Context> context,
                                std::to_string(images[0].channel)};
   }
 
-  buffer_.Init(context_, {is_cubemap, {datas.begin(), datas.end()},
-                          format, static_cast<uint32_t>(images[0].width),
-                          static_cast<uint32_t>(images[0].height), 4});
+  TextureBuffer::Info image_info{
+     is_cubemap,
+     {datas.begin(), datas.end()},
+     format,
+     static_cast<uint32_t>(images[0].width),
+     static_cast<uint32_t>(images[0].height),
+     static_cast<uint32_t>(images[0].channel),
+  };
+  buffer_.Init(context_, image_info);
   VkImageViewType view_type =
       is_cubemap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
   image_view_ = CreateImageView(context_, buffer_.image(), view_type, format,
@@ -153,9 +159,9 @@ void TextureImage::Init(std::shared_ptr<Context> context,
 
 VkDescriptorImageInfo TextureImage::descriptor_info() const {
   return VkDescriptorImageInfo{
-        sampler_,
-        image_view_,
-        /*imageLayout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+      sampler_,
+      image_view_,
+      /*imageLayout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
   };
 }
 

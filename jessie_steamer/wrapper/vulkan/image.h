@@ -84,6 +84,7 @@ class SwapChainImage {
 class TextureImage {
  public:
   TextureImage() = default;
+  // paths.size() should be either 1 or 6 (cubemap)
   void Init(std::shared_ptr<Context> context,
             const std::vector<std::string>& paths);
   ~TextureImage();

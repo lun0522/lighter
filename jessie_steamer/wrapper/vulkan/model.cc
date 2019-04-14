@@ -18,28 +18,56 @@ namespace vulkan {
 namespace {
 
 using common::util::VertexAttrib3D;
+using std::string;
 using std::vector;
 
 } /* namespace */
 
 void Model::Init(SharedContext context,
-                 const std::string& path,
+                 const string& path,
                  int index_base) {
   vector<VertexAttrib3D> vertices;
   vector<uint32_t> indices;
   common::util::LoadObjFromFile(path, index_base, &vertices, &indices);
 
-  buffer::DataInfo vertex_info{
-      vertices.data(),
-      sizeof(vertices[0]) * vertices.size(),
-      CONTAINER_SIZE(vertices),
+  VertexBuffer::Info vertex_info{
+      /*vertices=*/{
+          vertices.data(),
+          sizeof(vertices[0]) * vertices.size(),
+          CONTAINER_SIZE(vertices),
+      },
+      /*indices=*/{
+          indices.data(),
+          sizeof(indices[0]) * indices.size(),
+          CONTAINER_SIZE(indices),
+      },
   };
-  buffer::DataInfo index_info{
-      indices.data(),
-      sizeof(indices[0]) * indices.size(),
-      CONTAINER_SIZE(indices),
-  };
-  vertex_buffer_.Init(std::move(context), vertex_info, index_info);
+  vertex_buffer_.Init(std::move(context), {vertex_info});
+}
+
+void Model::Init(SharedContext context,
+                 const string& obj_path,
+                 const string& tex_path) {
+  common::ModelLoader loader{obj_path, tex_path, /*flip_uvs=*/false};
+
+  vector<VertexBuffer::Info> infos;
+  infos.reserve(loader.meshes().size());
+  for (const auto& mesh : loader.meshes()) {
+    infos.emplace_back(VertexBuffer::Info{
+        /*vertices=*/{
+            mesh.vertices.data(),
+            sizeof(mesh.vertices[0]) * mesh.vertices.size(),
+            CONTAINER_SIZE(mesh.vertices),
+        },
+        /*indices=*/{
+            mesh.indices.data(),
+            sizeof(mesh.indices[0]) * mesh.indices.size(),
+            CONTAINER_SIZE(mesh.indices),
+        },
+    });
+  }
+  vertex_buffer_.Init(std::move(context), infos);
+  // TODO: load texture
 }
 
 const vector<VkVertexInputBindingDescription>& Model::binding_descs() {

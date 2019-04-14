@@ -18,35 +18,6 @@
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
-namespace buffer {
-
-struct DataInfo {
-  const void* data;
-  size_t data_size;
-  uint32_t unit_count;
-};
-
-struct ChunkInfo {
-  const void* data;
-  size_t chunk_size;
-  size_t num_chunk;
-};
-
-struct ImageInfo{
-  bool is_cubemap;
-  std::vector<const void*> datas;
-  VkFormat format;
-  uint32_t width;
-  uint32_t height;
-  uint32_t channel;
-
-  VkExtent3D extent() const { return {width, height, /*depth=*/1}; }
-  VkDeviceSize data_size() const {
-    return datas.size() * width * height * channel;
-  }
-};
-
-} /* namespace buffer */
 
 class Context;
 
@@ -81,36 +52,55 @@ class Context;
  */
 class VertexBuffer {
  public:
+  struct Info {
+    struct Subfield {
+      const void* data;
+      size_t data_size;
+      uint32_t unit_count;
+    };
+    Subfield vertices, indices;
+  };
+
   VertexBuffer() = default;
   void Init(std::shared_ptr<Context> context,
-            const buffer::DataInfo& vertex_info,
-            const buffer::DataInfo& index_info);
+            const std::vector<Info>& infos);
   void Draw(const VkCommandBuffer& command_buffer) const;
   ~VertexBuffer();
 
-  // This class is neither copyable nor movable
-  VertexBuffer(const VertexBuffer&) = delete;
-  VertexBuffer& operator=(const VertexBuffer&) = delete;
+  // This class is only movable
+  VertexBuffer(VertexBuffer&&) = default;
+  VertexBuffer& operator=(VertexBuffer&&) = default;
 
  private:
+  struct Segment {
+    VkDeviceSize vertices_offset;
+    VkDeviceSize indices_offset;
+    uint32_t indices_count;
+  };
+
   std::shared_ptr<Context> context_;
   VkBuffer buffer_;
   VkDeviceMemory device_memory_;
-  VkDeviceSize index_offset_ = 0;
-  uint32_t index_count_ = 0;
+  std::vector<Segment> segments_;
 };
 
 class UniformBuffer {
  public:
+  struct Info {
+    const void* data;
+    size_t chunk_size;
+    size_t num_chunk;
+  };
+
   UniformBuffer() = default;
   void Init(std::shared_ptr<Context> context,
-            const buffer::ChunkInfo& chunk_info);
+            const Info& info);
   void Update(size_t chunk_index) const;
   ~UniformBuffer();
 
-  // This class is neither copyable nor movable
-  UniformBuffer(const UniformBuffer&) = delete;
-  UniformBuffer& operator=(const UniformBuffer&) = delete;
+  // This class is only movable
+  UniformBuffer(UniformBuffer&&) = default;
+  UniformBuffer& operator=(UniformBuffer&&) = default;
 
   VkDescriptorBufferInfo descriptor_info(size_t chunk_index) const;
 
@@ -124,14 +114,28 @@ class UniformBuffer {
 
 class TextureBuffer {
  public:
+  struct Info{
+    bool is_cubemap;
+    std::vector<const void*> datas;
+    VkFormat format;
+    uint32_t width;
+    uint32_t height;
+    uint32_t channel;
+
+    VkExtent3D extent() const { return {width, height, /*depth=*/1}; }
+    VkDeviceSize data_size() const {
+      return datas.size() * width * height * channel;
+    }
+  };
+
   TextureBuffer() = default;
   void Init(std::shared_ptr<Context> context,
-            const buffer::ImageInfo& image_info);
+            const Info& info);
   ~TextureBuffer();
 
-  // This class is neither copyable nor movable
-  TextureBuffer(const TextureBuffer&) = delete;
-  TextureBuffer& operator=(const TextureBuffer&) = delete;
+  // This class is only movable
+  TextureBuffer(TextureBuffer&&) = default;
+  TextureBuffer& operator=(TextureBuffer&&) = default;
 
   const VkImage& image() const { return image_; }
 
@@ -149,9 +153,9 @@ class DepthStencilBuffer {
   void Cleanup();
   ~DepthStencilBuffer() { Cleanup(); }
 
-  // This class is neither copyable nor movable
-  DepthStencilBuffer(const DepthStencilBuffer&) = delete;
-  DepthStencilBuffer& operator=(const DepthStencilBuffer&) = delete;
+  // This class is only movable
+  DepthStencilBuffer(DepthStencilBuffer&&) = default;
+  DepthStencilBuffer& operator=(DepthStencilBuffer&&) = default;
 
   const VkImage& image() const { return image_; }
   VkFormat format()      const { return format_; }
