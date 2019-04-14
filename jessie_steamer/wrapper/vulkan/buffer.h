@@ -102,12 +102,13 @@ class UniformBuffer {
   UniformBuffer(UniformBuffer&&) = default;
   UniformBuffer& operator=(UniformBuffer&&) = default;
 
-  VkDescriptorBufferInfo descriptor_info(size_t chunk_index) const;
+  void UpdateDescriptors(const Descriptor::Info& descriptor_info,
+                         std::vector<Descriptor>* descriptors);
 
  private:
   std::shared_ptr<Context> context_;
   const char* data_ = nullptr;
-  size_t chunk_memory_size_ = 0, chunk_data_size_ = 0;
+  size_t num_chunk_, chunk_memory_size_, chunk_data_size_;
   VkBuffer buffer_;
   VkDeviceMemory device_memory_;
 };

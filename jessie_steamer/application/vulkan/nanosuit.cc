@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "jessie_steamer/common/camera.h"
@@ -58,7 +59,6 @@ class NanosuitApp {
   DepthStencilImage depth_stencil_;
   Pipeline cube_pipeline_, skybox_pipeline_;
   Model cube_model_, skybox_model_;
-  TextureImage cube_tex_, skybox_tex_;
   vector<Descriptor> cube_dscs_, skybox_dscs_;
 
   void Init();
@@ -112,10 +112,22 @@ void NanosuitApp::Init() {
     });
 
     // model (vertex buffer)
-    cube_model_.Init(context_->ptr(),
-                     "jessie_steamer/resource/model/cube.obj", 1);
-    skybox_model_.Init(context_->ptr(),
-                       "jessie_steamer/resource/model/skybox.obj", 1);
+    cube_model_.Init(context_->ptr(), /*obj_index_base=*/1,
+                     "jessie_steamer/resource/model/cube.obj",
+                     {{"jessie_steamer/resource/texture/statue.jpg"}});
+
+    const std::string skybox_dir{"jessie_steamer/resource/texture/tidepool/"};
+    vector<std::string> skybox_paths{
+        skybox_dir + "right.tga",
+        skybox_dir + "left.tga",
+        skybox_dir + "top.tga",
+        skybox_dir + "bottom.tga",
+        skybox_dir + "back.tga",
+        skybox_dir + "front.tga",
+    };
+    skybox_model_.Init(context_->ptr(), /*obj_index_base=*/1,
+                       "jessie_steamer/resource/model/skybox.obj",
+                       {std::move(skybox_paths)});
 
     // uniform buffer
     kTrans.resize(context_->swapchain().size());
@@ -125,16 +137,6 @@ void NanosuitApp::Init() {
         CONTAINER_SIZE(kTrans),
     };
     uniform_buffer_.Init(context_->ptr(), chunk_info);
-
-    // texture
-    cube_tex_.Init(context_, {"jessie_steamer/resource/texture/statue.jpg"});
-    const std::string skybox_dir{"jessie_steamer/resource/texture/tidepool/"};
-    skybox_tex_.Init(context_, {skybox_dir + "right.tga",
-                                skybox_dir + "left.tga",
-                                skybox_dir + "top.tga",
-                                skybox_dir + "bottom.tga",
-                                skybox_dir + "back.tga",
-                                skybox_dir + "front.tga"});
 
     // descriptor
     vector<Descriptor::Info> cube_rsrc_infos{
@@ -146,13 +148,11 @@ void NanosuitApp::Init() {
          {{/*binding_point=*/1, /*array_length=*/1}}},
     };
     cube_dscs_.resize(kNumFrameInFlight);
-    for (size_t i = 0; i < kNumFrameInFlight; ++i) {
-      cube_dscs_[i].Init(context_, cube_rsrc_infos);
-      cube_dscs_[i].UpdateBufferInfos(cube_rsrc_infos[0],
-                                      {uniform_buffer_.descriptor_info(i)});
-      cube_dscs_[i].UpdateImageInfos(cube_rsrc_infos[1],
-                                     {{cube_tex_.descriptor_info()}});
+    for (auto& descriptor : cube_dscs_) {
+      descriptor.Init(context_, cube_rsrc_infos);
     }
+    uniform_buffer_.UpdateDescriptors(cube_rsrc_infos[0], &cube_dscs_);
+    cube_model_.UpdateDescriptors({cube_rsrc_infos[1]}, &cube_dscs_);
 
     vector<Descriptor::Info> skybox_rsrc_infos{
         {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -163,13 +163,11 @@ void NanosuitApp::Init() {
          {{/*binding_point=*/1, /*array_length=*/1}}},
     };
     skybox_dscs_.resize(kNumFrameInFlight);
-    for (size_t i = 0; i < kNumFrameInFlight; ++i) {
-      skybox_dscs_[i].Init(context_, skybox_rsrc_infos);
-      skybox_dscs_[i].UpdateBufferInfos(skybox_rsrc_infos[0],
-                                        {uniform_buffer_.descriptor_info(i)});
-      skybox_dscs_[i].UpdateImageInfos(skybox_rsrc_infos[1],
-                                       {{skybox_tex_.descriptor_info()}});
+    for (auto& descriptor : skybox_dscs_) {
+      descriptor.Init(context_, skybox_rsrc_infos);
     }
+    uniform_buffer_.UpdateDescriptors(skybox_rsrc_infos[0], &skybox_dscs_);
+    skybox_model_.UpdateDescriptors({skybox_rsrc_infos[1]}, &skybox_dscs_);
 
     is_first_time = false;
   }

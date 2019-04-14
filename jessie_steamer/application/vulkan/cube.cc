@@ -52,7 +52,6 @@ class CubeApp {
   Command command_;
   Model model_;
   UniformBuffer uniform_buffer_;
-  TextureImage image_;
   DepthStencilImage depth_stencil_;
   vector<Descriptor> descriptors_;
 
@@ -89,7 +88,9 @@ void UpdateTrans(size_t current_frame, float screen_aspect) {
 void CubeApp::Init() {
   if (is_first_time) {
     // model (vertex buffer)
-    model_.Init(context_->ptr(), "jessie_steamer/resource/model/cube.obj", 1);
+    model_.Init(context_->ptr(), /*obj_index_base=*/1,
+                "jessie_steamer/resource/model/cube.obj",
+                {{"jessie_steamer/resource/texture/statue.jpg"}});
 
     // uniform buffer
     kTrans.resize(context_->swapchain().size());
@@ -99,9 +100,6 @@ void CubeApp::Init() {
         CONTAINER_SIZE(kTrans),
     };
     uniform_buffer_.Init(context_->ptr(), chunk_info);
-
-    // texture
-    image_.Init(context_, {"jessie_steamer/resource/texture/statue.jpg"});
 
     // descriptor
     vector<Descriptor::Info> resource_infos{
@@ -113,13 +111,11 @@ void CubeApp::Init() {
          {{/*binding_point=*/1, /*array_length=*/1}}},
     };
     descriptors_.resize(kNumFrameInFlight);
-    for (size_t i = 0; i < kNumFrameInFlight; ++i) {
-      descriptors_[i].Init(context_, resource_infos);
-      descriptors_[i].UpdateBufferInfos(resource_infos[0],
-                                        {uniform_buffer_.descriptor_info(i)});
-      descriptors_[i].UpdateImageInfos(resource_infos[1],
-                                       {{image_.descriptor_info()}});
+    for (auto& descriptor : descriptors_) {
+      descriptor.Init(context_, resource_infos);
     }
+    uniform_buffer_.UpdateDescriptors(resource_infos[0], &descriptors_);
+    model_.UpdateDescriptors({resource_infos[1]}, &descriptors_);
 
     is_first_time = false;
   }

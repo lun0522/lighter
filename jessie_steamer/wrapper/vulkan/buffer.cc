@@ -388,6 +388,7 @@ void UniformBuffer::Init(SharedContext context,
   // aligned size |chunk_memory_size_|
   VkDeviceSize alignment =
       context_->physical_device().limits().minUniformBufferOffsetAlignment;
+  num_chunk_ = info.num_chunk;
   chunk_data_size_ = info.chunk_size;
   chunk_memory_size_ =
       (chunk_data_size_ + alignment - 1) / alignment * alignment;
@@ -408,13 +409,17 @@ void UniformBuffer::Update(size_t chunk_index) const {
       {{data_ + src_offset, chunk_data_size_, /*offset=*/0}});
 }
 
-VkDescriptorBufferInfo UniformBuffer::descriptor_info(
-    size_t chunk_index) const {
-  return VkDescriptorBufferInfo{
-      buffer_,
-      /*offset=*/chunk_memory_size_ * chunk_index,
-      /*range=*/chunk_data_size_,
-  };
+void UniformBuffer::UpdateDescriptors(const Descriptor::Info& descriptor_info,
+                                      vector<Descriptor>* descriptors) {
+  for (size_t chunk_index = 0; chunk_index < num_chunk_; ++chunk_index) {
+    VkDescriptorBufferInfo buffer_info{
+        buffer_,
+        /*offset=*/chunk_memory_size_ * chunk_index,
+        /*range=*/chunk_data_size_,
+    };
+    (*descriptors)[chunk_index].UpdateBufferInfos(
+        descriptor_info, {std::move(buffer_info)});
+  }
 }
 
 UniformBuffer::~UniformBuffer() {

@@ -7,7 +7,7 @@
 
 #include "jessie_steamer/wrapper/vulkan/model.h"
 
-#include <vector>
+#include <stdexcept>
 
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
@@ -18,17 +18,19 @@ namespace vulkan {
 namespace {
 
 using common::util::VertexAttrib3D;
+using std::move;
 using std::string;
 using std::vector;
 
 } /* namespace */
 
 void Model::Init(SharedContext context,
-                 const string& path,
-                 int index_base) {
+                 int obj_index_base,
+                 const string& obj_path,
+                 const vector<vector<string>>& tex_paths) {
   vector<VertexAttrib3D> vertices;
   vector<uint32_t> indices;
-  common::util::LoadObjFromFile(path, index_base, &vertices, &indices);
+  common::util::LoadObjFromFile(obj_path, obj_index_base, &vertices, &indices);
 
   VertexBuffer::Info vertex_info{
       /*vertices=*/{
@@ -42,7 +44,14 @@ void Model::Init(SharedContext context,
           CONTAINER_SIZE(indices),
       },
   };
-  vertex_buffer_.Init(std::move(context), {vertex_info});
+  vertex_buffer_.Init(context, {vertex_info});
+
+  vector<TextureImage> textures;
+  textures.resize(tex_paths.size());
+  for (size_t i = 0; i < tex_paths.size(); ++i) {
+    textures[i].Init(context, tex_paths[i]);
+  }
+  meshes_.emplace_back(Mesh{move(textures)});
 }
 
 void Model::Init(SharedContext context,
@@ -66,7 +75,7 @@ void Model::Init(SharedContext context,
         },
     });
   }
-  vertex_buffer_.Init(std::move(context), infos);
+  vertex_buffer_.Init(move(context), infos);
   // TODO: load texture
 }
 
@@ -104,6 +113,18 @@ const vector<VkVertexInputAttributeDescription>& Model::attrib_descs() {
       },
   };
   return descriptions;
+}
+
+void Model::UpdateDescriptors(const vector<Descriptor::Info>& descriptor_infos,
+                              vector<Descriptor>* descriptors) {
+  if (descriptor_infos.size() != meshes_[0].textures.size()) {
+    throw std::runtime_error{"Number of descriptor infos mismatch with number "
+                             "of textures in a mesh"};
+  }
+
+  for (size_t i = 0; i < descriptor_infos.size(); ++i) {
+    meshes_[0].textures[i].UpdateDescriptors(descriptor_infos[i], descriptors);
+  }
 }
 
 } /* namespace vulkan */

@@ -25,12 +25,17 @@ class Context;
 
 class Model {
  public:
+  struct Mesh {
+    std::vector<TextureImage> textures;
+  };
+
   Model() = default;
 
   // Uses light-weight obj file loader
   void Init(std::shared_ptr<Context> context,
-            const std::string& path,
-            int index_base);
+            int obj_index_base,
+            const std::string& obj_path,
+            const std::vector<std::vector<std::string>>& tex_paths);
 
   // Uses Assimp for loading complex models
   void Init(std::shared_ptr<Context> context,
@@ -47,10 +52,12 @@ class Model {
 
   static const std::vector<VkVertexInputBindingDescription>& binding_descs();
   static const std::vector<VkVertexInputAttributeDescription>& attrib_descs();
+  void UpdateDescriptors(const std::vector<Descriptor::Info>& descriptor_infos,
+                         std::vector<Descriptor>* descriptors);
 
  private:
   VertexBuffer vertex_buffer_;
-  std::vector<TextureImage> textures_;
+  std::vector<Mesh> meshes_;
 };
 
 } /* namespace vulkan */

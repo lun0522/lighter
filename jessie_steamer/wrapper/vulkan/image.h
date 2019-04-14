@@ -8,6 +8,7 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_IMAGE_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_IMAGE_H
 
+#include <array>
 #include <memory>
 #include <vector>
 
@@ -93,7 +94,8 @@ class TextureImage {
   TextureImage(TextureImage&&) = default;
   TextureImage& operator=(TextureImage&&) = default;
 
-  VkDescriptorImageInfo descriptor_info() const;
+  void UpdateDescriptors(const Descriptor::Info& descriptor_info,
+                         std::vector<Descriptor>* descriptors);
 
  private:
   std::shared_ptr<Context> context_;

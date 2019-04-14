@@ -115,7 +115,7 @@ void TextureImage::Init(std::shared_ptr<Context> context,
       is_cubemap = true;
       break;
     default:
-      throw std::runtime_error{"Wrong number of paths: " +
+      throw std::runtime_error{"Unsupported number of paths: " +
                                std::to_string(paths.size())};
   }
 
@@ -157,12 +157,16 @@ void TextureImage::Init(std::shared_ptr<Context> context,
   sampler_ = CreateSampler(context_);
 }
 
-VkDescriptorImageInfo TextureImage::descriptor_info() const {
-  return VkDescriptorImageInfo{
-      sampler_,
-      image_view_,
-      /*imageLayout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-  };
+void TextureImage::UpdateDescriptors(const Descriptor::Info& descriptor_info,
+                                     vector<Descriptor>* descriptors) {
+  for (auto& descriptor : *descriptors) {
+    VkDescriptorImageInfo image_info{
+        sampler_,
+        image_view_,
+        /*imageLayout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    };
+    descriptor.UpdateImageInfos(descriptor_info, {{std::move(image_info)}});
+  }
 }
 
 TextureImage::~TextureImage() {
