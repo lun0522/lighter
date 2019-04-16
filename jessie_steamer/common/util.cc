@@ -89,7 +89,7 @@ FileContent LoadRawDataFromFile(const string& path) {
 }
 
 void LoadObjFromFile(const string& path,
-                     int index_base,
+                     unsigned int index_base,
                      vector<VertexAttrib3D>* vertices,
                      vector<uint32_t>* indices) {
   ifstream file = OpenFile(path);

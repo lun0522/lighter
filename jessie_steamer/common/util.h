@@ -146,7 +146,7 @@ struct VertexAttrib3D {
 };
 
 void LoadObjFromFile(const std::string& path,
-                     int index_base,
+                     unsigned int index_base,
                      std::vector<VertexAttrib3D>* vertices,
                      std::vector<uint32_t>* indices);
 

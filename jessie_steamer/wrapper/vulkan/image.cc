@@ -10,7 +10,6 @@
 #include <memory>
 #include <stdexcept>
 
-#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
 
 namespace jessie_steamer {
@@ -18,6 +17,8 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
+using common::util::Image;
+using std::move;
 using std::vector;
 
 VkImageView CreateImageView(const SharedContext& context,
@@ -92,7 +93,7 @@ VkSampler CreateSampler(const SharedContext& context) {
 void SwapChainImage::Init(SharedContext context,
                           const VkImage& image,
                           VkFormat format) {
-  context_ = std::move(context);
+  context_ = move(context);
   image_view_ = CreateImageView(context_, image, VK_IMAGE_VIEW_TYPE_2D, format,
                                 VK_IMAGE_ASPECT_COLOR_BIT, /*layer_count=*/1);
 }
@@ -102,12 +103,20 @@ SwapChainImage::~SwapChainImage() {
   vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
 }
 
-void TextureImage::Init(std::shared_ptr<Context> context,
+void TextureImage::Init(SharedContext context,
                         const vector<std::string>& paths) {
-  context_ = std::move(context);
+  vector<Image> images;
+  images.reserve(paths.size());
+  for (const auto& path : paths) {
+    images.emplace_back(path);
+  }
+  Init(move(context), images);
+}
 
+void TextureImage::Init(SharedContext context,
+                        const std::vector<Image>& images) {
   bool is_cubemap;
-  switch (paths.size()) {
+  switch (images.size()) {
     case 1:
       is_cubemap = false;
       break;
@@ -116,15 +125,12 @@ void TextureImage::Init(std::shared_ptr<Context> context,
       break;
     default:
       throw std::runtime_error{"Unsupported number of paths: " +
-                               std::to_string(paths.size())};
+                               std::to_string(images.size())};
   }
 
-  vector<common::util::Image> images;
-  images.reserve(paths.size());
-  vector<const void*> datas(paths.size());
-  for (size_t i = 0; i < paths.size(); ++i) {
-    images.emplace_back(paths[i]);
-    datas[i] = images.back().data;
+  vector<const void*> datas(images.size());
+  for (size_t i = 0; i < images.size(); ++i) {
+    datas[i] = images[i].data;
   }
 
   VkFormat format;
@@ -153,20 +159,16 @@ void TextureImage::Init(std::shared_ptr<Context> context,
       is_cubemap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
   image_view_ = CreateImageView(context_, buffer_.image(), view_type, format,
                                 VK_IMAGE_ASPECT_COLOR_BIT,
-                                CONTAINER_SIZE(paths));
+                                CONTAINER_SIZE(images));
   sampler_ = CreateSampler(context_);
 }
 
-void TextureImage::UpdateDescriptors(const Descriptor::Info& descriptor_info,
-                                     vector<Descriptor>* descriptors) {
-  for (auto& descriptor : *descriptors) {
-    VkDescriptorImageInfo image_info{
-        sampler_,
-        image_view_,
-        /*imageLayout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-    };
-    descriptor.UpdateImageInfos(descriptor_info, {{std::move(image_info)}});
-  }
+VkDescriptorImageInfo TextureImage::descriptor_info() const {
+  return VkDescriptorImageInfo{
+     sampler_,
+     image_view_,
+     /*imageLayout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+  };
 }
 
 TextureImage::~TextureImage() {
@@ -176,7 +178,7 @@ TextureImage::~TextureImage() {
 
 void DepthStencilImage::Init(SharedContext context,
                              VkExtent2D extent) {
-  context_ = std::move(context);
+  context_ = move(context);
   buffer_.Init(context_, extent);
   image_view_ = CreateImageView(context_, buffer_.image(),
                                 VK_IMAGE_VIEW_TYPE_2D, format(),

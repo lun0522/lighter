@@ -102,7 +102,7 @@ void CubeApp::Init() {
     uniform_buffer_.Init(context_->ptr(), chunk_info);
 
     // descriptor
-    vector<Descriptor::Info> resource_infos{
+    vector<Descriptor::Info> descriptor_infos{
         {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
          VK_SHADER_STAGE_VERTEX_BIT,
          {{/*binding_point=*/0, /*array_length=*/1}}},
@@ -110,12 +110,12 @@ void CubeApp::Init() {
          VK_SHADER_STAGE_FRAGMENT_BIT,
          {{/*binding_point=*/1, /*array_length=*/1}}},
     };
-    descriptors_.resize(kNumFrameInFlight);
+    descriptors_.resize(context_->swapchain().size());
     for (auto& descriptor : descriptors_) {
-      descriptor.Init(context_, resource_infos);
+      descriptor.Init(context_, descriptor_infos);
     }
-    uniform_buffer_.UpdateDescriptors(resource_infos[0], &descriptors_);
-    model_.UpdateDescriptors({resource_infos[1]}, &descriptors_);
+    uniform_buffer_.UpdateDescriptors(descriptor_infos[0], &descriptors_);
+    model_.UpdateDescriptors({descriptor_infos[1]}, &descriptors_);
 
     is_first_time = false;
   }
@@ -182,7 +182,7 @@ void CubeApp::MainLoop() {
     VkExtent2D extent = context_->swapchain().extent();
     auto update_func = [this, extent](size_t image_index) {
       UpdateTrans(image_index, (float)extent.width / extent.height);
-      uniform_buffer_.Update(image_index);
+      uniform_buffer_.UpdateData(image_index);
     };
     if (command_.DrawFrame(current_frame_, update_func) != VK_SUCCESS ||
         window.IsResized()) {

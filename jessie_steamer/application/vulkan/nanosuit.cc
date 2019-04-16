@@ -139,7 +139,7 @@ void NanosuitApp::Init() {
     uniform_buffer_.Init(context_->ptr(), chunk_info);
 
     // descriptor
-    vector<Descriptor::Info> cube_rsrc_infos{
+    vector<Descriptor::Info> cube_desc_infos{
         {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
          VK_SHADER_STAGE_VERTEX_BIT,
          {{/*binding_point=*/0, /*array_length=*/1}}},
@@ -149,12 +149,12 @@ void NanosuitApp::Init() {
     };
     cube_dscs_.resize(kNumFrameInFlight);
     for (auto& descriptor : cube_dscs_) {
-      descriptor.Init(context_, cube_rsrc_infos);
+      descriptor.Init(context_, cube_desc_infos);
     }
-    uniform_buffer_.UpdateDescriptors(cube_rsrc_infos[0], &cube_dscs_);
-    cube_model_.UpdateDescriptors({cube_rsrc_infos[1]}, &cube_dscs_);
+    uniform_buffer_.UpdateDescriptors(cube_desc_infos[0], &cube_dscs_);
+    cube_model_.UpdateDescriptors({cube_desc_infos[1]}, &cube_dscs_);
 
-    vector<Descriptor::Info> skybox_rsrc_infos{
+    vector<Descriptor::Info> skybox_desc_infos{
         {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
          VK_SHADER_STAGE_VERTEX_BIT,
          {{/*binding_point=*/0, /*array_length=*/1}}},
@@ -164,10 +164,10 @@ void NanosuitApp::Init() {
     };
     skybox_dscs_.resize(kNumFrameInFlight);
     for (auto& descriptor : skybox_dscs_) {
-      descriptor.Init(context_, skybox_rsrc_infos);
+      descriptor.Init(context_, skybox_desc_infos);
     }
-    uniform_buffer_.UpdateDescriptors(skybox_rsrc_infos[0], &skybox_dscs_);
-    skybox_model_.UpdateDescriptors({skybox_rsrc_infos[1]}, &skybox_dscs_);
+    uniform_buffer_.UpdateDescriptors(skybox_desc_infos[0], &skybox_dscs_);
+    skybox_model_.UpdateDescriptors({skybox_desc_infos[1]}, &skybox_dscs_);
 
     is_first_time = false;
   }
@@ -279,7 +279,7 @@ void NanosuitApp::MainLoop() {
 
     auto update_func = [this](size_t image_index) {
       UpdateTrans(image_index);
-      uniform_buffer_.Update(image_index);
+      uniform_buffer_.UpdateData(image_index);
     };
     if (command_.DrawFrame(current_frame_, update_func) != VK_SUCCESS ||
         window.IsResized()) {

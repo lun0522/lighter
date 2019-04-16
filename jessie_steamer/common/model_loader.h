@@ -24,7 +24,12 @@ namespace common {
 class ModelLoader {
  public:
   struct Texture {
-    enum class Type { kDiffuse, kSpecular, kReflection };
+    enum Type {
+      kTypeDiffuse = 0,
+      kTypeSpecular,
+      kTypeReflection,
+      kTypeMaxEnum,
+    };
     util::Image image;
     Type type;
 

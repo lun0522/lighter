@@ -1,7 +1,7 @@
 #!/bin/sh
 
-VK_GLSL_VALIDATOR=$1
 BASEDIR=$(dirname "$0")
+VK_GLSL_VALIDATOR="${BASEDIR}/third_party/glslangValidator"
 SHADERS_DIR="${BASEDIR}/jessie_steamer/shader"
 COMPILED_DIR="${SHADERS_DIR}/compiled"
 COMPILED_EXT=".spv"

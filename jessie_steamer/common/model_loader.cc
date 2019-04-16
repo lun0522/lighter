@@ -92,11 +92,11 @@ void ModelLoader::ProcessMesh(const string& directory,
   if (scene->HasMaterials()) {
     aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
     vector<Texture> diff_maps = LoadTextures(
-     directory, material, Texture::Type::kDiffuse);
+        directory, material, Texture::kTypeDiffuse);
     vector<Texture> spec_maps = LoadTextures(
-     directory, material, Texture::Type::kSpecular);
+        directory, material, Texture::kTypeSpecular);
     vector<Texture> refl_maps = LoadTextures(
-     directory, material, Texture::Type::kReflection);
+        directory, material, Texture::kTypeReflection);
 
     util::MoveAll(&textures, &diff_maps);
     util::MoveAll(&textures, &spec_maps);
@@ -112,15 +112,17 @@ vector<ModelLoader::Texture> ModelLoader::LoadTextures(
     Texture::Type type) {
   aiTextureType ai_type;
   switch (type) {
-    case Texture::Type::kDiffuse:
+    case Texture::kTypeDiffuse:
       ai_type = aiTextureType_DIFFUSE;
       break;
-    case Texture::Type::kSpecular:
+    case Texture::kTypeSpecular:
       ai_type = aiTextureType_SPECULAR;
       break;
-    case Texture::Type::kReflection:
+    case Texture::kTypeReflection:
       ai_type = aiTextureType_AMBIENT;
       break;
+    case Texture::kTypeMaxEnum:
+      throw std::runtime_error{"Invalid texture type"};
   }
 
   size_t num_texture = material->GetTextureCount(ai_type);

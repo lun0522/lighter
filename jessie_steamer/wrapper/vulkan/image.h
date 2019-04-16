@@ -12,6 +12,7 @@
 #include <memory>
 #include <vector>
 
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -88,14 +89,15 @@ class TextureImage {
   // paths.size() should be either 1 or 6 (cubemap)
   void Init(std::shared_ptr<Context> context,
             const std::vector<std::string>& paths);
+  void Init(std::shared_ptr<Context> context,
+            const std::vector<common::util::Image>& images);
   ~TextureImage();
 
   // This class is only movable
   TextureImage(TextureImage&&) = default;
   TextureImage& operator=(TextureImage&&) = default;
 
-  void UpdateDescriptors(const Descriptor::Info& descriptor_info,
-                         std::vector<Descriptor>* descriptors);
+  VkDescriptorImageInfo descriptor_info() const;
 
  private:
   std::shared_ptr<Context> context_;

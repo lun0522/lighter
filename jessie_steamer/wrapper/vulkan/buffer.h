@@ -95,20 +95,19 @@ class UniformBuffer {
   UniformBuffer() = default;
   void Init(std::shared_ptr<Context> context,
             const Info& info);
-  void Update(size_t chunk_index) const;
+  void UpdateData(size_t chunk_index) const;
   ~UniformBuffer();
 
   // This class is only movable
   UniformBuffer(UniformBuffer&&) = default;
   UniformBuffer& operator=(UniformBuffer&&) = default;
 
-  void UpdateDescriptors(const Descriptor::Info& descriptor_info,
-                         std::vector<Descriptor>* descriptors);
+  VkDescriptorBufferInfo descriptor_info(size_t chunk_index) const;
 
  private:
   std::shared_ptr<Context> context_;
   const char* data_ = nullptr;
-  size_t num_chunk_, chunk_memory_size_, chunk_data_size_;
+  size_t chunk_memory_size_, chunk_data_size_;
   VkBuffer buffer_;
   VkDeviceMemory device_memory_;
 };

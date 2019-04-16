@@ -54,8 +54,8 @@ class Context;
  *    buffers where we hold actual data. vkUpdateDescriptorSets will be called
  *    to build this connection. vkCmdBindDescriptorSets will be called to bind
  *    resources before a render call. Unlike OpenGL where resources are local
- *    to a shader, here we can reuse descritor sets across different shaders.
- *    We can also use multiple descritor sets in one shader and use 'set = 1'
+ *    to a shader, here we can reuse descriptor sets across different shaders.
+ *    We can also use multiple descriptor sets in one shader and use 'set = 1'
  *    to specify from which set the data come from. However, OpenGL won't
  *    recognize this, so we will only use one set in one shader.
  *
@@ -67,12 +67,16 @@ class Context;
 class Descriptor {
  public:
   struct Info {
-    struct Subfield {
+    struct Binding {
       uint32_t binding_point, array_length;
+
+      Binding(uint32_t binding_point, uint32_t array_length)
+          : binding_point{binding_point}, array_length{array_length} {}
     };
+
     VkDescriptorType descriptor_type;
     VkShaderStageFlags shader_stage;
-    std::vector<Subfield> subfields;
+    std::vector<Binding> bindings;
   };
 
   Descriptor() = default;
@@ -80,10 +84,10 @@ class Descriptor {
             const std::vector<Info>& infos);
   void UpdateBufferInfos(
       const Info& descriptor_info,
-      const std::vector<VkDescriptorBufferInfo>& buffer_infos);
+      const std::vector<VkDescriptorBufferInfo>& buffer_infos) const;
   void UpdateImageInfos(
       const Info& descriptor_info,
-      const std::vector<std::vector<VkDescriptorImageInfo>>& image_infos);
+      const std::vector<std::vector<VkDescriptorImageInfo>>& image_infos) const;
   ~Descriptor();
 
   // This class is only movable
