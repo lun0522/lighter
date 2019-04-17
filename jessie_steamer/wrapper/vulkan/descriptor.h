@@ -8,9 +8,12 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_DESCRIPTOR_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_DESCRIPTOR_H
 
+#include <array>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
+#include "jessie_steamer/common/model_loader.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {

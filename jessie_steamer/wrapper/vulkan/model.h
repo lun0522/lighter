@@ -35,6 +35,11 @@ class Model {
     uint32_t binding_point;
     std::vector<std::string> texture_paths;
   };
+  using BindingMap = std::unordered_map<TextureType, Binding, std::hash<int>>;
+
+  struct Mesh {
+    std::array<std::vector<TextureImage>, TextureType::kTypeMaxEnum> textures;
+  };
 
   Model() = default;
 
@@ -42,18 +47,18 @@ class Model {
   void Init(std::shared_ptr<Context> context,
             unsigned int obj_index_base,
             const std::string& obj_path,
-            const std::unordered_map<TextureType, Binding>& bindings,
+            const BindingMap& bindings,
             const UniformBuffer& uniform_buffer,
-            const Descriptor::Info& uniform_info,
+            const Descriptor::Info& uniform_desc_info,
             size_t num_frame);
 
   // Uses Assimp for loading complex models
   void Init(std::shared_ptr<Context> context,
             const std::string& obj_path,
             const std::string& tex_path,
-            const std::unordered_map<TextureType, Binding>& bindings,
+            const BindingMap& bindings,
             const UniformBuffer& uniform_buffer,
-            const Descriptor::Info& uniform_info,
+            const Descriptor::Info& uniform_desc_info,
             size_t num_frame);
 
   void Draw(const VkCommandBuffer& command_buffer) const {
@@ -66,12 +71,9 @@ class Model {
 
   static const std::vector<VkVertexInputBindingDescription>& binding_descs();
   static const std::vector<VkVertexInputAttributeDescription>& attrib_descs();
+  const Descriptor& descriptor(size_t frame) { return descriptors_[frame]; }
 
  private:
-  struct Mesh {
-    std::array<std::vector<TextureImage>, TextureType::kTypeMaxEnum> textures;
-  };
-
   VertexBuffer vertex_buffer_;
   std::vector<Mesh> meshes_;
   std::vector<Descriptor> descriptors_;

@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 #include "jessie_steamer/common/util.h"
@@ -53,7 +54,6 @@ class CubeApp {
   Model model_;
   UniformBuffer uniform_buffer_;
   DepthStencilImage depth_stencil_;
-  vector<Descriptor> descriptors_;
 
   void Init();
   void Cleanup();
@@ -87,11 +87,6 @@ void UpdateTrans(size_t current_frame, float screen_aspect) {
 
 void CubeApp::Init() {
   if (is_first_time) {
-    // model (vertex buffer)
-    model_.Init(context_->ptr(), /*obj_index_base=*/1,
-                "jessie_steamer/resource/model/cube.obj",
-                {{"jessie_steamer/resource/texture/statue.jpg"}});
-
     // uniform buffer
     kTrans.resize(context_->swapchain().size());
     UniformBuffer::Info chunk_info{
@@ -100,22 +95,21 @@ void CubeApp::Init() {
         CONTAINER_SIZE(kTrans),
     };
     uniform_buffer_.Init(context_->ptr(), chunk_info);
-
-    // descriptor
-    vector<Descriptor::Info> descriptor_infos{
-        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-         VK_SHADER_STAGE_VERTEX_BIT,
-         {{/*binding_point=*/0, /*array_length=*/1}}},
-        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-         VK_SHADER_STAGE_FRAGMENT_BIT,
-         {{/*binding_point=*/1, /*array_length=*/1}}},
+    Descriptor::Info uniform_desc_info{
+        /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        /*shader_stage=*/VK_SHADER_STAGE_VERTEX_BIT,
+        /*bindings=*/{{/*binding_point=*/0, /*array_length=*/1}},
     };
-    descriptors_.resize(context_->swapchain().size());
-    for (auto& descriptor : descriptors_) {
-      descriptor.Init(context_, descriptor_infos);
-    }
-    uniform_buffer_.UpdateDescriptors(descriptor_infos[0], &descriptors_);
-    model_.UpdateDescriptors({descriptor_infos[1]}, &descriptors_);
+
+    // model
+    Model::BindingMap bindings;
+    bindings[Model::TextureType::kTypeSpecular] = {
+        /*binding_point=*/1,
+        {"jessie_steamer/resource/texture/statue.jpg"},
+    };
+    model_.Init(context_->ptr(), /*obj_index_base=*/1,
+                "jessie_steamer/resource/model/cube.obj", bindings,
+                uniform_buffer_, uniform_desc_info, kNumFrameInFlight);
 
     is_first_time = false;
   }
@@ -127,7 +121,7 @@ void CubeApp::Init() {
                    VK_SHADER_STAGE_VERTEX_BIT},
                   {"jessie_steamer/shader/compiled/simple.frag.spv",
                    VK_SHADER_STAGE_FRAGMENT_BIT}},
-                 descriptors_[0].layout(),
+                 model_.descriptor(0).layout(),
                  Model::binding_descs(), Model::attrib_descs());
   command_.Init(context_->ptr(), kNumFrameInFlight,
                 [&](const VkCommandBuffer& command_buffer, size_t image_index) {
@@ -162,7 +156,7 @@ void CubeApp::Init() {
                       *pipeline_);
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipeline_.layout(), 0, 1,
-                            &descriptors_[image_index].set(), 0, nullptr);
+                            &model_.descriptor(image_index).set(), 0, nullptr);
     model_.Draw(command_buffer);
 
     vkCmdEndRenderPass(command_buffer);

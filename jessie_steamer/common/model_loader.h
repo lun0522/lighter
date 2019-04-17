@@ -66,7 +66,7 @@ class ModelLoader {
   ModelLoader(const ModelLoader&) = delete;
   ModelLoader& operator=(const ModelLoader&) = delete;
 
-  const std::vector<Mesh>& meshes() const { return meshes_; }
+  std::vector<Mesh>& meshes() { return meshes_; }
 
  private:
   std::vector<Mesh> meshes_;

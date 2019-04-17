@@ -114,7 +114,9 @@ void TextureImage::Init(SharedContext context,
 }
 
 void TextureImage::Init(SharedContext context,
-                        const std::vector<Image>& images) {
+                        const vector<Image>& images) {
+  context_ = move(context);
+
   bool is_cubemap;
   switch (images.size()) {
     case 1:
