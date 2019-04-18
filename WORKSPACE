@@ -21,19 +21,21 @@ http_archive(
     build_file = "//:third_party/BUILD.freetype",
 )
 
-# TODO: replace with stable release
-http_file(
+new_git_repository(
     name = "lib-glfw",
-    urls = ["https://raw.githubusercontent.com/glfw/glfw/master/include/GLFW/glfw3.h"],
-    downloaded_file_path = "glfw3.h",
+    remote = "https://github.com/glfw/glfw.git",
+    commit = "b0796109629931b6fa6e449c15a177845256a407",
+    shallow_since = "1555371630 +0200",
+    strip_prefix = "include/GLFW",
+    build_file = "//:third_party/BUILD.glfw",
 )
 
 new_git_repository(
     name = "lib-glm",
-    strip_prefix = "glm",
     remote = "https://github.com/g-truc/glm.git",
     commit = "d162eee1e6f7c317a09229fe6ceab8ec6ab9a4b4",
     shallow_since = "1554197305 +0200",
+    strip_prefix = "glm",
     build_file = "//:third_party/BUILD.glm",
 )
 

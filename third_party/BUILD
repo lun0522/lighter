@@ -17,9 +17,7 @@ cc_library(
 cc_library(
     name = "glfw",
     srcs = ["libglfw.3.3.dylib"],
-    hdrs = ["@lib-glfw//file"],
-    strip_include_prefix = "/external/lib-glfw/file",
-    include_prefix = "third_party/glfw",
+    deps = ["@lib-glfw//:glfw"],
 )
 
 cc_library(

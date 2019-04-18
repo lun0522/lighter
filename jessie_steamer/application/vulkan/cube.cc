@@ -105,11 +105,11 @@ void CubeApp::Init() {
     Model::BindingMap bindings;
     bindings[Model::TextureType::kTypeSpecular] = {
         /*binding_point=*/1,
-        {"jessie_steamer/resource/texture/statue.jpg"},
+        {{"jessie_steamer/resource/texture/statue.jpg"}},
     };
     model_.Init(context_->ptr(), /*obj_index_base=*/1,
                 "jessie_steamer/resource/model/cube.obj", bindings,
-                uniform_buffer_, uniform_desc_info, kNumFrameInFlight);
+                {{&uniform_buffer_, &uniform_desc_info}}, kNumFrameInFlight);
 
     is_first_time = false;
   }

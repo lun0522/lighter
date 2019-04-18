@@ -1,0 +1,8 @@
+licenses(["notice"])
+
+cc_library(
+    name = "glfw",
+    hdrs = ["glfw3.h"],
+    include_prefix = "third_party/glfw",
+    visibility = ["//visibility:public"],
+)

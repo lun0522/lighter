@@ -31,9 +31,11 @@ class Model {
  public:
   using TextureType = common::ModelLoader::Texture::Type;
 
+  using UniformInfo = std::pair<const UniformBuffer*, const Descriptor::Info*>;
+
   struct Binding {
     uint32_t binding_point;
-    std::vector<std::string> texture_paths;
+    std::vector<std::vector<std::string>> texture_paths;
   };
   using BindingMap = std::unordered_map<TextureType, Binding, std::hash<int>>;
 
@@ -48,8 +50,7 @@ class Model {
             unsigned int obj_index_base,
             const std::string& obj_path,
             const BindingMap& bindings,
-            const UniformBuffer& uniform_buffer,
-            const Descriptor::Info& uniform_desc_info,
+            const std::vector<UniformInfo>& uniform_infos,
             size_t num_frame);
 
   // Uses Assimp for loading complex models
@@ -57,8 +58,7 @@ class Model {
             const std::string& obj_path,
             const std::string& tex_path,
             const BindingMap& bindings,
-            const UniformBuffer& uniform_buffer,
-            const Descriptor::Info& uniform_desc_info,
+            const std::vector<UniformInfo>& uniform_infos,
             size_t num_frame);
 
   void Draw(const VkCommandBuffer& command_buffer) const {

@@ -45,7 +45,7 @@ vector<Descriptor::Info::Binding> CreateTextureBindings(
   texture_bindings.reserve(bindings.size());
   for (const auto& binding : bindings) {
     const uint32_t binding_point = binding.second.binding_point;
-    const vector<string>& texture_paths = binding.second.texture_paths;
+    const vector<vector<string>>& texture_paths = binding.second.texture_paths;
     texture_bindings.emplace_back(binding_point, CONTAINER_SIZE(texture_paths));
   }
   return texture_bindings;
@@ -81,8 +81,7 @@ void Model::Init(SharedContext context,
                  unsigned int obj_index_base,
                  const string& obj_path,
                  const BindingMap& bindings,
-                 const UniformBuffer& uniform_buffer,
-                 const Descriptor::Info& uniform_desc_info,
+                 const std::vector<UniformInfo>& uniform_infos,
                  size_t num_frame) {
   // load vertices and indices
   vector<VertexAttrib3D> vertices;
@@ -94,10 +93,11 @@ void Model::Init(SharedContext context,
   meshes_.resize(1);
   for (const auto& binding : bindings) {
     const TextureType type = binding.first;
-    const vector<string>& texture_paths = binding.second.texture_paths;
+    const vector<vector<string>>& texture_paths = binding.second.texture_paths;
 
+    meshes_[0].textures[type].resize(texture_paths.size());
     for (size_t i = 0; i < texture_paths.size(); ++i) {
-      meshes_[0].textures[type][i].Init(context, {texture_paths[i]});
+      meshes_[0].textures[type][i].Init(context, texture_paths[i]);
     }
   }
 
@@ -107,18 +107,20 @@ void Model::Init(SharedContext context,
       /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
       CreateTextureBindings(bindings),
   };
-  vector<Descriptor::Info> descriptor_infos{
-      uniform_desc_info,
-      texture_info,
-  };
   vector<vector<VkDescriptorImageInfo>> image_infos =
       CreateImageInfos(meshes_, bindings);
+  vector<Descriptor::Info> descriptor_infos{texture_info};
+  for (const auto& uniform_info : uniform_infos) {
+    descriptor_infos.emplace_back(*uniform_info.second);
+  }
 
   descriptors_.resize(num_frame);
   for (size_t frame = 0; frame < num_frame; ++frame) {
     descriptors_[frame].Init(context, descriptor_infos);
-    descriptors_[frame].UpdateBufferInfos(
-        uniform_desc_info, {uniform_buffer.descriptor_info(frame)});
+    for (const auto& uniform_info : uniform_infos) {
+      descriptors_[frame].UpdateBufferInfos(
+          *uniform_info.second, {uniform_info.first->descriptor_info(frame)});
+    }
     descriptors_[frame].UpdateImageInfos(texture_info, image_infos);
   }
 }
@@ -127,8 +129,7 @@ void Model::Init(SharedContext context,
                  const string& obj_path,
                  const string& tex_path,
                  const BindingMap& bindings,
-                 const UniformBuffer& uniform_buffer,
-                 const Descriptor::Info& uniform_desc_info,
+                 const std::vector<UniformInfo>& uniform_infos,
                  size_t num_frame) {
   // load vertices and indices
   common::ModelLoader loader{obj_path, tex_path, /*flip_uvs=*/false};
@@ -159,18 +160,20 @@ void Model::Init(SharedContext context,
       /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
       CreateTextureBindings(bindings),
   };
-  vector<Descriptor::Info> descriptor_infos{
-      uniform_desc_info,
-      texture_info,
-  };
   vector<vector<VkDescriptorImageInfo>> image_infos =
       CreateImageInfos(meshes_, bindings);
+  vector<Descriptor::Info> descriptor_infos{texture_info};
+  for (const auto& uniform_info : uniform_infos) {
+    descriptor_infos.emplace_back(*uniform_info.second);
+  }
 
   descriptors_.resize(num_frame);
   for (size_t frame = 0; frame < num_frame; ++frame) {
     descriptors_[frame].Init(context, descriptor_infos);
-    descriptors_[frame].UpdateBufferInfos(
-        uniform_desc_info, {uniform_buffer.descriptor_info(frame)});
+    for (const auto& uniform_info : uniform_infos) {
+      descriptors_[frame].UpdateBufferInfos(
+        *uniform_info.second, {uniform_info.first->descriptor_info(frame)});
+    }
     descriptors_[frame].UpdateImageInfos(texture_info, image_infos);
   }
 }
