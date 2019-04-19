@@ -174,8 +174,10 @@ VkDescriptorImageInfo TextureImage::descriptor_info() const {
 }
 
 TextureImage::~TextureImage() {
-  vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
-  vkDestroySampler(*context_->device(), sampler_, context_->allocator());
+  if (context_) {
+    vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
+    vkDestroySampler(*context_->device(), sampler_, context_->allocator());
+  }
 }
 
 void DepthStencilImage::Init(SharedContext context,

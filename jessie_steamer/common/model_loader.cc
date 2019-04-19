@@ -34,13 +34,13 @@ ModelLoader::ModelLoader(const string& obj_path,
   //                               that can be rendered at a time is limited
   // - aiProcess_OptimizeMeshes: do the reverse of splitting, merge meshes to
   //                             reduce drawing calls
-  unsigned int flags = aiProcess_Triangulate;
+  unsigned int flags = aiProcess_Triangulate | aiProcess_GenNormals;
   flags |= flip_uvs ? aiProcess_FlipUVs : 0;
 
   Assimp::Importer importer;
-  const auto* scene = importer.ReadFile(obj_path.c_str(), flags);
-  if (scene == nullptr || scene->mRootNode ||
-      scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
+   auto* scene = importer.ReadFile(obj_path, flags);
+  if (!scene || !scene->mRootNode ||
+      (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)) {
     throw std::runtime_error{string{"Failed to import scene: "} +
                              importer.GetErrorString()};
   }
@@ -67,7 +67,7 @@ void ModelLoader::ProcessMesh(const string& directory,
   vector<util::VertexAttrib3D> vertices;
   vertices.reserve(mesh->mNumVertices);
   aiVector3D* ai_tex_coords = mesh->mTextureCoords[0];
-  for (int i = 0; i < vertices.size(); ++i) {
+  for (int i = 0; i < mesh->mNumVertices; ++i) {
     glm::vec3 position{mesh->mVertices[i].x,
                        mesh->mVertices[i].y,
                        mesh->mVertices[i].z};
@@ -76,7 +76,7 @@ void ModelLoader::ProcessMesh(const string& directory,
                      mesh->mNormals[i].z};
     glm::vec2 tex_coord{ai_tex_coords ? ai_tex_coords[i].x : 0.0,
                         ai_tex_coords ? ai_tex_coords[i].y : 0.0};
-    vertices[i] = util::VertexAttrib3D{position, normal, tex_coord};
+    vertices.emplace_back(position, normal, tex_coord);
   }
 
   // load indices

@@ -484,8 +484,10 @@ void TextureBuffer::Init(SharedContext context,
 }
 
 TextureBuffer::~TextureBuffer() {
-  vkDestroyImage(*context_->device(), image_, context_->allocator());
-  vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
+  if (context_) {
+    vkDestroyImage(*context_->device(), image_, context_->allocator());
+    vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
+  }
 }
 
 void DepthStencilBuffer::Init(SharedContext context,

@@ -94,8 +94,22 @@ class TextureImage {
   ~TextureImage();
 
   // This class is only movable
-  TextureImage(TextureImage&&) = default;
-  TextureImage& operator=(TextureImage&&) = default;
+  TextureImage(TextureImage&& rhs) noexcept {
+    context_ = std::move(rhs.context_);
+    buffer_ = std::move(rhs.buffer_);
+    image_view_ = std::move(rhs.image_view_);
+    sampler_ = std::move(rhs.sampler_);
+    rhs.context_ = nullptr;
+  }
+
+  TextureImage& operator=(TextureImage&& rhs) noexcept {
+    context_ = std::move(rhs.context_);
+    buffer_ = std::move(rhs.buffer_);
+    image_view_ = std::move(rhs.image_view_);
+    sampler_ = std::move(rhs.sampler_);
+    rhs.context_ = nullptr;
+    return *this;
+  }
 
   VkDescriptorImageInfo descriptor_info() const;
 

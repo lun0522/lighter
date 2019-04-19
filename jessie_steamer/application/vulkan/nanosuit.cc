@@ -57,8 +57,8 @@ class NanosuitApp {
   Command command_;
   UniformBuffer uniform_buffer_;
   DepthStencilImage depth_stencil_;
-  Pipeline cube_pipeline_, skybox_pipeline_;
-  Model cube_model_, skybox_model_;
+  Pipeline nanosuit_pipeline_, skybox_pipeline_;
+  Model nanosuit_model_, skybox_model_;
 
   void Init();
   void Cleanup();
@@ -127,14 +127,17 @@ void NanosuitApp::Init() {
     uniform_infos.emplace_back(&uniform_buffer_, &uniform_desc_info);
 
     // model
-    Model::BindingMap cube_bindings;
-    cube_bindings[Model::TextureType::kTypeSpecular] = {
-        /*binding_point=*/1,
-        {{"jessie_steamer/resource/texture/statue.jpg"}},
-    };
-    cube_model_.Init(context_->ptr(), /*obj_index_base=*/1,
-                     "jessie_steamer/resource/model/cube.obj", cube_bindings,
-                     uniform_infos, kNumFrameInFlight);
+    Model::BindingMap nanosuit_bindings;
+    nanosuit_bindings[Model::TextureType::kTypeDiffuse] =
+        {/*binding_point=*/1, {}};
+    nanosuit_bindings[Model::TextureType::kTypeSpecular] =
+        {/*binding_point=*/2, {}};
+    nanosuit_bindings[Model::TextureType::kTypeReflection] =
+        {/*binding_point=*/3, {}};
+    nanosuit_model_.Init(
+        context_->ptr(), "jessie_steamer/resource/model/nanosuit/nanosuit.obj",
+        "jessie_steamer/resource/model/nanosuit", nanosuit_bindings,
+        uniform_infos, kNumFrameInFlight);
 
     const std::string skybox_dir{"jessie_steamer/resource/texture/tidepool/"};
     vector<std::string> skybox_paths{
@@ -169,13 +172,13 @@ void NanosuitApp::Init() {
   context_->render_pass().Config(depth_stencil_);
 
   // pipeline
-  cube_pipeline_.Init(
+  nanosuit_pipeline_.Init(
       context_->ptr(),
-      {{"jessie_steamer/shader/compiled/simple.vert.spv",
+      {{"jessie_steamer/shader/compiled/nanosuit.vert.spv",
         VK_SHADER_STAGE_VERTEX_BIT},
-       {"jessie_steamer/shader/compiled/simple.frag.spv",
+       {"jessie_steamer/shader/compiled/nanosuit.frag.spv",
         VK_SHADER_STAGE_FRAGMENT_BIT}},
-      cube_model_.descriptor(0).layout(), Model::binding_descs(),
+      nanosuit_model_.descriptor(0).layout(), Model::binding_descs(),
       Model::attrib_descs());
 
   skybox_pipeline_.Init(
@@ -218,12 +221,12 @@ void NanosuitApp::Init() {
                          VK_SUBPASS_CONTENTS_INLINE);
 
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                      *cube_pipeline_);
+                      *nanosuit_pipeline_);
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            cube_pipeline_.layout(), 0, 1,
-                            &cube_model_.descriptor(image_index).set(), 0,
+                            nanosuit_pipeline_.layout(), 0, 1,
+                            &nanosuit_model_.descriptor(image_index).set(), 0,
                             nullptr);
-    cube_model_.Draw(command_buffer);
+    nanosuit_model_.Draw(command_buffer);
 
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                       *skybox_pipeline_);
@@ -239,17 +242,18 @@ void NanosuitApp::Init() {
 
 void NanosuitApp::Cleanup() {
   command_.Cleanup();
-  cube_pipeline_.Cleanup();
+  nanosuit_pipeline_.Cleanup();
   skybox_pipeline_.Cleanup();
 }
 
 void NanosuitApp::UpdateTrans(size_t image_index) {
   glm::mat4 model{1.0f};
-  model = glm::translate(model, glm::vec3{0.0f, 0.0f, -5.0f});
+  model = glm::translate(model, glm::vec3{0.0f, -1.0f, -4.0f});
   static auto start_time = util::Now();
   auto elapsed_time = util::TimeInterval(start_time, util::Now());
   model = glm::rotate(model, elapsed_time * glm::radians(90.0f),
-                      glm::vec3{1.0f});
+                      glm::vec3{0.0f, 1.0f, 0.0f});
+  model = glm::scale(model, glm::vec3{0.2f});
 
   Transformation& trans = kTrans[image_index];
   trans = {std::move(model), camera_.view_matrix(), camera_.proj_matrix()};

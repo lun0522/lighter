@@ -94,7 +94,7 @@ template <typename ContainerType>
 void MoveAll(ContainerType* dst, ContainerType* src) {
   using MoveIterator =
       typename std::move_iterator<typename ContainerType::iterator>;
-  dst->insert(dst->begin(),
+  dst->insert(dst->end(),
               MoveIterator(src->begin()),
               MoveIterator(src->end()));
 }
@@ -118,9 +118,8 @@ struct FileContent {
   ~FileContent() { delete[] data; }
 
   // This class is only movable
-  FileContent(const FileContent&) = delete;
-  FileContent& operator=(const FileContent&) = delete;
-  FileContent(FileContent&& rhs) = default;
+  FileContent(FileContent&&) = default;
+  FileContent& operator=(FileContent&&) = default;
 };
 
 FileContent LoadRawDataFromFile(const std::string& path);
@@ -186,8 +185,22 @@ struct Image {
   ~Image();
 
   // This class is only movable
-  Image(Image&&) = default;
-  Image& operator=(Image&&) = default;
+  Image(Image&& rhs) noexcept {
+    width = rhs.width;
+    height = rhs.height;
+    channel = rhs.channel;
+    data = rhs.data;
+    rhs.data = nullptr;
+  }
+
+  Image& operator=(Image&& rhs) noexcept {
+    width = rhs.width;
+    height = rhs.height;
+    channel = rhs.channel;
+    data = rhs.data;
+    rhs.data = nullptr;
+    return *this;
+  }
 };
 
 } /* namespace util */

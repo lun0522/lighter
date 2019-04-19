@@ -134,8 +134,20 @@ class TextureBuffer {
   ~TextureBuffer();
 
   // This class is only movable
-  TextureBuffer(TextureBuffer&&) = default;
-  TextureBuffer& operator=(TextureBuffer&&) = default;
+  TextureBuffer(TextureBuffer&& rhs) noexcept {
+    context_ = std::move(rhs.context_);
+    image_ = std::move(rhs.image_);
+    device_memory_ = std::move(rhs.device_memory_);
+    rhs.context_ = nullptr;
+  }
+
+  TextureBuffer& operator=(TextureBuffer&& rhs) noexcept {
+    context_ = std::move(rhs.context_);
+    image_ = std::move(rhs.image_);
+    device_memory_ = std::move(rhs.device_memory_);
+    rhs.context_ = nullptr;
+    return *this;
+  }
 
   const VkImage& image() const { return image_; }
 
