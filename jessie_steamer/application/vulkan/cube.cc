@@ -98,7 +98,11 @@ void CubeApp::Init() {
     Descriptor::Info uniform_desc_info{
         /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         /*shader_stage=*/VK_SHADER_STAGE_VERTEX_BIT,
-        /*bindings=*/{{/*binding_point=*/0, /*array_length=*/1}},
+        /*bindings=*/{{
+            Descriptor::TextureType::kTypeMaxEnum,
+            /*binding_point=*/0,
+            /*array_length=*/1,
+        }},
     };
 
     // model
@@ -114,15 +118,25 @@ void CubeApp::Init() {
     is_first_time = false;
   }
 
+  // depth stencil
   depth_stencil_.Init(context_, context_->swapchain().extent());
   context_->render_pass().Config(depth_stencil_);
+
+  // pipeline
+  vector<VkDescriptorSetLayout> desc_set_layouts;
+  desc_set_layouts.reserve(model_.descriptors(0).size());
+  for (const auto& descriptor : model_.descriptors(0)) {
+    desc_set_layouts.emplace_back(descriptor.layout());
+  }
   pipeline_.Init(context_->ptr(),
                  {{"jessie_steamer/shader/compiled/simple.vert.spv",
                    VK_SHADER_STAGE_VERTEX_BIT},
                   {"jessie_steamer/shader/compiled/simple.frag.spv",
                    VK_SHADER_STAGE_FRAGMENT_BIT}},
-                 model_.descriptor(0).layout(),
-                 Model::binding_descs(), Model::attrib_descs());
+                 desc_set_layouts, Model::binding_descs(),
+                 Model::attrib_descs());
+
+  // command
   command_.Init(context_->ptr(), kNumFrameInFlight,
                 [&](const VkCommandBuffer& command_buffer, size_t image_index) {
     // start render pass
@@ -147,17 +161,15 @@ void CubeApp::Init() {
     };
 
     // record commends. options:
-    //   - VK_SUBPASS_CONTENTS_INLINE: use primary commmand buffer
+    //   - VK_SUBPASS_CONTENTS_INLINE: use primary command buffer
     //   - VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: use secondary
     vkCmdBeginRenderPass(command_buffer, &begin_info,
                          VK_SUBPASS_CONTENTS_INLINE);
 
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                       *pipeline_);
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipeline_.layout(), 0, 1,
-                            &model_.descriptor(image_index).set(), 0, nullptr);
-    model_.Draw(command_buffer);
+    model_.Draw(command_buffer, pipeline_.layout(),
+                static_cast<uint32_t>(image_index));
 
     vkCmdEndRenderPass(command_buffer);
   });

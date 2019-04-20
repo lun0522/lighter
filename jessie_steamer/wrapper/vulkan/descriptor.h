@@ -69,12 +69,22 @@ class Context;
  */
 class Descriptor {
  public:
+  using ImageInfos = std::unordered_map<
+      uint32_t, std::vector<VkDescriptorImageInfo>>;
+  using TextureType = common::ModelLoader::Texture::Type;
+
   struct Info {
     struct Binding {
-      uint32_t binding_point, array_length;
+      TextureType texture_type;
+      uint32_t binding_point;
+      uint32_t array_length;
 
-      Binding(uint32_t binding_point, uint32_t array_length)
-          : binding_point{binding_point}, array_length{array_length} {}
+      Binding(TextureType texture_type,
+              uint32_t binding_point,
+              uint32_t array_length)
+          : texture_type{texture_type},
+            binding_point{binding_point},
+            array_length{array_length} {}
     };
 
     VkDescriptorType descriptor_type;
@@ -88,9 +98,8 @@ class Descriptor {
   void UpdateBufferInfos(
       const Info& descriptor_info,
       const std::vector<VkDescriptorBufferInfo>& buffer_infos) const;
-  void UpdateImageInfos(
-      const Info& descriptor_info,
-      const std::vector<std::vector<VkDescriptorImageInfo>>& image_infos) const;
+  void UpdateImageInfos(VkDescriptorType descriptor_type,
+                        const ImageInfos& image_infos) const;
   ~Descriptor();
 
   // This class is only movable

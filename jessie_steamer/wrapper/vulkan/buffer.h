@@ -64,7 +64,8 @@ class VertexBuffer {
   VertexBuffer() = default;
   void Init(std::shared_ptr<Context> context,
             const std::vector<Info>& infos);
-  void Draw(const VkCommandBuffer& command_buffer) const;
+  void Draw(const VkCommandBuffer& command_buffer,
+            size_t segment_index) const;
   ~VertexBuffer();
 
   // This class is only movable

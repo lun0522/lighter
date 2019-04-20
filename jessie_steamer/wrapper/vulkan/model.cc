@@ -39,28 +39,18 @@ VertexBuffer::Info CreateVertexInfo(const vector<VertexAttrib3D>& vertices,
   };
 };
 
-vector<vector<VkDescriptorImageInfo>> CreateImageInfos(
-    const vector<Model::Mesh>& meshes,
-    const Model::BindingMap& bindings) {
-  std::array<vector<VkDescriptorImageInfo>,
-             Model::TextureType::kTypeMaxEnum> temp_infos;
-  for (int type = 0; type < Model::TextureType::kTypeMaxEnum; ++type) {
-    temp_infos[type].reserve(meshes[0].textures[type].size() * meshes.size());
-    for (const auto& mesh : meshes) {
-      const vector<TextureImage>& images = mesh.textures[type];
-      for (const auto& image : images) {
-        temp_infos[type].emplace_back(image.descriptor_info());
-      }
+Descriptor::ImageInfos CreateImageInfos(
+    const Model::Mesh& mesh,
+    const Descriptor::Info& descriptor_info) {
+  Descriptor::ImageInfos image_infos{};
+  for (const auto& binding : descriptor_info.bindings) {
+    const vector<TextureImage>& images = mesh.textures[binding.texture_type];
+    vector<VkDescriptorImageInfo> descriptor_infos{};
+    descriptor_infos.reserve(images.size());
+    for (const auto& image : images) {
+      descriptor_infos.emplace_back(image.descriptor_info());
     }
-  }
-
-  vector<vector<VkDescriptorImageInfo>> image_infos;
-  image_infos.reserve(bindings.size());
-  for (const auto& binding : bindings) {
-    const Model::TextureType type = binding.first;
-    if (!temp_infos[type].empty()) {
-      image_infos.emplace_back(move(temp_infos[type]));
-    }
+    image_infos[binding.binding_point] = move(descriptor_infos);
   }
   return image_infos;
 }
@@ -90,7 +80,8 @@ void Model::Init(SharedContext context,
     for (size_t i = 0; i < texture_paths.size(); ++i) {
       meshes_[0].textures[type][i].Init(context, texture_paths[i]);
     }
-    texture_bindings.emplace_back(type, CONTAINER_SIZE(texture_paths));
+    texture_bindings.emplace_back(type, binding.second.binding_point,
+                                  CONTAINER_SIZE(texture_paths));
   }
 
   // create descriptors
@@ -99,21 +90,22 @@ void Model::Init(SharedContext context,
       /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
       move(texture_bindings),
   };
-  vector<vector<VkDescriptorImageInfo>> image_infos =
-      CreateImageInfos(meshes_, bindings);
   vector<Descriptor::Info> descriptor_infos{texture_info};
   for (const auto& uniform_info : uniform_infos) {
     descriptor_infos.emplace_back(*uniform_info.second);
   }
 
+  const auto image_infos = CreateImageInfos(meshes_[0], texture_info);
   descriptors_.resize(num_frame);
   for (size_t frame = 0; frame < num_frame; ++frame) {
-    descriptors_[frame].Init(context, descriptor_infos);
+    descriptors_[frame].resize(1);
+    descriptors_[frame][0].Init(context, descriptor_infos);
     for (const auto& uniform_info : uniform_infos) {
-      descriptors_[frame].UpdateBufferInfos(
+      descriptors_[frame][0].UpdateBufferInfos(
           *uniform_info.second, {uniform_info.first->descriptor_info(frame)});
     }
-    descriptors_[frame].UpdateImageInfos(texture_info, image_infos);
+    descriptors_[frame][0].UpdateImageInfos(
+        texture_info.descriptor_type, image_infos);
   }
 }
 
@@ -132,49 +124,68 @@ void Model::Init(SharedContext context,
   }
   vertex_buffer_.Init(context, vertex_infos);
 
-//  // load textures
-//  vector<Descriptor::Info::Binding> texture_bindings;
-//  meshes_.reserve(loader.meshes().size());
-//  for (auto& loaded_mesh : loader.meshes()) {
-//    Mesh mesh;
-//    for (auto& loaded_tex : loaded_mesh.textures) {
-//      vector<common::util::Image> images;
-//      images.emplace_back(move(loaded_tex.image));
-//      TextureImage texture;
-//      texture.Init(context, images);
-//      mesh.textures[loaded_tex.type].emplace_back(move(texture));
-//    }
-//    meshes_.emplace_back(move(mesh));
-//  }
-//  for (int type = 0; type < TextureType::kTypeMaxEnum; ++type) {
-//    if (!meshes_[0].textures[type].empty()) {
-//      texture_bindings.emplace_back(
-//          type, CONTAINER_SIZE(meshes_[0].textures[type]));
-//    }
-//  }
+  // load textures
+  meshes_.reserve(loader.meshes().size());
+  for (auto& loaded_mesh : loader.meshes()) {
+    Mesh mesh;
+    for (auto& loaded_tex : loaded_mesh.textures) {
+      vector<common::util::Image> images;
+      images.emplace_back(move(loaded_tex.image));
+      TextureImage texture;
+      texture.Init(context, images);
+      mesh.textures[loaded_tex.type].emplace_back(move(texture));
+    }
+    meshes_.emplace_back(move(mesh));
+  }
+
+  vector<Descriptor::Info::Binding> texture_bindings;
+  for (int type = 0; type < TextureType::kTypeMaxEnum; ++type) {
+    if (!meshes_[0].textures[type].empty()) {
+      const uint32_t binding_point =
+          bindings.find(static_cast<TextureType>(type))->second.binding_point;
+      texture_bindings.emplace_back(
+        static_cast<TextureType>(type), binding_point,
+        CONTAINER_SIZE(meshes_[0].textures[type]));
+    }
+  }
 
   // create descriptors
-//  Descriptor::Info texture_info{
-//      /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-//      /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
-//      move(texture_bindings),
-//  };
-//  vector<vector<VkDescriptorImageInfo>> image_infos =
-//      CreateImageInfos(meshes_, bindings);
-//  vector<Descriptor::Info> descriptor_infos{texture_info};
-  vector<Descriptor::Info> descriptor_infos;
+  Descriptor::Info texture_info{
+      /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
+      move(texture_bindings),
+  };
+  vector<Descriptor::Info> descriptor_infos{texture_info};
   for (const auto& uniform_info : uniform_infos) {
     descriptor_infos.emplace_back(*uniform_info.second);
   }
 
   descriptors_.resize(num_frame);
   for (size_t frame = 0; frame < num_frame; ++frame) {
-    descriptors_[frame].Init(context, descriptor_infos);
-    for (const auto& uniform_info : uniform_infos) {
-      descriptors_[frame].UpdateBufferInfos(
-        *uniform_info.second, {uniform_info.first->descriptor_info(frame)});
+    descriptors_[frame].resize(meshes_.size());
+  }
+  for (size_t i = 0; i < meshes_.size(); ++i) {
+    const auto image_infos = CreateImageInfos(meshes_[i], texture_info);
+    for (size_t frame = 0; frame < num_frame; ++frame) {
+      descriptors_[frame][i].Init(context, descriptor_infos);
+      for (const auto& uniform_info : uniform_infos) {
+        descriptors_[frame][i].UpdateBufferInfos(
+          *uniform_info.second, {uniform_info.first->descriptor_info(frame)});
+      }
+      descriptors_[frame][i].UpdateImageInfos(
+          texture_info.descriptor_type, image_infos);
     }
-//    descriptors_[frame].UpdateImageInfos(texture_info, image_infos);
+  }
+}
+
+void Model::Draw(const VkCommandBuffer& command_buffer,
+                 const VkPipelineLayout& pipeline_layout,
+                 uint32_t frame) const {
+  for (size_t i = 0; i < meshes_.size(); ++i) {
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipeline_layout, 0, 1, &descriptors(frame)[i].set(),
+                            0, nullptr);
+    vertex_buffer_.Draw(command_buffer, i);
   }
 }
 

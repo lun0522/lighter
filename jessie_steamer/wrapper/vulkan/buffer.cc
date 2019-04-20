@@ -362,15 +362,15 @@ void VertexBuffer::Init(SharedContext context,
   vkFreeMemory(*context_->device(), staging_memory, context_->allocator());
 }
 
-void VertexBuffer::Draw(const VkCommandBuffer& command_buffer) const {
-  for (const auto& segment : segments_) {
-    vkCmdBindVertexBuffers(command_buffer, 0, 1, &buffer_,
-                           &segment.vertices_offset);
-    vkCmdBindIndexBuffer(command_buffer, buffer_, segment.indices_offset,
-                         VK_INDEX_TYPE_UINT32);
-    // (index_count, instance_count, first_index, vertex_offset, first_instance)
-    vkCmdDrawIndexed(command_buffer, segment.indices_count, 1, 0, 0, 0);
-  }
+void VertexBuffer::Draw(const VkCommandBuffer& command_buffer,
+                        size_t segment_index) const {
+  const Segment& segment = segments_[segment_index];
+  vkCmdBindVertexBuffers(command_buffer, 0, 1, &buffer_,
+                         &segment.vertices_offset);
+  vkCmdBindIndexBuffer(command_buffer, buffer_, segment.indices_offset,
+                       VK_INDEX_TYPE_UINT32);
+  // (index_count, instance_count, first_index, vertex_offset, first_instance)
+  vkCmdDrawIndexed(command_buffer, segment.indices_count, 1, 0, 0, 0);
 }
 
 VertexBuffer::~VertexBuffer() {

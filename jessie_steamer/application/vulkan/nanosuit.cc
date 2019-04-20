@@ -121,7 +121,11 @@ void NanosuitApp::Init() {
     Descriptor::Info uniform_desc_info{
         /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         /*shader_stage=*/VK_SHADER_STAGE_VERTEX_BIT,
-        /*bindings=*/{{/*binding_point=*/0, /*array_length=*/1}},
+        /*bindings=*/{{
+            Descriptor::TextureType::kTypeMaxEnum,
+            /*binding_point=*/0,
+            /*array_length=*/1,
+        }},
     };
     vector<Model::UniformInfo> uniform_infos;
     uniform_infos.emplace_back(&uniform_buffer_, &uniform_desc_info);
@@ -172,23 +176,31 @@ void NanosuitApp::Init() {
   context_->render_pass().Config(depth_stencil_);
 
   // pipeline
+  vector<VkDescriptorSetLayout> nanosuit_desc_set_layouts;
+  nanosuit_desc_set_layouts.reserve(nanosuit_model_.descriptors(0).size());
+  for (const auto& descriptor : nanosuit_model_.descriptors(0)) {
+    nanosuit_desc_set_layouts.emplace_back(descriptor.layout());
+  }
   nanosuit_pipeline_.Init(
       context_->ptr(),
       {{"jessie_steamer/shader/compiled/nanosuit.vert.spv",
         VK_SHADER_STAGE_VERTEX_BIT},
        {"jessie_steamer/shader/compiled/nanosuit.frag.spv",
         VK_SHADER_STAGE_FRAGMENT_BIT}},
-      nanosuit_model_.descriptor(0).layout(), Model::binding_descs(),
-      Model::attrib_descs());
+      nanosuit_desc_set_layouts, Model::binding_descs(), Model::attrib_descs());
 
+  vector<VkDescriptorSetLayout> skybox_desc_set_layouts;
+  skybox_desc_set_layouts.reserve(skybox_model_.descriptors(0).size());
+  for (const auto& descriptor : skybox_model_.descriptors(0)) {
+    skybox_desc_set_layouts.emplace_back(descriptor.layout());
+  }
   skybox_pipeline_.Init(
       context_->ptr(),
       {{"jessie_steamer/shader/compiled/skybox.vert.spv",
         VK_SHADER_STAGE_VERTEX_BIT},
        {"jessie_steamer/shader/compiled/skybox.frag.spv",
         VK_SHADER_STAGE_FRAGMENT_BIT}},
-      skybox_model_.descriptor(0).layout(), Model::binding_descs(),
-      Model::attrib_descs());
+      skybox_desc_set_layouts, Model::binding_descs(), Model::attrib_descs());
 
   // command
   command_.Init(context_->ptr(), kNumFrameInFlight,
@@ -222,19 +234,13 @@ void NanosuitApp::Init() {
 
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                       *nanosuit_pipeline_);
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            nanosuit_pipeline_.layout(), 0, 1,
-                            &nanosuit_model_.descriptor(image_index).set(), 0,
-                            nullptr);
-    nanosuit_model_.Draw(command_buffer);
+    nanosuit_model_.Draw(command_buffer, nanosuit_pipeline_.layout(),
+                         static_cast<uint32_t>(image_index));
 
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                       *skybox_pipeline_);
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            skybox_pipeline_.layout(), 0, 1,
-                            &skybox_model_.descriptor(image_index).set(), 0,
-                            nullptr);
-    skybox_model_.Draw(command_buffer);
+    skybox_model_.Draw(command_buffer, skybox_pipeline_.layout(),
+                       static_cast<uint32_t>(image_index));
 
     vkCmdEndRenderPass(command_buffer);
   });

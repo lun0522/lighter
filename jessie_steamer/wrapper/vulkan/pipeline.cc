@@ -56,7 +56,7 @@ VkPipelineShaderStageCreateInfo CreateShaderStage(const VkShaderModule& module,
 void Pipeline::Init(
     SharedContext context,
     const vector<ShaderInfo>& shader_infos,
-    const VkDescriptorSetLayout& desc_set_layout,
+    const vector<VkDescriptorSetLayout>& desc_set_layouts,
     const vector<VkVertexInputBindingDescription>& binding_descs,
     const vector<VkVertexInputAttributeDescription>& attrib_descs) {
   context_ = std::move(context);
@@ -213,8 +213,8 @@ void Pipeline::Init(
       VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       /*pNext=*/nullptr,
       nullflag,
-      /*setLayoutCount=*/1,
-      &desc_set_layout,
+      CONTAINER_SIZE(desc_set_layouts),
+      desc_set_layouts.data(),
       /*pushConstantRangeCount=*/0,
       /*pPushConstantRanges=*/nullptr,
   };

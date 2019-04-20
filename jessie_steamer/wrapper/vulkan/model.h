@@ -61,9 +61,9 @@ class Model {
             const std::vector<UniformInfo>& uniform_infos,
             size_t num_frame);
 
-  void Draw(const VkCommandBuffer& command_buffer) const {
-    vertex_buffer_.Draw(command_buffer);
-  }
+  void Draw(const VkCommandBuffer& command_buffer,
+            const VkPipelineLayout& pipeline_layout,
+            uint32_t frame) const;
 
   // This class is neither copyable nor movable
   Model(const Model&) = delete;
@@ -71,12 +71,13 @@ class Model {
 
   static const std::vector<VkVertexInputBindingDescription>& binding_descs();
   static const std::vector<VkVertexInputAttributeDescription>& attrib_descs();
-  const Descriptor& descriptor(size_t frame) { return descriptors_[frame]; }
+  const std::vector<Descriptor>& descriptors(size_t frame) const
+      { return descriptors_[frame]; }
 
  private:
   VertexBuffer vertex_buffer_;
   std::vector<Mesh> meshes_;
-  std::vector<Descriptor> descriptors_;
+  std::vector<std::vector<Descriptor>> descriptors_;
 };
 
 } /* namespace vulkan */
