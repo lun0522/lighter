@@ -57,7 +57,6 @@ class NanosuitApp {
   Command command_;
   UniformBuffer uniform_buffer_;
   DepthStencilImage depth_stencil_;
-  Pipeline nanosuit_pipeline_, skybox_pipeline_;
   Model nanosuit_model_, skybox_model_;
 
   void Init();
@@ -117,52 +116,64 @@ void NanosuitApp::Init() {
         sizeof(Transformation),
         CONTAINER_SIZE(kTrans),
     };
-    uniform_buffer_.Init(context_->ptr(), chunk_info);
-    Descriptor::Info uniform_desc_info{
-        /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        /*shader_stage=*/VK_SHADER_STAGE_VERTEX_BIT,
-        /*bindings=*/{{
-            Descriptor::TextureType::kTypeMaxEnum,
-            /*binding_point=*/0,
-            /*array_length=*/1,
-        }},
-    };
-    vector<Model::UniformInfo> uniform_infos;
-    uniform_infos.emplace_back(&uniform_buffer_, &uniform_desc_info);
-
-    // model
-    Model::BindingMap nanosuit_bindings;
-    nanosuit_bindings[Model::TextureType::kTypeDiffuse] =
-        {/*binding_point=*/1, {}};
-    nanosuit_bindings[Model::TextureType::kTypeSpecular] =
-        {/*binding_point=*/2, {}};
-    nanosuit_bindings[Model::TextureType::kTypeReflection] =
-        {/*binding_point=*/3, {}};
-    nanosuit_model_.Init(
-        context_->ptr(), "jessie_steamer/resource/model/nanosuit/nanosuit.obj",
-        "jessie_steamer/resource/model/nanosuit", nanosuit_bindings,
-        uniform_infos, kNumFrameInFlight);
-
-    const std::string skybox_dir{"jessie_steamer/resource/texture/tidepool/"};
-    vector<std::string> skybox_paths{
-        skybox_dir + "right.tga",
-        skybox_dir + "left.tga",
-        skybox_dir + "top.tga",
-        skybox_dir + "bottom.tga",
-        skybox_dir + "back.tga",
-        skybox_dir + "front.tga",
-    };
-    Model::BindingMap skybox_bindings;
-    skybox_bindings[Model::TextureType::kTypeSpecular] = {
-        /*binding_point=*/1,
-        {std::move(skybox_paths)},
-    };
-    skybox_model_.Init(context_->ptr(), /*obj_index_base=*/1,
-                       "jessie_steamer/resource/model/skybox.obj",
-                       skybox_bindings, uniform_infos, kNumFrameInFlight);
+    uniform_buffer_.Init(context_, chunk_info);
 
     is_first_time = false;
   }
+
+  // depth stencil
+  depth_stencil_.Init(context_, context_->swapchain().extent());
+  context_->render_pass().Config(depth_stencil_);
+
+  // model
+  Descriptor::Info uniform_desc_info{
+      /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      /*shader_stage=*/VK_SHADER_STAGE_VERTEX_BIT,
+      /*bindings=*/{{
+          Descriptor::TextureType::kTypeMaxEnum,
+          /*binding_point=*/0,
+          /*max_length=*/1,
+      }},
+  };
+  std::vector<Model::UniformInfo> uniform_infos{
+      {&uniform_buffer_, &uniform_desc_info},
+  };
+
+  Model::BindingPointMap nanosuit_bindings{
+      {Model::TextureType::kTypeDiffuse, /*binding_point=*/1},
+      {Model::TextureType::kTypeSpecular, /*binding_point=*/2},
+      {Model::TextureType::kTypeReflection, /*binding_point=*/3},
+  };
+  nanosuit_model_.Init(context_,
+                       "jessie_steamer/resource/model/nanosuit/nanosuit.obj",
+                       "jessie_steamer/resource/model/nanosuit",
+                       nanosuit_bindings, uniform_infos,
+                       {{"jessie_steamer/shader/compiled/nanosuit.vert.spv",
+                          VK_SHADER_STAGE_VERTEX_BIT},
+                        {"jessie_steamer/shader/compiled/nanosuit.frag.spv",
+                          VK_SHADER_STAGE_FRAGMENT_BIT}},
+                       kNumFrameInFlight);
+
+  const std::string skybox_dir{"jessie_steamer/resource/texture/tidepool/"};
+  Model::TextureBindingMap skybox_bindings;
+  skybox_bindings[Model::TextureType::kTypeSpecular] = {
+      /*binding_point=*/1, {{
+           skybox_dir + "right.tga",
+           skybox_dir + "left.tga",
+           skybox_dir + "top.tga",
+           skybox_dir + "bottom.tga",
+           skybox_dir + "back.tga",
+           skybox_dir + "front.tga",
+      }},
+  };
+  skybox_model_.Init(context_, /*obj_index_base=*/1,
+                     "jessie_steamer/resource/model/skybox.obj",
+                     skybox_bindings, uniform_infos,
+                     {{"jessie_steamer/shader/compiled/skybox.vert.spv",
+                        VK_SHADER_STAGE_VERTEX_BIT},
+                      {"jessie_steamer/shader/compiled/skybox.frag.spv",
+                        VK_SHADER_STAGE_FRAGMENT_BIT}},
+                     kNumFrameInFlight);
 
   // time
   last_time_ = util::Now();
@@ -171,39 +182,8 @@ void NanosuitApp::Init() {
   camera_.Init(context_->window().screen_size(),
                context_->window().cursor_pos());
 
-  // depth stencil
-  depth_stencil_.Init(context_, context_->swapchain().extent());
-  context_->render_pass().Config(depth_stencil_);
-
-  // pipeline
-  vector<VkDescriptorSetLayout> nanosuit_desc_set_layouts;
-  nanosuit_desc_set_layouts.reserve(nanosuit_model_.descriptors(0).size());
-  for (const auto& descriptor : nanosuit_model_.descriptors(0)) {
-    nanosuit_desc_set_layouts.emplace_back(descriptor.layout());
-  }
-  nanosuit_pipeline_.Init(
-      context_->ptr(),
-      {{"jessie_steamer/shader/compiled/nanosuit.vert.spv",
-        VK_SHADER_STAGE_VERTEX_BIT},
-       {"jessie_steamer/shader/compiled/nanosuit.frag.spv",
-        VK_SHADER_STAGE_FRAGMENT_BIT}},
-      nanosuit_desc_set_layouts, Model::binding_descs(), Model::attrib_descs());
-
-  vector<VkDescriptorSetLayout> skybox_desc_set_layouts;
-  skybox_desc_set_layouts.reserve(skybox_model_.descriptors(0).size());
-  for (const auto& descriptor : skybox_model_.descriptors(0)) {
-    skybox_desc_set_layouts.emplace_back(descriptor.layout());
-  }
-  skybox_pipeline_.Init(
-      context_->ptr(),
-      {{"jessie_steamer/shader/compiled/skybox.vert.spv",
-        VK_SHADER_STAGE_VERTEX_BIT},
-       {"jessie_steamer/shader/compiled/skybox.frag.spv",
-        VK_SHADER_STAGE_FRAGMENT_BIT}},
-      skybox_desc_set_layouts, Model::binding_descs(), Model::attrib_descs());
-
   // command
-  command_.Init(context_->ptr(), kNumFrameInFlight,
+  command_.Init(context_, kNumFrameInFlight,
                 [&](const VkCommandBuffer& command_buffer, size_t image_index) {
     // start render pass
     std::array<VkClearValue, 2> clear_values{};
@@ -232,15 +212,8 @@ void NanosuitApp::Init() {
     vkCmdBeginRenderPass(command_buffer, &begin_info,
                          VK_SUBPASS_CONTENTS_INLINE);
 
-    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                      *nanosuit_pipeline_);
-    nanosuit_model_.Draw(command_buffer, nanosuit_pipeline_.layout(),
-                         static_cast<uint32_t>(image_index));
-
-    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                      *skybox_pipeline_);
-    skybox_model_.Draw(command_buffer, skybox_pipeline_.layout(),
-                       static_cast<uint32_t>(image_index));
+    nanosuit_model_.Draw(command_buffer, image_index);
+    skybox_model_.Draw(command_buffer, image_index);
 
     vkCmdEndRenderPass(command_buffer);
   });
@@ -248,8 +221,8 @@ void NanosuitApp::Init() {
 
 void NanosuitApp::Cleanup() {
   command_.Cleanup();
-  nanosuit_pipeline_.Cleanup();
-  skybox_pipeline_.Cleanup();
+  nanosuit_model_.Cleanup();
+  skybox_model_.Cleanup();
 }
 
 void NanosuitApp::UpdateTrans(size_t image_index) {

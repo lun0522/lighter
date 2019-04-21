@@ -30,14 +30,20 @@ class Context;
 
 class Model {
  public:
-  using TextureType = common::ModelLoader::Texture::Type;
-  using Mesh = std::array<std::vector<TextureImage>, TextureType::kTypeMaxEnum>;
-  using UniformInfo = std::pair<const UniformBuffer*, const Descriptor::Info*>;
-  using BindingMap = std::unordered_map<TextureType, uint32_t, std::hash<int>>;
+  struct Range {
+    size_t start, end;  // |end| is exclusive
+  };
+
   struct TextureBinding {
     uint32_t binding_point;
     std::vector<std::vector<std::string>> texture_paths;
   };
+
+  using TextureType = common::ModelLoader::Texture::Type;
+  using Mesh = std::array<std::vector<TextureImage>, TextureType::kTypeMaxEnum>;
+  using UniformInfo = std::pair<const UniformBuffer*, const Descriptor::Info*>;
+  using BindingPointMap = std::unordered_map<TextureType, uint32_t,
+                                             std::hash<int>>;
   using TextureBindingMap = std::unordered_map<TextureType, TextureBinding,
                                                std::hash<int>>;
 
@@ -54,11 +60,11 @@ class Model {
 
   // Uses Assimp for loading complex models
   void Init(std::shared_ptr<Context> context,
-            const std::vector<Pipeline::ShaderInfo>& shader_infos,
             const std::string& obj_path,
             const std::string& tex_path,
-            const BindingMap& bindings,
+            const BindingPointMap& bindings,
             const std::vector<UniformInfo>& uniform_infos,
+            const std::vector<Pipeline::ShaderInfo>& shader_infos,
             size_t num_frame);
 
   void Cleanup();
@@ -75,9 +81,8 @@ class Model {
    public:
     Drawable(const std::shared_ptr<Context>& context,
              const Model& model,
-             size_t start_index,
-             size_t end_index,
-             std::unique_ptr<Descriptor>&& descriptor);
+             Range range,
+             std::vector<std::unique_ptr<Descriptor>>&& descriptors);
     void Init();
     void Cleanup();
 
@@ -85,13 +90,18 @@ class Model {
     Drawable(const Drawable&) = delete;
     Drawable& operator=(const Drawable&) = delete;
 
-    void Draw(const VkCommandBuffer& command_buffer) const;
+    void Draw(const VkCommandBuffer& command_buffer,
+              size_t frame) const;
+
+    static std::vector<Range> GenRanges(
+        const std::vector<common::ModelLoader::Mesh>& meshes,
+        size_t max_num_sampler);
 
    private:
     std::shared_ptr<Context> context_;
     const Model& model_;
-    size_t start_index_, end_index_;
-    std::unique_ptr<Descriptor> descriptor_;
+    Range range_;
+    std::vector<std::unique_ptr<Descriptor>> descriptors_;
     Pipeline pipeline_;
   };
 
@@ -99,7 +109,7 @@ class Model {
   VertexBuffer vertex_buffer_;
   std::vector<Pipeline::ShaderInfo> shader_infos_;
   std::vector<Mesh> meshes_;
-  std::vector<std::vector<std::unique_ptr<Drawable>>> drawables_;
+  std::vector<std::unique_ptr<Drawable>> drawables_;
 };
 
 } /* namespace vulkan */

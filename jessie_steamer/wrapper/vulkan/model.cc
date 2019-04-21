@@ -7,6 +7,7 @@
 
 #include "jessie_steamer/wrapper/vulkan/model.h"
 
+#include <algorithm>
 #include <stdexcept>
 
 #include "jessie_steamer/common/util.h"
@@ -20,7 +21,7 @@ namespace {
 using common::util::VertexAttrib3D;
 using std::move;
 using std::string;
-using std::unordered_map;
+using std::unique_ptr;
 using std::vector;
 
 const vector<VkVertexInputBindingDescription> binding_descs{
@@ -69,16 +70,20 @@ VertexBuffer::Info CreateVertexInfo(const vector<VertexAttrib3D>& vertices,
   };
 };
 
+// TODO: use absl::Span
 Descriptor::ImageInfos CreateImageInfos(
-    const Model::Mesh& mesh,
+    const vector<const Model::Mesh*>& meshes,
     const Descriptor::Info& descriptor_info) {
   Descriptor::ImageInfos image_infos{};
   for (const auto& binding : descriptor_info.bindings) {
-    const vector<TextureImage>& images = mesh[binding.texture_type];
     vector<VkDescriptorImageInfo> descriptor_infos{};
-    descriptor_infos.reserve(images.size());
-    for (const auto& image : images) {
-      descriptor_infos.emplace_back(image.descriptor_info());
+    descriptor_infos.reserve(meshes[0][binding.texture_type].size() *
+                             meshes.size());
+    for (const auto* mesh : meshes) {
+      const vector<TextureImage>& images = mesh->at(binding.texture_type);
+      for (const auto& image : images) {
+        descriptor_infos.emplace_back(image.descriptor_info());
+      }
     }
     image_infos[binding.binding_point] = move(descriptor_infos);
   }
@@ -95,10 +100,8 @@ void Model::Init(SharedContext context,
                  const vector<Pipeline::ShaderInfo>& shader_infos,
                  size_t num_frame) {
   if (!is_first_time) {
-    for (auto& drawables_per_frame : drawables_) {
-      for (auto& drawable : drawables_per_frame) {
-        drawable->Init();
-      }
+    for (auto& drawable : drawables_) {
+      drawable->Init();
     }
     return;
   } else {
@@ -146,123 +149,152 @@ void Model::Init(SharedContext context,
   }
 
   // create drawables
-  const auto image_infos = CreateImageInfos(meshes_[0], texture_info);
+  const auto image_infos = CreateImageInfos({meshes_.data()}, texture_info);
   vector<Descriptor::Info> descriptor_infos{texture_info};
   for (const auto& uniform_info : uniform_infos) {
     descriptor_infos.emplace_back(*uniform_info.second);
   }
-  drawables_.resize(num_frame);
+
+  vector<unique_ptr<Descriptor>> descriptors;
+  descriptors.reserve(num_frame);
   for (size_t frame = 0; frame < num_frame; ++frame) {
-    std::unique_ptr<Descriptor> descriptor{new Descriptor};
-    descriptor->Init(context, descriptor_infos);
+    descriptors.emplace_back(new Descriptor);
+    descriptors.back()->Init(context, descriptor_infos);
     for (const auto& uniform_info : uniform_infos) {
-      descriptor->UpdateBufferInfos(
+      descriptors.back()->UpdateBufferInfos(
           *uniform_info.second, {uniform_info.first->descriptor_info(frame)});
     }
-    descriptor->UpdateImageInfos(texture_info.descriptor_type, image_infos);
-
-    drawables_[frame].emplace_back(new Drawable{
-        context, *this, /*start_index=*/0, /*end_index=*/1, move(descriptor)});
+    descriptors.back()->UpdateImageInfos(
+        texture_info.descriptor_type, image_infos);
   }
+
+  drawables_.emplace_back(new Drawable{
+      context, *this, /*range=*/{0, 1}, move(descriptors)});
 }
 
 void Model::Init(SharedContext context,
-                 const vector<Pipeline::ShaderInfo>& shader_infos,
                  const string& obj_path,
                  const string& tex_path,
-                 const BindingMap& bindings,
+                 const BindingPointMap& bindings,
                  const vector<UniformInfo>& uniform_infos,
+                 const vector<Pipeline::ShaderInfo>& shader_infos,
                  size_t num_frame) {
-//  // load vertices and indices
-//  common::ModelLoader loader{obj_path, tex_path, /*flip_uvs=*/false};
-//  vector<VertexBuffer::Info> vertex_infos;
-//  vertex_infos.reserve(loader.meshes().size());
-//  for (const auto& mesh : loader.meshes()) {
-//    vertex_infos.emplace_back(CreateVertexInfo(mesh.vertices, mesh.indices));
-//  }
-//  vertex_buffer_.Init(context, vertex_infos);
-//
-//  // load textures
-//  meshes_.reserve(loader.meshes().size());
-//  for (auto& loaded_mesh : loader.meshes()) {
-//    Mesh mesh;
-//    for (auto& loaded_tex : loaded_mesh.textures) {
-//      vector<common::util::Image> images;
-//      images.emplace_back(move(loaded_tex.image));
-//      TextureImage texture;
-//      texture.Init(context, images);
-//      mesh.textures[loaded_tex.type].emplace_back(move(texture));
-//    }
-//    meshes_.emplace_back(move(mesh));
-//  }
-//
-//  vector<Descriptor::Info::Binding> texture_bindings;
-//  for (int type = 0; type < TextureType::kTypeMaxEnum; ++type) {
-//    if (!meshes_[0].textures[type].empty()) {
-//      const uint32_t binding_point =
-//          bindings.find(static_cast<TextureType>(type))->second.binding_point;
-//      texture_bindings.emplace_back(
-//        static_cast<TextureType>(type), binding_point,
-//        CONTAINER_SIZE(meshes_[0].textures[type]));
-//    }
-//  }
-//
-//  // create descriptors
-//  Descriptor::Info texture_info{
-//      /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-//      /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
-//      move(texture_bindings),
-//  };
-//  vector<Descriptor::Info> descriptor_infos{texture_info};
-//  for (const auto& uniform_info : uniform_infos) {
-//    descriptor_infos.emplace_back(*uniform_info.second);
-//  }
-//
-//  descriptors_.resize(num_frame);
-//  for (size_t frame = 0; frame < num_frame; ++frame) {
-//    descriptors_[frame].resize(meshes_.size());
-//  }
-//  for (size_t i = 0; i < meshes_.size(); ++i) {
-//    const auto image_infos = CreateImageInfos(meshes_[i], texture_info);
-//    for (size_t frame = 0; frame < num_frame; ++frame) {
-//      descriptors_[frame][i].Init(context, descriptor_infos);
-//      for (const auto& uniform_info : uniform_infos) {
-//        descriptors_[frame][i].UpdateBufferInfos(
-//          *uniform_info.second, {uniform_info.first->descriptor_info(frame)});
-//      }
-//      descriptors_[frame][i].UpdateImageInfos(
-//          texture_info.descriptor_type, image_infos);
-//    }
-//  }
+  if (!is_first_time) {
+    for (auto& drawable : drawables_) {
+      drawable->Init();
+    }
+    return;
+  } else {
+    is_first_time = false;
+  }
+
+  shader_infos_ = shader_infos;
+
+  // load vertices and indices
+  common::ModelLoader loader{obj_path, tex_path, /*flip_uvs=*/false};
+  vector<VertexBuffer::Info> vertex_infos;
+  vertex_infos.reserve(loader.meshes().size());
+  for (const auto& mesh : loader.meshes()) {
+    vertex_infos.emplace_back(CreateVertexInfo(mesh.vertices, mesh.indices));
+  }
+  vertex_buffer_.Init(context, vertex_infos);
+
+  // load textures
+  const size_t max_num_sampler = static_cast<size_t>(
+      context->physical_device().limits().maxPerStageDescriptorSamplers);
+  vector<Range> ranges = Drawable::GenRanges(loader.meshes(), max_num_sampler);
+
+  meshes_.reserve(loader.meshes().size());
+  for (auto& loaded_mesh : loader.meshes()) {
+    meshes_.emplace_back();
+    for (auto& loaded_tex : loaded_mesh.textures) {
+      vector<common::util::Image> images;
+      images.emplace_back(move(loaded_tex.image));
+      meshes_.back()[loaded_tex.type].emplace_back();
+      meshes_.back()[loaded_tex.type].back().Init(context, images);
+    }
+  }
+
+  vector<Descriptor::Info::Binding> texture_bindings;
+  for (int type = 0; type < TextureType::kTypeMaxEnum; ++type) {
+    if (!meshes_[0][type].empty()) {
+      const uint32_t binding_point =
+          bindings.find(static_cast<TextureType>(type))->second;
+      texture_bindings.emplace_back(Descriptor::Info::Binding{
+          static_cast<TextureType>(type),
+          binding_point,
+          0,  // will be populated later
+      });
+    }
+  }
+
+  Descriptor::Info texture_info{
+      /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
+      move(texture_bindings),
+  };
+
+  // create drawables
+  vector<Descriptor::Info> descriptor_infos(uniform_infos.size() + 1);
+  for (size_t i = 0; i < uniform_infos.size(); ++i) {
+    descriptor_infos[i] = *uniform_infos[i].second;
+  }
+  drawables_.reserve(ranges.size());
+  for (const auto& range : ranges) {
+    const size_t num_mesh = range.end - range.start;
+    for (auto& binding : texture_info.bindings) {
+      binding.array_length = static_cast<uint32_t>(
+          meshes_[0][binding.texture_type].size() * num_mesh);
+    }
+    descriptor_infos.back() = texture_info;
+
+    vector<const Model::Mesh*> meshes(num_mesh);
+    for (size_t index = range.start; index < range.end; ++index) {
+      meshes[index - range.start] = &meshes_[index];
+    }
+    const auto image_infos = CreateImageInfos(meshes, texture_info);
+
+    vector<unique_ptr<Descriptor>> descriptors;
+    descriptors.reserve(num_frame);
+    for (size_t frame = 0; frame < num_frame; ++frame) {
+      descriptors.emplace_back(new Descriptor);
+      descriptors.back()->Init(context, descriptor_infos);
+      for (const auto& uniform_info : uniform_infos) {
+        descriptors.back()->UpdateBufferInfos(
+            *uniform_info.second, {uniform_info.first->descriptor_info(frame)});
+      }
+      descriptors.back()->UpdateImageInfos(
+          texture_info.descriptor_type, image_infos);
+    }
+    drawables_.emplace_back(new Drawable{
+        context, *this, range, move(descriptors)});
+  }
 }
 
 void Model::Cleanup() {
-  for (auto& drawables_per_frame : drawables_) {
-    for (auto& drawable : drawables_per_frame) {
-      drawable->Cleanup();
-    }
+  for (auto& drawable : drawables_) {
+    drawable->Cleanup();
   }
 }
 
 void Model::Draw(const VkCommandBuffer& command_buffer,
                  size_t frame) const {
-  for (const auto& drawable : drawables_[frame]) {
-    drawable->Draw(command_buffer);
+  for (const auto& drawable : drawables_) {
+    drawable->Draw(command_buffer, frame);
   }
 }
 
 Model::Drawable::Drawable(const SharedContext& context,
                           const Model& model,
-                          size_t start_index,
-                          size_t end_index,
-                          std::unique_ptr<Descriptor>&& descriptor)
-    : context_{context}, model_{model}, start_index_{start_index},
-      end_index_{end_index}, descriptor_{move(descriptor)} {
+                          Range range,
+                          vector<unique_ptr<Descriptor>>&& descriptors)
+    : context_{context}, model_{model}, range_{range},
+      descriptors_{move(descriptors)} {
   Init();
 }
 
 void Model::Drawable::Init() {
-  pipeline_.Init(context_, model_.shader_infos_, {descriptor_->layout()},
+  pipeline_.Init(context_, model_.shader_infos_, {descriptors_[0]->layout()},
                  binding_descs, attrib_descs);
 }
 
@@ -270,16 +302,53 @@ void Model::Drawable::Cleanup() {
   pipeline_.Cleanup();
 }
 
-void Model::Drawable::Draw(const VkCommandBuffer& command_buffer) const {
+void Model::Drawable::Draw(const VkCommandBuffer& command_buffer,
+                           size_t frame) const {
   vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                     *pipeline_);
-  for (size_t index = start_index_; index < end_index_; ++index) {
+  for (size_t index = range_.start; index < range_.end; ++index) {
     vkCmdBindDescriptorSets(
         command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_.layout(),
-        /*firstSet=*/0, /*descriptorSetCount=*/1, &descriptor_->set(),
+        /*firstSet=*/0, /*descriptorSetCount=*/1, &descriptors_[frame]->set(),
         /*dynamicOffsetCount=*/0, /*pDynamicOffsets=*/nullptr);
     model_.vertex_buffer_.Draw(command_buffer, index);
   }
+}
+
+vector<Model::Range> Model::Drawable::GenRanges(
+  const vector<common::ModelLoader::Mesh>& meshes,
+  size_t max_num_sampler) {
+  const size_t num_texture_per_mesh = meshes[0].textures.size();
+  if (num_texture_per_mesh > max_num_sampler) {
+    throw std::runtime_error{
+        "Each mesh contains " + std::to_string(num_texture_per_mesh) +
+        " textures, but we can only have " + std::to_string(max_num_sampler) +
+        " samplers per-stage"};
+  }
+
+  const size_t num_mesh = meshes.size();
+  const size_t total_num_texture = num_texture_per_mesh * num_mesh;
+  const size_t num_range = (total_num_texture + max_num_sampler - 1) /
+                           max_num_sampler;
+  vector<Model::Range> ranges;
+  ranges.reserve(num_range);
+
+#ifdef DEBUG
+  if (total_num_texture > max_num_sampler) {
+    std::cout << "We have " << std::to_string(total_num_texture)
+              << " textures to bind, but the maximal number of samplers is "
+              << std::to_string(max_num_sampler)
+              << ". This model will be rendered in "
+              << std::to_string(num_range) << " passes" << std::endl;
+  }
+#endif
+
+  const size_t num_mesh_per_drawable = max_num_sampler / num_texture_per_mesh;
+  for (size_t start = 0; start < num_mesh; start += num_mesh_per_drawable) {
+    ranges.emplace_back(Range{start, std::min(start + num_mesh_per_drawable,
+                                              num_mesh)});
+  }
+  return ranges;
 }
 
 } /* namespace vulkan */

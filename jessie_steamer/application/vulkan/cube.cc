@@ -93,7 +93,7 @@ void CubeApp::Init() {
         sizeof(Transformation),
         CONTAINER_SIZE(kTrans),
     };
-    uniform_buffer_.Init(context_->ptr(), chunk_info);
+    uniform_buffer_.Init(context_, chunk_info);
 
     is_first_time = false;
   }
@@ -108,7 +108,6 @@ void CubeApp::Init() {
       /*binding_point=*/1,
       {{"jessie_steamer/resource/texture/statue.jpg"}},
   };
-
   Descriptor::Info uniform_desc_info{
     /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
     /*shader_stage=*/VK_SHADER_STAGE_VERTEX_BIT,
@@ -118,7 +117,7 @@ void CubeApp::Init() {
         /*array_length=*/1,
     }},
   };
-  model_.Init(context_->ptr(), /*obj_index_base=*/1,
+  model_.Init(context_, /*obj_index_base=*/1,
               "jessie_steamer/resource/model/cube.obj", bindings,
               {{&uniform_buffer_, &uniform_desc_info}},
               {{"jessie_steamer/shader/compiled/simple.vert.spv",
@@ -128,7 +127,7 @@ void CubeApp::Init() {
               kNumFrameInFlight);
 
   // command
-  command_.Init(context_->ptr(), kNumFrameInFlight,
+  command_.Init(context_, kNumFrameInFlight,
                 [&](const VkCommandBuffer& command_buffer, size_t image_index) {
     // start render pass
     std::array<VkClearValue, 2> clear_values{};
