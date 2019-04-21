@@ -78,13 +78,6 @@ class Descriptor {
       TextureType texture_type;
       uint32_t binding_point;
       uint32_t array_length;
-
-      Binding(TextureType texture_type,
-              uint32_t binding_point,
-              uint32_t array_length)
-          : texture_type{texture_type},
-            binding_point{binding_point},
-            array_length{array_length} {}
     };
 
     VkDescriptorType descriptor_type;
@@ -102,9 +95,9 @@ class Descriptor {
                         const ImageInfos& image_infos) const;
   ~Descriptor();
 
-  // This class is only movable
-  Descriptor(Descriptor&&) = default;
-  Descriptor& operator=(Descriptor&&) = default;
+  // This class is neither copyable nor movable
+  Descriptor(const Descriptor&) = delete;
+  Descriptor& operator=(const Descriptor&) = delete;
 
   const VkDescriptorSetLayout& layout() const { return layout_; }
   const VkDescriptorSet& set()          const { return set_; }

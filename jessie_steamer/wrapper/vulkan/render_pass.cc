@@ -60,7 +60,7 @@ void RenderPass::Init(SharedContext context) {
   context_ = std::move(context);
 }
 
-void RenderPass::Config(const DepthStencilImage &depth_stencil_image) {
+void RenderPass::Config(const DepthStencilImage& depth_stencil_image) {
   VkAttachmentDescription color_att_desc{
       nullflag,
       context_->swapchain().format(),

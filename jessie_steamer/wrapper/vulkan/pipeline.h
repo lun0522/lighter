@@ -19,8 +19,6 @@ namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
-using ShaderInfo = std::pair<std::string, VkShaderStageFlagBits>;
-
 class Context;
 
 /** VkPipeline stores the entire graphics pipeline.
@@ -41,6 +39,8 @@ class Context;
  */
 class Pipeline {
  public:
+  using ShaderInfo = std::pair<std::string, VkShaderStageFlagBits>;
+
   Pipeline() = default;
   void Init(std::shared_ptr<Context> context,
             const std::vector<ShaderInfo>& shader_infos,
