@@ -44,9 +44,8 @@ class Pipeline {
   Pipeline() = default;
   void Init(std::shared_ptr<Context> context,
             const std::vector<ShaderInfo>& shader_infos,
-            const std::vector<VkDescriptorSetLayout>& desc_set_layouts,
-            const std::vector<VkVertexInputBindingDescription>& binding_descs,
-            const std::vector<VkVertexInputAttributeDescription>& attrib_descs);
+            const VkPipelineLayoutCreateInfo& layout_info,
+            const VkPipelineVertexInputStateCreateInfo& vertex_input_info);
   void Cleanup();
   ~Pipeline() { Cleanup(); }
 

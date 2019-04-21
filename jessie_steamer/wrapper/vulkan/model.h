@@ -9,6 +9,7 @@
 #define JESSIE_STEAMER_WRAPPER_VULKAN_MODEL_H
 
 #include <array>
+#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -46,6 +47,7 @@ class Model {
                                              std::hash<int>>;
   using TextureBindingMap = std::unordered_map<TextureType, TextureBinding,
                                                std::hash<int>>;
+  using FindBindingPoint = std::function<uint32_t(TextureType)>;
 
   Model() = default;
 
@@ -62,7 +64,7 @@ class Model {
   void Init(std::shared_ptr<Context> context,
             const std::string& obj_path,
             const std::string& tex_path,
-            const BindingPointMap& bindings,
+            const BindingPointMap& binding_map,
             const std::vector<UniformInfo>& uniform_infos,
             const std::vector<Pipeline::ShaderInfo>& shader_infos,
             size_t num_frame);
@@ -105,11 +107,19 @@ class Model {
     Pipeline pipeline_;
   };
 
-  bool is_first_time{true};
+  bool is_first_time_{true};
   VertexBuffer vertex_buffer_;
   std::vector<Pipeline::ShaderInfo> shader_infos_;
   std::vector<Mesh> meshes_;
   std::vector<std::unique_ptr<Drawable>> drawables_;
+
+  bool RunInit();
+
+  void CreateDrawables(const std::shared_ptr<Context>& context,
+                       const std::vector<Range>& ranges,
+                       const std::vector<UniformInfo>& uniform_infos,
+                       size_t num_frame,
+                       const FindBindingPoint& find_binding_point);
 };
 
 } /* namespace vulkan */

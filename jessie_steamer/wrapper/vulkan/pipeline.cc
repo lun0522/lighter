@@ -56,9 +56,8 @@ VkPipelineShaderStageCreateInfo CreateShaderStage(const VkShaderModule& module,
 void Pipeline::Init(
     SharedContext context,
     const vector<ShaderInfo>& shader_infos,
-    const vector<VkDescriptorSetLayout>& desc_set_layouts,
-    const vector<VkVertexInputBindingDescription>& binding_descs,
-    const vector<VkVertexInputAttributeDescription>& attrib_descs) {
+    const VkPipelineLayoutCreateInfo& layout_info,
+    const VkPipelineVertexInputStateCreateInfo& vertex_input_info) {
   context_ = std::move(context);
 
   const VkDevice& device = *context_->device();
@@ -74,18 +73,6 @@ void Pipeline::Init(
     shader_stages.emplace_back(
         CreateShaderStage(shader_modules.back(), info.second));
   }
-
-  VkPipelineVertexInputStateCreateInfo vertex_input_info{
-      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      nullflag,
-      // vertex binding descriptions
-      CONTAINER_SIZE(binding_descs),
-      binding_descs.data(),
-      // vertex attribute descriptions
-      CONTAINER_SIZE(attrib_descs),
-      attrib_descs.data(),
-  };
 
   VkPipelineInputAssemblyStateCreateInfo input_assembly_info{
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -206,17 +193,6 @@ void Pipeline::Init(
       nullflag,
       /*dynamicStateCount=*/0,
       /*pDynamicStates=*/nullptr,
-  };
-
-  // used to set uniform values
-  VkPipelineLayoutCreateInfo layout_info{
-      VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      /*pNext=*/nullptr,
-      nullflag,
-      CONTAINER_SIZE(desc_set_layouts),
-      desc_set_layouts.data(),
-      /*pushConstantRangeCount=*/0,
-      /*pPushConstantRanges=*/nullptr,
   };
 
   ASSERT_SUCCESS(vkCreatePipelineLayout(device, &layout_info, allocator,
