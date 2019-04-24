@@ -31,10 +31,6 @@ class Context;
 
 class Model {
  public:
-  struct Range {
-    size_t start, end;  // |end| is exclusive
-  };
-
   struct TextureBinding {
     uint32_t binding_point;
     std::vector<std::vector<std::string>> texture_paths;
@@ -79,47 +75,18 @@ class Model {
   Model& operator=(const Model&) = delete;
 
  private:
-  class Drawable {
-   public:
-    Drawable(const std::shared_ptr<Context>& context,
-             const Model& model,
-             Range range,
-             std::vector<std::unique_ptr<Descriptor>>&& descriptors);
-    void Init();
-    void Cleanup();
-
-    // This class is neither copyable nor movable
-    Drawable(const Drawable&) = delete;
-    Drawable& operator=(const Drawable&) = delete;
-
-    void Draw(const VkCommandBuffer& command_buffer,
-              size_t frame) const;
-
-    static std::vector<Range> GenRanges(
-        const std::vector<common::ModelLoader::Mesh>& meshes,
-        size_t max_num_sampler);
-
-   private:
-    std::shared_ptr<Context> context_;
-    const Model& model_;
-    Range range_;
-    std::vector<std::unique_ptr<Descriptor>> descriptors_;
-    Pipeline pipeline_;
-  };
-
   bool is_first_time_{true};
+  std::shared_ptr<Context> context_;
   VertexBuffer vertex_buffer_;
-  std::vector<Pipeline::ShaderInfo> shader_infos_;
   std::vector<Mesh> meshes_;
-  std::vector<std::unique_ptr<Drawable>> drawables_;
+  std::vector<std::vector<std::unique_ptr<Descriptor>>> descriptors_;
+  Pipeline pipeline_;
 
-  bool RunInit();
+  void CreateDescriptors(const std::vector<UniformInfo>& uniform_infos,
+                         size_t num_frame,
+                         const FindBindingPoint& find_binding_point);
 
-  void CreateDrawables(const std::shared_ptr<Context>& context,
-                       const std::vector<Range>& ranges,
-                       const std::vector<UniformInfo>& uniform_infos,
-                       size_t num_frame,
-                       const FindBindingPoint& find_binding_point);
+  void CreatePipeline(const std::vector<Pipeline::ShaderInfo>& shader_infos);
 };
 
 } /* namespace vulkan */
