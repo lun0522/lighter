@@ -145,13 +145,16 @@ void NanosuitApp::Init() {
       {Model::TextureType::kTypeReflection, /*binding_point=*/3},
   };
   nanosuit_model_.Init(context_,
-                       "jessie_steamer/resource/model/nanosuit/nanosuit.obj",
-                       "jessie_steamer/resource/model/nanosuit",
-                       nanosuit_bindings, uniform_infos,
                        {{"jessie_steamer/shader/compiled/nanosuit.vert.spv",
                           VK_SHADER_STAGE_VERTEX_BIT},
                         {"jessie_steamer/shader/compiled/nanosuit.frag.spv",
                           VK_SHADER_STAGE_FRAGMENT_BIT}},
+                       uniform_infos,
+                       Model::MultiMeshResource{
+                           "jessie_steamer/resource/model/nanosuit/"
+                           "nanosuit.obj",
+                           "jessie_steamer/resource/model/nanosuit",
+                           nanosuit_bindings},
                        kNumFrameInFlight);
 
   const std::string skybox_dir{"jessie_steamer/resource/texture/tidepool/"};
@@ -166,13 +169,15 @@ void NanosuitApp::Init() {
            skybox_dir + "front.tga",
       }},
   };
-  skybox_model_.Init(context_, /*obj_index_base=*/1,
-                     "jessie_steamer/resource/model/skybox.obj",
-                     skybox_bindings, uniform_infos,
+  skybox_model_.Init(context_,
                      {{"jessie_steamer/shader/compiled/skybox.vert.spv",
                         VK_SHADER_STAGE_VERTEX_BIT},
                       {"jessie_steamer/shader/compiled/skybox.frag.spv",
                         VK_SHADER_STAGE_FRAGMENT_BIT}},
+                     uniform_infos,
+                     Model::SingleMeshResource{
+                         "jessie_steamer/resource/model/skybox.obj",
+                         /*obj_index_base=*/1, skybox_bindings},
                      kNumFrameInFlight);
 
   // time

@@ -117,13 +117,15 @@ void CubeApp::Init() {
         /*array_length=*/1,
     }},
   };
-  model_.Init(context_, /*obj_index_base=*/1,
-              "jessie_steamer/resource/model/cube.obj", bindings,
-              {{&uniform_buffer_, &uniform_desc_info}},
+  model_.Init(context_,
               {{"jessie_steamer/shader/compiled/simple.vert.spv",
                  VK_SHADER_STAGE_VERTEX_BIT},
                {"jessie_steamer/shader/compiled/simple.frag.spv",
                  VK_SHADER_STAGE_FRAGMENT_BIT}},
+              {{&uniform_buffer_, &uniform_desc_info}},
+              Model::SingleMeshResource{
+                  "jessie_steamer/resource/model/cube.obj",
+                  /*obj_index_base=*/1, bindings},
               kNumFrameInFlight);
 
   // command

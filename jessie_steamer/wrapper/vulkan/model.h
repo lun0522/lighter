@@ -16,6 +16,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/types/variant.h"
 #include "jessie_steamer/common/model_loader.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
@@ -31,62 +32,65 @@ class Context;
 
 class Model {
  public:
+  using TextureType = common::ModelLoader::Texture::Type;
+  using Mesh = std::array<std::vector<TextureImage>, TextureType::kTypeMaxEnum>;
+  using UniformInfo = std::pair<const UniformBuffer*, const Descriptor::Info*>;
+
+  // Textures that will be bound to the same point.
   struct TextureBinding {
     uint32_t binding_point;
     std::vector<std::vector<std::string>> texture_paths;
   };
-
-  using TextureType = common::ModelLoader::Texture::Type;
-  using Mesh = std::array<std::vector<TextureImage>, TextureType::kTypeMaxEnum>;
-  using UniformInfo = std::pair<const UniformBuffer*, const Descriptor::Info*>;
   using BindingPointMap = std::unordered_map<TextureType, uint32_t,
                                              std::hash<int>>;
   using TextureBindingMap = std::unordered_map<TextureType, TextureBinding,
                                                std::hash<int>>;
   using FindBindingPoint = std::function<uint32_t(TextureType)>;
 
+  // Loads with light-weight obj file loader.
+  struct SingleMeshResource {
+    std::string obj_path;
+    unsigned int obj_index_base;
+    TextureBindingMap binding_map;
+  };
+  // Loads with Assimp.
+  struct MultiMeshResource {
+    std::string obj_path;
+    std::string tex_path;
+    BindingPointMap binding_map;
+  };
+  using ModelResource = absl::variant<SingleMeshResource, MultiMeshResource>;
+
   Model() = default;
 
-  // Uses light-weight obj file loader
   void Init(std::shared_ptr<Context> context,
-            unsigned int obj_index_base,
-            const std::string& obj_path,
-            const TextureBindingMap& binding_map,
-            const std::vector<UniformInfo>& uniform_infos,
             const std::vector<Pipeline::ShaderInfo>& shader_infos,
-            size_t num_frame);
-
-  // Uses Assimp for loading complex models
-  void Init(std::shared_ptr<Context> context,
-            const std::string& obj_path,
-            const std::string& tex_path,
-            const BindingPointMap& binding_map,
             const std::vector<UniformInfo>& uniform_infos,
-            const std::vector<Pipeline::ShaderInfo>& shader_infos,
+            const ModelResource& resource,
             size_t num_frame);
-
-  void Cleanup();
 
   void Draw(const VkCommandBuffer& command_buffer,
             size_t frame) const;
 
-  // This class is neither copyable nor movable
+  void Cleanup();
+
+  // This class is neither copyable nor movable.
   Model(const Model&) = delete;
   Model& operator=(const Model&) = delete;
 
  private:
+  FindBindingPoint LoadSingleMesh(const SingleMeshResource& resource);
+  FindBindingPoint LoadMultiMesh(const MultiMeshResource& resource);
+  void CreateDescriptors(const FindBindingPoint& find_binding_point,
+                         const std::vector<UniformInfo>& uniform_infos,
+                         size_t num_frame);
+
   bool is_first_time_{true};
   std::shared_ptr<Context> context_;
   VertexBuffer vertex_buffer_;
   std::vector<Mesh> meshes_;
   std::vector<std::vector<std::unique_ptr<Descriptor>>> descriptors_;
   Pipeline pipeline_;
-
-  void CreateDescriptors(const std::vector<UniformInfo>& uniform_infos,
-                         size_t num_frame,
-                         const FindBindingPoint& find_binding_point);
-
-  void CreatePipeline(const std::vector<Pipeline::ShaderInfo>& shader_infos);
 };
 
 } /* namespace vulkan */

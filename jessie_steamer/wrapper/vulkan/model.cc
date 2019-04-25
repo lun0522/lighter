@@ -106,94 +106,113 @@ void CreateTextureInfo(const Model::Mesh& mesh,
 } /* namespace */
 
 void Model::Init(SharedContext context,
-                 unsigned int obj_index_base,
-                 const string& obj_path,
-                 const TextureBindingMap& binding_map,
-                 const vector<UniformInfo>& uniform_infos,
                  const vector<Pipeline::ShaderInfo>& shader_infos,
+                 const vector<UniformInfo>& uniform_infos,
+                 const ModelResource& resource,
                  size_t num_frame) {
   if (is_first_time_) {
     context_ = move(context);
 
-    // load vertices and indices
-    vector<VertexAttrib3D> vertices;
-    vector<uint32_t> indices;
-    common::util::LoadObjFromFile(obj_path, obj_index_base, &vertices,
-                                  &indices);
-    vertex_buffer_.Init(context_, {CreateVertexInfo(vertices, indices)});
+    FindBindingPoint find_binding_point;
+    if (absl::holds_alternative<SingleMeshResource>(resource)) {
+      find_binding_point =
+          LoadSingleMesh(absl::get<SingleMeshResource>(resource));
+    } else if (absl::holds_alternative<MultiMeshResource>(resource)) {
+      find_binding_point =
+          LoadMultiMesh(absl::get<MultiMeshResource>(resource));
+    } else {
+      throw std::runtime_error{"Unrecognized variant type"};
+    }
+    CreateDescriptors(find_binding_point, uniform_infos, num_frame);
 
-    // load textures
+    is_first_time_ = false;
+  }
+
+  // create pipeline
+  // set vertices info
+  VkPipelineVertexInputStateCreateInfo vertex_input_info{
+      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+      /*pNext=*/nullptr,
+      common::util::nullflag,
+      // vertex binding descriptions
+      CONTAINER_SIZE(binding_descs),
+      binding_descs.data(),
+      // vertex attribute descriptions
+      CONTAINER_SIZE(attrib_descs),
+      attrib_descs.data(),
+  };
+  // used to set uniform values
+  VkPipelineLayoutCreateInfo layout_info{
+      VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+      /*pNext=*/nullptr,
+      common::util::nullflag,
+      /*setLayoutCount=*/1,
+      &descriptors_[0][0]->layout(),
+      /*pushConstantRangeCount=*/0,
+      /*pPushConstantRanges=*/nullptr,
+  };
+  pipeline_.Init(context_, shader_infos, layout_info, vertex_input_info);
+}
+
+Model::FindBindingPoint Model::LoadSingleMesh(
+    const SingleMeshResource& resource) {
+  // load vertices and indices
+  vector<VertexAttrib3D> vertices;
+  vector<uint32_t> indices;
+  common::util::LoadObjFromFile(resource.obj_path, resource.obj_index_base,
+                                &vertices, &indices);
+  vertex_buffer_.Init(context_, {CreateVertexInfo(vertices, indices)});
+
+  // load textures
+  meshes_.emplace_back();
+  for (const auto &binding : resource.binding_map) {
+    const TextureType type = binding.first;
+    const vector<vector<string>> &texture_paths = binding.second.texture_paths;
+
+    meshes_.back()[type].resize(texture_paths.size());
+    for (size_t i = 0; i < texture_paths.size(); ++i) {
+      meshes_.back()[type][i].Init(context_, texture_paths[i]);
+    }
+  }
+
+  return [&resource](TextureType type) {
+    return resource.binding_map.find(type)
+      ->second.binding_point;
+  };
+}
+
+Model::FindBindingPoint Model::LoadMultiMesh(
+    const MultiMeshResource& resource) {
+  // load vertices and indices
+  common::ModelLoader loader{resource.obj_path, resource.tex_path,
+                             /*flip_uvs=*/false};
+  vector<VertexBuffer::Info> vertex_infos;
+  vertex_infos.reserve(loader.meshes().size());
+  for (const auto &mesh : loader.meshes()) {
+    vertex_infos.emplace_back(CreateVertexInfo(mesh.vertices, mesh.indices));
+  }
+  vertex_buffer_.Init(context_, vertex_infos);
+
+  // load textures
+  meshes_.reserve(loader.meshes().size());
+  for (auto &loaded_mesh : loader.meshes()) {
     meshes_.emplace_back();
-    for (const auto &binding : binding_map) {
-      const TextureType type = binding.first;
-      const vector<vector<string>> &texture_paths = binding.second.texture_paths;
-
-      meshes_.back()[type].resize(texture_paths.size());
-      for (size_t i = 0; i < texture_paths.size(); ++i) {
-        meshes_.back()[type][i].Init(context_, texture_paths[i]);
-      }
+    for (auto &loaded_tex : loaded_mesh.textures) {
+      vector<common::util::Image> images;
+      images.emplace_back(move(loaded_tex.image));
+      meshes_.back()[loaded_tex.type].emplace_back();
+      meshes_.back()[loaded_tex.type].back().Init(context_, images);
     }
-
-    CreateDescriptors(uniform_infos, num_frame,
-                      [&binding_map](TextureType type) {
-                        return binding_map.find(type)->second.binding_point;
-                      });
-
-    is_first_time_ = false;
   }
 
-  CreatePipeline(shader_infos);
+  return [&resource](TextureType type) {
+    return resource.binding_map.find(type)->second;
+  };
 }
 
-void Model::Init(SharedContext context,
-                 const string& obj_path,
-                 const string& tex_path,
-                 const BindingPointMap& binding_map,
-                 const vector<UniformInfo>& uniform_infos,
-                 const vector<Pipeline::ShaderInfo>& shader_infos,
-                 size_t num_frame) {
-  if (is_first_time_) {
-    context_ = move(context);
-
-    // load vertices and indices
-    common::ModelLoader loader{obj_path, tex_path, /*flip_uvs=*/false};
-    vector<VertexBuffer::Info> vertex_infos;
-    vertex_infos.reserve(loader.meshes().size());
-    for (const auto &mesh : loader.meshes()) {
-      vertex_infos.emplace_back(CreateVertexInfo(mesh.vertices, mesh.indices));
-    }
-    vertex_buffer_.Init(context_, vertex_infos);
-
-    // load textures
-    meshes_.reserve(loader.meshes().size());
-    for (auto &loaded_mesh : loader.meshes()) {
-      meshes_.emplace_back();
-      for (auto &loaded_tex : loaded_mesh.textures) {
-        vector<common::util::Image> images;
-        images.emplace_back(move(loaded_tex.image));
-        meshes_.back()[loaded_tex.type].emplace_back();
-        meshes_.back()[loaded_tex.type].back().Init(context_, images);
-      }
-    }
-
-    CreateDescriptors(uniform_infos, num_frame,
-                      [&binding_map](TextureType type) {
-                        return binding_map.find(type)->second;
-                      });
-
-    is_first_time_ = false;
-  }
-
-  CreatePipeline(shader_infos);
-}
-
-void Model::Cleanup() {
-  pipeline_.Cleanup();
-}
-
-void Model::CreateDescriptors(const vector<UniformInfo>& uniform_infos,
-                              size_t num_frame,
-                              const FindBindingPoint& find_binding_point) {
+void Model::CreateDescriptors(const FindBindingPoint& find_binding_point,
+                              const vector<UniformInfo>& uniform_infos,
+                              size_t num_frame) {
   descriptors_.resize(num_frame);
   for (size_t frame = 0; frame < num_frame; ++frame) {
     descriptors_[frame].reserve(meshes_.size());
@@ -223,32 +242,6 @@ void Model::CreateDescriptors(const vector<UniformInfo>& uniform_infos,
   }
 }
 
-void Model::CreatePipeline(const vector<Pipeline::ShaderInfo>& shader_infos) {
-  // set vertices info
-  VkPipelineVertexInputStateCreateInfo vertex_input_info{
-      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      common::util::nullflag,
-      // vertex binding descriptions
-      CONTAINER_SIZE(binding_descs),
-      binding_descs.data(),
-      // vertex attribute descriptions
-      CONTAINER_SIZE(attrib_descs),
-      attrib_descs.data(),
-  };
-  // used to set uniform values
-  VkPipelineLayoutCreateInfo layout_info{
-      VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      /*pNext=*/nullptr,
-      common::util::nullflag,
-      /*setLayoutCount=*/1,
-      &descriptors_[0][0]->layout(),
-      /*pushConstantRangeCount=*/0,
-      /*pPushConstantRanges=*/nullptr,
-  };
-  pipeline_.Init(context_, shader_infos, layout_info, vertex_input_info);
-}
-
 void Model::Draw(const VkCommandBuffer& command_buffer,
                  size_t frame) const {
   vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -261,6 +254,10 @@ void Model::Draw(const VkCommandBuffer& command_buffer,
         /*pDynamicOffsets=*/nullptr);
     vertex_buffer_.Draw(command_buffer, mesh_index);
   }
+}
+
+void Model::Cleanup() {
+  pipeline_.Cleanup();
 }
 
 } /* namespace vulkan */
