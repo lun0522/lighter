@@ -382,7 +382,6 @@ void UniformBuffer::Init(SharedContext context,
                          const Info& info) {
   context_ = std::move(context);
 
-  data_ = static_cast<const char*>(info.data);
   // offset is required to be multiple of minUniformBufferOffsetAlignment
   // which is why we have actual data size |chunk_data_size_| and its
   // aligned size |chunk_memory_size_|
@@ -392,7 +391,8 @@ void UniformBuffer::Init(SharedContext context,
   chunk_memory_size_ =
       (chunk_data_size_ + alignment - 1) / alignment * alignment;
 
-  buffer_ = CreateBuffer(context_, info.num_chunk * chunk_memory_size_,
+  data_ = new char[chunk_data_size_ * info.num_chunk];
+  buffer_ = CreateBuffer(context_, chunk_memory_size_ * info.num_chunk,
                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
   device_memory_ = CreateBufferMemory(
       context_, buffer_,
@@ -409,6 +409,7 @@ void UniformBuffer::UpdateData(size_t chunk_index) const {
 }
 
 UniformBuffer::~UniformBuffer() {
+  delete data_;
   vkDestroyBuffer(*context_->device(), buffer_, context_->allocator());
   vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
 }

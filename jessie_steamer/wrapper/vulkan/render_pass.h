@@ -41,7 +41,6 @@ class RenderPass {
  public:
   RenderPass() = default;
   void Init(std::shared_ptr<Context> context);
-  void Config(const DepthStencilImage& depth_stencil_image);
   void Cleanup();
   ~RenderPass() { Cleanup(); }
 
@@ -56,6 +55,7 @@ class RenderPass {
  private:
   std::shared_ptr<Context> context_;
   VkRenderPass render_pass_;
+  DepthStencilImage depth_stencil_;
   std::vector<VkFramebuffer> framebuffers_;
 };
 

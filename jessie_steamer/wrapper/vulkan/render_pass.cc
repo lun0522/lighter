@@ -21,7 +21,7 @@ using common::util::nullflag;
 using std::vector;
 
 vector<VkFramebuffer> CreateFramebuffers(
- const SharedContext& context,
+    const SharedContext& context,
     const DepthStencilImage& depth_stencil_image) {
   const Swapchain& swapchain = context->swapchain();
 
@@ -58,9 +58,8 @@ vector<VkFramebuffer> CreateFramebuffers(
 
 void RenderPass::Init(SharedContext context) {
   context_ = std::move(context);
-}
+  depth_stencil_.Init(context_, context_->swapchain().extent());
 
-void RenderPass::Config(const DepthStencilImage& depth_stencil_image) {
   VkAttachmentDescription color_att_desc{
       nullflag,
       context_->swapchain().format(),
@@ -90,7 +89,7 @@ void RenderPass::Config(const DepthStencilImage& depth_stencil_image) {
 
   VkAttachmentDescription depth_stencil_att_desc{
       nullflag,
-      depth_stencil_image.format(),
+      depth_stencil_.format(),
       /*samples=*/VK_SAMPLE_COUNT_1_BIT,  // no multisampling
       /*loadOp=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
       /*storeOp=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -155,7 +154,7 @@ void RenderPass::Config(const DepthStencilImage& depth_stencil_image) {
                                     context_->allocator(), &render_pass_),
                  "Failed to create render pass");
 
-  framebuffers_ = CreateFramebuffers(context_, depth_stencil_image);
+  framebuffers_ = CreateFramebuffers(context_, depth_stencil_);
 }
 
 void RenderPass::Cleanup() {

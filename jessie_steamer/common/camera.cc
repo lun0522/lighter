@@ -60,7 +60,7 @@ void Camera::ProcessCursorMove(double x, double y) {
   float y_offset = (cursor_pos_.y - y) * sensitivity_;
   cursor_pos_ = glm::dvec2{x, y};
   yaw_ = glm::mod(yaw_ + x_offset, 360.0f);
-  pitch_ = glm::clamp(pitch_ + y_offset, -89.0f, 89.0f);
+  pitch_ = glm::clamp(pitch_ + y_offset, -89.9f, 89.9f);
 
   UpdateFrontVector();
   UpdateRightVector();

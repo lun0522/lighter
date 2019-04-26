@@ -63,20 +63,18 @@ class Model {
 
   Model() = default;
 
+  // This class is neither copyable nor movable.
+  Model(const Model&) = delete;
+  Model& operator=(const Model&) = delete;
+
   void Init(std::shared_ptr<Context> context,
             const std::vector<Pipeline::ShaderInfo>& shader_infos,
             const std::vector<UniformInfo>& uniform_infos,
             const ModelResource& resource,
             size_t num_frame);
-
   void Draw(const VkCommandBuffer& command_buffer,
             size_t frame) const;
-
   void Cleanup();
-
-  // This class is neither copyable nor movable.
-  Model(const Model&) = delete;
-  Model& operator=(const Model&) = delete;
 
  private:
   FindBindingPoint LoadSingleMesh(const SingleMeshResource& resource);
@@ -85,7 +83,7 @@ class Model {
                          const std::vector<UniformInfo>& uniform_infos,
                          size_t num_frame);
 
-  bool is_first_time_{true};
+  bool is_first_time_ = true;
   std::shared_ptr<Context> context_;
   VertexBuffer vertex_buffer_;
   std::vector<Mesh> meshes_;

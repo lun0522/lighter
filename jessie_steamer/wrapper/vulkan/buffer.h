@@ -88,7 +88,6 @@ class VertexBuffer {
 class UniformBuffer {
  public:
   struct Info {
-    const void* data;
     size_t chunk_size;
     size_t num_chunk;
   };
@@ -103,11 +102,16 @@ class UniformBuffer {
   UniformBuffer(UniformBuffer&&) = default;
   UniformBuffer& operator=(UniformBuffer&&) = default;
 
+  template <typename DataType>
+  DataType* data(size_t chunk_index) {
+    return reinterpret_cast<DataType*>(data_ + chunk_data_size_ * chunk_index);
+  }
+
   VkDescriptorBufferInfo descriptor_info(size_t chunk_index) const;
 
  private:
   std::shared_ptr<Context> context_;
-  const char* data_ = nullptr;
+  char* data_;
   size_t chunk_memory_size_, chunk_data_size_;
   VkBuffer buffer_;
   VkDeviceMemory device_memory_;

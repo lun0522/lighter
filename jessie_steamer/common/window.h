@@ -52,7 +52,7 @@ class Window {
   virtual ~Window() = default;
 
   virtual glm::ivec2 screen_size() const = 0;
-  virtual glm::dvec2 cursor_pos() const = 0;
+  virtual glm::dvec2 cursor_pos()  const = 0;
 
  protected:
   bool is_resized_ = false;

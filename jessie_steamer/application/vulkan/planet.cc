@@ -1,7 +1,7 @@
 //
-//  nanosuit.cc
+//  planet.cc
 //
-//  Created by Pujun Lun on 3/25/19.
+//  Created by Pujun Lun on 4/24/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
@@ -9,15 +9,14 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
-#include <string>
 #include <vector>
 
 #include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/util.h"
-#include "jessie_steamer/common/window.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
+#include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/model.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
 #include "third_party/glm/glm.hpp"
@@ -29,7 +28,7 @@
 namespace jessie_steamer {
 namespace application {
 namespace vulkan {
-namespace nanosuit {
+namespace planet {
 namespace {
 
 namespace util = common::util;
@@ -45,10 +44,10 @@ struct Transformation {
   alignas(16) glm::mat4 proj;
 };
 
-class NanosuitApp {
+class PlanetApp {
  public:
-  NanosuitApp() : context_{Context::CreateContext()} {
-    context_->Init("Nanosuit");
+  PlanetApp() : context_{Context::CreateContext()} {
+    context_->Init("Planet");
   };
   void MainLoop();
 
@@ -64,13 +63,13 @@ class NanosuitApp {
   std::shared_ptr<Context> context_;
   common::Camera camera_;
   Command command_;
+  Model planet_model_, rock_model_, skybox_model_;
   UniformBuffer uniform_buffer_;
-  Model nanosuit_model_, skybox_model_;
 };
 
 } /* namespace */
 
-void NanosuitApp::Init() {
+void PlanetApp::Init() {
   if (is_first_time) {
     using KeyMap = common::Window::KeyMap;
 
@@ -126,34 +125,42 @@ void NanosuitApp::Init() {
       {&uniform_buffer_, &uniform_desc_info},
   };
 
-  Model::BindingPointMap nanosuit_bindings{
-      {Model::TextureType::kTypeDiffuse, /*binding_point=*/1},
-      {Model::TextureType::kTypeSpecular, /*binding_point=*/2},
-      {Model::TextureType::kTypeReflection, /*binding_point=*/3},
-  };
-  nanosuit_model_.Init(context_,
-                       {{"jessie_steamer/shader/compiled/nanosuit.vert.spv",
-                         VK_SHADER_STAGE_VERTEX_BIT},
-                        {"jessie_steamer/shader/compiled/nanosuit.frag.spv",
-                         VK_SHADER_STAGE_FRAGMENT_BIT}},
+  planet_model_.Init(context_,
+                     {{"jessie_steamer/shader/compiled/simple.vert.spv",
+                       VK_SHADER_STAGE_VERTEX_BIT},
+                      {"jessie_steamer/shader/compiled/simple.frag.spv",
+                       VK_SHADER_STAGE_FRAGMENT_BIT}},
                        uniform_infos,
                        Model::MultiMeshResource{
-                           "jessie_steamer/resource/model/nanosuit/"
-                           "nanosuit.obj",
-                           "jessie_steamer/resource/model/nanosuit",
-                           nanosuit_bindings},
+                           "jessie_steamer/resource/model/planet/planet.obj",
+                           "jessie_steamer/resource/model/planet",
+                           {{Model::TextureType::kTypeDiffuse,
+                             /*binding_point=*/1}}},
                        kNumFrameInFlight);
 
-  const std::string skybox_dir{"jessie_steamer/resource/texture/tidepool/"};
+  rock_model_.Init(context_,
+                   {{"jessie_steamer/shader/compiled/simple.vert.spv",
+                     VK_SHADER_STAGE_VERTEX_BIT},
+                    {"jessie_steamer/shader/compiled/simple.frag.spv",
+                     VK_SHADER_STAGE_FRAGMENT_BIT}},
+                   uniform_infos,
+                   Model::MultiMeshResource{
+                     "jessie_steamer/resource/model/rock/rock.obj",
+                     "jessie_steamer/resource/model/rock",
+                     {{Model::TextureType::kTypeDiffuse,
+                       /*binding_point=*/1}}},
+                   kNumFrameInFlight);
+
+  const std::string skybox_dir{"jessie_steamer/resource/texture/universe/"};
   Model::TextureBindingMap skybox_bindings;
   skybox_bindings[Model::TextureType::kTypeSpecular] = {
       /*binding_point=*/1, {{
-           skybox_dir + "right.tga",
-           skybox_dir + "left.tga",
-           skybox_dir + "top.tga",
-           skybox_dir + "bottom.tga",
-           skybox_dir + "back.tga",
-           skybox_dir + "front.tga",
+          skybox_dir + "PositiveX.jpg",
+          skybox_dir + "NegativeX.jpg",
+          skybox_dir + "PositiveY.jpg",
+          skybox_dir + "NegativeY.jpg",
+          skybox_dir + "PositiveZ.jpg",
+          skybox_dir + "NegativeZ.jpg",
       }},
   };
   skybox_model_.Init(context_,
@@ -204,21 +211,21 @@ void NanosuitApp::Init() {
     vkCmdBeginRenderPass(command_buffer, &begin_info,
                          VK_SUBPASS_CONTENTS_INLINE);
 
-    nanosuit_model_.Draw(command_buffer, image_index);
+    planet_model_.Draw(command_buffer, image_index);
     skybox_model_.Draw(command_buffer, image_index);
 
     vkCmdEndRenderPass(command_buffer);
   });
 }
 
-void NanosuitApp::UpdateTrans(size_t frame_index) {
+void PlanetApp::UpdateTrans(size_t frame_index) {
   glm::mat4 model{1.0f};
-  model = glm::translate(model, glm::vec3{0.0f, -1.0f, -4.0f});
+  model = glm::translate(model, glm::vec3{0.0f, 0.0f, -4.0f});
   static auto start_time = util::Now();
   auto elapsed_time = util::TimeInterval(start_time, util::Now());
-  model = glm::rotate(model, elapsed_time * glm::radians(90.0f),
+  model = glm::rotate(model, elapsed_time * glm::radians(60.0f),
                       glm::vec3{0.0f, 1.0f, 0.0f});
-  model = glm::scale(model, glm::vec3{0.2f});
+  model = glm::scale(model, glm::vec3{0.3f});
 
   auto* trans = uniform_buffer_.data<Transformation>(frame_index);
   *trans = {std::move(model), camera_.view_matrix(), camera_.proj_matrix()};
@@ -226,7 +233,7 @@ void NanosuitApp::UpdateTrans(size_t frame_index) {
   trans->proj[1][1] *= -1;
 }
 
-void NanosuitApp::MainLoop() {
+void PlanetApp::MainLoop() {
   Init();
   auto& window = context_->window();
   while (!should_quit_ && !window.ShouldQuit()) {
@@ -249,13 +256,14 @@ void NanosuitApp::MainLoop() {
   context_->WaitIdle();  // wait for all async operations finish
 }
 
-void NanosuitApp::Cleanup() {
+void PlanetApp::Cleanup() {
   command_.Cleanup();
-  nanosuit_model_.Cleanup();
+  planet_model_.Cleanup();
+  rock_model_.Cleanup();
   skybox_model_.Cleanup();
 }
 
-} /* namespace nanosuit */
+} /* namespace planet */
 } /* namespace vulkan */
 } /* namespace application */
 } /* namespace jessie_steamer */
@@ -263,11 +271,11 @@ void NanosuitApp::Cleanup() {
 int main(int argc, const char* argv[]) {
 #ifdef DEBUG
   INSERT_DEBUG_REQUIREMENT(/*overwrite=*/true);
-  jessie_steamer::application::vulkan::nanosuit::NanosuitApp app{};
+  jessie_steamer::application::vulkan::planet::PlanetApp app{};
   app.MainLoop();
 #else
   try {
-    jessie_steamer::application::vulkan::nanosuit::NanosuitApp app{};
+    jessie_steamer::application::vulkan::planet::PlanetApp app{};
     app.MainLoop();
   } catch (const std::exception& e) {
     std::cerr << "Error: /n/t" << e.what() << std::endl;

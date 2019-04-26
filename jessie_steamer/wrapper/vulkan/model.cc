@@ -24,34 +24,38 @@ using std::string;
 using std::unique_ptr;
 using std::vector;
 
-const vector<VkVertexInputBindingDescription> binding_descs{
-    VkVertexInputBindingDescription{
-        /*binding=*/0,
-        /*stride=*/sizeof(VertexAttrib3D),
-        // for instancing, use _INSTANCE for .inputRate
-        /*inputRate=*/VK_VERTEX_INPUT_RATE_VERTEX,
-    },
+const vector<VkVertexInputBindingDescription>& binding_descs() {
+  const static vector<VkVertexInputBindingDescription> descriptions{{
+      /*binding=*/0,
+      /*stride=*/sizeof(VertexAttrib3D),
+      // for instancing, use _INSTANCE for .inputRate
+      /*inputRate=*/VK_VERTEX_INPUT_RATE_VERTEX,
+  }};
+  return descriptions;
 };
 
-const vector<VkVertexInputAttributeDescription> attrib_descs{
-    VkVertexInputAttributeDescription{
-        /*location=*/0,  // layout (location = 0) in
-        /*binding=*/0,  // which binding point does data come from
-        /*format=*/VK_FORMAT_R32G32B32_SFLOAT,  // implies total size
-        /*offset=*/static_cast<uint32_t>(offsetof(VertexAttrib3D, pos)),
-    },
-    VkVertexInputAttributeDescription{
-        /*location=*/1,
-        /*binding=*/0,
-        /*format=*/VK_FORMAT_R32G32B32_SFLOAT,
-        /*offset=*/static_cast<uint32_t>(offsetof(VertexAttrib3D, norm)),
-    },
-    VkVertexInputAttributeDescription{
-        /*location=*/2,
-        /*binding=*/0,
-        /*format=*/VK_FORMAT_R32G32_SFLOAT,
-        /*offset=*/static_cast<uint32_t>(offsetof(VertexAttrib3D, tex_coord)),
-    },
+const vector<VkVertexInputAttributeDescription>& attrib_descs() {
+  const static vector<VkVertexInputAttributeDescription> descriptions{
+      VkVertexInputAttributeDescription{
+          /*location=*/0,  // layout (location = 0) in
+          /*binding=*/0,  // which binding point does data come from
+          /*format=*/VK_FORMAT_R32G32B32_SFLOAT,  // implies total size
+          /*offset=*/static_cast<uint32_t>(offsetof(VertexAttrib3D, pos)),
+      },
+      VkVertexInputAttributeDescription{
+          /*location=*/1,
+          /*binding=*/0,
+          /*format=*/VK_FORMAT_R32G32B32_SFLOAT,
+          /*offset=*/static_cast<uint32_t>(offsetof(VertexAttrib3D, norm)),
+      },
+      VkVertexInputAttributeDescription{
+          /*location=*/2,
+          /*binding=*/0,
+          /*format=*/VK_FORMAT_R32G32_SFLOAT,
+          /*offset=*/static_cast<uint32_t>(offsetof(VertexAttrib3D, tex_coord)),
+      },
+  };
+  return descriptions;
 };
 
 VertexBuffer::Info CreateVertexInfo(const vector<VertexAttrib3D>& vertices,
@@ -135,11 +139,11 @@ void Model::Init(SharedContext context,
       /*pNext=*/nullptr,
       common::util::nullflag,
       // vertex binding descriptions
-      CONTAINER_SIZE(binding_descs),
-      binding_descs.data(),
+      CONTAINER_SIZE(binding_descs()),
+      binding_descs().data(),
       // vertex attribute descriptions
-      CONTAINER_SIZE(attrib_descs),
-      attrib_descs.data(),
+      CONTAINER_SIZE(attrib_descs()),
+      attrib_descs().data(),
   };
   // used to set uniform values
   VkPipelineLayoutCreateInfo layout_info{

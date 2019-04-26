@@ -71,7 +71,7 @@ class Command {
 
  private:
   std::shared_ptr<Context> context_;
-  bool is_first_time_{true};
+  bool is_first_time_ = true;
   Semaphores image_available_semas_;
   Semaphores render_finished_semas_;
   Fences in_flight_fences_;
