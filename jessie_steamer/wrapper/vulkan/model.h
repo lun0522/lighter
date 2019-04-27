@@ -68,13 +68,12 @@ class Model {
   Model& operator=(const Model&) = delete;
 
   void Init(std::shared_ptr<Context> context,
-            const std::vector<Pipeline::ShaderInfo>& shader_infos,
+            const std::vector<PipelineBuilder::ShaderInfo>& shader_infos,
             const std::vector<UniformInfo>& uniform_infos,
             const ModelResource& resource,
             size_t num_frame);
   void Draw(const VkCommandBuffer& command_buffer,
             size_t frame) const;
-  void Cleanup();
 
  private:
   FindBindingPoint LoadSingleMesh(const SingleMeshResource& resource);
@@ -88,7 +87,8 @@ class Model {
   VertexBuffer vertex_buffer_;
   std::vector<Mesh> meshes_;
   std::vector<std::vector<std::unique_ptr<Descriptor>>> descriptors_;
-  Pipeline pipeline_;
+  PipelineBuilder pipeline_builder_;
+  std::unique_ptr<Pipeline> pipeline_;
 };
 
 } /* namespace vulkan */

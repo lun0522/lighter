@@ -132,10 +132,10 @@ void NanosuitApp::Init() {
       {Model::TextureType::kTypeReflection, /*binding_point=*/3},
   };
   nanosuit_model_.Init(context_,
-                       {{"jessie_steamer/shader/compiled/nanosuit.vert.spv",
-                         VK_SHADER_STAGE_VERTEX_BIT},
-                        {"jessie_steamer/shader/compiled/nanosuit.frag.spv",
-                         VK_SHADER_STAGE_FRAGMENT_BIT}},
+                       {{VK_SHADER_STAGE_VERTEX_BIT,
+                         "jessie_steamer/shader/compiled/nanosuit.vert.spv"},
+                        {VK_SHADER_STAGE_FRAGMENT_BIT,
+                         "jessie_steamer/shader/compiled/nanosuit.frag.spv"}},
                        uniform_infos,
                        Model::MultiMeshResource{
                            "jessie_steamer/resource/model/nanosuit/"
@@ -157,10 +157,10 @@ void NanosuitApp::Init() {
       }},
   };
   skybox_model_.Init(context_,
-                     {{"jessie_steamer/shader/compiled/skybox.vert.spv",
-                       VK_SHADER_STAGE_VERTEX_BIT},
-                      {"jessie_steamer/shader/compiled/skybox.frag.spv",
-                       VK_SHADER_STAGE_FRAGMENT_BIT}},
+                     {{VK_SHADER_STAGE_VERTEX_BIT,
+                       "jessie_steamer/shader/compiled/skybox.vert.spv"},
+                      {VK_SHADER_STAGE_FRAGMENT_BIT,
+                       "jessie_steamer/shader/compiled/skybox.frag.spv"}},
                      uniform_infos,
                      Model::SingleMeshResource{
                          "jessie_steamer/resource/model/skybox.obj",
@@ -228,15 +228,15 @@ void NanosuitApp::UpdateTrans(size_t frame_index) {
 
 void NanosuitApp::MainLoop() {
   Init();
+  const auto update_func = [this](size_t frame_index) {
+    UpdateTrans(frame_index);
+    uniform_buffer_.UpdateData(frame_index);
+  };
   auto& window = context_->window();
   while (!should_quit_ && !window.ShouldQuit()) {
     window.PollEvents();
     last_time_ = util::Now();
 
-    auto update_func = [this](size_t frame_index) {
-      UpdateTrans(frame_index);
-      uniform_buffer_.UpdateData(frame_index);
-    };
     if (command_.DrawFrame(current_frame_, update_func) != VK_SUCCESS ||
         window.IsResized()) {
       context_->WaitIdle();
@@ -251,8 +251,6 @@ void NanosuitApp::MainLoop() {
 
 void NanosuitApp::Cleanup() {
   command_.Cleanup();
-  nanosuit_model_.Cleanup();
-  skybox_model_.Cleanup();
 }
 
 } /* namespace nanosuit */

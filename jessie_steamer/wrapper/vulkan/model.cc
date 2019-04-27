@@ -110,7 +110,7 @@ void CreateTextureInfo(const Model::Mesh& mesh,
 } /* namespace */
 
 void Model::Init(SharedContext context,
-                 const vector<Pipeline::ShaderInfo>& shader_infos,
+                 const vector<PipelineBuilder::ShaderInfo>& shader_infos,
                  const vector<UniformInfo>& uniform_infos,
                  const ModelResource& resource,
                  size_t num_frame) {
@@ -129,33 +129,30 @@ void Model::Init(SharedContext context,
     }
     CreateDescriptors(find_binding_point, uniform_infos, num_frame);
 
+    pipeline_builder_.Init(context_)
+        .set_vertex_input(binding_descs(), attrib_descs())
+        .set_layout({descriptors_[0][0]->layout()});
+
     is_first_time_ = false;
   }
 
   // create pipeline
-  // set vertices info
-  VkPipelineVertexInputStateCreateInfo vertex_input_info{
-      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      common::util::nullflag,
-      // vertex binding descriptions
-      CONTAINER_SIZE(binding_descs()),
-      binding_descs().data(),
-      // vertex attribute descriptions
-      CONTAINER_SIZE(attrib_descs()),
-      attrib_descs().data(),
-  };
-  // used to set uniform values
-  VkPipelineLayoutCreateInfo layout_info{
-      VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      /*pNext=*/nullptr,
-      common::util::nullflag,
-      /*setLayoutCount=*/1,
-      &descriptors_[0][0]->layout(),
-      /*pushConstantRangeCount=*/0,
-      /*pPushConstantRanges=*/nullptr,
-  };
-  pipeline_.Init(context_, shader_infos, layout_info, vertex_input_info);
+  VkExtent2D target_extent = context_->swapchain().extent();
+  pipeline_builder_.set_viewport({
+      /*x=*/0.0f,
+      /*y=*/0.0f,
+      static_cast<float>(target_extent.width),
+      static_cast<float>(target_extent.height),
+      /*minDepth=*/0.0f,
+      /*maxDepth=*/1.0f,
+      }).set_scissor({
+      /*offset=*/{0, 0},
+      target_extent,
+  });
+  for (const auto& info : shader_infos) {
+    pipeline_builder_.add_shader(info);
+  }
+  pipeline_ = pipeline_builder_.Build();
 }
 
 Model::FindBindingPoint Model::LoadSingleMesh(
@@ -249,19 +246,15 @@ void Model::CreateDescriptors(const FindBindingPoint& find_binding_point,
 void Model::Draw(const VkCommandBuffer& command_buffer,
                  size_t frame) const {
   vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    *pipeline_);
+                    **pipeline_);
   for (size_t mesh_index = 0; mesh_index < meshes_.size(); ++mesh_index) {
     vkCmdBindDescriptorSets(
         command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-        pipeline_.layout(), /*firstSet=*/0, /*descriptorSetCount=*/1,
+        pipeline_->layout(), /*firstSet=*/0, /*descriptorSetCount=*/1,
         &descriptors_[frame][mesh_index]->set(), /*dynamicOffsetCount=*/0,
         /*pDynamicOffsets=*/nullptr);
     vertex_buffer_.Draw(command_buffer, mesh_index);
   }
-}
-
-void Model::Cleanup() {
-  pipeline_.Cleanup();
 }
 
 } /* namespace vulkan */

@@ -92,10 +92,10 @@ void CubeApp::Init() {
     }},
   };
   model_.Init(context_,
-              {{"jessie_steamer/shader/compiled/simple.vert.spv",
-                VK_SHADER_STAGE_VERTEX_BIT},
-               {"jessie_steamer/shader/compiled/simple.frag.spv",
-                VK_SHADER_STAGE_FRAGMENT_BIT}},
+              {{VK_SHADER_STAGE_VERTEX_BIT,
+                "jessie_steamer/shader/compiled/simple.vert.spv"},
+               {VK_SHADER_STAGE_FRAGMENT_BIT,
+                "jessie_steamer/shader/compiled/simple.frag.spv"}},
               {{&uniform_buffer_, &uniform_desc_info}},
               Model::SingleMeshResource{
                   "jessie_steamer/resource/model/cube.obj",
@@ -160,7 +160,7 @@ void CubeApp::MainLoop() {
   while (!window.ShouldQuit()) {
     window.PollEvents();
     VkExtent2D extent = context_->swapchain().extent();
-    auto update_func = [this, extent](size_t frame_index) {
+    const auto update_func = [this, extent](size_t frame_index) {
       UpdateTrans(frame_index, (float)extent.width / extent.height);
       uniform_buffer_.UpdateData(frame_index);
     };
@@ -178,7 +178,6 @@ void CubeApp::MainLoop() {
 
 void CubeApp::Cleanup() {
   command_.Cleanup();
-  model_.Cleanup();
 }
 
 } /* namespace cube */

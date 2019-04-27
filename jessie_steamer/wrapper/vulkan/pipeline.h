@@ -13,6 +13,8 @@
 #include <utility>
 #include <vector>
 
+#include "absl/memory/memory.h"
+#include "absl/types/optional.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -39,27 +41,60 @@ class Context;
  */
 class Pipeline {
  public:
-  using ShaderInfo = std::pair<std::string, VkShaderStageFlagBits>;
-
-  Pipeline() = default;
-  void Init(std::shared_ptr<Context> context,
-            const std::vector<ShaderInfo>& shader_infos,
-            const VkPipelineLayoutCreateInfo& layout_info,
-            const VkPipelineVertexInputStateCreateInfo& vertex_input_info);
-  void Cleanup();
-  ~Pipeline() { Cleanup(); }
+  Pipeline(std::shared_ptr<Context> context,
+           VkPipeline&& pipeline,
+           VkPipelineLayout&& pipeline_layout)
+    : context_{std::move(context)},
+      pipeline_{std::move(pipeline)},
+      layout_{std::move(pipeline_layout)} {}
+  ~Pipeline();
 
   // This class is neither copyable nor movable
   Pipeline(const Pipeline&) = delete;
   Pipeline& operator=(const Pipeline&) = delete;
 
-  const VkPipeline& operator*() const { return pipeline_; }
-  const VkPipelineLayout& layout()  const { return pipeline_layout_; }
+  const VkPipeline& operator*()     const { return pipeline_; }
+  const VkPipelineLayout& layout()  const { return layout_; }
 
  private:
   std::shared_ptr<Context> context_;
-  VkPipelineLayout pipeline_layout_;
   VkPipeline pipeline_;
+  VkPipelineLayout layout_;
+};
+
+class PipelineBuilder {
+ public:
+  using ShaderInfo = std::pair<VkShaderStageFlagBits, std::string>;
+  using ShaderModule = std::pair<VkShaderStageFlagBits, VkShaderModule>;
+
+  std::shared_ptr<Context> context;
+  VkPipelineInputAssemblyStateCreateInfo input_assembly_info;
+  VkPipelineRasterizationStateCreateInfo rasterizer_info;
+  VkPipelineMultisampleStateCreateInfo multisample_info;
+  VkPipelineDepthStencilStateCreateInfo depth_stencil_info;
+  VkPipelineColorBlendAttachmentState color_blend_attachment;
+  VkPipelineColorBlendStateCreateInfo color_blend_info;
+  VkPipelineDynamicStateCreateInfo dynamic_state_info;
+  absl::optional<VkPipelineVertexInputStateCreateInfo> vertex_input_info;
+  absl::optional<VkPipelineLayoutCreateInfo> layout_info;
+  absl::optional<VkViewport> viewport;
+  absl::optional<VkRect2D> scissor;
+  std::vector<VkVertexInputBindingDescription> binding_descriptions;
+  std::vector<VkVertexInputAttributeDescription> attrib_descriptions;
+  std::vector<VkDescriptorSetLayout> descriptor_layouts;
+  std::vector<ShaderModule> shader_modules;
+
+  PipelineBuilder() = default;
+  PipelineBuilder& Init(const std::shared_ptr<Context>& context);
+  PipelineBuilder& set_vertex_input(
+      const std::vector<VkVertexInputBindingDescription>& binding_descs,
+      const std::vector<VkVertexInputAttributeDescription>& attrib_descs);
+  PipelineBuilder& set_layout(
+      const std::vector<VkDescriptorSetLayout>& desc_layouts);
+  PipelineBuilder& set_viewport(const VkViewport& viewport);
+  PipelineBuilder& set_scissor(const VkRect2D& scissor);
+  PipelineBuilder& add_shader(const ShaderInfo& shader_info);
+  std::unique_ptr<Pipeline> Build();
 };
 
 } /* namespace vulkan */

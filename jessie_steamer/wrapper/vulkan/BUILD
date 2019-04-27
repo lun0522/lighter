@@ -36,6 +36,8 @@ cc_library(
         "//jessie_steamer/common:window",
         "//third_party:glm",
         "//third_party:vulkan",
+        "@lib-absl//absl/memory",
+        "@lib-absl//absl/types:optional",
         "@lib-absl//absl/types:variant",
     ],
     data = ["//jessie_steamer/resource"],
