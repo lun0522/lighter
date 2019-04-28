@@ -25,37 +25,51 @@ using std::string;
 using std::unique_ptr;
 using std::vector;
 
-const vector<VkVertexInputBindingDescription>& binding_descs() {
-  const static vector<VkVertexInputBindingDescription> descriptions{{
-      /*binding=*/0,
-      /*stride=*/sizeof(VertexAttrib3D),
-      // for instancing, use _INSTANCE for .inputRate
-      /*inputRate=*/VK_VERTEX_INPUT_RATE_VERTEX,
-  }};
+struct VertexInputBinding {
+  uint32_t binding_point;
+  uint32_t data_size;
+  bool instancing;
+};
+
+struct VertexInputAttribute {
+  uint32_t binding_point;
+  vector<Model::VertexAttribute> attributes;
+};
+
+vector<VkVertexInputBindingDescription> GetBindingDescriptions(
+    const vector<VertexInputBinding>& bindings) {
+  vector<VkVertexInputBindingDescription> descriptions;
+  descriptions.reserve(bindings.size());
+  for (const auto& binding : bindings) {
+    descriptions.emplace_back(VkVertexInputBindingDescription{
+        binding.binding_point,
+        binding.data_size,
+        binding.instancing ? VK_VERTEX_INPUT_RATE_INSTANCE :
+                             VK_VERTEX_INPUT_RATE_VERTEX,
+    });
+  }
   return descriptions;
 };
 
-const vector<VkVertexInputAttributeDescription>& attrib_descs() {
-  const static vector<VkVertexInputAttributeDescription> descriptions{
-      VkVertexInputAttributeDescription{
-          /*location=*/0,  // layout (location = 0) in
-          /*binding=*/0,  // which binding point does data come from
-          /*format=*/VK_FORMAT_R32G32B32_SFLOAT,  // implies total size
-          /*offset=*/static_cast<uint32_t>(offsetof(VertexAttrib3D, pos)),
-      },
-      VkVertexInputAttributeDescription{
-          /*location=*/1,
-          /*binding=*/0,
-          /*format=*/VK_FORMAT_R32G32B32_SFLOAT,
-          /*offset=*/static_cast<uint32_t>(offsetof(VertexAttrib3D, norm)),
-      },
-      VkVertexInputAttributeDescription{
-          /*location=*/2,
-          /*binding=*/0,
-          /*format=*/VK_FORMAT_R32G32_SFLOAT,
-          /*offset=*/static_cast<uint32_t>(offsetof(VertexAttrib3D, tex_coord)),
-      },
-  };
+vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(
+    const vector<VertexInputAttribute>& attributes) {
+  size_t num_attribute = 0;
+  for (const auto& attribs : attributes) {
+    num_attribute += attribs.attributes.size();
+  }
+
+  vector<VkVertexInputAttributeDescription> descriptions;
+  descriptions.reserve(num_attribute);
+  for (const auto& attribs : attributes) {
+    for (const auto& attrib : attribs.attributes) {
+      descriptions.emplace_back(VkVertexInputAttributeDescription{
+          attrib.location,
+          attribs.binding_point,
+          attrib.format,
+          attrib.offset,
+      });
+    }
+  }
   return descriptions;
 };
 
@@ -114,12 +128,19 @@ void Model::Init(SharedContext context,
                  const vector<PipelineBuilder::ShaderInfo>& shader_infos,
                  const ModelResource& resource,
                  const optional<UniformInfos>& uniform_infos,
+                 const optional<InstancingInfo>& instancing_info,
                  PushConstants* push_constants,
                  size_t num_frame,
                  bool is_opaque) {
   if (is_first_time_) {
     context_ = move(context);
     push_constants_ = push_constants;
+    if (instancing_info.has_value()) {
+      if (!instancing_info.value().per_instance_data) {
+        throw std::runtime_error{"Per instance data not provided"};
+      }
+      per_instance_data_ = instancing_info.value().per_instance_data;
+    }
 
     FindBindingPoint find_binding_point;
     if (absl::holds_alternative<SingleMeshResource>(resource)) {
@@ -133,8 +154,56 @@ void Model::Init(SharedContext context,
     }
     CreateDescriptors(find_binding_point, uniform_infos, num_frame);
 
+    vector<VertexInputBinding> bindings{
+        VertexInputBinding{
+            buffer::kPerVertexBindingPoint,
+            /*data_size=*/static_cast<uint32_t>(sizeof(VertexAttrib3D)),
+            /*instancing=*/false,
+        },
+    };
+    if (instancing_info.has_value()) {
+      bindings.emplace_back(VertexInputBinding{
+          buffer::kPerInstanceBindingPoint,
+          /*data_size=*/instancing_info.value().data_size,
+          /*instancing=*/true,
+      });
+    }
+
+    vector<VertexInputAttribute> attributes{
+        VertexInputAttribute{
+            buffer::kPerVertexBindingPoint,
+            /*attributes=*/{
+                VertexAttribute{
+                    /*location=*/0,
+                    /*offset=*/static_cast<uint32_t>(
+                        offsetof(VertexAttrib3D, pos)),
+                    /*format=*/VK_FORMAT_R32G32B32_SFLOAT,
+                },
+                VertexAttribute{
+                    /*location=*/1,
+                    /*offset=*/static_cast<uint32_t>(
+                        offsetof(VertexAttrib3D, norm)),
+                    /*format=*/VK_FORMAT_R32G32B32_SFLOAT,
+                },
+                VertexAttribute{
+                    /*location=*/2,
+                    /*offset=*/static_cast<uint32_t>(
+                        offsetof(VertexAttrib3D, tex_coord)),
+                    /*format=*/VK_FORMAT_R32G32_SFLOAT,
+                },
+            },
+        },
+    };
+    if (instancing_info.has_value()) {
+      attributes.emplace_back(VertexInputAttribute{
+          buffer::kPerInstanceBindingPoint,
+          instancing_info.value().per_instance_attribs,
+      });
+    }
+
     pipeline_builder_.Init(context_)
-        .set_vertex_input(binding_descs(), attrib_descs())
+        .set_vertex_input(GetBindingDescriptions(bindings),
+                          GetAttributeDescriptions(attributes))
         .set_layout({descriptors_[0][0]->layout()}, push_constants_);
     if (!is_opaque) {
       pipeline_builder_.enable_alpha_blend()
@@ -255,9 +324,14 @@ void Model::CreateDescriptors(const FindBindingPoint& find_binding_point,
 }
 
 void Model::Draw(const VkCommandBuffer& command_buffer,
-                 size_t frame) const {
+                 size_t frame,
+                 uint32_t instance_count) const {
   vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                     **pipeline_);
+  if (per_instance_data_) {
+    // TODO: hardcode 0?
+    per_instance_data_->BindAsVertexBuffer(command_buffer, 0);
+  }
   if (push_constants_) {
     for (size_t i = 0; i < push_constants_->infos.size(); ++i) {
       vkCmdPushConstants(command_buffer, pipeline_->layout(),
@@ -273,7 +347,7 @@ void Model::Draw(const VkCommandBuffer& command_buffer,
         pipeline_->layout(), /*firstSet=*/0, /*descriptorSetCount=*/1,
         &descriptors_[frame][mesh_index]->set(), /*dynamicOffsetCount=*/0,
         /*pDynamicOffsets=*/nullptr);
-    vertex_buffer_.Draw(command_buffer, mesh_index);
+    vertex_buffer_.Draw(command_buffer, mesh_index, instance_count);
   }
 }
 

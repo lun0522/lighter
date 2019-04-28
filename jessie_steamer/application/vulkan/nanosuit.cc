@@ -48,7 +48,9 @@ struct Transformation {
 
 class NanosuitApp {
  public:
-  NanosuitApp() : context_{Context::CreateContext()} {
+  NanosuitApp()
+    : context_{Context::CreateContext()},
+      camera_{/*position=*/glm::vec3{0.0f, 1.5f, 4.0f}} {
     context_->Init("Nanosuit");
   };
   void MainLoop();
@@ -204,8 +206,8 @@ void NanosuitApp::Init() {
     vkCmdBeginRenderPass(command_buffer, &begin_info,
                          VK_SUBPASS_CONTENTS_INLINE);
 
-    nanosuit_model_.Draw(command_buffer, image_index);
-    skybox_model_.Draw(command_buffer, image_index);
+    nanosuit_model_.Draw(command_buffer, image_index, /*instance_count=*/1);
+    skybox_model_.Draw(command_buffer, image_index, /*instance_count=*/1);
 
     vkCmdEndRenderPass(command_buffer);
   });
@@ -213,7 +215,6 @@ void NanosuitApp::Init() {
 
 void NanosuitApp::UpdateData(size_t frame_index) {
   glm::mat4 model{1.0f};
-  model = glm::translate(model, glm::vec3{0.0f, -1.0f, -4.0f});
   static auto start_time = util::Now();
   auto elapsed_time = util::TimeInterval(start_time, util::Now());
   model = glm::rotate(model, elapsed_time * glm::radians(90.0f),

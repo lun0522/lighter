@@ -364,14 +364,16 @@ void VertexBuffer::Init(SharedContext context,
 }
 
 void VertexBuffer::Draw(const VkCommandBuffer& command_buffer,
-                        size_t segment_index) const {
+                        size_t segment_index,
+                        uint32_t instance_count) const {
   const Segment& segment = segments_[segment_index];
-  vkCmdBindVertexBuffers(command_buffer, 0, 1, &buffer_,
+  vkCmdBindVertexBuffers(command_buffer, buffer::kPerVertexBindingPoint,
+                         /*bindingCount=*/1, &buffer_,
                          &segment.vertices_offset);
   vkCmdBindIndexBuffer(command_buffer, buffer_, segment.indices_offset,
                        VK_INDEX_TYPE_UINT32);
-  // (index_count, instance_count, first_index, vertex_offset, first_instance)
-  vkCmdDrawIndexed(command_buffer, segment.indices_count, 1, 0, 0, 0);
+  vkCmdDrawIndexed(command_buffer, segment.indices_count, instance_count,
+                   /*firstIndex=*/0, /*vertexOffset=*/0, /*firstInstance=*/0);
 }
 
 VertexBuffer::~VertexBuffer() {
@@ -380,6 +382,7 @@ VertexBuffer::~VertexBuffer() {
 }
 
 void UniformBuffer::Init(SharedContext context,
+                         bool is_per_instance,
                          const Info& info) {
   context_ = std::move(context);
 
@@ -394,7 +397,8 @@ void UniformBuffer::Init(SharedContext context,
 
   data_ = new char[chunk_data_size_ * info.num_chunk];
   buffer_ = CreateBuffer(context_, chunk_memory_size_ * info.num_chunk,
-                         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+                         is_per_instance ? VK_BUFFER_USAGE_VERTEX_BUFFER_BIT :
+                                           VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
   device_memory_ = CreateBufferMemory(
       context_, buffer_,
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
@@ -407,6 +411,13 @@ void UniformBuffer::UpdateData(size_t chunk_index) const {
   CopyHostToBuffer(
       context_, chunk_data_size_, dst_offset, device_memory_,
       {{data_ + src_offset, chunk_data_size_, /*offset=*/0}});
+}
+
+void UniformBuffer::BindAsVertexBuffer(const VkCommandBuffer& command_buffer,
+                                       size_t chunk_index) const {
+  VkDeviceSize offset = chunk_memory_size_ * chunk_index;
+  vkCmdBindVertexBuffers(command_buffer, buffer::kPerInstanceBindingPoint,
+                         /*bindingCount=*/1, &buffer_, &offset);
 }
 
 UniformBuffer::~UniformBuffer() {

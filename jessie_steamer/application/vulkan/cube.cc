@@ -136,7 +136,7 @@ void CubeApp::Init() {
     vkCmdBeginRenderPass(command_buffer, &begin_info,
                          VK_SUBPASS_CONTENTS_INLINE);
 
-    model_.Draw(command_buffer, image_index);
+    model_.Draw(command_buffer, image_index, /*instance_count=*/1);
 
     vkCmdEndRenderPass(command_buffer);
   });

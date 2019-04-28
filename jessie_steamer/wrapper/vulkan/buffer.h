@@ -18,6 +18,12 @@
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
+namespace buffer {
+
+constexpr uint32_t kPerVertexBindingPoint = 0;
+constexpr uint32_t kPerInstanceBindingPoint = 1;
+
+} /* namespace buffer */
 
 class Context;
 
@@ -65,7 +71,8 @@ class VertexBuffer {
   void Init(std::shared_ptr<Context> context,
             const std::vector<Info>& infos);
   void Draw(const VkCommandBuffer& command_buffer,
-            size_t segment_index) const;
+            size_t segment_index,
+            uint32_t instance_count) const;
   ~VertexBuffer();
 
   // This class is only movable
@@ -94,8 +101,11 @@ class UniformBuffer {
 
   UniformBuffer() = default;
   void Init(std::shared_ptr<Context> context,
+            bool is_per_instance,
             const Info& info);
   void UpdateData(size_t chunk_index) const;
+  void BindAsVertexBuffer(const VkCommandBuffer& command_buffer,
+                          size_t chunk_index) const;
   ~UniformBuffer();
 
   // This class is only movable

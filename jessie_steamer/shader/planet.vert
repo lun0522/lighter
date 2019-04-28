@@ -4,7 +4,6 @@ layout(binding = 0) uniform Transformation {
   mat4 model;
   mat4 view;
   mat4 proj;
-  mat4 norm_i_t;
 } trans;
 
 layout(location = 0) in vec3 in_pos;
@@ -15,7 +14,8 @@ layout(location = 0) out vec3 norm;
 layout(location = 1) out vec2 tex_coord;
 
 void main() {
-  gl_Position = trans.proj * trans.view * trans.model * vec4(in_pos, 1.0);
-  norm = mat3(trans.norm_i_t) * in_norm;
+  vec4 pos_world = trans.model * vec4(in_pos, 1.0);
+  norm = normalize(pos_world.xyz);
+  gl_Position = trans.proj * trans.view * pos_world;
   tex_coord = in_tex_coord;
 }

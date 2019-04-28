@@ -63,6 +63,19 @@ class Model {
   };
   using ModelResource = absl::variant<SingleMeshResource, MultiMeshResource>;
 
+  // For instancing, caller must provide information about per-instance vertex
+  // attributes.
+  struct VertexAttribute {
+    uint32_t location;
+    uint32_t offset;
+    VkFormat format;
+  };
+  struct InstancingInfo {
+    std::vector<VertexAttribute> per_instance_attribs;
+    uint32_t data_size;
+    UniformBuffer* per_instance_data;
+  };
+
   Model() = default;
 
   // This class is neither copyable nor movable.
@@ -73,11 +86,13 @@ class Model {
             const std::vector<PipelineBuilder::ShaderInfo>& shader_infos,
             const ModelResource& resource,
             const absl::optional<UniformInfos>& uniform_infos,
+            const absl::optional<InstancingInfo>& instancing_info,
             PushConstants* push_constants,
             size_t num_frame,
             bool is_opaque);
   void Draw(const VkCommandBuffer& command_buffer,
-            size_t frame) const;
+            size_t frame,
+            uint32_t instance_count) const;
 
  private:
   FindBindingPoint LoadSingleMesh(const SingleMeshResource& resource);
@@ -92,7 +107,8 @@ class Model {
   std::vector<Mesh> meshes_;
   std::vector<std::vector<std::unique_ptr<Descriptor>>> descriptors_;
   // TODO: deal with shared resource in better way
-  PushConstants* push_constants_;
+  PushConstants* push_constants_ = nullptr;
+  UniformBuffer* per_instance_data_ = nullptr;
   PipelineBuilder pipeline_builder_;
   std::unique_ptr<Pipeline> pipeline_;
 };
