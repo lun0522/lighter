@@ -10,7 +10,9 @@
 #include <iostream>
 #include <memory>
 
+#include "absl/types/optional.h"
 #include "jessie_steamer/common/util.h"
+#include "jessie_steamer/common/window.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
@@ -51,8 +53,8 @@ class CubeApp {
 
  private:
   void Init();
-  void UpdateTrans(size_t frame_index,
-                   float screen_aspect);
+  void UpdateData(size_t frame_index,
+                  float screen_aspect);
   void Cleanup();
 
   bool is_first_time = true;
@@ -96,11 +98,13 @@ void CubeApp::Init() {
                 "jessie_steamer/shader/compiled/simple.vert.spv"},
                {VK_SHADER_STAGE_FRAGMENT_BIT,
                 "jessie_steamer/shader/compiled/simple.frag.spv"}},
-              {{&uniform_buffer_, &uniform_desc_info}},
               Model::SingleMeshResource{
                   "jessie_steamer/resource/model/cube.obj",
                   /*obj_index_base=*/1, bindings},
-              kNumFrameInFlight);
+              absl::make_optional<Model::UniformInfos>(
+                  {{uniform_buffer_, uniform_desc_info}}),
+              /*push_constants=*/nullptr,
+              kNumFrameInFlight, /*is_opaque=*/true);
 
   // command
   command_.Init(context_, kNumFrameInFlight,
@@ -138,8 +142,8 @@ void CubeApp::Init() {
   });
 }
 
-void CubeApp::UpdateTrans(size_t frame_index,
-                          float screen_aspect) {
+void CubeApp::UpdateData(size_t frame_index,
+                         float screen_aspect) {
   static auto start_time = util::Now();
   auto elapsed_time = util::TimeInterval(start_time, util::Now());
   auto* trans = uniform_buffer_.data<Transformation>(frame_index);
@@ -160,12 +164,13 @@ void CubeApp::MainLoop() {
   while (!window.ShouldQuit()) {
     window.PollEvents();
     VkExtent2D extent = context_->swapchain().extent();
-    const auto update_func = [this, extent](size_t frame_index) {
-      UpdateTrans(frame_index, (float)extent.width / extent.height);
+    const auto update_data = [this, extent](size_t frame_index) {
+      UpdateData(frame_index, (float)extent.width / extent.height);
       uniform_buffer_.UpdateData(frame_index);
     };
-    if (command_.DrawFrame(current_frame_, update_func) != VK_SUCCESS ||
+    if (command_.DrawFrame(current_frame_, update_data) != VK_SUCCESS ||
         window.IsResized()) {
+      window.ResetResizedFlag();
       context_->WaitIdle();
       Cleanup();
       context_->Recreate();

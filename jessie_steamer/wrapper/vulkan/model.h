@@ -16,6 +16,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "absl/types/variant.h"
 #include "jessie_steamer/common/model_loader.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
@@ -34,7 +35,8 @@ class Model {
  public:
   using TextureType = common::ModelLoader::Texture::Type;
   using Mesh = std::array<std::vector<TextureImage>, TextureType::kTypeMaxEnum>;
-  using UniformInfo = std::pair<const UniformBuffer*, const Descriptor::Info*>;
+  using UniformInfos = std::vector<std::pair<const UniformBuffer&,
+                                             const Descriptor::Info&>>;
 
   // Textures that will be bound to the same point.
   struct TextureBinding {
@@ -69,9 +71,11 @@ class Model {
 
   void Init(std::shared_ptr<Context> context,
             const std::vector<PipelineBuilder::ShaderInfo>& shader_infos,
-            const std::vector<UniformInfo>& uniform_infos,
             const ModelResource& resource,
-            size_t num_frame);
+            const absl::optional<UniformInfos>& uniform_infos,
+            PushConstants* push_constants,
+            size_t num_frame,
+            bool is_opaque);
   void Draw(const VkCommandBuffer& command_buffer,
             size_t frame) const;
 
@@ -79,7 +83,7 @@ class Model {
   FindBindingPoint LoadSingleMesh(const SingleMeshResource& resource);
   FindBindingPoint LoadMultiMesh(const MultiMeshResource& resource);
   void CreateDescriptors(const FindBindingPoint& find_binding_point,
-                         const std::vector<UniformInfo>& uniform_infos,
+                         const absl::optional<UniformInfos>& uniform_infos,
                          size_t num_frame);
 
   bool is_first_time_ = true;
@@ -87,6 +91,8 @@ class Model {
   VertexBuffer vertex_buffer_;
   std::vector<Mesh> meshes_;
   std::vector<std::vector<std::unique_ptr<Descriptor>>> descriptors_;
+  // TODO: deal with shared resource in better way
+  PushConstants* push_constants_;
   PipelineBuilder pipeline_builder_;
   std::unique_ptr<Pipeline> pipeline_;
 };

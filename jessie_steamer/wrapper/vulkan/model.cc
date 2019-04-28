@@ -18,6 +18,7 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
+using absl::optional;
 using common::util::VertexAttrib3D;
 using std::move;
 using std::string;
@@ -111,11 +112,14 @@ void CreateTextureInfo(const Model::Mesh& mesh,
 
 void Model::Init(SharedContext context,
                  const vector<PipelineBuilder::ShaderInfo>& shader_infos,
-                 const vector<UniformInfo>& uniform_infos,
                  const ModelResource& resource,
-                 size_t num_frame) {
+                 const optional<UniformInfos>& uniform_infos,
+                 PushConstants* push_constants,
+                 size_t num_frame,
+                 bool is_opaque) {
   if (is_first_time_) {
     context_ = move(context);
+    push_constants_ = push_constants;
 
     FindBindingPoint find_binding_point;
     if (absl::holds_alternative<SingleMeshResource>(resource)) {
@@ -131,7 +135,11 @@ void Model::Init(SharedContext context,
 
     pipeline_builder_.Init(context_)
         .set_vertex_input(binding_descs(), attrib_descs())
-        .set_layout({descriptors_[0][0]->layout()});
+        .set_layout({descriptors_[0][0]->layout()}, push_constants_);
+    if (!is_opaque) {
+      pipeline_builder_.enable_alpha_blend()
+          .disable_depth_test();
+    }
 
     is_first_time_ = false;
   }
@@ -177,8 +185,7 @@ Model::FindBindingPoint Model::LoadSingleMesh(
   }
 
   return [&resource](TextureType type) {
-    return resource.binding_map.find(type)
-      ->second.binding_point;
+    return resource.binding_map.find(type)->second.binding_point;
   };
 }
 
@@ -186,7 +193,7 @@ Model::FindBindingPoint Model::LoadMultiMesh(
     const MultiMeshResource& resource) {
   // load vertices and indices
   common::ModelLoader loader{resource.obj_path, resource.tex_path,
-                             /*flip_uvs=*/false};
+                             /*is_left_handed=*/true};
   vector<VertexBuffer::Info> vertex_infos;
   vertex_infos.reserve(loader.meshes().size());
   for (const auto &mesh : loader.meshes()) {
@@ -212,7 +219,7 @@ Model::FindBindingPoint Model::LoadMultiMesh(
 }
 
 void Model::CreateDescriptors(const FindBindingPoint& find_binding_point,
-                              const vector<UniformInfo>& uniform_infos,
+                              const optional<UniformInfos>& uniform_infos,
                               size_t num_frame) {
   descriptors_.resize(num_frame);
   for (size_t frame = 0; frame < num_frame; ++frame) {
@@ -228,15 +235,19 @@ void Model::CreateDescriptors(const FindBindingPoint& find_binding_point,
       const VkDescriptorType tex_desc_type = texture_info.descriptor_type;
 
       vector<Descriptor::Info> descriptor_infos{move(texture_info)};
-      for (const auto& uniform_info : uniform_infos) {
-        descriptor_infos.emplace_back(*uniform_info.second);
+      if (uniform_infos.has_value()) {
+        for (const auto& uniform_info : uniform_infos.value()) {
+          descriptor_infos.emplace_back(uniform_info.second);
+        }
       }
 
       descriptors_[frame].emplace_back(new Descriptor);
       descriptors_[frame].back()->Init(context_, descriptor_infos);
-      for (const auto& uniform_info : uniform_infos) {
-        descriptors_[frame].back()->UpdateBufferInfos(
-            *uniform_info.second, {uniform_info.first->descriptor_info(frame)});
+      if (uniform_infos.has_value()) {
+        for (const auto& uniform_info : uniform_infos.value()) {
+          descriptors_[frame].back()->UpdateBufferInfos(
+            uniform_info.second, {uniform_info.first.descriptor_info(frame)});
+        }
       }
       descriptors_[frame].back()->UpdateImageInfos(tex_desc_type, image_infos);
     }
@@ -247,6 +258,15 @@ void Model::Draw(const VkCommandBuffer& command_buffer,
                  size_t frame) const {
   vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                     **pipeline_);
+  if (push_constants_) {
+    for (size_t i = 0; i < push_constants_->infos.size(); ++i) {
+      vkCmdPushConstants(command_buffer, pipeline_->layout(),
+                         push_constants_->shader_stage,
+                         push_constants_->infos[i].offset,
+                         push_constants_->infos[i].size,
+                         push_constants_->data<void>(i));
+    }
+  }
   for (size_t mesh_index = 0; mesh_index < meshes_.size(); ++mesh_index) {
     vkCmdBindDescriptorSets(
         command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,

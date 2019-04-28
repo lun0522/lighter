@@ -60,7 +60,7 @@ class ModelLoader {
 
   ModelLoader(const std::string& obj_path,
               const std::string& tex_path,
-              bool flip_uvs);
+              bool is_left_handed);
 
   // This class is neither copyable nor movable
   ModelLoader(const ModelLoader&) = delete;

@@ -27,7 +27,7 @@ using std::vector;
 
 ModelLoader::ModelLoader(const string& obj_path,
                          const string& tex_path,
-                         bool flip_uvs) {
+                         bool is_left_handed) {
   // other useful options:
   // - aiProcess_GenNormals: create normal for vertices
   // - aiProcess_SplitLargeMeshes: split mesh when the number of triangles
@@ -35,7 +35,7 @@ ModelLoader::ModelLoader(const string& obj_path,
   // - aiProcess_OptimizeMeshes: do the reverse of splitting, merge meshes to
   //                             reduce drawing calls
   unsigned int flags = aiProcess_Triangulate | aiProcess_GenNormals;
-  flags |= flip_uvs ? aiProcess_FlipUVs : 0;
+  flags |= is_left_handed ? aiProcess_ConvertToLeftHanded : 0;
 
   Assimp::Importer importer;
    auto* scene = importer.ReadFile(obj_path, flags);

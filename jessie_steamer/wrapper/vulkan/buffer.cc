@@ -11,6 +11,7 @@
 #include <cstring>
 #include <stdexcept>
 
+#include "absl/strings/str_format.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
@@ -252,7 +253,7 @@ void CopyHostToBuffer(const SharedContext& context,
   void* dst;
   vkMapMemory(*context->device(), device_memory, map_offset, map_size, 0, &dst);
   for (const auto& info : copy_infos) {
-    memcpy(static_cast<char*>(dst) + info.offset, info.data, info.size);
+    std::memcpy(static_cast<char*>(dst) + info.offset, info.data, info.size);
   }
   vkUnmapMemory(*context->device(), device_memory);
 }
@@ -520,6 +521,36 @@ void DepthStencilBuffer::Init(SharedContext context,
 void DepthStencilBuffer::Cleanup() {
   vkDestroyImage(*context_->device(), image_, context_->allocator());
   vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
+}
+
+void PushConstants::Init(const SharedContext& context,
+                         VkShaderStageFlags shader_stage,
+                         const vector<PushConstants::Info>& infos) {
+  this->shader_stage = shader_stage;
+  this->infos = infos;
+
+  size_t total_size = 0;
+  for (const auto& info : this->infos) {
+    total_size += info.size;
+  }
+  const size_t max_size =
+      context->physical_device().limits().maxPushConstantsSize;
+  if (total_size > max_size) {
+    throw runtime_error{absl::StrFormat("Trying to push constants of size %d, "
+                                        "but max push constants size is %d",
+                                        total_size, max_size)};
+  }
+
+  datas.reserve(this->infos.size());
+  for (const auto& info : this->infos) {
+    datas.emplace_back(new char[info.size]);
+  }
+}
+
+PushConstants::~PushConstants() {
+  for (auto* data : datas) {
+    delete[] data;
+  }
 }
 
 } /* namespace vulkan */

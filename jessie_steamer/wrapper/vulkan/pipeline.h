@@ -15,6 +15,7 @@
 
 #include "absl/memory/memory.h"
 #include "absl/types/optional.h"
+#include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -80,20 +81,40 @@ class PipelineBuilder {
   absl::optional<VkViewport> viewport;
   absl::optional<VkRect2D> scissor;
   std::vector<VkVertexInputBindingDescription> binding_descriptions;
-  std::vector<VkVertexInputAttributeDescription> attrib_descriptions;
+  std::vector<VkVertexInputAttributeDescription> attribute_descriptions;
   std::vector<VkDescriptorSetLayout> descriptor_layouts;
+  std::vector<VkPushConstantRange> push_constant_ranges;
   std::vector<ShaderModule> shader_modules;
 
   PipelineBuilder() = default;
+
+  // This class is neither copyable nor movable
+  PipelineBuilder(const PipelineBuilder&) = delete;
+  PipelineBuilder& operator=(const PipelineBuilder&) = delete;
+
+  // Init() should always be called first.
   PipelineBuilder& Init(const std::shared_ptr<Context>& context);
+
+  // All these information must be set before Build().
   PipelineBuilder& set_vertex_input(
-      const std::vector<VkVertexInputBindingDescription>& binding_descs,
-      const std::vector<VkVertexInputAttributeDescription>& attrib_descs);
+      const std::vector<VkVertexInputBindingDescription>& binding_descriptions,
+      const std::vector<VkVertexInputAttributeDescription>&
+          attribute_descriptions);
   PipelineBuilder& set_layout(
-      const std::vector<VkDescriptorSetLayout>& desc_layouts);
+      const std::vector<VkDescriptorSetLayout>& descriptor_layouts,
+      PushConstants* push_constants);
   PipelineBuilder& set_viewport(const VkViewport& viewport);
   PipelineBuilder& set_scissor(const VkRect2D& scissor);
+
+  // To save memory, shader modules will be released after a pipeline is built,
+  // so all shaders should be added again before next Build().
   PipelineBuilder& add_shader(const ShaderInfo& shader_info);
+
+  // By default, alpha blending is not enabled and depth testing is enabled.
+  PipelineBuilder& enable_alpha_blend();
+  PipelineBuilder& disable_depth_test();
+
+  // Build() can be called multiple times.
   std::unique_ptr<Pipeline> Build();
 };
 

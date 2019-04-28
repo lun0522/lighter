@@ -139,7 +139,7 @@ void Command::RecordCommand(const command::MultiTimeRecordCommand& on_record) {
 }
 
 VkResult Command::DrawFrame(size_t current_frame,
-                            const command::UpdateDataFunc& update_func) {
+                            const command::UpdateDataFunc& update_data) {
   // Action  |  Acquire image  | Submit commands |  Present image  |
   // Wait on |        -        | Image available | Render finished |
   // Signal  | Image available | Render finished |        -        |
@@ -168,7 +168,7 @@ VkResult Command::DrawFrame(size_t current_frame,
   }
 
   // update per-frame data
-  update_func(image_index);
+  update_data(image_index);
 
   // we have to wait only if we want to write to color attachment
   // so we actually can start running pipeline long before that image is ready

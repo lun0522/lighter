@@ -37,6 +37,7 @@ cc_library(
         "//third_party:glm",
         "//third_party:vulkan",
         "@lib-absl//absl/memory",
+        "@lib-absl//absl/strings:str_format",
         "@lib-absl//absl/types:optional",
         "@lib-absl//absl/types:variant",
     ],

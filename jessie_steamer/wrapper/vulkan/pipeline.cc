@@ -95,7 +95,7 @@ PipelineBuilder& PipelineBuilder::Init(const SharedContext& context) {
       nullflag,
       /*depthTestEnable=*/VK_TRUE,
       /*depthWriteEnable=*/VK_TRUE,  // should disable for transparent objects
-      /*depthCompareOp=*/VK_COMPARE_OP_LESS,
+      /*depthCompareOp=*/VK_COMPARE_OP_LESS_OR_EQUAL,
       // may only keep fragments in a specific depth range
       /*depthBoundsTestEnable=*/VK_FALSE,
       /*stencilTestEnable=*/VK_FALSE,  // temporarily disable
@@ -146,35 +146,46 @@ PipelineBuilder& PipelineBuilder::Init(const SharedContext& context) {
 }
 
 PipelineBuilder& PipelineBuilder::set_vertex_input(
-    const vector<VkVertexInputBindingDescription>& binding_descs,
-    const vector<VkVertexInputAttributeDescription>& attrib_descs) {
-  binding_descriptions = binding_descs;
-  attrib_descriptions = attrib_descs;
+    const vector<VkVertexInputBindingDescription>& binding_descriptions,
+    const vector<VkVertexInputAttributeDescription>& attribute_descriptions) {
+  this->binding_descriptions = binding_descriptions;
+  this->attribute_descriptions = attribute_descriptions;
   vertex_input_info = {
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
       nullflag,
       // vertex binding descriptions
-      CONTAINER_SIZE(binding_descriptions),
-      binding_descriptions.data(),
+      CONTAINER_SIZE(this->binding_descriptions),
+      this->binding_descriptions.data(),
       // vertex attribute descriptions
-      CONTAINER_SIZE(attrib_descriptions),
-      attrib_descriptions.data(),
+      CONTAINER_SIZE(this->attribute_descriptions),
+      this->attribute_descriptions.data(),
   };
   return *this;
 }
 
 PipelineBuilder& PipelineBuilder::set_layout(
-    const vector<VkDescriptorSetLayout>& desc_layouts) {
-  descriptor_layouts = desc_layouts;
+    const vector<VkDescriptorSetLayout>& descriptor_layouts,
+    PushConstants* push_constants) {
+  this->descriptor_layouts = descriptor_layouts;
+  push_constant_ranges.clear();
+  if (push_constants) {
+    for (const auto& info : push_constants->infos) {
+      push_constant_ranges.emplace_back(VkPushConstantRange{
+          push_constants->shader_stage,
+          info.offset,
+          info.size,
+      });
+    }
+  }
   layout_info = {
       VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       /*pNext=*/nullptr,
       nullflag,
-      CONTAINER_SIZE(descriptor_layouts),
-      descriptor_layouts.data(),
-      /*pushConstantRangeCount=*/0,
-      /*pPushConstantRanges=*/nullptr,
+      CONTAINER_SIZE(this->descriptor_layouts),
+      this->descriptor_layouts.data(),
+      CONTAINER_SIZE(this->push_constant_ranges),
+      this->push_constant_ranges.data(),
   };
   return *this;
 }
@@ -192,6 +203,23 @@ PipelineBuilder& PipelineBuilder::set_scissor(const VkRect2D& scissor) {
 PipelineBuilder& PipelineBuilder::add_shader(const ShaderInfo& shader_info) {
   shader_modules.emplace_back(shader_info.first,
                               CreateShaderModule(context, shader_info.second));
+  return *this;
+}
+
+PipelineBuilder& PipelineBuilder::enable_alpha_blend() {
+  color_blend_attachment.blendEnable = VK_TRUE;
+  color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
+  color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+  color_blend_attachment.dstColorBlendFactor =
+      VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+  color_blend_attachment.dstAlphaBlendFactor =
+      VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+  return *this;
+}
+
+PipelineBuilder& PipelineBuilder::disable_depth_test() {
+  depth_stencil_info.depthTestEnable = VK_FALSE;
+  depth_stencil_info.depthWriteEnable = VK_FALSE;
   return *this;
 }
 
@@ -236,13 +264,13 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
   }
 
   VkPipelineViewportStateCreateInfo viewport_info{
-    VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-    /*pNext=*/nullptr,
-    nullflag,
-    /*viewportCount=*/1,
-    &viewport.value(),
-    /*scissorCount=*/1,
-    &scissor.value(),
+      VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+      /*pNext=*/nullptr,
+      nullflag,
+      /*viewportCount=*/1,
+      &viewport.value(),
+      /*scissorCount=*/1,
+      &scissor.value(),
   };
 
   VkGraphicsPipelineCreateInfo pipeline_info{

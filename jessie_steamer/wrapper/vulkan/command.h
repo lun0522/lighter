@@ -58,7 +58,7 @@ class Command {
  public:
   Command() = default;
   VkResult DrawFrame(size_t current_frame,
-                     const command::UpdateDataFunc& update_func);
+                     const command::UpdateDataFunc& update_data);
   void Init(std::shared_ptr<Context> context,
             size_t num_frame,
             const command::MultiTimeRecordCommand& on_record);

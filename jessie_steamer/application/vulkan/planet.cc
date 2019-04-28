@@ -13,6 +13,7 @@
 
 #include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/util.h"
+#include "jessie_steamer/common/window.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
@@ -42,6 +43,11 @@ struct Transformation {
   alignas(16) glm::mat4 model;
   alignas(16) glm::mat4 view;
   alignas(16) glm::mat4 proj;
+  alignas(16) glm::mat4 norm_i_t;
+};
+
+struct Light {
+  alignas(16) glm::vec3 direction;
 };
 
 class PlanetApp {
@@ -53,7 +59,7 @@ class PlanetApp {
 
  private:
   void Init();
-  void UpdateTrans(size_t frame_index);
+  void UpdateData(size_t frame_index);
   void Cleanup();
 
   bool should_quit_ = false;
@@ -64,7 +70,7 @@ class PlanetApp {
   common::Camera camera_;
   Command command_;
   Model planet_model_, rock_model_, skybox_model_;
-  UniformBuffer uniform_buffer_;
+  UniformBuffer trans_uniform_, light_uniform_;
 };
 
 } /* namespace */
@@ -103,8 +109,12 @@ void PlanetApp::Init() {
     });
 
     // uniform buffer
-    uniform_buffer_.Init(context_, UniformBuffer::Info{
+    trans_uniform_.Init(context_, UniformBuffer::Info{
         sizeof(Transformation),
+        context_->swapchain().size(),
+    });
+    light_uniform_.Init(context_, UniformBuffer::Info{
+        sizeof(Light),
         context_->swapchain().size(),
     });
 
@@ -112,44 +122,57 @@ void PlanetApp::Init() {
   }
 
   // model
-  Descriptor::Info uniform_desc_info{
+  Descriptor::Info trans_desc_info{
       /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
       /*shader_stage=*/VK_SHADER_STAGE_VERTEX_BIT,
       /*bindings=*/{{
           Descriptor::TextureType::kTypeMaxEnum,
           /*binding_point=*/0,
-          /*max_length=*/1,
+          /*array_length=*/1,
       }},
   };
-  std::vector<Model::UniformInfo> uniform_infos{
-      {&uniform_buffer_, &uniform_desc_info},
+  Descriptor::Info light_desc_info{
+      /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
+      /*bindings=*/{{
+          Descriptor::TextureType::kTypeMaxEnum,
+          /*binding_point=*/1,
+          /*array_length=*/1,
+      }},
   };
+  auto trans_infos = absl::make_optional<Model::UniformInfos>(
+      {{trans_uniform_, trans_desc_info}});
+  auto light_infos = absl::make_optional<Model::UniformInfos>(
+      {{trans_uniform_, trans_desc_info},
+       {light_uniform_, light_desc_info}});
 
+  Model::TextureBindingMap planet_bindings;
+  planet_bindings[Model::TextureType::kTypeDiffuse] = {
+      /*binding_point=*/2, {{"jessie_steamer/resource/texture/planet.png"}},
+  };
   planet_model_.Init(context_,
                      {{VK_SHADER_STAGE_VERTEX_BIT,
-                       "jessie_steamer/shader/compiled/simple.vert.spv"},
+                       "jessie_steamer/shader/compiled/planet.vert.spv"},
                       {VK_SHADER_STAGE_FRAGMENT_BIT,
-                       "jessie_steamer/shader/compiled/simple.frag.spv"}},
-                       uniform_infos,
-                       Model::MultiMeshResource{
-                           "jessie_steamer/resource/model/planet/planet.obj",
-                           "jessie_steamer/resource/model/planet",
-                           {{Model::TextureType::kTypeDiffuse,
-                             /*binding_point=*/1}}},
-                       kNumFrameInFlight);
+                       "jessie_steamer/shader/compiled/planet.frag.spv"}},
+                     Model::SingleMeshResource{
+                         "jessie_steamer/resource/model/sphere.obj",
+                         /*obj_index_base=*/1, planet_bindings},
+                     light_infos, /*push_constants=*/nullptr,
+                     kNumFrameInFlight, /*is_opaque=*/true);
 
   rock_model_.Init(context_,
                    {{VK_SHADER_STAGE_VERTEX_BIT,
                      "jessie_steamer/shader/compiled/simple.vert.spv"},
                     {VK_SHADER_STAGE_FRAGMENT_BIT,
                      "jessie_steamer/shader/compiled/simple.frag.spv"}},
-                   uniform_infos,
                    Model::MultiMeshResource{
-                     "jessie_steamer/resource/model/rock/rock.obj",
-                     "jessie_steamer/resource/model/rock",
-                     {{Model::TextureType::kTypeDiffuse,
-                       /*binding_point=*/1}}},
-                   kNumFrameInFlight);
+                       "jessie_steamer/resource/model/rock/rock.obj",
+                       "jessie_steamer/resource/model/rock",
+                       {{Model::TextureType::kTypeDiffuse,
+                         /*binding_point=*/1}}},
+                   trans_infos, /*push_constants=*/nullptr,
+                   kNumFrameInFlight, /*is_opaque=*/true);
 
   const std::string skybox_dir{"jessie_steamer/resource/texture/universe/"};
   Model::TextureBindingMap skybox_bindings;
@@ -168,11 +191,11 @@ void PlanetApp::Init() {
                        "jessie_steamer/shader/compiled/skybox.vert.spv"},
                       {VK_SHADER_STAGE_FRAGMENT_BIT,
                        "jessie_steamer/shader/compiled/skybox.frag.spv"}},
-                     uniform_infos,
                      Model::SingleMeshResource{
                          "jessie_steamer/resource/model/skybox.obj",
                          /*obj_index_base=*/1, skybox_bindings},
-                     kNumFrameInFlight);
+                     trans_infos, /*push_constants=*/nullptr,
+                     kNumFrameInFlight, /*is_opaque=*/true);
 
   // time
   last_time_ = util::Now();
@@ -218,34 +241,38 @@ void PlanetApp::Init() {
   });
 }
 
-void PlanetApp::UpdateTrans(size_t frame_index) {
+void PlanetApp::UpdateData(size_t frame_index) {
   glm::mat4 model{1.0f};
   model = glm::translate(model, glm::vec3{0.0f, 0.0f, -4.0f});
   static auto start_time = util::Now();
   auto elapsed_time = util::TimeInterval(start_time, util::Now());
-  model = glm::rotate(model, elapsed_time * glm::radians(60.0f),
+  model = glm::rotate(model, elapsed_time * glm::radians(5.0f),
                       glm::vec3{0.0f, 1.0f, 0.0f});
-  model = glm::scale(model, glm::vec3{0.3f});
 
-  auto* trans = uniform_buffer_.data<Transformation>(frame_index);
-  *trans = {std::move(model), camera_.view_matrix(), camera_.proj_matrix()};
+  auto* trans = trans_uniform_.data<Transformation>(frame_index);
+  *trans = {model, camera_.view_matrix(), camera_.proj_matrix(),
+            glm::transpose(glm::inverse(model))};
   // no need to flip Y-axis as OpenGL
   trans->proj[1][1] *= -1;
+
+  glm::vec3 light_dir{glm::sin(elapsed_time * 0.6f), -0.7f,
+                      glm::cos(elapsed_time * 0.6f)};
+  *light_uniform_.data<Light>(frame_index) = {light_dir};
 }
 
 void PlanetApp::MainLoop() {
   Init();
-  const auto update_func = [this](size_t frame_index) {
-    UpdateTrans(frame_index);
-    uniform_buffer_.UpdateData(frame_index);
+  const auto update_data = [this](size_t frame_index) {
+    UpdateData(frame_index);
+    trans_uniform_.UpdateData(frame_index);
+    light_uniform_.UpdateData(frame_index);
   };
   auto& window = context_->window();
   while (!should_quit_ && !window.ShouldQuit()) {
     window.PollEvents();
     last_time_ = util::Now();
 
-    if (command_.DrawFrame(current_frame_, update_func) != VK_SUCCESS ||
-        window.IsResized()) {
+    if (command_.DrawFrame(current_frame_, update_data) != VK_SUCCESS) {
       context_->WaitIdle();
       Cleanup();
       context_->Recreate();

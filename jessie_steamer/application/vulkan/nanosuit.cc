@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/common/window.h"
@@ -54,7 +55,7 @@ class NanosuitApp {
 
  private:
   void Init();
-  void UpdateTrans(size_t frame_index);
+  void UpdateData(size_t frame_index);
   void Cleanup();
 
   bool should_quit_ = false;
@@ -119,12 +120,11 @@ void NanosuitApp::Init() {
       /*bindings=*/{{
           Descriptor::TextureType::kTypeMaxEnum,
           /*binding_point=*/0,
-          /*max_length=*/1,
+          /*array_length=*/1,
       }},
   };
-  std::vector<Model::UniformInfo> uniform_infos{
-      {&uniform_buffer_, &uniform_desc_info},
-  };
+  auto uniform_infos = absl::make_optional<Model::UniformInfos>(
+      {{uniform_buffer_, uniform_desc_info}});
 
   Model::BindingPointMap nanosuit_bindings{
       {Model::TextureType::kTypeDiffuse, /*binding_point=*/1},
@@ -136,13 +136,13 @@ void NanosuitApp::Init() {
                          "jessie_steamer/shader/compiled/nanosuit.vert.spv"},
                         {VK_SHADER_STAGE_FRAGMENT_BIT,
                          "jessie_steamer/shader/compiled/nanosuit.frag.spv"}},
-                       uniform_infos,
                        Model::MultiMeshResource{
                            "jessie_steamer/resource/model/nanosuit/"
                            "nanosuit.obj",
                            "jessie_steamer/resource/model/nanosuit",
                            nanosuit_bindings},
-                       kNumFrameInFlight);
+                       uniform_infos, /*push_constants=*/nullptr,
+                       kNumFrameInFlight, /*is_opaque=*/true);
 
   const std::string skybox_dir{"jessie_steamer/resource/texture/tidepool/"};
   Model::TextureBindingMap skybox_bindings;
@@ -161,11 +161,11 @@ void NanosuitApp::Init() {
                        "jessie_steamer/shader/compiled/skybox.vert.spv"},
                       {VK_SHADER_STAGE_FRAGMENT_BIT,
                        "jessie_steamer/shader/compiled/skybox.frag.spv"}},
-                     uniform_infos,
                      Model::SingleMeshResource{
                          "jessie_steamer/resource/model/skybox.obj",
                          /*obj_index_base=*/1, skybox_bindings},
-                     kNumFrameInFlight);
+                     uniform_infos, /*push_constants=*/nullptr,
+                     kNumFrameInFlight, /*is_opaque=*/true);
 
   // time
   last_time_ = util::Now();
@@ -211,7 +211,7 @@ void NanosuitApp::Init() {
   });
 }
 
-void NanosuitApp::UpdateTrans(size_t frame_index) {
+void NanosuitApp::UpdateData(size_t frame_index) {
   glm::mat4 model{1.0f};
   model = glm::translate(model, glm::vec3{0.0f, -1.0f, -4.0f});
   static auto start_time = util::Now();
@@ -228,8 +228,8 @@ void NanosuitApp::UpdateTrans(size_t frame_index) {
 
 void NanosuitApp::MainLoop() {
   Init();
-  const auto update_func = [this](size_t frame_index) {
-    UpdateTrans(frame_index);
+  const auto update_data = [this](size_t frame_index) {
+    UpdateData(frame_index);
     uniform_buffer_.UpdateData(frame_index);
   };
   auto& window = context_->window();
@@ -237,8 +237,7 @@ void NanosuitApp::MainLoop() {
     window.PollEvents();
     last_time_ = util::Now();
 
-    if (command_.DrawFrame(current_frame_, update_func) != VK_SUCCESS ||
-        window.IsResized()) {
+    if (command_.DrawFrame(current_frame_, update_data) != VK_SUCCESS) {
       context_->WaitIdle();
       Cleanup();
       context_->Recreate();

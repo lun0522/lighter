@@ -103,7 +103,7 @@ class UniformBuffer {
   UniformBuffer& operator=(UniformBuffer&&) = default;
 
   template <typename DataType>
-  DataType* data(size_t chunk_index) {
+  DataType* data(size_t chunk_index) const {
     return reinterpret_cast<DataType*>(data_ + chunk_data_size_ * chunk_index);
   }
 
@@ -182,6 +182,32 @@ class DepthStencilBuffer {
   VkImage image_;
   VkDeviceMemory device_memory_;
   VkFormat format_;
+};
+
+struct PushConstants {
+  struct Info {
+    uint32_t offset;
+    uint32_t size;
+  };
+
+  PushConstants() = default;
+  void Init(const std::shared_ptr<Context>& context,
+            VkShaderStageFlags shader_stage,
+            const std::vector<Info>& infos);
+  ~PushConstants();
+
+  // This class is neither copyable nor movable.
+  PushConstants(const PushConstants&) = delete;
+  PushConstants& operator=(const PushConstants&) = delete;
+
+  template <typename DataType>
+  DataType* data(size_t index) const {
+    return reinterpret_cast<DataType*>(datas[index]);
+  }
+
+  VkShaderStageFlags shader_stage;
+  std::vector<Info> infos;
+  std::vector<char*> datas;
 };
 
 } /* namespace vulkan */
