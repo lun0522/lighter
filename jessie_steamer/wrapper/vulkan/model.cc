@@ -73,9 +73,9 @@ vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(
   return descriptions;
 };
 
-VertexBuffer::Info CreateVertexInfo(const vector<VertexAttrib3D>& vertices,
-                                    const vector<uint32_t>& indices) {
-  return VertexBuffer::Info{
+PerVertexBuffer::Info CreateVertexInfo(const vector<VertexAttrib3D>& vertices,
+                                       const vector<uint32_t>& indices) {
+  return PerVertexBuffer::Info{
       /*vertices=*/{
           vertices.data(),
           sizeof(vertices[0]) * vertices.size(),
@@ -136,10 +136,10 @@ void Model::Init(SharedContext context,
     context_ = move(context);
     push_constants_ = push_constants;
     if (instancing_info.has_value()) {
-      if (!instancing_info.value().per_instance_data) {
-        throw std::runtime_error{"Per instance data not provided"};
+      if (!instancing_info.value().per_instance_buffer) {
+        throw std::runtime_error{"Per instance buffer not provided"};
       }
-      per_instance_data_ = instancing_info.value().per_instance_data;
+      per_instance_buffer_ = instancing_info.value().per_instance_buffer;
     }
 
     FindBindingPoint find_binding_point;
@@ -263,7 +263,7 @@ Model::FindBindingPoint Model::LoadMultiMesh(
   // load vertices and indices
   common::ModelLoader loader{resource.obj_path, resource.tex_path,
                              /*is_left_handed=*/true};
-  vector<VertexBuffer::Info> vertex_infos;
+  vector<PerVertexBuffer::Info> vertex_infos;
   vertex_infos.reserve(loader.meshes().size());
   for (const auto &mesh : loader.meshes()) {
     vertex_infos.emplace_back(CreateVertexInfo(mesh.vertices, mesh.indices));
@@ -328,9 +328,8 @@ void Model::Draw(const VkCommandBuffer& command_buffer,
                  uint32_t instance_count) const {
   vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                     **pipeline_);
-  if (per_instance_data_) {
-    // TODO: hardcode 0?
-    per_instance_data_->BindAsVertexBuffer(command_buffer, 0);
+  if (per_instance_buffer_) {
+    per_instance_buffer_->Bind(command_buffer);
   }
   if (push_constants_) {
     for (size_t i = 0; i < push_constants_->infos.size(); ++i) {

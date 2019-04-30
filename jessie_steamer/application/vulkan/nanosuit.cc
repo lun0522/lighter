@@ -40,8 +40,11 @@ constexpr size_t kNumFrameInFlight = 2;
 
 // alignment requirement:
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
-struct Transformation {
-  alignas(16) glm::mat4 model;
+struct NanosuitTrans {
+  alignas(16) glm::mat4 proj_view_model;
+};
+
+struct SkyboxTrans {
   alignas(16) glm::mat4 view;
   alignas(16) glm::mat4 proj;
 };
@@ -67,7 +70,7 @@ class NanosuitApp {
   std::shared_ptr<Context> context_;
   common::Camera camera_;
   Command command_;
-  UniformBuffer uniform_buffer_;
+  UniformBuffer nanosuit_uniform_, skybox_uniform_;
   Model nanosuit_model_, skybox_model_;
 };
 
@@ -107,8 +110,13 @@ void NanosuitApp::Init() {
     });
 
     // uniform buffer
-    uniform_buffer_.Init(context_, UniformBuffer::Info{
-        sizeof(Transformation),
+    nanosuit_uniform_.Init(context_, UniformBuffer::Info{
+        sizeof(NanosuitTrans),
+        context_->swapchain().size(),
+    });
+
+    skybox_uniform_.Init(context_, UniformBuffer::Info{
+        sizeof(SkyboxTrans),
         context_->swapchain().size(),
     });
 
@@ -125,8 +133,6 @@ void NanosuitApp::Init() {
           /*array_length=*/1,
       }},
   };
-  auto uniform_infos = absl::make_optional<Model::UniformInfos>(
-      {{uniform_buffer_, uniform_desc_info}});
 
   Model::BindingPointMap nanosuit_bindings{
       {Model::TextureType::kTypeDiffuse, /*binding_point=*/1},
@@ -143,8 +149,11 @@ void NanosuitApp::Init() {
                            "nanosuit.obj",
                            "jessie_steamer/resource/model/nanosuit",
                            nanosuit_bindings},
-                       uniform_infos, /*push_constants=*/nullptr,
-                       kNumFrameInFlight, /*is_opaque=*/true);
+                       absl::make_optional<Model::UniformInfos>(
+                           {{nanosuit_uniform_, uniform_desc_info}}),
+                       /*instancing_info=*/absl::nullopt,
+                       /*push_constants=*/nullptr, kNumFrameInFlight,
+                       /*is_opaque=*/true);
 
   const std::string skybox_dir{"jessie_steamer/resource/texture/tidepool/"};
   Model::TextureBindingMap skybox_bindings;
@@ -166,8 +175,11 @@ void NanosuitApp::Init() {
                      Model::SingleMeshResource{
                          "jessie_steamer/resource/model/skybox.obj",
                          /*obj_index_base=*/1, skybox_bindings},
-                     uniform_infos, /*push_constants=*/nullptr,
-                     kNumFrameInFlight, /*is_opaque=*/true);
+                     absl::make_optional<Model::UniformInfos>(
+                         {{skybox_uniform_, uniform_desc_info}}),
+                     /*instancing_info=*/absl::nullopt,
+                     /*push_constants=*/nullptr, kNumFrameInFlight,
+                     /*is_opaque=*/true);
 
   // time
   last_time_ = util::Now();
@@ -214,24 +226,33 @@ void NanosuitApp::Init() {
 }
 
 void NanosuitApp::UpdateData(size_t frame_index) {
-  glm::mat4 model{1.0f};
   static auto start_time = util::Now();
   auto elapsed_time = util::TimeInterval(start_time, util::Now());
+
+  glm::mat4 model{1.0f};
   model = glm::rotate(model, elapsed_time * glm::radians(90.0f),
                       glm::vec3{0.0f, 1.0f, 0.0f});
   model = glm::scale(model, glm::vec3{0.2f});
 
-  auto* trans = uniform_buffer_.data<Transformation>(frame_index);
-  *trans = {std::move(model), camera_.view_matrix(), camera_.proj_matrix()};
+  glm::mat4 view = camera_.view_matrix();
+  glm::mat4 proj = camera_.proj_matrix();
   // no need to flip Y-axis as OpenGL
-  trans->proj[1][1] *= -1;
+  proj[1][1] *= -1;
+
+  auto* nanosuit_trans = nanosuit_uniform_.data<NanosuitTrans>(frame_index);
+  nanosuit_trans->proj_view_model = proj * view * model;
+
+  auto* skybox_trans = skybox_uniform_.data<SkyboxTrans>(frame_index);
+  skybox_trans->proj = proj;
+  skybox_trans->view = view;
 }
 
 void NanosuitApp::MainLoop() {
   Init();
   const auto update_data = [this](size_t frame_index) {
     UpdateData(frame_index);
-    uniform_buffer_.UpdateData(frame_index);
+    nanosuit_uniform_.UpdateData(frame_index);
+    skybox_uniform_.UpdateData(frame_index);
   };
   auto& window = context_->window();
   while (!should_quit_ && !window.ShouldQuit()) {

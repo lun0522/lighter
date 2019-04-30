@@ -23,6 +23,12 @@ namespace buffer {
 constexpr uint32_t kPerVertexBindingPoint = 0;
 constexpr uint32_t kPerInstanceBindingPoint = 1;
 
+struct CopyInfo {
+  const void* data;
+  VkDeviceSize size;
+  VkDeviceSize offset;
+};
+
 } /* namespace buffer */
 
 class Context;
@@ -58,38 +64,63 @@ class Context;
  */
 class VertexBuffer {
  public:
-  struct Info {
-    struct Subfield {
-      const void* data;
-      size_t data_size;
-      uint32_t unit_count;
-    };
-    Subfield vertices, indices;
-  };
+  virtual ~VertexBuffer();
 
-  VertexBuffer() = default;
-  void Init(std::shared_ptr<Context> context,
-            const std::vector<Info>& infos);
-  void Draw(const VkCommandBuffer& command_buffer,
-            size_t segment_index,
-            uint32_t instance_count) const;
-  ~VertexBuffer();
-
-  // This class is only movable
-  VertexBuffer(VertexBuffer&&) = default;
-  VertexBuffer& operator=(VertexBuffer&&) = default;
-
- private:
-  struct Segment {
-    VkDeviceSize vertices_offset;
-    VkDeviceSize indices_offset;
-    uint32_t indices_count;
-  };
+ protected:
+  void CopyHostData(std::vector<buffer::CopyInfo> copy_infos,
+                    size_t total_size);
 
   std::shared_ptr<Context> context_;
   VkBuffer buffer_;
   VkDeviceMemory device_memory_;
-  std::vector<Segment> segments_;
+};
+
+class PerVertexBuffer : public VertexBuffer {
+ public:
+  struct Info {
+    struct Field {
+      const void* data;
+      size_t data_size;
+      uint32_t unit_count;
+    };
+    Field vertices, indices;
+  };
+
+  PerVertexBuffer() = default;
+  ~PerVertexBuffer() override = default;
+
+  void Init(const std::shared_ptr<Context>& context,
+            const std::vector<Info>& infos);
+  void Draw(const VkCommandBuffer& command_buffer,
+            size_t mesh_index,
+            uint32_t instance_count) const;
+
+  // This class is neither copyable nor movable
+  PerVertexBuffer(const PerVertexBuffer&) = delete;
+  PerVertexBuffer& operator=(const PerVertexBuffer&) = delete;
+
+ private:
+  struct MeshData {
+    VkDeviceSize vertices_offset;
+    VkDeviceSize indices_offset;
+    uint32_t indices_count;
+  };
+  std::vector<MeshData> mesh_datas_;
+};
+
+class PerInstanceBuffer : public VertexBuffer {
+ public:
+  PerInstanceBuffer() = default;
+  ~PerInstanceBuffer() override = default;
+
+  void Init(const std::shared_ptr<Context>& context,
+            const void* data,
+            size_t data_size);
+  void Bind(const VkCommandBuffer& command_buffer);
+
+  // This class is neither copyable nor movable
+  PerInstanceBuffer(const PerInstanceBuffer&) = delete;
+  PerInstanceBuffer& operator=(const PerInstanceBuffer&) = delete;
 };
 
 class UniformBuffer {
@@ -100,12 +131,9 @@ class UniformBuffer {
   };
 
   UniformBuffer() = default;
-  void Init(std::shared_ptr<Context> context,
-            bool is_per_instance,
+  void Init(const std::shared_ptr<Context>& context,
             const Info& info);
   void UpdateData(size_t chunk_index) const;
-  void BindAsVertexBuffer(const VkCommandBuffer& command_buffer,
-                          size_t chunk_index) const;
   ~UniformBuffer();
 
   // This class is only movable

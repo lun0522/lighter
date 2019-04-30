@@ -1,7 +1,6 @@
 #version 460 core
 
 layout(binding = 0) uniform Transformation {
-  mat4 model;
   mat4 view;
   mat4 proj;
 } trans;

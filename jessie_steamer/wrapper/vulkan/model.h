@@ -73,7 +73,7 @@ class Model {
   struct InstancingInfo {
     std::vector<VertexAttribute> per_instance_attribs;
     uint32_t data_size;
-    UniformBuffer* per_instance_data;
+    PerInstanceBuffer* per_instance_buffer;
   };
 
   Model() = default;
@@ -103,12 +103,12 @@ class Model {
 
   bool is_first_time_ = true;
   std::shared_ptr<Context> context_;
-  VertexBuffer vertex_buffer_;
+  PerVertexBuffer vertex_buffer_;
   std::vector<Mesh> meshes_;
   std::vector<std::vector<std::unique_ptr<Descriptor>>> descriptors_;
   // TODO: deal with shared resource in better way
   PushConstants* push_constants_ = nullptr;
-  UniformBuffer* per_instance_data_ = nullptr;
+  PerInstanceBuffer* per_instance_buffer_ = nullptr;
   PipelineBuilder pipeline_builder_;
   std::unique_ptr<Pipeline> pipeline_;
 };

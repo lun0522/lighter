@@ -44,6 +44,10 @@ constexpr size_t kNumAsteroidRing = 3;
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
 struct Transformation {
   alignas(16) glm::mat4 model;
+  alignas(16) glm::mat4 proj_view;
+};
+
+struct SkyboxTrans {
   alignas(16) glm::mat4 view;
   alignas(16) glm::mat4 proj;
 };
@@ -81,7 +85,8 @@ class PlanetApp {
   common::Camera camera_;
   Command command_;
   Model planet_model_, asteroid_model_, skybox_model_;
-  UniformBuffer trans_uniform_, asteroid_uniform_, light_uniform_;
+  PerInstanceBuffer per_asteroid_data_;
+  UniformBuffer trans_uniform_, light_uniform_, skybox_uniform_;
 };
 
 } /* namespace */
@@ -120,14 +125,16 @@ void PlanetApp::Init() {
     });
 
     // uniform buffer
-    trans_uniform_.Init(context_, /*is_per_instance=*/false,
-                        UniformBuffer::Info{
-                            sizeof(Transformation),
-                            context_->swapchain().size()});
-    light_uniform_.Init(context_, /*is_per_instance=*/false,
-                        UniformBuffer::Info{
-                            sizeof(Light),
-                            context_->swapchain().size()});
+    trans_uniform_.Init(context_, UniformBuffer::Info{
+        sizeof(Transformation),
+        context_->swapchain().size()});
+    light_uniform_.Init(context_, UniformBuffer::Info{
+        sizeof(Light),
+        context_->swapchain().size()});
+    skybox_uniform_.Init(context_, UniformBuffer::Info{
+        sizeof(SkyboxTrans),
+        context_->swapchain().size(),
+    });
 
     is_first_time = false;
   }
@@ -152,9 +159,7 @@ void PlanetApp::Init() {
           /*array_length=*/1,
       }},
   };
-  auto trans_infos = absl::make_optional<Model::UniformInfos>(
-      {{trans_uniform_, trans_desc_info}});
-  auto light_infos = absl::make_optional<Model::UniformInfos>(
+  auto trans_light_infos = absl::make_optional<Model::UniformInfos>(
       {{trans_uniform_, trans_desc_info},
        {light_uniform_, light_desc_info}});
 
@@ -170,7 +175,7 @@ void PlanetApp::Init() {
                      Model::SingleMeshResource{
                          "jessie_steamer/resource/model/sphere.obj",
                          /*obj_index_base=*/1, planet_bindings},
-                     light_infos, /*instancing_info=*/absl::nullopt,
+                     trans_light_infos, /*instancing_info=*/absl::nullopt,
                      /*push_constants=*/nullptr, kNumFrameInFlight,
                      /*is_opaque=*/true);
 
@@ -198,11 +203,11 @@ void PlanetApp::Init() {
                            "jessie_steamer/resource/model/rock",
                            {{Model::TextureType::kTypeDiffuse,
                              /*binding_point=*/2}}},
-                       light_infos,
+                       trans_light_infos,
                        Model::InstancingInfo{
                            per_instance_attribs,
                            static_cast<uint32_t>(sizeof(Asteroid)),
-                           &asteroid_uniform_},
+                           &per_asteroid_data_},
                        /*push_constants=*/nullptr, kNumFrameInFlight,
                        /*is_opaque=*/true);
 
@@ -226,7 +231,9 @@ void PlanetApp::Init() {
                      Model::SingleMeshResource{
                          "jessie_steamer/resource/model/skybox.obj",
                          /*obj_index_base=*/1, skybox_bindings},
-                     trans_infos, /*instancing_info=*/absl::nullopt,
+                     absl::make_optional<Model::UniformInfos>(
+                         {{skybox_uniform_, trans_desc_info}}),
+                     /*instancing_info=*/absl::nullopt,
                      /*push_constants=*/nullptr, kNumFrameInFlight,
                      /*is_opaque=*/true);
 
@@ -277,8 +284,8 @@ void PlanetApp::Init() {
 }
 
 size_t PlanetApp::GenAsteroidModels() {
-  const std::array<int, kNumAsteroidRing> num_asteroid = {600, 800, 1000};
-  const std::array<float, kNumAsteroidRing> radii = {5.0f, 10.0f, 15.0f};
+  const std::array<int, kNumAsteroidRing> num_asteroid = {300, 500, 700};
+  const std::array<float, kNumAsteroidRing> radii = {6.0f, 12.0f,  18.0f};
 
   std::random_device device;
   std::mt19937 rand_gen{device()};
@@ -289,12 +296,9 @@ size_t PlanetApp::GenAsteroidModels() {
 
   const auto total_num_asteroid = static_cast<size_t>(std::accumulate(
       num_asteroid.begin(), num_asteroid.end(), 0));
-  asteroid_uniform_.Init(context_, /*is_per_instance=*/true,
-                         UniformBuffer::Info{
-                             total_num_asteroid * sizeof(Asteroid),
-                             /*num_chunk=*/1});
+  std::vector<Asteroid> asteroids;
+  asteroids.reserve(total_num_asteroid);
 
-  auto* asteroids = asteroid_uniform_.data<Asteroid>(0);
   for (size_t ring = 0; ring < kNumAsteroidRing; ++ring) {
     for (size_t i = 0; i < num_asteroid[ring]; ++i) {
       glm::mat4 model{1.0f};
@@ -302,35 +306,46 @@ size_t PlanetApp::GenAsteroidModels() {
                           glm::vec3{axis_gen(rand_gen), axis_gen(rand_gen),
                                     axis_gen(rand_gen)});
       model = glm::scale(model, glm::vec3{scale_gen(rand_gen) * 0.02f});
-      *asteroids = {
+
+      asteroids.emplace_back(Asteroid{
           /*theta=*/glm::radians(angle_gen(rand_gen)),
           /*radius=*/radii[ring] + radius_gen(rand_gen),
-          std::move(model),
-      };
-      ++asteroids;
+          model,
+      });
     }
   }
-  asteroid_uniform_.UpdateData(0);
+
+  per_asteroid_data_.Init(context_, asteroids.data(),
+                          sizeof(Asteroid) * asteroids.size());
 
   return total_num_asteroid;
 }
 
 void PlanetApp::UpdateData(size_t frame_index) {
-  glm::mat4 model{1.0f};
   static auto start_time = util::Now();
   auto elapsed_time = util::TimeInterval(start_time, util::Now());
+
+  glm::mat4 model{1.0f};
   model = glm::rotate(model, elapsed_time * glm::radians(5.0f),
                       glm::vec3{0.0f, 1.0f, 0.0f});
 
-  auto* trans = trans_uniform_.data<Transformation>(frame_index);
-  *trans = {model, camera_.view_matrix(), camera_.proj_matrix()};
+  glm::mat4 view = camera_.view_matrix();
+  glm::mat4 proj = camera_.proj_matrix();
   // no need to flip Y-axis as OpenGL
-  trans->proj[1][1] *= -1;
+  proj[1][1] *= -1;
+
+  auto* trans = trans_uniform_.data<Transformation>(frame_index);
+  trans->model = model;
+  trans->proj_view = proj * view;
 
   glm::vec3 light_dir{glm::sin(elapsed_time * 0.6f), -0.7f,
                       glm::cos(elapsed_time * 0.6f)};
   light_uniform_.data<Light>(frame_index)->direction_time =
       glm::vec4{light_dir, elapsed_time};
+
+  auto* skybox_trans = skybox_uniform_.data<SkyboxTrans>(frame_index);
+  skybox_trans->proj = proj;
+  skybox_trans->view = view;
 }
 
 void PlanetApp::MainLoop() {
@@ -339,6 +354,7 @@ void PlanetApp::MainLoop() {
     UpdateData(frame_index);
     trans_uniform_.UpdateData(frame_index);
     light_uniform_.UpdateData(frame_index);
+    skybox_uniform_.UpdateData(frame_index);
   };
   auto& window = context_->window();
   while (!should_quit_ && !window.ShouldQuit()) {

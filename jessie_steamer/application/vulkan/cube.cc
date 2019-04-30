@@ -39,9 +39,7 @@ constexpr size_t kNumFrameInFlight = 2;
 // alignment requirement:
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
 struct Transformation {
-  alignas(16) glm::mat4 model;
-  alignas(16) glm::mat4 view;
-  alignas(16) glm::mat4 proj;
+  alignas(16) glm::mat4 proj_view_model;
 };
 
 class CubeApp {
@@ -103,7 +101,7 @@ void CubeApp::Init() {
                   /*obj_index_base=*/1, bindings},
               absl::make_optional<Model::UniformInfos>(
                   {{uniform_buffer_, uniform_desc_info}}),
-              /*push_constants=*/nullptr,
+              /*instancing_info=*/absl::nullopt, /*push_constants=*/nullptr,
               kNumFrameInFlight, /*is_opaque=*/true);
 
   // command
@@ -146,16 +144,18 @@ void CubeApp::UpdateData(size_t frame_index,
                          float screen_aspect) {
   static auto start_time = util::Now();
   auto elapsed_time = util::TimeInterval(start_time, util::Now());
-  auto* trans = uniform_buffer_.data<Transformation>(frame_index);
-  *trans = {
-      glm::rotate(glm::mat4{1.0f}, elapsed_time * glm::radians(90.0f),
-                  glm::vec3{1.0f, 1.0f, 0.0f}),
-      glm::lookAt(glm::vec3{3.0f}, glm::vec3{0.0f},
-                  glm::vec3{0.0f, 0.0f, 1.0f}),
-      glm::perspective(glm::radians(45.0f), screen_aspect, 0.1f, 100.0f),
-  };
-  // No need to flip Y-axis as OpenGL
-  trans->proj[1][1] *= -1;
+
+  glm::mat4 model = glm::rotate(glm::mat4{1.0f},
+                                elapsed_time * glm::radians(90.0f),
+                                glm::vec3{1.0f, 1.0f, 0.0f});
+  glm::mat4 view = glm::lookAt(glm::vec3{3.0f}, glm::vec3{0.0f},
+                               glm::vec3{0.0f, 0.0f, 1.0f});
+  glm::mat4 proj = glm::perspective(glm::radians(45.0f),
+                                    screen_aspect, 0.1f, 100.0f);
+  // no need to flip Y-axis as OpenGL
+  proj[1][1] *= -1;
+  uniform_buffer_.data<Transformation>(frame_index)->proj_view_model =
+      proj * view * model;
 }
 
 void CubeApp::MainLoop() {
