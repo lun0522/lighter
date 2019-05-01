@@ -12,6 +12,7 @@
 #include <string>
 #include <unordered_set>
 
+#include "absl/memory/memory.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
 
@@ -212,9 +213,10 @@ void Swapchain::Init(SharedContext context) {
             *context->device(), *context->swapchain(), count, images);
       }
   )};
-  images_.resize(images.size());
+  images_.reserve(images.size());
   for (size_t i = 0; i < images.size(); ++i) {
-    images_[i].Init(context_, images[i], image_format_);
+    images_.emplace_back(absl::make_unique<SwapChainImage>());
+    images_[i]->Init(context_, images[i], image_format_);
   }
 }
 

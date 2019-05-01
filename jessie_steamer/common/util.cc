@@ -12,6 +12,7 @@
 #include <sstream>
 #include <stdexcept>
 
+#include "absl/memory/memory.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "third_party/stb/stb_image.h"
 
@@ -79,12 +80,13 @@ const string& LoadTextFromFile(const string &path) {
   return loaded->second;
 }
 
-FileContent LoadRawDataFromFile(const string& path) {
+std::unique_ptr<FileContent> LoadRawDataFromFile(const string& path) {
   ifstream file = OpenFile(path);
   file.seekg(0, std::ios::end);
-  FileContent content{static_cast<size_t>(file.tellg())};
+  auto content = absl::make_unique<FileContent>(
+      static_cast<size_t>(file.tellg()));
   file.seekg(0, std::ios::beg);
-  file.read(content.data, content.size);
+  file.read(content->data, content->size);
   return content;
 }
 
@@ -214,9 +216,9 @@ CharLib::~CharLib() {
 }
 
 Image::Image(const string& path) {
-  FileContent content = LoadRawDataFromFile(path);
-  data = stbi_load_from_memory(reinterpret_cast<stbi_uc*>(content.data),
-                               content.size, &width, &height, &channel,
+  auto content = LoadRawDataFromFile(path);
+  data = stbi_load_from_memory(reinterpret_cast<stbi_uc*>(content->data),
+                               content->size, &width, &height, &channel,
                                STBI_default);
   if (data == nullptr) {
     throw runtime_error{"Failed to read image from " + path};
@@ -228,8 +230,8 @@ Image::Image(const string& path) {
       break;
     case 3: {  // force to have alpha channel
       stbi_image_free(const_cast<void*>(data));
-      data = stbi_load_from_memory(reinterpret_cast<stbi_uc*>(content.data),
-                                   content.size, &width, &height, &channel,
+      data = stbi_load_from_memory(reinterpret_cast<stbi_uc*>(content->data),
+                                   content->size, &width, &height, &channel,
                                    STBI_rgb_alpha);
       channel = STBI_rgb_alpha;
       break;

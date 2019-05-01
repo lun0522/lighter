@@ -72,9 +72,9 @@ class SwapChainImage {
             VkFormat format);
   ~SwapChainImage();
 
-  // This class is only movable
-  SwapChainImage(SwapChainImage&&) = default;
-  SwapChainImage& operator=(SwapChainImage&&) = default;
+  // This class is neither copyable nor movable
+  SwapChainImage(const SwapChainImage&) = delete;
+  SwapChainImage& operator=(const SwapChainImage&) = delete;
 
   const VkImageView& image_view() const { return image_view_; }
 
@@ -128,9 +128,9 @@ class DepthStencilImage {
   void Cleanup();
   ~DepthStencilImage() { Cleanup(); }
 
-  // This class is only movable
-  DepthStencilImage(DepthStencilImage&&) = default;
-  DepthStencilImage& operator=(DepthStencilImage&&) = default;
+  // This class is neither copyable nor movable
+  DepthStencilImage(const DepthStencilImage&) = delete;
+  DepthStencilImage& operator=(const DepthStencilImage&) = delete;
 
   VkFormat format()               const { return buffer_.format(); }
   const VkImageView& image_view() const { return image_view_; }

@@ -65,12 +65,12 @@ class Swapchain {
   VkExtent2D extent()               const { return image_extent_; }
   size_t size()                     const { return images_.size(); }
   const VkImageView& image_view(size_t index) const
-      { return images_[index].image_view(); }
+      { return images_[index]->image_view(); }
 
  private:
   std::shared_ptr<Context> context_;
   VkSwapchainKHR swapchain_;
-  std::vector<SwapChainImage> images_;
+  std::vector<std::unique_ptr<SwapChainImage>> images_;
   VkFormat image_format_;
   VkExtent2D image_extent_;
 };

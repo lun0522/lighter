@@ -14,6 +14,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <memory>
 #include <string>
 #include <unordered_set>
 #include <unordered_map>
@@ -31,8 +32,8 @@
   static_cast<uint32_t>(container.size())
 #define INSERT_DEBUG_REQUIREMENT(overwrite)                                   \
   if (argc != 3) {                                                            \
-    std::cout << "Usage: exec <VK_ICD_FILENAMES> <VK_LAYER_PATH>"             \
-              << std::endl;                                                   \
+    std::cout << "Usage: " << argv[0]                                         \
+              << " <VK_ICD_FILENAMES> <VK_LAYER_PATH>" << std::endl;          \
     return EXIT_FAILURE;                                                      \
   } else {                                                                    \
     setenv("VK_ICD_FILENAMES", argv[1], overwrite);                           \
@@ -117,12 +118,12 @@ struct FileContent {
   explicit FileContent(size_t size) : size{size}, data{new char[size]} {}
   ~FileContent() { delete[] data; }
 
-  // This class is only movable
-  FileContent(FileContent&&) = default;
-  FileContent& operator=(FileContent&&) = default;
+  // This class is neither copyable nor movable
+  FileContent(const FileContent&) = delete;
+  FileContent& operator=(const FileContent&) = delete;
 };
 
-FileContent LoadRawDataFromFile(const std::string& path);
+std::unique_ptr<FileContent> LoadRawDataFromFile(const std::string& path);
 
 struct VertexAttrib2D {
   glm::vec2 pos;

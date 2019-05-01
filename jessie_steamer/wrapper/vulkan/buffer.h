@@ -34,10 +34,10 @@ struct CopyInfo {
 class Context;
 
 /** VkBuffer represents linear arrays of data and configures usage of the data.
- *    Data can be transfered between buffers with the help of transfer queues.
+ *    Data can be transferred between buffers with the help of transfer queues.
  *    For buffers that contain large amount of data and do not change very
  *    often, we will create a staging buffer (which is visible to both host and
- *    device, and thus is not the most effient for device) and a final buffer
+ *    device, and thus is not the most efficient for device) and a final buffer
  *    (which is only visible to device, and thus is optimal for device access).
  *    The staging buffer will only be used to transfer data to the final buffer,
  *    and then it will be destroyed.
@@ -58,7 +58,7 @@ class Context;
  *    Data size (can be different from the size we allocate for the buffer
  *      because of alignments)
  *    Memory type (visibility to host and device)
- *    VkBuffer that will be binded with it
+ *    VkBuffer that will be bound with it
  *    VkDevice
  *    VkPhysicalDevice
  */
@@ -136,9 +136,9 @@ class UniformBuffer {
   void UpdateData(size_t chunk_index) const;
   ~UniformBuffer();
 
-  // This class is only movable
-  UniformBuffer(UniformBuffer&&) = default;
-  UniformBuffer& operator=(UniformBuffer&&) = default;
+  // This class is neither copyable nor movable
+  UniformBuffer(const UniformBuffer&) = delete;
+  UniformBuffer& operator=(const UniformBuffer&) = delete;
 
   template <typename DataType>
   DataType* data(size_t chunk_index) const {
@@ -208,9 +208,9 @@ class DepthStencilBuffer {
   void Cleanup();
   ~DepthStencilBuffer() { Cleanup(); }
 
-  // This class is only movable
-  DepthStencilBuffer(DepthStencilBuffer&&) = default;
-  DepthStencilBuffer& operator=(DepthStencilBuffer&&) = default;
+  // This class is neither copyable nor movable
+  DepthStencilBuffer(const DepthStencilBuffer&) = delete;
+  DepthStencilBuffer& operator=(const DepthStencilBuffer&) = delete;
 
   const VkImage& image() const { return image_; }
   VkFormat format()      const { return format_; }

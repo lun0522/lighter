@@ -28,6 +28,7 @@ cc_library(
         "//third_party:freetype",
         "//third_party:glm",
         "//third_party:stb",
+        "@lib-absl//absl/memory",
     ],
 )
 
