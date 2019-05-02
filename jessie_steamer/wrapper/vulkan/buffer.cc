@@ -436,9 +436,9 @@ VkDescriptorBufferInfo UniformBuffer::descriptor_info(
   };
 }
 
-void TextureBuffer::Init(SharedContext context,
+void TextureBuffer::Init(const SharedContext& context,
                          const Info& info) {
-  context_ = std::move(context);
+  context_ = context;
 
   VkExtent3D image_extent = info.extent();
   VkDeviceSize data_size = info.data_size();
@@ -498,15 +498,13 @@ void TextureBuffer::Init(SharedContext context,
 }
 
 TextureBuffer::~TextureBuffer() {
-  if (context_) {
-    vkDestroyImage(*context_->device(), image_, context_->allocator());
-    vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
-  }
+  vkDestroyImage(*context_->device(), image_, context_->allocator());
+  vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
 }
 
-void DepthStencilBuffer::Init(SharedContext context,
+void DepthStencilBuffer::Init(const SharedContext& context,
                               VkExtent2D extent) {
-  context_ = std::move(context);
+  context_ = context;
 
   // no need to send any data to buffer
   format_ = FindImageFormat(

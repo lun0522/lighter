@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include "absl/memory/memory.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
 
@@ -103,7 +104,7 @@ void CreateTextureInfo(const Model::Mesh& mesh,
       vector<VkDescriptorImageInfo> descriptor_infos{};
       descriptor_infos.reserve(mesh[type].size());
       for (const auto& image : mesh[type]) {
-        descriptor_infos.emplace_back(image.descriptor_info());
+        descriptor_infos.emplace_back(image->descriptor_info());
       }
       image_infos->operator[](binding_point) = move(descriptor_infos);
 
@@ -124,7 +125,7 @@ void CreateTextureInfo(const Model::Mesh& mesh,
 
 } /* namespace */
 
-void Model::Init(SharedContext context,
+void Model::Init(const SharedContext& context,
                  const vector<PipelineBuilder::ShaderInfo>& shader_infos,
                  const ModelResource& resource,
                  const optional<UniformInfos>& uniform_infos,
@@ -133,7 +134,7 @@ void Model::Init(SharedContext context,
                  size_t num_frame,
                  bool is_opaque) {
   if (is_first_time_) {
-    context_ = move(context);
+    context_ = context;
     push_constants_ = push_constants;
     if (instancing_info.has_value()) {
       if (!instancing_info.value().per_instance_buffer) {
@@ -246,10 +247,12 @@ Model::FindBindingPoint Model::LoadSingleMesh(
   for (const auto &binding : resource.binding_map) {
     const TextureType type = binding.first;
     const vector<vector<string>> &texture_paths = binding.second.texture_paths;
+    auto& typed_meshes = meshes_.back()[type];
 
-    meshes_.back()[type].resize(texture_paths.size());
-    for (size_t i = 0; i < texture_paths.size(); ++i) {
-      meshes_.back()[type][i].Init(context_, texture_paths[i]);
+    typed_meshes.reserve(texture_paths.size());
+    for (const auto& path : texture_paths) {
+      typed_meshes.emplace_back(
+          absl::make_unique<TextureImage>(context_, path));
     }
   }
 
@@ -266,7 +269,7 @@ Model::FindBindingPoint Model::LoadMultiMesh(
   vector<PerVertexBuffer::Info> vertex_infos;
   vertex_infos.reserve(loader.meshes().size());
   for (const auto &mesh : loader.meshes()) {
-    vertex_infos.emplace_back(CreateVertexInfo(mesh.vertices, mesh.indices));
+    vertex_infos.emplace_back(CreateVertexInfo(mesh->vertices, mesh->indices));
   }
   vertex_buffer_.Init(context_, vertex_infos);
 
@@ -274,11 +277,13 @@ Model::FindBindingPoint Model::LoadMultiMesh(
   meshes_.reserve(loader.meshes().size());
   for (auto &loaded_mesh : loader.meshes()) {
     meshes_.emplace_back();
-    for (auto &loaded_tex : loaded_mesh.textures) {
-      vector<common::util::Image> images;
-      images.emplace_back(move(loaded_tex.image));
-      meshes_.back()[loaded_tex.type].emplace_back();
-      meshes_.back()[loaded_tex.type].back().Init(context_, images);
+    for (auto &loaded_tex : loaded_mesh->textures) {
+      vector<unique_ptr<common::util::Image>> images;
+      images.emplace_back(move(loaded_tex->image));
+
+      auto& typed_meshes = meshes_.back()[loaded_tex->type];
+      typed_meshes.emplace_back(
+          absl::make_unique<TextureImage>(context_, images));
     }
   }
 

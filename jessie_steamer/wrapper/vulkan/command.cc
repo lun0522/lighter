@@ -81,7 +81,7 @@ vector<VkCommandBuffer> CreateCommandBuffers(const SharedContext& context,
 
 } /* namespace */
 
-void command::OneTimeCommand(SharedContext context,
+void command::OneTimeCommand(const SharedContext& context,
                              const Queues::Queue& queue,
                              const OneTimeRecordCommand& on_record) {
   // construct command pool and buffer
@@ -224,12 +224,11 @@ VkResult Command::DrawFrame(size_t current_frame,
   return VK_SUCCESS;
 }
 
-void Command::Init(SharedContext context,
+void Command::Init(const SharedContext& context,
                    size_t num_frame,
                    const command::MultiTimeRecordCommand& on_record) {
-  context_ = std::move(context);
-
   if (is_first_time_) {
+    context_ = context;
     command_pool_ = CreateCommandPool(
         context_, context_->queues().graphics, false);
     image_available_semas_.Init(context_, num_frame);

@@ -42,10 +42,10 @@ class Context;
  */
 class Pipeline {
  public:
-  Pipeline(std::shared_ptr<Context> context,
+  Pipeline(const std::shared_ptr<Context>& context,
            VkPipeline&& pipeline,
            VkPipelineLayout&& pipeline_layout)
-    : context_{std::move(context)},
+    : context_{context},
       pipeline_{std::move(pipeline)},
       layout_{std::move(pipeline_layout)} {}
   ~Pipeline();

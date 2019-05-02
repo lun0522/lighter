@@ -91,15 +91,6 @@ void CheckSupport(
   }
 }
 
-template <typename ContainerType>
-void MoveAll(ContainerType* dst, ContainerType* src) {
-  using MoveIterator =
-      typename std::move_iterator<typename ContainerType::iterator>;
-  dst->insert(dst->end(),
-              MoveIterator(src->begin()),
-              MoveIterator(src->end()));
-}
-
 extern const size_t kInvalidIndex;
 template <typename ContentType>
 size_t FindFirst(const std::vector<ContentType>& container,
@@ -185,23 +176,9 @@ struct Image {
   explicit Image(const std::string& path);
   ~Image();
 
-  // This class is only movable
-  Image(Image&& rhs) noexcept {
-    width = rhs.width;
-    height = rhs.height;
-    channel = rhs.channel;
-    data = rhs.data;
-    rhs.data = nullptr;
-  }
-
-  Image& operator=(Image&& rhs) noexcept {
-    width = rhs.width;
-    height = rhs.height;
-    channel = rhs.channel;
-    data = rhs.data;
-    rhs.data = nullptr;
-    return *this;
-  }
+  // This class is neither copyable nor movable
+  Image(const Image&) = delete;
+  Image& operator=(const Image&) = delete;
 };
 
 } /* namespace util */

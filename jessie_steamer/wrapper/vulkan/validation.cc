@@ -52,10 +52,10 @@ const vector<const char*> kValidationLayers{
     "VK_LAYER_LUNARG_standard_validation",
 };
 
-void DebugCallback::Init(SharedContext context,
+void DebugCallback::Init(const SharedContext& context,
                          VkDebugUtilsMessageSeverityFlagsEXT message_severity,
                          VkDebugUtilsMessageTypeFlagsEXT message_type) {
-  context_ = std::move(context);
+  context_ = context;
   VkDebugUtilsMessengerCreateInfoEXT create_info{
       VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
       /*pNext=*/nullptr,

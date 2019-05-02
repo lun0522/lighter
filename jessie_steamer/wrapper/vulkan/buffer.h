@@ -172,25 +172,13 @@ class TextureBuffer {
   };
 
   TextureBuffer() = default;
-  void Init(std::shared_ptr<Context> context,
+  void Init(const std::shared_ptr<Context>& context,
             const Info& info);
   ~TextureBuffer();
 
-  // This class is only movable
-  TextureBuffer(TextureBuffer&& rhs) noexcept {
-    context_ = std::move(rhs.context_);
-    image_ = std::move(rhs.image_);
-    device_memory_ = std::move(rhs.device_memory_);
-    rhs.context_ = nullptr;
-  }
-
-  TextureBuffer& operator=(TextureBuffer&& rhs) noexcept {
-    context_ = std::move(rhs.context_);
-    image_ = std::move(rhs.image_);
-    device_memory_ = std::move(rhs.device_memory_);
-    rhs.context_ = nullptr;
-    return *this;
-  }
+  // This class is neither copyable nor movable
+  TextureBuffer(const TextureBuffer&) = delete;
+  TextureBuffer& operator=(const TextureBuffer&) = delete;
 
   const VkImage& image() const { return image_; }
 
@@ -203,7 +191,7 @@ class TextureBuffer {
 class DepthStencilBuffer {
  public:
   DepthStencilBuffer() = default;
-  void Init(std::shared_ptr<Context> context,
+  void Init(const std::shared_ptr<Context>& context,
             VkExtent2D extent);
   void Cleanup();
   ~DepthStencilBuffer() { Cleanup(); }

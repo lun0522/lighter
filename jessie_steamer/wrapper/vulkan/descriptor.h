@@ -86,7 +86,7 @@ class Descriptor {
   };
 
   Descriptor() = default;
-  void Init(std::shared_ptr<Context> context,
+  void Init(const std::shared_ptr<Context>& context,
             const std::vector<Info>& infos);
   void UpdateBufferInfos(
       const Info& descriptor_info,

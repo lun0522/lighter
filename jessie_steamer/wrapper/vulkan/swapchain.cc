@@ -87,7 +87,7 @@ VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities,
 
 const vector<const char*> kSwapChainExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-bool Swapchain::HasSwapchainSupport(SharedContext context,
+bool Swapchain::HasSwapchainSupport(const SharedContext& context,
                                     const VkPhysicalDevice& physical_device) {
   try {
     std::cout << "Checking extension support required for swapchain..."
@@ -121,7 +121,7 @@ bool Swapchain::HasSwapchainSupport(SharedContext context,
   return format_count && mode_count;
 }
 
-void Swapchain::Init(SharedContext context) {
+void Swapchain::Init(const SharedContext& context) {
   context_ = context;
   const VkSurfaceKHR& surface = *context_->surface();
   const VkPhysicalDevice& physical_device = *context_->physical_device();

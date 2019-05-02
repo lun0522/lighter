@@ -89,8 +89,8 @@ QueueIndices FindDeviceQueues(SharedContext context,
 
 } /* namespace */
 
-void Instance::Init(SharedContext context) {
-  context_ = std::move(context);
+void Instance::Init(const SharedContext& context) {
+  context_ = context;
 
   if (glfwVulkanSupported() == GL_FALSE) {
     throw runtime_error{"Vulkan not supported"};
@@ -161,8 +161,8 @@ Instance::~Instance() {
   vkDestroyInstance(instance_, context_->allocator());
 }
 
-void Surface::Init(SharedContext context) {
-  context_ = std::move(context);
+void Surface::Init(const SharedContext& context) {
+  context_ = context;
   surface_ = context_->window().CreateSurface(*context_->instance(),
                                               context_->allocator());
 }
@@ -171,8 +171,8 @@ Surface::~Surface() {
   vkDestroySurfaceKHR(*context_->instance(), surface_, context_->allocator());
 }
 
-void PhysicalDevice::Init(SharedContext context) {
-  context_ = std::move(context);
+void PhysicalDevice::Init(const SharedContext& context) {
+  context_ = context;
 
   auto devices{util::QueryAttribute<VkPhysicalDevice>(
       [this](uint32_t* count, VkPhysicalDevice* physical_device) {
@@ -201,8 +201,8 @@ VkPhysicalDeviceLimits PhysicalDevice::limits() const {
   return properties.limits;
 }
 
-void Device::Init(SharedContext context) {
-  context_ = std::move(context);
+void Device::Init(const SharedContext& context) {
+  context_ = context;
 
   // request anisotropy filtering support
   VkPhysicalDeviceFeatures enabled_features{};

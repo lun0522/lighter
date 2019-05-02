@@ -34,7 +34,8 @@ class Context;
 class Model {
  public:
   using TextureType = common::ModelLoader::Texture::Type;
-  using Mesh = std::array<std::vector<TextureImage>, TextureType::kTypeMaxEnum>;
+  using Mesh = std::array<std::vector<std::unique_ptr<TextureImage>>,
+                          TextureType::kTypeMaxEnum>;
   using UniformInfos = std::vector<std::pair<const UniformBuffer&,
                                              const Descriptor::Info&>>;
 
@@ -82,7 +83,7 @@ class Model {
   Model(const Model&) = delete;
   Model& operator=(const Model&) = delete;
 
-  void Init(std::shared_ptr<Context> context,
+  void Init(const std::shared_ptr<Context>& context,
             const std::vector<PipelineBuilder::ShaderInfo>& shader_infos,
             const ModelResource& resource,
             const absl::optional<UniformInfos>& uniform_infos,

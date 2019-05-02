@@ -45,7 +45,7 @@ enum Type {
 class DebugCallback {
  public:
   DebugCallback() = default;
-  void Init(std::shared_ptr<Context> context,
+  void Init(const std::shared_ptr<Context>& context,
             VkDebugUtilsMessageSeverityFlagsEXT message_severity,
             VkDebugUtilsMessageTypeFlagsEXT message_type);
   ~DebugCallback();

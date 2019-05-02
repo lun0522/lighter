@@ -17,6 +17,7 @@ cc_library(
     deps = [
         ":util",
         "//third_party:assimp",
+        "@lib-absl//absl/memory",
     ],
 )
 

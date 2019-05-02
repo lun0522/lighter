@@ -10,6 +10,7 @@
 #include <memory>
 #include <stdexcept>
 
+#include "absl/memory/memory.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
 
 namespace jessie_steamer {
@@ -90,10 +91,10 @@ VkSampler CreateSampler(const SharedContext& context) {
 
 } /* namespace */
 
-void SwapChainImage::Init(SharedContext context,
+void SwapChainImage::Init(const SharedContext& context,
                           const VkImage& image,
                           VkFormat format) {
-  context_ = move(context);
+  context_ = context;
   image_view_ = CreateImageView(context_, image, VK_IMAGE_VIEW_TYPE_2D, format,
                                 VK_IMAGE_ASPECT_COLOR_BIT, /*layer_count=*/1);
 }
@@ -103,20 +104,18 @@ SwapChainImage::~SwapChainImage() {
   vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
 }
 
-void TextureImage::Init(SharedContext context,
-                        const vector<std::string>& paths) {
-  vector<Image> images;
+TextureImage::TextureImage(const SharedContext& context,
+                           const vector<std::string>& paths)
+    : context_{context} {
+  vector<std::unique_ptr<Image>> images;
   images.reserve(paths.size());
   for (const auto& path : paths) {
-    images.emplace_back(path);
+    images.emplace_back(absl::make_unique<Image>(path));
   }
-  Init(move(context), images);
+  Init(images);
 }
 
-void TextureImage::Init(SharedContext context,
-                        const vector<Image>& images) {
-  context_ = move(context);
-
+void TextureImage::Init(const vector<std::unique_ptr<Image>>& images) {
   bool is_cubemap;
   switch (images.size()) {
     case 1:
@@ -132,11 +131,11 @@ void TextureImage::Init(SharedContext context,
 
   vector<const void*> datas(images.size());
   for (size_t i = 0; i < images.size(); ++i) {
-    datas[i] = images[i].data;
+    datas[i] = images[i]->data;
   }
 
   VkFormat format;
-  switch (images[0].channel) {
+  switch (images[0]->channel) {
     case 1:
       format = VK_FORMAT_R8_UNORM;
       break;
@@ -145,16 +144,16 @@ void TextureImage::Init(SharedContext context,
       break;
     default:
       throw std::runtime_error{"Unsupported number of channels: " +
-                               std::to_string(images[0].channel)};
+                               std::to_string(images[0]->channel)};
   }
 
   TextureBuffer::Info image_info{
      is_cubemap,
      {datas.begin(), datas.end()},
      format,
-     static_cast<uint32_t>(images[0].width),
-     static_cast<uint32_t>(images[0].height),
-     static_cast<uint32_t>(images[0].channel),
+     static_cast<uint32_t>(images[0]->width),
+     static_cast<uint32_t>(images[0]->height),
+     static_cast<uint32_t>(images[0]->channel),
   };
   buffer_.Init(context_, image_info);
   VkImageViewType view_type =
@@ -174,15 +173,13 @@ VkDescriptorImageInfo TextureImage::descriptor_info() const {
 }
 
 TextureImage::~TextureImage() {
-  if (context_) {
-    vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
-    vkDestroySampler(*context_->device(), sampler_, context_->allocator());
-  }
+  vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
+  vkDestroySampler(*context_->device(), sampler_, context_->allocator());
 }
 
-void DepthStencilImage::Init(SharedContext context,
+void DepthStencilImage::Init(const SharedContext& context,
                              VkExtent2D extent) {
-  context_ = move(context);
+  context_ = context;
   buffer_.Init(context_, extent);
   image_view_ = CreateImageView(context_, buffer_.image(),
                                 VK_IMAGE_VIEW_TYPE_2D, format(),

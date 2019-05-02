@@ -48,11 +48,11 @@ extern const std::vector<const char*> kSwapChainExtensions;
  */
 class Swapchain {
  public:
-  static bool HasSwapchainSupport(std::shared_ptr<Context> context,
+  static bool HasSwapchainSupport(const std::shared_ptr<Context>& context,
                                   const VkPhysicalDevice& physical_device);
 
   Swapchain() = default;
-  void Init(std::shared_ptr<Context> context);
+  void Init(const std::shared_ptr<Context>& context);
   void Cleanup();
   ~Swapchain() { Cleanup(); }
 

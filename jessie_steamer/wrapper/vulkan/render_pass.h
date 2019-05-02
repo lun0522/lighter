@@ -40,7 +40,7 @@ class Context;
 class RenderPass {
  public:
   RenderPass() = default;
-  void Init(std::shared_ptr<Context> context);
+  void Init(const std::shared_ptr<Context>& context);
   void Cleanup();
   ~RenderPass() { Cleanup(); }
 

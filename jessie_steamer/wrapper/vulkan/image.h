@@ -67,7 +67,7 @@ class Context;
 class SwapChainImage {
  public:
   SwapChainImage() = default;
-  void Init(std::shared_ptr<Context> context,
+  void Init(const std::shared_ptr<Context>& context,
             const VkImage& image,
             VkFormat format);
   ~SwapChainImage();
@@ -85,35 +85,23 @@ class SwapChainImage {
 
 class TextureImage {
  public:
-  TextureImage() = default;
   // paths.size() should be either 1 or 6 (cubemap)
-  void Init(std::shared_ptr<Context> context,
-            const std::vector<std::string>& paths);
-  void Init(std::shared_ptr<Context> context,
-            const std::vector<common::util::Image>& images);
+  TextureImage(const std::shared_ptr<Context>& context,
+               const std::vector<std::string>& paths);
+  TextureImage(const std::shared_ptr<Context>& context,
+               const std::vector<std::unique_ptr<common::util::Image>>& images)
+      : context_{context} { Init(images); }
   ~TextureImage();
 
-  // This class is only movable
-  TextureImage(TextureImage&& rhs) noexcept {
-    context_ = std::move(rhs.context_);
-    buffer_ = std::move(rhs.buffer_);
-    image_view_ = std::move(rhs.image_view_);
-    sampler_ = std::move(rhs.sampler_);
-    rhs.context_ = nullptr;
-  }
-
-  TextureImage& operator=(TextureImage&& rhs) noexcept {
-    context_ = std::move(rhs.context_);
-    buffer_ = std::move(rhs.buffer_);
-    image_view_ = std::move(rhs.image_view_);
-    sampler_ = std::move(rhs.sampler_);
-    rhs.context_ = nullptr;
-    return *this;
-  }
+  // This class is neither copyable nor movable
+  TextureImage(const TextureImage&) = delete;
+  TextureImage& operator=(const TextureImage&) = delete;
 
   VkDescriptorImageInfo descriptor_info() const;
 
  private:
+  void Init(const std::vector<std::unique_ptr<common::util::Image>>& images);
+
   std::shared_ptr<Context> context_;
   TextureBuffer buffer_;
   VkImageView image_view_;
@@ -123,7 +111,7 @@ class TextureImage {
 class DepthStencilImage {
  public:
   DepthStencilImage() = default;
-  void Init(std::shared_ptr<Context> context,
+  void Init(const std::shared_ptr<Context>& context,
             VkExtent2D extent);
   void Cleanup();
   ~DepthStencilImage() { Cleanup(); }

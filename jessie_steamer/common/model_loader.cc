@@ -63,8 +63,10 @@ void ModelLoader::ProcessNode(const string& directory,
 void ModelLoader::ProcessMesh(const string& directory,
                               const aiMesh* mesh,
                               const aiScene* scene) {
+  meshes_.emplace_back(absl::make_unique<Mesh>());
+
   // load vertices
-  vector<util::VertexAttrib3D> vertices;
+  vector<util::VertexAttrib3D>& vertices = meshes_.back()->vertices;
   vertices.reserve(mesh->mNumVertices);
   aiVector3D* ai_tex_coords = mesh->mTextureCoords[0];
   for (int i = 0; i < mesh->mNumVertices; ++i) {
@@ -80,7 +82,7 @@ void ModelLoader::ProcessMesh(const string& directory,
   }
 
   // load indices
-  vector<unsigned int> indices;
+  vector<unsigned int>& indices = meshes_.back()->indices;
   for (int i = 0; i < mesh->mNumFaces; ++i) {
     aiFace face = mesh->mFaces[i];
     indices.insert(indices.end(), face.mIndices,
@@ -88,28 +90,19 @@ void ModelLoader::ProcessMesh(const string& directory,
   }
 
   // load textures
-  vector<Texture> textures;
+  vector<std::unique_ptr<Texture>>& textures = meshes_.back()->textures;
   if (scene->HasMaterials()) {
     aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-    vector<Texture> diff_maps = LoadTextures(
-        directory, material, Texture::kTypeDiffuse);
-    vector<Texture> spec_maps = LoadTextures(
-        directory, material, Texture::kTypeSpecular);
-    vector<Texture> refl_maps = LoadTextures(
-        directory, material, Texture::kTypeReflection);
-
-    util::MoveAll(&textures, &diff_maps);
-    util::MoveAll(&textures, &spec_maps);
-    util::MoveAll(&textures, &refl_maps);
+    LoadTextures(directory, material, Texture::kTypeDiffuse, &textures);
+    LoadTextures(directory, material, Texture::kTypeSpecular, &textures);
+    LoadTextures(directory, material, Texture::kTypeReflection, &textures);
   }
-
-  meshes_.emplace_back(move(vertices), move(indices), move(textures));
 }
 
-vector<ModelLoader::Texture> ModelLoader::LoadTextures(
-    const string& directory,
-    const aiMaterial* material,
-    Texture::Type type) {
+void ModelLoader::LoadTextures(const string& directory,
+                               const aiMaterial* material,
+                               Texture::Type type,
+                               vector<std::unique_ptr<Texture>>* textures) {
   aiTextureType ai_type;
   switch (type) {
     case Texture::kTypeDiffuse:
@@ -126,15 +119,13 @@ vector<ModelLoader::Texture> ModelLoader::LoadTextures(
   }
 
   size_t num_texture = material->GetTextureCount(ai_type);
-  vector<Texture> textures;
-  textures.reserve(num_texture);
+  textures->reserve(textures->size() + num_texture);
   for (int i = 0; i < num_texture; ++i) {
     aiString path;
     material->GetTexture(ai_type, i, &path);
-    util::Image image{directory + "/" + path.C_Str()};
-    textures.emplace_back(move(image), type);
+    textures->emplace_back(absl::make_unique<Texture>(
+        directory + "/" + path.C_Str(), type));
   }
-  return textures;
 }
 
 } /* namespace common */

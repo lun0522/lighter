@@ -28,7 +28,8 @@ class Context;
 class Semaphores {
  public:
   Semaphores() = default;
-  void Init(std::shared_ptr<Context> context, size_t count);
+  void Init(const std::shared_ptr<Context>& context,
+            size_t count);
   ~Semaphores();
 
   // This class is neither copyable nor movable
@@ -45,7 +46,9 @@ class Semaphores {
 class Fences {
  public:
   Fences() = default;
-  void Init(std::shared_ptr<Context> context, size_t count, bool is_signaled);
+  void Init(const std::shared_ptr<Context>& context,
+            size_t count,
+            bool is_signaled);
   ~Fences();
 
   // This class is neither copyable nor movable

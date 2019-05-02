@@ -29,7 +29,7 @@ class Context;
 class Instance {
  public:
   Instance() = default;
-  void Init(std::shared_ptr<Context> context);
+  void Init(const std::shared_ptr<Context>& context);
   ~Instance();
 
   // This class is neither copyable nor movable
@@ -54,7 +54,7 @@ class Instance {
 class Surface {
  public:
   Surface() = default;
-  void Init(std::shared_ptr<Context> context);
+  void Init(const std::shared_ptr<Context>& context);
   ~Surface();
 
   // This class is neither copyable nor movable
@@ -82,7 +82,7 @@ class Surface {
 struct PhysicalDevice {
  public:
   PhysicalDevice() = default;
-  void Init(std::shared_ptr<Context> context);
+  void Init(const std::shared_ptr<Context>& context);
   ~PhysicalDevice() = default;  // implicitly cleaned up
 
   // This class is neither copyable nor movable
@@ -113,7 +113,7 @@ struct PhysicalDevice {
 struct Device {
  public:
   Device() = default;
-  void Init(std::shared_ptr<Context> context);
+  void Init(const std::shared_ptr<Context>& context);
   ~Device();
 
   // This class is neither copyable nor movable
