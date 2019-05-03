@@ -17,7 +17,7 @@ namespace {
 using std::string;
 
 string GetFontPath(Font font) {
-  string prefix = "jessie_steamer/resource/font/";
+  const string prefix = "jessie_steamer/resource/font/";
   switch (font) {
     case Font::kGeorgia:
       return prefix + "georgia.ttf";

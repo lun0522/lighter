@@ -16,10 +16,10 @@
 #include <iterator>
 #include <memory>
 #include <string>
-#include <unordered_set>
-#include <unordered_map>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "third_party/freetype/ft2build.h"
 #include FT_FREETYPE_H
 #include "third_party/glm/glm.hpp"
@@ -67,7 +67,7 @@ void CheckSupport(
     const std::vector<std::string>& required,
     const std::vector<AttribType>& attribs,
     const std::function<const char*(const AttribType&)>& get_name) {
-  std::unordered_set<std::string> available{attribs.size()};
+  absl::flat_hash_set<std::string> available{attribs.size()};
   for (const auto& atr : attribs) {
     available.emplace(get_name(atr));
   }
@@ -162,7 +162,7 @@ class CharLib {
   const Character& operator[](char c) { return chars_[c]; }
 
  private:
-  std::unordered_map<char, Character> chars_;
+  absl::flat_hash_map<char, Character> chars_;
   FT_Library lib_;
   FT_Face face_;
 };

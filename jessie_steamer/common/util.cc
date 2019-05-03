@@ -64,7 +64,7 @@ float TimeInterval(const TimePoint& t1, const TimePoint& t2) {
 const size_t kInvalidIndex = std::numeric_limits<size_t>::max();
 
 const string& LoadTextFromFile(const string &path) {
-  static std::unordered_map<string, string> kLoadedText;
+  static absl::flat_hash_map<string, string> kLoadedText;
   auto loaded = kLoadedText.find(path);
   if (loaded == kLoadedText.end()) {
     try {
@@ -99,7 +99,7 @@ void LoadObjFromFile(const string& path,
   vector<glm::vec3> positions;
   vector<glm::vec3> normals;
   vector<glm::vec2> tex_coords;
-  std::unordered_map<string, uint32_t> loaded_vertices;
+  absl::flat_hash_map<string, uint32_t> loaded_vertices;
 
   auto parse_line = [&](const string& line) {
     size_t non_space = line.find_first_not_of(' ');
@@ -185,7 +185,7 @@ CharLib::CharLib(const vector<string>& texts,
   }
   FT_Set_Pixel_Sizes(face_, font_size.x, font_size.y);
 
-  std::unordered_set<char> to_load;
+  absl::flat_hash_set<char> to_load;
   for (const auto& text : texts) {
     for (auto c : text) {
       to_load.emplace(c);

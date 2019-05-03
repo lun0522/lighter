@@ -9,9 +9,9 @@
 
 #include <iostream>
 #include <stdexcept>
-#include <unordered_set>
 #include <vector>
 
+#include "absl/container/flat_hash_set.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
 #include "jessie_steamer/wrapper/vulkan/swapchain.h"
@@ -210,7 +210,7 @@ void Device::Init(const SharedContext& context) {
 
   // graphics queue and present queue might be the same
   const Queues& queues = context_->queues();
-  std::unordered_set<uint32_t> queue_families{
+  absl::flat_hash_set<uint32_t> queue_families{
       queues.graphics.family_index,
       queues.present.family_index,
   };

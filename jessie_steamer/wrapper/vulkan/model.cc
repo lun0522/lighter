@@ -315,8 +315,8 @@ void Model::CreateDescriptors(const FindBindingPoint& find_binding_point,
         }
       }
 
-      descriptors_[frame].emplace_back(new Descriptor);
-      descriptors_[frame].back()->Init(context_, descriptor_infos);
+      descriptors_[frame].emplace_back(
+          absl::make_unique<Descriptor>(context_, descriptor_infos));
       if (uniform_infos.has_value()) {
         for (const auto& uniform_info : uniform_infos.value()) {
           descriptors_[frame].back()->UpdateBufferInfos(

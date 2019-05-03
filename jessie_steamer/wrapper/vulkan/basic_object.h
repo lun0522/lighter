@@ -29,12 +29,13 @@ class Context;
 class Instance {
  public:
   Instance() = default;
-  void Init(const std::shared_ptr<Context>& context);
   ~Instance();
 
   // This class is neither copyable nor movable
   Instance(const Instance&) = delete;
   Instance& operator=(const Instance&) = delete;
+
+  void Init(const std::shared_ptr<Context>& context);
 
   const VkInstance& operator*() const { return instance_; }
 
@@ -54,12 +55,13 @@ class Instance {
 class Surface {
  public:
   Surface() = default;
-  void Init(const std::shared_ptr<Context>& context);
   ~Surface();
 
   // This class is neither copyable nor movable
   Surface(const Surface&) = delete;
   Surface& operator=(const Surface&) = delete;
+
+  void Init(const std::shared_ptr<Context>& context);
 
   const VkSurfaceKHR& operator*() const { return surface_; }
 
@@ -82,12 +84,13 @@ class Surface {
 struct PhysicalDevice {
  public:
   PhysicalDevice() = default;
-  void Init(const std::shared_ptr<Context>& context);
   ~PhysicalDevice() = default;  // implicitly cleaned up
 
   // This class is neither copyable nor movable
   PhysicalDevice(const PhysicalDevice&) = delete;
   PhysicalDevice& operator=(const PhysicalDevice&) = delete;
+
+  void Init(const std::shared_ptr<Context>& context);
 
   const VkPhysicalDevice& operator*() const { return physical_device_; }
   VkPhysicalDeviceLimits limits() const;
@@ -113,12 +116,13 @@ struct PhysicalDevice {
 struct Device {
  public:
   Device() = default;
-  void Init(const std::shared_ptr<Context>& context);
   ~Device();
 
   // This class is neither copyable nor movable
   Device(const Device&) = delete;
   Device& operator=(const Device&) = delete;
+
+  void Init(const std::shared_ptr<Context>& context);
 
   const VkDevice& operator*() const { return device_; }
 

@@ -67,14 +67,15 @@ class Context;
 class SwapChainImage {
  public:
   SwapChainImage() = default;
-  void Init(const std::shared_ptr<Context>& context,
-            const VkImage& image,
-            VkFormat format);
   ~SwapChainImage();
 
   // This class is neither copyable nor movable
   SwapChainImage(const SwapChainImage&) = delete;
   SwapChainImage& operator=(const SwapChainImage&) = delete;
+
+  void Init(const std::shared_ptr<Context>& context,
+            const VkImage& image,
+            VkFormat format);
 
   const VkImageView& image_view() const { return image_view_; }
 

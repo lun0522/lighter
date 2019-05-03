@@ -21,7 +21,7 @@ namespace vulkan {
 
 class Context;
 
-namespace MessageSeverity {
+namespace message_severity {
 
 enum Severity {
   kVerbose  = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT,
@@ -32,7 +32,7 @@ enum Severity {
 
 } /* namespace MessageSeverity */
 
-namespace MessageType {
+namespace message_type {
 
 enum Type {
   kGeneral      = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT,
@@ -45,14 +45,15 @@ enum Type {
 class DebugCallback {
  public:
   DebugCallback() = default;
-  void Init(const std::shared_ptr<Context>& context,
-            VkDebugUtilsMessageSeverityFlagsEXT message_severity,
-            VkDebugUtilsMessageTypeFlagsEXT message_type);
   ~DebugCallback();
 
   // This class is neither copyable nor movable
   DebugCallback(const DebugCallback&) = delete;
   DebugCallback& operator=(const DebugCallback&) = delete;
+
+  void Init(const std::shared_ptr<Context>& context,
+            VkDebugUtilsMessageSeverityFlagsEXT message_severity,
+            VkDebugUtilsMessageTypeFlagsEXT message_type);
 
  private:
   std::shared_ptr<Context> context_;

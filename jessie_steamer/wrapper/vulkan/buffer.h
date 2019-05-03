@@ -131,14 +131,15 @@ class UniformBuffer {
   };
 
   UniformBuffer() = default;
-  void Init(const std::shared_ptr<Context>& context,
-            const Info& info);
-  void UpdateData(size_t chunk_index) const;
   ~UniformBuffer();
 
   // This class is neither copyable nor movable
   UniformBuffer(const UniformBuffer&) = delete;
   UniformBuffer& operator=(const UniformBuffer&) = delete;
+
+  void Init(const std::shared_ptr<Context>& context,
+            const Info& info);
+  void UpdateData(size_t chunk_index) const;
 
   template <typename DataType>
   DataType* data(size_t chunk_index) const {
@@ -172,13 +173,14 @@ class TextureBuffer {
   };
 
   TextureBuffer() = default;
-  void Init(const std::shared_ptr<Context>& context,
-            const Info& info);
   ~TextureBuffer();
 
   // This class is neither copyable nor movable
   TextureBuffer(const TextureBuffer&) = delete;
   TextureBuffer& operator=(const TextureBuffer&) = delete;
+
+  void Init(const std::shared_ptr<Context>& context,
+            const Info& info);
 
   const VkImage& image() const { return image_; }
 
@@ -191,14 +193,15 @@ class TextureBuffer {
 class DepthStencilBuffer {
  public:
   DepthStencilBuffer() = default;
-  void Init(const std::shared_ptr<Context>& context,
-            VkExtent2D extent);
-  void Cleanup();
   ~DepthStencilBuffer() { Cleanup(); }
 
   // This class is neither copyable nor movable
   DepthStencilBuffer(const DepthStencilBuffer&) = delete;
   DepthStencilBuffer& operator=(const DepthStencilBuffer&) = delete;
+
+  void Init(const std::shared_ptr<Context>& context,
+            VkExtent2D extent);
+  void Cleanup();
 
   const VkImage& image() const { return image_; }
   VkFormat format()      const { return format_; }
@@ -217,14 +220,15 @@ struct PushConstants {
   };
 
   PushConstants() = default;
-  void Init(const std::shared_ptr<Context>& context,
-            VkShaderStageFlags shader_stage,
-            const std::vector<Info>& infos);
   ~PushConstants();
 
   // This class is neither copyable nor movable.
   PushConstants(const PushConstants&) = delete;
   PushConstants& operator=(const PushConstants&) = delete;
+
+  void Init(const std::shared_ptr<Context>& context,
+            VkShaderStageFlags shader_stage,
+            const std::vector<Info>& infos);
 
   template <typename DataType>
   DataType* data(size_t index) const {

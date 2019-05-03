@@ -12,10 +12,10 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/types/optional.h"
 #include "absl/types/variant.h"
 #include "jessie_steamer/common/model_loader.h"
@@ -44,10 +44,10 @@ class Model {
     uint32_t binding_point;
     std::vector<std::vector<std::string>> texture_paths;
   };
-  using BindingPointMap = std::unordered_map<TextureType, uint32_t,
-                                             std::hash<int>>;
-  using TextureBindingMap = std::unordered_map<TextureType, TextureBinding,
-                                               std::hash<int>>;
+  using BindingPointMap = absl::flat_hash_map<TextureType, uint32_t,
+                                              std::hash<int>>;
+  using TextureBindingMap = absl::flat_hash_map<TextureType, TextureBinding,
+                                                std::hash<int>>;
   using FindBindingPoint = std::function<uint32_t(TextureType)>;
 
   // Loads with light-weight obj file loader.

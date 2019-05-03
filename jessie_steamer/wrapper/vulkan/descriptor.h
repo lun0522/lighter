@@ -10,9 +10,9 @@
 
 #include <array>
 #include <memory>
-#include <unordered_map>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "jessie_steamer/common/model_loader.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -69,7 +69,7 @@ class Context;
  */
 class Descriptor {
  public:
-  using ImageInfos = std::unordered_map<
+  using ImageInfos = absl::flat_hash_map<
       uint32_t, std::vector<VkDescriptorImageInfo>>;
   using TextureType = common::ModelLoader::Texture::Type;
 
@@ -85,19 +85,19 @@ class Descriptor {
     std::vector<Binding> bindings;
   };
 
-  Descriptor() = default;
-  void Init(const std::shared_ptr<Context>& context,
-            const std::vector<Info>& infos);
-  void UpdateBufferInfos(
-      const Info& descriptor_info,
-      const std::vector<VkDescriptorBufferInfo>& buffer_infos) const;
-  void UpdateImageInfos(VkDescriptorType descriptor_type,
-                        const ImageInfos& image_infos) const;
+  Descriptor(const std::shared_ptr<Context>& context,
+             const std::vector<Info>& infos);
   ~Descriptor();
 
   // This class is neither copyable nor movable
   Descriptor(const Descriptor&) = delete;
   Descriptor& operator=(const Descriptor&) = delete;
+
+  void UpdateBufferInfos(
+    const Info& descriptor_info,
+    const std::vector<VkDescriptorBufferInfo>& buffer_infos) const;
+  void UpdateImageInfos(VkDescriptorType descriptor_type,
+                        const ImageInfos& image_infos) const;
 
   const VkDescriptorSetLayout& layout() const { return layout_; }
   const VkDescriptorSet& set()          const { return set_; }

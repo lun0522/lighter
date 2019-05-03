@@ -68,24 +68,6 @@ class PipelineBuilder {
   using ShaderInfo = std::pair<VkShaderStageFlagBits, std::string>;
   using ShaderModule = std::pair<VkShaderStageFlagBits, VkShaderModule>;
 
-  std::shared_ptr<Context> context;
-  VkPipelineInputAssemblyStateCreateInfo input_assembly_info;
-  VkPipelineRasterizationStateCreateInfo rasterizer_info;
-  VkPipelineMultisampleStateCreateInfo multisample_info;
-  VkPipelineDepthStencilStateCreateInfo depth_stencil_info;
-  VkPipelineColorBlendAttachmentState color_blend_attachment;
-  VkPipelineColorBlendStateCreateInfo color_blend_info;
-  VkPipelineDynamicStateCreateInfo dynamic_state_info;
-  absl::optional<VkPipelineVertexInputStateCreateInfo> vertex_input_info;
-  absl::optional<VkPipelineLayoutCreateInfo> layout_info;
-  absl::optional<VkViewport> viewport;
-  absl::optional<VkRect2D> scissor;
-  std::vector<VkVertexInputBindingDescription> binding_descriptions;
-  std::vector<VkVertexInputAttributeDescription> attribute_descriptions;
-  std::vector<VkDescriptorSetLayout> descriptor_layouts;
-  std::vector<VkPushConstantRange> push_constant_ranges;
-  std::vector<ShaderModule> shader_modules;
-
   PipelineBuilder() = default;
 
   // This class is neither copyable nor movable
@@ -116,6 +98,24 @@ class PipelineBuilder {
 
   // Build() can be called multiple times.
   std::unique_ptr<Pipeline> Build();
+
+  std::shared_ptr<Context> context;
+  VkPipelineInputAssemblyStateCreateInfo input_assembly_info;
+  VkPipelineRasterizationStateCreateInfo rasterizer_info;
+  VkPipelineMultisampleStateCreateInfo multisample_info;
+  VkPipelineDepthStencilStateCreateInfo depth_stencil_info;
+  VkPipelineColorBlendAttachmentState color_blend_attachment;
+  VkPipelineColorBlendStateCreateInfo color_blend_info;
+  VkPipelineDynamicStateCreateInfo dynamic_state_info;
+  absl::optional<VkPipelineVertexInputStateCreateInfo> vertex_input_info;
+  absl::optional<VkPipelineLayoutCreateInfo> layout_info;
+  absl::optional<VkViewport> viewport;
+  absl::optional<VkRect2D> scissor;
+  std::vector<VkVertexInputBindingDescription> binding_descriptions;
+  std::vector<VkVertexInputAttributeDescription> attribute_descriptions;
+  std::vector<VkDescriptorSetLayout> descriptor_layouts;
+  std::vector<VkPushConstantRange> push_constant_ranges;
+  std::vector<ShaderModule> shader_modules;
 };
 
 } /* namespace vulkan */

@@ -11,8 +11,8 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <unordered_map>
 
+#include "absl/container/flat_hash_map.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 // import GLFW after Vulkan
@@ -82,7 +82,7 @@ class GlfwWindow : public Window {
 
  private:
   GLFWwindow* window_ = nullptr;
-  std::unordered_map<int, std::function<void()>> key_callbacks_;
+  absl::flat_hash_map<int, std::function<void()>> key_callbacks_;
 };
 
 } /* namespace common */

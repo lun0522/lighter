@@ -18,11 +18,11 @@ void Context::Init(const std::string& name, int width, int height) {
 #ifdef DEBUG
     // relay debug messages back to application
     callback_.Init(ptr(),
-                   MessageSeverity::kWarning
-                       | MessageSeverity::kError,
-                   MessageType::kGeneral
-                       | MessageType::kValidation
-                       | MessageType::kPerformance);
+                   message_severity::kWarning
+                       | message_severity::kError,
+                   message_type::kGeneral
+                       | message_type::kValidation
+                       | message_type::kPerformance);
 #endif /* DEBUG */
     surface_.Init(ptr());
     physical_device_.Init(ptr());

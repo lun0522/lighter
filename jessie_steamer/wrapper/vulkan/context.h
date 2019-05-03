@@ -31,13 +31,14 @@ class Context : public std::enable_shared_from_this<Context> {
     return std::shared_ptr<Context>{new Context{}};
   }
   Context() = default;
-  void Init(const std::string& name = "", int width = 800, int height = 600);
-  void Recreate();
-  void WaitIdle() const { vkDeviceWaitIdle(*device_); }
 
   // This class is neither copyable nor movable
   Context(const Context&) = delete;
   Context& operator=(const Context&) = delete;
+
+  void Init(const std::string& name = "", int width = 800, int height = 600);
+  void Recreate();
+  void WaitIdle() const { vkDeviceWaitIdle(*device_); }
 
   std::shared_ptr<Context> ptr()                  { return shared_from_this(); }
   common::Window& window()                        { return window_; }
@@ -65,6 +66,8 @@ class Context : public std::enable_shared_from_this<Context> {
   }
 
  private:
+  void Cleanup();
+
   bool is_first_time_ = true;
   common::GlfwWindow window_;
   VkAllocationCallbacks* allocator_ = nullptr;
@@ -78,8 +81,6 @@ class Context : public std::enable_shared_from_this<Context> {
 #ifdef DEBUG
   DebugCallback callback_;
 #endif /* DEBUG */
-
-  void Cleanup();
 };
 
 } /* namespace vulkan */

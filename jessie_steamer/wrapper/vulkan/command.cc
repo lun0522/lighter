@@ -81,6 +81,23 @@ vector<VkCommandBuffer> CreateCommandBuffers(const SharedContext& context,
 
 } /* namespace */
 
+void Command::Init(const SharedContext& context,
+                   size_t num_frame,
+                   const command::MultiTimeRecordCommand& on_record) {
+  if (is_first_time_) {
+    context_ = context;
+    command_pool_ = CreateCommandPool(
+        context_, context_->queues().graphics, false);
+    image_available_semas_.Init(context_, num_frame);
+    render_finished_semas_.Init(context_, num_frame);
+    in_flight_fences_.Init(context_, num_frame, true);
+    is_first_time_ = false;
+  }
+  command_buffers_ = CreateCommandBuffers(
+      context_, command_pool_, context_->swapchain().size());
+  RecordCommand(on_record);
+}
+
 void command::OneTimeCommand(const SharedContext& context,
                              const Queues::Queue& queue,
                              const OneTimeRecordCommand& on_record) {
@@ -222,23 +239,6 @@ VkResult Command::DrawFrame(size_t current_frame,
   }
 
   return VK_SUCCESS;
-}
-
-void Command::Init(const SharedContext& context,
-                   size_t num_frame,
-                   const command::MultiTimeRecordCommand& on_record) {
-  if (is_first_time_) {
-    context_ = context;
-    command_pool_ = CreateCommandPool(
-        context_, context_->queues().graphics, false);
-    image_available_semas_.Init(context_, num_frame);
-    render_finished_semas_.Init(context_, num_frame);
-    in_flight_fences_.Init(context_, num_frame, true);
-    is_first_time_ = false;
-  }
-  command_buffers_ = CreateCommandBuffers(
-      context_, command_pool_, context_->swapchain().size());
-  RecordCommand(on_record);
 }
 
 void Command::Cleanup() {

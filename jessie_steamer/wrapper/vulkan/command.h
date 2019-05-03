@@ -57,19 +57,22 @@ void OneTimeCommand(const std::shared_ptr<Context>& context,
 class Command {
  public:
   Command() = default;
-  VkResult DrawFrame(size_t current_frame,
-                     const command::UpdateDataFunc& update_data);
+  ~Command();
+
   void Init(const std::shared_ptr<Context>& context,
             size_t num_frame,
             const command::MultiTimeRecordCommand& on_record);
+  VkResult DrawFrame(size_t current_frame,
+                     const command::UpdateDataFunc& update_data);
   void Cleanup();
-  ~Command();
 
   // This class is neither copyable nor movable
   Command(const Command&) = delete;
   Command& operator=(const Command&) = delete;
 
  private:
+  void RecordCommand(const command::MultiTimeRecordCommand& on_record);
+
   std::shared_ptr<Context> context_;
   bool is_first_time_ = true;
   Semaphores image_available_semas_;
@@ -77,8 +80,6 @@ class Command {
   Fences in_flight_fences_;
   VkCommandPool command_pool_;
   std::vector<VkCommandBuffer> command_buffers_;
-
-  void RecordCommand(const command::MultiTimeRecordCommand& on_record);
 };
 
 } /* namespace vulkan */

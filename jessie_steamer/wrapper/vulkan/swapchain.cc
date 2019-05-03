@@ -10,8 +10,8 @@
 #include <algorithm>
 #include <iostream>
 #include <string>
-#include <unordered_set>
 
+#include "absl/container/flat_hash_set.h"
 #include "absl/memory/memory.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
@@ -185,7 +185,7 @@ void Swapchain::Init(const SharedContext& context) {
   };
 
   // graphics queue and present queue might be the same
-  std::unordered_set<uint32_t> queue_families{
+  absl::flat_hash_set<uint32_t> queue_families{
       context_->queues().graphics.family_index,
       context_->queues().present.family_index,
   };

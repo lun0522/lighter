@@ -158,6 +158,7 @@ void RenderPass::Init(const SharedContext& context) {
 }
 
 void RenderPass::Cleanup() {
+  depth_stencil_.Cleanup();
   for (const auto& framebuffer : framebuffers_) {
     vkDestroyFramebuffer(*context_->device(), framebuffer,
                          context_->allocator());

@@ -28,13 +28,14 @@ class Context;
 class Semaphores {
  public:
   Semaphores() = default;
-  void Init(const std::shared_ptr<Context>& context,
-            size_t count);
   ~Semaphores();
 
   // This class is neither copyable nor movable
   Semaphores(const Semaphores&) = delete;
   Semaphores& operator=(const Semaphores&) = delete;
+
+  void Init(const std::shared_ptr<Context>& context,
+            size_t count);
 
   const VkSemaphore& operator[](size_t index) const { return semas_[index]; }
 
@@ -46,14 +47,15 @@ class Semaphores {
 class Fences {
  public:
   Fences() = default;
-  void Init(const std::shared_ptr<Context>& context,
-            size_t count,
-            bool is_signaled);
   ~Fences();
 
   // This class is neither copyable nor movable
   Fences(const Fences&) = delete;
   Fences& operator=(const Fences&) = delete;
+
+  void Init(const std::shared_ptr<Context>& context,
+            size_t count,
+            bool is_signaled);
 
   const VkFence& operator[](size_t index) const { return fences_[index]; }
 
