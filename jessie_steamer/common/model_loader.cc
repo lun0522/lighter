@@ -26,16 +26,16 @@ using std::vector;
 } /* namespace */
 
 ModelLoader::ModelLoader(const string& obj_path,
-                         const string& tex_path,
-                         bool is_left_handed) {
+                         const string& tex_path) {
   // other useful options:
   // - aiProcess_GenNormals: create normal for vertices
   // - aiProcess_SplitLargeMeshes: split mesh when the number of triangles
   //                               that can be rendered at a time is limited
   // - aiProcess_OptimizeMeshes: do the reverse of splitting, merge meshes to
   //                             reduce drawing calls
-  unsigned int flags = aiProcess_Triangulate | aiProcess_GenNormals;
-  flags |= is_left_handed ? aiProcess_ConvertToLeftHanded : 0;
+  unsigned int flags = aiProcess_PreTransformVertices
+                           | aiProcess_Triangulate
+                           | aiProcess_GenNormals;
 
   Assimp::Importer importer;
    auto* scene = importer.ReadFile(obj_path, flags);

@@ -86,7 +86,7 @@ class PipelineBuilder {
   PipelineBuilder& set_layout(
       const std::vector<VkDescriptorSetLayout>& descriptor_layouts,
       PushConstants* push_constants);
-  PipelineBuilder& set_viewport(const VkViewport& viewport);
+  PipelineBuilder& set_viewport(VkViewport viewport);
   PipelineBuilder& set_scissor(const VkRect2D& scissor);
 
   // To save memory, shader modules will be released after a pipeline is built,

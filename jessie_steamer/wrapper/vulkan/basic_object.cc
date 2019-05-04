@@ -208,6 +208,10 @@ void Device::Init(const SharedContext& context) {
   VkPhysicalDeviceFeatures enabled_features{};
   enabled_features.samplerAnisotropy = VK_TRUE;
 
+  // request negative-height viewport support
+  auto enabled_extensions = kSwapChainExtensions;
+  enabled_extensions.emplace_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+
   // graphics queue and present queue might be the same
   const Queues& queues = context_->queues();
   absl::flat_hash_set<uint32_t> queue_families{
@@ -243,9 +247,8 @@ void Device::Init(const SharedContext& context) {
       /*enabledLayerCount=*/0,
       /*ppEnabledLayerNames=*/nullptr,
 #endif /* DEBUG */
-      // enabled extensions
-      CONTAINER_SIZE(kSwapChainExtensions),
-      kSwapChainExtensions.data(),
+      CONTAINER_SIZE(enabled_extensions),
+      enabled_extensions.data(),
       &enabled_features,
   };
 

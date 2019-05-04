@@ -16,38 +16,46 @@ namespace common {
 
 class Camera {
  public:
-  explicit Camera(const glm::vec3& position = {0.0f, 0.0f, 0.0f},
-                  const glm::vec3& front = {0.0f, 0.0f, -1.0f},
-                  const glm::vec3& up = {0.0f, 1.0f, 0.0f},
-                  float fov = 45.0f,
-                  float near = 0.1f,
-                  float far = 100.0f,
-                  float yaw = -90.0f,
-                  float pitch = 0.0f,
-                  float sensitivity = 0.05f);
+  struct Config {
+    glm::vec3 up{0.0f, 1.0f, 0.0f};
+    glm::vec3 pos{0.0f, 0.0f, -1.0f};
+    glm::vec3 look_at{0.0f, 0.0f, 0.0f};
+    float fov = 45.0f;
+    float near = 0.1f;
+    float far = 100.0f;
+    float move_speed = 10.0f;
+    float turn_speed = 0.001f;
+  };
+
+  Camera() = default;
 
   // This class is neither copyable nor movable
   Camera(const Camera&) = delete;
   Camera& operator=(const Camera&) = delete;
 
-  void Init(const glm::ivec2& screen_size, const glm::dvec2& cursor_pos);
+  void Init(const Config& config);
+  void Calibrate(const glm::ivec2& screen_size,
+                 const glm::dvec2& cursor_pos);
+  void Activate();
+  void Deactivate();
   void ProcessKey(Window::KeyMap key, float elapsed_time);
   void ProcessCursorMove(double x, double y);
   void ProcessScroll(double y, double min_val, double max_val);
 
-  const glm::vec3& position()     const { return pos_; }
-  const glm::vec3& direction()    const { return front_; }
-  const glm::mat4& view_matrix()  const { return view_; }
-  const glm::mat4& proj_matrix()  const { return proj_; }
+  const glm::vec3& position()   const { return pos_; }
+  const glm::vec3& direction()  const { return front_; }
+  const glm::mat4& view()       const { return view_; }
+  const glm::mat4& projection() const { return proj_; }
 
  private:
-  void UpdateFrontVector();
-  void UpdateRightVector();
-  void UpdateViewMatrix();
-  void UpdateProjMatrix();
+  void UpdateFront();
+  void UpdateRight();
+  void UpdateView();
+  void UpdateProj();
 
+  bool is_active_ = false;
   float fov_, near_, far_, yaw_, pitch_;
-  float sensitivity_;
+  float move_speed_, turn_speed_;
   glm::ivec2 screen_size_;
   glm::dvec2 cursor_pos_;
   glm::vec3 pos_, front_, up_, right_;

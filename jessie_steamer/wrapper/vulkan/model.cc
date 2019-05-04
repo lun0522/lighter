@@ -264,8 +264,7 @@ Model::FindBindingPoint Model::LoadSingleMesh(
 Model::FindBindingPoint Model::LoadMultiMesh(
     const MultiMeshResource& resource) {
   // load vertices and indices
-  common::ModelLoader loader{resource.obj_path, resource.tex_path,
-                             /*is_left_handed=*/true};
+  common::ModelLoader loader{resource.obj_path, resource.tex_path};
   vector<PerVertexBuffer::Info> vertex_infos;
   vertex_infos.reserve(loader.meshes().size());
   for (const auto &mesh : loader.meshes()) {

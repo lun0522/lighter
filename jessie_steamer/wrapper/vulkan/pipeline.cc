@@ -190,7 +190,11 @@ PipelineBuilder& PipelineBuilder::set_layout(
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::set_viewport(const VkViewport& viewport) {
+PipelineBuilder& PipelineBuilder::set_viewport(VkViewport viewport) {
+  // https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport
+  float height = viewport.y - viewport.height;
+  viewport.y += viewport.height;
+  viewport.height = height;
   this->viewport = viewport;
   return *this;
 }

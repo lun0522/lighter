@@ -112,7 +112,6 @@ void CubeApp::Init() {
 void CubeApp::UpdateData(size_t frame_index,
                          float screen_aspect) {
   const float elapsed_time = timer_.time_from_launch();
-
   glm::mat4 model = glm::rotate(glm::mat4{1.0f},
                                 elapsed_time * glm::radians(90.0f),
                                 glm::vec3{1.0f, 1.0f, 0.0f});
@@ -120,8 +119,6 @@ void CubeApp::UpdateData(size_t frame_index,
                                glm::vec3{0.0f, 0.0f, 1.0f});
   glm::mat4 proj = glm::perspective(glm::radians(45.0f),
                                     screen_aspect, 0.1f, 100.0f);
-  // no need to flip Y-axis as OpenGL
-  proj[1][1] *= -1;
   uniform_buffer_.data<Transformation>(frame_index)->proj_view_model =
       proj * view * model;
 }

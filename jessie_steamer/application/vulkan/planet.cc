@@ -64,9 +64,7 @@ struct Asteroid {
 
 class PlanetApp {
  public:
-  PlanetApp()
-    : context_{Context::CreateContext()},
-      camera_{/*position=*/glm::vec3{0.0f, 0.0f, 30.0f}} {
+  PlanetApp() : context_{Context::CreateContext()} {
     context_->Init("Planet");
   };
   void MainLoop();
@@ -102,6 +100,11 @@ void PlanetApp::Init() {
                                [this]() { should_quit_ = true; });
 
     // camera
+    common::Camera::Config config;
+    config.pos = glm::vec3{-1.0f, -4.5f, -5.5f};
+    config.look_at = glm::vec3{-2.0f, -1.2f, 0.0f};
+    camera_.Init(config);
+
     window.RegisterCursorMoveCallback([this](double x_pos, double y_pos) {
       camera_.ProcessCursorMove(x_pos, y_pos);
     });
@@ -235,8 +238,8 @@ void PlanetApp::Init() {
                      /*is_opaque=*/true);
 
   // camera
-  camera_.Init(context_->window().screen_size(),
-               context_->window().cursor_pos());
+  camera_.Calibrate(context_->window().screen_size(),
+                    context_->window().cursor_pos());
 
   // command
   command_.Init(context_, kNumFrameInFlight);
@@ -284,17 +287,14 @@ void PlanetApp::UpdateData(size_t frame_index) {
   glm::mat4 model{1.0f};
   model = glm::rotate(model, elapsed_time * glm::radians(5.0f),
                       glm::vec3{0.0f, 1.0f, 0.0f});
-
-  glm::mat4 view = camera_.view_matrix();
-  glm::mat4 proj = camera_.proj_matrix();
-  // no need to flip Y-axis as OpenGL
-  proj[1][1] *= -1;
+  glm::mat4 view = camera_.view();
+  glm::mat4 proj = camera_.projection();
 
   auto* trans = trans_uniform_.data<Transformation>(frame_index);
   trans->model = model;
   trans->proj_view = proj * view;
 
-  glm::vec3 light_dir{glm::sin(elapsed_time * 0.6f), -0.7f,
+  glm::vec3 light_dir{glm::sin(elapsed_time * 0.6f), -0.3f,
                       glm::cos(elapsed_time * 0.6f)};
   light_uniform_.data<Light>(frame_index)->direction_time =
       glm::vec4{light_dir, elapsed_time};
@@ -362,6 +362,7 @@ void PlanetApp::MainLoop() {
 
     current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
     window.PollEvents();
+    camera_.Activate();  // not activated until first frame is displayed
     const auto frame_rate = timer_.frame_rate();
     if (frame_rate.has_value()) {
       std::cout << "Frame per second: " << frame_rate.value() << std::endl;
