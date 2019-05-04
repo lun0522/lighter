@@ -20,6 +20,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/types/optional.h"
 #include "third_party/freetype/ft2build.h"
 #include FT_FREETYPE_H
 #include "third_party/glm/glm.hpp"
@@ -44,13 +45,49 @@ namespace jessie_steamer {
 namespace common {
 namespace util {
 
-using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
-
 const uint32_t nullflag = 0;
 
-TimePoint Now();
+class Timer {
+ public:
+  Timer() : frame_count_{0} {
+    launch_time_ = last_second_time_ = last_frame_time_ = Now();
+  }
 
-float TimeInterval(const TimePoint& t1, const TimePoint& t2);
+  absl::optional<size_t> frame_rate() {
+    ++frame_count_;
+    last_frame_time_ = Now();
+    absl::optional<size_t> ret = absl::nullopt;
+    if (TimeInterval(last_second_time_, last_frame_time_) >= 1.0f) {
+      last_second_time_ = last_frame_time_;
+      ret = absl::make_optional<size_t>(frame_count_);
+      frame_count_ = 0;
+    }
+    return ret;
+  }
+
+  float time_from_launch() const {
+    return TimeInterval(launch_time_, Now());
+  }
+
+  float time_from_last_frame() const {
+    return TimeInterval(last_frame_time_, Now());
+  }
+
+ private:
+  using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
+
+  static TimePoint Now() { return std::chrono::high_resolution_clock::now(); }
+
+  static float TimeInterval(const TimePoint& t1, const TimePoint& t2) {
+    return std::chrono::duration<
+        float, std::chrono::seconds::period>(t2 - t1).count();
+  }
+
+  TimePoint launch_time_;
+  TimePoint last_second_time_;
+  TimePoint last_frame_time_;
+  size_t frame_count_;
+};
 
 template <typename AttribType>
 std::vector<AttribType> QueryAttribute(
@@ -117,23 +154,23 @@ struct FileContent {
 std::unique_ptr<FileContent> LoadRawDataFromFile(const std::string& path);
 
 struct VertexAttrib2D {
-  glm::vec2 pos;
-  glm::vec2 tex_coord;
-
   VertexAttrib2D(const glm::vec2& pos,
                  const glm::vec2& tex_coord)
    : pos{pos}, tex_coord{tex_coord} {}
+
+  glm::vec2 pos;
+  glm::vec2 tex_coord;
 };
 
 struct VertexAttrib3D {
-  glm::vec3 pos;
-  glm::vec3 norm;
-  glm::vec2 tex_coord;
-
   VertexAttrib3D(const glm::vec3& pos,
                  const glm::vec3& norm,
                  const glm::vec2& tex_coord)
       : pos{pos}, norm{norm}, tex_coord{tex_coord} {}
+
+  glm::vec3 pos;
+  glm::vec3 norm;
+  glm::vec2 tex_coord;
 };
 
 void LoadObjFromFile(const std::string& path,
@@ -153,11 +190,12 @@ class CharLib {
   CharLib(const std::vector<std::string>& texts,
           const std::string& font_path,
           glm::uvec2 font_size);
-  ~CharLib();
 
   // This class is neither copyable nor movable
   CharLib(const CharLib&) = delete;
   CharLib& operator=(const CharLib&) = delete;
+
+  ~CharLib();
 
   const Character& operator[](char c) { return chars_[c]; }
 
@@ -168,17 +206,18 @@ class CharLib {
 };
 
 struct Image {
-  int width;
-  int height;
-  int channel;
-  const void* data;
-
   explicit Image(const std::string& path);
-  ~Image();
 
   // This class is neither copyable nor movable
   Image(const Image&) = delete;
   Image& operator=(const Image&) = delete;
+
+  ~Image();
+
+  int width;
+  int height;
+  int channel;
+  const void* data;
 };
 
 } /* namespace util */

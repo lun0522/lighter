@@ -52,11 +52,12 @@ class Swapchain {
                                   const VkPhysicalDevice& physical_device);
 
   Swapchain() = default;
-  ~Swapchain() { Cleanup(); }
 
   // This class is neither copyable nor movable
   Swapchain(const Swapchain&) = delete;
   Swapchain& operator=(const Swapchain&) = delete;
+
+  ~Swapchain() { Cleanup(); }
 
   void Init(const std::shared_ptr<Context>& context);
   void Cleanup();

@@ -45,11 +45,12 @@ enum Type {
 class DebugCallback {
  public:
   DebugCallback() = default;
-  ~DebugCallback();
 
   // This class is neither copyable nor movable
   DebugCallback(const DebugCallback&) = delete;
   DebugCallback& operator=(const DebugCallback&) = delete;
+
+  ~DebugCallback();
 
   void Init(const std::shared_ptr<Context>& context,
             VkDebugUtilsMessageSeverityFlagsEXT message_severity,

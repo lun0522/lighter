@@ -61,6 +61,13 @@ class Window {
 class GlfwWindow : public Window {
  public:
   GlfwWindow() = default;
+
+  // This class is neither copyable nor movable
+  GlfwWindow(const GlfwWindow&) = delete;
+  GlfwWindow& operator=(const GlfwWindow&) = delete;
+
+  ~GlfwWindow() override;
+
   void Init(const std::string& name, glm::ivec2 screen_size) override;
   VkSurfaceKHR CreateSurface(const VkInstance& instance,
                              const VkAllocationCallbacks* allocator) override;
@@ -71,11 +78,6 @@ class GlfwWindow : public Window {
   void PollEvents() override;
   bool ShouldQuit() const override { return glfwWindowShouldClose(window_); }
   bool IsMinimized() const override;
-  ~GlfwWindow() override;
-
-  // This class is neither copyable nor movable
-  GlfwWindow(const GlfwWindow&) = delete;
-  GlfwWindow& operator=(const GlfwWindow&) = delete;
 
   glm::ivec2 screen_size() const override;
   glm::dvec2 cursor_pos() const override;

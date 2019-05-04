@@ -87,6 +87,11 @@ class PerVertexBuffer : public VertexBuffer {
   };
 
   PerVertexBuffer() = default;
+
+  // This class is neither copyable nor movable
+  PerVertexBuffer(const PerVertexBuffer&) = delete;
+  PerVertexBuffer& operator=(const PerVertexBuffer&) = delete;
+
   ~PerVertexBuffer() override = default;
 
   void Init(const std::shared_ptr<Context>& context,
@@ -94,10 +99,6 @@ class PerVertexBuffer : public VertexBuffer {
   void Draw(const VkCommandBuffer& command_buffer,
             size_t mesh_index,
             uint32_t instance_count) const;
-
-  // This class is neither copyable nor movable
-  PerVertexBuffer(const PerVertexBuffer&) = delete;
-  PerVertexBuffer& operator=(const PerVertexBuffer&) = delete;
 
  private:
   struct MeshData {
@@ -111,16 +112,17 @@ class PerVertexBuffer : public VertexBuffer {
 class PerInstanceBuffer : public VertexBuffer {
  public:
   PerInstanceBuffer() = default;
+
+  // This class is neither copyable nor movable
+  PerInstanceBuffer(const PerInstanceBuffer&) = delete;
+  PerInstanceBuffer& operator=(const PerInstanceBuffer&) = delete;
+
   ~PerInstanceBuffer() override = default;
 
   void Init(const std::shared_ptr<Context>& context,
             const void* data,
             size_t data_size);
   void Bind(const VkCommandBuffer& command_buffer);
-
-  // This class is neither copyable nor movable
-  PerInstanceBuffer(const PerInstanceBuffer&) = delete;
-  PerInstanceBuffer& operator=(const PerInstanceBuffer&) = delete;
 };
 
 class UniformBuffer {
@@ -131,11 +133,12 @@ class UniformBuffer {
   };
 
   UniformBuffer() = default;
-  ~UniformBuffer();
 
   // This class is neither copyable nor movable
   UniformBuffer(const UniformBuffer&) = delete;
   UniformBuffer& operator=(const UniformBuffer&) = delete;
+
+  ~UniformBuffer();
 
   void Init(const std::shared_ptr<Context>& context,
             const Info& info);
@@ -159,25 +162,26 @@ class UniformBuffer {
 class TextureBuffer {
  public:
   struct Info{
+    VkExtent3D extent() const { return {width, height, /*depth=*/1}; }
+    VkDeviceSize data_size() const {
+      return datas.size() * width * height * channel;
+    }
+
     bool is_cubemap;
     std::vector<const void*> datas;
     VkFormat format;
     uint32_t width;
     uint32_t height;
     uint32_t channel;
-
-    VkExtent3D extent() const { return {width, height, /*depth=*/1}; }
-    VkDeviceSize data_size() const {
-      return datas.size() * width * height * channel;
-    }
   };
 
   TextureBuffer() = default;
-  ~TextureBuffer();
 
   // This class is neither copyable nor movable
   TextureBuffer(const TextureBuffer&) = delete;
   TextureBuffer& operator=(const TextureBuffer&) = delete;
+
+  ~TextureBuffer();
 
   void Init(const std::shared_ptr<Context>& context,
             const Info& info);
@@ -193,11 +197,12 @@ class TextureBuffer {
 class DepthStencilBuffer {
  public:
   DepthStencilBuffer() = default;
-  ~DepthStencilBuffer() { Cleanup(); }
 
   // This class is neither copyable nor movable
   DepthStencilBuffer(const DepthStencilBuffer&) = delete;
   DepthStencilBuffer& operator=(const DepthStencilBuffer&) = delete;
+
+  ~DepthStencilBuffer() { Cleanup(); }
 
   void Init(const std::shared_ptr<Context>& context,
             VkExtent2D extent);
@@ -220,11 +225,12 @@ struct PushConstants {
   };
 
   PushConstants() = default;
-  ~PushConstants();
 
   // This class is neither copyable nor movable.
   PushConstants(const PushConstants&) = delete;
   PushConstants& operator=(const PushConstants&) = delete;
+
+  ~PushConstants();
 
   void Init(const std::shared_ptr<Context>& context,
             VkShaderStageFlags shader_stage,

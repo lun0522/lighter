@@ -28,11 +28,12 @@ class Context;
 class Semaphores {
  public:
   Semaphores() = default;
-  ~Semaphores();
 
   // This class is neither copyable nor movable
   Semaphores(const Semaphores&) = delete;
   Semaphores& operator=(const Semaphores&) = delete;
+
+  ~Semaphores();
 
   void Init(const std::shared_ptr<Context>& context,
             size_t count);
@@ -47,11 +48,12 @@ class Semaphores {
 class Fences {
  public:
   Fences() = default;
-  ~Fences();
 
   // This class is neither copyable nor movable
   Fences(const Fences&) = delete;
   Fences& operator=(const Fences&) = delete;
+
+  ~Fences();
 
   void Init(const std::shared_ptr<Context>& context,
             size_t count,

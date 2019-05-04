@@ -31,8 +31,6 @@ class ModelLoader {
       kTypeReflection,
       kTypeMaxEnum,
     };
-    std::unique_ptr<util::Image> image;
-    Type type;
 
     Texture(const std::string& path, Type type)
         : image{absl::make_unique<util::Image>(path)}, type{type} {}
@@ -40,18 +38,21 @@ class ModelLoader {
     // This class is neither copyable nor movable
     Texture(const Texture&) = delete;
     Texture& operator=(const Texture&) = delete;
+
+    std::unique_ptr<util::Image> image;
+    Type type;
   };
 
   struct Mesh {
-    std::vector<util::VertexAttrib3D> vertices;
-    std::vector<unsigned int> indices;
-    std::vector<std::unique_ptr<Texture>> textures;
-
     Mesh() = default;
 
     // This class is neither copyable nor movable
     Mesh(const Mesh&) = delete;
     Mesh& operator=(const Mesh&) = delete;
+
+    std::vector<util::VertexAttrib3D> vertices;
+    std::vector<unsigned int> indices;
+    std::vector<std::unique_ptr<Texture>> textures;
   };
 
   ModelLoader(const std::string& obj_path,
@@ -65,8 +66,6 @@ class ModelLoader {
   std::vector<std::unique_ptr<Mesh>>& meshes() { return meshes_; }
 
  private:
-  std::vector<std::unique_ptr<Mesh>> meshes_;
-
   void ProcessNode(const std::string& directory,
                    const aiNode* node,
                    const aiScene* scene);
@@ -77,6 +76,8 @@ class ModelLoader {
                     const aiMaterial* material,
                     ModelLoader::Texture::Type type,
                     std::vector<std::unique_ptr<Texture>>* textures);
+
+  std::vector<std::unique_ptr<Mesh>> meshes_;
 };
 
 } /* namespace common */

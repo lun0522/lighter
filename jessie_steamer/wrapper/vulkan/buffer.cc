@@ -192,7 +192,7 @@ void TransitionImageLayout(const SharedContext& context,
   const Queues::Queue transfer_queue = context->queues().transfer;
 
   // one-time transition command
-  command::OneTimeCommand(context, transfer_queue,
+  Command::OneTimeCommand(context, transfer_queue,
                           [&](const VkCommandBuffer& command_buffer) {
         VkImageMemoryBarrier barrier{
             VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -257,7 +257,7 @@ void CopyBufferToBuffer(const SharedContext& context,
                         const VkBuffer& src_buffer,
                         const VkBuffer& dst_buffer) {
   // one-time copy command
-  command::OneTimeCommand(context, context->queues().transfer,
+  Command::OneTimeCommand(context, context->queues().transfer,
                           [&](const VkCommandBuffer& command_buffer) {
         VkBufferCopy region{
             /*srcOffset=*/0,
@@ -276,7 +276,7 @@ void CopyBufferToImage(const SharedContext& context,
                        VkImageLayout image_layout,
                        uint32_t layer_count) {
   // one-time copy command
-  command::OneTimeCommand(context, context->queues().transfer,
+  Command::OneTimeCommand(context, context->queues().transfer,
                           [&](const VkCommandBuffer& command_buffer) {
         VkBufferImageCopy region{
             // first three parameters specify pixels layout in buffer

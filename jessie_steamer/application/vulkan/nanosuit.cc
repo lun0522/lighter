@@ -66,7 +66,7 @@ class NanosuitApp {
   bool should_quit_ = false;
   bool is_first_time = true;
   size_t current_frame_ = 0;
-  util::TimePoint last_time_;
+  util::Timer timer_;
   std::shared_ptr<Context> context_;
   common::Camera camera_;
   Command command_;
@@ -93,20 +93,16 @@ void NanosuitApp::Init() {
       camera_.ProcessScroll(y_pos, 1.0f, 60.0f);
     });
     window.RegisterKeyCallback(KeyMap::kUp, [this]() {
-      camera_.ProcessKey(KeyMap::kUp,
-                         util::TimeInterval(last_time_, util::Now()));
+      camera_.ProcessKey(KeyMap::kUp, timer_.time_from_last_frame());
     });
     window.RegisterKeyCallback(KeyMap::kDown, [this]() {
-      camera_.ProcessKey(KeyMap::kDown,
-                         util::TimeInterval(last_time_, util::Now()));
+      camera_.ProcessKey(KeyMap::kDown, timer_.time_from_last_frame());
     });
     window.RegisterKeyCallback(KeyMap::kLeft, [this]() {
-      camera_.ProcessKey(KeyMap::kLeft,
-                         util::TimeInterval(last_time_, util::Now()));
+      camera_.ProcessKey(KeyMap::kLeft, timer_.time_from_last_frame());
     });
     window.RegisterKeyCallback(KeyMap::kRight, [this]() {
-      camera_.ProcessKey(KeyMap::kRight,
-                         util::TimeInterval(last_time_, util::Now()));
+      camera_.ProcessKey(KeyMap::kRight, timer_.time_from_last_frame());
     });
 
     // uniform buffer
@@ -141,9 +137,9 @@ void NanosuitApp::Init() {
   };
   nanosuit_model_.Init(context_,
                        {{VK_SHADER_STAGE_VERTEX_BIT,
-                         "jessie_steamer/shader/compiled/nanosuit.vert.spv"},
+                         "jessie_steamer/shader/vulkan/nanosuit.vert.spv"},
                         {VK_SHADER_STAGE_FRAGMENT_BIT,
-                         "jessie_steamer/shader/compiled/nanosuit.frag.spv"}},
+                         "jessie_steamer/shader/vulkan/nanosuit.frag.spv"}},
                        Model::MultiMeshResource{
                            "jessie_steamer/resource/model/nanosuit/"
                            "nanosuit.obj",
@@ -169,9 +165,9 @@ void NanosuitApp::Init() {
   };
   skybox_model_.Init(context_,
                      {{VK_SHADER_STAGE_VERTEX_BIT,
-                       "jessie_steamer/shader/compiled/skybox.vert.spv"},
+                       "jessie_steamer/shader/vulkan/skybox.vert.spv"},
                       {VK_SHADER_STAGE_FRAGMENT_BIT,
-                       "jessie_steamer/shader/compiled/skybox.frag.spv"}},
+                       "jessie_steamer/shader/vulkan/skybox.frag.spv"}},
                      Model::SingleMeshResource{
                          "jessie_steamer/resource/model/skybox.obj",
                          /*obj_index_base=*/1, skybox_bindings},
@@ -181,53 +177,16 @@ void NanosuitApp::Init() {
                      /*push_constants=*/nullptr, kNumFrameInFlight,
                      /*is_opaque=*/true);
 
-  // time
-  last_time_ = util::Now();
-
   // camera
   camera_.Init(context_->window().screen_size(),
                context_->window().cursor_pos());
 
   // command
-  command_.Init(context_, kNumFrameInFlight,
-                [&](const VkCommandBuffer& command_buffer, size_t image_index) {
-    // start render pass
-    std::array<VkClearValue, 2> clear_values{};
-    clear_values[0].color.float32[0] = 0.0f;
-    clear_values[0].color.float32[1] = 0.0f;
-    clear_values[0].color.float32[2] = 0.0f;
-    clear_values[0].color.float32[3] = 1.0f;
-    clear_values[1].depthStencil = {1.0f, 0};  // initial depth value set to 1.0
-
-    VkRenderPassBeginInfo begin_info{
-        VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-        /*pNext=*/nullptr,
-        *context_->render_pass(),
-        context_->render_pass().framebuffer(image_index),
-        /*renderArea=*/{
-            /*offset=*/{0, 0},
-            context_->swapchain().extent(),
-        },
-        CONTAINER_SIZE(clear_values),
-        clear_values.data(),  // used for _OP_CLEAR
-    };
-
-    // record commends. options:
-    //   - VK_SUBPASS_CONTENTS_INLINE: use primary command buffer
-    //   - VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: use secondary
-    vkCmdBeginRenderPass(command_buffer, &begin_info,
-                         VK_SUBPASS_CONTENTS_INLINE);
-
-    nanosuit_model_.Draw(command_buffer, image_index, /*instance_count=*/1);
-    skybox_model_.Draw(command_buffer, image_index, /*instance_count=*/1);
-
-    vkCmdEndRenderPass(command_buffer);
-  });
+  command_.Init(context_, kNumFrameInFlight);
 }
 
 void NanosuitApp::UpdateData(size_t frame_index) {
-  static auto start_time = util::Now();
-  auto elapsed_time = util::TimeInterval(start_time, util::Now());
+  const float elapsed_time = timer_.time_from_launch();
 
   glm::mat4 model{1.0f};
   model = glm::rotate(model, elapsed_time * glm::radians(90.0f),
@@ -255,17 +214,57 @@ void NanosuitApp::MainLoop() {
     skybox_uniform_.UpdateData(frame_index);
   };
   auto& window = context_->window();
-  while (!should_quit_ && !window.ShouldQuit()) {
-    window.PollEvents();
-    last_time_ = util::Now();
 
-    if (command_.DrawFrame(current_frame_, update_data) != VK_SUCCESS) {
+  while (!should_quit_ && !window.ShouldQuit()) {
+    const auto draw_result = command_.DrawFrame(
+        current_frame_, update_data,
+        [&](const VkCommandBuffer& command_buffer, size_t image_index) {
+      // start render pass
+      std::array<VkClearValue, 2> clear_values{};
+      clear_values[0].color.float32[0] = 0.0f;
+      clear_values[0].color.float32[1] = 0.0f;
+      clear_values[0].color.float32[2] = 0.0f;
+      clear_values[0].color.float32[3] = 1.0f;
+      clear_values[1].depthStencil = {1.0f, 0};  // initial depth set to 1.0
+
+      VkRenderPassBeginInfo begin_info{
+          VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+          /*pNext=*/nullptr,
+          *context_->render_pass(),
+          context_->render_pass().framebuffer(image_index),
+          /*renderArea=*/{
+              /*offset=*/{0, 0},
+              context_->swapchain().extent(),
+          },
+          CONTAINER_SIZE(clear_values),
+          clear_values.data(),  // used for _OP_CLEAR
+      };
+
+      // record commends. options:
+      //   - VK_SUBPASS_CONTENTS_INLINE: use primary command buffer
+      //   - VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: use secondary
+      vkCmdBeginRenderPass(command_buffer, &begin_info,
+                           VK_SUBPASS_CONTENTS_INLINE);
+
+      nanosuit_model_.Draw(command_buffer, image_index, /*instance_count=*/1);
+      skybox_model_.Draw(command_buffer, image_index, /*instance_count=*/1);
+
+      vkCmdEndRenderPass(command_buffer);
+    });
+
+    if (draw_result != VK_SUCCESS) {
       context_->WaitIdle();
       Cleanup();
       context_->Recreate();
       Init();
     }
+
     current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
+    window.PollEvents();
+    const auto frame_rate = timer_.frame_rate();
+    if (frame_rate.has_value()) {
+      std::cout << "Frame per second: " << frame_rate.value() << std::endl;
+    }
   }
   context_->WaitIdle();  // wait for all async operations finish
 }

@@ -8,9 +8,12 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_TEXT_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_TEXT_H
 
+#include <memory>
 #include <string>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
+#include "jessie_steamer/wrapper/vulkan/image.h"
 #include "third_party/glm/glm.hpp"
 
 namespace jessie_steamer {
@@ -37,7 +40,14 @@ class DynamicText {
               Font font, glm::uvec2 font_size);
 
  private:
+  struct CharInfo {
+    glm::ivec2 size;
+    glm::ivec2 bearing;
+    unsigned int advance;
+    TextureImage image;
+  };
 
+  absl::flat_hash_map<char, std::unique_ptr<CharInfo>> char_info_map;
 };
 
 } /* namespace vulkan */

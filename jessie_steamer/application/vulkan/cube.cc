@@ -57,10 +57,11 @@ class CubeApp {
 
   bool is_first_time = true;
   size_t current_frame_ = 0;
+  util::Timer timer_;
   std::shared_ptr<Context> context_;
-  Command command_;
-  Model model_;
   UniformBuffer uniform_buffer_;
+  Model model_;
+  Command command_;
 };
 
 } /* namespace */
@@ -93,9 +94,9 @@ void CubeApp::Init() {
   };
   model_.Init(context_,
               {{VK_SHADER_STAGE_VERTEX_BIT,
-                "jessie_steamer/shader/compiled/simple.vert.spv"},
+                "jessie_steamer/shader/vulkan/simple.vert.spv"},
                {VK_SHADER_STAGE_FRAGMENT_BIT,
-                "jessie_steamer/shader/compiled/simple.frag.spv"}},
+                "jessie_steamer/shader/vulkan/simple.frag.spv"}},
               Model::SingleMeshResource{
                   "jessie_steamer/resource/model/cube.obj",
                   /*obj_index_base=*/1, bindings},
@@ -104,46 +105,13 @@ void CubeApp::Init() {
               /*instancing_info=*/absl::nullopt, /*push_constants=*/nullptr,
               kNumFrameInFlight, /*is_opaque=*/true);
 
-  // command
-  command_.Init(context_, kNumFrameInFlight,
-                [&](const VkCommandBuffer& command_buffer, size_t image_index) {
-    // start render pass
-    std::array<VkClearValue, 2> clear_values{};
-    clear_values[0].color.float32[0] = 0.0f;
-    clear_values[0].color.float32[1] = 0.0f;
-    clear_values[0].color.float32[2] = 0.0f;
-    clear_values[0].color.float32[3] = 1.0f;
-    clear_values[1].depthStencil = {1.0f, 0};  // initial depth value set to 1.0
-
-    VkRenderPassBeginInfo begin_info{
-        VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-        /*pNext=*/nullptr,
-        *context_->render_pass(),
-        context_->render_pass().framebuffer(image_index),
-        /*renderArea=*/{
-            /*offset=*/{0, 0},
-            context_->swapchain().extent(),
-        },
-        CONTAINER_SIZE(clear_values),
-        clear_values.data(),  // used for _OP_CLEAR
-    };
-
-    // record commends. options:
-    //   - VK_SUBPASS_CONTENTS_INLINE: use primary command buffer
-    //   - VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: use secondary
-    vkCmdBeginRenderPass(command_buffer, &begin_info,
-                         VK_SUBPASS_CONTENTS_INLINE);
-
-    model_.Draw(command_buffer, image_index, /*instance_count=*/1);
-
-    vkCmdEndRenderPass(command_buffer);
-  });
+  // command buffer
+  command_.Init(context_, kNumFrameInFlight);
 }
 
 void CubeApp::UpdateData(size_t frame_index,
                          float screen_aspect) {
-  static auto start_time = util::Now();
-  auto elapsed_time = util::TimeInterval(start_time, util::Now());
+  const float elapsed_time = timer_.time_from_launch();
 
   glm::mat4 model = glm::rotate(glm::mat4{1.0f},
                                 elapsed_time * glm::radians(90.0f),
@@ -161,22 +129,62 @@ void CubeApp::UpdateData(size_t frame_index,
 void CubeApp::MainLoop() {
   Init();
   auto& window = context_->window();
+
   while (!window.ShouldQuit()) {
-    window.PollEvents();
-    VkExtent2D extent = context_->swapchain().extent();
-    const auto update_data = [this, extent](size_t frame_index) {
+    const auto update_data = [this](size_t frame_index) {
+      const VkExtent2D extent = context_->swapchain().extent();
       UpdateData(frame_index, (float)extent.width / extent.height);
       uniform_buffer_.UpdateData(frame_index);
     };
-    if (command_.DrawFrame(current_frame_, update_data) != VK_SUCCESS ||
-        window.IsResized()) {
+    const auto draw_result = command_.DrawFrame(
+        current_frame_, update_data,
+        [&](const VkCommandBuffer& command_buffer, size_t image_index) {
+      // start render pass
+      std::array<VkClearValue, 2> clear_values{};
+      clear_values[0].color.float32[0] = 0.0f;
+      clear_values[0].color.float32[1] = 0.0f;
+      clear_values[0].color.float32[2] = 0.0f;
+      clear_values[0].color.float32[3] = 1.0f;
+      clear_values[1].depthStencil = {1.0f, 0};  // initial depth set to 1.0
+
+      VkRenderPassBeginInfo begin_info{
+          VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+          /*pNext=*/nullptr,
+          *context_->render_pass(),
+          context_->render_pass().framebuffer(image_index),
+          /*renderArea=*/{
+              /*offset=*/{0, 0},
+              context_->swapchain().extent(),
+          },
+          CONTAINER_SIZE(clear_values),
+          clear_values.data(),  // used for _OP_CLEAR
+      };
+
+      // record commends. options:
+      //   - VK_SUBPASS_CONTENTS_INLINE: use primary command buffer
+      //   - VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: use secondary
+      vkCmdBeginRenderPass(command_buffer, &begin_info,
+                           VK_SUBPASS_CONTENTS_INLINE);
+
+      model_.Draw(command_buffer, image_index, /*instance_count=*/1);
+
+      vkCmdEndRenderPass(command_buffer);
+    });
+
+    if (draw_result != VK_SUCCESS || window.IsResized()) {
       window.ResetResizedFlag();
       context_->WaitIdle();
       Cleanup();
       context_->Recreate();
       Init();
     }
+
+    const auto frame_rate = timer_.frame_rate();
+    if (frame_rate.has_value()) {
+      std::cout << "Frame per second: " << frame_rate.value() << std::endl;
+    }
     current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
+    window.PollEvents();
   }
   context_->WaitIdle();  // wait for all async operations finish
 }

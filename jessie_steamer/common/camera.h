@@ -25,14 +25,15 @@ class Camera {
                   float yaw = -90.0f,
                   float pitch = 0.0f,
                   float sensitivity = 0.05f);
-  void Init(const glm::ivec2& screen_size, const glm::dvec2& cursor_pos);
-  void ProcessKey(Window::KeyMap key, float elapsed_time);
-  void ProcessCursorMove(double x, double y);
-  void ProcessScroll(double y, double min_val, double max_val);
 
   // This class is neither copyable nor movable
   Camera(const Camera&) = delete;
   Camera& operator=(const Camera&) = delete;
+
+  void Init(const glm::ivec2& screen_size, const glm::dvec2& cursor_pos);
+  void ProcessKey(Window::KeyMap key, float elapsed_time);
+  void ProcessCursorMove(double x, double y);
+  void ProcessScroll(double y, double min_val, double max_val);
 
   const glm::vec3& position()     const { return pos_; }
   const glm::vec3& direction()    const { return front_; }
@@ -40,17 +41,17 @@ class Camera {
   const glm::mat4& proj_matrix()  const { return proj_; }
 
  private:
+  void UpdateFrontVector();
+  void UpdateRightVector();
+  void UpdateViewMatrix();
+  void UpdateProjMatrix();
+
   float fov_, near_, far_, yaw_, pitch_;
   float sensitivity_;
   glm::ivec2 screen_size_;
   glm::dvec2 cursor_pos_;
   glm::vec3 pos_, front_, up_, right_;
   glm::mat4 view_, proj_;
-
-  void UpdateFrontVector();
-  void UpdateRightVector();
-  void UpdateViewMatrix();
-  void UpdateProjMatrix();
 };
 
 } /* namespace common */

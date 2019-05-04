@@ -32,6 +32,7 @@ cc_library(
         "@lib-absl//absl/container:flat_hash_map",
         "@lib-absl//absl/container:flat_hash_set",
         "@lib-absl//absl/memory",
+        "@lib-absl//absl/types:optional",
     ],
 )
 

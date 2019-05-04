@@ -87,15 +87,16 @@ class Descriptor {
 
   Descriptor(const std::shared_ptr<Context>& context,
              const std::vector<Info>& infos);
-  ~Descriptor();
 
   // This class is neither copyable nor movable
   Descriptor(const Descriptor&) = delete;
   Descriptor& operator=(const Descriptor&) = delete;
 
+  ~Descriptor();
+
   void UpdateBufferInfos(
-    const Info& descriptor_info,
-    const std::vector<VkDescriptorBufferInfo>& buffer_infos) const;
+      const Info& descriptor_info,
+      const std::vector<VkDescriptorBufferInfo>& buffer_infos) const;
   void UpdateImageInfos(VkDescriptorType descriptor_type,
                         const ImageInfos& image_infos) const;
 

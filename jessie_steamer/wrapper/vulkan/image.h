@@ -67,11 +67,12 @@ class Context;
 class SwapChainImage {
  public:
   SwapChainImage() = default;
-  ~SwapChainImage();
 
   // This class is neither copyable nor movable
   SwapChainImage(const SwapChainImage&) = delete;
   SwapChainImage& operator=(const SwapChainImage&) = delete;
+
+  ~SwapChainImage();
 
   void Init(const std::shared_ptr<Context>& context,
             const VkImage& image,
@@ -92,11 +93,12 @@ class TextureImage {
   TextureImage(const std::shared_ptr<Context>& context,
                const std::vector<std::unique_ptr<common::util::Image>>& images)
       : context_{context} { Init(images); }
-  ~TextureImage();
 
   // This class is neither copyable nor movable
   TextureImage(const TextureImage&) = delete;
   TextureImage& operator=(const TextureImage&) = delete;
+
+  ~TextureImage();
 
   VkDescriptorImageInfo descriptor_info() const;
 
@@ -112,14 +114,16 @@ class TextureImage {
 class DepthStencilImage {
  public:
   DepthStencilImage() = default;
-  void Init(const std::shared_ptr<Context>& context,
-            VkExtent2D extent);
-  void Cleanup();
-  ~DepthStencilImage() { Cleanup(); }
 
   // This class is neither copyable nor movable
   DepthStencilImage(const DepthStencilImage&) = delete;
   DepthStencilImage& operator=(const DepthStencilImage&) = delete;
+
+  ~DepthStencilImage() { Cleanup(); }
+
+  void Init(const std::shared_ptr<Context>& context,
+            VkExtent2D extent);
+  void Cleanup();
 
   VkFormat format()               const { return buffer_.format(); }
   const VkImageView& image_view() const { return image_view_; }

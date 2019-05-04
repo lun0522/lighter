@@ -52,15 +52,6 @@ ifstream OpenFile(const string& path) {
 
 } /* namespace */
 
-TimePoint Now() {
-  return std::chrono::high_resolution_clock::now();
-}
-
-float TimeInterval(const TimePoint& t1, const TimePoint& t2) {
-  return std::chrono::duration<float, std::chrono::seconds::period>(
-      t2 - t1).count();
-}
-
 const size_t kInvalidIndex = std::numeric_limits<size_t>::max();
 
 const string& LoadTextFromFile(const string &path) {

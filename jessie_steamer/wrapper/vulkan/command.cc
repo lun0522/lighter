@@ -31,6 +31,8 @@ VkCommandPool CreateCommandPool(const SharedContext& context,
   };
   if (is_transient) {
     pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+  } else {
+    pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
   }
 
   VkCommandPool pool;
@@ -81,26 +83,9 @@ vector<VkCommandBuffer> CreateCommandBuffers(const SharedContext& context,
 
 } /* namespace */
 
-void Command::Init(const SharedContext& context,
-                   size_t num_frame,
-                   const command::MultiTimeRecordCommand& on_record) {
-  if (is_first_time_) {
-    context_ = context;
-    command_pool_ = CreateCommandPool(
-        context_, context_->queues().graphics, false);
-    image_available_semas_.Init(context_, num_frame);
-    render_finished_semas_.Init(context_, num_frame);
-    in_flight_fences_.Init(context_, num_frame, true);
-    is_first_time_ = false;
-  }
-  command_buffers_ = CreateCommandBuffers(
-      context_, command_pool_, context_->swapchain().size());
-  RecordCommand(on_record);
-}
-
-void command::OneTimeCommand(const SharedContext& context,
+void Command::OneTimeCommand(const SharedContext& context,
                              const Queues::Queue& queue,
-                             const OneTimeRecordCommand& on_record) {
+                             const OneTimeRecord& on_record) {
   // construct command pool and buffer
   VkCommandPool command_pool = CreateCommandPool(context, queue, true);
   VkCommandBuffer command_buffer = CreateCommandBuffer(context, command_pool);
@@ -135,28 +120,24 @@ void command::OneTimeCommand(const SharedContext& context,
   vkDestroyCommandPool(*context->device(), command_pool, context->allocator());
 }
 
-void Command::RecordCommand(const command::MultiTimeRecordCommand& on_record) {
-  for (size_t i = 0; i < command_buffers_.size(); ++i) {
-    // start command buffer recording
-    VkCommandBufferBeginInfo begin_info{
-        VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        /*pNext=*/nullptr,
-        /*flags=*/VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
-        /*pInheritanceInfo=*/nullptr,
-        // .pInheritanceInfo sets what to inherit from primary buffers
-        // to secondary buffers
-    };
-
-    ASSERT_SUCCESS(vkBeginCommandBuffer(command_buffers_[i], &begin_info),
-                   "Failed to begin recording command buffer");
-    on_record(command_buffers_[i], i);
-    ASSERT_SUCCESS(vkEndCommandBuffer(command_buffers_[i]),
-                   "Failed to end recording command buffer");
+void Command::Init(const SharedContext& context,
+                   size_t num_frame) {
+  if (is_first_time_) {
+    context_ = context;
+    command_pool_ = CreateCommandPool(
+        context_, context_->queues().graphics, false);
+    image_available_semas_.Init(context_, num_frame);
+    render_finished_semas_.Init(context_, num_frame);
+    in_flight_fences_.Init(context_, num_frame, true);
+    is_first_time_ = false;
   }
+  command_buffers_ = CreateCommandBuffers(
+      context_, command_pool_, context_->swapchain().size());
 }
 
 VkResult Command::DrawFrame(size_t current_frame,
-                            const command::UpdateDataFunc& update_data) {
+                            const UpdateDataFunc& update_data,
+                            const MultiTimeRecord& on_record) {
   // Action  |  Acquire image  | Submit commands |  Present image  |
   // Wait on |        -        | Image available | Render finished |
   // Signal  | Image available | Render finished |        -        |
@@ -183,9 +164,26 @@ VkResult Command::DrawFrame(size_t current_frame,
     default:
       throw std::runtime_error{"Failed to acquire swapchain image"};
   }
+  auto& command_buffer = command_buffers_[image_index];
 
   // update per-frame data
   update_data(image_index);
+
+  // record command in command buffer
+  VkCommandBufferBeginInfo begin_info{
+      VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+      /*pInheritanceInfo=*/nullptr,
+      // .pInheritanceInfo sets what to inherit from primary buffers
+      // to secondary buffers
+  };
+
+  ASSERT_SUCCESS(vkBeginCommandBuffer(command_buffer, &begin_info),
+                 "Failed to begin recording command buffer");
+  on_record(command_buffer, image_index);
+  ASSERT_SUCCESS(vkEndCommandBuffer(command_buffer),
+                 "Failed to end recording command buffer");
 
   // we have to wait only if we want to write to color attachment
   // so we actually can start running pipeline long before that image is ready
@@ -201,7 +199,7 @@ VkResult Command::DrawFrame(size_t current_frame,
       // we specify one stage for each semaphore, so no need to pass count
       wait_stages,
       /*commandBufferCount=*/1,
-      &command_buffers_[image_index],
+      &command_buffer,
       /*signalSemaphoreCount=*/1,
       &render_finished_semas_[current_frame],
   };

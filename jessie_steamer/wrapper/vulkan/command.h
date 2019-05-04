@@ -24,20 +24,6 @@ namespace vulkan {
 
 class Context;
 
-namespace command {
-
-using OneTimeRecordCommand = std::function<void(
-    const VkCommandBuffer& command_buffer)>;
-using MultiTimeRecordCommand = std::function<void(
-    const VkCommandBuffer& command_buffer, size_t image_index)>;
-using UpdateDataFunc = std::function<void (size_t image_index)>;
-
-void OneTimeCommand(const std::shared_ptr<Context>& context,
-                    const Queues::Queue& queue,
-                    const OneTimeRecordCommand& on_record);
-
-} /* namespace command */
-
 /** VkCommandPool allocates command buffer memory.
  *
  *  Initialization:
@@ -56,23 +42,32 @@ void OneTimeCommand(const std::shared_ptr<Context>& context,
  */
 class Command {
  public:
-  Command() = default;
-  ~Command();
+  using OneTimeRecord = std::function<void(
+      const VkCommandBuffer& command_buffer)>;
+  using MultiTimeRecord = std::function<void(
+      const VkCommandBuffer& command_buffer, size_t image_index)>;
+  using UpdateDataFunc = std::function<void (size_t image_index)>;
 
-  void Init(const std::shared_ptr<Context>& context,
-            size_t num_frame,
-            const command::MultiTimeRecordCommand& on_record);
-  VkResult DrawFrame(size_t current_frame,
-                     const command::UpdateDataFunc& update_data);
-  void Cleanup();
+  Command() = default;
 
   // This class is neither copyable nor movable
   Command(const Command&) = delete;
   Command& operator=(const Command&) = delete;
 
- private:
-  void RecordCommand(const command::MultiTimeRecordCommand& on_record);
+  ~Command();
 
+  static void OneTimeCommand(const std::shared_ptr<Context>& context,
+                             const Queues::Queue& queue,
+                             const OneTimeRecord& on_record);
+
+  void Init(const std::shared_ptr<Context>& context,
+            size_t num_frame);
+  VkResult DrawFrame(size_t current_frame,
+                     const UpdateDataFunc& update_data,
+                     const MultiTimeRecord& on_record);
+  void Cleanup();
+
+ private:
   std::shared_ptr<Context> context_;
   bool is_first_time_ = true;
   Semaphores image_available_semas_;

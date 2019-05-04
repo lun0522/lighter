@@ -48,11 +48,12 @@ class Pipeline {
     : context_{context},
       pipeline_{std::move(pipeline)},
       layout_{std::move(pipeline_layout)} {}
-  ~Pipeline();
 
   // This class is neither copyable nor movable
   Pipeline(const Pipeline&) = delete;
   Pipeline& operator=(const Pipeline&) = delete;
+
+  ~Pipeline();
 
   const VkPipeline& operator*()     const { return pipeline_; }
   const VkPipelineLayout& layout()  const { return layout_; }

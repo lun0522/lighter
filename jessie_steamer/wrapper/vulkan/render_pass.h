@@ -40,11 +40,12 @@ class Context;
 class RenderPass {
  public:
   RenderPass() = default;
-  ~RenderPass() { Cleanup(); }
 
   // This class is neither copyable nor movable
   RenderPass(const RenderPass&) = delete;
   RenderPass& operator=(const RenderPass&) = delete;
+
+  ~RenderPass() { Cleanup(); }
 
   void Init(const std::shared_ptr<Context>& context);
   void Cleanup();

@@ -29,11 +29,12 @@ class Context;
 class Instance {
  public:
   Instance() = default;
-  ~Instance();
 
   // This class is neither copyable nor movable
   Instance(const Instance&) = delete;
   Instance& operator=(const Instance&) = delete;
+
+  ~Instance();
 
   void Init(const std::shared_ptr<Context>& context);
 
@@ -55,11 +56,12 @@ class Instance {
 class Surface {
  public:
   Surface() = default;
-  ~Surface();
 
   // This class is neither copyable nor movable
   Surface(const Surface&) = delete;
   Surface& operator=(const Surface&) = delete;
+
+  ~Surface();
 
   void Init(const std::shared_ptr<Context>& context);
 
@@ -84,11 +86,12 @@ class Surface {
 struct PhysicalDevice {
  public:
   PhysicalDevice() = default;
-  ~PhysicalDevice() = default;  // implicitly cleaned up
 
   // This class is neither copyable nor movable
   PhysicalDevice(const PhysicalDevice&) = delete;
   PhysicalDevice& operator=(const PhysicalDevice&) = delete;
+
+  ~PhysicalDevice() = default;  // implicitly cleaned up
 
   void Init(const std::shared_ptr<Context>& context);
 
@@ -116,11 +119,12 @@ struct PhysicalDevice {
 struct Device {
  public:
   Device() = default;
-  ~Device();
 
   // This class is neither copyable nor movable
   Device(const Device&) = delete;
   Device& operator=(const Device&) = delete;
+
+  ~Device();
 
   void Init(const std::shared_ptr<Context>& context);
 
@@ -142,11 +146,12 @@ struct Queues {
   Queue graphics, transfer, present;
 
   Queues() = default;
-  ~Queues() = default;  // implicitly cleaned up with physical device
 
   // This class is neither copyable nor movable
   Queues(const Queues&) = delete;
   Queues& operator=(const Queues&) = delete;
+
+  ~Queues() = default;  // implicitly cleaned up with physical device
 
   void set_queues(const VkQueue& graphics_queue, const VkQueue& present_queue) {
     graphics.queue = graphics_queue;
