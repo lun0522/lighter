@@ -1,8 +1,16 @@
 #version 460 core
 
+#ifdef TARGET_OPENGL
 layout(binding = 0) uniform Transformation {
   mat4 proj_view_model;
 } trans;
+#endif
+
+#ifdef TARGET_VULKAN
+layout(push_constant) uniform Transformation {
+  mat4 proj_view_model;
+} trans;
+#endif
 
 layout(location = 0) in vec3 in_pos;
 layout(location = 1) in vec3 in_norm;

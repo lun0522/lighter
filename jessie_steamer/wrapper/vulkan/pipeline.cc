@@ -166,18 +166,9 @@ PipelineBuilder& PipelineBuilder::set_vertex_input(
 
 PipelineBuilder& PipelineBuilder::set_layout(
     const vector<VkDescriptorSetLayout>& descriptor_layouts,
-    PushConstants* push_constants) {
+    const vector<VkPushConstantRange>& push_constant_ranges) {
   this->descriptor_layouts = descriptor_layouts;
-  push_constant_ranges.clear();
-  if (push_constants) {
-    for (const auto& info : push_constants->infos) {
-      push_constant_ranges.emplace_back(VkPushConstantRange{
-          push_constants->shader_stage,
-          info.offset,
-          info.size,
-      });
-    }
-  }
+  this->push_constant_ranges = push_constant_ranges;
   layout_info = {
       VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       /*pNext=*/nullptr,

@@ -29,6 +29,7 @@ class ModelLoader {
       kTypeDiffuse = 0,
       kTypeSpecular,
       kTypeReflection,
+      kTypeSkybox,
       kTypeMaxEnum,
     };
 

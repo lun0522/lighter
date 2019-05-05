@@ -189,16 +189,16 @@ void PhysicalDevice::Init(const SharedContext& context) {
           static_cast<uint32_t>(indices.graphics),
           static_cast<uint32_t>(indices.present)
       );
+
+      // query device limits
+      VkPhysicalDeviceProperties properties;
+      vkGetPhysicalDeviceProperties(physical_device_, &properties);
+      limits_ = properties.limits;
+
       return;
     }
   }
   throw runtime_error{"Failed to find suitable GPU"};
-}
-
-VkPhysicalDeviceLimits PhysicalDevice::limits() const {
-  VkPhysicalDeviceProperties properties;
-  vkGetPhysicalDeviceProperties(physical_device_, &properties);
-  return properties.limits;
 }
 
 void Device::Init(const SharedContext& context) {

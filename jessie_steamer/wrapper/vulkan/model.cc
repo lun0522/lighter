@@ -11,6 +11,7 @@
 #include <stdexcept>
 
 #include "absl/memory/memory.h"
+#include "absl/strings/str_format.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
 
@@ -22,6 +23,7 @@ namespace {
 using absl::optional;
 using common::util::VertexAttrib3D;
 using std::move;
+using std::runtime_error;
 using std::string;
 using std::unique_ptr;
 using std::vector;
@@ -36,6 +38,47 @@ struct VertexInputAttribute {
   uint32_t binding_point;
   vector<Model::VertexAttribute> attributes;
 };
+
+template <typename VertexType>
+VertexInputBinding GetPerVertexBindings() {
+  return VertexInputBinding{
+      buffer::kPerVertexBindingPoint,
+      /*data_size=*/static_cast<uint32_t>(sizeof(VertexType)),
+      /*instancing=*/false,
+  };
+}
+
+template <typename VertexType>
+VertexInputAttribute GetVertexAttributes() {
+  throw runtime_error{"Vertex type not recognized"};
+}
+
+template <>
+VertexInputAttribute GetVertexAttributes<VertexAttrib3D>() {
+  return VertexInputAttribute{
+      buffer::kPerVertexBindingPoint,
+      /*attributes=*/{
+          Model::VertexAttribute{
+              /*location=*/0,
+              /*offset=*/static_cast<uint32_t>(
+                  offsetof(VertexAttrib3D, pos)),
+              /*format=*/VK_FORMAT_R32G32B32_SFLOAT,
+          },
+          Model::VertexAttribute{
+              /*location=*/1,
+              /*offset=*/static_cast<uint32_t>(
+                  offsetof(VertexAttrib3D, norm)),
+              /*format=*/VK_FORMAT_R32G32B32_SFLOAT,
+          },
+          Model::VertexAttribute{
+              /*location=*/2,
+              /*offset=*/static_cast<uint32_t>(
+                  offsetof(VertexAttrib3D, tex_coord)),
+              /*format=*/VK_FORMAT_R32G32_SFLOAT,
+          },
+      },
+  };
+}
 
 vector<VkVertexInputBindingDescription> GetBindingDescriptions(
     const vector<VertexInputBinding>& bindings) {
@@ -106,7 +149,7 @@ void CreateTextureInfo(const Model::Mesh& mesh,
       for (const auto& image : mesh[type]) {
         descriptor_infos.emplace_back(image->descriptor_info());
       }
-      image_infos->operator[](binding_point) = move(descriptor_infos);
+      (*image_infos)[binding_point] = move(descriptor_infos);
 
       texture_bindings.emplace_back(Descriptor::Info::Binding{
           texture_type,
@@ -123,6 +166,23 @@ void CreateTextureInfo(const Model::Mesh& mesh,
   };
 }
 
+vector<VkPushConstantRange> CreatePushConstantRanges(
+    const optional<Model::PushConstantInfos>& push_constant_infos) {
+  vector<VkPushConstantRange> ranges;
+  if (push_constant_infos.has_value()) {
+    for (const auto& push_constants : push_constant_infos.value()) {
+      for (const auto& info : push_constants.infos) {
+        ranges.emplace_back(VkPushConstantRange{
+            push_constants.shader_stage,
+            info.offset,
+            info.size(),
+        });
+      }
+    }
+  }
+  return ranges;
+}
+
 } /* namespace */
 
 void Model::Init(const SharedContext& context,
@@ -130,15 +190,16 @@ void Model::Init(const SharedContext& context,
                  const ModelResource& resource,
                  const optional<UniformInfos>& uniform_infos,
                  const optional<InstancingInfo>& instancing_info,
-                 PushConstants* push_constants,
+                 const optional<PushConstantInfos>& push_constant_infos,
                  size_t num_frame,
                  bool is_opaque) {
   if (is_first_time_) {
     context_ = context;
-    push_constants_ = push_constants;
+    push_constant_infos_ = push_constant_infos;
+
     if (instancing_info.has_value()) {
       if (!instancing_info.value().per_instance_buffer) {
-        throw std::runtime_error{"Per instance buffer not provided"};
+        throw runtime_error{"Per instance buffer not provided"};
       }
       per_instance_buffer_ = instancing_info.value().per_instance_buffer;
     }
@@ -151,51 +212,21 @@ void Model::Init(const SharedContext& context,
       find_binding_point =
           LoadMultiMesh(absl::get<MultiMeshResource>(resource));
     } else {
-      throw std::runtime_error{"Unrecognized variant type"};
+      throw runtime_error{"Unrecognized variant type"};
     }
     CreateDescriptors(find_binding_point, uniform_infos, num_frame);
 
-    vector<VertexInputBinding> bindings{
-        VertexInputBinding{
-            buffer::kPerVertexBindingPoint,
-            /*data_size=*/static_cast<uint32_t>(sizeof(VertexAttrib3D)),
-            /*instancing=*/false,
-        },
-    };
+    vector<VertexInputBinding> bindings{GetPerVertexBindings<VertexAttrib3D>()};
+    vector<VertexInputAttribute> attributes{
+        GetVertexAttributes<VertexAttrib3D>()};
+
     if (instancing_info.has_value()) {
       bindings.emplace_back(VertexInputBinding{
           buffer::kPerInstanceBindingPoint,
-          /*data_size=*/instancing_info.value().data_size,
+          instancing_info.value().data_size,
           /*instancing=*/true,
       });
-    }
 
-    vector<VertexInputAttribute> attributes{
-        VertexInputAttribute{
-            buffer::kPerVertexBindingPoint,
-            /*attributes=*/{
-                VertexAttribute{
-                    /*location=*/0,
-                    /*offset=*/static_cast<uint32_t>(
-                        offsetof(VertexAttrib3D, pos)),
-                    /*format=*/VK_FORMAT_R32G32B32_SFLOAT,
-                },
-                VertexAttribute{
-                    /*location=*/1,
-                    /*offset=*/static_cast<uint32_t>(
-                        offsetof(VertexAttrib3D, norm)),
-                    /*format=*/VK_FORMAT_R32G32B32_SFLOAT,
-                },
-                VertexAttribute{
-                    /*location=*/2,
-                    /*offset=*/static_cast<uint32_t>(
-                        offsetof(VertexAttrib3D, tex_coord)),
-                    /*format=*/VK_FORMAT_R32G32_SFLOAT,
-                },
-            },
-        },
-    };
-    if (instancing_info.has_value()) {
       attributes.emplace_back(VertexInputAttribute{
           buffer::kPerInstanceBindingPoint,
           instancing_info.value().per_instance_attribs,
@@ -205,7 +236,8 @@ void Model::Init(const SharedContext& context,
     pipeline_builder_.Init(context_)
         .set_vertex_input(GetBindingDescriptions(bindings),
                           GetAttributeDescriptions(attributes))
-        .set_layout({descriptors_[0][0]->layout()}, push_constants_);
+        .set_layout({descriptors_[0][0]->layout()},
+                    CreatePushConstantRanges(push_constant_infos_));
     if (!is_opaque) {
       pipeline_builder_.enable_alpha_blend()
           .disable_depth_test();
@@ -273,10 +305,28 @@ Model::FindBindingPoint Model::LoadMultiMesh(
   vertex_buffer_.Init(context_, vertex_infos);
 
   // load textures
+  BindingPointMap binding_map = resource.binding_map;
+  if (resource.extra_texture_map.has_value()) {
+    for (const auto &binding : resource.extra_texture_map.value()) {
+      const TextureType type = binding.first;
+      const uint32_t binding_point = binding.second.binding_point;
+
+      const auto found = resource.binding_map.find(type);
+      if (found == resource.binding_map.end()) {
+        binding_map[type] = binding_point;
+      } else if (found->second != binding_point) {
+        throw runtime_error{absl::StrFormat(
+            "Extra textures of type %d is bound to point %d, but mesh textures "
+            "of same type are bound to point %d",
+            type, binding_point, found->second)};
+      }
+    }
+  }
+
   meshes_.reserve(loader.meshes().size());
-  for (auto &loaded_mesh : loader.meshes()) {
+  for (auto& loaded_mesh : loader.meshes()) {
     meshes_.emplace_back();
-    for (auto &loaded_tex : loaded_mesh->textures) {
+    for (auto& loaded_tex : loaded_mesh->textures) {
       vector<unique_ptr<common::util::Image>> images;
       images.emplace_back(move(loaded_tex->image));
 
@@ -284,10 +334,24 @@ Model::FindBindingPoint Model::LoadMultiMesh(
       typed_meshes.emplace_back(
           absl::make_unique<TextureImage>(context_, images));
     }
+
+    if (resource.extra_texture_map.has_value()) {
+      for (const auto& binding : resource.extra_texture_map.value()) {
+        const TextureType type = binding.first;
+        const vector<vector<string>> &texture_paths =
+            binding.second.texture_paths;
+        auto& typed_meshes = meshes_.back()[type];
+
+        for (const auto& path : texture_paths) {
+          typed_meshes.emplace_back(
+              absl::make_unique<TextureImage>(context_, path));
+        }
+      }
+    }
   }
 
-  return [&resource](TextureType type) {
-    return resource.binding_map.find(type)->second;
+  return [binding_map](TextureType type) {
+    return binding_map.find(type)->second;
   };
 }
 
@@ -335,13 +399,13 @@ void Model::Draw(const VkCommandBuffer& command_buffer,
   if (per_instance_buffer_) {
     per_instance_buffer_->Bind(command_buffer);
   }
-  if (push_constants_) {
-    for (size_t i = 0; i < push_constants_->infos.size(); ++i) {
-      vkCmdPushConstants(command_buffer, pipeline_->layout(),
-                         push_constants_->shader_stage,
-                         push_constants_->infos[i].offset,
-                         push_constants_->infos[i].size,
-                         push_constants_->data<void>(i));
+  if (push_constant_infos_.has_value()) {
+    for (const auto& push_constants : push_constant_infos_.value()) {
+      for (const auto& info : push_constants.infos) {
+        vkCmdPushConstants(command_buffer, pipeline_->layout(),
+                           push_constants.shader_stage,
+                           info.offset, info.size(), info.data());
+      }
     }
   }
   for (size_t mesh_index = 0; mesh_index < meshes_.size(); ++mesh_index) {

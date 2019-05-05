@@ -59,20 +59,17 @@ class CubeApp {
   size_t current_frame_ = 0;
   util::Timer timer_;
   std::shared_ptr<Context> context_;
-  UniformBuffer uniform_buffer_;
-  Model model_;
   Command command_;
+  Model model_;
+  PushConstant push_constant_;
 };
 
 } /* namespace */
 
 void CubeApp::Init() {
   if (is_first_time) {
-    // uniform buffer
-    uniform_buffer_.Init(context_, UniformBuffer::Info{
-        sizeof(Transformation),
-        context_->swapchain().size(),
-    });
+    // push constants
+    push_constant_.Init(sizeof(Transformation));
 
     is_first_time = false;
   }
@@ -83,15 +80,6 @@ void CubeApp::Init() {
       /*binding_point=*/1,
       {{"jessie_steamer/resource/texture/statue.jpg"}},
   };
-  Descriptor::Info uniform_desc_info{
-    /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-    /*shader_stage=*/VK_SHADER_STAGE_VERTEX_BIT,
-    /*bindings=*/{{
-        Descriptor::TextureType::kTypeMaxEnum,
-        /*binding_point=*/0,
-        /*array_length=*/1,
-    }},
-  };
   model_.Init(context_,
               {{VK_SHADER_STAGE_VERTEX_BIT,
                 "jessie_steamer/shader/vulkan/simple.vert.spv"},
@@ -100,9 +88,11 @@ void CubeApp::Init() {
               Model::SingleMeshResource{
                   "jessie_steamer/resource/model/cube.obj",
                   /*obj_index_base=*/1, bindings},
-              absl::make_optional<Model::UniformInfos>(
-                  {{uniform_buffer_, uniform_desc_info}}),
-              /*instancing_info=*/absl::nullopt, /*push_constants=*/nullptr,
+              /*uniform_infos=*/absl::nullopt,
+              /*instancing_info=*/absl::nullopt,
+              absl::make_optional<Model::PushConstantInfos>(
+                  {{VK_SHADER_STAGE_VERTEX_BIT,
+                    {{&push_constant_, /*offset=*/0}}}}),
               kNumFrameInFlight, /*is_opaque=*/true);
 
   // command buffer
@@ -119,8 +109,7 @@ void CubeApp::UpdateData(size_t frame_index,
                                glm::vec3{0.0f, 0.0f, 1.0f});
   glm::mat4 proj = glm::perspective(glm::radians(45.0f),
                                     screen_aspect, 0.1f, 100.0f);
-  uniform_buffer_.data<Transformation>(frame_index)->proj_view_model =
-      proj * view * model;
+  *push_constant_.data<Transformation>() = {proj * view * model};
 }
 
 void CubeApp::MainLoop() {
@@ -131,7 +120,6 @@ void CubeApp::MainLoop() {
     const auto update_data = [this](size_t frame_index) {
       const VkExtent2D extent = context_->swapchain().extent();
       UpdateData(frame_index, (float)extent.width / extent.height);
-      uniform_buffer_.UpdateData(frame_index);
     };
     const auto draw_result = command_.DrawFrame(
         current_frame_, update_data,

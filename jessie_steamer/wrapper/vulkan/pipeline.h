@@ -85,7 +85,7 @@ class PipelineBuilder {
           attribute_descriptions);
   PipelineBuilder& set_layout(
       const std::vector<VkDescriptorSetLayout>& descriptor_layouts,
-      PushConstants* push_constants);
+      const std::vector<VkPushConstantRange>& push_constant_ranges);
   PipelineBuilder& set_viewport(VkViewport viewport);
   PipelineBuilder& set_scissor(const VkRect2D& scissor);
 

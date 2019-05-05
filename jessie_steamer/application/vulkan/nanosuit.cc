@@ -41,12 +41,15 @@ constexpr size_t kNumFrameInFlight = 2;
 // alignment requirement:
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
 struct NanosuitTrans {
+  alignas(16) glm::mat4 view_model;
   alignas(16) glm::mat4 proj_view_model;
+  alignas(16) glm::mat4 view_model_inv_trs;
+  alignas(16) glm::mat4 view_inv;
 };
 
 struct SkyboxTrans {
-  alignas(16) glm::mat4 view;
   alignas(16) glm::mat4 proj;
+  alignas(16) glm::mat4 view;
 };
 
 class NanosuitApp {
@@ -68,8 +71,8 @@ class NanosuitApp {
   std::shared_ptr<Context> context_;
   common::Camera camera_;
   Command command_;
-  UniformBuffer nanosuit_uniform_, skybox_uniform_;
   Model nanosuit_model_, skybox_model_;
+  PushConstant nanosuit_constant_, skybox_constant_;
 };
 
 } /* namespace */
@@ -108,35 +111,31 @@ void NanosuitApp::Init() {
       camera_.ProcessKey(KeyMap::kRight, timer_.time_from_last_frame());
     });
 
-    // uniform buffer
-    nanosuit_uniform_.Init(context_, UniformBuffer::Info{
-        sizeof(NanosuitTrans),
-        context_->swapchain().size(),
-    });
-
-    skybox_uniform_.Init(context_, UniformBuffer::Info{
-        sizeof(SkyboxTrans),
-        context_->swapchain().size(),
-    });
+    // push constants
+    nanosuit_constant_.Init(sizeof(NanosuitTrans));
+    skybox_constant_.Init(sizeof(SkyboxTrans));
 
     is_first_time = false;
   }
 
   // model
-  Descriptor::Info uniform_desc_info{
-      /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-      /*shader_stage=*/VK_SHADER_STAGE_VERTEX_BIT,
-      /*bindings=*/{{
-          Descriptor::TextureType::kTypeMaxEnum,
-          /*binding_point=*/0,
-          /*array_length=*/1,
-      }},
-  };
-
   Model::BindingPointMap nanosuit_bindings{
       {Model::TextureType::kTypeDiffuse, /*binding_point=*/1},
       {Model::TextureType::kTypeSpecular, /*binding_point=*/2},
       {Model::TextureType::kTypeReflection, /*binding_point=*/3},
+  };
+  // TODO: how to reuse?
+  const std::string extra_dir{"jessie_steamer/resource/texture/tidepool/"};
+  Model::TextureBindingMap extra_bindings;
+  extra_bindings[Model::TextureType::kTypeSkybox] = {
+      /*binding_point=*/4, {{
+          extra_dir + "right.tga",
+          extra_dir + "left.tga",
+          extra_dir + "top.tga",
+          extra_dir + "bottom.tga",
+          extra_dir + "back.tga",
+          extra_dir + "front.tga",
+      }},
   };
   nanosuit_model_.Init(context_,
                        {{VK_SHADER_STAGE_VERTEX_BIT,
@@ -147,16 +146,21 @@ void NanosuitApp::Init() {
                            "jessie_steamer/resource/model/nanosuit/"
                            "nanosuit.obj",
                            "jessie_steamer/resource/model/nanosuit",
-                           nanosuit_bindings},
-                       absl::make_optional<Model::UniformInfos>(
-                           {{nanosuit_uniform_, uniform_desc_info}}),
+                           nanosuit_bindings,
+                       absl::make_optional<Model::TextureBindingMap>(
+                           extra_bindings)},
+                       /*uniform_infos=*/absl::nullopt,
                        /*instancing_info=*/absl::nullopt,
-                       /*push_constants=*/nullptr, kNumFrameInFlight,
+                       absl::make_optional<Model::PushConstantInfos>(
+                           {{VK_SHADER_STAGE_VERTEX_BIT
+                                 | VK_SHADER_STAGE_FRAGMENT_BIT,
+                             {{&nanosuit_constant_, /*offset=*/0}}}}),
+                       kNumFrameInFlight,
                        /*is_opaque=*/true);
 
   const std::string skybox_dir{"jessie_steamer/resource/texture/tidepool/"};
   Model::TextureBindingMap skybox_bindings;
-  skybox_bindings[Model::TextureType::kTypeSpecular] = {
+  skybox_bindings[Model::TextureType::kTypeSkybox] = {
       /*binding_point=*/1, {{
            skybox_dir + "right.tga",
            skybox_dir + "left.tga",
@@ -174,10 +178,12 @@ void NanosuitApp::Init() {
                      Model::SingleMeshResource{
                          "jessie_steamer/resource/model/skybox.obj",
                          /*obj_index_base=*/1, skybox_bindings},
-                     absl::make_optional<Model::UniformInfos>(
-                         {{skybox_uniform_, uniform_desc_info}}),
+                     /*uniform_infos=*/absl::nullopt,
                      /*instancing_info=*/absl::nullopt,
-                     /*push_constants=*/nullptr, kNumFrameInFlight,
+                     absl::make_optional<Model::PushConstantInfos>(
+                         {{VK_SHADER_STAGE_VERTEX_BIT,
+                           {{&skybox_constant_, /*offset=*/0}}}}),
+                     kNumFrameInFlight,
                      /*is_opaque=*/true);
 
   // camera
@@ -198,21 +204,22 @@ void NanosuitApp::UpdateData(size_t frame_index) {
 
   glm::mat4 view = camera_.view();
   glm::mat4 proj = camera_.projection();
+  glm::mat4 view_model = view * model;
 
-  auto* nanosuit_trans = nanosuit_uniform_.data<NanosuitTrans>(frame_index);
-  nanosuit_trans->proj_view_model = proj * view * model;
+  *nanosuit_constant_.data<NanosuitTrans>() = {
+      view_model,
+      proj * view_model,
+      glm::transpose(glm::inverse(view_model)),
+      glm::inverse(view),
+  };
 
-  auto* skybox_trans = skybox_uniform_.data<SkyboxTrans>(frame_index);
-  skybox_trans->proj = proj;
-  skybox_trans->view = view;
+  *skybox_constant_.data<SkyboxTrans>() = {proj, view};
 }
 
 void NanosuitApp::MainLoop() {
   Init();
   const auto update_data = [this](size_t frame_index) {
     UpdateData(frame_index);
-    nanosuit_uniform_.UpdateData(frame_index);
-    skybox_uniform_.UpdateData(frame_index);
   };
   auto& window = context_->window();
 

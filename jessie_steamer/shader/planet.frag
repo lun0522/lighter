@@ -1,8 +1,18 @@
 #version 460 core
 
+#ifdef TARGET_OPENGL
 layout(binding = 1) uniform Light {
   vec4 direction_time;
 } light;
+#endif
+
+#ifdef TARGET_VULKAN
+layout(push_constant) uniform Light {
+  mat4 model;
+  mat4 proj_view;
+  vec4 direction_time;
+} light;
+#endif
 
 layout(binding = 2) uniform sampler2D tex_sampler;
 

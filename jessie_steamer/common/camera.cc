@@ -7,7 +7,6 @@
 
 #include "jessie_steamer/common/camera.h"
 
-#include <iostream>
 #include <stdexcept>
 
 #include "third_party/glm/gtc/matrix_transform.hpp"

@@ -55,6 +55,7 @@ VkPresentModeKHR ChoosePresentMode(const vector<VkPresentModeKHR>& available) {
         return candidate;
       case VK_PRESENT_MODE_IMMEDIATE_KHR:
         best_mode = candidate;
+        break;
       default:
         break;
     }

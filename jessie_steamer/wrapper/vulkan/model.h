@@ -61,6 +61,7 @@ class Model {
     std::string obj_path;
     std::string tex_path;
     BindingPointMap binding_map;
+    absl::optional<TextureBindingMap> extra_texture_map;
   };
   using ModelResource = absl::variant<SingleMeshResource, MultiMeshResource>;
 
@@ -77,6 +78,20 @@ class Model {
     PerInstanceBuffer* per_instance_buffer;
   };
 
+  // For pushing constants.
+  struct PushConstantInfo {
+    struct Info {
+      uint32_t size()    const { return push_constant->size; }
+      const void* data() const { return push_constant->data<void>(); }
+
+      const PushConstant* push_constant;
+      uint32_t offset;
+    };
+    VkShaderStageFlags shader_stage;
+    std::vector<Info> infos;
+  };
+  using PushConstantInfos = std::vector<PushConstantInfo>;
+
   Model() = default;
 
   // This class is neither copyable nor movable.
@@ -88,7 +103,7 @@ class Model {
             const ModelResource& resource,
             const absl::optional<UniformInfos>& uniform_infos,
             const absl::optional<InstancingInfo>& instancing_info,
-            PushConstants* push_constants,
+            const absl::optional<PushConstantInfos>& push_constant_infos,
             size_t num_frame,
             bool is_opaque);
   void Draw(const VkCommandBuffer& command_buffer,
@@ -108,8 +123,8 @@ class Model {
   std::vector<Mesh> meshes_;
   std::vector<std::vector<std::unique_ptr<Descriptor>>> descriptors_;
   // TODO: deal with shared resource in better way
-  PushConstants* push_constants_ = nullptr;
   PerInstanceBuffer* per_instance_buffer_ = nullptr;
+  absl::optional<PushConstantInfos> push_constant_infos_;
   PipelineBuilder pipeline_builder_;
   std::unique_ptr<Pipeline> pipeline_;
 };

@@ -33,9 +33,10 @@ ModelLoader::ModelLoader(const string& obj_path,
   //                               that can be rendered at a time is limited
   // - aiProcess_OptimizeMeshes: do the reverse of splitting, merge meshes to
   //                             reduce drawing calls
-  unsigned int flags = aiProcess_PreTransformVertices
-                           | aiProcess_Triangulate
-                           | aiProcess_GenNormals;
+  unsigned int flags = aiProcess_Triangulate
+                           | aiProcess_GenNormals
+                           | aiProcess_PreTransformVertices
+                           | aiProcess_FlipUVs;
 
   Assimp::Importer importer;
    auto* scene = importer.ReadFile(obj_path, flags);
@@ -114,8 +115,8 @@ void ModelLoader::LoadTextures(const string& directory,
     case Texture::kTypeReflection:
       ai_type = aiTextureType_AMBIENT;
       break;
-    case Texture::kTypeMaxEnum:
-      throw std::runtime_error{"Invalid texture type"};
+    default:
+      throw std::runtime_error{"Unrecognized texture type"};
   }
 
   size_t num_texture = material->GetTextureCount(ai_type);

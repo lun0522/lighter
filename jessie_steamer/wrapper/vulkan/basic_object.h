@@ -11,6 +11,7 @@
 #include <memory>
 
 #include "third_party/vulkan/vulkan.h"
+#include "absl/types/optional.h"
 
 namespace jessie_steamer {
 namespace wrapper {
@@ -95,12 +96,13 @@ struct PhysicalDevice {
 
   void Init(const std::shared_ptr<Context>& context);
 
-  const VkPhysicalDevice& operator*() const { return physical_device_; }
-  VkPhysicalDeviceLimits limits() const;
+  const VkPhysicalDevice& operator*()    const { return physical_device_; }
+  const VkPhysicalDeviceLimits& limits() const { return limits_; };
 
  private:
   std::shared_ptr<Context> context_;
   VkPhysicalDevice physical_device_;
+  VkPhysicalDeviceLimits limits_;
 };
 
 /** VkDevice interfaces with the physical device. We have to tell Vulkan
