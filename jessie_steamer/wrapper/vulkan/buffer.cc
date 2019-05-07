@@ -25,8 +25,6 @@ using std::array;
 using std::runtime_error;
 using std::vector;
 
-const int kCubeMapImageCount = 6;
-
 uint32_t FindMemoryType(const SharedContext& context,
                         uint32_t type_filter,
                         VkMemoryPropertyFlags mem_properties) {
@@ -441,11 +439,11 @@ void TextureBuffer::Init(const SharedContext& context,
 
   VkExtent3D image_extent = info.extent();
   VkDeviceSize data_size = info.data_size();
-  uint32_t layer_count = info.is_cubemap ? kCubeMapImageCount : 1;
 
-  if (info.datas.size() != layer_count) {
+  auto layer_count = CONTAINER_SIZE(info.datas);
+  if (layer_count != 1 && layer_count != buffer::kCubeMapImageCount) {
     throw runtime_error{"Wrong number of images: " +
-                        std::to_string(info.datas.size())};
+                        std::to_string(layer_count)};
   }
 
   // create staging buffer and associated memory
@@ -465,7 +463,7 @@ void TextureBuffer::Init(const SharedContext& context,
   }
 
   // create final image buffer
-  VkImageCreateFlags flags = info.is_cubemap
+  VkImageCreateFlags flags = info.datas.size() == buffer::kCubeMapImageCount
                                  ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT
                                  : nullflag;
   image_ = CreateImage(context_, flags, info.format, image_extent,

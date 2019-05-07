@@ -19,7 +19,6 @@ namespace jessie_steamer {
 namespace common {
 namespace {
 
-using std::move;
 using std::string;
 using std::vector;
 
@@ -64,10 +63,10 @@ void ModelLoader::ProcessNode(const string& directory,
 void ModelLoader::ProcessMesh(const string& directory,
                               const aiMesh* mesh,
                               const aiScene* scene) {
-  meshes_.emplace_back(absl::make_unique<Mesh>());
+  meshes_.emplace_back();
 
   // load vertices
-  vector<util::VertexAttrib3D>& vertices = meshes_.back()->vertices;
+  vector<util::VertexAttrib3D>& vertices = meshes_.back().vertices;
   vertices.reserve(mesh->mNumVertices);
   aiVector3D* ai_tex_coords = mesh->mTextureCoords[0];
   for (int i = 0; i < mesh->mNumVertices; ++i) {
@@ -83,7 +82,7 @@ void ModelLoader::ProcessMesh(const string& directory,
   }
 
   // load indices
-  vector<unsigned int>& indices = meshes_.back()->indices;
+  vector<unsigned int>& indices = meshes_.back().indices;
   for (int i = 0; i < mesh->mNumFaces; ++i) {
     aiFace face = mesh->mFaces[i];
     indices.insert(indices.end(), face.mIndices,
@@ -91,7 +90,7 @@ void ModelLoader::ProcessMesh(const string& directory,
   }
 
   // load textures
-  vector<std::unique_ptr<Texture>>& textures = meshes_.back()->textures;
+  vector<Texture>& textures = meshes_.back().textures;
   if (scene->HasMaterials()) {
     aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
     LoadTextures(directory, material, Texture::kTypeDiffuse, &textures);
@@ -103,7 +102,7 @@ void ModelLoader::ProcessMesh(const string& directory,
 void ModelLoader::LoadTextures(const string& directory,
                                const aiMaterial* material,
                                Texture::Type type,
-                               vector<std::unique_ptr<Texture>>* textures) {
+                               vector<Texture>* textures) {
   aiTextureType ai_type;
   switch (type) {
     case Texture::kTypeDiffuse:
@@ -124,8 +123,7 @@ void ModelLoader::LoadTextures(const string& directory,
   for (int i = 0; i < num_texture; ++i) {
     aiString path;
     material->GetTexture(ai_type, i, &path);
-    textures->emplace_back(absl::make_unique<Texture>(
-        directory + "/" + path.C_Str(), type));
+    textures->emplace_back(Texture{directory + "/" + path.C_Str(), type});
   }
 }
 

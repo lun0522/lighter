@@ -12,6 +12,8 @@
 #include <memory>
 #include <vector>
 
+#include "absl/types/span.h"
+#include "absl/types/variant.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "third_party/vulkan/vulkan.h"
@@ -87,12 +89,17 @@ class SwapChainImage {
 
 class TextureImage {
  public:
-  // paths.size() should be either 1 or 6 (cubemap)
+  using CubemapPath = std::array<std::string, buffer::kCubeMapImageCount>;
+  using SourcePath = absl::variant<std::string, CubemapPath>;
   TextureImage(const std::shared_ptr<Context>& context,
-               const std::vector<std::string>& paths);
+               const SourcePath& source_path);
+
+  using CubemapImage = std::array<common::util::Image,
+                                  buffer::kCubeMapImageCount>;
+  using SourceImage = absl::variant<common::util::Image, CubemapImage>;
   TextureImage(const std::shared_ptr<Context>& context,
-               const std::vector<std::unique_ptr<common::util::Image>>& images)
-      : context_{context} { Init(images); }
+               const SourceImage& source_image)
+      : context_{context} { Init(source_image); }
 
   // This class is neither copyable nor movable
   TextureImage(const TextureImage&) = delete;
@@ -103,7 +110,7 @@ class TextureImage {
   VkDescriptorImageInfo descriptor_info() const;
 
  private:
-  void Init(const std::vector<std::unique_ptr<common::util::Image>>& images);
+  void Init(const SourceImage& image);
 
   std::shared_ptr<Context> context_;
   TextureBuffer buffer_;

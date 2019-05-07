@@ -206,7 +206,7 @@ CharLib::~CharLib() {
   FT_Done_FreeType(lib_);
 }
 
-Image::Image(const string& path) {
+void Image::Init(const string& path) {
   auto content = LoadRawDataFromFile(path);
   data = stbi_load_from_memory(reinterpret_cast<stbi_uc*>(content->data),
                                content->size, &width, &height, &channel,

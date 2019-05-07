@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/types/span.h"
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -20,6 +21,7 @@ namespace wrapper {
 namespace vulkan {
 namespace buffer {
 
+constexpr int kCubeMapImageCount = 6;
 constexpr uint32_t kPerVertexBindingPoint = 0;
 constexpr uint32_t kPerInstanceBindingPoint = 1;
 
@@ -167,8 +169,7 @@ class TextureBuffer {
       return datas.size() * width * height * channel;
     }
 
-    bool is_cubemap;
-    std::vector<const void*> datas;
+    absl::Span<const void*> datas;
     VkFormat format;
     uint32_t width;
     uint32_t height;

@@ -206,11 +206,13 @@ class CharLib {
 };
 
 struct Image {
-  explicit Image(const std::string& path);
+  Image() = default;
 
   // This class is neither copyable nor movable
   Image(const Image&) = delete;
   Image& operator=(const Image&) = delete;
+
+  void Init(const std::string& path);
 
   ~Image();
 

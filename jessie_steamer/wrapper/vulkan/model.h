@@ -42,7 +42,7 @@ class Model {
   // Textures that will be bound to the same point.
   struct TextureBinding {
     uint32_t binding_point;
-    std::vector<std::vector<std::string>> texture_paths;
+    std::vector<TextureImage::SourcePath> texture_paths;
   };
   using BindingPointMap = absl::flat_hash_map<TextureType, uint32_t,
                                               std::hash<int>>;

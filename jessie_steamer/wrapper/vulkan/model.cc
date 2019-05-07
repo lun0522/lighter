@@ -278,7 +278,8 @@ Model::FindBindingPoint Model::LoadSingleMesh(
   meshes_.emplace_back();
   for (const auto &binding : resource.binding_map) {
     const TextureType type = binding.first;
-    const vector<vector<string>> &texture_paths = binding.second.texture_paths;
+    const vector<TextureImage::SourcePath>& texture_paths =
+        binding.second.texture_paths;
     auto& typed_meshes = meshes_.back()[type];
 
     typed_meshes.reserve(texture_paths.size());
@@ -300,7 +301,7 @@ Model::FindBindingPoint Model::LoadMultiMesh(
   vector<PerVertexBuffer::Info> vertex_infos;
   vertex_infos.reserve(loader.meshes().size());
   for (const auto &mesh : loader.meshes()) {
-    vertex_infos.emplace_back(CreateVertexInfo(mesh->vertices, mesh->indices));
+    vertex_infos.emplace_back(CreateVertexInfo(mesh.vertices, mesh.indices));
   }
   vertex_buffer_.Init(context_, vertex_infos);
 
@@ -326,19 +327,20 @@ Model::FindBindingPoint Model::LoadMultiMesh(
   meshes_.reserve(loader.meshes().size());
   for (auto& loaded_mesh : loader.meshes()) {
     meshes_.emplace_back();
-    for (auto& loaded_tex : loaded_mesh->textures) {
-      vector<unique_ptr<common::util::Image>> images;
-      images.emplace_back(move(loaded_tex->image));
+    for (auto& texture : loaded_mesh.textures) {
+      TextureImage::SourceImage image;
+      image.emplace<common::util::Image>();
+      absl::get<common::util::Image>(image).Init(texture.path);
 
-      auto& typed_meshes = meshes_.back()[loaded_tex->type];
+      auto& typed_meshes = meshes_.back()[texture.type];
       typed_meshes.emplace_back(
-          absl::make_unique<TextureImage>(context_, images));
+          absl::make_unique<TextureImage>(context_, image));
     }
 
     if (resource.extra_texture_map.has_value()) {
       for (const auto& binding : resource.extra_texture_map.value()) {
         const TextureType type = binding.first;
-        const vector<vector<string>> &texture_paths =
+        const vector<TextureImage::SourcePath>& texture_paths =
             binding.second.texture_paths;
         auto& typed_meshes = meshes_.back()[type];
 

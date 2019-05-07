@@ -90,6 +90,7 @@ void NanosuitApp::Init() {
     common::Camera::Config config;
     config.pos = glm::vec3{0.0f, 3.5f, 12.0f};
     config.look_at = glm::vec3{0.0f, 3.5f, 0.0f};
+    config.lock_look_at = true;
     camera_.Init(config);
 
     window.RegisterCursorMoveCallback([this](double x_pos, double y_pos) {
@@ -128,14 +129,16 @@ void NanosuitApp::Init() {
   const std::string extra_dir{"jessie_steamer/resource/texture/tidepool/"};
   Model::TextureBindingMap extra_bindings;
   extra_bindings[Model::TextureType::kTypeSkybox] = {
-      /*binding_point=*/4, {{
-          extra_dir + "right.tga",
-          extra_dir + "left.tga",
-          extra_dir + "top.tga",
-          extra_dir + "bottom.tga",
-          extra_dir + "back.tga",
-          extra_dir + "front.tga",
-      }},
+      /*binding_point=*/4, {
+          TextureImage::CubemapPath{
+              extra_dir + "right.tga",
+              extra_dir + "left.tga",
+              extra_dir + "top.tga",
+              extra_dir + "bottom.tga",
+              extra_dir + "back.tga",
+              extra_dir + "front.tga",
+          },
+      },
   };
   nanosuit_model_.Init(context_,
                        {{VK_SHADER_STAGE_VERTEX_BIT,
@@ -161,14 +164,16 @@ void NanosuitApp::Init() {
   const std::string skybox_dir{"jessie_steamer/resource/texture/tidepool/"};
   Model::TextureBindingMap skybox_bindings;
   skybox_bindings[Model::TextureType::kTypeSkybox] = {
-      /*binding_point=*/1, {{
-           skybox_dir + "right.tga",
-           skybox_dir + "left.tga",
-           skybox_dir + "top.tga",
-           skybox_dir + "bottom.tga",
-           skybox_dir + "back.tga",
-           skybox_dir + "front.tga",
-      }},
+      /*binding_point=*/1, {
+          TextureImage::CubemapPath{
+              skybox_dir + "right.tga",
+              skybox_dir + "left.tga",
+              skybox_dir + "top.tga",
+              skybox_dir + "bottom.tga",
+              skybox_dir + "back.tga",
+              skybox_dir + "front.tga",
+          },
+      },
   };
   skybox_model_.Init(context_,
                      {{VK_SHADER_STAGE_VERTEX_BIT,

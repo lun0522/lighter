@@ -285,7 +285,7 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
       &dynamic_state_info,
       pipeline_layout,
       *context->render_pass(),
-      /*subpass=*/0, // index of subpass where pipeline will be used
+      /*subpass=*/0,  // index of subpass where pipeline will be used
       /*basePipelineHandle=*/VK_NULL_HANDLE,
       /*basePipelineIndex=*/0,
       // .basePipelineHandle can be used to copy settings from another piepeline

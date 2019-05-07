@@ -29,7 +29,8 @@ const glm::vec2& ref_front_zx() {
 void Camera::Init(const Config& config) {
   up_ = config.up;
   pos_ = config.pos;
-  front_ = glm::normalize(config.look_at - config.pos);
+  center_ = config.look_at;
+  front_ = glm::normalize(center_ - config.pos);
   fov_ = config.fov;
   near_ = config.near;
   far_ = config.far;
@@ -38,6 +39,7 @@ void Camera::Init(const Config& config) {
   pitch_ = glm::asin(front_.y);
   move_speed_ = config.move_speed;
   turn_speed_ = config.turn_speed;
+  lock_center_ = config.lock_look_at;
 
   UpdateRight();
   UpdateView();
@@ -59,7 +61,7 @@ void Camera::Deactivate() {
 }
 
 void Camera::ProcessCursorMove(double x, double y) {
-  if (!is_active_) {
+  if (!is_active_ || lock_center_) {
     return;
   }
 
@@ -119,7 +121,13 @@ void Camera::UpdateRight() {
 }
 
 void Camera::UpdateView() {
-  view_ = glm::lookAt(pos_, pos_ + front_, up_);
+  if (lock_center_) {
+    front_ = glm::normalize(center_ - pos_);
+    view_ = glm::lookAt(pos_, pos_ + front_, up_);
+    UpdateRight();
+  } else {
+    view_ = glm::lookAt(pos_, pos_ + front_, up_);
+  }
 }
 
 void Camera::UpdateProj() {

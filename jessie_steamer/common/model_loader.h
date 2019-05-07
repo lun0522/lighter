@@ -8,10 +8,9 @@
 #ifndef JESSIE_STEAMER_COMMON_MODEL_LOADER_H
 #define JESSIE_STEAMER_COMMON_MODEL_LOADER_H
 
-#include <memory>
+#include <string>
 #include <vector>
 
-#include "absl/memory/memory.h"
 #include "jessie_steamer/common/util.h"
 
 struct aiMaterial;
@@ -33,27 +32,24 @@ class ModelLoader {
       kTypeMaxEnum,
     };
 
-    Texture(const std::string& path, Type type)
-        : image{absl::make_unique<util::Image>(path)}, type{type} {}
+    // This class is only movable.
+    Texture(Texture&&) = default;
+    Texture& operator=(Texture&&) = default;
 
-    // This class is neither copyable nor movable
-    Texture(const Texture&) = delete;
-    Texture& operator=(const Texture&) = delete;
-
-    std::unique_ptr<util::Image> image;
+    std::string path;
     Type type;
   };
 
   struct Mesh {
     Mesh() = default;
 
-    // This class is neither copyable nor movable
-    Mesh(const Mesh&) = delete;
-    Mesh& operator=(const Mesh&) = delete;
+    // This class is only movable.
+    Mesh(Mesh&&) = default;
+    Mesh& operator=(Mesh&&) = default;
 
     std::vector<util::VertexAttrib3D> vertices;
     std::vector<unsigned int> indices;
-    std::vector<std::unique_ptr<Texture>> textures;
+    std::vector<Texture> textures;
   };
 
   ModelLoader(const std::string& obj_path,
@@ -63,7 +59,7 @@ class ModelLoader {
   ModelLoader(const ModelLoader&) = delete;
   ModelLoader& operator=(const ModelLoader&) = delete;
 
-  std::vector<std::unique_ptr<Mesh>>& meshes() { return meshes_; }
+  std::vector<Mesh>& meshes() { return meshes_; }
 
  private:
   void ProcessNode(const std::string& directory,
@@ -75,9 +71,9 @@ class ModelLoader {
   void LoadTextures(const std::string& directory,
                     const aiMaterial* material,
                     ModelLoader::Texture::Type type,
-                    std::vector<std::unique_ptr<Texture>>* textures);
+                    std::vector<Texture>* textures);
 
-  std::vector<std::unique_ptr<Mesh>> meshes_;
+  std::vector<Mesh> meshes_;
 };
 
 } /* namespace common */

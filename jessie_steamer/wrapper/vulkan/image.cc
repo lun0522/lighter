@@ -19,8 +19,8 @@ namespace vulkan {
 namespace {
 
 using common::util::Image;
-using std::move;
-using std::vector;
+using std::array;
+using std::string;
 
 VkImageView CreateImageView(const SharedContext& context,
                             const VkImage& image,
@@ -105,37 +105,43 @@ SwapChainImage::~SwapChainImage() {
 }
 
 TextureImage::TextureImage(const SharedContext& context,
-                           const vector<std::string>& paths)
+                           const SourcePath& source_path)
     : context_{context} {
-  vector<std::unique_ptr<Image>> images;
-  images.reserve(paths.size());
-  for (const auto& path : paths) {
-    images.emplace_back(absl::make_unique<Image>(path));
+  SourceImage image;
+  if (absl::holds_alternative<string>(source_path)) {
+    image.emplace<Image>();
+    absl::get<Image>(image).Init(absl::get<string>(source_path));
+  } else if (absl::holds_alternative<CubemapPath>(source_path)) {
+    image.emplace<CubemapImage>();
+    const auto& paths = absl::get<CubemapPath>(source_path);
+    for (size_t i = 0; i < paths.size(); ++i) {
+      absl::get<CubemapImage>(image)[i].Init(paths[i]);
+    }
+  } else {
+    throw std::runtime_error{"Unrecognized variant type"};
   }
-  Init(images);
+  Init(image);
 }
 
-void TextureImage::Init(const vector<std::unique_ptr<Image>>& images) {
-  bool is_cubemap;
-  switch (images.size()) {
-    case 1:
-      is_cubemap = false;
-      break;
-    case 6:
-      is_cubemap = true;
-      break;
-    default:
-      throw std::runtime_error{"Unsupported number of paths: " +
-                               std::to_string(images.size())};
-  }
-
-  vector<const void*> datas(images.size());
-  for (size_t i = 0; i < images.size(); ++i) {
-    datas[i] = images[i]->data;
+void TextureImage::Init(const SourceImage& source_image) {
+  const Image* sample_image;
+  std::vector<const void*> datas;
+  if (absl::holds_alternative<Image>(source_image)) {
+    sample_image = &absl::get<Image>(source_image);
+    datas.emplace_back(sample_image->data);
+  } else if (absl::holds_alternative<CubemapImage>(source_image)) {
+    const auto& images = absl::get<CubemapImage>(source_image);
+    sample_image = &images[0];
+    datas.reserve(images.size());
+    for (const auto& image : images) {
+      datas.emplace_back(image.data);
+    }
+  } else {
+    throw std::runtime_error{"Unrecognized variant type"};
   }
 
   VkFormat format;
-  switch (images[0]->channel) {
+  switch (sample_image->channel) {
     case 1:
       format = VK_FORMAT_R8_UNORM;
       break;
@@ -144,31 +150,30 @@ void TextureImage::Init(const vector<std::unique_ptr<Image>>& images) {
       break;
     default:
       throw std::runtime_error{"Unsupported number of channels: " +
-                               std::to_string(images[0]->channel)};
+                               std::to_string(sample_image->channel)};
   }
 
   TextureBuffer::Info image_info{
-     is_cubemap,
-     {datas.begin(), datas.end()},
+     absl::MakeSpan(datas),
      format,
-     static_cast<uint32_t>(images[0]->width),
-     static_cast<uint32_t>(images[0]->height),
-     static_cast<uint32_t>(images[0]->channel),
+     static_cast<uint32_t>(sample_image->width),
+     static_cast<uint32_t>(sample_image->height),
+     static_cast<uint32_t>(sample_image->channel),
   };
   buffer_.Init(context_, image_info);
-  VkImageViewType view_type =
-      is_cubemap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
+  VkImageViewType view_type = datas.size() == buffer::kCubeMapImageCount ?
+      VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
   image_view_ = CreateImageView(context_, buffer_.image(), view_type, format,
                                 VK_IMAGE_ASPECT_COLOR_BIT,
-                                CONTAINER_SIZE(images));
+                                /*layer_count=*/CONTAINER_SIZE(datas));
   sampler_ = CreateSampler(context_);
 }
 
 VkDescriptorImageInfo TextureImage::descriptor_info() const {
   return VkDescriptorImageInfo{
-     sampler_,
-     image_view_,
-     /*imageLayout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+      sampler_,
+      image_view_,
+      /*imageLayout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
   };
 }
 

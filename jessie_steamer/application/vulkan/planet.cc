@@ -188,14 +188,16 @@ void PlanetApp::Init() {
   const std::string skybox_dir{"jessie_steamer/resource/texture/universe/"};
   Model::TextureBindingMap skybox_bindings;
   skybox_bindings[Model::TextureType::kTypeSkybox] = {
-      /*binding_point=*/1, {{
-          skybox_dir + "PositiveX.jpg",
-          skybox_dir + "NegativeX.jpg",
-          skybox_dir + "PositiveY.jpg",
-          skybox_dir + "NegativeY.jpg",
-          skybox_dir + "PositiveZ.jpg",
-          skybox_dir + "NegativeZ.jpg",
-      }},
+      /*binding_point=*/1, {
+          TextureImage::CubemapPath{
+              skybox_dir + "PositiveX.jpg",
+              skybox_dir + "NegativeX.jpg",
+              skybox_dir + "PositiveY.jpg",
+              skybox_dir + "NegativeY.jpg",
+              skybox_dir + "PositiveZ.jpg",
+              skybox_dir + "NegativeZ.jpg",
+          },
+      },
   };
   skybox_model_.Init(context_,
                      {{VK_SHADER_STAGE_VERTEX_BIT,

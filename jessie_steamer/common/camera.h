@@ -25,6 +25,7 @@ class Camera {
     float far = 100.0f;
     float move_speed = 10.0f;
     float turn_speed = 0.001f;
+    bool lock_look_at = false;
   };
 
   Camera() = default;
@@ -54,11 +55,12 @@ class Camera {
   void UpdateProj();
 
   bool is_active_ = false;
+  bool lock_center_;
   float fov_, near_, far_, yaw_, pitch_;
   float move_speed_, turn_speed_;
   glm::ivec2 screen_size_;
   glm::dvec2 cursor_pos_;
-  glm::vec3 pos_, front_, up_, right_;
+  glm::vec3 pos_, front_, up_, right_, center_;
   glm::mat4 view_, proj_;
 };
 
