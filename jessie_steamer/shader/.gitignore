@@ -1,0 +1,2 @@
+# Compiled shader files will not be added to Git
+**/*.spv

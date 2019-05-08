@@ -441,7 +441,7 @@ void TextureBuffer::Init(const SharedContext& context,
   VkDeviceSize data_size = info.data_size();
 
   auto layer_count = CONTAINER_SIZE(info.datas);
-  if (layer_count != 1 && layer_count != buffer::kCubeMapImageCount) {
+  if (layer_count != 1 && layer_count != buffer::kCubemapImageCount) {
     throw runtime_error{"Wrong number of images: " +
                         std::to_string(layer_count)};
   }
@@ -463,7 +463,7 @@ void TextureBuffer::Init(const SharedContext& context,
   }
 
   // create final image buffer
-  VkImageCreateFlags flags = info.datas.size() == buffer::kCubeMapImageCount
+  VkImageCreateFlags flags = info.datas.size() == buffer::kCubemapImageCount
                                  ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT
                                  : nullflag;
   image_ = CreateImage(context_, flags, info.format, image_extent,

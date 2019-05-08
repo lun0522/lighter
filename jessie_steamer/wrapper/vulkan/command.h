@@ -45,8 +45,8 @@ class Command {
   using OneTimeRecord = std::function<void(
       const VkCommandBuffer& command_buffer)>;
   using MultiTimeRecord = std::function<void(
-      const VkCommandBuffer& command_buffer, size_t image_index)>;
-  using UpdateDataFunc = std::function<void (size_t image_index)>;
+      const VkCommandBuffer& command_buffer, const VkFramebuffer& framebuffer)>;
+  using UpdateDataFunc = std::function<void (size_t current_frame)>;
 
   Command() = default;
 
@@ -62,9 +62,9 @@ class Command {
 
   void Init(const std::shared_ptr<Context>& context,
             size_t num_frame);
-  VkResult DrawFrame(size_t current_frame,
-                     const UpdateDataFunc& update_data,
-                     const MultiTimeRecord& on_record);
+  VkResult Draw(size_t current_frame,
+                const UpdateDataFunc& update_data,
+                const MultiTimeRecord& on_record);
   void Cleanup();
 
  private:

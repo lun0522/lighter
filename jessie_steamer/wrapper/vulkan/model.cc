@@ -280,12 +280,10 @@ Model::FindBindingPoint Model::LoadSingleMesh(
     const TextureType type = binding.first;
     const vector<TextureImage::SourcePath>& texture_paths =
         binding.second.texture_paths;
-    auto& typed_meshes = meshes_.back()[type];
 
-    typed_meshes.reserve(texture_paths.size());
     for (const auto& path : texture_paths) {
-      typed_meshes.emplace_back(
-          absl::make_unique<TextureImage>(context_, path));
+      meshes_.back()[type].emplace_back(
+          TextureImage::GetTexture(context_, path));
     }
   }
 
@@ -325,16 +323,11 @@ Model::FindBindingPoint Model::LoadMultiMesh(
   }
 
   meshes_.reserve(loader.meshes().size());
-  for (auto& loaded_mesh : loader.meshes()) {
+  for (auto& mesh : loader.meshes()) {
     meshes_.emplace_back();
-    for (auto& texture : loaded_mesh.textures) {
-      TextureImage::SourceImage image;
-      image.emplace<common::util::Image>();
-      absl::get<common::util::Image>(image).Init(texture.path);
-
-      auto& typed_meshes = meshes_.back()[texture.type];
-      typed_meshes.emplace_back(
-          absl::make_unique<TextureImage>(context_, image));
+    for (auto& texture : mesh.textures) {
+      meshes_.back()[texture.type].emplace_back(
+          TextureImage::GetTexture(context_, texture.path));
     }
 
     if (resource.extra_texture_map.has_value()) {
@@ -342,11 +335,10 @@ Model::FindBindingPoint Model::LoadMultiMesh(
         const TextureType type = binding.first;
         const vector<TextureImage::SourcePath>& texture_paths =
             binding.second.texture_paths;
-        auto& typed_meshes = meshes_.back()[type];
 
         for (const auto& path : texture_paths) {
-          typed_meshes.emplace_back(
-              absl::make_unique<TextureImage>(context_, path));
+          meshes_.back()[type].emplace_back(
+              TextureImage::GetTexture(context_, path));
         }
       }
     }

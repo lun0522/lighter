@@ -54,7 +54,7 @@ struct SkyboxTrans {
 
 class NanosuitApp {
  public:
-  NanosuitApp() : context_{Context::CreateContext()} {
+  NanosuitApp() : context_{Context::GetContext()} {
     context_->Init("Nanosuit");
   };
   void MainLoop();
@@ -120,25 +120,28 @@ void NanosuitApp::Init() {
   }
 
   // model
+  TextureImage::CubemapPath skybox_path;
+  Model::TextureBindingMap skybox_bindings;
+  skybox_bindings[Model::TextureType::kTypeCubemap] = {
+      /*binding_point=*/4, {
+          TextureImage::CubemapPath{
+              /*directory=*/"jessie_steamer/resource/texture/tidepool",
+              /*files=*/{
+                  "right.tga",
+                  "left.tga",
+                  "top.tga",
+                  "bottom.tga",
+                  "back.tga",
+                  "front.tga",
+              },
+          },
+      },
+  };
+
   Model::BindingPointMap nanosuit_bindings{
       {Model::TextureType::kTypeDiffuse, /*binding_point=*/1},
       {Model::TextureType::kTypeSpecular, /*binding_point=*/2},
       {Model::TextureType::kTypeReflection, /*binding_point=*/3},
-  };
-  // TODO: how to reuse?
-  const std::string extra_dir{"jessie_steamer/resource/texture/tidepool/"};
-  Model::TextureBindingMap extra_bindings;
-  extra_bindings[Model::TextureType::kTypeSkybox] = {
-      /*binding_point=*/4, {
-          TextureImage::CubemapPath{
-              extra_dir + "right.tga",
-              extra_dir + "left.tga",
-              extra_dir + "top.tga",
-              extra_dir + "bottom.tga",
-              extra_dir + "back.tga",
-              extra_dir + "front.tga",
-          },
-      },
   };
   nanosuit_model_.Init(context_,
                        {{VK_SHADER_STAGE_VERTEX_BIT,
@@ -151,7 +154,7 @@ void NanosuitApp::Init() {
                            "jessie_steamer/resource/model/nanosuit",
                            nanosuit_bindings,
                        absl::make_optional<Model::TextureBindingMap>(
-                           extra_bindings)},
+                           skybox_bindings)},
                        /*uniform_infos=*/absl::nullopt,
                        /*instancing_info=*/absl::nullopt,
                        absl::make_optional<Model::PushConstantInfos>(
@@ -161,20 +164,7 @@ void NanosuitApp::Init() {
                        kNumFrameInFlight,
                        /*is_opaque=*/true);
 
-  const std::string skybox_dir{"jessie_steamer/resource/texture/tidepool/"};
-  Model::TextureBindingMap skybox_bindings;
-  skybox_bindings[Model::TextureType::kTypeSkybox] = {
-      /*binding_point=*/1, {
-          TextureImage::CubemapPath{
-              skybox_dir + "right.tga",
-              skybox_dir + "left.tga",
-              skybox_dir + "top.tga",
-              skybox_dir + "bottom.tga",
-              skybox_dir + "back.tga",
-              skybox_dir + "front.tga",
-          },
-      },
-  };
+  skybox_bindings[Model::TextureType::kTypeCubemap].binding_point = 1;
   skybox_model_.Init(context_,
                      {{VK_SHADER_STAGE_VERTEX_BIT,
                        "jessie_steamer/shader/vulkan/skybox.vert.spv"},
@@ -229,9 +219,10 @@ void NanosuitApp::MainLoop() {
   auto& window = context_->window();
 
   while (!should_quit_ && !window.ShouldQuit()) {
-    const auto draw_result = command_.DrawFrame(
+    const auto draw_result = command_.Draw(
         current_frame_, update_data,
-        [&](const VkCommandBuffer& command_buffer, size_t image_index) {
+        [&](const VkCommandBuffer& command_buffer,
+            const VkFramebuffer& framebuffer) {
       // start render pass
       std::array<VkClearValue, 2> clear_values{};
       clear_values[0].color.float32[0] = 0.0f;
@@ -244,7 +235,7 @@ void NanosuitApp::MainLoop() {
           VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
           /*pNext=*/nullptr,
           *context_->render_pass(),
-          context_->render_pass().framebuffer(image_index),
+          framebuffer,
           /*renderArea=*/{
               /*offset=*/{0, 0},
               context_->swapchain().extent(),
@@ -259,8 +250,9 @@ void NanosuitApp::MainLoop() {
       vkCmdBeginRenderPass(command_buffer, &begin_info,
                            VK_SUBPASS_CONTENTS_INLINE);
 
-      nanosuit_model_.Draw(command_buffer, image_index, /*instance_count=*/1);
-      skybox_model_.Draw(command_buffer, image_index, /*instance_count=*/1);
+      nanosuit_model_.Draw(command_buffer, current_frame_,
+                           /*instance_count=*/1);
+      skybox_model_.Draw(command_buffer, current_frame_, /*instance_count=*/1);
 
       vkCmdEndRenderPass(command_buffer);
     });

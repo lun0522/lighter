@@ -44,7 +44,7 @@ struct Transformation {
 
 class CubeApp {
  public:
-  CubeApp() : context_{Context::CreateContext()} {
+  CubeApp() : context_{Context::GetContext()} {
     context_->Init("Cube");
   };
   void MainLoop();
@@ -121,9 +121,10 @@ void CubeApp::MainLoop() {
       const VkExtent2D extent = context_->swapchain().extent();
       UpdateData(frame_index, (float)extent.width / extent.height);
     };
-    const auto draw_result = command_.DrawFrame(
+    const auto draw_result = command_.Draw(
         current_frame_, update_data,
-        [&](const VkCommandBuffer& command_buffer, size_t image_index) {
+        [&](const VkCommandBuffer& command_buffer,
+            const VkFramebuffer& framebuffer) {
       // start render pass
       std::array<VkClearValue, 2> clear_values{};
       clear_values[0].color.float32[0] = 0.0f;
@@ -136,7 +137,7 @@ void CubeApp::MainLoop() {
           VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
           /*pNext=*/nullptr,
           *context_->render_pass(),
-          context_->render_pass().framebuffer(image_index),
+          framebuffer,
           /*renderArea=*/{
               /*offset=*/{0, 0},
               context_->swapchain().extent(),
@@ -151,7 +152,7 @@ void CubeApp::MainLoop() {
       vkCmdBeginRenderPass(command_buffer, &begin_info,
                            VK_SUBPASS_CONTENTS_INLINE);
 
-      model_.Draw(command_buffer, image_index, /*instance_count=*/1);
+      model_.Draw(command_buffer, current_frame_, /*instance_count=*/1);
 
       vkCmdEndRenderPass(command_buffer);
     });

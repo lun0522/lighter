@@ -10,8 +10,10 @@
 
 #include <array>
 #include <memory>
+#include <utility>
 #include <vector>
 
+#include "absl/container/node_hash_map.h"
 #include "absl/types/span.h"
 #include "absl/types/variant.h"
 #include "jessie_steamer/common/util.h"
@@ -87,19 +89,23 @@ class SwapChainImage {
   VkImageView image_view_;
 };
 
-class TextureImage {
- public:
-  using CubemapPath = std::array<std::string, buffer::kCubeMapImageCount>;
-  using SourcePath = absl::variant<std::string, CubemapPath>;
-  TextureImage(const std::shared_ptr<Context>& context,
-               const SourcePath& source_path);
+class TextureImage;
+using SharedTexture = std::shared_ptr<const TextureImage>;
 
-  using CubemapImage = std::array<common::util::Image,
-                                  buffer::kCubeMapImageCount>;
-  using SourceImage = absl::variant<common::util::Image, CubemapImage>;
-  TextureImage(const std::shared_ptr<Context>& context,
-               const SourceImage& source_image)
-      : context_{context} { Init(source_image); }
+class TextureImage : public std::enable_shared_from_this<TextureImage> {
+ public:
+  // Textures will be put in a unified resource pool. For single images, its
+  // file path will be used as identifier; for cubemaps, its directory will be
+  // used as identifier.
+  struct CubemapPath {
+    enum Order { kPosX = 0, kNegX, kPosY, kNegY, kPosZ, kNegZ };
+    std::string directory;
+    std::array<std::string, buffer::kCubemapImageCount> files;
+  };
+  using SourcePath = absl::variant<std::string, CubemapPath>;
+
+  static SharedTexture GetTexture(const std::shared_ptr<Context>& context,
+                                  const SourcePath& source_path);
 
   // This class is neither copyable nor movable
   TextureImage(const TextureImage&) = delete;
@@ -110,9 +116,12 @@ class TextureImage {
   VkDescriptorImageInfo descriptor_info() const;
 
  private:
-  void Init(const SourceImage& image);
+  TextureImage(const std::shared_ptr<Context>& context,
+               const SourcePath& source_path);
 
+  static absl::node_hash_map<std::string, SharedTexture> kLoadedTextures;
   std::shared_ptr<Context> context_;
+  std::string identifier_;
   TextureBuffer buffer_;
   VkImageView image_view_;
   VkSampler sampler_;

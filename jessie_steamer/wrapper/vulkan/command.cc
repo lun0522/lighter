@@ -131,13 +131,12 @@ void Command::Init(const SharedContext& context,
     in_flight_fences_.Init(context_, num_frame, true);
     is_first_time_ = false;
   }
-  command_buffers_ = CreateCommandBuffers(
-      context_, command_pool_, context_->swapchain().size());
+  command_buffers_ = CreateCommandBuffers(context_, command_pool_, num_frame);
 }
 
-VkResult Command::DrawFrame(size_t current_frame,
-                            const UpdateDataFunc& update_data,
-                            const MultiTimeRecord& on_record) {
+VkResult Command::Draw(size_t current_frame,
+                       const UpdateDataFunc& update_data,
+                       const MultiTimeRecord& on_record) {
   // Action  |  Acquire image  | Submit commands |  Present image  |
   // Wait on |        -        | Image available | Render finished |
   // Signal  | Image available | Render finished |        -        |
@@ -148,6 +147,9 @@ VkResult Command::DrawFrame(size_t current_frame,
   // so waiting for it at the beginning is fine
   vkWaitForFences(*context_->device(), 1, &in_flight_fences_[current_frame],
                   VK_TRUE, std::numeric_limits<uint64_t>::max());
+
+  // update per-frame data
+  update_data(current_frame);
 
   // acquire swapchain image
   uint32_t image_index;
@@ -164,12 +166,9 @@ VkResult Command::DrawFrame(size_t current_frame,
     default:
       throw std::runtime_error{"Failed to acquire swapchain image"};
   }
-  auto& command_buffer = command_buffers_[image_index];
-
-  // update per-frame data
-  update_data(image_index);
 
   // record command in command buffer
+  auto& command_buffer = command_buffers_[current_frame];
   VkCommandBufferBeginInfo begin_info{
       VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
       /*pNext=*/nullptr,
@@ -181,7 +180,7 @@ VkResult Command::DrawFrame(size_t current_frame,
 
   ASSERT_SUCCESS(vkBeginCommandBuffer(command_buffer, &begin_info),
                  "Failed to begin recording command buffer");
-  on_record(command_buffer, image_index);
+  on_record(command_buffer, context_->render_pass().framebuffer(image_index));
   ASSERT_SUCCESS(vkEndCommandBuffer(command_buffer),
                  "Failed to end recording command buffer");
 
@@ -231,12 +230,10 @@ VkResult Command::DrawFrame(size_t current_frame,
       return present_result;
     case VK_SUCCESS:
     case VK_SUBOPTIMAL_KHR:  // may be considered as good state as well
-      break;
+      return VK_SUCCESS;
     default:
       throw std::runtime_error{"Failed to present swapchain image"};
   }
-
-  return VK_SUCCESS;
 }
 
 void Command::Cleanup() {

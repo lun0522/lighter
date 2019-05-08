@@ -61,7 +61,7 @@ struct Asteroid {
 
 class PlanetApp {
  public:
-  PlanetApp() : context_{Context::CreateContext()} {
+  PlanetApp() : context_{Context::GetContext()} {
     context_->Init("Planet");
   };
   void MainLoop();
@@ -185,17 +185,19 @@ void PlanetApp::Init() {
                              {{&light_constant_, /*offset=*/0}}}}),
                        kNumFrameInFlight, /*is_opaque=*/true);
 
-  const std::string skybox_dir{"jessie_steamer/resource/texture/universe/"};
   Model::TextureBindingMap skybox_bindings;
-  skybox_bindings[Model::TextureType::kTypeSkybox] = {
+  skybox_bindings[Model::TextureType::kTypeCubemap] = {
       /*binding_point=*/1, {
           TextureImage::CubemapPath{
-              skybox_dir + "PositiveX.jpg",
-              skybox_dir + "NegativeX.jpg",
-              skybox_dir + "PositiveY.jpg",
-              skybox_dir + "NegativeY.jpg",
-              skybox_dir + "PositiveZ.jpg",
-              skybox_dir + "NegativeZ.jpg",
+              /*directory=*/"jessie_steamer/resource/texture/universe",
+              /*files=*/{
+                  "PositiveX.jpg",
+                  "NegativeX.jpg",
+                  "PositiveY.jpg",
+                  "NegativeY.jpg",
+                  "PositiveZ.jpg",
+                  "NegativeZ.jpg",
+              },
           },
       },
   };
@@ -286,9 +288,10 @@ void PlanetApp::MainLoop() {
   auto& window = context_->window();
 
   while (!should_quit_ && !window.ShouldQuit()) {
-    auto draw_result = command_.DrawFrame(
+    auto draw_result = command_.Draw(
         current_frame_, update_data,
-        [&](const VkCommandBuffer& command_buffer, size_t image_index) {
+        [&](const VkCommandBuffer& command_buffer,
+            const VkFramebuffer& framebuffer) {
       // start render pass
       std::array<VkClearValue, 2> clear_values{};
       clear_values[0].color.float32[0] = 0.0f;
@@ -301,7 +304,7 @@ void PlanetApp::MainLoop() {
           VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
           /*pNext=*/nullptr,
           *context_->render_pass(),
-          context_->render_pass().framebuffer(image_index),
+          framebuffer,
           /*renderArea=*/{
               /*offset=*/{0, 0},
               context_->swapchain().extent(),
@@ -316,10 +319,10 @@ void PlanetApp::MainLoop() {
       vkCmdBeginRenderPass(command_buffer, &begin_info,
                            VK_SUBPASS_CONTENTS_INLINE);
 
-      planet_model_.Draw(command_buffer, image_index, /*instance_count=*/1);
-      asteroid_model_.Draw(command_buffer, image_index,
+      planet_model_.Draw(command_buffer, current_frame_, /*instance_count=*/1);
+      asteroid_model_.Draw(command_buffer, current_frame_,
                            static_cast<uint32_t>(num_asteroid_));
-      skybox_model_.Draw(command_buffer, image_index, /*instance_count=*/1);
+      skybox_model_.Draw(command_buffer, current_frame_, /*instance_count=*/1);
 
       vkCmdEndRenderPass(command_buffer);
     });

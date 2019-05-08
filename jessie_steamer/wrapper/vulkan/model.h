@@ -34,7 +34,7 @@ class Context;
 class Model {
  public:
   using TextureType = common::ModelLoader::Texture::Type;
-  using Mesh = std::array<std::vector<std::unique_ptr<TextureImage>>,
+  using Mesh = std::array<std::vector<SharedTexture>,
                           TextureType::kTypeMaxEnum>;
   using UniformInfos = std::vector<std::pair<const UniformBuffer&,
                                              const Descriptor::Info&>>;

@@ -11,6 +11,7 @@
 #include <stdexcept>
 
 #include "absl/memory/memory.h"
+#include "absl/strings/str_format.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
 
 namespace jessie_steamer {
@@ -20,14 +21,27 @@ namespace {
 
 using common::util::Image;
 using std::array;
+using std::runtime_error;
 using std::string;
 
 VkImageView CreateImageView(const SharedContext& context,
                             const VkImage& image,
-                            VkImageViewType view_type,
                             VkFormat format,
                             VkImageAspectFlags aspect_mask,
                             uint32_t layer_count) {
+  VkImageViewType view_type;
+  switch (layer_count) {
+    case 1:
+      view_type = VK_IMAGE_VIEW_TYPE_2D;
+      break;
+    case buffer::kCubemapImageCount:
+      view_type = VK_IMAGE_VIEW_TYPE_CUBE;
+      break;
+    default:
+      throw runtime_error{"Unsupported layer count: " +
+                          std::to_string(layer_count)};
+  }
+
   VkImageViewCreateInfo image_view_info{
       VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -89,13 +103,23 @@ VkSampler CreateSampler(const SharedContext& context) {
   return sampler;
 }
 
+const string* GetImageIdentifier(const TextureImage::SourcePath& source_path) {
+  if (absl::holds_alternative<string>(source_path)) {
+    return &absl::get<string>(source_path);
+  } else if (absl::holds_alternative<TextureImage::CubemapPath>(source_path)) {
+    return &absl::get<TextureImage::CubemapPath>(source_path).directory;
+  } else {
+    throw runtime_error{"Unrecognized variant type"};
+  }
+}
+
 } /* namespace */
 
 void SwapChainImage::Init(const SharedContext& context,
                           const VkImage& image,
                           VkFormat format) {
   context_ = context;
-  image_view_ = CreateImageView(context_, image, VK_IMAGE_VIEW_TYPE_2D, format,
+  image_view_ = CreateImageView(context_, image, format,
                                 VK_IMAGE_ASPECT_COLOR_BIT, /*layer_count=*/1);
 }
 
@@ -104,40 +128,47 @@ SwapChainImage::~SwapChainImage() {
   vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
 }
 
-TextureImage::TextureImage(const SharedContext& context,
-                           const SourcePath& source_path)
-    : context_{context} {
-  SourceImage image;
-  if (absl::holds_alternative<string>(source_path)) {
-    image.emplace<Image>();
-    absl::get<Image>(image).Init(absl::get<string>(source_path));
-  } else if (absl::holds_alternative<CubemapPath>(source_path)) {
-    image.emplace<CubemapImage>();
-    const auto& paths = absl::get<CubemapPath>(source_path);
-    for (size_t i = 0; i < paths.size(); ++i) {
-      absl::get<CubemapImage>(image)[i].Init(paths[i]);
-    }
-  } else {
-    throw std::runtime_error{"Unrecognized variant type"};
+absl::node_hash_map<string, SharedTexture> TextureImage::kLoadedTextures{};
+
+SharedTexture TextureImage::GetTexture(
+    const SharedContext& context,
+    const SourcePath& source_path) {
+  const string* identifier = GetImageIdentifier(source_path);
+  auto found = kLoadedTextures.find(*identifier);
+  if (found == kLoadedTextures.end()) {
+    found = kLoadedTextures.emplace(
+        *identifier, new TextureImage{context, source_path}).first;
   }
-  Init(image);
+  return found->second;
 }
 
-void TextureImage::Init(const SourceImage& source_image) {
+TextureImage::TextureImage(const SharedContext& context,
+                           const SourcePath& source_path)
+    : context_{context}, identifier_{*GetImageIdentifier(source_path)} {
+  using CubemapImage = std::array<Image, buffer::kCubemapImageCount>;
+  using SourceImage = absl::variant<Image, CubemapImage>;
+
+  SourceImage source_image;
   const Image* sample_image;
   std::vector<const void*> datas;
-  if (absl::holds_alternative<Image>(source_image)) {
-    sample_image = &absl::get<Image>(source_image);
-    datas.emplace_back(sample_image->data);
-  } else if (absl::holds_alternative<CubemapImage>(source_image)) {
-    const auto& images = absl::get<CubemapImage>(source_image);
-    sample_image = &images[0];
-    datas.reserve(images.size());
-    for (const auto& image : images) {
-      datas.emplace_back(image.data);
+
+  if (absl::holds_alternative<string>(source_path)) {
+    auto& image = source_image.emplace<Image>();
+    image.Init(absl::get<string>(source_path));
+    sample_image = &image;
+    datas.emplace_back(image.data);
+  } else if (absl::holds_alternative<CubemapPath>(source_path)) {
+    const auto& cubemap_path = absl::get<CubemapPath>(source_path);
+    auto& images = source_image.emplace<CubemapImage>();
+    datas.resize(cubemap_path.files.size());
+    for (size_t i = 0; i < cubemap_path.files.size(); ++i) {
+      images[i].Init(absl::StrFormat("%s/%s", cubemap_path.directory,
+                                     cubemap_path.files[i]));
+      datas[i] = images[i].data;
     }
+    sample_image = &images[0];
   } else {
-    throw std::runtime_error{"Unrecognized variant type"};
+    throw runtime_error{"Unrecognized variant type"};
   }
 
   VkFormat format;
@@ -149,21 +180,19 @@ void TextureImage::Init(const SourceImage& source_image) {
       format = VK_FORMAT_R8G8B8A8_UNORM;
       break;
     default:
-      throw std::runtime_error{"Unsupported number of channels: " +
-                               std::to_string(sample_image->channel)};
+      throw runtime_error{"Unsupported number of channels: " +
+                          std::to_string(sample_image->channel)};
   }
 
   TextureBuffer::Info image_info{
-     absl::MakeSpan(datas),
-     format,
-     static_cast<uint32_t>(sample_image->width),
-     static_cast<uint32_t>(sample_image->height),
-     static_cast<uint32_t>(sample_image->channel),
+      absl::MakeSpan(datas),
+      format,
+      static_cast<uint32_t>(sample_image->width),
+      static_cast<uint32_t>(sample_image->height),
+      static_cast<uint32_t>(sample_image->channel),
   };
   buffer_.Init(context_, image_info);
-  VkImageViewType view_type = datas.size() == buffer::kCubeMapImageCount ?
-      VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
-  image_view_ = CreateImageView(context_, buffer_.image(), view_type, format,
+  image_view_ = CreateImageView(context_, buffer_.image(), format,
                                 VK_IMAGE_ASPECT_COLOR_BIT,
                                 /*layer_count=*/CONTAINER_SIZE(datas));
   sampler_ = CreateSampler(context_);
@@ -186,8 +215,7 @@ void DepthStencilImage::Init(const SharedContext& context,
                              VkExtent2D extent) {
   context_ = context;
   buffer_.Init(context_, extent);
-  image_view_ = CreateImageView(context_, buffer_.image(),
-                                VK_IMAGE_VIEW_TYPE_2D, format(),
+  image_view_ = CreateImageView(context_, buffer_.image(), format(),
                                 VK_IMAGE_ASPECT_DEPTH_BIT
                                     | VK_IMAGE_ASPECT_STENCIL_BIT,
                                 /*layer_count=*/1);

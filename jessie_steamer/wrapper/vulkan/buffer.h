@@ -21,7 +21,7 @@ namespace wrapper {
 namespace vulkan {
 namespace buffer {
 
-constexpr int kCubeMapImageCount = 6;
+constexpr int kCubemapImageCount = 6;
 constexpr uint32_t kPerVertexBindingPoint = 0;
 constexpr uint32_t kPerInstanceBindingPoint = 1;
 

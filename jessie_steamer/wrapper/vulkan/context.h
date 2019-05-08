@@ -27,9 +27,10 @@ using SharedContext = std::shared_ptr<Context>;
 
 class Context : public std::enable_shared_from_this<Context> {
  public:
-  static std::shared_ptr<Context> CreateContext() {
-    return std::shared_ptr<Context>{new Context{}};
+  static SharedContext GetContext() {
+    return SharedContext{new Context{}};
   }
+
   Context() = default;
 
   // This class is neither copyable nor movable
@@ -40,7 +41,7 @@ class Context : public std::enable_shared_from_this<Context> {
   void Recreate();
   void WaitIdle() const { vkDeviceWaitIdle(*device_); }
 
-  std::shared_ptr<Context> ptr()                  { return shared_from_this(); }
+  SharedContext ptr()                             { return shared_from_this(); }
   common::Window& window()                        { return window_; }
   const VkAllocationCallbacks* allocator()  const { return allocator_; }
   const Instance& instance()                const { return instance_; }

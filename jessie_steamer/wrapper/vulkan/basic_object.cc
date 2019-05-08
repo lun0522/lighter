@@ -30,18 +30,11 @@ using util::nullflag;
 
 struct QueueIndices {
   size_t graphics, present;
-
-  static QueueIndices Invalid() {
-    return QueueIndices{util::kInvalidIndex, util::kInvalidIndex};
-  }
-
-  bool IsValid() const {
-    return graphics != util::kInvalidIndex && present != util::kInvalidIndex;
-  }
 };
 
-QueueIndices FindDeviceQueues(SharedContext context,
-                              const VkPhysicalDevice& physical_device) {
+absl::optional<QueueIndices> FindDeviceQueues(
+    SharedContext context,
+    const VkPhysicalDevice& physical_device) {
   VkPhysicalDeviceProperties properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
   std::cout << "Found device: " << properties.deviceName
@@ -49,14 +42,14 @@ QueueIndices FindDeviceQueues(SharedContext context,
 
   // require swapchain support
   if (!Swapchain::HasSwapchainSupport(context, physical_device)) {
-    return QueueIndices::Invalid();
+    return absl::nullopt;
   }
 
   // require anisotropy filtering support
   VkPhysicalDeviceFeatures feature_support;
   vkGetPhysicalDeviceFeatures(physical_device, &feature_support);
   if (!feature_support.samplerAnisotropy) {
-    return QueueIndices::Invalid();
+    return absl::nullopt;
   }
 
   // find queue family that holds graphics queue
@@ -183,11 +176,11 @@ void PhysicalDevice::Init(const SharedContext& context) {
 
   for (const auto& candidate : devices) {
     auto indices = FindDeviceQueues(context_, candidate);
-    if (indices.IsValid()) {
+    if (indices.has_value()) {
       physical_device_ = candidate;
       context_->set_queue_family_indices(
-          static_cast<uint32_t>(indices.graphics),
-          static_cast<uint32_t>(indices.present)
+          static_cast<uint32_t>(indices.value().graphics),
+          static_cast<uint32_t>(indices.value().present)
       );
 
       // query device limits

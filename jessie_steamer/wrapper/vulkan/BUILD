@@ -38,6 +38,7 @@ cc_library(
         "//third_party:vulkan",
         "@lib-absl//absl/container:flat_hash_map",
         "@lib-absl//absl/container:flat_hash_set",
+        "@lib-absl//absl/container:node_hash_map",
         "@lib-absl//absl/memory",
         "@lib-absl//absl/strings:str_format",
         "@lib-absl//absl/types:optional",
