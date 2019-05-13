@@ -9,11 +9,9 @@
 
 #include <stdexcept>
 
+#include "absl/strings/str_format.h"
 #include "third_party/assimp/Importer.hpp"
-#include "third_party/assimp/material.h"
-#include "third_party/assimp/mesh.h"
 #include "third_party/assimp/postprocess.h"
-#include "third_party/assimp/scene.h"
 
 namespace jessie_steamer {
 namespace common {
@@ -24,25 +22,23 @@ using std::vector;
 
 } /* namespace */
 
-ModelLoader::ModelLoader(const string& obj_path,
-                         const string& tex_path) {
+ModelLoader::ModelLoader(const string& obj_path, const string& tex_path) {
   // other useful options:
-  // - aiProcess_GenNormals: create normal for vertices
   // - aiProcess_SplitLargeMeshes: split mesh when the number of triangles
   //                               that can be rendered at a time is limited
   // - aiProcess_OptimizeMeshes: do the reverse of splitting, merge meshes to
   //                             reduce drawing calls
-  unsigned int flags = aiProcess_Triangulate
-                           | aiProcess_GenNormals
-                           | aiProcess_PreTransformVertices
-                           | aiProcess_FlipUVs;
+  constexpr unsigned int flags = aiProcess_Triangulate
+                                     | aiProcess_GenNormals
+                                     | aiProcess_PreTransformVertices
+                                     | aiProcess_FlipUVs;
 
   Assimp::Importer importer;
-   auto* scene = importer.ReadFile(obj_path, flags);
+  auto* scene = importer.ReadFile(obj_path, flags);
   if (!scene || !scene->mRootNode ||
       (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)) {
-    throw std::runtime_error{string{"Failed to import scene: "} +
-                             importer.GetErrorString()};
+    throw std::runtime_error{absl::StrFormat(
+        "Failed to import scene: %s", importer.GetErrorString())};
   }
 
   ProcessNode(tex_path, scene->mRootNode, scene);
@@ -66,7 +62,7 @@ void ModelLoader::ProcessMesh(const string& directory,
   meshes_.emplace_back();
 
   // load vertices
-  vector<util::VertexAttrib3D>& vertices = meshes_.back().vertices;
+  vector<VertexAttrib3D>& vertices = meshes_.back().vertices;
   vertices.reserve(mesh->mNumVertices);
   aiVector3D* ai_tex_coords = mesh->mTextureCoords[0];
   for (int i = 0; i < mesh->mNumVertices; ++i) {
@@ -82,7 +78,7 @@ void ModelLoader::ProcessMesh(const string& directory,
   }
 
   // load indices
-  vector<unsigned int>& indices = meshes_.back().indices;
+  vector<uint32_t>& indices = meshes_.back().indices;
   for (int i = 0; i < mesh->mNumFaces; ++i) {
     aiFace face = mesh->mFaces[i];
     indices.insert(indices.end(), face.mIndices,
@@ -118,12 +114,13 @@ void ModelLoader::LoadTextures(const string& directory,
       throw std::runtime_error{"Unrecognized texture type"};
   }
 
-  size_t num_texture = material->GetTextureCount(ai_type);
+  int num_texture = material->GetTextureCount(ai_type);
   textures->reserve(textures->size() + num_texture);
-  for (int i = 0; i < num_texture; ++i) {
+  for (unsigned int i = 0; i < num_texture; ++i) {
     aiString path;
     material->GetTexture(ai_type, i, &path);
-    textures->emplace_back(Texture{directory + "/" + path.C_Str(), type});
+    textures->emplace_back(Texture{
+        absl::StrFormat("%s/%s", directory, path.C_Str()), type});
   }
 }
 

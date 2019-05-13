@@ -15,6 +15,7 @@
 #include "absl/memory/memory.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
+#include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
 namespace wrapper {
@@ -164,7 +165,7 @@ void Swapchain::Init(const SharedContext& context) {
   VkSwapchainCreateInfoKHR swapchain_info{
       VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
       /*pNext=*/nullptr,
-      util::nullflag,
+      /*flags=*/nullflag,
       surface,
       min_image_count,
       surface_format.format,
@@ -215,7 +216,7 @@ void Swapchain::Init(const SharedContext& context) {
       }
   )};
   images_.reserve(images.size());
-  for (size_t i = 0; i < images.size(); ++i) {
+  for (int i = 0; i < images.size(); ++i) {
     images_.emplace_back(absl::make_unique<SwapChainImage>());
     images_[i]->Init(context_, images[i], image_format_);
   }

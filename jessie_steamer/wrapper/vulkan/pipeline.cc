@@ -9,29 +9,29 @@
 
 #include <stdexcept>
 
-#include "jessie_steamer/common/util.h"
+#include "jessie_steamer/common/file.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
+#include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace {
 
-using common::util::nullflag;
 using std::move;
 using std::runtime_error;
 using std::string;
 using std::vector;
 
 VkShaderModule CreateShaderModule(const SharedContext& context,
-                                  const string& file) {
-  const string& code = common::util::LoadTextFromFile(file);
+                                  const string& path) {
+  const auto raw_data = absl::make_unique<common::RawData>(path);
   VkShaderModuleCreateInfo module_info{
       /*sType=*/VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
       /*pNext=*/nullptr,
-      nullflag,
-      code.length(),
-      reinterpret_cast<const uint32_t*>(code.data()),
+      /*flags=*/nullflag,
+      raw_data->size,
+      reinterpret_cast<const uint32_t*>(raw_data->data),
   };
 
   VkShaderModule module;
@@ -50,7 +50,7 @@ PipelineBuilder& PipelineBuilder::Init(const SharedContext& context) {
   input_assembly_info = {
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
-      nullflag,
+      /*flags=*/nullflag,
       // .topology can be line, line strp, triangle fan, etc
       /*topology=*/VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
       // .primitiveRestartEnable matters for drawing line/triangle strips
@@ -60,7 +60,7 @@ PipelineBuilder& PipelineBuilder::Init(const SharedContext& context) {
   rasterizer_info = {
       VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
-      nullflag,
+      /*flags=*/nullflag,
       // fragments beyond clip space will be discarded, not clamped
       /*depthClampEnable=*/VK_FALSE,
       // disable outputs to framebuffer if TRUE
@@ -80,7 +80,7 @@ PipelineBuilder& PipelineBuilder::Init(const SharedContext& context) {
   multisample_info = {
       VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
-      nullflag,
+      /*flags=*/nullflag,
       /*rasterizationSamples=*/VK_SAMPLE_COUNT_1_BIT,
       /*sampleShadingEnable=*/VK_FALSE,
       /*minSampleShading=*/0.0f,
@@ -92,7 +92,7 @@ PipelineBuilder& PipelineBuilder::Init(const SharedContext& context) {
   depth_stencil_info = {
       VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
-      nullflag,
+      /*flags=*/nullflag,
       /*depthTestEnable=*/VK_TRUE,
       /*depthWriteEnable=*/VK_TRUE,  // should disable for transparent objects
       /*depthCompareOp=*/VK_COMPARE_OP_LESS_OR_EQUAL,
@@ -124,7 +124,7 @@ PipelineBuilder& PipelineBuilder::Init(const SharedContext& context) {
   color_blend_info = {
       VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
-      nullflag,
+      /*flags=*/nullflag,
       /*logicOpEnable=*/VK_FALSE,
       /*logicOp=*/VK_LOGIC_OP_CLEAR,
       /*attachmentCount=*/1,
@@ -137,7 +137,7 @@ PipelineBuilder& PipelineBuilder::Init(const SharedContext& context) {
   dynamic_state_info = {
       VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
-      nullflag,
+      /*flags=*/nullflag,
       /*dynamicStateCount=*/0,
       /*pDynamicStates=*/nullptr,
   };
@@ -153,7 +153,7 @@ PipelineBuilder& PipelineBuilder::set_vertex_input(
   vertex_input_info = {
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
-      nullflag,
+      /*flags=*/nullflag,
       // vertex binding descriptions
       CONTAINER_SIZE(this->binding_descriptions),
       this->binding_descriptions.data(),
@@ -172,7 +172,7 @@ PipelineBuilder& PipelineBuilder::set_layout(
   layout_info = {
       VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       /*pNext=*/nullptr,
-      nullflag,
+      /*flags=*/nullflag,
       CONTAINER_SIZE(this->descriptor_layouts),
       this->descriptor_layouts.data(),
       CONTAINER_SIZE(this->push_constant_ranges),
@@ -249,7 +249,7 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
     shader_stages.emplace_back(VkPipelineShaderStageCreateInfo{
         VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         /*pNext=*/nullptr,
-        nullflag,
+        /*flags=*/nullflag,
         module.first,
         module.second,
         /*pName=*/"main",  // entry point of this shader
@@ -261,7 +261,7 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
   VkPipelineViewportStateCreateInfo viewport_info{
       VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
-      nullflag,
+      /*flags=*/nullflag,
       /*viewportCount=*/1,
       &viewport.value(),
       /*scissorCount=*/1,
@@ -271,7 +271,7 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
   VkGraphicsPipelineCreateInfo pipeline_info{
       VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
       /*pNext=*/nullptr,
-      nullflag,
+      /*flags=*/nullflag,
       CONTAINER_SIZE(shader_stages),
       shader_stages.data(),
       &vertex_input_info.value(),

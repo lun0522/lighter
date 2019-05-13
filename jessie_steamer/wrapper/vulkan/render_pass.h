@@ -51,7 +51,7 @@ class RenderPass {
   void Cleanup();
 
   const VkRenderPass& operator*() const { return render_pass_; }
-  const VkFramebuffer& framebuffer(size_t index) const
+  const VkFramebuffer& framebuffer(int index) const
       { return framebuffers_[index]; }
 
  private:

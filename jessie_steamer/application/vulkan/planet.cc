@@ -6,22 +6,20 @@
 //
 
 #include <array>
-#include <cstdlib>
 #include <iostream>
-#include <memory>
 #include <numeric>
 #include <random>
 #include <vector>
 
+#include "absl/strings/str_format.h"
 #include "jessie_steamer/common/camera.h"
-#include "jessie_steamer/common/util.h"
+#include "jessie_steamer/common/time.h"
 #include "jessie_steamer/common/window.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
-#include "jessie_steamer/wrapper/vulkan/image.h"
+#include "jessie_steamer/wrapper/vulkan/macro.h"
 #include "jessie_steamer/wrapper/vulkan/model.h"
-#include "jessie_steamer/wrapper/vulkan/pipeline.h"
 #include "third_party/glm/glm.hpp"
 // different from OpenGL, where depth values are in range [-1.0, 1.0]
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -34,11 +32,10 @@ namespace vulkan {
 namespace planet {
 namespace {
 
-namespace util = common::util;
 using namespace wrapper::vulkan;
 
-constexpr size_t kNumFrameInFlight = 2;
-constexpr size_t kNumAsteroidRing = 3;
+constexpr int kNumFrameInFlight = 2;
+constexpr int kNumAsteroidRing = 3;
 
 // alignment requirement:
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
@@ -69,18 +66,18 @@ class PlanetApp {
  private:
   void Init();
   void GenAsteroidModels();
-  void UpdateData(size_t frame_index);
+  void UpdateData(int frame);
   void Cleanup();
 
   bool should_quit_ = false;
   bool is_first_time = true;
-  size_t current_frame_ = 0;
-  util::Timer timer_;
+  int current_frame_ = 0;
+  common::Timer timer_;
   std::shared_ptr<Context> context_;
   common::Camera camera_;
   Command command_;
   Model planet_model_, asteroid_model_, skybox_model_;
-  size_t num_asteroid_;
+  int num_asteroid_;
   PerInstanceBuffer per_asteroid_data_;
   PushConstant light_constant_, skybox_constant_;
 };
@@ -122,8 +119,8 @@ void PlanetApp::Init() {
     });
 
     // push constants
-    light_constant_.Init(sizeof(LightTrans));
-    skybox_constant_.Init(sizeof(SkyboxTrans));
+    light_constant_.Init(sizeof(LightTrans), kNumFrameInFlight);
+    skybox_constant_.Init(sizeof(SkyboxTrans), kNumFrameInFlight);
 
     is_first_time = false;
   }
@@ -155,7 +152,7 @@ void PlanetApp::Init() {
       {/*location=*/4, offsetof(Asteroid, radius), VK_FORMAT_R32_SFLOAT},
   };
   per_instance_attribs.reserve(6);
-  size_t attrib_offset = offsetof(Asteroid, model);
+  int attrib_offset = offsetof(Asteroid, model);
   for (uint32_t location = 5; location <= 8; ++location) {
     per_instance_attribs.emplace_back(Model::VertexAttribute{
         location, static_cast<uint32_t>(attrib_offset),
@@ -235,13 +232,13 @@ void PlanetApp::GenAsteroidModels() {
   std::uniform_real_distribution<float> radius_gen{-1.5f, 1.5f};
   std::uniform_real_distribution<float> scale_gen{1.0f, 3.0f};
 
-  num_asteroid_ = static_cast<size_t>(std::accumulate(
+  num_asteroid_ = static_cast<int>(std::accumulate(
       num_asteroid.begin(), num_asteroid.end(), 0));
   std::vector<Asteroid> asteroids;
   asteroids.reserve(num_asteroid_);
 
-  for (size_t ring = 0; ring < kNumAsteroidRing; ++ring) {
-    for (size_t i = 0; i < num_asteroid[ring]; ++i) {
+  for (int ring = 0; ring < kNumAsteroidRing; ++ring) {
+    for (int i = 0; i < num_asteroid[ring]; ++i) {
       glm::mat4 model{1.0f};
       model = glm::rotate(model, glm::radians(angle_gen(rand_gen)),
                           glm::vec3{axis_gen(rand_gen), axis_gen(rand_gen),
@@ -260,7 +257,7 @@ void PlanetApp::GenAsteroidModels() {
                           sizeof(Asteroid) * asteroids.size());
 }
 
-void PlanetApp::UpdateData(size_t frame_index) {
+void PlanetApp::UpdateData(int frame) {
   const float elapsed_time = timer_.time_from_launch();
 
   glm::mat4 model{1.0f};
@@ -271,19 +268,19 @@ void PlanetApp::UpdateData(size_t frame_index) {
 
   glm::vec3 light_dir{glm::sin(elapsed_time * 0.6f), -0.3f,
                       glm::cos(elapsed_time * 0.6f)};
-  *light_constant_.data<LightTrans>() = {
+  *light_constant_.data<LightTrans>(frame) = {
       model,
       proj * view,
       glm::vec4{light_dir, elapsed_time},
   };
 
-  *skybox_constant_.data<SkyboxTrans>() = {proj, view};
+  *skybox_constant_.data<SkyboxTrans>(frame) = {proj, view};
 }
 
 void PlanetApp::MainLoop() {
   Init();
-  const auto update_data = [this](size_t frame_index) {
-    UpdateData(frame_index);
+  const auto update_data = [this](int frame) {
+    UpdateData(frame);
   };
   auto& window = context_->window();
 
@@ -336,10 +333,11 @@ void PlanetApp::MainLoop() {
 
     current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
     window.PollEvents();
-    camera_.Activate();  // not activated until first frame is displayed
+    camera_.set_activate(true);  // not activated until first frame is displayed
     const auto frame_rate = timer_.frame_rate();
     if (frame_rate.has_value()) {
-      std::cout << "Frame per second: " << frame_rate.value() << std::endl;
+      std::cout << absl::StrFormat("Frame per second: %d", frame_rate.value())
+                << std::endl;
     }
   }
   context_->WaitIdle();  // wait for all async operations finish

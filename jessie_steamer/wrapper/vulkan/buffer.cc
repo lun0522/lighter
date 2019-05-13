@@ -11,16 +11,15 @@
 #include <cstring>
 #include <stdexcept>
 
-#include "jessie_steamer/common/util.h"
-#include "jessie_steamer/wrapper/vulkan/context.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
+#include "jessie_steamer/wrapper/vulkan/context.h"
+#include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace {
 
-using common::util::nullflag;
 using std::array;
 using std::runtime_error;
 using std::vector;
@@ -67,7 +66,7 @@ VkBuffer CreateBuffer(const SharedContext& context,
   VkBufferCreateInfo buffer_info{
       VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
       /*pNext=*/nullptr,
-      nullflag,
+      /*flags=*/nullflag,
       data_size,
       buffer_usage,
       /*sharingMode=*/VK_SHARING_MODE_EXCLUSIVE,  // only graphics queue access
@@ -299,7 +298,7 @@ void CopyBufferToImage(const SharedContext& context,
 } /* namespace */
 
 void VertexBuffer::CopyHostData(vector<buffer::CopyInfo> copy_infos,
-                               size_t total_size) {
+                                size_t total_size) {
   // create staging buffer and associated memory
   VkBuffer staging_buffer = CreateBuffer(           // source of transfer
       context_, total_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
@@ -359,7 +358,7 @@ void PerVertexBuffer::Init(const SharedContext& context,
 }
 
 void PerVertexBuffer::Draw(const VkCommandBuffer& command_buffer,
-                           size_t mesh_index,
+                           int mesh_index,
                            uint32_t instance_count) const {
   const MeshData& data = mesh_datas_[mesh_index];
   vkCmdBindVertexBuffers(command_buffer, buffer::kPerVertexBindingPoint,
@@ -389,7 +388,8 @@ VertexBuffer::~VertexBuffer() {
 }
 
 void UniformBuffer::Init(const SharedContext& context,
-                         const Info& info) {
+                         size_t chunk_size,
+                         int num_chunk) {
   context_ = context;
 
   // offset is required to be multiple of minUniformBufferOffsetAlignment
@@ -397,12 +397,12 @@ void UniformBuffer::Init(const SharedContext& context,
   // aligned size |chunk_memory_size_|
   VkDeviceSize alignment =
       context_->physical_device().limits().minUniformBufferOffsetAlignment;
-  chunk_data_size_ = info.chunk_size;
+  chunk_data_size_ = chunk_size;
   chunk_memory_size_ =
       (chunk_data_size_ + alignment - 1) / alignment * alignment;
 
-  data_ = new char[chunk_data_size_ * info.num_chunk];
-  buffer_ = CreateBuffer(context_, chunk_memory_size_ * info.num_chunk,
+  data_ = new char[chunk_data_size_ * num_chunk];
+  buffer_ = CreateBuffer(context_, chunk_memory_size_ * num_chunk,
                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
   device_memory_ = CreateBufferMemory(
       context_, buffer_,
@@ -410,7 +410,7 @@ void UniformBuffer::Init(const SharedContext& context,
           | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 }
 
-void UniformBuffer::CopyToDevice(size_t chunk_index) const {
+void UniformBuffer::CopyToDevice(int chunk_index) const {
   VkDeviceSize src_offset = chunk_data_size_ * chunk_index;
   VkDeviceSize dst_offset = chunk_memory_size_ * chunk_index;
   CopyHostToBuffer(
@@ -425,7 +425,7 @@ UniformBuffer::~UniformBuffer() {
 }
 
 VkDescriptorBufferInfo UniformBuffer::descriptor_info(
-    size_t chunk_index) const {
+    int chunk_index) const {
   return VkDescriptorBufferInfo{
       buffer_,
       /*offset=*/chunk_memory_size_ * chunk_index,

@@ -11,12 +11,10 @@
 #include <string>
 #include <vector>
 
-#include "jessie_steamer/common/util.h"
-
-struct aiMaterial;
-struct aiMesh;
-struct aiNode;
-struct aiScene;
+#include "jessie_steamer/common/file.h"
+#include "third_party/assimp/material.h"
+#include "third_party/assimp/mesh.h"
+#include "third_party/assimp/scene.h"
 
 namespace jessie_steamer {
 namespace common {
@@ -47,19 +45,18 @@ class ModelLoader {
     Mesh(Mesh&&) = default;
     Mesh& operator=(Mesh&&) = default;
 
-    std::vector<util::VertexAttrib3D> vertices;
-    std::vector<unsigned int> indices;
+    std::vector<VertexAttrib3D> vertices;
+    std::vector<uint32_t> indices;
     std::vector<Texture> textures;
   };
 
-  ModelLoader(const std::string& obj_path,
-              const std::string& tex_path);
+  ModelLoader(const std::string& obj_path, const std::string& tex_path);
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   ModelLoader(const ModelLoader&) = delete;
   ModelLoader& operator=(const ModelLoader&) = delete;
 
-  std::vector<Mesh>& meshes() { return meshes_; }
+  const std::vector<Mesh>& meshes() const { return meshes_; }
 
  private:
   void ProcessNode(const std::string& directory,

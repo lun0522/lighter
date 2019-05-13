@@ -12,8 +12,9 @@
 
 #include "absl/memory/memory.h"
 #include "absl/strings/str_format.h"
-#include "jessie_steamer/common/util.h"
+#include "jessie_steamer/common/file.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
+#include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
 namespace wrapper {
@@ -21,7 +22,7 @@ namespace vulkan {
 namespace {
 
 using absl::optional;
-using common::util::VertexAttrib3D;
+using common::VertexAttrib3D;
 using std::move;
 using std::runtime_error;
 using std::string;
@@ -97,7 +98,7 @@ vector<VkVertexInputBindingDescription> GetBindingDescriptions(
 
 vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(
     const vector<VertexInputAttribute>& attributes) {
-  size_t num_attribute = 0;
+  int num_attribute = 0;
   for (const auto& attribs : attributes) {
     num_attribute += attribs.attributes.size();
   }
@@ -191,7 +192,7 @@ void Model::Init(const SharedContext& context,
                  const optional<UniformInfos>& uniform_infos,
                  const optional<InstancingInfo>& instancing_info,
                  const optional<PushConstantInfos>& push_constant_infos,
-                 size_t num_frame,
+                 int num_frame,
                  bool is_opaque) {
   if (is_first_time_) {
     context_ = context;
@@ -270,8 +271,8 @@ Model::FindBindingPoint Model::LoadSingleMesh(
   // load vertices and indices
   vector<VertexAttrib3D> vertices;
   vector<uint32_t> indices;
-  common::util::LoadObjFromFile(resource.obj_path, resource.obj_index_base,
-                                &vertices, &indices);
+  common::file::LoadObjFile(resource.obj_path, resource.obj_index_base,
+                            &vertices, &indices);
   vertex_buffer_.Init(context_, {CreateVertexInfo(vertices, indices)});
 
   // load textures
@@ -351,9 +352,9 @@ Model::FindBindingPoint Model::LoadMultiMesh(
 
 void Model::CreateDescriptors(const FindBindingPoint& find_binding_point,
                               const optional<UniformInfos>& uniform_infos,
-                              size_t num_frame) {
+                              int num_frame) {
   descriptors_.resize(num_frame);
-  for (size_t frame = 0; frame < num_frame; ++frame) {
+  for (int frame = 0; frame < num_frame; ++frame) {
     descriptors_[frame].reserve(meshes_.size());
 
     // for different frames, we get data from different parts of uniform buffer.
@@ -386,7 +387,7 @@ void Model::CreateDescriptors(const FindBindingPoint& find_binding_point,
 }
 
 void Model::Draw(const VkCommandBuffer& command_buffer,
-                 size_t frame,
+                 int frame,
                  uint32_t instance_count) const {
   vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                     **pipeline_);
@@ -398,11 +399,11 @@ void Model::Draw(const VkCommandBuffer& command_buffer,
       for (const auto& info : push_constants.infos) {
         vkCmdPushConstants(command_buffer, pipeline_->layout(),
                            push_constants.shader_stage,
-                           info.offset, info.size(), info.data());
+                           info.offset, info.size(), info.data(frame));
       }
     }
   }
-  for (size_t mesh_index = 0; mesh_index < meshes_.size(); ++mesh_index) {
+  for (int mesh_index = 0; mesh_index < meshes_.size(); ++mesh_index) {
     vkCmdBindDescriptorSets(
         command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
         pipeline_->layout(), /*firstSet=*/0, /*descriptorSetCount=*/1,

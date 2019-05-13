@@ -7,7 +7,7 @@
 
 #include "jessie_steamer/wrapper/vulkan/text.h"
 
-#include "jessie_steamer/common/util.h"
+#include "jessie_steamer/common/char_lib.h"
 
 namespace jessie_steamer {
 namespace wrapper {
@@ -30,12 +30,12 @@ string GetFontPath(Font font) {
 
 StaticText::StaticText(const std::vector<string>& texts,
                        Font font, glm::uvec2 font_size) {
-  common::util::CharLib lib{texts, GetFontPath(font), font_size};
+  common::CharLib lib{texts, GetFontPath(font), font_size};
 }
 
 DynamicText::DynamicText(const std::vector<std::string>& texts,
                          Font font, glm::uvec2 font_size) {
-  common::util::CharLib lib{texts, GetFontPath(font), font_size};
+  common::CharLib lib{texts, GetFontPath(font), font_size};
 }
 
 } /* namespace vulkan */

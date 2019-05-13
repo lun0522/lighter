@@ -9,8 +9,8 @@
 
 #include <stdexcept>
 
-#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
+#include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
 namespace wrapper {
@@ -26,7 +26,7 @@ VkCommandPool CreateCommandPool(const SharedContext& context,
   VkCommandPoolCreateInfo pool_info{
       VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       /*pNext=*/nullptr,
-      common::util::nullflag,
+      /*flags=*/nullflag,
       queue.family_index,
   };
   if (is_transient) {
@@ -63,7 +63,7 @@ VkCommandBuffer CreateCommandBuffer(const SharedContext& context,
 
 vector<VkCommandBuffer> CreateCommandBuffers(const SharedContext& context,
                                              const VkCommandPool& command_pool,
-                                             size_t count) {
+                                             int count) {
   // allocate command buffers
   VkCommandBufferAllocateInfo buffer_info{
       VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -121,7 +121,7 @@ void Command::OneTimeCommand(const SharedContext& context,
 }
 
 void Command::Init(const SharedContext& context,
-                   size_t num_frame) {
+                   int num_frame) {
   if (is_first_time_) {
     context_ = context;
     command_pool_ = CreateCommandPool(
@@ -134,7 +134,7 @@ void Command::Init(const SharedContext& context,
   command_buffers_ = CreateCommandBuffers(context_, command_pool_, num_frame);
 }
 
-VkResult Command::Draw(size_t current_frame,
+VkResult Command::Draw(int current_frame,
                        const UpdateDataFunc& update_data,
                        const MultiTimeRecord& on_record) {
   // Action  |  Acquire image  | Submit commands |  Present image  |

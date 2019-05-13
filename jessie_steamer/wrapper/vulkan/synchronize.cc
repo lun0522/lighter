@@ -7,8 +7,8 @@
 
 #include "jessie_steamer/wrapper/vulkan/synchronize.h"
 
-#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
+#include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
 namespace wrapper {
@@ -20,7 +20,7 @@ using std::vector;
 constexpr VkSemaphoreCreateInfo kSemaInfo{
     VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
     /*pNext=*/nullptr,
-    common::util::nullflag,
+    /*flags=*/nullflag,
 };
 
 constexpr VkFenceCreateInfo kSignaledFenceInfo{
@@ -32,15 +32,15 @@ constexpr VkFenceCreateInfo kSignaledFenceInfo{
 constexpr VkFenceCreateInfo kUnsignaledFenceInfo{
     VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
     /*pNext=*/nullptr,
-    common::util::nullflag,
+    /*flags=*/nullflag,
 };
 
 } /* namespace */
 
 void Semaphores::Init(const SharedContext& context,
-                      size_t count) {
+                      int count) {
   context_ = context;
-  semas_.resize(count);
+  semas_.resize(static_cast<size_t>(count));
   for (auto& sema : semas_) {
     ASSERT_SUCCESS(vkCreateSemaphore(*context_->device(), &kSemaInfo,
                                      context_->allocator(), &sema),
@@ -55,10 +55,10 @@ Semaphores::~Semaphores() {
 }
 
 void Fences::Init(const SharedContext& context,
-                  size_t count,
+                  int count,
                   bool is_signaled) {
   context_ = context;
-  fences_.resize(count);
+  fences_.resize(static_cast<size_t>(count));
   const VkFenceCreateInfo& fence_info =
       is_signaled ? kSignaledFenceInfo : kUnsignaledFenceInfo;
   for (auto& fence : fences_) {

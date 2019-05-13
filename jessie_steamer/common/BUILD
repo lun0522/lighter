@@ -11,29 +11,62 @@ cc_library(
 )
 
 cc_library(
+    name = "char_lib",
+    srcs = ["char_lib.cc"],
+    hdrs = ["char_lib.h"],
+    deps = [
+        "//third_party:freetype",
+        "//third_party:glm",
+        "@lib-absl//absl/container:flat_hash_map",
+        "@lib-absl//absl/container:flat_hash_set",
+    ],
+)
+
+cc_library(
+    name = "file",
+    srcs = ["file.cc"],
+    hdrs = ["file.h"],
+    deps = [
+        "//third_party:glm",
+        "//third_party:stb",
+        "@lib-absl//absl/container:flat_hash_map",
+        "@lib-absl//absl/memory",
+        "@lib-absl//absl/strings",
+        "@lib-absl//absl/strings:str_format",
+    ],
+)
+
+cc_library(
     name = "model_loader",
     srcs = ["model_loader.cc"],
     hdrs = ["model_loader.h"],
     deps = [
-        ":util",
+        ":file",
         "//third_party:assimp",
+        "@lib-absl//absl/memory",
+        "@lib-absl//absl/strings:str_format",
+    ],
+)
+
+cc_library(
+    name = "ref_count",
+    hdrs = ["ref_count.h"],
+    deps = [
+        "@lib-absl//absl/container:flat_hash_map",
         "@lib-absl//absl/memory",
     ],
 )
 
 cc_library(
+    name = "time",
+    hdrs = ["time.h"],
+    deps = ["@lib-absl//absl/types:optional"],
+)
+
+cc_library(
     name = "util",
-    srcs = ["util.cc"],
     hdrs = ["util.h"],
-    deps = [
-        "//third_party:freetype",
-        "//third_party:glm",
-        "//third_party:stb",
-        "@lib-absl//absl/container:flat_hash_map",
-        "@lib-absl//absl/container:flat_hash_set",
-        "@lib-absl//absl/memory",
-        "@lib-absl//absl/types:optional",
-    ],
+    deps = ["@lib-absl//absl/container:flat_hash_set"],
 )
 
 cc_library(
@@ -41,9 +74,11 @@ cc_library(
     srcs = ["window.cc"],
     hdrs = ["window.h"],
     deps = [
-        ":util",
         "//third_party:glm",
         "//third_party:glfw",
-        "//third_party:vulkan",
+        "//third_party:vulkan",  # TODO: don't hardcode this
+        "@lib-absl//absl/container:flat_hash_map",
     ],
+    # TODO: don't hardcode this
+    copts = ["-DUSE_VULKAN"],
 )

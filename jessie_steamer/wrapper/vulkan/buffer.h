@@ -99,7 +99,7 @@ class PerVertexBuffer : public VertexBuffer {
   void Init(const std::shared_ptr<Context>& context,
             const std::vector<Info>& infos);
   void Draw(const VkCommandBuffer& command_buffer,
-            size_t mesh_index,
+            int mesh_index,
             uint32_t instance_count) const;
 
  private:
@@ -129,11 +129,6 @@ class PerInstanceBuffer : public VertexBuffer {
 
 class UniformBuffer {
  public:
-  struct Info {
-    size_t chunk_size;
-    size_t num_chunk;
-  };
-
   UniformBuffer() = default;
 
   // This class is neither copyable nor movable
@@ -143,15 +138,16 @@ class UniformBuffer {
   ~UniformBuffer();
 
   void Init(const std::shared_ptr<Context>& context,
-            const Info& info);
-  void CopyToDevice(size_t chunk_index) const;
+            size_t chunk_size,
+            int num_chunk);
+  void CopyToDevice(int chunk_index) const;
 
   template <typename DataType>
-  DataType* data(size_t chunk_index) const {
+  DataType* data(int chunk_index) const {
     return reinterpret_cast<DataType*>(data_ + chunk_data_size_ * chunk_index);
   }
 
-  VkDescriptorBufferInfo descriptor_info(size_t chunk_index) const;
+  VkDescriptorBufferInfo descriptor_info(int chunk_index) const;
 
  private:
   std::shared_ptr<Context> context_;
@@ -219,25 +215,31 @@ class DepthStencilBuffer {
   VkFormat format_;
 };
 
-struct PushConstant {
+class PushConstant {
+ public:
   PushConstant() = default;
 
   // This class is neither copyable nor movable.
   PushConstant(const PushConstant&) = delete;
   PushConstant& operator=(const PushConstant&) = delete;
 
-  ~PushConstant() { delete[] raw_data; }
+  ~PushConstant() { delete[] data_; }
 
-  void Init(size_t size) {
-    this->size = static_cast<uint32_t>(size);
-    this->raw_data = new char[size];
+  void Init(size_t chunk_size, int num_chunk) {
+    size_ = static_cast<uint32_t>(chunk_size);
+    data_ = new char[size_ * num_chunk];
   }
 
-  template <typename DataType>
-  DataType* data() const { return reinterpret_cast<DataType*>(raw_data); }
+  uint32_t size() const { return size_; }
 
-  uint32_t size;
-  char* raw_data;
+  template <typename DataType>
+  DataType* data(int chunk_index) const {
+    return reinterpret_cast<DataType*>(data_ + size_ * chunk_index);
+  }
+
+ private:
+  uint32_t size_;
+  char* data_;
 };
 
 } /* namespace vulkan */

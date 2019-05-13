@@ -12,15 +12,16 @@
 
 #include "absl/memory/memory.h"
 #include "absl/strings/str_format.h"
+#include "jessie_steamer/common/file.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
+#include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace {
 
-using common::util::Image;
-using std::array;
+using common::Image;
 using std::runtime_error;
 using std::string;
 
@@ -45,7 +46,7 @@ VkImageView CreateImageView(const SharedContext& context,
   VkImageViewCreateInfo image_view_info{
       VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       /*pNext=*/nullptr,
-      common::util::nullflag,
+      /*flags=*/nullflag,
       image,
       view_type,
       format,
@@ -77,7 +78,7 @@ VkSampler CreateSampler(const SharedContext& context) {
   VkSamplerCreateInfo sampler_info{
       VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
       /*pNext=*/nullptr,
-      common::util::nullflag,
+      /*flags=*/nullflag,
       /*magFilter=*/VK_FILTER_LINEAR,
       /*minFilter=*/VK_FILTER_LINEAR,
       /*mipmapMode=*/VK_SAMPLER_MIPMAP_MODE_LINEAR,
@@ -103,16 +104,6 @@ VkSampler CreateSampler(const SharedContext& context) {
   return sampler;
 }
 
-const string* GetImageIdentifier(const TextureImage::SourcePath& source_path) {
-  if (absl::holds_alternative<string>(source_path)) {
-    return &absl::get<string>(source_path);
-  } else if (absl::holds_alternative<TextureImage::CubemapPath>(source_path)) {
-    return &absl::get<TextureImage::CubemapPath>(source_path).directory;
-  } else {
-    throw runtime_error{"Unrecognized variant type"};
-  }
-}
-
 } /* namespace */
 
 void SwapChainImage::Init(const SharedContext& context,
@@ -128,45 +119,46 @@ SwapChainImage::~SwapChainImage() {
   vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
 }
 
-absl::node_hash_map<string, SharedTexture> TextureImage::kLoadedTextures{};
-
-SharedTexture TextureImage::GetTexture(
+TextureImage::SharedTexture TextureImage::GetTexture(
     const SharedContext& context,
     const SourcePath& source_path) {
-  const string* identifier = GetImageIdentifier(source_path);
-  auto found = kLoadedTextures.find(*identifier);
-  if (found == kLoadedTextures.end()) {
-    found = kLoadedTextures.emplace(
-        *identifier, new TextureImage{context, source_path}).first;
+  const string* identifier;
+  if (absl::holds_alternative<string>(source_path)) {
+    identifier = &absl::get<string>(source_path);
+  } else if (absl::holds_alternative<TextureImage::CubemapPath>(source_path)) {
+    identifier = &absl::get<TextureImage::CubemapPath>(source_path).directory;
+  } else {
+    throw runtime_error{"Unrecognized variant type"};
   }
-  return found->second;
+  return SharedTexture::Get(*identifier, context, source_path);
 }
 
 TextureImage::TextureImage(const SharedContext& context,
                            const SourcePath& source_path)
-    : context_{context}, identifier_{*GetImageIdentifier(source_path)} {
-  using CubemapImage = std::array<Image, buffer::kCubemapImageCount>;
-  using SourceImage = absl::variant<Image, CubemapImage>;
+    : context_{context} {
+  using CubemapImage = std::array<std::unique_ptr<Image>,
+                                  buffer::kCubemapImageCount>;
+  using SourceImage = absl::variant<std::unique_ptr<Image>, CubemapImage>;
 
   SourceImage source_image;
   const Image* sample_image;
   std::vector<const void*> datas;
 
   if (absl::holds_alternative<string>(source_path)) {
-    auto& image = source_image.emplace<Image>();
-    image.Init(absl::get<string>(source_path));
-    sample_image = &image;
-    datas.emplace_back(image.data);
+    auto& image = source_image.emplace<std::unique_ptr<Image>>(
+        absl::make_unique<Image>(absl::get<string>(source_path)));
+    sample_image = image.get();
+    datas.emplace_back(image->data);
   } else if (absl::holds_alternative<CubemapPath>(source_path)) {
     const auto& cubemap_path = absl::get<CubemapPath>(source_path);
     auto& images = source_image.emplace<CubemapImage>();
     datas.resize(cubemap_path.files.size());
-    for (size_t i = 0; i < cubemap_path.files.size(); ++i) {
-      images[i].Init(absl::StrFormat("%s/%s", cubemap_path.directory,
-                                     cubemap_path.files[i]));
-      datas[i] = images[i].data;
+    for (int i = 0; i < cubemap_path.files.size(); ++i) {
+      images[i] = absl::make_unique<Image>(absl::StrFormat(
+          "%s/%s", cubemap_path.directory,cubemap_path.files[i]));
+      datas[i] = images[i]->data;
     }
-    sample_image = &images[0];
+    sample_image = images[0].get();
   } else {
     throw runtime_error{"Unrecognized variant type"};
   }

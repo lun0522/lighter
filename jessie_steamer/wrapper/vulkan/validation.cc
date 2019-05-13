@@ -14,6 +14,7 @@
 
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
+#include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
 namespace wrapper {
@@ -59,7 +60,7 @@ void DebugCallback::Init(const SharedContext& context,
   VkDebugUtilsMessengerCreateInfoEXT create_info{
       VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
       /*pNext=*/nullptr,
-      util::nullflag,
+      /*flags=*/nullflag,
       message_severity,
       message_type,
       UserCallback,

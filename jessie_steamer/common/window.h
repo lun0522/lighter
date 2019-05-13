@@ -9,24 +9,18 @@
 #define JESSIE_STEAMER_COMMON_WINDOW_H
 
 #include <functional>
-#include <memory>
 #include <string>
 
 #include "absl/container/flat_hash_map.h"
 #include "third_party/glm/glm.hpp"
+#ifdef USE_VULKAN
 #include "third_party/vulkan/vulkan.h"
 // import GLFW after Vulkan
+#endif /* USE_VULKAN */
 #include "third_party/glfw/glfw3.h"
 
 namespace jessie_steamer {
 namespace common {
-namespace wrapper {
-namespace vulkan {
-
-class Context;
-
-} /* namespace vulkan */
-} /* namespace wrapper */
 
 class Window {
  public:
@@ -37,9 +31,11 @@ class Window {
   enum class KeyMap { kEscape, kUp, kDown, kLeft, kRight };
 
   virtual void Init(const std::string& name, glm::ivec2 screen_size) = 0;
+#ifdef USE_VULKAN
   virtual VkSurfaceKHR CreateSurface(
       const VkInstance& instance,
       const VkAllocationCallbacks* allocator) = 0;
+#endif /* USE_VULKAN */
   virtual void SetCursorHidden(bool hidden) = 0;
   virtual void RegisterKeyCallback(KeyMap key, KeyCallback callback) = 0;
   virtual void RegisterCursorMoveCallback(CursorMoveCallback callback) = 0;
@@ -69,8 +65,10 @@ class GlfwWindow : public Window {
   ~GlfwWindow() override;
 
   void Init(const std::string& name, glm::ivec2 screen_size) override;
+#ifdef USE_VULKAN
   VkSurfaceKHR CreateSurface(const VkInstance& instance,
                              const VkAllocationCallbacks* allocator) override;
+#endif /* USE_VULKAN */
   void SetCursorHidden(bool hidden) override;
   void RegisterKeyCallback(KeyMap key, KeyCallback callback) override;
   void RegisterCursorMoveCallback(CursorMoveCallback callback) override;

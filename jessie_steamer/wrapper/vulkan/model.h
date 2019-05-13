@@ -34,7 +34,7 @@ class Context;
 class Model {
  public:
   using TextureType = common::ModelLoader::Texture::Type;
-  using Mesh = std::array<std::vector<SharedTexture>,
+  using Mesh = std::array<std::vector<TextureImage::SharedTexture>,
                           TextureType::kTypeMaxEnum>;
   using UniformInfos = std::vector<std::pair<const UniformBuffer&,
                                              const Descriptor::Info&>>;
@@ -81,8 +81,10 @@ class Model {
   // For pushing constants.
   struct PushConstantInfo {
     struct Info {
-      uint32_t size()    const { return push_constant->size; }
-      const void* data() const { return push_constant->data<void>(); }
+      uint32_t size() const { return push_constant->size(); }
+      const void* data(int frame) const {
+        return push_constant->data<void>(frame);
+      }
 
       const PushConstant* push_constant;
       uint32_t offset;
@@ -104,10 +106,10 @@ class Model {
             const absl::optional<UniformInfos>& uniform_infos,
             const absl::optional<InstancingInfo>& instancing_info,
             const absl::optional<PushConstantInfos>& push_constant_infos,
-            size_t num_frame,
+            int num_frame,
             bool is_opaque);
   void Draw(const VkCommandBuffer& command_buffer,
-            size_t frame,
+            int frame,
             uint32_t instance_count) const;
 
  private:
@@ -115,7 +117,7 @@ class Model {
   FindBindingPoint LoadMultiMesh(const MultiMeshResource& resource);
   void CreateDescriptors(const FindBindingPoint& find_binding_point,
                          const absl::optional<UniformInfos>& uniform_infos,
-                         size_t num_frame);
+                         int num_frame);
 
   bool is_first_time_ = true;
   std::shared_ptr<Context> context_;

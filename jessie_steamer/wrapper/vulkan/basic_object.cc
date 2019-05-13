@@ -14,6 +14,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
+#include "jessie_steamer/wrapper/vulkan/macro.h"
 #include "jessie_steamer/wrapper/vulkan/swapchain.h"
 #include "jessie_steamer/wrapper/vulkan/validation.h"
 #include "third_party/glfw/glfw3.h"
@@ -26,10 +27,13 @@ namespace {
 namespace util = common::util;
 using std::runtime_error;
 using std::vector;
-using util::nullflag;
 
 struct QueueIndices {
-  size_t graphics, present;
+  bool IsValid() const {
+    return graphics != util::kInvalidIndex && present != util::kInvalidIndex;
+  }
+
+  int graphics, present;
 };
 
 absl::optional<QueueIndices> FindDeviceQueues(
@@ -74,10 +78,11 @@ absl::optional<QueueIndices> FindDeviceQueues(
       }
   )};
 
-  return QueueIndices{
+  QueueIndices indices{
       util::FindFirst<VkQueueFamilyProperties>(families, graphics_support),
       util::FindFirst<VkQueueFamilyProperties>(families, present_support),
   };
+  return indices.IsValid() ? absl::make_optional<>(indices) : absl::nullopt;
 }
 
 } /* namespace */
@@ -127,7 +132,7 @@ void Instance::Init(const SharedContext& context) {
   VkInstanceCreateInfo instance_info{
       VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
       /*pNext=*/nullptr,
-      nullflag,
+      /*flags=*/nullflag,
       &app_info,
 #ifdef DEBUG
       // enabled layers
@@ -217,7 +222,7 @@ void Device::Init(const SharedContext& context) {
     VkDeviceQueueCreateInfo queue_info{
         VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
         /*pNext=*/nullptr,
-        nullflag,
+        /*flags=*/nullflag,
         queue_family,
         /*queueCount=*/1,
         &priority,  // always required even if only one queue
@@ -228,7 +233,7 @@ void Device::Init(const SharedContext& context) {
   VkDeviceCreateInfo device_info{
       VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
       /*pNext=*/nullptr,
-      nullflag,
+      /*flags=*/nullflag,
       // queue create infos
       CONTAINER_SIZE(queue_infos),
       queue_infos.data(),

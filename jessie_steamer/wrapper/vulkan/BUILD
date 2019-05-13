@@ -1,3 +1,4 @@
+# TODO: separate into interface and impl
 cc_library(
     name = "vulkan_wrapper",
     srcs = [
@@ -22,6 +23,7 @@ cc_library(
         "context.h",
         "descriptor.h",
         "image.h",
+        "macro.h",
         "model.h",
         "pipeline.h",
         "render_pass.h",
@@ -31,7 +33,10 @@ cc_library(
         "validation.h",
     ],
     deps = [
+        "//jessie_steamer/common:char_lib",
+        "//jessie_steamer/common:file",
         "//jessie_steamer/common:model_loader",
+        "//jessie_steamer/common:ref_count",
         "//jessie_steamer/common:util",
         "//jessie_steamer/common:window",
         "//third_party:glm",
@@ -46,5 +51,6 @@ cc_library(
         "@lib-absl//absl/types:variant",
     ],
     data = ["//jessie_steamer/resource"],
+    copts = ["-DUSE_VULKAN"],
     visibility = ["//jessie_steamer:__subpackages__"],
 )

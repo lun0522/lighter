@@ -30,19 +30,17 @@ class Camera {
 
   Camera() = default;
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   Camera(const Camera&) = delete;
   Camera& operator=(const Camera&) = delete;
 
   void Init(const Config& config);
-  void Calibrate(const glm::ivec2& screen_size,
-                 const glm::dvec2& cursor_pos);
-  void Activate();
-  void Deactivate();
+  void Calibrate(const glm::ivec2& screen_size, const glm::dvec2& cursor_pos);
   void ProcessKey(Window::KeyMap key, float elapsed_time);
   void ProcessCursorMove(double x, double y);
   void ProcessScroll(double y, double min_val, double max_val);
 
+  void set_activate(bool active)      { is_active_ = active; }
   const glm::vec3& position()   const { return pos_; }
   const glm::vec3& direction()  const { return front_; }
   const glm::mat4& view()       const { return view_; }

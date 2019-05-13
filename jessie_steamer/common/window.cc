@@ -9,8 +9,6 @@
 
 #include <stdexcept>
 
-#include "jessie_steamer/common/util.h"
-
 namespace jessie_steamer {
 namespace common {
 namespace glfw_window {
@@ -60,13 +58,17 @@ void GlfwWindow::Init(const std::string& name, glm::ivec2 screen_size) {
   glfwSetScrollCallback(window_, glfw_window::DidScroll);
 }
 
+#ifdef USE_VULKAN
 VkSurfaceKHR GlfwWindow::CreateSurface(const VkInstance& instance,
                                        const VkAllocationCallbacks* allocator) {
   VkSurfaceKHR surface;
-  ASSERT_SUCCESS(glfwCreateWindowSurface(instance, window_, allocator, &surface),
-                 "Failed to create window surface");
+  auto result = glfwCreateWindowSurface(instance, window_, allocator, &surface);
+  if (result != VK_SUCCESS) {
+    throw std::runtime_error{"Failed to create window surface"};
+  }
   return surface;
 }
+#endif /* USE_VULKAN */
 
 void GlfwWindow::SetCursorHidden(bool hidden) {
   glfwSetInputMode(window_, GLFW_CURSOR,

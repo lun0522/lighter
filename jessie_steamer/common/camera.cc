@@ -17,7 +17,6 @@ namespace common {
 namespace {
 
 using glm::radians;
-using glm::vec3;
 
 const glm::vec2& ref_front_zx() {
   static const glm::vec2 kRefFrontZx{1.0f, 0.0f};
@@ -50,14 +49,6 @@ void Camera::Calibrate(const glm::ivec2& screen_size,
   screen_size_ = screen_size;
   cursor_pos_ = cursor_pos;
   UpdateProj();
-}
-
-void Camera::Activate() {
-  is_active_ = true;
-}
-
-void Camera::Deactivate() {
-  is_active_ = false;
 }
 
 void Camera::ProcessCursorMove(double x, double y) {
@@ -111,9 +102,9 @@ void Camera::ProcessKey(Window::KeyMap key, float elapsed_time) {
 }
 
 void Camera::UpdateFront() {
-  front_ = vec3(glm::cos(pitch_) * glm::sin(yaw_),
-                glm::sin(pitch_),
-                glm::cos(pitch_) * glm::cos(yaw_));
+  front_ = glm::vec3(glm::cos(pitch_) * glm::sin(yaw_),
+                     glm::sin(pitch_),
+                     glm::cos(pitch_) * glm::cos(yaw_));
 }
 
 void Camera::UpdateRight() {

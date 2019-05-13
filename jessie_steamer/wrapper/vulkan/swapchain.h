@@ -66,7 +66,7 @@ class Swapchain {
   VkFormat format()                 const { return image_format_; }
   VkExtent2D extent()               const { return image_extent_; }
   size_t size()                     const { return images_.size(); }
-  const VkImageView& image_view(size_t index) const
+  const VkImageView& image_view(int index) const
       { return images_[index]->image_view(); }
 
  private:

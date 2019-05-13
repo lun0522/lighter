@@ -9,15 +9,14 @@
 
 #include <array>
 
-#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
+#include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace {
 
-using common::util::nullflag;
 using std::vector;
 
 vector<VkFramebuffer> CreateFramebuffers(
@@ -29,7 +28,7 @@ vector<VkFramebuffer> CreateFramebuffers(
   // image, because we only use one graphics queue, which only renders on one
   // swapchain image at a time
   vector<VkFramebuffer> framebuffers(swapchain.size());
-  for (size_t i = 0; i < swapchain.size(); ++i) {
+  for (int i = 0; i < swapchain.size(); ++i) {
     std::array<VkImageView, 2> attachments{
         swapchain.image_view(i),
         depth_stencil_image.image_view(),
@@ -38,7 +37,7 @@ vector<VkFramebuffer> CreateFramebuffers(
     VkFramebufferCreateInfo framebuffer_info{
         VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
         /*pNext=*/nullptr,
-        nullflag,
+        /*flags=*/nullflag,
         *context->render_pass(),
         CONTAINER_SIZE(attachments),
         attachments.data(),
@@ -61,7 +60,7 @@ void RenderPass::Init(const SharedContext& context) {
   depth_stencil_.Init(context_, context_->swapchain().extent());
 
   VkAttachmentDescription color_att_desc{
-      nullflag,
+      /*flags=*/nullflag,
       context_->swapchain().format(),
       /*samples=*/VK_SAMPLE_COUNT_1_BIT,  // no multisampling
       // .loadOp and .storeOp affect color and depth buffers
@@ -88,7 +87,7 @@ void RenderPass::Init(const SharedContext& context) {
   };
 
   VkAttachmentDescription depth_stencil_att_desc{
-      nullflag,
+      /*flags=*/nullflag,
       depth_stencil_.format(),
       /*samples=*/VK_SAMPLE_COUNT_1_BIT,  // no multisampling
       /*loadOp=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -105,7 +104,7 @@ void RenderPass::Init(const SharedContext& context) {
   };
 
   VkSubpassDescription subpass_desc{
-      nullflag,
+      /*flags=*/nullflag,
       /*pipelineBindPoint=*/VK_PIPELINE_BIND_POINT_GRAPHICS,
       /*inputAttachmentCount=*/0,
       /*pInputAttachments=*/nullptr,
@@ -141,7 +140,7 @@ void RenderPass::Init(const SharedContext& context) {
   VkRenderPassCreateInfo render_pass_info{
       VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
       /*pNext=*/nullptr,
-      nullflag,
+      /*flags=*/nullflag,
       CONTAINER_SIZE(att_descs),
       att_descs.data(),
       /*subpassCount=*/1,

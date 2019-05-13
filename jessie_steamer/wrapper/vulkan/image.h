@@ -16,7 +16,7 @@
 #include "absl/container/node_hash_map.h"
 #include "absl/types/span.h"
 #include "absl/types/variant.h"
-#include "jessie_steamer/common/util.h"
+#include "jessie_steamer/common/ref_count.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -89,23 +89,24 @@ class SwapChainImage {
   VkImageView image_view_;
 };
 
-class TextureImage;
-using SharedTexture = std::shared_ptr<const TextureImage>;
-
-class TextureImage : public std::enable_shared_from_this<TextureImage> {
+class TextureImage {
  public:
   // Textures will be put in a unified resource pool. For single images, its
   // file path will be used as identifier; for cubemaps, its directory will be
   // used as identifier.
   struct CubemapPath {
-    enum Order { kPosX = 0, kNegX, kPosY, kNegY, kPosZ, kNegZ };
     std::string directory;
+    // PosX, NegX, PosY, NegY, PosZ, NegZ
     std::array<std::string, buffer::kCubemapImageCount> files;
   };
   using SourcePath = absl::variant<std::string, CubemapPath>;
 
+  using SharedTexture = common::RefCountedObject<TextureImage>;
   static SharedTexture GetTexture(const std::shared_ptr<Context>& context,
                                   const SourcePath& source_path);
+
+  TextureImage(const std::shared_ptr<Context>& context,
+               const SourcePath& source_path);
 
   // This class is neither copyable nor movable
   TextureImage(const TextureImage&) = delete;
@@ -116,12 +117,7 @@ class TextureImage : public std::enable_shared_from_this<TextureImage> {
   VkDescriptorImageInfo descriptor_info() const;
 
  private:
-  TextureImage(const std::shared_ptr<Context>& context,
-               const SourcePath& source_path);
-
-  static absl::node_hash_map<std::string, SharedTexture> kLoadedTextures;
   std::shared_ptr<Context> context_;
-  std::string identifier_;
   TextureBuffer buffer_;
   VkImageView image_view_;
   VkSampler sampler_;

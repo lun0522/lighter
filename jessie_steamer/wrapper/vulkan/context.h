@@ -27,9 +27,7 @@ using SharedContext = std::shared_ptr<Context>;
 
 class Context : public std::enable_shared_from_this<Context> {
  public:
-  static SharedContext GetContext() {
-    return SharedContext{new Context{}};
-  }
+  static SharedContext GetContext() { return std::make_shared<Context>(); }
 
   Context() = default;
 
