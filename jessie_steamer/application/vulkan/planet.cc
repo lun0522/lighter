@@ -39,10 +39,13 @@ constexpr int kNumAsteroidRing = 3;
 
 // alignment requirement:
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
-struct LightTrans {
+struct Light {
+  alignas(16) glm::vec4 direction_time;
+};
+
+struct PlanetTrans {
   alignas(16) glm::mat4 model;
   alignas(16) glm::mat4 proj_view;
-  alignas(16) glm::vec4 direction_time;
 };
 
 struct SkyboxTrans {
@@ -79,7 +82,8 @@ class PlanetApp {
   Model planet_model_, asteroid_model_, skybox_model_;
   int num_asteroid_;
   PerInstanceBuffer per_asteroid_data_;
-  PushConstant light_constant_, skybox_constant_;
+  UniformBuffer light_uniform_;
+  PushConstant planet_constant_, skybox_constant_;
 };
 
 } /* namespace */
@@ -119,13 +123,23 @@ void PlanetApp::Init() {
     });
 
     // push constants
-    light_constant_.Init(sizeof(LightTrans), kNumFrameInFlight);
+    light_uniform_.Init(context_, sizeof(Light), kNumFrameInFlight);
+    planet_constant_.Init(sizeof(PlanetTrans), kNumFrameInFlight);
     skybox_constant_.Init(sizeof(SkyboxTrans), kNumFrameInFlight);
 
     is_first_time = false;
   }
 
   // model
+  Descriptor::Info light_desc_info{
+      /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
+      /*bindings=*/{{
+          Descriptor::TextureType::kTypeMaxEnum,
+          /*binding_point=*/1,
+          /*array_length=*/1,
+      }},
+  };
   Model::TextureBindingMap planet_bindings;
   planet_bindings[Model::TextureType::kTypeDiffuse] = {
       /*binding_point=*/2, {{"external/resource/texture/planet.png"}},
@@ -138,12 +152,12 @@ void PlanetApp::Init() {
                      Model::SingleMeshResource{
                          "external/resource/model/sphere.obj",
                          /*obj_index_base=*/1, planet_bindings},
-                     /*uniform_infos=*/absl::nullopt,
+                     absl::make_optional<Model::UniformInfos>(
+                         {{light_uniform_, light_desc_info}}),
                      /*instancing_info=*/absl::nullopt,
                      absl::make_optional<Model::PushConstantInfos>(
-                         {{VK_SHADER_STAGE_VERTEX_BIT
-                               | VK_SHADER_STAGE_FRAGMENT_BIT,
-                           {{&light_constant_, /*offset=*/0}}}}),
+                         {{VK_SHADER_STAGE_VERTEX_BIT,
+                           {{&planet_constant_, /*offset=*/0}}}}),
                      kNumFrameInFlight, /*is_opaque=*/true);
 
   GenAsteroidModels();
@@ -160,6 +174,7 @@ void PlanetApp::Init() {
     });
     attrib_offset += sizeof(glm::vec4);
   }
+  light_desc_info.shader_stage |= VK_SHADER_STAGE_VERTEX_BIT;
   asteroid_model_.Init(context_,
                        {{VK_SHADER_STAGE_VERTEX_BIT,
                          "jessie_steamer/shader/vulkan/asteroid.vert.spv"},
@@ -171,15 +186,15 @@ void PlanetApp::Init() {
                            {{Model::TextureType::kTypeDiffuse,
                              /*binding_point=*/2}},
                            /*extra_texture_map=*/absl::nullopt},
-                       /*uniform_infos=*/absl::nullopt,
+                       absl::make_optional<Model::UniformInfos>(
+                           {{light_uniform_, light_desc_info}}),
                        Model::InstancingInfo{
                            per_instance_attribs,
                            static_cast<uint32_t>(sizeof(Asteroid)),
                            &per_asteroid_data_},
                        absl::make_optional<Model::PushConstantInfos>(
-                           {{VK_SHADER_STAGE_VERTEX_BIT
-                                 | VK_SHADER_STAGE_FRAGMENT_BIT,
-                             {{&light_constant_, /*offset=*/0}}}}),
+                           {{VK_SHADER_STAGE_VERTEX_BIT,
+                             {{&planet_constant_, /*offset=*/0}}}}),
                        kNumFrameInFlight, /*is_opaque=*/true);
 
   Model::TextureBindingMap skybox_bindings;
@@ -260,20 +275,17 @@ void PlanetApp::GenAsteroidModels() {
 void PlanetApp::UpdateData(int frame) {
   const float elapsed_time = timer_.time_from_launch();
 
+  glm::vec3 light_dir{glm::sin(elapsed_time * 0.6f), -0.3f,
+                      glm::cos(elapsed_time * 0.6f)};
+  *light_uniform_.data<Light>(frame) = {glm::vec4{light_dir, elapsed_time}};
+  light_uniform_.Flush(frame);
+
   glm::mat4 model{1.0f};
   model = glm::rotate(model, elapsed_time * glm::radians(5.0f),
                       glm::vec3{0.0f, 1.0f, 0.0f});
   glm::mat4 view = camera_.view();
   glm::mat4 proj = camera_.projection();
-
-  glm::vec3 light_dir{glm::sin(elapsed_time * 0.6f), -0.3f,
-                      glm::cos(elapsed_time * 0.6f)};
-  *light_constant_.data<LightTrans>(frame) = {
-      model,
-      proj * view,
-      glm::vec4{light_dir, elapsed_time},
-  };
-
+  *planet_constant_.data<PlanetTrans>(frame) = {model, proj * view};
   *skybox_constant_.data<SkyboxTrans>(frame) = {proj, view};
 }
 

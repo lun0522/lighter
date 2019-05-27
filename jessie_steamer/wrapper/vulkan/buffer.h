@@ -19,6 +19,8 @@ namespace wrapper {
 namespace vulkan {
 namespace buffer {
 
+// https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap36.html#limits-minmax
+constexpr int kMaxPushConstantSize = 128;
 constexpr int kCubemapImageCount = 6;
 constexpr uint32_t kPerVertexBindingPoint = 0;
 constexpr uint32_t kPerInstanceBindingPoint = 1;
@@ -138,7 +140,7 @@ class UniformBuffer {
   void Init(const std::shared_ptr<Context>& context,
             size_t chunk_size,
             int num_chunk);
-  void CopyToDevice(int chunk_index) const;
+  void Flush(int chunk_index) const;
 
   template <typename DataType>
   DataType* data(int chunk_index) const {
@@ -223,10 +225,7 @@ class PushConstant {
 
   ~PushConstant() { delete[] data_; }
 
-  void Init(size_t chunk_size, int num_chunk) {
-    size_ = static_cast<uint32_t>(chunk_size);
-    data_ = new char[size_ * num_chunk];
-  }
+  void Init(size_t chunk_size, int num_chunk);
 
   uint32_t size() const { return size_; }
 

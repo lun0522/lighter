@@ -37,10 +37,13 @@ constexpr int kNumFrameInFlight = 2;
 
 // alignment requirement:
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
-struct NanosuitTrans {
+struct NanosuitVertTrans {
   alignas(16) glm::mat4 view_model;
   alignas(16) glm::mat4 proj_view_model;
   alignas(16) glm::mat4 view_model_inv_trs;
+};
+
+struct NanosuitFragTrans {
   alignas(16) glm::mat4 view_inv;
 };
 
@@ -69,7 +72,8 @@ class NanosuitApp {
   common::Camera camera_;
   Command command_;
   Model nanosuit_model_, skybox_model_;
-  PushConstant nanosuit_constant_, skybox_constant_;
+  UniformBuffer nanosuit_vert_uniform_;
+  PushConstant nanosuit_frag_constant_, skybox_constant_;
 };
 
 } /* namespace */
@@ -110,7 +114,9 @@ void NanosuitApp::Init() {
     });
 
     // push constants
-    nanosuit_constant_.Init(sizeof(NanosuitTrans), kNumFrameInFlight);
+    nanosuit_vert_uniform_.Init(context_, sizeof(NanosuitVertTrans),
+                                kNumFrameInFlight);
+    nanosuit_frag_constant_.Init(sizeof(NanosuitFragTrans), kNumFrameInFlight);
     skybox_constant_.Init(sizeof(SkyboxTrans), kNumFrameInFlight);
 
     is_first_time = false;
@@ -140,6 +146,15 @@ void NanosuitApp::Init() {
       {Model::TextureType::kTypeSpecular, /*binding_point=*/2},
       {Model::TextureType::kTypeReflection, /*binding_point=*/3},
   };
+  Descriptor::Info trans_desc_info{
+      /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      /*shader_stage=*/VK_SHADER_STAGE_VERTEX_BIT,
+      /*bindings=*/{{
+          Descriptor::TextureType::kTypeMaxEnum,
+          /*binding_point=*/0,
+          /*array_length=*/1,
+      }},
+  };
   nanosuit_model_.Init(context_,
                        {{VK_SHADER_STAGE_VERTEX_BIT,
                          "jessie_steamer/shader/vulkan/nanosuit.vert.spv"},
@@ -151,12 +166,12 @@ void NanosuitApp::Init() {
                            nanosuit_bindings,
                        absl::make_optional<Model::TextureBindingMap>(
                            skybox_bindings)},
-                       /*uniform_infos=*/absl::nullopt,
+                       absl::make_optional<Model::UniformInfos>(
+                           {{nanosuit_vert_uniform_, trans_desc_info}}),
                        /*instancing_info=*/absl::nullopt,
                        absl::make_optional<Model::PushConstantInfos>(
-                           {{VK_SHADER_STAGE_VERTEX_BIT
-                                 | VK_SHADER_STAGE_FRAGMENT_BIT,
-                             {{&nanosuit_constant_, /*offset=*/0}}}}),
+                           {{VK_SHADER_STAGE_FRAGMENT_BIT,
+                             {{&nanosuit_frag_constant_, /*offset=*/0}}}}),
                        kNumFrameInFlight,
                        /*is_opaque=*/true);
 
@@ -197,13 +212,15 @@ void NanosuitApp::UpdateData(int frame) {
   glm::mat4 proj = camera_.projection();
   glm::mat4 view_model = view * model;
 
-  *nanosuit_constant_.data<NanosuitTrans>(frame) = {
+  *nanosuit_vert_uniform_.data<NanosuitVertTrans>(frame) = {
       view_model,
       proj * view_model,
       glm::transpose(glm::inverse(view_model)),
-      glm::inverse(view),
   };
+  nanosuit_vert_uniform_.Flush(frame);
 
+  *nanosuit_frag_constant_.data<NanosuitFragTrans>(frame) =
+      {glm::inverse(view)};
   *skybox_constant_.data<SkyboxTrans>(frame) = {proj, view};
 }
 

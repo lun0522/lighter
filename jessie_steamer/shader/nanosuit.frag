@@ -1,22 +1,19 @@
 #version 460 core
 
-#ifdef TARGET_OPENGL
-layout(binding = 0) uniform Transformation {
-  mat4 view_model;
-  mat4 proj_view_model;
-  mat4 view_model_inv_trs;
+#if defined(TARGET_OPENGL)
+layout(binding = 1) uniform TransFrag {
   mat4 view_inv;
-} trans;
-#endif
+} trans_frag;
 
-#ifdef TARGET_VULKAN
-layout(push_constant) uniform Transformation {
-  mat4 view_model;
-  mat4 proj_view_model;
-  mat4 view_model_inv_trs;
+#elif defined(TARGET_VULKAN)
+layout(push_constant) uniform TransFrag {
   mat4 view_inv;
-} trans;
-#endif
+} trans_frag;
+
+#else
+#error Unrecognized target
+
+#endif  // TARGET_OPENGL || TARGET_VULKAN
 
 layout(binding = 1) uniform sampler2D diff_sampler;
 layout(binding = 2) uniform sampler2D spec_sampler;
@@ -34,7 +31,7 @@ void main() {
                texture(spec_sampler, tex_coord).rgb * 0.3f;
   vec3 view_dir = normalize(-pos_view);  // view space
   vec3 refl_dir = reflect(-view_dir, normalize(norm_view));
-  refl_dir = (trans.view_inv * vec4(refl_dir, 0.0)).xyz;  // back to world space
+  refl_dir = (trans_frag.view_inv * vec4(refl_dir, 0.0)).xyz;  // world space
   vec3 env_color = texture(skybox_sampler, refl_dir).rgb;
   color = mix(color, env_color, texture(refl_sampler, tex_coord).r);
   frag_color = vec4(color, 1.0);

@@ -411,7 +411,7 @@ void UniformBuffer::Init(const SharedContext& context,
           | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 }
 
-void UniformBuffer::CopyToDevice(int chunk_index) const {
+void UniformBuffer::Flush(int chunk_index) const {
   VkDeviceSize src_offset = chunk_data_size_ * chunk_index;
   VkDeviceSize dst_offset = chunk_memory_size_ * chunk_index;
   CopyHostToBuffer(
@@ -529,6 +529,17 @@ void DepthStencilBuffer::Init(const SharedContext& context,
 void DepthStencilBuffer::Cleanup() {
   vkDestroyImage(*context_->device(), image_, context_->allocator());
   vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
+}
+
+void PushConstant::Init(size_t chunk_size, int num_chunk) {
+  if (chunk_size > buffer::kMaxPushConstantSize) {
+    throw runtime_error{absl::StrFormat(
+        "Pushing constant of size %d bytes. To be compatible with all devices, "
+        "the size should NOT be greater than %d bytes.",
+        chunk_size, buffer::kMaxPushConstantSize)};
+  }
+  size_ = static_cast<uint32_t>(chunk_size);
+  data_ = new char[size_ * num_chunk];
 }
 
 } /* namespace vulkan */

@@ -1,19 +1,21 @@
 #version 460 core
 
-#ifdef TARGET_OPENGL
+#if defined(TARGET_OPENGL)
 layout(binding = 0) uniform Transformation {
   mat4 model;
   mat4 proj_view;
 } trans;
-#endif
 
-#ifdef TARGET_VULKAN
+#elif defined(TARGET_VULKAN)
 layout(push_constant) uniform Transformation {
   mat4 model;
   mat4 proj_view;
-  vec4 direction_time;
 } trans;
-#endif
+
+#else
+#error Unrecognized target
+
+#endif  // TARGET_OPENGL || TARGET_VULKAN
 
 layout(location = 0) in vec3 in_pos;
 layout(location = 1) in vec3 in_norm;
