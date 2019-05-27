@@ -74,7 +74,7 @@ void CubeApp::Init() {
   Model::TextureBindingMap bindings;
   bindings[Model::TextureType::kTypeDiffuse] = {
       /*binding_point=*/1,
-      {{"jessie_steamer/resource/texture/statue.jpg"}},
+      {{"external/resource/texture/statue.jpg"}},
   };
   model_.Init(context_,
               {{VK_SHADER_STAGE_VERTEX_BIT,
@@ -82,7 +82,7 @@ void CubeApp::Init() {
                {VK_SHADER_STAGE_FRAGMENT_BIT,
                 "jessie_steamer/shader/vulkan/simple.frag.spv"}},
               Model::SingleMeshResource{
-                  "jessie_steamer/resource/model/cube.obj",
+                  "external/resource/model/cube.obj",
                   /*obj_index_base=*/1, bindings},
               /*uniform_infos=*/absl::nullopt,
               /*instancing_info=*/absl::nullopt,

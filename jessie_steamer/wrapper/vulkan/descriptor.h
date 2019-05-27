@@ -8,7 +8,6 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_DESCRIPTOR_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_DESCRIPTOR_H
 
-#include <array>
 #include <memory>
 #include <vector>
 

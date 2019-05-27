@@ -17,8 +17,6 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::vector;
-
 VkCommandPool CreateCommandPool(const SharedContext& context,
                                 const Queues::Queue& queue,
                                 bool is_transient) {
@@ -61,9 +59,10 @@ VkCommandBuffer CreateCommandBuffer(const SharedContext& context,
   return buffer;
 }
 
-vector<VkCommandBuffer> CreateCommandBuffers(const SharedContext& context,
-                                             const VkCommandPool& command_pool,
-                                             int count) {
+std::vector<VkCommandBuffer> CreateCommandBuffers(
+    const SharedContext& context,
+    const VkCommandPool& command_pool,
+    int count) {
   // allocate command buffers
   VkCommandBufferAllocateInfo buffer_info{
       VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -74,7 +73,7 @@ vector<VkCommandBuffer> CreateCommandBuffers(const SharedContext& context,
       /*commandBufferCount=*/static_cast<uint32_t>(count),
   };
 
-  vector<VkCommandBuffer> buffers(count);
+  std::vector<VkCommandBuffer> buffers(count);
   ASSERT_SUCCESS(vkAllocateCommandBuffers(*context->device(), &buffer_info,
                                           buffers.data()),
                  "Failed to allocate command buffers");

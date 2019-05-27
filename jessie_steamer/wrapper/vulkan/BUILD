@@ -50,7 +50,7 @@ cc_library(
         "@lib-absl//absl/types:span",
         "@lib-absl//absl/types:variant",
     ],
-    data = ["//jessie_steamer/resource"],
+    data = ["@resource//:resource"],
     copts = ["-DUSE_VULKAN"],
     visibility = ["//jessie_steamer:__subpackages__"],
 )

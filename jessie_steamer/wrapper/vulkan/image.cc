@@ -9,6 +9,7 @@
 
 #include <memory>
 #include <stdexcept>
+#include <vector>
 
 #include "absl/memory/memory.h"
 #include "absl/strings/str_format.h"
@@ -39,8 +40,8 @@ VkImageView CreateImageView(const SharedContext& context,
       view_type = VK_IMAGE_VIEW_TYPE_CUBE;
       break;
     default:
-      throw runtime_error{"Unsupported layer count: " +
-                          std::to_string(layer_count)};
+      throw runtime_error{absl::StrFormat(
+          "Unsupported layer count: %d", layer_count)};
   }
 
   VkImageViewCreateInfo image_view_info{
@@ -172,8 +173,8 @@ TextureImage::TextureImage(const SharedContext& context,
       format = VK_FORMAT_R8G8B8A8_UNORM;
       break;
     default:
-      throw runtime_error{"Unsupported number of channels: " +
-                          std::to_string(sample_image->channel)};
+      throw runtime_error{absl::StrFormat(
+          "Unsupported number of channels: %d", sample_image->channel)};
   }
 
   TextureBuffer::Info image_info{

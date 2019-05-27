@@ -97,12 +97,7 @@ Image::~Image() {
   stbi_image_free(const_cast<void*>(data));
 }
 
-namespace file {
-
-void LoadObjFile(const string& path,
-                 unsigned int index_base,
-                 vector<VertexAttrib3D>* vertices,
-                 vector<uint32_t>* indices) {
+ObjFile::ObjFile(const string& path, int index_base) {
   ifstream file = OpenFile(path);
 
   vector<glm::vec3> positions;
@@ -148,12 +143,12 @@ void LoadObjFile(const string& path,
                                          /*num_segment=*/3)) {
           auto found = loaded_vertices.find(seg);
           if (found != loaded_vertices.end()) {
-            indices->emplace_back(found->second);
+            indices.emplace_back(found->second);
           } else {
-            indices->emplace_back(vertices->size());
-            loaded_vertices.emplace(seg, vertices->size());
+            indices.emplace_back(vertices.size());
+            loaded_vertices.emplace(seg, vertices.size());
             auto idxs = SplitText(seg, '/', /*num_segment=*/3);
-            vertices->emplace_back(
+            vertices.emplace_back(
                 positions.at(stoi(idxs[0]) - index_base),
                 normals.at(stoi(idxs[2]) - index_base),
                 tex_coords.at(stoi(idxs[1]) - index_base)
@@ -185,6 +180,5 @@ void LoadObjFile(const string& path,
   }
 }
 
-} /* namespace file */
 } /* namespace common */
 } /* namespace jessie_steamer */

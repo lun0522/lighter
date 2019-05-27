@@ -15,8 +15,6 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::vector;
-
 constexpr VkSemaphoreCreateInfo kSemaInfo{
     VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
     /*pNext=*/nullptr,

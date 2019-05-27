@@ -122,7 +122,7 @@ void NanosuitApp::Init() {
   skybox_bindings[Model::TextureType::kTypeCubemap] = {
       /*binding_point=*/4, {
           TextureImage::CubemapPath{
-              /*directory=*/"jessie_steamer/resource/texture/tidepool",
+              /*directory=*/"external/resource/texture/tidepool",
               /*files=*/{
                   "right.tga",
                   "left.tga",
@@ -146,9 +146,8 @@ void NanosuitApp::Init() {
                         {VK_SHADER_STAGE_FRAGMENT_BIT,
                          "jessie_steamer/shader/vulkan/nanosuit.frag.spv"}},
                        Model::MultiMeshResource{
-                           "jessie_steamer/resource/model/nanosuit/"
-                           "nanosuit.obj",
-                           "jessie_steamer/resource/model/nanosuit",
+                           "external/resource/model/nanosuit/nanosuit.obj",
+                           "external/resource/model/nanosuit",
                            nanosuit_bindings,
                        absl::make_optional<Model::TextureBindingMap>(
                            skybox_bindings)},
@@ -168,7 +167,7 @@ void NanosuitApp::Init() {
                       {VK_SHADER_STAGE_FRAGMENT_BIT,
                        "jessie_steamer/shader/vulkan/skybox.frag.spv"}},
                      Model::SingleMeshResource{
-                         "jessie_steamer/resource/model/skybox.obj",
+                         "external/resource/model/skybox.obj",
                          /*obj_index_base=*/1, skybox_bindings},
                      /*uniform_infos=*/absl::nullopt,
                      /*instancing_info=*/absl::nullopt,

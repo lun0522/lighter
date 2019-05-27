@@ -9,11 +9,9 @@
 #define JESSIE_STEAMER_WRAPPER_VULKAN_BUFFER_H
 
 #include <memory>
-#include <string>
 #include <vector>
 
 #include "absl/types/span.h"
-#include "jessie_steamer/wrapper/vulkan/descriptor.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -69,7 +67,7 @@ class VertexBuffer {
   virtual ~VertexBuffer();
 
  protected:
-  void CopyHostData(std::vector<buffer::CopyInfo> copy_infos,
+  void CopyHostData(const std::vector<buffer::CopyInfo>& copy_infos,
                     size_t total_size);
 
   std::shared_ptr<Context> context_;

@@ -13,7 +13,6 @@
 
 #include "jessie_steamer/common/window.h"
 #include "jessie_steamer/wrapper/vulkan/basic_object.h"
-#include "jessie_steamer/wrapper/vulkan/pipeline.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
 #include "jessie_steamer/wrapper/vulkan/swapchain.h"
 #include "jessie_steamer/wrapper/vulkan/validation.h"

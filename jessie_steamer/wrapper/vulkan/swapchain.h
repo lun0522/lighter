@@ -20,8 +20,6 @@ namespace vulkan {
 
 class Context;
 
-extern const std::vector<const char*> kSwapChainExtensions;
-
 /** VkSwapchainKHR holds a queue of images to present to the screen.
  *
  *  Initialization:
@@ -48,6 +46,7 @@ extern const std::vector<const char*> kSwapChainExtensions;
  */
 class Swapchain {
  public:
+  static const std::vector<const char*>& extensions();
   static bool HasSwapchainSupport(const std::shared_ptr<Context>& context,
                                   const VkPhysicalDevice& physical_device);
 

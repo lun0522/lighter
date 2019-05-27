@@ -10,8 +10,6 @@
 
 #include <array>
 #include <memory>
-#include <utility>
-#include <vector>
 
 #include "absl/container/node_hash_map.h"
 #include "absl/types/span.h"

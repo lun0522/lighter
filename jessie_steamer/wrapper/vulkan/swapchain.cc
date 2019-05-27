@@ -87,7 +87,15 @@ VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities,
 
 } /* namespace */
 
-const vector<const char*> kSwapChainExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+const vector<const char*>& Swapchain::extensions() {
+  static vector<const char*>* kSwapchainExtensions = nullptr;
+  if (kSwapchainExtensions == nullptr) {
+    kSwapchainExtensions = new vector<const char*>{
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    };
+  }
+  return *kSwapchainExtensions;
+}
 
 bool Swapchain::HasSwapchainSupport(const SharedContext& context,
                                     const VkPhysicalDevice& physical_device) {
@@ -95,10 +103,7 @@ bool Swapchain::HasSwapchainSupport(const SharedContext& context,
     std::cout << "Checking extension support required for swapchain..."
               << std::endl << std::endl;
 
-    vector<std::string> required{
-        kSwapChainExtensions.begin(),
-        kSwapChainExtensions.end(),
-    };
+    vector<std::string> required{extensions().begin(), extensions().end()};
     auto extensions{util::QueryAttribute<VkExtensionProperties>(
         [&physical_device](uint32_t* count, VkExtensionProperties* properties) {
           return vkEnumerateDeviceExtensionProperties(

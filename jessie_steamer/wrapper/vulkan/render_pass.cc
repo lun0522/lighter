@@ -17,9 +17,7 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::vector;
-
-vector<VkFramebuffer> CreateFramebuffers(
+std::vector<VkFramebuffer> CreateFramebuffers(
     const SharedContext& context,
     const DepthStencilImage& depth_stencil_image) {
   const Swapchain& swapchain = context->swapchain();
@@ -27,7 +25,7 @@ vector<VkFramebuffer> CreateFramebuffers(
   // although we have multiple swapchain images, we will share one depth stencil
   // image, because we only use one graphics queue, which only renders on one
   // swapchain image at a time
-  vector<VkFramebuffer> framebuffers(swapchain.size());
+  std::vector<VkFramebuffer> framebuffers(swapchain.size());
   for (int i = 0; i < swapchain.size(); ++i) {
     std::array<VkImageView, 2> attachments{
         swapchain.image_view(i),

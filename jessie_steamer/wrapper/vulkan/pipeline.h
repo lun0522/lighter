@@ -43,11 +43,9 @@ class Context;
 class Pipeline {
  public:
   Pipeline(const std::shared_ptr<Context>& context,
-           VkPipeline&& pipeline,
-           VkPipelineLayout&& pipeline_layout)
-    : context_{context},
-      pipeline_{std::move(pipeline)},
-      layout_{std::move(pipeline_layout)} {}
+           const VkPipeline& pipeline,
+           const VkPipelineLayout& pipeline_layout)
+    : context_{context}, pipeline_{pipeline}, layout_{pipeline_layout} {}
 
   // This class is neither copyable nor movable
   Pipeline(const Pipeline&) = delete;

@@ -128,7 +128,7 @@ void PlanetApp::Init() {
   // model
   Model::TextureBindingMap planet_bindings;
   planet_bindings[Model::TextureType::kTypeDiffuse] = {
-      /*binding_point=*/2, {{"jessie_steamer/resource/texture/planet.png"}},
+      /*binding_point=*/2, {{"external/resource/texture/planet.png"}},
   };
   planet_model_.Init(context_,
                      {{VK_SHADER_STAGE_VERTEX_BIT,
@@ -136,7 +136,7 @@ void PlanetApp::Init() {
                       {VK_SHADER_STAGE_FRAGMENT_BIT,
                        "jessie_steamer/shader/vulkan/planet.frag.spv"}},
                      Model::SingleMeshResource{
-                         "jessie_steamer/resource/model/sphere.obj",
+                         "external/resource/model/sphere.obj",
                          /*obj_index_base=*/1, planet_bindings},
                      /*uniform_infos=*/absl::nullopt,
                      /*instancing_info=*/absl::nullopt,
@@ -166,8 +166,8 @@ void PlanetApp::Init() {
                         {VK_SHADER_STAGE_FRAGMENT_BIT,
                          "jessie_steamer/shader/vulkan/planet.frag.spv"}},
                        Model::MultiMeshResource{
-                           "jessie_steamer/resource/model/rock/rock.obj",
-                           "jessie_steamer/resource/model/rock",
+                           "external/resource/model/rock/rock.obj",
+                           "external/resource/model/rock",
                            {{Model::TextureType::kTypeDiffuse,
                              /*binding_point=*/2}},
                            /*extra_texture_map=*/absl::nullopt},
@@ -186,7 +186,7 @@ void PlanetApp::Init() {
   skybox_bindings[Model::TextureType::kTypeCubemap] = {
       /*binding_point=*/1, {
           TextureImage::CubemapPath{
-              /*directory=*/"jessie_steamer/resource/texture/universe",
+              /*directory=*/"external/resource/texture/universe",
               /*files=*/{
                   "PositiveX.jpg",
                   "NegativeX.jpg",
@@ -204,7 +204,7 @@ void PlanetApp::Init() {
                       {VK_SHADER_STAGE_FRAGMENT_BIT,
                        "jessie_steamer/shader/vulkan/skybox.frag.spv"}},
                      Model::SingleMeshResource{
-                         "jessie_steamer/resource/model/skybox.obj",
+                         "external/resource/model/skybox.obj",
                          /*obj_index_base=*/1, skybox_bindings},
                      /*uniform_infos=*/absl::nullopt,
                      /*instancing_info=*/absl::nullopt,

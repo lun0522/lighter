@@ -37,6 +37,8 @@ class Context;
  *    List of VkImageView
  *    Image extent (width, height and number of layers)
  */
+
+// TODO: make RenderPass composable
 class RenderPass {
  public:
   RenderPass() = default;

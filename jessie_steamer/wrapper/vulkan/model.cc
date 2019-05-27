@@ -25,8 +25,6 @@ using absl::optional;
 using common::VertexAttrib3D;
 using std::move;
 using std::runtime_error;
-using std::string;
-using std::unique_ptr;
 using std::vector;
 
 struct VertexInputBinding {
@@ -94,7 +92,7 @@ vector<VkVertexInputBindingDescription> GetBindingDescriptions(
     });
   }
   return descriptions;
-};
+}
 
 vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(
     const vector<VertexInputAttribute>& attributes) {
@@ -116,7 +114,7 @@ vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(
     }
   }
   return descriptions;
-};
+}
 
 PerVertexBuffer::Info CreateVertexInfo(const vector<VertexAttrib3D>& vertices,
                                        const vector<uint32_t>& indices) {
@@ -132,7 +130,7 @@ PerVertexBuffer::Info CreateVertexInfo(const vector<VertexAttrib3D>& vertices,
           CONTAINER_SIZE(indices),
       },
   };
-};
+}
 
 void CreateTextureInfo(const Model::Mesh& mesh,
                        const Model::FindBindingPoint& find_binding_point,
@@ -199,7 +197,7 @@ void Model::Init(const SharedContext& context,
     push_constant_infos_ = push_constant_infos;
 
     if (instancing_info.has_value()) {
-      if (!instancing_info.value().per_instance_buffer) {
+      if (instancing_info.value().per_instance_buffer == nullptr) {
         throw runtime_error{"Per instance buffer not provided"};
       }
       per_instance_buffer_ = instancing_info.value().per_instance_buffer;
@@ -269,11 +267,9 @@ void Model::Init(const SharedContext& context,
 Model::FindBindingPoint Model::LoadSingleMesh(
     const SingleMeshResource& resource) {
   // load vertices and indices
-  vector<VertexAttrib3D> vertices;
-  vector<uint32_t> indices;
-  common::file::LoadObjFile(resource.obj_path, resource.obj_index_base,
-                            &vertices, &indices);
-  vertex_buffer_.Init(context_, {CreateVertexInfo(vertices, indices)});
+  common::ObjFile file{resource.obj_path, resource.obj_index_base};
+  vertex_buffer_.Init(
+     context_, {CreateVertexInfo(file.vertices, file.indices)});
 
   // load textures
   meshes_.emplace_back();

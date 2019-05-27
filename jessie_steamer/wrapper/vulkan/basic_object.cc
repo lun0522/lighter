@@ -25,8 +25,6 @@ namespace vulkan {
 namespace {
 
 namespace util = common::util;
-using std::runtime_error;
-using std::vector;
 
 struct QueueIndices {
   bool IsValid() const {
@@ -91,7 +89,7 @@ void Instance::Init(const SharedContext& context) {
   context_ = context;
 
   if (glfwVulkanSupported() == GL_FALSE) {
-    throw runtime_error{"Vulkan not supported"};
+    throw std::runtime_error{"Vulkan not supported"};
   }
 
   uint32_t glfw_extension_count;
@@ -99,19 +97,19 @@ void Instance::Init(const SharedContext& context) {
       glfwGetRequiredInstanceExtensions(&glfw_extension_count);
 
 #ifdef DEBUG
-  vector<const char*> required_extensions{
+  std::vector<const char*> required_extensions{
       glfw_extensions,
       glfw_extensions + glfw_extension_count,
   };
   // one extra extension to enable debug report
   required_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-  CheckInstanceExtensionSupport({
+  validation::CheckInstanceExtensionSupport({
       required_extensions.begin(),
       required_extensions.end()
   });
-  CheckValidationLayerSupport({
-      kValidationLayers.begin(),
-      kValidationLayers.end()
+  validation::CheckValidationLayerSupport({
+      validation::layers().begin(),
+      validation::layers().end()
   });
 #endif /* DEBUG */
 
@@ -136,8 +134,8 @@ void Instance::Init(const SharedContext& context) {
       &app_info,
 #ifdef DEBUG
       // enabled layers
-      CONTAINER_SIZE(kValidationLayers),
-      kValidationLayers.data(),
+      CONTAINER_SIZE(validation::layers()),
+      validation::layers().data(),
       // enabled extensions
       CONTAINER_SIZE(required_extensions),
       required_extensions.data(),
@@ -196,7 +194,7 @@ void PhysicalDevice::Init(const SharedContext& context) {
       return;
     }
   }
-  throw runtime_error{"Failed to find suitable GPU"};
+  throw std::runtime_error{"Failed to find suitable GPU"};
 }
 
 void Device::Init(const SharedContext& context) {
@@ -207,7 +205,7 @@ void Device::Init(const SharedContext& context) {
   enabled_features.samplerAnisotropy = VK_TRUE;
 
   // request negative-height viewport support
-  auto enabled_extensions = kSwapChainExtensions;
+  auto enabled_extensions = Swapchain::extensions();
   enabled_extensions.emplace_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
 
   // graphics queue and present queue might be the same
@@ -217,7 +215,7 @@ void Device::Init(const SharedContext& context) {
       queues.present.family_index,
   };
   float priority = 1.0f;
-  vector<VkDeviceQueueCreateInfo> queue_infos;
+  std::vector<VkDeviceQueueCreateInfo> queue_infos;
   for (uint32_t queue_family : queue_families) {
     VkDeviceQueueCreateInfo queue_info{
         VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
@@ -227,7 +225,7 @@ void Device::Init(const SharedContext& context) {
         /*queueCount=*/1,
         &priority,  // always required even if only one queue
     };
-    queue_infos.emplace_back(std::move(queue_info));
+    queue_infos.emplace_back(queue_info);
   }
 
   VkDeviceCreateInfo device_info{
@@ -239,8 +237,8 @@ void Device::Init(const SharedContext& context) {
       queue_infos.data(),
 #ifdef DEBUG
       // enabled layers
-      CONTAINER_SIZE(kValidationLayers),
-      kValidationLayers.data(),
+      CONTAINER_SIZE(validation::layers()),
+      validation::layers().data(),
 #else
       /*enabledLayerCount=*/0,
       /*ppEnabledLayerNames=*/nullptr,

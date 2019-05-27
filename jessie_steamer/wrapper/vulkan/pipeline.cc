@@ -18,13 +18,11 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::move;
 using std::runtime_error;
-using std::string;
 using std::vector;
 
 VkShaderModule CreateShaderModule(const SharedContext& context,
-                                  const string& path) {
+                                  const std::string& path) {
   const auto raw_data = absl::make_unique<common::RawData>(path);
   VkShaderModuleCreateInfo module_info{
       /*sType=*/VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -303,8 +301,7 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
   }
   shader_modules.clear();
 
-  return absl::make_unique<Pipeline>(
-      context, move(pipeline), move(pipeline_layout));
+  return absl::make_unique<Pipeline>(context, pipeline, pipeline_layout);
 }
 
 Pipeline::~Pipeline() {

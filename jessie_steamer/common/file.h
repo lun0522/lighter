@@ -63,14 +63,17 @@ struct VertexAttrib3D {
   glm::vec2 tex_coord;
 };
 
-namespace file {
+struct ObjFile {
+  ObjFile(const std::string& path, int index_base);
 
-void LoadObjFile(const std::string& path,
-                 unsigned int index_base,
-                 std::vector<VertexAttrib3D>* vertices,
-                 std::vector<uint32_t>* indices);
+  // This class is neither copyable nor movable.
+  ObjFile(const ObjFile&) = delete;
+  ObjFile& operator=(const ObjFile&) = delete;
 
-} /* namespace file */
+  std::vector<VertexAttrib3D> vertices;
+  std::vector<uint32_t> indices;
+};
+
 } /* namespace common */
 } /* namespace jessie_steamer */
 

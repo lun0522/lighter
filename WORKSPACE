@@ -62,3 +62,10 @@ http_archive(
     strip_prefix = "vulkansdk-macos-1.1.92.1/macOS",
     build_file = "//:third_party/BUILD.vulkan",
 )
+
+git_repository(
+    name = "resource",
+    remote = "https://github.com/lun0522/resource.git",
+    commit = "e6b3e8eab610a502f3a1ce81da1e8e9d9b85072a",
+    shallow_since = "1558913515 -0700",
+)

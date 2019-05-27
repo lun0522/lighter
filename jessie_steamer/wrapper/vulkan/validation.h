@@ -42,6 +42,14 @@ enum Type {
 
 } /* namespace MessageType */
 
+namespace validation {
+
+const std::vector<const char*>& layers();
+void CheckInstanceExtensionSupport(const std::vector<std::string>& required);
+void CheckValidationLayerSupport(const std::vector<std::string>& required);
+
+} /* namespace validation */
+
 class DebugCallback {
  public:
   DebugCallback() = default;
@@ -60,10 +68,6 @@ class DebugCallback {
   std::shared_ptr<Context> context_;
   VkDebugUtilsMessengerEXT callback_;
 };
-
-extern const std::vector<const char*> kValidationLayers;
-void CheckInstanceExtensionSupport(const std::vector<std::string>& required);
-void CheckValidationLayerSupport(const std::vector<std::string>& required);
 
 } /* namespace vulkan */
 } /* namespace wrapper */

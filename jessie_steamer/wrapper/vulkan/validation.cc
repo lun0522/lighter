@@ -49,33 +49,16 @@ FuncType LoadFunction(const SharedContext& context, const string& func_name) {
 
 } /* namespace */
 
-const vector<const char*> kValidationLayers{
-    "VK_LAYER_LUNARG_standard_validation",
-};
+namespace validation {
 
-void DebugCallback::Init(const SharedContext& context,
-                         VkDebugUtilsMessageSeverityFlagsEXT message_severity,
-                         VkDebugUtilsMessageTypeFlagsEXT message_type) {
-  context_ = context;
-  VkDebugUtilsMessengerCreateInfoEXT create_info{
-      VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
-      message_severity,
-      message_type,
-      UserCallback,
-      /*pUserData=*/nullptr,  // will be passed along to the callback
-  };
-
-  auto func = LoadFunction<PFN_vkCreateDebugUtilsMessengerEXT>(
-      context_, "vkCreateDebugUtilsMessengerEXT");
-  func(*context_->instance(), &create_info, context_->allocator(), &callback_);
-}
-
-DebugCallback::~DebugCallback() {
-  auto func = LoadFunction<PFN_vkDestroyDebugUtilsMessengerEXT>(
-      context_, "vkDestroyDebugUtilsMessengerEXT");
-  func(*context_->instance(), callback_, context_->allocator());
+const vector<const char*>& layers() {
+  static vector<const char*>* kValidationLayers = nullptr;
+  if (kValidationLayers == nullptr) {
+    kValidationLayers = new vector<const char*>{
+        "VK_LAYER_LUNARG_standard_validation",
+    };
+  }
+  return *kValidationLayers;
 }
 
 void CheckInstanceExtensionSupport(const vector<string>& required) {
@@ -105,6 +88,33 @@ void CheckValidationLayerSupport(const vector<string>& required) {
     return property.layerName;
   };
   util::CheckSupport<VkLayerProperties>(required, properties, get_name);
+}
+
+} /* namespace validation */
+
+void DebugCallback::Init(const SharedContext& context,
+                         VkDebugUtilsMessageSeverityFlagsEXT message_severity,
+                         VkDebugUtilsMessageTypeFlagsEXT message_type) {
+  context_ = context;
+  VkDebugUtilsMessengerCreateInfoEXT create_info{
+      VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+      /*pNext=*/nullptr,
+      /*flags=*/nullflag,
+      message_severity,
+      message_type,
+      UserCallback,
+      /*pUserData=*/nullptr,  // will be passed along to the callback
+  };
+
+  auto func = LoadFunction<PFN_vkCreateDebugUtilsMessengerEXT>(
+      context_, "vkCreateDebugUtilsMessengerEXT");
+  func(*context_->instance(), &create_info, context_->allocator(), &callback_);
+}
+
+DebugCallback::~DebugCallback() {
+  auto func = LoadFunction<PFN_vkDestroyDebugUtilsMessengerEXT>(
+      context_, "vkDestroyDebugUtilsMessengerEXT");
+  func(*context_->instance(), callback_, context_->allocator());
 }
 
 } /* namespace vulkan */

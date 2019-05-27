@@ -53,7 +53,7 @@ class Model {
   // Loads with light-weight obj file loader.
   struct SingleMeshResource {
     std::string obj_path;
-    unsigned int obj_index_base;
+    int obj_index_base;
     TextureBindingMap binding_map;
   };
   // Loads with Assimp.

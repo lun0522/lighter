@@ -13,8 +13,6 @@
 #include <vector>
 
 #include "jessie_steamer/wrapper/vulkan/basic_object.h"
-#include "jessie_steamer/wrapper/vulkan/buffer.h"
-#include "jessie_steamer/wrapper/vulkan/pipeline.h"
 #include "jessie_steamer/wrapper/vulkan/synchronize.h"
 #include "third_party/vulkan/vulkan.h"
 

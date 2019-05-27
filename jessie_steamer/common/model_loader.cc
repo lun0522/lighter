@@ -35,7 +35,7 @@ ModelLoader::ModelLoader(const string& obj_path, const string& tex_path) {
 
   Assimp::Importer importer;
   auto* scene = importer.ReadFile(obj_path, flags);
-  if (!scene || !scene->mRootNode ||
+  if (scene == nullptr || scene->mRootNode == nullptr ||
       (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)) {
     throw std::runtime_error{absl::StrFormat(
         "Failed to import scene: %s", importer.GetErrorString())};

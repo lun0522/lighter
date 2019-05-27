@@ -11,6 +11,7 @@
 #include <cstring>
 #include <stdexcept>
 
+#include "absl/strings/str_format.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/context.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
@@ -297,7 +298,7 @@ void CopyBufferToImage(const SharedContext& context,
 
 } /* namespace */
 
-void VertexBuffer::CopyHostData(vector<buffer::CopyInfo> copy_infos,
+void VertexBuffer::CopyHostData(const vector<buffer::CopyInfo>& copy_infos,
                                 size_t total_size) {
   // create staging buffer and associated memory
   VkBuffer staging_buffer = CreateBuffer(           // source of transfer
@@ -442,8 +443,8 @@ void TextureBuffer::Init(const SharedContext& context,
 
   auto layer_count = CONTAINER_SIZE(info.datas);
   if (layer_count != 1 && layer_count != buffer::kCubemapImageCount) {
-    throw runtime_error{"Wrong number of images: " +
-                        std::to_string(layer_count)};
+    throw runtime_error{absl::StrFormat(
+        "Wrong number of images: %d", layer_count)};
   }
 
   // create staging buffer and associated memory
