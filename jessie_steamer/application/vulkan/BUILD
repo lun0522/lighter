@@ -4,6 +4,7 @@ cc_binary(
     name = "cube",
     srcs = ["cube.cc"],
     deps = [
+        ":util",
         "//jessie_steamer/application:resource",
         "//jessie_steamer/common:time",
         "//jessie_steamer/common:window",
@@ -19,6 +20,7 @@ cc_binary(
     name = "nanosuit",
     srcs = ["nanosuit.cc"],
     deps = [
+        ":util",
         "//jessie_steamer/application:resource",
         "//jessie_steamer/common:camera",
         "//jessie_steamer/common:time",
@@ -36,6 +38,7 @@ cc_binary(
     name = "planet",
     srcs = ["planet.cc"],
     deps = [
+        ":util",
         "//jessie_steamer/application:resource",
         "//jessie_steamer/common:camera",
         "//jessie_steamer/common:time",
@@ -47,4 +50,9 @@ cc_binary(
         "@lib-absl//absl/types:optional",
     ],
     copts = ["-DUSE_VULKAN"],
+)
+
+cc_library(
+    name = "util",
+    hdrs = ["util.h"],
 )

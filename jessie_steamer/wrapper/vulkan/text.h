@@ -20,15 +20,18 @@ namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
-enum class Font {
-  kGeorgia,
-  kOstrich,
-};
+enum class Font { kGeorgia, kOstrich };
+enum class AlignHorizontal { kLeft, kCenter, kRight };
+enum class AlignVertical { kTop, kCenter, kBottom };
 
 class StaticText {
  public:
   StaticText(const std::vector<std::string>& texts,
              Font font, glm::uvec2 font_size);
+
+  // This class is neither copyable nor movable
+  StaticText(const StaticText&) = delete;
+  StaticText& operator=(const StaticText&) = delete;
 
  private:
 
@@ -39,11 +42,21 @@ class DynamicText {
   DynamicText(const std::vector<std::string>& texts,
               Font font, glm::uvec2 font_size);
 
+  // This class is neither copyable nor movable
+  DynamicText(const DynamicText&) = delete;
+  DynamicText& operator=(const DynamicText&) = delete;
+
+  void Draw(const std::string& text,
+            const glm::vec4& color_alpha,
+            const glm::vec2& coord,
+            AlignHorizontal align_horizontal,
+            AlignVertical align_vertical) const;
+
  private:
   struct CharInfo {
     glm::ivec2 size;
     glm::ivec2 bearing;
-    unsigned int advance;
+    int advance;
     TextureImage image;
   };
 
@@ -54,4 +67,4 @@ class DynamicText {
 } /* namespace wrapper */
 } /* namespace jessie_steamer */
 
-#endif //JESSIE_STEAMER_WRAPPER_VULKAN_TEXT_H
+#endif /* JESSIE_STEAMER_WRAPPER_VULKAN_TEXT_H */

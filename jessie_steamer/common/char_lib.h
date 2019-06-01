@@ -49,4 +49,4 @@ class CharLib {
 } /* namespace common */
 } /* namespace jessie_steamer */
 
-#endif //JESSIE_STEAMER_COMMON_CHAR_LIB_H
+#endif /* JESSIE_STEAMER_COMMON_CHAR_LIB_H */

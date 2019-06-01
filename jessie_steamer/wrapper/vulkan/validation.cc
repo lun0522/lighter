@@ -5,7 +5,7 @@
 //  Copyright © 2018 Pujun Lun. All rights reserved.
 //
 
-#ifdef DEBUG
+#ifndef NDEBUG
 
 #include "jessie_steamer/wrapper/vulkan/validation.h"
 
@@ -121,4 +121,4 @@ DebugCallback::~DebugCallback() {
 } /* namespace wrapper */
 } /* namespace jessie_steamer */
 
-#endif /* DEBUG */
+#endif /* !NDEBUG */

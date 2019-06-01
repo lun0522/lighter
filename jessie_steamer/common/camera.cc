@@ -16,8 +16,6 @@ namespace jessie_steamer {
 namespace common {
 namespace {
 
-using glm::radians;
-
 const glm::vec2& ref_front_zx() {
   static const glm::vec2 kRefFrontZx{1.0f, 0.0f};
   return kRefFrontZx;
@@ -59,8 +57,9 @@ void Camera::ProcessCursorMove(double x, double y) {
   const auto x_offset = static_cast<float>((x - cursor_pos_.x) * turn_speed_);
   const auto y_offset = static_cast<float>((y - cursor_pos_.y) * turn_speed_);
   cursor_pos_ = glm::dvec2{x, y};
-  yaw_ = glm::mod(yaw_ - x_offset, radians(360.0f));
-  pitch_ = glm::clamp(pitch_ - y_offset, radians(-89.9f), radians(89.9f));
+  yaw_ = glm::mod(yaw_ - x_offset, glm::radians(360.0f));
+  pitch_ = glm::clamp(pitch_ - y_offset, glm::radians(-89.9f),
+                      glm::radians(89.9f));
   UpdateFront();
   UpdateRight();
   UpdateView();
@@ -122,7 +121,7 @@ void Camera::UpdateView() {
 }
 
 void Camera::UpdateProj() {
-  proj_ = glm::perspective(radians(fov_),
+  proj_ = glm::perspective(glm::radians(fov_),
                            (float)screen_size_.x / screen_size_.y, near_, far_);
 }
 

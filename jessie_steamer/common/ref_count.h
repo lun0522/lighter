@@ -78,4 +78,4 @@ absl::flat_hash_map<std::string,
 } /* namespace common */
 } /* namespace jessie_steamer */
 
-#endif //JESSIE_STEAMER_COMMON_REF_COUNT_H
+#endif /* JESSIE_STEAMER_COMMON_REF_COUNT_H */

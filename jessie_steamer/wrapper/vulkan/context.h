@@ -76,9 +76,9 @@ class Context : public std::enable_shared_from_this<Context> {
   Queues queues_;
   Swapchain swapchain_;
   RenderPass render_pass_;
-#ifdef DEBUG
+#ifndef NDEBUG
   DebugCallback callback_;
-#endif /* DEBUG */
+#endif /* !NDEBUG */
 };
 
 } /* namespace vulkan */

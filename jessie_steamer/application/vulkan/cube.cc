@@ -6,10 +6,10 @@
 //
 
 #include <array>
-#include <cstdlib>
 #include <iostream>
 
 #include "absl/types/optional.h"
+#include "jessie_steamer/application/vulkan/util.h"
 #include "jessie_steamer/common/time.h"
 #include "jessie_steamer/common/window.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
@@ -180,18 +180,19 @@ void CubeApp::Cleanup() {
 } /* namespace jessie_steamer */
 
 int main(int argc, const char* argv[]) {
-#ifdef DEBUG
-  INSERT_DEBUG_REQUIREMENT(/*overwrite=*/true);
-  jessie_steamer::application::vulkan::cube::CubeApp app{};
-  app.MainLoop();
-#else
+  using namespace jessie_steamer::application::vulkan;
+  SetBuildEnvironment();
+#ifdef NDEBUG
   try {
-    jessie_steamer::application::vulkan::cube::CubeApp app{};
+    cube::CubeApp app{};
     app.MainLoop();
   } catch (const std::exception& e) {
     std::cerr << "Error: /n/t" << e.what() << std::endl;
     return EXIT_FAILURE;
   }
-#endif /* DEBUG */
+#else  /* !NDEBUG */
+  cube::CubeApp app{};
+  app.MainLoop();
+#endif /* NDEBUG */
   return EXIT_SUCCESS;
 }

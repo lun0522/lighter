@@ -31,7 +31,7 @@ CharLib::CharLib(const std::vector<std::string>& texts,
   }
   FT_Set_Pixel_Sizes(face_, font_size.x, font_size.y);
 
-  absl::flat_hash_set<char> to_load;
+  absl::flat_hash_set<char> to_load{};
   for (const auto& text : texts) {
     for (auto c : text) {
       to_load.emplace(c);
@@ -49,7 +49,7 @@ CharLib::CharLib(const std::vector<std::string>& texts,
         /*bearing=*/{face_->glyph->bitmap_left,
                      face_->glyph->bitmap_top},
         // measured with number of 1/64 pixels
-        /*advance=*/(unsigned int)face_->glyph->advance.x >> 6,
+        /*advance=*/static_cast<unsigned int>(face_->glyph->advance.x) >> 6,
         /*data=*/face_->glyph->bitmap.buffer,
     };
     chars_.emplace(c, ch);

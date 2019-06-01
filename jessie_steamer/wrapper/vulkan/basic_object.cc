@@ -96,7 +96,7 @@ void Instance::Init(const SharedContext& context) {
   const char** glfw_extensions =
       glfwGetRequiredInstanceExtensions(&glfw_extension_count);
 
-#ifdef DEBUG
+#ifndef NDEBUG
   std::vector<const char*> required_extensions{
       glfw_extensions,
       glfw_extensions + glfw_extension_count,
@@ -111,7 +111,7 @@ void Instance::Init(const SharedContext& context) {
       validation::layers().begin(),
       validation::layers().end()
   });
-#endif /* DEBUG */
+#endif /* !NDEBUG */
 
   // [optional]
   // might be useful for the driver to optimize for some graphics engine
@@ -132,20 +132,20 @@ void Instance::Init(const SharedContext& context) {
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
       &app_info,
-#ifdef DEBUG
+#ifdef NDEBUG
+      /*enabledLayerCount=*/0,
+      /*ppEnabledLayerNames=*/nullptr,
+      // enabled extensions
+      glfw_extension_count,
+      glfw_extensions,
+#else  /* !NDEBUG */
       // enabled layers
       CONTAINER_SIZE(validation::layers()),
       validation::layers().data(),
       // enabled extensions
       CONTAINER_SIZE(required_extensions),
       required_extensions.data(),
-#else
-      /*enabledLayerCount=*/0,
-      /*ppEnabledLayerNames=*/nullptr,
-      // enabled extensions
-      glfw_extension_count,
-      glfw_extensions,
-#endif /* DEBUG */
+#endif /* NDEBUG */
   };
 
   ASSERT_SUCCESS(
@@ -235,14 +235,14 @@ void Device::Init(const SharedContext& context) {
       // queue create infos
       CONTAINER_SIZE(queue_infos),
       queue_infos.data(),
-#ifdef DEBUG
+#ifdef NDEBUG
+      /*enabledLayerCount=*/0,
+      /*ppEnabledLayerNames=*/nullptr,
+#else  /* !NDEBUG */
       // enabled layers
       CONTAINER_SIZE(validation::layers()),
       validation::layers().data(),
-#else
-      /*enabledLayerCount=*/0,
-      /*ppEnabledLayerNames=*/nullptr,
-#endif /* DEBUG */
+#endif /* NDEBUG */
       CONTAINER_SIZE(enabled_extensions),
       enabled_extensions.data(),
       &enabled_features,

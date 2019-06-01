@@ -77,4 +77,4 @@ struct ObjFile {
 } /* namespace common */
 } /* namespace jessie_steamer */
 
-#endif //JESSIE_STEAMER_COMMON_FILE_H
+#endif /* JESSIE_STEAMER_COMMON_FILE_H */

@@ -11,6 +11,7 @@
 
 #include "absl/strings/str_format.h"
 #include "absl/types/optional.h"
+#include "jessie_steamer/application/vulkan/util.h"
 #include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/time.h"
 #include "jessie_steamer/common/window.h"
@@ -299,18 +300,19 @@ void NanosuitApp::Cleanup() {
 } /* namespace jessie_steamer */
 
 int main(int argc, const char* argv[]) {
-#ifdef DEBUG
-  INSERT_DEBUG_REQUIREMENT(/*overwrite=*/true);
-  jessie_steamer::application::vulkan::nanosuit::NanosuitApp app{};
-  app.MainLoop();
-#else
+  using namespace jessie_steamer::application::vulkan;
+  SetBuildEnvironment();
+#ifdef NDEBUG
   try {
-    jessie_steamer::application::vulkan::nanosuit::NanosuitApp app{};
+    nanosuit::NanosuitApp app{};
     app.MainLoop();
   } catch (const std::exception& e) {
     std::cerr << "Error: /n/t" << e.what() << std::endl;
     return EXIT_FAILURE;
   }
-#endif /* DEBUG */
+#else  /* !NDEBUG */
+  nanosuit::NanosuitApp app{};
+  app.MainLoop();
+#endif /* NDEBUG */
   return EXIT_SUCCESS;
 }

@@ -15,7 +15,7 @@ void Context::Init(const std::string& name, int width, int height) {
   if (is_first_time_) {
     window_.Init(name, {width, height});
     instance_.Init(ptr());
-#ifdef DEBUG
+#ifndef NDEBUG
     // relay debug messages back to application
     callback_.Init(ptr(),
                    message_severity::kWarning
@@ -23,7 +23,7 @@ void Context::Init(const std::string& name, int width, int height) {
                    message_type::kGeneral
                        | message_type::kValidation
                        | message_type::kPerformance);
-#endif /* DEBUG */
+#endif /* !NDEBUG */
     surface_.Init(ptr());
     physical_device_.Init(ptr());
     device_.Init(ptr());

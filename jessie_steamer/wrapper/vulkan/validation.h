@@ -5,7 +5,7 @@
 //  Copyright © 2018 Pujun Lun. All rights reserved.
 //
 
-#ifdef DEBUG
+#ifndef NDEBUG
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_VALIDATION_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_VALIDATION_H
 
@@ -74,4 +74,4 @@ class DebugCallback {
 } /* namespace jessie_steamer */
 
 #endif /* JESSIE_STEAMER_WRAPPER_VULKAN_VALIDATION_H */
-#endif /* DEBUG */
+#endif /* !NDEBUG */

@@ -76,4 +76,4 @@ class ModelLoader {
 } /* namespace common */
 } /* namespace jessie_steamer */
 
-#endif //JESSIE_STEAMER_COMMON_MODEL_LOADER_H
+#endif /* JESSIE_STEAMER_COMMON_MODEL_LOADER_H */
