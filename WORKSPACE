@@ -3,7 +3,6 @@ workspace(name = "jessie_steamer")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
 
 git_repository(
     name = "lib-absl",
@@ -66,6 +65,6 @@ http_archive(
 git_repository(
     name = "resource",
     remote = "https://github.com/lun0522/resource.git",
-    commit = "14302a35efad4ce090fc8bc6006e9f55e85d004c",
-    shallow_since = "1559418892 -0700",
+    commit = "d930b643e50321cf3597491c2993916d945607c4",
+    shallow_since = "1559437765 -0700",
 )

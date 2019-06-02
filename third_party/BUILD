@@ -4,20 +4,26 @@ licenses(["notice"])
 
 cc_library(
     name = "assimp",
-    srcs = ["libassimp.4.1.0.dylib"],
-    deps = ["@lib-assimp//:assimp"],
+    deps = [
+        "@lib-assimp//:assimp",
+        "@resource//framework/osx:assimp",
+    ],
 )
 
 cc_library(
     name = "freetype",
-    srcs = ["libfreetype.6.dylib"],
-    deps = ["@lib-freetype//:freetype"],
+    deps = [
+        "@lib-freetype//:freetype",
+        "@resource//framework/osx:freetype",
+    ],
 )
 
 cc_library(
     name = "glfw",
-    srcs = ["libglfw.3.3.dylib"],
-    deps = ["@lib-glfw//:glfw"],
+    deps = [
+        "@lib-glfw//:glfw",
+        "@resource//framework/osx:glfw",
+    ],
 )
 
 cc_library(
