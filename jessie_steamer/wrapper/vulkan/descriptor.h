@@ -84,8 +84,7 @@ class Descriptor {
     std::vector<Binding> bindings;
   };
 
-  Descriptor(const std::shared_ptr<Context>& context,
-             const std::vector<Info>& infos);
+  Descriptor(std::shared_ptr<Context> context, const std::vector<Info>& infos);
 
   // This class is neither copyable nor movable
   Descriptor(const Descriptor&) = delete;

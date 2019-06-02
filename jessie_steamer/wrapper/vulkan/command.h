@@ -58,8 +58,7 @@ class Command {
                              const Queues::Queue& queue,
                              const OneTimeRecord& on_record);
 
-  void Init(const std::shared_ptr<Context>& context,
-            int num_frame);
+  void Init(std::shared_ptr<Context> context, int num_frame);
   VkResult Draw(int current_frame,
                 const UpdateDataFunc& update_data,
                 const MultiTimeRecord& on_record);

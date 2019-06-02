@@ -53,8 +53,8 @@ std::vector<VkFramebuffer> CreateFramebuffers(
 
 } /* namespace */
 
-void RenderPass::Init(const SharedContext& context) {
-  context_ = context;
+void RenderPass::Init(SharedContext context) {
+  context_ = std::move(context);
   depth_stencil_.Init(context_, context_->swapchain().extent());
 
   VkAttachmentDescription color_att_desc{

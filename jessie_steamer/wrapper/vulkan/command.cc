@@ -119,10 +119,9 @@ void Command::OneTimeCommand(const SharedContext& context,
   vkDestroyCommandPool(*context->device(), command_pool, context->allocator());
 }
 
-void Command::Init(const SharedContext& context,
-                   int num_frame) {
+void Command::Init(SharedContext context, int num_frame) {
   if (is_first_time_) {
-    context_ = context;
+    context_ = std::move(context);
     command_pool_ = CreateCommandPool(
         context_, context_->queues().graphics, false);
     image_available_semas_.Init(context_, num_frame);

@@ -18,8 +18,7 @@
     throw std::runtime_error{absl::StrFormat("Error %d: %s", event, error)};  \
   }
 
-#define CONTAINER_SIZE(container)                                             \
-    static_cast<uint32_t>(container.size())
+#define CONTAINER_SIZE(container) static_cast<uint32_t>(container.size())
 
 namespace jessie_steamer {
 namespace wrapper {

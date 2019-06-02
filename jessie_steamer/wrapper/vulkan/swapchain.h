@@ -58,7 +58,7 @@ class Swapchain {
 
   ~Swapchain() { Cleanup(); }
 
-  void Init(const std::shared_ptr<Context>& context);
+  void Init(std::shared_ptr<Context> context);
   void Cleanup();
 
   const VkSwapchainKHR& operator*() const { return swapchain_; }

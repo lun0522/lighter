@@ -42,10 +42,11 @@ class Context;
  */
 class Pipeline {
  public:
-  Pipeline(const std::shared_ptr<Context>& context,
+  Pipeline(std::shared_ptr<Context> context,
            const VkPipeline& pipeline,
            const VkPipelineLayout& pipeline_layout)
-    : context_{context}, pipeline_{pipeline}, layout_{pipeline_layout} {}
+    : context_{std::move(context)},
+      pipeline_{pipeline}, layout_{pipeline_layout} {}
 
   // This class is neither copyable nor movable
   Pipeline(const Pipeline&) = delete;
@@ -74,7 +75,7 @@ class PipelineBuilder {
   PipelineBuilder& operator=(const PipelineBuilder&) = delete;
 
   // Init() should always be called first.
-  PipelineBuilder& Init(const std::shared_ptr<Context>& context);
+  PipelineBuilder& Init(std::shared_ptr<Context> context);
 
   // All these information must be set before Build().
   PipelineBuilder& set_vertex_input(

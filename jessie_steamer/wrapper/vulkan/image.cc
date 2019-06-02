@@ -107,10 +107,9 @@ VkSampler CreateSampler(const SharedContext& context) {
 
 } /* namespace */
 
-void SwapChainImage::Init(const SharedContext& context,
-                          const VkImage& image,
-                          VkFormat format) {
-  context_ = context;
+void SwapChainImage::Init(SharedContext context,
+                          const VkImage& image, VkFormat format) {
+  context_ = std::move(context);
   image_view_ = CreateImageView(context_, image, format,
                                 VK_IMAGE_ASPECT_COLOR_BIT, /*layer_count=*/1);
 }
@@ -121,8 +120,7 @@ SwapChainImage::~SwapChainImage() {
 }
 
 TextureImage::SharedTexture TextureImage::GetTexture(
-    const SharedContext& context,
-    const SourcePath& source_path) {
+    const SharedContext& context, const SourcePath& source_path) {
   const string* identifier;
   if (absl::holds_alternative<string>(source_path)) {
     identifier = &absl::get<string>(source_path);
@@ -134,9 +132,8 @@ TextureImage::SharedTexture TextureImage::GetTexture(
   return SharedTexture::Get(*identifier, context, source_path);
 }
 
-TextureImage::TextureImage(const SharedContext& context,
-                           const SourcePath& source_path)
-    : context_{context} {
+TextureImage::TextureImage(SharedContext context, const SourcePath& source_path)
+    : context_{std::move(context)} {
   using CubemapImage = std::array<std::unique_ptr<Image>,
                                   buffer::kCubemapImageCount>;
   using SourceImage = absl::variant<std::unique_ptr<Image>, CubemapImage>;
@@ -204,9 +201,8 @@ TextureImage::~TextureImage() {
   vkDestroySampler(*context_->device(), sampler_, context_->allocator());
 }
 
-void DepthStencilImage::Init(const SharedContext& context,
-                             VkExtent2D extent) {
-  context_ = context;
+void DepthStencilImage::Init(SharedContext context, VkExtent2D extent) {
+  context_ = std::move(context);
   buffer_.Init(context_, extent);
   image_view_ = CreateImageView(context_, buffer_.image(), format(),
                                 VK_IMAGE_ASPECT_DEPTH_BIT

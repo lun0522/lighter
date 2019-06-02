@@ -128,8 +128,8 @@ bool Swapchain::HasSwapchainSupport(const SharedContext& context,
   return format_count && mode_count;
 }
 
-void Swapchain::Init(const SharedContext& context) {
-  context_ = context;
+void Swapchain::Init(SharedContext context) {
+  context_ = std::move(context);
   const VkSurfaceKHR& surface = *context_->surface();
   const VkPhysicalDevice& physical_device = *context_->physical_device();
 
@@ -215,9 +215,9 @@ void Swapchain::Init(const SharedContext& context) {
 
   // fetch swapchain images and create image views for them
   auto images{util::QueryAttribute<VkImage>(
-      [&context](uint32_t *count, VkImage *images) {
+      [this](uint32_t *count, VkImage *images) {
         vkGetSwapchainImagesKHR(
-            *context->device(), *context->swapchain(), count, images);
+            *context_->device(), *context_->swapchain(), count, images);
       }
   )};
   images_.reserve(images.size());

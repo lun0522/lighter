@@ -60,7 +60,7 @@ class DebugCallback {
 
   ~DebugCallback();
 
-  void Init(const std::shared_ptr<Context>& context,
+  void Init(std::shared_ptr<Context> context,
             VkDebugUtilsMessageSeverityFlagsEXT message_severity,
             VkDebugUtilsMessageTypeFlagsEXT message_type);
 

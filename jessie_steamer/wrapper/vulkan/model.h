@@ -100,7 +100,7 @@ class Model {
   Model(const Model&) = delete;
   Model& operator=(const Model&) = delete;
 
-  void Init(const std::shared_ptr<Context>& context,
+  void Init(std::shared_ptr<Context> context,
             const std::vector<PipelineBuilder::ShaderInfo>& shader_infos,
             const ModelResource& resource,
             const absl::optional<UniformInfos>& uniform_infos,
@@ -109,8 +109,7 @@ class Model {
             int num_frame,
             bool is_opaque);
   void Draw(const VkCommandBuffer& command_buffer,
-            int frame,
-            uint32_t instance_count) const;
+            int frame, uint32_t instance_count) const;
 
  private:
   FindBindingPoint LoadSingleMesh(const SingleMeshResource& resource);

@@ -184,7 +184,7 @@ vector<VkPushConstantRange> CreatePushConstantRanges(
 
 } /* namespace */
 
-void Model::Init(const SharedContext& context,
+void Model::Init(SharedContext context,
                  const vector<PipelineBuilder::ShaderInfo>& shader_infos,
                  const ModelResource& resource,
                  const optional<UniformInfos>& uniform_infos,
@@ -193,7 +193,7 @@ void Model::Init(const SharedContext& context,
                  int num_frame,
                  bool is_opaque) {
   if (is_first_time_) {
-    context_ = context;
+    context_ = std::move(context);
     push_constant_infos_ = push_constant_infos;
 
     if (instancing_info.has_value()) {
@@ -383,8 +383,7 @@ void Model::CreateDescriptors(const FindBindingPoint& find_binding_point,
 }
 
 void Model::Draw(const VkCommandBuffer& command_buffer,
-                 int frame,
-                 uint32_t instance_count) const {
+                 int frame, uint32_t instance_count) const {
   vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                     **pipeline_);
   if (per_instance_buffer_) {

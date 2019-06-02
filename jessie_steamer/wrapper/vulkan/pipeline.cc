@@ -42,8 +42,8 @@ VkShaderModule CreateShaderModule(const SharedContext& context,
 
 } /* namespace */
 
-PipelineBuilder& PipelineBuilder::Init(const SharedContext& context) {
-  this->context = context;
+PipelineBuilder& PipelineBuilder::Init(SharedContext context) {
+  this->context = std::move(context);
 
   input_assembly_info = {
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,

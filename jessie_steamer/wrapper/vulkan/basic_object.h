@@ -37,7 +37,7 @@ class Instance {
 
   ~Instance();
 
-  void Init(const std::shared_ptr<Context>& context);
+  void Init(std::shared_ptr<Context> context);
 
   const VkInstance& operator*() const { return instance_; }
 
@@ -64,7 +64,7 @@ class Surface {
 
   ~Surface();
 
-  void Init(const std::shared_ptr<Context>& context);
+  void Init(std::shared_ptr<Context> context);
 
   const VkSurfaceKHR& operator*() const { return surface_; }
 
@@ -94,7 +94,7 @@ struct PhysicalDevice {
 
   ~PhysicalDevice() = default;  // implicitly cleaned up
 
-  void Init(const std::shared_ptr<Context>& context);
+  void Init(std::shared_ptr<Context> context);
 
   const VkPhysicalDevice& operator*()    const { return physical_device_; }
   const VkPhysicalDeviceLimits& limits() const { return limits_; };
@@ -128,7 +128,7 @@ struct Device {
 
   ~Device();
 
-  void Init(const std::shared_ptr<Context>& context);
+  void Init(std::shared_ptr<Context> context);
 
   const VkDevice& operator*() const { return device_; }
 

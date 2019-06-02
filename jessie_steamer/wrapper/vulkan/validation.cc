@@ -92,10 +92,10 @@ void CheckValidationLayerSupport(const vector<string>& required) {
 
 } /* namespace validation */
 
-void DebugCallback::Init(const SharedContext& context,
+void DebugCallback::Init(SharedContext context,
                          VkDebugUtilsMessageSeverityFlagsEXT message_severity,
                          VkDebugUtilsMessageTypeFlagsEXT message_type) {
-  context_ = context;
+  context_ = std::move(context);
   VkDebugUtilsMessengerCreateInfoEXT create_info{
       VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
       /*pNext=*/nullptr,

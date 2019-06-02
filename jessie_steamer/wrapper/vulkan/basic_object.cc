@@ -35,8 +35,7 @@ struct QueueIndices {
 };
 
 absl::optional<QueueIndices> FindDeviceQueues(
-    SharedContext context,
-    const VkPhysicalDevice& physical_device) {
+    SharedContext context, const VkPhysicalDevice& physical_device) {
   VkPhysicalDeviceProperties properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
   std::cout << "Found device: " << properties.deviceName
@@ -85,8 +84,8 @@ absl::optional<QueueIndices> FindDeviceQueues(
 
 } /* namespace */
 
-void Instance::Init(const SharedContext& context) {
-  context_ = context;
+void Instance::Init(SharedContext context) {
+  context_ = std::move(context);
 
   if (glfwVulkanSupported() == GL_FALSE) {
     throw std::runtime_error{"Vulkan not supported"};
@@ -157,8 +156,8 @@ Instance::~Instance() {
   vkDestroyInstance(instance_, context_->allocator());
 }
 
-void Surface::Init(const SharedContext& context) {
-  context_ = context;
+void Surface::Init(SharedContext context) {
+  context_ = std::move(context);
   surface_ = context_->window().CreateSurface(*context_->instance(),
                                               context_->allocator());
 }
@@ -167,8 +166,8 @@ Surface::~Surface() {
   vkDestroySurfaceKHR(*context_->instance(), surface_, context_->allocator());
 }
 
-void PhysicalDevice::Init(const SharedContext& context) {
-  context_ = context;
+void PhysicalDevice::Init(SharedContext context) {
+  context_ = std::move(context);
 
   auto devices{util::QueryAttribute<VkPhysicalDevice>(
       [this](uint32_t* count, VkPhysicalDevice* physical_device) {
@@ -197,8 +196,8 @@ void PhysicalDevice::Init(const SharedContext& context) {
   throw std::runtime_error{"Failed to find suitable GPU"};
 }
 
-void Device::Init(const SharedContext& context) {
-  context_ = context;
+void Device::Init(SharedContext context) {
+  context_ = std::move(context);
 
   // request anisotropy filtering support
   VkPhysicalDeviceFeatures enabled_features{};

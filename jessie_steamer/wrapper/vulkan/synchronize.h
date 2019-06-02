@@ -35,8 +35,7 @@ class Semaphores {
 
   ~Semaphores();
 
-  void Init(const std::shared_ptr<Context>& context,
-            int count);
+  void Init(std::shared_ptr<Context> context, int count);
 
   const VkSemaphore& operator[](int index) const { return semas_[index]; }
 
@@ -55,9 +54,7 @@ class Fences {
 
   ~Fences();
 
-  void Init(const std::shared_ptr<Context>& context,
-            int count,
-            bool is_signaled);
+  void Init(std::shared_ptr<Context> context, int count, bool is_signaled);
 
   const VkFence& operator[](int index) const { return fences_[index]; }
 

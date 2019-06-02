@@ -71,7 +71,7 @@ void CubeApp::Init() {
   }
 
   // model
-  Model::TextureBindingMap bindings;
+  Model::TextureBindingMap bindings{};
   bindings[Model::TextureType::kTypeDiffuse] = {
       /*binding_point=*/1,
       {{"external/resource/texture/statue.jpg"}},

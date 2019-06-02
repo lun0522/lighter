@@ -76,9 +76,8 @@ class SwapChainImage {
 
   ~SwapChainImage();
 
-  void Init(const std::shared_ptr<Context>& context,
-            const VkImage& image,
-            VkFormat format);
+  void Init(std::shared_ptr<Context> context,
+            const VkImage& image, VkFormat format);
 
   const VkImageView& image_view() const { return image_view_; }
 
@@ -103,8 +102,7 @@ class TextureImage {
   static SharedTexture GetTexture(const std::shared_ptr<Context>& context,
                                   const SourcePath& source_path);
 
-  TextureImage(const std::shared_ptr<Context>& context,
-               const SourcePath& source_path);
+  TextureImage(std::shared_ptr<Context> context, const SourcePath& source_path);
 
   // This class is neither copyable nor movable
   TextureImage(const TextureImage&) = delete;
@@ -131,8 +129,7 @@ class DepthStencilImage {
 
   ~DepthStencilImage() { Cleanup(); }
 
-  void Init(const std::shared_ptr<Context>& context,
-            VkExtent2D extent);
+  void Init(std::shared_ptr<Context> context, VkExtent2D extent);
   void Cleanup();
 
   VkFormat format()               const { return buffer_.format(); }

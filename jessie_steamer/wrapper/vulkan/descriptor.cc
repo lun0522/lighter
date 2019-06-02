@@ -108,9 +108,8 @@ VkDescriptorSet CreateDescriptorSet(const SharedContext& context,
 
 } /* namespace */
 
-Descriptor::Descriptor(const SharedContext& context,
-                       const vector<Info>& infos)
-    : context_{context} {
+Descriptor::Descriptor(SharedContext context, const vector<Info>& infos)
+    : context_{std::move(context)} {
   pool_ = CreateDescriptorPool(context_, infos);
   layout_ = CreateDescriptorSetLayout(context_, infos);
   set_ = CreateDescriptorSet(context_, pool_, layout_);

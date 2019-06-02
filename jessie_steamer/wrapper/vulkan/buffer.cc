@@ -329,9 +329,9 @@ void VertexBuffer::CopyHostData(const vector<buffer::CopyInfo>& copy_infos,
   vkFreeMemory(*context_->device(), staging_memory, context_->allocator());
 }
 
-void PerVertexBuffer::Init(const SharedContext& context,
+void PerVertexBuffer::Init(SharedContext context,
                            const vector<PerVertexBuffer::Info>& infos) {
-  context_ = context;
+  context_ = std::move(context);
 
   mesh_datas_.reserve(infos.size());
   vector<buffer::CopyInfo> copy_infos;
@@ -359,8 +359,7 @@ void PerVertexBuffer::Init(const SharedContext& context,
 }
 
 void PerVertexBuffer::Draw(const VkCommandBuffer& command_buffer,
-                           int mesh_index,
-                           uint32_t instance_count) const {
+                           int mesh_index, uint32_t instance_count) const {
   const MeshData& data = mesh_datas_[mesh_index];
   vkCmdBindVertexBuffers(command_buffer, buffer::kPerVertexBindingPoint,
                          /*bindingCount=*/1, &buffer_, &data.vertices_offset);
@@ -370,10 +369,9 @@ void PerVertexBuffer::Draw(const VkCommandBuffer& command_buffer,
                    /*firstIndex=*/0, /*vertexOffset=*/0, /*firstInstance=*/0);
 }
 
-void PerInstanceBuffer::Init(const SharedContext& context,
-                             const void* data,
-                             size_t data_size) {
-  context_ = context;
+void PerInstanceBuffer::Init(SharedContext context,
+                             const void* data, size_t data_size) {
+  context_ = std::move(context);
   CopyHostData({{data, data_size, /*offset=*/0}}, data_size);
 }
 
@@ -388,10 +386,9 @@ VertexBuffer::~VertexBuffer() {
   vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
 }
 
-void UniformBuffer::Init(const SharedContext& context,
-                         size_t chunk_size,
-                         int num_chunk) {
-  context_ = context;
+void UniformBuffer::Init(SharedContext context,
+                         size_t chunk_size, int num_chunk) {
+  context_ = std::move(context);
 
   // offset is required to be multiple of minUniformBufferOffsetAlignment
   // which is why we have actual data size |chunk_data_size_| and its
@@ -434,9 +431,8 @@ VkDescriptorBufferInfo UniformBuffer::descriptor_info(
   };
 }
 
-void TextureBuffer::Init(const SharedContext& context,
-                         const Info& info) {
-  context_ = context;
+void TextureBuffer::Init(SharedContext context, const Info& info) {
+  context_ = std::move(context);
 
   VkExtent3D image_extent = info.extent();
   VkDeviceSize data_size = info.data_size();
@@ -500,9 +496,8 @@ TextureBuffer::~TextureBuffer() {
   vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
 }
 
-void DepthStencilBuffer::Init(const SharedContext& context,
-                              VkExtent2D extent) {
-  context_ = context;
+void DepthStencilBuffer::Init(SharedContext context, VkExtent2D extent) {
+  context_ = std::move(context);
 
   // no need to send any data to buffer
   format_ = FindImageFormat(

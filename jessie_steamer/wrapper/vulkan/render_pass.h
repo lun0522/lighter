@@ -49,7 +49,7 @@ class RenderPass {
 
   ~RenderPass() { Cleanup(); }
 
-  void Init(const std::shared_ptr<Context>& context);
+  void Init(std::shared_ptr<Context> context);
   void Cleanup();
 
   const VkRenderPass& operator*() const { return render_pass_; }

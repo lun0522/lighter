@@ -96,11 +96,9 @@ class PerVertexBuffer : public VertexBuffer {
 
   ~PerVertexBuffer() override = default;
 
-  void Init(const std::shared_ptr<Context>& context,
-            const std::vector<Info>& infos);
+  void Init(std::shared_ptr<Context> context, const std::vector<Info>& infos);
   void Draw(const VkCommandBuffer& command_buffer,
-            int mesh_index,
-            uint32_t instance_count) const;
+            int mesh_index, uint32_t instance_count) const;
 
  private:
   struct MeshData {
@@ -121,9 +119,8 @@ class PerInstanceBuffer : public VertexBuffer {
 
   ~PerInstanceBuffer() override = default;
 
-  void Init(const std::shared_ptr<Context>& context,
-            const void* data,
-            size_t data_size);
+  void Init(std::shared_ptr<Context> context,
+            const void* data, size_t data_size);
   void Bind(const VkCommandBuffer& command_buffer);
 };
 
@@ -137,9 +134,8 @@ class UniformBuffer {
 
   ~UniformBuffer();
 
-  void Init(const std::shared_ptr<Context>& context,
-            size_t chunk_size,
-            int num_chunk);
+  void Init(std::shared_ptr<Context> context,
+            size_t chunk_size, int num_chunk);
   void Flush(int chunk_index) const;
 
   template <typename DataType>
@@ -180,8 +176,7 @@ class TextureBuffer {
 
   ~TextureBuffer();
 
-  void Init(const std::shared_ptr<Context>& context,
-            const Info& info);
+  void Init(std::shared_ptr<Context> context, const Info& info);
 
   const VkImage& image() const { return image_; }
 
@@ -201,8 +196,7 @@ class DepthStencilBuffer {
 
   ~DepthStencilBuffer() { Cleanup(); }
 
-  void Init(const std::shared_ptr<Context>& context,
-            VkExtent2D extent);
+  void Init(std::shared_ptr<Context> context, VkExtent2D extent);
   void Cleanup();
 
   const VkImage& image() const { return image_; }
