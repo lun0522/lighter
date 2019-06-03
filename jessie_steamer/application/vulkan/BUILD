@@ -20,7 +20,6 @@ cc_binary(
         "//third_party:glm",
         "@lib-absl//absl/types:optional",
     ],
-    copts = ["-DUSE_VULKAN"],
 )
 
 cc_binary(
@@ -35,7 +34,6 @@ cc_binary(
         "@lib-absl//absl/strings:str_format",
         "@lib-absl//absl/types:optional",
     ],
-    copts = ["-DUSE_VULKAN"],
 )
 
 cc_binary(
@@ -50,5 +48,4 @@ cc_binary(
         "@lib-absl//absl/strings:str_format",
         "@lib-absl//absl/types:optional",
     ],
-    copts = ["-DUSE_VULKAN"],
 )

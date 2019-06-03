@@ -25,6 +25,7 @@ namespace util = common::util;
 using std::cout;
 using std::endl;
 using std::string;
+using std::runtime_error;
 using std::vector;
 
 VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
@@ -42,7 +43,7 @@ FuncType LoadFunction(const SharedContext& context, const string& func_name) {
   auto func = reinterpret_cast<FuncType>(
       vkGetInstanceProcAddr(*context->instance(), func_name.c_str()));
   if (!func) {
-    throw std::runtime_error{"Failed to load: " + func_name};
+    throw runtime_error{"Failed to load: " + func_name};
   }
   return func;
 }
@@ -61,7 +62,7 @@ const vector<const char*>& layers() {
   return *kValidationLayers;
 }
 
-void CheckInstanceExtensionSupport(const vector<string>& required) {
+void EnsureInstanceExtensionSupport(const vector<string>& required) {
   cout << "Checking instance extension support..." << endl << endl;
 
   auto properties {util::QueryAttribute<VkExtensionProperties>(
@@ -73,10 +74,15 @@ void CheckInstanceExtensionSupport(const vector<string>& required) {
   auto get_name = [](const VkExtensionProperties& property) {
     return property.extensionName;
   };
-  util::CheckSupport<VkExtensionProperties>(required, properties, get_name);
+  auto unsupported = util::FindUnsupported<VkExtensionProperties>(
+      required, properties, get_name);
+
+  if (unsupported.has_value()) {
+    throw runtime_error{"Unsupported: " + unsupported.value()};
+  }
 }
 
-void CheckValidationLayerSupport(const vector<string>& required) {
+void EnsureValidationLayerSupport(const vector<string>& required) {
   cout << "Checking validation layer support..." << endl << endl;
 
   auto properties {util::QueryAttribute<VkLayerProperties>(
@@ -87,7 +93,12 @@ void CheckValidationLayerSupport(const vector<string>& required) {
   auto get_name = [](const VkLayerProperties& property) {
     return property.layerName;
   };
-  util::CheckSupport<VkLayerProperties>(required, properties, get_name);
+  auto unsupported = util::FindUnsupported<VkLayerProperties>(
+      required, properties, get_name);
+
+  if (unsupported.has_value()) {
+    throw runtime_error{"Unsupported: " + unsupported.value()};
+  }
 }
 
 } /* namespace validation */

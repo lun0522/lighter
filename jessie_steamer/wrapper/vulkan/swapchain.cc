@@ -99,22 +99,22 @@ const vector<const char*>& Swapchain::extensions() {
 
 bool Swapchain::HasSwapchainSupport(const SharedContext& context,
                                     const VkPhysicalDevice& physical_device) {
-  try {
-    std::cout << "Checking extension support required for swapchain..."
-              << std::endl << std::endl;
-
-    vector<std::string> required{extensions().begin(), extensions().end()};
-    auto extensions{util::QueryAttribute<VkExtensionProperties>(
-        [&physical_device](uint32_t* count, VkExtensionProperties* properties) {
-          return vkEnumerateDeviceExtensionProperties(
-              physical_device, nullptr, count, properties);
-        }
-    )};
-    auto get_name = [](const VkExtensionProperties& property) {
-      return property.extensionName;
-    };
-    util::CheckSupport<VkExtensionProperties>(required, extensions, get_name);
-  } catch (const std::exception& e) {
+  std::cout << "Checking extension support required for swapchain..."
+            << std::endl << std::endl;
+  vector<std::string> required{extensions().begin(), extensions().end()};
+  auto extensions{util::QueryAttribute<VkExtensionProperties>(
+      [&physical_device](uint32_t* count, VkExtensionProperties* properties) {
+        return vkEnumerateDeviceExtensionProperties(
+            physical_device, nullptr, count, properties);
+      }
+  )};
+  auto get_name = [](const VkExtensionProperties& property) {
+    return property.extensionName;
+  };
+  auto unsupported = util::FindUnsupported<VkExtensionProperties>(
+      required, extensions, get_name);
+  if (unsupported.has_value()) {
+    std::cout << "Unsupported: " << unsupported.value() << std::endl;
     return false;
   }
 

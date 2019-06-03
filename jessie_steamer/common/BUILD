@@ -1,5 +1,9 @@
 package(default_visibility = ["//jessie_steamer:__subpackages__"])
 
+load("//:settings.bzl", "graphics_api")
+
+graphics_api()
+
 cc_library(
     name = "camera",
     srcs = ["camera.cc"],
@@ -66,7 +70,10 @@ cc_library(
 cc_library(
     name = "util",
     hdrs = ["util.h"],
-    deps = ["@lib-absl//absl/container:flat_hash_set"],
+    deps = [
+        "@lib-absl//absl/container:flat_hash_set",
+        "@lib-absl//absl/types:optional",
+    ],
 )
 
 cc_library(
@@ -76,9 +83,9 @@ cc_library(
     deps = [
         "//third_party:glm",
         "//third_party:glfw",
-        "//third_party:vulkan",  # TODO: don't hardcode this
         "@lib-absl//absl/container:flat_hash_map",
-    ],
-    # TODO: don't hardcode this
-    copts = ["-DUSE_VULKAN"],
+    ] + select({
+        "use_vulkan": ["//third_party:vulkan"],
+        "//conditions:default": [],
+    }),
 )

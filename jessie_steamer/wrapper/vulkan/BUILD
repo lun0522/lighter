@@ -51,6 +51,5 @@ cc_library(
         "@lib-absl//absl/types:variant",
     ],
     data = ["@resource//:resource"],
-    copts = ["-DUSE_VULKAN"],
     visibility = ["//jessie_steamer:__subpackages__"],
 )

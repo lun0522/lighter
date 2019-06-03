@@ -8,12 +8,12 @@
 #ifndef JESSIE_STEAMER_COMMON_UTIL_H
 #define JESSIE_STEAMER_COMMON_UTIL_H
 
-#include <stdexcept>
 #include <iostream>
 #include <string>
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
+#include "absl/types/optional.h"
 
 namespace jessie_steamer {
 namespace common {
@@ -30,7 +30,7 @@ std::vector<AttribType> QueryAttribute(
 }
 
 template <typename AttribType>
-void CheckSupport(
+absl::optional<std::string> FindUnsupported(
     const std::vector<std::string>& required,
     const std::vector<AttribType>& attribs,
     const std::function<const char*(const AttribType&)>& get_name) {
@@ -53,9 +53,10 @@ void CheckSupport(
 
   for (const auto& req : required) {
     if (available.find(req) == available.end()) {
-      throw std::runtime_error{"Requirement not satisfied: " + req};
+      return req;
     }
   }
+  return absl::nullopt;
 }
 
 constexpr int kInvalidIndex = -1;

@@ -29,7 +29,7 @@ void DidMoveCursor(GLFWwindow* window, double x_pos, double y_pos) {
   }
 }
 
-void DidScroll(GLFWwindow *window, double x_pos, double y_pos) {
+void DidScroll(GLFWwindow* window, double x_pos, double y_pos) {
   if (scroll_callback) {
     scroll_callback(x_pos, y_pos);
   }

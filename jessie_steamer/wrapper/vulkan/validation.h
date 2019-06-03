@@ -45,8 +45,8 @@ enum Type {
 namespace validation {
 
 const std::vector<const char*>& layers();
-void CheckInstanceExtensionSupport(const std::vector<std::string>& required);
-void CheckValidationLayerSupport(const std::vector<std::string>& required);
+void EnsureInstanceExtensionSupport(const std::vector<std::string>& required);
+void EnsureValidationLayerSupport(const std::vector<std::string>& required);
 
 } /* namespace validation */
 

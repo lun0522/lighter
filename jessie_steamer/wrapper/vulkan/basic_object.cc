@@ -102,11 +102,11 @@ void Instance::Init(SharedContext context) {
   };
   // one extra extension to enable debug report
   required_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-  validation::CheckInstanceExtensionSupport({
+  validation::EnsureInstanceExtensionSupport({
       required_extensions.begin(),
       required_extensions.end()
   });
-  validation::CheckValidationLayerSupport({
+  validation::EnsureValidationLayerSupport({
       validation::layers().begin(),
       validation::layers().end()
   });
