@@ -138,10 +138,10 @@ void CreateTextureInfo(const Model::Mesh& mesh,
                        Descriptor::Info* texture_info) {
   vector<Descriptor::Info::Binding> texture_bindings;
 
-  for (int type = 0; type < Model::TextureType::kTypeMaxEnum; ++type) {
-    const auto texture_type = static_cast<Model::TextureType>(type);
+  for (int type = 0; type < Model::ResourceType::kNumTextureType; ++type) {
+    const auto resource_type = static_cast<Model::ResourceType>(type);
     if (!mesh[type].empty()) {
-      const uint32_t binding_point = find_binding_point(texture_type);
+      const uint32_t binding_point = find_binding_point(resource_type);
 
       vector<VkDescriptorImageInfo> descriptor_infos{};
       descriptor_infos.reserve(mesh[type].size());
@@ -151,7 +151,7 @@ void CreateTextureInfo(const Model::Mesh& mesh,
       (*image_infos)[binding_point] = move(descriptor_infos);
 
       texture_bindings.emplace_back(Descriptor::Info::Binding{
-          texture_type,
+          resource_type,
           binding_point,
           CONTAINER_SIZE(mesh[type]),
       });
@@ -193,7 +193,7 @@ void Model::Init(SharedContext context,
                  int num_frame,
                  bool is_opaque) {
   if (is_first_time_) {
-    context_ = std::move(context);
+    context_ = move(context);
     push_constant_infos_ = push_constant_infos;
 
     if (instancing_info.has_value()) {
@@ -274,7 +274,7 @@ Model::FindBindingPoint Model::LoadSingleMesh(
   // load textures
   meshes_.emplace_back();
   for (const auto &binding : resource.binding_map) {
-    const TextureType type = binding.first;
+    const ResourceType type = binding.first;
     const vector<TextureImage::SourcePath>& texture_paths =
         binding.second.texture_paths;
 
@@ -284,7 +284,7 @@ Model::FindBindingPoint Model::LoadSingleMesh(
     }
   }
 
-  return [&resource](TextureType type) {
+  return [&resource](ResourceType type) {
     return resource.binding_map.find(type)->second.binding_point;
   };
 }
@@ -304,7 +304,7 @@ Model::FindBindingPoint Model::LoadMultiMesh(
   BindingPointMap binding_map = resource.binding_map;
   if (resource.extra_texture_map.has_value()) {
     for (const auto &binding : resource.extra_texture_map.value()) {
-      const TextureType type = binding.first;
+      const ResourceType type = binding.first;
       const uint32_t binding_point = binding.second.binding_point;
 
       const auto found = resource.binding_map.find(type);
@@ -323,13 +323,13 @@ Model::FindBindingPoint Model::LoadMultiMesh(
   for (auto& mesh : loader.meshes()) {
     meshes_.emplace_back();
     for (auto& texture : mesh.textures) {
-      meshes_.back()[texture.type].emplace_back(
+      meshes_.back()[texture.resource_type].emplace_back(
           TextureImage::GetTexture(context_, texture.path));
     }
 
     if (resource.extra_texture_map.has_value()) {
       for (const auto& binding : resource.extra_texture_map.value()) {
-        const TextureType type = binding.first;
+        const ResourceType type = binding.first;
         const vector<TextureImage::SourcePath>& texture_paths =
             binding.second.texture_paths;
 
@@ -341,7 +341,7 @@ Model::FindBindingPoint Model::LoadMultiMesh(
     }
   }
 
-  return [binding_map](TextureType type) {
+  return [binding_map](ResourceType type) {
     return binding_map.find(type)->second;
   };
 }

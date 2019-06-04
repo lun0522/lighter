@@ -126,7 +126,7 @@ void NanosuitApp::Init() {
   // model
   TextureImage::CubemapPath skybox_path;
   Model::TextureBindingMap skybox_bindings;
-  skybox_bindings[Model::TextureType::kTypeCubemap] = {
+  skybox_bindings[Model::ResourceType::kTextureCubemap] = {
       /*binding_point=*/4, {
           TextureImage::CubemapPath{
               /*directory=*/"external/resource/texture/tidepool",
@@ -143,15 +143,15 @@ void NanosuitApp::Init() {
   };
 
   Model::BindingPointMap nanosuit_bindings{
-      {Model::TextureType::kTypeDiffuse, /*binding_point=*/1},
-      {Model::TextureType::kTypeSpecular, /*binding_point=*/2},
-      {Model::TextureType::kTypeReflection, /*binding_point=*/3},
+      {Model::ResourceType::kTextureDiffuse, /*binding_point=*/1},
+      {Model::ResourceType::kTextureSpecular, /*binding_point=*/2},
+      {Model::ResourceType::kTextureReflection, /*binding_point=*/3},
   };
   Descriptor::Info trans_desc_info{
       /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
       /*shader_stage=*/VK_SHADER_STAGE_VERTEX_BIT,
       /*bindings=*/{{
-          Descriptor::TextureType::kTypeMaxEnum,
+          Descriptor::ResourceType::kUniformBuffer,
           /*binding_point=*/0,
           /*array_length=*/1,
       }},
@@ -176,7 +176,7 @@ void NanosuitApp::Init() {
                        kNumFrameInFlight,
                        /*is_opaque=*/true);
 
-  skybox_bindings[Model::TextureType::kTypeCubemap].binding_point = 1;
+  skybox_bindings[Model::ResourceType::kTextureCubemap].binding_point = 1;
   skybox_model_.Init(context_,
                      {{VK_SHADER_STAGE_VERTEX_BIT,
                        "jessie_steamer/shader/vulkan/skybox.vert.spv"},

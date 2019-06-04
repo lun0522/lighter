@@ -33,9 +33,9 @@ class Context;
 
 class Model {
  public:
-  using TextureType = common::ModelLoader::Texture::Type;
+  using ResourceType = common::type::ResourceType;
   using Mesh = std::array<std::vector<TextureImage::SharedTexture>,
-                          TextureType::kTypeMaxEnum>;
+                          ResourceType::kNumTextureType>;
   using UniformInfos = std::vector<std::pair<const UniformBuffer&,
                                              const Descriptor::Info&>>;
 
@@ -44,11 +44,11 @@ class Model {
     uint32_t binding_point;
     std::vector<TextureImage::SourcePath> texture_paths;
   };
-  using BindingPointMap = absl::flat_hash_map<TextureType, uint32_t,
+  using BindingPointMap = absl::flat_hash_map<ResourceType, uint32_t,
                                               std::hash<int>>;
-  using TextureBindingMap = absl::flat_hash_map<TextureType, TextureBinding,
+  using TextureBindingMap = absl::flat_hash_map<ResourceType, TextureBinding,
                                                 std::hash<int>>;
-  using FindBindingPoint = std::function<uint32_t(TextureType)>;
+  using FindBindingPoint = std::function<uint32_t(ResourceType)>;
 
   // Loads with light-weight obj file loader.
   struct SingleMeshResource {

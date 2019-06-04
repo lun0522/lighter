@@ -124,9 +124,12 @@ void Command::Init(SharedContext context, int num_frame) {
     context_ = std::move(context);
     command_pool_ = CreateCommandPool(
         context_, context_->queues().graphics, false);
-    image_available_semas_.Init(context_, num_frame);
-    render_finished_semas_.Init(context_, num_frame);
-    in_flight_fences_.Init(context_, num_frame, true);
+    image_available_semas_.Init(
+        &*context_->device(), context_->allocator(), num_frame);
+    render_finished_semas_.Init(
+        &*context_->device(), context_->allocator(), num_frame);
+    in_flight_fences_.Init(
+        &*context_->device(), context_->allocator(), num_frame, true);
     is_first_time_ = false;
   }
   command_buffers_ = CreateCommandBuffers(context_, command_pool_, num_frame);

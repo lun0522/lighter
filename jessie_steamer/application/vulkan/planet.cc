@@ -136,13 +136,13 @@ void PlanetApp::Init() {
       /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
       /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
       /*bindings=*/{{
-          Descriptor::TextureType::kTypeMaxEnum,
+          Descriptor::ResourceType::kUniformBuffer,
           /*binding_point=*/1,
           /*array_length=*/1,
       }},
   };
   Model::TextureBindingMap planet_bindings;
-  planet_bindings[Model::TextureType::kTypeDiffuse] = {
+  planet_bindings[Model::ResourceType::kTextureDiffuse] = {
       /*binding_point=*/2, {{"external/resource/texture/planet.png"}},
   };
   planet_model_.Init(context_,
@@ -184,7 +184,7 @@ void PlanetApp::Init() {
                        Model::MultiMeshResource{
                            "external/resource/model/rock/rock.obj",
                            "external/resource/model/rock",
-                           {{Model::TextureType::kTypeDiffuse,
+                           {{Model::ResourceType::kTextureDiffuse,
                              /*binding_point=*/2}},
                            /*extra_texture_map=*/absl::nullopt},
                        absl::make_optional<Model::UniformInfos>(
@@ -199,7 +199,7 @@ void PlanetApp::Init() {
                        kNumFrameInFlight, /*is_opaque=*/true);
 
   Model::TextureBindingMap skybox_bindings;
-  skybox_bindings[Model::TextureType::kTypeCubemap] = {
+  skybox_bindings[Model::ResourceType::kTextureCubemap] = {
       /*binding_point=*/1, {
           TextureImage::CubemapPath{
               /*directory=*/"external/resource/texture/universe",

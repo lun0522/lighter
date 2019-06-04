@@ -12,7 +12,6 @@ cc_library(
         "pipeline.cc",
         "render_pass.cc",
         "swapchain.cc",
-        "synchronize.cc",
         "text.cc",
         "validation.cc",
     ],
@@ -23,16 +22,16 @@ cc_library(
         "context.h",
         "descriptor.h",
         "image.h",
-        "macro.h",
         "model.h",
         "pipeline.h",
         "render_pass.h",
         "swapchain.h",
-        "synchronize.h",
         "text.h",
         "validation.h",
     ],
     deps = [
+        ":macro",
+        ":synchronize",
         "//jessie_steamer/common:char_lib",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:model_loader",
@@ -48,8 +47,23 @@ cc_library(
         "@lib-absl//absl/strings:str_format",
         "@lib-absl//absl/types:optional",
         "@lib-absl//absl/types:span",
-        "@lib-absl//absl/types:variant",
     ],
     data = ["@resource//:resource"],
     visibility = ["//jessie_steamer:__subpackages__"],
+)
+
+cc_library(
+    name = "macro",
+    hdrs = ["macro.h"],
+)
+
+cc_library(
+    name = "synchronize",
+    hdrs = ["synchronize.h"],
+    srcs = ["synchronize.cc"],
+    deps = [
+        ":macro",
+        "//third_party:vulkan",
+        "@lib-absl//absl/strings:str_format",
+    ],
 )

@@ -17,15 +17,19 @@ namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
-class Context;
-
 /** VkSemaphore and VkFence are used for synchronization. Their constructions
  *    only requires VkDevice. Both of them can only be signaled by GPU, but
  *    fences can only be waited on by CPU (GPU->CPU sync) while semaphores
  *    can only be waited on by GPU (GPU->GPU sync, possibly across queues).
  */
 
-class Semaphores {
+class SyncObject {
+ protected:
+  const VkDevice* device_;
+  const VkAllocationCallbacks* allocator_;
+};
+
+class Semaphores : public SyncObject {
  public:
   Semaphores() = default;
 
@@ -35,16 +39,17 @@ class Semaphores {
 
   ~Semaphores();
 
-  void Init(std::shared_ptr<Context> context, int count);
+  void Init(const VkDevice* device,
+            const VkAllocationCallbacks* allocator,
+            int count);
 
   const VkSemaphore& operator[](int index) const { return semas_[index]; }
 
  private:
-  std::shared_ptr<Context> context_;
   std::vector<VkSemaphore> semas_;
 };
 
-class Fences {
+class Fences : public SyncObject {
  public:
   Fences() = default;
 
@@ -54,12 +59,13 @@ class Fences {
 
   ~Fences();
 
-  void Init(std::shared_ptr<Context> context, int count, bool is_signaled);
+  void Init(const VkDevice* device,
+            const VkAllocationCallbacks* allocator,
+            int count, bool is_signaled);
 
   const VkFence& operator[](int index) const { return fences_[index]; }
 
  private:
-  std::shared_ptr<Context> context_;
   std::vector<VkFence> fences_;
 };
 

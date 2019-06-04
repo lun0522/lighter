@@ -70,11 +70,11 @@ class Descriptor {
  public:
   using ImageInfos = absl::flat_hash_map<
       uint32_t, std::vector<VkDescriptorImageInfo>>;
-  using TextureType = common::ModelLoader::Texture::Type;
+  using ResourceType = common::type::ResourceType;
 
   struct Info {
     struct Binding {
-      TextureType texture_type;
+      ResourceType resource_type;
       uint32_t binding_point;
       uint32_t array_length;
     };

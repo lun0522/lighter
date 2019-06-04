@@ -17,6 +17,7 @@ namespace jessie_steamer {
 namespace common {
 namespace {
 
+using absl::StrFormat;
 using std::string;
 using std::vector;
 
@@ -37,7 +38,7 @@ ModelLoader::ModelLoader(const string& obj_path, const string& tex_path) {
   auto* scene = importer.ReadFile(obj_path, flags);
   if (scene == nullptr || scene->mRootNode == nullptr ||
       (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)) {
-    throw std::runtime_error{absl::StrFormat(
+    throw std::runtime_error{StrFormat(
         "Failed to import scene: %s", importer.GetErrorString())};
   }
 
@@ -89,29 +90,30 @@ void ModelLoader::ProcessMesh(const string& directory,
   vector<Texture>& textures = meshes_.back().textures;
   if (scene->HasMaterials()) {
     aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-    LoadTextures(directory, material, Texture::kTypeDiffuse, &textures);
-    LoadTextures(directory, material, Texture::kTypeSpecular, &textures);
-    LoadTextures(directory, material, Texture::kTypeReflection, &textures);
+    LoadTextures(directory, material, type::kTextureDiffuse, &textures);
+    LoadTextures(directory, material, type::kTextureSpecular,&textures);
+    LoadTextures(directory, material, type::kTextureReflection, &textures);
   }
 }
 
 void ModelLoader::LoadTextures(const string& directory,
                                const aiMaterial* material,
-                               Texture::Type type,
+                               type::ResourceType resource_type,
                                vector<Texture>* textures) {
   aiTextureType ai_type;
-  switch (type) {
-    case Texture::kTypeDiffuse:
+  switch (resource_type) {
+    case type::kTextureDiffuse:
       ai_type = aiTextureType_DIFFUSE;
       break;
-    case Texture::kTypeSpecular:
+    case type::kTextureSpecular:
       ai_type = aiTextureType_SPECULAR;
       break;
-    case Texture::kTypeReflection:
+    case type::kTextureReflection:
       ai_type = aiTextureType_AMBIENT;
       break;
     default:
-      throw std::runtime_error{"Unrecognized texture type"};
+      throw std::runtime_error{StrFormat(
+          "Unrecognized resource type: %d", resource_type)};
   }
 
   int num_texture = material->GetTextureCount(ai_type);
@@ -120,7 +122,7 @@ void ModelLoader::LoadTextures(const string& directory,
     aiString path;
     material->GetTexture(ai_type, i, &path);
     textures->emplace_back(Texture{
-        absl::StrFormat("%s/%s", directory, path.C_Str()), type});
+        StrFormat("%s/%s", directory, path.C_Str()), resource_type});
   }
 }
 

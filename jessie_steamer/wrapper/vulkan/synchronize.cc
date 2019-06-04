@@ -7,7 +7,6 @@
 
 #include "jessie_steamer/wrapper/vulkan/synchronize.h"
 
-#include "jessie_steamer/wrapper/vulkan/context.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
@@ -35,37 +34,41 @@ constexpr VkFenceCreateInfo kUnsignaledFenceInfo{
 
 } /* namespace */
 
-void Semaphores::Init(SharedContext context, int count) {
-  context_ = std::move(context);
+void Semaphores::Init(const VkDevice* device,
+                      const VkAllocationCallbacks* allocator,
+                      int count) {
+  device_ = device;
+  allocator_ = allocator;
   semas_.resize(static_cast<size_t>(count));
   for (auto& sema : semas_) {
-    ASSERT_SUCCESS(vkCreateSemaphore(*context_->device(), &kSemaInfo,
-                                     context_->allocator(), &sema),
+    ASSERT_SUCCESS(vkCreateSemaphore(*device_, &kSemaInfo, allocator_, &sema),
                    "Failed to create semaphore");
   }
 }
 
 Semaphores::~Semaphores() {
   for (auto& sema : semas_) {
-    vkDestroySemaphore(*context_->device(), sema, context_->allocator());
+    vkDestroySemaphore(*device_, sema, allocator_);
   }
 }
 
-void Fences::Init(SharedContext context, int count, bool is_signaled) {
-  context_ = std::move(context);
+void Fences::Init(const VkDevice* device,
+                  const VkAllocationCallbacks* allocator,
+                  int count, bool is_signaled) {
+  device_ = device;
+  allocator_ = allocator;
   fences_.resize(static_cast<size_t>(count));
   const VkFenceCreateInfo& fence_info =
       is_signaled ? kSignaledFenceInfo : kUnsignaledFenceInfo;
   for (auto& fence : fences_) {
-    ASSERT_SUCCESS(vkCreateFence(*context_->device(), &fence_info,
-                                 context_->allocator(), &fence),
+    ASSERT_SUCCESS(vkCreateFence(*device_, &fence_info, allocator_, &fence),
                    "Failed to create fence");
   }
 }
 
 Fences::~Fences() {
   for (auto& fence : fences_) {
-    vkDestroyFence(*context_->device(), fence, context_->allocator());
+    vkDestroyFence(*device_, fence, allocator_);
   }
 }
 
