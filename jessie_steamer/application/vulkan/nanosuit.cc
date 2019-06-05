@@ -55,7 +55,8 @@ struct SkyboxTrans {
 
 class NanosuitApp {
  public:
-  NanosuitApp() : context_{Context::GetContext()} {
+  NanosuitApp() : context_{Context::GetContext()},
+                  command_{&*context_->device(), context_->allocator()} {
     context_->Init("Nanosuit");
   };
   void MainLoop();
@@ -71,7 +72,7 @@ class NanosuitApp {
   common::Timer timer_;
   std::shared_ptr<Context> context_;
   common::Camera camera_;
-  Command command_;
+  PerFrameCommand command_;
   Model nanosuit_model_, skybox_model_;
   UniformBuffer nanosuit_vert_uniform_;
   PushConstant nanosuit_frag_constant_, skybox_constant_;
@@ -198,7 +199,7 @@ void NanosuitApp::Init() {
                     context_->window().cursor_pos());
 
   // command
-  command_.Init(context_, kNumFrameInFlight);
+  command_.Init(kNumFrameInFlight, &context_->queues());
 }
 
 void NanosuitApp::UpdateData(int frame) {
@@ -233,10 +234,9 @@ void NanosuitApp::MainLoop() {
   auto& window = context_->window();
 
   while (!should_quit_ && !window.ShouldQuit()) {
-    const auto draw_result = command_.Draw(
-        current_frame_, update_data,
-        [&](const VkCommandBuffer& command_buffer,
-            const VkFramebuffer& framebuffer) {
+    const auto draw_result = command_.Run(
+        current_frame_, *context_->swapchain(), update_data,
+        [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
       // start render pass
       std::array<VkClearValue, 2> clear_values{};
       clear_values[0].color.float32[0] = 0.0f;
@@ -249,7 +249,7 @@ void NanosuitApp::MainLoop() {
           VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
           /*pNext=*/nullptr,
           *context_->render_pass(),
-          framebuffer,
+          context_->render_pass().framebuffer(framebuffer_index),
           /*renderArea=*/{
               /*offset=*/{0, 0},
               context_->swapchain().extent(),

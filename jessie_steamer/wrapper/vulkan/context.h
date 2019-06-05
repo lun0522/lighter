@@ -15,6 +15,7 @@
 #include "jessie_steamer/wrapper/vulkan/basic_object.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
 #include "jessie_steamer/wrapper/vulkan/swapchain.h"
+#include "jessie_steamer/wrapper/vulkan/types.h"
 #include "jessie_steamer/wrapper/vulkan/validation.h"
 #include "third_party/vulkan/vulkan.h"
 

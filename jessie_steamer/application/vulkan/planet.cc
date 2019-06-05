@@ -62,7 +62,8 @@ struct Asteroid {
 
 class PlanetApp {
  public:
-  PlanetApp() : context_{Context::GetContext()} {
+  PlanetApp() : context_{Context::GetContext()},
+                command_{&*context_->device(), context_->allocator()} {
     context_->Init("Planet");
   };
   void MainLoop();
@@ -79,7 +80,7 @@ class PlanetApp {
   common::Timer timer_;
   std::shared_ptr<Context> context_;
   common::Camera camera_;
-  Command command_;
+  PerFrameCommand command_;
   Model planet_model_, asteroid_model_, skybox_model_;
   int num_asteroid_;
   PerInstanceBuffer per_asteroid_data_;
@@ -234,7 +235,7 @@ void PlanetApp::Init() {
                     context_->window().cursor_pos());
 
   // command
-  command_.Init(context_, kNumFrameInFlight);
+  command_.Init(kNumFrameInFlight, &context_->queues());
 }
 
 void PlanetApp::GenAsteroidModels() {
@@ -298,10 +299,9 @@ void PlanetApp::MainLoop() {
   auto& window = context_->window();
 
   while (!should_quit_ && !window.ShouldQuit()) {
-    auto draw_result = command_.Draw(
-        current_frame_, update_data,
-        [&](const VkCommandBuffer& command_buffer,
-            const VkFramebuffer& framebuffer) {
+    auto draw_result = command_.Run(
+        current_frame_, *context_->swapchain(), update_data,
+        [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
       // start render pass
       std::array<VkClearValue, 2> clear_values{};
       clear_values[0].color.float32[0] = 0.0f;
@@ -314,7 +314,7 @@ void PlanetApp::MainLoop() {
           VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
           /*pNext=*/nullptr,
           *context_->render_pass(),
-          framebuffer,
+          context_->render_pass().framebuffer(framebuffer_index),
           /*renderArea=*/{
               /*offset=*/{0, 0},
               context_->swapchain().extent(),

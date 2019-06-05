@@ -186,11 +186,12 @@ void TransitionImageLayout(const SharedContext& context,
                            array<VkAccessFlags, 2> barrier_access_flags,
                            array<VkPipelineStageFlags, 2> pipeline_stages,
                            uint32_t layer_count) {
-  const Queues::Queue transfer_queue = context->queues().transfer;
+  const auto& transfer_queue = context->queues().transfer;
 
   // one-time transition command
-  Command::OneTimeCommand(context, transfer_queue,
-                          [&](const VkCommandBuffer& command_buffer) {
+  OneTimeCommand command{&*context->device(), context->allocator(),
+                         &transfer_queue};
+  command.Run([&](const VkCommandBuffer& command_buffer) {
         VkImageMemoryBarrier barrier{
             VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
             /*pNext=*/nullptr,
@@ -254,8 +255,9 @@ void CopyBufferToBuffer(const SharedContext& context,
                         const VkBuffer& src_buffer,
                         const VkBuffer& dst_buffer) {
   // one-time copy command
-  Command::OneTimeCommand(context, context->queues().transfer,
-                          [&](const VkCommandBuffer& command_buffer) {
+  OneTimeCommand command{&*context->device(), context->allocator(),
+                         &context->queues().transfer};
+  command.Run([&](const VkCommandBuffer& command_buffer) {
         VkBufferCopy region{
             /*srcOffset=*/0,
             /*dstOffset=*/0,
@@ -273,8 +275,9 @@ void CopyBufferToImage(const SharedContext& context,
                        VkImageLayout image_layout,
                        uint32_t layer_count) {
   // one-time copy command
-  Command::OneTimeCommand(context, context->queues().transfer,
-                          [&](const VkCommandBuffer& command_buffer) {
+  OneTimeCommand command{&*context->device(), context->allocator(),
+                         &context->queues().transfer};
+  command.Run([&](const VkCommandBuffer& command_buffer) {
         VkBufferImageCopy region{
             // first three parameters specify pixels layout in buffer
             // setting all of them to 0 means pixels are tightly packed

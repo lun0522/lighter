@@ -1,4 +1,5 @@
-# TODO: separate into interface and impl
+package(default_visibility = ["//visibility:private"])
+
 cc_library(
     name = "vulkan_wrapper",
     srcs = [
@@ -30,8 +31,10 @@ cc_library(
         "validation.h",
     ],
     deps = [
+        ":command",
         ":macro",
         ":synchronize",
+        ":types",
         "//jessie_steamer/common:char_lib",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:model_loader",
@@ -53,6 +56,18 @@ cc_library(
 )
 
 cc_library(
+    name = "command",
+    hdrs = ["command.h"],
+    srcs = ["command.cc"],
+    deps = [
+        ":macro",
+        ":synchronize",
+        ":types",
+        "//third_party:vulkan",
+    ],
+)
+
+cc_library(
     name = "macro",
     hdrs = ["macro.h"],
 )
@@ -66,4 +81,16 @@ cc_library(
         "//third_party:vulkan",
         "@lib-absl//absl/strings:str_format",
     ],
+)
+
+cc_library(
+    name = "types",
+    hdrs = ["types.h"],
+    deps = ["//third_party:vulkan"],
+)
+
+cc_library(
+    name = "vulkan",
+    deps = [":command"],
+    visibility = ["//jessie_steamer:__subpackages__"],
 )

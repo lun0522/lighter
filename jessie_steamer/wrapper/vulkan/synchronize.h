@@ -8,7 +8,6 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_SYNCHRONIZE_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_SYNCHRONIZE_H
 
-#include <memory>
 #include <vector>
 
 #include "third_party/vulkan/vulkan.h"
@@ -25,8 +24,8 @@ namespace vulkan {
 
 class SyncObject {
  protected:
-  const VkDevice* device_;
-  const VkAllocationCallbacks* allocator_;
+  const VkDevice* device_ = nullptr;
+  const VkAllocationCallbacks* allocator_ = nullptr;
 };
 
 class Semaphores : public SyncObject {

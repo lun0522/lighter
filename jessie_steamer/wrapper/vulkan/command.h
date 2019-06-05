@@ -9,18 +9,15 @@
 #define JESSIE_STEAMER_WRAPPER_VULKAN_COMMAND_H
 
 #include <functional>
-#include <memory>
 #include <vector>
 
-#include "jessie_steamer/wrapper/vulkan/basic_object.h"
 #include "jessie_steamer/wrapper/vulkan/synchronize.h"
+#include "jessie_steamer/wrapper/vulkan/types.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
-
-class Context;
 
 /** VkCommandPool allocates command buffer memory.
  *
@@ -40,37 +37,65 @@ class Context;
  */
 class Command {
  public:
-  using OneTimeRecord = std::function<void(
-      const VkCommandBuffer& command_buffer)>;
-  using MultiTimeRecord = std::function<void(
-      const VkCommandBuffer& command_buffer, const VkFramebuffer& framebuffer)>;
-  using UpdateDataFunc = std::function<void (int current_frame)>;
+  Command(const VkDevice* device,
+          const VkAllocationCallbacks* allocator)
+      : device_{device}, allocator_{allocator} {}
 
-  Command() = default;
+  virtual ~Command() {
+    vkDestroyCommandPool(*device_, command_pool_, allocator_);
+  }
 
-  // This class is neither copyable nor movable
-  Command(const Command&) = delete;
-  Command& operator=(const Command&) = delete;
+ protected:
+  const VkDevice* device_;
+  const VkAllocationCallbacks* allocator_;
+  VkCommandPool command_pool_;
+};
 
-  ~Command();
+class OneTimeCommand : public Command {
+ public:
+  using OnRecord = std::function<void(const VkCommandBuffer& command_buffer)>;
 
-  static void OneTimeCommand(const std::shared_ptr<Context>& context,
-                             const Queues::Queue& queue,
-                             const OneTimeRecord& on_record);
+  OneTimeCommand(const VkDevice* device,
+                 const VkAllocationCallbacks* allocator,
+                 const Queues::Queue* queue);
 
-  void Init(std::shared_ptr<Context> context, int num_frame);
-  VkResult Draw(int current_frame,
-                const UpdateDataFunc& update_data,
-                const MultiTimeRecord& on_record);
+  // This class is neither copyable nor movable.
+  OneTimeCommand(const OneTimeCommand&) = delete;
+  OneTimeCommand& operator=(const OneTimeCommand&) = delete;
+
+  void Run(const OnRecord& on_record);
+
+ private:
+  const Queues::Queue* queue_;
+  VkCommandBuffer command_buffer_;
+};
+
+class PerFrameCommand : public Command {
+ public:
+  using OnRecord = std::function<void(const VkCommandBuffer& command_buffer,
+                                      uint32_t framebuffer_index)>;
+  using UpdateData = std::function<void (int current_frame)>;
+
+  // Inherits constructor.
+  using Command::Command;
+
+  // This class is neither copyable nor movable.
+  PerFrameCommand(const Command&) = delete;
+  PerFrameCommand& operator=(const Command&) = delete;
+
+  void Init(int num_frame, const Queues* queues);
+  VkResult Run(int current_frame,
+               const VkSwapchainKHR& swapchain,
+               const UpdateData& update_data,
+               const OnRecord& on_record);
   void Cleanup();
 
  private:
-  std::shared_ptr<Context> context_;
   bool is_first_time_ = true;
+  const Queues* queues_ = nullptr;
   Semaphores image_available_semas_;
   Semaphores render_finished_semas_;
   Fences in_flight_fences_;
-  VkCommandPool command_pool_;
   std::vector<VkCommandBuffer> command_buffers_;
 };
 
