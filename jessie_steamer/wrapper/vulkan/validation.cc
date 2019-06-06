@@ -5,15 +5,13 @@
 //  Copyright © 2018 Pujun Lun. All rights reserved.
 //
 
-#ifndef NDEBUG
-
 #include "jessie_steamer/wrapper/vulkan/validation.h"
 
 #include <iostream>
 #include <stdexcept>
 
 #include "jessie_steamer/common/util.h"
-#include "jessie_steamer/wrapper/vulkan/context.h"
+#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
@@ -39,7 +37,8 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
 }
 
 template<typename FuncType>
-FuncType LoadFunction(const SharedContext& context, const string& func_name) {
+FuncType LoadFunction(const SharedBasicContext& context,
+                      const string& func_name) {
   auto func = reinterpret_cast<FuncType>(
       vkGetInstanceProcAddr(*context->instance(), func_name.c_str()));
   if (!func) {
@@ -103,7 +102,7 @@ void EnsureValidationLayerSupport(const vector<string>& required) {
 
 } /* namespace validation */
 
-void DebugCallback::Init(SharedContext context,
+void DebugCallback::Init(SharedBasicContext context,
                          VkDebugUtilsMessageSeverityFlagsEXT message_severity,
                          VkDebugUtilsMessageTypeFlagsEXT message_type) {
   context_ = std::move(context);
@@ -131,5 +130,3 @@ DebugCallback::~DebugCallback() {
 } /* namespace vulkan */
 } /* namespace wrapper */
 } /* namespace jessie_steamer */
-
-#endif /* !NDEBUG */

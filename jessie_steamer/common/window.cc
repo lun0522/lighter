@@ -11,33 +11,41 @@
 
 namespace jessie_steamer {
 namespace common {
+namespace {
+
+using std::runtime_error;
+using std::string;
+using std::vector;
+
+} /* namespace */
+
 namespace glfw_window {
 
-using SetResizedFlag = std::function<void()>;
-
-SetResizedFlag set_resized_flag = nullptr;
+std::function<void()> set_resized_flag = nullptr;
 Window::CursorMoveCallback cursor_move_callback = nullptr;
 Window::ScrollCallback scroll_callback = nullptr;
 
 void DidResizeWindow(GLFWwindow* window, int width, int height) {
-  set_resized_flag();
+  if (set_resized_flag != nullptr) {
+    set_resized_flag();
+  }
 }
 
 void DidMoveCursor(GLFWwindow* window, double x_pos, double y_pos) {
-  if (cursor_move_callback) {
+  if (cursor_move_callback != nullptr) {
     cursor_move_callback(x_pos, y_pos);
   }
 }
 
 void DidScroll(GLFWwindow* window, double x_pos, double y_pos) {
-  if (scroll_callback) {
+  if (scroll_callback != nullptr) {
     scroll_callback(x_pos, y_pos);
   }
 }
 
 } /* namespace glfw_window */
 
-void GlfwWindow::Init(const std::string& name, glm::ivec2 screen_size) {
+void GlfwWindow::Init(const string& name, glm::ivec2 screen_size) {
   glfwInit();
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -45,10 +53,14 @@ void GlfwWindow::Init(const std::string& name, glm::ivec2 screen_size) {
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
+  if (glfwVulkanSupported() == GL_FALSE) {
+    throw runtime_error{"Vulkan not supported"};
+  }
+
   window_ = glfwCreateWindow(screen_size.x, screen_size.y, name.c_str(),
                              nullptr, nullptr);
   if (window_ == nullptr) {
-    throw std::runtime_error{"Failed to create window"};
+    throw runtime_error{"Failed to create window"};
   }
   glfwMakeContextCurrent(window_);
 
@@ -64,7 +76,7 @@ VkSurfaceKHR GlfwWindow::CreateSurface(const VkInstance& instance,
   VkSurfaceKHR surface;
   auto result = glfwCreateWindowSurface(instance, window_, allocator, &surface);
   if (result != VK_SUCCESS) {
-    throw std::runtime_error{"Failed to create window surface"};
+    throw runtime_error{"Failed to create window surface"};
   }
   return surface;
 }
@@ -135,6 +147,20 @@ glm::dvec2 GlfwWindow::cursor_pos() const {
   glfwGetCursorPos(window_, &pos.x, &pos.y);
   return pos;
 }
+
+#ifdef USE_VULKAN
+const vector<string>& GlfwWindow::required_extensions() {
+  static vector<string>* kRequiredExtensions = nullptr;
+  if (kRequiredExtensions == nullptr) {
+    uint32_t extension_count;
+    const char** glfw_extensions =
+      glfwGetRequiredInstanceExtensions(&extension_count);
+    kRequiredExtensions = new vector<string>{
+      glfw_extensions, glfw_extensions + extension_count};
+  }
+  return *kRequiredExtensions;
+}
+#endif /* USE_VULKAN */
 
 GlfwWindow::~GlfwWindow() {
   glfwDestroyWindow(window_);

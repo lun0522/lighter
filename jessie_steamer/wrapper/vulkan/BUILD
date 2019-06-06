@@ -3,10 +3,7 @@ package(default_visibility = ["//visibility:private"])
 cc_library(
     name = "vulkan_wrapper",
     srcs = [
-        "basic_object.cc",
         "buffer.cc",
-        "command.cc",
-        "context.cc",
         "descriptor.cc",
         "image.cc",
         "model.cc",
@@ -14,13 +11,9 @@ cc_library(
         "render_pass.cc",
         "swapchain.cc",
         "text.cc",
-        "validation.cc",
     ],
     hdrs = [
-        "basic_object.h",
         "buffer.h",
-        "command.h",
-        "context.h",
         "descriptor.h",
         "image.h",
         "model.h",
@@ -28,13 +21,11 @@ cc_library(
         "render_pass.h",
         "swapchain.h",
         "text.h",
-        "validation.h",
     ],
     deps = [
         ":command",
         ":macro",
         ":synchronize",
-        ":types",
         "//jessie_steamer/common:char_lib",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:model_loader",
@@ -56,13 +47,34 @@ cc_library(
 )
 
 cc_library(
+    name = "basics",
+    hdrs = [
+        "basic_context.h",
+        "basic_object.h",
+    ] + select({
+        ":optimal_build": [],
+        "//conditions:default": ["validation.h"],
+    }),
+    srcs = ["basic_object.cc"] + select({
+        ":optimal_build": [],
+        "//conditions:default": ["validation.cc"],
+    }),
+    deps = [
+        ":macro",
+        "//jessie_steamer/common:util",
+        "//third_party:vulkan",
+        "@lib-absl//absl/container:flat_hash_set",
+        "@lib-absl//absl/types:optional",
+    ],
+)
+
+cc_library(
     name = "command",
     hdrs = ["command.h"],
     srcs = ["command.cc"],
     deps = [
         ":macro",
         ":synchronize",
-        ":types",
         "//third_party:vulkan",
     ],
 )
@@ -70,6 +82,10 @@ cc_library(
 cc_library(
     name = "macro",
     hdrs = ["macro.h"],
+    deps = [
+        "//third_party:vulkan",
+        "@lib-absl//absl/strings:str_format",
+    ],
 )
 
 cc_library(
@@ -84,13 +100,14 @@ cc_library(
 )
 
 cc_library(
-    name = "types",
-    hdrs = ["types.h"],
-    deps = ["//third_party:vulkan"],
+    name = "vulkan",
+    deps = [
+        ":command",
+    ],
+    visibility = ["//jessie_steamer:__subpackages__"],
 )
 
-cc_library(
-    name = "vulkan",
-    deps = [":command"],
-    visibility = ["//jessie_steamer:__subpackages__"],
+config_setting(
+    name = "optimal_build",
+    values = {"compilation_mode": "opt"},
 )

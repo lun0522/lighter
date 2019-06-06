@@ -10,6 +10,7 @@
 
 #include <functional>
 #include <string>
+#include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "third_party/glm/glm.hpp"
@@ -49,6 +50,9 @@ class Window {
 
   virtual glm::ivec2 screen_size() const = 0;
   virtual glm::dvec2 cursor_pos()  const = 0;
+#ifdef USE_VULKAN
+  virtual static const std::vector<std::string>& required_extensions() = 0;
+#endif /* USE_VULKAN */
 
  protected:
   bool is_resized_ = false;
@@ -79,6 +83,10 @@ class GlfwWindow : public Window {
 
   glm::ivec2 screen_size() const override;
   glm::dvec2 cursor_pos() const override;
+
+#ifdef USE_VULKAN
+  static const std::vector<std::string>& required_extensions() override;
+#endif /* USE_VULKAN */
 
  private:
   GLFWwindow* window_ = nullptr;

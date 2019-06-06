@@ -14,7 +14,7 @@
 #include "jessie_steamer/common/window.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
-#include "jessie_steamer/wrapper/vulkan/context.h"
+#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
 #include "jessie_steamer/wrapper/vulkan/model.h"
 #include "third_party/glm/glm.hpp"

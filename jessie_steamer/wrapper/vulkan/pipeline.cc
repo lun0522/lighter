@@ -10,7 +10,7 @@
 #include <stdexcept>
 
 #include "jessie_steamer/common/file.h"
-#include "jessie_steamer/wrapper/vulkan/context.h"
+#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {

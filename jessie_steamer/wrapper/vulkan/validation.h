@@ -5,7 +5,6 @@
 //  Copyright © 2018 Pujun Lun. All rights reserved.
 //
 
-#ifndef NDEBUG
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_VALIDATION_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_VALIDATION_H
 
@@ -19,7 +18,7 @@ namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
-class Context;
+class BasicContext;
 
 namespace message_severity {
 
@@ -54,18 +53,18 @@ class DebugCallback {
  public:
   DebugCallback() = default;
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   DebugCallback(const DebugCallback&) = delete;
   DebugCallback& operator=(const DebugCallback&) = delete;
 
   ~DebugCallback();
 
-  void Init(std::shared_ptr<Context> context,
+  void Init(std::shared_ptr<BasicContext> context,
             VkDebugUtilsMessageSeverityFlagsEXT message_severity,
             VkDebugUtilsMessageTypeFlagsEXT message_type);
 
  private:
-  std::shared_ptr<Context> context_;
+  std::shared_ptr<BasicContext> context_;
   VkDebugUtilsMessengerEXT callback_;
 };
 
@@ -74,4 +73,3 @@ class DebugCallback {
 } /* namespace jessie_steamer */
 
 #endif /* JESSIE_STEAMER_WRAPPER_VULKAN_VALIDATION_H */
-#endif /* !NDEBUG */

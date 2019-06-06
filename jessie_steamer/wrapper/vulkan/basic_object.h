@@ -9,15 +9,18 @@
 #define JESSIE_STEAMER_WRAPPER_VULKAN_BASIC_OBJECT_H
 
 #include <memory>
+#include <numeric>
 
-#include "third_party/vulkan/vulkan.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/types/optional.h"
+#include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
-class Context;
+class BasicContext;
+struct WindowSupport;
 
 /** VkInstance is used to establish connection with Vulkan library and
  *    maintain per-application states.
@@ -31,46 +34,20 @@ class Instance {
  public:
   Instance() = default;
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   Instance(const Instance&) = delete;
   Instance& operator=(const Instance&) = delete;
 
   ~Instance();
 
-  void Init(std::shared_ptr<Context> context);
+  void Init(std::shared_ptr<BasicContext> context,
+            const WindowSupport& window_support);
 
   const VkInstance& operator*() const { return instance_; }
 
  private:
-  std::shared_ptr<Context> context_;
+  std::shared_ptr<BasicContext> context_;
   VkInstance instance_;
-};
-
-/** VkSurfaceKHR interfaces with platform-specific window systems. It is backed
- *    by the window created by GLFW, which hides platform-specific details.
- *    It is not needed for off-screen rendering.
- *
- *  Initialization (by GLFW):
- *    VkInstance
- *    GLFWwindow
- */
-class Surface {
- public:
-  Surface() = default;
-
-  // This class is neither copyable nor movable
-  Surface(const Surface&) = delete;
-  Surface& operator=(const Surface&) = delete;
-
-  ~Surface();
-
-  void Init(std::shared_ptr<Context> context);
-
-  const VkSurfaceKHR& operator*() const { return surface_; }
-
- private:
-  std::shared_ptr<Context> context_;
-  VkSurfaceKHR surface_;
 };
 
 /** VkPhysicalDevice is a handle to a physical graphics card. We iterate through
@@ -88,19 +65,21 @@ struct PhysicalDevice {
  public:
   PhysicalDevice() = default;
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   PhysicalDevice(const PhysicalDevice&) = delete;
   PhysicalDevice& operator=(const PhysicalDevice&) = delete;
 
-  ~PhysicalDevice() = default;  // implicitly cleaned up
+  // Implicitly cleaned up.
+  ~PhysicalDevice() = default;
 
-  void Init(std::shared_ptr<Context> context);
+  void Init(std::shared_ptr<BasicContext> context,
+            const WindowSupport& window_support);
 
   const VkPhysicalDevice& operator*()    const { return physical_device_; }
   const VkPhysicalDeviceLimits& limits() const { return limits_; };
 
  private:
-  std::shared_ptr<Context> context_;
+  std::shared_ptr<BasicContext> context_;
   VkPhysicalDevice physical_device_;
   VkPhysicalDeviceLimits limits_;
 };
@@ -122,19 +101,53 @@ struct Device {
  public:
   Device() = default;
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   Device(const Device&) = delete;
   Device& operator=(const Device&) = delete;
 
   ~Device();
 
-  void Init(std::shared_ptr<Context> context);
+  void Init(std::shared_ptr<BasicContext> context,
+            const WindowSupport& window_support);
 
   const VkDevice& operator*() const { return device_; }
 
  private:
-  std::shared_ptr<Context> context_;
+  std::shared_ptr<BasicContext> context_;
   VkDevice device_;
+};
+
+/** VkQueue is the queue associated with the logical device. When we create it,
+ *    we can specify both queue family index and queue index (within family).
+ */
+struct Queues {
+  static constexpr uint32_t kInvalidIndex =
+      std::numeric_limits<uint32_t>::max();
+
+  struct Queue {
+    Queue() = default;
+    VkQueue queue;
+    uint32_t family_index;
+  };
+  Queue graphics, transfer;
+  absl::optional<Queue> present;
+
+  Queues() = default;
+
+  // This class is neither copyable nor movable.
+  Queues(const Queues&) = delete;
+  Queues& operator=(const Queues&) = delete;
+
+  // Implicitly cleaned up with physical device.
+  ~Queues() = default;
+
+  absl::flat_hash_set<uint32_t> unique_family_indices() const;
+  void set_queues(const VkQueue& graphics_queue,
+                  const VkQueue& transfer_queue,
+                  const VkQueue* present_queue);
+  void set_family_indices(uint32_t graphics_index,
+                          uint32_t transfer_index,
+                          uint32_t present_index);
 };
 
 } /* namespace vulkan */
