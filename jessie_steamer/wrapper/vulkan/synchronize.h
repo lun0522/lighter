@@ -10,6 +10,7 @@
 
 #include <vector>
 
+#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -22,13 +23,7 @@ namespace vulkan {
  *    can only be waited on by GPU (GPU->GPU sync, possibly across queues).
  */
 
-class SyncObject {
- protected:
-  const VkDevice* device_ = nullptr;
-  const VkAllocationCallbacks* allocator_ = nullptr;
-};
-
-class Semaphores : public SyncObject {
+class Semaphores {
  public:
   Semaphores() = default;
 
@@ -38,17 +33,16 @@ class Semaphores : public SyncObject {
 
   ~Semaphores();
 
-  void Init(const VkDevice* device,
-            const VkAllocationCallbacks* allocator,
-            int count);
+  void Init(SharedBasicContext context, int count);
 
   const VkSemaphore& operator[](int index) const { return semas_[index]; }
 
  private:
+  SharedBasicContext context_;
   std::vector<VkSemaphore> semas_;
 };
 
-class Fences : public SyncObject {
+class Fences {
  public:
   Fences() = default;
 
@@ -58,13 +52,12 @@ class Fences : public SyncObject {
 
   ~Fences();
 
-  void Init(const VkDevice* device,
-            const VkAllocationCallbacks* allocator,
-            int count, bool is_signaled);
+  void Init(SharedBasicContext context, int count, bool is_signaled);
 
   const VkFence& operator[](int index) const { return fences_[index]; }
 
  private:
+  SharedBasicContext context_;
   std::vector<VkFence> fences_;
 };
 

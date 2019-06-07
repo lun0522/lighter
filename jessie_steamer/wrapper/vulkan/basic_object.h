@@ -76,7 +76,7 @@ struct PhysicalDevice {
             const WindowSupport& window_support);
 
   const VkPhysicalDevice& operator*()    const { return physical_device_; }
-  const VkPhysicalDeviceLimits& limits() const { return limits_; };
+  const VkPhysicalDeviceLimits& limits() const { return limits_; }
 
  private:
   std::shared_ptr<BasicContext> context_;
@@ -142,12 +142,12 @@ struct Queues {
   ~Queues() = default;
 
   absl::flat_hash_set<uint32_t> unique_family_indices() const;
-  void set_queues(const VkQueue& graphics_queue,
-                  const VkQueue& transfer_queue,
-                  const VkQueue* present_queue);
-  void set_family_indices(uint32_t graphics_index,
-                          uint32_t transfer_index,
-                          uint32_t present_index);
+  Queues& set_queues(const VkQueue& graphics_queue,
+                     const VkQueue& transfer_queue,
+                     const VkQueue* present_queue);
+  Queues& set_family_indices(uint32_t graphics_index,
+                             uint32_t transfer_index,
+                             uint32_t present_index);
 };
 
 } /* namespace vulkan */

@@ -8,18 +8,16 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_DESCRIPTOR_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_DESCRIPTOR_H
 
-#include <memory>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "jessie_steamer/common/model_loader.h"
+#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
-
-class Context;
 
 /** VkDescriptorPool allocates VkDescriptorSet objects.
  *
@@ -84,7 +82,7 @@ class Descriptor {
     std::vector<Binding> bindings;
   };
 
-  Descriptor(std::shared_ptr<Context> context, const std::vector<Info>& infos);
+  Descriptor(SharedBasicContext context, const std::vector<Info>& infos);
 
   // This class is neither copyable nor movable
   Descriptor(const Descriptor&) = delete;
@@ -102,7 +100,7 @@ class Descriptor {
   const VkDescriptorSet& set()          const { return set_; }
 
  private:
-  std::shared_ptr<Context> context_;
+  SharedBasicContext context_;
   VkDescriptorPool pool_;
   VkDescriptorSetLayout layout_;
   VkDescriptorSet set_;

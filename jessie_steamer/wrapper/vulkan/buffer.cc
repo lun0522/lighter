@@ -13,7 +13,6 @@
 
 #include "absl/strings/str_format.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
-#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
@@ -25,7 +24,7 @@ using std::array;
 using std::runtime_error;
 using std::vector;
 
-uint32_t FindMemoryType(const SharedContext& context,
+uint32_t FindMemoryType(const SharedBasicContext& context,
                         uint32_t type_filter,
                         VkMemoryPropertyFlags mem_properties) {
   // query available types of memory
@@ -46,7 +45,7 @@ uint32_t FindMemoryType(const SharedContext& context,
   throw runtime_error{"Failed to find suitable memory type"};
 }
 
-VkFormat FindImageFormat(const SharedContext& context,
+VkFormat FindImageFormat(const SharedBasicContext& context,
                          const vector<VkFormat>& candidates,
                          VkFormatFeatureFlags features) {
   for (auto format : candidates) {
@@ -60,7 +59,7 @@ VkFormat FindImageFormat(const SharedContext& context,
   throw runtime_error{"Failed to find suitable image type"};
 }
 
-VkBuffer CreateBuffer(const SharedContext& context,
+VkBuffer CreateBuffer(const SharedBasicContext& context,
                       VkDeviceSize data_size,
                       VkBufferUsageFlags buffer_usage) {
   // create buffer
@@ -82,7 +81,7 @@ VkBuffer CreateBuffer(const SharedContext& context,
   return buffer;
 }
 
-VkDeviceMemory CreateBufferMemory(const SharedContext& context,
+VkDeviceMemory CreateBufferMemory(const SharedBasicContext& context,
                                   const VkBuffer& buffer,
                                   VkMemoryPropertyFlags mem_properties) {
   const VkDevice& device = *context->device();
@@ -117,7 +116,7 @@ VkDeviceMemory CreateBufferMemory(const SharedContext& context,
   return memory;
 }
 
-VkImage CreateImage(const SharedContext& context,
+VkImage CreateImage(const SharedBasicContext& context,
                     VkImageCreateFlags flags,
                     VkFormat format,
                     VkExtent3D extent,
@@ -153,7 +152,7 @@ VkImage CreateImage(const SharedContext& context,
   return image;
 }
 
-VkDeviceMemory CreateImageMemory(const SharedContext& context,
+VkDeviceMemory CreateImageMemory(const SharedBasicContext& context,
                                  const VkImage& image,
                                  VkMemoryPropertyFlags mem_properties) {
   const VkDevice& device = *context->device();
@@ -179,7 +178,7 @@ VkDeviceMemory CreateImageMemory(const SharedContext& context,
   return memory;
 }
 
-void TransitionImageLayout(const SharedContext& context,
+void TransitionImageLayout(const SharedBasicContext& context,
                            const VkImage& image,
                            VkImageAspectFlags image_aspect_mask,
                            array<VkImageLayout, 2> image_layouts,
@@ -189,8 +188,7 @@ void TransitionImageLayout(const SharedContext& context,
   const auto& transfer_queue = context->queues().transfer;
 
   // one-time transition command
-  OneTimeCommand command{&*context->device(), context->allocator(),
-                         &transfer_queue};
+  OneTimeCommand command{context, &transfer_queue};
   command.Run([&](const VkCommandBuffer& command_buffer) {
         VkImageMemoryBarrier barrier{
             VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -233,7 +231,7 @@ void TransitionImageLayout(const SharedContext& context,
   );
 }
 
-void CopyHostToBuffer(const SharedContext& context,
+void CopyHostToBuffer(const SharedBasicContext& context,
                       VkDeviceSize map_size,
                       VkDeviceSize map_offset,
                       const VkDeviceMemory& device_memory,
@@ -250,13 +248,12 @@ void CopyHostToBuffer(const SharedContext& context,
   vkUnmapMemory(*context->device(), device_memory);
 }
 
-void CopyBufferToBuffer(const SharedContext& context,
+void CopyBufferToBuffer(const SharedBasicContext& context,
                         VkDeviceSize data_size,
                         const VkBuffer& src_buffer,
                         const VkBuffer& dst_buffer) {
   // one-time copy command
-  OneTimeCommand command{&*context->device(), context->allocator(),
-                         &context->queues().transfer};
+  OneTimeCommand command{context, &context->queues().transfer};
   command.Run([&](const VkCommandBuffer& command_buffer) {
         VkBufferCopy region{
             /*srcOffset=*/0,
@@ -268,15 +265,14 @@ void CopyBufferToBuffer(const SharedContext& context,
   );
 }
 
-void CopyBufferToImage(const SharedContext& context,
+void CopyBufferToImage(const SharedBasicContext& context,
                        const VkBuffer& buffer,
                        const VkImage& image,
                        const VkExtent3D& image_extent,
                        VkImageLayout image_layout,
                        uint32_t layer_count) {
   // one-time copy command
-  OneTimeCommand command{&*context->device(), context->allocator(),
-                         &context->queues().transfer};
+  OneTimeCommand command{context, &context->queues().transfer};
   command.Run([&](const VkCommandBuffer& command_buffer) {
         VkBufferImageCopy region{
             // first three parameters specify pixels layout in buffer
@@ -332,7 +328,7 @@ void VertexBuffer::CopyHostData(const vector<buffer::CopyInfo>& copy_infos,
   vkFreeMemory(*context_->device(), staging_memory, context_->allocator());
 }
 
-void PerVertexBuffer::Init(SharedContext context,
+void PerVertexBuffer::Init(SharedBasicContext context,
                            const vector<PerVertexBuffer::Info>& infos) {
   context_ = std::move(context);
 
@@ -372,7 +368,7 @@ void PerVertexBuffer::Draw(const VkCommandBuffer& command_buffer,
                    /*firstIndex=*/0, /*vertexOffset=*/0, /*firstInstance=*/0);
 }
 
-void PerInstanceBuffer::Init(SharedContext context,
+void PerInstanceBuffer::Init(SharedBasicContext context,
                              const void* data, size_t data_size) {
   context_ = std::move(context);
   CopyHostData({{data, data_size, /*offset=*/0}}, data_size);
@@ -389,7 +385,7 @@ VertexBuffer::~VertexBuffer() {
   vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
 }
 
-void UniformBuffer::Init(SharedContext context,
+void UniformBuffer::Init(SharedBasicContext context,
                          size_t chunk_size, int num_chunk) {
   context_ = std::move(context);
 
@@ -434,7 +430,7 @@ VkDescriptorBufferInfo UniformBuffer::descriptor_info(
   };
 }
 
-void TextureBuffer::Init(SharedContext context, const Info& info) {
+void TextureBuffer::Init(SharedBasicContext context, const Info& info) {
   context_ = std::move(context);
 
   VkExtent3D image_extent = info.extent();
@@ -499,7 +495,7 @@ TextureBuffer::~TextureBuffer() {
   vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
 }
 
-void DepthStencilBuffer::Init(SharedContext context, VkExtent2D extent) {
+void DepthStencilBuffer::Init(SharedBasicContext context, VkExtent2D extent) {
   context_ = std::move(context);
 
   // no need to send any data to buffer

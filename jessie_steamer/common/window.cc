@@ -7,15 +7,11 @@
 
 #include "jessie_steamer/common/window.h"
 
-#include <stdexcept>
-
 namespace jessie_steamer {
 namespace common {
 namespace {
 
 using std::runtime_error;
-using std::string;
-using std::vector;
 
 } /* namespace */
 
@@ -45,7 +41,7 @@ void DidScroll(GLFWwindow* window, double x_pos, double y_pos) {
 
 } /* namespace glfw_window */
 
-void GlfwWindow::Init(const string& name, glm::ivec2 screen_size) {
+void GlfwWindow::Init(const std::string& name, glm::ivec2 screen_size) {
   glfwInit();
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -147,20 +143,6 @@ glm::dvec2 GlfwWindow::cursor_pos() const {
   glfwGetCursorPos(window_, &pos.x, &pos.y);
   return pos;
 }
-
-#ifdef USE_VULKAN
-const vector<string>& GlfwWindow::required_extensions() {
-  static vector<string>* kRequiredExtensions = nullptr;
-  if (kRequiredExtensions == nullptr) {
-    uint32_t extension_count;
-    const char** glfw_extensions =
-      glfwGetRequiredInstanceExtensions(&extension_count);
-    kRequiredExtensions = new vector<string>{
-      glfw_extensions, glfw_extensions + extension_count};
-  }
-  return *kRequiredExtensions;
-}
-#endif /* USE_VULKAN */
 
 GlfwWindow::~GlfwWindow() {
   glfwDestroyWindow(window_);

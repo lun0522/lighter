@@ -9,7 +9,6 @@
 
 #include <stdexcept>
 
-#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
@@ -20,7 +19,7 @@ namespace {
 using std::vector;
 
 VkDescriptorPool CreateDescriptorPool(
-    const SharedContext& context,
+    const SharedBasicContext& context,
     const vector<Descriptor::Info>& descriptor_infos) {
   vector<VkDescriptorPoolSize> pool_sizes;
   pool_sizes.reserve(descriptor_infos.size());
@@ -52,7 +51,7 @@ VkDescriptorPool CreateDescriptorPool(
 }
 
 VkDescriptorSetLayout CreateDescriptorSetLayout(
-    const SharedContext& context,
+    const SharedBasicContext& context,
     const vector<Descriptor::Info>& descriptor_infos) {
   int total_bindings = 0;
   for (const auto& info : descriptor_infos) {
@@ -88,7 +87,7 @@ VkDescriptorSetLayout CreateDescriptorSetLayout(
   return layout;
 }
 
-VkDescriptorSet CreateDescriptorSet(const SharedContext& context,
+VkDescriptorSet CreateDescriptorSet(const SharedBasicContext& context,
                                     const VkDescriptorPool& pool,
                                     const VkDescriptorSetLayout& layout) {
   VkDescriptorSetAllocateInfo alloc_info{
@@ -108,7 +107,7 @@ VkDescriptorSet CreateDescriptorSet(const SharedContext& context,
 
 } /* namespace */
 
-Descriptor::Descriptor(SharedContext context, const vector<Info>& infos)
+Descriptor::Descriptor(SharedBasicContext context, const vector<Info>& infos)
     : context_{std::move(context)} {
   pool_ = CreateDescriptorPool(context_, infos);
   layout_ = CreateDescriptorSetLayout(context_, infos);

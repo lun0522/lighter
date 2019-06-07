@@ -8,10 +8,10 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_BUFFER_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_BUFFER_H
 
-#include <memory>
 #include <vector>
 
 #include "absl/types/span.h"
+#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -32,8 +32,6 @@ struct CopyInfo {
 };
 
 } /* namespace buffer */
-
-class Context;
 
 /** VkBuffer represents linear arrays of data and configures usage of the data.
  *    Data can be transferred between buffers with the help of transfer queues.
@@ -72,7 +70,7 @@ class VertexBuffer {
   void CopyHostData(const std::vector<buffer::CopyInfo>& copy_infos,
                     size_t total_size);
 
-  std::shared_ptr<Context> context_;
+  SharedBasicContext context_;
   VkBuffer buffer_;
   VkDeviceMemory device_memory_;
 };
@@ -96,7 +94,7 @@ class PerVertexBuffer : public VertexBuffer {
 
   ~PerVertexBuffer() override = default;
 
-  void Init(std::shared_ptr<Context> context, const std::vector<Info>& infos);
+  void Init(SharedBasicContext context, const std::vector<Info>& infos);
   void Draw(const VkCommandBuffer& command_buffer,
             int mesh_index, uint32_t instance_count) const;
 
@@ -119,8 +117,7 @@ class PerInstanceBuffer : public VertexBuffer {
 
   ~PerInstanceBuffer() override = default;
 
-  void Init(std::shared_ptr<Context> context,
-            const void* data, size_t data_size);
+  void Init(SharedBasicContext context, const void* data, size_t data_size);
   void Bind(const VkCommandBuffer& command_buffer);
 };
 
@@ -134,8 +131,7 @@ class UniformBuffer {
 
   ~UniformBuffer();
 
-  void Init(std::shared_ptr<Context> context,
-            size_t chunk_size, int num_chunk);
+  void Init(SharedBasicContext context, size_t chunk_size, int num_chunk);
   void Flush(int chunk_index) const;
 
   template <typename DataType>
@@ -146,7 +142,7 @@ class UniformBuffer {
   VkDescriptorBufferInfo descriptor_info(int chunk_index) const;
 
  private:
-  std::shared_ptr<Context> context_;
+  SharedBasicContext context_;
   char* data_;
   size_t chunk_memory_size_, chunk_data_size_;
   VkBuffer buffer_;
@@ -176,12 +172,12 @@ class TextureBuffer {
 
   ~TextureBuffer();
 
-  void Init(std::shared_ptr<Context> context, const Info& info);
+  void Init(SharedBasicContext context, const Info& info);
 
   const VkImage& image() const { return image_; }
 
  private:
-  std::shared_ptr<Context> context_;
+  SharedBasicContext context_;
   VkImage image_;
   VkDeviceMemory device_memory_;
 };
@@ -196,14 +192,14 @@ class DepthStencilBuffer {
 
   ~DepthStencilBuffer() { Cleanup(); }
 
-  void Init(std::shared_ptr<Context> context, VkExtent2D extent);
+  void Init(SharedBasicContext context, VkExtent2D extent);
   void Cleanup();
 
   const VkImage& image() const { return image_; }
   VkFormat format()      const { return format_; }
 
  private:
-  std::shared_ptr<Context> context_;
+  SharedBasicContext context_;
   VkImage image_;
   VkDeviceMemory device_memory_;
   VkFormat format_;

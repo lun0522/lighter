@@ -1,49 +1,27 @@
 package(default_visibility = ["//visibility:private"])
 
 cc_library(
-    name = "vulkan_wrapper",
-    srcs = [
-        "buffer.cc",
-        "descriptor.cc",
-        "image.cc",
-        "model.cc",
-        "pipeline.cc",
-        "render_pass.cc",
-        "swapchain.cc",
-        "text.cc",
-    ],
-    hdrs = [
-        "buffer.h",
-        "descriptor.h",
-        "image.h",
-        "model.h",
-        "pipeline.h",
-        "render_pass.h",
-        "swapchain.h",
-        "text.h",
-    ],
+    name = "on_screen",
     deps = [
         ":command",
-        ":macro",
-        ":synchronize",
-        "//jessie_steamer/common:char_lib",
-        "//jessie_steamer/common:file",
-        "//jessie_steamer/common:model_loader",
-        "//jessie_steamer/common:ref_count",
-        "//jessie_steamer/common:util",
-        "//jessie_steamer/common:window",
-        "//third_party:glm",
-        "//third_party:vulkan",
-        "@lib-absl//absl/container:flat_hash_map",
-        "@lib-absl//absl/container:flat_hash_set",
-        "@lib-absl//absl/container:node_hash_map",
-        "@lib-absl//absl/memory",
-        "@lib-absl//absl/strings:str_format",
-        "@lib-absl//absl/types:optional",
-        "@lib-absl//absl/types:span",
+        ":window",
     ],
     data = ["@resource//:resource"],
     visibility = ["//jessie_steamer:__subpackages__"],
+)
+
+cc_library(
+    name = "vulkan_wrapper",
+    srcs = [
+        "model.cc",
+        "pipeline.cc",
+        "render_pass.cc",
+    ],
+    hdrs = [
+        "model.h",
+        "pipeline.h",
+        "render_pass.h",
+    ],
 )
 
 cc_library(
@@ -69,14 +47,60 @@ cc_library(
 )
 
 cc_library(
+    name = "buffer",
+    hdrs = ["buffer.h"],
+    srcs = ["buffer.cc"],
+    deps = [
+        ":basics",
+        ":command",
+        ":macro",
+        "//third_party:vulkan",
+        "@lib-absl//absl/strings:str_format",
+        "@lib-absl//absl/types:span",
+    ],
+)
+
+cc_library(
     name = "command",
     hdrs = ["command.h"],
     srcs = ["command.cc"],
     deps = [
+        ":basics",
         ":macro",
         ":synchronize",
         "//third_party:vulkan",
     ],
+)
+
+cc_library(
+    name = "descriptor",
+    hdrs = ["descriptor.h"],
+    srcs = ["descriptor.cc"],
+    deps = [
+        ":basics",
+        ":macro",
+        "//jessie_steamer/common:model_loader",
+        "//third_party:vulkan",
+        "@lib-absl//absl/container:flat_hash_map",
+    ],
+)
+
+cc_library(
+    name = "image",
+    hdrs = ["image.h"],
+    srcs = ["image.cc"],
+    deps = [
+        ":basics",
+        ":buffer",
+        ":macro",
+        "//jessie_steamer/common:file",
+        "//jessie_steamer/common:ref_count",
+        "//third_party:vulkan",
+        "@lib-absl//absl/memory",
+        "@lib-absl//absl/strings:str_format",
+        "@lib-absl//absl/types:span",
+        "@lib-absl//absl/types:variant",
+    ]
 )
 
 cc_library(
@@ -93,18 +117,41 @@ cc_library(
     hdrs = ["synchronize.h"],
     srcs = ["synchronize.cc"],
     deps = [
+        ":basics",
         ":macro",
         "//third_party:vulkan",
-        "@lib-absl//absl/strings:str_format",
     ],
 )
 
 cc_library(
-    name = "vulkan",
+    name = "text",
+    hdrs = ["text.h"],
+    srcs = ["text.cc"],
     deps = [
-        ":command",
+        ":image",
+        "//jessie_steamer/common:char_lib",
+        "//third_party:glm",
+        "@lib-absl//absl/container:flat_hash_map",
     ],
-    visibility = ["//jessie_steamer:__subpackages__"],
+)
+
+cc_library(
+    name = "window",
+    hdrs = [
+        "swapchain.h",
+        "window_context.h",
+    ],
+    srcs = ["swapchain.cc"],
+    deps = [
+        ":basics",
+        ":image",
+        ":macro",
+        "//jessie_steamer/common:window",
+        "//jessie_steamer/common:util",
+        "//third_party:vulkan",
+        "@lib-absl//absl/container:flat_hash_set",
+        "@lib-absl//absl/memory",
+    ],
 )
 
 config_setting(

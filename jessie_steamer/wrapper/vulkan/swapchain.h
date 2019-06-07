@@ -11,14 +11,13 @@
 #include <memory>
 #include <vector>
 
+#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
-
-class Context;
 
 /** VkSwapchainKHR holds a queue of images to present to the screen.
  *
@@ -46,9 +45,7 @@ class Context;
  */
 class Swapchain {
  public:
-  static const std::vector<const char*>& extensions();
-  static bool HasSwapchainSupport(const std::shared_ptr<Context>& context,
-                                  const VkPhysicalDevice& physical_device);
+  static const std::vector<const char*>& required_extensions();
 
   Swapchain() = default;
 
@@ -58,7 +55,9 @@ class Swapchain {
 
   ~Swapchain() { Cleanup(); }
 
-  void Init(std::shared_ptr<Context> context);
+  void Init(SharedBasicContext basic_context,
+            const VkSurfaceKHR& surface,
+            int screen_width, int screen_height);
   void Cleanup();
 
   const VkSwapchainKHR& operator*() const { return swapchain_; }
@@ -69,7 +68,7 @@ class Swapchain {
       { return images_[index]->image_view(); }
 
  private:
-  std::shared_ptr<Context> context_;
+  SharedBasicContext context_;
   VkSwapchainKHR swapchain_;
   std::vector<std::unique_ptr<SwapChainImage>> images_;
   VkFormat image_format_;

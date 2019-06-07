@@ -9,6 +9,7 @@
 #define JESSIE_STEAMER_COMMON_WINDOW_H
 
 #include <functional>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -31,6 +32,8 @@ class Window {
 
   enum class KeyMap { kEscape, kUp, kDown, kLeft, kRight };
 
+  virtual ~Window() = default;
+
   virtual void Init(const std::string& name, glm::ivec2 screen_size) = 0;
 #ifdef USE_VULKAN
   virtual VkSurfaceKHR CreateSurface(
@@ -46,17 +49,19 @@ class Window {
   virtual bool IsMinimized() const = 0;
   virtual bool IsResized() const { return is_resized_; }
   virtual void ResetResizedFlag() { is_resized_ = false; }
-  virtual ~Window() = default;
 
   virtual glm::ivec2 screen_size() const = 0;
   virtual glm::dvec2 cursor_pos()  const = 0;
-#ifdef USE_VULKAN
-  virtual static const std::vector<std::string>& required_extensions() = 0;
-#endif /* USE_VULKAN */
 
  protected:
   bool is_resized_ = false;
 };
+
+#ifdef USE_VULKAN
+// All subclasses of Window should implement this method.
+template <typename WindowClass>
+const std::vector<const char*>& GetExtensionsRequiredForWindow() { return {}; }
+#endif /* USE_VULKAN */
 
 class GlfwWindow : public Window {
  public:
@@ -84,14 +89,25 @@ class GlfwWindow : public Window {
   glm::ivec2 screen_size() const override;
   glm::dvec2 cursor_pos() const override;
 
-#ifdef USE_VULKAN
-  static const std::vector<std::string>& required_extensions() override;
-#endif /* USE_VULKAN */
-
  private:
   GLFWwindow* window_ = nullptr;
   absl::flat_hash_map<int, std::function<void()>> key_callbacks_;
 };
+
+#ifdef USE_VULKAN
+template <>
+const std::vector<const char*>& GetExtensionsRequiredForWindow<GlfwWindow>() {
+  static std::vector<const char*>* kRequiredExtensions = nullptr;
+  if (kRequiredExtensions == nullptr) {
+    uint32_t extension_count;
+    const char** glfw_extensions =
+        glfwGetRequiredInstanceExtensions(&extension_count);
+    kRequiredExtensions = new std::vector<const char*>{
+        glfw_extensions, glfw_extensions + extension_count};
+  }
+  return *kRequiredExtensions;
+}
+#endif /* USE_VULKAN */
 
 } /* namespace common */
 } /* namespace jessie_steamer */

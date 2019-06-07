@@ -11,8 +11,8 @@
 #include <functional>
 #include <vector>
 
+#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/synchronize.h"
-#include "jessie_steamer/wrapper/vulkan/types.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -37,17 +37,15 @@ namespace vulkan {
  */
 class Command {
  public:
-  Command(const VkDevice* device,
-          const VkAllocationCallbacks* allocator)
-      : device_{device}, allocator_{allocator} {}
+  Command(SharedBasicContext context) : context_{std::move(context)} {}
 
   virtual ~Command() {
-    vkDestroyCommandPool(*device_, command_pool_, allocator_);
+    vkDestroyCommandPool(*context_->device(), command_pool_,
+                         context_->allocator());
   }
 
  protected:
-  const VkDevice* device_;
-  const VkAllocationCallbacks* allocator_;
+  SharedBasicContext context_;
   VkCommandPool command_pool_;
 };
 
@@ -55,9 +53,7 @@ class OneTimeCommand : public Command {
  public:
   using OnRecord = std::function<void(const VkCommandBuffer& command_buffer)>;
 
-  OneTimeCommand(const VkDevice* device,
-                 const VkAllocationCallbacks* allocator,
-                 const Queues::Queue* queue);
+  OneTimeCommand(SharedBasicContext context, const Queues::Queue* queue);
 
   // This class is neither copyable nor movable.
   OneTimeCommand(const OneTimeCommand&) = delete;

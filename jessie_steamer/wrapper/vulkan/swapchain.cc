@@ -14,7 +14,6 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/memory/memory.h"
 #include "jessie_steamer/common/util.h"
-#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
@@ -87,7 +86,7 @@ VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities,
 
 } /* namespace */
 
-const vector<const char*>& Swapchain::extensions() {
+const vector<const char*>& Swapchain::required_extensions() {
   static vector<const char*>* kSwapchainExtensions = nullptr;
   if (kSwapchainExtensions == nullptr) {
     kSwapchainExtensions = new vector<const char*>{
@@ -97,50 +96,19 @@ const vector<const char*>& Swapchain::extensions() {
   return *kSwapchainExtensions;
 }
 
-bool Swapchain::HasSwapchainSupport(const SharedContext& context,
-                                    const VkPhysicalDevice& physical_device) {
-  std::cout << "Checking extension support required for swapchain..."
-            << std::endl << std::endl;
-  vector<std::string> required{extensions().begin(), extensions().end()};
-  auto extensions{util::QueryAttribute<VkExtensionProperties>(
-      [&physical_device](uint32_t* count, VkExtensionProperties* properties) {
-        return vkEnumerateDeviceExtensionProperties(
-            physical_device, nullptr, count, properties);
-      }
-  )};
-  auto get_name = [](const VkExtensionProperties& property) {
-    return property.extensionName;
-  };
-  auto unsupported = util::FindUnsupported<VkExtensionProperties>(
-      required, extensions, get_name);
-  if (unsupported.has_value()) {
-    std::cout << "Unsupported: " << unsupported.value() << std::endl;
-    return false;
-  }
-
-  // physical device may support swapchain but maybe not compatible with
-  // window system, so we need to query details
-  uint32_t format_count, mode_count;
-  vkGetPhysicalDeviceSurfaceFormatsKHR(
-      physical_device, *context->surface(), &format_count, nullptr);
-  vkGetPhysicalDeviceSurfacePresentModesKHR(
-      physical_device, *context->surface(), &mode_count, nullptr);
-  return format_count && mode_count;
-}
-
-void Swapchain::Init(SharedContext context) {
-  context_ = std::move(context);
-  const VkSurfaceKHR& surface = *context_->surface();
+void Swapchain::Init(SharedBasicContext basic_context,
+                     const VkSurfaceKHR& surface,
+                     int screen_width, int screen_height) {
+  context_ = std::move(basic_context);
   const VkPhysicalDevice& physical_device = *context_->physical_device();
 
   // surface capabilities
   VkSurfaceCapabilitiesKHR surface_capabilities;
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
       physical_device, surface, &surface_capabilities);
-  auto screen_size = context_->window().screen_size();
   VkExtent2D image_extent = ChooseExtent(
-      surface_capabilities, {static_cast<uint32_t>(screen_size.x),
-                             static_cast<uint32_t>(screen_size.y)});
+      surface_capabilities, {static_cast<uint32_t>(screen_width),
+                             static_cast<uint32_t>(screen_height)});
 
   // surface formats
   auto surface_formats{util::QueryAttribute<VkSurfaceFormatKHR>(
@@ -192,15 +160,15 @@ void Swapchain::Init(SharedContext context) {
   };
 
   // graphics queue and present queue might be the same
-  absl::flat_hash_set<uint32_t> queue_families{
-      context_->queues().graphics.family_index,
-      context_->queues().present.family_index,
-  };
-  if (queue_families.size() > 1) {
+  const auto queue_family_indices = context_->queues().unique_family_indices();
+  if (queue_family_indices.size() > 1) {
     // specify which queue families will share access to images. we will draw on
     // images in swapchain from graphics queue and submit on presentation queue.
     // otherwise set to VK_SHARING_MODE_EXCLUSIVE
-    vector<uint32_t> indices{queue_families.begin(), queue_families.end()};
+    vector<uint32_t> indices{
+        queue_family_indices.begin(),
+        queue_family_indices.end(),
+    };
     swapchain_info.queueFamilyIndexCount = CONTAINER_SIZE(indices);
     swapchain_info.pQueueFamilyIndices = indices.data();
     swapchain_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -216,8 +184,7 @@ void Swapchain::Init(SharedContext context) {
   // fetch swapchain images and create image views for them
   auto images{util::QueryAttribute<VkImage>(
       [this](uint32_t *count, VkImage *images) {
-        vkGetSwapchainImagesKHR(
-            *context_->device(), *context_->swapchain(), count, images);
+        vkGetSwapchainImagesKHR(*context_->device(), swapchain_, count, images);
       }
   )};
   images_.reserve(images.size());

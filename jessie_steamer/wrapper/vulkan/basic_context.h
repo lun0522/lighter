@@ -8,6 +8,7 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_BASIC_CONTEXT_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_BASIC_CONTEXT_H
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -28,8 +29,10 @@ using SharedBasicContext = std::shared_ptr<BasicContext>;
 struct WindowSupport {
   bool is_required;
   const VkSurfaceKHR* surface;
-  std::vector<const char*> window_extensions;
-  std::vector<const char*> swapchain_extensions;
+  const std::vector<const char*>& window_extensions;
+  const std::vector<const char*>& swapchain_extensions;
+  const std::function<void(const VkAllocationCallbacks* allocator,
+                      const VkInstance& instance)>& create_surface;
 };
 
 class BasicContext : public std::enable_shared_from_this<BasicContext> {
@@ -44,10 +47,14 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   BasicContext(const BasicContext&) = delete;
   BasicContext& operator=(const BasicContext&) = delete;
 
-  void Init(const WindowSupport& window_support,
-            const VkAllocationCallbacks* allocator) {
+  void Init(const VkAllocationCallbacks* allocator,
+            const WindowSupport& window_support) {
     allocator_ = allocator;
     instance_.Init(ptr(), window_support);
+    // Create surface if required. Caller should destruct it at the end.
+    if (window_support.is_required) {
+      window_support.create_surface(allocator_, *instance_);
+    }
 #ifndef NDEBUG
     // Relay debug messages back to application.
     debug_callback_.Init(ptr(),
@@ -69,6 +76,10 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   const PhysicalDevice& physical_device()   const { return physical_device_; }
   const Device& device()                    const { return device_; }
   const Queues& queues()                    const { return queues_; }
+
+  const VkPhysicalDeviceLimits& limits() const {
+    return physical_device_.limits();
+  }
 
  private:
   // These methods will set queues.

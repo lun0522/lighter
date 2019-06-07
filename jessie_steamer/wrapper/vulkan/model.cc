@@ -193,6 +193,8 @@ void Model::Init(SharedContext context,
                  int num_frame,
                  bool is_opaque) {
   if (is_first_time_) {
+    is_first_time_ = false;
+
     context_ = move(context);
     push_constant_infos_ = push_constant_infos;
 
@@ -241,8 +243,6 @@ void Model::Init(SharedContext context,
       pipeline_builder_.enable_alpha_blend()
           .disable_depth_test();
     }
-
-    is_first_time_ = false;
   }
 
   // create pipeline

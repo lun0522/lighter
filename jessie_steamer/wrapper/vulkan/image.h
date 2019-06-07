@@ -9,20 +9,17 @@
 #define JESSIE_STEAMER_WRAPPER_VULKAN_IMAGE_H
 
 #include <array>
-#include <memory>
 
-#include "absl/container/node_hash_map.h"
 #include "absl/types/span.h"
 #include "absl/types/variant.h"
 #include "jessie_steamer/common/ref_count.h"
+#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
-
-class Context;
 
 /** VkImage represents multidimensional data in the swapchain. They can be
  *    color/depth/stencil attachements, textures, etc. The exact purpose
@@ -76,13 +73,12 @@ class SwapChainImage {
 
   ~SwapChainImage();
 
-  void Init(std::shared_ptr<Context> context,
-            const VkImage& image, VkFormat format);
+  void Init(SharedBasicContext context, const VkImage& image, VkFormat format);
 
   const VkImageView& image_view() const { return image_view_; }
 
  private:
-  std::shared_ptr<Context> context_;
+  SharedBasicContext context_;
   VkImageView image_view_;
 };
 
@@ -91,18 +87,19 @@ class TextureImage {
   // Textures will be put in a unified resource pool. For single images, its
   // file path will be used as identifier; for cubemaps, its directory will be
   // used as identifier.
+  using SingleTexPath = std::string;
   struct CubemapPath {
     std::string directory;
     // PosX, NegX, PosY, NegY, PosZ, NegZ
     std::array<std::string, buffer::kCubemapImageCount> files;
   };
-  using SourcePath = absl::variant<std::string, CubemapPath>;
+  using SourcePath = absl::variant<SingleTexPath, CubemapPath>;
 
   using SharedTexture = common::RefCountedObject<TextureImage>;
-  static SharedTexture GetTexture(const std::shared_ptr<Context>& context,
+  static SharedTexture GetTexture(const SharedBasicContext& context,
                                   const SourcePath& source_path);
 
-  TextureImage(std::shared_ptr<Context> context, const SourcePath& source_path);
+  TextureImage(SharedBasicContext context, const SourcePath& source_path);
 
   // This class is neither copyable nor movable
   TextureImage(const TextureImage&) = delete;
@@ -113,7 +110,7 @@ class TextureImage {
   VkDescriptorImageInfo descriptor_info() const;
 
  private:
-  std::shared_ptr<Context> context_;
+  SharedBasicContext context_;
   TextureBuffer buffer_;
   VkImageView image_view_;
   VkSampler sampler_;
@@ -129,14 +126,14 @@ class DepthStencilImage {
 
   ~DepthStencilImage() { Cleanup(); }
 
-  void Init(std::shared_ptr<Context> context, VkExtent2D extent);
+  void Init(SharedBasicContext context, VkExtent2D extent);
   void Cleanup();
 
   VkFormat format()               const { return buffer_.format(); }
   const VkImageView& image_view() const { return image_view_; }
 
  private:
-  std::shared_ptr<Context> context_;
+  SharedBasicContext context_;
   DepthStencilBuffer buffer_;
   VkImageView image_view_;
 };

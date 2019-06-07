@@ -25,8 +25,7 @@ namespace vulkan {
 namespace {
 
 namespace util = common::util;
-using std::cout;
-using std::endl;
+using std::runtime_error;
 using std::vector;
 
 struct QueueIndices {
@@ -37,8 +36,8 @@ struct QueueIndices {
 
 bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
                          const WindowSupport& window_support) {
-  cout << "Checking extension support required for swapchain..."
-       << endl << endl;
+  std::cout << "Checking extension support required for swapchain..."
+            << std::endl << std::endl;
 
   vector<std::string> required{
       window_support.swapchain_extensions.begin(),
@@ -57,7 +56,7 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
       required, extensions, get_name);
 
   if (unsupported.has_value()) {
-    cout << "Unsupported: " << unsupported.value() << endl;
+    std::cout << "Unsupported: " << unsupported.value() << std::endl;
     return false;
   }
 
@@ -76,10 +75,12 @@ absl::optional<QueueIndices> FindDeviceQueues(
     const WindowSupport& window_support) {
   VkPhysicalDeviceProperties properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
-  cout << "Found device: " << properties.deviceName << endl << endl;
+  std::cout << "Found device: " << properties.deviceName
+            << std::endl << std::endl;
 
-  // require swapchain support
-  if (!HasSwapchainSupport(physical_device, window_support)) {
+  // require swapchain support if use window
+  if (window_support.is_required &&
+      !HasSwapchainSupport(physical_device, window_support)) {
     return absl::nullopt;
   }
 
@@ -210,7 +211,7 @@ void PhysicalDevice::Init(SharedBasicContext context,
     auto indices = FindDeviceQueues(physical_device_, window_support);
     if (indices.has_value()) {
       physical_device_ = candidate;
-      // graphics queue will be transfer queue as well
+      // graphics queue will be used as transfer queue as well
       context_->queues_.set_family_indices(indices.value().graphics,
                                            indices.value().graphics,
                                            indices.value().present);
@@ -223,7 +224,8 @@ void PhysicalDevice::Init(SharedBasicContext context,
       return;
     }
   }
-  throw std::runtime_error{"Failed to find suitable GPU"};
+
+  throw runtime_error{"Failed to find suitable GPU"};
 }
 
 void Device::Init(SharedBasicContext context,
@@ -247,15 +249,14 @@ void Device::Init(SharedBasicContext context,
   float priority = 1.0f;
   vector<VkDeviceQueueCreateInfo> queue_infos;
   for (uint32_t family_index : queues.unique_family_indices()) {
-    VkDeviceQueueCreateInfo queue_info{
+    queue_infos.emplace_back(VkDeviceQueueCreateInfo{
         VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
         /*pNext=*/nullptr,
         /*flags=*/nullflag,
         family_index,
         /*queueCount=*/1,
         &priority,  // always required even if only one queue
-    };
-    queue_infos.emplace_back(queue_info);
+    });
   }
 
   VkDeviceCreateInfo device_info{
@@ -309,30 +310,32 @@ absl::flat_hash_set<uint32_t> Queues::unique_family_indices() const {
   return indices;
 }
 
-void Queues::set_queues(const VkQueue& graphics_queue,
-                        const VkQueue& transfer_queue,
-                        const VkQueue* present_queue) {
+Queues& Queues::set_queues(const VkQueue& graphics_queue,
+                           const VkQueue& transfer_queue,
+                           const VkQueue* present_queue) {
   graphics.queue = graphics_queue;
   transfer.queue = transfer_queue;
   if (present.has_value()) {
     if (present_queue == nullptr) {
-      throw std::runtime_error{"Present queue is not specified"};
+      throw runtime_error{"Present queue is not specified"};
     } else {
       present.value().queue = *present_queue;
     }
   } else if (present_queue != nullptr) {
-    throw std::runtime_error{"Preset queue should not be specified"};
+    throw runtime_error{"Preset queue should not be specified"};
   }
+  return *this;
 }
 
-void Queues::set_family_indices(uint32_t graphics_index,
-                                uint32_t transfer_index,
-                                uint32_t present_index) {
+Queues& Queues::set_family_indices(uint32_t graphics_index,
+                                   uint32_t transfer_index,
+                                   uint32_t present_index) {
   graphics.family_index = graphics_index;
   transfer.family_index = transfer_index;
   if (present_index != kInvalidIndex) {
     present = Queue{{}, present_index};
   }
+  return *this;
 }
 
 } /* namespace vulkan */

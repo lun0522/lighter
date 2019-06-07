@@ -16,10 +16,10 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
+using std::runtime_error;
 using std::vector;
 
-VkCommandPool CreateCommandPool(const VkDevice* device,
-                                const VkAllocationCallbacks* allocator,
+VkCommandPool CreateCommandPool(const SharedBasicContext& context,
                                 const Queues::Queue& queue,
                                 bool is_transient) {
   // create pool to hold command buffers
@@ -36,12 +36,13 @@ VkCommandPool CreateCommandPool(const VkDevice* device,
   }
 
   VkCommandPool pool;
-  ASSERT_SUCCESS(vkCreateCommandPool(*device, &pool_info, allocator, &pool),
+  ASSERT_SUCCESS(vkCreateCommandPool(*context->device(), &pool_info,
+                                     context->allocator(), &pool),
                  "Failed to create command pool");
   return pool;
 }
 
-VkCommandBuffer CreateCommandBuffer(const VkDevice* device,
+VkCommandBuffer CreateCommandBuffer(const SharedBasicContext& context,
                                     const VkCommandPool& command_pool) {
   // allocate command buffer
   VkCommandBufferAllocateInfo buffer_info{
@@ -54,15 +55,15 @@ VkCommandBuffer CreateCommandBuffer(const VkDevice* device,
   };
 
   VkCommandBuffer buffer;
-  ASSERT_SUCCESS(vkAllocateCommandBuffers(*device, &buffer_info, &buffer),
-                 "Failed to allocate command buffer");
+  ASSERT_SUCCESS(
+      vkAllocateCommandBuffers(*context->device(), &buffer_info, &buffer),
+      "Failed to allocate command buffer");
   return buffer;
 }
 
 vector<VkCommandBuffer> CreateCommandBuffers(
-    const VkDevice* device,
-    const VkCommandPool& command_pool,
-    int count) {
+    const SharedBasicContext& context,
+    const VkCommandPool& command_pool, int count) {
   // allocate command buffers
   VkCommandBufferAllocateInfo buffer_info{
       VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -74,7 +75,7 @@ vector<VkCommandBuffer> CreateCommandBuffers(
   };
 
   vector<VkCommandBuffer> buffers(count);
-  ASSERT_SUCCESS(vkAllocateCommandBuffers(*device, &buffer_info,
+  ASSERT_SUCCESS(vkAllocateCommandBuffers(*context->device(), &buffer_info,
                                           buffers.data()),
                  "Failed to allocate command buffers");
   return buffers;
@@ -82,12 +83,11 @@ vector<VkCommandBuffer> CreateCommandBuffers(
 
 } /* namespace */
 
-OneTimeCommand::OneTimeCommand(const VkDevice* device,
-                               const VkAllocationCallbacks* allocator,
+OneTimeCommand::OneTimeCommand(SharedBasicContext context,
                                const Queues::Queue* queue)
-    : Command{device, allocator}, queue_{queue} {
-  command_pool_ = CreateCommandPool(device_, allocator_, *queue_, true);
-  command_buffer_ = CreateCommandBuffer(device_, command_pool_);
+    : Command{std::move(context)}, queue_{queue} {
+  command_pool_ = CreateCommandPool(context_, *queue_, /*is_transient=*/true);
+  command_buffer_ = CreateCommandBuffer(context_, command_pool_);
 }
 
 void OneTimeCommand::Run(const OnRecord& on_record) {
@@ -122,15 +122,15 @@ void OneTimeCommand::Run(const OnRecord& on_record) {
 
 void PerFrameCommand::Init(int num_frame, const Queues* queues) {
   if (is_first_time_) {
-    queues_ = queues;
-    command_pool_ = CreateCommandPool(
-        device_, allocator_, queues_->graphics, false);
-    image_available_semas_.Init(device_, allocator_, num_frame);
-    render_finished_semas_.Init(device_, allocator_, num_frame);
-    in_flight_fences_.Init(device_, allocator_, num_frame, true);
     is_first_time_ = false;
+    queues_ = queues;
+    command_pool_ = CreateCommandPool(context_, queues_->graphics,
+                                      /*is_transient=*/false);
+    image_available_semas_.Init(context_, num_frame);
+    render_finished_semas_.Init(context_, num_frame);
+    in_flight_fences_.Init(context_, num_frame, true);
   }
-  command_buffers_ = CreateCommandBuffers(device_, command_pool_, num_frame);
+  command_buffers_ = CreateCommandBuffers(context_, command_pool_, num_frame);
 }
 
 VkResult PerFrameCommand::Run(int current_frame,
@@ -145,7 +145,8 @@ VkResult PerFrameCommand::Run(int current_frame,
 
   // fence was initialized to signaled state
   // so waiting for it at the beginning is fine
-  vkWaitForFences(*device_, 1, &in_flight_fences_[current_frame],
+  const VkDevice& device = *context_->device();
+  vkWaitForFences(device, 1, &in_flight_fences_[current_frame],
                   VK_TRUE, std::numeric_limits<uint64_t>::max());
 
   // update per-frame data
@@ -154,7 +155,7 @@ VkResult PerFrameCommand::Run(int current_frame,
   // acquire swapchain image
   uint32_t image_index;
   VkResult acquire_result = vkAcquireNextImageKHR(
-      *device_, swapchain, std::numeric_limits<uint64_t>::max(),
+      device, swapchain, std::numeric_limits<uint64_t>::max(),
       image_available_semas_[current_frame], VK_NULL_HANDLE, &image_index);
   switch (acquire_result) {
     case VK_ERROR_OUT_OF_DATE_KHR:  // swapchain can no longer present image
@@ -163,7 +164,7 @@ VkResult PerFrameCommand::Run(int current_frame,
     case VK_SUBOPTIMAL_KHR:  // may be considered as good state as well
       break;
     default:
-      throw std::runtime_error{"Failed to acquire swapchain image"};
+      throw runtime_error{"Failed to acquire swapchain image"};
   }
 
   // record command in command buffer
@@ -203,7 +204,7 @@ VkResult PerFrameCommand::Run(int current_frame,
   };
 
   // reset to fences unsignaled state
-  vkResetFences(*device_, 1, &in_flight_fences_[current_frame]);
+  vkResetFences(device, 1, &in_flight_fences_[current_frame]);
   ASSERT_SUCCESS(vkQueueSubmit(queues_->graphics.queue, 1, &submit_info,
                                in_flight_fences_[current_frame]),
                  "Failed to submit draw command buffer");
@@ -221,8 +222,12 @@ VkResult PerFrameCommand::Run(int current_frame,
       // may use .pResults to check wether each swapchain rendered successfully
   };
 
-  VkResult present_result = vkQueuePresentKHR(
-      queues_->present.queue, &present_info);
+  if (!queues_->present.has_value()) {
+    throw runtime_error{"No present queue"};
+  }
+
+  VkResult present_result = vkQueuePresentKHR(queues_->present.value().queue,
+                                              &present_info);
   switch (present_result) {
     case VK_ERROR_OUT_OF_DATE_KHR:  // swapchain can no longer present image
       return present_result;
@@ -230,12 +235,12 @@ VkResult PerFrameCommand::Run(int current_frame,
     case VK_SUBOPTIMAL_KHR:  // may be considered as good state as well
       return VK_SUCCESS;
     default:
-      throw std::runtime_error{"Failed to present swapchain image"};
+      throw runtime_error{"Failed to present swapchain image"};
   }
 }
 
 void PerFrameCommand::Cleanup() {
-  vkFreeCommandBuffers(*device_, command_pool_,
+  vkFreeCommandBuffers(*context_->device(), command_pool_,
                        CONTAINER_SIZE(command_buffers_),
                        command_buffers_.data());
 }

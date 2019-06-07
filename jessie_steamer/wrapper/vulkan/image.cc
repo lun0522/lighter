@@ -7,14 +7,12 @@
 
 #include "jessie_steamer/wrapper/vulkan/image.h"
 
-#include <memory>
 #include <stdexcept>
 #include <vector>
 
 #include "absl/memory/memory.h"
 #include "absl/strings/str_format.h"
 #include "jessie_steamer/common/file.h"
-#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
@@ -24,9 +22,8 @@ namespace {
 
 using common::Image;
 using std::runtime_error;
-using std::string;
 
-VkImageView CreateImageView(const SharedContext& context,
+VkImageView CreateImageView(const SharedBasicContext& context,
                             const VkImage& image,
                             VkFormat format,
                             VkImageAspectFlags aspect_mask,
@@ -75,7 +72,7 @@ VkImageView CreateImageView(const SharedContext& context,
   return image_view;
 }
 
-VkSampler CreateSampler(const SharedContext& context) {
+VkSampler CreateSampler(const SharedBasicContext& context) {
   VkSamplerCreateInfo sampler_info{
       VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -107,7 +104,7 @@ VkSampler CreateSampler(const SharedContext& context) {
 
 } /* namespace */
 
-void SwapChainImage::Init(SharedContext context,
+void SwapChainImage::Init(SharedBasicContext context,
                           const VkImage& image, VkFormat format) {
   context_ = std::move(context);
   image_view_ = CreateImageView(context_, image, format,
@@ -120,10 +117,10 @@ SwapChainImage::~SwapChainImage() {
 }
 
 TextureImage::SharedTexture TextureImage::GetTexture(
-    const SharedContext& context, const SourcePath& source_path) {
-  const string* identifier;
-  if (absl::holds_alternative<string>(source_path)) {
-    identifier = &absl::get<string>(source_path);
+    const SharedBasicContext& context, const SourcePath& source_path) {
+  const std::string* identifier;
+  if (absl::holds_alternative<SingleTexPath>(source_path)) {
+    identifier = &absl::get<SingleTexPath>(source_path);
   } else if (absl::holds_alternative<TextureImage::CubemapPath>(source_path)) {
     identifier = &absl::get<TextureImage::CubemapPath>(source_path).directory;
   } else {
@@ -132,7 +129,8 @@ TextureImage::SharedTexture TextureImage::GetTexture(
   return SharedTexture::Get(*identifier, context, source_path);
 }
 
-TextureImage::TextureImage(SharedContext context, const SourcePath& source_path)
+TextureImage::TextureImage(SharedBasicContext context,
+                           const SourcePath& source_path)
     : context_{std::move(context)} {
   using CubemapImage = std::array<std::unique_ptr<Image>,
                                   buffer::kCubemapImageCount>;
@@ -142,9 +140,9 @@ TextureImage::TextureImage(SharedContext context, const SourcePath& source_path)
   const Image* sample_image;
   std::vector<const void*> datas;
 
-  if (absl::holds_alternative<string>(source_path)) {
+  if (absl::holds_alternative<SingleTexPath>(source_path)) {
     auto& image = source_image.emplace<std::unique_ptr<Image>>(
-        absl::make_unique<Image>(absl::get<string>(source_path)));
+        absl::make_unique<Image>(absl::get<SingleTexPath>(source_path)));
     sample_image = image.get();
     datas.emplace_back(image->data);
   } else if (absl::holds_alternative<CubemapPath>(source_path)) {
@@ -201,7 +199,7 @@ TextureImage::~TextureImage() {
   vkDestroySampler(*context_->device(), sampler_, context_->allocator());
 }
 
-void DepthStencilImage::Init(SharedContext context, VkExtent2D extent) {
+void DepthStencilImage::Init(SharedBasicContext context, VkExtent2D extent) {
   context_ = std::move(context);
   buffer_.Init(context_, extent);
   image_view_ = CreateImageView(context_, buffer_.image(), format(),
