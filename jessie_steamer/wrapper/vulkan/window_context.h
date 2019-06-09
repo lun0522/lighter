@@ -28,13 +28,13 @@ namespace vulkan {
  *    VkInstance
  *    GLFWwindow
  */
-template <typename WindowClass>
 class WindowContext {
  public:
-  WindowContext() : context_{BasicContext::GetContext()} {
-    static_assert(std::is_base_of<common::Window, WindowClass>::value,
-                  "Not a subclass of Window");
-  }
+  WindowContext() : context_{BasicContext::GetContext()} {}
+
+  // This class is neither copyable nor movable.
+  WindowContext(const WindowContext&) = delete;
+  WindowContext& operator=(const WindowContext&) = delete;
 
   ~WindowContext() {
     vkDestroySurfaceKHR(*context_->instance(), surface_, context_->allocator());
@@ -47,12 +47,11 @@ class WindowContext {
       window_.Init(name, {width, height});
       auto create_surface = [this](const VkAllocationCallbacks* allocator,
                                    const VkInstance& instance) {
-        window_.CreateSurface(instance, allocator);
+        surface_ = window_.CreateSurface(instance, allocator);
       };
       context_->Init(allocator, /*window_support=*/{
-          /*is_required=*/true,
           &surface_,
-          common::GetExtensionsRequiredForWindow<WindowClass>(),
+          common::Window::required_extensions(),
           Swapchain::required_extensions(),
           create_surface,
       });
@@ -63,17 +62,13 @@ class WindowContext {
 
   void Cleanup() { swapchain_.Cleanup(); }
 
-  // This class is neither copyable nor movable.
-  WindowContext(const WindowContext&) = delete;
-  WindowContext& operator=(const WindowContext&) = delete;
-
-  const WindowClass& window()   const { return window_; }
-  const Swapchain& swapchain()  const { return swapchain_; }
+  const common::Window& window()  const { return window_; }
+  const Swapchain& swapchain()    const { return swapchain_; }
 
  private:
   bool is_first_time_ = true;
   SharedBasicContext context_;
-  WindowClass window_;
+  common::Window window_;
   Swapchain swapchain_;
   VkSurfaceKHR surface_;
 };

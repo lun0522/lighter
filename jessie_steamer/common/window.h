@@ -32,84 +32,40 @@ class Window {
 
   enum class KeyMap { kEscape, kUp, kDown, kLeft, kRight };
 
-  virtual ~Window() = default;
-
-  virtual void Init(const std::string& name, glm::ivec2 screen_size) = 0;
-#ifdef USE_VULKAN
-  virtual VkSurfaceKHR CreateSurface(
-      const VkInstance& instance,
-      const VkAllocationCallbacks* allocator) = 0;
-#endif /* USE_VULKAN */
-  virtual void SetCursorHidden(bool hidden) = 0;
-  virtual void RegisterKeyCallback(KeyMap key, KeyCallback callback) = 0;
-  virtual void RegisterCursorMoveCallback(CursorMoveCallback callback) = 0;
-  virtual void RegisterScrollCallback(ScrollCallback callback) = 0;
-  virtual void PollEvents() = 0;
-  virtual bool ShouldQuit() const = 0;
-  virtual bool IsMinimized() const = 0;
-  virtual bool IsResized() const { return is_resized_; }
-  virtual void ResetResizedFlag() { is_resized_ = false; }
-
-  virtual glm::ivec2 screen_size() const = 0;
-  virtual glm::dvec2 cursor_pos()  const = 0;
-
- protected:
-  bool is_resized_ = false;
-};
-
-#ifdef USE_VULKAN
-// All subclasses of Window should implement this method.
-template <typename WindowClass>
-const std::vector<const char*>& GetExtensionsRequiredForWindow() {
-  throw std::runtime_error{"Not implemented"};
-}
-#endif /* USE_VULKAN */
-
-class GlfwWindow : public Window {
- public:
-  GlfwWindow() = default;
+  Window() = default;
 
   // This class is neither copyable nor movable.
-  GlfwWindow(const GlfwWindow&) = delete;
-  GlfwWindow& operator=(const GlfwWindow&) = delete;
+  Window(const Window&) = delete;
+  Window& operator=(const Window&) = delete;
 
-  ~GlfwWindow() override;
+  ~Window();
 
-  void Init(const std::string& name, glm::ivec2 screen_size) override;
+  void Init(const std::string& name, glm::ivec2 screen_size);
 #ifdef USE_VULKAN
   VkSurfaceKHR CreateSurface(const VkInstance& instance,
-                             const VkAllocationCallbacks* allocator) override;
+                             const VkAllocationCallbacks* allocator);
 #endif /* USE_VULKAN */
-  void SetCursorHidden(bool hidden) override;
-  void RegisterKeyCallback(KeyMap key, KeyCallback callback) override;
-  void RegisterCursorMoveCallback(CursorMoveCallback callback) override;
-  void RegisterScrollCallback(ScrollCallback callback) override;
-  void PollEvents() override;
-  bool ShouldQuit() const override { return glfwWindowShouldClose(window_); }
-  bool IsMinimized() const override;
+  void SetCursorHidden(bool hidden);
+  void RegisterKeyCallback(KeyMap key, const KeyCallback& callback);
+  void RegisterCursorMoveCallback(CursorMoveCallback callback);
+  void RegisterScrollCallback(ScrollCallback callback);
+  void PollEvents();
+  bool ShouldQuit() const { return glfwWindowShouldClose(window_); }
+  glm::ivec2 GetScreenSize() const;
+  glm::dvec2 GetCursorPos() const;
+  bool IsMinimized() const;
+  void ResetResizedFlag() { is_resized_ = false; }
 
-  glm::ivec2 screen_size() const override;
-  glm::dvec2 cursor_pos() const override;
+#ifdef USE_VULKAN
+  static const std::vector<const char*>& required_extensions();
+#endif /* USE_VULKAN */
+  bool is_resized() const { return is_resized_; }
 
  private:
+  bool is_resized_ = false;
   GLFWwindow* window_ = nullptr;
   absl::flat_hash_map<int, std::function<void()>> key_callbacks_;
 };
-
-#ifdef USE_VULKAN
-template <>
-const std::vector<const char*>& GetExtensionsRequiredForWindow<GlfwWindow>() {
-  static std::vector<const char*>* kRequiredExtensions = nullptr;
-  if (kRequiredExtensions == nullptr) {
-    uint32_t extension_count;
-    const char** glfw_extensions =
-        glfwGetRequiredInstanceExtensions(&extension_count);
-    kRequiredExtensions = new std::vector<const char*>{
-        glfw_extensions, glfw_extensions + extension_count};
-  }
-  return *kRequiredExtensions;
-}
-#endif /* USE_VULKAN */
 
 } /* namespace common */
 } /* namespace jessie_steamer */

@@ -21,6 +21,20 @@ using absl::StrFormat;
 using std::string;
 using std::vector;
 
+aiTextureType ResourceTypeToAssimpType(types::ResourceType type) {
+  switch (type) {
+    case types::kTextureDiffuse:
+      return aiTextureType_DIFFUSE;
+    case types::kTextureSpecular:
+      return aiTextureType_SPECULAR;
+    case types::kTextureReflection:
+      return aiTextureType_AMBIENT;
+    default:
+      throw std::runtime_error{StrFormat(
+          "Unsupported resource types: %d", type)};
+  }
+}
+
 } /* namespace */
 
 ModelLoader::ModelLoader(const string& obj_path, const string& tex_path) {
@@ -90,32 +104,17 @@ void ModelLoader::ProcessMesh(const string& directory,
   vector<Texture>& textures = meshes_.back().textures;
   if (scene->HasMaterials()) {
     aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-    LoadTextures(directory, material, type::kTextureDiffuse, &textures);
-    LoadTextures(directory, material, type::kTextureSpecular,&textures);
-    LoadTextures(directory, material, type::kTextureReflection, &textures);
+    LoadTextures(directory, material, types::kTextureDiffuse, &textures);
+    LoadTextures(directory, material, types::kTextureSpecular,&textures);
+    LoadTextures(directory, material, types::kTextureReflection, &textures);
   }
 }
 
 void ModelLoader::LoadTextures(const string& directory,
                                const aiMaterial* material,
-                               type::ResourceType resource_type,
+                               types::ResourceType resource_type,
                                vector<Texture>* textures) {
-  aiTextureType ai_type;
-  switch (resource_type) {
-    case type::kTextureDiffuse:
-      ai_type = aiTextureType_DIFFUSE;
-      break;
-    case type::kTextureSpecular:
-      ai_type = aiTextureType_SPECULAR;
-      break;
-    case type::kTextureReflection:
-      ai_type = aiTextureType_AMBIENT;
-      break;
-    default:
-      throw std::runtime_error{StrFormat(
-          "Unrecognized resource type: %d", resource_type)};
-  }
-
+  const auto ai_type = ResourceTypeToAssimpType(resource_type);
   int num_texture = material->GetTextureCount(ai_type);
   textures->reserve(textures->size() + num_texture);
   for (unsigned int i = 0; i < num_texture; ++i) {

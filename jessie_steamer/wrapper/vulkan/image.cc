@@ -7,6 +7,7 @@
 
 #include "jessie_steamer/wrapper/vulkan/image.h"
 
+#include <memory>
 #include <stdexcept>
 #include <vector>
 
@@ -106,6 +107,7 @@ VkSampler CreateSampler(const SharedBasicContext& context) {
 void SwapChainImage::Init(const VkImage& image, VkFormat format) {
   image_view_ = CreateImageView(context_, image, format,
                                 VK_IMAGE_ASPECT_COLOR_BIT, /*layer_count=*/1);
+  format_ = format;
 }
 
 TextureImage::SharedTexture TextureImage::GetTexture(
@@ -116,7 +118,7 @@ TextureImage::SharedTexture TextureImage::GetTexture(
   } else if (absl::holds_alternative<TextureImage::CubemapPath>(source_path)) {
     identifier = &absl::get<TextureImage::CubemapPath>(source_path).directory;
   } else {
-    throw runtime_error{"Unrecognized variant type"};
+    throw runtime_error{"Unrecognized variant types"};
   }
   return SharedTexture::Get(*identifier, context, source_path);
 }
@@ -149,16 +151,15 @@ TextureImage::TextureImage(const SharedBasicContext& context,
     }
     sample_image = images[0].get();
   } else {
-    throw runtime_error{"Unrecognized variant type"};
+    throw runtime_error{"Unrecognized variant types"};
   }
 
-  VkFormat format;
   switch (sample_image->channel) {
     case 1:
-      format = VK_FORMAT_R8_UNORM;
+      format_ = VK_FORMAT_R8_UNORM;
       break;
     case 4:
-      format = VK_FORMAT_R8G8B8A8_UNORM;
+      format_ = VK_FORMAT_R8G8B8A8_UNORM;
       break;
     default:
       throw runtime_error{absl::StrFormat(
@@ -167,13 +168,13 @@ TextureImage::TextureImage(const SharedBasicContext& context,
 
   TextureBuffer::Info image_info{
       absl::MakeSpan(datas),
-      format,
+      format_,
       static_cast<uint32_t>(sample_image->width),
       static_cast<uint32_t>(sample_image->height),
       static_cast<uint32_t>(sample_image->channel),
   };
   buffer_.Init(image_info);
-  image_view_ = CreateImageView(context_, buffer_.image(), format,
+  image_view_ = CreateImageView(context_, buffer_.image(), format_,
                                 VK_IMAGE_ASPECT_COLOR_BIT,
                                 /*layer_count=*/CONTAINER_SIZE(datas));
   sampler_ = CreateSampler(context_);
@@ -194,6 +195,7 @@ DepthStencilImage::DepthStencilImage(SharedBasicContext context,
                                 VK_IMAGE_ASPECT_DEPTH_BIT
                                     | VK_IMAGE_ASPECT_STENCIL_BIT,
                                 /*layer_count=*/1);
+  format_ = buffer_.format();
 }
 
 } /* namespace vulkan */

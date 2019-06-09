@@ -48,7 +48,7 @@ VertexInputBinding GetPerVertexBindings() {
 
 template <typename VertexType>
 VertexInputAttribute GetVertexAttributes() {
-  throw runtime_error{"Vertex type not recognized"};
+  throw runtime_error{"Vertex types not recognized"};
 }
 
 template <>
@@ -209,7 +209,7 @@ void Model::Init(const vector<PipelineBuilder::ShaderInfo>& shader_infos,
       find_binding_point =
           LoadMultiMesh(absl::get<MultiMeshResource>(resource));
     } else {
-      throw runtime_error{"Unrecognized variant type"};
+      throw runtime_error{"Unrecognized variant types"};
     }
     CreateDescriptors(find_binding_point, uniform_infos, num_frame);
 
@@ -230,29 +230,28 @@ void Model::Init(const vector<PipelineBuilder::ShaderInfo>& shader_infos,
       });
     }
 
-    pipeline_builder_.Init(context_)
+    pipeline_builder_
         .set_vertex_input(GetBindingDescriptions(bindings),
                           GetAttributeDescriptions(attributes))
         .set_layout({descriptors_[0][0]->layout()},
                     CreatePushConstantRanges(push_constant_infos_));
     if (!is_opaque) {
-      pipeline_builder_.enable_alpha_blend()
-          .disable_depth_test();
+      pipeline_builder_.enable_alpha_blend().disable_depth_test();
     }
   }
 
   // create pipeline
-  pipeline_builder_.set_viewport({
-      /*x=*/0.0f,
-      /*y=*/0.0f,
-      static_cast<float>(frame_size.width),
-      static_cast<float>(frame_size.height),
-      /*minDepth=*/0.0f,
-      /*maxDepth=*/1.0f,
-      }).set_scissor({
-      /*offset=*/{0, 0},
-      frame_size,
-  });
+  pipeline_builder_
+      .set_viewport({
+          /*x=*/0.0f,
+          /*y=*/0.0f,
+          static_cast<float>(frame_size.width),
+          static_cast<float>(frame_size.height),
+          /*minDepth=*/0.0f,
+          /*maxDepth=*/1.0f})
+      .set_scissor({
+          /*offset=*/{0, 0},
+          frame_size});
   for (const auto& info : shader_infos) {
     pipeline_builder_.add_shader(info);
   }
@@ -306,8 +305,8 @@ Model::FindBindingPoint Model::LoadMultiMesh(
         binding_map[type] = binding_point;
       } else if (found->second != binding_point) {
         throw runtime_error{absl::StrFormat(
-            "Extra textures of type %d is bound to point %d, but mesh textures "
-            "of same type are bound to point %d",
+            "Extra textures of types %d is bound to point %d, but mesh textures "
+            "of same types are bound to point %d",
             type, binding_point, found->second)};
       }
     }

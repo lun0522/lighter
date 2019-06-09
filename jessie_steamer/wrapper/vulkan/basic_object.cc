@@ -72,15 +72,15 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
 
 absl::optional<QueueIndices> FindDeviceQueues(
     const VkPhysicalDevice& physical_device,
-    const WindowSupport& window_support) {
+    const absl::optional<WindowSupport>& window_support) {
   VkPhysicalDeviceProperties properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
   std::cout << "Found device: " << properties.deviceName
             << std::endl << std::endl;
 
   // require swapchain support if use window
-  if (window_support.is_required &&
-      !HasSwapchainSupport(physical_device, window_support)) {
+  if (window_support.has_value() &&
+      !HasSwapchainSupport(physical_device, window_support.value())) {
     return absl::nullopt;
   }
 
@@ -111,14 +111,14 @@ absl::optional<QueueIndices> FindDeviceQueues(
     candidate.graphics = static_cast<uint32_t>(graphics_queue_index);
   }
 
-  if (window_support.is_required) {
+  if (window_support.has_value()) {
     // find queue family that holds present queue
     uint32_t index = 0;
     auto present_support = [&physical_device, &window_support, index]
         (const VkQueueFamilyProperties& family) mutable {
       VkBool32 support = VK_FALSE;
       vkGetPhysicalDeviceSurfaceSupportKHR(
-          physical_device, index++, *window_support.surface, &support);
+          physical_device, index++, *window_support.value().surface, &support);
       return support;
     };
     int present_queue_index =
@@ -136,12 +136,12 @@ absl::optional<QueueIndices> FindDeviceQueues(
 } /* namespace */
 
 void Instance::Init(SharedBasicContext context,
-                    const WindowSupport& window_support) {
+                    const absl::optional<WindowSupport>& window_support) {
   context_ = std::move(context);
 
   vector<const char*> required_extensions;
-  if (window_support.is_required) {
-    required_extensions = window_support.window_extensions;
+  if (window_support.has_value()) {
+    required_extensions = window_support.value().window_extensions;
   }
 #ifndef NDEBUG
   // one extra extension to enable debug report
@@ -197,7 +197,7 @@ Instance::~Instance() {
 }
 
 void PhysicalDevice::Init(SharedBasicContext context,
-                          const WindowSupport& window_support) {
+                          const absl::optional<WindowSupport>& window_support) {
   context_ = std::move(context);
 
   auto physical_devices{util::QueryAttribute<VkPhysicalDevice>(
@@ -229,7 +229,7 @@ void PhysicalDevice::Init(SharedBasicContext context,
 }
 
 void Device::Init(SharedBasicContext context,
-                  const WindowSupport& window_support) {
+                  const absl::optional<WindowSupport>& window_support) {
   context_ = std::move(context);
 
   // request anisotropy filtering support
@@ -238,10 +238,11 @@ void Device::Init(SharedBasicContext context,
 
   // request negative-height viewport support
   vector<const char*> required_extensions{VK_KHR_MAINTENANCE1_EXTENSION_NAME};
-  if (window_support.is_required) {
-    required_extensions.insert(required_extensions.end(),
-                               window_support.swapchain_extensions.begin(),
-                               window_support.swapchain_extensions.end());
+  if (window_support.has_value()) {
+    required_extensions.insert(
+        required_extensions.end(),
+        window_support.value().swapchain_extensions.begin(),
+        window_support.value().swapchain_extensions.end());
   }
 
   // graphics queue and present queue might be the same
@@ -289,7 +290,7 @@ void Device::Init(SharedBasicContext context,
   vkGetDeviceQueue(device_, queues.transfer.family_index, 0, &transfer_queue);
 
   VkQueue* present_queue = nullptr;
-  if (window_support.is_required) {
+  if (window_support.has_value()) {
     vkGetDeviceQueue(device_, queues.present.value().family_index, 0,
                      present_queue);
   }

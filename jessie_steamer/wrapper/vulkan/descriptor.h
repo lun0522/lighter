@@ -68,7 +68,7 @@ class Descriptor {
  public:
   using ImageInfos = absl::flat_hash_map<
       uint32_t, std::vector<VkDescriptorImageInfo>>;
-  using ResourceType = common::type::ResourceType;
+  using ResourceType = common::types::ResourceType;
 
   struct Info {
     struct Binding {

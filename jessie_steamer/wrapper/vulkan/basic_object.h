@@ -41,7 +41,7 @@ class Instance {
   ~Instance();
 
   void Init(std::shared_ptr<BasicContext> context,
-            const WindowSupport& window_support);
+            const absl::optional<WindowSupport>& window_support);
 
   const VkInstance& operator*() const { return instance_; }
 
@@ -73,7 +73,7 @@ struct PhysicalDevice {
   ~PhysicalDevice() = default;
 
   void Init(std::shared_ptr<BasicContext> context,
-            const WindowSupport& window_support);
+            const absl::optional<WindowSupport>& window_support);
 
   const VkPhysicalDevice& operator*()    const { return physical_device_; }
   const VkPhysicalDeviceLimits& limits() const { return limits_; }
@@ -108,7 +108,7 @@ struct Device {
   ~Device();
 
   void Init(std::shared_ptr<BasicContext> context,
-            const WindowSupport& window_support);
+            const absl::optional<WindowSupport>& window_support);
 
   const VkDevice& operator*() const { return device_; }
 

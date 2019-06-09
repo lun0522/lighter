@@ -13,10 +13,6 @@ namespace {
 
 using std::runtime_error;
 
-} /* namespace */
-
-namespace glfw_window {
-
 std::function<void()> set_resized_flag = nullptr;
 Window::CursorMoveCallback cursor_move_callback = nullptr;
 Window::ScrollCallback scroll_callback = nullptr;
@@ -39,9 +35,25 @@ void DidScroll(GLFWwindow* window, double x_pos, double y_pos) {
   }
 }
 
-} /* namespace glfw_window */
+int WindowKeyToGlfwKey(Window::KeyMap key) {
+  using KeyMap = Window::KeyMap;
+  switch (key) {
+    case KeyMap::kEscape:
+      return GLFW_KEY_ESCAPE;
+    case KeyMap::kUp:
+      return GLFW_KEY_UP;
+    case KeyMap::kDown:
+      return GLFW_KEY_DOWN;
+    case KeyMap::kLeft:
+      return GLFW_KEY_LEFT;
+    case KeyMap::kRight:
+      return GLFW_KEY_RIGHT;
+  }
+}
 
-void GlfwWindow::Init(const std::string& name, glm::ivec2 screen_size) {
+} /* namespace */
+
+void Window::Init(const std::string& name, glm::ivec2 screen_size) {
   glfwInit();
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -60,14 +72,14 @@ void GlfwWindow::Init(const std::string& name, glm::ivec2 screen_size) {
   }
   glfwMakeContextCurrent(window_);
 
-  glfw_window::set_resized_flag = [this]() { Window::is_resized_ = true; };
-  glfwSetFramebufferSizeCallback(window_, glfw_window::DidResizeWindow);
-  glfwSetCursorPosCallback(window_, glfw_window::DidMoveCursor);
-  glfwSetScrollCallback(window_, glfw_window::DidScroll);
+  set_resized_flag = [this]() { is_resized_ = true; };
+  glfwSetFramebufferSizeCallback(window_, DidResizeWindow);
+  glfwSetCursorPosCallback(window_, DidMoveCursor);
+  glfwSetScrollCallback(window_, DidScroll);
 }
 
 #ifdef USE_VULKAN
-VkSurfaceKHR GlfwWindow::CreateSurface(const VkInstance& instance,
+VkSurfaceKHR Window::CreateSurface(const VkInstance& instance,
                                        const VkAllocationCallbacks* allocator) {
   VkSurfaceKHR surface;
   auto result = glfwCreateWindowSurface(instance, window_, allocator, &surface);
@@ -78,47 +90,29 @@ VkSurfaceKHR GlfwWindow::CreateSurface(const VkInstance& instance,
 }
 #endif /* USE_VULKAN */
 
-void GlfwWindow::SetCursorHidden(bool hidden) {
+void Window::SetCursorHidden(bool hidden) {
   glfwSetInputMode(window_, GLFW_CURSOR,
                    hidden ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 }
 
-void GlfwWindow::RegisterKeyCallback(KeyMap key, KeyCallback callback) {
-  int glfw_key;
-  switch (key) {
-    case KeyMap::kEscape:
-      glfw_key = GLFW_KEY_ESCAPE;
-      break;
-    case KeyMap::kUp:
-      glfw_key = GLFW_KEY_UP;
-      break;
-    case KeyMap::kDown:
-      glfw_key = GLFW_KEY_DOWN;
-      break;
-    case KeyMap::kLeft:
-      glfw_key = GLFW_KEY_LEFT;
-      break;
-    case KeyMap::kRight:
-      glfw_key = GLFW_KEY_RIGHT;
-      break;
-  }
-
-  if (callback) {
-    key_callbacks_.emplace(glfw_key, std::move(callback));
+void Window::RegisterKeyCallback(KeyMap key, const KeyCallback& callback) {
+  const auto glfw_key = WindowKeyToGlfwKey(key);
+  if (callback != nullptr) {
+    key_callbacks_.emplace(glfw_key, callback);
   } else {
     key_callbacks_.erase(glfw_key);
   }
 }
 
-void GlfwWindow::RegisterCursorMoveCallback(CursorMoveCallback callback) {
-  glfw_window::cursor_move_callback = std::move(callback);
+void Window::RegisterCursorMoveCallback(CursorMoveCallback callback) {
+  cursor_move_callback = std::move(callback);
 }
 
-void GlfwWindow::RegisterScrollCallback(ScrollCallback callback) {
-  glfw_window::scroll_callback = std::move(callback);
+void Window::RegisterScrollCallback(ScrollCallback callback) {
+  scroll_callback = std::move(callback);
 }
 
-void GlfwWindow::PollEvents() {
+void Window::PollEvents() {
   glfwPollEvents();
   for (const auto& pair : key_callbacks_) {
     if (glfwGetKey(window_, pair.first) == GLFW_PRESS) {
@@ -127,24 +121,38 @@ void GlfwWindow::PollEvents() {
   }
 }
 
-bool GlfwWindow::IsMinimized() const {
-  auto extent = screen_size();
-  return extent.x == 0 || extent.y == 0;
+#ifdef USE_VULKAN
+const std::vector<const char*>& Window::required_extensions() {
+  static std::vector<const char*>* kRequiredExtensions = nullptr;
+  if (kRequiredExtensions == nullptr) {
+    uint32_t extension_count;
+    const char** glfw_extensions =
+        glfwGetRequiredInstanceExtensions(&extension_count);
+    kRequiredExtensions = new std::vector<const char*>{
+        glfw_extensions, glfw_extensions + extension_count};
+  }
+  return *kRequiredExtensions;
 }
+#endif /* USE_VULKAN */
 
-glm::ivec2 GlfwWindow::screen_size() const {
+glm::ivec2 Window::GetScreenSize() const {
   glm::ivec2 extent;
   glfwGetFramebufferSize(window_, &extent.x, &extent.y);
   return extent;
 }
 
-glm::dvec2 GlfwWindow::cursor_pos() const {
+glm::dvec2 Window::GetCursorPos() const {
   glm::dvec2 pos;
   glfwGetCursorPos(window_, &pos.x, &pos.y);
   return pos;
 }
 
-GlfwWindow::~GlfwWindow() {
+bool Window::IsMinimized() const {
+  auto extent = GetScreenSize();
+  return extent.x == 0 || extent.y == 0;
+}
+
+Window::~Window() {
   glfwDestroyWindow(window_);
   glfwTerminate();
 }

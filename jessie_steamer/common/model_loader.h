@@ -18,7 +18,7 @@
 
 namespace jessie_steamer {
 namespace common {
-namespace type {
+namespace types {
 
 enum ResourceType {
   kTextureDiffuse = 0,
@@ -29,7 +29,7 @@ enum ResourceType {
   kUniformBuffer,
 };
 
-} /* namespace type */
+} /* namespace types */
 
 class ModelLoader {
  public:
@@ -39,7 +39,7 @@ class ModelLoader {
     Texture& operator=(Texture&&) = default;
 
     std::string path;
-    type::ResourceType resource_type;
+    types::ResourceType resource_type;
   };
 
   struct Mesh {
@@ -71,7 +71,7 @@ class ModelLoader {
                    const aiScene* scene);
   void LoadTextures(const std::string& directory,
                     const aiMaterial* material,
-                    type::ResourceType resource_type,
+                    types::ResourceType resource_type,
                     std::vector<Texture>* textures);
 
   std::vector<Mesh> meshes_;

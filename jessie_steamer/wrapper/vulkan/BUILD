@@ -146,6 +146,7 @@ cc_library(
         ":image",
         ":macro",
         "//third_party:vulkan",
+        "@lib-absl//absl/memory",
     ],
 )
 

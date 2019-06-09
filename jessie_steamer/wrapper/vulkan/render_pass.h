@@ -38,9 +38,11 @@ namespace vulkan {
  */
 class RenderPass {
  public:
-  RenderPass(const VkRenderPass& render_pass,
+  RenderPass(SharedBasicContext context,
+             const VkRenderPass& render_pass,
              std::vector<VkFramebuffer>&& framebuffers)
-    : render_pass_{render_pass}, framebuffers_{std::move(framebuffers)} {}
+    : context_{std::move(context)}, render_pass_{render_pass},
+      framebuffers_{std::move(framebuffers)} {}
 
   // This class is neither copyable nor movable.
   RenderPass(const RenderPass&) = delete;
@@ -60,14 +62,11 @@ class RenderPass {
 
 class RenderPassBuilder {
  public:
-  RenderPassBuilder() = default;
+  explicit RenderPassBuilder(SharedBasicContext context);
 
   // This class is neither copyable nor movable.
   RenderPassBuilder(const RenderPassBuilder&) = delete;
   RenderPassBuilder& operator=(const RenderPassBuilder&) = delete;
-
-  // Init() should always be called first.
-  RenderPassBuilder& Init(SharedBasicContext context);
 
   // All these information must be set before Build().
 

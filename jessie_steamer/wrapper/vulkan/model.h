@@ -10,6 +10,7 @@
 
 #include <array>
 #include <functional>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -31,7 +32,7 @@ namespace vulkan {
 
 class Model {
  public:
-  using ResourceType = common::type::ResourceType;
+  using ResourceType = common::types::ResourceType;
   using Mesh = std::array<std::vector<TextureImage::SharedTexture>,
                           ResourceType::kNumTextureType>;
   using UniformInfos = std::vector<std::pair<const UniformBuffer&,
@@ -93,7 +94,7 @@ class Model {
   using PushConstantInfos = std::vector<PushConstantInfo>;
 
   explicit Model(const SharedBasicContext& context)
-    : context_{context}, vertex_buffer_{context} {}
+    : context_{context}, vertex_buffer_{context}, pipeline_builder_{context} {}
 
   // This class is neither copyable nor movable.
   Model(const Model&) = delete;

@@ -35,14 +35,14 @@ uint32_t FindMemoryType(const SharedBasicContext& context,
   vkGetPhysicalDeviceMemoryProperties(*context->physical_device(), &properties);
 
   for (uint32_t i = 0; i < properties.memoryTypeCount; ++i) {
-    if (type_filter & (1 << i)) {  // type is suitable for buffer
+    if (type_filter & (1 << i)) {  // types is suitable for buffer
       auto flags = properties.memoryTypes[i].propertyFlags;
       if ((flags & mem_properties) == mem_properties) { // has required property
         return i;
       }
     }
   }
-  throw runtime_error{"Failed to find suitable memory type"};
+  throw runtime_error{"Failed to find suitable memory types"};
 }
 
 VkFormat FindImageFormat(const SharedBasicContext& context,
@@ -56,7 +56,7 @@ VkFormat FindImageFormat(const SharedBasicContext& context,
       return format;
     }
   }
-  throw runtime_error{"Failed to find suitable image type"};
+  throw runtime_error{"Failed to find suitable image types"};
 }
 
 VkBuffer CreateBuffer(const SharedBasicContext& context,
@@ -89,7 +89,7 @@ VkDeviceMemory CreateBufferMemory(const SharedBasicContext& context,
   // query memory requirements for this buffer
   //   .size: size of required amount of memory
   //   .alignment: offset where this buffer begins in allocated region
-  //   .memoryTypeBits: memory type suitable for this buffer
+  //   .memoryTypeBits: memory types suitable for this buffer
   VkMemoryRequirements mem_requirements;
   vkGetBufferMemoryRequirements(device, buffer, &mem_requirements);
 

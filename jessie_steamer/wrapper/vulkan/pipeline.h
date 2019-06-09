@@ -8,6 +8,7 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_PIPELINE_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_PIPELINE_H
 
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -64,14 +65,11 @@ class PipelineBuilder {
   using ShaderInfo = std::pair<VkShaderStageFlagBits, std::string>;
   using ShaderModule = std::pair<VkShaderStageFlagBits, VkShaderModule>;
 
-  PipelineBuilder() = default;
+  explicit PipelineBuilder(SharedBasicContext context);
 
   // This class is neither copyable nor movable.
   PipelineBuilder(const PipelineBuilder&) = delete;
   PipelineBuilder& operator=(const PipelineBuilder&) = delete;
-
-  // Init() should always be called first.
-  PipelineBuilder& Init(SharedBasicContext context);
 
   // All these information must be set before Build().
   PipelineBuilder& set_vertex_input(

@@ -7,6 +7,7 @@
 
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
 
+#include "absl/memory/memory.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
@@ -151,9 +152,8 @@ void RenderPass::Init(SharedBasicContext context) {
   framebuffers_ = CreateFramebuffers(context_, depth_stencil_);
 }
 
-RenderPassBuilder& RenderPassBuilder::Init(SharedBasicContext context) {
-  context_ = std::move(context);
-
+RenderPassBuilder::RenderPassBuilder(SharedBasicContext context)
+    : context_{std::move(context)} {
 
 }
 
@@ -175,7 +175,8 @@ std::unique_ptr<RenderPass> RenderPassBuilder::Build() {
                                     context_->allocator(), &render_pass),
                  "Failed to create render pass");
 
-  framebuffers_ = CreateFramebuffers(context_, depth_stencil_);
+  return absl::make_unique<RenderPass>(
+      context_, render_pass,CreateFramebuffers(context_, depth_stencil_));
 }
 
 RenderPass::~RenderPass() {

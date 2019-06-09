@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "jessie_steamer/wrapper/vulkan/basic_object.h"
 #ifndef NDEBUG
 #include "jessie_steamer/wrapper/vulkan/validation.h"
@@ -27,7 +28,6 @@ class BasicContext;
 using SharedBasicContext = std::shared_ptr<BasicContext>;
 
 struct WindowSupport {
-  bool is_required;
   const VkSurfaceKHR* surface;
   const std::vector<const char*>& window_extensions;
   const std::vector<const char*>& swapchain_extensions;
@@ -48,12 +48,12 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   BasicContext& operator=(const BasicContext&) = delete;
 
   void Init(const VkAllocationCallbacks* allocator,
-            const WindowSupport& window_support) {
+            const absl::optional<WindowSupport>& window_support) {
     allocator_ = allocator;
     instance_.Init(ptr(), window_support);
     // Create surface if required. Caller should destruct it at the end.
-    if (window_support.is_required) {
-      window_support.create_surface(allocator_, *instance_);
+    if (window_support.has_value()) {
+      window_support.value().create_surface(allocator_, *instance_);
     }
 #ifndef NDEBUG
     // Relay debug messages back to application.
@@ -83,8 +83,10 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
 
  private:
   // These methods will set queues.
-  friend void PhysicalDevice::Init(SharedBasicContext, const WindowSupport&);
-  friend void Device::Init(SharedBasicContext, const WindowSupport&);
+  friend void PhysicalDevice::Init(SharedBasicContext,
+                                   const absl::optional<WindowSupport>&);
+  friend void Device::Init(SharedBasicContext,
+                           const absl::optional<WindowSupport>&);
 
   const VkAllocationCallbacks* allocator_ = nullptr;
   Instance instance_;

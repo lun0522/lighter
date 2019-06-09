@@ -8,6 +8,7 @@
 #ifndef JESSIE_STEAMER_COMMON_REF_COUNT_H
 #define JESSIE_STEAMER_COMMON_REF_COUNT_H
 
+#include <memory>
 #include <string>
 #include <utility>
 

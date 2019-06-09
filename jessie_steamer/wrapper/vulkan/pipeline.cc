@@ -7,6 +7,7 @@
 
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
 
+#include <memory>
 #include <stdexcept>
 
 #include "absl/memory/memory.h"
@@ -43,9 +44,8 @@ VkShaderModule CreateShaderModule(const SharedBasicContext& context,
 
 } /* namespace */
 
-PipelineBuilder& PipelineBuilder::Init(SharedBasicContext context) {
-  context_ = std::move(context);
-
+PipelineBuilder::PipelineBuilder(SharedBasicContext context)
+    : context_{std::move(context)} {
   input_assembly_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -140,8 +140,6 @@ PipelineBuilder& PipelineBuilder::Init(SharedBasicContext context) {
       /*dynamicStateCount=*/0,
       /*pDynamicStates=*/nullptr,
   };
-
-  return *this;
 }
 
 PipelineBuilder& PipelineBuilder::set_vertex_input(

@@ -71,10 +71,12 @@ class Image {
   }
 
   const VkImageView& image_view() const { return image_view_; }
+  VkFormat format()               const { return format_; }
 
  protected:
   SharedBasicContext context_;
   VkImageView image_view_;
+  VkFormat format_;
 };
 
 class SwapChainImage : public Image {
@@ -131,8 +133,6 @@ class DepthStencilImage : public Image {
   // This class is neither copyable nor movable.
   DepthStencilImage(const DepthStencilImage&) = delete;
   DepthStencilImage& operator=(const DepthStencilImage&) = delete;
-
-  VkFormat format() const { return buffer_.format(); }
 
  private:
   DepthStencilBuffer buffer_;
