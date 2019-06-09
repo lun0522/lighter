@@ -84,7 +84,7 @@ class Descriptor {
 
   Descriptor(SharedBasicContext context, const std::vector<Info>& infos);
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   Descriptor(const Descriptor&) = delete;
   Descriptor& operator=(const Descriptor&) = delete;
 

@@ -49,15 +49,14 @@ class Swapchain {
 
   Swapchain() = default;
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   Swapchain(const Swapchain&) = delete;
   Swapchain& operator=(const Swapchain&) = delete;
 
   ~Swapchain() { Cleanup(); }
 
   void Init(SharedBasicContext basic_context,
-            const VkSurfaceKHR& surface,
-            int screen_width, int screen_height);
+            const VkSurfaceKHR& surface, VkExtent2D screen_size);
   void Cleanup();
 
   const VkSwapchainKHR& operator*() const { return swapchain_; }

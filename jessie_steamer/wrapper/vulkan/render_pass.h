@@ -11,14 +11,13 @@
 #include <memory>
 #include <vector>
 
+#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
-
-class Context;
 
 /** VkRenderPass specifies types of attachments that will be accessed.
  *
@@ -37,30 +36,49 @@ class Context;
  *    List of VkImageView
  *    Image extent (width, height and number of layers)
  */
-
-// TODO: make RenderPass composable
 class RenderPass {
  public:
-  RenderPass() = default;
+  RenderPass(const VkRenderPass& render_pass,
+             std::vector<VkFramebuffer>&& framebuffers)
+    : render_pass_{render_pass}, framebuffers_{std::move(framebuffers)} {}
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   RenderPass(const RenderPass&) = delete;
   RenderPass& operator=(const RenderPass&) = delete;
 
-  ~RenderPass() { Cleanup(); }
-
-  void Init(std::shared_ptr<Context> context);
-  void Cleanup();
+  ~RenderPass();
 
   const VkRenderPass& operator*() const { return render_pass_; }
   const VkFramebuffer& framebuffer(int index) const
       { return framebuffers_[index]; }
 
  private:
-  std::shared_ptr<Context> context_;
+  SharedBasicContext context_;
   VkRenderPass render_pass_;
-  DepthStencilImage depth_stencil_;
   std::vector<VkFramebuffer> framebuffers_;
+};
+
+class RenderPassBuilder {
+ public:
+  RenderPassBuilder() = default;
+
+  // This class is neither copyable nor movable.
+  RenderPassBuilder(const RenderPassBuilder&) = delete;
+  RenderPassBuilder& operator=(const RenderPassBuilder&) = delete;
+
+  // Init() should always be called first.
+  RenderPassBuilder& Init(SharedBasicContext context);
+
+  // All these information must be set before Build().
+
+  // Build() can be called multiple times.
+  std::unique_ptr<RenderPass> Build();
+
+ private:
+  SharedBasicContext context_;
+  std::vector<VkAttachmentDescription> attachment_descriptions_;
+  std::vector<VkSubpassDescription> subpass_descriptions_;
+  std::vector<VkSubpassDependency> subpass_dependencies_;
 };
 
 } /* namespace vulkan */

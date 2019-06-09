@@ -60,14 +60,16 @@ class Window {
 #ifdef USE_VULKAN
 // All subclasses of Window should implement this method.
 template <typename WindowClass>
-const std::vector<const char*>& GetExtensionsRequiredForWindow() { return {}; }
+const std::vector<const char*>& GetExtensionsRequiredForWindow() {
+  throw std::runtime_error{"Not implemented"};
+}
 #endif /* USE_VULKAN */
 
 class GlfwWindow : public Window {
  public:
   GlfwWindow() = default;
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   GlfwWindow(const GlfwWindow&) = delete;
   GlfwWindow& operator=(const GlfwWindow&) = delete;
 

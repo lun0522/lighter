@@ -47,7 +47,6 @@ class WindowContext {
       window_.Init(name, {width, height});
       auto create_surface = [this](const VkAllocationCallbacks* allocator,
                                    const VkInstance& instance) {
-        // TODO: possible to put this directly in BasicContext?
         window_.CreateSurface(instance, allocator);
       };
       context_->Init(allocator, /*window_support=*/{
@@ -59,7 +58,7 @@ class WindowContext {
       });
     }
     auto screen_size = window_.screen_size();
-    swapchain_.Init(context_, surface_, screen_size.x, screen_size.y);
+    swapchain_.Init(context_, surface_, {screen_size.x, screen_size.y});
   }
 
   void Cleanup() { swapchain_.Cleanup(); }

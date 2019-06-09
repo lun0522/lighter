@@ -27,7 +27,7 @@ class Semaphores {
  public:
   Semaphores() = default;
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   Semaphores(const Semaphores&) = delete;
   Semaphores& operator=(const Semaphores&) = delete;
 
@@ -46,7 +46,7 @@ class Fences {
  public:
   Fences() = default;
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   Fences(const Fences&) = delete;
   Fences& operator=(const Fences&) = delete;
 

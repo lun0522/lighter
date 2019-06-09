@@ -62,27 +62,34 @@ namespace vulkan {
  *    Border color
  *    Use image coordinates or normalized coordianates
  */
-
-class SwapChainImage {
+class Image {
  public:
-  SwapChainImage() = default;
+  explicit Image(SharedBasicContext context) : context_{std::move(context)} {}
 
-  // This class is neither copyable nor movable
-  SwapChainImage(const SwapChainImage&) = delete;
-  SwapChainImage& operator=(const SwapChainImage&) = delete;
-
-  ~SwapChainImage();
-
-  void Init(SharedBasicContext context, const VkImage& image, VkFormat format);
+  virtual ~Image() {
+    vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
+  }
 
   const VkImageView& image_view() const { return image_view_; }
 
- private:
+ protected:
   SharedBasicContext context_;
   VkImageView image_view_;
 };
 
-class TextureImage {
+class SwapChainImage : public Image {
+ public:
+  // Inherits constructor.
+  using Image::Image;
+
+  // This class is neither copyable nor movable.
+  SwapChainImage(const SwapChainImage&) = delete;
+  SwapChainImage& operator=(const SwapChainImage&) = delete;
+
+  void Init(const VkImage& image, VkFormat format);
+};
+
+class TextureImage : public Image {
  public:
   // Textures will be put in a unified resource pool. For single images, its
   // file path will be used as identifier; for cubemaps, its directory will be
@@ -99,43 +106,36 @@ class TextureImage {
   static SharedTexture GetTexture(const SharedBasicContext& context,
                                   const SourcePath& source_path);
 
-  TextureImage(SharedBasicContext context, const SourcePath& source_path);
+  TextureImage(const SharedBasicContext& context,
+               const SourcePath& source_path);
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   TextureImage(const TextureImage&) = delete;
   TextureImage& operator=(const TextureImage&) = delete;
 
-  ~TextureImage();
+  ~TextureImage() override {
+    vkDestroySampler(*context_->device(), sampler_, context_->allocator());
+  }
 
   VkDescriptorImageInfo descriptor_info() const;
 
  private:
-  SharedBasicContext context_;
   TextureBuffer buffer_;
-  VkImageView image_view_;
   VkSampler sampler_;
 };
 
-class DepthStencilImage {
+class DepthStencilImage : public Image {
  public:
-  DepthStencilImage() = default;
+  DepthStencilImage(SharedBasicContext context, VkExtent2D extent);
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   DepthStencilImage(const DepthStencilImage&) = delete;
   DepthStencilImage& operator=(const DepthStencilImage&) = delete;
 
-  ~DepthStencilImage() { Cleanup(); }
-
-  void Init(SharedBasicContext context, VkExtent2D extent);
-  void Cleanup();
-
-  VkFormat format()               const { return buffer_.format(); }
-  const VkImageView& image_view() const { return image_view_; }
+  VkFormat format() const { return buffer_.format(); }
 
  private:
-  SharedBasicContext context_;
   DepthStencilBuffer buffer_;
-  VkImageView image_view_;
 };
 
 } /* namespace vulkan */

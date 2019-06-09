@@ -20,7 +20,6 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using common::Image;
 using std::runtime_error;
 
 VkImageView CreateImageView(const SharedBasicContext& context,
@@ -104,16 +103,9 @@ VkSampler CreateSampler(const SharedBasicContext& context) {
 
 } /* namespace */
 
-void SwapChainImage::Init(SharedBasicContext context,
-                          const VkImage& image, VkFormat format) {
-  context_ = std::move(context);
+void SwapChainImage::Init(const VkImage& image, VkFormat format) {
   image_view_ = CreateImageView(context_, image, format,
                                 VK_IMAGE_ASPECT_COLOR_BIT, /*layer_count=*/1);
-}
-
-SwapChainImage::~SwapChainImage() {
-  // images are implicitly cleaned up with swapchain
-  vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
 }
 
 TextureImage::SharedTexture TextureImage::GetTexture(
@@ -129,20 +121,21 @@ TextureImage::SharedTexture TextureImage::GetTexture(
   return SharedTexture::Get(*identifier, context, source_path);
 }
 
-TextureImage::TextureImage(SharedBasicContext context,
+TextureImage::TextureImage(const SharedBasicContext& context,
                            const SourcePath& source_path)
-    : context_{std::move(context)} {
-  using CubemapImage = std::array<std::unique_ptr<Image>,
-                                  buffer::kCubemapImageCount>;
-  using SourceImage = absl::variant<std::unique_ptr<Image>, CubemapImage>;
+    : Image{context}, buffer_{context} {
+  using RawImage = std::unique_ptr<common::Image>;
+  using CubemapImage = std::array<RawImage, buffer::kCubemapImageCount>;
+  using SourceImage =absl::variant<RawImage, CubemapImage>;
 
   SourceImage source_image;
-  const Image* sample_image;
+  const common::Image* sample_image;
   std::vector<const void*> datas;
 
   if (absl::holds_alternative<SingleTexPath>(source_path)) {
-    auto& image = source_image.emplace<std::unique_ptr<Image>>(
-        absl::make_unique<Image>(absl::get<SingleTexPath>(source_path)));
+    const auto& path = absl::get<SingleTexPath>(source_path);
+    auto& image = source_image.emplace<RawImage>(
+        absl::make_unique<common::Image>(path));
     sample_image = image.get();
     datas.emplace_back(image->data);
   } else if (absl::holds_alternative<CubemapPath>(source_path)) {
@@ -150,7 +143,7 @@ TextureImage::TextureImage(SharedBasicContext context,
     auto& images = source_image.emplace<CubemapImage>();
     datas.resize(cubemap_path.files.size());
     for (int i = 0; i < cubemap_path.files.size(); ++i) {
-      images[i] = absl::make_unique<Image>(absl::StrFormat(
+      images[i] = absl::make_unique<common::Image>(absl::StrFormat(
           "%s/%s", cubemap_path.directory,cubemap_path.files[i]));
       datas[i] = images[i]->data;
     }
@@ -179,7 +172,7 @@ TextureImage::TextureImage(SharedBasicContext context,
       static_cast<uint32_t>(sample_image->height),
       static_cast<uint32_t>(sample_image->channel),
   };
-  buffer_.Init(context_, image_info);
+  buffer_.Init(image_info);
   image_view_ = CreateImageView(context_, buffer_.image(), format,
                                 VK_IMAGE_ASPECT_COLOR_BIT,
                                 /*layer_count=*/CONTAINER_SIZE(datas));
@@ -194,22 +187,13 @@ VkDescriptorImageInfo TextureImage::descriptor_info() const {
   };
 }
 
-TextureImage::~TextureImage() {
-  vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
-  vkDestroySampler(*context_->device(), sampler_, context_->allocator());
-}
-
-void DepthStencilImage::Init(SharedBasicContext context, VkExtent2D extent) {
-  context_ = std::move(context);
-  buffer_.Init(context_, extent);
+DepthStencilImage::DepthStencilImage(SharedBasicContext context,
+                                     VkExtent2D extent)
+    : Image{std::move(context)}, buffer_{context_, extent} {
   image_view_ = CreateImageView(context_, buffer_.image(), format(),
                                 VK_IMAGE_ASPECT_DEPTH_BIT
                                     | VK_IMAGE_ASPECT_STENCIL_BIT,
                                 /*layer_count=*/1);
-}
-
-void DepthStencilImage::Cleanup() {
-  vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
 }
 
 } /* namespace vulkan */

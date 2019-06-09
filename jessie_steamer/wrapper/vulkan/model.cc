@@ -13,7 +13,6 @@
 #include "absl/memory/memory.h"
 #include "absl/strings/str_format.h"
 #include "jessie_steamer/common/file.h"
-#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
@@ -184,18 +183,15 @@ vector<VkPushConstantRange> CreatePushConstantRanges(
 
 } /* namespace */
 
-void Model::Init(SharedContext context,
-                 const vector<PipelineBuilder::ShaderInfo>& shader_infos,
+void Model::Init(const vector<PipelineBuilder::ShaderInfo>& shader_infos,
                  const ModelResource& resource,
                  const optional<UniformInfos>& uniform_infos,
                  const optional<InstancingInfo>& instancing_info,
                  const optional<PushConstantInfos>& push_constant_infos,
-                 int num_frame,
-                 bool is_opaque) {
+                 VkExtent2D frame_size, int num_frame, bool is_opaque) {
   if (is_first_time_) {
     is_first_time_ = false;
 
-    context_ = move(context);
     push_constant_infos_ = push_constant_infos;
 
     if (instancing_info.has_value()) {
@@ -246,17 +242,16 @@ void Model::Init(SharedContext context,
   }
 
   // create pipeline
-  VkExtent2D target_extent = context_->swapchain().extent();
   pipeline_builder_.set_viewport({
       /*x=*/0.0f,
       /*y=*/0.0f,
-      static_cast<float>(target_extent.width),
-      static_cast<float>(target_extent.height),
+      static_cast<float>(frame_size.width),
+      static_cast<float>(frame_size.height),
       /*minDepth=*/0.0f,
       /*maxDepth=*/1.0f,
       }).set_scissor({
       /*offset=*/{0, 0},
-      target_extent,
+      frame_size,
   });
   for (const auto& info : shader_infos) {
     pipeline_builder_.add_shader(info);
@@ -268,8 +263,7 @@ Model::FindBindingPoint Model::LoadSingleMesh(
     const SingleMeshResource& resource) {
   // load vertices and indices
   common::ObjFile file{resource.obj_path, resource.obj_index_base};
-  vertex_buffer_.Init(
-     context_, {CreateVertexInfo(file.vertices, file.indices)});
+  vertex_buffer_.Init({CreateVertexInfo(file.vertices, file.indices)});
 
   // load textures
   meshes_.emplace_back();
@@ -298,7 +292,7 @@ Model::FindBindingPoint Model::LoadMultiMesh(
   for (const auto &mesh : loader.meshes()) {
     vertex_infos.emplace_back(CreateVertexInfo(mesh.vertices, mesh.indices));
   }
-  vertex_buffer_.Init(context_, vertex_infos);
+  vertex_buffer_.Init(vertex_infos);
 
   // load textures
   BindingPointMap binding_map = resource.binding_map;

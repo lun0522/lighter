@@ -10,7 +10,6 @@
 
 #include <array>
 #include <functional>
-#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -19,6 +18,7 @@
 #include "absl/types/optional.h"
 #include "absl/types/variant.h"
 #include "jessie_steamer/common/model_loader.h"
+#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
@@ -28,8 +28,6 @@
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
-
-class Context;
 
 class Model {
  public:
@@ -94,20 +92,19 @@ class Model {
   };
   using PushConstantInfos = std::vector<PushConstantInfo>;
 
-  Model() = default;
+  explicit Model(const SharedBasicContext& context)
+    : context_{context}, vertex_buffer_{context} {}
 
   // This class is neither copyable nor movable.
   Model(const Model&) = delete;
   Model& operator=(const Model&) = delete;
 
-  void Init(std::shared_ptr<Context> context,
-            const std::vector<PipelineBuilder::ShaderInfo>& shader_infos,
+  void Init(const std::vector<PipelineBuilder::ShaderInfo>& shader_infos,
             const ModelResource& resource,
             const absl::optional<UniformInfos>& uniform_infos,
             const absl::optional<InstancingInfo>& instancing_info,
             const absl::optional<PushConstantInfos>& push_constant_infos,
-            int num_frame,
-            bool is_opaque);
+            VkExtent2D frame_size, int num_frame, bool is_opaque);
   void Draw(const VkCommandBuffer& command_buffer,
             int frame, uint32_t instance_count) const;
 
@@ -119,12 +116,12 @@ class Model {
                          int num_frame);
 
   bool is_first_time_ = true;
-  std::shared_ptr<Context> context_;
+  SharedBasicContext context_;
   PerVertexBuffer vertex_buffer_;
   std::vector<Mesh> meshes_;
   std::vector<std::vector<std::unique_ptr<Descriptor>>> descriptors_;
   // TODO: deal with shared resource in better way
-  PerInstanceBuffer* per_instance_buffer_ = nullptr;
+  const PerInstanceBuffer* per_instance_buffer_ = nullptr;
   absl::optional<PushConstantInfos> push_constant_infos_;
   PipelineBuilder pipeline_builder_;
   std::unique_ptr<Pipeline> pipeline_;

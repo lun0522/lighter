@@ -62,20 +62,35 @@ struct CopyInfo {
  *    VkDevice
  *    VkPhysicalDevice
  */
-class VertexBuffer {
+class Buffer {
  public:
-  virtual ~VertexBuffer();
+  explicit Buffer(SharedBasicContext context) : context_{std::move(context)} {}
+  virtual ~Buffer() {
+    vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
+  }
+
+ protected:
+  SharedBasicContext context_;
+  VkDeviceMemory device_memory_;
+};
+
+class DataBuffer : public Buffer {
+ public:
+  // Inherits constructor.
+  using Buffer::Buffer;
+
+  ~DataBuffer() override {
+    vkDestroyBuffer(*context_->device(), buffer_, context_->allocator());
+  }
 
  protected:
   void CopyHostData(const std::vector<buffer::CopyInfo>& copy_infos,
                     size_t total_size);
 
-  SharedBasicContext context_;
   VkBuffer buffer_;
-  VkDeviceMemory device_memory_;
 };
 
-class PerVertexBuffer : public VertexBuffer {
+class PerVertexBuffer : public DataBuffer {
  public:
   struct Info {
     struct Field {
@@ -86,15 +101,14 @@ class PerVertexBuffer : public VertexBuffer {
     Field vertices, indices;
   };
 
-  PerVertexBuffer() = default;
+  // Inherits constructor.
+  using DataBuffer::DataBuffer;
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   PerVertexBuffer(const PerVertexBuffer&) = delete;
   PerVertexBuffer& operator=(const PerVertexBuffer&) = delete;
 
-  ~PerVertexBuffer() override = default;
-
-  void Init(SharedBasicContext context, const std::vector<Info>& infos);
+  void Init(const std::vector<Info>& infos);
   void Draw(const VkCommandBuffer& command_buffer,
             int mesh_index, uint32_t instance_count) const;
 
@@ -107,31 +121,31 @@ class PerVertexBuffer : public VertexBuffer {
   std::vector<MeshData> mesh_datas_;
 };
 
-class PerInstanceBuffer : public VertexBuffer {
+class PerInstanceBuffer : public DataBuffer {
  public:
-  PerInstanceBuffer() = default;
+  // Inherits constructor.
+  using DataBuffer::DataBuffer;
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   PerInstanceBuffer(const PerInstanceBuffer&) = delete;
   PerInstanceBuffer& operator=(const PerInstanceBuffer&) = delete;
 
-  ~PerInstanceBuffer() override = default;
-
-  void Init(SharedBasicContext context, const void* data, size_t data_size);
-  void Bind(const VkCommandBuffer& command_buffer);
+  void Init(const void* data, size_t data_size);
+  void Bind(const VkCommandBuffer& command_buffer) const;
 };
 
-class UniformBuffer {
+class UniformBuffer : public DataBuffer {
  public:
-  UniformBuffer() = default;
+  // Inherits constructor.
+  using DataBuffer::DataBuffer;
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   UniformBuffer(const UniformBuffer&) = delete;
   UniformBuffer& operator=(const UniformBuffer&) = delete;
 
-  ~UniformBuffer();
+  ~UniformBuffer() override { delete data_; }
 
-  void Init(SharedBasicContext context, size_t chunk_size, int num_chunk);
+  void Init(size_t chunk_size, int num_chunk);
   void Flush(int chunk_index) const;
 
   template <typename DataType>
@@ -142,14 +156,26 @@ class UniformBuffer {
   VkDescriptorBufferInfo descriptor_info(int chunk_index) const;
 
  private:
-  SharedBasicContext context_;
   char* data_;
   size_t chunk_memory_size_, chunk_data_size_;
-  VkBuffer buffer_;
-  VkDeviceMemory device_memory_;
 };
 
-class TextureBuffer {
+class ImageBuffer : public Buffer {
+ public:
+  // Inherits constructor.
+  using Buffer::Buffer;
+
+  ~ImageBuffer() override {
+    vkDestroyImage(*context_->device(), image_, context_->allocator());
+  }
+
+  const VkImage& image() const { return image_; }
+
+ protected:
+  VkImage image_;
+};
+
+class TextureBuffer : public ImageBuffer {
  public:
   struct Info{
     VkExtent3D extent() const { return {width, height, /*depth=*/1}; }
@@ -164,44 +190,27 @@ class TextureBuffer {
     uint32_t channel;
   };
 
-  TextureBuffer() = default;
+  // Inherits constructor.
+  using ImageBuffer::ImageBuffer;
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   TextureBuffer(const TextureBuffer&) = delete;
   TextureBuffer& operator=(const TextureBuffer&) = delete;
 
-  ~TextureBuffer();
-
-  void Init(SharedBasicContext context, const Info& info);
-
-  const VkImage& image() const { return image_; }
-
- private:
-  SharedBasicContext context_;
-  VkImage image_;
-  VkDeviceMemory device_memory_;
+  void Init(const Info& info);
 };
 
-class DepthStencilBuffer {
+class DepthStencilBuffer : public ImageBuffer {
  public:
-  DepthStencilBuffer() = default;
+  DepthStencilBuffer(SharedBasicContext context, VkExtent2D extent);
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   DepthStencilBuffer(const DepthStencilBuffer&) = delete;
   DepthStencilBuffer& operator=(const DepthStencilBuffer&) = delete;
 
-  ~DepthStencilBuffer() { Cleanup(); }
-
-  void Init(SharedBasicContext context, VkExtent2D extent);
-  void Cleanup();
-
-  const VkImage& image() const { return image_; }
-  VkFormat format()      const { return format_; }
+  VkFormat format() const { return format_; }
 
  private:
-  SharedBasicContext context_;
-  VkImage image_;
-  VkDeviceMemory device_memory_;
   VkFormat format_;
 };
 

@@ -97,18 +97,15 @@ const vector<const char*>& Swapchain::required_extensions() {
 }
 
 void Swapchain::Init(SharedBasicContext basic_context,
-                     const VkSurfaceKHR& surface,
-                     int screen_width, int screen_height) {
+                     const VkSurfaceKHR& surface, VkExtent2D screen_size) {
   context_ = std::move(basic_context);
   const VkPhysicalDevice& physical_device = *context_->physical_device();
 
   // surface capabilities
   VkSurfaceCapabilitiesKHR surface_capabilities;
-  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-      physical_device, surface, &surface_capabilities);
-  VkExtent2D image_extent = ChooseExtent(
-      surface_capabilities, {static_cast<uint32_t>(screen_width),
-                             static_cast<uint32_t>(screen_height)});
+  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface,
+                                            &surface_capabilities);
+  VkExtent2D image_extent = ChooseExtent(surface_capabilities, screen_size);
 
   // surface formats
   auto surface_formats{util::QueryAttribute<VkSurfaceFormatKHR>(
@@ -189,8 +186,8 @@ void Swapchain::Init(SharedBasicContext basic_context,
   )};
   images_.reserve(images.size());
   for (int i = 0; i < images.size(); ++i) {
-    images_.emplace_back(absl::make_unique<SwapChainImage>());
-    images_[i]->Init(context_, images[i], image_format_);
+    images_.emplace_back(absl::make_unique<SwapChainImage>(context_));
+    images_[i]->Init(images[i], image_format_);
   }
 }
 

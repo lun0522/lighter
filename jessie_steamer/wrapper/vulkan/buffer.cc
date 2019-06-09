@@ -297,8 +297,8 @@ void CopyBufferToImage(const SharedBasicContext& context,
 
 } /* namespace */
 
-void VertexBuffer::CopyHostData(const vector<buffer::CopyInfo>& copy_infos,
-                                size_t total_size) {
+void DataBuffer::CopyHostData(const vector<buffer::CopyInfo>& copy_infos,
+                              size_t total_size) {
   // create staging buffer and associated memory
   VkBuffer staging_buffer = CreateBuffer(           // source of transfer
       context_, total_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
@@ -328,10 +328,7 @@ void VertexBuffer::CopyHostData(const vector<buffer::CopyInfo>& copy_infos,
   vkFreeMemory(*context_->device(), staging_memory, context_->allocator());
 }
 
-void PerVertexBuffer::Init(SharedBasicContext context,
-                           const vector<PerVertexBuffer::Info>& infos) {
-  context_ = std::move(context);
-
+void PerVertexBuffer::Init(const vector<PerVertexBuffer::Info>& infos) {
   mesh_datas_.reserve(infos.size());
   vector<buffer::CopyInfo> copy_infos;
   copy_infos.reserve(infos.size() * 2);
@@ -368,27 +365,17 @@ void PerVertexBuffer::Draw(const VkCommandBuffer& command_buffer,
                    /*firstIndex=*/0, /*vertexOffset=*/0, /*firstInstance=*/0);
 }
 
-void PerInstanceBuffer::Init(SharedBasicContext context,
-                             const void* data, size_t data_size) {
-  context_ = std::move(context);
+void PerInstanceBuffer::Init(const void* data, size_t data_size) {
   CopyHostData({{data, data_size, /*offset=*/0}}, data_size);
 }
 
-void PerInstanceBuffer::Bind(const VkCommandBuffer& command_buffer) {
+void PerInstanceBuffer::Bind(const VkCommandBuffer& command_buffer) const {
   static constexpr VkDeviceSize offset = 0;
   vkCmdBindVertexBuffers(command_buffer, buffer::kPerInstanceBindingPoint,
                          /*bindingCount=*/1, &buffer_, &offset);
 }
 
-VertexBuffer::~VertexBuffer() {
-  vkDestroyBuffer(*context_->device(), buffer_, context_->allocator());
-  vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
-}
-
-void UniformBuffer::Init(SharedBasicContext context,
-                         size_t chunk_size, int num_chunk) {
-  context_ = std::move(context);
-
+void UniformBuffer::Init(size_t chunk_size, int num_chunk) {
   // offset is required to be multiple of minUniformBufferOffsetAlignment
   // which is why we have actual data size |chunk_data_size_| and its
   // aligned size |chunk_memory_size_|
@@ -415,12 +402,6 @@ void UniformBuffer::Flush(int chunk_index) const {
       {{data_ + src_offset, chunk_data_size_, /*offset=*/0}});
 }
 
-UniformBuffer::~UniformBuffer() {
-  delete data_;
-  vkDestroyBuffer(*context_->device(), buffer_, context_->allocator());
-  vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
-}
-
 VkDescriptorBufferInfo UniformBuffer::descriptor_info(
     int chunk_index) const {
   return VkDescriptorBufferInfo{
@@ -430,9 +411,7 @@ VkDescriptorBufferInfo UniformBuffer::descriptor_info(
   };
 }
 
-void TextureBuffer::Init(SharedBasicContext context, const Info& info) {
-  context_ = std::move(context);
-
+void TextureBuffer::Init(const Info& info) {
   VkExtent3D image_extent = info.extent();
   VkDeviceSize data_size = info.data_size();
 
@@ -490,14 +469,9 @@ void TextureBuffer::Init(SharedBasicContext context, const Info& info) {
   vkFreeMemory(*context_->device(), staging_memory, context_->allocator());
 }
 
-TextureBuffer::~TextureBuffer() {
-  vkDestroyImage(*context_->device(), image_, context_->allocator());
-  vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
-}
-
-void DepthStencilBuffer::Init(SharedBasicContext context, VkExtent2D extent) {
-  context_ = std::move(context);
-
+DepthStencilBuffer::DepthStencilBuffer(SharedBasicContext context,
+                                       VkExtent2D extent)
+    : ImageBuffer{std::move(context)} {
   // no need to send any data to buffer
   format_ = FindImageFormat(
       context_, {VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT_S8_UINT},
@@ -518,11 +492,6 @@ void DepthStencilBuffer::Init(SharedBasicContext context, VkExtent2D extent) {
                         {VK_PIPELINE_STAGE_HOST_BIT,
                          VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT},
                         /*layer_count=*/1);
-}
-
-void DepthStencilBuffer::Cleanup() {
-  vkDestroyImage(*context_->device(), image_, context_->allocator());
-  vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
 }
 
 void PushConstant::Init(size_t chunk_size, int num_chunk) {

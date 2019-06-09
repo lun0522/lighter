@@ -9,11 +9,17 @@
 #define JESSIE_STEAMER_COMMON_UTIL_H
 
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/types/optional.h"
+
+#define ASSERT_HAS_VALUE(object, error) \
+  if (!object.has_value()) {            \
+    throw std::runtime_error{error};    \
+  }
 
 namespace jessie_steamer {
 namespace common {

@@ -5,8 +5,7 @@ cc_library(
     hdrs = ["util.h"],
     deps = [
         "//jessie_steamer/application:resource",
-        "//jessie_steamer/wrapper/vulkan",
-        "//jessie_steamer/wrapper/vulkan:vulkan_wrapper",
+        "//jessie_steamer/wrapper/vulkan:on_screen",
         "//third_party:vulkan",
     ],
 )

@@ -7,9 +7,6 @@
 
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
 
-#include <array>
-
-#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
@@ -18,7 +15,7 @@ namespace vulkan {
 namespace {
 
 std::vector<VkFramebuffer> CreateFramebuffers(
-    const SharedContext& context,
+    const SharedBasicContext& context,
     const DepthStencilImage& depth_stencil_image) {
   const Swapchain& swapchain = context->swapchain();
 
@@ -53,7 +50,7 @@ std::vector<VkFramebuffer> CreateFramebuffers(
 
 } /* namespace */
 
-void RenderPass::Init(SharedContext context) {
+void RenderPass::Init(SharedBasicContext context) {
   context_ = std::move(context);
   depth_stencil_.Init(context_, context_->swapchain().extent());
 
@@ -154,8 +151,34 @@ void RenderPass::Init(SharedContext context) {
   framebuffers_ = CreateFramebuffers(context_, depth_stencil_);
 }
 
-void RenderPass::Cleanup() {
-  depth_stencil_.Cleanup();
+RenderPassBuilder& RenderPassBuilder::Init(SharedBasicContext context) {
+  context_ = std::move(context);
+
+
+}
+
+std::unique_ptr<RenderPass> RenderPassBuilder::Build() {
+  VkRenderPassCreateInfo render_pass_info{
+      VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/nullflag,
+      CONTAINER_SIZE(attachment_descriptions_),
+      attachment_descriptions_.data(),
+      CONTAINER_SIZE(subpass_descriptions_),
+      subpass_descriptions_.data(),
+      CONTAINER_SIZE(subpass_dependencies_),
+      subpass_dependencies_.data(),
+  };
+
+  VkRenderPass render_pass;
+  ASSERT_SUCCESS(vkCreateRenderPass(*context_->device(), &render_pass_info,
+                                    context_->allocator(), &render_pass),
+                 "Failed to create render pass");
+
+  framebuffers_ = CreateFramebuffers(context_, depth_stencil_);
+}
+
+RenderPass::~RenderPass() {
   for (const auto& framebuffer : framebuffers_) {
     vkDestroyFramebuffer(*context_->device(), framebuffer,
                          context_->allocator());

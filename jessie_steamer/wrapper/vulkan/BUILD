@@ -4,24 +4,12 @@ cc_library(
     name = "on_screen",
     deps = [
         ":command",
+        ":model",
+        ":render_pass",
         ":window",
     ],
     data = ["@resource//:resource"],
     visibility = ["//jessie_steamer:__subpackages__"],
-)
-
-cc_library(
-    name = "vulkan_wrapper",
-    srcs = [
-        "model.cc",
-        "pipeline.cc",
-        "render_pass.cc",
-    ],
-    hdrs = [
-        "model.h",
-        "pipeline.h",
-        "render_pass.h",
-    ],
 )
 
 cc_library(
@@ -109,6 +97,55 @@ cc_library(
     deps = [
         "//third_party:vulkan",
         "@lib-absl//absl/strings:str_format",
+    ],
+)
+
+cc_library(
+    name = "model",
+    hdrs = ["model.h"],
+    srcs = ["model.cc"],
+    deps = [
+        ":basics",
+        ":buffer",
+        ":descriptor",
+        ":image",
+        ":macro",
+        ":pipeline",
+        "//jessie_steamer/common:file",
+        "//jessie_steamer/common:model_loader",
+        "//third_party:vulkan",
+        "@lib-absl//absl/memory",
+        "@lib-absl//absl/container:flat_hash_map",
+        "@lib-absl//absl/strings:str_format",
+        "@lib-absl//absl/types:optional",
+        "@lib-absl//absl/types:variant",
+    ],
+)
+
+cc_library(
+    name = "pipeline",
+    hdrs = ["pipeline.h"],
+    srcs = ["pipeline.cc"],
+    deps = [
+        ":basics",
+        ":macro",
+        "//jessie_steamer/common:file",
+        "//jessie_steamer/common:util",
+        "//third_party:vulkan",
+        "@lib-absl//absl/memory",
+        "@lib-absl//absl/types:optional",
+    ],
+)
+
+cc_library(
+    name = "render_pass",
+    hdrs = ["render_pass.h"],
+    srcs = ["render_pass.cc"],
+    deps = [
+        ":basics",
+        ":image",
+        ":macro",
+        "//third_party:vulkan",
     ],
 )
 

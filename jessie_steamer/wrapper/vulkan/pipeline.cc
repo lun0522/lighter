@@ -9,8 +9,9 @@
 
 #include <stdexcept>
 
+#include "absl/memory/memory.h"
 #include "jessie_steamer/common/file.h"
-#include "jessie_steamer/wrapper/vulkan/basic_context.h"
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
@@ -21,7 +22,7 @@ namespace {
 using std::runtime_error;
 using std::vector;
 
-VkShaderModule CreateShaderModule(const SharedContext& context,
+VkShaderModule CreateShaderModule(const SharedBasicContext& context,
                                   const std::string& path) {
   const auto raw_data = absl::make_unique<common::RawData>(path);
   VkShaderModuleCreateInfo module_info{
@@ -42,10 +43,10 @@ VkShaderModule CreateShaderModule(const SharedContext& context,
 
 } /* namespace */
 
-PipelineBuilder& PipelineBuilder::Init(SharedContext context) {
-  this->context = std::move(context);
+PipelineBuilder& PipelineBuilder::Init(SharedBasicContext context) {
+  context_ = std::move(context);
 
-  input_assembly_info = {
+  input_assembly_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
@@ -55,7 +56,7 @@ PipelineBuilder& PipelineBuilder::Init(SharedContext context) {
       /*primitiveRestartEnable=*/VK_FALSE,
   };
 
-  rasterizer_info = {
+  rasterizer_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
@@ -75,7 +76,7 @@ PipelineBuilder& PipelineBuilder::Init(SharedContext context) {
       /*lineWidth=*/1.0f,
   };
 
-  multisample_info = {
+  multisample_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
@@ -87,7 +88,7 @@ PipelineBuilder& PipelineBuilder::Init(SharedContext context) {
       /*alphaToOneEnable=*/VK_FALSE,
   };
 
-  depth_stencil_info = {
+  depth_stencil_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
@@ -104,7 +105,7 @@ PipelineBuilder& PipelineBuilder::Init(SharedContext context) {
   };
 
   // config per attached framebuffer
-  color_blend_attachment = {
+  color_blend_attachment_ = {
       /*blendEnable=*/VK_FALSE,
       /*srcColorBlendFactor=*/VK_BLEND_FACTOR_ZERO,
       /*dstColorBlendFactor=*/VK_BLEND_FACTOR_ZERO,
@@ -119,20 +120,20 @@ PipelineBuilder& PipelineBuilder::Init(SharedContext context) {
   };
 
   // global color blending settings
-  color_blend_info = {
+  color_blend_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
       /*logicOpEnable=*/VK_FALSE,
       /*logicOp=*/VK_LOGIC_OP_CLEAR,
       /*attachmentCount=*/1,
-      &color_blend_attachment,
+      &color_blend_attachment_,
       /*blendConstants=*/{0.0f, 0.0f, 0.0f, 0.0f},
       // may set blend constants here
   };
 
   // some properties can be modified without recreating entire pipeline
-  dynamic_state_info = {
+  dynamic_state_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
@@ -146,18 +147,18 @@ PipelineBuilder& PipelineBuilder::Init(SharedContext context) {
 PipelineBuilder& PipelineBuilder::set_vertex_input(
     const vector<VkVertexInputBindingDescription>& binding_descriptions,
     const vector<VkVertexInputAttributeDescription>& attribute_descriptions) {
-  this->binding_descriptions = binding_descriptions;
-  this->attribute_descriptions = attribute_descriptions;
-  vertex_input_info = {
+  binding_descriptions_ = binding_descriptions;
+  attribute_descriptions_ = attribute_descriptions;
+  vertex_input_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
       // vertex binding descriptions
-      CONTAINER_SIZE(this->binding_descriptions),
-      this->binding_descriptions.data(),
+      CONTAINER_SIZE(binding_descriptions_),
+      binding_descriptions_.data(),
       // vertex attribute descriptions
-      CONTAINER_SIZE(this->attribute_descriptions),
-      this->attribute_descriptions.data(),
+      CONTAINER_SIZE(attribute_descriptions_),
+      attribute_descriptions_.data(),
   };
   return *this;
 }
@@ -165,16 +166,16 @@ PipelineBuilder& PipelineBuilder::set_vertex_input(
 PipelineBuilder& PipelineBuilder::set_layout(
     const vector<VkDescriptorSetLayout>& descriptor_layouts,
     const vector<VkPushConstantRange>& push_constant_ranges) {
-  this->descriptor_layouts = descriptor_layouts;
-  this->push_constant_ranges = push_constant_ranges;
-  layout_info = {
+  descriptor_layouts_ = descriptor_layouts;
+  push_constant_ranges_ = push_constant_ranges;
+  layout_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
-      CONTAINER_SIZE(this->descriptor_layouts),
-      this->descriptor_layouts.data(),
-      CONTAINER_SIZE(this->push_constant_ranges),
-      this->push_constant_ranges.data(),
+      CONTAINER_SIZE(descriptor_layouts_),
+      descriptor_layouts_.data(),
+      CONTAINER_SIZE(push_constant_ranges_),
+      push_constant_ranges_.data(),
   };
   return *this;
 }
@@ -184,66 +185,62 @@ PipelineBuilder& PipelineBuilder::set_viewport(VkViewport viewport) {
   float height = viewport.y - viewport.height;
   viewport.y += viewport.height;
   viewport.height = height;
-  this->viewport = viewport;
+  viewport_ = viewport;
   return *this;
 }
 
 PipelineBuilder& PipelineBuilder::set_scissor(const VkRect2D& scissor) {
-  this->scissor = scissor;
+  scissor_ = scissor;
+  return *this;
+}
+
+PipelineBuilder& PipelineBuilder::set_render_pass(
+    const VkRenderPass& render_pass) {
+  render_pass_ = render_pass;
   return *this;
 }
 
 PipelineBuilder& PipelineBuilder::add_shader(const ShaderInfo& shader_info) {
-  shader_modules.emplace_back(shader_info.first,
-                              CreateShaderModule(context, shader_info.second));
+  shader_modules_.emplace_back(
+      shader_info.first, CreateShaderModule(context_, shader_info.second));
   return *this;
 }
 
 PipelineBuilder& PipelineBuilder::enable_alpha_blend() {
-  color_blend_attachment.blendEnable = VK_TRUE;
-  color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
-  color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-  color_blend_attachment.dstColorBlendFactor =
+  color_blend_attachment_.blendEnable = VK_TRUE;
+  color_blend_attachment_.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
+  color_blend_attachment_.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+  color_blend_attachment_.dstColorBlendFactor =
       VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
-  color_blend_attachment.dstAlphaBlendFactor =
+  color_blend_attachment_.dstAlphaBlendFactor =
       VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
   return *this;
 }
 
 PipelineBuilder& PipelineBuilder::disable_depth_test() {
-  depth_stencil_info.depthTestEnable = VK_FALSE;
-  depth_stencil_info.depthWriteEnable = VK_FALSE;
+  depth_stencil_info_.depthTestEnable = VK_FALSE;
+  depth_stencil_info_.depthWriteEnable = VK_FALSE;
   return *this;
 }
 
 std::unique_ptr<Pipeline> PipelineBuilder::Build() {
-  if (!vertex_input_info.has_value()) {
-    throw runtime_error{"Vertex input info not set"};
-  }
+  ASSERT_HAS_VALUE(vertex_input_info_, "Vertex input info not set");
+  ASSERT_HAS_VALUE(layout_info_, "Layout info not set");
+  ASSERT_HAS_VALUE(viewport_, "Viewport not set");
+  ASSERT_HAS_VALUE(scissor_, "Scissor not set");
+  ASSERT_HAS_VALUE(render_pass_, "Render pass not set");
 
-  if (!layout_info.has_value()) {
-    throw runtime_error{"Layout info not set"};
-  }
-
-  if (!viewport.has_value()) {
-    throw runtime_error{"Viewport not set"};
-  }
-
-  if (!scissor.has_value()) {
-    throw runtime_error{"Scissor not set"};
-  }
-
-  const VkDevice &device = *context->device();
-  const VkAllocationCallbacks *allocator = context->allocator();
+  const VkDevice &device = *context_->device();
+  const VkAllocationCallbacks *allocator = context_->allocator();
 
   VkPipelineLayout pipeline_layout;
-  ASSERT_SUCCESS(vkCreatePipelineLayout(device, &layout_info.value(), allocator,
-                                        &pipeline_layout),
+  ASSERT_SUCCESS(vkCreatePipelineLayout(device, &layout_info_.value(),
+                                        allocator, &pipeline_layout),
                  "Failed to create pipeline layout");
 
   vector<VkPipelineShaderStageCreateInfo> shader_stages;
-  shader_stages.reserve(shader_modules.size());
-  for (const auto& module : shader_modules) {
+  shader_stages.reserve(shader_modules_.size());
+  for (const auto& module : shader_modules_) {
     shader_stages.emplace_back(VkPipelineShaderStageCreateInfo{
         VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         /*pNext=*/nullptr,
@@ -261,9 +258,9 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
       /*viewportCount=*/1,
-      &viewport.value(),
+      &viewport_.value(),
       /*scissorCount=*/1,
-      &scissor.value(),
+      &scissor_.value(),
   };
 
   VkGraphicsPipelineCreateInfo pipeline_info{
@@ -272,17 +269,17 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
       /*flags=*/nullflag,
       CONTAINER_SIZE(shader_stages),
       shader_stages.data(),
-      &vertex_input_info.value(),
-      &input_assembly_info,
+      &vertex_input_info_.value(),
+      &input_assembly_info_,
       /*pTessellationState=*/nullptr,
       &viewport_info,
-      &rasterizer_info,
-      &multisample_info,
-      &depth_stencil_info,
-      &color_blend_info,
-      &dynamic_state_info,
+      &rasterizer_info_,
+      &multisample_info_,
+      &depth_stencil_info_,
+      &color_blend_info_,
+      &dynamic_state_info_,
       pipeline_layout,
-      *context->render_pass(),
+      render_pass_.value(),
       /*subpass=*/0,  // index of subpass where pipeline will be used
       /*basePipelineHandle=*/VK_NULL_HANDLE,
       /*basePipelineIndex=*/0,
@@ -296,12 +293,12 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
       "Failed to create graphics pipeline");
 
   // shader modules can be destroyed after pipeline is constructed
-  for (auto& module : shader_modules) {
+  for (auto& module : shader_modules_) {
     vkDestroyShaderModule(device, module.second, allocator);
   }
-  shader_modules.clear();
+  shader_modules_.clear();
 
-  return absl::make_unique<Pipeline>(context, pipeline, pipeline_layout);
+  return absl::make_unique<Pipeline>(context_, pipeline, pipeline_layout);
 }
 
 Pipeline::~Pipeline() {

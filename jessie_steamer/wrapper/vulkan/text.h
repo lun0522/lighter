@@ -29,7 +29,7 @@ class StaticText {
   StaticText(const std::vector<std::string>& texts,
              Font font, glm::uvec2 font_size);
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   StaticText(const StaticText&) = delete;
   StaticText& operator=(const StaticText&) = delete;
 
@@ -42,7 +42,7 @@ class DynamicText {
   DynamicText(const std::vector<std::string>& texts,
               Font font, glm::uvec2 font_size);
 
-  // This class is neither copyable nor movable
+  // This class is neither copyable nor movable.
   DynamicText(const DynamicText&) = delete;
   DynamicText& operator=(const DynamicText&) = delete;
 
