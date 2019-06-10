@@ -42,7 +42,7 @@ uint32_t FindMemoryType(const SharedBasicContext& context,
       }
     }
   }
-  throw runtime_error{"Failed to find suitable memory types"};
+  throw runtime_error{"Failed to find suitable memory type"};
 }
 
 VkFormat FindImageFormat(const SharedBasicContext& context,
@@ -56,7 +56,7 @@ VkFormat FindImageFormat(const SharedBasicContext& context,
       return format;
     }
   }
-  throw runtime_error{"Failed to find suitable image types"};
+  throw runtime_error{"Failed to find suitable image type"};
 }
 
 VkBuffer CreateBuffer(const SharedBasicContext& context,

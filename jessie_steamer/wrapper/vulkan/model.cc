@@ -48,7 +48,7 @@ VertexInputBinding GetPerVertexBindings() {
 
 template <typename VertexType>
 VertexInputAttribute GetVertexAttributes() {
-  throw runtime_error{"Vertex types not recognized"};
+  throw runtime_error{"Vertex type not recognized"};
 }
 
 template <>
@@ -188,6 +188,7 @@ void Model::Init(const vector<PipelineBuilder::ShaderInfo>& shader_infos,
                  const optional<UniformInfos>& uniform_infos,
                  const optional<InstancingInfo>& instancing_info,
                  const optional<PushConstantInfos>& push_constant_infos,
+                 const PipelineBuilder::RenderPassInfo& render_pass_info,
                  VkExtent2D frame_size, int num_frame, bool is_opaque) {
   if (is_first_time_) {
     is_first_time_ = false;
@@ -209,7 +210,7 @@ void Model::Init(const vector<PipelineBuilder::ShaderInfo>& shader_infos,
       find_binding_point =
           LoadMultiMesh(absl::get<MultiMeshResource>(resource));
     } else {
-      throw runtime_error{"Unrecognized variant types"};
+      throw runtime_error{"Unrecognized variant type"};
     }
     CreateDescriptors(find_binding_point, uniform_infos, num_frame);
 
@@ -251,7 +252,8 @@ void Model::Init(const vector<PipelineBuilder::ShaderInfo>& shader_infos,
           /*maxDepth=*/1.0f})
       .set_scissor({
           /*offset=*/{0, 0},
-          frame_size});
+          frame_size})
+      .set_render_pass(render_pass_info);
   for (const auto& info : shader_infos) {
     pipeline_builder_.add_shader(info);
   }
@@ -305,8 +307,8 @@ Model::FindBindingPoint Model::LoadMultiMesh(
         binding_map[type] = binding_point;
       } else if (found->second != binding_point) {
         throw runtime_error{absl::StrFormat(
-            "Extra textures of types %d is bound to point %d, but mesh textures "
-            "of same types are bound to point %d",
+            "Extra textures of type %d is bound to point %d, but mesh textures "
+            "of same type are bound to point %d",
             type, binding_point, found->second)};
       }
     }

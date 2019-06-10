@@ -193,8 +193,8 @@ PipelineBuilder& PipelineBuilder::set_scissor(const VkRect2D& scissor) {
 }
 
 PipelineBuilder& PipelineBuilder::set_render_pass(
-    const VkRenderPass& render_pass) {
-  render_pass_ = render_pass;
+    const RenderPassInfo& render_pass_info) {
+  render_pass_info_ = render_pass_info;
   return *this;
 }
 
@@ -226,7 +226,7 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
   ASSERT_HAS_VALUE(layout_info_, "Layout info not set");
   ASSERT_HAS_VALUE(viewport_, "Viewport not set");
   ASSERT_HAS_VALUE(scissor_, "Scissor not set");
-  ASSERT_HAS_VALUE(render_pass_, "Render pass not set");
+  ASSERT_HAS_VALUE(render_pass_info_, "Render pass not set");
 
   const VkDevice &device = *context_->device();
   const VkAllocationCallbacks *allocator = context_->allocator();
@@ -277,8 +277,8 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
       &color_blend_info_,
       &dynamic_state_info_,
       pipeline_layout,
-      render_pass_.value(),
-      /*subpass=*/0,  // index of subpass where pipeline will be used
+      /*renderPass=*/render_pass_info_.value().first,
+      /*subpass=*/render_pass_info_.value().second,
       /*basePipelineHandle=*/VK_NULL_HANDLE,
       /*basePipelineIndex=*/0,
       // .basePipelineHandle can be used to copy settings from another piepeline

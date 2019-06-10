@@ -79,14 +79,14 @@ class Image {
   VkFormat format_;
 };
 
-class SwapChainImage : public Image {
+class SwapchainImage : public Image {
  public:
   // Inherits constructor.
   using Image::Image;
 
   // This class is neither copyable nor movable.
-  SwapChainImage(const SwapChainImage&) = delete;
-  SwapChainImage& operator=(const SwapChainImage&) = delete;
+  SwapchainImage(const SwapchainImage&) = delete;
+  SwapchainImage& operator=(const SwapchainImage&) = delete;
 
   void Init(const VkImage& image, VkFormat format);
 };
@@ -108,8 +108,7 @@ class TextureImage : public Image {
   static SharedTexture GetTexture(const SharedBasicContext& context,
                                   const SourcePath& source_path);
 
-  TextureImage(const SharedBasicContext& context,
-               const SourcePath& source_path);
+  TextureImage(SharedBasicContext context, const SourcePath& source_path);
 
   // This class is neither copyable nor movable.
   TextureImage(const TextureImage&) = delete;

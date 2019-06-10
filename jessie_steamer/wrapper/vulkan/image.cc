@@ -104,10 +104,10 @@ VkSampler CreateSampler(const SharedBasicContext& context) {
 
 } /* namespace */
 
-void SwapChainImage::Init(const VkImage& image, VkFormat format) {
-  image_view_ = CreateImageView(context_, image, format,
-                                VK_IMAGE_ASPECT_COLOR_BIT, /*layer_count=*/1);
+void SwapchainImage::Init(const VkImage& image, VkFormat format) {
   format_ = format;
+  image_view_ = CreateImageView(context_, image, format_,
+                                VK_IMAGE_ASPECT_COLOR_BIT, /*layer_count=*/1);
 }
 
 TextureImage::SharedTexture TextureImage::GetTexture(
@@ -118,14 +118,14 @@ TextureImage::SharedTexture TextureImage::GetTexture(
   } else if (absl::holds_alternative<TextureImage::CubemapPath>(source_path)) {
     identifier = &absl::get<TextureImage::CubemapPath>(source_path).directory;
   } else {
-    throw runtime_error{"Unrecognized variant types"};
+    throw runtime_error{"Unrecognized variant type"};
   }
   return SharedTexture::Get(*identifier, context, source_path);
 }
 
-TextureImage::TextureImage(const SharedBasicContext& context,
+TextureImage::TextureImage(SharedBasicContext context,
                            const SourcePath& source_path)
-    : Image{context}, buffer_{context} {
+    : Image{std::move(context)}, buffer_{context_} {
   using RawImage = std::unique_ptr<common::Image>;
   using CubemapImage = std::array<RawImage, buffer::kCubemapImageCount>;
   using SourceImage =absl::variant<RawImage, CubemapImage>;
@@ -151,7 +151,7 @@ TextureImage::TextureImage(const SharedBasicContext& context,
     }
     sample_image = images[0].get();
   } else {
-    throw runtime_error{"Unrecognized variant types"};
+    throw runtime_error{"Unrecognized variant type"};
   }
 
   switch (sample_image->channel) {
@@ -191,11 +191,11 @@ VkDescriptorImageInfo TextureImage::descriptor_info() const {
 DepthStencilImage::DepthStencilImage(SharedBasicContext context,
                                      VkExtent2D extent)
     : Image{std::move(context)}, buffer_{context_, extent} {
-  image_view_ = CreateImageView(context_, buffer_.image(), format(),
+  format_ = buffer_.format();
+  image_view_ = CreateImageView(context_, buffer_.image(), format_,
                                 VK_IMAGE_ASPECT_DEPTH_BIT
                                     | VK_IMAGE_ASPECT_STENCIL_BIT,
                                 /*layer_count=*/1);
-  format_ = buffer_.format();
 }
 
 } /* namespace vulkan */

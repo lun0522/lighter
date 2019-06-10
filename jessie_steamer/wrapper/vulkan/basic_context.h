@@ -51,10 +51,6 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
             const absl::optional<WindowSupport>& window_support) {
     allocator_ = allocator;
     instance_.Init(ptr(), window_support);
-    // Create surface if required. Caller should destruct it at the end.
-    if (window_support.has_value()) {
-      window_support.value().create_surface(allocator_, *instance_);
-    }
 #ifndef NDEBUG
     // Relay debug messages back to application.
     debug_callback_.Init(ptr(),
@@ -64,6 +60,10 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
                              | message_type::kValidation
                              | message_type::kPerformance);
 #endif /* !NDEBUG */
+    // Create surface if required. Caller should destruct it at the end.
+    if (window_support.has_value()) {
+      window_support.value().create_surface(allocator_, *instance_);
+    }
     physical_device_.Init(ptr(), window_support);
     device_.Init(ptr(), window_support);
   }

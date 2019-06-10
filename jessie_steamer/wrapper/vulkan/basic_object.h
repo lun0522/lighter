@@ -144,7 +144,7 @@ struct Queues {
   absl::flat_hash_set<uint32_t> unique_family_indices() const;
   Queues& set_queues(const VkQueue& graphics_queue,
                      const VkQueue& transfer_queue,
-                     const VkQueue* present_queue);
+                     const absl::optional<VkQueue>& present_queue);
   Queues& set_family_indices(uint32_t graphics_index,
                              uint32_t transfer_index,
                              uint32_t present_index);

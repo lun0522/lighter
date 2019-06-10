@@ -96,9 +96,9 @@ const vector<const char*>& Swapchain::required_extensions() {
   return *kSwapchainExtensions;
 }
 
-void Swapchain::Init(SharedBasicContext basic_context,
+void Swapchain::Init(SharedBasicContext context,
                      const VkSurfaceKHR& surface, VkExtent2D screen_size) {
-  context_ = std::move(basic_context);
+  context_ = std::move(context);
   const VkPhysicalDevice& physical_device = *context_->physical_device();
 
   // surface capabilities
@@ -186,7 +186,7 @@ void Swapchain::Init(SharedBasicContext basic_context,
   )};
   images_.reserve(images.size());
   for (int i = 0; i < images.size(); ++i) {
-    images_.emplace_back(absl::make_unique<SwapChainImage>(context_));
+    images_.emplace_back(absl::make_unique<SwapchainImage>(context_));
     images_[i]->Init(images[i], image_format_);
   }
 }

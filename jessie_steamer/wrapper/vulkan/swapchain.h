@@ -55,7 +55,7 @@ class Swapchain {
 
   ~Swapchain() { Cleanup(); }
 
-  void Init(SharedBasicContext basic_context,
+  void Init(SharedBasicContext context,
             const VkSurfaceKHR& surface, VkExtent2D screen_size);
   void Cleanup();
 
@@ -69,7 +69,7 @@ class Swapchain {
  private:
   SharedBasicContext context_;
   VkSwapchainKHR swapchain_;
-  std::vector<std::unique_ptr<SwapChainImage>> images_;
+  std::vector<std::unique_ptr<SwapchainImage>> images_;
   VkFormat image_format_;
   VkExtent2D image_extent_;
 };

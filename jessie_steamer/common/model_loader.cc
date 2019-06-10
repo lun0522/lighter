@@ -31,7 +31,7 @@ aiTextureType ResourceTypeToAssimpType(types::ResourceType type) {
       return aiTextureType_AMBIENT;
     default:
       throw std::runtime_error{StrFormat(
-          "Unsupported resource types: %d", type)};
+          "Unsupported resource type: %d", type)};
   }
 }
 

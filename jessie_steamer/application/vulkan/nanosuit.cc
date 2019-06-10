@@ -9,17 +9,17 @@
 #include <iostream>
 #include <string>
 
+#include "absl/memory/memory.h"
 #include "absl/strings/str_format.h"
 #include "absl/types/optional.h"
 #include "jessie_steamer/application/vulkan/util.h"
 #include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/time.h"
-#include "jessie_steamer/common/window.h"
-#include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
-#include "jessie_steamer/wrapper/vulkan/basic_context.h"
-#include "jessie_steamer/wrapper/vulkan/macro.h"
+#include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/model.h"
+#include "jessie_steamer/wrapper/vulkan/render_pass.h"
+#include "jessie_steamer/wrapper/vulkan/window_context.h"
 #include "third_party/glm/glm.hpp"
 // different from OpenGL, where depth values are in range [-1.0, 1.0]
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -55,10 +55,10 @@ struct SkyboxTrans {
 
 class NanosuitApp {
  public:
-  NanosuitApp() : context_{Context::GetContext()},
-                  command_{&*context_->device(), context_->allocator()} {
-    context_->Init("Nanosuit");
-  };
+  NanosuitApp() : command_{window_context_.basic_context()},
+                  nanosuit_model_{window_context_.basic_context()},
+                  skybox_model_{window_context_.basic_context()},
+                  nanosuit_vert_uniform_{window_context_.basic_context()} {}
   void MainLoop();
 
  private:
@@ -70,21 +70,28 @@ class NanosuitApp {
   bool is_first_time = true;
   int current_frame_ = 0;
   common::Timer timer_;
-  std::shared_ptr<Context> context_;
+  WindowContext window_context_;
   common::Camera camera_;
   PerFrameCommand command_;
   Model nanosuit_model_, skybox_model_;
   UniformBuffer nanosuit_vert_uniform_;
   PushConstant nanosuit_frag_constant_, skybox_constant_;
+  std::unique_ptr<DepthStencilImage> depth_stencil_;
+  std::unique_ptr<RenderPass> render_pass_;
 };
 
 } /* namespace */
 
 void NanosuitApp::Init() {
+  // window
+  window_context_.Init("Nanosuit");
+
   if (is_first_time) {
+    is_first_time = false;
+
     using KeyMap = common::Window::KeyMap;
 
-    auto& window = context_->window();
+    auto& window = window_context_.window();
     window.SetCursorHidden(true);
     window.RegisterKeyCallback(KeyMap::kEscape,
                                [this]() { should_quit_ = true; });
@@ -116,13 +123,20 @@ void NanosuitApp::Init() {
     });
 
     // push constants
-    nanosuit_vert_uniform_.Init(context_, sizeof(NanosuitVertTrans),
-                                kNumFrameInFlight);
+    nanosuit_vert_uniform_.Init(sizeof(NanosuitVertTrans), kNumFrameInFlight);
     nanosuit_frag_constant_.Init(sizeof(NanosuitFragTrans), kNumFrameInFlight);
     skybox_constant_.Init(sizeof(SkyboxTrans), kNumFrameInFlight);
-
-    is_first_time = false;
   }
+
+  // depth stencil
+  auto frame_size = window_context_.frame_size();
+  depth_stencil_ = absl::make_unique<DepthStencilImage>(
+      window_context_.basic_context(), window_context_.frame_size());
+
+  // render pass
+  render_pass_ = RenderPassBuilder::DefaultBuilder(
+      window_context_.basic_context(), window_context_.swapchain(),
+      *depth_stencil_).Build(window_context_.swapchain(), *depth_stencil_);
 
   // model
   TextureImage::CubemapPath skybox_path;
@@ -157,8 +171,7 @@ void NanosuitApp::Init() {
           /*array_length=*/1,
       }},
   };
-  nanosuit_model_.Init(context_,
-                       {{VK_SHADER_STAGE_VERTEX_BIT,
+  nanosuit_model_.Init({{VK_SHADER_STAGE_VERTEX_BIT,
                          "jessie_steamer/shader/vulkan/nanosuit.vert.spv"},
                         {VK_SHADER_STAGE_FRAGMENT_BIT,
                          "jessie_steamer/shader/vulkan/nanosuit.frag.spv"}},
@@ -166,20 +179,19 @@ void NanosuitApp::Init() {
                            "external/resource/model/nanosuit/nanosuit.obj",
                            "external/resource/model/nanosuit",
                            nanosuit_bindings,
-                       absl::make_optional<Model::TextureBindingMap>(
-                           skybox_bindings)},
+                           absl::make_optional<Model::TextureBindingMap>(
+                               skybox_bindings)},
                        absl::make_optional<Model::UniformInfos>(
                            {{nanosuit_vert_uniform_, trans_desc_info}}),
                        /*instancing_info=*/absl::nullopt,
                        absl::make_optional<Model::PushConstantInfos>(
                            {{VK_SHADER_STAGE_FRAGMENT_BIT,
                              {{&nanosuit_frag_constant_, /*offset=*/0}}}}),
-                       kNumFrameInFlight,
-                       /*is_opaque=*/true);
+                       {**render_pass_, /*subpass=*/0},
+                       frame_size, kNumFrameInFlight, /*is_opaque=*/true);
 
   skybox_bindings[Model::ResourceType::kTextureCubemap].binding_point = 1;
-  skybox_model_.Init(context_,
-                     {{VK_SHADER_STAGE_VERTEX_BIT,
+  skybox_model_.Init({{VK_SHADER_STAGE_VERTEX_BIT,
                        "jessie_steamer/shader/vulkan/skybox.vert.spv"},
                       {VK_SHADER_STAGE_FRAGMENT_BIT,
                        "jessie_steamer/shader/vulkan/skybox.frag.spv"}},
@@ -191,15 +203,15 @@ void NanosuitApp::Init() {
                      absl::make_optional<Model::PushConstantInfos>(
                          {{VK_SHADER_STAGE_VERTEX_BIT,
                            {{&skybox_constant_, /*offset=*/0}}}}),
-                     kNumFrameInFlight,
-                     /*is_opaque=*/true);
+                     {**render_pass_, /*subpass=*/0},
+                     frame_size, kNumFrameInFlight, /*is_opaque=*/true);
 
   // camera
-  camera_.Calibrate(context_->window().screen_size(),
-                    context_->window().cursor_pos());
+  camera_.Calibrate(window_context_.window().GetScreenSize(),
+                    window_context_.window().GetCursorPos());
 
   // command
-  command_.Init(kNumFrameInFlight, &context_->queues());
+  command_.Init(kNumFrameInFlight, &window_context_.queues());
 }
 
 void NanosuitApp::UpdateData(int frame) {
@@ -231,55 +243,29 @@ void NanosuitApp::MainLoop() {
   const auto update_data = [this](int frame) {
     UpdateData(frame);
   };
-  auto& window = context_->window();
-
-  while (!should_quit_ && !window.ShouldQuit()) {
+  while (!should_quit_ && !window_context_.ShouldQuit()) {
+    const VkExtent2D frame_size = window_context_.frame_size();
     const auto draw_result = command_.Run(
-        current_frame_, *context_->swapchain(), update_data,
+        current_frame_, *window_context_.swapchain(), update_data,
         [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
-      // start render pass
-      std::array<VkClearValue, 2> clear_values{};
-      clear_values[0].color.float32[0] = 0.0f;
-      clear_values[0].color.float32[1] = 0.0f;
-      clear_values[0].color.float32[2] = 0.0f;
-      clear_values[0].color.float32[3] = 1.0f;
-      clear_values[1].depthStencil = {1.0f, 0};  // initial depth set to 1.0
-
-      VkRenderPassBeginInfo begin_info{
-          VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-          /*pNext=*/nullptr,
-          *context_->render_pass(),
-          context_->render_pass().framebuffer(framebuffer_index),
-          /*renderArea=*/{
-              /*offset=*/{0, 0},
-              context_->swapchain().extent(),
-          },
-          CONTAINER_SIZE(clear_values),
-          clear_values.data(),  // used for _OP_CLEAR
-      };
-
-      // record commends. options:
-      //   - VK_SUBPASS_CONTENTS_INLINE: use primary command buffer
-      //   - VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: use secondary
-      vkCmdBeginRenderPass(command_buffer, &begin_info,
-                           VK_SUBPASS_CONTENTS_INLINE);
-
-      nanosuit_model_.Draw(command_buffer, current_frame_,
-                           /*instance_count=*/1);
-      skybox_model_.Draw(command_buffer, current_frame_, /*instance_count=*/1);
-
-      vkCmdEndRenderPass(command_buffer);
-    });
+          render_pass_->Run(
+              command_buffer, framebuffer_index, frame_size,
+              [this, &command_buffer]() {
+                nanosuit_model_.Draw(command_buffer, current_frame_,
+                                     /*instance_count=*/1);
+                skybox_model_.Draw(command_buffer, current_frame_,
+                                   /*instance_count=*/1);
+              });
+        });
 
     if (draw_result != VK_SUCCESS) {
-      context_->WaitIdle();
-      Cleanup();
-      context_->Recreate();
+      window_context_.Cleanup();
+      command_.Cleanup();
       Init();
     }
 
     current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
-    window.PollEvents();
+    window_context_.PollEvents();
     camera_.set_activate(true);  // not activated until first frame is displayed
     const auto frame_rate = timer_.frame_rate();
     if (frame_rate.has_value()) {
@@ -287,7 +273,7 @@ void NanosuitApp::MainLoop() {
                 << std::endl;
     }
   }
-  context_->WaitIdle();  // wait for all async operations finish
+  window_context_.WaitIdle();  // wait for all async operations finish
 }
 
 void NanosuitApp::Cleanup() {

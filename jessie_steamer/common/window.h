@@ -26,6 +26,8 @@ namespace common {
 
 class Window {
  public:
+  static const std::vector<const char*>& required_extensions();
+
   using KeyCallback = std::function<void()>;
   using CursorMoveCallback = std::function<void(double x_pos, double y_pos)>;
   using ScrollCallback = std::function<void(double x_pos, double y_pos)>;
@@ -49,16 +51,12 @@ class Window {
   void RegisterKeyCallback(KeyMap key, const KeyCallback& callback);
   void RegisterCursorMoveCallback(CursorMoveCallback callback);
   void RegisterScrollCallback(ScrollCallback callback);
-  void PollEvents();
+  void PollEvents() const;
+  void Recreate();
   bool ShouldQuit() const { return glfwWindowShouldClose(window_); }
   glm::ivec2 GetScreenSize() const;
   glm::dvec2 GetCursorPos() const;
-  bool IsMinimized() const;
-  void ResetResizedFlag() { is_resized_ = false; }
 
-#ifdef USE_VULKAN
-  static const std::vector<const char*>& required_extensions();
-#endif /* USE_VULKAN */
   bool is_resized() const { return is_resized_; }
 
  private:

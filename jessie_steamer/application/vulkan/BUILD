@@ -16,8 +16,8 @@ cc_binary(
     deps = [
         ":common",
         "//jessie_steamer/common:time",
-        "//jessie_steamer/common:window",
         "//third_party:glm",
+        "@lib-absl//absl/memory",
         "@lib-absl//absl/types:optional",
     ],
 )
@@ -29,9 +29,9 @@ cc_binary(
         ":common",
         "//jessie_steamer/common:camera",
         "//jessie_steamer/common:time",
-        "//jessie_steamer/common:window",
         "//third_party:glm",
         "@lib-absl//absl/strings:str_format",
+        "@lib-absl//absl/memory",
         "@lib-absl//absl/types:optional",
     ],
 )
@@ -43,9 +43,9 @@ cc_binary(
         ":common",
         "//jessie_steamer/common:camera",
         "//jessie_steamer/common:time",
-        "//jessie_steamer/common:window",
         "//third_party:glm",
         "@lib-absl//absl/strings:str_format",
+        "@lib-absl//absl/memory",
         "@lib-absl//absl/types:optional",
     ],
 )

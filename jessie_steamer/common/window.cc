@@ -112,7 +112,7 @@ void Window::RegisterScrollCallback(ScrollCallback callback) {
   scroll_callback = std::move(callback);
 }
 
-void Window::PollEvents() {
+void Window::PollEvents() const {
   glfwPollEvents();
   for (const auto& pair : key_callbacks_) {
     if (glfwGetKey(window_, pair.first) == GLFW_PRESS) {
@@ -121,7 +121,15 @@ void Window::PollEvents() {
   }
 }
 
-#ifdef USE_VULKAN
+void Window::Recreate() {
+  glm::ivec2 extent{};
+  while (extent.x == 0 || extent.y == 0) {
+    glfwWaitEvents();
+    extent = GetScreenSize();
+  }
+  is_resized_ = false;
+}
+
 const std::vector<const char*>& Window::required_extensions() {
   static std::vector<const char*>* kRequiredExtensions = nullptr;
   if (kRequiredExtensions == nullptr) {
@@ -133,7 +141,6 @@ const std::vector<const char*>& Window::required_extensions() {
   }
   return *kRequiredExtensions;
 }
-#endif /* USE_VULKAN */
 
 glm::ivec2 Window::GetScreenSize() const {
   glm::ivec2 extent;
@@ -145,11 +152,6 @@ glm::dvec2 Window::GetCursorPos() const {
   glm::dvec2 pos;
   glfwGetCursorPos(window_, &pos.x, &pos.y);
   return pos;
-}
-
-bool Window::IsMinimized() const {
-  auto extent = GetScreenSize();
-  return extent.x == 0 || extent.y == 0;
 }
 
 Window::~Window() {

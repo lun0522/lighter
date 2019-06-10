@@ -208,7 +208,7 @@ void PhysicalDevice::Init(SharedBasicContext context,
   )};
 
   for (const auto& candidate : physical_devices) {
-    auto indices = FindDeviceQueues(physical_device_, window_support);
+    auto indices = FindDeviceQueues(candidate, window_support);
     if (indices.has_value()) {
       physical_device_ = candidate;
       // graphics queue will be used as transfer queue as well
@@ -289,10 +289,11 @@ void Device::Init(SharedBasicContext context,
   vkGetDeviceQueue(device_, queues.graphics.family_index, 0, &graphics_queue);
   vkGetDeviceQueue(device_, queues.transfer.family_index, 0, &transfer_queue);
 
-  VkQueue* present_queue = nullptr;
+  absl::optional<VkQueue> present_queue;
   if (window_support.has_value()) {
-    vkGetDeviceQueue(device_, queues.present.value().family_index, 0,
-                     present_queue);
+    VkQueue queue;
+    vkGetDeviceQueue(device_, queues.present.value().family_index, 0, &queue);
+    present_queue.emplace(queue);
   }
 
   context_->queues_.set_queues(graphics_queue, transfer_queue, present_queue);
@@ -313,16 +314,15 @@ absl::flat_hash_set<uint32_t> Queues::unique_family_indices() const {
 
 Queues& Queues::set_queues(const VkQueue& graphics_queue,
                            const VkQueue& transfer_queue,
-                           const VkQueue* present_queue) {
+                           const absl::optional<VkQueue>& present_queue) {
   graphics.queue = graphics_queue;
   transfer.queue = transfer_queue;
   if (present.has_value()) {
-    if (present_queue == nullptr) {
+    if (!present_queue.has_value()) {
       throw runtime_error{"Present queue is not specified"};
-    } else {
-      present.value().queue = *present_queue;
     }
-  } else if (present_queue != nullptr) {
+    present.value().queue = present_queue.value();
+  } else if (present_queue.has_value()) {
     throw runtime_error{"Preset queue should not be specified"};
   }
   return *this;

@@ -11,16 +11,16 @@
 #include <random>
 #include <vector>
 
+#include "absl/memory/memory.h"
 #include "absl/strings/str_format.h"
 #include "jessie_steamer/application/vulkan/util.h"
 #include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/time.h"
-#include "jessie_steamer/common/window.h"
-#include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
-#include "jessie_steamer/wrapper/vulkan/basic_context.h"
-#include "jessie_steamer/wrapper/vulkan/macro.h"
+#include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/model.h"
+#include "jessie_steamer/wrapper/vulkan/render_pass.h"
+#include "jessie_steamer/wrapper/vulkan/window_context.h"
 #include "third_party/glm/glm.hpp"
 // different from OpenGL, where depth values are in range [-1.0, 1.0]
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -62,10 +62,12 @@ struct Asteroid {
 
 class PlanetApp {
  public:
-  PlanetApp() : context_{Context::GetContext()},
-                command_{&*context_->device(), context_->allocator()} {
-    context_->Init("Planet");
-  };
+  PlanetApp() : command_{window_context_.basic_context()},
+                planet_model_{window_context_.basic_context()},
+                asteroid_model_{window_context_.basic_context()},
+                skybox_model_{window_context_.basic_context()},
+                per_asteroid_data_{window_context_.basic_context()},
+                light_uniform_{window_context_.basic_context()} {}
   void MainLoop();
 
  private:
@@ -78,7 +80,7 @@ class PlanetApp {
   bool is_first_time = true;
   int current_frame_ = 0;
   common::Timer timer_;
-  std::shared_ptr<Context> context_;
+  WindowContext window_context_;
   common::Camera camera_;
   PerFrameCommand command_;
   Model planet_model_, asteroid_model_, skybox_model_;
@@ -86,15 +88,22 @@ class PlanetApp {
   PerInstanceBuffer per_asteroid_data_;
   UniformBuffer light_uniform_;
   PushConstant planet_constant_, skybox_constant_;
+  std::unique_ptr<DepthStencilImage> depth_stencil_;
+  std::unique_ptr<RenderPass> render_pass_;
 };
 
 } /* namespace */
 
 void PlanetApp::Init() {
+  // window
+  window_context_.Init("Planet");
+
   if (is_first_time) {
+    is_first_time = false;
+
     using KeyMap = common::Window::KeyMap;
 
-    auto& window = context_->window();
+    auto& window = window_context_.window();
     window.SetCursorHidden(true);
     window.RegisterKeyCallback(KeyMap::kEscape,
                                [this]() { should_quit_ = true; });
@@ -125,12 +134,20 @@ void PlanetApp::Init() {
     });
 
     // push constants
-    light_uniform_.Init(context_, sizeof(Light), kNumFrameInFlight);
+    light_uniform_.Init(sizeof(Light), kNumFrameInFlight);
     planet_constant_.Init(sizeof(PlanetTrans), kNumFrameInFlight);
     skybox_constant_.Init(sizeof(SkyboxTrans), kNumFrameInFlight);
-
-    is_first_time = false;
   }
+
+  // depth stencil
+  auto frame_size = window_context_.frame_size();
+  depth_stencil_ = absl::make_unique<DepthStencilImage>(
+      window_context_.basic_context(), window_context_.frame_size());
+
+  // render pass
+  render_pass_ = RenderPassBuilder::DefaultBuilder(
+      window_context_.basic_context(), window_context_.swapchain(),
+      *depth_stencil_).Build(window_context_.swapchain(), *depth_stencil_);
 
   // model
   Descriptor::Info light_desc_info{
@@ -146,8 +163,7 @@ void PlanetApp::Init() {
   planet_bindings[Model::ResourceType::kTextureDiffuse] = {
       /*binding_point=*/2, {{"external/resource/texture/planet.png"}},
   };
-  planet_model_.Init(context_,
-                     {{VK_SHADER_STAGE_VERTEX_BIT,
+  planet_model_.Init({{VK_SHADER_STAGE_VERTEX_BIT,
                        "jessie_steamer/shader/vulkan/planet.vert.spv"},
                       {VK_SHADER_STAGE_FRAGMENT_BIT,
                        "jessie_steamer/shader/vulkan/planet.frag.spv"}},
@@ -160,7 +176,8 @@ void PlanetApp::Init() {
                      absl::make_optional<Model::PushConstantInfos>(
                          {{VK_SHADER_STAGE_VERTEX_BIT,
                            {{&planet_constant_, /*offset=*/0}}}}),
-                     kNumFrameInFlight, /*is_opaque=*/true);
+                     {**render_pass_, /*subpass=*/0},
+                     frame_size, kNumFrameInFlight, /*is_opaque=*/true);
 
   GenAsteroidModels();
   std::vector<Model::VertexAttribute> per_instance_attribs{
@@ -177,8 +194,7 @@ void PlanetApp::Init() {
     attrib_offset += sizeof(glm::vec4);
   }
   light_desc_info.shader_stage |= VK_SHADER_STAGE_VERTEX_BIT;
-  asteroid_model_.Init(context_,
-                       {{VK_SHADER_STAGE_VERTEX_BIT,
+  asteroid_model_.Init({{VK_SHADER_STAGE_VERTEX_BIT,
                          "jessie_steamer/shader/vulkan/asteroid.vert.spv"},
                         {VK_SHADER_STAGE_FRAGMENT_BIT,
                          "jessie_steamer/shader/vulkan/planet.frag.spv"}},
@@ -197,7 +213,8 @@ void PlanetApp::Init() {
                        absl::make_optional<Model::PushConstantInfos>(
                            {{VK_SHADER_STAGE_VERTEX_BIT,
                              {{&planet_constant_, /*offset=*/0}}}}),
-                       kNumFrameInFlight, /*is_opaque=*/true);
+                       {**render_pass_, /*subpass=*/0},
+                       frame_size, kNumFrameInFlight, /*is_opaque=*/true);
 
   Model::TextureBindingMap skybox_bindings;
   skybox_bindings[Model::ResourceType::kTextureCubemap] = {
@@ -215,8 +232,7 @@ void PlanetApp::Init() {
           },
       },
   };
-  skybox_model_.Init(context_,
-                     {{VK_SHADER_STAGE_VERTEX_BIT,
+  skybox_model_.Init({{VK_SHADER_STAGE_VERTEX_BIT,
                        "jessie_steamer/shader/vulkan/skybox.vert.spv"},
                       {VK_SHADER_STAGE_FRAGMENT_BIT,
                        "jessie_steamer/shader/vulkan/skybox.frag.spv"}},
@@ -228,14 +244,15 @@ void PlanetApp::Init() {
                      absl::make_optional<Model::PushConstantInfos>(
                          {{VK_SHADER_STAGE_VERTEX_BIT,
                            {{&skybox_constant_, /*offset=*/0}}}}),
-                     kNumFrameInFlight, /*is_opaque=*/true);
+                     {**render_pass_, /*subpass=*/0},
+                     frame_size, kNumFrameInFlight, /*is_opaque=*/true);
 
   // camera
-  camera_.Calibrate(context_->window().screen_size(),
-                    context_->window().cursor_pos());
+  camera_.Calibrate(window_context_.window().GetScreenSize(),
+                    window_context_.window().GetCursorPos());
 
   // command
-  command_.Init(kNumFrameInFlight, &context_->queues());
+  command_.Init(kNumFrameInFlight, &window_context_.queues());
 }
 
 void PlanetApp::GenAsteroidModels() {
@@ -270,7 +287,7 @@ void PlanetApp::GenAsteroidModels() {
     }
   }
 
-  per_asteroid_data_.Init(context_, asteroids.data(),
+  per_asteroid_data_.Init(asteroids.data(),
                           sizeof(Asteroid) * asteroids.size());
 }
 
@@ -296,56 +313,31 @@ void PlanetApp::MainLoop() {
   const auto update_data = [this](int frame) {
     UpdateData(frame);
   };
-  auto& window = context_->window();
-
-  while (!should_quit_ && !window.ShouldQuit()) {
+  while (!should_quit_ && !window_context_.ShouldQuit()) {
+    const VkExtent2D frame_size = window_context_.frame_size();
     auto draw_result = command_.Run(
-        current_frame_, *context_->swapchain(), update_data,
+        current_frame_, *window_context_.swapchain(), update_data,
         [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
-      // start render pass
-      std::array<VkClearValue, 2> clear_values{};
-      clear_values[0].color.float32[0] = 0.0f;
-      clear_values[0].color.float32[1] = 0.0f;
-      clear_values[0].color.float32[2] = 0.0f;
-      clear_values[0].color.float32[3] = 1.0f;
-      clear_values[1].depthStencil = {1.0f, 0};  // initial depth set to 1.0
-
-      VkRenderPassBeginInfo begin_info{
-          VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-          /*pNext=*/nullptr,
-          *context_->render_pass(),
-          context_->render_pass().framebuffer(framebuffer_index),
-          /*renderArea=*/{
-              /*offset=*/{0, 0},
-              context_->swapchain().extent(),
-          },
-          CONTAINER_SIZE(clear_values),
-          clear_values.data(),  // used for _OP_CLEAR
-      };
-
-      // record commends. options:
-      //   - VK_SUBPASS_CONTENTS_INLINE: use primary command buffer
-      //   - VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: use secondary
-      vkCmdBeginRenderPass(command_buffer, &begin_info,
-                           VK_SUBPASS_CONTENTS_INLINE);
-
-      planet_model_.Draw(command_buffer, current_frame_, /*instance_count=*/1);
-      asteroid_model_.Draw(command_buffer, current_frame_,
-                           static_cast<uint32_t>(num_asteroid_));
-      skybox_model_.Draw(command_buffer, current_frame_, /*instance_count=*/1);
-
-      vkCmdEndRenderPass(command_buffer);
-    });
+          render_pass_->Run(
+              command_buffer, framebuffer_index, frame_size,
+              [this, &command_buffer]() {
+                planet_model_.Draw(command_buffer, current_frame_,
+                                   /*instance_count=*/1);
+                asteroid_model_.Draw(command_buffer, current_frame_,
+                                     static_cast<uint32_t>(num_asteroid_));
+                skybox_model_.Draw(command_buffer, current_frame_,
+                                   /*instance_count=*/1);
+              });
+        });
 
     if (draw_result != VK_SUCCESS) {
-      context_->WaitIdle();
-      Cleanup();
-      context_->Recreate();
+      window_context_.Cleanup();
+      command_.Cleanup();
       Init();
     }
 
     current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
-    window.PollEvents();
+    window_context_.PollEvents();
     camera_.set_activate(true);  // not activated until first frame is displayed
     const auto frame_rate = timer_.frame_rate();
     if (frame_rate.has_value()) {
@@ -353,7 +345,7 @@ void PlanetApp::MainLoop() {
                 << std::endl;
     }
   }
-  context_->WaitIdle();  // wait for all async operations finish
+  window_context_.WaitIdle();  // wait for all async operations finish
 }
 
 void PlanetApp::Cleanup() {

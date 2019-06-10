@@ -64,6 +64,7 @@ class PipelineBuilder {
  public:
   using ShaderInfo = std::pair<VkShaderStageFlagBits, std::string>;
   using ShaderModule = std::pair<VkShaderStageFlagBits, VkShaderModule>;
+  using RenderPassInfo = std::pair<VkRenderPass, uint32_t>;
 
   explicit PipelineBuilder(SharedBasicContext context);
 
@@ -81,7 +82,7 @@ class PipelineBuilder {
       const std::vector<VkPushConstantRange>& push_constant_ranges);
   PipelineBuilder& set_viewport(VkViewport viewport);
   PipelineBuilder& set_scissor(const VkRect2D& scissor);
-  PipelineBuilder& set_render_pass(const VkRenderPass& render_pass);
+  PipelineBuilder& set_render_pass(const RenderPassInfo& render_pass_info);
 
   // To save memory, shader modules will be released after a pipeline is built,
   // so all shaders should be added again before next Build().
@@ -107,7 +108,7 @@ class PipelineBuilder {
   absl::optional<VkPipelineLayoutCreateInfo> layout_info_;
   absl::optional<VkViewport> viewport_;
   absl::optional<VkRect2D> scissor_;
-  absl::optional<VkRenderPass> render_pass_;
+  absl::optional<RenderPassInfo> render_pass_info_;
   std::vector<VkVertexInputBindingDescription> binding_descriptions_;
   std::vector<VkVertexInputAttributeDescription> attribute_descriptions_;
   std::vector<VkDescriptorSetLayout> descriptor_layouts_;

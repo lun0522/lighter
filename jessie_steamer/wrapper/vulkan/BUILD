@@ -4,6 +4,7 @@ cc_library(
     name = "on_screen",
     deps = [
         ":command",
+        ":image",
         ":model",
         ":render_pass",
         ":window",
@@ -145,6 +146,7 @@ cc_library(
         ":basics",
         ":image",
         ":macro",
+        ":window",
         "//third_party:vulkan",
         "@lib-absl//absl/memory",
     ],

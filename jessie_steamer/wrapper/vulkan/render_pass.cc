@@ -15,11 +15,33 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
+const VkClearValue& GetClearColor() {
+  static VkClearValue* kClearColor = nullptr;
+  if (kClearColor == nullptr) {
+    kClearColor = new VkClearValue{};
+    float* clear_color = kClearColor->color.float32;
+    clear_color[0] = 0.0f;
+    clear_color[1] = 0.0f;
+    clear_color[2] = 0.0f;
+    clear_color[3] = 1.0f;
+  }
+  return *kClearColor;
+}
+
+const VkClearValue& GetClearDepthStencil() {
+  static VkClearValue* kClearDepthStencil = nullptr;
+  if (kClearDepthStencil == nullptr) {
+    kClearDepthStencil = new VkClearValue{};
+    kClearDepthStencil->depthStencil = {/*depth=*/1.0f, /*stencil=*/0};
+  }
+  return *kClearDepthStencil;
+}
+
 std::vector<VkFramebuffer> CreateFramebuffers(
     const SharedBasicContext& context,
-    const DepthStencilImage& depth_stencil_image) {
-  const Swapchain& swapchain = context->swapchain();
-
+    const Swapchain& swapchain,
+    const DepthStencilImage& depth_stencil_image,
+    const VkRenderPass& render_pass) {
   // although we have multiple swapchain images, we will share one depth stencil
   // image, because we only use one graphics queue, which only renders on one
   // swapchain image at a time
@@ -34,7 +56,7 @@ std::vector<VkFramebuffer> CreateFramebuffers(
         VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
         /*pNext=*/nullptr,
         /*flags=*/nullflag,
-        *context->render_pass(),
+        render_pass,
         CONTAINER_SIZE(attachments),
         attachments.data(),
         swapchain.extent().width,
@@ -51,14 +73,16 @@ std::vector<VkFramebuffer> CreateFramebuffers(
 
 } /* namespace */
 
-void RenderPass::Init(SharedBasicContext context) {
-  context_ = std::move(context);
-  depth_stencil_.Init(context_, context_->swapchain().extent());
+RenderPassBuilder RenderPassBuilder::DefaultBuilder(
+    SharedBasicContext context,
+    const Swapchain& swapchain,
+    const DepthStencilImage& depth_stencil_image) {
+  RenderPassBuilder builder{std::move(context)};
 
-  VkAttachmentDescription color_att_desc{
+  builder.attachment_descriptions_.push_back({  // color
       /*flags=*/nullflag,
-      context_->swapchain().format(),
-      /*samples=*/VK_SAMPLE_COUNT_1_BIT,  // no multisampling
+      swapchain.format(),
+      /*samples=*/VK_SAMPLE_COUNT_1_BIT,  // no multi-sampling
       // .loadOp and .storeOp affect color and depth buffers
       // .loadOp options: LOAD / CLEAR / DONT_CARE
       // .storeOp options: STORE / DONT_STORE
@@ -69,55 +93,53 @@ void RenderPass::Init(SharedBasicContext context) {
       // layout of pixels in memory. commonly used options:
       //   - VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL: for color attachment
       //   - VK_IMAGE_LAYOUT_PRESENT_SRC_KHR: for images in swapchain
-      //   - VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL: for images as dstination
+      //   - VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL: for images as destination
       //                                           for memory copy
       //   - VK_IMAGE_LAYOUT_UNDEFINED: don't care about layout before this
       //                                render pass
       /*initialLayout=*/VK_IMAGE_LAYOUT_UNDEFINED,
       /*finalLayout=*/VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-  };
-
-  VkAttachmentReference color_att_ref{
-      /*attachment=*/0,  // index of attachment to reference to
-      /*layout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-  };
-
-  VkAttachmentDescription depth_stencil_att_desc{
+  });
+  builder.attachment_descriptions_.push_back({  // depth stencil
       /*flags=*/nullflag,
-      depth_stencil_.format(),
-      /*samples=*/VK_SAMPLE_COUNT_1_BIT,  // no multisampling
+      depth_stencil_image.format(),
+      /*samples=*/VK_SAMPLE_COUNT_1_BIT,  // no multi-sampling
       /*loadOp=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
       /*storeOp=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
       /*stencilLoadOp=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       /*stencilStoreOp=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
       /*initialLayout=*/VK_IMAGE_LAYOUT_UNDEFINED,
       /*finalLayout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-  };
+  });
 
-  VkAttachmentReference depth_stencil_att_ref{
+  builder.attachment_references_.push_back({  // color
+      /*attachment=*/0,  // index of attachment to reference to
+      /*layout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+  });
+  builder.attachment_references_.push_back({  // depth stencil
       /*attachment=*/1,
       /*layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-  };
+  });
 
-  VkSubpassDescription subpass_desc{
+  builder.subpass_descriptions_.push_back({
       /*flags=*/nullflag,
       /*pipelineBindPoint=*/VK_PIPELINE_BIND_POINT_GRAPHICS,
       /*inputAttachmentCount=*/0,
       /*pInputAttachments=*/nullptr,
-      // layout (location = 0) will be rendered to the first attachement
+      // layout (location = 0) will be rendered to the first attachment
       /*colorAttachmentCount=*/1,
-      &color_att_ref,
+      &builder.attachment_references_[0],
       /*pResolveAttachments=*/nullptr,
       // a render pass can only use one depth stencil buffer, so no count needed
-      &depth_stencil_att_ref,
+      &builder.attachment_references_[1],
       /*preserveAttachmentCount=*/0,
       /*pPreserveAttachments=*/nullptr,
-  };
+  });
 
   // render pass takes care of layout transition, so it has to wait until
   // image is ready. VK_SUBPASS_EXTERNAL means subpass before (if .srcSubpass)
   // or after (if .dstSubpass) render pass
-  VkSubpassDependency subpass_dep{
+  builder.subpass_dependencies_.push_back({
       /*srcSubpass=*/VK_SUBPASS_EXTERNAL,
       /*dstSubpass=*/0,  // refer to our subpass
       /*srcStageMask=*/VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -126,38 +148,16 @@ void RenderPass::Init(SharedBasicContext context) {
       /*dstAccessMask=*/VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
                             | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
       /*dependencyFlags=*/nullflag,
-  };
+  });
 
-  std::array<VkAttachmentDescription, 2> att_descs{
-    color_att_desc,
-    depth_stencil_att_desc,
-  };
+  builder.clear_values_ = {GetClearColor(), GetClearDepthStencil()};
 
-  VkRenderPassCreateInfo render_pass_info{
-      VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
-      CONTAINER_SIZE(att_descs),
-      att_descs.data(),
-      /*subpassCount=*/1,
-      &subpass_desc,
-      /*dependencyCount=*/1,
-      &subpass_dep,
-  };
-
-  ASSERT_SUCCESS(vkCreateRenderPass(*context_->device(), &render_pass_info,
-                                    context_->allocator(), &render_pass_),
-                 "Failed to create render pass");
-
-  framebuffers_ = CreateFramebuffers(context_, depth_stencil_);
+  return builder;
 }
 
-RenderPassBuilder::RenderPassBuilder(SharedBasicContext context)
-    : context_{std::move(context)} {
-
-}
-
-std::unique_ptr<RenderPass> RenderPassBuilder::Build() {
+std::unique_ptr<RenderPass> RenderPassBuilder::Build(
+    const Swapchain& swapchain,
+    const DepthStencilImage& depth_stencil_image) {
   VkRenderPassCreateInfo render_pass_info{
       VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -176,7 +176,33 @@ std::unique_ptr<RenderPass> RenderPassBuilder::Build() {
                  "Failed to create render pass");
 
   return absl::make_unique<RenderPass>(
-      context_, render_pass,CreateFramebuffers(context_, depth_stencil_));
+      context_, render_pass, std::move(clear_values_), CreateFramebuffers(
+          context_, swapchain, depth_stencil_image, render_pass));
+}
+
+void RenderPass::Run(const VkCommandBuffer& command_buffer,
+                     int framebuffer_index,
+                     VkExtent2D frame_size,
+                     const RenderOps& render_ops) const {
+  VkRenderPassBeginInfo begin_info{
+      VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+      /*pNext=*/nullptr,
+      render_pass_,
+      framebuffers_[framebuffer_index],
+      /*renderArea=*/{
+          /*offset=*/{0, 0},
+          frame_size,
+      },
+      CONTAINER_SIZE(clear_values_),
+      clear_values_.data(),  // used for _OP_CLEAR
+  };
+
+  // record commends. options:
+  //   - VK_SUBPASS_CONTENTS_INLINE: use primary command buffer
+  //   - VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: use secondary
+  vkCmdBeginRenderPass(command_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
+  render_ops();
+  vkCmdEndRenderPass(command_buffer);
 }
 
 RenderPass::~RenderPass() {
