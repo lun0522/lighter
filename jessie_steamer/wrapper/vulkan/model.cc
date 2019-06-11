@@ -22,7 +22,6 @@ namespace {
 
 using absl::optional;
 using common::VertexAttrib3D;
-using std::move;
 using std::runtime_error;
 using std::vector;
 
@@ -147,7 +146,7 @@ void CreateTextureInfo(const Model::Mesh& mesh,
       for (const auto& image : mesh[type]) {
         descriptor_infos.emplace_back(image->descriptor_info());
       }
-      (*image_infos)[binding_point] = move(descriptor_infos);
+      (*image_infos)[binding_point] = std::move(descriptor_infos);
 
       texture_bindings.emplace_back(Descriptor::Info::Binding{
           resource_type,
@@ -160,7 +159,7 @@ void CreateTextureInfo(const Model::Mesh& mesh,
   *texture_info = {
       /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
       /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
-      move(texture_bindings),
+      std::move(texture_bindings),
   };
 }
 
@@ -357,7 +356,7 @@ void Model::CreateDescriptors(const FindBindingPoint& find_binding_point,
       CreateTextureInfo(mesh, find_binding_point, &image_infos, &texture_info);
       const VkDescriptorType tex_desc_type = texture_info.descriptor_type;
 
-      vector<Descriptor::Info> descriptor_infos{move(texture_info)};
+      vector<Descriptor::Info> descriptor_infos{std::move(texture_info)};
       if (uniform_infos.has_value()) {
         for (const auto& uniform_info : uniform_infos.value()) {
           descriptor_infos.emplace_back(uniform_info.second);

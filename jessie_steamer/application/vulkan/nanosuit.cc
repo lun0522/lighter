@@ -53,24 +53,20 @@ struct SkyboxTrans {
   alignas(16) glm::mat4 view;
 };
 
-class NanosuitApp {
+class NanosuitApp : public Application {
  public:
-  NanosuitApp() : command_{window_context_.basic_context()},
-                  nanosuit_model_{window_context_.basic_context()},
-                  skybox_model_{window_context_.basic_context()},
-                  nanosuit_vert_uniform_{window_context_.basic_context()} {}
-  void MainLoop();
+  NanosuitApp() : command_{context()}, nanosuit_model_{context()},
+                  skybox_model_{context()}, nanosuit_vert_uniform_{context()} {}
+  void MainLoop() override;
 
  private:
   void Init();
   void UpdateData(int frame);
-  void Cleanup();
 
   bool should_quit_ = false;
   bool is_first_time = true;
   int current_frame_ = 0;
   common::Timer timer_;
-  WindowContext window_context_;
   common::Camera camera_;
   PerFrameCommand command_;
   Model nanosuit_model_, skybox_model_;
@@ -131,12 +127,12 @@ void NanosuitApp::Init() {
   // depth stencil
   auto frame_size = window_context_.frame_size();
   depth_stencil_ = absl::make_unique<DepthStencilImage>(
-      window_context_.basic_context(), window_context_.frame_size());
+      context(), window_context_.frame_size());
 
   // render pass
   render_pass_ = RenderPassBuilder::DefaultBuilder(
-      window_context_.basic_context(), window_context_.swapchain(),
-      *depth_stencil_).Build(window_context_.swapchain(), *depth_stencil_);
+      context(), window_context_.swapchain(), *depth_stencil_)
+          .Build(window_context_.swapchain(), *depth_stencil_);
 
   // model
   TextureImage::CubemapPath skybox_path;
@@ -276,10 +272,6 @@ void NanosuitApp::MainLoop() {
   window_context_.WaitIdle();  // wait for all async operations finish
 }
 
-void NanosuitApp::Cleanup() {
-  command_.Cleanup();
-}
-
 } /* namespace nanosuit */
 } /* namespace vulkan */
 } /* namespace application */
@@ -287,18 +279,5 @@ void NanosuitApp::Cleanup() {
 
 int main(int argc, const char* argv[]) {
   using namespace jessie_steamer::application::vulkan;
-  SetBuildEnvironment();
-#ifdef NDEBUG
-  try {
-    nanosuit::NanosuitApp app{};
-    app.MainLoop();
-  } catch (const std::exception& e) {
-    std::cerr << "Error: /n/t" << e.what() << std::endl;
-    return EXIT_FAILURE;
-  }
-#else  /* !NDEBUG */
-  nanosuit::NanosuitApp app{};
-  app.MainLoop();
-#endif /* NDEBUG */
-  return EXIT_SUCCESS;
+  return AppMain<nanosuit::NanosuitApp>();
 }

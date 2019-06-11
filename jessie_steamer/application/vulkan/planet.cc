@@ -60,27 +60,22 @@ struct Asteroid {
   glm::mat4 model;
 };
 
-class PlanetApp {
+class PlanetApp : public Application {
  public:
-  PlanetApp() : command_{window_context_.basic_context()},
-                planet_model_{window_context_.basic_context()},
-                asteroid_model_{window_context_.basic_context()},
-                skybox_model_{window_context_.basic_context()},
-                per_asteroid_data_{window_context_.basic_context()},
-                light_uniform_{window_context_.basic_context()} {}
-  void MainLoop();
+  PlanetApp() : command_{context()}, planet_model_{context()},
+                asteroid_model_{context()}, skybox_model_{context()},
+                per_asteroid_data_{context()}, light_uniform_{context()} {}
+  void MainLoop() override;
 
  private:
   void Init();
   void GenAsteroidModels();
   void UpdateData(int frame);
-  void Cleanup();
 
   bool should_quit_ = false;
   bool is_first_time = true;
   int current_frame_ = 0;
   common::Timer timer_;
-  WindowContext window_context_;
   common::Camera camera_;
   PerFrameCommand command_;
   Model planet_model_, asteroid_model_, skybox_model_;
@@ -142,12 +137,12 @@ void PlanetApp::Init() {
   // depth stencil
   auto frame_size = window_context_.frame_size();
   depth_stencil_ = absl::make_unique<DepthStencilImage>(
-      window_context_.basic_context(), window_context_.frame_size());
+      context(), window_context_.frame_size());
 
   // render pass
   render_pass_ = RenderPassBuilder::DefaultBuilder(
-      window_context_.basic_context(), window_context_.swapchain(),
-      *depth_stencil_).Build(window_context_.swapchain(), *depth_stencil_);
+      context(), window_context_.swapchain(), *depth_stencil_)
+          .Build(window_context_.swapchain(), *depth_stencil_);
 
   // model
   Descriptor::Info light_desc_info{
@@ -348,10 +343,6 @@ void PlanetApp::MainLoop() {
   window_context_.WaitIdle();  // wait for all async operations finish
 }
 
-void PlanetApp::Cleanup() {
-  command_.Cleanup();
-}
-
 } /* namespace planet */
 } /* namespace vulkan */
 } /* namespace application */
@@ -359,18 +350,5 @@ void PlanetApp::Cleanup() {
 
 int main(int argc, const char* argv[]) {
   using namespace jessie_steamer::application::vulkan;
-  SetBuildEnvironment();
-#ifdef NDEBUG
-  try {
-    planet::PlanetApp app{};
-    app.MainLoop();
-  } catch (const std::exception& e) {
-    std::cerr << "Error: /n/t" << e.what() << std::endl;
-    return EXIT_FAILURE;
-  }
-#else  /* !NDEBUG */
-  planet::PlanetApp app{};
-  app.MainLoop();
-#endif /* NDEBUG */
-  return EXIT_SUCCESS;
+  return AppMain<planet::PlanetApp>();
 }

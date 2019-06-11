@@ -39,11 +39,10 @@ struct Transformation {
   alignas(16) glm::mat4 proj_view_model;
 };
 
-class CubeApp {
+class CubeApp : public Application {
  public:
-  CubeApp() : command_{window_context_.basic_context()},
-              model_{window_context_.basic_context()} {}
-  void MainLoop();
+  CubeApp() : command_{context()}, model_{context()} {}
+  void MainLoop() override;
 
  private:
   void Init();
@@ -52,7 +51,6 @@ class CubeApp {
   bool is_first_time = true;
   int current_frame_ = 0;
   common::Timer timer_;
-  WindowContext window_context_;
   PerFrameCommand command_;
   Model model_;
   PushConstant push_constant_;
@@ -76,12 +74,12 @@ void CubeApp::Init() {
   // depth stencil
   auto frame_size = window_context_.frame_size();
   depth_stencil_ = absl::make_unique<DepthStencilImage>(
-      window_context_.basic_context(), window_context_.frame_size());
+      context(), window_context_.frame_size());
 
   // render pass
   render_pass_ = RenderPassBuilder::DefaultBuilder(
-      window_context_.basic_context(), window_context_.swapchain(),
-      *depth_stencil_).Build(window_context_.swapchain(), *depth_stencil_);
+      context(), window_context_.swapchain(), *depth_stencil_)
+          .Build(window_context_.swapchain(), *depth_stencil_);
 
   // model
   Model::TextureBindingMap bindings{};
@@ -161,18 +159,5 @@ void CubeApp::MainLoop() {
 
 int main(int argc, const char* argv[]) {
   using namespace jessie_steamer::application::vulkan;
-  SetBuildEnvironment();
-#ifdef NDEBUG
-  try {
-    cube::CubeApp app{};
-    app.MainLoop();
-  } catch (const std::exception& e) {
-    std::cerr << "Error: /n/t" << e.what() << std::endl;
-    return EXIT_FAILURE;
-  }
-#else  /* !NDEBUG */
-  cube::CubeApp app{};
-  app.MainLoop();
-#endif /* NDEBUG */
-  return EXIT_SUCCESS;
+  return AppMain<cube::CubeApp>();
 }

@@ -20,8 +20,6 @@ namespace vulkan {
 namespace {
 
 namespace util = common::util;
-using std::cout;
-using std::endl;
 using std::string;
 using std::runtime_error;
 using std::vector;
@@ -32,7 +30,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
     const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
     void* user_data) {
   // if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-  cout << "[Validation] " << callback_data->pMessage << endl;
+  std::cout << "[Validation] " << callback_data->pMessage << std::endl;
   return VK_FALSE;
 }
 
@@ -62,7 +60,8 @@ const vector<const char*>& layers() {
 }
 
 void EnsureInstanceExtensionSupport(const vector<string>& required) {
-  cout << "Checking instance extension support..." << endl << endl;
+  std::cout << "Checking instance extension support..."
+            << std::endl << std::endl;
 
   auto properties {util::QueryAttribute<VkExtensionProperties>(
       [](uint32_t* count, VkExtensionProperties* properties) {
@@ -82,7 +81,7 @@ void EnsureInstanceExtensionSupport(const vector<string>& required) {
 }
 
 void EnsureValidationLayerSupport(const vector<string>& required) {
-  cout << "Checking validation layer support..." << endl << endl;
+  std::cout << "Checking validation layer support..." << std::endl << std::endl;
 
   auto properties {util::QueryAttribute<VkLayerProperties>(
       [](uint32_t* count, VkLayerProperties* properties) {

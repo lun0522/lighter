@@ -9,7 +9,6 @@
 #define JESSIE_STEAMER_WRAPPER_VULKAN_WINDOW_CONTEXT_H
 
 #include <string>
-#include <type_traits>
 
 #include "jessie_steamer/common/window.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
