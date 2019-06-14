@@ -35,8 +35,8 @@ class ModelLoader {
  public:
   struct Texture {
     // This class is only movable.
-    Texture(Texture&&) = default;
-    Texture& operator=(Texture&&) = default;
+    Texture(Texture&&) noexcept = default;
+    Texture& operator=(Texture&&) noexcept = default;
 
     std::string path;
     types::ResourceType resource_type;
@@ -46,8 +46,8 @@ class ModelLoader {
     Mesh() = default;
 
     // This class is only movable.
-    Mesh(Mesh&&) = default;
-    Mesh& operator=(Mesh&&) = default;
+    Mesh(Mesh&&) noexcept = default;
+    Mesh& operator=(Mesh&&) noexcept = default;
 
     std::vector<VertexAttrib3D> vertices;
     std::vector<uint32_t> indices;

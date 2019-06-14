@@ -175,9 +175,6 @@ void Swapchain::Init(SharedBasicContext context,
                                       context_->allocator(), &swapchain_),
                  "Failed to create swapchain");
 
-  image_format_ = surface_format.format;
-  image_extent_ = image_extent;
-
   // fetch swapchain images and create image views for them
   auto images{util::QueryAttribute<VkImage>(
       [this](uint32_t *count, VkImage *images) {
@@ -187,8 +184,9 @@ void Swapchain::Init(SharedBasicContext context,
   images_.reserve(images.size());
   for (int i = 0; i < images.size(); ++i) {
     images_.emplace_back(absl::make_unique<SwapchainImage>(context_));
-    images_[i]->Init(images[i], image_format_);
+    images_[i]->Init(images[i], surface_format.format);
   }
+  image_extent_ = image_extent;
 }
 
 void Swapchain::Cleanup() {

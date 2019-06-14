@@ -55,6 +55,7 @@ class CubeApp : public Application {
   Model model_;
   PushConstant push_constant_;
   std::unique_ptr<DepthStencilImage> depth_stencil_;
+  std::unique_ptr<RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
 };
 
@@ -64,22 +65,30 @@ void CubeApp::Init() {
   // window
   window_context_.Init("Cube");
 
+  // depth stencil
+  auto frame_size = window_context_.frame_size();
+  depth_stencil_ = absl::make_unique<DepthStencilImage>(context(), frame_size);
+
   if (is_first_time) {
     is_first_time = false;
 
     // push constants
     push_constant_.Init(sizeof(Transformation), kNumFrameInFlight);
+
+    // render pass builder
+    render_pass_builder_ = RenderPassBuilder::SimpleRenderPassBuilder(
+        context(), window_context_.swapchain(), *depth_stencil_);
+  } else {
+    // update depth stencil
+    render_pass_builder_->update_attachment(
+        /*index=*/1, [this](int index) -> const Image& {
+          return *depth_stencil_;
+        });
   }
 
-  // depth stencil
-  auto frame_size = window_context_.frame_size();
-  depth_stencil_ = absl::make_unique<DepthStencilImage>(
-      context(), window_context_.frame_size());
-
   // render pass
-  render_pass_ = RenderPassBuilder::DefaultBuilder(
-      context(), window_context_.swapchain(), *depth_stencil_)
-          .Build(window_context_.swapchain(), *depth_stencil_);
+  render_pass_builder_->set_framebuffer_size(frame_size);
+  render_pass_ = render_pass_builder_->Build();
 
   // model
   Model::TextureBindingMap bindings{};
@@ -129,7 +138,7 @@ void CubeApp::MainLoop() {
         current_frame_, *window_context_.swapchain(), update_data,
         [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
           render_pass_->Run(
-              command_buffer, framebuffer_index, frame_size,
+              command_buffer, framebuffer_index,
               [this, &command_buffer]() {
                 model_.Draw(command_buffer, current_frame_,
                             /*instance_count=*/1);

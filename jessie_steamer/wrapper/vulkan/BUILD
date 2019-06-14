@@ -147,8 +147,11 @@ cc_library(
         ":image",
         ":macro",
         ":window",
+        "//jessie_steamer/common:util",
         "//third_party:vulkan",
         "@lib-absl//absl/memory",
+        "@lib-absl//absl/types:optional",
+        "@lib-absl//absl/types:variant",
     ],
 )
 

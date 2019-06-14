@@ -60,17 +60,14 @@ class Swapchain {
   void Cleanup();
 
   const VkSwapchainKHR& operator*() const { return swapchain_; }
-  VkFormat format()                 const { return image_format_; }
   VkExtent2D extent()               const { return image_extent_; }
-  size_t size()                     const { return images_.size(); }
-  const VkImageView& image_view(int index) const
-      { return images_[index]->image_view(); }
+  int num_image()                   const { return images_.size(); }
+  const Image& image(int index)     const { return *images_[index]; }
 
  private:
   SharedBasicContext context_;
   VkSwapchainKHR swapchain_;
   std::vector<std::unique_ptr<SwapchainImage>> images_;
-  VkFormat image_format_;
   VkExtent2D image_extent_;
 };
 

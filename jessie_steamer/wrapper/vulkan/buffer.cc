@@ -190,45 +190,44 @@ void TransitionImageLayout(const SharedBasicContext& context,
   // one-time transition command
   OneTimeCommand command{context, &transfer_queue};
   command.Run([&](const VkCommandBuffer& command_buffer) {
-        VkImageMemoryBarrier barrier{
-            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            /*pNext=*/nullptr,
-            barrier_access_flags[0],  // operations before barrier
-            barrier_access_flags[1],  // operations waiting on barrier
-            image_layouts[0],
-            image_layouts[1],
-            /*srcQueueFamilyIndex=*/transfer_queue.family_index,
-            /*dstQueueFamilyIndex=*/transfer_queue.family_index,
-            image,
-            // specify which part of image to use
-            VkImageSubresourceRange{
-                /*aspectMask=*/image_aspect_mask,
-                /*baseMipLevel=*/0,
-                /*levelCount=*/1,
-                /*baseArrayLayer=*/0,
-                layer_count,
-            },
-        };
+    VkImageMemoryBarrier barrier{
+        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        /*pNext=*/nullptr,
+        barrier_access_flags[0],  // operations before barrier
+        barrier_access_flags[1],  // operations waiting on barrier
+        image_layouts[0],
+        image_layouts[1],
+        /*srcQueueFamilyIndex=*/transfer_queue.family_index,
+        /*dstQueueFamilyIndex=*/transfer_queue.family_index,
+        image,
+        // specify which part of image to use
+        VkImageSubresourceRange{
+            /*aspectMask=*/image_aspect_mask,
+            /*baseMipLevel=*/0,
+            /*levelCount=*/1,
+            /*baseArrayLayer=*/0,
+            layer_count,
+        },
+    };
 
-        // wait for barrier
-        vkCmdPipelineBarrier(
-            command_buffer,
-            // operations before barrier should occur in which pipeline stage
-            pipeline_stages[0],
-            // operations waiting on barrier should occur in which stage
-            pipeline_stages[1],
-            // either 0 or VK_DEPENDENCY_BY_REGION_BIT. the latter one allows
-            // reading from regions that have been written, even if entire
-            // writing has not yet finished
-            /*dependencyFlags=*/0,
-            /*memoryBarrierCount=*/0,
-            /*pMemoryBarriers=*/nullptr,
-            /*bufferMemoryBarrierCount=*/0,
-            /*pBufferMemoryBarriers=*/nullptr,
-            /*imageMemoryBarrierCount=*/1,
-            &barrier);
-      }
-  );
+    // wait for barrier
+    vkCmdPipelineBarrier(
+        command_buffer,
+        // operations before barrier should occur in which pipeline stage
+        pipeline_stages[0],
+        // operations waiting on barrier should occur in which stage
+        pipeline_stages[1],
+        // either 0 or VK_DEPENDENCY_BY_REGION_BIT. the latter one allows
+        // reading from regions that have been written, even if entire
+        // writing has not yet finished
+        /*dependencyFlags=*/0,
+        /*memoryBarrierCount=*/0,
+        /*pMemoryBarriers=*/nullptr,
+        /*bufferMemoryBarrierCount=*/0,
+        /*pBufferMemoryBarriers=*/nullptr,
+        /*imageMemoryBarrierCount=*/1,
+        &barrier);
+  });
 }
 
 void CopyHostToBuffer(const SharedBasicContext& context,
@@ -255,14 +254,13 @@ void CopyBufferToBuffer(const SharedBasicContext& context,
   // one-time copy command
   OneTimeCommand command{context, &context->queues().transfer};
   command.Run([&](const VkCommandBuffer& command_buffer) {
-        VkBufferCopy region{
-            /*srcOffset=*/0,
-            /*dstOffset=*/0,
-            data_size,
-        };
-        vkCmdCopyBuffer(command_buffer, src_buffer, dst_buffer, 1, &region);
-      }
-  );
+    VkBufferCopy region{
+        /*srcOffset=*/0,
+        /*dstOffset=*/0,
+        data_size,
+    };
+    vkCmdCopyBuffer(command_buffer, src_buffer, dst_buffer, 1, &region);
+  });
 }
 
 void CopyBufferToImage(const SharedBasicContext& context,
@@ -274,25 +272,24 @@ void CopyBufferToImage(const SharedBasicContext& context,
   // one-time copy command
   OneTimeCommand command{context, &context->queues().transfer};
   command.Run([&](const VkCommandBuffer& command_buffer) {
-        VkBufferImageCopy region{
-            // first three parameters specify pixels layout in buffer
-            // setting all of them to 0 means pixels are tightly packed
-            /*bufferOffset=*/0,
-            /*bufferRowLength=*/0,
-            /*bufferImageHeight=*/0,
-            VkImageSubresourceLayers{
-                /*aspectMask=*/VK_IMAGE_ASPECT_COLOR_BIT,
-                /*mipLevel=*/0,
-                /*baseArrayLayer=*/0,
-                layer_count,
-            },
-            /*imageOffset=*/{0, 0, 0},
-            image_extent,
-        };
-        vkCmdCopyBufferToImage(
-            command_buffer, buffer, image, image_layout, 1, &region);
-      }
-  );
+    VkBufferImageCopy region{
+        // first three parameters specify pixels layout in buffer
+        // setting all of them to 0 means pixels are tightly packed
+        /*bufferOffset=*/0,
+        /*bufferRowLength=*/0,
+        /*bufferImageHeight=*/0,
+        VkImageSubresourceLayers{
+            /*aspectMask=*/VK_IMAGE_ASPECT_COLOR_BIT,
+            /*mipLevel=*/0,
+            /*baseArrayLayer=*/0,
+            layer_count,
+        },
+        /*imageOffset=*/{0, 0, 0},
+        image_extent,
+    };
+    vkCmdCopyBufferToImage(
+        command_buffer, buffer, image, image_layout, 1, &region);
+  });
 }
 
 } /* namespace */
