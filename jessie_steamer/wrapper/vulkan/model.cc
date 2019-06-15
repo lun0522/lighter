@@ -8,11 +8,11 @@
 #include "jessie_steamer/wrapper/vulkan/model.h"
 
 #include <algorithm>
-#include <stdexcept>
 
 #include "absl/memory/memory.h"
 #include "absl/strings/str_format.h"
 #include "jessie_steamer/common/file.h"
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
@@ -22,7 +22,6 @@ namespace {
 
 using absl::optional;
 using common::VertexAttrib3D;
-using std::runtime_error;
 using std::vector;
 
 struct VertexInputBinding {
@@ -47,7 +46,7 @@ VertexInputBinding GetPerVertexBindings() {
 
 template <typename VertexType>
 VertexInputAttribute GetVertexAttributes() {
-  throw runtime_error{"Vertex type not recognized"};
+  FATAL("Vertex type not recognized");
 }
 
 template <>
@@ -196,7 +195,7 @@ void Model::Init(const vector<PipelineBuilder::ShaderInfo>& shader_infos,
 
     if (instancing_info.has_value()) {
       if (instancing_info.value().per_instance_buffer == nullptr) {
-        throw runtime_error{"Per instance buffer not provided"};
+        FATAL("Per instance buffer not provided");
       }
       per_instance_buffer_ = instancing_info.value().per_instance_buffer;
     }
@@ -209,7 +208,7 @@ void Model::Init(const vector<PipelineBuilder::ShaderInfo>& shader_infos,
       find_binding_point =
           LoadMultiMesh(absl::get<MultiMeshResource>(resource));
     } else {
-      throw runtime_error{"Unrecognized variant type"};
+      FATAL("Unrecognized variant type");
     }
     CreateDescriptors(find_binding_point, uniform_infos, num_frame);
 
@@ -305,10 +304,10 @@ Model::FindBindingPoint Model::LoadMultiMesh(
       if (found == resource.binding_map.end()) {
         binding_map[type] = binding_point;
       } else if (found->second != binding_point) {
-        throw runtime_error{absl::StrFormat(
+        FATAL(absl::StrFormat(
             "Extra textures of type %d is bound to point %d, but mesh textures "
             "of same type are bound to point %d",
-            type, binding_point, found->second)};
+            type, binding_point, found->second));
       }
     }
   }

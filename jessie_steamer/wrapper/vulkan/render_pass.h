@@ -16,7 +16,6 @@
 #include "absl/types/variant.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
-#include "jessie_steamer/wrapper/vulkan/swapchain.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -118,8 +117,9 @@ class RenderPassBuilder {
   // called when window is resized.
   static std::unique_ptr<RenderPassBuilder> SimpleRenderPassBuilder(
       SharedBasicContext context,
-      const Swapchain& swapchain,
-      const DepthStencilImage& depth_stencil_image);
+      const DepthStencilImage& depth_stencil_image,
+      int num_swapchain_image,
+      const Attachment::GetImage& get_swapchain_image);
 
   explicit RenderPassBuilder(SharedBasicContext context)
     : context_{std::move(context)} {}

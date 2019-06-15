@@ -7,11 +7,11 @@
 
 #include "jessie_steamer/common/window.h"
 
+#include "jessie_steamer/common/util.h"
+
 namespace jessie_steamer {
 namespace common {
 namespace {
-
-using std::runtime_error;
 
 std::function<void()> set_resized_flag = nullptr;
 Window::CursorMoveCallback cursor_move_callback = nullptr;
@@ -62,13 +62,13 @@ void Window::Init(const std::string& name, glm::ivec2 screen_size) {
 #endif
 
   if (glfwVulkanSupported() == GL_FALSE) {
-    throw runtime_error{"Vulkan not supported"};
+    FATAL("Vulkan not supported");
   }
 
   window_ = glfwCreateWindow(screen_size.x, screen_size.y, name.c_str(),
                              nullptr, nullptr);
   if (window_ == nullptr) {
-    throw runtime_error{"Failed to create window"};
+    FATAL("Failed to create window");
   }
   glfwMakeContextCurrent(window_);
 
@@ -84,7 +84,7 @@ VkSurfaceKHR Window::CreateSurface(const VkInstance& instance,
   VkSurfaceKHR surface;
   auto result = glfwCreateWindowSurface(instance, window_, allocator, &surface);
   if (result != VK_SUCCESS) {
-    throw runtime_error{"Failed to create window surface"};
+    FATAL("Failed to create window surface");
   }
   return surface;
 }

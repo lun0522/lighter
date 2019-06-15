@@ -7,8 +7,7 @@
 
 #include "jessie_steamer/common/camera.h"
 
-#include <stdexcept>
-
+#include "jessie_steamer/common/util.h"
 #include "third_party/glm/gtc/matrix_transform.hpp"
 #include "third_party/glm/gtx/vector_angle.hpp"
 
@@ -95,7 +94,7 @@ void Camera::ProcessKey(Window::KeyMap key, float elapsed_time) {
       pos_ += right_ * distance;
       break;
     default:
-      throw std::runtime_error{"Unsupported key"};
+      FATAL("Unsupported key");
   }
   UpdateView();
 }

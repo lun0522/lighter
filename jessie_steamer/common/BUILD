@@ -9,6 +9,7 @@ cc_library(
     srcs = ["camera.cc"],
     hdrs = ["camera.h"],
     deps = [
+        ":util",
         ":window",
         "//third_party:glm",
     ],
@@ -19,6 +20,7 @@ cc_library(
     srcs = ["char_lib.cc"],
     hdrs = ["char_lib.h"],
     deps = [
+        ":util",
         "//third_party:freetype",
         "//third_party:glm",
         "@lib-absl//absl/container:flat_hash_map",
@@ -31,6 +33,7 @@ cc_library(
     srcs = ["file.cc"],
     hdrs = ["file.h"],
     deps = [
+        ":util",
         "//third_party:glm",
         "//third_party:stb",
         "@lib-absl//absl/container:flat_hash_map",
@@ -46,6 +49,7 @@ cc_library(
     hdrs = ["model_loader.h"],
     deps = [
         ":file",
+        ":util",
         "//third_party:assimp",
         "@lib-absl//absl/memory",
         "@lib-absl//absl/strings:str_format",
@@ -72,6 +76,7 @@ cc_library(
     hdrs = ["util.h"],
     deps = [
         "@lib-absl//absl/container:flat_hash_set",
+        "@lib-absl//absl/strings:str_format",
         "@lib-absl//absl/types:optional",
     ],
 )
@@ -81,6 +86,7 @@ cc_library(
     srcs = ["window.cc"],
     hdrs = ["window.h"],
     deps = [
+        ":util",
         "//third_party:glm",
         "//third_party:glfw",
         "@lib-absl//absl/container:flat_hash_map",

@@ -8,14 +8,13 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_MACRO_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_MACRO_H
 
-#include <stdexcept>
-
 #include "absl/strings/str_format.h"
+#include "jessie_steamer/common/util.h"
 #include "third_party/vulkan/vulkan.h"
 
-#define ASSERT_SUCCESS(event, error)                                          \
-  if (event != VK_SUCCESS) {                                                  \
-    throw std::runtime_error{absl::StrFormat("Error %d: %s", event, error)};  \
+#define ASSERT_SUCCESS(event, error)                      \
+  if (event != VK_SUCCESS) {                              \
+    FATAL(absl::StrFormat("Errno %d: %s", event, error))  \
   }
 
 #define CONTAINER_SIZE(container) static_cast<uint32_t>(container.size())

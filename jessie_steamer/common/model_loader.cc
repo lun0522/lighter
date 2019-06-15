@@ -7,9 +7,8 @@
 
 #include "jessie_steamer/common/model_loader.h"
 
-#include <stdexcept>
-
 #include "absl/strings/str_format.h"
+#include "jessie_steamer/common/util.h"
 #include "third_party/assimp/Importer.hpp"
 #include "third_party/assimp/postprocess.h"
 
@@ -30,8 +29,7 @@ aiTextureType ResourceTypeToAssimpType(types::ResourceType type) {
     case types::kTextureReflection:
       return aiTextureType_AMBIENT;
     default:
-      throw std::runtime_error{StrFormat(
-          "Unsupported resource type: %d", type)};
+      FATAL(StrFormat("Unsupported resource type: %d", type));
   }
 }
 
@@ -52,8 +50,7 @@ ModelLoader::ModelLoader(const string& obj_path, const string& tex_path) {
   auto* scene = importer.ReadFile(obj_path, flags);
   if (scene == nullptr || scene->mRootNode == nullptr ||
       (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)) {
-    throw std::runtime_error{StrFormat(
-        "Failed to import scene: %s", importer.GetErrorString())};
+    FATAL(StrFormat("Failed to import scene: %s", importer.GetErrorString()));
   }
 
   ProcessNode(tex_path, scene->mRootNode, scene);

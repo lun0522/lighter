@@ -8,7 +8,6 @@
 #include "jessie_steamer/wrapper/vulkan/validation.h"
 
 #include <iostream>
-#include <stdexcept>
 
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
@@ -21,7 +20,6 @@ namespace {
 
 namespace util = common::util;
 using std::string;
-using std::runtime_error;
 using std::vector;
 
 VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
@@ -40,7 +38,7 @@ FuncType LoadFunction(const SharedBasicContext& context,
   auto func = reinterpret_cast<FuncType>(
       vkGetInstanceProcAddr(*context->instance(), func_name.c_str()));
   if (!func) {
-    throw runtime_error{"Failed to load: " + func_name};
+    FATAL("Failed to load: " + func_name);
   }
   return func;
 }
@@ -76,7 +74,7 @@ void EnsureInstanceExtensionSupport(const vector<string>& required) {
       required, properties, get_name);
 
   if (unsupported.has_value()) {
-    throw runtime_error{"Unsupported: " + unsupported.value()};
+    FATAL("Unsupported: " + unsupported.value());
   }
 }
 
@@ -95,7 +93,7 @@ void EnsureValidationLayerSupport(const vector<string>& required) {
       required, properties, get_name);
 
   if (unsupported.has_value()) {
-    throw runtime_error{"Unsupported: " + unsupported.value()};
+    FATAL("Unsupported: " + unsupported.value());
   }
 }
 

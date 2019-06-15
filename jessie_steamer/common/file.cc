@@ -8,13 +8,13 @@
 #include "jessie_steamer/common/file.h"
 
 #include <fstream>
-#include <stdexcept>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_split.h"
+#include "jessie_steamer/common/util.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "third_party/stb/stb_image.h"
 
@@ -23,7 +23,6 @@ namespace common {
 namespace {
 
 using std::ifstream;
-using std::runtime_error;
 using std::stof;
 using std::string;
 using std::vector;
@@ -31,7 +30,7 @@ using std::vector;
 ifstream OpenFile(const string& path) {
   ifstream file{path};
   if (!file.is_open() || file.bad() || file.fail()) {
-    throw runtime_error{"Failed to open file: " + path};
+    FATAL("Failed to open file: " + path);
   }
   return file;
 }
@@ -46,9 +45,8 @@ vector<string> SplitText(absl::string_view text,
                          int num_segment) {
   vector<string> result = absl::StrSplit(text, delimiter);
   if (result.size() != num_segment) {
-    throw runtime_error{absl::StrFormat(
-        "Wrong number of segments (expected %d, but get %d)",
-        num_segment, result.size())};
+    FATAL(absl::StrFormat("Wrong number of segments (expected %d, but get %d)",
+                          num_segment, result.size()));
   }
   return result;
 }
@@ -71,7 +69,7 @@ Image::Image(const string& path) {
                                static_cast<int>(raw_data->size),
                                &width, &height, &channel, STBI_default);
   if (data == nullptr) {
-    throw runtime_error{"Failed to read image from " + path};
+    FATAL("Failed to read image from " + path);
   }
 
   switch (channel) {
@@ -88,8 +86,7 @@ Image::Image(const string& path) {
       break;
     }
     default:
-      throw runtime_error{absl::StrFormat(
-          "Unsupported number of channels: %d", channel)};
+      FATAL(absl::StrFormat("Unsupported number of channels: %d", channel));
   }
 }
 
@@ -133,8 +130,8 @@ ObjFile::ObjFile(const string& path, int index_base) {
             break;
           }
           default:
-            throw runtime_error{absl::StrFormat(
-                "Unexpected symbol '%c'", line[non_space + 1])};
+            FATAL(absl::StrFormat("Unexpected symbol '%c'",
+                                  line[non_space + 1]));
         }
         break;
       }
@@ -158,8 +155,7 @@ ObjFile::ObjFile(const string& path, int index_base) {
         break;
       }
       default:
-        throw runtime_error{absl::StrFormat(
-            "Unexpected symbol '%c'", line[non_space])};
+        FATAL(absl::StrFormat("Unexpected symbol '%c'", line[non_space]));
     }
   };
 
@@ -168,14 +164,11 @@ ObjFile::ObjFile(const string& path, int index_base) {
     try {
       parse_line(line);
     } catch (const std::out_of_range& e) {
-      throw runtime_error{absl::StrFormat(
-          "Out of range at line %d: %s", line_num, line)};
+      FATAL(absl::StrFormat("Out of range at line %d: %s", line_num, line));
     } catch (const std::invalid_argument& e) {
-      throw runtime_error{absl::StrFormat(
-          "Invalid argument at line %d: %s", line_num, line)};
+      FATAL(absl::StrFormat("Invalid argument at line %d: %s", line_num, line));
     } catch (const std::exception& e) {
-      throw runtime_error{absl::StrFormat(
-          "Failed to parse line %d: %s", line_num, line)};
+      FATAL(absl::StrFormat("Failed to parse line %d: %s", line_num, line));
     }
   }
 }

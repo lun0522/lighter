@@ -1,8 +1,13 @@
 package(default_visibility = ["//visibility:private"])
 
+load("//:settings.bzl", "compilation_mode")
+
+compilation_mode()
+
 cc_library(
     name = "on_screen",
     deps = [
+        ":buffer",
         ":command",
         ":image",
         ":model",
@@ -43,6 +48,7 @@ cc_library(
         ":basics",
         ":command",
         ":macro",
+        "//jessie_steamer/common:util",
         "//third_party:vulkan",
         "@lib-absl//absl/strings:str_format",
         "@lib-absl//absl/types:span",
@@ -57,6 +63,7 @@ cc_library(
         ":basics",
         ":macro",
         ":synchronize",
+        "//jessie_steamer/common:util",
         "//third_party:vulkan",
     ],
 )
@@ -69,6 +76,7 @@ cc_library(
         ":basics",
         ":macro",
         "//jessie_steamer/common:model_loader",
+        "//jessie_steamer/common:util",
         "//third_party:vulkan",
         "@lib-absl//absl/container:flat_hash_map",
     ],
@@ -84,6 +92,7 @@ cc_library(
         ":macro",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:ref_count",
+        "//jessie_steamer/common:util",
         "//third_party:vulkan",
         "@lib-absl//absl/memory",
         "@lib-absl//absl/strings:str_format",
@@ -96,6 +105,7 @@ cc_library(
     name = "macro",
     hdrs = ["macro.h"],
     deps = [
+        "//jessie_steamer/common:util",
         "//third_party:vulkan",
         "@lib-absl//absl/strings:str_format",
     ],
@@ -114,6 +124,7 @@ cc_library(
         ":pipeline",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:model_loader",
+        "//jessie_steamer/common:util",
         "//third_party:vulkan",
         "@lib-absl//absl/memory",
         "@lib-absl//absl/container:flat_hash_map",
@@ -146,10 +157,10 @@ cc_library(
         ":basics",
         ":image",
         ":macro",
-        ":window",
         "//jessie_steamer/common:util",
         "//third_party:vulkan",
         "@lib-absl//absl/memory",
+        "@lib-absl//absl/strings:str_format",
         "@lib-absl//absl/types:optional",
         "@lib-absl//absl/types:variant",
     ],
@@ -195,9 +206,4 @@ cc_library(
         "@lib-absl//absl/container:flat_hash_set",
         "@lib-absl//absl/memory",
     ],
-)
-
-config_setting(
-    name = "optimal_build",
-    values = {"compilation_mode": "opt"},
 )

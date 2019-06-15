@@ -9,7 +9,6 @@
 #define JESSIE_STEAMER_COMMON_WINDOW_H
 
 #include <functional>
-#include <stdexcept>
 #include <string>
 #include <vector>
 

@@ -140,7 +140,10 @@ void PlanetApp::Init() {
 
     // render pass builder
     render_pass_builder_ = RenderPassBuilder::SimpleRenderPassBuilder(
-        context(), window_context_.swapchain(), *depth_stencil_);
+        context(), *depth_stencil_, window_context_.swapchain().num_image(),
+        /*get_swapchain_image=*/[this](int index) -> const Image& {
+          return window_context_.swapchain().image(index);
+        });
   } else {
     // update depth stencil
     render_pass_builder_->update_attachment(

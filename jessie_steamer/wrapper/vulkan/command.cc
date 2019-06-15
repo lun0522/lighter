@@ -7,8 +7,7 @@
 
 #include "jessie_steamer/wrapper/vulkan/command.h"
 
-#include <stdexcept>
-
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
@@ -16,7 +15,6 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::runtime_error;
 using std::vector;
 
 VkCommandPool CreateCommandPool(const SharedBasicContext& context,
@@ -164,7 +162,7 @@ VkResult PerFrameCommand::Run(int current_frame,
     case VK_SUBOPTIMAL_KHR:  // may be considered as good state as well
       break;
     default:
-      throw runtime_error{"Failed to acquire swapchain image"};
+      FATAL("Failed to acquire swapchain image");
   }
 
   // record command in command buffer
@@ -223,7 +221,7 @@ VkResult PerFrameCommand::Run(int current_frame,
   };
 
   if (!queues_->present.has_value()) {
-    throw runtime_error{"No present queue"};
+    FATAL("No present queue");
   }
 
   VkResult present_result = vkQueuePresentKHR(queues_->present.value().queue,
@@ -235,7 +233,7 @@ VkResult PerFrameCommand::Run(int current_frame,
     case VK_SUBOPTIMAL_KHR:  // may be considered as good state as well
       return VK_SUCCESS;
     default:
-      throw runtime_error{"Failed to present swapchain image"};
+      FATAL("Failed to present swapchain image");
   }
 }
 

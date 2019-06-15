@@ -7,8 +7,7 @@
 
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
 
-#include <stdexcept>
-
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
@@ -118,7 +117,7 @@ void Descriptor::UpdateBufferInfos(
     const Info& descriptor_info,
     const vector<VkDescriptorBufferInfo>& buffer_infos) const {
   if (descriptor_info.bindings.size() != buffer_infos.size()) {
-    throw std::runtime_error{"Failed to update image infos"};
+    FATAL("Failed to update image infos");
   }
 
   vector<VkWriteDescriptorSet> write_desc_sets(buffer_infos.size());

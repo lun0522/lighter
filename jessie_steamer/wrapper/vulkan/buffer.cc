@@ -9,9 +9,9 @@
 
 #include <array>
 #include <cstring>
-#include <stdexcept>
 
 #include "absl/strings/str_format.h"
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
 
@@ -21,7 +21,6 @@ namespace vulkan {
 namespace {
 
 using std::array;
-using std::runtime_error;
 using std::vector;
 
 uint32_t FindMemoryType(const SharedBasicContext& context,
@@ -42,7 +41,7 @@ uint32_t FindMemoryType(const SharedBasicContext& context,
       }
     }
   }
-  throw runtime_error{"Failed to find suitable memory type"};
+  FATAL("Failed to find suitable memory type");
 }
 
 VkFormat FindImageFormat(const SharedBasicContext& context,
@@ -56,7 +55,7 @@ VkFormat FindImageFormat(const SharedBasicContext& context,
       return format;
     }
   }
-  throw runtime_error{"Failed to find suitable image type"};
+  FATAL("Failed to find suitable image type");
 }
 
 VkBuffer CreateBuffer(const SharedBasicContext& context,
@@ -414,8 +413,7 @@ void TextureBuffer::Init(const Info& info) {
 
   auto layer_count = CONTAINER_SIZE(info.datas);
   if (layer_count != 1 && layer_count != buffer::kCubemapImageCount) {
-    throw runtime_error{absl::StrFormat(
-        "Wrong number of images: %d", layer_count)};
+    FATAL(absl::StrFormat("Wrong number of images: %d", layer_count));
   }
 
   // create staging buffer and associated memory
@@ -493,10 +491,10 @@ DepthStencilBuffer::DepthStencilBuffer(SharedBasicContext context,
 
 void PushConstant::Init(size_t chunk_size, int num_chunk) {
   if (chunk_size > buffer::kMaxPushConstantSize) {
-    throw runtime_error{absl::StrFormat(
+    FATAL(absl::StrFormat(
         "Pushing constant of size %d bytes. To be compatible with all devices, "
         "the size should NOT be greater than %d bytes.",
-        chunk_size, buffer::kMaxPushConstantSize)};
+        chunk_size, buffer::kMaxPushConstantSize));
   }
   size_ = static_cast<uint32_t>(chunk_size);
   data_ = new char[size_ * num_chunk];

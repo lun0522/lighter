@@ -9,7 +9,6 @@
 
 #include <iostream>
 #include <numeric>
-#include <stdexcept>
 #include <vector>
 
 #include "jessie_steamer/common/util.h"
@@ -25,7 +24,6 @@ namespace vulkan {
 namespace {
 
 namespace util = common::util;
-using std::runtime_error;
 using std::vector;
 
 struct QueueIndices {
@@ -225,7 +223,7 @@ void PhysicalDevice::Init(SharedBasicContext context,
     }
   }
 
-  throw runtime_error{"Failed to find suitable GPU"};
+  FATAL("Failed to find suitable GPU");
 }
 
 void Device::Init(SharedBasicContext context,
@@ -319,11 +317,11 @@ Queues& Queues::set_queues(const VkQueue& graphics_queue,
   transfer.queue = transfer_queue;
   if (present.has_value()) {
     if (!present_queue.has_value()) {
-      throw runtime_error{"Present queue is not specified"};
+      FATAL("Present queue is not specified");
     }
     present.value().queue = present_queue.value();
   } else if (present_queue.has_value()) {
-    throw runtime_error{"Preset queue should not be specified"};
+    FATAL("Preset queue should not be specified");
   }
   return *this;
 }

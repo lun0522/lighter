@@ -10,7 +10,6 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <stdexcept>
 #include <type_traits>
 
 #include "jessie_steamer/wrapper/vulkan/window_context.h"

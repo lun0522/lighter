@@ -8,20 +8,18 @@
 #include "jessie_steamer/wrapper/vulkan/image.h"
 
 #include <memory>
-#include <stdexcept>
 #include <vector>
 
 #include "absl/memory/memory.h"
 #include "absl/strings/str_format.h"
 #include "jessie_steamer/common/file.h"
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace {
-
-using std::runtime_error;
 
 VkImageView CreateImageView(const SharedBasicContext& context,
                             const VkImage& image,
@@ -37,8 +35,7 @@ VkImageView CreateImageView(const SharedBasicContext& context,
       view_type = VK_IMAGE_VIEW_TYPE_CUBE;
       break;
     default:
-      throw runtime_error{absl::StrFormat(
-          "Unsupported layer count: %d", layer_count)};
+      FATAL(absl::StrFormat("Unsupported layer count: %d", layer_count));
   }
 
   VkImageViewCreateInfo image_view_info{
@@ -118,7 +115,7 @@ TextureImage::SharedTexture TextureImage::GetTexture(
   } else if (absl::holds_alternative<TextureImage::CubemapPath>(source_path)) {
     identifier = &absl::get<TextureImage::CubemapPath>(source_path).directory;
   } else {
-    throw runtime_error{"Unrecognized variant type"};
+    FATAL("Unrecognized variant type");
   }
   return SharedTexture::Get(*identifier, context, source_path);
 }
@@ -151,7 +148,7 @@ TextureImage::TextureImage(SharedBasicContext context,
     }
     sample_image = images[0].get();
   } else {
-    throw runtime_error{"Unrecognized variant type"};
+    FATAL("Unrecognized variant type");
   }
 
   switch (sample_image->channel) {
@@ -162,8 +159,8 @@ TextureImage::TextureImage(SharedBasicContext context,
       format_ = VK_FORMAT_R8G8B8A8_UNORM;
       break;
     default:
-      throw runtime_error{absl::StrFormat(
-          "Unsupported number of channels: %d", sample_image->channel)};
+      FATAL(absl::StrFormat("Unsupported number of channels: %d",
+                            sample_image->channel));
   }
 
   TextureBuffer::Info image_info{

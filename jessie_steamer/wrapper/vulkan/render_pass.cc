@@ -8,6 +8,7 @@
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
 
 #include "absl/memory/memory.h"
+#include "absl/strings/str_format.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/macro.h"
 
@@ -50,7 +51,7 @@ vector<VkAttachmentDescription> CreateAttachmentDescriptions(
       description.stencilLoadOp = depth_stencil_ops.load_stencil;
       description.stencilStoreOp = depth_stencil_ops.store_stencil;
     } else {
-      throw std::runtime_error{"Unrecognized variant type"};
+      FATAL("Unrecognized variant type");
     }
   }
   return descriptions;
@@ -89,7 +90,7 @@ vector<VkClearValue> CreateClearValues(
         attachment.attachment_ops)) {
       clear_values.emplace_back(GetClearDepthStencil());
     } else {
-      throw std::runtime_error{"Unrecognized variant type"};
+      FATAL("Unrecognized variant type");
     }
   }
   return clear_values;
@@ -131,13 +132,14 @@ vector<VkFramebuffer> CreateFramebuffers(
 
 std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
     SharedBasicContext context,
-    const Swapchain& swapchain,
-    const DepthStencilImage& depth_stencil_image) {
+    const DepthStencilImage& depth_stencil_image,
+    int num_swapchain_image,
+    const Attachment::GetImage& get_swapchain_image) {
   std::unique_ptr<RenderPassBuilder> builder =
       absl::make_unique<RenderPassBuilder>(std::move(context));
 
   // number of frame
-  builder->set_num_framebuffer(swapchain.num_image());
+  builder->set_num_framebuffer(num_swapchain_image);
 
   // color attachment
   builder->set_attachment(/*index=*/0, Attachment{
@@ -145,9 +147,7 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
           /*load_color=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
           /*store_color=*/VK_ATTACHMENT_STORE_OP_STORE,
       },
-      /*get_image=*/[&swapchain](int index) -> const Image& {
-        return swapchain.image(index);
-      },
+      get_swapchain_image,
       /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
       /*final_layout=*/VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
   });
@@ -240,6 +240,12 @@ RenderPassBuilder& RenderPassBuilder::update_attachment(
 std::unique_ptr<RenderPass> RenderPassBuilder::Build() {
   ASSERT_HAS_VALUE(framebuffer_size_, "Frame size not set");
   ASSERT_HAS_VALUE(num_framebuffer_, "Number of frame not set");
+
+  for (int i = 0; i < attachments_.size(); ++i) {
+    if (attachments_[i].get_image == nullptr) {
+      FATAL(absl::StrFormat("Attachment at index %d is not set", i));
+    }
+  }
 
   auto attachment_descriptions = CreateAttachmentDescriptions(attachments_);
 

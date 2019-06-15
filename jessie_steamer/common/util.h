@@ -14,12 +14,20 @@
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
+#include "absl/strings/str_format.h"
 #include "absl/types/optional.h"
 
-#define ASSERT_HAS_VALUE(object, error) \
-  if (!object.has_value()) {            \
-    throw std::runtime_error{error};    \
-  }
+#ifdef NDEBUG
+#define FATAL(error) throw std::runtime_error{error};
+#else  /* !NDEBUG */
+#define FATAL(error)                          \
+  throw std::runtime_error{absl::StrFormat(   \
+      "%s() in %s at line %d: %s",            \
+      __func__, __FILE__, __LINE__, error)};
+#endif /* NDEBUG */
+
+#define ASSERT_HAS_VALUE(object, error)       \
+  if (!object.has_value()) { FATAL(error); }
 
 namespace jessie_steamer {
 namespace common {

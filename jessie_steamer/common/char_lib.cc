@@ -7,27 +7,21 @@
 
 #include "jessie_steamer/common/char_lib.h"
 
-#include <stdexcept>
-
 #include "absl/container/flat_hash_set.h"
+#include "jessie_steamer/common/util.h"
 
 namespace jessie_steamer {
 namespace common {
-namespace {
-
-using std::runtime_error;
-
-} /* namespace */
 
 CharLib::CharLib(const std::vector<std::string>& texts,
                  const std::string& font_path,
                  glm::uvec2 font_size) {
   if (FT_Init_FreeType(&lib_)) {
-    throw runtime_error{"Failed to init FreeType library"};
+    FATAL("Failed to init FreeType library");
   }
 
   if (FT_New_Face(lib_, font_path.c_str(), 0, &face_)) {
-    throw runtime_error{"Failed to load font"};
+    FATAL("Failed to load font");
   }
   FT_Set_Pixel_Sizes(face_, font_size.x, font_size.y);
 
@@ -40,7 +34,7 @@ CharLib::CharLib(const std::vector<std::string>& texts,
 
   for (auto c : to_load) {
     if (FT_Load_Char(face_, c, FT_LOAD_RENDER)) {
-      throw runtime_error{"Failed to load glyph"};
+      FATAL("Failed to load glyph");
     }
 
     Character ch{

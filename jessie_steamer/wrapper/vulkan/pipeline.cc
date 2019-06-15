@@ -8,7 +8,6 @@
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
 
 #include <memory>
-#include <stdexcept>
 
 #include "absl/memory/memory.h"
 #include "jessie_steamer/common/file.h"
@@ -20,7 +19,6 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::runtime_error;
 using std::vector;
 
 VkShaderModule CreateShaderModule(const SharedBasicContext& context,
