@@ -141,10 +141,10 @@ PipelineBuilder::PipelineBuilder(SharedBasicContext context)
 }
 
 PipelineBuilder& PipelineBuilder::set_vertex_input(
-    const vector<VkVertexInputBindingDescription>& binding_descriptions,
-    const vector<VkVertexInputAttributeDescription>& attribute_descriptions) {
-  binding_descriptions_ = binding_descriptions;
-  attribute_descriptions_ = attribute_descriptions;
+    vector<VkVertexInputBindingDescription>&& binding_descriptions,
+    vector<VkVertexInputAttributeDescription>&& attribute_descriptions) {
+  binding_descriptions_ = std::move(binding_descriptions);
+  attribute_descriptions_ = std::move(attribute_descriptions);
   vertex_input_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -160,10 +160,10 @@ PipelineBuilder& PipelineBuilder::set_vertex_input(
 }
 
 PipelineBuilder& PipelineBuilder::set_layout(
-    const vector<VkDescriptorSetLayout>& descriptor_layouts,
-    const vector<VkPushConstantRange>& push_constant_ranges) {
-  descriptor_layouts_ = descriptor_layouts;
-  push_constant_ranges_ = push_constant_ranges;
+    vector<VkDescriptorSetLayout>&& descriptor_layouts,
+    vector<VkPushConstantRange>&& push_constant_ranges) {
+  descriptor_layouts_ = std::move(descriptor_layouts);
+  push_constant_ranges_ = std::move(push_constant_ranges);
   layout_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -185,14 +185,14 @@ PipelineBuilder& PipelineBuilder::set_viewport(VkViewport viewport) {
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::set_scissor(const VkRect2D& scissor) {
+PipelineBuilder& PipelineBuilder::set_scissor(VkRect2D&& scissor) {
   scissor_ = scissor;
   return *this;
 }
 
 PipelineBuilder& PipelineBuilder::set_render_pass(
-    const RenderPassInfo& render_pass_info) {
-  render_pass_info_ = render_pass_info;
+    RenderPassInfo&& render_pass_info) {
+  render_pass_info_ = std::move(render_pass_info);
   return *this;
 }
 

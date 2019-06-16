@@ -83,6 +83,15 @@ int FindFirst(const std::vector<ContentType>& container,
       : static_cast<int>(std::distance(container.begin(), first_itr));
 }
 
+template <typename ContentType>
+void SetElementWithResizing(std::vector<ContentType>* container,
+                            int index, ContentType&& element) {
+  if (index >= container->size()) {
+    container->resize(index + 1);
+  }
+  container->operator[](index) = std::move(element);
+}
+
 } /* namespace util */
 } /* namespace common */
 } /* namespace jessie_steamer */

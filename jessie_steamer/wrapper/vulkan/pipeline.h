@@ -74,15 +74,14 @@ class PipelineBuilder {
 
   // All these information must be set before Build().
   PipelineBuilder& set_vertex_input(
-      const std::vector<VkVertexInputBindingDescription>& binding_descriptions,
-      const std::vector<VkVertexInputAttributeDescription>&
-          attribute_descriptions);
+      std::vector<VkVertexInputBindingDescription>&& binding_descriptions,
+      std::vector<VkVertexInputAttributeDescription>&& attribute_descriptions);
   PipelineBuilder& set_layout(
-      const std::vector<VkDescriptorSetLayout>& descriptor_layouts,
-      const std::vector<VkPushConstantRange>& push_constant_ranges);
+      std::vector<VkDescriptorSetLayout>&& descriptor_layouts,
+      std::vector<VkPushConstantRange>&& push_constant_ranges);
   PipelineBuilder& set_viewport(VkViewport viewport);
-  PipelineBuilder& set_scissor(const VkRect2D& scissor);
-  PipelineBuilder& set_render_pass(const RenderPassInfo& render_pass_info);
+  PipelineBuilder& set_scissor(VkRect2D&& scissor);
+  PipelineBuilder& set_render_pass(RenderPassInfo&& render_pass_info);
 
   // To save memory, shader modules will be released after a pipeline is built,
   // so all shaders should be added again before next Build().

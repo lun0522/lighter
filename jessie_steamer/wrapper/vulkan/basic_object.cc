@@ -24,6 +24,7 @@ namespace vulkan {
 namespace {
 
 namespace util = common::util;
+
 using std::vector;
 
 struct QueueIndices {

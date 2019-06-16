@@ -22,6 +22,7 @@ namespace vulkan {
 namespace {
 
 namespace util = common::util;
+
 using std::max;
 using std::min;
 using std::vector;

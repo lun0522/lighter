@@ -186,7 +186,7 @@ void Model::Init(const vector<PipelineBuilder::ShaderInfo>& shader_infos,
                  const optional<UniformInfos>& uniform_infos,
                  const optional<InstancingInfo>& instancing_info,
                  const optional<PushConstantInfos>& push_constant_infos,
-                 const PipelineBuilder::RenderPassInfo& render_pass_info,
+                 PipelineBuilder::RenderPassInfo&& render_pass_info,
                  VkExtent2D frame_size, int num_frame, bool is_opaque) {
   if (is_first_time_) {
     is_first_time_ = false;
@@ -251,7 +251,7 @@ void Model::Init(const vector<PipelineBuilder::ShaderInfo>& shader_infos,
       .set_scissor({
           /*offset=*/{0, 0},
           frame_size})
-      .set_render_pass(render_pass_info);
+      .set_render_pass(std::move(render_pass_info));
   for (const auto& info : shader_infos) {
     pipeline_builder_.add_shader(info);
   }

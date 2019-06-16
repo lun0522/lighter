@@ -19,6 +19,7 @@ namespace vulkan {
 namespace {
 
 namespace util = common::util;
+
 using std::string;
 using std::vector;
 

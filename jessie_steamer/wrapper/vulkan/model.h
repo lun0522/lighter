@@ -106,7 +106,7 @@ class Model {
             const absl::optional<UniformInfos>& uniform_infos,
             const absl::optional<InstancingInfo>& instancing_info,
             const absl::optional<PushConstantInfos>& push_constant_infos,
-            const PipelineBuilder::RenderPassInfo& render_pass_info,
+            PipelineBuilder::RenderPassInfo&& render_pass_info,
             VkExtent2D frame_size, int num_frame, bool is_opaque);
   void Draw(const VkCommandBuffer& command_buffer,
             int frame, uint32_t instance_count) const;

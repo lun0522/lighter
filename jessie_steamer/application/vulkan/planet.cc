@@ -144,16 +144,15 @@ void PlanetApp::Init() {
         /*get_swapchain_image=*/[this](int index) -> const Image& {
           return window_context_.swapchain().image(index);
         });
-  } else {
-    // update depth stencil
-    render_pass_builder_->update_attachment(
-        /*index=*/1, [this](int index) -> const Image& {
-          return *depth_stencil_;
-        });
   }
 
   // render pass
-  render_pass_builder_->set_framebuffer_size(frame_size);
+  (*render_pass_builder_)
+      .set_framebuffer_size(frame_size)
+      .update_attachment(
+          /*index=*/1, [this](int index) -> const Image& {
+            return *depth_stencil_;
+          });
   render_pass_ = render_pass_builder_->Build();
 
   // model

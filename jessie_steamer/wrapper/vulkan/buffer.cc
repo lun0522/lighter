@@ -108,7 +108,7 @@ VkDeviceMemory CreateBufferMemory(const SharedBasicContext& context,
 
   // associate allocated memory with buffer
   // since this memory is specifically allocated for this buffer, the last
-  // parameter |memoryOffset| is simply 0
+  // parameter 'memoryOffset' is simply 0
   // otherwise it should be selected according to mem_requirements.alignment
   vkBindBufferMemory(device, buffer, memory, 0);
 
@@ -373,8 +373,8 @@ void PerInstanceBuffer::Bind(const VkCommandBuffer& command_buffer) const {
 
 void UniformBuffer::Init(size_t chunk_size, int num_chunk) {
   // offset is required to be multiple of minUniformBufferOffsetAlignment
-  // which is why we have actual data size |chunk_data_size_| and its
-  // aligned size |chunk_memory_size_|
+  // which is why we have actual data size 'chunk_data_size_' and its
+  // aligned size 'chunk_memory_size_'
   VkDeviceSize alignment =
       context_->physical_device().limits().minUniformBufferOffsetAlignment;
   chunk_data_size_ = chunk_size;
