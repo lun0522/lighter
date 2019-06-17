@@ -9,7 +9,6 @@
 #define JESSIE_STEAMER_WRAPPER_VULKAN_MODEL_H
 
 #include <array>
-#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -29,25 +28,71 @@
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
+namespace model {
+
+using ResourceType = common::types::ResourceType;
+using TexPerMesh = std::array<std::vector<TextureImage::SharedTexture>,
+                              ResourceType::kNumTextureType>;
+
+// For pushing constants.
+struct PushConstantInfo {
+  struct Info {
+    uint32_t size() const { return push_constant->size(); }
+    const void* data(int frame) const {
+      return push_constant->data<void>(frame);
+    }
+
+    const PushConstant* push_constant;
+    uint32_t offset;
+  };
+  VkShaderStageFlags shader_stage;
+  std::vector<Info> infos;
+};
+
+} /* namespace model */
 
 class Model {
  public:
-  using ResourceType = common::types::ResourceType;
-  using Mesh = std::array<std::vector<TextureImage::SharedTexture>,
-                          ResourceType::kNumTextureType>;
-  using UniformInfos = std::vector<std::pair<const UniformBuffer&,
-                                             const Descriptor::Info&>>;
+  // This class is neither copyable nor movable.
+  Model(const Model&) = delete;
+  Model& operator=(const Model&) = delete;
 
-  // Textures that will be bound to the same point.
+  // Should be called after initialization and whenever frame is resized.
+  void Update(VkExtent2D frame_size,
+              PipelineBuilder::RenderPassInfo&& render_pass_info);
+
+  void Draw(const VkCommandBuffer& command_buffer,
+            int frame, uint32_t instance_count) const;
+
+ private:
+  friend class ModelBuilder;
+  Model() = default;
+
+  SharedBasicContext context_;
+  std::vector<PipelineBuilder::ShaderInfo> shader_infos_;
+  std::unique_ptr<PerVertexBuffer> vertex_buffer_;
+  std::vector<const PerInstanceBuffer*> per_instance_buffers_;
+  std::vector<model::PushConstantInfo> push_constant_infos_;
+  model::TexPerMesh shared_textures_;
+  std::vector<model::TexPerMesh> mesh_textures_;
+  std::vector<std::vector<std::unique_ptr<Descriptor>>> descriptors_;
+  std::unique_ptr<PipelineBuilder> pipeline_builder_;
+  std::unique_ptr<Pipeline> pipeline_;
+};
+
+class ModelBuilder {
+ public:
+  using UniformInfo = std::pair<const UniformBuffer*, Descriptor::Info>;
+
+  // Textures of the same type will be bound to the same point.
   struct TextureBinding {
     uint32_t binding_point;
     std::vector<TextureImage::SourcePath> texture_paths;
   };
-  using BindingPointMap = absl::flat_hash_map<ResourceType, uint32_t,
+  using BindingPointMap = absl::flat_hash_map<model::ResourceType, uint32_t,
                                               std::hash<int>>;
-  using TextureBindingMap = absl::flat_hash_map<ResourceType, TextureBinding,
-                                                std::hash<int>>;
-  using FindBindingPoint = std::function<uint32_t(ResourceType)>;
+  using TextureBindingMap = absl::flat_hash_map<model::ResourceType,
+                                                TextureBinding, std::hash<int>>;
 
   // Loads with light-weight obj file loader.
   struct SingleMeshResource {
@@ -60,7 +105,6 @@ class Model {
     std::string obj_path;
     std::string tex_path;
     BindingPointMap binding_map;
-    absl::optional<TextureBindingMap> extra_texture_map;
   };
   using ModelResource = absl::variant<SingleMeshResource, MultiMeshResource>;
 
@@ -74,60 +118,44 @@ class Model {
   struct InstancingInfo {
     std::vector<VertexAttribute> per_instance_attribs;
     uint32_t data_size;
-    PerInstanceBuffer* per_instance_buffer;
+    const PerInstanceBuffer* per_instance_buffer;
   };
 
-  // For pushing constants.
-  struct PushConstantInfo {
-    struct Info {
-      uint32_t size() const { return push_constant->size(); }
-      const void* data(int frame) const {
-        return push_constant->data<void>(frame);
-      }
-
-      const PushConstant* push_constant;
-      uint32_t offset;
-    };
-    VkShaderStageFlags shader_stage;
-    std::vector<Info> infos;
-  };
-  using PushConstantInfos = std::vector<PushConstantInfo>;
-
-  explicit Model(SharedBasicContext context)
-    : context_{std::move(context)},
-      vertex_buffer_{context_}, pipeline_builder_{context_} {}
+  ModelBuilder(SharedBasicContext context,
+               int num_frame, bool is_opaque, const ModelResource& resource);
 
   // This class is neither copyable nor movable.
-  Model(const Model&) = delete;
-  Model& operator=(const Model&) = delete;
+  ModelBuilder(const ModelBuilder&) = delete;
+  ModelBuilder& operator=(const ModelBuilder&) = delete;
 
-  void Init(const std::vector<PipelineBuilder::ShaderInfo>& shader_infos,
-            const ModelResource& resource,
-            const absl::optional<UniformInfos>& uniform_infos,
-            const absl::optional<InstancingInfo>& instancing_info,
-            const absl::optional<PushConstantInfos>& push_constant_infos,
-            PipelineBuilder::RenderPassInfo&& render_pass_info,
-            VkExtent2D frame_size, int num_frame, bool is_opaque);
-  void Draw(const VkCommandBuffer& command_buffer,
-            int frame, uint32_t instance_count) const;
+  // Should be called after all setters are called. Note that all internal
+  // states will be invalid after calling Build(), and the caller should discard
+  // the builder and perform all updates on the Model instance.
+  std::unique_ptr<Model> Build();
+
+  ModelBuilder& add_shader(PipelineBuilder::ShaderInfo&& info);
+  ModelBuilder& add_instancing(InstancingInfo&& info);
+  ModelBuilder& add_uniform_buffer(UniformInfo&& info);
+  ModelBuilder& add_push_constant(model::PushConstantInfo&& info);
+  ModelBuilder& add_shared_texture(model::ResourceType type,
+                                   const TextureBinding& binding);
 
  private:
-  FindBindingPoint LoadSingleMesh(const SingleMeshResource& resource);
-  FindBindingPoint LoadMultiMesh(const MultiMeshResource& resource);
-  void CreateDescriptors(const FindBindingPoint& find_binding_point,
-                         const absl::optional<UniformInfos>& uniform_infos,
-                         int num_frame);
+  void LoadSingleMesh(const SingleMeshResource& resource);
+  void LoadMultiMesh(const MultiMeshResource& resource);
+  std::vector<std::vector<std::unique_ptr<Descriptor>>> CreateDescriptors();
 
-  bool is_first_time_ = true;
   SharedBasicContext context_;
-  PerVertexBuffer vertex_buffer_;
-  std::vector<Mesh> meshes_;
-  std::vector<std::vector<std::unique_ptr<Descriptor>>> descriptors_;
-  // TODO: deal with shared resource in better way
-  const PerInstanceBuffer* per_instance_buffer_ = nullptr;
-  absl::optional<PushConstantInfos> push_constant_infos_;
-  PipelineBuilder pipeline_builder_;
-  std::unique_ptr<Pipeline> pipeline_;
+  const int num_frame_;
+  std::vector<PipelineBuilder::ShaderInfo> shader_infos_;
+  std::unique_ptr<PerVertexBuffer> vertex_buffer_;
+  std::vector<InstancingInfo> instancing_infos_;
+  std::vector<UniformInfo> uniform_infos_;
+  std::vector<model::PushConstantInfo> push_constant_infos_;
+  BindingPointMap binding_map_;
+  model::TexPerMesh shared_textures_;
+  std::vector<model::TexPerMesh> mesh_textures_;
+  std::unique_ptr<PipelineBuilder> pipeline_builder_;
 };
 
 } /* namespace vulkan */

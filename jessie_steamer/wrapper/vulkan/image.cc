@@ -101,7 +101,9 @@ VkSampler CreateSampler(const SharedBasicContext& context) {
 
 } /* namespace */
 
-void SwapchainImage::Init(const VkImage& image, VkFormat format) {
+SwapchainImage::SwapchainImage(SharedBasicContext context,
+                               const VkImage& image, VkFormat format)
+    : Image{std::move(context)} {
   format_ = format;
   image_view_ = CreateImageView(context_, image, format_,
                                 VK_IMAGE_ASPECT_COLOR_BIT, /*layer_count=*/1);

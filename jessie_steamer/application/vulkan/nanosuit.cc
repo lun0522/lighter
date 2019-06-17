@@ -55,8 +55,7 @@ struct SkyboxTrans {
 
 class NanosuitApp : public Application {
  public:
-  NanosuitApp() : command_{context()}, nanosuit_model_{context()},
-                  skybox_model_{context()}, nanosuit_vert_uniform_{context()} {}
+  NanosuitApp() : command_{context()}, nanosuit_vert_uniform_{context()} {}
   void MainLoop() override;
 
  private:
@@ -69,7 +68,7 @@ class NanosuitApp : public Application {
   common::Timer timer_;
   common::Camera camera_;
   PerFrameCommand command_;
-  Model nanosuit_model_, skybox_model_;
+  std::unique_ptr<Model> nanosuit_model_, skybox_model_;
   UniformBuffer nanosuit_vert_uniform_;
   PushConstant nanosuit_frag_constant_, skybox_constant_;
   std::unique_ptr<DepthStencilImage> depth_stencil_;
@@ -134,6 +133,73 @@ void NanosuitApp::Init() {
         /*get_swapchain_image=*/[this](int index) -> const Image& {
           return window_context_.swapchain().image(index);
         });
+
+    // model
+    ModelBuilder::TextureBinding skybox_binding{
+        /*binding_point=*/4, {
+            TextureImage::CubemapPath{
+                /*directory=*/"external/resource/texture/tidepool",
+                /*files=*/{
+                    "right.tga",
+                    "left.tga",
+                    "top.tga",
+                    "bottom.tga",
+                    "back.tga",
+                    "front.tga",
+                },
+            },
+        },
+    };
+
+    ModelBuilder::BindingPointMap nanosuit_bindings{
+        {model::ResourceType::kTextureDiffuse, /*binding_point=*/1},
+        {model::ResourceType::kTextureSpecular, /*binding_point=*/2},
+        {model::ResourceType::kTextureReflection, /*binding_point=*/3},
+    };
+    Descriptor::Info trans_desc_info{
+        /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        /*shader_stage=*/VK_SHADER_STAGE_VERTEX_BIT,
+        /*bindings=*/{{
+            Descriptor::ResourceType::kUniformBuffer,
+            /*binding_point=*/0,
+            /*array_length=*/1,
+        }},
+    };
+    ModelBuilder nanosuit_model_builder{
+        context(), kNumFrameInFlight, /*is_opaque=*/true,
+        ModelBuilder::MultiMeshResource{
+            "external/resource/model/nanosuit/nanosuit.obj",
+            "external/resource/model/nanosuit",
+            nanosuit_bindings},
+    };
+    nanosuit_model_builder
+        .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
+                     "jessie_steamer/shader/vulkan/nanosuit.vert.spv"})
+        .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                     "jessie_steamer/shader/vulkan/nanosuit.frag.spv"})
+        .add_uniform_buffer({&nanosuit_vert_uniform_, trans_desc_info})
+        .add_push_constant({VK_SHADER_STAGE_FRAGMENT_BIT,
+                            {{&nanosuit_frag_constant_, /*offset=*/0}}})
+        .add_shared_texture(Descriptor::ResourceType::kTextureCubemap,
+                            skybox_binding);
+    nanosuit_model_ = nanosuit_model_builder.Build();
+
+    skybox_binding.binding_point = 1;
+    ModelBuilder skybox_model_builder{
+        context(), kNumFrameInFlight, /*is_opaque=*/true,
+        ModelBuilder::SingleMeshResource{
+            "external/resource/model/skybox.obj",
+            /*obj_index_base=*/1,
+            {{model::ResourceType::kTextureCubemap, skybox_binding}}},
+    };
+    skybox_model_builder
+        .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
+                     "jessie_steamer/shader/vulkan/skybox.vert.spv"})
+        .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                     "jessie_steamer/shader/vulkan/skybox.frag.spv"})
+        .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
+                            {{&skybox_constant_, /*offset=*/0}}});
+    skybox_model_ = skybox_model_builder.Build();
   }
 
   // render pass
@@ -145,77 +211,13 @@ void NanosuitApp::Init() {
           });
   render_pass_ = render_pass_builder_->Build();
 
-  // model
-  TextureImage::CubemapPath skybox_path;
-  Model::TextureBindingMap skybox_bindings;
-  skybox_bindings[Model::ResourceType::kTextureCubemap] = {
-      /*binding_point=*/4, {
-          TextureImage::CubemapPath{
-              /*directory=*/"external/resource/texture/tidepool",
-              /*files=*/{
-                  "right.tga",
-                  "left.tga",
-                  "top.tga",
-                  "bottom.tga",
-                  "back.tga",
-                  "front.tga",
-              },
-          },
-      },
-  };
-
-  Model::BindingPointMap nanosuit_bindings{
-      {Model::ResourceType::kTextureDiffuse, /*binding_point=*/1},
-      {Model::ResourceType::kTextureSpecular, /*binding_point=*/2},
-      {Model::ResourceType::kTextureReflection, /*binding_point=*/3},
-  };
-  Descriptor::Info trans_desc_info{
-      /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-      /*shader_stage=*/VK_SHADER_STAGE_VERTEX_BIT,
-      /*bindings=*/{{
-          Descriptor::ResourceType::kUniformBuffer,
-          /*binding_point=*/0,
-          /*array_length=*/1,
-      }},
-  };
-  nanosuit_model_.Init({{VK_SHADER_STAGE_VERTEX_BIT,
-                         "jessie_steamer/shader/vulkan/nanosuit.vert.spv"},
-                        {VK_SHADER_STAGE_FRAGMENT_BIT,
-                         "jessie_steamer/shader/vulkan/nanosuit.frag.spv"}},
-                       Model::MultiMeshResource{
-                           "external/resource/model/nanosuit/nanosuit.obj",
-                           "external/resource/model/nanosuit",
-                           nanosuit_bindings,
-                           absl::make_optional<Model::TextureBindingMap>(
-                               skybox_bindings)},
-                       absl::make_optional<Model::UniformInfos>(
-                           {{nanosuit_vert_uniform_, trans_desc_info}}),
-                       /*instancing_info=*/absl::nullopt,
-                       absl::make_optional<Model::PushConstantInfos>(
-                           {{VK_SHADER_STAGE_FRAGMENT_BIT,
-                             {{&nanosuit_frag_constant_, /*offset=*/0}}}}),
-                       {**render_pass_, /*subpass=*/0},
-                       frame_size, kNumFrameInFlight, /*is_opaque=*/true);
-
-  skybox_bindings[Model::ResourceType::kTextureCubemap].binding_point = 1;
-  skybox_model_.Init({{VK_SHADER_STAGE_VERTEX_BIT,
-                       "jessie_steamer/shader/vulkan/skybox.vert.spv"},
-                      {VK_SHADER_STAGE_FRAGMENT_BIT,
-                       "jessie_steamer/shader/vulkan/skybox.frag.spv"}},
-                     Model::SingleMeshResource{
-                         "external/resource/model/skybox.obj",
-                         /*obj_index_base=*/1, skybox_bindings},
-                     /*uniform_infos=*/absl::nullopt,
-                     /*instancing_info=*/absl::nullopt,
-                     absl::make_optional<Model::PushConstantInfos>(
-                         {{VK_SHADER_STAGE_VERTEX_BIT,
-                           {{&skybox_constant_, /*offset=*/0}}}}),
-                     {**render_pass_, /*subpass=*/0},
-                     frame_size, kNumFrameInFlight, /*is_opaque=*/true);
-
   // camera
   camera_.Calibrate(window_context_.window().GetScreenSize(),
                     window_context_.window().GetCursorPos());
+
+  // model
+  nanosuit_model_->Update(frame_size, {**render_pass_, /*subpass=*/0});
+  skybox_model_->Update(frame_size, {**render_pass_, /*subpass=*/0});
 
   // command
   command_.Init(kNumFrameInFlight, &window_context_.queues());
@@ -257,10 +259,10 @@ void NanosuitApp::MainLoop() {
           render_pass_->Run(
               command_buffer, framebuffer_index,
               [this, &command_buffer]() {
-                nanosuit_model_.Draw(command_buffer, current_frame_,
-                                     /*instance_count=*/1);
-                skybox_model_.Draw(command_buffer, current_frame_,
-                                   /*instance_count=*/1);
+                nanosuit_model_->Draw(command_buffer, current_frame_,
+                                      /*instance_count=*/1);
+                skybox_model_->Draw(command_buffer, current_frame_,
+                                    /*instance_count=*/1);
               });
         });
 

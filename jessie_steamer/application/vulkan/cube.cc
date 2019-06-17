@@ -41,7 +41,7 @@ struct Transformation {
 
 class CubeApp : public Application {
  public:
-  CubeApp() : command_{context()}, model_{context()} {}
+  CubeApp() : command_{context()} {}
   void MainLoop() override;
 
  private:
@@ -52,8 +52,8 @@ class CubeApp : public Application {
   int current_frame_ = 0;
   common::Timer timer_;
   PerFrameCommand command_;
-  Model model_;
   PushConstant push_constant_;
+  std::unique_ptr<Model> model_;
   std::unique_ptr<DepthStencilImage> depth_stencil_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
@@ -81,6 +81,25 @@ void CubeApp::Init() {
         /*get_swapchain_image=*/[this](int index) -> const Image& {
           return window_context_.swapchain().image(index);
         });
+
+    // model
+    ModelBuilder::TextureBindingMap bindings{};
+    bindings[model::ResourceType::kTextureDiffuse] = {
+        /*binding_point=*/1,
+        {TextureImage::SingleTexPath{"external/resource/texture/statue.jpg"}},
+    };
+    ModelBuilder model_builder{
+        context(), kNumFrameInFlight, /*is_opaque=*/true,
+        ModelBuilder::SingleMeshResource{"external/resource/model/cube.obj",
+                                         /*obj_index_base=*/1, bindings}};
+    model_builder
+        .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
+                     "jessie_steamer/shader/vulkan/simple.vert.spv"})
+        .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                     "jessie_steamer/shader/vulkan/simple.frag.spv"})
+        .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
+                            {{&push_constant_, /*offset=*/0}}});
+    model_ = model_builder.Build();
   }
 
   // render pass
@@ -93,25 +112,7 @@ void CubeApp::Init() {
   render_pass_ = render_pass_builder_->Build();
 
   // model
-  Model::TextureBindingMap bindings{};
-  bindings[Model::ResourceType::kTextureDiffuse] = {
-      /*binding_point=*/1,
-      {{"external/resource/texture/statue.jpg"}},
-  };
-  model_.Init({{VK_SHADER_STAGE_VERTEX_BIT,
-                "jessie_steamer/shader/vulkan/simple.vert.spv"},
-               {VK_SHADER_STAGE_FRAGMENT_BIT,
-                "jessie_steamer/shader/vulkan/simple.frag.spv"}},
-              Model::SingleMeshResource{
-                  "external/resource/model/cube.obj",
-                  /*obj_index_base=*/1, bindings},
-              /*uniform_infos=*/absl::nullopt,
-              /*instancing_info=*/absl::nullopt,
-              absl::make_optional<Model::PushConstantInfos>(
-                  {{VK_SHADER_STAGE_VERTEX_BIT,
-                    {{&push_constant_, /*offset=*/0}}}}),
-              {**render_pass_, /*subpass=*/0},
-              frame_size, kNumFrameInFlight, /*is_opaque=*/true);
+  model_->Update(frame_size, {**render_pass_, /*subpass=*/0});
 
   // command buffer
   command_.Init(kNumFrameInFlight, &window_context_.queues());
@@ -142,8 +143,8 @@ void CubeApp::MainLoop() {
           render_pass_->Run(
               command_buffer, framebuffer_index,
               [this, &command_buffer]() {
-                model_.Draw(command_buffer, current_frame_,
-                            /*instance_count=*/1);
+                model_->Draw(command_buffer, current_frame_,
+                             /*instance_count=*/1);
               });
         });
 

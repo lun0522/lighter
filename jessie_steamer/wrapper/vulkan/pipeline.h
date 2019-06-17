@@ -65,6 +65,7 @@ class PipelineBuilder {
   using ShaderInfo = std::pair<VkShaderStageFlagBits, std::string>;
   using ShaderModule = std::pair<VkShaderStageFlagBits, VkShaderModule>;
   using RenderPassInfo = std::pair<VkRenderPass, uint32_t>;
+  using ViewportInfo = std::pair<VkViewport, VkRect2D>;
 
   explicit PipelineBuilder(SharedBasicContext context);
 
@@ -79,19 +80,17 @@ class PipelineBuilder {
   PipelineBuilder& set_layout(
       std::vector<VkDescriptorSetLayout>&& descriptor_layouts,
       std::vector<VkPushConstantRange>&& push_constant_ranges);
-  PipelineBuilder& set_viewport(VkViewport viewport);
-  PipelineBuilder& set_scissor(VkRect2D&& scissor);
-  PipelineBuilder& set_render_pass(RenderPassInfo&& render_pass_info);
-
-  // To save memory, shader modules will be released after a pipeline is built,
-  // so all shaders should be added again before next Build().
-  PipelineBuilder& add_shader(const ShaderInfo& shader_info);
+  PipelineBuilder& set_viewport(ViewportInfo&& info);
+  PipelineBuilder& set_render_pass(RenderPassInfo&& info);
+  PipelineBuilder& add_shader(const ShaderInfo& info);
 
   // By default, alpha blending is not enabled and depth testing is enabled.
   PipelineBuilder& enable_alpha_blend();
   PipelineBuilder& disable_depth_test();
 
-  // Build() can be called multiple times.
+  // Build() can be called multiple times. Note that 'shader_modules_' is
+  // cleared after each call to Build() to save memory, so add_shader() should
+  // be called before next call to Build().
   std::unique_ptr<Pipeline> Build();
 
  private:
@@ -105,8 +104,7 @@ class PipelineBuilder {
   VkPipelineDynamicStateCreateInfo dynamic_state_info_;
   absl::optional<VkPipelineVertexInputStateCreateInfo> vertex_input_info_;
   absl::optional<VkPipelineLayoutCreateInfo> layout_info_;
-  absl::optional<VkViewport> viewport_;
-  absl::optional<VkRect2D> scissor_;
+  absl::optional<ViewportInfo> viewport_info_;
   absl::optional<RenderPassInfo> render_pass_info_;
   std::vector<VkVertexInputBindingDescription> binding_descriptions_;
   std::vector<VkVertexInputAttributeDescription> attribute_descriptions_;

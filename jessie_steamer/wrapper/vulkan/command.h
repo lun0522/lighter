@@ -79,7 +79,7 @@ class PerFrameCommand : public Command {
   PerFrameCommand(const Command&) = delete;
   PerFrameCommand& operator=(const Command&) = delete;
 
-  void Init(int num_frame, const Queues* queues);
+  void Init(int num_frame_in_flight, const Queues* queues);
   VkResult Run(int current_frame,
                const VkSwapchainKHR& swapchain,
                const UpdateData& update_data,

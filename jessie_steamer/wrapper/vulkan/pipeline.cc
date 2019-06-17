@@ -40,6 +40,38 @@ VkShaderModule CreateShaderModule(const SharedBasicContext& context,
   return module;
 }
 
+vector<VkPipelineShaderStageCreateInfo> CreateShaderStageInfos(
+    const vector<PipelineBuilder::ShaderModule>& shader_modules) {
+  vector<VkPipelineShaderStageCreateInfo> shader_stages;
+  shader_stages.reserve(shader_modules.size());
+  for (const auto& module : shader_modules) {
+    shader_stages.emplace_back(VkPipelineShaderStageCreateInfo{
+        VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        /*pNext=*/nullptr,
+        /*flags=*/nullflag,
+        module.first,
+        module.second,
+        /*pName=*/"main",  // entry point of this shader
+        // may use .pSpecializationInfo to specify shader constants
+        /*pSpecializationInfo=*/nullptr,
+    });
+  }
+  return shader_stages;
+}
+
+VkPipelineViewportStateCreateInfo CreateViewportStateInfo(
+    const PipelineBuilder::ViewportInfo& viewport_info) {
+  return VkPipelineViewportStateCreateInfo{
+      VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/nullflag,
+      /*viewportCount=*/1,
+      &viewport_info.first,
+      /*scissorCount=*/1,
+      &viewport_info.second,
+  };
+}
+
 } /* namespace */
 
 PipelineBuilder::PipelineBuilder(SharedBasicContext context)
@@ -145,7 +177,7 @@ PipelineBuilder& PipelineBuilder::set_vertex_input(
     vector<VkVertexInputAttributeDescription>&& attribute_descriptions) {
   binding_descriptions_ = std::move(binding_descriptions);
   attribute_descriptions_ = std::move(attribute_descriptions);
-  vertex_input_info_ = {
+  vertex_input_info_.emplace(VkPipelineVertexInputStateCreateInfo{
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
@@ -155,7 +187,7 @@ PipelineBuilder& PipelineBuilder::set_vertex_input(
       // vertex attribute descriptions
       CONTAINER_SIZE(attribute_descriptions_),
       attribute_descriptions_.data(),
-  };
+  });
   return *this;
 }
 
@@ -164,7 +196,7 @@ PipelineBuilder& PipelineBuilder::set_layout(
     vector<VkPushConstantRange>&& push_constant_ranges) {
   descriptor_layouts_ = std::move(descriptor_layouts);
   push_constant_ranges_ = std::move(push_constant_ranges);
-  layout_info_ = {
+  layout_info_.emplace(VkPipelineLayoutCreateInfo{
       VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
@@ -172,33 +204,30 @@ PipelineBuilder& PipelineBuilder::set_layout(
       descriptor_layouts_.data(),
       CONTAINER_SIZE(push_constant_ranges_),
       push_constant_ranges_.data(),
-  };
+  });
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::set_viewport(VkViewport viewport) {
+PipelineBuilder& PipelineBuilder::set_viewport(ViewportInfo&& info) {
+  viewport_info_.emplace(std::move(info));
+  // flip viewport as suggested by:
   // https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport
+  auto& viewport = viewport_info_->first;
   float height = viewport.y - viewport.height;
   viewport.y += viewport.height;
   viewport.height = height;
-  viewport_ = viewport;
-  return *this;
-}
-
-PipelineBuilder& PipelineBuilder::set_scissor(VkRect2D&& scissor) {
-  scissor_ = scissor;
   return *this;
 }
 
 PipelineBuilder& PipelineBuilder::set_render_pass(
-    RenderPassInfo&& render_pass_info) {
-  render_pass_info_ = std::move(render_pass_info);
+    RenderPassInfo&& info) {
+  render_pass_info_.emplace(std::move(info));
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::add_shader(const ShaderInfo& shader_info) {
-  shader_modules_.emplace_back(
-      shader_info.first, CreateShaderModule(context_, shader_info.second));
+PipelineBuilder& PipelineBuilder::add_shader(const ShaderInfo& info) {
+  shader_modules_.emplace_back(info.first,
+                               CreateShaderModule(context_, info.second));
   return *this;
 }
 
@@ -220,55 +249,31 @@ PipelineBuilder& PipelineBuilder::disable_depth_test() {
 }
 
 std::unique_ptr<Pipeline> PipelineBuilder::Build() {
-  ASSERT_HAS_VALUE(vertex_input_info_, "Vertex input info not set");
-  ASSERT_HAS_VALUE(layout_info_, "Layout info not set");
-  ASSERT_HAS_VALUE(viewport_, "Viewport not set");
-  ASSERT_HAS_VALUE(scissor_, "Scissor not set");
-  ASSERT_HAS_VALUE(render_pass_info_, "Render pass not set");
+  ASSERT_HAS_VALUE(vertex_input_info_, "Vertex input info is not set");
+  ASSERT_HAS_VALUE(layout_info_, "Layout info is not set");
+  ASSERT_HAS_VALUE(viewport_info_, "Viewport is not set");
+  ASSERT_HAS_VALUE(render_pass_info_, "Render pass is not set");
 
   const VkDevice &device = *context_->device();
   const VkAllocationCallbacks *allocator = context_->allocator();
+  auto shader_stage_infos = CreateShaderStageInfos(shader_modules_);
+  auto viewport_state_info = CreateViewportStateInfo(viewport_info_.value());
 
   VkPipelineLayout pipeline_layout;
   ASSERT_SUCCESS(vkCreatePipelineLayout(device, &layout_info_.value(),
                                         allocator, &pipeline_layout),
                  "Failed to create pipeline layout");
 
-  vector<VkPipelineShaderStageCreateInfo> shader_stages;
-  shader_stages.reserve(shader_modules_.size());
-  for (const auto& module : shader_modules_) {
-    shader_stages.emplace_back(VkPipelineShaderStageCreateInfo{
-        VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        /*pNext=*/nullptr,
-        /*flags=*/nullflag,
-        module.first,
-        module.second,
-        /*pName=*/"main",  // entry point of this shader
-        // may use .pSpecializationInfo to specify shader constants
-        /*pSpecializationInfo=*/nullptr,
-    });
-  }
-
-  VkPipelineViewportStateCreateInfo viewport_info{
-      VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
-      /*viewportCount=*/1,
-      &viewport_.value(),
-      /*scissorCount=*/1,
-      &scissor_.value(),
-  };
-
   VkGraphicsPipelineCreateInfo pipeline_info{
       VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
-      CONTAINER_SIZE(shader_stages),
-      shader_stages.data(),
+      CONTAINER_SIZE(shader_stage_infos),
+      shader_stage_infos.data(),
       &vertex_input_info_.value(),
       &input_assembly_info_,
       /*pTessellationState=*/nullptr,
-      &viewport_info,
+      &viewport_state_info,
       &rasterizer_info_,
       &multisample_info_,
       &depth_stencil_info_,

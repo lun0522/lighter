@@ -144,8 +144,8 @@ class RenderPassBuilder {
   RenderPassBuilder& operator=(const RenderPassBuilder&) = delete;
 
   // All these information must be set before Build().
-  RenderPassBuilder& set_framebuffer_size(VkExtent2D framebuffer_size);
-  RenderPassBuilder& set_num_framebuffer(int num_framebuffer);
+  RenderPassBuilder& set_framebuffer_size(VkExtent2D size);
+  RenderPassBuilder& set_num_framebuffer(int count);
   RenderPassBuilder& set_attachment(int index, const Attachment& attachment,
                                     GetImage&& get_image);
   RenderPassBuilder& set_subpass_description(int index,

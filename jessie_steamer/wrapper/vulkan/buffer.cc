@@ -365,10 +365,11 @@ void PerInstanceBuffer::Init(const void* data, size_t data_size) {
   CopyHostData({{data, data_size, /*offset=*/0}}, data_size);
 }
 
-void PerInstanceBuffer::Bind(const VkCommandBuffer& command_buffer) const {
+void PerInstanceBuffer::Bind(const VkCommandBuffer& command_buffer,
+                             uint32_t binding_point) const {
   static constexpr VkDeviceSize offset = 0;
-  vkCmdBindVertexBuffers(command_buffer, buffer::kPerInstanceBindingPoint,
-                         /*bindingCount=*/1, &buffer_, &offset);
+  vkCmdBindVertexBuffers(command_buffer, binding_point, /*bindingCount=*/1,
+                         &buffer_, &offset);
 }
 
 void UniformBuffer::Init(size_t chunk_size, int num_chunk) {

@@ -22,7 +22,7 @@ namespace wrapper {
 namespace vulkan {
 
 /** VkImage represents multidimensional data in the swapchain. They can be
- *    color/depth/stencil attachements, textures, etc. The exact purpose
+ *    color/depth/stencil attachments, textures, etc. The exact purpose
  *    is not specified until we create an image view. For texture images, we use
  *    staging buffers to transfer data to the actual storage. During this
  *    process, the image layout wil change from UNDEFINED (since it may have
@@ -60,7 +60,7 @@ namespace vulkan {
  *    Mipmap setting (bias/min/max/compare op)
  *    Anisotropy filter setting (enable or not/max amount of samples)
  *    Border color
- *    Use image coordinates or normalized coordianates
+ *    Use image coordinates or normalized coordinates
  */
 class Image {
  public:
@@ -81,14 +81,12 @@ class Image {
 
 class SwapchainImage : public Image {
  public:
-  // Inherits constructor.
-  using Image::Image;
+  SwapchainImage(SharedBasicContext context,
+                 const VkImage& image, VkFormat format);
 
   // This class is neither copyable nor movable.
   SwapchainImage(const SwapchainImage&) = delete;
   SwapchainImage& operator=(const SwapchainImage&) = delete;
-
-  void Init(const VkImage& image, VkFormat format);
 };
 
 class TextureImage : public Image {

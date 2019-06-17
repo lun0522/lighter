@@ -23,7 +23,7 @@ namespace buffer {
 constexpr int kMaxPushConstantSize = 128;
 constexpr int kCubemapImageCount = 6;
 constexpr uint32_t kPerVertexBindingPoint = 0;
-constexpr uint32_t kPerInstanceBindingPoint = 1;
+constexpr uint32_t kPerInstanceBindingPointBase = 1;
 
 struct CopyInfo {
   const void* data;
@@ -131,7 +131,8 @@ class PerInstanceBuffer : public DataBuffer {
   PerInstanceBuffer& operator=(const PerInstanceBuffer&) = delete;
 
   void Init(const void* data, size_t data_size);
-  void Bind(const VkCommandBuffer& command_buffer) const;
+  void Bind(const VkCommandBuffer& command_buffer,
+            uint32_t binding_point) const;
 };
 
 class UniformBuffer : public DataBuffer {

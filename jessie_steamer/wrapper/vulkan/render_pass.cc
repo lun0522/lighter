@@ -213,14 +213,13 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
   return builder;
 }
 
-RenderPassBuilder& RenderPassBuilder::set_framebuffer_size(
-    VkExtent2D framebuffer_size) {
-  framebuffer_size_ = framebuffer_size;
+RenderPassBuilder& RenderPassBuilder::set_framebuffer_size(VkExtent2D size) {
+  framebuffer_size_ = size;
   return *this;
 }
 
-RenderPassBuilder& RenderPassBuilder::set_num_framebuffer(int num_framebuffer) {
-  num_framebuffer_ = num_framebuffer;
+RenderPassBuilder& RenderPassBuilder::set_num_framebuffer(int count) {
+  num_framebuffer_ = count;
   return *this;
 }
 

@@ -89,7 +89,7 @@ void SetElementWithResizing(std::vector<ContentType>* container,
   if (index >= container->size()) {
     container->resize(index + 1);
   }
-  container->operator[](index) = std::move(element);
+  (*container)[index] = std::move(element);
 }
 
 } /* namespace util */

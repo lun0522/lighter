@@ -118,17 +118,18 @@ void OneTimeCommand::Run(const OnRecord& on_record) {
   vkQueueWaitIdle(queue_->queue);
 }
 
-void PerFrameCommand::Init(int num_frame, const Queues* queues) {
+void PerFrameCommand::Init(int num_frame_in_flight, const Queues* queues) {
   if (is_first_time_) {
     is_first_time_ = false;
     queues_ = queues;
     command_pool_ = CreateCommandPool(context_, queues_->graphics,
                                       /*is_transient=*/false);
-    image_available_semas_.Init(context_, num_frame);
-    render_finished_semas_.Init(context_, num_frame);
-    in_flight_fences_.Init(context_, num_frame, true);
+    image_available_semas_.Init(context_, num_frame_in_flight);
+    render_finished_semas_.Init(context_, num_frame_in_flight);
+    in_flight_fences_.Init(context_, num_frame_in_flight, true);
   }
-  command_buffers_ = CreateCommandBuffers(context_, command_pool_, num_frame);
+  command_buffers_ = CreateCommandBuffers(context_, command_pool_,
+                                          num_frame_in_flight);
 }
 
 VkResult PerFrameCommand::Run(int current_frame,

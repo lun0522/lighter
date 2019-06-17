@@ -62,8 +62,7 @@ struct Asteroid {
 
 class PlanetApp : public Application {
  public:
-  PlanetApp() : command_{context()}, planet_model_{context()},
-                asteroid_model_{context()}, skybox_model_{context()},
+  PlanetApp() : command_{context()},
                 per_asteroid_data_{context()}, light_uniform_{context()} {}
   void MainLoop() override;
 
@@ -78,11 +77,11 @@ class PlanetApp : public Application {
   common::Timer timer_;
   common::Camera camera_;
   PerFrameCommand command_;
-  Model planet_model_, asteroid_model_, skybox_model_;
   int num_asteroid_;
   PerInstanceBuffer per_asteroid_data_;
   UniformBuffer light_uniform_;
   PushConstant planet_constant_, skybox_constant_;
+  std::unique_ptr<Model> planet_model_, asteroid_model_, skybox_model_;
   std::unique_ptr<DepthStencilImage> depth_stencil_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
@@ -144,6 +143,103 @@ void PlanetApp::Init() {
         /*get_swapchain_image=*/[this](int index) -> const Image& {
           return window_context_.swapchain().image(index);
         });
+
+    // model
+    Descriptor::Info light_desc_info{
+        /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
+        /*bindings=*/{{
+            Descriptor::ResourceType::kUniformBuffer,
+            /*binding_point=*/1,
+            /*array_length=*/1,
+        }},
+    };
+    ModelBuilder::TextureBindingMap planet_bindings;
+    planet_bindings[model::ResourceType::kTextureDiffuse] = {
+        /*binding_point=*/2,
+        {TextureImage::SingleTexPath{"external/resource/texture/planet.png"}},
+    };
+    ModelBuilder planet_model_builder{
+        context(), kNumFrameInFlight, /*is_opaque=*/true,
+        ModelBuilder::SingleMeshResource{
+            "external/resource/model/sphere.obj",
+            /*obj_index_base=*/1, planet_bindings},
+    };
+    planet_model_builder
+        .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
+                     "jessie_steamer/shader/vulkan/planet.vert.spv"})
+        .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                     "jessie_steamer/shader/vulkan/planet.frag.spv"})
+        .add_uniform_buffer({&light_uniform_, light_desc_info})
+        .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
+                            {{&planet_constant_, /*offset=*/0}}});
+    planet_model_ = planet_model_builder.Build();
+
+    GenAsteroidModels();
+    std::vector<ModelBuilder::VertexAttribute> per_instance_attribs{
+        {/*location=*/3, offsetof(Asteroid, theta), VK_FORMAT_R32_SFLOAT},
+        {/*location=*/4, offsetof(Asteroid, radius), VK_FORMAT_R32_SFLOAT},
+    };
+    per_instance_attribs.reserve(6);
+    int attrib_offset = offsetof(Asteroid, model);
+    for (uint32_t location = 5; location <= 8; ++location) {
+      per_instance_attribs.emplace_back(ModelBuilder::VertexAttribute{
+          location, static_cast<uint32_t>(attrib_offset),
+          VK_FORMAT_R32G32B32A32_SFLOAT,
+      });
+      attrib_offset += sizeof(glm::vec4);
+    }
+    light_desc_info.shader_stage |= VK_SHADER_STAGE_VERTEX_BIT;
+    ModelBuilder asteroid_model_builder{
+        context(), kNumFrameInFlight, /*is_opaque=*/true,
+        ModelBuilder::MultiMeshResource{
+            "external/resource/model/rock/rock.obj",
+            "external/resource/model/rock",
+            {{model::ResourceType::kTextureDiffuse, /*binding_point=*/2}}},
+    };
+    asteroid_model_builder
+        .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
+                     "jessie_steamer/shader/vulkan/asteroid.vert.spv"})
+        .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                     "jessie_steamer/shader/vulkan/planet.frag.spv"})
+        .add_instancing({per_instance_attribs,
+                         static_cast<uint32_t>(sizeof(Asteroid)),
+                         &per_asteroid_data_})
+        .add_uniform_buffer({&light_uniform_, light_desc_info})
+        .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
+                            {{&planet_constant_, /*offset=*/0}}});
+    asteroid_model_ = asteroid_model_builder.Build();
+
+    ModelBuilder::TextureBindingMap skybox_bindings;
+    skybox_bindings[model::ResourceType::kTextureCubemap] = {
+        /*binding_point=*/1, {
+            TextureImage::CubemapPath{
+                /*directory=*/"external/resource/texture/universe",
+                /*files=*/{
+                    "PositiveX.jpg",
+                    "NegativeX.jpg",
+                    "PositiveY.jpg",
+                    "NegativeY.jpg",
+                    "PositiveZ.jpg",
+                    "NegativeZ.jpg",
+                },
+            },
+        },
+    };
+    ModelBuilder skybox_model_builder{
+        context(), kNumFrameInFlight, /*is_opaque=*/true,
+        ModelBuilder::SingleMeshResource{
+            "external/resource/model/skybox.obj",
+            /*obj_index_base=*/1, skybox_bindings},
+    };
+    skybox_model_builder
+        .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
+                     "jessie_steamer/shader/vulkan/skybox.vert.spv"})
+        .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                     "jessie_steamer/shader/vulkan/skybox.frag.spv"})
+        .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
+                            {{&skybox_constant_, /*offset=*/0}}});
+    skybox_model_ = skybox_model_builder.Build();
   }
 
   // render pass
@@ -155,107 +251,14 @@ void PlanetApp::Init() {
           });
   render_pass_ = render_pass_builder_->Build();
 
-  // model
-  Descriptor::Info light_desc_info{
-      /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-      /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
-      /*bindings=*/{{
-          Descriptor::ResourceType::kUniformBuffer,
-          /*binding_point=*/1,
-          /*array_length=*/1,
-      }},
-  };
-  Model::TextureBindingMap planet_bindings;
-  planet_bindings[Model::ResourceType::kTextureDiffuse] = {
-      /*binding_point=*/2, {{"external/resource/texture/planet.png"}},
-  };
-  planet_model_.Init({{VK_SHADER_STAGE_VERTEX_BIT,
-                       "jessie_steamer/shader/vulkan/planet.vert.spv"},
-                      {VK_SHADER_STAGE_FRAGMENT_BIT,
-                       "jessie_steamer/shader/vulkan/planet.frag.spv"}},
-                     Model::SingleMeshResource{
-                         "external/resource/model/sphere.obj",
-                         /*obj_index_base=*/1, planet_bindings},
-                     absl::make_optional<Model::UniformInfos>(
-                         {{light_uniform_, light_desc_info}}),
-                     /*instancing_info=*/absl::nullopt,
-                     absl::make_optional<Model::PushConstantInfos>(
-                         {{VK_SHADER_STAGE_VERTEX_BIT,
-                           {{&planet_constant_, /*offset=*/0}}}}),
-                     {**render_pass_, /*subpass=*/0},
-                     frame_size, kNumFrameInFlight, /*is_opaque=*/true);
-
-  GenAsteroidModels();
-  std::vector<Model::VertexAttribute> per_instance_attribs{
-      {/*location=*/3, offsetof(Asteroid, theta), VK_FORMAT_R32_SFLOAT},
-      {/*location=*/4, offsetof(Asteroid, radius), VK_FORMAT_R32_SFLOAT},
-  };
-  per_instance_attribs.reserve(6);
-  int attrib_offset = offsetof(Asteroid, model);
-  for (uint32_t location = 5; location <= 8; ++location) {
-    per_instance_attribs.emplace_back(Model::VertexAttribute{
-        location, static_cast<uint32_t>(attrib_offset),
-        VK_FORMAT_R32G32B32A32_SFLOAT,
-    });
-    attrib_offset += sizeof(glm::vec4);
-  }
-  light_desc_info.shader_stage |= VK_SHADER_STAGE_VERTEX_BIT;
-  asteroid_model_.Init({{VK_SHADER_STAGE_VERTEX_BIT,
-                         "jessie_steamer/shader/vulkan/asteroid.vert.spv"},
-                        {VK_SHADER_STAGE_FRAGMENT_BIT,
-                         "jessie_steamer/shader/vulkan/planet.frag.spv"}},
-                       Model::MultiMeshResource{
-                           "external/resource/model/rock/rock.obj",
-                           "external/resource/model/rock",
-                           {{Model::ResourceType::kTextureDiffuse,
-                             /*binding_point=*/2}},
-                           /*extra_texture_map=*/absl::nullopt},
-                       absl::make_optional<Model::UniformInfos>(
-                           {{light_uniform_, light_desc_info}}),
-                       Model::InstancingInfo{
-                           per_instance_attribs,
-                           static_cast<uint32_t>(sizeof(Asteroid)),
-                           &per_asteroid_data_},
-                       absl::make_optional<Model::PushConstantInfos>(
-                           {{VK_SHADER_STAGE_VERTEX_BIT,
-                             {{&planet_constant_, /*offset=*/0}}}}),
-                       {**render_pass_, /*subpass=*/0},
-                       frame_size, kNumFrameInFlight, /*is_opaque=*/true);
-
-  Model::TextureBindingMap skybox_bindings;
-  skybox_bindings[Model::ResourceType::kTextureCubemap] = {
-      /*binding_point=*/1, {
-          TextureImage::CubemapPath{
-              /*directory=*/"external/resource/texture/universe",
-              /*files=*/{
-                  "PositiveX.jpg",
-                  "NegativeX.jpg",
-                  "PositiveY.jpg",
-                  "NegativeY.jpg",
-                  "PositiveZ.jpg",
-                  "NegativeZ.jpg",
-              },
-          },
-      },
-  };
-  skybox_model_.Init({{VK_SHADER_STAGE_VERTEX_BIT,
-                       "jessie_steamer/shader/vulkan/skybox.vert.spv"},
-                      {VK_SHADER_STAGE_FRAGMENT_BIT,
-                       "jessie_steamer/shader/vulkan/skybox.frag.spv"}},
-                     Model::SingleMeshResource{
-                         "external/resource/model/skybox.obj",
-                         /*obj_index_base=*/1, skybox_bindings},
-                     /*uniform_infos=*/absl::nullopt,
-                     /*instancing_info=*/absl::nullopt,
-                     absl::make_optional<Model::PushConstantInfos>(
-                         {{VK_SHADER_STAGE_VERTEX_BIT,
-                           {{&skybox_constant_, /*offset=*/0}}}}),
-                     {**render_pass_, /*subpass=*/0},
-                     frame_size, kNumFrameInFlight, /*is_opaque=*/true);
-
   // camera
   camera_.Calibrate(window_context_.window().GetScreenSize(),
                     window_context_.window().GetCursorPos());
+
+  // model
+  planet_model_->Update(frame_size, {**render_pass_, /*subpass=*/0});
+  asteroid_model_->Update(frame_size, {**render_pass_, /*subpass=*/0});
+  skybox_model_->Update(frame_size, {**render_pass_, /*subpass=*/0});
 
   // command
   command_.Init(kNumFrameInFlight, &window_context_.queues());
@@ -326,12 +329,12 @@ void PlanetApp::MainLoop() {
           render_pass_->Run(
               command_buffer, framebuffer_index,
               [this, &command_buffer]() {
-                planet_model_.Draw(command_buffer, current_frame_,
-                                   /*instance_count=*/1);
-                asteroid_model_.Draw(command_buffer, current_frame_,
-                                     static_cast<uint32_t>(num_asteroid_));
-                skybox_model_.Draw(command_buffer, current_frame_,
-                                   /*instance_count=*/1);
+                planet_model_->Draw(command_buffer, current_frame_,
+                                    /*instance_count=*/1);
+                asteroid_model_->Draw(command_buffer, current_frame_,
+                                      static_cast<uint32_t>(num_asteroid_));
+                skybox_model_->Draw(command_buffer, current_frame_,
+                                    /*instance_count=*/1);
               });
         });
 

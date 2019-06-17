@@ -183,9 +183,9 @@ void Swapchain::Init(SharedBasicContext context,
       }
   )};
   images_.reserve(images.size());
-  for (int i = 0; i < images.size(); ++i) {
-    images_.emplace_back(absl::make_unique<SwapchainImage>(context_));
-    images_[i]->Init(images[i], surface_format.format);
+  for (const auto& image : images) {
+    images_.emplace_back(absl::make_unique<SwapchainImage>(
+        context_, image, surface_format.format));
   }
   image_extent_ = image_extent;
 }
