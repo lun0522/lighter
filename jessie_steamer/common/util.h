@@ -8,6 +8,7 @@
 #ifndef JESSIE_STEAMER_COMMON_UTIL_H
 #define JESSIE_STEAMER_COMMON_UTIL_H
 
+#include <functional>
 #include <iostream>
 #include <stdexcept>
 #include <string>

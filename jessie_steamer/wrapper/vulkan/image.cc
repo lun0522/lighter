@@ -14,12 +14,23 @@
 #include "absl/strings/str_format.h"
 #include "jessie_steamer/common/file.h"
 #include "jessie_steamer/common/util.h"
-#include "jessie_steamer/wrapper/vulkan/macro.h"
 
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 namespace {
+
+VkFormat ChooseImageFormat(int channel) {
+  switch (channel) {
+    case 1:
+      return VK_FORMAT_R8_UNORM;
+    case 4:
+      return VK_FORMAT_R8G8B8A8_UNORM;
+    default:
+      FATAL(absl::StrFormat(
+          "Number of channels can only be 1 or 4, while %d provided", channel));
+  }
+}
 
 VkImageView CreateImageView(const SharedBasicContext& context,
                             const VkImage& image,
@@ -31,7 +42,7 @@ VkImageView CreateImageView(const SharedBasicContext& context,
     case 1:
       view_type = VK_IMAGE_VIEW_TYPE_2D;
       break;
-    case buffer::kCubemapImageCount:
+    case kCubemapImageCount:
       view_type = VK_IMAGE_VIEW_TYPE_CUBE;
       break;
     default:
@@ -103,44 +114,32 @@ VkSampler CreateSampler(const SharedBasicContext& context) {
 
 SwapchainImage::SwapchainImage(SharedBasicContext context,
                                const VkImage& image, VkFormat format)
-    : Image{std::move(context)} {
-  format_ = format;
+    : Image{std::move(context), format} {
   image_view_ = CreateImageView(context_, image, format_,
                                 VK_IMAGE_ASPECT_COLOR_BIT, /*layer_count=*/1);
 }
 
 TextureImage::SharedTexture TextureImage::GetTexture(
     const SharedBasicContext& context, const SourcePath& source_path) {
-  const std::string* identifier;
-  if (absl::holds_alternative<SingleTexPath>(source_path)) {
-    identifier = &absl::get<SingleTexPath>(source_path);
-  } else if (absl::holds_alternative<TextureImage::CubemapPath>(source_path)) {
-    identifier = &absl::get<TextureImage::CubemapPath>(source_path).directory;
-  } else {
-    FATAL("Unrecognized variant type");
-  }
-  return SharedTexture::Get(*identifier, context, source_path);
-}
-
-TextureImage::TextureImage(SharedBasicContext context,
-                           const SourcePath& source_path)
-    : Image{std::move(context)}, buffer_{context_} {
   using RawImage = std::unique_ptr<common::Image>;
-  using CubemapImage = std::array<RawImage, buffer::kCubemapImageCount>;
+  using CubemapImage = std::array<RawImage, kCubemapImageCount>;
   using SourceImage =absl::variant<RawImage, CubemapImage>;
 
+  const std::string* identifier;
   SourceImage source_image;
   const common::Image* sample_image;
   std::vector<const void*> datas;
 
   if (absl::holds_alternative<SingleTexPath>(source_path)) {
-    const auto& path = absl::get<SingleTexPath>(source_path);
+    const auto& single_tex_path = absl::get<SingleTexPath>(source_path);
+    identifier = &single_tex_path;
     auto& image = source_image.emplace<RawImage>(
-        absl::make_unique<common::Image>(path));
+        absl::make_unique<common::Image>(single_tex_path));
     sample_image = image.get();
     datas.emplace_back(image->data);
   } else if (absl::holds_alternative<CubemapPath>(source_path)) {
     const auto& cubemap_path = absl::get<CubemapPath>(source_path);
+    identifier = &cubemap_path.directory;
     auto& images = source_image.emplace<CubemapImage>();
     datas.resize(cubemap_path.files.size());
     for (int i = 0; i < cubemap_path.files.size(); ++i) {
@@ -153,29 +152,23 @@ TextureImage::TextureImage(SharedBasicContext context,
     FATAL("Unrecognized variant type");
   }
 
-  switch (sample_image->channel) {
-    case 1:
-      format_ = VK_FORMAT_R8_UNORM;
-      break;
-    case 4:
-      format_ = VK_FORMAT_R8G8B8A8_UNORM;
-      break;
-    default:
-      FATAL(absl::StrFormat("Unsupported number of channels: %d",
-                            sample_image->channel));
-  }
-
-  TextureBuffer::Info image_info{
-      absl::MakeSpan(datas),
-      format_,
+  return SharedTexture::Get(*identifier, context, TextureBuffer::Info{
+      std::move(datas),
+      ChooseImageFormat(sample_image->channel),
       static_cast<uint32_t>(sample_image->width),
       static_cast<uint32_t>(sample_image->height),
       static_cast<uint32_t>(sample_image->channel),
-  };
-  buffer_.Init(image_info);
+  });
+}
+
+TextureImage::TextureImage(SharedBasicContext context,
+                           const TextureBuffer::Info& info)
+    : Image{std::move(context)}, buffer_{context_} {
+  buffer_.Init(info);
+  format_ = info.format;
   image_view_ = CreateImageView(context_, buffer_.image(), format_,
                                 VK_IMAGE_ASPECT_COLOR_BIT,
-                                /*layer_count=*/CONTAINER_SIZE(datas));
+                                /*layer_count=*/CONTAINER_SIZE(info.datas));
   sampler_ = CreateSampler(context_);
 }
 
@@ -185,6 +178,14 @@ VkDescriptorImageInfo TextureImage::descriptor_info() const {
       image_view_,
       /*imageLayout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
   };
+}
+
+OffscreenImage::OffscreenImage(SharedBasicContext context,
+                               int channel, VkExtent2D extent)
+    : Image{std::move(context), ChooseImageFormat(channel)},
+      buffer_{context_, format_, extent} {
+  image_view_ = CreateImageView(context_, buffer_.image(), format_,
+                                VK_IMAGE_ASPECT_COLOR_BIT, /*layer_count=*/1);
 }
 
 DepthStencilImage::DepthStencilImage(SharedBasicContext context,

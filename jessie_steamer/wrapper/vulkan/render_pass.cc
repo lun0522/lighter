@@ -26,11 +26,7 @@ using std::vector;
 VkClearValue CreateClearColor(const RenderPassBuilder::Attachment& attachment) {
   VkClearValue clear_value{};
   if (absl::holds_alternative<ColorOps>(attachment.attachment_ops)) {
-    auto& color = clear_value.color.float32;
-    color[0] = 0.0f;
-    color[1] = 0.0f;
-    color[2] = 0.0f;
-    color[3] = 1.0f;
+    clear_value.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
   } else if (absl::holds_alternative<DepthStencilOps>(
       attachment.attachment_ops)) {
     clear_value.depthStencil = {/*depth=*/1.0f, /*stencil=*/0};
@@ -172,6 +168,9 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
               /*load_stencil=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,
               /*store_stencil=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
           },
+          // we don't care about the content previously stored in the depth
+          // stencil buffer, so even if it has been transitioned to the optimal
+          // layout, we still use undefined as initial layout.
           /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
           /*final_layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
       },

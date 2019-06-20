@@ -21,95 +21,6 @@ namespace {
 using common::VertexAttrib3D;
 using std::vector;
 
-struct VertexInputBinding {
-  uint32_t binding_point;
-  uint32_t data_size;
-  bool instancing;
-};
-
-struct VertexInputAttribute {
-  uint32_t binding_point;
-  vector<ModelBuilder::VertexAttribute> attributes;
-};
-
-template <typename VertexType>
-VertexInputBinding GetPerVertexBindings() {
-  return VertexInputBinding{
-      buffer::kPerVertexBindingPoint,
-      /*data_size=*/static_cast<uint32_t>(sizeof(VertexType)),
-      /*instancing=*/false,
-  };
-}
-
-template <typename VertexType>
-VertexInputAttribute GetVertexAttributes() {
-  FATAL("Vertex type not recognized");
-}
-
-template <>
-VertexInputAttribute GetVertexAttributes<VertexAttrib3D>() {
-  return VertexInputAttribute{
-      buffer::kPerVertexBindingPoint,
-      /*attributes=*/{
-          ModelBuilder::VertexAttribute{
-              /*location=*/0,
-              /*offset=*/static_cast<uint32_t>(
-                  offsetof(VertexAttrib3D, pos)),
-              /*format=*/VK_FORMAT_R32G32B32_SFLOAT,
-          },
-          ModelBuilder::VertexAttribute{
-              /*location=*/1,
-              /*offset=*/static_cast<uint32_t>(
-                  offsetof(VertexAttrib3D, norm)),
-              /*format=*/VK_FORMAT_R32G32B32_SFLOAT,
-          },
-          ModelBuilder::VertexAttribute{
-              /*location=*/2,
-              /*offset=*/static_cast<uint32_t>(
-                  offsetof(VertexAttrib3D, tex_coord)),
-              /*format=*/VK_FORMAT_R32G32_SFLOAT,
-          },
-      },
-  };
-}
-
-vector<VkVertexInputBindingDescription> GetBindingDescriptions(
-    const vector<VertexInputBinding>& bindings) {
-  vector<VkVertexInputBindingDescription> descriptions;
-  descriptions.reserve(bindings.size());
-  for (const auto& binding : bindings) {
-    descriptions.emplace_back(VkVertexInputBindingDescription{
-        binding.binding_point,
-        binding.data_size,
-        binding.instancing ? VK_VERTEX_INPUT_RATE_INSTANCE :
-                             VK_VERTEX_INPUT_RATE_VERTEX,
-    });
-  }
-  return descriptions;
-}
-
-vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(
-    const vector<VertexInputAttribute>& attributes) {
-  int num_attribute = 0;
-  for (const auto& attribs : attributes) {
-    num_attribute += attribs.attributes.size();
-  }
-
-  vector<VkVertexInputAttributeDescription> descriptions;
-  descriptions.reserve(num_attribute);
-  for (const auto& attribs : attributes) {
-    for (const auto& attrib : attribs.attributes) {
-      descriptions.emplace_back(VkVertexInputAttributeDescription{
-          attrib.location,
-          attribs.binding_point,
-          attrib.format,
-          attrib.offset,
-      });
-    }
-  }
-  return descriptions;
-}
-
 PerVertexBuffer::Info CreateVertexInfo(const vector<VertexAttrib3D>& vertices,
                                        const vector<uint32_t>& indices) {
   return PerVertexBuffer::Info{
@@ -319,8 +230,7 @@ std::unique_ptr<Model> ModelBuilder::Build() {
 
   vector<const PerInstanceBuffer*> per_instance_buffers;
   vector<VertexInputBinding> bindings{GetPerVertexBindings<VertexAttrib3D>()};
-  vector<VertexInputAttribute> attributes{
-      GetVertexAttributes<VertexAttrib3D>()};
+  vector<VertexInputAttribute> attributes{Get3DVertexAttributes()};
 
   for (int i = 0; i < instancing_infos_.size(); ++i) {
     auto& info = instancing_infos_[i];
@@ -329,12 +239,12 @@ std::unique_ptr<Model> ModelBuilder::Build() {
     }
     per_instance_buffers.emplace_back(info.per_instance_buffer);
     bindings.emplace_back(VertexInputBinding{
-        buffer::kPerInstanceBindingPointBase + i,
+        kPerInstanceBindingPointBase + i,
         info.data_size,
         /*instancing=*/true,
     });
     attributes.emplace_back(VertexInputAttribute{
-        buffer::kPerInstanceBindingPointBase + i,
+        kPerInstanceBindingPointBase + i,
         info.per_instance_attribs,
     });
   }
@@ -392,7 +302,7 @@ void Model::Draw(const VkCommandBuffer& command_buffer,
                     **pipeline_);
   for (int i = 0; i < per_instance_buffers_.size(); ++i) {
     per_instance_buffers_[i]->Bind(command_buffer,
-                                   buffer::kPerInstanceBindingPointBase + i);
+                                   kPerInstanceBindingPointBase + i);
   }
   for (const auto& push_constant : push_constant_infos_) {
     for (const auto& info : push_constant.infos) {

@@ -53,11 +53,11 @@ void Camera::ProcessCursorMove(double x, double y) {
     return;
   }
 
-  const auto x_offset = static_cast<float>((x - cursor_pos_.x) * turn_speed_);
-  const auto y_offset = static_cast<float>((y - cursor_pos_.y) * turn_speed_);
+  const auto offset_x = static_cast<float>((x - cursor_pos_.x) * turn_speed_);
+  const auto offset_y = static_cast<float>((y - cursor_pos_.y) * turn_speed_);
   cursor_pos_ = glm::dvec2{x, y};
-  yaw_ = glm::mod(yaw_ - x_offset, glm::radians(360.0f));
-  pitch_ = glm::clamp(pitch_ - y_offset, glm::radians(-89.9f),
+  yaw_ = glm::mod(yaw_ - offset_x, glm::radians(360.0f));
+  pitch_ = glm::clamp(pitch_ - offset_y, glm::radians(-89.9f),
                       glm::radians(89.9f));
   UpdateFront();
   UpdateRight();

@@ -21,7 +21,8 @@ namespace common {
 
 class CharLib {
  public:
-  struct Character {
+  // https://learnopengl.com/img/in-practice/glyph.png
+  struct CharInfo {
     glm::ivec2 size;
     glm::ivec2 bearing;
     unsigned int advance;
@@ -30,7 +31,7 @@ class CharLib {
 
   CharLib(const std::vector<std::string>& texts,
           const std::string& font_path,
-          glm::uvec2 font_size);
+          int font_height);
 
   // This class is neither copyable nor movable.
   CharLib(const CharLib&) = delete;
@@ -38,10 +39,12 @@ class CharLib {
 
   ~CharLib();
 
-  const Character& operator[](char c) { return chars_[c]; }
+  const absl::flat_hash_map<char, CharInfo>& char_info_map() const {
+    return char_info_map_;
+  }
 
  private:
-  absl::flat_hash_map<char, Character> chars_;
+  absl::flat_hash_map<char, CharInfo> char_info_map_;
   FT_Library lib_;
   FT_Face face_;
 };

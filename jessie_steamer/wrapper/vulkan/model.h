@@ -23,6 +23,7 @@
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
+#include "jessie_steamer/wrapper/vulkan/vertex_input_util.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -110,11 +111,6 @@ class ModelBuilder {
 
   // For instancing, caller must provide information about per-instance vertex
   // attributes.
-  struct VertexAttribute {
-    uint32_t location;
-    uint32_t offset;
-    VkFormat format;
-  };
   struct InstancingInfo {
     std::vector<VertexAttribute> per_instance_attribs;
     uint32_t data_size;

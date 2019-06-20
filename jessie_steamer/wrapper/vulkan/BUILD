@@ -12,6 +12,7 @@ cc_library(
         ":image",
         ":model",
         ":render_pass",
+        ":vertex_input_util",
         ":window",
     ],
     data = ["@resource//:resource"],
@@ -51,7 +52,6 @@ cc_library(
         "//jessie_steamer/common:util",
         "//third_party:vulkan",
         "@lib-absl//absl/strings:str_format",
-        "@lib-absl//absl/types:span",
     ],
 )
 
@@ -96,7 +96,6 @@ cc_library(
         "//third_party:vulkan",
         "@lib-absl//absl/memory",
         "@lib-absl//absl/strings:str_format",
-        "@lib-absl//absl/types:span",
         "@lib-absl//absl/types:variant",
     ]
 )
@@ -122,6 +121,7 @@ cc_library(
         ":image",
         ":macro",
         ":pipeline",
+        ":vertex_input_util",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:model_loader",
         "//jessie_steamer/common:util",
@@ -182,10 +182,25 @@ cc_library(
     hdrs = ["text.h"],
     srcs = ["text.cc"],
     deps = [
+        ":basics",
         ":image",
+        ":pipeline",
         "//jessie_steamer/common:char_lib",
+        "//jessie_steamer/common:util",
         "//third_party:glm",
         "@lib-absl//absl/container:flat_hash_map",
+        "@lib-absl//absl/memory",
+    ],
+)
+
+cc_library(
+    name = "vertex_input_util",
+    hdrs = ["vertex_input_util.h"],
+    srcs = ["vertex_input_util.cc"],
+    deps = [
+        ":macro",
+        "//jessie_steamer/common:file",
+        "//third_party:vulkan",
     ],
 )
 

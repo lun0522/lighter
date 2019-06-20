@@ -15,7 +15,7 @@ namespace common {
 
 CharLib::CharLib(const std::vector<std::string>& texts,
                  const std::string& font_path,
-                 glm::uvec2 font_size) {
+                 int font_height) {
   if (FT_Init_FreeType(&lib_)) {
     FATAL("Failed to init FreeType library");
   }
@@ -23,30 +23,29 @@ CharLib::CharLib(const std::vector<std::string>& texts,
   if (FT_New_Face(lib_, font_path.c_str(), 0, &face_)) {
     FATAL("Failed to load font");
   }
-  FT_Set_Pixel_Sizes(face_, font_size.x, font_size.y);
+  FT_Set_Pixel_Sizes(face_, 0, font_height);  // auto adjustment for width
 
-  absl::flat_hash_set<char> to_load{};
   for (const auto& text : texts) {
     for (auto c : text) {
-      to_load.emplace(c);
-    }
-  }
+      if (char_info_map_.find(c) != char_info_map_.end()) {
+        continue;
+      }
 
-  for (auto c : to_load) {
-    if (FT_Load_Char(face_, c, FT_LOAD_RENDER)) {
-      FATAL("Failed to load glyph");
-    }
+      if (FT_Load_Char(face_, c, FT_LOAD_RENDER)) {
+        FATAL("Failed to load glyph");
+      }
 
-    Character ch{
-        /*size=*/{face_->glyph->bitmap.width,
-                  face_->glyph->bitmap.rows},
-        /*bearing=*/{face_->glyph->bitmap_left,
-                     face_->glyph->bitmap_top},
-        // measured with number of 1/64 pixels
-        /*advance=*/static_cast<unsigned int>(face_->glyph->advance.x) >> 6,
-        /*data=*/face_->glyph->bitmap.buffer,
-    };
-    chars_.emplace(c, ch);
+      CharInfo ch{
+          /*size=*/{face_->glyph->bitmap.width,
+                    face_->glyph->bitmap.rows},
+          /*bearing=*/{face_->glyph->bitmap_left,
+                       face_->glyph->bitmap_top},
+          // measured with number of 1/64 pixels
+          /*advance=*/static_cast<unsigned int>(face_->glyph->advance.x) >> 6,
+          /*data=*/face_->glyph->bitmap.buffer,
+      };
+      char_info_map_.emplace(c, ch);
+    }
   }
 }
 

@@ -10,28 +10,12 @@
 
 #include <vector>
 
-#include "absl/types/span.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
-namespace buffer {
-
-// https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap36.html#limits-minmax
-constexpr int kMaxPushConstantSize = 128;
-constexpr int kCubemapImageCount = 6;
-constexpr uint32_t kPerVertexBindingPoint = 0;
-constexpr uint32_t kPerInstanceBindingPointBase = 1;
-
-struct CopyInfo {
-  const void* data;
-  VkDeviceSize size;
-  VkDeviceSize offset;
-};
-
-} /* namespace buffer */
 
 /** VkBuffer represents linear arrays of data and configures usage of the data.
  *    Data can be transferred between buffers with the help of transfer queues.
@@ -64,6 +48,12 @@ struct CopyInfo {
  */
 class Buffer {
  public:
+  struct CopyInfo {
+    const void* data;
+    VkDeviceSize size;
+    VkDeviceSize offset;
+  };
+
   explicit Buffer(SharedBasicContext context) : context_{std::move(context)} {}
   virtual ~Buffer() {
     vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
@@ -84,7 +74,7 @@ class DataBuffer : public Buffer {
   }
 
  protected:
-  void CopyHostData(const std::vector<buffer::CopyInfo>& copy_infos,
+  void CopyHostData(const std::vector<CopyInfo>& copy_infos,
                     size_t total_size);
 
   VkBuffer buffer_;
@@ -184,7 +174,7 @@ class TextureBuffer : public ImageBuffer {
       return datas.size() * width * height * channel;
     }
 
-    absl::Span<const void*> datas;
+    std::vector<const void*> datas;
     VkFormat format;
     uint32_t width;
     uint32_t height;
@@ -199,6 +189,16 @@ class TextureBuffer : public ImageBuffer {
   TextureBuffer& operator=(const TextureBuffer&) = delete;
 
   void Init(const Info& info);
+};
+
+class OffscreenBuffer : public ImageBuffer {
+ public:
+  OffscreenBuffer(SharedBasicContext context,
+                  VkFormat format, VkExtent2D extent);
+
+  // This class is neither copyable nor movable.
+  OffscreenBuffer(const OffscreenBuffer&) = delete;
+  OffscreenBuffer& operator=(const OffscreenBuffer&) = delete;
 };
 
 class DepthStencilBuffer : public ImageBuffer {

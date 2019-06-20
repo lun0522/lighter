@@ -10,11 +10,11 @@
 
 #include <array>
 
-#include "absl/types/span.h"
 #include "absl/types/variant.h"
 #include "jessie_steamer/common/ref_count.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
+#include "jessie_steamer/wrapper/vulkan/macro.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -65,6 +65,8 @@ namespace vulkan {
 class Image {
  public:
   explicit Image(SharedBasicContext context) : context_{std::move(context)} {}
+  Image(SharedBasicContext context, VkFormat format)
+      : context_{std::move(context)}, format_{format} {}
 
   virtual ~Image() {
     vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
@@ -98,7 +100,7 @@ class TextureImage : public Image {
   struct CubemapPath {
     std::string directory;
     // PosX, NegX, PosY, NegY, PosZ, NegZ
-    std::array<std::string, buffer::kCubemapImageCount> files;
+    std::array<std::string, kCubemapImageCount> files;
   };
   using SourcePath = absl::variant<SingleTexPath, CubemapPath>;
 
@@ -106,7 +108,7 @@ class TextureImage : public Image {
   static SharedTexture GetTexture(const SharedBasicContext& context,
                                   const SourcePath& source_path);
 
-  TextureImage(SharedBasicContext context, const SourcePath& source_path);
+  TextureImage(SharedBasicContext context, const TextureBuffer::Info& info);
 
   // This class is neither copyable nor movable.
   TextureImage(const TextureImage&) = delete;
@@ -121,6 +123,18 @@ class TextureImage : public Image {
  private:
   TextureBuffer buffer_;
   VkSampler sampler_;
+};
+
+class OffscreenImage : public Image {
+ public:
+  OffscreenImage(SharedBasicContext context, int channel, VkExtent2D extent);
+
+  // This class is neither copyable nor movable.
+  OffscreenImage(const OffscreenImage&) = delete;
+  OffscreenImage& operator=(const OffscreenImage&) = delete;
+
+ private:
+  OffscreenBuffer buffer_;
 };
 
 class DepthStencilImage : public Image {

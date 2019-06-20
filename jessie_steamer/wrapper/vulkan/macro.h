@@ -24,6 +24,9 @@ namespace wrapper {
 namespace vulkan {
 
 constexpr uint32_t nullflag = 0;
+constexpr uint32_t kPerVertexBindingPoint = 0;
+constexpr uint32_t kPerInstanceBindingPointBase = 1;
+constexpr int kCubemapImageCount = 6;
 
 } /* namespace vulkan */
 } /* namespace wrapper */

@@ -94,9 +94,9 @@ void CubeApp::Init() {
                                          /*obj_index_base=*/1, bindings}};
     model_builder
         .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                     "jessie_steamer/shader/vulkan/simple.vert.spv"})
+                     "jessie_steamer/shader/vulkan/simple_3d.vert.spv"})
         .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                     "jessie_steamer/shader/vulkan/simple.frag.spv"})
+                     "jessie_steamer/shader/vulkan/simple_3d.frag.spv"})
         .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
                             {{&push_constant_, /*offset=*/0}}});
     model_ = model_builder.Build();

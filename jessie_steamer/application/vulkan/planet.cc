@@ -20,6 +20,7 @@
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/model.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
+#include "jessie_steamer/wrapper/vulkan/vertex_input_util.h"
 #include "jessie_steamer/wrapper/vulkan/window_context.h"
 #include "third_party/glm/glm.hpp"
 // different from OpenGL, where depth values are in range [-1.0, 1.0]
@@ -176,14 +177,14 @@ void PlanetApp::Init() {
     planet_model_ = planet_model_builder.Build();
 
     GenAsteroidModels();
-    std::vector<ModelBuilder::VertexAttribute> per_instance_attribs{
+    std::vector<VertexAttribute> per_instance_attribs{
         {/*location=*/3, offsetof(Asteroid, theta), VK_FORMAT_R32_SFLOAT},
         {/*location=*/4, offsetof(Asteroid, radius), VK_FORMAT_R32_SFLOAT},
     };
     per_instance_attribs.reserve(6);
     int attrib_offset = offsetof(Asteroid, model);
     for (uint32_t location = 5; location <= 8; ++location) {
-      per_instance_attribs.emplace_back(ModelBuilder::VertexAttribute{
+      per_instance_attribs.emplace_back(VertexAttribute{
           location, static_cast<uint32_t>(attrib_offset),
           VK_FORMAT_R32G32B32A32_SFLOAT,
       });

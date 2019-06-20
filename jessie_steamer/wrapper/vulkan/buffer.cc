@@ -23,6 +23,9 @@ namespace {
 using std::array;
 using std::vector;
 
+// https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap36.html#limits-minmax
+constexpr int kMaxPushConstantSize = 128;
+
 uint32_t FindMemoryType(const SharedBasicContext& context,
                         uint32_t type_filter,
                         VkMemoryPropertyFlags mem_properties) {
@@ -34,7 +37,7 @@ uint32_t FindMemoryType(const SharedBasicContext& context,
   vkGetPhysicalDeviceMemoryProperties(*context->physical_device(), &properties);
 
   for (uint32_t i = 0; i < properties.memoryTypeCount; ++i) {
-    if (type_filter & (1 << i)) {  // types is suitable for buffer
+    if (type_filter & (1U << i)) {  // types is suitable for buffer
       auto flags = properties.memoryTypes[i].propertyFlags;
       if ((flags & mem_properties) == mem_properties) { // has required property
         return i;
@@ -233,7 +236,7 @@ void CopyHostToBuffer(const SharedBasicContext& context,
                       VkDeviceSize map_size,
                       VkDeviceSize map_offset,
                       const VkDeviceMemory& device_memory,
-                      const vector<buffer::CopyInfo>& copy_infos) {
+                      const vector<Buffer::CopyInfo>& copy_infos) {
   // data transfer may not happen immediately, for example because it is only
   // written to cache and not yet to device. we can either flush host writes
   // with vkFlushMappedMemoryRanges and vkInvalidateMappedMemoryRanges, or
@@ -293,7 +296,7 @@ void CopyBufferToImage(const SharedBasicContext& context,
 
 } /* namespace */
 
-void DataBuffer::CopyHostData(const vector<buffer::CopyInfo>& copy_infos,
+void DataBuffer::CopyHostData(const vector<CopyInfo>& copy_infos,
                               size_t total_size) {
   // create staging buffer and associated memory
   VkBuffer staging_buffer = CreateBuffer(           // source of transfer
@@ -326,7 +329,7 @@ void DataBuffer::CopyHostData(const vector<buffer::CopyInfo>& copy_infos,
 
 void PerVertexBuffer::Init(const vector<PerVertexBuffer::Info>& infos) {
   mesh_datas_.reserve(infos.size());
-  vector<buffer::CopyInfo> copy_infos;
+  vector<CopyInfo> copy_infos;
   copy_infos.reserve(infos.size() * 2);
   VkDeviceSize total_size = 0;
   for (const auto& info : infos) {
@@ -335,12 +338,12 @@ void PerVertexBuffer::Init(const vector<PerVertexBuffer::Info>& infos) {
         total_size + info.vertices.data_size,
         info.indices.unit_count,
     });
-    copy_infos.emplace_back(buffer::CopyInfo{
+    copy_infos.emplace_back(CopyInfo{
         info.vertices.data,
         info.vertices.data_size,
         total_size,
     });
-    copy_infos.emplace_back(buffer::CopyInfo{
+    copy_infos.emplace_back(CopyInfo{
         info.indices.data,
         info.indices.data_size,
         total_size + info.vertices.data_size,
@@ -353,7 +356,7 @@ void PerVertexBuffer::Init(const vector<PerVertexBuffer::Info>& infos) {
 void PerVertexBuffer::Draw(const VkCommandBuffer& command_buffer,
                            int mesh_index, uint32_t instance_count) const {
   const MeshData& data = mesh_datas_[mesh_index];
-  vkCmdBindVertexBuffers(command_buffer, buffer::kPerVertexBindingPoint,
+  vkCmdBindVertexBuffers(command_buffer, kPerVertexBindingPoint,
                          /*bindingCount=*/1, &buffer_, &data.vertices_offset);
   vkCmdBindIndexBuffer(command_buffer, buffer_, data.indices_offset,
                        VK_INDEX_TYPE_UINT32);
@@ -413,7 +416,7 @@ void TextureBuffer::Init(const Info& info) {
   VkDeviceSize data_size = info.data_size();
 
   auto layer_count = CONTAINER_SIZE(info.datas);
-  if (layer_count != 1 && layer_count != buffer::kCubemapImageCount) {
+  if (layer_count != 1 && layer_count != kCubemapImageCount) {
     FATAL(absl::StrFormat("Wrong number of images: %d", layer_count));
   }
 
@@ -434,7 +437,7 @@ void TextureBuffer::Init(const Info& info) {
   }
 
   // create final image buffer
-  VkImageCreateFlags flags = info.datas.size() == buffer::kCubemapImageCount
+  VkImageCreateFlags flags = info.datas.size() == kCubemapImageCount
                                  ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT
                                  : nullflag;
   image_ = CreateImage(context_, flags, info.format, image_extent,
@@ -455,7 +458,7 @@ void TextureBuffer::Init(const Info& info) {
   TransitionImageLayout(
       context_, image_, VK_IMAGE_ASPECT_COLOR_BIT,
       {VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
+       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
       {VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT},
       {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT},
       layer_count);
@@ -463,6 +466,17 @@ void TextureBuffer::Init(const Info& info) {
   // cleanup transient objects
   vkDestroyBuffer(*context_->device(), staging_buffer, context_->allocator());
   vkFreeMemory(*context_->device(), staging_memory, context_->allocator());
+}
+
+OffscreenBuffer::OffscreenBuffer(SharedBasicContext context,
+                                 VkFormat format, VkExtent2D extent)
+    : ImageBuffer{std::move(context)} {
+  image_ = CreateImage(context_, nullflag, format,
+                       {extent.width, extent.height, /*depth=*/1},
+                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                       /*layer_count=*/1);
+  device_memory_ = CreateImageMemory(
+      context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }
 
 DepthStencilBuffer::DepthStencilBuffer(SharedBasicContext context,
@@ -491,11 +505,11 @@ DepthStencilBuffer::DepthStencilBuffer(SharedBasicContext context,
 }
 
 void PushConstant::Init(size_t chunk_size, int num_chunk) {
-  if (chunk_size > buffer::kMaxPushConstantSize) {
+  if (chunk_size > kMaxPushConstantSize) {
     FATAL(absl::StrFormat(
         "Pushing constant of size %d bytes. To be compatible with all devices, "
         "the size should NOT be greater than %d bytes.",
-        chunk_size, buffer::kMaxPushConstantSize));
+        chunk_size, kMaxPushConstantSize));
   }
   size_ = static_cast<uint32_t>(chunk_size);
   data_ = new char[size_ * num_chunk];

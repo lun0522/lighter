@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "third_party/glm/glm.hpp"
 
@@ -27,7 +28,7 @@ enum class AlignVertical { kTop, kCenter, kBottom };
 class StaticText {
  public:
   StaticText(const std::vector<std::string>& texts,
-             Font font, glm::uvec2 font_size);
+             Font font, int font_height);
 
   // This class is neither copyable nor movable.
   StaticText(const StaticText&) = delete;
@@ -39,8 +40,9 @@ class StaticText {
 
 class DynamicText {
  public:
-  DynamicText(const std::vector<std::string>& texts,
-              Font font, glm::uvec2 font_size);
+  DynamicText(const SharedBasicContext& context,
+              const std::vector<std::string>& texts,
+              Font font, int font_height);
 
   // This class is neither copyable nor movable.
   DynamicText(const DynamicText&) = delete;
@@ -56,11 +58,10 @@ class DynamicText {
   struct CharInfo {
     glm::ivec2 size;
     glm::ivec2 bearing;
-    int advance;
-    TextureImage image;
+    int offset_x;
   };
 
-  absl::flat_hash_map<char, std::unique_ptr<CharInfo>> char_info_map;
+  absl::flat_hash_map<char, CharInfo> char_info_map;
 };
 
 } /* namespace vulkan */
