@@ -11,7 +11,7 @@
 #include "absl/strings/str_format.h"
 #include "jessie_steamer/common/file.h"
 #include "jessie_steamer/common/util.h"
-#include "jessie_steamer/wrapper/vulkan/macro.h"
+#include "jessie_steamer/wrapper/vulkan/util.h"
 
 namespace jessie_steamer {
 namespace wrapper {
@@ -230,7 +230,8 @@ std::unique_ptr<Model> ModelBuilder::Build() {
 
   vector<const PerInstanceBuffer*> per_instance_buffers;
   vector<VertexInputBinding> bindings{GetPerVertexBindings<VertexAttrib3D>()};
-  vector<VertexInputAttribute> attributes{Get3DVertexAttributes()};
+  vector<VertexInputAttribute> attributes{
+    GetVertexAttributes<VertexAttrib3D>()};
 
   for (int i = 0; i < instancing_infos_.size(); ++i) {
     auto& info = instancing_infos_[i];
@@ -273,7 +274,7 @@ std::unique_ptr<Model> ModelBuilder::Build() {
 }
 
 void Model::Update(VkExtent2D frame_size,
-                   PipelineBuilder::RenderPassInfo&& render_pass_info) {
+                   const RenderPass& render_pass, uint32_t subpass_index) {
   (*pipeline_builder_)
       .set_viewport({
           /*viewport=*/VkViewport{
@@ -289,7 +290,7 @@ void Model::Update(VkExtent2D frame_size,
               frame_size,
           },
       })
-      .set_render_pass(std::move(render_pass_info));
+      .set_render_pass(render_pass, subpass_index);
   for (const auto& info : shader_infos_) {
     pipeline_builder_->add_shader(info);
   }

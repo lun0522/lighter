@@ -11,7 +11,7 @@
 
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
-#include "jessie_steamer/wrapper/vulkan/macro.h"
+#include "jessie_steamer/wrapper/vulkan/util.h"
 
 namespace jessie_steamer {
 namespace wrapper {

@@ -12,7 +12,7 @@
 #include "absl/memory/memory.h"
 #include "jessie_steamer/common/file.h"
 #include "jessie_steamer/common/util.h"
-#include "jessie_steamer/wrapper/vulkan/macro.h"
+#include "jessie_steamer/wrapper/vulkan/util.h"
 
 namespace jessie_steamer {
 namespace wrapper {
@@ -219,9 +219,9 @@ PipelineBuilder& PipelineBuilder::set_viewport(ViewportInfo&& info) {
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::set_render_pass(
-    RenderPassInfo&& info) {
-  render_pass_info_.emplace(std::move(info));
+PipelineBuilder& PipelineBuilder::set_render_pass(const RenderPass& render_pass,
+                                                  uint32_t subpass_index) {
+  render_pass_info_.emplace(*render_pass, subpass_index);
   return *this;
 }
 

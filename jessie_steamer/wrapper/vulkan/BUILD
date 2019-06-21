@@ -12,6 +12,7 @@ cc_library(
         ":image",
         ":model",
         ":render_pass",
+        ":text",
         ":vertex_input_util",
         ":window",
     ],
@@ -33,7 +34,7 @@ cc_library(
         "//conditions:default": ["validation.cc"],
     }),
     deps = [
-        ":macro",
+        ":util",
         "//jessie_steamer/common:util",
         "//third_party:vulkan",
         "@lib-absl//absl/container:flat_hash_set",
@@ -48,7 +49,7 @@ cc_library(
     deps = [
         ":basics",
         ":command",
-        ":macro",
+        ":util",
         "//jessie_steamer/common:util",
         "//third_party:vulkan",
         "@lib-absl//absl/strings:str_format",
@@ -61,8 +62,8 @@ cc_library(
     srcs = ["command.cc"],
     deps = [
         ":basics",
-        ":macro",
         ":synchronize",
+        ":util",
         "//jessie_steamer/common:util",
         "//third_party:vulkan",
     ],
@@ -74,7 +75,7 @@ cc_library(
     srcs = ["descriptor.cc"],
     deps = [
         ":basics",
-        ":macro",
+        ":util",
         "//jessie_steamer/common:model_loader",
         "//jessie_steamer/common:util",
         "//third_party:vulkan",
@@ -89,7 +90,7 @@ cc_library(
     deps = [
         ":basics",
         ":buffer",
-        ":macro",
+        ":util",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:ref_count",
         "//jessie_steamer/common:util",
@@ -101,16 +102,6 @@ cc_library(
 )
 
 cc_library(
-    name = "macro",
-    hdrs = ["macro.h"],
-    deps = [
-        "//jessie_steamer/common:util",
-        "//third_party:vulkan",
-        "@lib-absl//absl/strings:str_format",
-    ],
-)
-
-cc_library(
     name = "model",
     hdrs = ["model.h"],
     srcs = ["model.cc"],
@@ -119,8 +110,9 @@ cc_library(
         ":buffer",
         ":descriptor",
         ":image",
-        ":macro",
         ":pipeline",
+        ":render_pass",
+        ":util",
         ":vertex_input_util",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:model_loader",
@@ -140,7 +132,8 @@ cc_library(
     srcs = ["pipeline.cc"],
     deps = [
         ":basics",
-        ":macro",
+        ":render_pass",
+        ":util",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:util",
         "//third_party:vulkan",
@@ -156,7 +149,7 @@ cc_library(
     deps = [
         ":basics",
         ":image",
-        ":macro",
+        ":util",
         "//jessie_steamer/common:util",
         "//third_party:vulkan",
         "@lib-absl//absl/memory",
@@ -172,19 +165,27 @@ cc_library(
     srcs = ["synchronize.cc"],
     deps = [
         ":basics",
-        ":macro",
+        ":util",
         "//third_party:vulkan",
     ],
 )
 
 cc_library(
     name = "text",
-    hdrs = ["text.h"],
-    srcs = ["text.cc"],
+    hdrs = [
+        "text.h",
+        "text_util.h"
+    ],
+    srcs = [
+        "text.cc",
+        "text_util.cc",
+    ],
     deps = [
         ":basics",
+        ":descriptor",
         ":image",
         ":pipeline",
+        ":vertex_input_util",
         "//jessie_steamer/common:char_lib",
         "//jessie_steamer/common:util",
         "//third_party:glm",
@@ -194,11 +195,21 @@ cc_library(
 )
 
 cc_library(
+    name = "util",
+    hdrs = ["util.h"],
+    deps = [
+        "//jessie_steamer/common:util",
+        "//third_party:vulkan",
+        "@lib-absl//absl/strings:str_format",
+    ],
+)
+
+cc_library(
     name = "vertex_input_util",
     hdrs = ["vertex_input_util.h"],
     srcs = ["vertex_input_util.cc"],
     deps = [
-        ":macro",
+        ":util",
         "//jessie_steamer/common:file",
         "//third_party:vulkan",
     ],
@@ -214,7 +225,7 @@ cc_library(
     deps = [
         ":basics",
         ":image",
-        ":macro",
+        ":util",
         "//jessie_steamer/common:window",
         "//jessie_steamer/common:util",
         "//third_party:vulkan",

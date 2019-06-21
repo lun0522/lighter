@@ -23,6 +23,7 @@
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
+#include "jessie_steamer/wrapper/vulkan/render_pass.h"
 #include "jessie_steamer/wrapper/vulkan/vertex_input_util.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -60,7 +61,7 @@ class Model {
 
   // Should be called after initialization and whenever frame is resized.
   void Update(VkExtent2D frame_size,
-              PipelineBuilder::RenderPassInfo&& render_pass_info);
+              const RenderPass& render_pass, uint32_t subpass_index);
 
   void Draw(const VkCommandBuffer& command_buffer,
             int frame, uint32_t instance_count) const;

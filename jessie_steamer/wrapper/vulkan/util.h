@@ -1,12 +1,12 @@
 //
-//  macro.h
+//  util.h
 //
 //  Created by Pujun Lun on 5/12/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef JESSIE_STEAMER_WRAPPER_VULKAN_MACRO_H
-#define JESSIE_STEAMER_WRAPPER_VULKAN_MACRO_H
+#ifndef JESSIE_STEAMER_WRAPPER_VULKAN_UTIL_H
+#define JESSIE_STEAMER_WRAPPER_VULKAN_UTIL_H
 
 #include "absl/strings/str_format.h"
 #include "jessie_steamer/common/util.h"
@@ -32,4 +32,4 @@ constexpr int kCubemapImageCount = 6;
 } /* namespace wrapper */
 } /* namespace jessie_steamer */
 
-#endif /* JESSIE_STEAMER_WRAPPER_VULKAN_MACRO_H */
+#endif /* JESSIE_STEAMER_WRAPPER_VULKAN_UTIL_H */

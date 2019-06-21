@@ -14,7 +14,7 @@
 #include "jessie_steamer/common/ref_count.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
-#include "jessie_steamer/wrapper/vulkan/macro.h"
+#include "jessie_steamer/wrapper/vulkan/util.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {

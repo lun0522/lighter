@@ -10,7 +10,7 @@
 #include "absl/memory/memory.h"
 #include "absl/strings/str_format.h"
 #include "jessie_steamer/common/util.h"
-#include "jessie_steamer/wrapper/vulkan/macro.h"
+#include "jessie_steamer/wrapper/vulkan/util.h"
 
 namespace jessie_steamer {
 namespace wrapper {
@@ -182,6 +182,7 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
       }
   );
 
+  // subpass description
   builder->set_subpass_description(/*index=*/0, SubpassAttachments{
       /*color_refs=*/{
           VkAttachmentReference{
@@ -195,6 +196,7 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
       },
   });
 
+  // subpass dependency
   builder->add_subpass_dependency(SubpassDependency{
       /*src_info=*/SubpassDependency::SubpassInfo{
           /*index=*/VK_SUBPASS_EXTERNAL,

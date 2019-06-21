@@ -7,7 +7,7 @@
 
 #include "jessie_steamer/wrapper/vulkan/synchronize.h"
 
-#include "jessie_steamer/wrapper/vulkan/macro.h"
+#include "jessie_steamer/wrapper/vulkan/util.h"
 
 namespace jessie_steamer {
 namespace wrapper {

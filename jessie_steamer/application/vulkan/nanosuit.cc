@@ -216,8 +216,8 @@ void NanosuitApp::Init() {
                     window_context_.window().GetCursorPos());
 
   // model
-  nanosuit_model_->Update(frame_size, {**render_pass_, /*subpass=*/0});
-  skybox_model_->Update(frame_size, {**render_pass_, /*subpass=*/0});
+  nanosuit_model_->Update(frame_size, *render_pass_, /*subpass_index=*/0);
+  skybox_model_->Update(frame_size, *render_pass_, /*subpass_index=*/0);
 
   // command
   command_.Init(kNumFrameInFlight, &window_context_.queues());

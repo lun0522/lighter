@@ -112,7 +112,7 @@ void CubeApp::Init() {
   render_pass_ = render_pass_builder_->Build();
 
   // model
-  model_->Update(frame_size, {**render_pass_, /*subpass=*/0});
+  model_->Update(frame_size, *render_pass_, /*subpass_index=*/0);
 
   // command buffer
   command_.Init(kNumFrameInFlight, &window_context_.queues());

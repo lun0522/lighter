@@ -10,7 +10,7 @@
 
 #include <vector>
 
-#include "jessie_steamer/wrapper/vulkan/macro.h"
+#include "jessie_steamer/wrapper/vulkan/util.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -50,8 +50,8 @@ struct VertexInputAttribute {
   std::vector<VertexAttribute> attributes;
 };
 
-VertexInputAttribute Get2DVertexAttributes();
-VertexInputAttribute Get3DVertexAttributes();
+template <typename VertexType>
+VertexInputAttribute GetVertexAttributes();
 
 std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(
     const std::vector<VertexInputAttribute>& attributes);

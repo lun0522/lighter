@@ -36,7 +36,8 @@ vector<VkVertexInputBindingDescription> GetBindingDescriptions(
   return descriptions;
 }
 
-VertexInputAttribute Get2DVertexAttributes() {
+template <>
+VertexInputAttribute GetVertexAttributes<VertexAttrib2D>() {
   return VertexInputAttribute{
       kPerVertexBindingPoint,
       /*attributes=*/{
@@ -56,7 +57,8 @@ VertexInputAttribute Get2DVertexAttributes() {
   };
 }
 
-VertexInputAttribute Get3DVertexAttributes() {
+template <>
+VertexInputAttribute GetVertexAttributes<VertexAttrib3D>() {
   return VertexInputAttribute{
       kPerVertexBindingPoint,
       /*attributes=*/{

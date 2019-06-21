@@ -15,6 +15,7 @@
 
 #include "absl/types/optional.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
+#include "jessie_steamer/wrapper/vulkan/render_pass.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -64,7 +65,6 @@ class PipelineBuilder {
  public:
   using ShaderInfo = std::pair<VkShaderStageFlagBits, std::string>;
   using ShaderModule = std::pair<VkShaderStageFlagBits, VkShaderModule>;
-  using RenderPassInfo = std::pair<VkRenderPass, uint32_t>;
   using ViewportInfo = std::pair<VkViewport, VkRect2D>;
 
   explicit PipelineBuilder(SharedBasicContext context);
@@ -81,7 +81,8 @@ class PipelineBuilder {
       std::vector<VkDescriptorSetLayout>&& descriptor_layouts,
       std::vector<VkPushConstantRange>&& push_constant_ranges);
   PipelineBuilder& set_viewport(ViewportInfo&& info);
-  PipelineBuilder& set_render_pass(RenderPassInfo&& info);
+  PipelineBuilder& set_render_pass(const RenderPass& render_pass,
+                                   uint32_t subpass_index);
   PipelineBuilder& add_shader(const ShaderInfo& info);
 
   // By default, alpha blending is not enabled and depth testing is enabled.
@@ -94,6 +95,8 @@ class PipelineBuilder {
   std::unique_ptr<Pipeline> Build();
 
  private:
+  using RenderPassInfo = std::pair<VkRenderPass, uint32_t>;
+
   SharedBasicContext context_;
   VkPipelineInputAssemblyStateCreateInfo input_assembly_info_;
   VkPipelineRasterizationStateCreateInfo rasterizer_info_;

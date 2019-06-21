@@ -14,7 +14,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/memory/memory.h"
 #include "jessie_steamer/common/util.h"
-#include "jessie_steamer/wrapper/vulkan/macro.h"
+#include "jessie_steamer/wrapper/vulkan/util.h"
 
 namespace jessie_steamer {
 namespace wrapper {
