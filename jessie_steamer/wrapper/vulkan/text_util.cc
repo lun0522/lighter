@@ -7,7 +7,9 @@
 
 #include "jessie_steamer/wrapper/vulkan/text_util.h"
 
+#include "absl/memory/memory.h"
 #include "jessie_steamer/common/file.h"
+#include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/vertex_input_util.h"
 
 namespace jessie_steamer {
@@ -18,7 +20,9 @@ namespace {
 using std::string;
 using std::vector;
 
+using absl::flat_hash_map;
 using common::VertexAttrib2D;
+using glm::vec2;
 
 string GetFontPath(CharLoader::Font font) {
   const string prefix = "external/resource/font/";
@@ -41,42 +45,73 @@ CharLoader::CharLoader(SharedBasicContext context,
     FATAL("No character loaded");
   }
 
-  int total_width;
-  auto char_resource_map = LoadCharResource(char_lib, &total_width);
-  VkExtent2D image_extent{static_cast<uint32_t>(total_width),
-                          static_cast<uint32_t>(font_height)};
-  OffscreenImage image{context, /*channel=*/1, image_extent};
+  CharTextures char_textures;
+  char_texture_map_ = CreateCharTextureMap(char_lib, font_height,
+                                           &char_textures);
+  image_ = absl::make_unique<OffscreenImage>(context, /*channel=*/1,
+                                             char_textures.extent_after_merge);
+
   auto render_pass = CreateRenderPass(
-      image_extent, [&image](int index) -> const Image& { return image; });
-  auto descriptors = CreateDescriptors();  // TODO
-  auto pipeline = CreatePipeline(image_extent, *render_pass, descriptors);
+      char_textures.extent_after_merge,
+      [this](int index) -> const Image& { return *image_; });
+  auto descriptor = CreateDescriptor();
+  auto pipeline = CreatePipeline(char_textures.extent_after_merge,
+                                 *render_pass, *descriptor);
+  vector<char> char_merge_order;
+  auto vertex_buffer = CreateVertexBuffer(&char_merge_order);
+
+  OneTimeCommand command{context_, &context_->queues().graphics};
+  command.Run([&](const VkCommandBuffer& command_buffer) {
+    pipeline->Bind(command_buffer);
+    for (int i = 0; i < char_merge_order.size(); ++i) {
+      const char ch = char_merge_order[i];
+      descriptor->UpdateImageInfos(
+          command_buffer, pipeline->layout(),
+          /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          /*image_infos=*/{
+              {0, {char_textures.char_image_map[ch]->descriptor_info()}},
+          });
+      vertex_buffer->Draw(command_buffer, /*mesh_index=*/i,
+                          /*instance_count=*/1);
+    }
+  });
 }
 
-absl::flat_hash_map<char, CharLoader::CharResourceInfo>
-CharLoader::LoadCharResource(const common::CharLib& char_lib,
-                             int* total_width) const {
-  absl::flat_hash_map<char, CharResourceInfo> char_resource_map;
+flat_hash_map<char, CharLoader::CharTextureInfo>
+CharLoader::CreateCharTextureMap(
+    const common::CharLib& char_lib, int font_height,
+    CharTextures* char_textures) const {
+  int total_width = 0;
+  for (const auto& ch : char_lib.char_info_map()) {
+    total_width += ch.second.advance;
+  }
+  char_textures->extent_after_merge = VkExtent2D{
+      static_cast<uint32_t>(total_width),
+      static_cast<uint32_t>(font_height),
+  };
+  const vec2 ratio = 1.0f / vec2{total_width, font_height};
+
+  flat_hash_map<char, CharTextureInfo> char_resource_map;
   int offset_x = 0;
   for (const auto& ch : char_lib.char_info_map()) {
     const auto& info = ch.second;
-    char_resource_map[ch.first] = CharResourceInfo{
-        info.size,
-        info.bearing,
-        offset_x,
-        absl::make_unique<TextureImage>(
-            context_,
-            TextureBuffer::Info{
-                {info.data},
-                VK_FORMAT_R8_UNORM,
-                static_cast<uint32_t>(info.size.x),
-                static_cast<uint32_t>(info.size.y),
-                /*channel=*/1,
-            }
-        ),
+    char_resource_map[ch.first] = CharTextureInfo{
+        vec2{info.size} * ratio,
+        vec2{info.bearing} * ratio,
+        offset_x * ratio.x,
     };
+    char_textures->char_image_map[ch.first] = absl::make_unique<TextureImage>(
+        context_,
+        TextureBuffer::Info{
+            {info.data},
+            VK_FORMAT_R8_UNORM,
+            static_cast<uint32_t>(info.size.x),
+            static_cast<uint32_t>(info.size.y),
+            /*channel=*/1,
+        }
+    );
     offset_x += info.advance;
   }
-  *total_width = offset_x;
   return char_resource_map;
 }
 
@@ -125,24 +160,32 @@ std::unique_ptr<RenderPass> CharLoader::CreateRenderPass(
       .Build();
 }
 
-std::vector<StaticDescriptor> CharLoader::CreateDescriptors() const {
-  return {};
+std::unique_ptr<DynamicDescriptor> CharLoader::CreateDescriptor() const {
+  return absl::make_unique<DynamicDescriptor>(
+      context_,
+      /*infos=*/vector<Descriptor::Info>{
+          Descriptor::Info{
+              /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+              /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
+              /*bindings=*/{
+                  Descriptor::Info::Binding{
+                      Descriptor::ResourceType::kTextureDiffuse,
+                      /*binding_point=*/0,
+                      /*array_length=*/1,
+                  },
+              },
+          },
+      });
 }
 
 std::unique_ptr<Pipeline> CharLoader::CreatePipeline(
     const VkExtent2D& target_extent, const RenderPass& render_pass,
-    const vector<StaticDescriptor>& descriptors) const {
-  vector<VkDescriptorSetLayout> descriptor_layouts;
-  descriptor_layouts.reserve(descriptors.size());
-  for (const auto& descriptor : descriptors) {
-    descriptor_layouts.emplace_back(descriptor.layout());
-  }
-
+    const DynamicDescriptor& descriptor) const {
   return PipelineBuilder{context_}
       .set_vertex_input(
           GetBindingDescriptions({GetPerVertexBindings<VertexAttrib2D>()}),
           GetAttributeDescriptions({GetVertexAttributes<VertexAttrib2D>()}))
-      .set_layout(std::move(descriptor_layouts), /*push_constant_ranges=*/{})
+      .set_layout({descriptor.layout()}, /*push_constant_ranges=*/{})
       .set_viewport({
           /*viewport=*/VkViewport{
               /*x=*/0.0f,
@@ -164,6 +207,55 @@ std::unique_ptr<Pipeline> CharLoader::CreatePipeline(
                    "jessie_steamer/shader/vulkan/simple_2d.frag.spv"})
       .disable_depth_test()
       .Build();
+}
+
+std::unique_ptr<PerVertexBuffer> CharLoader::CreateVertexBuffer(
+    vector<char>* char_merge_order) const {
+  char_merge_order->reserve(char_texture_map_.size());
+
+  const uint32_t indices[]{0, 1, 2, 0, 2, 3};
+  vector<VertexAttrib2D> vertices;
+  vertices.reserve(4 * char_texture_map_.size());
+  for (const auto& ch : char_texture_map_) {
+    char_merge_order->emplace_back(ch.first);
+    const CharTextureInfo& char_info = ch.second;
+    const vec2 offset = vec2{char_info.offset_x, 0.0f} + char_info.bearing;
+    const vec2 size = char_info.size;
+    vertices.emplace_back(VertexAttrib2D{
+        /*pos=*/offset + vec2{0.0f, size.y},
+        /*tex_coord=*/{0.0f, 0.0f},
+    });
+    vertices.emplace_back(VertexAttrib2D{
+        /*pos=*/offset + vec2{size.x, size.y},
+        /*tex_coord=*/{1.0f, 0.0f},
+    });
+    vertices.emplace_back(VertexAttrib2D{
+        /*pos=*/offset + vec2{size.x, 0.0f},
+        /*tex_coord=*/{1.0f, 1.0f},
+    });
+    vertices.emplace_back(VertexAttrib2D{
+        /*pos=*/offset + vec2{0.0f, 0.0f},
+        /*tex_coord=*/{0.0f, 1.0f},
+    });
+  }
+
+  std::unique_ptr<PerVertexBuffer> buffer =
+      absl::make_unique<PerVertexBuffer>(context_);
+  buffer->Init(PerVertexBuffer::InfoReuse{
+      /*per_mesh_vertices=*/{
+          PerVertexBuffer::DataInfo{
+              vertices.data(),
+              sizeof(VertexAttrib2D) * vertices.size(),
+              CONTAINER_SIZE(vertices),
+          },
+      },
+      /*shared_indices=*/PerVertexBuffer::DataInfo{
+          indices,
+          sizeof(indices),
+          sizeof(indices) / sizeof(indices[0]),
+      },
+  });
+  return buffer;
 }
 
 } /* namespace vulkan */

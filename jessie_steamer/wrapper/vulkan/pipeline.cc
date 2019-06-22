@@ -302,6 +302,10 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
   return absl::make_unique<Pipeline>(context_, pipeline, pipeline_layout);
 }
 
+void Pipeline::Bind(const VkCommandBuffer& command_buffer) const {
+  vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_);
+}
+
 Pipeline::~Pipeline() {
   vkDestroyPipeline(*context_->device(), pipeline_, context_->allocator());
   vkDestroyPipelineLayout(*context_->device(), layout_, context_->allocator());

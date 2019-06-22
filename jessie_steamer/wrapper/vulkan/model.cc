@@ -18,18 +18,20 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using common::VertexAttrib3D;
 using std::vector;
 
-PerVertexBuffer::Info CreateVertexInfo(const vector<VertexAttrib3D>& vertices,
-                                       const vector<uint32_t>& indices) {
-  return PerVertexBuffer::Info{
-      /*vertices=*/{
+using common::VertexAttrib3D;
+using VertexInfo = PerVertexBuffer::InfoNoReuse;
+
+VertexInfo::PerMeshInfo CreateVertexInfo(const vector<VertexAttrib3D>& vertices,
+                                         const vector<uint32_t>& indices) {
+  return VertexInfo::PerMeshInfo{
+      /*vertices=*/PerVertexBuffer::DataInfo{
           vertices.data(),
           sizeof(vertices[0]) * vertices.size(),
           CONTAINER_SIZE(vertices),
       },
-      /*indices=*/{
+      /*indices=*/PerVertexBuffer::DataInfo{
           indices.data(),
           sizeof(indices[0]) * indices.size(),
           CONTAINER_SIZE(indices),
@@ -116,7 +118,9 @@ ModelBuilder::ModelBuilder(SharedBasicContext context,
 void ModelBuilder::LoadSingleMesh(const SingleMeshResource& resource) {
   // load vertices and indices
   common::ObjFile file{resource.obj_path, resource.obj_index_base};
-  vertex_buffer_->Init({CreateVertexInfo(file.vertices, file.indices)});
+  vertex_buffer_->Init(VertexInfo{
+      /*per_mesh_infos=*/{CreateVertexInfo(file.vertices, file.indices)},
+  });
 
   // load textures
   mesh_textures_.emplace_back();
@@ -133,12 +137,13 @@ void ModelBuilder::LoadSingleMesh(const SingleMeshResource& resource) {
 void ModelBuilder::LoadMultiMesh(const MultiMeshResource& resource) {
   // load vertices and indices
   common::ModelLoader loader{resource.obj_path, resource.tex_path};
-  vector<PerVertexBuffer::Info> vertex_infos;
-  vertex_infos.reserve(loader.meshes().size());
+  VertexInfo vertex_info;
+  vertex_info.per_mesh_infos.reserve(loader.meshes().size());
   for (const auto &mesh : loader.meshes()) {
-    vertex_infos.emplace_back(CreateVertexInfo(mesh.vertices, mesh.indices));
+    vertex_info.per_mesh_infos.emplace_back(
+        CreateVertexInfo(mesh.vertices, mesh.indices));
   }
-  vertex_buffer_->Init(vertex_infos);
+  vertex_buffer_->Init(vertex_info);
 
   // load textures
   binding_map_ = resource.binding_map;
@@ -299,8 +304,7 @@ void Model::Update(VkExtent2D frame_size,
 
 void Model::Draw(const VkCommandBuffer& command_buffer,
                  int frame, uint32_t instance_count) const {
-  vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    **pipeline_);
+  pipeline_->Bind(command_buffer);
   for (int i = 0; i < per_instance_buffers_.size(); ++i) {
     per_instance_buffers_[i]->Bind(command_buffer,
                                    kPerInstanceBindingPointBase + i);

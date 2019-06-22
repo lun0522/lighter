@@ -182,6 +182,8 @@ cc_library(
     ],
     deps = [
         ":basics",
+        ":buffer",
+        ":command",
         ":descriptor",
         ":image",
         ":pipeline",

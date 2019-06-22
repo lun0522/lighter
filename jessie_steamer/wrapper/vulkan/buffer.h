@@ -83,13 +83,22 @@ class DataBuffer : public Buffer {
 
 class PerVertexBuffer : public DataBuffer {
  public:
-  struct Info {
-    struct Field {
-      const void* data;
-      size_t data_size;
-      uint32_t unit_count;
+  struct DataInfo {
+    const void* data;
+    size_t data_size;
+    uint32_t unit_count;
+  };
+
+  struct InfoNoReuse {
+    struct PerMeshInfo {
+      DataInfo vertices, indices;
     };
-    Field vertices, indices;
+    std::vector<PerMeshInfo> per_mesh_infos;
+  };
+
+  struct InfoReuse {
+    std::vector<DataInfo> per_mesh_vertices;
+    DataInfo shared_indices;
   };
 
   explicit PerVertexBuffer(SharedBasicContext context)
@@ -99,7 +108,8 @@ class PerVertexBuffer : public DataBuffer {
   PerVertexBuffer(const PerVertexBuffer&) = delete;
   PerVertexBuffer& operator=(const PerVertexBuffer&) = delete;
 
-  void Init(const std::vector<Info>& infos);
+  void Init(const InfoNoReuse& info_no_reuse);
+  void Init(const InfoReuse& info_reuse);
   void Draw(const VkCommandBuffer& command_buffer,
             int mesh_index, uint32_t instance_count) const;
 

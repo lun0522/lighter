@@ -52,6 +52,8 @@ class Pipeline {
 
   ~Pipeline();
 
+  void Bind(const VkCommandBuffer& command_buffer) const;
+
   const VkPipeline& operator*()     const { return pipeline_; }
   const VkPipelineLayout& layout()  const { return layout_; }
 

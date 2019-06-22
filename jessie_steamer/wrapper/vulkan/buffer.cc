@@ -327,28 +327,62 @@ void DataBuffer::CopyHostData(const vector<CopyInfo>& copy_infos,
   vkFreeMemory(*context_->device(), staging_memory, context_->allocator());
 }
 
-void PerVertexBuffer::Init(const vector<PerVertexBuffer::Info>& infos) {
+void PerVertexBuffer::Init(const InfoNoReuse& info_no_reuse) {
+  // vertex buffer layout (@ refers to the index of mesh):
+  // | vertices@0 | indices@0 | vertices@1 | indices@1 | ...
+  const auto& infos = info_no_reuse.per_mesh_infos;
   mesh_datas_.reserve(infos.size());
   vector<CopyInfo> copy_infos;
   copy_infos.reserve(infos.size() * 2);
   VkDeviceSize total_size = 0;
   for (const auto& info : infos) {
     mesh_datas_.emplace_back(MeshData{
-        total_size,
-        total_size + info.vertices.data_size,
+        /*vertices_offset=*/total_size,
+        /*indices_offset=*/total_size + info.vertices.data_size,
         info.indices.unit_count,
     });
     copy_infos.emplace_back(CopyInfo{
         info.vertices.data,
         info.vertices.data_size,
-        total_size,
+        /*offset=*/total_size,
     });
     copy_infos.emplace_back(CopyInfo{
         info.indices.data,
         info.indices.data_size,
-        total_size + info.vertices.data_size,
+        /*offset=*/total_size + info.vertices.data_size,
     });
     total_size += info.vertices.data_size + info.indices.data_size;
+  }
+  CopyHostData(copy_infos, total_size);
+}
+
+void PerVertexBuffer::Init(const InfoReuse& info_reuse) {
+  // vertex buffer layout (@ refers to the index of mesh):
+  // | shared indices | vertices@0 | vertices@1 | vertices@2 | ...
+  constexpr int kIndicesOffset = 0;
+  const auto& vertex_infos = info_reuse.per_mesh_vertices;
+  mesh_datas_.reserve(vertex_infos.size());
+  vector<CopyInfo> copy_infos;
+  copy_infos.reserve(vertex_infos.size() + 1);
+  copy_infos.emplace_back(CopyInfo{
+      info_reuse.shared_indices.data,
+      info_reuse.shared_indices.data_size,
+      kIndicesOffset,
+  });
+  VkDeviceSize total_size = kIndicesOffset +
+                            info_reuse.shared_indices.data_size;
+  for (const auto& info : vertex_infos) {
+    mesh_datas_.emplace_back(MeshData{
+        /*vertices_offset=*/total_size,
+        kIndicesOffset,
+        info.unit_count,
+    });
+    copy_infos.emplace_back(CopyInfo{
+        info.data,
+        info.data_size,
+        /*offset=*/total_size,
+    });
+    total_size += info.data_size;
   }
   CopyHostData(copy_infos, total_size);
 }

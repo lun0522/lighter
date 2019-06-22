@@ -66,6 +66,7 @@ namespace vulkan {
  */
 class Descriptor {
  public:
+  // TODO: make ImageInfos a struct
   using ImageInfos = absl::flat_hash_map<
       uint32_t, std::vector<VkDescriptorImageInfo>>;
   using ResourceType = common::types::ResourceType;

@@ -14,6 +14,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "jessie_steamer/common/char_lib.h"
+#include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
@@ -28,6 +29,12 @@ class CharLoader {
  public:
   enum class Font { kGeorgia, kOstrich };
 
+  struct CharTextureInfo {
+    glm::vec2 size;
+    glm::vec2 bearing;
+    float offset_x;
+  };
+
   CharLoader(SharedBasicContext context,
              const std::vector<std::string>& texts,
              Font font, int font_height);
@@ -36,28 +43,36 @@ class CharLoader {
   CharLoader(const CharLoader&) = delete;
   CharLoader& operator=(const CharLoader&) = delete;
 
- private:
-  struct CharResourceInfo {
-    glm::ivec2 size;
-    glm::ivec2 bearing;
-    int offset_x;
-    std::unique_ptr<TextureImage> image;
+  const absl::flat_hash_map<char, CharTextureInfo>& char_texture_map() const {
+    return char_texture_map_;
   };
 
-  absl::flat_hash_map<char, CharResourceInfo> LoadCharResource(
-      const common::CharLib& char_lib, int* total_width) const;
+ private:
+  struct CharTextures {
+    absl::flat_hash_map<char, std::unique_ptr<TextureImage>> char_image_map;
+    VkExtent2D extent_after_merge;
+  };
+
+  absl::flat_hash_map<char, CharLoader::CharTextureInfo> CreateCharTextureMap(
+      const common::CharLib& char_lib, int font_height,
+      CharTextures* char_textures) const;
 
   std::unique_ptr<RenderPass> CreateRenderPass(
       const VkExtent2D& target_extent,
       RenderPassBuilder::GetImage&& get_target_image) const;
 
-  std::vector<StaticDescriptor> CreateDescriptors() const;
+  std::unique_ptr<DynamicDescriptor> CreateDescriptor() const;
 
   std::unique_ptr<Pipeline> CreatePipeline(
       const VkExtent2D& target_extent, const RenderPass& render_pass,
-      const std::vector<StaticDescriptor>& descriptors) const;
+      const DynamicDescriptor& descriptor) const;
+
+  std::unique_ptr<PerVertexBuffer> CreateVertexBuffer(
+      std::vector<char>* char_merge_order) const;
 
   SharedBasicContext context_;
+  std::unique_ptr<OffscreenImage> image_;
+  absl::flat_hash_map<char, CharTextureInfo> char_texture_map_;
 };
 
 } /* namespace vulkan */
