@@ -77,7 +77,7 @@ class Model {
   std::vector<model::PushConstantInfo> push_constant_infos_;
   model::TexPerMesh shared_textures_;
   std::vector<model::TexPerMesh> mesh_textures_;
-  std::vector<std::vector<std::unique_ptr<Descriptor>>> descriptors_;
+  std::vector<std::vector<std::unique_ptr<StaticDescriptor>>> descriptors_;
   std::unique_ptr<PipelineBuilder> pipeline_builder_;
   std::unique_ptr<Pipeline> pipeline_;
 };
@@ -140,7 +140,8 @@ class ModelBuilder {
  private:
   void LoadSingleMesh(const SingleMeshResource& resource);
   void LoadMultiMesh(const MultiMeshResource& resource);
-  std::vector<std::vector<std::unique_ptr<Descriptor>>> CreateDescriptors();
+  std::vector<std::vector<std::unique_ptr<StaticDescriptor>>>
+  CreateDescriptors();
 
   SharedBasicContext context_;
   const int num_frame_;

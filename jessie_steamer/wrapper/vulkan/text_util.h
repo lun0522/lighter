@@ -32,6 +32,10 @@ class CharLoader {
              const std::vector<std::string>& texts,
              Font font, int font_height);
 
+  // This class is neither copyable nor movable.
+  CharLoader(const CharLoader&) = delete;
+  CharLoader& operator=(const CharLoader&) = delete;
+
  private:
   struct CharResourceInfo {
     glm::ivec2 size;
@@ -47,11 +51,11 @@ class CharLoader {
       const VkExtent2D& target_extent,
       RenderPassBuilder::GetImage&& get_target_image) const;
 
-  std::vector<Descriptor> CreateDescriptors() const;
+  std::vector<StaticDescriptor> CreateDescriptors() const;
 
   std::unique_ptr<Pipeline> CreatePipeline(
       const VkExtent2D& target_extent, const RenderPass& render_pass,
-      const std::vector<Descriptor>& descriptors) const;
+      const std::vector<StaticDescriptor>& descriptors) const;
 
   SharedBasicContext context_;
 };

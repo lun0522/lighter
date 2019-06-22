@@ -33,17 +33,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
   return VK_FALSE;
 }
 
-template<typename FuncType>
-FuncType LoadFunction(const SharedBasicContext& context,
-                      const string& func_name) {
-  auto func = reinterpret_cast<FuncType>(
-      vkGetInstanceProcAddr(*context->instance(), func_name.c_str()));
-  if (!func) {
-    FATAL("Failed to load: " + func_name);
-  }
-  return func;
-}
-
 } /* namespace */
 
 namespace validation {
@@ -113,16 +102,19 @@ void DebugCallback::Init(SharedBasicContext context,
       UserCallback,
       /*pUserData=*/nullptr,  // will be passed along to the callback
   };
-
-  auto func = LoadFunction<PFN_vkCreateDebugUtilsMessengerEXT>(
-      context_, "vkCreateDebugUtilsMessengerEXT");
-  func(*context_->instance(), &create_info, context_->allocator(), &callback_);
+  static const auto vkCreateDebugUtilsMessengerEXT =
+      LoadInstanceFunction<PFN_vkCreateDebugUtilsMessengerEXT>(
+          *context_->instance(), "vkCreateDebugUtilsMessengerEXT");
+  vkCreateDebugUtilsMessengerEXT(*context_->instance(), &create_info,
+                                 context_->allocator(), &callback_);
 }
 
 DebugCallback::~DebugCallback() {
-  auto func = LoadFunction<PFN_vkDestroyDebugUtilsMessengerEXT>(
-      context_, "vkDestroyDebugUtilsMessengerEXT");
-  func(*context_->instance(), callback_, context_->allocator());
+  static const auto vkDestroyDebugUtilsMessengerEXT =
+      LoadInstanceFunction<PFN_vkDestroyDebugUtilsMessengerEXT>(
+          *context_->instance(), "vkDestroyDebugUtilsMessengerEXT");
+  vkDestroyDebugUtilsMessengerEXT(*context_->instance(), callback_,
+                                  context_->allocator());
 }
 
 } /* namespace vulkan */

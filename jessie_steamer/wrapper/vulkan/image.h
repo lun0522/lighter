@@ -64,10 +64,6 @@ namespace vulkan {
  */
 class Image {
  public:
-  explicit Image(SharedBasicContext context) : context_{std::move(context)} {}
-  Image(SharedBasicContext context, VkFormat format)
-      : context_{std::move(context)}, format_{format} {}
-
   virtual ~Image() {
     vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
   }
@@ -76,6 +72,10 @@ class Image {
   VkFormat format()               const { return format_; }
 
  protected:
+  explicit Image(SharedBasicContext context) : context_{std::move(context)} {}
+  Image(SharedBasicContext context, VkFormat format)
+      : context_{std::move(context)}, format_{format} {}
+
   SharedBasicContext context_;
   VkImageView image_view_;
   VkFormat format_;

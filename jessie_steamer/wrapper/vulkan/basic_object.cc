@@ -138,16 +138,23 @@ void Instance::Init(SharedBasicContext context,
                     const absl::optional<WindowSupport>& window_support) {
   context_ = std::move(context);
 
-  vector<const char*> required_extensions;
+  // request support for pushing descriptors
+  vector<const char*> instance_extensions{
+      VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
+  };
   if (window_support.has_value()) {
-    required_extensions = window_support.value().window_extensions;
+    instance_extensions.insert(
+        instance_extensions.end(),
+        window_support.value().window_extensions.begin(),
+        window_support.value().window_extensions.end()
+    );
   }
 #ifndef NDEBUG
   // one extra extension to enable debug report
-  required_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+  instance_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   validation::EnsureInstanceExtensionSupport({
-      required_extensions.begin(),
-      required_extensions.end()
+      instance_extensions.begin(),
+      instance_extensions.end()
   });
   validation::EnsureValidationLayerSupport({
       validation::layers().begin(),
@@ -182,8 +189,8 @@ void Instance::Init(SharedBasicContext context,
       CONTAINER_SIZE(validation::layers()),
       validation::layers().data(),
 #endif /* NDEBUG */
-      CONTAINER_SIZE(required_extensions),
-      required_extensions.data(),
+      CONTAINER_SIZE(instance_extensions),
+      instance_extensions.data(),
   };
 
   ASSERT_SUCCESS(
@@ -236,10 +243,13 @@ void Device::Init(SharedBasicContext context,
   required_features.samplerAnisotropy = VK_TRUE;
 
   // request negative-height viewport support
-  vector<const char*> required_extensions{VK_KHR_MAINTENANCE1_EXTENSION_NAME};
+  vector<const char*> device_extensions{
+      VK_KHR_MAINTENANCE1_EXTENSION_NAME,
+      VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
+  };
   if (window_support.has_value()) {
-    required_extensions.insert(
-        required_extensions.end(),
+    device_extensions.insert(
+        device_extensions.end(),
         window_support.value().swapchain_extensions.begin(),
         window_support.value().swapchain_extensions.end());
   }
@@ -274,8 +284,8 @@ void Device::Init(SharedBasicContext context,
       CONTAINER_SIZE(validation::layers()),
       validation::layers().data(),
 #endif /* NDEBUG */
-      CONTAINER_SIZE(required_extensions),
-      required_extensions.data(),
+      CONTAINER_SIZE(device_extensions),
+      device_extensions.data(),
       &required_features,
   };
 

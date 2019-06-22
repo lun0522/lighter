@@ -191,9 +191,9 @@ ModelBuilder& ModelBuilder::add_push_constant(model::PushConstantInfo&& info) {
   return *this;
 }
 
-std::vector<std::vector<std::unique_ptr<Descriptor>>>
+std::vector<std::vector<std::unique_ptr<StaticDescriptor>>>
 ModelBuilder::CreateDescriptors() {
-  std::vector<std::vector<std::unique_ptr<Descriptor>>> descriptors;
+  std::vector<std::vector<std::unique_ptr<StaticDescriptor>>> descriptors;
   descriptors.resize(num_frame_);
   for (int frame = 0; frame < num_frame_; ++frame) {
     descriptors[frame].reserve(mesh_textures_.size());
@@ -214,7 +214,7 @@ ModelBuilder::CreateDescriptors() {
       }
 
       descriptors[frame].emplace_back(
-          absl::make_unique<Descriptor>(context_, descriptor_infos));
+          absl::make_unique<StaticDescriptor>(context_, descriptor_infos));
       for (const auto& info : uniform_infos_) {
         descriptors[frame].back()->UpdateBufferInfos(
             info.second, {info.first->descriptor_info(frame)});

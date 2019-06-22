@@ -125,13 +125,13 @@ std::unique_ptr<RenderPass> CharLoader::CreateRenderPass(
       .Build();
 }
 
-std::vector<Descriptor> CharLoader::CreateDescriptors() const {
+std::vector<StaticDescriptor> CharLoader::CreateDescriptors() const {
   return {};
 }
 
 std::unique_ptr<Pipeline> CharLoader::CreatePipeline(
     const VkExtent2D& target_extent, const RenderPass& render_pass,
-    const vector<Descriptor>& descriptors) const {
+    const vector<StaticDescriptor>& descriptors) const {
   vector<VkDescriptorSetLayout> descriptor_layouts;
   descriptor_layouts.reserve(descriptors.size());
   for (const auto& descriptor : descriptors) {

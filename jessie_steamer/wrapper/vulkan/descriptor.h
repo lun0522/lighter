@@ -82,28 +82,71 @@ class Descriptor {
     std::vector<Binding> bindings;
   };
 
-  Descriptor(SharedBasicContext context, const std::vector<Info>& infos);
-
-  // This class is neither copyable nor movable.
-  Descriptor(const Descriptor&) = delete;
-  Descriptor& operator=(const Descriptor&) = delete;
-
-  ~Descriptor();
-
-  void UpdateBufferInfos(
-      const Info& descriptor_info,
-      const std::vector<VkDescriptorBufferInfo>& buffer_infos) const;
-  void UpdateImageInfos(VkDescriptorType descriptor_type,
-                        const ImageInfos& image_infos) const;
+  virtual ~Descriptor() {
+    vkDestroyDescriptorSetLayout(*context_->device(), layout_,
+                                 context_->allocator());
+  }
 
   const VkDescriptorSetLayout& layout() const { return layout_; }
   const VkDescriptorSet& set()          const { return set_; }
 
- private:
+ protected:
+  explicit Descriptor(SharedBasicContext context)
+      : context_{std::move(context)} {}
+
   SharedBasicContext context_;
-  VkDescriptorPool pool_;
   VkDescriptorSetLayout layout_;
   VkDescriptorSet set_;
+};
+
+class StaticDescriptor : public Descriptor {
+ public:
+  StaticDescriptor(SharedBasicContext context, const std::vector<Info>& infos);
+
+  // This class is neither copyable nor movable.
+  StaticDescriptor(const StaticDescriptor&) = delete;
+  StaticDescriptor& operator=(const StaticDescriptor&) = delete;
+
+  ~StaticDescriptor() override {
+    vkDestroyDescriptorPool(*context_->device(), pool_, context_->allocator());
+    // descriptor set is implicitly cleaned up with descriptor pool
+  }
+
+  void UpdateBufferInfos(
+      const Info& descriptor_info,
+      const std::vector<VkDescriptorBufferInfo>& buffer_infos) const;
+
+  void UpdateImageInfos(VkDescriptorType descriptor_type,
+                        const ImageInfos& image_infos) const;
+
+ private:
+  VkDescriptorPool pool_;
+};
+
+class DynamicDescriptor : public Descriptor {
+ public:
+  DynamicDescriptor(SharedBasicContext context, const std::vector<Info>& infos);
+
+  // This class is neither copyable nor movable.
+  DynamicDescriptor(const DynamicDescriptor&) = delete;
+  DynamicDescriptor& operator=(const DynamicDescriptor&) = delete;
+
+  void UpdateBufferInfos(
+      const VkCommandBuffer& command_buffer,
+      const VkPipelineLayout& pipeline_layout,
+      const Info& descriptor_info,
+      const std::vector<VkDescriptorBufferInfo>& buffer_infos) const;
+
+  void UpdateImageInfos(const VkCommandBuffer& command_buffer,
+                        const VkPipelineLayout& pipeline_layout,
+                        VkDescriptorType descriptor_type,
+                        const ImageInfos& image_infos) const;
+
+ private:
+  void UpdateDescriptorSet(
+      const VkCommandBuffer& command_buffer,
+      const VkPipelineLayout& pipeline_layout,
+      const std::vector<VkWriteDescriptorSet>& write_descriptor_set) const;
 };
 
 } /* namespace vulkan */

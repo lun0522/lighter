@@ -54,26 +54,27 @@ class Buffer {
     VkDeviceSize offset;
   };
 
-  explicit Buffer(SharedBasicContext context) : context_{std::move(context)} {}
   virtual ~Buffer() {
     vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
   }
 
  protected:
+  explicit Buffer(SharedBasicContext context) : context_{std::move(context)} {}
+
   SharedBasicContext context_;
   VkDeviceMemory device_memory_;
 };
 
 class DataBuffer : public Buffer {
  public:
-  // Inherits constructor.
-  using Buffer::Buffer;
-
   ~DataBuffer() override {
     vkDestroyBuffer(*context_->device(), buffer_, context_->allocator());
   }
 
  protected:
+  // Inherits constructor.
+  using Buffer::Buffer;
+
   void CopyHostData(const std::vector<CopyInfo>& copy_infos,
                     size_t total_size);
 
@@ -91,8 +92,8 @@ class PerVertexBuffer : public DataBuffer {
     Field vertices, indices;
   };
 
-  // Inherits constructor.
-  using DataBuffer::DataBuffer;
+  explicit PerVertexBuffer(SharedBasicContext context)
+      : DataBuffer{std::move(context)} {}
 
   // This class is neither copyable nor movable.
   PerVertexBuffer(const PerVertexBuffer&) = delete;
@@ -113,8 +114,8 @@ class PerVertexBuffer : public DataBuffer {
 
 class PerInstanceBuffer : public DataBuffer {
  public:
-  // Inherits constructor.
-  using DataBuffer::DataBuffer;
+  explicit PerInstanceBuffer(SharedBasicContext context)
+      : DataBuffer{std::move(context)} {}
 
   // This class is neither copyable nor movable.
   PerInstanceBuffer(const PerInstanceBuffer&) = delete;
@@ -127,8 +128,8 @@ class PerInstanceBuffer : public DataBuffer {
 
 class UniformBuffer : public DataBuffer {
  public:
-  // Inherits constructor.
-  using DataBuffer::DataBuffer;
+  explicit UniformBuffer(SharedBasicContext context)
+      : DataBuffer{std::move(context)} {}
 
   // This class is neither copyable nor movable.
   UniformBuffer(const UniformBuffer&) = delete;
@@ -153,9 +154,6 @@ class UniformBuffer : public DataBuffer {
 
 class ImageBuffer : public Buffer {
  public:
-  // Inherits constructor.
-  using Buffer::Buffer;
-
   ~ImageBuffer() override {
     vkDestroyImage(*context_->device(), image_, context_->allocator());
   }
@@ -163,6 +161,9 @@ class ImageBuffer : public Buffer {
   const VkImage& image() const { return image_; }
 
  protected:
+  // Inherits constructor.
+  using Buffer::Buffer;
+
   VkImage image_;
 };
 
@@ -181,8 +182,8 @@ class TextureBuffer : public ImageBuffer {
     uint32_t channel;
   };
 
-  // Inherits constructor.
-  using ImageBuffer::ImageBuffer;
+  explicit TextureBuffer(SharedBasicContext context)
+      : ImageBuffer{std::move(context)} {}
 
   // This class is neither copyable nor movable.
   TextureBuffer(const TextureBuffer&) = delete;

@@ -37,14 +37,14 @@ namespace vulkan {
  */
 class Command {
  public:
-  Command(SharedBasicContext context) : context_{std::move(context)} {}
-
   virtual ~Command() {
     vkDestroyCommandPool(*context_->device(), command_pool_,
                          context_->allocator());
   }
 
  protected:
+  explicit Command(SharedBasicContext context) : context_{std::move(context)} {}
+
   SharedBasicContext context_;
   VkCommandPool command_pool_;
 };
@@ -72,8 +72,8 @@ class PerFrameCommand : public Command {
                                       uint32_t framebuffer_index)>;
   using UpdateData = std::function<void (int current_frame)>;
 
-  // Inherits constructor.
-  using Command::Command;
+  explicit PerFrameCommand(SharedBasicContext context)
+      : Command{std::move(context)} {}
 
   // This class is neither copyable nor movable.
   PerFrameCommand(const Command&) = delete;
