@@ -75,8 +75,7 @@ class DataBuffer : public Buffer {
   // Inherits constructor.
   using Buffer::Buffer;
 
-  void CopyHostData(const std::vector<CopyInfo>& copy_infos,
-                    size_t total_size);
+  void CopyHostData(size_t total_size, const std::vector<CopyInfo>& copy_infos);
 
   VkBuffer buffer_;
 };
@@ -84,9 +83,11 @@ class DataBuffer : public Buffer {
 class PerVertexBuffer : public DataBuffer {
  public:
   struct DataInfo {
+    VkDeviceSize GetTotalSize() const { return size_per_unit * unit_count; }
+
     const void* data;
-    size_t data_size;
-    uint32_t unit_count;
+    int size_per_unit;
+    int unit_count;
   };
 
   struct InfoNoReuse {
@@ -97,8 +98,8 @@ class PerVertexBuffer : public DataBuffer {
   };
 
   struct InfoReuse {
-    std::vector<DataInfo> per_mesh_vertices;
-    DataInfo shared_indices;
+    int num_mesh;
+    DataInfo per_mesh_vertices, shared_indices;
   };
 
   explicit PerVertexBuffer(SharedBasicContext context)

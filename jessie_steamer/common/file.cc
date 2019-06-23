@@ -45,8 +45,9 @@ vector<string> SplitText(absl::string_view text,
                          int num_segment) {
   vector<string> result = absl::StrSplit(text, delimiter);
   if (result.size() != num_segment) {
-    FATAL(absl::StrFormat("Wrong number of segments (expected %d, but get %d)",
-                          num_segment, result.size()));
+    FATAL(absl::StrFormat(
+        "Invalid number of segments (expected %d, but get %d)",
+        num_segment, result.size()));
   }
   return result;
 }

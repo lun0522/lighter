@@ -28,13 +28,13 @@ VertexInfo::PerMeshInfo CreateVertexInfo(const vector<VertexAttrib3D>& vertices,
   return VertexInfo::PerMeshInfo{
       /*vertices=*/PerVertexBuffer::DataInfo{
           vertices.data(),
-          sizeof(vertices[0]) * vertices.size(),
-          CONTAINER_SIZE(vertices),
+          sizeof(vertices[0]),
+          static_cast<int>(vertices.size()),
       },
       /*indices=*/PerVertexBuffer::DataInfo{
           indices.data(),
-          sizeof(indices[0]) * indices.size(),
-          CONTAINER_SIZE(indices),
+          sizeof(indices[0]),
+          static_cast<int>(indices.size()),
       },
   };
 }

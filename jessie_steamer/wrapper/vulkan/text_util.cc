@@ -48,7 +48,7 @@ CharLoader::CharLoader(SharedBasicContext context,
   CharTextures char_textures;
   char_texture_map_ = CreateCharTextureMap(char_lib, font_height,
                                            &char_textures);
-  image_ = absl::make_unique<OffscreenImage>(context, /*channel=*/1,
+  image_ = absl::make_unique<OffscreenImage>(context_, /*channel=*/1,
                                              char_textures.extent_after_merge);
 
   auto render_pass = CreateRenderPass(
@@ -62,18 +62,26 @@ CharLoader::CharLoader(SharedBasicContext context,
 
   OneTimeCommand command{context_, &context_->queues().graphics};
   command.Run([&](const VkCommandBuffer& command_buffer) {
-    pipeline->Bind(command_buffer);
-    for (int i = 0; i < char_merge_order.size(); ++i) {
-      const char ch = char_merge_order[i];
-      descriptor->UpdateImageInfos(
-          command_buffer, pipeline->layout(),
-          /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          /*image_infos=*/{
-              {0, {char_textures.char_image_map[ch]->descriptor_info()}},
-          });
-      vertex_buffer->Draw(command_buffer, /*mesh_index=*/i,
-                          /*instance_count=*/1);
-    }
+    render_pass->Run(
+        command_buffer, /*framebuffer_index=*/0,
+        [&]() {
+          pipeline->Bind(command_buffer);
+          for (int i = 0; i < char_merge_order.size(); ++i) {
+            const char character = char_merge_order[i];
+            if (character == ' ') {
+              continue;
+            }
+            descriptor->UpdateImageInfos(
+                command_buffer, pipeline->layout(),
+                /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                /*image_infos=*/{
+                    {0, {char_textures.char_image_map[character]
+                             ->descriptor_info()}},
+                });
+            vertex_buffer->Draw(command_buffer, /*mesh_index=*/i,
+                                /*instance_count=*/1);
+          }
+        });
   });
 }
 
@@ -94,22 +102,27 @@ CharLoader::CreateCharTextureMap(
   flat_hash_map<char, CharTextureInfo> char_resource_map;
   int offset_x = 0;
   for (const auto& ch : char_lib.char_info_map()) {
+    const char character = ch.first;
     const auto& info = ch.second;
-    char_resource_map[ch.first] = CharTextureInfo{
+    char_resource_map[character] = CharTextureInfo{
         vec2{info.size} * ratio,
         vec2{info.bearing} * ratio,
         offset_x * ratio.x,
     };
-    char_textures->char_image_map[ch.first] = absl::make_unique<TextureImage>(
-        context_,
-        TextureBuffer::Info{
-            {info.data},
-            VK_FORMAT_R8_UNORM,
-            static_cast<uint32_t>(info.size.x),
-            static_cast<uint32_t>(info.size.y),
-            /*channel=*/1,
-        }
-    );
+    // space is a corner case where we won't have texture but will have advance
+    if (character != ' ') {
+      char_textures->char_image_map[character] =
+          absl::make_unique<TextureImage>(
+              context_,
+              TextureBuffer::Info{
+                  {info.data},
+                  VK_FORMAT_R8_UNORM,
+                  static_cast<uint32_t>(info.size.x),
+                  static_cast<uint32_t>(info.size.y),
+                  /*channel=*/1,
+              }
+          );
+    }
     offset_x += info.advance;
   }
   return char_resource_map;
@@ -242,16 +255,15 @@ std::unique_ptr<PerVertexBuffer> CharLoader::CreateVertexBuffer(
   std::unique_ptr<PerVertexBuffer> buffer =
       absl::make_unique<PerVertexBuffer>(context_);
   buffer->Init(PerVertexBuffer::InfoReuse{
-      /*per_mesh_vertices=*/{
-          PerVertexBuffer::DataInfo{
-              vertices.data(),
-              sizeof(VertexAttrib2D) * vertices.size(),
-              CONTAINER_SIZE(vertices),
-          },
+      /*num_mesh=*/static_cast<int>(char_texture_map_.size()),
+      /*per_mesh_vertices=*/PerVertexBuffer::DataInfo{
+          vertices.data(),
+          sizeof(vertices[0]),
+          /*unit_count=*/4,
       },
       /*shared_indices=*/PerVertexBuffer::DataInfo{
           indices,
-          sizeof(indices),
+          sizeof(indices[0]),
           sizeof(indices) / sizeof(indices[0]),
       },
   });

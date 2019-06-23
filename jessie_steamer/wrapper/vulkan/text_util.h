@@ -43,6 +43,7 @@ class CharLoader {
   CharLoader(const CharLoader&) = delete;
   CharLoader& operator=(const CharLoader&) = delete;
 
+  const Image& image() const { return *image_; }
   const absl::flat_hash_map<char, CharTextureInfo>& char_texture_map() const {
     return char_texture_map_;
   };
