@@ -20,11 +20,13 @@ cc_library(
     srcs = ["char_lib.cc"],
     hdrs = ["char_lib.h"],
     deps = [
+        ":file",
         ":util",
         "//third_party:freetype",
         "//third_party:glm",
         "@lib-absl//absl/container:flat_hash_map",
         "@lib-absl//absl/container:flat_hash_set",
+        "@lib-absl//absl/memory",
     ],
 )
 

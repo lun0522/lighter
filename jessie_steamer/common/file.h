@@ -31,6 +31,7 @@ struct RawData {
 
 struct Image {
   explicit Image(const std::string& path);
+  Image(int width, int height, int channel, const void* raw_data, bool flip_y);
 
   // This class is neither copyable nor movable.
   Image(const Image&) = delete;

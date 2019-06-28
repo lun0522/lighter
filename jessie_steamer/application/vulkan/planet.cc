@@ -158,7 +158,7 @@ void PlanetApp::Init() {
     ModelBuilder::TextureBindingMap planet_bindings;
     planet_bindings[model::ResourceType::kTextureDiffuse] = {
         /*binding_point=*/2,
-        {TextureImage::SingleTexPath{"external/resource/texture/planet.png"}},
+        {SharedTexture::SingleTexPath{"external/resource/texture/planet.png"}},
     };
     ModelBuilder planet_model_builder{
         context(), kNumFrameInFlight, /*is_opaque=*/true,
@@ -214,7 +214,7 @@ void PlanetApp::Init() {
     ModelBuilder::TextureBindingMap skybox_bindings;
     skybox_bindings[model::ResourceType::kTextureCubemap] = {
         /*binding_point=*/1, {
-            TextureImage::CubemapPath{
+            SharedTexture::CubemapPath{
                 /*directory=*/"external/resource/texture/universe",
                 /*files=*/{
                     "PositiveX.jpg",

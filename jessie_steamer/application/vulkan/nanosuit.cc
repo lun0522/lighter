@@ -137,7 +137,7 @@ void NanosuitApp::Init() {
     // model
     ModelBuilder::TextureBinding skybox_binding{
         /*binding_point=*/4, {
-            TextureImage::CubemapPath{
+            SharedTexture::CubemapPath{
                 /*directory=*/"external/resource/texture/tidepool",
                 /*files=*/{
                     "right.tga",

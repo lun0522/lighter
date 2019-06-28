@@ -19,9 +19,10 @@ namespace {
 
 namespace util = common::util;
 
+using std::vector;
+
 using ColorOps = RenderPassBuilder::Attachment::ColorOps;
 using DepthStencilOps = RenderPassBuilder::Attachment::DepthStencilOps;
-using std::vector;
 
 VkClearValue CreateClearColor(const RenderPassBuilder::Attachment& attachment) {
   VkClearValue clear_value{};
@@ -141,75 +142,67 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
   std::unique_ptr<RenderPassBuilder> builder =
       absl::make_unique<RenderPassBuilder>(std::move(context));
 
-  // number of framebuffer
-  builder->set_num_framebuffer(num_swapchain_image);
-
-  // color attachment
-  builder->set_attachment(
-      /*index=*/0,
-      Attachment{
-          /*attachment_ops=*/Attachment::ColorOps{
-              /*load_color=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-              /*store_color=*/VK_ATTACHMENT_STORE_OP_STORE,
-          },
-          /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
-          /*final_layout=*/VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-      },
-      GetImage{get_swapchain_image}
-  );
-
-  // depth stencil attachment
-  builder->set_attachment(
-      /*index=*/1,
-      Attachment{
-          /*attachment_ops=*/Attachment::DepthStencilOps{
-              /*load_depth=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-              /*store_depth=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
-              /*load_stencil=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-              /*store_stencil=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
-          },
-          // we don't care about the content previously stored in the depth
-          // stencil buffer, so even if it has been transitioned to the optimal
-          // layout, we still use undefined as initial layout.
-          /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
-          /*final_layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-      },
-      // although we have multiple swapchain images, we will share one depth
-      // stencil image, because we only use one graphics queue, which only
-      // renders on one swapchain image at a time
-      /*get_image=*/[&depth_stencil_image](int index) -> const Image& {
-        return depth_stencil_image;
-      }
-  );
-
-  // subpass description
-  builder->set_subpass_description(/*index=*/0, SubpassAttachments{
-      /*color_refs=*/{
-          VkAttachmentReference{
-              /*attachment=*/0,
-              /*layout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-          },
-      },
-      /*depth_stencil_ref=*/VkAttachmentReference{
-          /*attachment=*/1,
-          /*layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-      },
-  });
-
-  // subpass dependency
-  builder->add_subpass_dependency(SubpassDependency{
-      /*src_info=*/SubpassDependency::SubpassInfo{
-          /*index=*/VK_SUBPASS_EXTERNAL,
-          /*stage_mask=*/VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-          /*access_mask=*/0,
-      },
-      /*dst_info=*/SubpassDependency::SubpassInfo{
+  (*builder)
+      .set_num_framebuffer(num_swapchain_image)
+      .set_attachment(  // color attachment
           /*index=*/0,
-          /*stage_mask=*/VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-          /*access_mask=*/VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
-                              | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-      },
-  });
+          Attachment{
+              /*attachment_ops=*/Attachment::ColorOps{
+                  /*load_color=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+                  /*store_color=*/VK_ATTACHMENT_STORE_OP_STORE,
+              },
+              /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
+              /*final_layout=*/VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+          },
+          GetImage{get_swapchain_image}
+      )
+      .set_attachment(  // depth attachment
+          /*index=*/1,
+          Attachment{
+              /*attachment_ops=*/Attachment::DepthStencilOps{
+                  /*load_depth=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+                  /*store_depth=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                  /*load_stencil=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                  /*store_stencil=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
+              },
+              // we don't care about the content previously stored in the depth
+              // stencil buffer, so even if it has been transitioned to the optimal
+              // layout, we still use undefined as initial layout.
+              /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
+              /*final_layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+          },
+          // although we have multiple swapchain images, we will share one depth
+          // stencil image, because we only use one graphics queue, which only
+          // renders on one swapchain image at a time
+          /*get_image=*/[&depth_stencil_image](int index) -> const Image& {
+            return depth_stencil_image;
+          }
+      )
+      .set_subpass_description(/*index=*/0, SubpassAttachments{
+          /*color_refs=*/{
+              VkAttachmentReference{
+                  /*attachment=*/0,
+                  /*layout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+              },
+          },
+          /*depth_stencil_ref=*/VkAttachmentReference{
+              /*attachment=*/1,
+              /*layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+          },
+      })
+      .add_subpass_dependency(SubpassDependency{
+          /*src_info=*/SubpassDependency::SubpassInfo{
+              /*index=*/VK_SUBPASS_EXTERNAL,
+              /*stage_mask=*/VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+              /*access_mask=*/0,
+          },
+          /*dst_info=*/SubpassDependency::SubpassInfo{
+              /*index=*/0,
+              /*stage_mask=*/VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+              /*access_mask=*/VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
+                                  | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+          },
+      });
 
   return builder;
 }

@@ -16,9 +16,10 @@ namespace jessie_steamer {
 namespace common {
 namespace {
 
-using absl::StrFormat;
 using std::string;
 using std::vector;
+
+using absl::StrFormat;
 
 aiTextureType ResourceTypeToAssimpType(types::ResourceType type) {
   switch (type) {

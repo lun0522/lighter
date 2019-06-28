@@ -34,6 +34,10 @@ string GetFontPath(CharLoader::Font font) {
   }
 }
 
+inline vec2 NormalizeCoord(const vec2& coord, const vec2& offset) {
+  return (coord + offset) * 2.0f - 1.0f;
+}
+
 } /* namespace */
 
 CharLoader::CharLoader(SharedBasicContext context,
@@ -47,7 +51,7 @@ CharLoader::CharLoader(SharedBasicContext context,
 
   CharTextures char_textures;
   char_texture_map_ = CreateCharTextureMap(char_lib, font_height,
-                                           &char_textures);
+                                           &space_advance_, &char_textures);
   image_ = absl::make_unique<OffscreenImage>(context_, /*channel=*/1,
                                              char_textures.extent_after_merge);
 
@@ -67,15 +71,11 @@ CharLoader::CharLoader(SharedBasicContext context,
         [&]() {
           pipeline->Bind(command_buffer);
           for (int i = 0; i < char_merge_order.size(); ++i) {
-            const char character = char_merge_order[i];
-            if (character == ' ') {
-              continue;
-            }
             descriptor->UpdateImageInfos(
                 command_buffer, pipeline->layout(),
                 /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 /*image_infos=*/{
-                    {0, {char_textures.char_image_map[character]
+                    {0, {char_textures.char_image_map[char_merge_order[i]]
                              ->descriptor_info()}},
                 });
             vertex_buffer->Draw(command_buffer, /*mesh_index=*/i,
@@ -88,10 +88,12 @@ CharLoader::CharLoader(SharedBasicContext context,
 flat_hash_map<char, CharLoader::CharTextureInfo>
 CharLoader::CreateCharTextureMap(
     const common::CharLib& char_lib, int font_height,
-    CharTextures* char_textures) const {
+    int* space_advance, CharTextures* char_textures) const {
   int total_width = 0;
   for (const auto& ch : char_lib.char_info_map()) {
-    total_width += ch.second.advance;
+    if (ch.first != ' ') {
+      total_width += ch.second.advance;
+    }
   }
   char_textures->extent_after_merge = VkExtent2D{
       static_cast<uint32_t>(total_width),
@@ -104,26 +106,33 @@ CharLoader::CreateCharTextureMap(
   for (const auto& ch : char_lib.char_info_map()) {
     const char character = ch.first;
     const auto& info = ch.second;
-    char_resource_map[character] = CharTextureInfo{
-        vec2{info.size} * ratio,
-        vec2{info.bearing} * ratio,
-        offset_x * ratio.x,
-    };
-    // space is a corner case where we won't have texture but will have advance
-    if (character != ' ') {
-      char_textures->char_image_map[character] =
+    if (character == ' ') {
+      // no texture will be wasted for space. we only record its advance
+      *space_advance = info.advance;
+    } else {
+      char_resource_map.emplace(
+          character,
+          CharTextureInfo{
+              vec2{info.image->width, info.image->height} * ratio,
+              vec2{info.bearing} * ratio,
+              offset_x * ratio.x,
+          }
+      );
+      char_textures->char_image_map.emplace(
+          character,
           absl::make_unique<TextureImage>(
               context_,
               TextureBuffer::Info{
-                  {info.data},
+                  {info.image->data},
                   VK_FORMAT_R8_UNORM,
-                  static_cast<uint32_t>(info.size.x),
-                  static_cast<uint32_t>(info.size.y),
+                  static_cast<uint32_t>(info.image->width),
+                  static_cast<uint32_t>(info.image->height),
                   /*channel=*/1,
               }
-          );
+          )
+      );
+      offset_x += info.advance;
     }
-    offset_x += info.advance;
   }
   return char_resource_map;
 }
@@ -142,7 +151,7 @@ std::unique_ptr<RenderPass> CharLoader::CreateRenderPass(
                   /*store_color=*/VK_ATTACHMENT_STORE_OP_STORE,
               },
               /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
-              /*final_layout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+              /*final_layout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
           },
           std::move(get_target_image)
       )
@@ -232,22 +241,22 @@ std::unique_ptr<PerVertexBuffer> CharLoader::CreateVertexBuffer(
   for (const auto& ch : char_texture_map_) {
     char_merge_order->emplace_back(ch.first);
     const CharTextureInfo& char_info = ch.second;
-    const vec2 offset = vec2{char_info.offset_x, 0.0f} + char_info.bearing;
+    const vec2 offset = vec2{char_info.offset_x + char_info.bearing.x, 0.0f};
     const vec2 size = char_info.size;
     vertices.emplace_back(VertexAttrib2D{
-        /*pos=*/offset + vec2{0.0f, size.y},
+        /*pos=*/NormalizeCoord({0.0f, 0.0f}, offset),
         /*tex_coord=*/{0.0f, 0.0f},
     });
     vertices.emplace_back(VertexAttrib2D{
-        /*pos=*/offset + vec2{size.x, size.y},
+        /*pos=*/NormalizeCoord({size.x, 0.0f}, offset),
         /*tex_coord=*/{1.0f, 0.0f},
     });
     vertices.emplace_back(VertexAttrib2D{
-        /*pos=*/offset + vec2{size.x, 0.0f},
+        /*pos=*/NormalizeCoord({size.x, size.y}, offset),
         /*tex_coord=*/{1.0f, 1.0f},
     });
     vertices.emplace_back(VertexAttrib2D{
-        /*pos=*/offset + vec2{0.0f, 0.0f},
+        /*pos=*/NormalizeCoord({0.0f, size.y}, offset),
         /*tex_coord=*/{0.0f, 1.0f},
     });
   }

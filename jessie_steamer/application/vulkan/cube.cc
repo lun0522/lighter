@@ -86,7 +86,7 @@ void CubeApp::Init() {
     ModelBuilder::TextureBindingMap bindings{};
     bindings[model::ResourceType::kTextureDiffuse] = {
         /*binding_point=*/1,
-        {TextureImage::SingleTexPath{"external/resource/texture/statue.jpg"}},
+        {SharedTexture::SingleTexPath{"external/resource/texture/statue.jpg"}},
     };
     ModelBuilder model_builder{
         context(), kNumFrameInFlight, /*is_opaque=*/true,

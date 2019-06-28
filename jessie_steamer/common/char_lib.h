@@ -8,10 +8,12 @@
 #ifndef JESSIE_STEAMER_COMMON_CHAR_LIB_H
 #define JESSIE_STEAMER_COMMON_CHAR_LIB_H
 
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "jessie_steamer/common/file.h"
 #include "third_party/freetype/ft2build.h"
 #include FT_FREETYPE_H
 #include "third_party/glm/glm.hpp"
@@ -23,15 +25,13 @@ class CharLib {
  public:
   // https://learnopengl.com/img/in-practice/glyph.png
   struct CharInfo {
-    glm::ivec2 size;
     glm::ivec2 bearing;
     unsigned int advance;
-    unsigned char* data;
+    std::unique_ptr<Image> image;
   };
 
   CharLib(const std::vector<std::string>& texts,
-          const std::string& font_path,
-          int font_height);
+          const std::string& font_path, int font_height);
 
   // This class is neither copyable nor movable.
   CharLib(const CharLib&) = delete;

@@ -43,7 +43,9 @@ class CharLoader {
   CharLoader(const CharLoader&) = delete;
   CharLoader& operator=(const CharLoader&) = delete;
 
-  const Image& image() const { return *image_; }
+  OffscreenImagePtr texture() const { return image_.get(); }
+  int space_advance()         const { return space_advance_; }
+
   const absl::flat_hash_map<char, CharTextureInfo>& char_texture_map() const {
     return char_texture_map_;
   };
@@ -56,7 +58,7 @@ class CharLoader {
 
   absl::flat_hash_map<char, CharLoader::CharTextureInfo> CreateCharTextureMap(
       const common::CharLib& char_lib, int font_height,
-      CharTextures* char_textures) const;
+      int* space_advance, CharTextures* char_textures) const;
 
   std::unique_ptr<RenderPass> CreateRenderPass(
       const VkExtent2D& target_extent,
@@ -73,6 +75,7 @@ class CharLoader {
 
   SharedBasicContext context_;
   std::unique_ptr<OffscreenImage> image_;
+  int space_advance_ = 0;
   absl::flat_hash_map<char, CharTextureInfo> char_texture_map_;
 };
 

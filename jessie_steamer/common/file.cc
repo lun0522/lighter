@@ -7,6 +7,7 @@
 
 #include "jessie_steamer/common/file.h"
 
+#include <cstdlib>
 #include <fstream>
 
 #include "absl/container/flat_hash_map.h"
@@ -91,8 +92,26 @@ Image::Image(const string& path) {
   }
 }
 
+Image::Image(int width, int height, int channel,
+             const void* raw_data, bool flip_y)
+    : width{width}, height{height}, channel{channel} {
+  size_t total_size = width * height * channel;
+  data = std::malloc(total_size);
+  if (flip_y) {
+    const int stride = width * channel;
+    for (int row = 0; row < height; ++row) {
+      std::memcpy(
+          static_cast<char*>(const_cast<void*>(data)) + stride * row,
+          static_cast<const char*>(raw_data) + stride * (height - row - 1),
+          stride);
+    }
+  } else {
+    std::memcpy(const_cast<void*>(data), raw_data, total_size);
+  }
+}
+
 Image::~Image() {
-  stbi_image_free(const_cast<void*>(data));
+  std::free(const_cast<void*>(data));
 }
 
 ObjFile::ObjFile(const string& path, int index_base) {

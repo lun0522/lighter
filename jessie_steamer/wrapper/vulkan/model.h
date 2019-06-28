@@ -33,7 +33,7 @@ namespace vulkan {
 namespace model {
 
 using ResourceType = common::types::ResourceType;
-using TexPerMesh = std::array<std::vector<TextureImage::SharedTexture>,
+using TexPerMesh = std::array<std::vector<std::unique_ptr<SamplableImage>>,
                               ResourceType::kNumTextureType>;
 
 // For pushing constants.
@@ -88,8 +88,10 @@ class ModelBuilder {
 
   // Textures of the same type will be bound to the same point.
   struct TextureBinding {
+    using TextureSource = absl::variant<SharedTexture::SourcePath,
+                                        OffscreenImagePtr>;
     uint32_t binding_point;
-    std::vector<TextureImage::SourcePath> texture_paths;
+    std::vector<TextureSource> texture_sources;
   };
   using BindingPointMap = absl::flat_hash_map<model::ResourceType, uint32_t,
                                               std::hash<int>>;

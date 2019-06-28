@@ -450,7 +450,8 @@ VkDescriptorBufferInfo UniformBuffer::descriptor_info(
   };
 }
 
-void TextureBuffer::Init(const Info& info) {
+TextureBuffer::TextureBuffer(SharedBasicContext context, const Info& info)
+    : ImageBuffer{std::move(context)} {
   VkExtent3D image_extent = info.extent();
   VkDeviceSize data_size = info.data_size();
 
@@ -512,7 +513,8 @@ OffscreenBuffer::OffscreenBuffer(SharedBasicContext context,
     : ImageBuffer{std::move(context)} {
   image_ = CreateImage(context_, nullflag, format,
                        {extent.width, extent.height, /*depth=*/1},
-                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+                           | VK_IMAGE_USAGE_SAMPLED_BIT,
                        /*layer_count=*/1);
   device_memory_ = CreateImageMemory(
       context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);

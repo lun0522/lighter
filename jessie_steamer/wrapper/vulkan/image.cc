@@ -112,18 +112,29 @@ VkSampler CreateSampler(const SharedBasicContext& context) {
 
 } /* namespace */
 
-SwapchainImage::SwapchainImage(SharedBasicContext context,
-                               const VkImage& image, VkFormat format)
-    : Image{std::move(context), format} {
-  image_view_ = CreateImageView(context_, image, format_,
-                                VK_IMAGE_ASPECT_COLOR_BIT, /*layer_count=*/1);
+TextureImage::TextureImage(SharedBasicContext context,
+                           const TextureBuffer::Info& info)
+    : Image{std::move(context)}, buffer_{context_, info} {
+  format_ = info.format;
+  image_view_ = CreateImageView(context_, buffer_.image(), format_,
+                                VK_IMAGE_ASPECT_COLOR_BIT,
+                                /*layer_count=*/CONTAINER_SIZE(info.datas));
+  sampler_ = CreateSampler(context_);
 }
 
-TextureImage::SharedTexture TextureImage::GetTexture(
-    const SharedBasicContext& context, const SourcePath& source_path) {
+VkDescriptorImageInfo TextureImage::descriptor_info() const {
+  return VkDescriptorImageInfo{
+      sampler_,
+      image_view_,
+      /*imageLayout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+  };
+}
+
+SharedTexture::RefCountedTexture SharedTexture::GetTexture(
+    SharedBasicContext context, const SourcePath& source_path) {
   using RawImage = std::unique_ptr<common::Image>;
   using CubemapImage = std::array<RawImage, kCubemapImageCount>;
-  using SourceImage =absl::variant<RawImage, CubemapImage>;
+  using SourceImage = absl::variant<RawImage, CubemapImage>;
 
   const std::string* identifier;
   SourceImage source_image;
@@ -152,32 +163,14 @@ TextureImage::SharedTexture TextureImage::GetTexture(
     FATAL("Unrecognized variant type");
   }
 
-  return SharedTexture::Get(*identifier, context, TextureBuffer::Info{
-      std::move(datas),
-      ChooseImageFormat(sample_image->channel),
-      static_cast<uint32_t>(sample_image->width),
-      static_cast<uint32_t>(sample_image->height),
-      static_cast<uint32_t>(sample_image->channel),
-  });
-}
-
-TextureImage::TextureImage(SharedBasicContext context,
-                           const TextureBuffer::Info& info)
-    : Image{std::move(context)}, buffer_{context_} {
-  buffer_.Init(info);
-  format_ = info.format;
-  image_view_ = CreateImageView(context_, buffer_.image(), format_,
-                                VK_IMAGE_ASPECT_COLOR_BIT,
-                                /*layer_count=*/CONTAINER_SIZE(info.datas));
-  sampler_ = CreateSampler(context_);
-}
-
-VkDescriptorImageInfo TextureImage::descriptor_info() const {
-  return VkDescriptorImageInfo{
-      sampler_,
-      image_view_,
-      /*imageLayout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-  };
+  return RefCountedTexture::Get(
+      *identifier, std::move(context), TextureBuffer::Info{
+          std::move(datas),
+          ChooseImageFormat(sample_image->channel),
+          static_cast<uint32_t>(sample_image->width),
+          static_cast<uint32_t>(sample_image->height),
+          static_cast<uint32_t>(sample_image->channel),
+      });
 }
 
 OffscreenImage::OffscreenImage(SharedBasicContext context,
@@ -186,6 +179,15 @@ OffscreenImage::OffscreenImage(SharedBasicContext context,
       buffer_{context_, format_, extent} {
   image_view_ = CreateImageView(context_, buffer_.image(), format_,
                                 VK_IMAGE_ASPECT_COLOR_BIT, /*layer_count=*/1);
+  sampler_ = CreateSampler(context_);
+}
+
+VkDescriptorImageInfo OffscreenImage::descriptor_info() const {
+  return VkDescriptorImageInfo{
+      sampler_,
+      image_view_,
+      /*imageLayout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+  };
 }
 
 DepthStencilImage::DepthStencilImage(SharedBasicContext context,
@@ -196,6 +198,13 @@ DepthStencilImage::DepthStencilImage(SharedBasicContext context,
                                 VK_IMAGE_ASPECT_DEPTH_BIT
                                     | VK_IMAGE_ASPECT_STENCIL_BIT,
                                 /*layer_count=*/1);
+}
+
+SwapchainImage::SwapchainImage(SharedBasicContext context,
+                               const VkImage& image, VkFormat format)
+    : Image{std::move(context), format} {
+  image_view_ = CreateImageView(context_, image, format_,
+                                VK_IMAGE_ASPECT_COLOR_BIT, /*layer_count=*/1);
 }
 
 } /* namespace vulkan */

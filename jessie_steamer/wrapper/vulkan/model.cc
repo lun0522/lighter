@@ -39,6 +39,20 @@ VertexInfo::PerMeshInfo CreateVertexInfo(const vector<VertexAttrib3D>& vertices,
   };
 }
 
+std::unique_ptr<SamplableImage> CreateTexture(
+    const SharedBasicContext& context,
+    const ModelBuilder::TextureBinding::TextureSource& source) {
+  if (absl::holds_alternative<SharedTexture::SourcePath>(source)) {
+    return absl::make_unique<SharedTexture>(
+        context, absl::get<SharedTexture::SourcePath>(source));
+  } else if (absl::holds_alternative<OffscreenImagePtr>(source)) {
+    return absl::make_unique<UnownedOffscreenTexture>(
+        absl::get<OffscreenImagePtr>(source));
+  } else {
+    FATAL("Unrecognized variant type");
+  }
+}
+
 void CreateTextureInfo(const ModelBuilder::BindingPointMap& binding_map,
                        const model::TexPerMesh& mesh_textures,
                        const model::TexPerMesh& shared_textures,
@@ -127,9 +141,8 @@ void ModelBuilder::LoadSingleMesh(const SingleMeshResource& resource) {
   for (const auto &binding : resource.binding_map) {
     const auto type = binding.first;
     binding_map_[type] = binding.second.binding_point;
-    for (const auto& path : binding.second.texture_paths) {
-      mesh_textures_.back()[type].emplace_back(
-          TextureImage::GetTexture(context_, path));
+    for (const auto& source : binding.second.texture_sources) {
+      mesh_textures_.back()[type].emplace_back(CreateTexture(context_, source));
     }
   }
 }
@@ -152,7 +165,7 @@ void ModelBuilder::LoadMultiMesh(const MultiMeshResource& resource) {
     mesh_textures_.emplace_back();
     for (auto& texture : mesh.textures) {
       mesh_textures_.back()[texture.resource_type].emplace_back(
-          TextureImage::GetTexture(context_, texture.path));
+          absl::make_unique<SharedTexture>(context_, texture.path));
     }
   }
 }
@@ -184,9 +197,8 @@ ModelBuilder& ModelBuilder::add_shared_texture(model::ResourceType type,
         "of same type are bound to point %d",
         type, binding_point, found->second));
   }
-  for (const auto& path : binding.texture_paths) {
-    shared_textures_[type].emplace_back(
-        TextureImage::GetTexture(context_, path));
+  for (const auto& source : binding.texture_sources) {
+    shared_textures_[type].emplace_back(CreateTexture(context_, source));
   }
   return *this;
 }

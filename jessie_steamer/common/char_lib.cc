@@ -8,14 +8,14 @@
 #include "jessie_steamer/common/char_lib.h"
 
 #include "absl/container/flat_hash_set.h"
+#include "absl/memory/memory.h"
 #include "jessie_steamer/common/util.h"
 
 namespace jessie_steamer {
 namespace common {
 
 CharLib::CharLib(const std::vector<std::string>& texts,
-                 const std::string& font_path,
-                 int font_height) {
+                 const std::string& font_path, int font_height) {
   if (FT_Init_FreeType(&lib_)) {
     FATAL("Failed to init FreeType library");
   }
@@ -35,16 +35,21 @@ CharLib::CharLib(const std::vector<std::string>& texts,
         FATAL("Failed to load glyph");
       }
 
-      CharInfo ch{
-          /*size=*/{face_->glyph->bitmap.width,
-                    face_->glyph->bitmap.rows},
-          /*bearing=*/{face_->glyph->bitmap_left,
-                       face_->glyph->bitmap_top},
+      char_info_map_.emplace(c, CharInfo{
+          /*bearing=*/{
+              face_->glyph->bitmap_left,
+              face_->glyph->bitmap_top,
+          },
           // measured with number of 1/64 pixels
           /*advance=*/static_cast<unsigned int>(face_->glyph->advance.x) >> 6,
-          /*data=*/face_->glyph->bitmap.buffer,
-      };
-      char_info_map_.emplace(c, ch);
+          /*image=*/absl::make_unique<Image>(
+              /*width=*/face_->glyph->bitmap.width,
+              /*height=*/face_->glyph->bitmap.rows,
+              /*channel=*/1,
+              /*raw_data=*/face_->glyph->bitmap.buffer,
+              /*flip_y=*/true
+          ),
+      });
     }
   }
 }

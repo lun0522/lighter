@@ -81,33 +81,14 @@ class Image {
   VkFormat format_;
 };
 
-class SwapchainImage : public Image {
+class SamplableImage {
  public:
-  SwapchainImage(SharedBasicContext context,
-                 const VkImage& image, VkFormat format);
-
-  // This class is neither copyable nor movable.
-  SwapchainImage(const SwapchainImage&) = delete;
-  SwapchainImage& operator=(const SwapchainImage&) = delete;
+  virtual ~SamplableImage() = default;
+  virtual VkDescriptorImageInfo descriptor_info() const = 0;
 };
 
 class TextureImage : public Image {
  public:
-  // Textures will be put in a unified resource pool. For single images, its
-  // file path will be used as identifier; for cubemaps, its directory will be
-  // used as identifier.
-  using SingleTexPath = std::string;
-  struct CubemapPath {
-    std::string directory;
-    // PosX, NegX, PosY, NegY, PosZ, NegZ
-    std::array<std::string, kCubemapImageCount> files;
-  };
-  using SourcePath = absl::variant<SingleTexPath, CubemapPath>;
-
-  using SharedTexture = common::RefCountedObject<TextureImage>;
-  static SharedTexture GetTexture(const SharedBasicContext& context,
-                                  const SourcePath& source_path);
-
   TextureImage(SharedBasicContext context, const TextureBuffer::Info& info);
 
   // This class is neither copyable nor movable.
@@ -125,6 +106,38 @@ class TextureImage : public Image {
   VkSampler sampler_;
 };
 
+class SharedTexture : public SamplableImage {
+ public:
+  // Textures will be put in a unified resource pool. For single images, its
+  // file path will be used as identifier; for cubemaps, its directory will be
+  // used as identifier.
+  using SingleTexPath = std::string;
+  struct CubemapPath {
+    std::string directory;
+    // PosX, NegX, PosY, NegY, PosZ, NegZ.
+    std::array<std::string, kCubemapImageCount> files;
+  };
+  using SourcePath = absl::variant<SingleTexPath, CubemapPath>;
+
+  SharedTexture(SharedBasicContext context, const SourcePath& source_path)
+      : texture_{GetTexture(std::move(context), source_path)} {}
+
+  // This class is only movable.
+  SharedTexture(SharedTexture&&) = default;
+  SharedTexture& operator=(SharedTexture&&) = default;
+
+  VkDescriptorImageInfo descriptor_info() const override {
+    return texture_->descriptor_info();
+  }
+
+ private:
+  using RefCountedTexture = common::RefCountedObject<TextureImage>;
+  static RefCountedTexture GetTexture(SharedBasicContext context,
+                                      const SourcePath& source_path);
+
+  RefCountedTexture texture_;
+};
+
 class OffscreenImage : public Image {
  public:
   OffscreenImage(SharedBasicContext context, int channel, VkExtent2D extent);
@@ -133,8 +146,29 @@ class OffscreenImage : public Image {
   OffscreenImage(const OffscreenImage&) = delete;
   OffscreenImage& operator=(const OffscreenImage&) = delete;
 
+  ~OffscreenImage() override {
+    vkDestroySampler(*context_->device(), sampler_, context_->allocator());
+  }
+
+  VkDescriptorImageInfo descriptor_info() const;
+
  private:
   OffscreenBuffer buffer_;
+  VkSampler sampler_;
+};
+
+using OffscreenImagePtr = const OffscreenImage*;
+class UnownedOffscreenTexture : public SamplableImage {
+ public:
+  explicit UnownedOffscreenTexture(OffscreenImagePtr texture)
+      : texture_{texture} {}
+
+  VkDescriptorImageInfo descriptor_info() const override {
+    return texture_->descriptor_info();
+  }
+
+ private:
+  OffscreenImagePtr texture_;
 };
 
 class DepthStencilImage : public Image {
@@ -147,6 +181,16 @@ class DepthStencilImage : public Image {
 
  private:
   DepthStencilBuffer buffer_;
+};
+
+class SwapchainImage : public Image {
+ public:
+  SwapchainImage(SharedBasicContext context,
+                 const VkImage& image, VkFormat format);
+
+  // This class is neither copyable nor movable.
+  SwapchainImage(const SwapchainImage&) = delete;
+  SwapchainImage& operator=(const SwapchainImage&) = delete;
 };
 
 } /* namespace vulkan */

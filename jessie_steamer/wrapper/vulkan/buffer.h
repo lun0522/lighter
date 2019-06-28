@@ -193,14 +193,11 @@ class TextureBuffer : public ImageBuffer {
     uint32_t channel;
   };
 
-  explicit TextureBuffer(SharedBasicContext context)
-      : ImageBuffer{std::move(context)} {}
+  TextureBuffer(SharedBasicContext context, const Info& info);
 
   // This class is neither copyable nor movable.
   TextureBuffer(const TextureBuffer&) = delete;
   TextureBuffer& operator=(const TextureBuffer&) = delete;
-
-  void Init(const Info& info);
 };
 
 class OffscreenBuffer : public ImageBuffer {
