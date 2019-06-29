@@ -124,8 +124,10 @@ ModelBuilder::ModelBuilder(SharedBasicContext context,
   } else {
     FATAL("Unrecognized variant type");
   }
-  if (!is_opaque) {
-    (*pipeline_builder_).enable_alpha_blend().disable_depth_test();
+  if (is_opaque) {
+    pipeline_builder_->enable_depth_test();
+  } else {
+    pipeline_builder_->enable_alpha_blend();
   }
 }
 

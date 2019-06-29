@@ -113,9 +113,10 @@ CharLoader::CreateCharTextureMap(
       char_resource_map.emplace(
           character,
           CharTextureInfo{
-              vec2{info.image->width, info.image->height} * ratio,
-              vec2{info.bearing} * ratio,
-              offset_x * ratio.x,
+              /*size=*/vec2{info.image->width, info.image->height} * ratio,
+              /*bearing=*/vec2{info.bearing} * ratio,
+              /*advance=*/static_cast<int>(info.advance),
+              /*offset_x=*/offset_x * ratio.x,
           }
       );
       char_textures->char_image_map.emplace(
@@ -227,7 +228,6 @@ std::unique_ptr<Pipeline> CharLoader::CreatePipeline(
                    "jessie_steamer/shader/vulkan/simple_2d.vert.spv"})
       .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
                    "jessie_steamer/shader/vulkan/simple_2d.frag.spv"})
-      .disable_depth_test()
       .Build();
 }
 

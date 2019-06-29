@@ -87,9 +87,10 @@ class PipelineBuilder {
                                    uint32_t subpass_index);
   PipelineBuilder& add_shader(const ShaderInfo& info);
 
-  // By default, alpha blending is not enabled and depth testing is enabled.
+  // By default depth testing, stencil testing and alpha blending are disabled.
+  PipelineBuilder& enable_depth_test();
+  PipelineBuilder& enable_stencil_test();
   PipelineBuilder& enable_alpha_blend();
-  PipelineBuilder& disable_depth_test();
 
   // Build() can be called multiple times. Note that 'shader_modules_' is
   // cleared after each call to Build() to save memory, so add_shader() should

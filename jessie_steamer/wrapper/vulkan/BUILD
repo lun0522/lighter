@@ -53,6 +53,7 @@ cc_library(
         "//jessie_steamer/common:util",
         "//third_party:vulkan",
         "@lib-absl//absl/strings:str_format",
+        "@lib-absl//absl/types:variant",
     ],
 )
 
@@ -187,12 +188,14 @@ cc_library(
         ":descriptor",
         ":image",
         ":pipeline",
+        ":util",
         ":vertex_input_util",
         "//jessie_steamer/common:char_lib",
         "//jessie_steamer/common:util",
         "//third_party:glm",
         "@lib-absl//absl/container:flat_hash_map",
         "@lib-absl//absl/memory",
+        "@lib-absl//absl/strings:str_format",
     ],
 )
 

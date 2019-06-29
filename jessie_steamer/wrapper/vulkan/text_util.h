@@ -30,8 +30,8 @@ class CharLoader {
   enum class Font { kGeorgia, kOstrich };
 
   struct CharTextureInfo {
-    glm::vec2 size;
-    glm::vec2 bearing;
+    glm::vec2 size, bearing;
+    int advance;
     float offset_x;
   };
 

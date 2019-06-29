@@ -22,8 +22,7 @@ namespace vulkan {
 class Text {
  public:
   using Font = CharLoader::Font;
-  enum class AlignHorizontal { kLeft, kCenter, kRight };
-  enum class AlignVertical { kTop, kCenter, kBottom };
+  enum class Align { kLeft, kCenter, kRight };
 
   Text(SharedBasicContext context) : context_{std::move(context)} {}
 
@@ -46,17 +45,20 @@ class DynamicText : public Text {
  public:
   DynamicText(SharedBasicContext context,
               const std::vector<std::string>& texts,
-              Font font, int font_height);
+              Font font, int font_height)
+      : Text{std::move(context)},
+        char_loader_{context, texts, font, font_height} {}
 
   // This class is neither copyable nor movable.
   DynamicText(const DynamicText&) = delete;
   DynamicText& operator=(const DynamicText&) = delete;
 
   void Draw(const std::string& text,
-            const glm::vec4& color_alpha,
-            const glm::vec2& coord,
-            AlignHorizontal align_horizontal,
-            AlignVertical align_vertical) const;
+            const glm::vec3& color, float alpha, float scale,
+            float horizontal_base, float vertical_base, Align align) const;
+
+ private:
+  CharLoader char_loader_;
 };
 
 } /* namespace vulkan */

@@ -136,6 +136,7 @@ vector<VkFramebuffer> CreateFramebuffers(
 
 std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
     SharedBasicContext context,
+    int num_subpass,
     const DepthStencilImage& depth_stencil_image,
     int num_swapchain_image,
     const GetImage& get_swapchain_image) {
@@ -203,6 +204,32 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
                                   | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
           },
       });
+
+  for (uint32_t subpass = 1; subpass < num_subpass; ++subpass) {
+    (*builder)
+        .set_subpass_description(/*index=*/subpass, SubpassAttachments{
+            /*color_refs=*/{
+                VkAttachmentReference{
+                    /*attachment=*/0,
+                    /*layout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                },
+            },
+            /*depth_stencil_ref=*/absl::nullopt,
+        })
+        .add_subpass_dependency(SubpassDependency{
+            /*src_info=*/SubpassDependency::SubpassInfo{
+                /*index=*/subpass - 1,
+                /*stage_mask=*/VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                /*access_mask=*/0,
+            },
+            /*dst_info=*/SubpassDependency::SubpassInfo{
+                /*index=*/subpass,
+                /*stage_mask=*/VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                /*access_mask=*/VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
+                                    | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            },
+        });
+  }
 
   return builder;
 }

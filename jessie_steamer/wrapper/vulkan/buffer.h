@@ -10,6 +10,7 @@
 
 #include <vector>
 
+#include "absl/types/variant.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -54,12 +55,23 @@ class Buffer {
     VkDeviceSize offset;
   };
 
-  virtual ~Buffer() {
-    vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
-  }
+  struct CopyInfos {
+    VkDeviceSize total_size;
+    std::vector<CopyInfo> copy_infos;
+  };
+
+  // This class is neither copyable nor movable.
+  Buffer(const Buffer&) = delete;
+  Buffer& operator=(const Buffer&) = delete;
+
+  virtual ~Buffer() { FreeMemory(); }
 
  protected:
   explicit Buffer(SharedBasicContext context) : context_{std::move(context)} {}
+
+  void FreeMemory() {
+    vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
+  };
 
   SharedBasicContext context_;
   VkDeviceMemory device_memory_;
@@ -67,20 +79,42 @@ class Buffer {
 
 class DataBuffer : public Buffer {
  public:
-  ~DataBuffer() override {
-    vkDestroyBuffer(*context_->device(), buffer_, context_->allocator());
-  }
+  // This class is neither copyable nor movable.
+  DataBuffer(const DataBuffer&) = delete;
+  DataBuffer& operator=(const DataBuffer&) = delete;
+
+  ~DataBuffer() override { FreeBuffer(); }
 
  protected:
   // Inherits constructor.
   using Buffer::Buffer;
 
-  void CopyHostData(size_t total_size, const std::vector<CopyInfo>& copy_infos);
+  void FreeBuffer() {
+    vkDestroyBuffer(*context_->device(), buffer_, context_->allocator());
+  }
 
   VkBuffer buffer_;
 };
 
-class PerVertexBuffer : public DataBuffer {
+class VertexBuffer : public DataBuffer {
+ public:
+  // This class is neither copyable nor movable.
+  VertexBuffer(const VertexBuffer&) = delete;
+  VertexBuffer& operator=(const VertexBuffer&) = delete;
+
+ protected:
+  // Inherits constructor.
+  using DataBuffer::DataBuffer;
+
+  // For more efficient memory usage, vertices and indices data are put in the
+  // same buffer, hence only total size is needed.
+  // A dynamic vertex buffer will be visible to host, which can be used for
+  // dynamic text rendering. A non-dynamic vertex buffer will be only visible
+  // to device, and we will use staging buffers to transfer data to it.
+  void CreateBufferAndMemory(VkDeviceSize total_size, bool is_dynamic);
+};
+
+class PerVertexBuffer : public VertexBuffer {
  public:
   struct DataInfo {
     VkDeviceSize GetTotalSize() const { return size_per_unit * unit_count; }
@@ -92,41 +126,63 @@ class PerVertexBuffer : public DataBuffer {
 
   struct InfoNoReuse {
     struct PerMeshInfo {
-      DataInfo vertices, indices;
+      DataInfo vertices;
+      DataInfo indices;
     };
     std::vector<PerMeshInfo> per_mesh_infos;
   };
 
   struct InfoReuse {
     int num_mesh;
-    DataInfo per_mesh_vertices, shared_indices;
+    DataInfo per_mesh_vertices;
+    DataInfo shared_indices;
   };
 
+  using Info = absl::variant<InfoNoReuse, InfoReuse>;
+
   explicit PerVertexBuffer(SharedBasicContext context)
-      : DataBuffer{std::move(context)} {}
+      : VertexBuffer{std::move(context)} {}
 
   // This class is neither copyable nor movable.
   PerVertexBuffer(const PerVertexBuffer&) = delete;
   PerVertexBuffer& operator=(const PerVertexBuffer&) = delete;
 
-  void Init(const InfoNoReuse& info_no_reuse);
-  void Init(const InfoReuse& info_reuse);
+  virtual void Init(const Info& info);
   void Draw(const VkCommandBuffer& command_buffer,
             int mesh_index, uint32_t instance_count) const;
 
- private:
+ protected:
   struct MeshData {
     VkDeviceSize vertices_offset;
     VkDeviceSize indices_offset;
     uint32_t indices_count;
   };
+
+  CopyInfos CreateCopyInfos(const Info& info);
+  CopyInfos CreateCopyInfos(const InfoNoReuse& info_no_reuse);
+  CopyInfos CreateCopyInfos(const InfoReuse& info_reuse);
+
   std::vector<MeshData> mesh_datas_;
 };
 
-class PerInstanceBuffer : public DataBuffer {
+class DynamicPerVertexBuffer : public PerVertexBuffer {
+ public:
+  // Inherits constructor.
+  using PerVertexBuffer::PerVertexBuffer;
+
+  // This buffer can be initialized multiple times. If a larger memory is
+  // required, the buffer allocated previously will be destructed, and a new one
+  // will be allocated. Otherwise, we will reuse the old buffer.
+  void Init(const Info& info) override;
+
+ private:
+  VkDeviceSize buffer_size_ = 0;
+};
+
+class PerInstanceBuffer : public VertexBuffer {
  public:
   explicit PerInstanceBuffer(SharedBasicContext context)
-      : DataBuffer{std::move(context)} {}
+      : VertexBuffer{std::move(context)} {}
 
   // This class is neither copyable nor movable.
   PerInstanceBuffer(const PerInstanceBuffer&) = delete;
@@ -165,6 +221,10 @@ class UniformBuffer : public DataBuffer {
 
 class ImageBuffer : public Buffer {
  public:
+  // This class is neither copyable nor movable.
+  ImageBuffer(const ImageBuffer&) = delete;
+  ImageBuffer& operator=(const ImageBuffer&) = delete;
+
   ~ImageBuffer() override {
     vkDestroyImage(*context_->device(), image_, context_->allocator());
   }

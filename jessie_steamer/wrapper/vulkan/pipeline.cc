@@ -122,12 +122,12 @@ PipelineBuilder::PipelineBuilder(SharedBasicContext context)
       VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
-      /*depthTestEnable=*/VK_TRUE,
-      /*depthWriteEnable=*/VK_TRUE,  // should disable for transparent objects
+      /*depthTestEnable=*/VK_FALSE,
+      /*depthWriteEnable=*/VK_FALSE,
       /*depthCompareOp=*/VK_COMPARE_OP_LESS_OR_EQUAL,
       // may only keep fragments in a specific depth range
       /*depthBoundsTestEnable=*/VK_FALSE,
-      /*stencilTestEnable=*/VK_FALSE,  // temporarily disable
+      /*stencilTestEnable=*/VK_FALSE,
       /*front=*/VkStencilOpState{},
       /*back=*/VkStencilOpState{},
       /*minDepthBounds=*/0.0f,
@@ -231,6 +231,17 @@ PipelineBuilder& PipelineBuilder::add_shader(const ShaderInfo& info) {
   return *this;
 }
 
+PipelineBuilder& PipelineBuilder::enable_depth_test() {
+  depth_stencil_info_.depthTestEnable = VK_TRUE;
+  depth_stencil_info_.depthWriteEnable = VK_TRUE;
+  return *this;
+}
+
+PipelineBuilder& PipelineBuilder::enable_stencil_test() {
+  depth_stencil_info_.stencilTestEnable = VK_TRUE;
+  return *this;
+}
+
 PipelineBuilder& PipelineBuilder::enable_alpha_blend() {
   color_blend_attachment_.blendEnable = VK_TRUE;
   color_blend_attachment_.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
@@ -239,12 +250,6 @@ PipelineBuilder& PipelineBuilder::enable_alpha_blend() {
       VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
   color_blend_attachment_.dstAlphaBlendFactor =
       VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
-  return *this;
-}
-
-PipelineBuilder& PipelineBuilder::disable_depth_test() {
-  depth_stencil_info_.depthTestEnable = VK_FALSE;
-  depth_stencil_info_.depthWriteEnable = VK_FALSE;
   return *this;
 }
 

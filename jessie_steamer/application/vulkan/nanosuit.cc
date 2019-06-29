@@ -129,7 +129,8 @@ void NanosuitApp::Init() {
 
     // render pass builder
     render_pass_builder_ = RenderPassBuilder::SimpleRenderPassBuilder(
-        context(), *depth_stencil_, window_context_.swapchain().num_image(),
+        context(), /*num_subpass=*/1, *depth_stencil_,
+        window_context_.swapchain().num_image(),
         /*get_swapchain_image=*/[this](int index) -> const Image& {
           return window_context_.swapchain().image(index);
         });
