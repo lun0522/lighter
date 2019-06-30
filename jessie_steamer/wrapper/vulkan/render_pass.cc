@@ -73,6 +73,7 @@ VkSubpassDescription CreateSubpassDescription(
   return VkSubpassDescription{
       /*flags=*/nullflag,
       /*pipelineBindPoint=*/VK_PIPELINE_BIND_POINT_GRAPHICS,
+      // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes
       /*inputAttachmentCount=*/0,
       /*pInputAttachments=*/nullptr,
       CONTAINER_SIZE(attachments.color_refs),
@@ -195,7 +196,7 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
           /*src_info=*/SubpassDependency::SubpassInfo{
               /*index=*/VK_SUBPASS_EXTERNAL,
               /*stage_mask=*/VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-              /*access_mask=*/0,
+              /*access_mask=*/VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
           },
           /*dst_info=*/SubpassDependency::SubpassInfo{
               /*index=*/0,
@@ -220,7 +221,7 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
             /*src_info=*/SubpassDependency::SubpassInfo{
                 /*index=*/subpass - 1,
                 /*stage_mask=*/VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                /*access_mask=*/0,
+                /*access_mask=*/VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
             },
             /*dst_info=*/SubpassDependency::SubpassInfo{
                 /*index=*/subpass,
@@ -310,14 +311,21 @@ std::unique_ptr<RenderPass> RenderPassBuilder::Build() const {
                  "Failed to create render pass");
 
   return absl::make_unique<RenderPass>(
-      context_, render_pass, framebuffer_size_.value(), clear_values_,
+      context_, /*num_subpass=*/subpass_descriptions_.size(), render_pass,
+      framebuffer_size_.value(), clear_values_,
       CreateFramebuffers(context_, render_pass, get_images_,
                          framebuffer_size_.value(), num_framebuffer_.value()));
 }
 
 void RenderPass::Run(const VkCommandBuffer& command_buffer,
                      int framebuffer_index,
-                     const RenderOps& render_ops) const {
+                     const vector<RenderOp>& render_ops) const {
+  if (render_ops.size() != num_subpass_) {
+    FATAL(absl::StrFormat("Render pass contains %d subpasses, but %d render "
+                          "operations are provided",
+                          num_subpass_, render_ops.size()));
+  }
+
   VkRenderPassBeginInfo begin_info{
       VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       /*pNext=*/nullptr,
@@ -335,7 +343,12 @@ void RenderPass::Run(const VkCommandBuffer& command_buffer,
   //   - VK_SUBPASS_CONTENTS_INLINE: use primary command buffer
   //   - VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: use secondary
   vkCmdBeginRenderPass(command_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
-  render_ops();
+  for (int i = 0; i < render_ops.size(); ++i) {
+    if (i != 0) {
+      vkCmdNextSubpass(command_buffer, VK_SUBPASS_CONTENTS_INLINE);
+    }
+    render_ops[i](command_buffer);
+  }
   vkCmdEndRenderPass(command_buffer);
 }
 

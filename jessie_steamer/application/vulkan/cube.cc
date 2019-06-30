@@ -7,6 +7,7 @@
 
 #include <array>
 #include <iostream>
+#include <vector>
 
 #include "absl/memory/memory.h"
 #include "absl/types/optional.h"
@@ -138,15 +139,15 @@ void CubeApp::MainLoop() {
     const auto update_data = [this, frame_size](int frame) {
       UpdateData(frame, (float)frame_size.width / frame_size.height);
     };
+    std::vector<RenderPass::RenderOp> render_ops{
+        [&](const VkCommandBuffer& command_buffer) {
+          model_->Draw(command_buffer, current_frame_, /*instance_count=*/1);
+        },
+    };
     const auto draw_result = command_.Run(
         current_frame_, *window_context_.swapchain(), update_data,
         [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
-          render_pass_->Run(
-              command_buffer, framebuffer_index,
-              [this, &command_buffer]() {
-                model_->Draw(command_buffer, current_frame_,
-                             /*instance_count=*/1);
-              });
+          render_pass_->Run(command_buffer, framebuffer_index, render_ops);
         });
 
     if (draw_result != VK_SUCCESS || window_context_.ShouldRecreate()) {

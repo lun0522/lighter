@@ -36,6 +36,8 @@ namespace {
 
 using namespace wrapper::vulkan;
 
+using std::vector;
+
 constexpr int kNumFrameInFlight = 2;
 constexpr int kNumAsteroidRing = 3;
 
@@ -178,7 +180,7 @@ void PlanetApp::Init() {
     planet_model_ = planet_model_builder.Build();
 
     GenAsteroidModels();
-    std::vector<VertexAttribute> per_instance_attribs{
+    vector<VertexAttribute> per_instance_attribs{
         {/*location=*/3, offsetof(Asteroid, theta), VK_FORMAT_R32_SFLOAT},
         {/*location=*/4, offsetof(Asteroid, radius), VK_FORMAT_R32_SFLOAT},
     };
@@ -279,7 +281,7 @@ void PlanetApp::GenAsteroidModels() {
 
   num_asteroid_ = static_cast<int>(std::accumulate(
       num_asteroid.begin(), num_asteroid.end(), 0));
-  std::vector<Asteroid> asteroids;
+  vector<Asteroid> asteroids;
   asteroids.reserve(num_asteroid_);
 
   for (int ring = 0; ring < kNumAsteroidRing; ++ring) {
@@ -325,19 +327,20 @@ void PlanetApp::MainLoop() {
     UpdateData(frame);
   };
   while (!should_quit_ && !window_context_.ShouldQuit()) {
+    vector<RenderPass::RenderOp> render_ops{
+        [&](const VkCommandBuffer& command_buffer) {
+          planet_model_->Draw(command_buffer, current_frame_,
+                              /*instance_count=*/1);
+          asteroid_model_->Draw(command_buffer, current_frame_,
+                                static_cast<uint32_t>(num_asteroid_));
+          skybox_model_->Draw(command_buffer, current_frame_,
+                              /*instance_count=*/1);
+        },
+    };
     auto draw_result = command_.Run(
         current_frame_, *window_context_.swapchain(), update_data,
         [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
-          render_pass_->Run(
-              command_buffer, framebuffer_index,
-              [this, &command_buffer]() {
-                planet_model_->Draw(command_buffer, current_frame_,
-                                    /*instance_count=*/1);
-                asteroid_model_->Draw(command_buffer, current_frame_,
-                                      static_cast<uint32_t>(num_asteroid_));
-                skybox_model_->Draw(command_buffer, current_frame_,
-                                    /*instance_count=*/1);
-              });
+          render_pass_->Run(command_buffer, framebuffer_index, render_ops);
         });
 
     if (draw_result != VK_SUCCESS) {

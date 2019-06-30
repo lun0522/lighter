@@ -23,22 +23,6 @@ using std::vector;
 using common::VertexAttrib3D;
 using VertexInfo = PerVertexBuffer::InfoNoReuse;
 
-VertexInfo::PerMeshInfo CreateVertexInfo(const vector<VertexAttrib3D>& vertices,
-                                         const vector<uint32_t>& indices) {
-  return VertexInfo::PerMeshInfo{
-      /*vertices=*/PerVertexBuffer::DataInfo{
-          vertices.data(),
-          sizeof(vertices[0]),
-          static_cast<int>(vertices.size()),
-      },
-      /*indices=*/PerVertexBuffer::DataInfo{
-          indices.data(),
-          sizeof(indices[0]),
-          static_cast<int>(indices.size()),
-      },
-  };
-}
-
 std::unique_ptr<SamplableImage> CreateTexture(
     const SharedBasicContext& context,
     const ModelBuilder::TextureBinding::TextureSource& source) {
@@ -134,8 +118,12 @@ ModelBuilder::ModelBuilder(SharedBasicContext context,
 void ModelBuilder::LoadSingleMesh(const SingleMeshResource& resource) {
   // load vertices and indices
   common::ObjFile file{resource.obj_path, resource.obj_index_base};
-  vertex_buffer_->Init(VertexInfo{
-      /*per_mesh_infos=*/{CreateVertexInfo(file.vertices, file.indices)},
+  vertex_buffer_->Init(VertexInfo{/*per_mesh_infos=*/{
+          VertexInfo::PerMeshInfo{
+              /*vertices=*/{file.vertices},
+              /*indices=*/{file.indices},
+          },
+      },
   });
 
   // load textures
@@ -156,7 +144,11 @@ void ModelBuilder::LoadMultiMesh(const MultiMeshResource& resource) {
   vertex_info.per_mesh_infos.reserve(loader.meshes().size());
   for (const auto &mesh : loader.meshes()) {
     vertex_info.per_mesh_infos.emplace_back(
-        CreateVertexInfo(mesh.vertices, mesh.indices));
+        VertexInfo::PerMeshInfo{
+            /*vertices=*/{mesh.vertices},
+            /*indices=*/{mesh.indices},
+        }
+    );
   }
   vertex_buffer_->Init(vertex_info);
 

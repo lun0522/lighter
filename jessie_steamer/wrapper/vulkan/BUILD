@@ -191,6 +191,7 @@ cc_library(
         ":util",
         ":vertex_input_util",
         "//jessie_steamer/common:char_lib",
+        "//jessie_steamer/common:file",
         "//jessie_steamer/common:util",
         "//third_party:glm",
         "@lib-absl//absl/container:flat_hash_map",

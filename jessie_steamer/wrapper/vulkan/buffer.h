@@ -117,6 +117,21 @@ class VertexBuffer : public DataBuffer {
 class PerVertexBuffer : public VertexBuffer {
  public:
   struct DataInfo {
+    // Assuming data is used for one mesh.
+    template <typename Container>
+    DataInfo(const Container& container)
+        : data{container.data()},
+          size_per_unit{sizeof(container[0])},
+          unit_count{static_cast<int>(container.size())} {}
+
+    // Assuming data is used for multiple meshes, where 'unit_count' of units
+    // used for each mesh.
+    template <typename Container>
+    DataInfo(const Container& container, int unit_count)
+        : data{container.data()},
+          size_per_unit{sizeof(container[0])},
+          unit_count{unit_count} {}
+
     VkDeviceSize GetTotalSize() const { return size_per_unit * unit_count; }
 
     const void* data;

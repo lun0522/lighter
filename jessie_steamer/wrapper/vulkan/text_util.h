@@ -8,12 +8,14 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_TEXT_UTIL_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_TEXT_UTIL_H
 
+#include <array>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "jessie_steamer/common/char_lib.h"
+#include "jessie_steamer/common/file.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
@@ -24,15 +26,34 @@
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
+namespace text_util {
+
+constexpr int kNumVerticesPerChar = 4;
+constexpr int kNumIndicesPerChar = 6;
+
+// Returns indices per char.
+const std::array<uint32_t, kNumIndicesPerChar>& indices_per_char();
+
+// Appends pos and tex_coord to 'vertices' in CCW order.
+// All numbers should be in range [0.0, 1.0]. pos will be normalized internally.
+void AppendCharPosAndTexCoord(const glm::vec2& pos_bottom_left,
+                              const glm::vec2& pos_increment,
+                              const glm::vec2& tex_coord_bottom_left,
+                              const glm::vec2& tex_coord_increment,
+                              std::vector<common::VertexAttrib2D>* vertices);
+
+}
 
 class CharLoader {
  public:
   enum class Font { kGeorgia, kOstrich };
 
+  // All numbers are in range [0.0, 1.0].
   struct CharTextureInfo {
-    glm::vec2 size, bearing;
-    int advance;
+    glm::vec2 size;
+    glm::vec2 bearing;
     float offset_x;
+    float advance;
   };
 
   CharLoader(SharedBasicContext context,
@@ -44,7 +65,7 @@ class CharLoader {
   CharLoader& operator=(const CharLoader&) = delete;
 
   OffscreenImagePtr texture() const { return image_.get(); }
-  int space_advance()         const { return space_advance_; }
+  float space_advance()       const { return space_advance_; }
 
   const absl::flat_hash_map<char, CharTextureInfo>& char_texture_map() const {
     return char_texture_map_;
@@ -58,7 +79,7 @@ class CharLoader {
 
   absl::flat_hash_map<char, CharLoader::CharTextureInfo> CreateCharTextureMap(
       const common::CharLib& char_lib, int font_height,
-      int* space_advance, CharTextures* char_textures) const;
+      float* space_advance, CharTextures* char_textures) const;
 
   std::unique_ptr<RenderPass> CreateRenderPass(
       const VkExtent2D& target_extent,
@@ -75,7 +96,7 @@ class CharLoader {
 
   SharedBasicContext context_;
   std::unique_ptr<OffscreenImage> image_;
-  int space_advance_ = 0;
+  float space_advance_ = 0.0f;
   absl::flat_hash_map<char, CharTextureInfo> char_texture_map_;
 };
 

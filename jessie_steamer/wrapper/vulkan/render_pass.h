@@ -56,14 +56,16 @@ namespace vulkan {
  */
 class RenderPass {
  public:
-  using RenderOps = std::function<void()>;
+  using RenderOp = std::function<void(const VkCommandBuffer&)>;
 
   RenderPass(SharedBasicContext context,
+             int num_subpass,
              const VkRenderPass& render_pass,
              VkExtent2D framebuffer_size,
              std::vector<VkClearValue> clear_values,
              std::vector<VkFramebuffer>&& framebuffers)
     : context_{std::move(context)},
+      num_subpass_{num_subpass},
       render_pass_{render_pass},
       framebuffer_size_{framebuffer_size},
       clear_values_{std::move(clear_values)},
@@ -77,12 +79,13 @@ class RenderPass {
 
   void Run(const VkCommandBuffer& command_buffer,
            int framebuffer_index,
-           const RenderOps& render_ops) const;
+           const std::vector<RenderOp>& render_ops) const;
 
   const VkRenderPass& operator*() const { return render_pass_; }
 
  private:
   SharedBasicContext context_;
+  const int num_subpass_;
   VkRenderPass render_pass_;
   VkExtent2D framebuffer_size_;
   std::vector<VkClearValue> clear_values_;
@@ -120,7 +123,28 @@ class RenderPassBuilder {
       // We may use VK_SUBPASS_EXTERNAL to refer to the subpass before
       // (if src.index) or after (if dst.index) another subpass.
       uint32_t index;
+
+      // Frequently used options:
+      //  - VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT: if we want to
+      //      read/write to the color attachment.
+      //  - VK_PIPELINE_STAGE_EARLY/LATE_FRAGMENT_TESTS_BIT: if we want to
+      //      read/write to the depth stencil buffer.
+      //  - VK_PIPELINE_STAGE_VERTEX/FRAGMENT_SHADER_BIT: if we only want to
+      //      read (sample) the attachment.
+      // This should always be non-zero.
       VkPipelineStageFlags stage_mask;
+
+      // Frequently used options:
+      //  - VK_ACCESS_SHADER_READ/WRITE_BIT: if we want to sample a texture or
+      //      read/write to a buffer.
+      //  - VK_ACCESS_COLOR/DEPTH_STENCIL_ATTACHMENT_READ/WRITE_BIT: if we want
+      //      to read/write to an attachment.
+      //  - VK_ACCESS_INPUT_ATTACHMENT_READ_BIT: if we use inputAttachment, in
+      //      which case we also need to specify dependencyFlags.
+      // If the previous subpass does not write to the attachment (in which case
+      // the attachment should be in the READ_ONLY layout), and we need to write
+      // to it (should be in the ATTACHMENT layout), we can put a 0 here, and
+      // the transition of layouts will insert a memory barrier.
       VkAccessFlags access_mask;
     };
     SubpassInfo src_info, dst_info;

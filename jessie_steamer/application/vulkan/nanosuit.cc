@@ -8,6 +8,7 @@
 #include <array>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "absl/memory/memory.h"
 #include "absl/strings/str_format.h"
@@ -254,17 +255,18 @@ void NanosuitApp::MainLoop() {
     UpdateData(frame);
   };
   while (!should_quit_ && !window_context_.ShouldQuit()) {
+    std::vector<RenderPass::RenderOp> render_ops{
+        [&](const VkCommandBuffer& command_buffer) {
+          nanosuit_model_->Draw(command_buffer, current_frame_,
+                                /*instance_count=*/1);
+          skybox_model_->Draw(command_buffer, current_frame_,
+                              /*instance_count=*/1);
+        },
+    };
     const auto draw_result = command_.Run(
         current_frame_, *window_context_.swapchain(), update_data,
         [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
-          render_pass_->Run(
-              command_buffer, framebuffer_index,
-              [this, &command_buffer]() {
-                nanosuit_model_->Draw(command_buffer, current_frame_,
-                                      /*instance_count=*/1);
-                skybox_model_->Draw(command_buffer, current_frame_,
-                                    /*instance_count=*/1);
-              });
+          render_pass_->Run(command_buffer, framebuffer_index, render_ops);
         });
 
     if (draw_result != VK_SUCCESS) {

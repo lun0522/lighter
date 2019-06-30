@@ -47,18 +47,20 @@ class DynamicText : public Text {
               const std::vector<std::string>& texts,
               Font font, int font_height)
       : Text{std::move(context)},
-        char_loader_{context, texts, font, font_height} {}
+        char_loader_{context, texts, font, font_height},
+        vertex_buffer_{context_} {}
 
   // This class is neither copyable nor movable.
   DynamicText(const DynamicText&) = delete;
   DynamicText& operator=(const DynamicText&) = delete;
 
   void Draw(const std::string& text,
-            const glm::vec3& color, float alpha, float scale,
-            float horizontal_base, float vertical_base, Align align) const;
+            const glm::vec3& color, float alpha, float height,
+            float horizontal_base, float vertical_base, Align align);
 
  private:
   CharLoader char_loader_;
+  DynamicPerVertexBuffer vertex_buffer_;
 };
 
 } /* namespace vulkan */
