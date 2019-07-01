@@ -7,9 +7,11 @@
 
 #include <array>
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include "absl/memory/memory.h"
+#include "absl/strings/str_format.h"
 #include "absl/types/optional.h"
 #include "jessie_steamer/application/vulkan/util.h"
 #include "jessie_steamer/common/time.h"
@@ -17,6 +19,7 @@
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/model.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
+#include "jessie_steamer/wrapper/vulkan/text.h"
 #include "jessie_steamer/wrapper/vulkan/window_context.h"
 #include "third_party/glm/glm.hpp"
 // different from OpenGL, where depth values are in range [-1.0, 1.0]
@@ -33,6 +36,8 @@ namespace {
 using namespace wrapper::vulkan;
 
 constexpr int kNumFrameInFlight = 2;
+
+enum class SubpassIndex : int { kModel = 0, kText, kNumSubpass };
 
 // alignment requirement:
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
@@ -56,6 +61,7 @@ class CubeApp : public Application {
   PushConstant push_constant_;
   std::unique_ptr<Model> model_;
   std::unique_ptr<DepthStencilImage> depth_stencil_;
+  std::unique_ptr<DynamicText> text_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
 };
@@ -78,7 +84,7 @@ void CubeApp::Init() {
 
     // render pass builder
     render_pass_builder_ = RenderPassBuilder::SimpleRenderPassBuilder(
-        context(), /*num_subpass=*/1, *depth_stencil_,
+        context(), static_cast<int>(SubpassIndex::kNumSubpass), *depth_stencil_,
         window_context_.swapchain().num_image(),
         /*get_swapchain_image=*/[this](int index) -> const Image& {
           return window_context_.swapchain().image(index);
@@ -90,31 +96,41 @@ void CubeApp::Init() {
         /*binding_point=*/1,
         {SharedTexture::SingleTexPath{"external/resource/texture/statue.jpg"}},
     };
-    ModelBuilder model_builder{
-        context(), kNumFrameInFlight, /*is_opaque=*/true,
-        ModelBuilder::SingleMeshResource{"external/resource/model/cube.obj",
-                                         /*obj_index_base=*/1, bindings}};
-    model_builder
+    model_ =
+        ModelBuilder{
+            context(), kNumFrameInFlight, /*is_opaque=*/true,
+            ModelBuilder::SingleMeshResource{"external/resource/model/cube.obj",
+            /*obj_index_base=*/1, bindings}}
         .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
                      "jessie_steamer/shader/vulkan/simple_3d.vert.spv"})
         .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
                      "jessie_steamer/shader/vulkan/simple_3d.frag.spv"})
         .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
-                            {{&push_constant_, /*offset=*/0}}});
-    model_ = model_builder.Build();
+                            {{&push_constant_, /*offset=*/0}}})
+        .Build();
+
+    // text
+    text_ = absl::make_unique<DynamicText>(
+        context(), kNumFrameInFlight,
+        std::vector<std::string>{"FPS: ", "01234567890"},
+        Text::Font::kGeorgia, /*font_height=*/50);
   }
 
   // render pass
-  (*render_pass_builder_)
+  render_pass_ = (*render_pass_builder_)
       .set_framebuffer_size(frame_size)
-      .update_attachment(
-          /*index=*/1, [this](int index) -> const Image& {
-            return *depth_stencil_;
-          });
-  render_pass_ = render_pass_builder_->Build();
+      .update_attachment(/*index=*/1, [this](int index) -> const Image& {
+        return *depth_stencil_;
+      })
+      .Build();
 
   // model
-  model_->Update(frame_size, *render_pass_, /*subpass_index=*/0);
+  model_->Update(frame_size, *render_pass_,
+                 static_cast<int>(SubpassIndex::kModel));
+
+  // text
+  text_->Update(frame_size, *render_pass_,
+                static_cast<int>(SubpassIndex::kText));
 
   // command buffer
   command_.Init(kNumFrameInFlight, &window_context_.queues());
@@ -143,6 +159,14 @@ void CubeApp::MainLoop() {
         [&](const VkCommandBuffer& command_buffer) {
           model_->Draw(command_buffer, current_frame_, /*instance_count=*/1);
         },
+        [&](const VkCommandBuffer& command_buffer) {
+          text_->Draw(command_buffer, current_frame_, frame_size,
+                      absl::StrFormat("FPS: %d", timer_.frame_rate()),
+                      /*color=*/glm::vec3{0.7f}, /*alpha=*/1.0f,
+                      /*height=*/0.05f,
+                      /*horizontal_base=*/0.05f, /*vertical_base=*/0.04f,
+                      Text::Align::kLeft);
+        },
     };
     const auto draw_result = command_.Run(
         current_frame_, *window_context_.swapchain(), update_data,
@@ -156,12 +180,9 @@ void CubeApp::MainLoop() {
       Init();
     }
 
-    const auto frame_rate = timer_.frame_rate();
-    if (frame_rate.has_value()) {
-      std::cout << "Frame per second: " << frame_rate.value() << std::endl;
-    }
     current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
     window_context_.PollEvents();
+    timer_.Tick();
   }
   window_context_.WaitIdle();  // wait for all async operations finish
 }

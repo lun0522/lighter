@@ -9,6 +9,7 @@
 #define JESSIE_STEAMER_WRAPPER_VULKAN_RENDER_PASS_H
 
 #include <functional>
+#include <list>
 #include <memory>
 #include <vector>
 
@@ -195,8 +196,8 @@ class RenderPassBuilder {
   absl::optional<int> num_framebuffer_;
   std::vector<GetImage> get_images_;
   std::vector<VkClearValue> clear_values_;
+  std::list<SubpassAttachments> subpass_attachments_;
   std::vector<VkAttachmentDescription> attachment_descriptions_;
-  std::vector<SubpassAttachments> subpass_attachments_;
   std::vector<VkSubpassDescription> subpass_descriptions_;
   std::vector<VkSubpassDependency> subpass_dependencies_;
 };

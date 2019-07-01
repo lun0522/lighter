@@ -85,8 +85,8 @@ int FindFirst(const std::vector<ContentType>& container,
 }
 
 template <typename ContentType>
-void SetElementWithResizing(std::vector<ContentType>* container,
-                            int index, ContentType&& element) {
+void SetElementWithResizing(ContentType&& element, int index,
+                            std::vector<ContentType>* container) {
   if (index >= container->size()) {
     container->resize(index + 1);
   }

@@ -70,7 +70,6 @@ cc_library(
 cc_library(
     name = "time",
     hdrs = ["time.h"],
-    deps = ["@lib-absl//absl/types:optional"],
 )
 
 cc_library(

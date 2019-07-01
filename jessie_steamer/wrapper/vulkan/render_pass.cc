@@ -168,8 +168,8 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
                   /*store_stencil=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
               },
               // we don't care about the content previously stored in the depth
-              // stencil buffer, so even if it has been transitioned to the optimal
-              // layout, we still use undefined as initial layout.
+              // stencil buffer, so even if it has been transitioned to the
+              // optimal layout, we still use undefined as initial layout.
               /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
               /*final_layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
           },
@@ -251,20 +251,22 @@ RenderPassBuilder& RenderPassBuilder::set_attachment(
     FATAL("get_image cannot be nullptr");
   }
   auto format = get_image(0).format();
-  util::SetElementWithResizing(&get_images_, index, std::move(get_image));
-  util::SetElementWithResizing(&clear_values_, index,
-                               CreateClearColor(attachment));
-  util::SetElementWithResizing(&attachment_descriptions_, index,
-                               CreateAttachmentDescription(attachment, format));
+  util::SetElementWithResizing(std::move(get_image), index, &get_images_);
+  util::SetElementWithResizing(CreateClearColor(attachment),
+                               index, &clear_values_);
+  util::SetElementWithResizing(CreateAttachmentDescription(attachment, format),
+                               index, &attachment_descriptions_);
   return *this;
 }
 
 RenderPassBuilder& RenderPassBuilder::set_subpass_description(
     int index, SubpassAttachments&& attachments) {
+  // note that we need to take address of each SubpassAttachments, hence we need
+  // to use a list to ensure they won't be moved
   subpass_attachments_.emplace_back(std::move(attachments));
   util::SetElementWithResizing(
-      &subpass_descriptions_, index,
-      CreateSubpassDescription(subpass_attachments_.back()));
+      CreateSubpassDescription(subpass_attachments_.back()),
+      index, &subpass_descriptions_);
   return *this;
 }
 

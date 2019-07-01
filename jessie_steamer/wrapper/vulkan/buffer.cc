@@ -451,8 +451,11 @@ void DynamicPerVertexBuffer::Init(const Info& info) {
   mesh_datas_.clear();
   CopyInfos infos = CreateCopyInfos(info);
   if (infos.total_size > buffer_size_) {
-    FreeBuffer();
-    FreeMemory();
+    if (buffer_size_ > 0) {
+      // TODO: free buffer and memory after command buffer is done using them
+      FreeBuffer();
+      FreeMemory();
+    }
     buffer_size_ = infos.total_size;
     CreateBufferAndMemory(buffer_size_, /*is_dynamic=*/true);
   }

@@ -94,6 +94,9 @@ CharLoader::CharLoader(SharedBasicContext context,
                                            &space_advance_, &char_textures);
   image_ = absl::make_unique<OffscreenImage>(context_, /*channel=*/1,
                                              char_textures.extent_after_merge);
+  width_height_ratio_ =
+      static_cast<float>(char_textures.extent_after_merge.width) /
+      char_textures.extent_after_merge.height;
 
   auto render_pass = CreateRenderPass(
       char_textures.extent_after_merge,
@@ -271,6 +274,7 @@ std::unique_ptr<Pipeline> CharLoader::CreatePipeline(
                    "jessie_steamer/shader/vulkan/simple_2d.vert.spv"})
       .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
                    "jessie_steamer/shader/vulkan/simple_2d.frag.spv"})
+      .set_front_face_clockwise()  // since we will flip y coordinates
       .Build();
 }
 
@@ -282,13 +286,19 @@ std::unique_ptr<PerVertexBuffer> CharLoader::CreateVertexBuffer(
   vertices.reserve(text_util::kNumVerticesPerChar * char_texture_map_.size());
   for (const auto& ch : char_texture_map_) {
     char_merge_order->emplace_back(ch.first);
-    const CharTextureInfo& char_info = ch.second;
+    const CharTextureInfo& texture_info = ch.second;
     text_util::AppendCharPosAndTexCoord(
-        /*pos_bottom_left=*/{char_info.offset_x + char_info.bearing.x, 0.0f},
-        /*pos_increment=*/char_info.size,
+        /*pos_bottom_left=*/
+        {texture_info.offset_x + texture_info.bearing.x, 0.0f},
+        /*pos_increment=*/texture_info.size,
         /*tex_coord_bottom_left=*/{0.0f, 0.0f},
         /*tex_coord_increment=*/{1.0f, 1.0f},
         &vertices);
+  }
+  // resulting image should be flipped, so that when we use it later, we don't
+  // have to flip y coordinates again
+  for (auto& vertex : vertices) {
+    vertex.pos.y *= -1;  // flip in NDC
   }
   const auto& indices = text_util::indices_per_char();
 

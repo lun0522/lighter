@@ -90,13 +90,6 @@ void NanosuitApp::Init() {
   if (is_first_time) {
     is_first_time = false;
 
-    using KeyMap = common::Window::KeyMap;
-
-    auto& window = window_context_.window();
-    window.SetCursorHidden(true);
-    window.RegisterKeyCallback(KeyMap::kEscape,
-                               [this]() { should_quit_ = true; });
-
     // camera
     common::Camera::Config config;
     config.pos = glm::vec3{0.0f, 3.5f, 12.0f};
@@ -104,24 +97,29 @@ void NanosuitApp::Init() {
     config.lock_look_at = true;
     camera_.Init(config);
 
-    window.RegisterCursorMoveCallback([this](double x_pos, double y_pos) {
-      camera_.ProcessCursorMove(x_pos, y_pos);
-    });
-    window.RegisterScrollCallback([this](double x_pos, double y_pos) {
-      camera_.ProcessScroll(y_pos, 1.0f, 60.0f);
-    });
-    window.RegisterKeyCallback(KeyMap::kUp, [this]() {
-      camera_.ProcessKey(KeyMap::kUp, timer_.time_from_last_frame());
-    });
-    window.RegisterKeyCallback(KeyMap::kDown, [this]() {
-      camera_.ProcessKey(KeyMap::kDown, timer_.time_from_last_frame());
-    });
-    window.RegisterKeyCallback(KeyMap::kLeft, [this]() {
-      camera_.ProcessKey(KeyMap::kLeft, timer_.time_from_last_frame());
-    });
-    window.RegisterKeyCallback(KeyMap::kRight, [this]() {
-      camera_.ProcessKey(KeyMap::kRight, timer_.time_from_last_frame());
-    });
+    using KeyMap = common::Window::KeyMap;
+    window_context_.window()
+        .SetCursorHidden(true)
+        .RegisterCursorMoveCallback([this](double x_pos, double y_pos) {
+          camera_.ProcessCursorMove(x_pos, y_pos);
+        })
+        .RegisterScrollCallback([this](double x_pos, double y_pos) {
+          camera_.ProcessScroll(y_pos, 1.0f, 60.0f);
+        })
+        .RegisterKeyCallback(KeyMap::kUp, [this]() {
+          camera_.ProcessKey(KeyMap::kUp, timer_.time_from_last_frame());
+        })
+        .RegisterKeyCallback(KeyMap::kDown, [this]() {
+          camera_.ProcessKey(KeyMap::kDown, timer_.time_from_last_frame());
+        })
+        .RegisterKeyCallback(KeyMap::kLeft, [this]() {
+          camera_.ProcessKey(KeyMap::kLeft, timer_.time_from_last_frame());
+        })
+        .RegisterKeyCallback(KeyMap::kRight, [this]() {
+          camera_.ProcessKey(KeyMap::kRight, timer_.time_from_last_frame());
+        })
+        .RegisterKeyCallback(KeyMap::kEscape,
+                             [this]() { should_quit_ = true; });
 
     // push constants
     nanosuit_vert_uniform_.Init(sizeof(NanosuitVertTrans), kNumFrameInFlight);
@@ -167,14 +165,14 @@ void NanosuitApp::Init() {
             /*array_length=*/1,
         }},
     };
-    ModelBuilder nanosuit_model_builder{
-        context(), kNumFrameInFlight, /*is_opaque=*/true,
-        ModelBuilder::MultiMeshResource{
-            "external/resource/model/nanosuit/nanosuit.obj",
-            "external/resource/model/nanosuit",
-            nanosuit_bindings},
-    };
-    nanosuit_model_builder
+    nanosuit_model_ =
+        ModelBuilder{
+            context(), kNumFrameInFlight, /*is_opaque=*/true,
+            ModelBuilder::MultiMeshResource{
+                "external/resource/model/nanosuit/nanosuit.obj",
+                "external/resource/model/nanosuit",
+                nanosuit_bindings},
+        }
         .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
                      "jessie_steamer/shader/vulkan/nanosuit.vert.spv"})
         .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -183,35 +181,34 @@ void NanosuitApp::Init() {
         .add_push_constant({VK_SHADER_STAGE_FRAGMENT_BIT,
                             {{&nanosuit_frag_constant_, /*offset=*/0}}})
         .add_shared_texture(Descriptor::ResourceType::kTextureCubemap,
-                            skybox_binding);
-    nanosuit_model_ = nanosuit_model_builder.Build();
+                            skybox_binding)
+        .Build();
 
     skybox_binding.binding_point = 1;
-    ModelBuilder skybox_model_builder{
-        context(), kNumFrameInFlight, /*is_opaque=*/true,
-        ModelBuilder::SingleMeshResource{
-            "external/resource/model/skybox.obj",
-            /*obj_index_base=*/1,
-            {{model::ResourceType::kTextureCubemap, skybox_binding}}},
-    };
-    skybox_model_builder
+    skybox_model_ =
+        ModelBuilder{
+            context(), kNumFrameInFlight, /*is_opaque=*/true,
+            ModelBuilder::SingleMeshResource{
+                "external/resource/model/skybox.obj",
+                /*obj_index_base=*/1,
+                {{model::ResourceType::kTextureCubemap, skybox_binding}}},
+        }
         .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
                      "jessie_steamer/shader/vulkan/skybox.vert.spv"})
         .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
                      "jessie_steamer/shader/vulkan/skybox.frag.spv"})
         .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
-                            {{&skybox_constant_, /*offset=*/0}}});
-    skybox_model_ = skybox_model_builder.Build();
+                            {{&skybox_constant_, /*offset=*/0}}})
+        .Build();
   }
 
   // render pass
-  (*render_pass_builder_)
+  render_pass_ = (*render_pass_builder_)
       .set_framebuffer_size(frame_size)
-      .update_attachment(
-          /*index=*/1, [this](int index) -> const Image& {
-            return *depth_stencil_;
-          });
-  render_pass_ = render_pass_builder_->Build();
+      .update_attachment(/*index=*/1, [this](int index) -> const Image& {
+        return *depth_stencil_;
+      })
+      .Build();
 
   // camera
   camera_.Calibrate(window_context_.window().GetScreenSize(),
@@ -278,11 +275,7 @@ void NanosuitApp::MainLoop() {
     current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
     window_context_.PollEvents();
     camera_.set_activate(true);  // not activated until first frame is displayed
-    const auto frame_rate = timer_.frame_rate();
-    if (frame_rate.has_value()) {
-      std::cout << absl::StrFormat("Frame per second: %d", frame_rate.value())
-                << std::endl;
-    }
+    timer_.Tick();
   }
   window_context_.WaitIdle();  // wait for all async operations finish
 }

@@ -46,10 +46,10 @@ class Window {
   VkSurfaceKHR CreateSurface(const VkInstance& instance,
                              const VkAllocationCallbacks* allocator);
 #endif /* USE_VULKAN */
-  void SetCursorHidden(bool hidden);
-  void RegisterKeyCallback(KeyMap key, const KeyCallback& callback);
-  void RegisterCursorMoveCallback(CursorMoveCallback callback);
-  void RegisterScrollCallback(ScrollCallback callback);
+  Window& SetCursorHidden(bool hidden);
+  Window& RegisterKeyCallback(KeyMap key, const KeyCallback& callback);
+  Window& RegisterCursorMoveCallback(CursorMoveCallback callback);
+  Window& RegisterScrollCallback(ScrollCallback callback);
   void PollEvents() const;
   void Recreate();
   bool ShouldQuit() const { return glfwWindowShouldClose(window_); }

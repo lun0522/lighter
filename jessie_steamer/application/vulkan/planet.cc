@@ -103,37 +103,35 @@ void PlanetApp::Init() {
   if (is_first_time) {
     is_first_time = false;
 
-    using KeyMap = common::Window::KeyMap;
-
-    auto& window = window_context_.window();
-    window.SetCursorHidden(true);
-    window.RegisterKeyCallback(KeyMap::kEscape,
-                               [this]() { should_quit_ = true; });
-
     // camera
     common::Camera::Config config;
     config.pos = glm::vec3{1.6f, -5.1f, -5.9f};
     config.look_at = glm::vec3{-2.4f, -0.8f, 0.0f};
     camera_.Init(config);
 
-    window.RegisterCursorMoveCallback([this](double x_pos, double y_pos) {
-      camera_.ProcessCursorMove(x_pos, y_pos);
-    });
-    window.RegisterScrollCallback([this](double x_pos, double y_pos) {
-      camera_.ProcessScroll(y_pos, 1.0f, 60.0f);
-    });
-    window.RegisterKeyCallback(KeyMap::kUp, [this]() {
-      camera_.ProcessKey(KeyMap::kUp, timer_.time_from_last_frame());
-    });
-    window.RegisterKeyCallback(KeyMap::kDown, [this]() {
-      camera_.ProcessKey(KeyMap::kDown, timer_.time_from_last_frame());
-    });
-    window.RegisterKeyCallback(KeyMap::kLeft, [this]() {
-      camera_.ProcessKey(KeyMap::kLeft, timer_.time_from_last_frame());
-    });
-    window.RegisterKeyCallback(KeyMap::kRight, [this]() {
-      camera_.ProcessKey(KeyMap::kRight, timer_.time_from_last_frame());
-    });
+    using KeyMap = common::Window::KeyMap;
+    window_context_.window()
+        .SetCursorHidden(true)
+        .RegisterCursorMoveCallback([this](double x_pos, double y_pos) {
+          camera_.ProcessCursorMove(x_pos, y_pos);
+        })
+        .RegisterScrollCallback([this](double x_pos, double y_pos) {
+          camera_.ProcessScroll(y_pos, 1.0f, 60.0f);
+        })
+        .RegisterKeyCallback(KeyMap::kUp, [this]() {
+          camera_.ProcessKey(KeyMap::kUp, timer_.time_from_last_frame());
+        })
+        .RegisterKeyCallback(KeyMap::kDown, [this]() {
+          camera_.ProcessKey(KeyMap::kDown, timer_.time_from_last_frame());
+        })
+        .RegisterKeyCallback(KeyMap::kLeft, [this]() {
+          camera_.ProcessKey(KeyMap::kLeft, timer_.time_from_last_frame());
+        })
+        .RegisterKeyCallback(KeyMap::kRight, [this]() {
+          camera_.ProcessKey(KeyMap::kRight, timer_.time_from_last_frame());
+        })
+        .RegisterKeyCallback(KeyMap::kEscape,
+                             [this]() { should_quit_ = true; });
 
     // push constants
     light_uniform_.Init(sizeof(Light), kNumFrameInFlight);
@@ -163,21 +161,21 @@ void PlanetApp::Init() {
         /*binding_point=*/2,
         {SharedTexture::SingleTexPath{"external/resource/texture/planet.png"}},
     };
-    ModelBuilder planet_model_builder{
-        context(), kNumFrameInFlight, /*is_opaque=*/true,
-        ModelBuilder::SingleMeshResource{
-            "external/resource/model/sphere.obj",
-            /*obj_index_base=*/1, planet_bindings},
-    };
-    planet_model_builder
+    planet_model_ =
+        ModelBuilder{
+            context(), kNumFrameInFlight, /*is_opaque=*/true,
+            ModelBuilder::SingleMeshResource{
+                "external/resource/model/sphere.obj",
+                /*obj_index_base=*/1, planet_bindings},
+        }
         .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
                      "jessie_steamer/shader/vulkan/planet.vert.spv"})
         .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
                      "jessie_steamer/shader/vulkan/planet.frag.spv"})
         .add_uniform_buffer({&light_uniform_, light_desc_info})
         .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
-                            {{&planet_constant_, /*offset=*/0}}});
-    planet_model_ = planet_model_builder.Build();
+                            {{&planet_constant_, /*offset=*/0}}})
+        .Build();
 
     GenAsteroidModels();
     vector<VertexAttribute> per_instance_attribs{
@@ -194,14 +192,14 @@ void PlanetApp::Init() {
       attrib_offset += sizeof(glm::vec4);
     }
     light_desc_info.shader_stage |= VK_SHADER_STAGE_VERTEX_BIT;
-    ModelBuilder asteroid_model_builder{
-        context(), kNumFrameInFlight, /*is_opaque=*/true,
-        ModelBuilder::MultiMeshResource{
-            "external/resource/model/rock/rock.obj",
-            "external/resource/model/rock",
-            {{model::ResourceType::kTextureDiffuse, /*binding_point=*/2}}},
-    };
-    asteroid_model_builder
+    asteroid_model_ =
+        ModelBuilder{
+            context(), kNumFrameInFlight, /*is_opaque=*/true,
+            ModelBuilder::MultiMeshResource{
+                "external/resource/model/rock/rock.obj",
+                "external/resource/model/rock",
+                {{model::ResourceType::kTextureDiffuse, /*binding_point=*/2}}},
+        }
         .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
                      "jessie_steamer/shader/vulkan/asteroid.vert.spv"})
         .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -211,8 +209,8 @@ void PlanetApp::Init() {
                          &per_asteroid_data_})
         .add_uniform_buffer({&light_uniform_, light_desc_info})
         .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
-                            {{&planet_constant_, /*offset=*/0}}});
-    asteroid_model_ = asteroid_model_builder.Build();
+                            {{&planet_constant_, /*offset=*/0}}})
+        .Build();
 
     ModelBuilder::TextureBindingMap skybox_bindings;
     skybox_bindings[model::ResourceType::kTextureCubemap] = {
@@ -230,30 +228,29 @@ void PlanetApp::Init() {
             },
         },
     };
-    ModelBuilder skybox_model_builder{
-        context(), kNumFrameInFlight, /*is_opaque=*/true,
-        ModelBuilder::SingleMeshResource{
-            "external/resource/model/skybox.obj",
-            /*obj_index_base=*/1, skybox_bindings},
-    };
-    skybox_model_builder
+    skybox_model_ =
+        ModelBuilder{
+            context(), kNumFrameInFlight, /*is_opaque=*/true,
+            ModelBuilder::SingleMeshResource{
+                "external/resource/model/skybox.obj",
+                /*obj_index_base=*/1, skybox_bindings},
+        }
         .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
                      "jessie_steamer/shader/vulkan/skybox.vert.spv"})
         .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
                      "jessie_steamer/shader/vulkan/skybox.frag.spv"})
         .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
-                            {{&skybox_constant_, /*offset=*/0}}});
-    skybox_model_ = skybox_model_builder.Build();
+                            {{&skybox_constant_, /*offset=*/0}}})
+        .Build();
   }
 
   // render pass
-  (*render_pass_builder_)
+  render_pass_ = (*render_pass_builder_)
       .set_framebuffer_size(frame_size)
-      .update_attachment(
-          /*index=*/1, [this](int index) -> const Image& {
-            return *depth_stencil_;
-          });
-  render_pass_ = render_pass_builder_->Build();
+      .update_attachment(/*index=*/1, [this](int index) -> const Image& {
+        return *depth_stencil_;
+      })
+      .Build();
 
   // camera
   camera_.Calibrate(window_context_.window().GetScreenSize(),
@@ -352,11 +349,7 @@ void PlanetApp::MainLoop() {
     current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
     window_context_.PollEvents();
     camera_.set_activate(true);  // not activated until first frame is displayed
-    const auto frame_rate = timer_.frame_rate();
-    if (frame_rate.has_value()) {
-      std::cout << absl::StrFormat("Frame per second: %d", frame_rate.value())
-                << std::endl;
-    }
+    timer_.Tick();
   }
   window_context_.WaitIdle();  // wait for all async operations finish
 }

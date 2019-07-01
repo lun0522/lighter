@@ -21,6 +21,7 @@
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
+#include "jessie_steamer/wrapper/vulkan/render_pass.h"
 #include "third_party/glm/glm.hpp"
 
 namespace jessie_steamer {
@@ -65,6 +66,7 @@ class CharLoader {
   CharLoader& operator=(const CharLoader&) = delete;
 
   OffscreenImagePtr texture() const { return image_.get(); }
+  float width_height_ratio()  const { return width_height_ratio_; }
   float space_advance()       const { return space_advance_; }
 
   const absl::flat_hash_map<char, CharTextureInfo>& char_texture_map() const {
@@ -96,7 +98,8 @@ class CharLoader {
 
   SharedBasicContext context_;
   std::unique_ptr<OffscreenImage> image_;
-  float space_advance_ = 0.0f;
+  float width_height_ratio_;
+  float space_advance_ = -1.0f;
   absl::flat_hash_map<char, CharTextureInfo> char_texture_map_;
 };
 

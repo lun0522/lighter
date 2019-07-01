@@ -10,28 +10,26 @@
 
 #include <chrono>
 
-#include "absl/types/optional.h"
-
 namespace jessie_steamer {
 namespace common {
 
 class Timer {
  public:
-  Timer() : frame_count_{0} {
+  Timer() : frame_count_{0}, frame_rate_{0} {
     launch_time_ = last_second_time_ = last_frame_time_ = Now();
   }
 
-  absl::optional<int> frame_rate() {
+  void Tick() {
     ++frame_count_;
     last_frame_time_ = Now();
-    absl::optional<int> ret = absl::nullopt;
     if (TimeInterval(last_second_time_, last_frame_time_) >= 1.0f) {
       last_second_time_ = last_frame_time_;
-      ret.emplace(frame_count_);
+      frame_rate_ = frame_count_;
       frame_count_ = 0;
     }
-    return ret;
   }
+
+  int frame_rate() const { return frame_rate_; }
 
   float time_from_launch() const {
     return TimeInterval(launch_time_, Now());
@@ -52,7 +50,7 @@ class Timer {
   }
 
   TimePoint launch_time_, last_second_time_, last_frame_time_;
-  int frame_count_;
+  int frame_count_, frame_rate_;
 };
 
 } /* namespace common */

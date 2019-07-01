@@ -90,26 +90,30 @@ VkSurfaceKHR Window::CreateSurface(const VkInstance& instance,
 }
 #endif /* USE_VULKAN */
 
-void Window::SetCursorHidden(bool hidden) {
+Window& Window::SetCursorHidden(bool hidden) {
   glfwSetInputMode(window_, GLFW_CURSOR,
                    hidden ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+  return *this;
 }
 
-void Window::RegisterKeyCallback(KeyMap key, const KeyCallback& callback) {
+Window& Window::RegisterKeyCallback(KeyMap key, const KeyCallback& callback) {
   const auto glfw_key = WindowKeyToGlfwKey(key);
   if (callback != nullptr) {
     key_callbacks_.emplace(glfw_key, callback);
   } else {
     key_callbacks_.erase(glfw_key);
   }
+  return *this;
 }
 
-void Window::RegisterCursorMoveCallback(CursorMoveCallback callback) {
+Window& Window::RegisterCursorMoveCallback(CursorMoveCallback callback) {
   cursor_move_callback = std::move(callback);
+  return *this;
 }
 
-void Window::RegisterScrollCallback(ScrollCallback callback) {
+Window& Window::RegisterScrollCallback(ScrollCallback callback) {
   scroll_callback = std::move(callback);
+  return *this;
 }
 
 void Window::PollEvents() const {

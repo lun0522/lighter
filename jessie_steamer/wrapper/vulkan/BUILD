@@ -188,6 +188,7 @@ cc_library(
         ":descriptor",
         ":image",
         ":pipeline",
+        ":render_pass",
         ":util",
         ":vertex_input_util",
         "//jessie_steamer/common:char_lib",

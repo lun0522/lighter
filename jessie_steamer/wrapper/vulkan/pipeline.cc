@@ -137,11 +137,11 @@ PipelineBuilder::PipelineBuilder(SharedBasicContext context)
   // config per attached framebuffer
   color_blend_attachment_ = {
       /*blendEnable=*/VK_FALSE,
-      /*srcColorBlendFactor=*/VK_BLEND_FACTOR_ZERO,
-      /*dstColorBlendFactor=*/VK_BLEND_FACTOR_ZERO,
+      /*srcColorBlendFactor=*/VK_BLEND_FACTOR_SRC_COLOR,
+      /*dstColorBlendFactor=*/VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR,
       /*colorBlendOp=*/VK_BLEND_OP_ADD,
-      /*srcAlphaBlendFactor=*/VK_BLEND_FACTOR_ZERO,
-      /*dstAlphaBlendFactor=*/VK_BLEND_FACTOR_ZERO,
+      /*srcAlphaBlendFactor=*/VK_BLEND_FACTOR_SRC_ALPHA,
+      /*dstAlphaBlendFactor=*/VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
       /*alphaBlendOp=*/VK_BLEND_OP_ADD,
       /*colorWriteMask=*/VK_COLOR_COMPONENT_R_BIT
                              | VK_COLOR_COMPONENT_G_BIT
@@ -244,18 +244,17 @@ PipelineBuilder& PipelineBuilder::enable_stencil_test() {
 
 PipelineBuilder& PipelineBuilder::enable_alpha_blend() {
   color_blend_attachment_.blendEnable = VK_TRUE;
-  color_blend_attachment_.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
-  color_blend_attachment_.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-  color_blend_attachment_.dstColorBlendFactor =
-      VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
-  color_blend_attachment_.dstAlphaBlendFactor =
-      VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+  return *this;
+}
+
+PipelineBuilder& PipelineBuilder::set_front_face_clockwise() {
+  rasterizer_info_.frontFace = VK_FRONT_FACE_CLOCKWISE;
   return *this;
 }
 
 std::unique_ptr<Pipeline> PipelineBuilder::Build() {
-  ASSERT_HAS_VALUE(vertex_input_info_, "Vertex input info is not set");
-  ASSERT_HAS_VALUE(layout_info_, "Layout info is not set");
+  ASSERT_HAS_VALUE(vertex_input_info_, "Vertex input is not set");
+  ASSERT_HAS_VALUE(layout_info_, "Layout is not set");
   ASSERT_HAS_VALUE(viewport_info_, "Viewport is not set");
   ASSERT_HAS_VALUE(render_pass_info_, "Render pass is not set");
 

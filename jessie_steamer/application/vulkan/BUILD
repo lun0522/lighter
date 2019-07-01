@@ -18,6 +18,7 @@ cc_binary(
         "//jessie_steamer/common:time",
         "//third_party:glm",
         "@lib-absl//absl/memory",
+        "@lib-absl//absl/strings:str_format",
         "@lib-absl//absl/types:optional",
     ],
 )
