@@ -7,6 +7,8 @@
 
 #include "jessie_steamer/wrapper/vulkan/text.h"
 
+#include <algorithm>
+
 #include "absl/memory/memory.h"
 #include "absl/strings/str_format.h"
 #include "jessie_steamer/common/file.h"
@@ -30,25 +32,25 @@ struct DrawCharInfo {
   alignas(16) glm::vec4 color_alpha;
 };
 
-float GetVerticalOffset(float vertical_base, Text::Align align,
-                        float total_width) {
+float GetOffsetX(float base_x, Text::Align align, float total_width) {
   switch (align) {
     case Text::Align::kLeft:
-      return vertical_base;
+      return base_x;
     case Text::Align::kCenter:
-      return vertical_base - total_width / 2.0f;
+      return base_x - total_width / 2.0f;
     case Text::Align::kRight:
-      return vertical_base - total_width;
+      return base_x - total_width;
   }
 }
 
 } /* namespace */
 
 StaticText::StaticText(SharedBasicContext context,
+                       int num_frame,
                        const vector<string>& texts,
                        Font font, int font_height)
     : Text{std::move(context)} {
-  CharLoader loader{context, texts, font, font_height};
+  TextLoader loader{context_, texts, font, font_height};
 }
 
 DynamicText::DynamicText(SharedBasicContext context,
@@ -128,7 +130,7 @@ void DynamicText::Update(VkExtent2D frame_size,
               frame_size,
           },
       })
-      .set_render_pass(render_pass, subpass_index)
+      .set_render_pass(*render_pass, subpass_index)
       .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
                    "jessie_steamer/shader/vulkan/simple_2d.vert.spv"})
       .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -136,17 +138,15 @@ void DynamicText::Update(VkExtent2D frame_size,
       .Build();
 }
 
-void DynamicText::Draw(const VkCommandBuffer& command_buffer,
-                       int frame, VkExtent2D frame_size, const string& text,
-                       const glm::vec3& color, float alpha, float height,
-                       float horizontal_base, float vertical_base,
-                       Align align) {
+glm::vec2 DynamicText::Draw(
+    const VkCommandBuffer& command_buffer, int frame, VkExtent2D frame_size,
+    const string& text, const glm::vec3& color, float alpha, float height,
+    float base_x, float base_y, Align align) {
   uniform_buffer_.data<DrawCharInfo>(frame)->color_alpha =
       glm::vec4(color, alpha);
   uniform_buffer_.Flush(frame);
 
-  const float frame_width_height_ratio =
-      static_cast<float>(frame_size.width) / frame_size.height;
+  const float frame_width_height_ratio = GetWidthHeightRatio(frame_size);
   const glm::vec2 ratio = glm::vec2{char_loader_.width_height_ratio() /
                                     frame_width_height_ratio, 1.0f} *
                           (height / 1.0f);
@@ -166,33 +166,32 @@ void DynamicText::Draw(const VkCommandBuffer& command_buffer,
         FATAL(absl::StrFormat("'%c' was not loaded", c));
       }
       ++num_non_space_char;
-      total_width_in_tex_coord += found->second.advance;
+      total_width_in_tex_coord += found->second.advance_x;
     }
   }
-  const float initial_vertical_offset =
-      GetVerticalOffset(vertical_base, align,
-                        total_width_in_tex_coord * ratio.x);
+  const float initial_offset_x = GetOffsetX(base_x, align,
+                                            total_width_in_tex_coord * ratio.x);
 
   vector<VertexAttrib2D> vertices;
   vertices.reserve(text_util::kNumVerticesPerChar * num_non_space_char);
-  float vertical_offset = initial_vertical_offset;
+  float offset_x = initial_offset_x;
   for (auto c : text) {
     if (c == ' ') {
-      vertical_offset += char_loader_.space_advance() * ratio.x;
+      offset_x += char_loader_.space_advance() * ratio.x;
       continue;
     }
-    const auto& texture_info = texture_map.find(c)->second;
-    const glm::vec2& size_in_tex = texture_info.size;
+    const auto& char_texture = texture_map.find(c)->second;
+    const glm::vec2& size_in_tex = char_texture.size;
     text_util::AppendCharPosAndTexCoord(
         /*pos_bottom_left=*/
-        {vertical_offset + texture_info.bearing.x * ratio.x,
-         horizontal_base + (texture_info.bearing.y - size_in_tex.y) * ratio.y},
+        {offset_x + char_texture.bearing.x * ratio.x,
+         base_y + (char_texture.bearing.y - size_in_tex.y) * ratio.y},
         /*pos_increment=*/size_in_tex * ratio,
         /*tex_coord_bottom_left=*/
-        {texture_info.offset_x + texture_info.bearing.x, 0.0f},
+        {char_texture.offset_x, 0.0f},
         /*tex_coord_increment=*/size_in_tex,
         &vertices);
-    vertical_offset += texture_info.advance * ratio.x;
+    offset_x += char_texture.advance_x * ratio.x;
   }
   const auto& indices = text_util::indices_per_char();
 
@@ -212,6 +211,8 @@ void DynamicText::Draw(const VkCommandBuffer& command_buffer,
   for (int i = 0; i < num_non_space_char; ++i) {
     vertex_buffer_.Draw(command_buffer, /*mesh_index=*/i, /*instance_count=*/1);
   }
+
+  return glm::vec2{initial_offset_x, offset_x};
 }
 
 } /* namespace vulkan */

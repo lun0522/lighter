@@ -64,14 +64,12 @@ class Buffer {
   Buffer(const Buffer&) = delete;
   Buffer& operator=(const Buffer&) = delete;
 
-  virtual ~Buffer() { FreeMemory(); }
+  virtual ~Buffer() {
+    vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
+  }
 
  protected:
   explicit Buffer(SharedBasicContext context) : context_{std::move(context)} {}
-
-  void FreeMemory() {
-    vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
-  };
 
   SharedBasicContext context_;
   VkDeviceMemory device_memory_;
@@ -83,15 +81,13 @@ class DataBuffer : public Buffer {
   DataBuffer(const DataBuffer&) = delete;
   DataBuffer& operator=(const DataBuffer&) = delete;
 
-  ~DataBuffer() override { FreeBuffer(); }
+  ~DataBuffer() override {
+    vkDestroyBuffer(*context_->device(), buffer_, context_->allocator());
+  }
 
  protected:
   // Inherits constructor.
   using Buffer::Buffer;
-
-  void FreeBuffer() {
-    vkDestroyBuffer(*context_->device(), buffer_, context_->allocator());
-  }
 
   VkBuffer buffer_;
 };
@@ -184,6 +180,10 @@ class DynamicPerVertexBuffer : public PerVertexBuffer {
  public:
   // Inherits constructor.
   using PerVertexBuffer::PerVertexBuffer;
+
+  // Reserves space of the given 'size'. If 'size' is less than the current
+  // 'buffer_size_', this will be no-op.
+  void Reserve(int size);
 
   // This buffer can be initialized multiple times. If a larger memory is
   // required, the buffer allocated previously will be destructed, and a new one

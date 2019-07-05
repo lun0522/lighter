@@ -54,7 +54,7 @@ class CharLoader {
     glm::vec2 size;
     glm::vec2 bearing;
     float offset_x;
-    float advance;
+    float advance_x;
   };
 
   CharLoader(SharedBasicContext context,
@@ -67,7 +67,7 @@ class CharLoader {
 
   OffscreenImagePtr texture() const { return image_.get(); }
   float width_height_ratio()  const { return width_height_ratio_; }
-  float space_advance()       const { return space_advance_; }
+  float space_advance()       const { return space_advance_x_; }
 
   const absl::flat_hash_map<char, CharTextureInfo>& char_texture_map() const {
     return char_texture_map_;
@@ -79,28 +79,42 @@ class CharLoader {
     VkExtent2D extent_after_merge;
   };
 
-  absl::flat_hash_map<char, CharLoader::CharTextureInfo> CreateCharTextureMap(
-      const common::CharLib& char_lib, int font_height,
-      float* space_advance, CharTextures* char_textures) const;
-
-  std::unique_ptr<RenderPass> CreateRenderPass(
-      const VkExtent2D& target_extent,
-      RenderPassBuilder::GetImage&& get_target_image) const;
-
-  std::unique_ptr<DynamicDescriptor> CreateDescriptor() const;
-
-  std::unique_ptr<Pipeline> CreatePipeline(
-      const VkExtent2D& target_extent, const RenderPass& render_pass,
-      const DynamicDescriptor& descriptor) const;
-
-  std::unique_ptr<PerVertexBuffer> CreateVertexBuffer(
-      std::vector<char>* char_merge_order) const;
+  // Populates 'char_texture_map_' and 'space_advance_x_'.
+  CharTextures CreateCharTextures(const common::CharLib& char_lib,
+                                  int font_height);
 
   SharedBasicContext context_;
   std::unique_ptr<OffscreenImage> image_;
   float width_height_ratio_;
-  float space_advance_ = -1.0f;
+  float space_advance_x_ = -1.0f;
   absl::flat_hash_map<char, CharTextureInfo> char_texture_map_;
+};
+
+class TextLoader {
+ public:
+  struct TextTexture {
+    float width_height_ratio;
+    float base_y;
+    std::unique_ptr<OffscreenImage> image;
+  };
+
+  TextLoader(SharedBasicContext context,
+             const std::vector<std::string>& texts,
+             CharLoader::Font font, int font_height);
+
+  // This class is neither copyable nor movable.
+  TextLoader(const TextLoader&) = delete;
+  TextLoader& operator=(const TextLoader&) = delete;
+
+  const TextTexture& texture(int index) const { return text_textures_[index]; }
+
+ private:
+  TextTexture CreateTextTexture(const std::string& text, int font_height,
+                                const CharLoader& char_loader,
+                                DynamicPerVertexBuffer* vertex_buffer) const;
+
+  SharedBasicContext context_;
+  std::vector<TextTexture> text_textures_;
 };
 
 } /* namespace vulkan */

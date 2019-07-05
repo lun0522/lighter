@@ -301,7 +301,7 @@ void Model::Update(VkExtent2D frame_size,
               frame_size,
           },
       })
-      .set_render_pass(render_pass, subpass_index);
+      .set_render_pass(*render_pass, subpass_index);
   for (const auto& info : shader_infos_) {
     pipeline_builder_->add_shader(info);
   }
@@ -323,6 +323,7 @@ void Model::Draw(const VkCommandBuffer& command_buffer,
     }
   }
   for (int mesh_index = 0; mesh_index < mesh_textures_.size(); ++mesh_index) {
+    // TODO: create a Bind() method for StaticDescriptor
     vkCmdBindDescriptorSets(
         command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
         pipeline_->layout(), /*firstSet=*/0, /*descriptorSetCount=*/1,

@@ -83,7 +83,7 @@ class PipelineBuilder {
       std::vector<VkDescriptorSetLayout>&& descriptor_layouts,
       std::vector<VkPushConstantRange>&& push_constant_ranges);
   PipelineBuilder& set_viewport(ViewportInfo&& info);
-  PipelineBuilder& set_render_pass(const RenderPass& render_pass,
+  PipelineBuilder& set_render_pass(const VkRenderPass& render_pass,
                                    uint32_t subpass_index);
   PipelineBuilder& add_shader(const ShaderInfo& info);
 

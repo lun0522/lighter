@@ -38,12 +38,23 @@ class Text {
 class StaticText : public Text {
  public:
   StaticText(SharedBasicContext context,
+             int num_frame,
              const std::vector<std::string>& texts,
              Font font, int font_height);
 
   // This class is neither copyable nor movable.
   StaticText(const StaticText&) = delete;
   StaticText& operator=(const StaticText&) = delete;
+
+  // Should be called after initialization and whenever frame is resized.
+  void Update(VkExtent2D frame_size,
+              const RenderPass& render_pass, uint32_t subpass_index);
+
+  // Renders text and returns left and right boundary.
+  glm::vec2 Draw(const VkCommandBuffer& command_buffer,
+                 int frame, VkExtent2D frame_size, int text_index,
+                 const glm::vec3& color, float alpha, float height,
+                 float base_x, float base_y, Align align);
 };
 
 class DynamicText : public Text {
@@ -61,10 +72,11 @@ class DynamicText : public Text {
   void Update(VkExtent2D frame_size,
               const RenderPass& render_pass, uint32_t subpass_index);
 
-  void Draw(const VkCommandBuffer& command_buffer,
-            int frame, VkExtent2D frame_size, const std::string& text,
-            const glm::vec3& color, float alpha, float height,
-            float horizontal_base, float vertical_base, Align align);
+  // Renders text and returns left and right boundary.
+  glm::vec2 Draw(const VkCommandBuffer& command_buffer,
+                 int frame, VkExtent2D frame_size, const std::string& text,
+                 const glm::vec3& color, float alpha, float height,
+                 float base_x, float base_y, Align align);
 
  private:
   CharLoader char_loader_;

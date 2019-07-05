@@ -219,9 +219,9 @@ PipelineBuilder& PipelineBuilder::set_viewport(ViewportInfo&& info) {
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::set_render_pass(const RenderPass& render_pass,
-                                                  uint32_t subpass_index) {
-  render_pass_info_.emplace(*render_pass, subpass_index);
+PipelineBuilder& PipelineBuilder::set_render_pass(
+    const VkRenderPass& render_pass, uint32_t subpass_index) {
+  render_pass_info_.emplace(render_pass, subpass_index);
   return *this;
 }
 

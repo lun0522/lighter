@@ -163,8 +163,7 @@ void CubeApp::MainLoop() {
           text_->Draw(command_buffer, current_frame_, frame_size,
                       absl::StrFormat("FPS: %d", timer_.frame_rate()),
                       /*color=*/glm::vec3{0.7f}, /*alpha=*/1.0f,
-                      /*height=*/0.05f,
-                      /*horizontal_base=*/0.05f, /*vertical_base=*/0.04f,
+                      /*height=*/0.05f, /*base_x=*/0.04f, /*base_y=*/0.05f,
                       Text::Align::kLeft);
         },
     };

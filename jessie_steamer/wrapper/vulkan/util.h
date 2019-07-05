@@ -52,6 +52,10 @@ FuncType LoadDeviceFunction(const VkDevice& device,
   return func;
 }
 
+inline float GetWidthHeightRatio(VkExtent2D extent) {
+  return static_cast<float>(extent.width) / extent.height;
+}
+
 } /* namespace vulkan */
 } /* namespace wrapper */
 } /* namespace jessie_steamer */

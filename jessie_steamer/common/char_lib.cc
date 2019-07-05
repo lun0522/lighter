@@ -41,7 +41,7 @@ CharLib::CharLib(const std::vector<std::string>& texts,
               face_->glyph->bitmap_top,
           },
           // measured with number of 1/64 pixels
-          /*advance=*/static_cast<unsigned int>(face_->glyph->advance.x) >> 6,
+          /*advance_x=*/static_cast<unsigned int>(face_->glyph->advance.x) >> 6,
           /*image=*/absl::make_unique<Image>(
               /*width=*/face_->glyph->bitmap.width,
               /*height=*/face_->glyph->bitmap.rows,

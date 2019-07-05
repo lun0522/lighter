@@ -447,18 +447,22 @@ void PerInstanceBuffer::Bind(const VkCommandBuffer& command_buffer,
                          &buffer_, &offset);
 }
 
+void DynamicPerVertexBuffer::Reserve(int size) {
+  if (size < buffer_size_) {
+    return;
+  }
+
+  if (buffer_size_ > 0) {
+    // TODO: free buffer and memory after command buffer is done using them
+  }
+  buffer_size_ = size;
+  CreateBufferAndMemory(buffer_size_, /*is_dynamic=*/true);
+}
+
 void DynamicPerVertexBuffer::Init(const Info& info) {
   mesh_datas_.clear();
   CopyInfos infos = CreateCopyInfos(info);
-  if (infos.total_size > buffer_size_) {
-    if (buffer_size_ > 0) {
-      // TODO: free buffer and memory after command buffer is done using them
-      FreeBuffer();
-      FreeMemory();
-    }
-    buffer_size_ = infos.total_size;
-    CreateBufferAndMemory(buffer_size_, /*is_dynamic=*/true);
-  }
+  Reserve(infos.total_size);
   CopyHostToBuffer(context_, /*map_offset=*/0, /*map_size=*/buffer_size_,
                    device_memory_, infos.copy_infos);
 }

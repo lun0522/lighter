@@ -218,7 +218,7 @@ VkResult PerFrameCommand::Run(int current_frame,
       &swapchain,
       &image_index,  // image for each swapchain
       /*pResults=*/nullptr,
-      // may use .pResults to check wether each swapchain rendered successfully
+      // may use .pResults to check whether each swapchain rendered successfully
   };
 
   if (!queues_->present.has_value()) {
