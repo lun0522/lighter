@@ -138,6 +138,7 @@ std::unique_ptr<Pipeline> CreatePipeline(
                    "jessie_steamer/shader/vulkan/simple_2d.vert.spv"})
       .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
                    "jessie_steamer/shader/vulkan/simple_2d.frag.spv"})
+      .enable_alpha_blend()
       .set_front_face_clockwise()  // since we will flip y coordinates
       .Build();
 }
@@ -148,7 +149,7 @@ std::unique_ptr<PerVertexBuffer> CreateVertexBuffer(
     const absl::flat_hash_map<char, CharLoader::CharTextureInfo>&
         char_texture_map) {
   vector<VertexAttrib2D> vertices;
-  vertices.reserve(text_util::kNumVerticesPerChar * char_merge_order.size());
+  vertices.reserve(text_util::kNumVerticesPerRect * char_merge_order.size());
   for (auto c : char_merge_order) {
     const CharLoader::CharTextureInfo& texture_info =
         char_texture_map.find(c)->second;
@@ -156,8 +157,8 @@ std::unique_ptr<PerVertexBuffer> CreateVertexBuffer(
         /*pos_bottom_left=*/
         {texture_info.offset_x, 0.0f},
         /*pos_increment=*/texture_info.size,
-        /*tex_coord_bottom_left=*/{0.0f, 0.0f},
-        /*tex_coord_increment=*/{1.0f, 1.0f},
+        /*tex_coord_bottom_left=*/glm::vec2{0.0f},
+        /*tex_coord_increment=*/glm::vec2{1.0f},
         &vertices);
   }
   // resulting image should be flipped, so that when we use it later, we don't
@@ -165,15 +166,14 @@ std::unique_ptr<PerVertexBuffer> CreateVertexBuffer(
   for (auto& vertex : vertices) {
     vertex.pos.y *= -1;  // flip in NDC
   }
-  const auto& indices = text_util::indices_per_char();
 
   std::unique_ptr<PerVertexBuffer> buffer =
       absl::make_unique<PerVertexBuffer>(context);
   buffer->Init(PerVertexBuffer::InfoReuse{
       /*num_mesh=*/static_cast<int>(char_merge_order.size()),
       /*per_mesh_vertices=*/
-      {vertices, /*unit_count=*/text_util::kNumVerticesPerChar},
-      /*shared_indices=*/{indices},
+      {vertices, /*unit_count=*/text_util::kNumVerticesPerRect},
+      /*shared_indices=*/{text_util::indices_per_rect()},
   });
   return buffer;
 }
@@ -218,7 +218,7 @@ CharLoader::CharLoader(SharedBasicContext context,
       [&](const VkCommandBuffer& command_buffer) {
         pipeline->Bind(command_buffer);
         for (int i = 0; i < char_merge_order.size(); ++i) {
-          descriptor->UpdateImageInfos(
+          descriptor->PushImageInfos(
               command_buffer, pipeline->layout(),
               /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
               /*image_infos=*/{
@@ -298,15 +298,11 @@ TextLoader::TextLoader(SharedBasicContext context,
                        CharLoader::Font font, int font_height)
     : context_{std::move(context)} {
   DynamicPerVertexBuffer vertex_buffer{context_};
-  const auto& indices = text_util::indices_per_char();
   const auto& longest_text = std::max_element(
       texts.begin(), texts.end(), [](const string& lhs, const string& rhs) {
         return lhs.length() > rhs.length();
       });
-  vertex_buffer.Reserve(sizeof(indices[0]) * indices.size() +
-                        sizeof(VertexAttrib2D) *
-                        text_util::kNumVerticesPerChar *
-                        longest_text->length());
+  vertex_buffer.Reserve(text_util::GetVertexDataSize(longest_text->length()));
 
   CharLoader char_loader{context_, texts, font, font_height};
   text_textures_.reserve(texts.size());
@@ -350,7 +346,7 @@ TextLoader::TextTexture TextLoader::CreateTextTexture(
 
   // TODO: extract this as a function since it is identical to text.cc
   vector<VertexAttrib2D> vertices;
-  vertices.reserve(text_util::kNumVerticesPerChar * text.length());
+  vertices.reserve(text_util::kNumVerticesPerRect * text.length());
   float offset_x = 0.0f;
   for (auto c : text) {
     if (c == ' ') {
@@ -375,13 +371,12 @@ TextLoader::TextTexture TextLoader::CreateTextTexture(
   for (auto& vertex : vertices) {
     vertex.pos.y *= -1;  // flip in NDC
   }
-  const auto& indices = text_util::indices_per_char();
 
   vertex_buffer->Init(PerVertexBuffer::InfoReuse{
       /*num_mesh=*/static_cast<int>(text.length()),
       /*per_mesh_vertices=*/
-      {vertices, /*unit_count=*/text_util::kNumVerticesPerChar},
-      /*shared_indices=*/{indices},
+      {vertices, /*unit_count=*/text_util::kNumVerticesPerRect},
+      /*shared_indices=*/{text_util::indices_per_rect()},
   });
 
   // TODO: reuse these for different text
@@ -411,11 +406,7 @@ TextLoader::TextTexture TextLoader::CreateTextTexture(
   vector<RenderPass::RenderOp> render_ops{
       [&](const VkCommandBuffer& command_buffer) {
         pipeline->Bind(command_buffer);
-        vkCmdBindDescriptorSets(
-            command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-            pipeline->layout(), /*firstSet=*/0, /*descriptorSetCount=*/1,
-            &descriptor.set(), /*dynamicOffsetCount=*/0,
-            /*pDynamicOffsets=*/nullptr);
+        descriptor.Bind(command_buffer, pipeline->layout());
         for (int i = 0; i < text.length(); ++i) {
           vertex_buffer->Draw(command_buffer, /*mesh_index=*/i,
                               /*instance_count=*/1);
@@ -433,14 +424,14 @@ TextLoader::TextTexture TextLoader::CreateTextTexture(
 
 namespace text_util {
 
-const array<uint32_t, kNumIndicesPerChar>& indices_per_char() {
-  static array<uint32_t, kNumIndicesPerChar>* kIndicesPerChar = nullptr;
-  if (kIndicesPerChar == nullptr) {
-    kIndicesPerChar = new array<uint32_t, kNumIndicesPerChar>{
+const array<uint32_t, kNumIndicesPerRect>& indices_per_rect() {
+  static array<uint32_t, kNumIndicesPerRect>* kIndicesPerRect = nullptr;
+  if (kIndicesPerRect == nullptr) {
+    kIndicesPerRect = new array<uint32_t, kNumIndicesPerRect>{
         0, 1, 2, 0, 2, 3,
     };
   }
-  return *kIndicesPerChar;
+  return *kIndicesPerRect;
 }
 
 void AppendCharPosAndTexCoord(const glm::vec2 &pos_bottom_left,

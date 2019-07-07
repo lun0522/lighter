@@ -26,9 +26,11 @@ using std::vector;
 
 using common::VertexAttrib2D;
 
+enum class BindingPoint : int { kUniformBuffer = 0, kTexture };
+
 // alignment requirement:
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
-struct DrawCharInfo {
+struct TextRenderInfo {
   alignas(16) glm::vec4 color_alpha;
 };
 
@@ -43,78 +45,54 @@ float GetOffsetX(float base_x, Text::Align align, float total_width) {
   }
 }
 
-} /* namespace */
-
-StaticText::StaticText(SharedBasicContext context,
-                       int num_frame,
-                       const vector<string>& texts,
-                       Font font, int font_height)
-    : Text{std::move(context)} {
-  TextLoader loader{context_, texts, font, font_height};
+const vector<Descriptor::Info>& CreateDescriptorInfos() {
+  vector<Descriptor::Info>* kDescriptorInfos = nullptr;
+  if (kDescriptorInfos == nullptr) {
+    kDescriptorInfos = new vector<Descriptor::Info>{
+        Descriptor::Info{
+            /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
+            /*bindings=*/{
+                Descriptor::Info::Binding{
+                    /*resource_type=*/common::types::kUniformBuffer,
+                    /*binding_point=*/
+                    static_cast<int>(BindingPoint::kUniformBuffer),
+                    /*array_length=*/1,
+                },
+            },
+        },
+        Descriptor::Info{
+            /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
+            /*bindings=*/{
+                Descriptor::Info::Binding{
+                    /*resource_type=*/common::types::kTextureDiffuse,
+                    /*binding_point=*/static_cast<int>(BindingPoint::kTexture),
+                    /*array_length=*/1,
+                },
+            },
+        },
+    };
+  }
+  return *kDescriptorInfos;
 }
 
-DynamicText::DynamicText(SharedBasicContext context,
-                         int num_frame,
-                         const vector<string>& texts,
-                         Font font, int font_height)
-    : Text{std::move(context)},
-      char_loader_{context_, texts, font, font_height},
+} /* namespace */
+
+Text::Text(SharedBasicContext context, int num_frame)
+    : context_{std::move(context)},
       vertex_buffer_{context_}, uniform_buffer_{context_},
       pipeline_builder_{context_} {
-  uniform_buffer_.Init(sizeof(DrawCharInfo), num_frame);
-
-  enum class BindingPoint : int { kUniformBuffer = 0, kTexture };
-  vector<Descriptor::Info> descriptor_infos{
-      Descriptor::Info{
-          /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-          /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
-          /*bindings=*/{
-              Descriptor::Info::Binding{
-                  /*resource_type=*/common::types::kUniformBuffer,
-                  /*binding_point=*/
-                  static_cast<int>(BindingPoint::kUniformBuffer),
-                  /*array_length=*/1,
-              },
-          },
-      },
-      Descriptor::Info{
-          /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
-          /*bindings=*/{
-              Descriptor::Info::Binding{
-                  /*resource_type=*/common::types::kTextureDiffuse,
-                  /*binding_point=*/static_cast<int>(BindingPoint::kTexture),
-                  /*array_length=*/1,
-              },
-          },
-      },
-  };
-  const Descriptor::ImageInfos image_infos{
-      {static_cast<int>(BindingPoint::kTexture),
-       {char_loader_.texture()->descriptor_info()}},
-  };
-
-  descriptors_.reserve(num_frame);
-  for (int frame = 0; frame < num_frame; ++frame) {
-    descriptors_.emplace_back(
-        absl::make_unique<StaticDescriptor>(context_, descriptor_infos));
-    descriptors_[frame]->UpdateBufferInfos(
-        descriptor_infos[0], {uniform_buffer_.descriptor_info(frame)});
-    descriptors_[frame]->UpdateImageInfos(
-        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, image_infos);
-  }
-
+  uniform_buffer_.Init(sizeof(TextRenderInfo), num_frame);
   pipeline_builder_
       .set_vertex_input(
           GetBindingDescriptions({GetPerVertexBindings<VertexAttrib2D>()}),
           GetAttributeDescriptions({GetVertexAttributes<VertexAttrib2D>()}))
-      .set_layout({descriptors_[0]->layout()}, /*push_constant_ranges=*/{})
       .enable_alpha_blend();
 }
 
-void DynamicText::Update(VkExtent2D frame_size,
-                         const RenderPass& render_pass,
-                         uint32_t subpass_index) {
+void Text::Update(VkExtent2D frame_size,
+                  const RenderPass& render_pass, uint32_t subpass_index) {
   pipeline_ = pipeline_builder_
       .set_viewport({
           /*viewport=*/VkViewport{
@@ -138,13 +116,112 @@ void DynamicText::Update(VkExtent2D frame_size,
       .Build();
 }
 
+void Text::UpdateUniformBuffer(int frame, const glm::vec3& color, float alpha) {
+  uniform_buffer_.data<TextRenderInfo>(frame)->color_alpha =
+      glm::vec4(color, alpha);
+  uniform_buffer_.Flush(frame);
+}
+
+StaticText::StaticText(SharedBasicContext context,
+                       int num_frame,
+                       const vector<string>& texts,
+                       Font font, int font_height)
+    : Text{std::move(context), num_frame},
+      text_loader_{context_, texts, font, font_height} {
+  vertex_buffer_.Reserve(text_util::GetVertexDataSize(/*num_rect=*/1));
+  push_descriptors_.reserve(num_frame);
+
+  const auto& descriptor_infos = CreateDescriptorInfos();
+  descriptors_.reserve(num_frame);
+  for (int frame = 0; frame < num_frame; ++frame) {
+    descriptors_.emplace_back(
+        absl::make_unique<DynamicDescriptor>(context_, descriptor_infos));
+    push_descriptors_.emplace_back(
+        [=, &descriptor_infos](const VkCommandBuffer& command_buffer,
+                               const VkPipelineLayout& pipeline_layout,
+                               int text_index) {
+          descriptors_[frame]->PushBufferInfos(
+              command_buffer, pipeline_layout, descriptor_infos[0],
+              {uniform_buffer_.descriptor_info(frame)});
+          descriptors_[frame]->PushImageInfos(
+              command_buffer, pipeline_layout,
+              VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+              {{static_cast<int>(BindingPoint::kTexture),
+                {text_loader_.texture(text_index).image->descriptor_info()}}});
+        });
+  }
+
+  pipeline_builder_.set_layout({descriptors_[0]->layout()},
+                               /*push_constant_ranges=*/{});
+}
+
+glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer,
+                           int frame, VkExtent2D frame_size, int text_index,
+                           const glm::vec3& color, float alpha, float height,
+                           float base_x, float base_y, Align align) {
+  UpdateUniformBuffer(frame, color, alpha);
+
+  const auto& texture = text_loader_.texture(text_index);
+  const float frame_width_height_ratio = GetWidthHeightRatio(frame_size);
+  const glm::vec2 ratio = glm::vec2{texture.width_height_ratio /
+                                    frame_width_height_ratio, 1.0f} *
+                          (height / 1.0f);
+  const float width_in_frame = 1.0f * ratio.x;
+  const float offset_x = GetOffsetX(base_x, align, width_in_frame);
+
+  vector<VertexAttrib2D> vertices;
+  vertices.reserve(text_util::kNumVerticesPerRect);
+  text_util::AppendCharPosAndTexCoord(
+      /*pos_bottom_left=*/{offset_x, base_y - texture.base_y * ratio.y},
+      /*pos_increment=*/glm::vec2{1.0f} * ratio,
+      /*tex_coord_bottom_left=*/glm::vec2{0.0f},
+      /*tex_coord_increment=*/glm::vec2{1.0f},
+      &vertices);
+  vertex_buffer_.Init(PerVertexBuffer::InfoReuse{
+      /*num_mesh=*/1,
+      /*per_mesh_vertices=*/
+      {vertices, /*unit_count=*/text_util::kNumVerticesPerRect},
+      /*shared_indices=*/{text_util::indices_per_rect()},
+  });
+
+  pipeline_->Bind(command_buffer);
+  push_descriptors_[frame](command_buffer, pipeline_->layout(), text_index);
+  vertex_buffer_.Draw(command_buffer, /*mesh_index=*/0, /*instance_count=*/1);
+
+  return glm::vec2{offset_x, offset_x + width_in_frame};
+}
+
+DynamicText::DynamicText(SharedBasicContext context,
+                         int num_frame,
+                         const vector<string>& texts,
+                         Font font, int font_height)
+    : Text{std::move(context), num_frame},
+      char_loader_{context_, texts, font, font_height} {
+  const auto& descriptor_infos = CreateDescriptorInfos();
+  const Descriptor::ImageInfos image_infos{
+      {static_cast<int>(BindingPoint::kTexture),
+       {char_loader_.texture()->descriptor_info()}},
+  };
+
+  descriptors_.reserve(num_frame);
+  for (int frame = 0; frame < num_frame; ++frame) {
+    descriptors_.emplace_back(
+        absl::make_unique<StaticDescriptor>(context_, descriptor_infos));
+    descriptors_[frame]->UpdateBufferInfos(
+        descriptor_infos[0], {uniform_buffer_.descriptor_info(frame)});
+    descriptors_[frame]->UpdateImageInfos(
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, image_infos);
+  }
+
+  pipeline_builder_.set_layout({descriptors_[0]->layout()},
+                                /*push_constant_ranges=*/{});
+}
+
 glm::vec2 DynamicText::Draw(
     const VkCommandBuffer& command_buffer, int frame, VkExtent2D frame_size,
     const string& text, const glm::vec3& color, float alpha, float height,
     float base_x, float base_y, Align align) {
-  uniform_buffer_.data<DrawCharInfo>(frame)->color_alpha =
-      glm::vec4(color, alpha);
-  uniform_buffer_.Flush(frame);
+  UpdateUniformBuffer(frame, color, alpha);
 
   const float frame_width_height_ratio = GetWidthHeightRatio(frame_size);
   const glm::vec2 ratio = glm::vec2{char_loader_.width_height_ratio() /
@@ -173,7 +250,7 @@ glm::vec2 DynamicText::Draw(
                                             total_width_in_tex_coord * ratio.x);
 
   vector<VertexAttrib2D> vertices;
-  vertices.reserve(text_util::kNumVerticesPerChar * num_non_space_char);
+  vertices.reserve(text_util::kNumVerticesPerRect * num_non_space_char);
   float offset_x = initial_offset_x;
   for (auto c : text) {
     if (c == ' ') {
@@ -193,21 +270,16 @@ glm::vec2 DynamicText::Draw(
         &vertices);
     offset_x += char_texture.advance_x * ratio.x;
   }
-  const auto& indices = text_util::indices_per_char();
 
   vertex_buffer_.Init(PerVertexBuffer::InfoReuse{
       /*num_mesh=*/num_non_space_char,
       /*per_mesh_vertices=*/
-      {vertices, /*unit_count=*/text_util::kNumVerticesPerChar},
-      /*shared_indices=*/{indices},
+      {vertices, /*unit_count=*/text_util::kNumVerticesPerRect},
+      /*shared_indices=*/{text_util::indices_per_rect()},
   });
 
   pipeline_->Bind(command_buffer);
-  vkCmdBindDescriptorSets(
-      command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-      pipeline_->layout(), /*firstSet=*/0, /*descriptorSetCount=*/1,
-      &descriptors_[frame]->set(), /*dynamicOffsetCount=*/0,
-      /*pDynamicOffsets=*/nullptr);
+  descriptors_[frame]->Bind(command_buffer, pipeline_->layout());
   for (int i = 0; i < num_non_space_char; ++i) {
     vertex_buffer_.Draw(command_buffer, /*mesh_index=*/i, /*instance_count=*/1);
   }

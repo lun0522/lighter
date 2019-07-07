@@ -61,7 +61,8 @@ class CubeApp : public Application {
   PushConstant push_constant_;
   std::unique_ptr<Model> model_;
   std::unique_ptr<DepthStencilImage> depth_stencil_;
-  std::unique_ptr<DynamicText> text_;
+  std::unique_ptr<StaticText> static_text_;
+  std::unique_ptr<DynamicText> dynamic_text_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
 };
@@ -110,10 +111,14 @@ void CubeApp::Init() {
         .Build();
 
     // text
-    text_ = absl::make_unique<DynamicText>(
+    constexpr CharLoader::Font kFont = Text::Font::kGeorgia;
+    constexpr int kFontHeight = 50;
+    static_text_ = absl::make_unique<StaticText>(
         context(), kNumFrameInFlight,
-        std::vector<std::string>{"FPS: ", "01234567890"},
-        Text::Font::kGeorgia, /*font_height=*/50);
+        std::vector<std::string>{"FPS: "}, kFont, kFontHeight);
+    dynamic_text_ = absl::make_unique<DynamicText>(
+        context(), kNumFrameInFlight,
+        std::vector<std::string>{"01234567890"}, kFont, kFontHeight);
   }
 
   // render pass
@@ -129,8 +134,10 @@ void CubeApp::Init() {
                  static_cast<int>(SubpassIndex::kModel));
 
   // text
-  text_->Update(frame_size, *render_pass_,
-                static_cast<int>(SubpassIndex::kText));
+  static_text_->Update(frame_size, *render_pass_,
+                       static_cast<int>(SubpassIndex::kText));
+  dynamic_text_->Update(frame_size, *render_pass_,
+                        static_cast<int>(SubpassIndex::kText));
 
   // command buffer
   command_.Init(kNumFrameInFlight, &window_context_.queues());
@@ -160,11 +167,18 @@ void CubeApp::MainLoop() {
           model_->Draw(command_buffer, current_frame_, /*instance_count=*/1);
         },
         [&](const VkCommandBuffer& command_buffer) {
-          text_->Draw(command_buffer, current_frame_, frame_size,
-                      absl::StrFormat("FPS: %d", timer_.frame_rate()),
-                      /*color=*/glm::vec3{0.7f}, /*alpha=*/1.0f,
-                      /*height=*/0.05f, /*base_x=*/0.04f, /*base_y=*/0.05f,
-                      Text::Align::kLeft);
+          const glm::vec3 kColor{0.7f};
+          constexpr float kAlpha = 1.0f;
+          constexpr float kHeight = 0.05f;
+          constexpr float kBaseX = 0.04f;
+          constexpr float kBaseY = 0.05f;
+          glm::vec2 boundary = static_text_->Draw(
+              command_buffer, current_frame_, frame_size, 0,
+              kColor, kAlpha, kHeight, kBaseX, kBaseY, Text::Align::kLeft);
+          dynamic_text_->Draw(
+              command_buffer, current_frame_, frame_size,
+              absl::StrFormat("%d", timer_.frame_rate()),
+              kColor, kAlpha, kHeight, boundary.y, kBaseY, Text::Align::kLeft);
         },
     };
     const auto draw_result = command_.Run(

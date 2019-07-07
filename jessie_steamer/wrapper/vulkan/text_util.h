@@ -29,11 +29,18 @@ namespace wrapper {
 namespace vulkan {
 namespace text_util {
 
-constexpr int kNumVerticesPerChar = 4;
-constexpr int kNumIndicesPerChar = 6;
+constexpr int kNumVerticesPerRect = 4;
+constexpr int kNumIndicesPerRect = 6;
 
-// Returns indices per char.
-const std::array<uint32_t, kNumIndicesPerChar>& indices_per_char();
+// Returns indices per rectangle.
+const std::array<uint32_t, kNumIndicesPerRect>& indices_per_rect();
+
+// Returns the data size used for vertex buffer. Is is assumed that indices will
+// be shared and each vertex data is of type VertexAttrib2D.
+inline int GetVertexDataSize(int num_rect) {
+  return sizeof(indices_per_rect()[0]) * kNumIndicesPerRect +
+         sizeof(common::VertexAttrib2D) * kNumVerticesPerRect * num_rect;
+}
 
 // Appends pos and tex_coord to 'vertices' in CCW order.
 // All numbers should be in range [0.0, 1.0]. pos will be normalized internally.

@@ -323,12 +323,7 @@ void Model::Draw(const VkCommandBuffer& command_buffer,
     }
   }
   for (int mesh_index = 0; mesh_index < mesh_textures_.size(); ++mesh_index) {
-    // TODO: create a Bind() method for StaticDescriptor
-    vkCmdBindDescriptorSets(
-        command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-        pipeline_->layout(), /*firstSet=*/0, /*descriptorSetCount=*/1,
-        &descriptors_[frame][mesh_index]->set(), /*dynamicOffsetCount=*/0,
-        /*pDynamicOffsets=*/nullptr);
+    descriptors_[frame][mesh_index]->Bind(command_buffer, pipeline_->layout());
     vertex_buffer_->Draw(command_buffer, mesh_index, instance_count);
   }
 }

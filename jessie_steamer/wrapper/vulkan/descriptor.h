@@ -88,7 +88,6 @@ class Descriptor {
   }
 
   const VkDescriptorSetLayout& layout() const { return layout_; }
-  const VkDescriptorSet& set()          const { return set_; }
 
  protected:
   explicit Descriptor(SharedBasicContext context)
@@ -96,7 +95,6 @@ class Descriptor {
 
   SharedBasicContext context_;
   VkDescriptorSetLayout layout_;
-  VkDescriptorSet set_;
 };
 
 class StaticDescriptor : public Descriptor {
@@ -119,8 +117,17 @@ class StaticDescriptor : public Descriptor {
   void UpdateImageInfos(VkDescriptorType descriptor_type,
                         const ImageInfos& image_infos) const;
 
+  void Bind(const VkCommandBuffer& command_buffer,
+            const VkPipelineLayout& pipeline_layout) const;
+
+  const VkDescriptorSet& set() const { return set_; }
+
  private:
+  void UpdateDescriptorSets(
+      const std::vector<VkWriteDescriptorSet>& write_descriptor_sets) const;
+
   VkDescriptorPool pool_;
+  VkDescriptorSet set_;
 };
 
 class DynamicDescriptor : public Descriptor {
@@ -131,22 +138,22 @@ class DynamicDescriptor : public Descriptor {
   DynamicDescriptor(const DynamicDescriptor&) = delete;
   DynamicDescriptor& operator=(const DynamicDescriptor&) = delete;
 
-  void UpdateBufferInfos(
+  void PushBufferInfos(
       const VkCommandBuffer& command_buffer,
       const VkPipelineLayout& pipeline_layout,
       const Info& descriptor_info,
       const std::vector<VkDescriptorBufferInfo>& buffer_infos) const;
 
-  void UpdateImageInfos(const VkCommandBuffer& command_buffer,
-                        const VkPipelineLayout& pipeline_layout,
-                        VkDescriptorType descriptor_type,
-                        const ImageInfos& image_infos) const;
+  void PushImageInfos(const VkCommandBuffer& command_buffer,
+                      const VkPipelineLayout& pipeline_layout,
+                      VkDescriptorType descriptor_type,
+                      const ImageInfos& image_infos) const;
 
  private:
-  void UpdateDescriptorSet(
+  void PushDescriptorSets(
       const VkCommandBuffer& command_buffer,
       const VkPipelineLayout& pipeline_layout,
-      const std::vector<VkWriteDescriptorSet>& write_descriptor_set) const;
+      const std::vector<VkWriteDescriptorSet>& write_descriptor_sets) const;
 };
 
 } /* namespace vulkan */

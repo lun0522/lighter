@@ -8,6 +8,7 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_TEXT_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_TEXT_H
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -29,10 +30,19 @@ class Text {
   using Font = CharLoader::Font;
   enum class Align { kLeft, kCenter, kRight };
 
-  Text(SharedBasicContext context) : context_{std::move(context)} {}
+  // Should be called after initialization and whenever frame is resized.
+  void Update(VkExtent2D frame_size,
+              const RenderPass& render_pass, uint32_t subpass_index);
 
  protected:
+  Text(SharedBasicContext context, int num_frame);
+  void UpdateUniformBuffer(int frame, const glm::vec3& color, float alpha);
+
   SharedBasicContext context_;
+  DynamicPerVertexBuffer vertex_buffer_;
+  UniformBuffer uniform_buffer_;
+  PipelineBuilder pipeline_builder_;
+  std::unique_ptr<Pipeline> pipeline_;
 };
 
 class StaticText : public Text {
@@ -46,15 +56,18 @@ class StaticText : public Text {
   StaticText(const StaticText&) = delete;
   StaticText& operator=(const StaticText&) = delete;
 
-  // Should be called after initialization and whenever frame is resized.
-  void Update(VkExtent2D frame_size,
-              const RenderPass& render_pass, uint32_t subpass_index);
-
   // Renders text and returns left and right boundary.
   glm::vec2 Draw(const VkCommandBuffer& command_buffer,
                  int frame, VkExtent2D frame_size, int text_index,
                  const glm::vec3& color, float alpha, float height,
                  float base_x, float base_y, Align align);
+
+ private:
+  TextLoader text_loader_;
+  std::vector<std::unique_ptr<DynamicDescriptor>> descriptors_;
+  std::vector<std::function<void(const VkCommandBuffer& command_buffer,
+                                 const VkPipelineLayout& pipeline_layout,
+                                 int text_index)>> push_descriptors_;
 };
 
 class DynamicText : public Text {
@@ -68,10 +81,6 @@ class DynamicText : public Text {
   DynamicText(const DynamicText&) = delete;
   DynamicText& operator=(const DynamicText&) = delete;
 
-  // Should be called after initialization and whenever frame is resized.
-  void Update(VkExtent2D frame_size,
-              const RenderPass& render_pass, uint32_t subpass_index);
-
   // Renders text and returns left and right boundary.
   glm::vec2 Draw(const VkCommandBuffer& command_buffer,
                  int frame, VkExtent2D frame_size, const std::string& text,
@@ -80,11 +89,7 @@ class DynamicText : public Text {
 
  private:
   CharLoader char_loader_;
-  DynamicPerVertexBuffer vertex_buffer_;
-  UniformBuffer uniform_buffer_;
   std::vector<std::unique_ptr<StaticDescriptor>> descriptors_;
-  PipelineBuilder pipeline_builder_;
-  std::unique_ptr<Pipeline> pipeline_;
 };
 
 } /* namespace vulkan */

@@ -171,58 +171,70 @@ StaticDescriptor::StaticDescriptor(SharedBasicContext context,
 void StaticDescriptor::UpdateBufferInfos(
     const Info& descriptor_info,
     const vector<VkDescriptorBufferInfo>& buffer_infos) const {
-  auto write_desc_sets = CreateBuffersWriteDescriptorSets(
-      set_, descriptor_info, buffer_infos);
-  vkUpdateDescriptorSets(*context_->device(), CONTAINER_SIZE(write_desc_sets),
-                         write_desc_sets.data(), 0, nullptr);
+  UpdateDescriptorSets(
+      CreateBuffersWriteDescriptorSets(set_, descriptor_info, buffer_infos));
 }
 
 void StaticDescriptor::UpdateImageInfos(VkDescriptorType descriptor_type,
-                                        const ImageInfos& image_infos) const {
-  auto write_desc_sets = CreateImagesWriteDescriptorSets(
-      set_, descriptor_type, image_infos);
-  vkUpdateDescriptorSets(*context_->device(), CONTAINER_SIZE(write_desc_sets),
-                         write_desc_sets.data(), 0, nullptr);
+                                  const ImageInfos& image_infos) const {
+  UpdateDescriptorSets(
+      CreateImagesWriteDescriptorSets(set_, descriptor_type, image_infos));
+}
+
+void StaticDescriptor::UpdateDescriptorSets(
+    const vector<VkWriteDescriptorSet>& write_descriptor_sets) const {
+  vkUpdateDescriptorSets(*context_->device(),
+                         CONTAINER_SIZE(write_descriptor_sets),
+                         write_descriptor_sets.data(), 0, nullptr);
+}
+
+void StaticDescriptor::Bind(const VkCommandBuffer& command_buffer,
+                            const VkPipelineLayout& pipeline_layout) const {
+  vkCmdBindDescriptorSets(
+      command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+      pipeline_layout, /*firstSet=*/0, /*descriptorSetCount=*/1,
+      &set_, /*dynamicOffsetCount=*/0, /*pDynamicOffsets=*/nullptr);
 }
 
 DynamicDescriptor::DynamicDescriptor(SharedBasicContext context,
                                      const vector<Info>& infos)
     : Descriptor{std::move(context)} {
   layout_ = CreateDescriptorSetLayout(context_, infos, /*is_dynamic=*/true);
-  set_ = VK_NULL_HANDLE;
 }
 
-void DynamicDescriptor::UpdateBufferInfos(
+void DynamicDescriptor::PushBufferInfos(
     const VkCommandBuffer& command_buffer,
     const VkPipelineLayout& pipeline_layout,
     const Info& descriptor_info,
     const vector<VkDescriptorBufferInfo>& buffer_infos) const {
-  UpdateDescriptorSet(
+  PushDescriptorSets(
       command_buffer, pipeline_layout,
-      CreateBuffersWriteDescriptorSets(set_, descriptor_info, buffer_infos));
+      CreateBuffersWriteDescriptorSets(/*descriptor_set=*/VK_NULL_HANDLE,
+                                       descriptor_info, buffer_infos));
 }
 
-void DynamicDescriptor::UpdateImageInfos(
+void DynamicDescriptor::PushImageInfos(
     const VkCommandBuffer& command_buffer,
     const VkPipelineLayout& pipeline_layout,
     VkDescriptorType descriptor_type,
     const ImageInfos& image_infos) const {
-  UpdateDescriptorSet(
+  PushDescriptorSets(
       command_buffer, pipeline_layout,
-      CreateImagesWriteDescriptorSets(set_, descriptor_type, image_infos));
+      CreateImagesWriteDescriptorSets(/*descriptor_set=*/VK_NULL_HANDLE,
+                                      descriptor_type, image_infos));
 }
 
-void DynamicDescriptor::UpdateDescriptorSet(
+void DynamicDescriptor::PushDescriptorSets(
     const VkCommandBuffer& command_buffer,
     const VkPipelineLayout& pipeline_layout,
-    const vector<VkWriteDescriptorSet>& write_descriptor_set) const {
+    const vector<VkWriteDescriptorSet>& write_descriptor_sets) const {
   static const auto vkCmdPushDescriptorSetKHR =
       LoadDeviceFunction<PFN_vkCmdPushDescriptorSetKHR>(
           *context_->device(), "vkCmdPushDescriptorSetKHR");
   vkCmdPushDescriptorSetKHR(
       command_buffer, /*pipelineBindPoint=*/VK_PIPELINE_BIND_POINT_GRAPHICS,
-      pipeline_layout, /*set=*/0, CONTAINER_SIZE(write_descriptor_set),
-      write_descriptor_set.data());
+      pipeline_layout, /*set=*/0, CONTAINER_SIZE(write_descriptor_sets),
+      write_descriptor_sets.data());
 }
 
 } /* namespace vulkan */
