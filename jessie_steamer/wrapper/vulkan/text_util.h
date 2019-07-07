@@ -27,30 +27,6 @@
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
-namespace text_util {
-
-constexpr int kNumVerticesPerRect = 4;
-constexpr int kNumIndicesPerRect = 6;
-
-// Returns indices per rectangle.
-const std::array<uint32_t, kNumIndicesPerRect>& indices_per_rect();
-
-// Returns the data size used for vertex buffer. Is is assumed that indices will
-// be shared and each vertex data is of type VertexAttrib2D.
-inline int GetVertexDataSize(int num_rect) {
-  return sizeof(indices_per_rect()[0]) * kNumIndicesPerRect +
-         sizeof(common::VertexAttrib2D) * kNumVerticesPerRect * num_rect;
-}
-
-// Appends pos and tex_coord to 'vertices' in CCW order.
-// All numbers should be in range [0.0, 1.0]. pos will be normalized internally.
-void AppendCharPosAndTexCoord(const glm::vec2& pos_bottom_left,
-                              const glm::vec2& pos_increment,
-                              const glm::vec2& tex_coord_bottom_left,
-                              const glm::vec2& tex_coord_increment,
-                              std::vector<common::VertexAttrib2D>* vertices);
-
-}
 
 class CharLoader {
  public:
@@ -118,12 +94,47 @@ class TextLoader {
  private:
   TextTexture CreateTextTexture(const std::string& text, int font_height,
                                 const CharLoader& char_loader,
+                                StaticDescriptor* descriptor,
+                                RenderPassBuilder* render_pass_builder,
+                                PipelineBuilder* pipeline_builder,
                                 DynamicPerVertexBuffer* vertex_buffer) const;
 
   SharedBasicContext context_;
   std::vector<TextTexture> text_textures_;
 };
 
+namespace text_util {
+
+constexpr int kNumVerticesPerRect = 4;
+constexpr int kNumIndicesPerRect = 6;
+
+// Returns indices per rectangle.
+const std::array<uint32_t, kNumIndicesPerRect>& indices_per_rect();
+
+// Returns the data size used for vertex buffer. Is is assumed that indices will
+// be shared and each vertex data is of type VertexAttrib2D.
+inline int GetVertexDataSize(int num_rect) {
+  return sizeof(indices_per_rect()[0]) * kNumIndicesPerRect +
+         sizeof(common::VertexAttrib2D) * kNumVerticesPerRect * num_rect;
+}
+
+// Appends pos and tex_coord to 'vertices' in CCW order.
+// All numbers should be in range [0.0, 1.0]. Pos will be normalized internally.
+void AppendCharPosAndTexCoord(const glm::vec2& pos_bottom_left,
+                              const glm::vec2& pos_increment,
+                              const glm::vec2& tex_coord_bottom_left,
+                              const glm::vec2& tex_coord_increment,
+                              std::vector<common::VertexAttrib2D>* vertices);
+
+// Fills 'vertex_buffer' with data of characters in 'text', and returns the
+// right boundary of rendered text (i.e. final x offset).
+float LoadCharsVertexData(const std::string& text,
+                          const CharLoader& char_loader,
+                          const glm::vec2& ratio, float initial_offset_x,
+                          float base_y, bool flip_y,
+                          DynamicPerVertexBuffer* vertex_buffer);
+
+} /* namespace text_util */
 } /* namespace vulkan */
 } /* namespace wrapper */
 } /* namespace jessie_steamer */

@@ -141,8 +141,7 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
     const DepthStencilImage& depth_stencil_image,
     int num_swapchain_image,
     const GetImage& get_swapchain_image) {
-  std::unique_ptr<RenderPassBuilder> builder =
-      absl::make_unique<RenderPassBuilder>(std::move(context));
+  auto builder = absl::make_unique<RenderPassBuilder>(std::move(context));
 
   (*builder)
       .set_num_framebuffer(num_swapchain_image)

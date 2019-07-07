@@ -12,7 +12,6 @@
 #include <vector>
 
 #include "absl/memory/memory.h"
-#include "absl/strings/str_format.h"
 #include "jessie_steamer/application/vulkan/util.h"
 #include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/time.h"

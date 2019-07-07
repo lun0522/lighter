@@ -246,37 +246,12 @@ glm::vec2 DynamicText::Draw(
       total_width_in_tex_coord += found->second.advance_x;
     }
   }
+
   const float initial_offset_x = GetOffsetX(base_x, align,
                                             total_width_in_tex_coord * ratio.x);
-
-  vector<VertexAttrib2D> vertices;
-  vertices.reserve(text_util::kNumVerticesPerRect * num_non_space_char);
-  float offset_x = initial_offset_x;
-  for (auto c : text) {
-    if (c == ' ') {
-      offset_x += char_loader_.space_advance() * ratio.x;
-      continue;
-    }
-    const auto& char_texture = texture_map.find(c)->second;
-    const glm::vec2& size_in_tex = char_texture.size;
-    text_util::AppendCharPosAndTexCoord(
-        /*pos_bottom_left=*/
-        {offset_x + char_texture.bearing.x * ratio.x,
-         base_y + (char_texture.bearing.y - size_in_tex.y) * ratio.y},
-        /*pos_increment=*/size_in_tex * ratio,
-        /*tex_coord_bottom_left=*/
-        {char_texture.offset_x, 0.0f},
-        /*tex_coord_increment=*/size_in_tex,
-        &vertices);
-    offset_x += char_texture.advance_x * ratio.x;
-  }
-
-  vertex_buffer_.Init(PerVertexBuffer::InfoReuse{
-      /*num_mesh=*/num_non_space_char,
-      /*per_mesh_vertices=*/
-      {vertices, /*unit_count=*/text_util::kNumVerticesPerRect},
-      /*shared_indices=*/{text_util::indices_per_rect()},
-  });
+  float final_offset_x = text_util::LoadCharsVertexData(
+      text, char_loader_, ratio, initial_offset_x, base_y, /*flip_y=*/false,
+      &vertex_buffer_);
 
   pipeline_->Bind(command_buffer);
   descriptors_[frame]->Bind(command_buffer, pipeline_->layout());
@@ -284,7 +259,7 @@ glm::vec2 DynamicText::Draw(
     vertex_buffer_.Draw(command_buffer, /*mesh_index=*/i, /*instance_count=*/1);
   }
 
-  return glm::vec2{initial_offset_x, offset_x};
+  return glm::vec2{initial_offset_x, final_offset_x};
 }
 
 } /* namespace vulkan */

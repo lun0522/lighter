@@ -24,6 +24,8 @@ using std::vector;
 
 using common::VertexAttrib2D;
 
+constexpr int kImageBindingPoint = 0;
+
 string GetFontPath(CharLoader::Font font) {
   const string prefix = "external/resource/font/";
   switch (font) {
@@ -44,25 +46,28 @@ int GetIntervalBetweenChars(int font_height) {
   return interval;
 }
 
-std::unique_ptr<RenderPass> CreateRenderPass(
-    const SharedBasicContext& context,
-    VkExtent2D target_extent,
-    RenderPassBuilder::GetImage&& get_target_image) {
-  return RenderPassBuilder{context}
-      .set_framebuffer_size(target_extent)
-      .set_num_framebuffer(1)
-      .set_attachment(
-          /*index=*/0,
-          RenderPassBuilder::Attachment{
-              /*attachment_ops=*/RenderPassBuilder::Attachment::ColorOps{
-                  /*load_color=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-                  /*store_color=*/VK_ATTACHMENT_STORE_OP_STORE,
+vector<Descriptor::Info> CreateDescriptorInfos() {
+  return {
+      Descriptor::Info{
+          /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
+          /*bindings=*/{
+              Descriptor::Info::Binding{
+                  Descriptor::ResourceType::kTextureDiffuse,
+                  kImageBindingPoint,
+                  /*array_length=*/1,
               },
-              /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
-              /*final_layout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
           },
-          std::move(get_target_image)
-      )
+      },
+  };
+}
+
+std::unique_ptr<RenderPassBuilder> CreateRenderPassBuilder(
+    const SharedBasicContext& context) {
+  auto render_pass_builder = absl::make_unique<RenderPassBuilder>(context);
+
+  (*render_pass_builder)
+      .set_num_framebuffer(1)
       .set_subpass_description(
           /*index=*/0,
           RenderPassBuilder::SubpassAttachments{
@@ -86,39 +91,52 @@ std::unique_ptr<RenderPass> CreateRenderPass(
               /*stage_mask=*/VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
               /*access_mask=*/VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
           },
-      })
+      });
+
+  return render_pass_builder;
+}
+
+std::unique_ptr<RenderPass> BuildRenderPass(
+    VkExtent2D target_extent,
+    RenderPassBuilder::GetImage&& get_target_image,
+    RenderPassBuilder* render_pass_builder) {
+  return (*render_pass_builder)
+      .set_framebuffer_size(target_extent)
+      .set_attachment(
+          /*index=*/0,
+          RenderPassBuilder::Attachment{
+              /*attachment_ops=*/RenderPassBuilder::Attachment::ColorOps{
+                  /*load_color=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+                  /*store_color=*/VK_ATTACHMENT_STORE_OP_STORE,
+              },
+              /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
+              /*final_layout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+          },
+          std::move(get_target_image)
+      )
       .Build();
 }
 
-std::unique_ptr<DynamicDescriptor> CreateDescriptor(
-    const SharedBasicContext& context) {
-  return absl::make_unique<DynamicDescriptor>(
-      context,
-      /*infos=*/vector<Descriptor::Info>{
-          Descriptor::Info{
-              /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-              /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
-              /*bindings=*/{
-                  Descriptor::Info::Binding{
-                      Descriptor::ResourceType::kTextureDiffuse,
-                      /*binding_point=*/0,
-                      /*array_length=*/1,
-                  },
-              },
-          },
-      });
-}
-
-std::unique_ptr<Pipeline> CreatePipeline(
+std::unique_ptr<PipelineBuilder> CreatePipelineBuilder(
     const SharedBasicContext& context,
-    VkExtent2D target_extent,
-    const VkRenderPass& render_pass,
     const VkDescriptorSetLayout& descriptor_layout) {
-  return PipelineBuilder{context}
+  auto pipeline_builder = absl::make_unique<PipelineBuilder>(context);
+
+  (*pipeline_builder)
       .set_vertex_input(
           GetBindingDescriptions({GetPerVertexBindings<VertexAttrib2D>()}),
           GetAttributeDescriptions({GetVertexAttributes<VertexAttrib2D>()}))
       .set_layout({descriptor_layout}, /*push_constant_ranges=*/{})
+      .enable_alpha_blend()
+      .set_front_face_clockwise();  // since we will flip y coordinates
+
+  return pipeline_builder;
+}
+
+std::unique_ptr<Pipeline> BuildPipeline(VkExtent2D target_extent,
+                                        const VkRenderPass& render_pass,
+                                        PipelineBuilder* pipeline_builder) {
+  return (*pipeline_builder)
       .set_viewport({
           /*viewport=*/VkViewport{
               /*x=*/0.0f,
@@ -138,9 +156,14 @@ std::unique_ptr<Pipeline> CreatePipeline(
                    "jessie_steamer/shader/vulkan/simple_2d.vert.spv"})
       .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
                    "jessie_steamer/shader/vulkan/simple_2d.frag.spv"})
-      .enable_alpha_blend()
-      .set_front_face_clockwise()  // since we will flip y coordinates
       .Build();
+}
+
+// Flips y coordinate of each vertex in NDC.
+inline void FlipY(vector<VertexAttrib2D>* vertices) {
+  for (auto& vertex : *vertices) {
+    vertex.pos.y *= -1;
+  }
 }
 
 std::unique_ptr<PerVertexBuffer> CreateVertexBuffer(
@@ -163,9 +186,7 @@ std::unique_ptr<PerVertexBuffer> CreateVertexBuffer(
   }
   // resulting image should be flipped, so that when we use it later, we don't
   // have to flip y coordinates again
-  for (auto& vertex : vertices) {
-    vertex.pos.y *= -1;  // flip in NDC
-  }
+  FlipY(&vertices);
 
   std::unique_ptr<PerVertexBuffer> buffer =
       absl::make_unique<PerVertexBuffer>(context);
@@ -205,14 +226,21 @@ CharLoader::CharLoader(SharedBasicContext context,
     char_merge_order.emplace_back(ch.first);
   }
 
-  auto render_pass = CreateRenderPass(
-      context_, char_textures.extent_after_merge,
-      [this](int index) -> const Image& { return *image_; });
-  auto descriptor = CreateDescriptor(context_);
-  auto pipeline = CreatePipeline(context_, char_textures.extent_after_merge,
-                                 **render_pass, descriptor->layout());
   auto vertex_buffer = CreateVertexBuffer(context_, char_merge_order,
                                           char_texture_map_);
+
+  auto descriptor = absl::make_unique<DynamicDescriptor>(
+      context_, CreateDescriptorInfos());
+
+  auto render_pass_builder = CreateRenderPassBuilder(context_);
+  auto render_pass = BuildRenderPass(
+      char_textures.extent_after_merge,
+      [this](int index) -> const Image& { return *image_; },
+      render_pass_builder.get());
+
+  auto pipeline_builder = CreatePipelineBuilder(context_, descriptor->layout());
+  auto pipeline = BuildPipeline(char_textures.extent_after_merge,
+                                **render_pass, pipeline_builder.get());
 
   vector<RenderPass::RenderOp> render_ops{
       [&](const VkCommandBuffer& command_buffer) {
@@ -222,8 +250,9 @@ CharLoader::CharLoader(SharedBasicContext context,
               command_buffer, pipeline->layout(),
               /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
               /*image_infos=*/{
-                  {0, {char_textures.char_image_map[char_merge_order[i]]
-                           ->descriptor_info()}},
+                  {kImageBindingPoint,
+                   {char_textures.char_image_map[char_merge_order[i]]
+                        ->descriptor_info()}},
               });
           vertex_buffer->Draw(command_buffer, /*mesh_index=*/i,
               /*instance_count=*/1);
@@ -304,17 +333,27 @@ TextLoader::TextLoader(SharedBasicContext context,
       });
   vertex_buffer.Reserve(text_util::GetVertexDataSize(longest_text->length()));
 
+  auto descriptor = absl::make_unique<StaticDescriptor>(
+      context_, CreateDescriptorInfos());
+  auto render_pass_builder = CreateRenderPassBuilder(context_);
+  auto pipeline_builder = CreatePipelineBuilder(context_, descriptor->layout());
+
   CharLoader char_loader{context_, texts, font, font_height};
   text_textures_.reserve(texts.size());
   for (const auto& text : texts) {
     text_textures_.emplace_back(
-        CreateTextTexture(text, font_height, char_loader, &vertex_buffer));
+        CreateTextTexture(text, font_height, char_loader, descriptor.get(),
+                          render_pass_builder.get(), pipeline_builder.get(),
+                          &vertex_buffer));
   }
 }
 
 TextLoader::TextTexture TextLoader::CreateTextTexture(
     const string& text, int font_height,
     const CharLoader& char_loader,
+    StaticDescriptor* descriptor,
+    RenderPassBuilder* render_pass_builder,
+    PipelineBuilder* pipeline_builder,
     DynamicPerVertexBuffer* vertex_buffer) const {
   const auto& char_texture_map = char_loader.char_texture_map();
   float total_width_in_loader_tex = 0;
@@ -344,69 +383,28 @@ TextLoader::TextTexture TextLoader::CreateTextTexture(
                                         extent_after_merge),
   };
 
-  // TODO: extract this as a function since it is identical to text.cc
-  vector<VertexAttrib2D> vertices;
-  vertices.reserve(text_util::kNumVerticesPerRect * text.length());
-  float offset_x = 0.0f;
-  for (auto c : text) {
-    if (c == ' ') {
-      offset_x += char_loader.space_advance() * ratio.x;
-      continue;
-    }
-    const auto& char_texture = char_texture_map.find(c)->second;
-    const glm::vec2& size_in_tex = char_texture.size;
-    text_util::AppendCharPosAndTexCoord(
-        /*pos_bottom_left=*/
-        {offset_x + char_texture.bearing.x * ratio.x,
-         base_y + (char_texture.bearing.y - size_in_tex.y) * ratio.y},
-        /*pos_increment=*/size_in_tex * ratio,
-        /*tex_coord_bottom_left=*/
-        {char_texture.offset_x, 0.0f},
-        /*tex_coord_increment=*/size_in_tex,
-        &vertices);
-    offset_x += char_texture.advance_x * ratio.x;
-  }
   // resulting image should be flipped, so that when we use it later, we don't
   // have to flip y coordinates again
-  for (auto& vertex : vertices) {
-    vertex.pos.y *= -1;  // flip in NDC
-  }
+  text_util::LoadCharsVertexData(text, char_loader, ratio,
+                                 /*initial_offset_x=*/0.0f, base_y,
+                                 /*flip_y=*/true, vertex_buffer);
 
-  vertex_buffer->Init(PerVertexBuffer::InfoReuse{
-      /*num_mesh=*/static_cast<int>(text.length()),
-      /*per_mesh_vertices=*/
-      {vertices, /*unit_count=*/text_util::kNumVerticesPerRect},
-      /*shared_indices=*/{text_util::indices_per_rect()},
+  descriptor->UpdateImageInfos(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, {
+      {kImageBindingPoint, {char_loader.texture()->descriptor_info()}},
   });
 
-  // TODO: reuse these for different text
-  StaticDescriptor descriptor{context_, vector<Descriptor::Info>{
-      Descriptor::Info{
-          /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
-          /*bindings=*/{
-              Descriptor::Info::Binding{
-                  /*resource_type=*/common::types::kTextureDiffuse,
-                  /*binding_point=*/0,
-                  /*array_length=*/1,
-              },
-          },
-      }
-  }};
-  descriptor.UpdateImageInfos(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, {
-      {0, {char_loader.texture()->descriptor_info()}},
-  });
+  auto render_pass = BuildRenderPass(
+      extent_after_merge,
+      [&](int index) -> const Image& { return *text_texture.image; },
+      render_pass_builder);
 
-  auto render_pass = CreateRenderPass(
-      context_, extent_after_merge,
-      [&](int index) -> const Image& { return *text_texture.image; });
-  auto pipeline = CreatePipeline(context_, extent_after_merge,
-                                 **render_pass, descriptor.layout());
+  auto pipeline = BuildPipeline(extent_after_merge, **render_pass,
+                                pipeline_builder);
 
   vector<RenderPass::RenderOp> render_ops{
       [&](const VkCommandBuffer& command_buffer) {
         pipeline->Bind(command_buffer);
-        descriptor.Bind(command_buffer, pipeline->layout());
+        descriptor->Bind(command_buffer, pipeline->layout());
         for (int i = 0; i < text.length(); ++i) {
           vertex_buffer->Draw(command_buffer, /*mesh_index=*/i,
                               /*instance_count=*/1);
@@ -458,6 +456,45 @@ void AppendCharPosAndTexCoord(const glm::vec2 &pos_bottom_left,
       NormalizePos({pos_bottom_left.x, pos_top_right.y}),
       {tex_coord_bottom_left.x, tex_coord_top_right.y},
   });
+}
+
+float LoadCharsVertexData(const string& text, const CharLoader& char_loader,
+                         const glm::vec2& ratio, float initial_offset_x,
+                         float base_y, bool flip_y,
+                         DynamicPerVertexBuffer* vertex_buffer) {
+  float offset_x = initial_offset_x;
+  vector<VertexAttrib2D> vertices;
+  vertices.reserve(text_util::kNumVerticesPerRect * text.length());
+  for (auto c : text) {
+    if (c == ' ') {
+      offset_x += char_loader.space_advance() * ratio.x;
+      continue;
+    }
+    const auto& char_texture = char_loader.char_texture_map().find(c)->second;
+    const glm::vec2& size_in_tex = char_texture.size;
+    text_util::AppendCharPosAndTexCoord(
+        /*pos_bottom_left=*/
+        {offset_x + char_texture.bearing.x * ratio.x,
+         base_y + (char_texture.bearing.y - size_in_tex.y) * ratio.y},
+        /*pos_increment=*/size_in_tex * ratio,
+        /*tex_coord_bottom_left=*/
+        {char_texture.offset_x, 0.0f},
+        /*tex_coord_increment=*/size_in_tex,
+        &vertices);
+    offset_x += char_texture.advance_x * ratio.x;
+  }
+  if (flip_y) {
+    FlipY(&vertices);
+  }
+
+  vertex_buffer->Init(PerVertexBuffer::InfoReuse{
+      /*num_mesh=*/static_cast<int>(text.length()),
+      /*per_mesh_vertices=*/
+      {vertices, /*unit_count=*/text_util::kNumVerticesPerRect},
+      /*shared_indices=*/{text_util::indices_per_rect()},
+  });
+
+  return offset_x;
 }
 
 } /* namespace text_util */

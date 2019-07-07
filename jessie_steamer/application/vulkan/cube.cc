@@ -11,8 +11,6 @@
 #include <vector>
 
 #include "absl/memory/memory.h"
-#include "absl/strings/str_format.h"
-#include "absl/types/optional.h"
 #include "jessie_steamer/application/vulkan/util.h"
 #include "jessie_steamer/common/time.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
@@ -173,11 +171,11 @@ void CubeApp::MainLoop() {
           constexpr float kBaseX = 0.04f;
           constexpr float kBaseY = 0.05f;
           glm::vec2 boundary = static_text_->Draw(
-              command_buffer, current_frame_, frame_size, 0,
+              command_buffer, current_frame_, frame_size, /*text_index=*/0,
               kColor, kAlpha, kHeight, kBaseX, kBaseY, Text::Align::kLeft);
           dynamic_text_->Draw(
               command_buffer, current_frame_, frame_size,
-              absl::StrFormat("%d", timer_.frame_rate()),
+              std::to_string(timer_.frame_rate()),
               kColor, kAlpha, kHeight, boundary.y, kBaseY, Text::Align::kLeft);
         },
     };
