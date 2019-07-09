@@ -13,6 +13,7 @@
 #include "absl/memory/memory.h"
 #include "jessie_steamer/application/vulkan/util.h"
 #include "jessie_steamer/common/time.h"
+#include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/model.h"
@@ -58,7 +59,7 @@ class CubeApp : public Application {
   PerFrameCommand command_;
   PushConstant push_constant_;
   std::unique_ptr<Model> model_;
-  std::unique_ptr<DepthStencilImage> depth_stencil_;
+  std::unique_ptr<DepthStencilImage> depth_stencil_image_;
   std::unique_ptr<StaticText> static_text_;
   std::unique_ptr<DynamicText> dynamic_text_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
@@ -73,7 +74,8 @@ void CubeApp::Init() {
 
   // depth stencil
   auto frame_size = window_context_.frame_size();
-  depth_stencil_ = absl::make_unique<DepthStencilImage>(context(), frame_size);
+  depth_stencil_image_ =
+      absl::make_unique<DepthStencilImage>(context(), frame_size);
 
   if (is_first_time) {
     is_first_time = false;
@@ -83,10 +85,13 @@ void CubeApp::Init() {
 
     // render pass builder
     render_pass_builder_ = RenderPassBuilder::SimpleRenderPassBuilder(
-        context(), static_cast<int>(SubpassIndex::kNumSubpass), *depth_stencil_,
-        window_context_.swapchain().num_image(),
+        context(), static_cast<int>(SubpassIndex::kNumSubpass),
+        /*get_depth_stencil_image=*/[this](int index) -> const Image& {
+          return *depth_stencil_image_;
+        },
+        window_context_.num_swapchain_image(),
         /*get_swapchain_image=*/[this](int index) -> const Image& {
-          return window_context_.swapchain().image(index);
+          return window_context_.swapchain_image(index);
         });
 
     // model
@@ -122,9 +127,6 @@ void CubeApp::Init() {
   // render pass
   render_pass_ = (*render_pass_builder_)
       .set_framebuffer_size(frame_size)
-      .update_attachment(/*index=*/1, [this](int index) -> const Image& {
-        return *depth_stencil_;
-      })
       .Build();
 
   // model
@@ -138,7 +140,7 @@ void CubeApp::Init() {
                         static_cast<int>(SubpassIndex::kText));
 
   // command buffer
-  command_.Init(kNumFrameInFlight, &window_context_.queues());
+  command_.Init(kNumFrameInFlight, &context()->queues());
 }
 
 void CubeApp::UpdateData(int frame, float frame_aspect) {
@@ -155,7 +157,9 @@ void CubeApp::UpdateData(int frame, float frame_aspect) {
 
 void CubeApp::MainLoop() {
   Init();
-  while (!window_context_.ShouldQuit()) {
+  while (window_context_.CheckEvents()) {
+    timer_.Tick();
+
     const VkExtent2D frame_size = window_context_.frame_size();
     const auto update_data = [this, frame_size](int frame) {
       UpdateData(frame, (float)frame_size.width / frame_size.height);
@@ -180,22 +184,20 @@ void CubeApp::MainLoop() {
         },
     };
     const auto draw_result = command_.Run(
-        current_frame_, *window_context_.swapchain(), update_data,
+        current_frame_, window_context_.swapchain(), update_data,
         [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
           render_pass_->Run(command_buffer, framebuffer_index, render_ops);
         });
 
-    if (draw_result != VK_SUCCESS || window_context_.ShouldRecreate()) {
+    if (draw_result != VK_SUCCESS || window_context_.window().is_resized()) {
       window_context_.Cleanup();
       command_.Cleanup();
       Init();
     }
 
     current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
-    window_context_.PollEvents();
-    timer_.Tick();
   }
-  window_context_.WaitIdle();  // wait for all async operations finish
+  context()->WaitIdle();  // wait for all async operations finish
 }
 
 } /* namespace cube */

@@ -138,9 +138,9 @@ vector<VkFramebuffer> CreateFramebuffers(
 std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
     SharedBasicContext context,
     int num_subpass,
-    const DepthStencilImage& depth_stencil_image,
+    GetImage&& get_depth_stencil_image,
     int num_swapchain_image,
-    const GetImage& get_swapchain_image) {
+    GetImage&& get_swapchain_image) {
   auto builder = absl::make_unique<RenderPassBuilder>(std::move(context));
 
   (*builder)
@@ -155,7 +155,7 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
               /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
               /*final_layout=*/VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
           },
-          GetImage{get_swapchain_image}
+          std::move(get_swapchain_image)
       )
       .set_attachment(  // depth attachment
           /*index=*/1,
@@ -175,9 +175,7 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
           // although we have multiple swapchain images, we will share one depth
           // stencil image, because we only use one graphics queue, which only
           // renders on one swapchain image at a time
-          /*get_image=*/[&depth_stencil_image](int index) -> const Image& {
-            return depth_stencil_image;
-          }
+          std::move(get_depth_stencil_image)
       )
       .set_subpass_description(/*index=*/0, SubpassAttachments{
           /*color_refs=*/{

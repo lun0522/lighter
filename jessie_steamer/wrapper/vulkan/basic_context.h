@@ -27,6 +27,8 @@ namespace vulkan {
 class BasicContext;
 using SharedBasicContext = std::shared_ptr<BasicContext>;
 
+using ReleaseExpiredResourceOp = std::function<void()>;
+
 struct WindowSupport {
   const VkSurfaceKHR* surface;
   const std::vector<const char*>& window_extensions;
@@ -68,7 +70,17 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
     device_.Init(ptr(), window_support);
   }
 
-  void WaitIdle() const { vkDeviceWaitIdle(*device_); }
+  void AddReleaseExpiredResourceOp(ReleaseExpiredResourceOp&& op) {
+    release_expired_rsrc_ops_.emplace_back(std::move(op));
+  }
+
+  void WaitIdle() {
+    vkDeviceWaitIdle(*device_);
+    if (!release_expired_rsrc_ops_.empty()) {
+      for (const auto& op : release_expired_rsrc_ops_) { op(); }
+      release_expired_rsrc_ops_.clear();
+    }
+  }
 
   SharedBasicContext ptr()                        { return shared_from_this(); }
   const VkAllocationCallbacks* allocator()  const { return allocator_; }
@@ -96,6 +108,7 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
 #ifndef NDEBUG
   DebugCallback debug_callback_;
 #endif /* !NDEBUG */
+  std::vector<ReleaseExpiredResourceOp> release_expired_rsrc_ops_;
 };
 
 } /* namespace vulkan */

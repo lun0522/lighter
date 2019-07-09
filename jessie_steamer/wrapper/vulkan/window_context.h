@@ -59,23 +59,27 @@ class WindowContext {
                      static_cast<uint32_t>(screen_size.y)});
   }
 
+  // Checks events and returns whether the window should continue to show.
+  // Callbacks set via window will be invoked if triggering events are detected.
+  bool CheckEvents() {
+    window_.PollEvents();
+    return !window_.ShouldQuit();
+  }
+
   void Cleanup() {
     context_->WaitIdle();
     swapchain_.Cleanup();
     window_.Recreate();
   }
 
-  // TODO: expose all methods of widow and context here?
-  void WaitIdle()           const { context_->WaitIdle(); }
-  void PollEvents()         const { window_.PollEvents(); }
-  bool ShouldRecreate()     const { return window_.is_resized(); }
-  bool ShouldQuit()         const { return window_.ShouldQuit(); }
-
   SharedBasicContext basic_context()  const { return context_; }
-  const Queues& queues()              const { return context_->queues(); }
   common::Window& window()                  { return window_; }
-  const Swapchain& swapchain()        const { return swapchain_; }
+  const VkSwapchainKHR& swapchain()   const { return *swapchain_; }
   VkExtent2D frame_size()             const { return swapchain_.extent(); }
+  int num_swapchain_image()           const { return swapchain_.num_image(); }
+  const Image& swapchain_image(int index) const {
+    return swapchain_.image(index);
+  }
 
  private:
   class Surface {

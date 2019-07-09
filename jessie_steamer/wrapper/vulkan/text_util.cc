@@ -119,7 +119,8 @@ std::unique_ptr<RenderPass> BuildRenderPass(
 
 std::unique_ptr<PipelineBuilder> CreatePipelineBuilder(
     const SharedBasicContext& context,
-    const VkDescriptorSetLayout& descriptor_layout) {
+    const VkDescriptorSetLayout& descriptor_layout,
+    bool enable_alpha_blend) {
   auto pipeline_builder = absl::make_unique<PipelineBuilder>(context);
 
   (*pipeline_builder)
@@ -129,6 +130,9 @@ std::unique_ptr<PipelineBuilder> CreatePipelineBuilder(
       .set_layout({descriptor_layout}, /*push_constant_ranges=*/{})
       .enable_alpha_blend()
       .set_front_face_clockwise();  // since we will flip y coordinates
+  if (enable_alpha_blend) {
+    pipeline_builder->enable_alpha_blend();
+  }
 
   return pipeline_builder;
 }
@@ -238,7 +242,8 @@ CharLoader::CharLoader(SharedBasicContext context,
       [this](int index) -> const Image& { return *image_; },
       render_pass_builder.get());
 
-  auto pipeline_builder = CreatePipelineBuilder(context_, descriptor->layout());
+  auto pipeline_builder = CreatePipelineBuilder(context_, descriptor->layout(),
+                                                /*enable_alpha_blend=*/false);
   auto pipeline = BuildPipeline(char_textures.extent_after_merge,
                                 **render_pass, pipeline_builder.get());
 
@@ -274,7 +279,7 @@ CharLoader::CharTextures CharLoader::CreateCharTextures(
   int total_width = 0;
   for (const auto& ch : char_lib.char_info_map()) {
     if (ch.first != ' ') {
-      total_width += ch.second.advance_x + interval_between_chars;
+      total_width += ch.second.image->width + interval_between_chars;
     }
   }
   total_width -= interval_between_chars;
@@ -294,14 +299,12 @@ CharLoader::CharTextures CharLoader::CreateCharTextures(
       // no texture will be wasted for space. we only record its advance
       space_advance_x_ = advance_x;
     } else {
+      const glm::vec2 size =
+          glm::vec2{info.image->width, info.image->height} * ratio;
+      const glm::vec2 bearing = glm::vec2{info.bearing} * ratio;
       char_texture_map_.emplace(
           character,
-          CharTextureInfo{
-              /*size=*/glm::vec2{info.image->width, info.image->height} * ratio,
-              /*bearing=*/glm::vec2{info.bearing} * ratio,
-              offset_x,
-              advance_x,
-          }
+          CharTextureInfo{size, bearing, offset_x, advance_x}
       );
       char_textures.char_image_map.emplace(
           character,
@@ -316,7 +319,7 @@ CharLoader::CharTextures CharLoader::CreateCharTextures(
               }
           )
       );
-      offset_x += advance_x + interval_in_tex;
+      offset_x += size.x + interval_in_tex;
     }
   }
   return char_textures;
@@ -336,7 +339,8 @@ TextLoader::TextLoader(SharedBasicContext context,
   auto descriptor = absl::make_unique<StaticDescriptor>(
       context_, CreateDescriptorInfos());
   auto render_pass_builder = CreateRenderPassBuilder(context_);
-  auto pipeline_builder = CreatePipelineBuilder(context_, descriptor->layout());
+  auto pipeline_builder = CreatePipelineBuilder(context_, descriptor->layout(),
+                                                /*enable_alpha_blend=*/true);
 
   CharLoader char_loader{context_, texts, font, font_height};
   text_textures_.reserve(texts.size());

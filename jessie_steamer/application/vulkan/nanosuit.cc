@@ -14,6 +14,7 @@
 #include "jessie_steamer/application/vulkan/util.h"
 #include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/time.h"
+#include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/model.h"
@@ -70,7 +71,7 @@ class NanosuitApp : public Application {
   std::unique_ptr<Model> nanosuit_model_, skybox_model_;
   UniformBuffer nanosuit_vert_uniform_;
   PushConstant nanosuit_frag_constant_, skybox_constant_;
-  std::unique_ptr<DepthStencilImage> depth_stencil_;
+  std::unique_ptr<DepthStencilImage> depth_stencil_image_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
 };
@@ -83,7 +84,8 @@ void NanosuitApp::Init() {
 
   // depth stencil
   auto frame_size = window_context_.frame_size();
-  depth_stencil_ = absl::make_unique<DepthStencilImage>(context(), frame_size);
+  depth_stencil_image_ =
+      absl::make_unique<DepthStencilImage>(context(), frame_size);
 
   if (is_first_time) {
     is_first_time = false;
@@ -126,10 +128,13 @@ void NanosuitApp::Init() {
 
     // render pass builder
     render_pass_builder_ = RenderPassBuilder::SimpleRenderPassBuilder(
-        context(), /*num_subpass=*/1, *depth_stencil_,
-        window_context_.swapchain().num_image(),
+        context(), /*num_subpass=*/1,
+        /*get_depth_stencil_image=*/[this](int index) -> const Image& {
+          return *depth_stencil_image_;
+        },
+        window_context_.num_swapchain_image(),
         /*get_swapchain_image=*/[this](int index) -> const Image& {
-          return window_context_.swapchain().image(index);
+          return window_context_.swapchain_image(index);
         });
 
     // model
@@ -203,9 +208,6 @@ void NanosuitApp::Init() {
   // render pass
   render_pass_ = (*render_pass_builder_)
       .set_framebuffer_size(frame_size)
-      .update_attachment(/*index=*/1, [this](int index) -> const Image& {
-        return *depth_stencil_;
-      })
       .Build();
 
   // camera
@@ -217,7 +219,7 @@ void NanosuitApp::Init() {
   skybox_model_->Update(frame_size, *render_pass_, /*subpass_index=*/0);
 
   // command
-  command_.Init(kNumFrameInFlight, &window_context_.queues());
+  command_.Init(kNumFrameInFlight, &context()->queues());
 }
 
 void NanosuitApp::UpdateData(int frame) {
@@ -249,7 +251,9 @@ void NanosuitApp::MainLoop() {
   const auto update_data = [this](int frame) {
     UpdateData(frame);
   };
-  while (!should_quit_ && !window_context_.ShouldQuit()) {
+  while (!should_quit_ && window_context_.CheckEvents()) {
+    timer_.Tick();
+
     std::vector<RenderPass::RenderOp> render_ops{
         [&](const VkCommandBuffer& command_buffer) {
           nanosuit_model_->Draw(command_buffer, current_frame_,
@@ -259,7 +263,7 @@ void NanosuitApp::MainLoop() {
         },
     };
     const auto draw_result = command_.Run(
-        current_frame_, *window_context_.swapchain(), update_data,
+        current_frame_, window_context_.swapchain(), update_data,
         [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
           render_pass_->Run(command_buffer, framebuffer_index, render_ops);
         });
@@ -271,11 +275,9 @@ void NanosuitApp::MainLoop() {
     }
 
     current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
-    window_context_.PollEvents();
     camera_.set_activate(true);  // not activated until first frame is displayed
-    timer_.Tick();
   }
-  window_context_.WaitIdle();  // wait for all async operations finish
+  context()->WaitIdle();  // wait for all async operations finish
 }
 
 } /* namespace nanosuit */

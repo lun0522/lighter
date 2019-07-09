@@ -151,7 +151,6 @@ class RenderPassBuilder {
     SubpassInfo src_info, dst_info;
   };
 
-  // TODO: wrap depth stencil image and pass get_image instead
   // Contains one color attachment (at index 0) and one depth attachment (at
   // index 1). Only the first subpass will use the depth attachment and is
   // intended for rendering opaque objects. Following subpasses are intended for
@@ -161,9 +160,9 @@ class RenderPassBuilder {
   static std::unique_ptr<RenderPassBuilder> SimpleRenderPassBuilder(
       SharedBasicContext context,
       int num_subpass,
-      const DepthStencilImage& depth_stencil_image,
+      GetImage&& get_depth_stencil_image,
       int num_swapchain_image,
-      const GetImage& get_swapchain_image);
+      GetImage&& get_swapchain_image);
 
   explicit RenderPassBuilder(SharedBasicContext context)
     : context_{std::move(context)} {}

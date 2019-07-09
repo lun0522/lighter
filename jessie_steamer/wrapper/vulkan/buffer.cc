@@ -448,12 +448,18 @@ void PerInstanceBuffer::Bind(const VkCommandBuffer& command_buffer,
 }
 
 void DynamicPerVertexBuffer::Reserve(int size) {
-  if (size < buffer_size_) {
+  if (size <= buffer_size_) {
     return;
   }
 
   if (buffer_size_ > 0) {
-    // TODO: free buffer and memory after command buffer is done using them
+    // make copy of them since they will be changed soon.
+    VkBuffer buffer = buffer_;
+    VkDeviceMemory device_memory = device_memory_;
+    context_->AddReleaseExpiredResourceOp([=]() {
+      vkDestroyBuffer(*context_->device(), buffer, context_->allocator());
+      vkFreeMemory(*context_->device(), device_memory, context_->allocator());
+    });
   }
   buffer_size_ = size;
   CreateBufferAndMemory(buffer_size_, /*is_dynamic=*/true);

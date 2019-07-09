@@ -13,7 +13,6 @@ cc_library(
         ":model",
         ":render_pass",
         ":text",
-        ":vertex_input_util",
         ":window",
     ],
     data = ["@resource//:resource"],
