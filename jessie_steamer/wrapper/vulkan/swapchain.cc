@@ -8,7 +8,6 @@
 #include "jessie_steamer/wrapper/vulkan/swapchain.h"
 
 #include <algorithm>
-#include <iostream>
 #include <string>
 
 #include "absl/container/flat_hash_set.h"

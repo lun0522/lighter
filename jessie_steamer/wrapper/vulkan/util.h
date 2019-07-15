@@ -26,9 +26,14 @@ namespace wrapper {
 namespace vulkan {
 
 constexpr uint32_t nullflag = 0;
+
 constexpr uint32_t kPerVertexBindingPoint = 0;
 constexpr uint32_t kPerInstanceBindingPointBase = 1;
+
 constexpr int kCubemapImageCount = 6;
+
+constexpr uint32_t kSingleMipLevel = 1;
+constexpr uint32_t kSingleImageLayer = 1;
 
 template<typename FuncType>
 FuncType LoadInstanceFunction(const VkInstance& instance,

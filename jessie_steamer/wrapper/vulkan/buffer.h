@@ -268,11 +268,18 @@ class TextureBuffer : public ImageBuffer {
     uint32_t channel;
   };
 
-  TextureBuffer(SharedBasicContext context, const Info& info);
+  TextureBuffer(SharedBasicContext context,
+                const Info& info,
+                const std::vector<VkExtent2D>& mipmap_extents);
 
   // This class is neither copyable nor movable.
   TextureBuffer(const TextureBuffer&) = delete;
   TextureBuffer& operator=(const TextureBuffer&) = delete;
+
+  uint32_t mip_levels() const { return mip_levels_; }
+
+ private:
+  uint32_t mip_levels_;
 };
 
 class OffscreenBuffer : public ImageBuffer {

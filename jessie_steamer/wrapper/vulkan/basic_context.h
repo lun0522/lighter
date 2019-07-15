@@ -10,7 +10,6 @@
 
 #include <functional>
 #include <memory>
-#include <string>
 #include <vector>
 
 #include "absl/types/optional.h"
@@ -34,7 +33,7 @@ struct WindowSupport {
   const std::vector<const char*>& window_extensions;
   const std::vector<const char*>& swapchain_extensions;
   const std::function<void(const VkAllocationCallbacks* allocator,
-                      const VkInstance& instance)>& create_surface;
+                           const VkInstance& instance)>& create_surface;
 };
 
 class BasicContext : public std::enable_shared_from_this<BasicContext> {

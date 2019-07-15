@@ -7,6 +7,8 @@
 
 #include "jessie_steamer/wrapper/vulkan/image.h"
 
+#include <algorithm>
+#include <cmath>
 #include <memory>
 #include <vector>
 
@@ -20,6 +22,8 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
+using std::vector;
+
 VkFormat ChooseImageFormat(int channel) {
   switch (channel) {
     case 1:
@@ -32,10 +36,25 @@ VkFormat ChooseImageFormat(int channel) {
   }
 }
 
+vector<VkExtent2D> GenerateMipmapExtents(const TextureBuffer::Info& info) {
+  int largest_dim = std::max(info.width, info.height);
+  int mip_levels = std::floor(static_cast<float>(std::log2(largest_dim)));
+  vector<VkExtent2D> mipmap_extents(mip_levels);
+  auto current_width = info.width;
+  auto current_height = info.height;
+  for (int level = 0; level < mip_levels; ++level) {
+    current_width = current_width > 1 ? current_width / 2 : 1;
+    current_height = current_height > 1 ? current_height / 2 : 1;
+    mipmap_extents[level] = VkExtent2D{current_width, current_height};
+  }
+  return mipmap_extents;
+}
+
 VkImageView CreateImageView(const SharedBasicContext& context,
                             const VkImage& image,
                             VkFormat format,
                             VkImageAspectFlags aspect_mask,
+                            uint32_t mip_levels,
                             uint32_t layer_count) {
   VkImageViewType view_type;
   switch (layer_count) {
@@ -67,7 +86,7 @@ VkImageView CreateImageView(const SharedBasicContext& context,
       VkImageSubresourceRange{
           /*aspectMask=*/aspect_mask,
           /*baseMipLevel=*/0,
-          /*levelCount=*/1,
+          mip_levels,
           /*baseArrayLayer=*/0,
           layer_count,
       },
@@ -80,7 +99,8 @@ VkImageView CreateImageView(const SharedBasicContext& context,
   return image_view;
 }
 
-VkSampler CreateSampler(const SharedBasicContext& context) {
+VkSampler CreateSampler(const SharedBasicContext& context,
+                        int mip_levels) {
   VkSamplerCreateInfo sampler_info{
       VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -98,7 +118,7 @@ VkSampler CreateSampler(const SharedBasicContext& context) {
       /*compareEnable=*/VK_FALSE,
       /*compareOp=*/VK_COMPARE_OP_ALWAYS,
       /*minLod=*/0.0f,  // use for mipmapping
-      /*maxLod=*/0.0f,
+      /*maxLod=*/static_cast<float>(mip_levels),
       /*borderColor=*/VK_BORDER_COLOR_INT_OPAQUE_BLACK,
       /*unnormalizedCoordinates=*/VK_FALSE,
   };
@@ -113,13 +133,17 @@ VkSampler CreateSampler(const SharedBasicContext& context) {
 } /* namespace */
 
 TextureImage::TextureImage(SharedBasicContext context,
+                           bool generate_mipmaps,
                            const TextureBuffer::Info& info)
-    : Image{std::move(context)}, buffer_{context_, info} {
+    : Image{std::move(context)},
+      buffer_{context_, info, generate_mipmaps
+                                  ? GenerateMipmapExtents(info)
+                                  : vector<VkExtent2D>{}} {
   format_ = info.format;
   image_view_ = CreateImageView(context_, buffer_.image(), format_,
-                                VK_IMAGE_ASPECT_COLOR_BIT,
+                                VK_IMAGE_ASPECT_COLOR_BIT, buffer_.mip_levels(),
                                 /*layer_count=*/CONTAINER_SIZE(info.datas));
-  sampler_ = CreateSampler(context_);
+  sampler_ = CreateSampler(context_, buffer_.mip_levels());
 }
 
 VkDescriptorImageInfo TextureImage::descriptor_info() const {
@@ -139,9 +163,11 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
   const std::string* identifier;
   SourceImage source_image;
   const common::Image* sample_image;
-  std::vector<const void*> datas;
+  vector<const void*> datas;
+  bool generate_mipmaps;
 
   if (absl::holds_alternative<SingleTexPath>(source_path)) {
+    generate_mipmaps = true;
     const auto& single_tex_path = absl::get<SingleTexPath>(source_path);
     identifier = &single_tex_path;
     auto& image = source_image.emplace<RawImage>(
@@ -149,6 +175,7 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
     sample_image = image.get();
     datas.emplace_back(image->data);
   } else if (absl::holds_alternative<CubemapPath>(source_path)) {
+    generate_mipmaps = false;
     const auto& cubemap_path = absl::get<CubemapPath>(source_path);
     identifier = &cubemap_path.directory;
     auto& images = source_image.emplace<CubemapImage>();
@@ -164,7 +191,10 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
   }
 
   return RefCountedTexture::Get(
-      *identifier, std::move(context), TextureBuffer::Info{
+      *identifier,
+      std::move(context),
+      generate_mipmaps,
+      TextureBuffer::Info{
           std::move(datas),
           ChooseImageFormat(sample_image->channel),
           static_cast<uint32_t>(sample_image->width),
@@ -178,8 +208,9 @@ OffscreenImage::OffscreenImage(SharedBasicContext context,
     : Image{std::move(context), ChooseImageFormat(channel)},
       buffer_{context_, format_, extent} {
   image_view_ = CreateImageView(context_, buffer_.image(), format_,
-                                VK_IMAGE_ASPECT_COLOR_BIT, /*layer_count=*/1);
-  sampler_ = CreateSampler(context_);
+                                VK_IMAGE_ASPECT_COLOR_BIT,
+                                kSingleMipLevel, kSingleImageLayer);
+  sampler_ = CreateSampler(context_, kSingleMipLevel);
 }
 
 VkDescriptorImageInfo OffscreenImage::descriptor_info() const {
@@ -197,14 +228,15 @@ DepthStencilImage::DepthStencilImage(SharedBasicContext context,
   image_view_ = CreateImageView(context_, buffer_.image(), format_,
                                 VK_IMAGE_ASPECT_DEPTH_BIT
                                     | VK_IMAGE_ASPECT_STENCIL_BIT,
-                                /*layer_count=*/1);
+                                kSingleMipLevel, kSingleImageLayer);
 }
 
 SwapchainImage::SwapchainImage(SharedBasicContext context,
                                const VkImage& image, VkFormat format)
     : Image{std::move(context), format} {
   image_view_ = CreateImageView(context_, image, format_,
-                                VK_IMAGE_ASPECT_COLOR_BIT, /*layer_count=*/1);
+                                VK_IMAGE_ASPECT_COLOR_BIT,
+                                kSingleMipLevel, kSingleImageLayer);
 }
 
 } /* namespace vulkan */

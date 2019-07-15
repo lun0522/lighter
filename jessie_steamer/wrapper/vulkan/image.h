@@ -89,7 +89,9 @@ class SamplableImage {
 
 class TextureImage : public Image {
  public:
-  TextureImage(SharedBasicContext context, const TextureBuffer::Info& info);
+  TextureImage(SharedBasicContext context,
+               bool generate_mipmaps,
+               const TextureBuffer::Info& info);
 
   // This class is neither copyable nor movable.
   TextureImage(const TextureImage&) = delete;

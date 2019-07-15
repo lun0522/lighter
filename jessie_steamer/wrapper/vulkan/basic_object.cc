@@ -8,7 +8,6 @@
 #include "jessie_steamer/wrapper/vulkan/basic_object.h"
 
 #include <iostream>
-#include <numeric>
 #include <vector>
 
 #include "jessie_steamer/common/util.h"
@@ -327,9 +326,7 @@ Queues& Queues::set_queues(const VkQueue& graphics_queue,
   graphics.queue = graphics_queue;
   transfer.queue = transfer_queue;
   if (present.has_value()) {
-    if (!present_queue.has_value()) {
-      FATAL("Present queue is not specified");
-    }
+    ASSERT_HAS_VALUE(present_queue, "Present queue is not specified");
     present.value().queue = present_queue.value();
   } else if (present_queue.has_value()) {
     FATAL("Preset queue should not be specified");

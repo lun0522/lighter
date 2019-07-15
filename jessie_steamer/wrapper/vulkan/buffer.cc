@@ -124,6 +124,7 @@ VkImage CreateImage(const SharedBasicContext& context,
                     VkFormat format,
                     VkExtent3D extent,
                     VkImageUsageFlags usage,
+                    uint32_t mip_levels,
                     uint32_t layer_count) {
   VkImageCreateInfo image_info{
       VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -132,7 +133,7 @@ VkImage CreateImage(const SharedBasicContext& context,
       /*imageType=*/VK_IMAGE_TYPE_2D,
       format,
       extent,
-      /*mipLevels=*/1,
+      mip_levels,
       layer_count,
       /*samples=*/VK_SAMPLE_COUNT_1_BIT,
       // use VK_IMAGE_TILING_LINEAR if we want to directly access texels of
@@ -181,16 +182,37 @@ VkDeviceMemory CreateImageMemory(const SharedBasicContext& context,
   return memory;
 }
 
-void TransitionImageLayout(const SharedBasicContext& context,
-                           const VkImage& image,
-                           VkImageAspectFlags image_aspect_mask,
-                           array<VkImageLayout, 2> image_layouts,
-                           array<VkAccessFlags, 2> barrier_access_flags,
-                           array<VkPipelineStageFlags, 2> pipeline_stages,
-                           uint32_t layer_count) {
+void WaitForImageMemoryBarrier(
+    const VkImageMemoryBarrier& barrier,
+    const VkCommandBuffer& command_buffer,
+    const array<VkPipelineStageFlags, 2>& pipeline_stages) {
+  vkCmdPipelineBarrier(
+      command_buffer,
+      // operations before barrier should occur in which pipeline stage
+      pipeline_stages[0],
+      // operations waiting on barrier should occur in which stage
+      pipeline_stages[1],
+      // either 0 or VK_DEPENDENCY_BY_REGION_BIT. the latter one allows
+      // reading from regions that have been written, even if entire
+      // writing has not yet finished
+      /*dependencyFlags=*/0,
+      /*memoryBarrierCount=*/0,
+      /*pMemoryBarriers=*/nullptr,
+      /*bufferMemoryBarrierCount=*/0,
+      /*pBufferMemoryBarriers=*/nullptr,
+      /*imageMemoryBarrierCount=*/1,
+      &barrier);
+}
+
+void TransitionImageLayout(
+    const SharedBasicContext& context,
+    const VkImage& image, VkImageAspectFlags image_aspect_mask,
+    const array<VkImageLayout, 2>& image_layouts,
+    const array<VkAccessFlags, 2>& barrier_access_flags,
+    const array<VkPipelineStageFlags, 2>& pipeline_stages,
+    uint32_t mip_levels, uint32_t layer_count) {
   const auto& transfer_queue = context->queues().transfer;
 
-  // one-time transition command
   OneTimeCommand command{context, &transfer_queue};
   command.Run([&](const VkCommandBuffer& command_buffer) {
     VkImageMemoryBarrier barrier{
@@ -207,29 +229,12 @@ void TransitionImageLayout(const SharedBasicContext& context,
         VkImageSubresourceRange{
             /*aspectMask=*/image_aspect_mask,
             /*baseMipLevel=*/0,
-            /*levelCount=*/1,
+            mip_levels,
             /*baseArrayLayer=*/0,
             layer_count,
         },
     };
-
-    // wait for barrier
-    vkCmdPipelineBarrier(
-        command_buffer,
-        // operations before barrier should occur in which pipeline stage
-        pipeline_stages[0],
-        // operations waiting on barrier should occur in which stage
-        pipeline_stages[1],
-        // either 0 or VK_DEPENDENCY_BY_REGION_BIT. the latter one allows
-        // reading from regions that have been written, even if entire
-        // writing has not yet finished
-        /*dependencyFlags=*/0,
-        /*memoryBarrierCount=*/0,
-        /*pMemoryBarriers=*/nullptr,
-        /*bufferMemoryBarrierCount=*/0,
-        /*pBufferMemoryBarriers=*/nullptr,
-        /*imageMemoryBarrierCount=*/1,
-        &barrier);
+    WaitForImageMemoryBarrier(barrier, command_buffer, pipeline_stages);
   });
 }
 
@@ -254,7 +259,6 @@ void CopyBufferToBuffer(const SharedBasicContext& context,
                         VkDeviceSize data_size,
                         const VkBuffer& src_buffer,
                         const VkBuffer& dst_buffer) {
-  // one-time copy command
   OneTimeCommand command{context, &context->queues().transfer};
   command.Run([&](const VkCommandBuffer& command_buffer) {
     VkBufferCopy region{
@@ -296,7 +300,6 @@ void CopyBufferToImage(const SharedBasicContext& context,
                        const VkExtent3D& image_extent,
                        VkImageLayout image_layout,
                        uint32_t layer_count) {
-  // one-time copy command
   OneTimeCommand command{context, &context->queues().transfer};
   command.Run([&](const VkCommandBuffer& command_buffer) {
     VkBufferImageCopy region{
@@ -316,6 +319,116 @@ void CopyBufferToImage(const SharedBasicContext& context,
     };
     vkCmdCopyBufferToImage(
         command_buffer, buffer, image, image_layout, 1, &region);
+  });
+}
+
+inline VkOffset3D ExtentToOffset(const VkExtent2D& extent) {
+  return VkOffset3D{
+      static_cast<int32_t>(extent.width),
+      static_cast<int32_t>(extent.height),
+      /*z=*/1,
+  };
+}
+
+void GenerateMipmaps(const SharedBasicContext& context,
+                     const VkImage& image, VkFormat image_format,
+                     const VkExtent3D& image_extent,
+                     const vector<VkExtent2D>& mipmap_extents) {
+  VkFormatProperties properties;
+  vkGetPhysicalDeviceFormatProperties(*context->physical_device(),
+                                      image_format, &properties);
+  if (!(properties.optimalTilingFeatures &
+        VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
+    FATAL("Image format does not support linear blitting");
+  }
+
+  const auto& transfer_queue = context->queues().transfer;
+  OneTimeCommand command{context, &transfer_queue};
+  command.Run([&](const VkCommandBuffer& command_buffer) {
+    VkImageMemoryBarrier barrier{
+        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        /*pNext=*/nullptr,
+        /*srcAccessMask=*/0,  // to be updated
+        /*dstAccessMask=*/0,  // to be updated
+        /*oldLayout=*/VK_IMAGE_LAYOUT_UNDEFINED,  // to be updated
+        /*newLayout=*/VK_IMAGE_LAYOUT_UNDEFINED,  // to be updated
+        /*srcQueueFamilyIndex=*/transfer_queue.family_index,
+        /*dstQueueFamilyIndex=*/transfer_queue.family_index,
+        image,
+        // specify which part of image to use
+        VkImageSubresourceRange{
+            /*aspectMask=*/VK_IMAGE_ASPECT_COLOR_BIT,
+            /*baseMipLevel=*/0,  // to be updated
+            /*levelCount=*/1,
+            /*baseArrayLayer=*/0,
+            /*layerCount=*/1,
+        },
+    };
+
+    uint32_t dst_level = 1;
+    VkExtent2D prev_extent{image_extent.width, image_extent.height};
+    for (const auto& extent : mipmap_extents) {
+      const uint32_t src_level = dst_level - 1;
+
+      // make the previous layer TRANSFER_SRC_OPTIMAL
+      barrier.subresourceRange.baseMipLevel = src_level;
+      barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+      barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+      barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+      WaitForImageMemoryBarrier(barrier, command_buffer,
+                                {VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                 VK_PIPELINE_STAGE_TRANSFER_BIT});
+
+      // blit the previous level to next level after transitioning done
+      VkImageBlit image_blit{
+          /*srcSubresource=*/VkImageSubresourceLayers{
+              /*aspectMask=*/VK_IMAGE_ASPECT_COLOR_BIT,
+              /*mipLevel=*/src_level,
+              /*baseArrayLayer=*/0,
+              /*layerCount=*/1,
+          },
+          /*srcOffsets=*/{
+              VkOffset3D{0, 0, 0},
+              ExtentToOffset(prev_extent),
+          },
+          /*dstSubresource=*/VkImageSubresourceLayers{
+              /*aspectMask=*/VK_IMAGE_ASPECT_COLOR_BIT,
+              /*mipLevel=*/dst_level,
+              /*baseArrayLayer=*/0,
+              /*layerCount=*/1,
+          },
+          /*dstOffsets=*/{
+              VkOffset3D{0, 0, 0},
+              ExtentToOffset(extent),
+          },
+      };
+
+      vkCmdBlitImage(command_buffer,
+                     /*srcImage=*/image,
+                     /*srcImageLayout=*/VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                     /*dstImage=*/image,
+                     /*dstImageLayout=*/VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                     /*regionCount=*/1, &image_blit,
+                     /*filter=*/VK_FILTER_LINEAR);
+
+      ++dst_level;
+      prev_extent = extent;
+    }
+
+    // make all levels SHADER_READ_ONLY_OPTIMAL
+    for (uint32_t level = 0; level < mipmap_extents.size() + 1; ++level) {
+      barrier.subresourceRange.baseMipLevel = level;
+      barrier.oldLayout = level == mipmap_extents.size()
+                              ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+                              : VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+      barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+      WaitForImageMemoryBarrier(barrier, command_buffer,
+                                {VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                 VK_PIPELINE_STAGE_TRANSFER_BIT});
+    }
   });
 }
 
@@ -509,8 +622,11 @@ VkDescriptorBufferInfo UniformBuffer::descriptor_info(
   };
 }
 
-TextureBuffer::TextureBuffer(SharedBasicContext context, const Info& info)
-    : ImageBuffer{std::move(context)} {
+TextureBuffer::TextureBuffer(SharedBasicContext context,
+                             const Info& info,
+                             const vector<VkExtent2D>& mipmap_extents)
+    : ImageBuffer{std::move(context)},
+      mip_levels_{static_cast<uint32_t>(mipmap_extents.size() + 1)} {
   VkExtent3D image_extent = info.extent();
   VkDeviceSize data_size = info.data_size();
 
@@ -536,12 +652,16 @@ TextureBuffer::TextureBuffer(SharedBasicContext context, const Info& info)
   }
 
   // create final image buffer
-  VkImageCreateFlags flags = info.datas.size() == kCubemapImageCount
-                                 ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT
-                                 : nullflag;
-  image_ = CreateImage(context_, flags, info.format, image_extent,
+  VkImageCreateFlags cubemap_flag = layer_count == kCubemapImageCount
+                                        ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT
+                                        : nullflag;
+  VkImageUsageFlags mipmap_flag =
+      mipmap_extents.empty() ? nullflag : VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+  image_ = CreateImage(context_, cubemap_flag, info.format, image_extent,
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT
-                           | VK_IMAGE_USAGE_SAMPLED_BIT, layer_count);
+                           | VK_IMAGE_USAGE_SAMPLED_BIT
+                           | mipmap_flag,
+                       mip_levels_, layer_count);
   device_memory_ = CreateImageMemory(
       context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
@@ -551,16 +671,21 @@ TextureBuffer::TextureBuffer(SharedBasicContext context, const Info& info)
       {VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL},
       {VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT},
       {VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT},
-      layer_count);
+      mip_levels_, layer_count);
   CopyBufferToImage(context_, staging_buffer, image_, image_extent,
                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, layer_count);
-  TransitionImageLayout(
-      context_, image_, VK_IMAGE_ASPECT_COLOR_BIT,
-      {VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
-      {VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT},
-      {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT},
-      layer_count);
+  if (mipmap_extents.empty()) {
+    TransitionImageLayout(
+        context_, image_, VK_IMAGE_ASPECT_COLOR_BIT,
+        {VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
+        {VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT},
+        {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT},
+        kSingleMipLevel, layer_count);
+  } else {
+    GenerateMipmaps(context_, image_, info.format,
+                    image_extent, mipmap_extents);
+  }
 
   // cleanup transient objects
   vkDestroyBuffer(*context_->device(), staging_buffer, context_->allocator());
@@ -574,7 +699,7 @@ OffscreenBuffer::OffscreenBuffer(SharedBasicContext context,
                        {extent.width, extent.height, /*depth=*/1},
                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
                            | VK_IMAGE_USAGE_SAMPLED_BIT,
-                       /*layer_count=*/1);
+                       kSingleMipLevel, kSingleImageLayer);
   device_memory_ = CreateImageMemory(
       context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }
@@ -589,7 +714,7 @@ DepthStencilBuffer::DepthStencilBuffer(SharedBasicContext context,
   image_ = CreateImage(context_, nullflag, format_,
                        {extent.width, extent.height, /*depth=*/1},
                        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                       /*layer_count=*/1);
+                       kSingleMipLevel, kSingleImageLayer);
   device_memory_ = CreateImageMemory(
       context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
   TransitionImageLayout(context_, image_,
@@ -601,7 +726,7 @@ DepthStencilBuffer::DepthStencilBuffer(SharedBasicContext context,
                              | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT},
                         {VK_PIPELINE_STAGE_HOST_BIT,
                          VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT},
-                        /*layer_count=*/1);
+                        kSingleMipLevel, kSingleImageLayer);
 }
 
 void PushConstant::Init(size_t chunk_size, int num_chunk) {

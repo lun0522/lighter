@@ -56,9 +56,9 @@ new_git_repository(
 
 http_archive(
     name = "lib-vulkan",
-    url = "https://sdk.lunarg.com/sdk/download/1.1.92.1/mac/vulkansdk-macos-1.1.92.1.tar.gz",
-    sha256 = "1dc5c758ba83cc0b1e3baa533a5b2052afa378df87a84ee3e56ab6d97df12865",
-    strip_prefix = "vulkansdk-macos-1.1.92.1/macOS",
+    url = "https://sdk.lunarg.com/sdk/download/1.1.108.0/mac/vulkansdk-macos-1.1.108.0.tar.gz",
+    sha256 = "f493b0e9abc73e80a29fa24ef9bae3c2311513df973ade6ffc56008c30eaf60d",
+    strip_prefix = "vulkansdk-macos-1.1.108.0/macOS",
     build_file = "//:third_party/BUILD.vulkan",
 )
 

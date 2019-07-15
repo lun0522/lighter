@@ -221,10 +221,7 @@ VkResult PerFrameCommand::Run(int current_frame,
       // may use .pResults to check whether each swapchain rendered successfully
   };
 
-  if (!queues_->present.has_value()) {
-    FATAL("No present queue");
-  }
-
+  ASSERT_HAS_VALUE(queues_->present, "No present queue");
   VkResult present_result = vkQueuePresentKHR(queues_->present.value().queue,
                                               &present_info);
   switch (present_result) {

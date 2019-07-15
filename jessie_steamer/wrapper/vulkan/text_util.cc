@@ -310,6 +310,7 @@ CharLoader::CharTextures CharLoader::CreateCharTextures(
           character,
           absl::make_unique<TextureImage>(
               context_,
+              /*generate_mipmaps=*/false,
               TextureBuffer::Info{
                   {info.image->data},
                   VK_FORMAT_R8_UNORM,

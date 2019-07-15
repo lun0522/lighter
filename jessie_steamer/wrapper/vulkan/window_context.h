@@ -77,6 +77,7 @@ class WindowContext {
   const VkSwapchainKHR& swapchain()   const { return *swapchain_; }
   VkExtent2D frame_size()             const { return swapchain_.extent(); }
   int num_swapchain_image()           const { return swapchain_.num_image(); }
+
   const Image& swapchain_image(int index) const {
     return swapchain_.image(index);
   }
