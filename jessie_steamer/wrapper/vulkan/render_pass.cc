@@ -273,15 +273,6 @@ RenderPassBuilder& RenderPassBuilder::add_subpass_dependency(
   return *this;
 }
 
-RenderPassBuilder& RenderPassBuilder::update_attachment(int index,
-                                                        GetImage&& get_image) {
-  if (index >= get_images_.size()) {
-    FATAL(absl::StrFormat("Attachment at index %d is not set", index));
-  }
-  get_images_[index] = std::move(get_image);
-  return *this;
-}
-
 std::unique_ptr<RenderPass> RenderPassBuilder::Build() const {
   ASSERT_HAS_VALUE(framebuffer_size_, "Frame size is not set");
   ASSERT_HAS_VALUE(num_framebuffer_, "Number of frame is not set");

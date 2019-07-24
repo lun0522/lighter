@@ -34,6 +34,9 @@ constexpr int kCubemapImageCount = 6;
 
 constexpr uint32_t kSingleMipLevel = 1;
 constexpr uint32_t kSingleImageLayer = 1;
+constexpr VkSampleCountFlagBits kSingleSample = VK_SAMPLE_COUNT_1_BIT;
+
+constexpr VkAccessFlags kNullAccessFlag = 0;
 
 template<typename FuncType>
 FuncType LoadInstanceFunction(const VkInstance& instance,

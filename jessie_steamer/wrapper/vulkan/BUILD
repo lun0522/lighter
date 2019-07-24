@@ -237,5 +237,6 @@ cc_library(
         "//third_party:vulkan",
         "@lib-absl//absl/container:flat_hash_set",
         "@lib-absl//absl/memory",
+        "@lib-absl//absl/types:optional",
     ],
 )

@@ -11,6 +11,8 @@
 #include <memory>
 #include <vector>
 
+#include "absl/types/optional.h"
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "third_party/vulkan/vulkan.h"
@@ -56,18 +58,28 @@ class Swapchain {
   ~Swapchain() { Cleanup(); }
 
   void Init(SharedBasicContext context,
-            const VkSurfaceKHR& surface, VkExtent2D screen_size);
+            const VkSurfaceKHR& surface, VkExtent2D screen_size,
+            absl::optional<MultiSampleImage::Mode> multi_sampling_mode);
   void Cleanup();
 
   const VkSwapchainKHR& operator*() const { return swapchain_; }
-  VkExtent2D extent()               const { return image_extent_; }
-  int num_image()                   const { return images_.size(); }
-  const Image& image(int index)     const { return *images_[index]; }
+  VkExtent2D image_extent() const { return image_extent_; }
+  int num_swapcahin_image() const { return swapcahin_images_.size(); }
+  const Image& swapcahin_image(int index) const {
+    return *swapcahin_images_[index];
+  }
+  const Image& multi_sample_image() const {
+    if (!multi_sample_image_.has_value()) {
+      FATAL("Multi-sampling is not enabled");
+    }
+    return multi_sample_image_.value();
+  }
 
  private:
   SharedBasicContext context_;
   VkSwapchainKHR swapchain_;
-  std::vector<std::unique_ptr<SwapchainImage>> images_;
+  std::vector<std::unique_ptr<SwapchainImage>> swapcahin_images_;
+  absl::optional<MultiSampleImage> multi_sample_image_;
   VkExtent2D image_extent_;
 };
 

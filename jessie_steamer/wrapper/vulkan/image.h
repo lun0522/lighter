@@ -69,16 +69,17 @@ class Image {
   }
 
   const VkImageView& image_view() const { return image_view_; }
-  VkFormat format()               const { return format_; }
+  const VkExtent2D& extent() const { return extent_; }
+  VkFormat format() const { return format_; }
 
  protected:
-  explicit Image(SharedBasicContext context) : context_{std::move(context)} {}
-  Image(SharedBasicContext context, VkFormat format)
-      : context_{std::move(context)}, format_{format} {}
+  Image(SharedBasicContext context, const VkExtent2D& extent, VkFormat format)
+      : context_{std::move(context)}, extent_{extent}, format_{format} {}
 
   SharedBasicContext context_;
   VkImageView image_view_;
-  VkFormat format_;
+  const VkExtent2D extent_;
+  const VkFormat format_;
 };
 
 class SamplableImage {
@@ -142,7 +143,8 @@ class SharedTexture : public SamplableImage {
 
 class OffscreenImage : public Image {
  public:
-  OffscreenImage(SharedBasicContext context, int channel, VkExtent2D extent);
+  OffscreenImage(SharedBasicContext context,
+                 int channel, const VkExtent2D& extent);
 
   // This class is neither copyable nor movable.
   OffscreenImage(const OffscreenImage&) = delete;
@@ -175,7 +177,8 @@ class UnownedOffscreenTexture : public SamplableImage {
 
 class DepthStencilImage : public Image {
  public:
-  DepthStencilImage(SharedBasicContext context, VkExtent2D extent);
+  DepthStencilImage(const SharedBasicContext& context,
+                    const VkExtent2D& extent);
 
   // This class is neither copyable nor movable.
   DepthStencilImage(const DepthStencilImage&) = delete;
@@ -188,11 +191,33 @@ class DepthStencilImage : public Image {
 class SwapchainImage : public Image {
  public:
   SwapchainImage(SharedBasicContext context,
-                 const VkImage& image, VkFormat format);
+                 const VkImage& image,
+                 const VkExtent2D& extent, VkFormat format);
 
   // This class is neither copyable nor movable.
   SwapchainImage(const SwapchainImage&) = delete;
   SwapchainImage& operator=(const SwapchainImage&) = delete;
+};
+
+class MultiSampleImage : public Image {
+ public:
+  enum class Mode { kBestEffect, kEfficient };
+
+  MultiSampleImage(const SharedBasicContext& context,
+                   const Image& target_image, Mode mode);
+
+  // This class is neither copyable nor movable.
+  MultiSampleImage(const MultiSampleImage&) = delete;
+  MultiSampleImage& operator=(const MultiSampleImage&) = delete;
+
+  VkSampleCountFlagBits sample_count() const { return sample_count_; }
+
+ private:
+  static MultiSampleBuffer::Type GetType(const Image* image);
+
+  const MultiSampleBuffer::Type type_;
+  const VkSampleCountFlagBits sample_count_;
+  MultiSampleBuffer buffer_;
 };
 
 } /* namespace vulkan */

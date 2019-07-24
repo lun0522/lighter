@@ -12,6 +12,7 @@
 
 #include "jessie_steamer/common/window.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
+#include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/swapchain.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
@@ -38,6 +39,8 @@ class WindowContext {
   WindowContext& operator=(const WindowContext&) = delete;
 
   void Init(const std::string& name, int width = 800, int height = 600,
+            absl::optional<MultiSampleImage::Mode>
+                multi_sampling_mode = MultiSampleImage::Mode::kEfficient,
             const VkAllocationCallbacks* allocator = nullptr) {
     if (is_first_time_) {
       is_first_time_ = false;
@@ -56,7 +59,8 @@ class WindowContext {
     auto screen_size = window_.GetScreenSize();
     swapchain_.Init(context_, *surface_,
                     {static_cast<uint32_t>(screen_size.x),
-                     static_cast<uint32_t>(screen_size.y)});
+                     static_cast<uint32_t>(screen_size.y)},
+                    multi_sampling_mode);
   }
 
   // Checks events and returns whether the window should continue to show.
@@ -72,14 +76,19 @@ class WindowContext {
     window_.Recreate();
   }
 
-  SharedBasicContext basic_context()  const { return context_; }
-  common::Window& window()                  { return window_; }
-  const VkSwapchainKHR& swapchain()   const { return *swapchain_; }
-  VkExtent2D frame_size()             const { return swapchain_.extent(); }
-  int num_swapchain_image()           const { return swapchain_.num_image(); }
-
+  // Accessors.
+  SharedBasicContext basic_context() const { return context_; }
+  common::Window& window() { return window_; }
+  const VkSwapchainKHR& swapchain() const { return *swapchain_; }
+  VkExtent2D frame_size() const { return swapchain_.image_extent(); }
+  int num_swapchain_image() const {
+    return swapchain_.num_swapcahin_image();
+  }
   const Image& swapchain_image(int index) const {
-    return swapchain_.image(index);
+    return swapchain_.swapcahin_image(index);
+  }
+  const Image& multi_sample_image() const {
+    return swapchain_.multi_sample_image();
   }
 
  private:

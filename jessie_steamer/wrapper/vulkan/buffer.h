@@ -256,7 +256,8 @@ class ImageBuffer : public Buffer {
 class TextureBuffer : public ImageBuffer {
  public:
   struct Info{
-    VkExtent3D extent() const { return {width, height, /*depth=*/1}; }
+    VkExtent2D extent_2d() const { return {width, height}; }
+    VkExtent3D extent_3d() const { return {width, height, /*depth=*/1}; }
     VkDeviceSize data_size() const {
       return datas.size() * width * height * channel;
     }
@@ -269,8 +270,7 @@ class TextureBuffer : public ImageBuffer {
   };
 
   TextureBuffer(SharedBasicContext context,
-                const Info& info,
-                const std::vector<VkExtent2D>& mipmap_extents);
+                bool generate_mipmaps, const Info& info);
 
   // This class is neither copyable nor movable.
   TextureBuffer(const TextureBuffer&) = delete;
@@ -294,16 +294,25 @@ class OffscreenBuffer : public ImageBuffer {
 
 class DepthStencilBuffer : public ImageBuffer {
  public:
-  DepthStencilBuffer(SharedBasicContext context, VkExtent2D extent);
+  DepthStencilBuffer(SharedBasicContext context,
+                     VkExtent2D extent, VkFormat format);
 
   // This class is neither copyable nor movable.
   DepthStencilBuffer(const DepthStencilBuffer&) = delete;
   DepthStencilBuffer& operator=(const DepthStencilBuffer&) = delete;
+};
 
-  VkFormat format() const { return format_; }
+class MultiSampleBuffer : public ImageBuffer {
+ public:
+  enum class Type { kColor, kDepthStencil };
 
- private:
-  VkFormat format_;
+  MultiSampleBuffer(SharedBasicContext context,
+                    Type type, const VkExtent2D& extent, VkFormat format,
+                    VkSampleCountFlagBits sample_count);
+
+  // This class is neither copyable nor movable.
+  MultiSampleBuffer(const MultiSampleBuffer&) = delete;
+  MultiSampleBuffer& operator=(const MultiSampleBuffer&) = delete;
 };
 
 class PushConstant {

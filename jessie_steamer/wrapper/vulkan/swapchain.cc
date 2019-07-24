@@ -12,7 +12,6 @@
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/memory/memory.h"
-#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 
 namespace jessie_steamer {
@@ -96,8 +95,10 @@ const vector<const char*>& Swapchain::required_extensions() {
   return *kSwapchainExtensions;
 }
 
-void Swapchain::Init(SharedBasicContext context,
-                     const VkSurfaceKHR& surface, VkExtent2D screen_size) {
+void Swapchain::Init(
+    SharedBasicContext context,
+    const VkSurfaceKHR& surface, VkExtent2D screen_size,
+    absl::optional<MultiSampleImage::Mode> multi_sampling_mode) {
   context_ = std::move(context);
   const VkPhysicalDevice& physical_device = *context_->physical_device();
 
@@ -105,7 +106,7 @@ void Swapchain::Init(SharedBasicContext context,
   VkSurfaceCapabilitiesKHR surface_capabilities;
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface,
                                             &surface_capabilities);
-  VkExtent2D image_extent = ChooseExtent(surface_capabilities, screen_size);
+  image_extent_ = ChooseExtent(surface_capabilities, screen_size);
 
   // surface formats
   auto surface_formats{util::QueryAttribute<VkSurfaceFormatKHR>(
@@ -140,7 +141,7 @@ void Swapchain::Init(SharedBasicContext context,
       min_image_count,
       surface_format.format,
       surface_format.colorSpace,
-      image_extent,
+      image_extent_,
       /*imageArrayLayers=*/1,
       // can be different for post-processing
       /*imageUsage=*/VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -175,22 +176,27 @@ void Swapchain::Init(SharedBasicContext context,
                                       context_->allocator(), &swapchain_),
                  "Failed to create swapchain");
 
-  // fetch swapchain images and create image views for them
+  // fetch swapchain images
   auto images{util::QueryAttribute<VkImage>(
       [this](uint32_t *count, VkImage *images) {
         vkGetSwapchainImagesKHR(*context_->device(), swapchain_, count, images);
       }
   )};
-  images_.reserve(images.size());
+  swapcahin_images_.reserve(images.size());
   for (const auto& image : images) {
-    images_.emplace_back(absl::make_unique<SwapchainImage>(
-        context_, image, surface_format.format));
+    swapcahin_images_.emplace_back(absl::make_unique<SwapchainImage>(
+        context_, image, image_extent_, surface_format.format));
   }
-  image_extent_ = image_extent;
+
+  // create multi-sampling image if requested
+  if (multi_sampling_mode.has_value()) {
+    multi_sample_image_.emplace(context_, *swapcahin_images_[0],
+                                multi_sampling_mode.value());
+  }
 }
 
 void Swapchain::Cleanup() {
-  images_.clear();
+  swapcahin_images_.clear();
   vkDestroySwapchainKHR(*context_->device(), swapchain_, context_->allocator());
 }
 

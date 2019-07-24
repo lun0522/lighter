@@ -111,7 +111,8 @@ class RenderPassBuilder {
     };
 
     absl::variant<ColorOps, DepthStencilOps> attachment_ops;
-    VkImageLayout initial_layout, final_layout;
+    VkImageLayout initial_layout;
+    VkImageLayout final_layout;
   };
 
   struct SubpassAttachments {
@@ -155,8 +156,7 @@ class RenderPassBuilder {
   // index 1). Only the first subpass will use the depth attachment and is
   // intended for rendering opaque objects. Following subpasses are intended for
   // transparent objects and text. Each of them will depend on the previous one.
-  // Only set_framebuffer_size() and update_attachment() need to be
-  // called when window is resized.
+  // Only set_framebuffer_size() need to be called when window is resized.
   static std::unique_ptr<RenderPassBuilder> SimpleRenderPassBuilder(
       SharedBasicContext context,
       int num_subpass,
@@ -180,11 +180,6 @@ class RenderPassBuilder {
                                              SubpassAttachments&& attachments);
   RenderPassBuilder& add_subpass_dependency(
       const SubpassDependency& dependency);
-
-  // Used to update the get image method for an attachment. For example, when
-  // the window is resized and swapchain images are recreated, this should be
-  // called and the render pass should be rebuilt.
-  RenderPassBuilder& update_attachment(int index, GetImage&& get_image);
 
   // Build() can be called multiple times.
   std::unique_ptr<RenderPass> Build() const;

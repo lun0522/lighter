@@ -24,7 +24,7 @@ namespace {
 
 using std::vector;
 
-VkFormat ChooseImageFormat(int channel) {
+VkFormat FindImageFormatWithChannel(int channel) {
   switch (channel) {
     case 1:
       return VK_FORMAT_R8_UNORM;
@@ -36,24 +36,61 @@ VkFormat ChooseImageFormat(int channel) {
   }
 }
 
-vector<VkExtent2D> GenerateMipmapExtents(const TextureBuffer::Info& info) {
-  int largest_dim = std::max(info.width, info.height);
-  int mip_levels = std::floor(static_cast<float>(std::log2(largest_dim)));
-  vector<VkExtent2D> mipmap_extents(mip_levels);
-  auto current_width = info.width;
-  auto current_height = info.height;
-  for (int level = 0; level < mip_levels; ++level) {
-    current_width = current_width > 1 ? current_width / 2 : 1;
-    current_height = current_height > 1 ? current_height / 2 : 1;
-    mipmap_extents[level] = VkExtent2D{current_width, current_height};
+VkFormat FindImageFormatWithFeature(const SharedBasicContext& context,
+                                    const vector<VkFormat>& candidates,
+                                    VkFormatFeatureFlags features) {
+  for (auto format : candidates) {
+    VkFormatProperties properties;
+    vkGetPhysicalDeviceFormatProperties(*context->physical_device(),
+                                        format, &properties);
+    if ((properties.optimalTilingFeatures & features) == features) {
+      return format;
+    }
   }
-  return mipmap_extents;
+  FATAL("Failed to find suitable image type");
+}
+
+VkSampleCountFlagBits GetMaxSampleCount(VkSampleCountFlags count_flag) {
+  for (auto count : {VK_SAMPLE_COUNT_64_BIT,
+                     VK_SAMPLE_COUNT_32_BIT,
+                     VK_SAMPLE_COUNT_16_BIT,
+                     VK_SAMPLE_COUNT_8_BIT,
+                     VK_SAMPLE_COUNT_4_BIT,
+                     VK_SAMPLE_COUNT_2_BIT}) {
+    if (count_flag & count) {
+      return count;
+    }
+  }
+  FATAL("Multi-sampling is not supported by hardware");
+}
+
+VkSampleCountFlagBits ChooseSampleCount(const VkPhysicalDeviceLimits& limits,
+                                        MultiSampleBuffer::Type type,
+                                        MultiSampleImage::Mode mode) {
+  VkSampleCountFlags sample_count_flag;
+  switch (type) {
+    case MultiSampleBuffer::Type::kColor:
+      sample_count_flag = limits.framebufferColorSampleCounts;
+      break;
+    case MultiSampleBuffer::Type::kDepthStencil:
+      sample_count_flag = std::min(limits.framebufferDepthSampleCounts,
+                                   limits.framebufferStencilSampleCounts);
+  }
+
+  const VkSampleCountFlagBits max_sample_count =
+      GetMaxSampleCount(sample_count_flag);
+  switch (mode) {
+    case MultiSampleImage::Mode::kBestEffect:
+      return max_sample_count;
+    case MultiSampleImage::Mode::kEfficient:
+      return std::min(VK_SAMPLE_COUNT_4_BIT, max_sample_count);
+  }
 }
 
 VkImageView CreateImageView(const SharedBasicContext& context,
                             const VkImage& image,
                             VkFormat format,
-                            VkImageAspectFlags aspect_mask,
+                            VkImageAspectFlags image_aspect,
                             uint32_t mip_levels,
                             uint32_t layer_count) {
   VkImageViewType view_type;
@@ -84,7 +121,7 @@ VkImageView CreateImageView(const SharedBasicContext& context,
       },
       // specify image's purpose and which part to access
       VkImageSubresourceRange{
-          /*aspectMask=*/aspect_mask,
+          image_aspect,
           /*baseMipLevel=*/0,
           mip_levels,
           /*baseArrayLayer=*/0,
@@ -135,15 +172,12 @@ VkSampler CreateSampler(const SharedBasicContext& context,
 TextureImage::TextureImage(SharedBasicContext context,
                            bool generate_mipmaps,
                            const TextureBuffer::Info& info)
-    : Image{std::move(context)},
-      buffer_{context_, info, generate_mipmaps
-                                  ? GenerateMipmapExtents(info)
-                                  : vector<VkExtent2D>{}} {
-  format_ = info.format;
+    : Image{std::move(context), info.extent_2d(), info.format},
+      buffer_{context_, generate_mipmaps, info},
+      sampler_{CreateSampler(context_, buffer_.mip_levels())} {
   image_view_ = CreateImageView(context_, buffer_.image(), format_,
                                 VK_IMAGE_ASPECT_COLOR_BIT, buffer_.mip_levels(),
                                 /*layer_count=*/CONTAINER_SIZE(info.datas));
-  sampler_ = CreateSampler(context_, buffer_.mip_levels());
 }
 
 VkDescriptorImageInfo TextureImage::descriptor_info() const {
@@ -196,7 +230,7 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
       generate_mipmaps,
       TextureBuffer::Info{
           std::move(datas),
-          ChooseImageFormat(sample_image->channel),
+          FindImageFormatWithChannel(sample_image->channel),
           static_cast<uint32_t>(sample_image->width),
           static_cast<uint32_t>(sample_image->height),
           static_cast<uint32_t>(sample_image->channel),
@@ -204,13 +238,13 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
 }
 
 OffscreenImage::OffscreenImage(SharedBasicContext context,
-                               int channel, VkExtent2D extent)
-    : Image{std::move(context), ChooseImageFormat(channel)},
-      buffer_{context_, format_, extent} {
+                               int channel, const VkExtent2D& extent)
+    : Image{std::move(context), extent, FindImageFormatWithChannel(channel)},
+      buffer_{context_, format_, extent_},
+      sampler_{CreateSampler(context_, kSingleMipLevel)} {
   image_view_ = CreateImageView(context_, buffer_.image(), format_,
                                 VK_IMAGE_ASPECT_COLOR_BIT,
                                 kSingleMipLevel, kSingleImageLayer);
-  sampler_ = CreateSampler(context_, kSingleMipLevel);
 }
 
 VkDescriptorImageInfo OffscreenImage::descriptor_info() const {
@@ -221,10 +255,14 @@ VkDescriptorImageInfo OffscreenImage::descriptor_info() const {
   };
 }
 
-DepthStencilImage::DepthStencilImage(SharedBasicContext context,
-                                     VkExtent2D extent)
-    : Image{std::move(context)}, buffer_{context_, extent} {
-  format_ = buffer_.format();
+DepthStencilImage::DepthStencilImage(const SharedBasicContext& context,
+                                     const VkExtent2D& extent)
+    : Image{context, extent,
+            FindImageFormatWithFeature(
+                context,
+                {VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT_S8_UINT},
+                VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)},
+      buffer_{context_, extent_, format_} {
   image_view_ = CreateImageView(context_, buffer_.image(), format_,
                                 VK_IMAGE_ASPECT_DEPTH_BIT
                                     | VK_IMAGE_ASPECT_STENCIL_BIT,
@@ -232,11 +270,41 @@ DepthStencilImage::DepthStencilImage(SharedBasicContext context,
 }
 
 SwapchainImage::SwapchainImage(SharedBasicContext context,
-                               const VkImage& image, VkFormat format)
-    : Image{std::move(context), format} {
+                               const VkImage& image,
+                               const VkExtent2D& extent, VkFormat format)
+    : Image{std::move(context), extent, format} {
   image_view_ = CreateImageView(context_, image, format_,
                                 VK_IMAGE_ASPECT_COLOR_BIT,
                                 kSingleMipLevel, kSingleImageLayer);
+}
+
+MultiSampleBuffer::Type MultiSampleImage::GetType(const Image* image) {
+  if (dynamic_cast<const DepthStencilImage*>(image) != nullptr) {
+    return MultiSampleBuffer::Type::kDepthStencil;
+  } else {
+    return MultiSampleBuffer::Type::kColor;
+  }
+}
+
+MultiSampleImage::MultiSampleImage(const SharedBasicContext& context,
+                                   const Image& target_image, Mode mode)
+    : Image{context, target_image.extent(), target_image.format()},
+      type_{GetType(&target_image)},
+      sample_count_{
+          ChooseSampleCount(context_->physical_device().limits(), type_, mode)},
+      buffer_{context_, type_, extent_, format_, sample_count_} {
+  VkImageAspectFlags image_aspect;
+  switch (type_) {
+    case MultiSampleBuffer::Type::kColor:
+      image_aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+      break;
+    case MultiSampleBuffer::Type::kDepthStencil:
+      image_aspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+      break;
+  }
+  image_view_ = CreateImageView(
+      context_, buffer_.image(), format_,
+      image_aspect, kSingleMipLevel, kSingleImageLayer);
 }
 
 } /* namespace vulkan */
