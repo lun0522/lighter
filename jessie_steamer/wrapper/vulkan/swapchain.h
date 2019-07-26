@@ -59,7 +59,7 @@ class Swapchain {
 
   void Init(SharedBasicContext context,
             const VkSurfaceKHR& surface, VkExtent2D screen_size,
-            absl::optional<MultiSampleImage::Mode> multi_sampling_mode);
+            absl::optional<MultisampleImage::Mode> multisampling_mode);
   void Cleanup();
 
   const VkSwapchainKHR& operator*() const { return swapchain_; }
@@ -68,18 +68,18 @@ class Swapchain {
   const Image& swapcahin_image(int index) const {
     return *swapcahin_images_[index];
   }
-  const Image& multi_sample_image() const {
-    if (!multi_sample_image_.has_value()) {
-      FATAL("Multi-sampling is not enabled");
+  const Image& multisample_image() const {
+    if (multisample_image_ == nullptr) {
+      FATAL("Multisampling is not enabled");
     }
-    return multi_sample_image_.value();
+    return *multisample_image_;
   }
 
  private:
   SharedBasicContext context_;
   VkSwapchainKHR swapchain_;
   std::vector<std::unique_ptr<SwapchainImage>> swapcahin_images_;
-  absl::optional<MultiSampleImage> multi_sample_image_;
+  std::unique_ptr<MultisampleImage> multisample_image_;
   VkExtent2D image_extent_;
 };
 

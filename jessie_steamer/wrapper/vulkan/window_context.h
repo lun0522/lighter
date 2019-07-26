@@ -39,8 +39,8 @@ class WindowContext {
   WindowContext& operator=(const WindowContext&) = delete;
 
   void Init(const std::string& name, int width = 800, int height = 600,
-            absl::optional<MultiSampleImage::Mode>
-                multi_sampling_mode = MultiSampleImage::Mode::kEfficient,
+            absl::optional<MultisampleImage::Mode> multisampling_mode =
+                MultisampleImage::Mode::kEfficient,
             const VkAllocationCallbacks* allocator = nullptr) {
     if (is_first_time_) {
       is_first_time_ = false;
@@ -60,7 +60,7 @@ class WindowContext {
     swapchain_.Init(context_, *surface_,
                     {static_cast<uint32_t>(screen_size.x),
                      static_cast<uint32_t>(screen_size.y)},
-                    multi_sampling_mode);
+                    multisampling_mode);
   }
 
   // Checks events and returns whether the window should continue to show.
@@ -87,8 +87,8 @@ class WindowContext {
   const Image& swapchain_image(int index) const {
     return swapchain_.swapcahin_image(index);
   }
-  const Image& multi_sample_image() const {
-    return swapchain_.multi_sample_image();
+  const Image& multisample_image() const {
+    return swapchain_.multisample_image();
   }
 
  private:

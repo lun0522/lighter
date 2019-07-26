@@ -116,7 +116,13 @@ class RenderPassBuilder {
   };
 
   struct SubpassAttachments {
+    struct MultisamplingPair {
+      int multisample_attachment;
+      int target_attachment;
+    };
+
     std::vector<VkAttachmentReference> color_refs;
+    absl::optional<std::vector<MultisamplingPair>> multisampling_pairs;
     absl::optional<VkAttachmentReference> depth_stencil_ref;
   };
 
@@ -162,7 +168,8 @@ class RenderPassBuilder {
       int num_subpass,
       GetImage&& get_depth_stencil_image,
       int num_swapchain_image,
-      GetImage&& get_swapchain_image);
+      GetImage&& get_swapchain_image,
+      GetImage&& get_multisample_image);
 
   explicit RenderPassBuilder(SharedBasicContext context)
     : context_{std::move(context)} {}

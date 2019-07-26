@@ -138,6 +138,7 @@ class ModelBuilder {
   ModelBuilder& add_push_constant(model::PushConstantInfo&& info);
   ModelBuilder& add_shared_texture(model::ResourceType type,
                                    const TextureBinding& binding);
+  ModelBuilder& set_depth_sample_count(VkSampleCountFlagBits sample_count);
 
  private:
   void LoadSingleMesh(const SingleMeshResource& resource);

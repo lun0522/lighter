@@ -179,6 +179,11 @@ ModelBuilder& ModelBuilder::add_uniform_buffer(UniformInfo&& info) {
   return *this;
 }
 
+ModelBuilder& ModelBuilder::add_push_constant(model::PushConstantInfo&& info) {
+  push_constant_infos_.emplace_back(info);
+  return *this;
+}
+
 ModelBuilder& ModelBuilder::add_shared_texture(model::ResourceType type,
                                                const TextureBinding& binding) {
   const auto binding_point = binding.binding_point;
@@ -197,8 +202,9 @@ ModelBuilder& ModelBuilder::add_shared_texture(model::ResourceType type,
   return *this;
 }
 
-ModelBuilder& ModelBuilder::add_push_constant(model::PushConstantInfo&& info) {
-  push_constant_infos_.emplace_back(info);
+ModelBuilder& ModelBuilder::set_depth_sample_count(
+    VkSampleCountFlagBits sample_count) {
+  pipeline_builder_->set_depth_sample_count(sample_count);
   return *this;
 }
 

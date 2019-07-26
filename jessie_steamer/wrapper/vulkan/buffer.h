@@ -302,17 +302,17 @@ class DepthStencilBuffer : public ImageBuffer {
   DepthStencilBuffer& operator=(const DepthStencilBuffer&) = delete;
 };
 
-class MultiSampleBuffer : public ImageBuffer {
+class MultisampleBuffer : public ImageBuffer {
  public:
   enum class Type { kColor, kDepthStencil };
 
-  MultiSampleBuffer(SharedBasicContext context,
+  MultisampleBuffer(SharedBasicContext context,
                     Type type, const VkExtent2D& extent, VkFormat format,
                     VkSampleCountFlagBits sample_count);
 
   // This class is neither copyable nor movable.
-  MultiSampleBuffer(const MultiSampleBuffer&) = delete;
-  MultiSampleBuffer& operator=(const MultiSampleBuffer&) = delete;
+  MultisampleBuffer(const MultisampleBuffer&) = delete;
+  MultisampleBuffer& operator=(const MultisampleBuffer&) = delete;
 };
 
 class PushConstant {

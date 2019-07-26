@@ -719,7 +719,7 @@ DepthStencilBuffer::DepthStencilBuffer(SharedBasicContext context,
       context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }
 
-MultiSampleBuffer::MultiSampleBuffer(
+MultisampleBuffer::MultisampleBuffer(
     SharedBasicContext context,
     Type type, const VkExtent2D& extent, VkFormat format,
     VkSampleCountFlagBits sample_count)

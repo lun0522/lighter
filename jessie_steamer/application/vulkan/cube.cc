@@ -59,7 +59,8 @@ class CubeApp : public Application {
   PerFrameCommand command_;
   PushConstant push_constant_;
   std::unique_ptr<Model> model_;
-  std::unique_ptr<DepthStencilImage> depth_stencil_image_;
+  std::unique_ptr<MultisampleImage> depth_stencil_image_;
+  std::unique_ptr<MultisampleImage> multisample_image_;
   std::unique_ptr<StaticText> static_text_;
   std::unique_ptr<DynamicText> dynamic_text_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
@@ -72,10 +73,15 @@ void CubeApp::Init() {
   // window
   window_context_.Init("Cube");
 
+  // multisampling
+  multisample_image_ = MultisampleImage::CreateColorMultisampleImage(
+      context(), window_context_.swapchain_image(0),
+      MultisampleImage::Mode::kEfficient);
+
   // depth stencil
   auto frame_size = window_context_.frame_size();
-  depth_stencil_image_ =
-      absl::make_unique<DepthStencilImage>(context(), frame_size);
+  depth_stencil_image_ = MultisampleImage::CreateDepthStencilMultisampleImage(
+      context(), frame_size, MultisampleImage::Mode::kEfficient);
 
   if (is_first_time) {
     is_first_time = false;
@@ -92,6 +98,9 @@ void CubeApp::Init() {
         window_context_.num_swapchain_image(),
         /*get_swapchain_image=*/[this](int index) -> const Image& {
           return window_context_.swapchain_image(index);
+        },
+        /*get_multisample_image=*/[this](int index) -> const Image& {
+          return *multisample_image_;
         });
 
     // model
@@ -111,6 +120,7 @@ void CubeApp::Init() {
                      "jessie_steamer/shader/vulkan/simple_3d.frag.spv"})
         .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
                             {{&push_constant_, /*offset=*/0}}})
+        .set_depth_sample_count(depth_stencil_image_->sample_count())
         .Build();
 
     // text

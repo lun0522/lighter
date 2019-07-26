@@ -177,6 +177,8 @@ class UnownedOffscreenTexture : public SamplableImage {
 
 class DepthStencilImage : public Image {
  public:
+  static VkFormat GetDepthStencilImageFormat(const SharedBasicContext& context);
+
   DepthStencilImage(const SharedBasicContext& context,
                     const VkExtent2D& extent);
 
@@ -199,25 +201,31 @@ class SwapchainImage : public Image {
   SwapchainImage& operator=(const SwapchainImage&) = delete;
 };
 
-class MultiSampleImage : public Image {
+class MultisampleImage : public Image {
  public:
   enum class Mode { kBestEffect, kEfficient };
 
-  MultiSampleImage(const SharedBasicContext& context,
-                   const Image& target_image, Mode mode);
+  static std::unique_ptr<MultisampleImage> CreateColorMultisampleImage(
+      SharedBasicContext context,
+      const Image& target_image, Mode mode);
+
+  static std::unique_ptr<MultisampleImage> CreateDepthStencilMultisampleImage(
+      SharedBasicContext context,
+      const VkExtent2D& extent, Mode mode);
+
+  MultisampleImage(SharedBasicContext context,
+                   const VkExtent2D& extent, VkFormat format,
+                   Mode mode, MultisampleBuffer::Type type);
 
   // This class is neither copyable nor movable.
-  MultiSampleImage(const MultiSampleImage&) = delete;
-  MultiSampleImage& operator=(const MultiSampleImage&) = delete;
+  MultisampleImage(const MultisampleImage&) = delete;
+  MultisampleImage& operator=(const MultisampleImage&) = delete;
 
   VkSampleCountFlagBits sample_count() const { return sample_count_; }
 
  private:
-  static MultiSampleBuffer::Type GetType(const Image* image);
-
-  const MultiSampleBuffer::Type type_;
   const VkSampleCountFlagBits sample_count_;
-  MultiSampleBuffer buffer_;
+  MultisampleBuffer buffer_;
 };
 
 } /* namespace vulkan */

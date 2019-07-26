@@ -85,6 +85,7 @@ class PipelineBuilder {
   PipelineBuilder& set_viewport(ViewportInfo&& info);
   PipelineBuilder& set_render_pass(const VkRenderPass& render_pass,
                                    uint32_t subpass_index);
+  PipelineBuilder& set_depth_sample_count(VkSampleCountFlagBits sample_count);
   PipelineBuilder& add_shader(const ShaderInfo& info);
 
   // By default depth testing, stencil testing and alpha blending are disabled,

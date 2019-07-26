@@ -98,7 +98,7 @@ const vector<const char*>& Swapchain::required_extensions() {
 void Swapchain::Init(
     SharedBasicContext context,
     const VkSurfaceKHR& surface, VkExtent2D screen_size,
-    absl::optional<MultiSampleImage::Mode> multi_sampling_mode) {
+    absl::optional<MultisampleImage::Mode> multisampling_mode) {
   context_ = std::move(context);
   const VkPhysicalDevice& physical_device = *context_->physical_device();
 
@@ -188,10 +188,10 @@ void Swapchain::Init(
         context_, image, image_extent_, surface_format.format));
   }
 
-  // create multi-sampling image if requested
-  if (multi_sampling_mode.has_value()) {
-    multi_sample_image_.emplace(context_, *swapcahin_images_[0],
-                                multi_sampling_mode.value());
+  // create multisample image if requested
+  if (multisampling_mode.has_value()) {
+    multisample_image_ = MultisampleImage::CreateColorMultisampleImage(
+        context_, *swapcahin_images_[0], multisampling_mode.value());
   }
 }
 

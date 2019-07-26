@@ -23,6 +23,8 @@ using std::vector;
 
 using ColorOps = RenderPassBuilder::Attachment::ColorOps;
 using DepthStencilOps = RenderPassBuilder::Attachment::DepthStencilOps;
+using MultisamplingPair =
+    RenderPassBuilder::SubpassAttachments::MultisamplingPair;
 
 VkClearValue CreateClearColor(const RenderPassBuilder::Attachment& attachment) {
   VkClearValue clear_value{};
@@ -38,17 +40,18 @@ VkClearValue CreateClearColor(const RenderPassBuilder::Attachment& attachment) {
 }
 
 VkAttachmentDescription CreateAttachmentDescription(
-    const RenderPassBuilder::Attachment& attachment, VkFormat format) {
+    const RenderPassBuilder::Attachment& attachment,
+    VkFormat format, VkSampleCountFlagBits sample_count) {
   VkAttachmentDescription description{
       /*flags=*/nullflag,
       format,
-      /*samples=*/VK_SAMPLE_COUNT_1_BIT,  // no multi-sampling
+      sample_count,
       /*loadOp=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,  // to be updated
       /*storeOp=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,  // to be updated
       /*stencilLoadOp=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,  // to be updated
       /*stencilStoreOp=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,  // to be updated
-      /*initialLayout=*/attachment.initial_layout,
-      /*finalLayout=*/attachment.final_layout,
+      attachment.initial_layout,
+      attachment.final_layout,
   };
   if (absl::holds_alternative<ColorOps>(attachment.attachment_ops)) {
     const auto& color_ops = absl::get<ColorOps>(attachment.attachment_ops);
@@ -70,6 +73,23 @@ VkAttachmentDescription CreateAttachmentDescription(
 
 VkSubpassDescription CreateSubpassDescription(
     const RenderPassBuilder::SubpassAttachments& attachments) {
+  absl::optional<vector<VkAttachmentReference>> multisampling_refs;
+  if (attachments.multisampling_pairs.has_value()) {
+    multisampling_refs.emplace(vector<VkAttachmentReference>(
+        attachments.color_refs.size(),
+        VkAttachmentReference{
+            /*attachment=*/VK_ATTACHMENT_UNUSED,
+            /*layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
+        }
+    ));
+    for (const auto& pair : attachments.multisampling_pairs.value()) {
+      multisampling_refs.value()[pair.multisample_attachment] =
+          VkAttachmentReference{
+              /*attachment=*/static_cast<uint32_t>(pair.target_attachment),
+              /*layout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+          };
+    }
+  }
   return VkSubpassDescription{
       /*flags=*/nullflag,
       /*pipelineBindPoint=*/VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -78,7 +98,9 @@ VkSubpassDescription CreateSubpassDescription(
       /*pInputAttachments=*/nullptr,
       CONTAINER_SIZE(attachments.color_refs),
       attachments.color_refs.data(),
-      /*pResolveAttachments=*/nullptr,
+      multisampling_refs.has_value()
+          ? multisampling_refs.value().data()
+          : nullptr,
       // render pass can only use one depth stencil buffer, so no count needed
       attachments.depth_stencil_ref.has_value()
           ? &attachments.depth_stencil_ref.value()
@@ -140,7 +162,8 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
     int num_subpass,
     GetImage&& get_depth_stencil_image,
     int num_swapchain_image,
-    GetImage&& get_swapchain_image) {
+    GetImage&& get_swapchain_image,
+    GetImage&& get_multisample_image) {
   auto builder = absl::make_unique<RenderPassBuilder>(std::move(context));
 
   (*builder)
@@ -157,8 +180,20 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
           },
           std::move(get_swapchain_image)
       )
-      .set_attachment(  // depth attachment
+      .set_attachment(  // multisampling attachment
           /*index=*/1,
+          Attachment{
+              /*attachment_ops=*/Attachment::ColorOps{
+                  /*load_color=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+                  /*store_color=*/VK_ATTACHMENT_STORE_OP_STORE,
+              },
+              /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
+              /*final_layout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+          },
+          std::move(get_multisample_image)
+      )
+      .set_attachment(  // depth attachment
+          /*index=*/2,
           Attachment{
               /*attachment_ops=*/Attachment::DepthStencilOps{
                   /*load_depth=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -180,12 +215,18 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
       .set_subpass_description(/*index=*/0, SubpassAttachments{
           /*color_refs=*/{
               VkAttachmentReference{
-                  /*attachment=*/0,
+                  /*attachment=*/1,
                   /*layout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
               },
           },
+          /*multisampling_pairs=*/vector<MultisamplingPair>{
+              MultisamplingPair{
+                  /*multisample_attachment=*/1,
+                  /*target_attachment=*/0,
+              },
+          },
           /*depth_stencil_ref=*/VkAttachmentReference{
-              /*attachment=*/1,
+              /*attachment=*/2,
               /*layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
           },
       })
@@ -212,6 +253,7 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
                     /*layout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 },
             },
+            /*multisampling_pairs=*/absl::nullopt,
             /*depth_stencil_ref=*/absl::nullopt,
         })
         .add_subpass_dependency(SubpassDependency{
@@ -247,12 +289,19 @@ RenderPassBuilder& RenderPassBuilder::set_attachment(
   if (get_image == nullptr) {
     FATAL("get_image cannot be nullptr");
   }
-  auto format = get_image(0).format();
+  const Image& sample_image = get_image(0);
+  VkSampleCountFlagBits sample_count = VK_SAMPLE_COUNT_1_BIT;
+  if (const auto* multisample_image =
+      dynamic_cast<const MultisampleImage*>(&sample_image)) {
+    sample_count = multisample_image->sample_count();
+  }
   util::SetElementWithResizing(std::move(get_image), index, &get_images_);
   util::SetElementWithResizing(CreateClearColor(attachment),
                                index, &clear_values_);
-  util::SetElementWithResizing(CreateAttachmentDescription(attachment, format),
-                               index, &attachment_descriptions_);
+  util::SetElementWithResizing(
+      CreateAttachmentDescription(
+          attachment, sample_image.format(), sample_count),
+      index, &attachment_descriptions_);
   return *this;
 }
 

@@ -61,18 +61,18 @@ VkSampleCountFlagBits GetMaxSampleCount(VkSampleCountFlags count_flag) {
       return count;
     }
   }
-  FATAL("Multi-sampling is not supported by hardware");
+  FATAL("Multisampling is not supported by hardware");
 }
 
 VkSampleCountFlagBits ChooseSampleCount(const VkPhysicalDeviceLimits& limits,
-                                        MultiSampleBuffer::Type type,
-                                        MultiSampleImage::Mode mode) {
+                                        MultisampleBuffer::Type type,
+                                        MultisampleImage::Mode mode) {
   VkSampleCountFlags sample_count_flag;
   switch (type) {
-    case MultiSampleBuffer::Type::kColor:
+    case MultisampleBuffer::Type::kColor:
       sample_count_flag = limits.framebufferColorSampleCounts;
       break;
-    case MultiSampleBuffer::Type::kDepthStencil:
+    case MultisampleBuffer::Type::kDepthStencil:
       sample_count_flag = std::min(limits.framebufferDepthSampleCounts,
                                    limits.framebufferStencilSampleCounts);
   }
@@ -80,9 +80,9 @@ VkSampleCountFlagBits ChooseSampleCount(const VkPhysicalDeviceLimits& limits,
   const VkSampleCountFlagBits max_sample_count =
       GetMaxSampleCount(sample_count_flag);
   switch (mode) {
-    case MultiSampleImage::Mode::kBestEffect:
+    case MultisampleImage::Mode::kBestEffect:
       return max_sample_count;
-    case MultiSampleImage::Mode::kEfficient:
+    case MultisampleImage::Mode::kEfficient:
       return std::min(VK_SAMPLE_COUNT_4_BIT, max_sample_count);
   }
 }
@@ -255,13 +255,17 @@ VkDescriptorImageInfo OffscreenImage::descriptor_info() const {
   };
 }
 
+VkFormat DepthStencilImage::GetDepthStencilImageFormat(
+    const SharedBasicContext& context) {
+  return FindImageFormatWithFeature(
+      context,
+      {VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT_S8_UINT},
+      VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+}
+
 DepthStencilImage::DepthStencilImage(const SharedBasicContext& context,
                                      const VkExtent2D& extent)
-    : Image{context, extent,
-            FindImageFormatWithFeature(
-                context,
-                {VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT_S8_UINT},
-                VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)},
+    : Image{context, extent, GetDepthStencilImageFormat(context)},
       buffer_{context_, extent_, format_} {
   image_view_ = CreateImageView(context_, buffer_.image(), format_,
                                 VK_IMAGE_ASPECT_DEPTH_BIT
@@ -278,27 +282,38 @@ SwapchainImage::SwapchainImage(SharedBasicContext context,
                                 kSingleMipLevel, kSingleImageLayer);
 }
 
-MultiSampleBuffer::Type MultiSampleImage::GetType(const Image* image) {
-  if (dynamic_cast<const DepthStencilImage*>(image) != nullptr) {
-    return MultiSampleBuffer::Type::kDepthStencil;
-  } else {
-    return MultiSampleBuffer::Type::kColor;
-  }
+std::unique_ptr<MultisampleImage> MultisampleImage::CreateColorMultisampleImage(
+    SharedBasicContext context,
+    const Image& target_image, Mode mode) {
+  return absl::make_unique<MultisampleImage>(
+      std::move(context), target_image.extent(), target_image.format(),
+      mode, MultisampleBuffer::Type::kColor);
 }
 
-MultiSampleImage::MultiSampleImage(const SharedBasicContext& context,
-                                   const Image& target_image, Mode mode)
-    : Image{context, target_image.extent(), target_image.format()},
-      type_{GetType(&target_image)},
-      sample_count_{
-          ChooseSampleCount(context_->physical_device().limits(), type_, mode)},
-      buffer_{context_, type_, extent_, format_, sample_count_} {
+std::unique_ptr<MultisampleImage>
+MultisampleImage::CreateDepthStencilMultisampleImage(
+    SharedBasicContext context,
+    const VkExtent2D& extent, Mode mode) {
+  VkFormat format = DepthStencilImage::GetDepthStencilImageFormat(context);
+  return absl::make_unique<MultisampleImage>(
+      std::move(context), extent, format,
+      mode, MultisampleBuffer::Type::kDepthStencil);
+}
+
+MultisampleImage::MultisampleImage(
+    SharedBasicContext context,
+    const VkExtent2D& extent, VkFormat format,
+    Mode mode, MultisampleBuffer::Type type)
+    : Image{std::move(context), extent, format},
+      sample_count_{ChooseSampleCount(
+          context_->physical_device().limits(), type, mode)},
+      buffer_{context_, type, extent_, format_, sample_count_} {
   VkImageAspectFlags image_aspect;
-  switch (type_) {
-    case MultiSampleBuffer::Type::kColor:
+  switch (type) {
+    case MultisampleBuffer::Type::kColor:
       image_aspect = VK_IMAGE_ASPECT_COLOR_BIT;
       break;
-    case MultiSampleBuffer::Type::kDepthStencil:
+    case MultisampleBuffer::Type::kDepthStencil:
       image_aspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
       break;
   }
