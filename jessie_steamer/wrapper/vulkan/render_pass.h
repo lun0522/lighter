@@ -116,13 +116,8 @@ class RenderPassBuilder {
   };
 
   struct SubpassAttachments {
-    struct MultisamplingPair {
-      int multisample_attachment;
-      int target_attachment;
-    };
-
     std::vector<VkAttachmentReference> color_refs;
-    absl::optional<std::vector<MultisamplingPair>> multisampling_pairs;
+    absl::optional<std::vector<VkAttachmentReference>> multisampling_refs;
     absl::optional<VkAttachmentReference> depth_stencil_ref;
   };
 
@@ -157,6 +152,14 @@ class RenderPassBuilder {
     };
     SubpassInfo src_info, dst_info;
   };
+
+  struct MultisamplingPair {
+    int multisample_reference;
+    int target_attachment;
+  };
+
+  static std::vector<VkAttachmentReference> CreateMultisamplingReferences(
+      int num_color_references, const std::vector<MultisamplingPair>& pairs);
 
   // Contains one color attachment (at index 0) and one depth attachment (at
   // index 1). Only the first subpass will use the depth attachment and is

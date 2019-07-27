@@ -35,6 +35,8 @@ namespace {
 using namespace wrapper::vulkan;
 
 constexpr int kNumFrameInFlight = 2;
+constexpr MultisampleImage::Mode kMultisamplingMode =
+    MultisampleImage::Mode::kEfficient;
 
 enum class SubpassIndex : int { kModel = 0, kText, kNumSubpass };
 
@@ -75,13 +77,12 @@ void CubeApp::Init() {
 
   // multisampling
   multisample_image_ = MultisampleImage::CreateColorMultisampleImage(
-      context(), window_context_.swapchain_image(0),
-      MultisampleImage::Mode::kEfficient);
+      context(), window_context_.swapchain_image(0), kMultisamplingMode);
 
   // depth stencil
   auto frame_size = window_context_.frame_size();
   depth_stencil_image_ = MultisampleImage::CreateDepthStencilMultisampleImage(
-      context(), frame_size, MultisampleImage::Mode::kEfficient);
+      context(), frame_size, kMultisamplingMode);
 
   if (is_first_time) {
     is_first_time = false;
@@ -120,7 +121,7 @@ void CubeApp::Init() {
                      "jessie_steamer/shader/vulkan/simple_3d.frag.spv"})
         .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
                             {{&push_constant_, /*offset=*/0}}})
-        .set_depth_sample_count(depth_stencil_image_->sample_count())
+        .set_sample_count(depth_stencil_image_->sample_count())
         .Build();
 
     // text

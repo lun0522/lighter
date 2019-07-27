@@ -202,9 +202,9 @@ ModelBuilder& ModelBuilder::add_shared_texture(model::ResourceType type,
   return *this;
 }
 
-ModelBuilder& ModelBuilder::set_depth_sample_count(
+ModelBuilder& ModelBuilder::set_sample_count(
     VkSampleCountFlagBits sample_count) {
-  pipeline_builder_->set_depth_sample_count(sample_count);
+  pipeline_builder_->set_sample_count(sample_count);
   return *this;
 }
 

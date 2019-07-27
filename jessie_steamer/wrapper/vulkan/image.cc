@@ -65,18 +65,12 @@ VkSampleCountFlagBits GetMaxSampleCount(VkSampleCountFlags count_flag) {
 }
 
 VkSampleCountFlagBits ChooseSampleCount(const VkPhysicalDeviceLimits& limits,
-                                        MultisampleBuffer::Type type,
                                         MultisampleImage::Mode mode) {
-  VkSampleCountFlags sample_count_flag;
-  switch (type) {
-    case MultisampleBuffer::Type::kColor:
-      sample_count_flag = limits.framebufferColorSampleCounts;
-      break;
-    case MultisampleBuffer::Type::kDepthStencil:
-      sample_count_flag = std::min(limits.framebufferDepthSampleCounts,
-                                   limits.framebufferStencilSampleCounts);
-  }
-
+  const VkSampleCountFlags sample_count_flag = std::min({
+      limits.framebufferColorSampleCounts,
+      limits.framebufferDepthSampleCounts,
+      limits.framebufferStencilSampleCounts,
+  });
   const VkSampleCountFlagBits max_sample_count =
       GetMaxSampleCount(sample_count_flag);
   switch (mode) {
@@ -306,7 +300,7 @@ MultisampleImage::MultisampleImage(
     Mode mode, MultisampleBuffer::Type type)
     : Image{std::move(context), extent, format},
       sample_count_{ChooseSampleCount(
-          context_->physical_device().limits(), type, mode)},
+          context_->physical_device().limits(), mode)},
       buffer_{context_, type, extent_, format_, sample_count_} {
   VkImageAspectFlags image_aspect;
   switch (type) {

@@ -225,7 +225,7 @@ PipelineBuilder& PipelineBuilder::set_render_pass(
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::set_depth_sample_count(
+PipelineBuilder& PipelineBuilder::set_sample_count(
     VkSampleCountFlagBits sample_count) {
   multisample_info_.rasterizationSamples = sample_count;
   return *this;

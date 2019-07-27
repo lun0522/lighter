@@ -35,6 +35,8 @@ namespace {
 using namespace wrapper::vulkan;
 
 constexpr int kNumFrameInFlight = 2;
+constexpr MultisampleImage::Mode kMultisamplingMode =
+    MultisampleImage::Mode::kEfficient;
 
 // alignment requirement:
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
@@ -71,7 +73,8 @@ class NanosuitApp : public Application {
   std::unique_ptr<Model> nanosuit_model_, skybox_model_;
   UniformBuffer nanosuit_vert_uniform_;
   PushConstant nanosuit_frag_constant_, skybox_constant_;
-  std::unique_ptr<DepthStencilImage> depth_stencil_image_;
+  std::unique_ptr<MultisampleImage> depth_stencil_image_;
+  std::unique_ptr<MultisampleImage> multisample_image_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
 };
@@ -82,10 +85,14 @@ void NanosuitApp::Init() {
   // window
   window_context_.Init("Nanosuit");
 
+  // multisampling
+  multisample_image_ = MultisampleImage::CreateColorMultisampleImage(
+      context(), window_context_.swapchain_image(0), kMultisamplingMode);
+
   // depth stencil
   auto frame_size = window_context_.frame_size();
-  depth_stencil_image_ =
-      absl::make_unique<DepthStencilImage>(context(), frame_size);
+  depth_stencil_image_ = MultisampleImage::CreateDepthStencilMultisampleImage(
+      context(), frame_size, kMultisamplingMode);
 
   if (is_first_time) {
     is_first_time = false;
@@ -135,6 +142,9 @@ void NanosuitApp::Init() {
         window_context_.num_swapchain_image(),
         /*get_swapchain_image=*/[this](int index) -> const Image& {
           return window_context_.swapchain_image(index);
+        },
+        /*get_multisample_image=*/[this](int index) -> const Image& {
+          return *multisample_image_;
         });
 
     // model
@@ -185,6 +195,7 @@ void NanosuitApp::Init() {
                             {{&nanosuit_frag_constant_, /*offset=*/0}}})
         .add_shared_texture(Descriptor::ResourceType::kTextureCubemap,
                             skybox_binding)
+        .set_sample_count(depth_stencil_image_->sample_count())
         .Build();
 
     skybox_binding.binding_point = 1;
@@ -202,6 +213,7 @@ void NanosuitApp::Init() {
                      "jessie_steamer/shader/vulkan/skybox.frag.spv"})
         .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
                             {{&skybox_constant_, /*offset=*/0}}})
+        .set_sample_count(depth_stencil_image_->sample_count())
         .Build();
   }
 
