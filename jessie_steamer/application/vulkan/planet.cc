@@ -79,7 +79,7 @@ class PlanetApp : public Application {
   bool is_first_time = true;
   int current_frame_ = 0;
   common::Timer timer_;
-  common::Camera camera_;
+  std::unique_ptr<common::UserControlledCamera> camera_;
   PerFrameCommand command_;
   int num_asteroid_;
   PerInstanceBuffer per_asteroid_data_;
@@ -112,32 +112,35 @@ void PlanetApp::Init() {
 
     // camera
     common::Camera::Config config;
-    config.pos = glm::vec3{1.6f, -5.1f, -5.9f};
+    config.position = glm::vec3{1.6f, -5.1f, -5.9f};
     config.look_at = glm::vec3{-2.4f, -0.8f, 0.0f};
-    camera_.Init(config);
+    camera_ = absl::make_unique<common::UserControlledCamera>(
+        config, common::UserControlledCamera::ControlConfig{});
 
-    using KeyMap = common::Window::KeyMap;
+    using WindowKey = common::Window::KeyMap;
+    using ControlKey = common::UserControlledCamera::ControlKey;
     window_context_.window()
         .SetCursorHidden(true)
         .RegisterCursorMoveCallback([this](double x_pos, double y_pos) {
-          camera_.ProcessCursorMove(x_pos, y_pos);
+          camera_->ProcessCursorMove(x_pos, y_pos);
         })
         .RegisterScrollCallback([this](double x_pos, double y_pos) {
-          camera_.ProcessScroll(y_pos, 1.0f, 60.0f);
+          camera_->ProcessScroll(y_pos, 1.0f, 60.0f);
         })
-        .RegisterKeyCallback(KeyMap::kUp, [this]() {
-          camera_.ProcessKey(KeyMap::kUp, timer_.time_from_last_frame());
+        .RegisterKeyCallback(WindowKey::kUp, [this]() {
+          camera_->ProcessKey(ControlKey::kUp, timer_.time_from_last_frame());
         })
-        .RegisterKeyCallback(KeyMap::kDown, [this]() {
-          camera_.ProcessKey(KeyMap::kDown, timer_.time_from_last_frame());
+        .RegisterKeyCallback(WindowKey::kDown, [this]() {
+          camera_->ProcessKey(ControlKey::kDown, timer_.time_from_last_frame());
         })
-        .RegisterKeyCallback(KeyMap::kLeft, [this]() {
-          camera_.ProcessKey(KeyMap::kLeft, timer_.time_from_last_frame());
+        .RegisterKeyCallback(WindowKey::kLeft, [this]() {
+          camera_->ProcessKey(ControlKey::kLeft, timer_.time_from_last_frame());
         })
-        .RegisterKeyCallback(KeyMap::kRight, [this]() {
-          camera_.ProcessKey(KeyMap::kRight, timer_.time_from_last_frame());
+        .RegisterKeyCallback(WindowKey::kRight, [this]() {
+          camera_->ProcessKey(ControlKey::kRight,
+                              timer_.time_from_last_frame());
         })
-        .RegisterKeyCallback(KeyMap::kEscape,
+        .RegisterKeyCallback(WindowKey::kEscape,
                              [this]() { should_quit_ = true; });
 
     // push constants
@@ -266,8 +269,8 @@ void PlanetApp::Init() {
       .Build();
 
   // camera
-  camera_.Calibrate(window_context_.window().GetScreenSize(),
-                    window_context_.window().GetCursorPos());
+  camera_->Calibrate(window_context_.window().GetScreenSize(),
+                     window_context_.window().GetCursorPos());
 
   // model
   planet_model_->Update(frame_size, *render_pass_, /*subpass_index=*/0);
@@ -325,8 +328,8 @@ void PlanetApp::UpdateData(int frame) {
   glm::mat4 model{1.0f};
   model = glm::rotate(model, elapsed_time * glm::radians(5.0f),
                       glm::vec3{0.0f, 1.0f, 0.0f});
-  glm::mat4 view = camera_.view();
-  glm::mat4 proj = camera_.projection();
+  glm::mat4 view = camera_->view();
+  glm::mat4 proj = camera_->projection();
   *planet_constant_.data<PlanetTrans>(frame) = {model, proj * view};
   *skybox_constant_.data<SkyboxTrans>(frame) = {proj, view};
 }
@@ -362,7 +365,7 @@ void PlanetApp::MainLoop() {
     }
 
     current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
-    camera_.set_activate(true);  // not activated until first frame is displayed
+    camera_->SetActivity(true);  // not activated until first frame is displayed
   }
   context()->WaitIdle();  // wait for all async operations finish
 }

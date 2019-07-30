@@ -68,7 +68,7 @@ class NanosuitApp : public Application {
   bool is_first_time = true;
   int current_frame_ = 0;
   common::Timer timer_;
-  common::Camera camera_;
+  std::unique_ptr<common::UserControlledCamera> camera_;
   PerFrameCommand command_;
   std::unique_ptr<Model> nanosuit_model_, skybox_model_;
   UniformBuffer nanosuit_vert_uniform_;
@@ -99,33 +99,37 @@ void NanosuitApp::Init() {
 
     // camera
     common::Camera::Config config;
-    config.pos = glm::vec3{0.0f, 3.5f, 12.0f};
+    common::UserControlledCamera::ControlConfig control_config;
+    config.position = glm::vec3{0.0f, 3.5f, 12.0f};
     config.look_at = glm::vec3{0.0f, 3.5f, 0.0f};
-    config.lock_look_at = true;
-    camera_.Init(config);
+    control_config.lock_center = true;
+    camera_ = absl::make_unique<common::UserControlledCamera>(
+        config, control_config);
 
-    using KeyMap = common::Window::KeyMap;
+    using WindowKey = common::Window::KeyMap;
+    using ControlKey = common::UserControlledCamera::ControlKey;
     window_context_.window()
         .SetCursorHidden(true)
         .RegisterCursorMoveCallback([this](double x_pos, double y_pos) {
-          camera_.ProcessCursorMove(x_pos, y_pos);
+          camera_->ProcessCursorMove(x_pos, y_pos);
         })
         .RegisterScrollCallback([this](double x_pos, double y_pos) {
-          camera_.ProcessScroll(y_pos, 1.0f, 60.0f);
+          camera_->ProcessScroll(y_pos, 1.0f, 60.0f);
         })
-        .RegisterKeyCallback(KeyMap::kUp, [this]() {
-          camera_.ProcessKey(KeyMap::kUp, timer_.time_from_last_frame());
+        .RegisterKeyCallback(WindowKey::kUp, [this]() {
+          camera_->ProcessKey(ControlKey::kUp, timer_.time_from_last_frame());
         })
-        .RegisterKeyCallback(KeyMap::kDown, [this]() {
-          camera_.ProcessKey(KeyMap::kDown, timer_.time_from_last_frame());
+        .RegisterKeyCallback(WindowKey::kDown, [this]() {
+          camera_->ProcessKey(ControlKey::kDown, timer_.time_from_last_frame());
         })
-        .RegisterKeyCallback(KeyMap::kLeft, [this]() {
-          camera_.ProcessKey(KeyMap::kLeft, timer_.time_from_last_frame());
+        .RegisterKeyCallback(WindowKey::kLeft, [this]() {
+          camera_->ProcessKey(ControlKey::kLeft, timer_.time_from_last_frame());
         })
-        .RegisterKeyCallback(KeyMap::kRight, [this]() {
-          camera_.ProcessKey(KeyMap::kRight, timer_.time_from_last_frame());
+        .RegisterKeyCallback(WindowKey::kRight, [this]() {
+          camera_->ProcessKey(ControlKey::kRight,
+                              timer_.time_from_last_frame());
         })
-        .RegisterKeyCallback(KeyMap::kEscape,
+        .RegisterKeyCallback(WindowKey::kEscape,
                              [this]() { should_quit_ = true; });
 
     // push constants
@@ -223,8 +227,8 @@ void NanosuitApp::Init() {
       .Build();
 
   // camera
-  camera_.Calibrate(window_context_.window().GetScreenSize(),
-                    window_context_.window().GetCursorPos());
+  camera_->Calibrate(window_context_.window().GetScreenSize(),
+                     window_context_.window().GetCursorPos());
 
   // model
   nanosuit_model_->Update(frame_size, *render_pass_, /*subpass_index=*/0);
@@ -242,8 +246,8 @@ void NanosuitApp::UpdateData(int frame) {
                       glm::vec3{0.0f, 1.0f, 0.0f});
   model = glm::scale(model, glm::vec3{0.5f});
 
-  glm::mat4 view = camera_.view();
-  glm::mat4 proj = camera_.projection();
+  glm::mat4 view = camera_->view();
+  glm::mat4 proj = camera_->projection();
   glm::mat4 view_model = view * model;
 
   *nanosuit_vert_uniform_.data<NanosuitVertTrans>(frame) = {
@@ -287,7 +291,7 @@ void NanosuitApp::MainLoop() {
     }
 
     current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
-    camera_.set_activate(true);  // not activated until first frame is displayed
+    camera_->SetActivity(true);  // not activated until first frame is displayed
   }
   context()->WaitIdle();  // wait for all async operations finish
 }

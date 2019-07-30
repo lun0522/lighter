@@ -1,7 +1,7 @@
 Tracks files that are waiting to be cleaned up.
 
 common
-- camera
+- camera ✅
 - char_lib
 - file
 - model_loader

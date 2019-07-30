@@ -15,40 +15,74 @@ namespace jessie_steamer {
 namespace common {
 namespace {
 
-const glm::vec2& ref_front_zx() {
-  static const glm::vec2 kRefFrontZx{1.0f, 0.0f};
-  return kRefFrontZx;
+// Returns the reference front vector in zx-plane.
+const glm::vec2& GetRefFrontInZxPlane() {
+  static const glm::vec2 ref_front_zx{1.0f, 0.0f};
+  return ref_front_zx;
+}
+
+// Returns the front vector given current position and look at point.
+inline glm::vec3 ComputeFront(const glm::vec3& current_pos,
+                              const glm::vec3& look_at) {
+  return glm::normalize(look_at - current_pos);
 }
 
 } /* namespace */
 
-void Camera::Init(const Config& config) {
-  up_ = config.up;
-  pos_ = config.pos;
-  center_ = config.look_at;
-  front_ = glm::normalize(center_ - config.pos);
-  fov_ = config.fov;
-  near_ = config.near;
-  far_ = config.far;
-  const glm::vec2 front_zx = glm::normalize(glm::vec2{front_.z, front_.x});
-  yaw_ = glm::orientedAngle(ref_front_zx(), front_zx);
-  pitch_ = glm::asin(front_.y);
-  move_speed_ = config.move_speed;
-  turn_speed_ = config.turn_speed;
-  lock_center_ = config.lock_look_at;
+Camera::Camera(const Config& config)
+    : near_{config.near}, far_{config.far}, up_{config.up},
+      fov_{config.field_of_view}, pos_{config.position} {
+  UpdateDirection(ComputeFront(pos_, config.look_at));
+}
 
-  UpdateRight();
+void Camera::UpdateFieldOfView(float fov) {
+  fov_ = fov;
+  UpdateProjection();
+}
+
+void Camera::UpdateScreenSize(const glm::ivec2& screen_size) {
+  screen_size_ = screen_size;
+  UpdateProjection();
+}
+
+void Camera::UpdatePosition(const glm::vec3& offset) {
+  pos_ += offset;
   UpdateView();
 }
 
-void Camera::Calibrate(const glm::ivec2& screen_size,
-                       const glm::dvec2& cursor_pos) {
-  screen_size_ = screen_size;
-  cursor_pos_ = cursor_pos;
-  UpdateProj();
+void Camera::UpdateDirection(const glm::vec3& front) {
+  front_ = front;
+  right_ = glm::normalize(glm::cross(front_, up_));
+  UpdateView();
 }
 
-void Camera::ProcessCursorMove(double x, double y) {
+void Camera::UpdateView() {
+  view_ = glm::lookAt(pos_, pos_ + front_, up_);
+}
+
+void Camera::UpdateProjection() {
+  proj_ = glm::perspective(glm::radians(fov_),
+                           (float)screen_size_.x / screen_size_.y, near_, far_);
+}
+
+UserControlledCamera::UserControlledCamera(const Config& config,
+                                           const ControlConfig& control_config)
+    : Camera{config},
+      move_speed_{control_config.move_speed},
+      turn_speed_{control_config.turn_speed},
+      center_{config.look_at}, lock_center_{control_config.lock_center},
+      pitch_{glm::asin(front().y)},
+      yaw_{glm::orientedAngle(
+          GetRefFrontInZxPlane(),
+          glm::normalize(glm::vec2{front().z, front().x}))} {}
+
+void UserControlledCamera::Calibrate(const glm::ivec2& screen_size,
+                                     const glm::dvec2& cursor_pos) {
+  cursor_pos_ = cursor_pos;
+  UpdateScreenSize(screen_size);
+}
+
+void UserControlledCamera::ProcessCursorMove(double x, double y) {
   if (!is_active_ || lock_center_) {
     return;
   }
@@ -56,72 +90,50 @@ void Camera::ProcessCursorMove(double x, double y) {
   const auto offset_x = static_cast<float>((x - cursor_pos_.x) * turn_speed_);
   const auto offset_y = static_cast<float>((y - cursor_pos_.y) * turn_speed_);
   cursor_pos_ = glm::dvec2{x, y};
-  yaw_ = glm::mod(yaw_ - offset_x, glm::radians(360.0f));
   pitch_ = glm::clamp(pitch_ - offset_y, glm::radians(-89.9f),
                       glm::radians(89.9f));
-  UpdateFront();
-  UpdateRight();
-  UpdateView();
+  yaw_ = glm::mod(yaw_ - offset_x, glm::radians(360.0f));
+  UpdateDirection(/*front=*/{
+      glm::cos(pitch_) * glm::sin(yaw_),
+      glm::sin(pitch_),
+      glm::cos(pitch_) * glm::cos(yaw_),
+  });
 }
 
-void Camera::ProcessScroll(double y, double min_val, double max_val) {
+void UserControlledCamera::ProcessScroll(
+    double delta, double min_val, double max_val) {
   if (!is_active_) {
     return;
   }
 
-  fov_ = static_cast<float>(glm::clamp(fov_ + y, min_val, max_val));
-  UpdateProj();
+  UpdateFieldOfView(static_cast<float>(
+      glm::clamp(field_of_view() + delta, min_val, max_val)));
 }
 
-void Camera::ProcessKey(Window::KeyMap key, float elapsed_time) {
+void UserControlledCamera::ProcessKey(ControlKey key, float elapsed_time) {
   if (!is_active_) {
     return;
   }
 
-  using KeyMap = Window::KeyMap;
   const float distance = elapsed_time * move_speed_;
   switch (key) {
-    case KeyMap::kUp:
-      pos_ += front_ * distance;
+    case ControlKey::kUp:
+      UpdatePosition(/*offset=*/+front() * distance);
       break;
-    case KeyMap::kDown:
-      pos_ -= front_ * distance;
+    case ControlKey::kDown:
+      UpdatePosition(/*offset=*/-front() * distance);
       break;
-    case KeyMap::kLeft:
-      pos_ -= right_ * distance;
+    case ControlKey::kLeft:
+      UpdatePosition(/*offset=*/-right() * distance);
       break;
-    case KeyMap::kRight:
-      pos_ += right_ * distance;
+    case ControlKey::kRight:
+      UpdatePosition(/*offset=*/+right() * distance);
       break;
-    default:
-      FATAL("Unsupported key");
   }
-  UpdateView();
-}
 
-void Camera::UpdateFront() {
-  front_ = glm::vec3(glm::cos(pitch_) * glm::sin(yaw_),
-                     glm::sin(pitch_),
-                     glm::cos(pitch_) * glm::cos(yaw_));
-}
-
-void Camera::UpdateRight() {
-  right_ = glm::normalize(glm::cross(front_, up_));
-}
-
-void Camera::UpdateView() {
   if (lock_center_) {
-    front_ = glm::normalize(center_ - pos_);
-    view_ = glm::lookAt(pos_, pos_ + front_, up_);
-    UpdateRight();
-  } else {
-    view_ = glm::lookAt(pos_, pos_ + front_, up_);
+    UpdateDirection(ComputeFront(position(), center_));
   }
-}
-
-void Camera::UpdateProj() {
-  proj_ = glm::perspective(glm::radians(fov_),
-                           (float)screen_size_.x / screen_size_.y, near_, far_);
 }
 
 } /* namespace common */

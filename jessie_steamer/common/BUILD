@@ -10,7 +10,6 @@ cc_library(
     hdrs = ["camera.h"],
     deps = [
         ":util",
-        ":window",
         "//third_party:glm",
     ],
 )
