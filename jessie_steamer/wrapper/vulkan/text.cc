@@ -54,7 +54,7 @@ const vector<Descriptor::Info>& CreateDescriptorInfos() {
             /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
             /*bindings=*/{
                 Descriptor::Info::Binding{
-                    /*resource_type=*/common::types::kUniformBuffer,
+                    /*resource_type=*/common::ResourceType::kUniformBuffer,
                     /*binding_point=*/
                     static_cast<int>(BindingPoint::kUniformBuffer),
                     /*array_length=*/1,
@@ -66,7 +66,7 @@ const vector<Descriptor::Info>& CreateDescriptorInfos() {
             /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
             /*bindings=*/{
                 Descriptor::Info::Binding{
-                    /*resource_type=*/common::types::kTextureDiffuse,
+                    /*resource_type=*/common::ResourceType::kTextureDiffuse,
                     /*binding_point=*/static_cast<int>(BindingPoint::kTexture),
                     /*array_length=*/1,
                 },

@@ -21,13 +21,13 @@ using std::vector;
 
 using absl::StrFormat;
 
-aiTextureType ResourceTypeToAssimpType(types::ResourceType type) {
+aiTextureType ResourceTypeToAssimpType(ResourceType type) {
   switch (type) {
-    case types::kTextureDiffuse:
+    case ResourceType::kTextureDiffuse:
       return aiTextureType_DIFFUSE;
-    case types::kTextureSpecular:
+    case ResourceType::kTextureSpecular:
       return aiTextureType_SPECULAR;
-    case types::kTextureReflection:
+    case ResourceType::kTextureReflection:
       return aiTextureType_AMBIENT;
     default:
       FATAL(StrFormat("Unsupported resource type: %d", type));
@@ -102,15 +102,16 @@ void ModelLoader::ProcessMesh(const string& directory,
   vector<Texture>& textures = meshes_.back().textures;
   if (scene->HasMaterials()) {
     aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-    LoadTextures(directory, material, types::kTextureDiffuse, &textures);
-    LoadTextures(directory, material, types::kTextureSpecular,&textures);
-    LoadTextures(directory, material, types::kTextureReflection, &textures);
+    LoadTextures(directory, material, ResourceType::kTextureDiffuse, &textures);
+    LoadTextures(directory, material, ResourceType::kTextureSpecular,&textures);
+    LoadTextures(directory, material, ResourceType::kTextureReflection,
+                 &textures);
   }
 }
 
 void ModelLoader::LoadTextures(const string& directory,
                                const aiMaterial* material,
-                               types::ResourceType resource_type,
+                               ResourceType resource_type,
                                vector<Texture>* textures) {
   const auto ai_type = ResourceTypeToAssimpType(resource_type);
   int num_texture = material->GetTextureCount(ai_type);

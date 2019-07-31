@@ -21,8 +21,10 @@
 namespace jessie_steamer {
 namespace common {
 
+// Character library backed by FreeType.
 class CharLib {
  public:
+  // Information related to drawing the character. For details, see:
   // https://learnopengl.com/img/in-practice/glyph.png
   struct CharInfo {
     glm::ivec2 bearing;
@@ -30,6 +32,8 @@ class CharLib {
     std::unique_ptr<Image> image;
   };
 
+  // We will load all characters in 'texts' from the library. All of them will
+  // be of height 'font_height', while the width is self-adjusted.
   CharLib(const std::vector<std::string>& texts,
           const std::string& font_path, int font_height);
 
@@ -37,16 +41,15 @@ class CharLib {
   CharLib(const CharLib&) = delete;
   CharLib& operator=(const CharLib&) = delete;
 
-  ~CharLib();
-
+  // Accessors.
   const absl::flat_hash_map<char, CharInfo>& char_info_map() const {
     return char_info_map_;
   }
 
  private:
+  // Holds information about loaded characters. Only those characters loaded
+  // via the constructor will be in this map.
   absl::flat_hash_map<char, CharInfo> char_info_map_;
-  FT_Library lib_;
-  FT_Face face_;
 };
 
 } /* namespace common */

@@ -52,7 +52,6 @@ cc_library(
         ":file",
         ":util",
         "//third_party:assimp",
-        "@lib-absl//absl/memory",
         "@lib-absl//absl/strings:str_format",
     ],
 )

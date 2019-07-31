@@ -18,14 +18,20 @@
 namespace jessie_steamer {
 namespace common {
 
+// Reference counted objects that use strings as the identifier. We can use the
+// object with operators '.' and '->', as if using std smart pointers.
 template <typename ObjectType>
 class RefCountedObject {
  public:
+  // The user should always call this to get an object. If any object with same
+  // identifier is still living in the objects pool, it will be returned, and
+  // its reference count will be increased. Otherwise, 'args' will be used to
+  // construct a new object.
   template <typename... Args>
   static RefCountedObject Get(const std::string& identifier, Args&&... args) {
-    auto found = ref_counter_.find(identifier);
-    if (found == ref_counter_.end()) {
-      auto inserted = ref_counter_.emplace(
+    auto found = ref_count_map_.find(identifier);
+    if (found == ref_count_map_.end()) {
+      auto inserted = ref_count_map_.emplace(
           identifier,
           std::make_pair(absl::make_unique<ObjectType>(
               std::forward<Args>(args)...), 0));
@@ -36,10 +42,7 @@ class RefCountedObject {
     return RefCountedObject{identifier, counter.first.get()};
   }
 
-  RefCountedObject(std::string identifier, const ObjectType* object_ptr)
-      : identifier_{std::move(identifier)}, object_ptr_{object_ptr} {}
-
-  // This class is only movable
+  // This class is only movable.
   RefCountedObject(RefCountedObject&& rhs) noexcept {
     identifier_ = std::move(rhs.identifier_);
     object_ptr_ = rhs.object_ptr_;
@@ -56,25 +59,38 @@ class RefCountedObject {
     if (identifier_.empty()) {
       return;
     }
-    auto found = ref_counter_.find(identifier_);
+    auto found = ref_count_map_.find(identifier_);
     if (--found->second.second == 0) {
-      ref_counter_.erase(found);
+      ref_count_map_.erase(found);
     }
   }
 
+  // Overloads.
   const ObjectType* operator->() const { return object_ptr_; }
+  const ObjectType& operator*() const { return *object_ptr_; }
 
  private:
+  RefCountedObject(std::string identifier, const ObjectType* object_ptr)
+      : identifier_{std::move(identifier)}, object_ptr_{object_ptr} {}
+
+  // An objects pool shared by all objects of the same class, where the key is
+  // the identifier, and the value is a pair of the actual object and its
+  // reference count. The object will be erased from the pool if it no longer
+  // has any holder.
   using ObjectAndCount = std::pair<std::unique_ptr<ObjectType>, int>;
-  static absl::flat_hash_map<std::string, ObjectAndCount> ref_counter_;
+  static absl::flat_hash_map<std::string, ObjectAndCount> ref_count_map_;
+
+  // Identifier of the object.
   std::string identifier_;
+
+  // Pointer to the actual object.
   const ObjectType* object_ptr_;
 };
 
 template <typename ObjectType>
 absl::flat_hash_map<std::string,
                     typename RefCountedObject<ObjectType>::ObjectAndCount>
-    RefCountedObject<ObjectType>::ref_counter_{};
+    RefCountedObject<ObjectType>::ref_count_map_{};
 
 } /* namespace common */
 } /* namespace jessie_steamer */

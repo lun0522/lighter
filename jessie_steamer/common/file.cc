@@ -28,6 +28,7 @@ using std::stof;
 using std::string;
 using std::vector;
 
+// Opens the file in the given 'path' and checks whether it is successful.
 ifstream OpenFile(const string& path) {
   ifstream file{path};
   if (!file.is_open() || file.bad() || file.fail()) {
@@ -36,13 +37,14 @@ ifstream OpenFile(const string& path) {
   return file;
 }
 
-inline absl::string_view GetSuffix(const string& text,
-                                   size_t start_pos) {
+// Returns the suffix of the given 'text', starting from index 'start_pos'.
+inline absl::string_view GetSuffix(const string& text, size_t start_pos) {
   return absl::string_view{text.c_str() + start_pos, text.length() - start_pos};
 }
 
-vector<string> SplitText(absl::string_view text,
-                         char delimiter,
+// Splits the given 'text' by 'delimiter', while 'num_segment' is the expected
+// length of results. An exception will be thrown if the length does not match.
+vector<string> SplitText(absl::string_view text, char delimiter,
                          int num_segment) {
   vector<string> result = absl::StrSplit(text, delimiter);
   if (result.size() != num_segment) {
@@ -78,7 +80,7 @@ Image::Image(const string& path) {
     case 1:
     case 4:
       break;
-    case 3: {  // force to have alpha channel
+    case 3: {
       stbi_image_free(const_cast<void*>(data));
       data = stbi_load_from_memory(
           reinterpret_cast<const stbi_uc*>(raw_data->data),
@@ -95,6 +97,10 @@ Image::Image(const string& path) {
 Image::Image(int width, int height, int channel,
              const void* raw_data, bool flip_y)
     : width{width}, height{height}, channel{channel} {
+  if (channel != 1 && channel != 4) {
+    FATAL(absl::StrFormat("Unsupported number of channels: %d", channel));
+  }
+
   size_t total_size = width * height * channel;
   data = std::malloc(total_size);
   if (flip_y) {
@@ -125,25 +131,30 @@ ObjFile::ObjFile(const string& path, int index_base) {
   auto parse_line = [&](const string& line) {
     size_t non_space = line.find_first_not_of(' ');
     if (non_space == string::npos || line[0] == '#') {
-      return;  // skip blank lines and comments
+      // Skip blank lines and comments.
+      return;
     }
 
     switch (line[non_space]) {
-      case 'v': {  // pos, norm or tex_coord
+      case 'v': {
+        // Either position, normal or texture coordinates.
         switch (line[non_space + 1]) {
-          case ' ': {  // pos
+          case ' ': {
+            // Position.
             const auto nums = SplitText(GetSuffix(line, non_space + 2), ' ',
                                         /*num_segment=*/3);
             positions.emplace_back(stof(nums[0]), stof(nums[1]), stof(nums[2]));
             break;
           }
-          case 'n': {  // norm
+          case 'n': {
+            // Normal.
             auto nums = SplitText(GetSuffix(line, non_space + 3), ' ',
                                   /*num_segment=*/3);
             normals.emplace_back(stof(nums[0]), stof(nums[1]), stof(nums[2]));
             break;
           }
-          case 't': {  // tex_coord
+          case 't': {
+            // Texture coordinates.
             auto nums = SplitText(GetSuffix(line, non_space + 3), ' ',
                                   /*num_segment=*/2);
             tex_coords.emplace_back(stof(nums[0]), stof(nums[1]));
@@ -155,7 +166,8 @@ ObjFile::ObjFile(const string& path, int index_base) {
         }
         break;
       }
-      case 'f': {  // face
+      case 'f': {
+        // Face.
         for (const auto& seg : SplitText(GetSuffix(line, non_space + 2), ' ',
                                          /*num_segment=*/3)) {
           auto found = loaded_vertices.find(seg);

@@ -93,6 +93,13 @@ void SetElementWithResizing(ContentType&& element, int index,
   (*container)[index] = std::move(element);
 }
 
+struct EnumClassHash {
+  template <typename EnumClass>
+  std::size_t operator()(EnumClass value) const {
+    return static_cast<std::size_t>(value);
+  }
+};
+
 } /* namespace util */
 } /* namespace common */
 } /* namespace jessie_steamer */

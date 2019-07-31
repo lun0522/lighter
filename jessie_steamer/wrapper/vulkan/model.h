@@ -18,6 +18,7 @@
 #include "absl/types/optional.h"
 #include "absl/types/variant.h"
 #include "jessie_steamer/common/model_loader.h"
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
@@ -32,9 +33,9 @@ namespace wrapper {
 namespace vulkan {
 namespace model {
 
-using ResourceType = common::types::ResourceType;
+using ResourceType = common::ResourceType;
 using TexPerMesh = std::array<std::vector<std::unique_ptr<SamplableImage>>,
-                              ResourceType::kNumTextureType>;
+                              static_cast<int>(ResourceType::kNumTextureType)>;
 
 // For pushing constants.
 struct PushConstantInfo {
@@ -93,10 +94,10 @@ class ModelBuilder {
     uint32_t binding_point;
     std::vector<TextureSource> texture_sources;
   };
-  using BindingPointMap = absl::flat_hash_map<model::ResourceType, uint32_t,
-                                              std::hash<int>>;
-  using TextureBindingMap = absl::flat_hash_map<model::ResourceType,
-                                                TextureBinding, std::hash<int>>;
+  using BindingPointMap = absl::flat_hash_map<
+      model::ResourceType, uint32_t, common::util::EnumClassHash>;
+  using TextureBindingMap = absl::flat_hash_map<
+      model::ResourceType, TextureBinding, common::util::EnumClassHash>;
 
   // Loads with light-weight obj file loader.
   struct SingleMeshResource {

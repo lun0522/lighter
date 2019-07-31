@@ -66,11 +66,11 @@ class Camera {
   const glm::vec3 up_;
 
  private:
-  // Updates the view matrix.
-  void UpdateView();
-
   // Updates the projection matrix.
   void UpdateProjection();
+
+  // Updates the view matrix.
+  void UpdateView();
 
   // Field of view.
   float fov_;

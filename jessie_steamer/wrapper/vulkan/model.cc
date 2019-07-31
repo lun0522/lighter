@@ -10,7 +10,6 @@
 #include "absl/memory/memory.h"
 #include "absl/strings/str_format.h"
 #include "jessie_steamer/common/file.h"
-#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 
 namespace jessie_steamer {
@@ -44,7 +43,8 @@ void CreateTextureInfo(const ModelBuilder::BindingPointMap& binding_map,
                        Descriptor::Info* texture_info) {
   vector<Descriptor::Info::Binding> texture_bindings;
 
-  for (int type = 0; type < model::ResourceType::kNumTextureType; ++type) {
+  for (int type = 0;
+       type < static_cast<int>(model::ResourceType::kNumTextureType); ++type) {
     const auto resource_type = static_cast<model::ResourceType>(type);
     const int num_texture = mesh_textures[type].size() +
                             shared_textures[type].size();
@@ -128,11 +128,12 @@ void ModelBuilder::LoadSingleMesh(const SingleMeshResource& resource) {
 
   // load textures
   mesh_textures_.emplace_back();
-  for (const auto &binding : resource.binding_map) {
+  for (const auto& binding : resource.binding_map) {
     const auto type = binding.first;
     binding_map_[type] = binding.second.binding_point;
     for (const auto& source : binding.second.texture_sources) {
-      mesh_textures_.back()[type].emplace_back(CreateTexture(context_, source));
+      mesh_textures_.back()[static_cast<int>(type)].emplace_back(
+          CreateTexture(context_, source));
     }
   }
 }
@@ -158,7 +159,8 @@ void ModelBuilder::LoadMultiMesh(const MultiMeshResource& resource) {
   for (auto& mesh : loader.meshes()) {
     mesh_textures_.emplace_back();
     for (auto& texture : mesh.textures) {
-      mesh_textures_.back()[texture.resource_type].emplace_back(
+      const auto type = static_cast<int>(texture.resource_type);
+      mesh_textures_.back()[type].emplace_back(
           absl::make_unique<SharedTexture>(context_, texture.path));
     }
   }
@@ -197,7 +199,8 @@ ModelBuilder& ModelBuilder::add_shared_texture(model::ResourceType type,
         type, binding_point, found->second));
   }
   for (const auto& source : binding.texture_sources) {
-    shared_textures_[type].emplace_back(CreateTexture(context_, source));
+    shared_textures_[static_cast<int>(type)].emplace_back(
+        CreateTexture(context_, source));
   }
   return *this;
 }

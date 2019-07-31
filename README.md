@@ -2,10 +2,10 @@ Tracks files that are waiting to be cleaned up.
 
 common
 - camera ✅
-- char_lib
-- file
+- char_lib ✅
+- file ✅
 - model_loader
-- ref_count
+- ref_count ✅
 - time
 - util
 - window

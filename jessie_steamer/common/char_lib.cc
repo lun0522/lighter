@@ -16,14 +16,17 @@ namespace common {
 
 CharLib::CharLib(const std::vector<std::string>& texts,
                  const std::string& font_path, int font_height) {
-  if (FT_Init_FreeType(&lib_)) {
+  FT_Library lib;
+  FT_Face face;
+
+  if (FT_Init_FreeType(&lib)) {
     FATAL("Failed to init FreeType library");
   }
 
-  if (FT_New_Face(lib_, font_path.c_str(), 0, &face_)) {
+  if (FT_New_Face(lib, font_path.c_str(), 0, &face)) {
     FATAL("Failed to load font");
   }
-  FT_Set_Pixel_Sizes(face_, 0, font_height);  // auto adjustment for width
+  FT_Set_Pixel_Sizes(face, 0, font_height);
 
   for (const auto& text : texts) {
     for (auto c : text) {
@@ -31,32 +34,30 @@ CharLib::CharLib(const std::vector<std::string>& texts,
         continue;
       }
 
-      if (FT_Load_Char(face_, c, FT_LOAD_RENDER)) {
+      if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
         FATAL("Failed to load glyph");
       }
 
       char_info_map_.emplace(c, CharInfo{
           /*bearing=*/{
-              face_->glyph->bitmap_left,
-              face_->glyph->bitmap_top,
+              face->glyph->bitmap_left,
+              face->glyph->bitmap_top,
           },
-          // measured with number of 1/64 pixels
-          /*advance_x=*/static_cast<unsigned int>(face_->glyph->advance.x) >> 6,
+          // Advance is measured in number of 1/64 pixels.
+          /*advance_x=*/static_cast<unsigned int>(face->glyph->advance.x) >> 6,
           /*image=*/absl::make_unique<Image>(
-              /*width=*/face_->glyph->bitmap.width,
-              /*height=*/face_->glyph->bitmap.rows,
+              /*width=*/face->glyph->bitmap.width,
+              /*height=*/face->glyph->bitmap.rows,
               /*channel=*/1,
-              /*raw_data=*/face_->glyph->bitmap.buffer,
+              /*raw_data=*/face->glyph->bitmap.buffer,
               /*flip_y=*/true
           ),
       });
     }
   }
-}
 
-CharLib::~CharLib() {
-  FT_Done_Face(face_);
-  FT_Done_FreeType(lib_);
+  FT_Done_Face(face);
+  FT_Done_FreeType(lib);
 }
 
 } /* namespace common */

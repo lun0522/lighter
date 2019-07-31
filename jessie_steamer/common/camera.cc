@@ -45,6 +45,11 @@ void Camera::UpdateScreenSize(const glm::ivec2& screen_size) {
   UpdateProjection();
 }
 
+void Camera::UpdateProjection() {
+  proj_ = glm::perspective(glm::radians(fov_),
+                           (float)screen_size_.x / screen_size_.y, near_, far_);
+}
+
 void Camera::UpdatePosition(const glm::vec3& offset) {
   pos_ += offset;
   UpdateView();
@@ -58,11 +63,6 @@ void Camera::UpdateDirection(const glm::vec3& front) {
 
 void Camera::UpdateView() {
   view_ = glm::lookAt(pos_, pos_ + front_, up_);
-}
-
-void Camera::UpdateProjection() {
-  proj_ = glm::perspective(glm::radians(fov_),
-                           (float)screen_size_.x / screen_size_.y, near_, far_);
 }
 
 UserControlledCamera::UserControlledCamera(const Config& config,
