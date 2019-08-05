@@ -82,7 +82,7 @@ void UserControlledCamera::Calibrate(const glm::ivec2& screen_size,
   UpdateScreenSize(screen_size);
 }
 
-void UserControlledCamera::ProcessCursorMove(double x, double y) {
+void UserControlledCamera::DidMoveCursor(double x, double y) {
   if (!is_active_ || lock_center_) {
     return;
   }
@@ -100,7 +100,7 @@ void UserControlledCamera::ProcessCursorMove(double x, double y) {
   });
 }
 
-void UserControlledCamera::ProcessScroll(
+void UserControlledCamera::DidScroll(
     double delta, double min_val, double max_val) {
   if (!is_active_) {
     return;
@@ -110,7 +110,7 @@ void UserControlledCamera::ProcessScroll(
       glm::clamp(field_of_view() + delta, min_val, max_val)));
 }
 
-void UserControlledCamera::ProcessKey(ControlKey key, float elapsed_time) {
+void UserControlledCamera::DidPressKey(ControlKey key, float elapsed_time) {
   if (!is_active_) {
     return;
   }

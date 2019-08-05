@@ -124,17 +124,17 @@ class UserControlledCamera : public Camera {
   // The camera will point to a different direction according to it, while
   // the degree turned depends on 'turn_speed_'.
   // If the camera is in the lock center mode, it would not respond to this.
-  void ProcessCursorMove(double x, double y);
+  void DidMoveCursor(double x, double y);
 
   // Informs the camera that the scroll input has changed by 'delta'.
   // The camera will change the field of view by 'delta', bound by
   // ['min_val', 'max_val'], which produces the effects of zoom in/out.
-  void ProcessScroll(double delta, double min_val, double max_val);
+  void DidScroll(double delta, double min_val, double max_val);
 
   // Informs the camera that 'key' has been pressed.
   // The camera will move to a different position depending on the key, while
   // the distance traveled is determined by 'elapsed_time' and 'move_speed_'.
-  void ProcessKey(ControlKey key, float elapsed_time);
+  void DidPressKey(ControlKey key, float elapsed_time);
 
   // Modifiers.
   void SetActivity(bool active) { is_active_ = active; }

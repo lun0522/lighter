@@ -51,7 +51,7 @@ class WindowContext {
       };
       context_->Init(allocator, WindowSupport{
           &*surface_,
-          common::Window::required_extensions(),
+          common::Window::GetRequiredExtensions(),
           Swapchain::required_extensions(),
           create_surface,
       });
@@ -66,7 +66,7 @@ class WindowContext {
   // Checks events and returns whether the window should continue to show.
   // Callbacks set via window will be invoked if triggering events are detected.
   bool CheckEvents() {
-    window_.PollEvents();
+    window_.ProcessUserInputs();
     return !window_.ShouldQuit();
   }
 

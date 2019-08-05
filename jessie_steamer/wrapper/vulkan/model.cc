@@ -142,12 +142,12 @@ void ModelBuilder::LoadMultiMesh(const MultiMeshResource& resource) {
   // load vertices and indices
   common::ModelLoader loader{resource.obj_path, resource.tex_path};
   VertexInfo vertex_info;
-  vertex_info.per_mesh_infos.reserve(loader.meshes().size());
-  for (const auto &mesh : loader.meshes()) {
+  vertex_info.per_mesh_infos.reserve(loader.mesh_datas().size());
+  for (const auto &mesh_data : loader.mesh_datas()) {
     vertex_info.per_mesh_infos.emplace_back(
         VertexInfo::PerMeshInfo{
-            /*vertices=*/{mesh.vertices},
-            /*indices=*/{mesh.indices},
+            /*vertices=*/{mesh_data.vertices},
+            /*indices=*/{mesh_data.indices},
         }
     );
   }
@@ -155,10 +155,10 @@ void ModelBuilder::LoadMultiMesh(const MultiMeshResource& resource) {
 
   // load textures
   binding_map_ = resource.binding_map;
-  mesh_textures_.reserve(loader.meshes().size());
-  for (auto& mesh : loader.meshes()) {
+  mesh_textures_.reserve(loader.mesh_datas().size());
+  for (auto& mesh_data : loader.mesh_datas()) {
     mesh_textures_.emplace_back();
-    for (auto& texture : mesh.textures) {
+    for (auto& texture : mesh_data.textures) {
       const auto type = static_cast<int>(texture.resource_type);
       mesh_textures_.back()[type].emplace_back(
           absl::make_unique<SharedTexture>(context_, texture.path));

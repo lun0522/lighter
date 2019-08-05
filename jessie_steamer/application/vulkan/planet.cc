@@ -121,27 +121,30 @@ void PlanetApp::Init() {
     using ControlKey = common::UserControlledCamera::ControlKey;
     window_context_.window()
         .SetCursorHidden(true)
-        .RegisterCursorMoveCallback([this](double x_pos, double y_pos) {
-          camera_->ProcessCursorMove(x_pos, y_pos);
+        .RegisterMoveCursorCallback([this](double x_pos, double y_pos) {
+          camera_->DidMoveCursor(x_pos, y_pos);
         })
         .RegisterScrollCallback([this](double x_pos, double y_pos) {
-          camera_->ProcessScroll(y_pos, 1.0f, 60.0f);
+          camera_->DidScroll(y_pos, 1.0f, 60.0f);
         })
-        .RegisterKeyCallback(WindowKey::kUp, [this]() {
-          camera_->ProcessKey(ControlKey::kUp, timer_.time_from_last_frame());
+        .RegisterPressKeyCallback(WindowKey::kUp, [this]() {
+          camera_->DidPressKey(ControlKey::kUp,
+                               timer_.GetElapsedTimeSinceLastFrame());
         })
-        .RegisterKeyCallback(WindowKey::kDown, [this]() {
-          camera_->ProcessKey(ControlKey::kDown, timer_.time_from_last_frame());
+        .RegisterPressKeyCallback(WindowKey::kDown, [this]() {
+          camera_->DidPressKey(ControlKey::kDown,
+                               timer_.GetElapsedTimeSinceLastFrame());
         })
-        .RegisterKeyCallback(WindowKey::kLeft, [this]() {
-          camera_->ProcessKey(ControlKey::kLeft, timer_.time_from_last_frame());
+        .RegisterPressKeyCallback(WindowKey::kLeft, [this]() {
+          camera_->DidPressKey(ControlKey::kLeft,
+                               timer_.GetElapsedTimeSinceLastFrame());
         })
-        .RegisterKeyCallback(WindowKey::kRight, [this]() {
-          camera_->ProcessKey(ControlKey::kRight,
-                              timer_.time_from_last_frame());
+        .RegisterPressKeyCallback(WindowKey::kRight, [this]() {
+          camera_->DidPressKey(ControlKey::kRight,
+                               timer_.GetElapsedTimeSinceLastFrame());
         })
-        .RegisterKeyCallback(WindowKey::kEscape,
-                             [this]() { should_quit_ = true; });
+        .RegisterPressKeyCallback(WindowKey::kEscape,
+                                  [this]() { should_quit_ = true; });
 
     // push constants
     light_uniform_.Init(sizeof(Light), kNumFrameInFlight);
@@ -318,7 +321,7 @@ void PlanetApp::GenAsteroidModels() {
 }
 
 void PlanetApp::UpdateData(int frame) {
-  const float elapsed_time = timer_.time_from_launch();
+  const float elapsed_time = timer_.GetElapsedTimeSinceLaunch();
 
   glm::vec3 light_dir{glm::sin(elapsed_time * 0.6f), -0.3f,
                       glm::cos(elapsed_time * 0.6f)};

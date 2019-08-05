@@ -19,6 +19,7 @@
 namespace jessie_steamer {
 namespace common {
 
+// Resource types that can be bound to shaders.
 enum class ResourceType {
   kTextureDiffuse = 0,
   kTextureSpecular,
@@ -28,50 +29,70 @@ enum class ResourceType {
   kUniformBuffer,
 };
 
+// Model loader backed by Assimp.
 class ModelLoader {
  public:
-  struct Texture {
+  // Information about a texture.
+  struct TextureInfo {
     // This class is only movable.
-    Texture(Texture&&) noexcept = default;
-    Texture& operator=(Texture&&) noexcept = default;
+    TextureInfo(TextureInfo&&) noexcept = default;
+    TextureInfo& operator=(TextureInfo&&) noexcept = default;
 
+    // Path to the texture.
     std::string path;
+
+    // Resource type of the texture.
     ResourceType resource_type;
   };
 
-  struct Mesh {
-    Mesh() = default;
+  // Vertex data and textures information for one mesh.
+  struct MeshData {
+    MeshData() = default;
 
     // This class is only movable.
-    Mesh(Mesh&&) noexcept = default;
-    Mesh& operator=(Mesh&&) noexcept = default;
+    MeshData(MeshData&&) noexcept = default;
+    MeshData& operator=(MeshData&&) noexcept = default;
 
+    // Vertex data of the mesh.
     std::vector<VertexAttrib3D> vertices;
     std::vector<uint32_t> indices;
-    std::vector<Texture> textures;
+
+    // Textures information of the mesh.
+    std::vector<TextureInfo> textures;
   };
 
+  // Loads a Wavefront .obj file from 'obj_path' and textures from the directory
+  // 'tex_path'.
   ModelLoader(const std::string& obj_path, const std::string& tex_path);
 
   // This class is neither copyable nor movable.
   ModelLoader(const ModelLoader&) = delete;
   ModelLoader& operator=(const ModelLoader&) = delete;
 
-  const std::vector<Mesh>& meshes() const { return meshes_; }
+  // Accessors.
+  const std::vector<MeshData>& mesh_datas() const { return mesh_datas_; }
 
  private:
+  // Processes the 'node' in Assimp scene graph. This adds all the data of
+  // meshes stored in 'node' to 'mesh_datas_', and recursively processes all
+  // children nodes.
   void ProcessNode(const std::string& directory,
                    const aiNode* node,
                    const aiScene* scene);
-  void ProcessMesh(const std::string& directory,
-                   const aiMesh* mesh,
-                   const aiScene* scene);
+
+  // Loads mesh data from the given 'mesh'.
+  MeshData LoadMesh(const std::string& directory,
+                    const aiMesh* mesh,
+                    const aiScene* scene) const;
+
+  // Loads textures of the given 'resource_type' and appends to 'texture_infos'.
   void LoadTextures(const std::string& directory,
                     const aiMaterial* material,
                     ResourceType resource_type,
-                    std::vector<Texture>* textures);
+                    std::vector<TextureInfo>* texture_infos) const;
 
-  std::vector<Mesh> meshes_;
+  // Holds the data of all meshes in one model.
+  std::vector<MeshData> mesh_datas_;
 };
 
 } /* namespace common */

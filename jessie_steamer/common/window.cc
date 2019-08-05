@@ -8,33 +8,15 @@
 #include "jessie_steamer/common/window.h"
 
 #include "jessie_steamer/common/util.h"
+#include "third_party/glfw/glfw3.h"
 
 namespace jessie_steamer {
 namespace common {
 namespace {
 
-std::function<void()> set_resized_flag = nullptr;
-Window::CursorMoveCallback cursor_move_callback = nullptr;
-Window::ScrollCallback scroll_callback = nullptr;
+using std::vector;
 
-void DidResizeWindow(GLFWwindow* window, int width, int height) {
-  if (set_resized_flag != nullptr) {
-    set_resized_flag();
-  }
-}
-
-void DidMoveCursor(GLFWwindow* window, double x_pos, double y_pos) {
-  if (cursor_move_callback != nullptr) {
-    cursor_move_callback(x_pos, y_pos);
-  }
-}
-
-void DidScroll(GLFWwindow* window, double x_pos, double y_pos) {
-  if (scroll_callback != nullptr) {
-    scroll_callback(x_pos, y_pos);
-  }
-}
-
+// Translates the key we defined to its counterpart in GLFW.
 int WindowKeyToGlfwKey(Window::KeyMap key) {
   using KeyMap = Window::KeyMap;
   switch (key) {
@@ -53,6 +35,38 @@ int WindowKeyToGlfwKey(Window::KeyMap key) {
 
 } /* namespace */
 
+namespace window_callback {
+
+// We pass a pointer to the Window instance with 'glfwSetWindowUserPointer'
+// and retrieve it with 'glfwGetWindowUserPointer', so that we can relay
+// function calls to the holder of callbacks.
+Window& GetWindow(GLFWwindow* window) {
+  return *static_cast<Window*>(glfwGetWindowUserPointer(window));
+}
+void GlfwResizeWindowCallback(GLFWwindow* window, int width, int height) {
+  GetWindow(window).DidResizeWindow();
+}
+void GlfwMoveCursorCallback(GLFWwindow* window, double x_pos, double y_pos) {
+  GetWindow(window).DidMoveCursor(x_pos, y_pos);
+}
+void GlfwScrollCallback(GLFWwindow* window, double x_pos, double y_pos) {
+  GetWindow(window).DidScroll(x_pos, y_pos);
+}
+
+} /* namespace window_callback */
+
+const vector<const char*>& Window::GetRequiredExtensions() {
+  static vector<const char*>* required_extensions = nullptr;
+  if (required_extensions == nullptr) {
+    uint32_t extension_count;
+    const char** glfw_extensions =
+        glfwGetRequiredInstanceExtensions(&extension_count);
+    required_extensions = new vector<const char*>{
+        glfw_extensions, glfw_extensions + extension_count};
+  }
+  return *required_extensions;
+}
+
 void Window::Init(const std::string& name, glm::ivec2 screen_size) {
   glfwInit();
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -70,17 +84,18 @@ void Window::Init(const std::string& name, glm::ivec2 screen_size) {
   if (window_ == nullptr) {
     FATAL("Failed to create window");
   }
-  glfwMakeContextCurrent(window_);
 
-  set_resized_flag = [this]() { is_resized_ = true; };
-  glfwSetFramebufferSizeCallback(window_, DidResizeWindow);
-  glfwSetCursorPosCallback(window_, DidMoveCursor);
-  glfwSetScrollCallback(window_, DidScroll);
+  glfwMakeContextCurrent(window_);
+  glfwSetWindowUserPointer(window_, this);
+  glfwSetFramebufferSizeCallback(
+      window_, window_callback::GlfwResizeWindowCallback);
+  glfwSetCursorPosCallback(window_, window_callback::GlfwMoveCursorCallback);
+  glfwSetScrollCallback(window_, window_callback::GlfwScrollCallback);
 }
 
 #ifdef USE_VULKAN
 VkSurfaceKHR Window::CreateSurface(const VkInstance& instance,
-                                       const VkAllocationCallbacks* allocator) {
+                                   const VkAllocationCallbacks* allocator) {
   VkSurfaceKHR surface;
   auto result = glfwCreateWindowSurface(instance, window_, allocator, &surface);
   if (result != VK_SUCCESS) {
@@ -96,31 +111,32 @@ Window& Window::SetCursorHidden(bool hidden) {
   return *this;
 }
 
-Window& Window::RegisterKeyCallback(KeyMap key, const KeyCallback& callback) {
+Window& Window::RegisterPressKeyCallback(
+    KeyMap key, const PressKeyCallback& callback) {
   const auto glfw_key = WindowKeyToGlfwKey(key);
-  if (callback != nullptr) {
-    key_callbacks_.emplace(glfw_key, callback);
+  if (callback == nullptr) {
+    press_key_callbacks_.erase(glfw_key);
   } else {
-    key_callbacks_.erase(glfw_key);
+    press_key_callbacks_.emplace(glfw_key, callback);
   }
   return *this;
 }
 
-Window& Window::RegisterCursorMoveCallback(CursorMoveCallback callback) {
-  cursor_move_callback = std::move(callback);
+Window& Window::RegisterMoveCursorCallback(MoveCursorCallback callback) {
+  move_cursor_callback_ = std::move(callback);
   return *this;
 }
 
 Window& Window::RegisterScrollCallback(ScrollCallback callback) {
-  scroll_callback = std::move(callback);
+  scroll_callback_ = std::move(callback);
   return *this;
 }
 
-void Window::PollEvents() const {
+void Window::ProcessUserInputs() const {
   glfwPollEvents();
-  for (const auto& pair : key_callbacks_) {
-    if (glfwGetKey(window_, pair.first) == GLFW_PRESS) {
-      pair.second();
+  for (const auto& callback : press_key_callbacks_) {
+    if (glfwGetKey(window_, callback.first) == GLFW_PRESS) {
+      callback.second();
     }
   }
 }
@@ -134,16 +150,8 @@ void Window::Recreate() {
   is_resized_ = false;
 }
 
-const std::vector<const char*>& Window::required_extensions() {
-  static std::vector<const char*>* kRequiredExtensions = nullptr;
-  if (kRequiredExtensions == nullptr) {
-    uint32_t extension_count;
-    const char** glfw_extensions =
-        glfwGetRequiredInstanceExtensions(&extension_count);
-    kRequiredExtensions = new std::vector<const char*>{
-        glfw_extensions, glfw_extensions + extension_count};
-  }
-  return *kRequiredExtensions;
+bool Window::ShouldQuit() const {
+  return glfwWindowShouldClose(window_);
 }
 
 glm::ivec2 Window::GetScreenSize() const {
@@ -156,6 +164,22 @@ glm::dvec2 Window::GetCursorPos() const {
   glm::dvec2 pos;
   glfwGetCursorPos(window_, &pos.x, &pos.y);
   return pos;
+}
+
+void Window::DidResizeWindow() {
+  is_resized_ = true;
+}
+
+void Window::DidMoveCursor(double x_pos, double y_pos) {
+  if (move_cursor_callback_ != nullptr) {
+    move_cursor_callback_(x_pos, y_pos);
+  }
+}
+
+void Window::DidScroll(double x_pos, double y_pos) {
+  if (scroll_callback_ != nullptr) {
+    scroll_callback_(x_pos, y_pos);
+  }
 }
 
 Window::~Window() {

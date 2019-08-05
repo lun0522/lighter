@@ -155,7 +155,7 @@ void CubeApp::Init() {
 }
 
 void CubeApp::UpdateData(int frame, float frame_aspect) {
-  const float elapsed_time = timer_.time_from_launch();
+  const float elapsed_time = timer_.GetElapsedTimeSinceLaunch();
   glm::mat4 model = glm::rotate(glm::mat4{1.0f},
                                 elapsed_time * glm::radians(90.0f),
                                 glm::vec3{1.0f, 1.0f, 0.0f});
