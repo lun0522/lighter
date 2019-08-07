@@ -46,7 +46,7 @@ inline absl::string_view GetSuffix(const string& text, size_t start_pos) {
 // length of results. An exception will be thrown if the length does not match.
 vector<string> SplitText(absl::string_view text, char delimiter,
                          int num_segment) {
-  vector<string> result = absl::StrSplit(text, delimiter);
+  const vector<string> result = absl::StrSplit(text, delimiter);
   if (result.size() != num_segment) {
     FATAL(absl::StrFormat(
         "Invalid number of segments (expected %d, but get %d)",
@@ -72,9 +72,7 @@ Image::Image(const string& path) {
   data = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(raw_data->data),
                                static_cast<int>(raw_data->size),
                                &width, &height, &channel, STBI_default);
-  if (data == nullptr) {
-    FATAL("Failed to read image from " + path);
-  }
+  ASSERT_NON_NULL(data, "Failed to read image from " + path);
 
   switch (channel) {
     case 1:
@@ -101,7 +99,7 @@ Image::Image(int width, int height, int channel,
     FATAL(absl::StrFormat("Unsupported number of channels: %d", channel));
   }
 
-  size_t total_size = width * height * channel;
+  const size_t total_size = width * height * channel;
   data = std::malloc(total_size);
   if (flip_y) {
     const int stride = width * channel;
@@ -128,8 +126,8 @@ ObjFile::ObjFile(const string& path, int index_base) {
   vector<glm::vec2> tex_coords;
   absl::flat_hash_map<string, uint32_t> loaded_vertices;
 
-  auto parse_line = [&](const string& line) {
-    size_t non_space = line.find_first_not_of(' ');
+  const auto parse_line = [&](const string& line) {
+    const size_t non_space = line.find_first_not_of(' ');
     if (non_space == string::npos || line[0] == '#') {
       // Skip blank lines and comments.
       return;
@@ -148,15 +146,15 @@ ObjFile::ObjFile(const string& path, int index_base) {
           }
           case 'n': {
             // Normal.
-            auto nums = SplitText(GetSuffix(line, non_space + 3), ' ',
-                                  /*num_segment=*/3);
+            const auto nums = SplitText(GetSuffix(line, non_space + 3), ' ',
+                                        /*num_segment=*/3);
             normals.emplace_back(stof(nums[0]), stof(nums[1]), stof(nums[2]));
             break;
           }
           case 't': {
             // Texture coordinates.
-            auto nums = SplitText(GetSuffix(line, non_space + 3), ' ',
-                                  /*num_segment=*/2);
+            const auto nums = SplitText(GetSuffix(line, non_space + 3), ' ',
+                                        /*num_segment=*/2);
             tex_coords.emplace_back(stof(nums[0]), stof(nums[1]));
             break;
           }
@@ -170,13 +168,13 @@ ObjFile::ObjFile(const string& path, int index_base) {
         // Face.
         for (const auto& seg : SplitText(GetSuffix(line, non_space + 2), ' ',
                                          /*num_segment=*/3)) {
-          auto found = loaded_vertices.find(seg);
+          const auto found = loaded_vertices.find(seg);
           if (found != loaded_vertices.end()) {
             indices.emplace_back(found->second);
           } else {
             indices.emplace_back(vertices.size());
             loaded_vertices.emplace(seg, vertices.size());
-            auto idxs = SplitText(seg, '/', /*num_segment=*/3);
+            const auto idxs = SplitText(seg, '/', /*num_segment=*/3);
             vertices.emplace_back(
                 positions.at(stoi(idxs[0]) - index_base),
                 normals.at(stoi(idxs[2]) - index_base),

@@ -74,7 +74,6 @@ cc_library(
     name = "util",
     hdrs = ["util.h"],
     deps = [
-        "@lib-absl//absl/container:flat_hash_set",
         "@lib-absl//absl/strings:str_format",
         "@lib-absl//absl/types:optional",
     ],

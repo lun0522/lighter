@@ -8,9 +8,14 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_UTIL_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_UTIL_H
 
+#include <functional>
+#include <iostream>
 #include <string>
+#include <vector>
 
+#include "absl/container/flat_hash_set.h"
 #include "absl/strings/str_format.h"
+#include "absl/types/optional.h"
 #include "jessie_steamer/common/util.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -43,9 +48,7 @@ FuncType LoadInstanceFunction(const VkInstance& instance,
                               const std::string& func_name) {
   auto func = reinterpret_cast<FuncType>(
       vkGetInstanceProcAddr(instance, func_name.c_str()));
-  if (func == nullptr) {
-    FATAL("Failed to load instance function " + func_name);
-  }
+  ASSERT_NON_NULL(func, "Failed to load instance function " + func_name);
   return func;
 }
 
@@ -54,10 +57,51 @@ FuncType LoadDeviceFunction(const VkDevice& device,
                             const std::string& func_name) {
   auto func = reinterpret_cast<FuncType>(
       vkGetDeviceProcAddr(device, func_name.c_str()));
-  if (func == nullptr) {
-    FATAL("Failed to load device function " + func_name);
-  }
+  ASSERT_NON_NULL(func, "Failed to load device function " + func_name);
   return func;
+}
+
+// Queries attributes using the given enumerator. This is usually used with
+// functions prefixed with 'vkGet' or 'vkEnumerate', which take in a uint32_t*
+// to store the count, and a AttribType* to store query results.
+template <typename AttribType>
+std::vector<AttribType> QueryAttribute(
+    const std::function<void(uint32_t*, AttribType*)>& enumerate) {
+  uint32_t count;
+  enumerate(&count, nullptr);
+  std::vector<AttribType> attribs{count};
+  enumerate(&count, attribs.data());
+  return attribs;
+}
+
+template <typename AttribType>
+absl::optional<std::string> FindUnsupported(
+    const std::vector<std::string>& required,
+    const std::vector<AttribType>& attribs,
+    const std::function<const char*(const AttribType&)>& get_name) {
+  absl::flat_hash_set<std::string> available{attribs.size()};
+  for (const auto& atr : attribs) {
+    available.emplace(get_name(atr));
+  }
+
+  std::cout << "Available:" << std::endl;
+  for (const auto& avl : available) {
+    std::cout << "\t" << avl << std::endl;
+  }
+  std::cout << std::endl;
+
+  std::cout << "Required:" << std::endl;
+  for (const auto& req : required) {
+    std::cout << "\t" << req << std::endl;
+  }
+  std::cout << std::endl;
+
+  for (const auto& req : required) {
+    if (available.find(req) == available.end()) {
+      return req;
+    }
+  }
+  return absl::nullopt;
 }
 
 inline float GetWidthHeightRatio(VkExtent2D extent) {

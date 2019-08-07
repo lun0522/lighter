@@ -69,9 +69,7 @@ class Swapchain {
     return *swapcahin_images_[index];
   }
   const Image& multisample_image() const {
-    if (multisample_image_ == nullptr) {
-      FATAL("Multisampling is not enabled");
-    }
+    ASSERT_NON_NULL(multisample_image_, "Multisampling is not enabled");
     return *multisample_image_;
   }
 

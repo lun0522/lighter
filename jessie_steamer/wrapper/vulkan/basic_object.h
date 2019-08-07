@@ -13,23 +13,76 @@
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/types/optional.h"
+#include "jessie_steamer/common/util.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
+// Forward declarations.
 class BasicContext;
 struct WindowSupport;
 
-/** VkInstance is used to establish connection with Vulkan library and
- *    maintain per-application states.
- *
- *  Initialization:
- *    VkApplicationInfo (App/Engine/API name and version)
- *    Extensions to enable (required by GLFW and debugging)
- *    Layers to enable (required by validation layers)
- */
+// VkQueue is the queue associated with the logical device.
+class Queues {
+ public:
+  // Holds queue family indices for the queues we need.
+  // All queues in one family share the same property.
+  struct FamilyIndices {
+    uint32_t graphics;
+    uint32_t transfer;
+    absl::optional<uint32_t> present;
+  };
+
+  // Holds an opaque queue object and its family index.
+  struct Queue {
+    Queue() = default;
+
+    VkQueue queue;
+    uint32_t family_index;
+  };
+
+  Queues(const VkDevice& device, const FamilyIndices& family_indices);
+
+  // This class is neither copyable nor movable.
+  Queues(const Queues&) = delete;
+  Queues& operator=(const Queues&) = delete;
+
+  // Implicitly cleaned up with physical device.
+  ~Queues() = default;
+
+  // Accessors.
+  const Queue& graphics_queue() const { return graphics_queue_; }
+  const Queue& transfer_queue() const { return transfer_queue_; }
+  const Queue& present_queue() const {
+    ASSERT_HAS_VALUE(present_queue_, "No presentation queue");
+    return present_queue_.value();
+  }
+  const absl::flat_hash_set<uint32_t>& unique_family_indices() const {
+    return unique_family_indices_;
+  }
+
+ private:
+  // Populates 'queue' with the first queue in the family with 'family_index'.
+  void SetQueue(const VkDevice& device, uint32_t family_index,
+                Queue* queue) const;
+
+  // The graphics queue.
+  Queue graphics_queue_;
+
+  // The transfer queue.
+  Queue transfer_queue_;
+
+  // The presentation queue.
+  absl::optional<Queue> present_queue_;
+
+  // Holds unique queue family indices.
+  const absl::flat_hash_set<uint32_t> unique_family_indices_;
+};
+
+// VkInstance is used to establish connection with Vulkan library and maintain
+// per-application states.
 class Instance {
  public:
   Instance() = default;
@@ -40,27 +93,22 @@ class Instance {
 
   ~Instance();
 
+  // Initializes 'instance_'.
   void Init(std::shared_ptr<BasicContext> context,
             const absl::optional<WindowSupport>& window_support);
 
+  // Overloads.
   const VkInstance& operator*() const { return instance_; }
 
  private:
+  // Pointer to context.
   std::shared_ptr<BasicContext> context_;
+
+  // Opaque instance object.
   VkInstance instance_;
 };
 
-/** VkPhysicalDevice is a handle to a physical graphics card. We iterate through
- *    graphics devices to find one that supports swapchains. Then, we iterate
- *    through its queue families to find one family supporting graphics, and
- *    another one supporting presentation (possibly them are identical).
- *    All queues in one family share the same property, so we only need to
- *    find out the index of the family.
- *
- *  Initialization:
- *    VkInstance
- *    VkSurfaceKHR (since we need presentation support)
- */
+// VkPhysicalDevice is a handle to a physical graphics card.
 struct PhysicalDevice {
  public:
   PhysicalDevice() = default;
@@ -72,31 +120,31 @@ struct PhysicalDevice {
   // Implicitly cleaned up.
   ~PhysicalDevice() = default;
 
-  void Init(std::shared_ptr<BasicContext> context,
-            const absl::optional<WindowSupport>& window_support);
+  // Finds a physical device that has the queues we need.
+  // If there is such a device, the limits of it wil also be queried and stored
+  // in 'limits_'. Otherwise, throws an exception.
+  Queues::FamilyIndices Init(
+      std::shared_ptr<BasicContext> context,
+      const absl::optional<WindowSupport>& window_support);
 
-  const VkPhysicalDevice& operator*()    const { return physical_device_; }
+  // Overloads.
+  const VkPhysicalDevice& operator*() const { return physical_device_; }
+
+  // Accessors.
   const VkPhysicalDeviceLimits& limits() const { return limits_; }
 
  private:
+  // Pointer to context.
   std::shared_ptr<BasicContext> context_;
+
+  // Opaque physical device object.
   VkPhysicalDevice physical_device_;
+
+  // Limits of the physical device.
   VkPhysicalDeviceLimits limits_;
 };
 
-/** VkDevice interfaces with the physical device. We have to tell Vulkan
- *    how many queues we want to use. Noticed that the graphics queue and
- *    the present queue might be the same queue, we use hash set to remove
- *    duplicated queue family indices.
- *
- *  Initialization:
- *    VkPhysicalDevice
- *    Physical device features to enable
- *    List of VkDeviceQueueCreateInfo (queue family index and how many queues
- *      do we want from this family)
- *    Extensions to enable (required by swapchains)
- *    Layers to enable (required by validation layers)
- */
+// VkDevice interfaces with the physical device.
 struct Device {
  public:
   Device() = default;
@@ -107,47 +155,21 @@ struct Device {
 
   ~Device();
 
-  void Init(std::shared_ptr<BasicContext> context,
-            const absl::optional<WindowSupport>& window_support);
+  // Initializes 'device_' and returns the queues retrieved from it.
+  std::unique_ptr<Queues> Init(
+      std::shared_ptr<BasicContext> context,
+      const Queues::FamilyIndices& queue_family_indices,
+      const absl::optional<WindowSupport>& window_support);
 
+  // Overloads.
   const VkDevice& operator*() const { return device_; }
 
  private:
+  // Pointer to context.
   std::shared_ptr<BasicContext> context_;
+
+  // Opaque device object.
   VkDevice device_;
-};
-
-/** VkQueue is the queue associated with the logical device. When we create it,
- *    we can specify both queue family index and queue index (within family).
- */
-struct Queues {
-  static constexpr uint32_t kInvalidIndex =
-      std::numeric_limits<uint32_t>::max();
-
-  struct Queue {
-    Queue() = default;
-    VkQueue queue;
-    uint32_t family_index;
-  };
-  Queue graphics, transfer;
-  absl::optional<Queue> present;
-
-  Queues() = default;
-
-  // This class is neither copyable nor movable.
-  Queues(const Queues&) = delete;
-  Queues& operator=(const Queues&) = delete;
-
-  // Implicitly cleaned up with physical device.
-  ~Queues() = default;
-
-  absl::flat_hash_set<uint32_t> unique_family_indices() const;
-  Queues& set_queues(const VkQueue& graphics_queue,
-                     const VkQueue& transfer_queue,
-                     const absl::optional<VkQueue>& present_queue);
-  Queues& set_family_indices(uint32_t graphics_index,
-                             uint32_t transfer_index,
-                             uint32_t present_index);
 };
 
 } /* namespace vulkan */

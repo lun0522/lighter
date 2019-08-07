@@ -302,9 +302,7 @@ RenderPassBuilder& RenderPassBuilder::set_num_framebuffer(int count) {
 
 RenderPassBuilder& RenderPassBuilder::set_attachment(
     int index, const Attachment& attachment, GetImage&& get_image) {
-  if (get_image == nullptr) {
-    FATAL("get_image cannot be nullptr");
-  }
+  ASSERT_NON_NULL(get_image, "get_image cannot be nullptr");
   const Image& sample_image = get_image(0);
   VkSampleCountFlagBits sample_count = VK_SAMPLE_COUNT_1_BIT;
   if (const auto* multisample_image =
@@ -343,9 +341,8 @@ std::unique_ptr<RenderPass> RenderPassBuilder::Build() const {
   ASSERT_HAS_VALUE(num_framebuffer_, "Number of frame is not set");
 
   for (int i = 0; i < get_images_.size(); ++i) {
-    if (get_images_[i] == nullptr) {
-      FATAL(absl::StrFormat("Attachment at index %d is not set", i));
-    }
+    ASSERT_NON_NULL(get_images_[i],
+                    absl::StrFormat("Attachment at index %d is not set", i));
   }
 
   VkRenderPassCreateInfo render_pass_info{

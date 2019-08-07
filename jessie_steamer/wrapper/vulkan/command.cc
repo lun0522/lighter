@@ -122,7 +122,7 @@ void PerFrameCommand::Init(int num_frame_in_flight, const Queues* queues) {
   if (is_first_time_) {
     is_first_time_ = false;
     queues_ = queues;
-    command_pool_ = CreateCommandPool(context_, queues_->graphics,
+    command_pool_ = CreateCommandPool(context_, queues_->graphics_queue(),
                                       /*is_transient=*/false);
     image_available_semas_.Init(context_, num_frame_in_flight);
     render_finished_semas_.Init(context_, num_frame_in_flight);
@@ -204,7 +204,7 @@ VkResult PerFrameCommand::Run(int current_frame,
 
   // reset to fences unsignaled state
   vkResetFences(device, 1, &in_flight_fences_[current_frame]);
-  ASSERT_SUCCESS(vkQueueSubmit(queues_->graphics.queue, 1, &submit_info,
+  ASSERT_SUCCESS(vkQueueSubmit(queues_->graphics_queue().queue, 1, &submit_info,
                                in_flight_fences_[current_frame]),
                  "Failed to submit draw command buffer");
 
@@ -220,10 +220,8 @@ VkResult PerFrameCommand::Run(int current_frame,
       /*pResults=*/nullptr,
       // may use .pResults to check whether each swapchain rendered successfully
   };
-
-  ASSERT_HAS_VALUE(queues_->present, "No present queue");
-  VkResult present_result = vkQueuePresentKHR(queues_->present.value().queue,
-                                              &present_info);
+  const VkResult present_result = vkQueuePresentKHR(
+      queues_->present_queue().queue, &present_info);
   switch (present_result) {
     case VK_ERROR_OUT_OF_DATE_KHR:  // swapchain can no longer present image
       return present_result;

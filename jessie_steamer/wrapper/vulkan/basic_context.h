@@ -13,6 +13,8 @@
 #include <vector>
 
 #include "absl/types/optional.h"
+#include "absl/memory/memory.h"
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_object.h"
 #ifndef NDEBUG
 #include "jessie_steamer/wrapper/vulkan/validation.h"
@@ -65,8 +67,9 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
     if (window_support.has_value()) {
       window_support.value().create_surface(allocator_, *instance_);
     }
-    physical_device_.Init(ptr(), window_support);
-    device_.Init(ptr(), window_support);
+    const auto queue_family_indices =
+        physical_device_.Init(ptr(), window_support);
+    queues_ = device_.Init(ptr(), queue_family_indices, window_support);
   }
 
   void AddReleaseExpiredResourceOp(ReleaseExpiredResourceOp&& op) {
@@ -86,24 +89,21 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   const Instance& instance()                const { return instance_; }
   const PhysicalDevice& physical_device()   const { return physical_device_; }
   const Device& device()                    const { return device_; }
-  const Queues& queues()                    const { return queues_; }
+  const Queues& queues() const {
+    ASSERT_NON_NULL(queues_, "Queues have not been initialized");
+    return *queues_;
+  }
 
   const VkPhysicalDeviceLimits& limits() const {
     return physical_device_.limits();
   }
 
  private:
-  // These methods will set queues.
-  friend void PhysicalDevice::Init(SharedBasicContext,
-                                   const absl::optional<WindowSupport>&);
-  friend void Device::Init(SharedBasicContext,
-                           const absl::optional<WindowSupport>&);
-
   const VkAllocationCallbacks* allocator_ = nullptr;
   Instance instance_;
   PhysicalDevice physical_device_;
   Device device_;
-  Queues queues_;
+  std::unique_ptr<Queues> queues_;
 #ifndef NDEBUG
   DebugCallback debug_callback_;
 #endif /* !NDEBUG */

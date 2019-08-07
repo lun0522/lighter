@@ -198,7 +198,7 @@ void TransitionImageLayout(
     const array<VkAccessFlags, 2>& barrier_access_flags,
     const array<VkPipelineStageFlags, 2>& pipeline_stages,
     uint32_t mip_levels, uint32_t layer_count) {
-  const auto& transfer_queue = context->queues().transfer;
+  const auto& transfer_queue = context->queues().transfer_queue();
 
   OneTimeCommand command{context, &transfer_queue};
   command.Run([&](const VkCommandBuffer& command_buffer) {
@@ -246,7 +246,7 @@ void CopyBufferToBuffer(const SharedBasicContext& context,
                         VkDeviceSize data_size,
                         const VkBuffer& src_buffer,
                         const VkBuffer& dst_buffer) {
-  OneTimeCommand command{context, &context->queues().transfer};
+  OneTimeCommand command{context, &context->queues().transfer_queue()};
   command.Run([&](const VkCommandBuffer& command_buffer) {
     VkBufferCopy region{
         /*srcOffset=*/0,
@@ -287,7 +287,7 @@ void CopyBufferToImage(const SharedBasicContext& context,
                        const VkExtent3D& image_extent,
                        VkImageLayout image_layout,
                        uint32_t layer_count) {
-  OneTimeCommand command{context, &context->queues().transfer};
+  OneTimeCommand command{context, &context->queues().transfer_queue()};
   command.Run([&](const VkCommandBuffer& command_buffer) {
     VkBufferImageCopy region{
         // first three parameters specify pixels layout in buffer
@@ -342,7 +342,7 @@ void GenerateMipmaps(const SharedBasicContext& context,
     FATAL("Image format does not support linear blitting");
   }
 
-  const auto& transfer_queue = context->queues().transfer;
+  const auto& transfer_queue = context->queues().transfer_queue();
   OneTimeCommand command{context, &transfer_queue};
   command.Run([&](const VkCommandBuffer& command_buffer) {
     VkImageMemoryBarrier barrier{

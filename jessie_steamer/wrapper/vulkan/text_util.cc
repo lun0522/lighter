@@ -266,7 +266,7 @@ CharLoader::CharLoader(SharedBasicContext context,
       },
   };
 
-  OneTimeCommand command{context_, &context_->queues().graphics};
+  OneTimeCommand command{context_, &context_->queues().graphics_queue()};
   command.Run([&](const VkCommandBuffer& command_buffer) {
     render_pass->Run(command_buffer, /*framebuffer_index=*/0, render_ops);
   });
@@ -418,7 +418,7 @@ TextLoader::TextTexture TextLoader::CreateTextTexture(
       },
   };
 
-  OneTimeCommand command{context_, &context_->queues().graphics};
+  OneTimeCommand command{context_, &context_->queues().graphics_queue()};
   command.Run([&](const VkCommandBuffer& command_buffer) {
     render_pass->Run(command_buffer, /*framebuffer_index=*/0, render_ops);
   });

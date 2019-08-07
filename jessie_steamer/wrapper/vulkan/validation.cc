@@ -18,8 +18,6 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-namespace util = common::util;
-
 using std::string;
 using std::vector;
 
@@ -51,7 +49,7 @@ void EnsureInstanceExtensionSupport(const vector<string>& required) {
   std::cout << "Checking instance extension support..."
             << std::endl << std::endl;
 
-  auto properties {util::QueryAttribute<VkExtensionProperties>(
+  auto properties {QueryAttribute<VkExtensionProperties>(
       [](uint32_t* count, VkExtensionProperties* properties) {
         return vkEnumerateInstanceExtensionProperties(
             nullptr, count, properties);
@@ -60,7 +58,7 @@ void EnsureInstanceExtensionSupport(const vector<string>& required) {
   auto get_name = [](const VkExtensionProperties& property) {
     return property.extensionName;
   };
-  auto unsupported = util::FindUnsupported<VkExtensionProperties>(
+  auto unsupported = FindUnsupported<VkExtensionProperties>(
       required, properties, get_name);
 
   if (unsupported.has_value()) {
@@ -71,7 +69,7 @@ void EnsureInstanceExtensionSupport(const vector<string>& required) {
 void EnsureValidationLayerSupport(const vector<string>& required) {
   std::cout << "Checking validation layer support..." << std::endl << std::endl;
 
-  auto properties {util::QueryAttribute<VkLayerProperties>(
+  auto properties {QueryAttribute<VkLayerProperties>(
       [](uint32_t* count, VkLayerProperties* properties) {
         return vkEnumerateInstanceLayerProperties(count, properties);
       }
@@ -79,7 +77,7 @@ void EnsureValidationLayerSupport(const vector<string>& required) {
   auto get_name = [](const VkLayerProperties& property) {
     return property.layerName;
   };
-  auto unsupported = util::FindUnsupported<VkLayerProperties>(
+  auto unsupported = FindUnsupported<VkLayerProperties>(
       required, properties, get_name);
 
   if (unsupported.has_value()) {

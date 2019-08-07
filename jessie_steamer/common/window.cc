@@ -81,9 +81,7 @@ void Window::Init(const std::string& name, glm::ivec2 screen_size) {
 
   window_ = glfwCreateWindow(screen_size.x, screen_size.y, name.c_str(),
                              nullptr, nullptr);
-  if (window_ == nullptr) {
-    FATAL("Failed to create window");
-  }
+  ASSERT_NON_NULL(window_, "Failed to create window");
 
   glfwMakeContextCurrent(window_);
   glfwSetWindowUserPointer(window_, this);

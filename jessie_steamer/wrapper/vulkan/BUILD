@@ -37,6 +37,7 @@ cc_library(
         "//jessie_steamer/common:util",
         "//third_party:vulkan",
         "@lib-absl//absl/container:flat_hash_set",
+        "@lib-absl//absl/memory",
         "@lib-absl//absl/types:optional",
     ],
 )
@@ -206,7 +207,9 @@ cc_library(
     deps = [
         "//jessie_steamer/common:util",
         "//third_party:vulkan",
+        "@lib-absl//absl/container:flat_hash_set",
         "@lib-absl//absl/strings:str_format",
+        "@lib-absl//absl/types:optional",
     ],
 )
 

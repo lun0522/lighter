@@ -255,9 +255,8 @@ std::unique_ptr<Model> ModelBuilder::Build() {
 
   for (int i = 0; i < instancing_infos_.size(); ++i) {
     auto& info = instancing_infos_[i];
-    if (info.per_instance_buffer == nullptr) {
-      FATAL("Per instance buffer not provided");
-    }
+    ASSERT_NON_NULL(info.per_instance_buffer,
+                    "Per instance buffer not provided");
     per_instance_buffers.emplace_back(info.per_instance_buffer);
     bindings.emplace_back(VertexInputBinding{
         kPerInstanceBindingPointBase + i,

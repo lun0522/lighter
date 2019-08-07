@@ -19,8 +19,6 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-namespace util = common::util;
-
 using std::max;
 using std::min;
 using std::vector;
@@ -109,7 +107,7 @@ void Swapchain::Init(
   image_extent_ = ChooseExtent(surface_capabilities, screen_size);
 
   // surface formats
-  auto surface_formats{util::QueryAttribute<VkSurfaceFormatKHR>(
+  auto surface_formats{QueryAttribute<VkSurfaceFormatKHR>(
       [&surface, &physical_device]
       (uint32_t* count, VkSurfaceFormatKHR* formats) {
         return vkGetPhysicalDeviceSurfaceFormatsKHR(
@@ -119,7 +117,7 @@ void Swapchain::Init(
   VkSurfaceFormatKHR surface_format = ChooseSurfaceFormat(surface_formats);
 
   // present modes
-  auto present_modes{util::QueryAttribute<VkPresentModeKHR>(
+  auto present_modes{QueryAttribute<VkPresentModeKHR>(
       [&surface, &physical_device](uint32_t* count, VkPresentModeKHR* modes) {
         return vkGetPhysicalDeviceSurfacePresentModesKHR(
             physical_device, surface, count, modes);
@@ -157,8 +155,8 @@ void Swapchain::Init(
       /*oldSwapchain=*/VK_NULL_HANDLE,
   };
 
-  // graphics queue and present queue might be the same
-  const auto queue_family_indices = context_->queues().unique_family_indices();
+  // graphics queue and presentation queue might be the same
+  const auto& queue_family_indices = context_->queues().unique_family_indices();
   if (queue_family_indices.size() > 1) {
     // specify which queue families will share access to images. we will draw on
     // images in swapchain from graphics queue and submit on presentation queue.
@@ -177,7 +175,7 @@ void Swapchain::Init(
                  "Failed to create swapchain");
 
   // fetch swapchain images
-  auto images{util::QueryAttribute<VkImage>(
+  auto images{QueryAttribute<VkImage>(
       [this](uint32_t *count, VkImage *images) {
         vkGetSwapchainImagesKHR(*context_->device(), swapchain_, count, images);
       }

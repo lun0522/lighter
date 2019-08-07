@@ -16,8 +16,8 @@ namespace common {
 // Timer is used for tracking the frame rate.
 class Timer {
  public:
-  Timer() : frame_count_{0}, frame_rate_{0} {
-    launch_time_ = last_update_time_ = last_frame_time_ = Now();
+  Timer() : launch_time_{Now()}, frame_count_{0}, frame_rate_{0} {
+    last_update_time_ = last_frame_time_ = launch_time_;
   }
 
   // Informs the timer that a frame has been rendered. The frame rate is updated
@@ -58,7 +58,7 @@ class Timer {
   }
 
   // The time point when the timer was launched.
-  TimePoint launch_time_;
+  const TimePoint launch_time_;
 
   // The time point when the frame rate was last updated.
   TimePoint last_update_time_;

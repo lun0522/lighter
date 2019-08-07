@@ -77,12 +77,12 @@ ModelLoader::MeshData ModelLoader::LoadMesh(const string& directory,
   constexpr int kTexCoordSetIndex = 0;
   const aiVector3D* tex_coord_set = mesh->mTextureCoords[kTexCoordSetIndex];
   for (int i = 0; i < mesh->mNumVertices; ++i) {
-    glm::vec3 position{mesh->mVertices[i].x,
-                       mesh->mVertices[i].y,
-                       mesh->mVertices[i].z};
-    glm::vec3 normal{mesh->mNormals[i].x,
-                     mesh->mNormals[i].y,
-                     mesh->mNormals[i].z};
+    const glm::vec3 position{mesh->mVertices[i].x,
+                             mesh->mVertices[i].y,
+                             mesh->mVertices[i].z};
+    const glm::vec3 normal{mesh->mNormals[i].x,
+                           mesh->mNormals[i].y,
+                           mesh->mNormals[i].z};
     glm::vec2 tex_coord{0.0f};
     if (tex_coord_set != nullptr) {
       tex_coord = {tex_coord_set[i].x, tex_coord_set[i].y};
