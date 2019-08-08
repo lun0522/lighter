@@ -9,8 +9,6 @@
 
 #include <iostream>
 
-#include "absl/strings/str_cat.h"
-#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 
@@ -35,7 +33,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
 
 namespace validation {
 
-const vector<const char*>& GetValidationLayers() {
+const vector<const char*>& GetRequiredLayers() {
   static vector<const char*>* validation_layers = nullptr;
   if (validation_layers == nullptr) {
     validation_layers = new vector<const char*>{
@@ -43,46 +41,6 @@ const vector<const char*>& GetValidationLayers() {
     };
   }
   return *validation_layers;
-}
-
-void CheckInstanceExtensionSupport(const vector<std::string>& required) {
-  std::cout << "Checking instance extension support..."
-            << std::endl << std::endl;
-
-  const auto properties{QueryAttribute<VkExtensionProperties>(
-      [](uint32_t* count, VkExtensionProperties* properties) {
-        return vkEnumerateInstanceExtensionProperties(
-            nullptr, count, properties);
-      }
-  )};
-  const auto get_name = [](const VkExtensionProperties& property) {
-    return property.extensionName;
-  };
-  const auto unsupported = FindUnsupported<VkExtensionProperties>(
-      required, properties, get_name);
-
-  if (unsupported.has_value()) {
-    FATAL(absl::StrCat("Unsupported: ", unsupported.value()));
-  }
-}
-
-void CheckValidationLayerSupport(const vector<std::string>& required) {
-  std::cout << "Checking validation layer support..." << std::endl << std::endl;
-
-  const auto properties{QueryAttribute<VkLayerProperties>(
-      [](uint32_t* count, VkLayerProperties* properties) {
-        return vkEnumerateInstanceLayerProperties(count, properties);
-      }
-  )};
-  const auto get_name = [](const VkLayerProperties& property) {
-    return property.layerName;
-  };
-  const auto unsupported = FindUnsupported<VkLayerProperties>(
-      required, properties, get_name);
-
-  if (unsupported.has_value()) {
-    FATAL(absl::StrCat("Unsupported: ", unsupported.value()));
-  }
 }
 
 } /* namespace validation */

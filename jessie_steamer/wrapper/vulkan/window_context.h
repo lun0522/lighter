@@ -52,7 +52,7 @@ class WindowContext {
       context_->Init(allocator, WindowSupport{
           &*surface_,
           common::Window::GetRequiredExtensions(),
-          Swapchain::required_extensions(),
+          Swapchain::GetRequiredExtensions(),
           create_surface,
       });
     }

@@ -7,11 +7,13 @@
 
 #include "jessie_steamer/wrapper/vulkan/basic_object.h"
 
+#include <functional>
 #include <iostream>
 #include <string>
 #include <vector>
 
 #include "absl/memory/memory.h"
+#include "absl/strings/str_cat.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 #ifndef NDEBUG
@@ -25,16 +27,63 @@ namespace {
 
 namespace util = common::util;
 
+using std::string;
 using std::vector;
+
+// Checks support for 'required' extensions, and throws a runtime exception
+// if any of them is not supported.
+void CheckInstanceExtensionSupport(const vector<string>& required) {
+  std::cout << "Checking instance extension support..."
+            << std::endl << std::endl;
+
+  const auto properties{QueryAttribute<VkExtensionProperties>(
+      [](uint32_t* count, VkExtensionProperties* properties) {
+        return vkEnumerateInstanceExtensionProperties(
+            nullptr, count, properties);
+      }
+  )};
+  const auto get_name = [](const VkExtensionProperties& property) {
+    return property.extensionName;
+  };
+  const auto unsupported = FindUnsupported<VkExtensionProperties>(
+      required, properties, get_name);
+
+  if (unsupported.has_value()) {
+    FATAL(absl::StrCat("Unsupported: ", unsupported.value()));
+  }
+}
+
+#ifndef NDEBUG
+// Checks support for 'required' layers, and throws a runtime exception if any
+// of them is not supported.
+void CheckValidationLayerSupport(const vector<string>& required) {
+  std::cout << "Checking validation layer support..." << std::endl << std::endl;
+
+  const auto properties{QueryAttribute<VkLayerProperties>(
+      [](uint32_t* count, VkLayerProperties* properties) {
+        return vkEnumerateInstanceLayerProperties(count, properties);
+      }
+  )};
+  const auto get_name = [](const VkLayerProperties& property) {
+    return property.layerName;
+  };
+  const auto unsupported = FindUnsupported<VkLayerProperties>(
+      required, properties, get_name);
+
+  if (unsupported.has_value()) {
+    FATAL(absl::StrCat("Unsupported: ", unsupported.value()));
+  }
+}
+#endif /* !NDEBUG */
 
 // Returns whether swapchain is supported.
 bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
                          const WindowSupport& window_support) {
-  std::cout << "Checking extension support required for swapchain..."
+  std::cout << "Checking swapchain support..."
             << std::endl << std::endl;
 
   // Query support for device extensions.
-  const vector<std::string> required{
+  const vector<string> required{
       window_support.swapchain_extensions.begin(),
       window_support.swapchain_extensions.end(),
   };
@@ -184,15 +233,17 @@ void Instance::Init(SharedBasicContext context,
 #ifndef NDEBUG
   // Request support for debug reports.
   instance_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif /* !NDEBUG */
 
-  // Make sure we have support for extensions and layers for validation.
-  validation::CheckInstanceExtensionSupport({
+  // Make sure we have support for relevant extensions and layers.
+  CheckInstanceExtensionSupport({
       instance_extensions.begin(),
       instance_extensions.end()
   });
-  validation::CheckValidationLayerSupport({
-      validation::GetValidationLayers().begin(),
-      validation::GetValidationLayers().end()
+#ifndef NDEBUG
+  CheckValidationLayerSupport({
+      validation::GetRequiredLayers().begin(),
+      validation::GetRequiredLayers().end()
   });
 #endif /* !NDEBUG */
 
@@ -219,8 +270,8 @@ void Instance::Init(SharedBasicContext context,
       /*enabledLayerCount=*/0,
       /*ppEnabledLayerNames=*/nullptr,
 #else  /* !NDEBUG */
-      CONTAINER_SIZE(validation::GetValidationLayers()),
-      validation::GetValidationLayers().data(),
+      CONTAINER_SIZE(validation::GetRequiredLayers()),
+      validation::GetRequiredLayers().data(),
 #endif /* NDEBUG */
       CONTAINER_SIZE(instance_extensions),
       instance_extensions.data(),
@@ -319,8 +370,8 @@ std::unique_ptr<Queues> Device::Init(
       /*enabledLayerCount=*/0,
       /*ppEnabledLayerNames=*/nullptr,
 #else  /* !NDEBUG */
-      CONTAINER_SIZE(validation::GetValidationLayers()),
-      validation::GetValidationLayers().data(),
+      CONTAINER_SIZE(validation::GetRequiredLayers()),
+      validation::GetRequiredLayers().data(),
 #endif /* NDEBUG */
       CONTAINER_SIZE(device_extensions),
       device_extensions.data(),

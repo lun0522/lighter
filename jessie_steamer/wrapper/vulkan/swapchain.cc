@@ -83,14 +83,14 @@ VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities,
 
 } /* namespace */
 
-const vector<const char*>& Swapchain::required_extensions() {
-  static vector<const char*>* kSwapchainExtensions = nullptr;
-  if (kSwapchainExtensions == nullptr) {
-    kSwapchainExtensions = new vector<const char*>{
+const vector<const char*>& Swapchain::GetRequiredExtensions() {
+  static vector<const char*>* required_extensions = nullptr;
+  if (required_extensions == nullptr) {
+    required_extensions = new vector<const char*>{
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     };
   }
-  return *kSwapchainExtensions;
+  return *required_extensions;
 }
 
 void Swapchain::Init(

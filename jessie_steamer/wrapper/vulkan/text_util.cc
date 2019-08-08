@@ -200,7 +200,7 @@ std::unique_ptr<PerVertexBuffer> CreateVertexBuffer(
       /*num_mesh=*/static_cast<int>(char_merge_order.size()),
       /*per_mesh_vertices=*/
       {vertices, /*unit_count=*/text_util::kNumVerticesPerRect},
-      /*shared_indices=*/{text_util::indices_per_rect()},
+      /*shared_indices=*/{text_util::GetIndicesPerRect()},
   });
   return buffer;
 }
@@ -429,14 +429,14 @@ TextLoader::TextTexture TextLoader::CreateTextTexture(
 
 namespace text_util {
 
-const array<uint32_t, kNumIndicesPerRect>& indices_per_rect() {
-  static array<uint32_t, kNumIndicesPerRect>* kIndicesPerRect = nullptr;
-  if (kIndicesPerRect == nullptr) {
-    kIndicesPerRect = new array<uint32_t, kNumIndicesPerRect>{
+const array<uint32_t, kNumIndicesPerRect>& GetIndicesPerRect() {
+  static array<uint32_t, kNumIndicesPerRect>* indices_per_rect = nullptr;
+  if (indices_per_rect == nullptr) {
+    indices_per_rect = new array<uint32_t, kNumIndicesPerRect>{
         0, 1, 2, 0, 2, 3,
     };
   }
-  return *kIndicesPerRect;
+  return *indices_per_rect;
 }
 
 void AppendCharPosAndTexCoord(const glm::vec2 &pos_bottom_left,
@@ -498,7 +498,7 @@ float LoadCharsVertexData(const string& text, const CharLoader& char_loader,
       /*num_mesh=*/static_cast<int>(text.length()),
       /*per_mesh_vertices=*/
       {vertices, /*unit_count=*/text_util::kNumVerticesPerRect},
-      /*shared_indices=*/{text_util::indices_per_rect()},
+      /*shared_indices=*/{text_util::GetIndicesPerRect()},
   });
 
   return offset_x;

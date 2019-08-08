@@ -46,9 +46,9 @@ float GetOffsetX(float base_x, Text::Align align, float total_width) {
 }
 
 const vector<Descriptor::Info>& CreateDescriptorInfos() {
-  vector<Descriptor::Info>* kDescriptorInfos = nullptr;
-  if (kDescriptorInfos == nullptr) {
-    kDescriptorInfos = new vector<Descriptor::Info>{
+  vector<Descriptor::Info>* descriptor_infos = nullptr;
+  if (descriptor_infos == nullptr) {
+    descriptor_infos = new vector<Descriptor::Info>{
         Descriptor::Info{
             /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -74,7 +74,7 @@ const vector<Descriptor::Info>& CreateDescriptorInfos() {
         },
     };
   }
-  return *kDescriptorInfos;
+  return *descriptor_infos;
 }
 
 } /* namespace */
@@ -181,7 +181,7 @@ glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer,
       /*num_mesh=*/1,
       /*per_mesh_vertices=*/
       {vertices, /*unit_count=*/text_util::kNumVerticesPerRect},
-      /*shared_indices=*/{text_util::indices_per_rect()},
+      /*shared_indices=*/{text_util::GetIndicesPerRect()},
   });
 
   pipeline_->Bind(command_buffer);

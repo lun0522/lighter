@@ -47,7 +47,7 @@ namespace vulkan {
  */
 class Swapchain {
  public:
-  static const std::vector<const char*>& required_extensions();
+  static const std::vector<const char*>& GetRequiredExtensions();
 
   Swapchain() = default;
 

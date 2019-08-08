@@ -109,12 +109,12 @@ constexpr int kNumVerticesPerRect = 4;
 constexpr int kNumIndicesPerRect = 6;
 
 // Returns indices per rectangle.
-const std::array<uint32_t, kNumIndicesPerRect>& indices_per_rect();
+const std::array<uint32_t, kNumIndicesPerRect>& GetIndicesPerRect();
 
 // Returns the data size used for vertex buffer. Is is assumed that indices will
 // be shared and each vertex data is of type VertexAttrib2D.
 inline int GetVertexDataSize(int num_rect) {
-  return sizeof(indices_per_rect()[0]) * kNumIndicesPerRect +
+  return sizeof(GetIndicesPerRect()[0]) * kNumIndicesPerRect +
          sizeof(common::VertexAttrib2D) * kNumVerticesPerRect * num_rect;
 }
 

@@ -9,7 +9,6 @@
 #define JESSIE_STEAMER_WRAPPER_VULKAN_VALIDATION_H
 
 #include <memory>
-#include <string>
 #include <vector>
 
 #include "third_party/vulkan/vulkan.h"
@@ -46,16 +45,8 @@ enum Type {
 
 namespace validation {
 
-// Returns names of layers that should be enabled for validation support.
-const std::vector<const char*>& GetValidationLayers();
-
-// Checks support for 'required' extensions, and throws a runtime exception
-// if any of them is not supported.
-void CheckInstanceExtensionSupport(const std::vector<std::string>& required);
-
-// Checks support for 'required' layers, and throws a runtime exception if any
-// of them is not supported.
-void CheckValidationLayerSupport(const std::vector<std::string>& required);
+// Returns the names of required layers for validation support.
+const std::vector<const char*>& GetRequiredLayers();
 
 } /* namespace validation */
 
