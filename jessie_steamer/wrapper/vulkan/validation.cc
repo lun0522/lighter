@@ -9,6 +9,7 @@
 
 #include <iostream>
 
+#include "absl/strings/str_cat.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
@@ -18,15 +19,14 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::string;
 using std::vector;
 
+// Returns a callback that simply prints the error reason.
 VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
     VkDebugUtilsMessageTypeFlagsEXT message_type,
     const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
     void* user_data) {
-  // if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
   std::cout << "[Validation] " << callback_data->pMessage << std::endl;
   return VK_FALSE;
 }
@@ -35,53 +35,53 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
 
 namespace validation {
 
-const vector<const char*>& layers() {
-  static vector<const char*>* kValidationLayers = nullptr;
-  if (kValidationLayers == nullptr) {
-    kValidationLayers = new vector<const char*>{
+const vector<const char*>& GetValidationLayers() {
+  static vector<const char*>* validation_layers = nullptr;
+  if (validation_layers == nullptr) {
+    validation_layers = new vector<const char*>{
         "VK_LAYER_LUNARG_standard_validation",
     };
   }
-  return *kValidationLayers;
+  return *validation_layers;
 }
 
-void EnsureInstanceExtensionSupport(const vector<string>& required) {
+void CheckInstanceExtensionSupport(const vector<std::string>& required) {
   std::cout << "Checking instance extension support..."
             << std::endl << std::endl;
 
-  auto properties {QueryAttribute<VkExtensionProperties>(
+  const auto properties{QueryAttribute<VkExtensionProperties>(
       [](uint32_t* count, VkExtensionProperties* properties) {
         return vkEnumerateInstanceExtensionProperties(
             nullptr, count, properties);
       }
   )};
-  auto get_name = [](const VkExtensionProperties& property) {
+  const auto get_name = [](const VkExtensionProperties& property) {
     return property.extensionName;
   };
-  auto unsupported = FindUnsupported<VkExtensionProperties>(
+  const auto unsupported = FindUnsupported<VkExtensionProperties>(
       required, properties, get_name);
 
   if (unsupported.has_value()) {
-    FATAL("Unsupported: " + unsupported.value());
+    FATAL(absl::StrCat("Unsupported: ", unsupported.value()));
   }
 }
 
-void EnsureValidationLayerSupport(const vector<string>& required) {
+void CheckValidationLayerSupport(const vector<std::string>& required) {
   std::cout << "Checking validation layer support..." << std::endl << std::endl;
 
-  auto properties {QueryAttribute<VkLayerProperties>(
+  const auto properties{QueryAttribute<VkLayerProperties>(
       [](uint32_t* count, VkLayerProperties* properties) {
         return vkEnumerateInstanceLayerProperties(count, properties);
       }
   )};
-  auto get_name = [](const VkLayerProperties& property) {
+  const auto get_name = [](const VkLayerProperties& property) {
     return property.layerName;
   };
-  auto unsupported = FindUnsupported<VkLayerProperties>(
+  const auto unsupported = FindUnsupported<VkLayerProperties>(
       required, properties, get_name);
 
   if (unsupported.has_value()) {
-    FATAL("Unsupported: " + unsupported.value());
+    FATAL(absl::StrCat("Unsupported: ", unsupported.value()));
   }
 }
 
@@ -91,6 +91,7 @@ void DebugCallback::Init(SharedBasicContext context,
                          VkDebugUtilsMessageSeverityFlagsEXT message_severity,
                          VkDebugUtilsMessageTypeFlagsEXT message_type) {
   context_ = std::move(context);
+  // We may pass data to 'pUserData' which can be retrieved from the callback.
   VkDebugUtilsMessengerCreateInfoEXT create_info{
       VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
       /*pNext=*/nullptr,
@@ -98,9 +99,9 @@ void DebugCallback::Init(SharedBasicContext context,
       message_severity,
       message_type,
       UserCallback,
-      /*pUserData=*/nullptr,  // will be passed along to the callback
+      /*pUserData=*/nullptr,
   };
-  static const auto vkCreateDebugUtilsMessengerEXT =
+  const auto vkCreateDebugUtilsMessengerEXT =
       LoadInstanceFunction<PFN_vkCreateDebugUtilsMessengerEXT>(
           *context_->instance(), "vkCreateDebugUtilsMessengerEXT");
   vkCreateDebugUtilsMessengerEXT(*context_->instance(), &create_info,
@@ -108,7 +109,7 @@ void DebugCallback::Init(SharedBasicContext context,
 }
 
 DebugCallback::~DebugCallback() {
-  static const auto vkDestroyDebugUtilsMessengerEXT =
+  const auto vkDestroyDebugUtilsMessengerEXT =
       LoadInstanceFunction<PFN_vkDestroyDebugUtilsMessengerEXT>(
           *context_->instance(), "vkDestroyDebugUtilsMessengerEXT");
   vkDestroyDebugUtilsMessengerEXT(*context_->instance(), callback_,

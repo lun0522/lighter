@@ -10,6 +10,7 @@
 #include <algorithm>
 
 #include "absl/memory/memory.h"
+#include "absl/strings/str_cat.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/vertex_input_util.h"
 
@@ -30,9 +31,9 @@ string GetFontPath(CharLoader::Font font) {
   const string prefix = "external/resource/font/";
   switch (font) {
     case CharLoader::Font::kGeorgia:
-      return prefix + "georgia.ttf";
+      return absl::StrCat(prefix, "georgia.ttf");
     case CharLoader::Font::kOstrich:
-      return prefix + "ostrich.ttf";
+      return absl::StrCat(prefix, "ostrich.ttf");
   }
 }
 

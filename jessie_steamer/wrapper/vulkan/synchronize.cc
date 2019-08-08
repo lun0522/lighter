@@ -14,18 +14,21 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
+// Used to create a semaphore.
 constexpr VkSemaphoreCreateInfo kSemaInfo{
     VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
     /*pNext=*/nullptr,
     /*flags=*/nullflag,
 };
 
+// Used to create a fence which is initially signaled.
 constexpr VkFenceCreateInfo kSignaledFenceInfo{
     VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
     /*pNext=*/nullptr,
     /*flags=*/VK_FENCE_CREATE_SIGNALED_BIT,
 };
 
+// Used to create a fence which is initially unsignaled.
 constexpr VkFenceCreateInfo kUnsignaledFenceInfo{
     VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
     /*pNext=*/nullptr,

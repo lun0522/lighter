@@ -186,13 +186,13 @@ void Instance::Init(SharedBasicContext context,
   instance_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
   // Make sure we have support for extensions and layers for validation.
-  validation::EnsureInstanceExtensionSupport({
+  validation::CheckInstanceExtensionSupport({
       instance_extensions.begin(),
       instance_extensions.end()
   });
-  validation::EnsureValidationLayerSupport({
-      validation::layers().begin(),
-      validation::layers().end()
+  validation::CheckValidationLayerSupport({
+      validation::GetValidationLayers().begin(),
+      validation::GetValidationLayers().end()
   });
 #endif /* !NDEBUG */
 
@@ -219,8 +219,8 @@ void Instance::Init(SharedBasicContext context,
       /*enabledLayerCount=*/0,
       /*ppEnabledLayerNames=*/nullptr,
 #else  /* !NDEBUG */
-      CONTAINER_SIZE(validation::layers()),
-      validation::layers().data(),
+      CONTAINER_SIZE(validation::GetValidationLayers()),
+      validation::GetValidationLayers().data(),
 #endif /* NDEBUG */
       CONTAINER_SIZE(instance_extensions),
       instance_extensions.data(),
@@ -319,8 +319,8 @@ std::unique_ptr<Queues> Device::Init(
       /*enabledLayerCount=*/0,
       /*ppEnabledLayerNames=*/nullptr,
 #else  /* !NDEBUG */
-      CONTAINER_SIZE(validation::layers()),
-      validation::layers().data(),
+      CONTAINER_SIZE(validation::GetValidationLayers()),
+      validation::GetValidationLayers().data(),
 #endif /* NDEBUG */
       CONTAINER_SIZE(device_extensions),
       device_extensions.data(),

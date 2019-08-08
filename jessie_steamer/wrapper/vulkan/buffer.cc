@@ -591,7 +591,7 @@ void UniformBuffer::Init(size_t chunk_size, int num_chunk) {
   // which is why we have actual data size 'chunk_data_size_' and its
   // aligned size 'chunk_memory_size_'
   VkDeviceSize alignment =
-      context_->physical_device().limits().minUniformBufferOffsetAlignment;
+      context_->device_limits().minUniformBufferOffsetAlignment;
   chunk_data_size_ = chunk_size;
   chunk_memory_size_ =
       (chunk_data_size_ + alignment - 1) / alignment * alignment;

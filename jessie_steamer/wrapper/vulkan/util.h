@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/types/optional.h"
 #include "jessie_steamer/common/util.h"
@@ -48,7 +49,8 @@ FuncType LoadInstanceFunction(const VkInstance& instance,
                               const std::string& func_name) {
   auto func = reinterpret_cast<FuncType>(
       vkGetInstanceProcAddr(instance, func_name.c_str()));
-  ASSERT_NON_NULL(func, "Failed to load instance function " + func_name);
+  ASSERT_NON_NULL(
+      func, absl::StrCat("Failed to load instance function ", func_name));
   return func;
 }
 
@@ -57,7 +59,8 @@ FuncType LoadDeviceFunction(const VkDevice& device,
                             const std::string& func_name) {
   auto func = reinterpret_cast<FuncType>(
       vkGetDeviceProcAddr(device, func_name.c_str()));
-  ASSERT_NON_NULL(func, "Failed to load device function " + func_name);
+  ASSERT_NON_NULL(
+      func, absl::StrCat("Failed to load device function ", func_name));
   return func;
 }
 

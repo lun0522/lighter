@@ -38,6 +38,7 @@ cc_library(
         "//third_party:vulkan",
         "@lib-absl//absl/container:flat_hash_set",
         "@lib-absl//absl/memory",
+        "@lib-absl//absl/strings",
         "@lib-absl//absl/types:optional",
     ],
 )
@@ -197,6 +198,7 @@ cc_library(
         "//third_party:glm",
         "@lib-absl//absl/container:flat_hash_map",
         "@lib-absl//absl/memory",
+        "@lib-absl//absl/strings",
         "@lib-absl//absl/strings:str_format",
     ],
 )
@@ -208,6 +210,7 @@ cc_library(
         "//jessie_steamer/common:util",
         "//third_party:vulkan",
         "@lib-absl//absl/container:flat_hash_set",
+        "@lib-absl//absl/strings",
         "@lib-absl//absl/strings:str_format",
         "@lib-absl//absl/types:optional",
     ],

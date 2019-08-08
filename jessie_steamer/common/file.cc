@@ -13,6 +13,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_split.h"
 #include "jessie_steamer/common/util.h"
@@ -32,7 +33,7 @@ using std::vector;
 ifstream OpenFile(const string& path) {
   ifstream file{path};
   if (!file.is_open() || file.bad() || file.fail()) {
-    FATAL("Failed to open file: " + path);
+    FATAL(absl::StrCat("Failed to open file: ", path));
   }
   return file;
 }
@@ -72,7 +73,7 @@ Image::Image(const string& path) {
   data = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(raw_data->data),
                                static_cast<int>(raw_data->size),
                                &width, &height, &channel, STBI_default);
-  ASSERT_NON_NULL(data, "Failed to read image from " + path);
+  ASSERT_NON_NULL(data, absl::StrCat("Failed to read image from ", path));
 
   switch (channel) {
     case 1:

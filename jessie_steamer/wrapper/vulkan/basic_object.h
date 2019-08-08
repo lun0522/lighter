@@ -121,8 +121,9 @@ struct PhysicalDevice {
   ~PhysicalDevice() = default;
 
   // Finds a physical device that has the queues we need.
-  // If there is such a device, the limits of it wil also be queried and stored
-  // in 'limits_'. Otherwise, throws an exception.
+  // If there is such a device, the limits of it will be queried and stored
+  // in 'limits_', and the family indices of queues will be returned.
+  // Otherwise, throws a runtime exception.
   Queues::FamilyIndices Init(
       std::shared_ptr<BasicContext> context,
       const absl::optional<WindowSupport>& window_support);
@@ -160,6 +161,9 @@ struct Device {
       std::shared_ptr<BasicContext> context,
       const Queues::FamilyIndices& queue_family_indices,
       const absl::optional<WindowSupport>& window_support);
+
+  // Blocks host until 'device_' becomes idle.
+  void WaitIdle() const { vkDeviceWaitIdle(device_); }
 
   // Overloads.
   const VkDevice& operator*() const { return device_; }

@@ -11,7 +11,7 @@ common
 - window ✅
 
 wrapper
-- basic_context
+- basic_context ✅
 - basic_object ✅
 - buffer
 - command
@@ -21,11 +21,11 @@ wrapper
 - pipeline
 - render_pass
 - swapchain
-- synchronize
+- synchronize ✅
 - text
 - text_util
 - util
-- validation
+- validation ✅
 - vertex_input_util
 - window_context
 
