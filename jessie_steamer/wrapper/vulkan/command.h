@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
-#include "jessie_steamer/wrapper/vulkan/synchronize.h"
+#include "jessie_steamer/wrapper/vulkan/synchronization.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {

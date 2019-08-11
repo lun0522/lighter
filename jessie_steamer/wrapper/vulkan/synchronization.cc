@@ -1,11 +1,11 @@
 //
-//  synchronize.cc
+//  synchronization.cc
 //
 //  Created by Pujun Lun on 3/1/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "jessie_steamer/wrapper/vulkan/synchronize.h"
+#include "jessie_steamer/wrapper/vulkan/synchronization.h"
 
 #include "jessie_steamer/wrapper/vulkan/util.h"
 

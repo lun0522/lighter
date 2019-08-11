@@ -88,7 +88,7 @@ void CubeApp::Init() {
     is_first_time = false;
 
     // push constants
-    push_constant_.Init(sizeof(Transformation), kNumFrameInFlight);
+    push_constant_.Init(context(), sizeof(Transformation), kNumFrameInFlight);
 
     // render pass builder
     render_pass_builder_ = RenderPassBuilder::SimpleRenderPassBuilder(

@@ -325,7 +325,8 @@ class PushConstant {
 
   ~PushConstant() { delete[] data_; }
 
-  void Init(size_t chunk_size, int num_chunk);
+  void Init(const SharedBasicContext& context,
+            size_t chunk_size, int num_chunk);
 
   uint32_t size() const { return size_; }
 

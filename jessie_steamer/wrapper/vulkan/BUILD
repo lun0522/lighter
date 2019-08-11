@@ -64,7 +64,7 @@ cc_library(
     srcs = ["command.cc"],
     deps = [
         ":basics",
-        ":synchronize",
+        ":synchronization",
         ":util",
         "//jessie_steamer/common:util",
         "//third_party:vulkan",
@@ -162,9 +162,9 @@ cc_library(
 )
 
 cc_library(
-    name = "synchronize",
-    hdrs = ["synchronize.h"],
-    srcs = ["synchronize.cc"],
+    name = "synchronization",
+    hdrs = ["synchronization.h"],
+    srcs = ["synchronization.cc"],
     deps = [
         ":basics",
         ":util",

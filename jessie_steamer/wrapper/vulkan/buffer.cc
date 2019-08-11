@@ -23,9 +23,6 @@ namespace {
 using std::array;
 using std::vector;
 
-// https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap36.html#limits-minmax
-constexpr int kMaxPushConstantSize = 128;
-
 uint32_t FindMemoryType(const SharedBasicContext& context,
                         uint32_t type_filter,
                         VkMemoryPropertyFlags memory_properties) {
@@ -741,12 +738,15 @@ MultisampleBuffer::MultisampleBuffer(
       context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }
 
-void PushConstant::Init(size_t chunk_size, int num_chunk) {
-  if (chunk_size > kMaxPushConstantSize) {
+void PushConstant::Init(const SharedBasicContext& context,
+                        size_t chunk_size, int num_chunk) {
+  const int max_push_constant_size =
+      context->device_limits().maxPushConstantsSize;
+  if (chunk_size > max_push_constant_size) {
     FATAL(absl::StrFormat(
         "Pushing constant of size %d bytes. To be compatible with all devices, "
         "the size should NOT be greater than %d bytes.",
-        chunk_size, kMaxPushConstantSize));
+        chunk_size, max_push_constant_size));
   }
   size_ = static_cast<uint32_t>(chunk_size);
   data_ = new char[size_ * num_chunk];

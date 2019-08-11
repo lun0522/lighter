@@ -1,12 +1,12 @@
 //
-//  synchronize.h
+//  synchronization.h
 //
 //  Created by Pujun Lun on 3/1/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef JESSIE_STEAMER_WRAPPER_VULKAN_SYNCHRONIZE_H
-#define JESSIE_STEAMER_WRAPPER_VULKAN_SYNCHRONIZE_H
+#ifndef JESSIE_STEAMER_WRAPPER_VULKAN_SYNCHRONIZATION_H
+#define JESSIE_STEAMER_WRAPPER_VULKAN_SYNCHRONIZATION_H
 
 #include <vector>
 
@@ -72,4 +72,4 @@ class Fences {
 } /* namespace wrapper */
 } /* namespace jessie_steamer */
 
-#endif /* JESSIE_STEAMER_WRAPPER_VULKAN_SYNCHRONIZE_H */
+#endif /* JESSIE_STEAMER_WRAPPER_VULKAN_SYNCHRONIZATION_H */

@@ -137,8 +137,9 @@ void NanosuitApp::Init() {
 
     // push constants
     nanosuit_vert_uniform_.Init(sizeof(NanosuitVertTrans), kNumFrameInFlight);
-    nanosuit_frag_constant_.Init(sizeof(NanosuitFragTrans), kNumFrameInFlight);
-    skybox_constant_.Init(sizeof(SkyboxTrans), kNumFrameInFlight);
+    nanosuit_frag_constant_.Init(
+        context(), sizeof(NanosuitFragTrans), kNumFrameInFlight);
+    skybox_constant_.Init(context(), sizeof(SkyboxTrans), kNumFrameInFlight);
 
     // render pass builder
     render_pass_builder_ = RenderPassBuilder::SimpleRenderPassBuilder(

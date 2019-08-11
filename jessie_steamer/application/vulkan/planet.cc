@@ -148,8 +148,8 @@ void PlanetApp::Init() {
 
     // push constants
     light_uniform_.Init(sizeof(Light), kNumFrameInFlight);
-    planet_constant_.Init(sizeof(PlanetTrans), kNumFrameInFlight);
-    skybox_constant_.Init(sizeof(SkyboxTrans), kNumFrameInFlight);
+    planet_constant_.Init(context(), sizeof(PlanetTrans), kNumFrameInFlight);
+    skybox_constant_.Init(context(), sizeof(SkyboxTrans), kNumFrameInFlight);
 
     // render pass builder
     render_pass_builder_ = RenderPassBuilder::SimpleRenderPassBuilder(
