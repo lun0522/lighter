@@ -130,7 +130,7 @@ vector<VkFramebuffer> CreateFramebuffers(
     };
 
     ASSERT_SUCCESS(vkCreateFramebuffer(*context->device(), &framebuffer_info,
-                                       context->allocator(), &framebuffers[i]),
+                                       *context->allocator(), &framebuffers[i]),
                    "Failed to create framebuffer");
   }
   return framebuffers;
@@ -142,7 +142,7 @@ namespace simple_render_pass {
 
 enum AttachmentIndex {
   kColorAttachmentIndex = 0,
-  kDepStencilAttachmentIndex,
+  kDepthStencilAttachmentIndex,
   kMultisampleAttachmentIndex,
 };
 
@@ -194,7 +194,7 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
           std::move(get_swapchain_image)
       )
       .set_attachment(
-          simple_render_pass::kDepStencilAttachmentIndex,
+          simple_render_pass::kDepthStencilAttachmentIndex,
           Attachment{
               /*attachment_ops=*/Attachment::DepthStencilOps{
                   /*load_depth=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -359,7 +359,7 @@ std::unique_ptr<RenderPass> RenderPassBuilder::Build() const {
 
   VkRenderPass render_pass;
   ASSERT_SUCCESS(vkCreateRenderPass(*context_->device(), &render_pass_info,
-                                    context_->allocator(), &render_pass),
+                                    *context_->allocator(), &render_pass),
                  "Failed to create render pass");
 
   return absl::make_unique<RenderPass>(
@@ -407,9 +407,10 @@ void RenderPass::Run(const VkCommandBuffer& command_buffer,
 RenderPass::~RenderPass() {
   for (const auto& framebuffer : framebuffers_) {
     vkDestroyFramebuffer(*context_->device(), framebuffer,
-                         context_->allocator());
+                         *context_->allocator());
   }
-  vkDestroyRenderPass(*context_->device(), render_pass_, context_->allocator());
+  vkDestroyRenderPass(*context_->device(), render_pass_,
+                      *context_->allocator());
 }
 
 } /* namespace vulkan */

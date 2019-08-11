@@ -176,6 +176,21 @@ struct Device {
   VkDevice device_;
 };
 
+// VkAllocationCallbacks is used for allocating space on the host device for
+// Vulkan objects. For now this wrapper class simply does nothing.
+class HostMemoryAllocator {
+ public:
+  HostMemoryAllocator() = default;
+
+  // Overloads.
+  const VkAllocationCallbacks* operator*() const {
+    return allocation_callback_;
+  }
+
+ private:
+  const VkAllocationCallbacks* allocation_callback_ = nullptr;
+};
+
 } /* namespace vulkan */
 } /* namespace wrapper */
 } /* namespace jessie_steamer */

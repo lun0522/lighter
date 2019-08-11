@@ -139,13 +139,14 @@ void Window::ProcessUserInputs() const {
   }
 }
 
-void Window::Recreate() {
+glm::ivec2 Window::Recreate() {
   glm::ivec2 extent{};
   while (extent.x == 0 || extent.y == 0) {
     glfwWaitEvents();
     extent = GetScreenSize();
   }
   is_resized_ = false;
+  return extent;
 }
 
 bool Window::ShouldQuit() const {

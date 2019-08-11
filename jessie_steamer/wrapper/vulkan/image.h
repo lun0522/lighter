@@ -65,7 +65,8 @@ namespace vulkan {
 class Image {
  public:
   virtual ~Image() {
-    vkDestroyImageView(*context_->device(), image_view_, context_->allocator());
+    vkDestroyImageView(*context_->device(), image_view_,
+                       *context_->allocator());
   }
 
   const VkImageView& image_view() const { return image_view_; }
@@ -99,7 +100,7 @@ class TextureImage : public Image {
   TextureImage& operator=(const TextureImage&) = delete;
 
   ~TextureImage() override {
-    vkDestroySampler(*context_->device(), sampler_, context_->allocator());
+    vkDestroySampler(*context_->device(), sampler_, *context_->allocator());
   }
 
   VkDescriptorImageInfo descriptor_info() const;
@@ -151,7 +152,7 @@ class OffscreenImage : public Image {
   OffscreenImage& operator=(const OffscreenImage&) = delete;
 
   ~OffscreenImage() override {
-    vkDestroySampler(*context_->device(), sampler_, context_->allocator());
+    vkDestroySampler(*context_->device(), sampler_, *context_->allocator());
   }
 
   VkDescriptorImageInfo descriptor_info() const;

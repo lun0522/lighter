@@ -28,7 +28,9 @@ inline void SetBuildEnvironment() {
 
 class Application {
  public:
-  Application() = default;
+  template <typename... Args>
+  explicit Application(Args&&... args)
+    : window_context_{std::forward<Args>(args)...} {}
 
   // This class is neither copyable nor movable.
   Application(const Application&) = delete;

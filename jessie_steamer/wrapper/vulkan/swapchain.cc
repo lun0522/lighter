@@ -93,11 +93,11 @@ const vector<const char*>& Swapchain::GetRequiredExtensions() {
   return *required_extensions;
 }
 
-void Swapchain::Init(
+Swapchain::Swapchain(
     SharedBasicContext context,
     const VkSurfaceKHR& surface, VkExtent2D screen_size,
-    absl::optional<MultisampleImage::Mode> multisampling_mode) {
-  context_ = std::move(context);
+    absl::optional<MultisampleImage::Mode> multisampling_mode)
+    : context_{std::move(context)} {
   const VkPhysicalDevice& physical_device = *context_->physical_device();
 
   // surface capabilities
@@ -171,7 +171,7 @@ void Swapchain::Init(
   }
 
   ASSERT_SUCCESS(vkCreateSwapchainKHR(*context_->device(), &swapchain_info,
-                                      context_->allocator(), &swapchain_),
+                                      *context_->allocator(), &swapchain_),
                  "Failed to create swapchain");
 
   // fetch swapchain images
@@ -191,11 +191,6 @@ void Swapchain::Init(
     multisample_image_ = MultisampleImage::CreateColorMultisampleImage(
         context_, *swapcahin_images_[0], multisampling_mode.value());
   }
-}
-
-void Swapchain::Cleanup() {
-  swapcahin_images_.clear();
-  vkDestroySwapchainKHR(*context_->device(), swapchain_, context_->allocator());
 }
 
 } /* namespace vulkan */

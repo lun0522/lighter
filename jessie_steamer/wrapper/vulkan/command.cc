@@ -35,7 +35,7 @@ VkCommandPool CreateCommandPool(const SharedBasicContext& context,
 
   VkCommandPool pool;
   ASSERT_SUCCESS(vkCreateCommandPool(*context->device(), &pool_info,
-                                     context->allocator(), &pool),
+                                     *context->allocator(), &pool),
                  "Failed to create command pool");
   return pool;
 }
@@ -123,19 +123,11 @@ PerFrameCommand::PerFrameCommand(SharedBasicContext context,
     : Command{std::move(context)} {
   command_pool_ = CreateCommandPool(
       context_, context_->queues().graphics_queue(), /*is_transient=*/false);
+  command_buffers_ = CreateCommandBuffers(context_, command_pool_,
+                                          num_frame_in_flight);
   image_available_semas_.Init(context_, num_frame_in_flight);
   render_finished_semas_.Init(context_, num_frame_in_flight);
   in_flight_fences_.Init(context_, num_frame_in_flight, true);
-  create_command_buffers_ = [this, num_frame_in_flight](bool is_first_time) {
-    if (!is_first_time) {
-      vkFreeCommandBuffers(*context_->device(), command_pool_,
-                           CONTAINER_SIZE(command_buffers_),
-                           command_buffers_.data());
-    }
-    command_buffers_ = CreateCommandBuffers(context_, command_pool_,
-                                            num_frame_in_flight);
-  };
-  create_command_buffers_(/*is_first_time=*/true);
 }
 
 VkResult PerFrameCommand::Run(int current_frame,
@@ -238,10 +230,6 @@ VkResult PerFrameCommand::Run(int current_frame,
     default:
       FATAL("Failed to present swapchain image");
   }
-}
-
-void PerFrameCommand::Recreate() {
-  create_command_buffers_(/*is_first_time=*/false);
 }
 
 } /* namespace vulkan */

@@ -48,21 +48,20 @@ struct Transformation {
 
 class CubeApp : public Application {
  public:
-  CubeApp() = default;
+  CubeApp() : Application{"Cube"} {}
   void MainLoop() override;
 
  private:
   void Init();
   void UpdateData(int frame, float frame_aspect);
 
-  bool is_first_time = true;
+  bool is_first_time_ = true;
   int current_frame_ = 0;
   common::Timer timer_;
   std::unique_ptr<PerFrameCommand> command_;
   PushConstant push_constant_;
   std::unique_ptr<Model> model_;
   std::unique_ptr<MultisampleImage> depth_stencil_image_;
-  std::unique_ptr<MultisampleImage> multisample_image_;
   std::unique_ptr<StaticText> static_text_;
   std::unique_ptr<DynamicText> dynamic_text_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
@@ -72,20 +71,13 @@ class CubeApp : public Application {
 } /* namespace */
 
 void CubeApp::Init() {
-  // window
-  window_context_.Init("Cube");
-
-  // multisampling
-  multisample_image_ = MultisampleImage::CreateColorMultisampleImage(
-      context(), window_context_.swapchain_image(0), kMultisamplingMode);
-
   // depth stencil
   auto frame_size = window_context_.frame_size();
   depth_stencil_image_ = MultisampleImage::CreateDepthStencilMultisampleImage(
       context(), frame_size, kMultisamplingMode);
 
-  if (is_first_time) {
-    is_first_time = false;
+  if (is_first_time_) {
+    is_first_time_ = false;
 
     // command buffer
     command_ = absl::make_unique<PerFrameCommand>(context(), kNumFrameInFlight);
@@ -104,7 +96,7 @@ void CubeApp::Init() {
           return window_context_.swapchain_image(index);
         },
         /*get_multisample_image=*/[this](int index) -> const Image& {
-          return *multisample_image_;
+          return window_context_.multisample_image();
         });
 
     // model
@@ -200,9 +192,8 @@ void CubeApp::MainLoop() {
           render_pass_->Run(command_buffer, framebuffer_index, render_ops);
         });
 
-    if (draw_result != VK_SUCCESS || window_context_.window().is_resized()) {
-      window_context_.Cleanup();
-      command_->Recreate();
+    if (draw_result != VK_SUCCESS || window_context_.ShouldRecreate()) {
+      window_context_.Recreate();
       Init();
     }
 

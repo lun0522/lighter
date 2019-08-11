@@ -65,7 +65,7 @@ class Buffer {
   Buffer& operator=(const Buffer&) = delete;
 
   virtual ~Buffer() {
-    vkFreeMemory(*context_->device(), device_memory_, context_->allocator());
+    vkFreeMemory(*context_->device(), device_memory_, *context_->allocator());
   }
 
  protected:
@@ -82,7 +82,7 @@ class DataBuffer : public Buffer {
   DataBuffer& operator=(const DataBuffer&) = delete;
 
   ~DataBuffer() override {
-    vkDestroyBuffer(*context_->device(), buffer_, context_->allocator());
+    vkDestroyBuffer(*context_->device(), buffer_, *context_->allocator());
   }
 
  protected:
@@ -241,7 +241,7 @@ class ImageBuffer : public Buffer {
   ImageBuffer& operator=(const ImageBuffer&) = delete;
 
   ~ImageBuffer() override {
-    vkDestroyImage(*context_->device(), image_, context_->allocator());
+    vkDestroyImage(*context_->device(), image_, *context_->allocator());
   }
 
   const VkImage& image() const { return image_; }

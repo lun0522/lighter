@@ -66,7 +66,8 @@ struct Asteroid {
 
 class PlanetApp : public Application {
  public:
-  PlanetApp() : per_asteroid_data_{context()}, light_uniform_{context()} {}
+  PlanetApp() : Application{"Planet"},
+                per_asteroid_data_{context()}, light_uniform_{context()} {}
   void MainLoop() override;
 
  private:
@@ -75,7 +76,7 @@ class PlanetApp : public Application {
   void UpdateData(int frame);
 
   bool should_quit_ = false;
-  bool is_first_time = true;
+  bool is_first_time_ = true;
   int current_frame_ = 0;
   common::Timer timer_;
   std::unique_ptr<common::UserControlledCamera> camera_;
@@ -86,7 +87,6 @@ class PlanetApp : public Application {
   PushConstant planet_constant_, skybox_constant_;
   std::unique_ptr<Model> planet_model_, asteroid_model_, skybox_model_;
   std::unique_ptr<MultisampleImage> depth_stencil_image_;
-  std::unique_ptr<MultisampleImage> multisample_image_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
 };
@@ -94,20 +94,13 @@ class PlanetApp : public Application {
 } /* namespace */
 
 void PlanetApp::Init() {
-  // window
-  window_context_.Init("Planet");
-
-  // multisampling
-  multisample_image_ = MultisampleImage::CreateColorMultisampleImage(
-      context(), window_context_.swapchain_image(0), kMultisamplingMode);
-
   // depth stencil
   auto frame_size = window_context_.frame_size();
   depth_stencil_image_ = MultisampleImage::CreateDepthStencilMultisampleImage(
       context(), frame_size, kMultisamplingMode);
 
-  if (is_first_time) {
-    is_first_time = false;
+  if (is_first_time_) {
+    is_first_time_ = false;
 
     // camera
     common::Camera::Config config;
@@ -164,7 +157,7 @@ void PlanetApp::Init() {
           return window_context_.swapchain_image(index);
         },
         /*get_multisample_image=*/[this](int index) -> const Image& {
-          return *multisample_image_;
+          return window_context_.multisample_image();
         });
 
     // model
@@ -360,9 +353,8 @@ void PlanetApp::MainLoop() {
           render_pass_->Run(command_buffer, framebuffer_index, render_ops);
         });
 
-    if (draw_result != VK_SUCCESS) {
-      window_context_.Cleanup();
-      command_->Recreate();
+    if (draw_result != VK_SUCCESS || window_context_.ShouldRecreate()) {
+      window_context_.Recreate();
       Init();
     }
 

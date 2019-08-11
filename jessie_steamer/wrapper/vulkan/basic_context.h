@@ -38,8 +38,9 @@ struct WindowSupport {
   VkSurfaceKHR* surface;
   const std::vector<const char*>& window_extensions;
   const std::vector<const char*>& swapchain_extensions;
-  const std::function<void(const VkAllocationCallbacks* allocator,
-                           const VkInstance& instance)>& create_surface;
+  const std::function<void(
+      const VkInstance& instance,
+      const VkAllocationCallbacks* allocator)>& create_surface;
 };
 
 class BasicContext : public std::enable_shared_from_this<BasicContext> {
@@ -56,9 +57,7 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   BasicContext& operator=(const BasicContext&) = delete;
 
   // Initializes basic objects.
-  void Init(const VkAllocationCallbacks* allocator,
-            const absl::optional<WindowSupport>& window_support) {
-    allocator_ = allocator;
+  void Init(const absl::optional<WindowSupport>& window_support) {
     instance_.Init(self(), window_support);
 #ifndef NDEBUG
     debug_callback_.Init(self(),
@@ -69,7 +68,7 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
                              | message_type::kPerformance);
 #endif /* !NDEBUG */
     if (window_support.has_value()) {
-      window_support.value().create_surface(allocator_, *instance_);
+      window_support.value().create_surface(*instance_, *allocator_);
     }
     const auto queue_family_indices =
         physical_device_.Init(self(), window_support);
@@ -94,7 +93,6 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
 
   // Accessors.
   SharedBasicContext self() { return shared_from_this(); }
-  const VkAllocationCallbacks* allocator() const { return allocator_; }
   const Instance& instance() const { return instance_; }
   const PhysicalDevice& physical_device() const { return physical_device_; }
   const Device& device() const { return device_; }
@@ -105,11 +103,9 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   const VkPhysicalDeviceLimits& device_limits() const {
     return physical_device_.limits();
   }
+  const HostMemoryAllocator& allocator() const { return allocator_; }
 
  private:
-  // Customizable memory allocator.
-  const VkAllocationCallbacks* allocator_ = nullptr;
-
   // Wrapper of VkInstance.
   Instance instance_;
 
@@ -121,6 +117,9 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
 
   // Wrapper of VkQueue.
   std::unique_ptr<Queues> queues_;
+
+  // Wrapper of VkAllocationCallbacks.
+  HostMemoryAllocator allocator_;
 
 #ifndef NDEBUG
   // Wrapper of VkDebugUtilsMessengerEXT.

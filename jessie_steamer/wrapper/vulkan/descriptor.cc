@@ -44,7 +44,7 @@ VkDescriptorPool CreateDescriptorPool(
 
   VkDescriptorPool pool;
   ASSERT_SUCCESS(vkCreateDescriptorPool(*context->device(), &pool_info,
-                                        context->allocator(), &pool),
+                                        *context->allocator(), &pool),
                  "Failed to create descriptor pool");
   return pool;
 }
@@ -85,7 +85,7 @@ VkDescriptorSetLayout CreateDescriptorSetLayout(
 
   VkDescriptorSetLayout layout;
   ASSERT_SUCCESS(vkCreateDescriptorSetLayout(*context->device(), &layout_info,
-                                             context->allocator(), &layout),
+                                             *context->allocator(), &layout),
                  "Failed to create descriptor set layout");
   return layout;
 }

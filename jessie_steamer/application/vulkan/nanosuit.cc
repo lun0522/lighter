@@ -57,7 +57,7 @@ struct SkyboxTrans {
 
 class NanosuitApp : public Application {
  public:
-  NanosuitApp() : nanosuit_vert_uniform_{context()} {}
+  NanosuitApp() : Application{"Nanosuit"}, nanosuit_vert_uniform_{context()} {}
   void MainLoop() override;
 
  private:
@@ -65,7 +65,7 @@ class NanosuitApp : public Application {
   void UpdateData(int frame);
 
   bool should_quit_ = false;
-  bool is_first_time = true;
+  bool is_first_time_ = true;
   int current_frame_ = 0;
   common::Timer timer_;
   std::unique_ptr<common::UserControlledCamera> camera_;
@@ -74,7 +74,6 @@ class NanosuitApp : public Application {
   UniformBuffer nanosuit_vert_uniform_;
   PushConstant nanosuit_frag_constant_, skybox_constant_;
   std::unique_ptr<MultisampleImage> depth_stencil_image_;
-  std::unique_ptr<MultisampleImage> multisample_image_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
 };
@@ -82,20 +81,13 @@ class NanosuitApp : public Application {
 } /* namespace */
 
 void NanosuitApp::Init() {
-  // window
-  window_context_.Init("Nanosuit");
-
-  // multisampling
-  multisample_image_ = MultisampleImage::CreateColorMultisampleImage(
-      context(), window_context_.swapchain_image(0), kMultisamplingMode);
-
   // depth stencil
   auto frame_size = window_context_.frame_size();
   depth_stencil_image_ = MultisampleImage::CreateDepthStencilMultisampleImage(
       context(), frame_size, kMultisamplingMode);
 
-  if (is_first_time) {
-    is_first_time = false;
+  if (is_first_time_) {
+    is_first_time_ = false;
 
     // command buffer
     command_ = absl::make_unique<PerFrameCommand>(context(), kNumFrameInFlight);
@@ -155,7 +147,7 @@ void NanosuitApp::Init() {
           return window_context_.swapchain_image(index);
         },
         /*get_multisample_image=*/[this](int index) -> const Image& {
-          return *multisample_image_;
+          return window_context_.multisample_image();
         });
 
     // model
@@ -288,9 +280,8 @@ void NanosuitApp::MainLoop() {
           render_pass_->Run(command_buffer, framebuffer_index, render_ops);
         });
 
-    if (draw_result != VK_SUCCESS) {
-      window_context_.Cleanup();
-      command_->Recreate();
+    if (draw_result != VK_SUCCESS || window_context_.ShouldRecreate()) {
+      window_context_.Recreate();
       Init();
     }
 

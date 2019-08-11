@@ -125,7 +125,7 @@ VkImageView CreateImageView(const SharedBasicContext& context,
 
   VkImageView image_view;
   ASSERT_SUCCESS(vkCreateImageView(*context->device(), &image_view_info,
-                                   context->allocator(), &image_view),
+                                   *context->allocator(), &image_view),
                  "Failed to create image view");
   return image_view;
 }
@@ -156,7 +156,7 @@ VkSampler CreateSampler(const SharedBasicContext& context,
 
   VkSampler sampler;
   ASSERT_SUCCESS(vkCreateSampler(*context->device(), &sampler_info,
-                                 context->allocator(), &sampler),
+                                 *context->allocator(), &sampler),
                  "Failed to create sampler");
   return sampler;
 }

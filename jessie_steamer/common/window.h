@@ -88,10 +88,10 @@ class Window {
   // conditions are satisfied.
   void ProcessUserInputs() const;
 
-  // Resets internal states. This should be called when the window is resized.
-  // It will not return if the window is minimized, until the window appears
-  // on the screen again.
-  void Recreate();
+  // Resets internal states and returns the current size of window.
+  // This should be called when the window is resized. It will not return if the
+  // window is minimized, until the window appears on the screen again.
+  glm::ivec2 Recreate();
 
   // Returns whether the window has received the signal that indicates it should
   // be closed.

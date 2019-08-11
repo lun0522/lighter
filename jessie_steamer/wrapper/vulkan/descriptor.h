@@ -84,7 +84,7 @@ class Descriptor {
 
   virtual ~Descriptor() {
     vkDestroyDescriptorSetLayout(*context_->device(), layout_,
-                                 context_->allocator());
+                                 *context_->allocator());
   }
 
   const VkDescriptorSetLayout& layout() const { return layout_; }
@@ -106,7 +106,7 @@ class StaticDescriptor : public Descriptor {
   StaticDescriptor& operator=(const StaticDescriptor&) = delete;
 
   ~StaticDescriptor() override {
-    vkDestroyDescriptorPool(*context_->device(), pool_, context_->allocator());
+    vkDestroyDescriptorPool(*context_->device(), pool_, *context_->allocator());
     // descriptor set is implicitly cleaned up with descriptor pool
   }
 

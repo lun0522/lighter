@@ -34,7 +34,7 @@ VkShaderModule CreateShaderModule(const SharedBasicContext& context,
 
   VkShaderModule module;
   ASSERT_SUCCESS(vkCreateShaderModule(*context->device(), &module_info,
-                                      context->allocator(), &module),
+                                      *context->allocator(), &module),
                  "Failed to create shader module");
 
   return module;
@@ -265,7 +265,7 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
   ASSERT_HAS_VALUE(render_pass_info_, "Render pass is not set");
 
   const VkDevice &device = *context_->device();
-  const VkAllocationCallbacks *allocator = context_->allocator();
+  const VkAllocationCallbacks *allocator = *context_->allocator();
   auto shader_stage_infos = CreateShaderStageInfos(shader_modules_);
   auto viewport_state_info = CreateViewportStateInfo(viewport_info_.value());
 
@@ -317,8 +317,8 @@ void Pipeline::Bind(const VkCommandBuffer& command_buffer) const {
 }
 
 Pipeline::~Pipeline() {
-  vkDestroyPipeline(*context_->device(), pipeline_, context_->allocator());
-  vkDestroyPipelineLayout(*context_->device(), layout_, context_->allocator());
+  vkDestroyPipeline(*context_->device(), pipeline_, *context_->allocator());
+  vkDestroyPipelineLayout(*context_->device(), layout_, *context_->allocator());
 }
 
 } /* namespace vulkan */

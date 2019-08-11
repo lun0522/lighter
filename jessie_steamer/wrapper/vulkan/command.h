@@ -39,7 +39,7 @@ class Command {
  public:
   virtual ~Command() {
     vkDestroyCommandPool(*context_->device(), command_pool_,
-                         context_->allocator());
+                         *context_->allocator());
   }
 
  protected:
@@ -83,13 +83,10 @@ class PerFrameCommand : public Command {
                const UpdateData& update_data,
                const OnRecord& on_record);
 
-  void Recreate();
-
  private:
   Semaphores image_available_semas_;
   Semaphores render_finished_semas_;
   Fences in_flight_fences_;
-  std::function<void(bool is_first_time)> create_command_buffers_;
   std::vector<VkCommandBuffer> command_buffers_;
 };
 

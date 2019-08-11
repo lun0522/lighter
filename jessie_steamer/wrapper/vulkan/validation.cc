@@ -63,7 +63,7 @@ void DebugCallback::Init(SharedBasicContext context,
       LoadInstanceFunction<PFN_vkCreateDebugUtilsMessengerEXT>(
           *context_->instance(), "vkCreateDebugUtilsMessengerEXT");
   vkCreateDebugUtilsMessengerEXT(*context_->instance(), &create_info,
-                                 context_->allocator(), &callback_);
+                                 *context_->allocator(), &callback_);
 }
 
 DebugCallback::~DebugCallback() {
@@ -71,7 +71,7 @@ DebugCallback::~DebugCallback() {
       LoadInstanceFunction<PFN_vkDestroyDebugUtilsMessengerEXT>(
           *context_->instance(), "vkDestroyDebugUtilsMessengerEXT");
   vkDestroyDebugUtilsMessengerEXT(*context_->instance(), callback_,
-                                  context_->allocator());
+                                  *context_->allocator());
 }
 
 } /* namespace vulkan */

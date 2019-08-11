@@ -62,7 +62,7 @@ VkBuffer CreateBuffer(const SharedBasicContext& context,
 
   VkBuffer buffer;
   ASSERT_SUCCESS(vkCreateBuffer(*context->device(), &buffer_info,
-                                context->allocator(), &buffer),
+                                *context->allocator(), &buffer),
                  "Failed to create buffer");
   return buffer;
 }
@@ -90,7 +90,7 @@ VkDeviceMemory CreateBufferMemory(const SharedBasicContext& context,
 
   VkDeviceMemory memory;
   ASSERT_SUCCESS(
-      vkAllocateMemory(device, &memory_info, context->allocator(), &memory),
+      vkAllocateMemory(device, &memory_info, *context->allocator(), &memory),
       "Failed to allocate buffer memory");
 
   // associate allocated memory with buffer
@@ -135,7 +135,7 @@ VkImage CreateImage(const SharedBasicContext& context,
 
   VkImage image;
   ASSERT_SUCCESS(vkCreateImage(*context->device(), &image_info,
-                               context->allocator(), &image),
+                               *context->allocator(), &image),
                  "Failed to create image");
   return image;
 }
@@ -160,7 +160,7 @@ VkDeviceMemory CreateImageMemory(const SharedBasicContext& context,
 
   VkDeviceMemory memory;
   ASSERT_SUCCESS(
-      vkAllocateMemory(device, &memory_info, context->allocator(), &memory),
+      vkAllocateMemory(device, &memory_info, *context->allocator(), &memory),
       "Failed to allocate image memory");
   vkBindImageMemory(device, image, memory, 0);
   return memory;
@@ -274,8 +274,8 @@ void CopyHostToBufferViaStaging(const SharedBasicContext& context,
   CopyBufferToBuffer(context, infos.total_size, staging_buffer, buffer);
 
   // cleanup transient objects
-  vkDestroyBuffer(*context->device(), staging_buffer, context->allocator());
-  vkFreeMemory(*context->device(), staging_memory, context->allocator());
+  vkDestroyBuffer(*context->device(), staging_buffer, *context->allocator());
+  vkFreeMemory(*context->device(), staging_memory, *context->allocator());
 }
 
 void CopyBufferToImage(const SharedBasicContext& context,
@@ -564,12 +564,13 @@ void DynamicPerVertexBuffer::Reserve(int size) {
 
   if (buffer_size_ > 0) {
     // make copy of them since they will be changed soon.
-    const VkBuffer buffer = buffer_;
-    const VkDeviceMemory device_memory = device_memory_;
+    VkBuffer buffer = buffer_;
+    VkDeviceMemory device_memory = device_memory_;
     context_->AddReleaseExpiredResourceOp(
         [buffer, device_memory](const SharedBasicContext& context) {
-          vkDestroyBuffer(*context->device(), buffer, context->allocator());
-          vkFreeMemory(*context->device(), device_memory, context->allocator());
+          vkDestroyBuffer(*context->device(), buffer, *context->allocator());
+          vkFreeMemory(*context->device(), device_memory,
+                       *context->allocator());
         });
   }
   buffer_size_ = size;
@@ -690,8 +691,8 @@ TextureBuffer::TextureBuffer(SharedBasicContext context,
   }
 
   // cleanup transient objects
-  vkDestroyBuffer(*context_->device(), staging_buffer, context_->allocator());
-  vkFreeMemory(*context_->device(), staging_memory, context_->allocator());
+  vkDestroyBuffer(*context_->device(), staging_buffer, *context_->allocator());
+  vkFreeMemory(*context_->device(), staging_memory, *context_->allocator());
 }
 
 OffscreenBuffer::OffscreenBuffer(SharedBasicContext context,

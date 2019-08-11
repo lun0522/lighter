@@ -278,12 +278,12 @@ void Instance::Init(SharedBasicContext context,
   };
 
   ASSERT_SUCCESS(
-      vkCreateInstance(&instance_info, context_->allocator(), &instance_),
+      vkCreateInstance(&instance_info, *context_->allocator(), &instance_),
       "Failed to create instance");
 }
 
 Instance::~Instance() {
-  vkDestroyInstance(instance_, context_->allocator());
+  vkDestroyInstance(instance_, *context_->allocator());
 }
 
 Queues::FamilyIndices PhysicalDevice::Init(
@@ -379,14 +379,14 @@ std::unique_ptr<Queues> Device::Init(
   };
 
   ASSERT_SUCCESS(vkCreateDevice(*context_->physical_device(), &device_info,
-                                context_->allocator(), &device_),
+                                *context_->allocator(), &device_),
                  "Failed to create logical device");
 
   return absl::make_unique<Queues>(device_, queue_family_indices);
 }
 
 Device::~Device() {
-  vkDestroyDevice(device_, context_->allocator());
+  vkDestroyDevice(device_, *context_->allocator());
 }
 
 } /* namespace vulkan */

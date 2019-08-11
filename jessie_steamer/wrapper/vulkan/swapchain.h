@@ -49,18 +49,18 @@ class Swapchain {
  public:
   static const std::vector<const char*>& GetRequiredExtensions();
 
-  Swapchain() = default;
+  Swapchain(SharedBasicContext context,
+            const VkSurfaceKHR& surface, VkExtent2D screen_size,
+            absl::optional<MultisampleImage::Mode> multisampling_mode);
 
   // This class is neither copyable nor movable.
   Swapchain(const Swapchain&) = delete;
   Swapchain& operator=(const Swapchain&) = delete;
 
-  ~Swapchain() { Cleanup(); }
-
-  void Init(SharedBasicContext context,
-            const VkSurfaceKHR& surface, VkExtent2D screen_size,
-            absl::optional<MultisampleImage::Mode> multisampling_mode);
-  void Cleanup();
+  ~Swapchain() {
+    vkDestroySwapchainKHR(*context_->device(), swapchain_,
+                          *context_->allocator());
+  }
 
   const VkSwapchainKHR& operator*() const { return swapchain_; }
   VkExtent2D image_extent() const { return image_extent_; }
@@ -74,7 +74,7 @@ class Swapchain {
   }
 
  private:
-  SharedBasicContext context_;
+  const SharedBasicContext context_;
   VkSwapchainKHR swapchain_;
   std::vector<std::unique_ptr<SwapchainImage>> swapcahin_images_;
   std::unique_ptr<MultisampleImage> multisample_image_;
