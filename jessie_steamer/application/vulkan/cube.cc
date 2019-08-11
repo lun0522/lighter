@@ -48,7 +48,7 @@ struct Transformation {
 
 class CubeApp : public Application {
  public:
-  CubeApp() : command_{context()} {}
+  CubeApp() = default;
   void MainLoop() override;
 
  private:
@@ -58,7 +58,7 @@ class CubeApp : public Application {
   bool is_first_time = true;
   int current_frame_ = 0;
   common::Timer timer_;
-  PerFrameCommand command_;
+  std::unique_ptr<PerFrameCommand> command_;
   PushConstant push_constant_;
   std::unique_ptr<Model> model_;
   std::unique_ptr<MultisampleImage> depth_stencil_image_;
@@ -86,6 +86,9 @@ void CubeApp::Init() {
 
   if (is_first_time) {
     is_first_time = false;
+
+    // command buffer
+    command_ = absl::make_unique<PerFrameCommand>(context(), kNumFrameInFlight);
 
     // push constants
     push_constant_.Init(context(), sizeof(Transformation), kNumFrameInFlight);
@@ -149,9 +152,6 @@ void CubeApp::Init() {
                        static_cast<int>(SubpassIndex::kText));
   dynamic_text_->Update(frame_size, *render_pass_,
                         static_cast<int>(SubpassIndex::kText));
-
-  // command buffer
-  command_.Init(kNumFrameInFlight, &context()->queues());
 }
 
 void CubeApp::UpdateData(int frame, float frame_aspect) {
@@ -194,7 +194,7 @@ void CubeApp::MainLoop() {
               kColor, kAlpha, kHeight, boundary.y, kBaseY, Text::Align::kLeft);
         },
     };
-    const auto draw_result = command_.Run(
+    const auto draw_result = command_->Run(
         current_frame_, window_context_.swapchain(), update_data,
         [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
           render_pass_->Run(command_buffer, framebuffer_index, render_ops);
@@ -202,7 +202,7 @@ void CubeApp::MainLoop() {
 
     if (draw_result != VK_SUCCESS || window_context_.window().is_resized()) {
       window_context_.Cleanup();
-      command_.Cleanup();
+      command_->Recreate();
       Init();
     }
 

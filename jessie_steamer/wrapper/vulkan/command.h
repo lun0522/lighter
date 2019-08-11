@@ -72,26 +72,24 @@ class PerFrameCommand : public Command {
                                       uint32_t framebuffer_index)>;
   using UpdateData = std::function<void (int current_frame)>;
 
-  explicit PerFrameCommand(SharedBasicContext context)
-      : Command{std::move(context)} {}
+  PerFrameCommand(SharedBasicContext context, int num_frame_in_flight);
 
   // This class is neither copyable nor movable.
   PerFrameCommand(const Command&) = delete;
   PerFrameCommand& operator=(const Command&) = delete;
 
-  void Init(int num_frame_in_flight, const Queues* queues);
   VkResult Run(int current_frame,
                const VkSwapchainKHR& swapchain,
                const UpdateData& update_data,
                const OnRecord& on_record);
-  void Cleanup();
+
+  void Recreate();
 
  private:
-  bool is_first_time_ = true;
-  const Queues* queues_ = nullptr;
   Semaphores image_available_semas_;
   Semaphores render_finished_semas_;
   Fences in_flight_fences_;
+  std::function<void(bool is_first_time)> create_command_buffers_;
   std::vector<VkCommandBuffer> command_buffers_;
 };
 

@@ -28,7 +28,7 @@ namespace vulkan {
 class BasicContext;
 
 using SharedBasicContext = std::shared_ptr<BasicContext>;
-using ReleaseExpiredResourceOp = std::function<void()>;
+using ReleaseExpiredResourceOp = std::function<void(const SharedBasicContext&)>;
 
 // Information that we need to use a window. We need to make sure the window and
 // swapchain are supported by checking supports for relevant extensions.
@@ -87,7 +87,7 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   void WaitIdle() {
     device_.WaitIdle();
     if (!release_expired_rsrc_ops_.empty()) {
-      for (const auto& op : release_expired_rsrc_ops_) { op(); }
+      for (const auto& op : release_expired_rsrc_ops_) { op(self()); }
       release_expired_rsrc_ops_.clear();
     }
   }

@@ -23,10 +23,10 @@ CharLib::CharLib(const std::vector<std::string>& texts,
     FATAL("Failed to init FreeType library");
   }
 
-  if (FT_New_Face(lib, font_path.c_str(), 0, &face)) {
+  if (FT_New_Face(lib, font_path.c_str(), /*face_index=*/0, &face)) {
     FATAL("Failed to load font");
   }
-  FT_Set_Pixel_Sizes(face, 0, font_height);
+  FT_Set_Pixel_Sizes(face, /*pixel_width=*/0, font_height);
 
   for (const auto& text : texts) {
     for (auto c : text) {

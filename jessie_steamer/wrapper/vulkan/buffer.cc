@@ -564,12 +564,13 @@ void DynamicPerVertexBuffer::Reserve(int size) {
 
   if (buffer_size_ > 0) {
     // make copy of them since they will be changed soon.
-    VkBuffer buffer = buffer_;
-    VkDeviceMemory device_memory = device_memory_;
-    context_->AddReleaseExpiredResourceOp([=]() {
-      vkDestroyBuffer(*context_->device(), buffer, context_->allocator());
-      vkFreeMemory(*context_->device(), device_memory, context_->allocator());
-    });
+    const VkBuffer buffer = buffer_;
+    const VkDeviceMemory device_memory = device_memory_;
+    context_->AddReleaseExpiredResourceOp(
+        [buffer, device_memory](const SharedBasicContext& context) {
+          vkDestroyBuffer(*context->device(), buffer, context->allocator());
+          vkFreeMemory(*context->device(), device_memory, context->allocator());
+        });
   }
   buffer_size_ = size;
   CreateBufferAndMemory(buffer_size_, /*is_dynamic=*/true);

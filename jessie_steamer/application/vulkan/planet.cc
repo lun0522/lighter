@@ -66,8 +66,7 @@ struct Asteroid {
 
 class PlanetApp : public Application {
  public:
-  PlanetApp() : command_{context()},
-                per_asteroid_data_{context()}, light_uniform_{context()} {}
+  PlanetApp() : per_asteroid_data_{context()}, light_uniform_{context()} {}
   void MainLoop() override;
 
  private:
@@ -80,7 +79,7 @@ class PlanetApp : public Application {
   int current_frame_ = 0;
   common::Timer timer_;
   std::unique_ptr<common::UserControlledCamera> camera_;
-  PerFrameCommand command_;
+  std::unique_ptr<PerFrameCommand> command_;
   int num_asteroid_;
   PerInstanceBuffer per_asteroid_data_;
   UniformBuffer light_uniform_;
@@ -145,6 +144,9 @@ void PlanetApp::Init() {
         })
         .RegisterPressKeyCallback(WindowKey::kEscape,
                                   [this]() { should_quit_ = true; });
+
+    // command buffer
+    command_ = absl::make_unique<PerFrameCommand>(context(), kNumFrameInFlight);
 
     // push constants
     light_uniform_.Init(sizeof(Light), kNumFrameInFlight);
@@ -279,9 +281,6 @@ void PlanetApp::Init() {
   planet_model_->Update(frame_size, *render_pass_, /*subpass_index=*/0);
   asteroid_model_->Update(frame_size, *render_pass_, /*subpass_index=*/0);
   skybox_model_->Update(frame_size, *render_pass_, /*subpass_index=*/0);
-
-  // command
-  command_.Init(kNumFrameInFlight, &context()->queues());
 }
 
 void PlanetApp::GenAsteroidModels() {
@@ -355,7 +354,7 @@ void PlanetApp::MainLoop() {
                               /*instance_count=*/1);
         },
     };
-    auto draw_result = command_.Run(
+    auto draw_result = command_->Run(
         current_frame_, window_context_.swapchain(), update_data,
         [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
           render_pass_->Run(command_buffer, framebuffer_index, render_ops);
@@ -363,7 +362,7 @@ void PlanetApp::MainLoop() {
 
     if (draw_result != VK_SUCCESS) {
       window_context_.Cleanup();
-      command_.Cleanup();
+      command_->Recreate();
       Init();
     }
 

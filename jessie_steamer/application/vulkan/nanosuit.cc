@@ -57,7 +57,7 @@ struct SkyboxTrans {
 
 class NanosuitApp : public Application {
  public:
-  NanosuitApp() : command_{context()}, nanosuit_vert_uniform_{context()} {}
+  NanosuitApp() : nanosuit_vert_uniform_{context()} {}
   void MainLoop() override;
 
  private:
@@ -69,7 +69,7 @@ class NanosuitApp : public Application {
   int current_frame_ = 0;
   common::Timer timer_;
   std::unique_ptr<common::UserControlledCamera> camera_;
-  PerFrameCommand command_;
+  std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<Model> nanosuit_model_, skybox_model_;
   UniformBuffer nanosuit_vert_uniform_;
   PushConstant nanosuit_frag_constant_, skybox_constant_;
@@ -96,6 +96,9 @@ void NanosuitApp::Init() {
 
   if (is_first_time) {
     is_first_time = false;
+
+    // command buffer
+    command_ = absl::make_unique<PerFrameCommand>(context(), kNumFrameInFlight);
 
     // camera
     common::Camera::Config config;
@@ -237,9 +240,6 @@ void NanosuitApp::Init() {
   // model
   nanosuit_model_->Update(frame_size, *render_pass_, /*subpass_index=*/0);
   skybox_model_->Update(frame_size, *render_pass_, /*subpass_index=*/0);
-
-  // command
-  command_.Init(kNumFrameInFlight, &context()->queues());
 }
 
 void NanosuitApp::UpdateData(int frame) {
@@ -282,7 +282,7 @@ void NanosuitApp::MainLoop() {
                               /*instance_count=*/1);
         },
     };
-    const auto draw_result = command_.Run(
+    const auto draw_result = command_->Run(
         current_frame_, window_context_.swapchain(), update_data,
         [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
           render_pass_->Run(command_buffer, framebuffer_index, render_ops);
@@ -290,7 +290,7 @@ void NanosuitApp::MainLoop() {
 
     if (draw_result != VK_SUCCESS) {
       window_context_.Cleanup();
-      command_.Cleanup();
+      command_->Recreate();
       Init();
     }
 

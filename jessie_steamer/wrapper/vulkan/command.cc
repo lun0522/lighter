@@ -118,18 +118,24 @@ void OneTimeCommand::Run(const OnRecord& on_record) {
   vkQueueWaitIdle(queue_->queue);
 }
 
-void PerFrameCommand::Init(int num_frame_in_flight, const Queues* queues) {
-  if (is_first_time_) {
-    is_first_time_ = false;
-    queues_ = queues;
-    command_pool_ = CreateCommandPool(context_, queues_->graphics_queue(),
-                                      /*is_transient=*/false);
-    image_available_semas_.Init(context_, num_frame_in_flight);
-    render_finished_semas_.Init(context_, num_frame_in_flight);
-    in_flight_fences_.Init(context_, num_frame_in_flight, true);
-  }
-  command_buffers_ = CreateCommandBuffers(context_, command_pool_,
-                                          num_frame_in_flight);
+PerFrameCommand::PerFrameCommand(SharedBasicContext context,
+                                 int num_frame_in_flight)
+    : Command{std::move(context)} {
+  command_pool_ = CreateCommandPool(
+      context_, context_->queues().graphics_queue(), /*is_transient=*/false);
+  image_available_semas_.Init(context_, num_frame_in_flight);
+  render_finished_semas_.Init(context_, num_frame_in_flight);
+  in_flight_fences_.Init(context_, num_frame_in_flight, true);
+  create_command_buffers_ = [this, num_frame_in_flight](bool is_first_time) {
+    if (!is_first_time) {
+      vkFreeCommandBuffers(*context_->device(), command_pool_,
+                           CONTAINER_SIZE(command_buffers_),
+                           command_buffers_.data());
+    }
+    command_buffers_ = CreateCommandBuffers(context_, command_pool_,
+                                            num_frame_in_flight);
+  };
+  create_command_buffers_(/*is_first_time=*/true);
 }
 
 VkResult PerFrameCommand::Run(int current_frame,
@@ -203,8 +209,9 @@ VkResult PerFrameCommand::Run(int current_frame,
   };
 
   // reset to fences unsignaled state
-  vkResetFences(device, 1, &in_flight_fences_[current_frame]);
-  ASSERT_SUCCESS(vkQueueSubmit(queues_->graphics_queue().queue, 1, &submit_info,
+  vkResetFences(device, /*fenceCount=*/1, &in_flight_fences_[current_frame]);
+  ASSERT_SUCCESS(vkQueueSubmit(context_->queues().graphics_queue().queue,
+                               /*submitCount=*/1, &submit_info,
                                in_flight_fences_[current_frame]),
                  "Failed to submit draw command buffer");
 
@@ -221,7 +228,7 @@ VkResult PerFrameCommand::Run(int current_frame,
       // may use .pResults to check whether each swapchain rendered successfully
   };
   const VkResult present_result = vkQueuePresentKHR(
-      queues_->present_queue().queue, &present_info);
+      context_->queues().present_queue().queue, &present_info);
   switch (present_result) {
     case VK_ERROR_OUT_OF_DATE_KHR:  // swapchain can no longer present image
       return present_result;
@@ -233,10 +240,8 @@ VkResult PerFrameCommand::Run(int current_frame,
   }
 }
 
-void PerFrameCommand::Cleanup() {
-  vkFreeCommandBuffers(*context_->device(), command_pool_,
-                       CONTAINER_SIZE(command_buffers_),
-                       command_buffers_.data());
+void PerFrameCommand::Recreate() {
+  create_command_buffers_(/*is_first_time=*/false);
 }
 
 } /* namespace vulkan */
