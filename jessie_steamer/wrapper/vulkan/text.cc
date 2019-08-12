@@ -81,9 +81,10 @@ const vector<Descriptor::Info>& CreateDescriptorInfos() {
 
 Text::Text(SharedBasicContext context, int num_frame)
     : context_{std::move(context)},
-      vertex_buffer_{context_}, uniform_buffer_{context_},
+      vertex_buffer_{context_},
       pipeline_builder_{context_} {
-  uniform_buffer_.Init(sizeof(TextRenderInfo), num_frame);
+  uniform_buffer_ = absl::make_unique<UniformBuffer>(
+      context_, sizeof(TextRenderInfo), num_frame);
   pipeline_builder_
       .set_vertex_input(
           GetBindingDescriptions({GetPerVertexBindings<VertexAttrib2D>()}),
@@ -117,9 +118,9 @@ void Text::Update(VkExtent2D frame_size,
 }
 
 void Text::UpdateUniformBuffer(int frame, const glm::vec3& color, float alpha) {
-  uniform_buffer_.data<TextRenderInfo>(frame)->color_alpha =
+  uniform_buffer_->data<TextRenderInfo>(frame)->color_alpha =
       glm::vec4(color, alpha);
-  uniform_buffer_.Flush(frame);
+  uniform_buffer_->Flush(frame);
 }
 
 StaticText::StaticText(SharedBasicContext context,
@@ -142,7 +143,7 @@ StaticText::StaticText(SharedBasicContext context,
                                int text_index) {
           descriptors_[frame]->PushBufferInfos(
               command_buffer, pipeline_layout, descriptor_infos[0],
-              {uniform_buffer_.descriptor_info(frame)});
+              {uniform_buffer_->descriptor_info(frame)});
           descriptors_[frame]->PushImageInfos(
               command_buffer, pipeline_layout,
               VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -208,7 +209,7 @@ DynamicText::DynamicText(SharedBasicContext context,
     descriptors_.emplace_back(
         absl::make_unique<StaticDescriptor>(context_, descriptor_infos));
     descriptors_[frame]->UpdateBufferInfos(
-        descriptor_infos[0], {uniform_buffer_.descriptor_info(frame)});
+        descriptor_infos[0], {uniform_buffer_->descriptor_info(frame)});
     descriptors_[frame]->UpdateImageInfos(
         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, image_infos);
   }

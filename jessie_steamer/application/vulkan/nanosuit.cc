@@ -35,8 +35,7 @@ namespace {
 using namespace wrapper::vulkan;
 
 constexpr int kNumFrameInFlight = 2;
-constexpr MultisampleImage::Mode kMultisamplingMode =
-    MultisampleImage::Mode::kEfficient;
+constexpr auto kMultisamplingMode = MultisampleImage::Mode::kEfficient;
 
 // alignment requirement:
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
@@ -57,22 +56,22 @@ struct SkyboxTrans {
 
 class NanosuitApp : public Application {
  public:
-  NanosuitApp() : Application{"Nanosuit"}, nanosuit_vert_uniform_{context()} {}
+  NanosuitApp();
   void MainLoop() override;
 
  private:
-  void Init();
+  void Recreate();
   void UpdateData(int frame);
 
   bool should_quit_ = false;
-  bool is_first_time_ = true;
   int current_frame_ = 0;
   common::Timer timer_;
   std::unique_ptr<common::UserControlledCamera> camera_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<Model> nanosuit_model_, skybox_model_;
-  UniformBuffer nanosuit_vert_uniform_;
-  PushConstant nanosuit_frag_constant_, skybox_constant_;
+  std::unique_ptr<UniformBuffer> nanosuit_vert_uniform_;
+  std::unique_ptr<PushConstant> nanosuit_frag_constant_;
+  std::unique_ptr<PushConstant> skybox_constant_;
   std::unique_ptr<MultisampleImage> depth_stencil_image_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
@@ -80,149 +79,143 @@ class NanosuitApp : public Application {
 
 } /* namespace */
 
-void NanosuitApp::Init() {
+NanosuitApp::NanosuitApp() : Application{"Nanosuit"} {
+  // camera
+  common::Camera::Config config;
+  common::UserControlledCamera::ControlConfig control_config;
+  config.position = glm::vec3{0.0f, 3.5f, 12.0f};
+  config.look_at = glm::vec3{0.0f, 3.5f, 0.0f};
+  control_config.lock_center = true;
+  camera_ = absl::make_unique<common::UserControlledCamera>(
+      config, control_config);
+
+  using WindowKey = common::Window::KeyMap;
+  using ControlKey = common::UserControlledCamera::ControlKey;
+  window_context_.window()
+      .SetCursorHidden(true)
+      .RegisterMoveCursorCallback([this](double x_pos, double y_pos) {
+        camera_->DidMoveCursor(x_pos, y_pos);
+      })
+      .RegisterScrollCallback([this](double x_pos, double y_pos) {
+        camera_->DidScroll(y_pos, 1.0f, 60.0f);
+      })
+      .RegisterPressKeyCallback(WindowKey::kUp, [this]() {
+        camera_->DidPressKey(ControlKey::kUp,
+                             timer_.GetElapsedTimeSinceLastFrame());
+      })
+      .RegisterPressKeyCallback(WindowKey::kDown, [this]() {
+        camera_->DidPressKey(ControlKey::kDown,
+                             timer_.GetElapsedTimeSinceLastFrame());
+      })
+      .RegisterPressKeyCallback(WindowKey::kLeft, [this]() {
+        camera_->DidPressKey(ControlKey::kLeft,
+                             timer_.GetElapsedTimeSinceLastFrame());
+      })
+      .RegisterPressKeyCallback(WindowKey::kRight, [this]() {
+        camera_->DidPressKey(ControlKey::kRight,
+                             timer_.GetElapsedTimeSinceLastFrame());
+      })
+      .RegisterPressKeyCallback(WindowKey::kEscape,
+                                [this]() { should_quit_ = true; });
+
+  // command buffer
+  command_ = absl::make_unique<PerFrameCommand>(context(), kNumFrameInFlight);
+
+  // uniform buffer and push constants
+  nanosuit_vert_uniform_ = absl::make_unique<UniformBuffer>(
+      context(), sizeof(NanosuitVertTrans), kNumFrameInFlight);
+  nanosuit_frag_constant_ = absl::make_unique<PushConstant>(
+      context(), sizeof(NanosuitFragTrans), kNumFrameInFlight);
+  skybox_constant_ = absl::make_unique<PushConstant>(
+      context(), sizeof(SkyboxTrans), kNumFrameInFlight);
+
+  // render pass builder
+  render_pass_builder_ = RenderPassBuilder::SimpleRenderPassBuilder(
+      context(), /*num_subpass=*/1, window_context_.num_swapchain_image());
+
+  // model
+  ModelBuilder::TextureBinding skybox_binding{
+      /*binding_point=*/4, {
+          SharedTexture::CubemapPath{
+              /*directory=*/"external/resource/texture/tidepool",
+              /*files=*/{"right.tga", "left.tga", "top.tga", "bottom.tga",
+                         "back.tga", "front.tga"},
+          },
+      },
+  };
+
+  ModelBuilder::BindingPointMap nanosuit_bindings{
+      {model::ResourceType::kTextureDiffuse, /*binding_point=*/1},
+      {model::ResourceType::kTextureSpecular, /*binding_point=*/2},
+      {model::ResourceType::kTextureReflection, /*binding_point=*/3},
+  };
+  Descriptor::Info trans_desc_info{
+      /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      /*shader_stage=*/VK_SHADER_STAGE_VERTEX_BIT,
+      /*bindings=*/{{
+          Descriptor::ResourceType::kUniformBuffer,
+          /*binding_point=*/0,
+          /*array_length=*/1,
+      }},
+  };
+  nanosuit_model_ =
+      ModelBuilder{
+          context(), kNumFrameInFlight, /*is_opaque=*/true,
+          ModelBuilder::MultiMeshResource{
+              "external/resource/model/nanosuit/nanosuit.obj",
+              "external/resource/model/nanosuit",
+              nanosuit_bindings},
+      }
+          .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
+                       "jessie_steamer/shader/vulkan/nanosuit.vert.spv"})
+          .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                       "jessie_steamer/shader/vulkan/nanosuit.frag.spv"})
+          .add_uniform_buffer({nanosuit_vert_uniform_.get(), trans_desc_info})
+          .add_push_constant({VK_SHADER_STAGE_FRAGMENT_BIT,
+                              {{nanosuit_frag_constant_.get(), /*offset=*/0}}})
+          .add_shared_texture(Descriptor::ResourceType::kTextureCubemap,
+                              skybox_binding)
+          .Build();
+
+  skybox_binding.binding_point = 1;
+  skybox_model_ =
+      ModelBuilder{
+          context(), kNumFrameInFlight, /*is_opaque=*/true,
+          ModelBuilder::SingleMeshResource{
+              "external/resource/model/skybox.obj",
+              /*obj_index_base=*/1,
+              {{model::ResourceType::kTextureCubemap, skybox_binding}}},
+      }
+          .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
+                       "jessie_steamer/shader/vulkan/skybox.vert.spv"})
+          .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                       "jessie_steamer/shader/vulkan/skybox.frag.spv"})
+          .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
+                              {{skybox_constant_.get(), /*offset=*/0}}})
+          .Build();
+}
+
+void NanosuitApp::Recreate() {
   // depth stencil
-  auto frame_size = window_context_.frame_size();
+  const auto frame_size = window_context_.frame_size();
   depth_stencil_image_ = MultisampleImage::CreateDepthStencilMultisampleImage(
       context(), frame_size, kMultisamplingMode);
-
-  if (is_first_time_) {
-    is_first_time_ = false;
-
-    // command buffer
-    command_ = absl::make_unique<PerFrameCommand>(context(), kNumFrameInFlight);
-
-    // camera
-    common::Camera::Config config;
-    common::UserControlledCamera::ControlConfig control_config;
-    config.position = glm::vec3{0.0f, 3.5f, 12.0f};
-    config.look_at = glm::vec3{0.0f, 3.5f, 0.0f};
-    control_config.lock_center = true;
-    camera_ = absl::make_unique<common::UserControlledCamera>(
-        config, control_config);
-
-    using WindowKey = common::Window::KeyMap;
-    using ControlKey = common::UserControlledCamera::ControlKey;
-    window_context_.window()
-        .SetCursorHidden(true)
-        .RegisterMoveCursorCallback([this](double x_pos, double y_pos) {
-          camera_->DidMoveCursor(x_pos, y_pos);
-        })
-        .RegisterScrollCallback([this](double x_pos, double y_pos) {
-          camera_->DidScroll(y_pos, 1.0f, 60.0f);
-        })
-        .RegisterPressKeyCallback(WindowKey::kUp, [this]() {
-          camera_->DidPressKey(ControlKey::kUp,
-                               timer_.GetElapsedTimeSinceLastFrame());
-        })
-        .RegisterPressKeyCallback(WindowKey::kDown, [this]() {
-          camera_->DidPressKey(ControlKey::kDown,
-                               timer_.GetElapsedTimeSinceLastFrame());
-        })
-        .RegisterPressKeyCallback(WindowKey::kLeft, [this]() {
-          camera_->DidPressKey(ControlKey::kLeft,
-                               timer_.GetElapsedTimeSinceLastFrame());
-        })
-        .RegisterPressKeyCallback(WindowKey::kRight, [this]() {
-          camera_->DidPressKey(ControlKey::kRight,
-                               timer_.GetElapsedTimeSinceLastFrame());
-        })
-        .RegisterPressKeyCallback(WindowKey::kEscape,
-                                  [this]() { should_quit_ = true; });
-
-    // push constants
-    nanosuit_vert_uniform_.Init(sizeof(NanosuitVertTrans), kNumFrameInFlight);
-    nanosuit_frag_constant_.Init(
-        context(), sizeof(NanosuitFragTrans), kNumFrameInFlight);
-    skybox_constant_.Init(context(), sizeof(SkyboxTrans), kNumFrameInFlight);
-
-    // render pass builder
-    render_pass_builder_ = RenderPassBuilder::SimpleRenderPassBuilder(
-        context(), /*num_subpass=*/1,
-        /*get_depth_stencil_image=*/[this](int index) -> const Image& {
-          return *depth_stencil_image_;
-        },
-        window_context_.num_swapchain_image(),
-        /*get_swapchain_image=*/[this](int index) -> const Image& {
-          return window_context_.swapchain_image(index);
-        },
-        /*get_multisample_image=*/[this](int index) -> const Image& {
-          return window_context_.multisample_image();
-        });
-
-    // model
-    ModelBuilder::TextureBinding skybox_binding{
-        /*binding_point=*/4, {
-            SharedTexture::CubemapPath{
-                /*directory=*/"external/resource/texture/tidepool",
-                /*files=*/{
-                    "right.tga",
-                    "left.tga",
-                    "top.tga",
-                    "bottom.tga",
-                    "back.tga",
-                    "front.tga",
-                },
-            },
-        },
-    };
-
-    ModelBuilder::BindingPointMap nanosuit_bindings{
-        {model::ResourceType::kTextureDiffuse, /*binding_point=*/1},
-        {model::ResourceType::kTextureSpecular, /*binding_point=*/2},
-        {model::ResourceType::kTextureReflection, /*binding_point=*/3},
-    };
-    Descriptor::Info trans_desc_info{
-        /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        /*shader_stage=*/VK_SHADER_STAGE_VERTEX_BIT,
-        /*bindings=*/{{
-            Descriptor::ResourceType::kUniformBuffer,
-            /*binding_point=*/0,
-            /*array_length=*/1,
-        }},
-    };
-    nanosuit_model_ =
-        ModelBuilder{
-            context(), kNumFrameInFlight, /*is_opaque=*/true,
-            ModelBuilder::MultiMeshResource{
-                "external/resource/model/nanosuit/nanosuit.obj",
-                "external/resource/model/nanosuit",
-                nanosuit_bindings},
-        }
-        .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                     "jessie_steamer/shader/vulkan/nanosuit.vert.spv"})
-        .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                     "jessie_steamer/shader/vulkan/nanosuit.frag.spv"})
-        .add_uniform_buffer({&nanosuit_vert_uniform_, trans_desc_info})
-        .add_push_constant({VK_SHADER_STAGE_FRAGMENT_BIT,
-                            {{&nanosuit_frag_constant_, /*offset=*/0}}})
-        .add_shared_texture(Descriptor::ResourceType::kTextureCubemap,
-                            skybox_binding)
-        .set_sample_count(depth_stencil_image_->sample_count())
-        .Build();
-
-    skybox_binding.binding_point = 1;
-    skybox_model_ =
-        ModelBuilder{
-            context(), kNumFrameInFlight, /*is_opaque=*/true,
-            ModelBuilder::SingleMeshResource{
-                "external/resource/model/skybox.obj",
-                /*obj_index_base=*/1,
-                {{model::ResourceType::kTextureCubemap, skybox_binding}}},
-        }
-        .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                     "jessie_steamer/shader/vulkan/skybox.vert.spv"})
-        .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                     "jessie_steamer/shader/vulkan/skybox.frag.spv"})
-        .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
-                            {{&skybox_constant_, /*offset=*/0}}})
-        .set_sample_count(depth_stencil_image_->sample_count())
-        .Build();
-  }
 
   // render pass
   render_pass_ = (*render_pass_builder_)
       .set_framebuffer_size(frame_size)
+      .update_image(simple_render_pass::kColorAttachmentIndex,
+                    [this](int index) -> const Image& {
+                      return window_context_.swapchain_image(index);
+                    })
+      .update_image(simple_render_pass::kDepthStencilAttachmentIndex,
+                    [this](int index) -> const Image& {
+                      return *depth_stencil_image_;
+                    })
+      .update_image(simple_render_pass::kMultisampleAttachmentIndex,
+                    [this](int index) -> const Image& {
+                      return window_context_.multisample_image();
+                    })
       .Build();
 
   // camera
@@ -230,8 +223,11 @@ void NanosuitApp::Init() {
                      window_context_.window().GetCursorPos());
 
   // model
-  nanosuit_model_->Update(frame_size, *render_pass_, /*subpass_index=*/0);
-  skybox_model_->Update(frame_size, *render_pass_, /*subpass_index=*/0);
+  const auto sample_count = depth_stencil_image_->sample_count();
+  nanosuit_model_->Update(frame_size, sample_count,
+                          *render_pass_, /*subpass_index=*/0);
+  skybox_model_->Update(frame_size, sample_count,
+                        *render_pass_, /*subpass_index=*/0);
 }
 
 void NanosuitApp::UpdateData(int frame) {
@@ -246,20 +242,20 @@ void NanosuitApp::UpdateData(int frame) {
   glm::mat4 proj = camera_->projection();
   glm::mat4 view_model = view * model;
 
-  *nanosuit_vert_uniform_.data<NanosuitVertTrans>(frame) = {
+  *nanosuit_vert_uniform_->data<NanosuitVertTrans>(frame) = {
       view_model,
       proj * view_model,
       glm::transpose(glm::inverse(view_model)),
   };
-  nanosuit_vert_uniform_.Flush(frame);
+  nanosuit_vert_uniform_->Flush(frame);
 
-  *nanosuit_frag_constant_.data<NanosuitFragTrans>(frame) =
+  *nanosuit_frag_constant_->data<NanosuitFragTrans>(frame) =
       {glm::inverse(view)};
-  *skybox_constant_.data<SkyboxTrans>(frame) = {proj, view};
+  *skybox_constant_->data<SkyboxTrans>(frame) = {proj, view};
 }
 
 void NanosuitApp::MainLoop() {
-  Init();
+  Recreate();
   const auto update_data = [this](int frame) {
     UpdateData(frame);
   };
@@ -282,7 +278,7 @@ void NanosuitApp::MainLoop() {
 
     if (draw_result != VK_SUCCESS || window_context_.ShouldRecreate()) {
       window_context_.Recreate();
-      Init();
+      Recreate();
     }
 
     current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;

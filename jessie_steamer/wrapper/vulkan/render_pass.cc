@@ -38,12 +38,11 @@ VkClearValue CreateClearColor(const RenderPassBuilder::Attachment& attachment) {
 }
 
 VkAttachmentDescription CreateAttachmentDescription(
-    const RenderPassBuilder::Attachment& attachment,
-    VkFormat format, VkSampleCountFlagBits sample_count) {
+    const RenderPassBuilder::Attachment& attachment) {
   VkAttachmentDescription description{
       /*flags=*/nullflag,
-      format,
-      sample_count,
+      /*format=*/VK_FORMAT_UNDEFINED,  // to be updated
+      /*samples=*/VK_SAMPLE_COUNT_1_BIT,  // to be updated
       /*loadOp=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,  // to be updated
       /*storeOp=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,  // to be updated
       /*stencilLoadOp=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,  // to be updated
@@ -138,16 +137,6 @@ vector<VkFramebuffer> CreateFramebuffers(
 
 } /* namespace */
 
-namespace simple_render_pass {
-
-enum AttachmentIndex {
-  kColorAttachmentIndex = 0,
-  kDepthStencilAttachmentIndex,
-  kMultisampleAttachmentIndex,
-};
-
-} /* namespace simple_render_pass */
-
 vector<VkAttachmentReference> RenderPassBuilder::CreateMultisamplingReferences(
     int num_color_references, const vector<MultisamplingPair>& pairs) {
   if (pairs.empty()) {
@@ -172,11 +161,7 @@ vector<VkAttachmentReference> RenderPassBuilder::CreateMultisamplingReferences(
 
 std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
     SharedBasicContext context,
-    int num_subpass,
-    GetImage&& get_depth_stencil_image,
-    int num_swapchain_image,
-    GetImage&& get_swapchain_image,
-    GetImage&& get_multisample_image) {
+    int num_subpass, int num_swapchain_image) {
   auto builder = absl::make_unique<RenderPassBuilder>(std::move(context));
 
   (*builder)
@@ -190,8 +175,7 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
               },
               /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
               /*final_layout=*/VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-          },
-          std::move(get_swapchain_image)
+          }
       )
       .set_attachment(
           simple_render_pass::kDepthStencilAttachmentIndex,
@@ -207,11 +191,7 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
               // optimal layout, we still use undefined as initial layout.
               /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
               /*final_layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-          },
-          // although we have multiple swapchain images, we will share one depth
-          // stencil image, because we only use one graphics queue, which only
-          // renders on one swapchain image at a time
-          std::move(get_depth_stencil_image)
+          }
       )
       .set_attachment(
           simple_render_pass::kMultisampleAttachmentIndex,
@@ -222,8 +202,7 @@ std::unique_ptr<RenderPassBuilder> RenderPassBuilder::SimpleRenderPassBuilder(
               },
               /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
               /*final_layout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-          },
-          std::move(get_multisample_image)
+          }
       )
       .set_subpass_description(/*index=*/0, SubpassAttachments{
           /*color_refs=*/{
@@ -301,21 +280,35 @@ RenderPassBuilder& RenderPassBuilder::set_num_framebuffer(int count) {
 }
 
 RenderPassBuilder& RenderPassBuilder::set_attachment(
-    int index, const Attachment& attachment, GetImage&& get_image) {
+    int index, const Attachment& attachment) {
+  util::SetElementWithResizing(CreateClearColor(attachment),
+                               index, &clear_values_);
+  util::SetElementWithResizing(CreateAttachmentDescription(attachment),
+                               index, &attachment_descriptions_);
+  if (attachment_descriptions_.size() > get_images_.size()) {
+    get_images_.resize(attachment_descriptions_.size());
+  }
+  return *this;
+}
+
+RenderPassBuilder& RenderPassBuilder::update_image(
+    int index, GetImage&& get_image) {
   ASSERT_NON_NULL(get_image, "get_image cannot be nullptr");
+  if (index >= attachment_descriptions_.size()) {
+    FATAL(absl::StrFormat(
+        "Attachment description at index %d has not been set", index));
+  }
+
   const Image& sample_image = get_image(0);
   VkSampleCountFlagBits sample_count = VK_SAMPLE_COUNT_1_BIT;
   if (const auto* multisample_image =
       dynamic_cast<const MultisampleImage*>(&sample_image)) {
     sample_count = multisample_image->sample_count();
   }
-  util::SetElementWithResizing(std::move(get_image), index, &get_images_);
-  util::SetElementWithResizing(CreateClearColor(attachment),
-                               index, &clear_values_);
-  util::SetElementWithResizing(
-      CreateAttachmentDescription(
-          attachment, sample_image.format(), sample_count),
-      index, &attachment_descriptions_);
+  attachment_descriptions_[index].format = sample_image.format();
+  attachment_descriptions_[index].samples = sample_count;
+  get_images_[index] = std::move(get_image);
+
   return *this;
 }
 

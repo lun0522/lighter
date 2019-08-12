@@ -35,8 +35,7 @@ namespace {
 using namespace wrapper::vulkan;
 
 constexpr int kNumFrameInFlight = 2;
-constexpr MultisampleImage::Mode kMultisamplingMode =
-    MultisampleImage::Mode::kEfficient;
+constexpr auto kMultisamplingMode = MultisampleImage::Mode::kEfficient;
 
 enum class SubpassIndex : int { kModel = 0, kText, kNumSubpass };
 
@@ -48,18 +47,17 @@ struct Transformation {
 
 class CubeApp : public Application {
  public:
-  CubeApp() : Application{"Cube"} {}
+  CubeApp();
   void MainLoop() override;
 
  private:
-  void Init();
+  void Recreate();
   void UpdateData(int frame, float frame_aspect);
 
-  bool is_first_time_ = true;
   int current_frame_ = 0;
   common::Timer timer_;
   std::unique_ptr<PerFrameCommand> command_;
-  PushConstant push_constant_;
+  std::unique_ptr<PushConstant> push_constant_;
   std::unique_ptr<Model> model_;
   std::unique_ptr<MultisampleImage> depth_stencil_image_;
   std::unique_ptr<StaticText> static_text_;
@@ -70,74 +68,75 @@ class CubeApp : public Application {
 
 } /* namespace */
 
-void CubeApp::Init() {
+CubeApp::CubeApp() : Application{"Cube"} {
+  // command buffer
+  command_ = absl::make_unique<PerFrameCommand>(context(), kNumFrameInFlight);
+
+  // push constant
+  push_constant_ = absl::make_unique<PushConstant>(
+      context(), sizeof(Transformation), kNumFrameInFlight);
+
+  // render pass builder
+  render_pass_builder_ = RenderPassBuilder::SimpleRenderPassBuilder(
+      context(), static_cast<int>(SubpassIndex::kNumSubpass),
+      window_context_.num_swapchain_image());
+
+  // model
+  ModelBuilder::TextureBindingMap bindings{};
+  bindings[model::ResourceType::kTextureDiffuse] = {
+      /*binding_point=*/1,
+      {SharedTexture::SingleTexPath{"external/resource/texture/statue.jpg"}},
+  };
+  model_ =
+      ModelBuilder{
+          context(), kNumFrameInFlight, /*is_opaque=*/true,
+          ModelBuilder::SingleMeshResource{"external/resource/model/cube.obj",
+              /*obj_index_base=*/1, bindings}}
+          .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
+                       "jessie_steamer/shader/vulkan/simple_3d.vert.spv"})
+          .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                       "jessie_steamer/shader/vulkan/simple_3d.frag.spv"})
+          .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
+                              {{push_constant_.get(), /*offset=*/0}}})
+          .Build();
+
+  // text
+  constexpr CharLoader::Font kFont = Text::Font::kGeorgia;
+  constexpr int kFontHeight = 50;
+  static_text_ = absl::make_unique<StaticText>(
+      context(), kNumFrameInFlight,
+      std::vector<std::string>{"FPS: "}, kFont, kFontHeight);
+  dynamic_text_ = absl::make_unique<DynamicText>(
+      context(), kNumFrameInFlight,
+      std::vector<std::string>{"01234567890"}, kFont, kFontHeight);
+}
+
+void CubeApp::Recreate() {
   // depth stencil
-  auto frame_size = window_context_.frame_size();
+  const auto frame_size = window_context_.frame_size();
   depth_stencil_image_ = MultisampleImage::CreateDepthStencilMultisampleImage(
       context(), frame_size, kMultisamplingMode);
-
-  if (is_first_time_) {
-    is_first_time_ = false;
-
-    // command buffer
-    command_ = absl::make_unique<PerFrameCommand>(context(), kNumFrameInFlight);
-
-    // push constants
-    push_constant_.Init(context(), sizeof(Transformation), kNumFrameInFlight);
-
-    // render pass builder
-    render_pass_builder_ = RenderPassBuilder::SimpleRenderPassBuilder(
-        context(), static_cast<int>(SubpassIndex::kNumSubpass),
-        /*get_depth_stencil_image=*/[this](int index) -> const Image& {
-          return *depth_stencil_image_;
-        },
-        window_context_.num_swapchain_image(),
-        /*get_swapchain_image=*/[this](int index) -> const Image& {
-          return window_context_.swapchain_image(index);
-        },
-        /*get_multisample_image=*/[this](int index) -> const Image& {
-          return window_context_.multisample_image();
-        });
-
-    // model
-    ModelBuilder::TextureBindingMap bindings{};
-    bindings[model::ResourceType::kTextureDiffuse] = {
-        /*binding_point=*/1,
-        {SharedTexture::SingleTexPath{"external/resource/texture/statue.jpg"}},
-    };
-    model_ =
-        ModelBuilder{
-            context(), kNumFrameInFlight, /*is_opaque=*/true,
-            ModelBuilder::SingleMeshResource{"external/resource/model/cube.obj",
-            /*obj_index_base=*/1, bindings}}
-        .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                     "jessie_steamer/shader/vulkan/simple_3d.vert.spv"})
-        .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                     "jessie_steamer/shader/vulkan/simple_3d.frag.spv"})
-        .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
-                            {{&push_constant_, /*offset=*/0}}})
-        .set_sample_count(depth_stencil_image_->sample_count())
-        .Build();
-
-    // text
-    constexpr CharLoader::Font kFont = Text::Font::kGeorgia;
-    constexpr int kFontHeight = 50;
-    static_text_ = absl::make_unique<StaticText>(
-        context(), kNumFrameInFlight,
-        std::vector<std::string>{"FPS: "}, kFont, kFontHeight);
-    dynamic_text_ = absl::make_unique<DynamicText>(
-        context(), kNumFrameInFlight,
-        std::vector<std::string>{"01234567890"}, kFont, kFontHeight);
-  }
 
   // render pass
   render_pass_ = (*render_pass_builder_)
       .set_framebuffer_size(frame_size)
+      .update_image(simple_render_pass::kColorAttachmentIndex,
+                    [this](int index) -> const Image& {
+                      return window_context_.swapchain_image(index);
+                    })
+      .update_image(simple_render_pass::kDepthStencilAttachmentIndex,
+                    [this](int index) -> const Image& {
+                      return *depth_stencil_image_;
+                    })
+      .update_image(simple_render_pass::kMultisampleAttachmentIndex,
+                    [this](int index) -> const Image& {
+                      return window_context_.multisample_image();
+                    })
       .Build();
 
   // model
-  model_->Update(frame_size, *render_pass_,
-                 static_cast<int>(SubpassIndex::kModel));
+  model_->Update(frame_size, depth_stencil_image_->sample_count(),
+                 *render_pass_, static_cast<int>(SubpassIndex::kModel));
 
   // text
   static_text_->Update(frame_size, *render_pass_,
@@ -155,11 +154,11 @@ void CubeApp::UpdateData(int frame, float frame_aspect) {
                                glm::vec3{0.0f, 0.0f, 1.0f});
   glm::mat4 proj = glm::perspective(glm::radians(45.0f),
                                     frame_aspect, 0.1f, 100.0f);
-  *push_constant_.data<Transformation>(frame) = {proj * view * model};
+  *push_constant_->data<Transformation>(frame) = {proj * view * model};
 }
 
 void CubeApp::MainLoop() {
-  Init();
+  Recreate();
   while (window_context_.CheckEvents()) {
     timer_.Tick();
 
@@ -194,7 +193,7 @@ void CubeApp::MainLoop() {
 
     if (draw_result != VK_SUCCESS || window_context_.ShouldRecreate()) {
       window_context_.Recreate();
-      Init();
+      Recreate();
     }
 
     current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;

@@ -40,7 +40,7 @@ class Text {
 
   SharedBasicContext context_;
   DynamicPerVertexBuffer vertex_buffer_;
-  UniformBuffer uniform_buffer_;
+  std::unique_ptr<UniformBuffer> uniform_buffer_;
   PipelineBuilder pipeline_builder_;
   std::unique_ptr<Pipeline> pipeline_;
 };

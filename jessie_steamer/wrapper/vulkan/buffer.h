@@ -210,8 +210,8 @@ class PerInstanceBuffer : public VertexBuffer {
 
 class UniformBuffer : public DataBuffer {
  public:
-  explicit UniformBuffer(SharedBasicContext context)
-      : DataBuffer{std::move(context)} {}
+  UniformBuffer(SharedBasicContext context,
+                size_t chunk_size, int num_chunk);
 
   // This class is neither copyable nor movable.
   UniformBuffer(const UniformBuffer&) = delete;
@@ -219,7 +219,6 @@ class UniformBuffer : public DataBuffer {
 
   ~UniformBuffer() override { delete data_; }
 
-  void Init(size_t chunk_size, int num_chunk);
   void Flush(int chunk_index) const;
 
   template <typename DataType>
@@ -317,16 +316,14 @@ class MultisampleBuffer : public ImageBuffer {
 
 class PushConstant {
  public:
-  PushConstant() = default;
+  PushConstant(const SharedBasicContext& context,
+               size_t chunk_size, int num_chunk);
 
   // This class is neither copyable nor movable.
   PushConstant(const PushConstant&) = delete;
   PushConstant& operator=(const PushConstant&) = delete;
 
   ~PushConstant() { delete[] data_; }
-
-  void Init(const SharedBasicContext& context,
-            size_t chunk_size, int num_chunk);
 
   uint32_t size() const { return size_; }
 

@@ -39,8 +39,7 @@ using std::vector;
 
 constexpr int kNumFrameInFlight = 2;
 constexpr int kNumAsteroidRing = 3;
-constexpr MultisampleImage::Mode kMultisamplingMode =
-    MultisampleImage::Mode::kEfficient;
+constexpr auto kMultisamplingMode = MultisampleImage::Mode::kEfficient;
 
 // alignment requirement:
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
@@ -66,25 +65,24 @@ struct Asteroid {
 
 class PlanetApp : public Application {
  public:
-  PlanetApp() : Application{"Planet"},
-                per_asteroid_data_{context()}, light_uniform_{context()} {}
+  PlanetApp();
   void MainLoop() override;
 
  private:
-  void Init();
+  void Recreate();
   void GenAsteroidModels();
   void UpdateData(int frame);
 
   bool should_quit_ = false;
-  bool is_first_time_ = true;
   int current_frame_ = 0;
   common::Timer timer_;
   std::unique_ptr<common::UserControlledCamera> camera_;
   std::unique_ptr<PerFrameCommand> command_;
   int num_asteroid_;
   PerInstanceBuffer per_asteroid_data_;
-  UniformBuffer light_uniform_;
-  PushConstant planet_constant_, skybox_constant_;
+  std::unique_ptr<UniformBuffer> light_uniform_;
+  std::unique_ptr<PushConstant> planet_constant_;
+  std::unique_ptr<PushConstant> skybox_constant_;
   std::unique_ptr<Model> planet_model_, asteroid_model_, skybox_model_;
   std::unique_ptr<MultisampleImage> depth_stencil_image_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
@@ -93,177 +91,172 @@ class PlanetApp : public Application {
 
 } /* namespace */
 
-void PlanetApp::Init() {
+PlanetApp::PlanetApp() : Application{"Planet"},
+                         per_asteroid_data_{context()} {
+  // camera
+  common::Camera::Config config;
+  config.position = glm::vec3{1.6f, -5.1f, -5.9f};
+  config.look_at = glm::vec3{-2.4f, -0.8f, 0.0f};
+  camera_ = absl::make_unique<common::UserControlledCamera>(
+      config, common::UserControlledCamera::ControlConfig{});
+
+  using WindowKey = common::Window::KeyMap;
+  using ControlKey = common::UserControlledCamera::ControlKey;
+  window_context_.window()
+      .SetCursorHidden(true)
+      .RegisterMoveCursorCallback([this](double x_pos, double y_pos) {
+        camera_->DidMoveCursor(x_pos, y_pos);
+      })
+      .RegisterScrollCallback([this](double x_pos, double y_pos) {
+        camera_->DidScroll(y_pos, 1.0f, 60.0f);
+      })
+      .RegisterPressKeyCallback(WindowKey::kUp, [this]() {
+        camera_->DidPressKey(ControlKey::kUp,
+                             timer_.GetElapsedTimeSinceLastFrame());
+      })
+      .RegisterPressKeyCallback(WindowKey::kDown, [this]() {
+        camera_->DidPressKey(ControlKey::kDown,
+                             timer_.GetElapsedTimeSinceLastFrame());
+      })
+      .RegisterPressKeyCallback(WindowKey::kLeft, [this]() {
+        camera_->DidPressKey(ControlKey::kLeft,
+                             timer_.GetElapsedTimeSinceLastFrame());
+      })
+      .RegisterPressKeyCallback(WindowKey::kRight, [this]() {
+        camera_->DidPressKey(ControlKey::kRight,
+                             timer_.GetElapsedTimeSinceLastFrame());
+      })
+      .RegisterPressKeyCallback(WindowKey::kEscape,
+                                [this]() { should_quit_ = true; });
+
+  // command buffer
+  command_ = absl::make_unique<PerFrameCommand>(context(), kNumFrameInFlight);
+
+  // uniform buffer and push constants
+  light_uniform_ = absl::make_unique<UniformBuffer>(
+      context(), sizeof(Light), kNumFrameInFlight);
+  planet_constant_ = absl::make_unique<PushConstant>(
+      context(), sizeof(PlanetTrans), kNumFrameInFlight);
+  skybox_constant_ = absl::make_unique<PushConstant>(
+      context(), sizeof(SkyboxTrans), kNumFrameInFlight);
+
+  // render pass builder
+  render_pass_builder_ = RenderPassBuilder::SimpleRenderPassBuilder(
+      context(), /*num_subpass=*/1, window_context_.num_swapchain_image());
+
+  // model
+  Descriptor::Info light_desc_info{
+      /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
+      /*bindings=*/{{
+          Descriptor::ResourceType::kUniformBuffer,
+          /*binding_point=*/1,
+          /*array_length=*/1,
+      }},
+  };
+  ModelBuilder::TextureBindingMap planet_bindings;
+  planet_bindings[model::ResourceType::kTextureDiffuse] = {
+      /*binding_point=*/2,
+      {SharedTexture::SingleTexPath{"external/resource/texture/planet.png"}},
+  };
+  planet_model_ =
+      ModelBuilder{
+          context(), kNumFrameInFlight, /*is_opaque=*/true,
+          ModelBuilder::SingleMeshResource{
+              "external/resource/model/sphere.obj",
+              /*obj_index_base=*/1, planet_bindings},
+      }
+          .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
+                       "jessie_steamer/shader/vulkan/planet.vert.spv"})
+          .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                       "jessie_steamer/shader/vulkan/planet.frag.spv"})
+          .add_uniform_buffer({light_uniform_.get(), light_desc_info})
+          .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
+                              {{planet_constant_.get(), /*offset=*/0}}})
+          .Build();
+
+  GenAsteroidModels();
+  vector<VertexAttribute> per_instance_attribs{
+      {/*location=*/3, offsetof(Asteroid, theta), VK_FORMAT_R32_SFLOAT},
+      {/*location=*/4, offsetof(Asteroid, radius), VK_FORMAT_R32_SFLOAT},
+  };
+  per_instance_attribs.reserve(6);
+  int attrib_offset = offsetof(Asteroid, model);
+  for (uint32_t location = 5; location <= 8; ++location) {
+    per_instance_attribs.emplace_back(VertexAttribute{
+        location, static_cast<uint32_t>(attrib_offset),
+        VK_FORMAT_R32G32B32A32_SFLOAT,
+    });
+    attrib_offset += sizeof(glm::vec4);
+  }
+  light_desc_info.shader_stage |= VK_SHADER_STAGE_VERTEX_BIT;
+  asteroid_model_ =
+      ModelBuilder{
+          context(), kNumFrameInFlight, /*is_opaque=*/true,
+          ModelBuilder::MultiMeshResource{
+              "external/resource/model/rock/rock.obj",
+              "external/resource/model/rock",
+              {{model::ResourceType::kTextureDiffuse, /*binding_point=*/2}}},
+      }
+          .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
+                       "jessie_steamer/shader/vulkan/asteroid.vert.spv"})
+          .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                       "jessie_steamer/shader/vulkan/planet.frag.spv"})
+          .add_instancing({per_instance_attribs,
+                           static_cast<uint32_t>(sizeof(Asteroid)),
+                           &per_asteroid_data_})
+          .add_uniform_buffer({light_uniform_.get(), light_desc_info})
+          .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
+                              {{planet_constant_.get(), /*offset=*/0}}})
+          .Build();
+
+  ModelBuilder::TextureBindingMap skybox_bindings;
+  skybox_bindings[model::ResourceType::kTextureCubemap] = {
+      /*binding_point=*/1, {
+          SharedTexture::CubemapPath{
+              /*directory=*/"external/resource/texture/universe",
+              /*files=*/{"PositiveX.jpg", "NegativeX.jpg", "PositiveY.jpg",
+                         "NegativeY.jpg", "PositiveZ.jpg", "NegativeZ.jpg"},
+          },
+      },
+  };
+  skybox_model_ =
+      ModelBuilder{
+          context(), kNumFrameInFlight, /*is_opaque=*/true,
+          ModelBuilder::SingleMeshResource{
+              "external/resource/model/skybox.obj",
+              /*obj_index_base=*/1, skybox_bindings},
+      }
+          .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
+                       "jessie_steamer/shader/vulkan/skybox.vert.spv"})
+          .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                       "jessie_steamer/shader/vulkan/skybox.frag.spv"})
+          .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
+                              {{skybox_constant_.get(), /*offset=*/0}}})
+          .Build();
+}
+
+void PlanetApp::Recreate() {
   // depth stencil
-  auto frame_size = window_context_.frame_size();
+  const auto frame_size = window_context_.frame_size();
   depth_stencil_image_ = MultisampleImage::CreateDepthStencilMultisampleImage(
       context(), frame_size, kMultisamplingMode);
-
-  if (is_first_time_) {
-    is_first_time_ = false;
-
-    // camera
-    common::Camera::Config config;
-    config.position = glm::vec3{1.6f, -5.1f, -5.9f};
-    config.look_at = glm::vec3{-2.4f, -0.8f, 0.0f};
-    camera_ = absl::make_unique<common::UserControlledCamera>(
-        config, common::UserControlledCamera::ControlConfig{});
-
-    using WindowKey = common::Window::KeyMap;
-    using ControlKey = common::UserControlledCamera::ControlKey;
-    window_context_.window()
-        .SetCursorHidden(true)
-        .RegisterMoveCursorCallback([this](double x_pos, double y_pos) {
-          camera_->DidMoveCursor(x_pos, y_pos);
-        })
-        .RegisterScrollCallback([this](double x_pos, double y_pos) {
-          camera_->DidScroll(y_pos, 1.0f, 60.0f);
-        })
-        .RegisterPressKeyCallback(WindowKey::kUp, [this]() {
-          camera_->DidPressKey(ControlKey::kUp,
-                               timer_.GetElapsedTimeSinceLastFrame());
-        })
-        .RegisterPressKeyCallback(WindowKey::kDown, [this]() {
-          camera_->DidPressKey(ControlKey::kDown,
-                               timer_.GetElapsedTimeSinceLastFrame());
-        })
-        .RegisterPressKeyCallback(WindowKey::kLeft, [this]() {
-          camera_->DidPressKey(ControlKey::kLeft,
-                               timer_.GetElapsedTimeSinceLastFrame());
-        })
-        .RegisterPressKeyCallback(WindowKey::kRight, [this]() {
-          camera_->DidPressKey(ControlKey::kRight,
-                               timer_.GetElapsedTimeSinceLastFrame());
-        })
-        .RegisterPressKeyCallback(WindowKey::kEscape,
-                                  [this]() { should_quit_ = true; });
-
-    // command buffer
-    command_ = absl::make_unique<PerFrameCommand>(context(), kNumFrameInFlight);
-
-    // push constants
-    light_uniform_.Init(sizeof(Light), kNumFrameInFlight);
-    planet_constant_.Init(context(), sizeof(PlanetTrans), kNumFrameInFlight);
-    skybox_constant_.Init(context(), sizeof(SkyboxTrans), kNumFrameInFlight);
-
-    // render pass builder
-    render_pass_builder_ = RenderPassBuilder::SimpleRenderPassBuilder(
-        context(), /*num_subpass=*/1,
-        /*get_depth_stencil_image=*/[this](int index) -> const Image& {
-          return *depth_stencil_image_;
-        },
-        window_context_.num_swapchain_image(),
-        /*get_swapchain_image=*/[this](int index) -> const Image& {
-          return window_context_.swapchain_image(index);
-        },
-        /*get_multisample_image=*/[this](int index) -> const Image& {
-          return window_context_.multisample_image();
-        });
-
-    // model
-    Descriptor::Info light_desc_info{
-        /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
-        /*bindings=*/{{
-            Descriptor::ResourceType::kUniformBuffer,
-            /*binding_point=*/1,
-            /*array_length=*/1,
-        }},
-    };
-    ModelBuilder::TextureBindingMap planet_bindings;
-    planet_bindings[model::ResourceType::kTextureDiffuse] = {
-        /*binding_point=*/2,
-        {SharedTexture::SingleTexPath{"external/resource/texture/planet.png"}},
-    };
-    planet_model_ =
-        ModelBuilder{
-            context(), kNumFrameInFlight, /*is_opaque=*/true,
-            ModelBuilder::SingleMeshResource{
-                "external/resource/model/sphere.obj",
-                /*obj_index_base=*/1, planet_bindings},
-        }
-        .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                     "jessie_steamer/shader/vulkan/planet.vert.spv"})
-        .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                     "jessie_steamer/shader/vulkan/planet.frag.spv"})
-        .add_uniform_buffer({&light_uniform_, light_desc_info})
-        .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
-                            {{&planet_constant_, /*offset=*/0}}})
-        .set_sample_count(depth_stencil_image_->sample_count())
-        .Build();
-
-    GenAsteroidModels();
-    vector<VertexAttribute> per_instance_attribs{
-        {/*location=*/3, offsetof(Asteroid, theta), VK_FORMAT_R32_SFLOAT},
-        {/*location=*/4, offsetof(Asteroid, radius), VK_FORMAT_R32_SFLOAT},
-    };
-    per_instance_attribs.reserve(6);
-    int attrib_offset = offsetof(Asteroid, model);
-    for (uint32_t location = 5; location <= 8; ++location) {
-      per_instance_attribs.emplace_back(VertexAttribute{
-          location, static_cast<uint32_t>(attrib_offset),
-          VK_FORMAT_R32G32B32A32_SFLOAT,
-      });
-      attrib_offset += sizeof(glm::vec4);
-    }
-    light_desc_info.shader_stage |= VK_SHADER_STAGE_VERTEX_BIT;
-    asteroid_model_ =
-        ModelBuilder{
-            context(), kNumFrameInFlight, /*is_opaque=*/true,
-            ModelBuilder::MultiMeshResource{
-                "external/resource/model/rock/rock.obj",
-                "external/resource/model/rock",
-                {{model::ResourceType::kTextureDiffuse, /*binding_point=*/2}}},
-        }
-        .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                     "jessie_steamer/shader/vulkan/asteroid.vert.spv"})
-        .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                     "jessie_steamer/shader/vulkan/planet.frag.spv"})
-        .add_instancing({per_instance_attribs,
-                         static_cast<uint32_t>(sizeof(Asteroid)),
-                         &per_asteroid_data_})
-        .add_uniform_buffer({&light_uniform_, light_desc_info})
-        .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
-                            {{&planet_constant_, /*offset=*/0}}})
-        .set_sample_count(depth_stencil_image_->sample_count())
-        .Build();
-
-    ModelBuilder::TextureBindingMap skybox_bindings;
-    skybox_bindings[model::ResourceType::kTextureCubemap] = {
-        /*binding_point=*/1, {
-            SharedTexture::CubemapPath{
-                /*directory=*/"external/resource/texture/universe",
-                /*files=*/{
-                    "PositiveX.jpg",
-                    "NegativeX.jpg",
-                    "PositiveY.jpg",
-                    "NegativeY.jpg",
-                    "PositiveZ.jpg",
-                    "NegativeZ.jpg",
-                },
-            },
-        },
-    };
-    skybox_model_ =
-        ModelBuilder{
-            context(), kNumFrameInFlight, /*is_opaque=*/true,
-            ModelBuilder::SingleMeshResource{
-                "external/resource/model/skybox.obj",
-                /*obj_index_base=*/1, skybox_bindings},
-        }
-        .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                     "jessie_steamer/shader/vulkan/skybox.vert.spv"})
-        .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                     "jessie_steamer/shader/vulkan/skybox.frag.spv"})
-        .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
-                            {{&skybox_constant_, /*offset=*/0}}})
-        .set_sample_count(depth_stencil_image_->sample_count())
-        .Build();
-  }
 
   // render pass
   render_pass_ = (*render_pass_builder_)
       .set_framebuffer_size(frame_size)
+      .update_image(simple_render_pass::kColorAttachmentIndex,
+                    [this](int index) -> const Image& {
+                      return window_context_.swapchain_image(index);
+                    })
+      .update_image(simple_render_pass::kDepthStencilAttachmentIndex,
+                    [this](int index) -> const Image& {
+                      return *depth_stencil_image_;
+                    })
+      .update_image(simple_render_pass::kMultisampleAttachmentIndex,
+                    [this](int index) -> const Image& {
+                      return window_context_.multisample_image();
+                    })
       .Build();
 
   // camera
@@ -271,9 +264,13 @@ void PlanetApp::Init() {
                      window_context_.window().GetCursorPos());
 
   // model
-  planet_model_->Update(frame_size, *render_pass_, /*subpass_index=*/0);
-  asteroid_model_->Update(frame_size, *render_pass_, /*subpass_index=*/0);
-  skybox_model_->Update(frame_size, *render_pass_, /*subpass_index=*/0);
+  const auto sample_count = depth_stencil_image_->sample_count();
+  planet_model_->Update(frame_size, sample_count,
+                        *render_pass_, /*subpass_index=*/0);
+  asteroid_model_->Update(frame_size, sample_count,
+                          *render_pass_, /*subpass_index=*/0);
+  skybox_model_->Update(frame_size, sample_count,
+                        *render_pass_, /*subpass_index=*/0);
 }
 
 void PlanetApp::GenAsteroidModels() {
@@ -317,20 +314,20 @@ void PlanetApp::UpdateData(int frame) {
 
   glm::vec3 light_dir{glm::sin(elapsed_time * 0.6f), -0.3f,
                       glm::cos(elapsed_time * 0.6f)};
-  *light_uniform_.data<Light>(frame) = {glm::vec4{light_dir, elapsed_time}};
-  light_uniform_.Flush(frame);
+  *light_uniform_->data<Light>(frame) = {glm::vec4{light_dir, elapsed_time}};
+  light_uniform_->Flush(frame);
 
   glm::mat4 model{1.0f};
   model = glm::rotate(model, elapsed_time * glm::radians(5.0f),
                       glm::vec3{0.0f, 1.0f, 0.0f});
   glm::mat4 view = camera_->view();
   glm::mat4 proj = camera_->projection();
-  *planet_constant_.data<PlanetTrans>(frame) = {model, proj * view};
-  *skybox_constant_.data<SkyboxTrans>(frame) = {proj, view};
+  *planet_constant_->data<PlanetTrans>(frame) = {model, proj * view};
+  *skybox_constant_->data<SkyboxTrans>(frame) = {proj, view};
 }
 
 void PlanetApp::MainLoop() {
-  Init();
+  Recreate();
   const auto update_data = [this](int frame) {
     UpdateData(frame);
   };
@@ -355,7 +352,7 @@ void PlanetApp::MainLoop() {
 
     if (draw_result != VK_SUCCESS || window_context_.ShouldRecreate()) {
       window_context_.Recreate();
-      Init();
+      Recreate();
     }
 
     current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;

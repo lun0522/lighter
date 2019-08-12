@@ -585,7 +585,9 @@ void DynamicPerVertexBuffer::Init(const Info& info) {
                    device_memory_, infos.copy_infos);
 }
 
-void UniformBuffer::Init(size_t chunk_size, int num_chunk) {
+UniformBuffer::UniformBuffer(SharedBasicContext context,
+                             size_t chunk_size, int num_chunk)
+    : DataBuffer{std::move(context)} {
   // offset is required to be multiple of minUniformBufferOffsetAlignment
   // which is why we have actual data size 'chunk_data_size_' and its
   // aligned size 'chunk_memory_size_'
@@ -740,8 +742,8 @@ MultisampleBuffer::MultisampleBuffer(
       context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }
 
-void PushConstant::Init(const SharedBasicContext& context,
-                        size_t chunk_size, int num_chunk) {
+PushConstant::PushConstant(const SharedBasicContext& context,
+                           size_t chunk_size, int num_chunk) {
   const int max_push_constant_size =
       context->device_limits().maxPushConstantsSize;
   if (chunk_size > max_push_constant_size) {

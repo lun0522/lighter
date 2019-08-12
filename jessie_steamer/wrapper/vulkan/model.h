@@ -61,7 +61,7 @@ class Model {
   Model& operator=(const Model&) = delete;
 
   // Should be called after initialization and whenever frame is resized.
-  void Update(VkExtent2D frame_size,
+  void Update(VkExtent2D frame_size, VkSampleCountFlagBits sample_count,
               const RenderPass& render_pass, uint32_t subpass_index);
 
   void Draw(const VkCommandBuffer& command_buffer,
@@ -139,7 +139,6 @@ class ModelBuilder {
   ModelBuilder& add_push_constant(model::PushConstantInfo&& info);
   ModelBuilder& add_shared_texture(model::ResourceType type,
                                    const TextureBinding& binding);
-  ModelBuilder& set_sample_count(VkSampleCountFlagBits sample_count);
 
  private:
   void LoadSingleMesh(const SingleMeshResource& resource);

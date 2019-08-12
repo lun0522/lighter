@@ -20,8 +20,8 @@ class Timer {
     last_update_time_ = last_frame_time_ = launch_time_;
   }
 
-  // Informs the timer that a frame has been rendered. The frame rate is updated
-  // per second.
+  // Informs the timer that a new frame is starting to be rendered.
+  // The frame rate is updated per second.
   void Tick() {
     ++frame_count_;
     last_frame_time_ = Now();

@@ -102,10 +102,11 @@ std::unique_ptr<RenderPass> BuildRenderPass(
     VkExtent2D target_extent,
     RenderPassBuilder::GetImage&& get_target_image,
     RenderPassBuilder* render_pass_builder) {
+  constexpr int kColorAttachmentIndex = 0;
   return (*render_pass_builder)
       .set_framebuffer_size(target_extent)
       .set_attachment(
-          /*index=*/0,
+          kColorAttachmentIndex,
           RenderPassBuilder::Attachment{
               /*attachment_ops=*/RenderPassBuilder::Attachment::ColorOps{
                   /*load_color=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -113,9 +114,9 @@ std::unique_ptr<RenderPass> BuildRenderPass(
               },
               /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
               /*final_layout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-          },
-          std::move(get_target_image)
+          }
       )
+      .update_image(kColorAttachmentIndex, std::move(get_target_image))
       .Build();
 }
 

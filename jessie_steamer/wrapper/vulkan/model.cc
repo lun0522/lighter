@@ -205,12 +205,6 @@ ModelBuilder& ModelBuilder::add_shared_texture(model::ResourceType type,
   return *this;
 }
 
-ModelBuilder& ModelBuilder::set_sample_count(
-    VkSampleCountFlagBits sample_count) {
-  pipeline_builder_->set_sample_count(sample_count);
-  return *this;
-}
-
 std::vector<std::vector<std::unique_ptr<StaticDescriptor>>>
 ModelBuilder::CreateDescriptors() {
   std::vector<std::vector<std::unique_ptr<StaticDescriptor>>> descriptors;
@@ -292,7 +286,7 @@ std::unique_ptr<Model> ModelBuilder::Build() {
   return model;
 }
 
-void Model::Update(VkExtent2D frame_size,
+void Model::Update(VkExtent2D frame_size, VkSampleCountFlagBits sample_count,
                    const RenderPass& render_pass, uint32_t subpass_index) {
   (*pipeline_builder_)
       .set_viewport({
@@ -309,7 +303,8 @@ void Model::Update(VkExtent2D frame_size,
               frame_size,
           },
       })
-      .set_render_pass(*render_pass, subpass_index);
+      .set_render_pass(*render_pass, subpass_index)
+      .set_sample_count(sample_count);
   for (const auto& info : shader_infos_) {
     pipeline_builder_->add_shader(info);
   }
