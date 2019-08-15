@@ -37,15 +37,15 @@ class WindowContext {
                 int width = 800, int height = 600,
                 absl::optional<MultisampleImage::Mode> multisampling_mode =
                     MultisampleImage::Mode::kEfficient)
-    : context_{BasicContext::GetContext()}, surface_{context_},
+    : context_{BasicContext::GetContext()},
+      window_{name, {width, height}}, surface_{context_},
       multisampling_mode_{multisampling_mode} {
-    window_.Init(name, {width, height});
     const auto create_surface = [this](const VkInstance& instance,
                                        const VkAllocationCallbacks* allocator) {
       *surface_ = window_.CreateSurface(instance, allocator);
     };
     context_->Init(WindowSupport{
-        &*surface_,
+        &(*surface_),
         common::Window::GetRequiredExtensions(),
         Swapchain::GetRequiredExtensions(),
         create_surface,

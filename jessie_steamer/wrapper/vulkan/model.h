@@ -73,7 +73,7 @@ class Model {
 
   SharedBasicContext context_;
   std::vector<PipelineBuilder::ShaderInfo> shader_infos_;
-  std::unique_ptr<PerVertexBuffer> vertex_buffer_;
+  std::unique_ptr<StaticPerVertexBuffer> vertex_buffer_;
   std::vector<const PerInstanceBuffer*> per_instance_buffers_;
   std::vector<model::PushConstantInfo> push_constant_infos_;
   model::TexPerMesh shared_textures_;
@@ -149,7 +149,7 @@ class ModelBuilder {
   SharedBasicContext context_;
   const int num_frame_;
   std::vector<PipelineBuilder::ShaderInfo> shader_infos_;
-  std::unique_ptr<PerVertexBuffer> vertex_buffer_;
+  std::unique_ptr<StaticPerVertexBuffer> vertex_buffer_;
   std::vector<InstancingInfo> instancing_infos_;
   std::vector<UniformInfo> uniform_infos_;
   std::vector<model::PushConstantInfo> push_constant_infos_;

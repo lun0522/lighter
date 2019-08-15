@@ -447,12 +447,6 @@ void VertexBuffer::CreateBufferAndMemory(VkDeviceSize total_size,
   device_memory_ = CreateBufferMemory(context_, buffer_, memory_properties);
 }
 
-void PerVertexBuffer::Init(const Info& info) {
-  CopyInfos infos = CreateCopyInfos(info);
-  CreateBufferAndMemory(infos.total_size, /*is_dynamic=*/false);
-  CopyHostToBufferViaStaging(context_, buffer_, infos);
-}
-
 PerVertexBuffer::CopyInfos PerVertexBuffer::CreateCopyInfos(const Info& info) {
   if (absl::holds_alternative<InfoNoReuse>(info)) {
     return CreateCopyInfos(absl::get<InfoNoReuse>(info));
@@ -542,19 +536,22 @@ void PerVertexBuffer::Draw(const VkCommandBuffer& command_buffer,
                    /*firstIndex=*/0, /*vertexOffset=*/0, /*firstInstance=*/0);
 }
 
-void PerInstanceBuffer::Init(const void* data, size_t data_size) {
-  CreateBufferAndMemory(data_size, /*is_dynamic=*/false);
-  CopyHostToBufferViaStaging(context_, buffer_, CopyInfos{
-      /*total_size=*/data_size,
-      /*copy_infos=*/{CopyInfo{data, data_size, /*offset=*/0}},
-  });
+StaticPerVertexBuffer::StaticPerVertexBuffer(
+    SharedBasicContext context, const Info& info)
+    : PerVertexBuffer{std::move(context)} {
+  CopyInfos infos = CreateCopyInfos(info);
+  CreateBufferAndMemory(infos.total_size, /*is_dynamic=*/false);
+  CopyHostToBufferViaStaging(context_, buffer_, infos);
 }
 
-void PerInstanceBuffer::Bind(const VkCommandBuffer& command_buffer,
-                             uint32_t binding_point) const {
-  static constexpr VkDeviceSize offset = 0;
-  vkCmdBindVertexBuffers(command_buffer, binding_point, /*bindingCount=*/1,
-                         &buffer_, &offset);
+DynamicPerVertexBuffer::DynamicPerVertexBuffer(
+    SharedBasicContext context, int initial_size)
+    : PerVertexBuffer(std::move(context)) {
+  if (initial_size <= 0) {
+    FATAL(absl::StrFormat(
+        "Initial size must be greater than 0 (provided %d)", initial_size));
+  }
+  Reserve(initial_size);
 }
 
 void DynamicPerVertexBuffer::Reserve(int size) {
@@ -577,12 +574,29 @@ void DynamicPerVertexBuffer::Reserve(int size) {
   CreateBufferAndMemory(buffer_size_, /*is_dynamic=*/true);
 }
 
-void DynamicPerVertexBuffer::Init(const Info& info) {
+void DynamicPerVertexBuffer::Allocate(const Info& info) {
   mesh_datas_.clear();
   CopyInfos infos = CreateCopyInfos(info);
   Reserve(infos.total_size);
   CopyHostToBuffer(context_, /*map_offset=*/0, /*map_size=*/buffer_size_,
                    device_memory_, infos.copy_infos);
+}
+
+PerInstanceBuffer::PerInstanceBuffer(SharedBasicContext context,
+    const void* data, size_t data_size)
+    : VertexBuffer{std::move(context)} {
+  CreateBufferAndMemory(data_size, /*is_dynamic=*/false);
+  CopyHostToBufferViaStaging(context_, buffer_, CopyInfos{
+      /*total_size=*/data_size,
+      /*copy_infos=*/{CopyInfo{data, data_size, /*offset=*/0}},
+  });
+}
+
+void PerInstanceBuffer::Bind(const VkCommandBuffer& command_buffer,
+                             uint32_t binding_point) const {
+  static constexpr VkDeviceSize offset = 0;
+  vkCmdBindVertexBuffers(command_buffer, binding_point, /*bindingCount=*/1,
+                         &buffer_, &offset);
 }
 
 UniformBuffer::UniformBuffer(SharedBasicContext context,

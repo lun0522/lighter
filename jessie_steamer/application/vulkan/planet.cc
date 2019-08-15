@@ -79,7 +79,7 @@ class PlanetApp : public Application {
   std::unique_ptr<common::UserControlledCamera> camera_;
   std::unique_ptr<PerFrameCommand> command_;
   int num_asteroid_;
-  PerInstanceBuffer per_asteroid_data_;
+  std::unique_ptr<PerInstanceBuffer> per_asteroid_data_;
   std::unique_ptr<UniformBuffer> light_uniform_;
   std::unique_ptr<PushConstant> planet_constant_;
   std::unique_ptr<PushConstant> skybox_constant_;
@@ -91,8 +91,7 @@ class PlanetApp : public Application {
 
 } /* namespace */
 
-PlanetApp::PlanetApp() : Application{"Planet"},
-                         per_asteroid_data_{context()} {
+PlanetApp::PlanetApp() : Application{"Planet"} {
   // camera
   common::Camera::Config config;
   config.position = glm::vec3{1.6f, -5.1f, -5.9f};
@@ -204,7 +203,7 @@ PlanetApp::PlanetApp() : Application{"Planet"},
                        "jessie_steamer/shader/vulkan/planet.frag.spv"})
           .add_instancing({per_instance_attribs,
                            static_cast<uint32_t>(sizeof(Asteroid)),
-                           &per_asteroid_data_})
+                           per_asteroid_data_.get()})
           .add_uniform_buffer({light_uniform_.get(), light_desc_info})
           .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
                               {{planet_constant_.get(), /*offset=*/0}}})
@@ -305,8 +304,8 @@ void PlanetApp::GenAsteroidModels() {
     }
   }
 
-  per_asteroid_data_.Init(asteroids.data(),
-                          sizeof(Asteroid) * asteroids.size());
+  per_asteroid_data_ = absl::make_unique<PerInstanceBuffer>(
+      context(), asteroids.data(), sizeof(Asteroid) * asteroids.size());
 }
 
 void PlanetApp::UpdateData(int frame) {

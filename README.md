@@ -24,9 +24,10 @@ application
 # 0. Introduction
 
 This project aims to build a low-level graphics engine with **reusable**
-infrastructures, with either Vulkan or OpenGL as backend. It should be able to
+infrastructures, with either OpenGL or Vulkan as backend. It should be able to
 run on MacOS, and won't be difficult to run on Linux (just need to find suitable
-third-party library binaries). The code follows [Google C++ style guide](https://google.github.io/styleguide/cppguide.html).
+third-party library binaries). The code follows [Google C++ style guide](https://google.github.io/styleguide/cppguide.html)
+and only uses the features of C++11 (enhanced by [Abseil library](https://abseil.io)).
 
 We use the [Bazel build system](https://bazel.build), so the applications are
 run in this way from command line:
@@ -53,7 +54,7 @@ run in this way from command line:
 
 # 3. Vulkan wrappers (wrapper/vulkan/)
 
-## 3.1 Contexts
+## 3.1 Contexts (basic_context, basic_object and window_context)
 
 This project was first built following the [Vulkan tutorial by Alexander Overvoorde](https://vulkan-tutorial.com).
 It is an amazing tutorial, but it has also sacrificed something to be an amazing
@@ -147,8 +148,6 @@ will handle everything else.
 
 ### 3.2.8 Synchronization (synchronization)
 
-### 3.2.9 Window context (window_context)
-
 ## 3.3 High-level wrappers
 
 ### 3.3.1 Model renderer (model)
@@ -167,7 +166,7 @@ will handle everything else.
 
 ## 5.1 Tutorials
 
-- [Learn OpenGL by Joey de Vries](https://learnopengl.com)
+- [OpenGL tutorial by Joey de Vries](https://learnopengl.com)
 - [Vulkan tutorial by Alexander Overvoorde](https://vulkan-tutorial.com)
 - [Vulkan examples by Sascha Willems](https://github.com/SaschaWillems/Vulkan)
 

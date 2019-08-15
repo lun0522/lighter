@@ -13,7 +13,6 @@
 #include <vector>
 
 #include "absl/types/optional.h"
-#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_object.h"
 #ifndef NDEBUG
 #include "jessie_steamer/wrapper/vulkan/validation.h"
@@ -50,6 +49,8 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
     return std::make_shared<BasicContext>();
   }
 
+  // Instead of allocating BasicContext on stack, the user should prefer to call
+  // GetContext() to get a context whose lifetime is self-managed.
   BasicContext() = default;
 
   // This class is neither copyable nor movable.
@@ -72,7 +73,8 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
     }
     const auto queue_family_indices =
         physical_device_.Init(self(), window_support);
-    queues_ = device_.Init(self(), queue_family_indices, window_support);
+    device_.Init(self(), queue_family_indices, window_support);
+    queues_.Init(self(), queue_family_indices);
   }
 
   // Records an operation that releases an expired resource, so that it can be
@@ -96,10 +98,7 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   const Instance& instance() const { return instance_; }
   const PhysicalDevice& physical_device() const { return physical_device_; }
   const Device& device() const { return device_; }
-  const Queues& queues() const {
-    ASSERT_NON_NULL(queues_, "Queues have not been initialized");
-    return *queues_;
-  }
+  const Queues& queues() const { return queues_; }
   const VkPhysicalDeviceLimits& device_limits() const {
     return physical_device_.limits();
   }
@@ -116,7 +115,7 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   Device device_;
 
   // Wrapper of VkQueue.
-  std::unique_ptr<Queues> queues_;
+  Queues queues_;
 
   // Wrapper of VkAllocationCallbacks.
   HostMemoryAllocator allocator_;

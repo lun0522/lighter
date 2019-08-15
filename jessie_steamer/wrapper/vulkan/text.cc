@@ -81,7 +81,7 @@ const vector<Descriptor::Info>& CreateDescriptorInfos() {
 
 Text::Text(SharedBasicContext context, int num_frame)
     : context_{std::move(context)},
-      vertex_buffer_{context_},
+      vertex_buffer_{context_, text_util::GetVertexDataSize(/*num_rect=*/1)},
       pipeline_builder_{context_} {
   uniform_buffer_ = absl::make_unique<UniformBuffer>(
       context_, sizeof(TextRenderInfo), num_frame);
@@ -129,7 +129,6 @@ StaticText::StaticText(SharedBasicContext context,
                        Font font, int font_height)
     : Text{std::move(context), num_frame},
       text_loader_{context_, texts, font, font_height} {
-  vertex_buffer_.Reserve(text_util::GetVertexDataSize(/*num_rect=*/1));
   push_descriptors_.reserve(num_frame);
 
   const auto& descriptor_infos = CreateDescriptorInfos();
@@ -178,7 +177,7 @@ glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer,
       /*tex_coord_bottom_left=*/glm::vec2{0.0f},
       /*tex_coord_increment=*/glm::vec2{1.0f},
       &vertices);
-  vertex_buffer_.Init(PerVertexBuffer::InfoReuse{
+  vertex_buffer_.Allocate(PerVertexBuffer::InfoReuse{
       /*num_mesh=*/1,
       /*per_mesh_vertices=*/
       {vertices, /*unit_count=*/text_util::kNumVerticesPerRect},

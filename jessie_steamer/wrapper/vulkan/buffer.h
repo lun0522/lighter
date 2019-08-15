@@ -151,18 +151,17 @@ class PerVertexBuffer : public VertexBuffer {
 
   using Info = absl::variant<InfoNoReuse, InfoReuse>;
 
-  explicit PerVertexBuffer(SharedBasicContext context)
-      : VertexBuffer{std::move(context)} {}
-
   // This class is neither copyable nor movable.
   PerVertexBuffer(const PerVertexBuffer&) = delete;
   PerVertexBuffer& operator=(const PerVertexBuffer&) = delete;
 
-  virtual void Init(const Info& info);
   void Draw(const VkCommandBuffer& command_buffer,
             int mesh_index, uint32_t instance_count) const;
 
  protected:
+  // Inherits constructor.
+  using VertexBuffer::VertexBuffer;
+
   struct MeshData {
     VkDeviceSize vertices_offset;
     VkDeviceSize indices_offset;
@@ -176,34 +175,45 @@ class PerVertexBuffer : public VertexBuffer {
   std::vector<MeshData> mesh_datas_;
 };
 
+class StaticPerVertexBuffer : public PerVertexBuffer {
+ public:
+  StaticPerVertexBuffer(SharedBasicContext context, const Info& info);
+
+  // This class is neither copyable nor movable.
+  StaticPerVertexBuffer(const StaticPerVertexBuffer&) = delete;
+  StaticPerVertexBuffer& operator=(const StaticPerVertexBuffer&) = delete;
+};
+
 class DynamicPerVertexBuffer : public PerVertexBuffer {
  public:
-  // Inherits constructor.
-  using PerVertexBuffer::PerVertexBuffer;
+  DynamicPerVertexBuffer(SharedBasicContext context, int initial_size);
 
+  // This class is neither copyable nor movable.
+  DynamicPerVertexBuffer(const DynamicPerVertexBuffer&) = delete;
+  DynamicPerVertexBuffer& operator=(const DynamicPerVertexBuffer&) = delete;
+
+  // This buffer can be re-allocated multiple times. If a larger memory is
+  // required, the buffer allocated previously will be destructed, and a new one
+  // will be allocated. Otherwise, we will reuse the old buffer.
+  void Allocate(const Info& info);
+
+ private:
   // Reserves space of the given 'size'. If 'size' is less than the current
   // 'buffer_size_', this will be no-op.
   void Reserve(int size);
 
-  // This buffer can be initialized multiple times. If a larger memory is
-  // required, the buffer allocated previously will be destructed, and a new one
-  // will be allocated. Otherwise, we will reuse the old buffer.
-  void Init(const Info& info) override;
-
- private:
   VkDeviceSize buffer_size_ = 0;
 };
 
 class PerInstanceBuffer : public VertexBuffer {
  public:
-  explicit PerInstanceBuffer(SharedBasicContext context)
-      : VertexBuffer{std::move(context)} {}
+  PerInstanceBuffer(SharedBasicContext context,
+                    const void* data, size_t data_size);
 
   // This class is neither copyable nor movable.
   PerInstanceBuffer(const PerInstanceBuffer&) = delete;
   PerInstanceBuffer& operator=(const PerInstanceBuffer&) = delete;
 
-  void Init(const void* data, size_t data_size);
   void Bind(const VkCommandBuffer& command_buffer,
             uint32_t binding_point) const;
 };

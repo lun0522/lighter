@@ -173,7 +173,7 @@ inline void FlipY(vector<VertexAttrib2D>* vertices) {
   }
 }
 
-std::unique_ptr<PerVertexBuffer> CreateVertexBuffer(
+std::unique_ptr<StaticPerVertexBuffer> CreateVertexBuffer(
     const SharedBasicContext& context,
     const vector<char>& char_merge_order,
     const absl::flat_hash_map<char, CharLoader::CharTextureInfo>&
@@ -195,14 +195,14 @@ std::unique_ptr<PerVertexBuffer> CreateVertexBuffer(
   // have to flip y coordinates again
   FlipY(&vertices);
 
-  std::unique_ptr<PerVertexBuffer> buffer =
-      absl::make_unique<PerVertexBuffer>(context);
-  buffer->Init(PerVertexBuffer::InfoReuse{
-      /*num_mesh=*/static_cast<int>(char_merge_order.size()),
-      /*per_mesh_vertices=*/
-      {vertices, /*unit_count=*/text_util::kNumVerticesPerRect},
-      /*shared_indices=*/{text_util::GetIndicesPerRect()},
-  });
+  auto buffer = absl::make_unique<StaticPerVertexBuffer>(
+      context, PerVertexBuffer::InfoReuse{
+          /*num_mesh=*/static_cast<int>(char_merge_order.size()),
+          /*per_mesh_vertices=*/
+          {vertices, /*unit_count=*/text_util::kNumVerticesPerRect},
+          /*shared_indices=*/{text_util::GetIndicesPerRect()},
+      }
+  );
   return buffer;
 }
 
@@ -333,12 +333,12 @@ TextLoader::TextLoader(SharedBasicContext context,
                        const vector<string>& texts,
                        CharLoader::Font font, int font_height)
     : context_{std::move(context)} {
-  DynamicPerVertexBuffer vertex_buffer{context_};
   const auto& longest_text = std::max_element(
       texts.begin(), texts.end(), [](const string& lhs, const string& rhs) {
         return lhs.length() > rhs.length();
       });
-  vertex_buffer.Reserve(text_util::GetVertexDataSize(longest_text->length()));
+  DynamicPerVertexBuffer vertex_buffer{
+    context_, text_util::GetVertexDataSize(longest_text->length())};
 
   auto descriptor = absl::make_unique<StaticDescriptor>(
       context_, CreateDescriptorInfos());
@@ -495,7 +495,7 @@ float LoadCharsVertexData(const string& text, const CharLoader& char_loader,
     FlipY(&vertices);
   }
 
-  vertex_buffer->Init(PerVertexBuffer::InfoReuse{
+  vertex_buffer->Allocate(PerVertexBuffer::InfoReuse{
       /*num_mesh=*/static_cast<int>(text.length()),
       /*per_mesh_vertices=*/
       {vertices, /*unit_count=*/text_util::kNumVerticesPerRect},

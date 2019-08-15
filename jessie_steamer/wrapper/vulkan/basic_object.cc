@@ -197,14 +197,16 @@ absl::flat_hash_set<uint32_t> GetUniqueFamilyIndices(
 
 } /* namespace */
 
-Queues::Queues(const VkDevice& device, const FamilyIndices& family_indices)
-    : unique_family_indices_{GetUniqueFamilyIndices(family_indices)} {
+void Queues::Init(const SharedBasicContext& context,
+                  const FamilyIndices& family_indices) {
+  const VkDevice& device = *context->device();
   SetQueue(device, family_indices.graphics, &graphics_queue_);
   SetQueue(device, family_indices.transfer, &transfer_queue_);
   if (family_indices.present.has_value()) {
     present_queue_.emplace();
     SetQueue(device, family_indices.present.value(), &present_queue_.value());
   }
+  unique_family_indices_ = GetUniqueFamilyIndices(family_indices);
 }
 
 void Queues::SetQueue(const VkDevice& device, uint32_t family_index,
@@ -317,10 +319,9 @@ Queues::FamilyIndices PhysicalDevice::Init(
   FATAL("Failed to find suitable graphics device");
 }
 
-std::unique_ptr<Queues> Device::Init(
-    SharedBasicContext context,
-    const Queues::FamilyIndices& queue_family_indices,
-    const absl::optional<WindowSupport>& window_support) {
+void Device::Init(SharedBasicContext context,
+                  const Queues::FamilyIndices& queue_family_indices,
+                  const absl::optional<WindowSupport>& window_support) {
   if (window_support != absl::nullopt) {
     ASSERT_HAS_VALUE(queue_family_indices.present,
                      "Presentation queue is not properly set up");
@@ -381,8 +382,6 @@ std::unique_ptr<Queues> Device::Init(
   ASSERT_SUCCESS(vkCreateDevice(*context_->physical_device(), &device_info,
                                 *context_->allocator(), &device_),
                  "Failed to create logical device");
-
-  return absl::make_unique<Queues>(device_, queue_family_indices);
 }
 
 Device::~Device() {

@@ -20,7 +20,7 @@ namespace vulkan {
 // Synchronization within the graphics device, possibly across queues.
 class Semaphores {
  public:
-  Semaphores() = default;
+  Semaphores(SharedBasicContext context, int count);
 
   // This class is neither copyable nor movable.
   Semaphores(const Semaphores&) = delete;
@@ -28,15 +28,12 @@ class Semaphores {
 
   ~Semaphores();
 
-  // Initializes semaphores of 'count'.
-  void Init(SharedBasicContext context, int count);
-
   // Accessors.
   const VkSemaphore& operator[](int index) const { return semas_.at(index); }
 
  private:
   // Pointer to context.
-  SharedBasicContext context_;
+  const SharedBasicContext context_;
 
   // Opaque semaphore objects.
   std::vector<VkSemaphore> semas_;
@@ -46,7 +43,7 @@ class Semaphores {
 // for device.
 class Fences {
  public:
-  Fences() = default;
+  Fences(SharedBasicContext context, int count, bool is_signaled);
 
   // This class is neither copyable nor movable.
   Fences(const Fences&) = delete;
@@ -54,15 +51,12 @@ class Fences {
 
   ~Fences();
 
-  // Initializes fences of 'count' with the initial state 'is_signaled'.
-  void Init(SharedBasicContext context, int count, bool is_signaled);
-
   // Accessors.
   const VkFence& operator[](int index) const { return fences_.at(index); }
 
  private:
   // Pointer to context.
-  SharedBasicContext context_;
+  const SharedBasicContext context_;
 
   // Opaque fence objects.
   std::vector<VkFence> fences_;

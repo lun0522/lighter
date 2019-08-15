@@ -120,14 +120,14 @@ void OneTimeCommand::Run(const OnRecord& on_record) {
 
 PerFrameCommand::PerFrameCommand(SharedBasicContext context,
                                  int num_frame_in_flight)
-    : Command{std::move(context)} {
+    : Command{std::move(context)},
+      image_available_semas_{context_, num_frame_in_flight},
+      render_finished_semas_{context_, num_frame_in_flight},
+      in_flight_fences_{context_, num_frame_in_flight, /*is_signaled=*/true} {
   command_pool_ = CreateCommandPool(
       context_, context_->queues().graphics_queue(), /*is_transient=*/false);
   command_buffers_ = CreateCommandBuffers(context_, command_pool_,
                                           num_frame_in_flight);
-  image_available_semas_.Init(context_, num_frame_in_flight);
-  render_finished_semas_.Init(context_, num_frame_in_flight);
-  in_flight_fences_.Init(context_, num_frame_in_flight, true);
 }
 
 VkResult PerFrameCommand::Run(int current_frame,

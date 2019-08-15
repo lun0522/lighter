@@ -99,7 +99,6 @@ ModelBuilder::ModelBuilder(SharedBasicContext context,
                            const ModelResource& resource)
     : context_{std::move(context)},
       num_frame_{num_frame},
-      vertex_buffer_{absl::make_unique<PerVertexBuffer>(context_)},
       pipeline_builder_{absl::make_unique<PipelineBuilder>(context_)} {
   if (absl::holds_alternative<SingleMeshResource>(resource)) {
     LoadSingleMesh(absl::get<SingleMeshResource>(resource));
@@ -117,14 +116,10 @@ ModelBuilder::ModelBuilder(SharedBasicContext context,
 
 void ModelBuilder::LoadSingleMesh(const SingleMeshResource& resource) {
   // load vertices and indices
-  common::ObjFile file{resource.obj_path, resource.obj_index_base};
-  vertex_buffer_->Init(VertexInfo{/*per_mesh_infos=*/{
-          VertexInfo::PerMeshInfo{
-              /*vertices=*/{file.vertices},
-              /*indices=*/{file.indices},
-          },
-      },
-  });
+  const common::ObjFile file{resource.obj_path, resource.obj_index_base};
+  const VertexInfo::PerMeshInfo mesh_info{{file.vertices}, {file.indices}};
+  vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
+      context_, VertexInfo{/*per_mesh_infos=*/{mesh_info}});
 
   // load textures
   mesh_textures_.emplace_back();
@@ -151,7 +146,8 @@ void ModelBuilder::LoadMultiMesh(const MultiMeshResource& resource) {
         }
     );
   }
-  vertex_buffer_->Init(vertex_info);
+  vertex_buffer_ =
+      absl::make_unique<StaticPerVertexBuffer>(context_, vertex_info);
 
   // load textures
   binding_map_ = resource.binding_map;

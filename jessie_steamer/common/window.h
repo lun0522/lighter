@@ -50,16 +50,13 @@ class Window {
   // respond to the press.
   enum class KeyMap { kEscape, kUp, kDown, kLeft, kRight };
 
-  Window() = default;
+  Window(const std::string& name, glm::ivec2 screen_size);
 
   // This class is neither copyable nor movable.
   Window(const Window&) = delete;
   Window& operator=(const Window&) = delete;
 
   ~Window();
-
-  // Initializes the window.
-  void Init(const std::string& name, glm::ivec2 screen_size);
 
 #ifdef USE_VULKAN
   // Creates window surface for Vulkan applications.

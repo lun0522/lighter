@@ -37,8 +37,8 @@ constexpr VkFenceCreateInfo kUnsignaledFenceInfo{
 
 } /* namespace */
 
-void Semaphores::Init(SharedBasicContext context, int count) {
-  context_ = std::move(context);
+Semaphores::Semaphores(SharedBasicContext context, int count)
+    : context_{std::move(context)} {
   semas_.resize(static_cast<size_t>(count));
   for (auto& sema : semas_) {
     ASSERT_SUCCESS(vkCreateSemaphore(*context_->device(), &kSemaInfo,
@@ -53,8 +53,8 @@ Semaphores::~Semaphores() {
   }
 }
 
-void Fences::Init(SharedBasicContext context, int count, bool is_signaled) {
-  context_ = std::move(context);
+Fences::Fences(SharedBasicContext context, int count, bool is_signaled)
+    : context_{std::move(context)} {
   fences_.resize(static_cast<size_t>(count));
   const VkFenceCreateInfo& fence_info =
       is_signaled ? kSignaledFenceInfo : kUnsignaledFenceInfo;

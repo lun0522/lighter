@@ -43,7 +43,7 @@ class Queues {
     uint32_t family_index;
   };
 
-  Queues(const VkDevice& device, const FamilyIndices& family_indices);
+  Queues() = default;
 
   // This class is neither copyable nor movable.
   Queues(const Queues&) = delete;
@@ -51,6 +51,10 @@ class Queues {
 
   // Implicitly cleaned up with physical device.
   ~Queues() = default;
+
+  // Initializes queues and 'unique_family_indices_'.
+  void Init(const std::shared_ptr<BasicContext>& context,
+            const FamilyIndices& family_indices);
 
   // Accessors.
   const Queue& graphics_queue() const { return graphics_queue_; }
@@ -78,7 +82,7 @@ class Queues {
   absl::optional<Queue> present_queue_;
 
   // Holds unique queue family indices.
-  const absl::flat_hash_set<uint32_t> unique_family_indices_;
+  absl::flat_hash_set<uint32_t> unique_family_indices_;
 };
 
 // VkInstance is used to establish connection with Vulkan library and maintain
@@ -157,10 +161,9 @@ struct Device {
   ~Device();
 
   // Initializes 'device_' and returns the queues retrieved from it.
-  std::unique_ptr<Queues> Init(
-      std::shared_ptr<BasicContext> context,
-      const Queues::FamilyIndices& queue_family_indices,
-      const absl::optional<WindowSupport>& window_support);
+  void Init(std::shared_ptr<BasicContext> context,
+            const Queues::FamilyIndices& queue_family_indices,
+            const absl::optional<WindowSupport>& window_support);
 
   // Blocks host until 'device_' becomes idle.
   void WaitIdle() const { vkDeviceWaitIdle(device_); }
