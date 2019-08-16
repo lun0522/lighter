@@ -9,9 +9,11 @@
 #define JESSIE_STEAMER_WRAPPER_VULKAN_BASIC_CONTEXT_H
 
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <vector>
 
+#include "absl/container/flat_hash_set.h"
 #include "absl/types/optional.h"
 #include "jessie_steamer/wrapper/vulkan/basic_object.h"
 #ifndef NDEBUG
@@ -27,7 +29,7 @@ namespace vulkan {
 class BasicContext;
 
 using SharedBasicContext = std::shared_ptr<BasicContext>;
-using ReleaseExpiredResourceOp = std::function<void(const SharedBasicContext&)>;
+using ReleaseExpiredResourceOp = std::function<void(const BasicContext&)>;
 
 // Information that we need to use a window. We need to make sure the window and
 // swapchain are supported by checking supports for relevant extensions.
@@ -45,37 +47,38 @@ struct WindowSupport {
 class BasicContext : public std::enable_shared_from_this<BasicContext> {
  public:
   // Returns a new instance of BasicContext.
-  static SharedBasicContext GetContext() {
-    return std::make_shared<BasicContext>();
+  template <typename... Args>
+  static SharedBasicContext GetContext(Args&&... args) {
+    return std::make_shared<BasicContext>(std::forward<Args>(args)...);
   }
 
   // Instead of allocating BasicContext on stack, the user should prefer to call
   // GetContext() to get a context whose lifetime is self-managed.
-  BasicContext() = default;
+  // This is made public only because 'std::make_shared' needs access.
+  explicit BasicContext(
+      const absl::optional<WindowSupport>& window_support
+#ifdef NDEBUG
+      )
+#else  /* !NDEBUG */
+      , const DebugCallback::TriggerCondition& debug_callback_trigger)
+#endif /* NDEBUG */
+      : instance_{this, window_support},
+#ifndef NDEBUG
+        debug_callback_{this, debug_callback_trigger},
+#endif /* !NDEBUG */
+        physical_device_{this, window_support},
+        device_{this, window_support},
+        queues_{*this, physical_device_.queue_family_indices()} {}
 
   // This class is neither copyable nor movable.
   BasicContext(const BasicContext&) = delete;
   BasicContext& operator=(const BasicContext&) = delete;
 
-  // Initializes basic objects.
-  void Init(const absl::optional<WindowSupport>& window_support) {
-    instance_.Init(self(), window_support);
-#ifndef NDEBUG
-    debug_callback_.Init(self(),
-                         message_severity::kWarning
-                             | message_severity::kError,
-                         message_type::kGeneral
-                             | message_type::kValidation
-                             | message_type::kPerformance);
-#endif /* !NDEBUG */
-    if (window_support.has_value()) {
-      window_support.value().create_surface(*instance_, *allocator_);
-    }
-    const auto queue_family_indices =
-        physical_device_.Init(self(), window_support);
-    device_.Init(self(), queue_family_indices, window_support);
-    queues_.Init(self(), queue_family_indices);
-  }
+#ifdef NDEBUG
+  ~BasicContext() = default;
+#else  /* !NDEBUG */
+  ~BasicContext() { std::cout << "Context destructed properly" << std::endl; }
+#endif /* NDEBUG */
 
   // Records an operation that releases an expired resource, so that it can be
   // executed once the graphics device becomes idle. This is used for resources
@@ -88,25 +91,40 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   void WaitIdle() {
     device_.WaitIdle();
     if (!release_expired_rsrc_ops_.empty()) {
-      for (const auto& op : release_expired_rsrc_ops_) { op(self()); }
+      for (const auto& op : release_expired_rsrc_ops_) { op(*this); }
       release_expired_rsrc_ops_.clear();
     }
   }
 
+  // Returns unique queue family indices.
+  absl::flat_hash_set<uint32_t> GetUniqueFamilyIndices() const {
+    return physical_device_.queue_family_indices().GetUniqueFamilyIndices();
+  }
+
   // Accessors.
-  SharedBasicContext self() { return shared_from_this(); }
   const Instance& instance() const { return instance_; }
   const PhysicalDevice& physical_device() const { return physical_device_; }
   const Device& device() const { return device_; }
   const Queues& queues() const { return queues_; }
-  const VkPhysicalDeviceLimits& device_limits() const {
-    return physical_device_.limits();
+  const QueueFamilyIndices& queue_family_indices() const {
+    return physical_device_.queue_family_indices();
+  }
+  const VkPhysicalDeviceLimits& physical_device_limits() const {
+    return physical_device_.physical_device_limits();
   }
   const HostMemoryAllocator& allocator() const { return allocator_; }
 
  private:
+  // Wrapper of VkAllocationCallbacks.
+  HostMemoryAllocator allocator_;
+
   // Wrapper of VkInstance.
   Instance instance_;
+
+#ifndef NDEBUG
+  // Wrapper of VkDebugUtilsMessengerEXT.
+  DebugCallback debug_callback_;
+#endif /* !NDEBUG */
 
   // Wrapper of VkPhysicalDevice.
   PhysicalDevice physical_device_;
@@ -116,14 +134,6 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
 
   // Wrapper of VkQueue.
   Queues queues_;
-
-  // Wrapper of VkAllocationCallbacks.
-  HostMemoryAllocator allocator_;
-
-#ifndef NDEBUG
-  // Wrapper of VkDebugUtilsMessengerEXT.
-  DebugCallback debug_callback_;
-#endif /* !NDEBUG */
 
   // Holds operations that are delayed to be executed until the graphics device
   // becomes idle.

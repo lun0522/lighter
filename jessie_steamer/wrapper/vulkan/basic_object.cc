@@ -117,7 +117,7 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
 // Finds family indices of queues we need. If any queue is not found in the
 // given 'physical_device', returns absl::nullopt.
 // The graphics queue will also be used as transfer queue.
-absl::optional<Queues::FamilyIndices> FindDeviceQueues(
+absl::optional<QueueFamilyIndices> FindDeviceQueues(
     const VkPhysicalDevice& physical_device,
     const absl::optional<WindowSupport>& window_support) {
   VkPhysicalDeviceProperties properties;
@@ -139,7 +139,7 @@ absl::optional<Queues::FamilyIndices> FindDeviceQueues(
   }
 
   // Find queue family that holds graphics queue.
-  Queues::FamilyIndices candidate{};
+  QueueFamilyIndices candidate{};
   const auto families{QueryAttribute<VkQueueFamilyProperties>(
       [&physical_device](uint32_t* count, VkQueueFamilyProperties* properties) {
         return vkGetPhysicalDeviceQueueFamilyProperties(
@@ -182,44 +182,19 @@ absl::optional<Queues::FamilyIndices> FindDeviceQueues(
   return candidate;
 }
 
-// Returns unique queue family indices given 'family_indices'.
-// We might be using the same queue for different purposes, so we use a hash set
-// to remove duplicates.
-absl::flat_hash_set<uint32_t> GetUniqueFamilyIndices(
-    const Queues::FamilyIndices& family_indices) {
-  absl::flat_hash_set<uint32_t> unique_indices{family_indices.graphics,
-                                               family_indices.transfer};
-  if (family_indices.present.has_value()) {
-    unique_indices.emplace(family_indices.present.value());
+} /* namespace */
+
+absl::flat_hash_set<uint32_t> QueueFamilyIndices::GetUniqueFamilyIndices() const {
+  absl::flat_hash_set<uint32_t> unique_indices{graphics, transfer};
+  if (present.has_value()) {
+    unique_indices.emplace(present.value());
   }
   return unique_indices;
 }
 
-} /* namespace */
-
-void Queues::Init(const SharedBasicContext& context,
-                  const FamilyIndices& family_indices) {
-  const VkDevice& device = *context->device();
-  SetQueue(device, family_indices.graphics, &graphics_queue_);
-  SetQueue(device, family_indices.transfer, &transfer_queue_);
-  if (family_indices.present.has_value()) {
-    present_queue_.emplace();
-    SetQueue(device, family_indices.present.value(), &present_queue_.value());
-  }
-  unique_family_indices_ = GetUniqueFamilyIndices(family_indices);
-}
-
-void Queues::SetQueue(const VkDevice& device, uint32_t family_index,
-                      Queue* queue) const {
-  constexpr int kQueueIndex = 0;
-  queue->family_index = family_index;
-  vkGetDeviceQueue(device, family_index, kQueueIndex, &queue->queue);
-}
-
-void Instance::Init(SharedBasicContext context,
-                    const absl::optional<WindowSupport>& window_support) {
-  context_ = std::move(context);
-
+Instance::Instance(const BasicContext* context,
+                   const absl::optional<WindowSupport>& window_support)
+    : context_{context} {
   // Request support for pushing descriptors.
   vector<const char*> instance_extensions{
       VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
@@ -282,17 +257,21 @@ void Instance::Init(SharedBasicContext context,
   ASSERT_SUCCESS(
       vkCreateInstance(&instance_info, *context_->allocator(), &instance_),
       "Failed to create instance");
+
+  // Create surface if the window support is requested.
+  if (window_support.has_value()) {
+    window_support.value().create_surface(instance_, *context_->allocator());
+  }
 }
 
 Instance::~Instance() {
   vkDestroyInstance(instance_, *context_->allocator());
 }
 
-Queues::FamilyIndices PhysicalDevice::Init(
-    SharedBasicContext context,
-    const absl::optional<WindowSupport>& window_support) {
-  context_ = std::move(context);
-
+PhysicalDevice::PhysicalDevice(
+    const BasicContext* context,
+    const absl::optional<WindowSupport>& window_support)
+    : context_{context} {
   // Find all physical devices.
   const auto physical_devices{QueryAttribute<VkPhysicalDevice>(
       [this](uint32_t* count, VkPhysicalDevice* physical_device) {
@@ -307,27 +286,26 @@ Queues::FamilyIndices PhysicalDevice::Init(
     const auto indices = FindDeviceQueues(candidate, window_support);
     if (indices.has_value()) {
       physical_device_ = candidate;
+      queue_family_indices_ = indices.value();
 
-      // Query device limits.
+      // Query physical device limits.
       VkPhysicalDeviceProperties properties;
       vkGetPhysicalDeviceProperties(physical_device_, &properties);
-      limits_ = properties.limits;
+      physical_device_limits_ = properties.limits;
 
-      return indices.value();
+      return;
     }
   }
   FATAL("Failed to find suitable graphics device");
 }
 
-void Device::Init(SharedBasicContext context,
-                  const Queues::FamilyIndices& queue_family_indices,
-                  const absl::optional<WindowSupport>& window_support) {
+Device::Device(const BasicContext* context,
+               const absl::optional<WindowSupport>& window_support)
+    : context_{context} {
   if (window_support != absl::nullopt) {
-    ASSERT_HAS_VALUE(queue_family_indices.present,
+    ASSERT_HAS_VALUE(context_->queue_family_indices().present,
                      "Presentation queue is not properly set up");
   }
-
-  context_ = std::move(context);
 
   // Request support for anisotropy filtering.
   VkPhysicalDeviceFeatures required_features{};
@@ -350,7 +328,7 @@ void Device::Init(SharedBasicContext context,
   vector<VkDeviceQueueCreateInfo> queue_infos;
   // 'priority' is always required even if there is only one queue.
   constexpr float kPriority = 1.0f;
-  for (uint32_t family_index : GetUniqueFamilyIndices(queue_family_indices)) {
+  for (uint32_t family_index : context_->GetUniqueFamilyIndices()) {
     queue_infos.emplace_back(VkDeviceQueueCreateInfo{
         VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
         /*pNext=*/nullptr,
@@ -386,6 +364,24 @@ void Device::Init(SharedBasicContext context,
 
 Device::~Device() {
   vkDestroyDevice(device_, *context_->allocator());
+}
+
+Queues::Queues(const BasicContext& context,
+               const QueueFamilyIndices& family_indices) {
+  const VkDevice& device = *context.device();
+  SetQueue(device, family_indices.graphics, &graphics_queue_);
+  SetQueue(device, family_indices.transfer, &transfer_queue_);
+  if (family_indices.present.has_value()) {
+    present_queue_.emplace();
+    SetQueue(device, family_indices.present.value(), &present_queue_.value());
+  }
+}
+
+void Queues::SetQueue(const VkDevice& device, uint32_t family_index,
+                      Queue* queue) const {
+  constexpr int kQueueIndex = 0;
+  queue->family_index = family_index;
+  vkGetDeviceQueue(device, family_index, kQueueIndex, &queue->queue);
 }
 
 } /* namespace vulkan */

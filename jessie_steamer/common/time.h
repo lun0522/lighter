@@ -20,6 +20,12 @@ class Timer {
     last_update_time_ = last_frame_time_ = launch_time_;
   }
 
+  // This class is neither copyable nor movable.
+  Timer(const Timer&) = delete;
+  Timer& operator=(const Timer&) = delete;
+
+  ~Timer() = default;
+
   // Informs the timer that a new frame is starting to be rendered.
   // The frame rate is updated per second.
   void Tick() {

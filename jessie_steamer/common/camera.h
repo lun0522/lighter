@@ -30,6 +30,8 @@ class Camera {
   Camera(const Camera&) = delete;
   Camera& operator=(const Camera&) = delete;
 
+  ~Camera() = default;
+
   // Accessors.
   const glm::vec3& position() const { return pos_; }
   const glm::vec3& direction() const { return front_; }
@@ -115,6 +117,8 @@ class UserControlledCamera : public Camera {
   // This class is neither copyable nor movable.
   UserControlledCamera(const UserControlledCamera&) = delete;
   UserControlledCamera& operator=(const UserControlledCamera&) = delete;
+
+  ~UserControlledCamera() = default;
 
   // Calibrates the camera with screen size and cursor position.
   // This should be called after the screen is created or resized.

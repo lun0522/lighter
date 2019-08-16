@@ -8,9 +8,6 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_BASIC_OBJECT_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_BASIC_OBJECT_H
 
-#include <memory>
-#include <numeric>
-
 #include "absl/container/flat_hash_set.h"
 #include "absl/types/optional.h"
 #include "jessie_steamer/common/util.h"
@@ -24,26 +21,143 @@ namespace vulkan {
 class BasicContext;
 struct WindowSupport;
 
+// VkAllocationCallbacks is used for allocating space on the host device for
+// Vulkan objects. For now this wrapper class simply does nothing.
+class HostMemoryAllocator {
+ public:
+  HostMemoryAllocator() = default;
+
+  // This class is neither copyable nor movable.
+  HostMemoryAllocator(const HostMemoryAllocator&) = delete;
+  HostMemoryAllocator& operator=(const HostMemoryAllocator&) = delete;
+
+  ~HostMemoryAllocator() = default;
+
+  // Overloads.
+  const VkAllocationCallbacks* operator*() const {
+    return allocation_callback_;
+  }
+
+ private:
+  // Used to allocate memory on the host device.
+  const VkAllocationCallbacks* allocation_callback_ = nullptr;
+};
+
+// Holds queue family indices for the queues we need.
+// All queues in one family share the same property.
+struct QueueFamilyIndices {
+  uint32_t graphics;
+  uint32_t transfer;
+  absl::optional<uint32_t> present;
+
+  // Returns unique queue family indices. We might be using the same queue for
+  // different purposes, so we use a hash set to remove duplicates.
+  absl::flat_hash_set<uint32_t> GetUniqueFamilyIndices() const;
+};
+
+// VkInstance is used to establish connection with Vulkan library and maintain
+// per-application states.
+class Instance {
+ public:
+  // If the window support is requested, WindowSupport::create_surface will be
+  // called internally.
+  Instance(const BasicContext* context,
+           const absl::optional<WindowSupport>& window_support);
+
+  // This class is neither copyable nor movable.
+  Instance(const Instance&) = delete;
+  Instance& operator=(const Instance&) = delete;
+
+  ~Instance();
+
+  // Overloads.
+  const VkInstance& operator*() const { return instance_; }
+
+ private:
+  // Pointer to context.
+  const BasicContext* context_;
+
+  // Opaque instance object.
+  VkInstance instance_;
+};
+
+// VkPhysicalDevice is a handle to a physical graphics card.
+struct PhysicalDevice {
+ public:
+  // If there is no physical device that satisfies our need, a runtime exception
+  // will be thrown.
+  PhysicalDevice(const BasicContext* context,
+                 const absl::optional<WindowSupport>& window_support);
+
+  // This class is neither copyable nor movable.
+  PhysicalDevice(const PhysicalDevice&) = delete;
+  PhysicalDevice& operator=(const PhysicalDevice&) = delete;
+
+  // Implicitly cleaned up.
+  ~PhysicalDevice() = default;
+
+  // Overloads.
+  const VkPhysicalDevice& operator*() const { return physical_device_; }
+
+  // Accessors.
+  const QueueFamilyIndices& queue_family_indices() const {
+    return queue_family_indices_;
+  }
+  const VkPhysicalDeviceLimits& physical_device_limits() const {
+    return physical_device_limits_;
+  }
+
+ private:
+  // Pointer to context.
+  const BasicContext* context_;
+
+  // Opaque physical device object.
+  VkPhysicalDevice physical_device_;
+
+  // Family indices for the queues we need.
+  QueueFamilyIndices queue_family_indices_;
+
+  // Limits of the physical device.
+  VkPhysicalDeviceLimits physical_device_limits_;
+};
+
+// VkDevice interfaces with the physical device.
+struct Device {
+ public:
+  Device(const BasicContext* context,
+         const absl::optional<WindowSupport>& window_support);
+
+  // This class is neither copyable nor movable.
+  Device(const Device&) = delete;
+  Device& operator=(const Device&) = delete;
+
+  ~Device();
+
+  // Blocks host until 'device_' becomes idle.
+  void WaitIdle() const { vkDeviceWaitIdle(device_); }
+
+  // Overloads.
+  const VkDevice& operator*() const { return device_; }
+
+ private:
+  // Pointer to context.
+  const BasicContext* context_;
+
+  // Opaque device object.
+  VkDevice device_;
+};
+
 // VkQueue is the queue associated with the logical device.
 class Queues {
  public:
-  // Holds queue family indices for the queues we need.
-  // All queues in one family share the same property.
-  struct FamilyIndices {
-    uint32_t graphics;
-    uint32_t transfer;
-    absl::optional<uint32_t> present;
-  };
-
   // Holds an opaque queue object and its family index.
   struct Queue {
-    Queue() = default;
-
     VkQueue queue;
     uint32_t family_index;
   };
 
-  Queues() = default;
+  Queues(const BasicContext& context,
+         const QueueFamilyIndices& family_indices);
 
   // This class is neither copyable nor movable.
   Queues(const Queues&) = delete;
@@ -52,19 +166,12 @@ class Queues {
   // Implicitly cleaned up with physical device.
   ~Queues() = default;
 
-  // Initializes queues and 'unique_family_indices_'.
-  void Init(const std::shared_ptr<BasicContext>& context,
-            const FamilyIndices& family_indices);
-
   // Accessors.
   const Queue& graphics_queue() const { return graphics_queue_; }
   const Queue& transfer_queue() const { return transfer_queue_; }
   const Queue& present_queue() const {
     ASSERT_HAS_VALUE(present_queue_, "No presentation queue");
     return present_queue_.value();
-  }
-  const absl::flat_hash_set<uint32_t>& unique_family_indices() const {
-    return unique_family_indices_;
   }
 
  private:
@@ -80,118 +187,6 @@ class Queues {
 
   // The presentation queue.
   absl::optional<Queue> present_queue_;
-
-  // Holds unique queue family indices.
-  absl::flat_hash_set<uint32_t> unique_family_indices_;
-};
-
-// VkInstance is used to establish connection with Vulkan library and maintain
-// per-application states.
-class Instance {
- public:
-  Instance() = default;
-
-  // This class is neither copyable nor movable.
-  Instance(const Instance&) = delete;
-  Instance& operator=(const Instance&) = delete;
-
-  ~Instance();
-
-  // Initializes 'instance_'.
-  void Init(std::shared_ptr<BasicContext> context,
-            const absl::optional<WindowSupport>& window_support);
-
-  // Overloads.
-  const VkInstance& operator*() const { return instance_; }
-
- private:
-  // Pointer to context.
-  std::shared_ptr<BasicContext> context_;
-
-  // Opaque instance object.
-  VkInstance instance_;
-};
-
-// VkPhysicalDevice is a handle to a physical graphics card.
-struct PhysicalDevice {
- public:
-  PhysicalDevice() = default;
-
-  // This class is neither copyable nor movable.
-  PhysicalDevice(const PhysicalDevice&) = delete;
-  PhysicalDevice& operator=(const PhysicalDevice&) = delete;
-
-  // Implicitly cleaned up.
-  ~PhysicalDevice() = default;
-
-  // Finds a physical device that has the queues we need.
-  // If there is such a device, the limits of it will be queried and stored
-  // in 'limits_', and the family indices of queues will be returned.
-  // Otherwise, throws a runtime exception.
-  Queues::FamilyIndices Init(
-      std::shared_ptr<BasicContext> context,
-      const absl::optional<WindowSupport>& window_support);
-
-  // Overloads.
-  const VkPhysicalDevice& operator*() const { return physical_device_; }
-
-  // Accessors.
-  const VkPhysicalDeviceLimits& limits() const { return limits_; }
-
- private:
-  // Pointer to context.
-  std::shared_ptr<BasicContext> context_;
-
-  // Opaque physical device object.
-  VkPhysicalDevice physical_device_;
-
-  // Limits of the physical device.
-  VkPhysicalDeviceLimits limits_;
-};
-
-// VkDevice interfaces with the physical device.
-struct Device {
- public:
-  Device() = default;
-
-  // This class is neither copyable nor movable.
-  Device(const Device&) = delete;
-  Device& operator=(const Device&) = delete;
-
-  ~Device();
-
-  // Initializes 'device_' and returns the queues retrieved from it.
-  void Init(std::shared_ptr<BasicContext> context,
-            const Queues::FamilyIndices& queue_family_indices,
-            const absl::optional<WindowSupport>& window_support);
-
-  // Blocks host until 'device_' becomes idle.
-  void WaitIdle() const { vkDeviceWaitIdle(device_); }
-
-  // Overloads.
-  const VkDevice& operator*() const { return device_; }
-
- private:
-  // Pointer to context.
-  std::shared_ptr<BasicContext> context_;
-
-  // Opaque device object.
-  VkDevice device_;
-};
-
-// VkAllocationCallbacks is used for allocating space on the host device for
-// Vulkan objects. For now this wrapper class simply does nothing.
-class HostMemoryAllocator {
- public:
-  HostMemoryAllocator() = default;
-
-  // Overloads.
-  const VkAllocationCallbacks* operator*() const {
-    return allocation_callback_;
-  }
-
- private:
-  const VkAllocationCallbacks* allocation_callback_ = nullptr;
 };
 
 } /* namespace vulkan */

@@ -32,7 +32,7 @@ and only uses the features of C++11 (enhanced by [Abseil library](https://abseil
 We use the [Bazel build system](https://bazel.build), so the applications are
 run in this way from command line:
 
-`bazel build -c opt //jessie_steamer/application/vulkan:cube`
+`bazel build -c opt --copt=-DUSE_VULKAN //jessie_steamer/application/vulkan:cube`
 
 # 1. Common modules (common/)
 

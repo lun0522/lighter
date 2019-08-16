@@ -16,6 +16,9 @@
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/swapchain.h"
+#ifndef NDEBUG
+#include "jessie_steamer/wrapper/vulkan/validation.h"
+#endif /* !NDEBUG */
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
@@ -33,23 +36,35 @@ namespace vulkan {
  */
 class WindowContext {
  public:
-  WindowContext(const std::string& name,
-                int width = 800, int height = 600,
-                absl::optional<MultisampleImage::Mode> multisampling_mode =
-                    MultisampleImage::Mode::kEfficient)
-    : context_{BasicContext::GetContext()},
-      window_{name, {width, height}}, surface_{context_},
-      multisampling_mode_{multisampling_mode} {
-    const auto create_surface = [this](const VkInstance& instance,
-                                       const VkAllocationCallbacks* allocator) {
-      *surface_ = window_.CreateSurface(instance, allocator);
-    };
-    context_->Init(WindowSupport{
+  struct Config {
+    int width = 800;
+    int height = 600;
+    absl::optional<MultisampleImage::Mode> multisampling_mode =
+        MultisampleImage::Mode::kEfficient;
+#ifndef NDEBUG
+    DebugCallback::TriggerCondition debug_callback_trigger;
+#endif /* !NDEBUG */
+  };
+
+  WindowContext(const std::string& name, const Config& config)
+    : window_{name, {config.width, config.height}},
+      multisampling_mode_{config.multisampling_mode} {
+    const WindowSupport window_support{
         &(*surface_),
         common::Window::GetRequiredExtensions(),
         Swapchain::GetRequiredExtensions(),
-        create_surface,
-    });
+        [this](const VkInstance& instance,
+               const VkAllocationCallbacks* allocator) {
+          *surface_ = window_.CreateSurface(instance, allocator);
+        },
+    };
+    context_ =
+#ifdef NDEBUG
+        BasicContext::GetContext(window_support);
+#else  /* !NDEBUG */
+        BasicContext::GetContext(window_support, config.debug_callback_trigger);
+#endif /* NDEBUG */
+    surface_.SetContext(context_);
     CreateSwapchain(window_.GetScreenSize());
   }
 
@@ -93,8 +108,7 @@ class WindowContext {
  private:
   class Surface {
    public:
-    explicit Surface(SharedBasicContext context)
-        : context_{std::move(context)} {}
+    Surface() = default;
 
     // This class is neither copyable nor movable
     Surface(const Surface&) = delete;
@@ -103,6 +117,10 @@ class WindowContext {
     ~Surface() {
       vkDestroySurfaceKHR(*context_->instance(), surface_,
                           *context_->allocator());
+    }
+
+    void SetContext(SharedBasicContext context) {
+      context_ = std::move(context);
     }
 
     VkSurfaceKHR& operator*() { return surface_; }

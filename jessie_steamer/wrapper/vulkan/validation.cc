@@ -45,17 +45,16 @@ const vector<const char*>& GetRequiredLayers() {
 
 } /* namespace validation */
 
-void DebugCallback::Init(SharedBasicContext context,
-                         VkDebugUtilsMessageSeverityFlagsEXT message_severity,
-                         VkDebugUtilsMessageTypeFlagsEXT message_type) {
-  context_ = std::move(context);
+DebugCallback::DebugCallback(const BasicContext* context,
+                             const TriggerCondition& trigger_condition)
+    : context_{context} {
   // We may pass data to 'pUserData' which can be retrieved from the callback.
   VkDebugUtilsMessengerCreateInfoEXT create_info{
       VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
-      message_severity,
-      message_type,
+      trigger_condition.severity,
+      trigger_condition.type,
       UserCallback,
       /*pUserData=*/nullptr,
   };

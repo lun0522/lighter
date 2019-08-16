@@ -79,7 +79,7 @@ class NanosuitApp : public Application {
 
 } /* namespace */
 
-NanosuitApp::NanosuitApp() : Application{"Nanosuit"} {
+NanosuitApp::NanosuitApp() : Application{"Nanosuit", WindowContext::Config{}} {
   // camera
   common::Camera::Config config;
   common::UserControlledCamera::ControlConfig control_config;

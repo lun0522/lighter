@@ -564,10 +564,9 @@ void DynamicPerVertexBuffer::Reserve(int size) {
     VkBuffer buffer = buffer_;
     VkDeviceMemory device_memory = device_memory_;
     context_->AddReleaseExpiredResourceOp(
-        [buffer, device_memory](const SharedBasicContext& context) {
-          vkDestroyBuffer(*context->device(), buffer, *context->allocator());
-          vkFreeMemory(*context->device(), device_memory,
-                       *context->allocator());
+        [buffer, device_memory](const BasicContext& context) {
+          vkDestroyBuffer(*context.device(), buffer, *context.allocator());
+          vkFreeMemory(*context.device(), device_memory, *context.allocator());
         });
   }
   buffer_size_ = size;
@@ -606,7 +605,7 @@ UniformBuffer::UniformBuffer(SharedBasicContext context,
   // which is why we have actual data size 'chunk_data_size_' and its
   // aligned size 'chunk_memory_size_'
   VkDeviceSize alignment =
-      context_->device_limits().minUniformBufferOffsetAlignment;
+      context_->physical_device_limits().minUniformBufferOffsetAlignment;
   chunk_data_size_ = chunk_size;
   chunk_memory_size_ =
       (chunk_data_size_ + alignment - 1) / alignment * alignment;
@@ -759,7 +758,7 @@ MultisampleBuffer::MultisampleBuffer(
 PushConstant::PushConstant(const SharedBasicContext& context,
                            size_t chunk_size, int num_chunk) {
   const int max_push_constant_size =
-      context->device_limits().maxPushConstantsSize;
+      context->physical_device_limits().maxPushConstantsSize;
   if (chunk_size > max_push_constant_size) {
     FATAL(absl::StrFormat(
         "Pushing constant of size %d bytes. To be compatible with all devices, "

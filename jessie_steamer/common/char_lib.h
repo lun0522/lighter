@@ -41,6 +41,8 @@ class CharLib {
   CharLib(const CharLib&) = delete;
   CharLib& operator=(const CharLib&) = delete;
 
+  ~CharLib() = default;
+
   // Accessors.
   const absl::flat_hash_map<char, CharInfo>& char_info_map() const {
     return char_info_map_;

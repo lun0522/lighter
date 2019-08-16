@@ -68,7 +68,7 @@ class CubeApp : public Application {
 
 } /* namespace */
 
-CubeApp::CubeApp() : Application{"Cube"} {
+CubeApp::CubeApp() : Application{"Cube", WindowContext::Config{}} {
   // command buffer
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFrameInFlight);
 

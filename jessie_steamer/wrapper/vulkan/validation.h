@@ -54,7 +54,22 @@ const std::vector<const char*>& GetRequiredLayers();
 // We may determine the severity and type of messages that we care about.
 class DebugCallback {
  public:
-  DebugCallback() = default;
+  struct TriggerCondition {
+    TriggerCondition()
+        : severity{message_severity::kWarning
+                       | message_severity::kError},
+          type{message_type::kGeneral
+                   | message_type::kValidation
+                   | message_type::kPerformance} {}
+
+    VkDebugUtilsMessageSeverityFlagsEXT severity;
+    VkDebugUtilsMessageTypeFlagsEXT type;
+  };
+
+  // The constructed callback will be triggered by messages of
+  // 'message_severity' and 'message_type'.
+  DebugCallback(const BasicContext* context,
+                const TriggerCondition& trigger_condition);
 
   // This class is neither copyable nor movable.
   DebugCallback(const DebugCallback&) = delete;
@@ -62,15 +77,9 @@ class DebugCallback {
 
   ~DebugCallback();
 
-  // Initializes a callback that will be triggered by messages of
-  // 'message_severity' and 'message_type'.
-  void Init(std::shared_ptr<BasicContext> context,
-            VkDebugUtilsMessageSeverityFlagsEXT message_severity,
-            VkDebugUtilsMessageTypeFlagsEXT message_type);
-
  private:
   // Pointer to context.
-  std::shared_ptr<BasicContext> context_;
+  const BasicContext* context_;
 
   // Opaque callback object.
   VkDebugUtilsMessengerEXT callback_;

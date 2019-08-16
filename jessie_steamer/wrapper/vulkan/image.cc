@@ -299,7 +299,8 @@ MultisampleImage::MultisampleImage(
     const VkExtent2D& extent, VkFormat format,
     Mode mode, MultisampleBuffer::Type type)
     : Image{std::move(context), extent, format},
-      sample_count_{ChooseSampleCount(context_->device_limits(), mode)},
+      sample_count_{
+          ChooseSampleCount(context_->physical_device_limits(), mode)},
       buffer_{context_, type, extent_, format_, sample_count_} {
   VkImageAspectFlags image_aspect;
   switch (type) {

@@ -91,7 +91,7 @@ class PlanetApp : public Application {
 
 } /* namespace */
 
-PlanetApp::PlanetApp() : Application{"Planet"} {
+PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
   // camera
   common::Camera::Config config;
   config.position = glm::vec3{1.6f, -5.1f, -5.9f};

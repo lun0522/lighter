@@ -38,6 +38,8 @@ class ModelLoader {
     TextureInfo(TextureInfo&&) noexcept = default;
     TextureInfo& operator=(TextureInfo&&) noexcept = default;
 
+    ~TextureInfo() = default;
+
     // Path to the texture.
     std::string path;
 
@@ -52,6 +54,8 @@ class ModelLoader {
     // This class is only movable.
     MeshData(MeshData&&) noexcept = default;
     MeshData& operator=(MeshData&&) noexcept = default;
+
+    ~MeshData() = default;
 
     // Vertex data of the mesh.
     std::vector<VertexAttrib3D> vertices;
@@ -68,6 +72,8 @@ class ModelLoader {
   // This class is neither copyable nor movable.
   ModelLoader(const ModelLoader&) = delete;
   ModelLoader& operator=(const ModelLoader&) = delete;
+
+  ~ModelLoader() = default;
 
   // Accessors.
   const std::vector<MeshData>& mesh_datas() const { return mesh_datas_; }

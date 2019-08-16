@@ -131,6 +131,11 @@ Swapchain::Swapchain(
     min_image_count = min(surface_capabilities.maxImageCount, min_image_count);
   }
 
+  const auto& unique_indices = context_->GetUniqueFamilyIndices();
+  const vector<uint32_t> queue_family_indices{unique_indices.begin(),
+                                              unique_indices.end()};
+  const bool use_multi_queues = queue_family_indices.size() > 1;
+
   VkSwapchainCreateInfoKHR swapchain_info{
       VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
       /*pNext=*/nullptr,
@@ -143,9 +148,10 @@ Swapchain::Swapchain(
       /*imageArrayLayers=*/1,
       // can be different for post-processing
       /*imageUsage=*/VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-      /*imageSharingMode=*/VK_SHARING_MODE_EXCLUSIVE,
-      /*queueFamilyIndexCount=*/0,
-      /*pQueueFamilyIndices=*/nullptr,
+      /*imageSharingMode=*/
+      use_multi_queues ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
+      CONTAINER_SIZE(queue_family_indices),
+      queue_family_indices.data(),
       // may apply transformations
       /*preTransform=*/surface_capabilities.currentTransform,
       // may change alpha channel
@@ -154,21 +160,6 @@ Swapchain::Swapchain(
       /*clipped=*/VK_TRUE,  // don't care about color of pixels obscured
       /*oldSwapchain=*/VK_NULL_HANDLE,
   };
-
-  // graphics queue and presentation queue might be the same
-  const auto& queue_family_indices = context_->queues().unique_family_indices();
-  if (queue_family_indices.size() > 1) {
-    // specify which queue families will share access to images. we will draw on
-    // images in swapchain from graphics queue and submit on presentation queue.
-    // otherwise set to VK_SHARING_MODE_EXCLUSIVE
-    vector<uint32_t> indices{
-        queue_family_indices.begin(),
-        queue_family_indices.end(),
-    };
-    swapchain_info.queueFamilyIndexCount = CONTAINER_SIZE(indices);
-    swapchain_info.pQueueFamilyIndices = indices.data();
-    swapchain_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-  }
 
   ASSERT_SUCCESS(vkCreateSwapchainKHR(*context_->device(), &swapchain_info,
                                       *context_->allocator(), &swapchain_),
