@@ -8,10 +8,12 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_WINDOW_CONTEXT_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_WINDOW_CONTEXT_H
 
+#include <functional>
 #include <memory>
 #include <string>
 
 #include "absl/memory/memory.h"
+#include "absl/types/optional.h"
 #include "jessie_steamer/common/window.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
@@ -26,19 +28,14 @@ namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
-/** VkSurfaceKHR interfaces with platform-specific window systems. It is backed
- *    by the window created by GLFW, which hides platform-specific details.
- *    It is not needed for off-screen rendering.
- *
- *  Initialization (by GLFW):
- *    VkInstance
- *    GLFWwindow
- */
+// Members of this class are required for on-screen rendering.
 class WindowContext {
  public:
+  // Configurations used to initialize the window context.
+  // Swapchain images will use multisampling unless 'multisampling_mode' is set
+  // to absl::nullopt,
   struct Config {
-    int width = 800;
-    int height = 600;
+    glm::ivec2 screen_size{800, 600};
     absl::optional<MultisampleImage::Mode> multisampling_mode =
         MultisampleImage::Mode::kEfficient;
 #ifndef NDEBUG
@@ -47,15 +44,14 @@ class WindowContext {
   };
 
   WindowContext(const std::string& name, const Config& config)
-    : window_{name, {config.width, config.height}},
-      multisampling_mode_{config.multisampling_mode} {
+    : window_{name, config.screen_size} {
     const WindowSupport window_support{
-        &(*surface_),
+        &surface_,
         common::Window::GetRequiredExtensions(),
         Swapchain::GetRequiredExtensions(),
         [this](const VkInstance& instance,
                const VkAllocationCallbacks* allocator) {
-          *surface_ = window_.CreateSurface(instance, allocator);
+          surface_ = window_.CreateSurface(instance, allocator);
         },
     };
     context_ =
@@ -64,13 +60,30 @@ class WindowContext {
 #else  /* !NDEBUG */
         BasicContext::GetContext(window_support, config.debug_callback_trigger);
 #endif /* NDEBUG */
-    surface_.SetContext(context_);
-    CreateSwapchain(window_.GetScreenSize());
+    const auto multisampling_mode = config.multisampling_mode;
+    create_swapchain_ =
+        [this, multisampling_mode](const glm::ivec2& screen_size) {
+          swapchain_ = absl::make_unique<Swapchain>(
+              context_, surface_,
+              VkExtent2D{
+                  static_cast<uint32_t>(screen_size.x),
+                  static_cast<uint32_t>(screen_size.y),
+              },
+              multisampling_mode);
+        };
+    create_swapchain_(window_.GetScreenSize());
   }
 
   // This class is neither copyable nor movable.
   WindowContext(const WindowContext&) = delete;
   WindowContext& operator=(const WindowContext&) = delete;
+
+  ~WindowContext() {
+    // Explicitly destroy swapchain before surface as required by Vulkan.
+    swapchain_ = nullptr;
+    vkDestroySurfaceKHR(*context_->instance(), surface_,
+                        *context_->allocator());
+  }
 
   // Returns whether the window context needs to be recreated.
   bool ShouldRecreate() const { return window_.is_resized(); }
@@ -79,8 +92,8 @@ class WindowContext {
   // recreates expired resource. This should be called before other recreations.
   void Recreate() {
     context_->WaitIdle();
-    const auto screen_size = window_.Recreate();
-    CreateSwapchain(screen_size);
+    const glm::ivec2 screen_size = window_.Recreate();
+    create_swapchain_(screen_size);
   }
 
   // Checks events and returns whether the window should continue to show.
@@ -106,47 +119,21 @@ class WindowContext {
   }
 
  private:
-  class Surface {
-   public:
-    Surface() = default;
+  // Pointer to basic context.
+  SharedBasicContext context_;
 
-    // This class is neither copyable nor movable
-    Surface(const Surface&) = delete;
-    Surface& operator=(const Surface&) = delete;
+  // Wrapper of GLFWwindow.
+  common::Window window_;
 
-    ~Surface() {
-      vkDestroySurfaceKHR(*context_->instance(), surface_,
-                          *context_->allocator());
-    }
+  // VkSurfaceKHR interfaces with platform-specific window systems.
+  VkSurfaceKHR surface_;
 
-    void SetContext(SharedBasicContext context) {
-      context_ = std::move(context);
-    }
-
-    VkSurfaceKHR& operator*() { return surface_; }
-
-   private:
-    SharedBasicContext context_;
-    VkSurfaceKHR surface_;
-  };
+  // Wrapper of VkSwapchainKHR.
+  std::unique_ptr<Swapchain> swapchain_;
 
   // Creates a swapchain with the given 'screen_size'.
   // This must not be called before the surface is created.
-  void CreateSwapchain(const glm::ivec2& screen_size) {
-    swapchain_ = absl::make_unique<Swapchain>(
-        context_, *surface_,
-        VkExtent2D{
-            static_cast<uint32_t>(screen_size.x),
-            static_cast<uint32_t>(screen_size.y),
-        },
-        multisampling_mode_);
-  }
-
-  SharedBasicContext context_;
-  common::Window window_;
-  Surface surface_;
-  std::unique_ptr<Swapchain> swapchain_;
-  const absl::optional<MultisampleImage::Mode> multisampling_mode_;
+  std::function<void(const glm::ivec2& screen_size)> create_swapchain_;
 };
 
 } /* namespace vulkan */

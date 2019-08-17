@@ -67,7 +67,7 @@ const vector<const char*>& Window::GetRequiredExtensions() {
   return *required_extensions;
 }
 
-Window::Window(const std::string& name, glm::ivec2 screen_size) {
+Window::Window(const std::string& name, const glm::ivec2& screen_size) {
   glfwInit();
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);

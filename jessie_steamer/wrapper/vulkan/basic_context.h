@@ -44,6 +44,9 @@ struct WindowSupport {
       const VkAllocationCallbacks* allocator)>& create_surface;
 };
 
+// Members of this class are required for all graphics applications.
+// Instead of allocating on stack, the user should call
+// 'BasicContext::GetContext' to get an instance whose lifetime is self-managed.
 class BasicContext : public std::enable_shared_from_this<BasicContext> {
  public:
   // Returns a new instance of BasicContext.
@@ -52,23 +55,20 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
     return std::make_shared<BasicContext>(std::forward<Args>(args)...);
   }
 
-  // Instead of allocating BasicContext on stack, the user should prefer to call
-  // GetContext() to get a context whose lifetime is self-managed.
   // This is made public only because 'std::make_shared' needs access.
   explicit BasicContext(
       const absl::optional<WindowSupport>& window_support
-#ifdef NDEBUG
-      )
-#else  /* !NDEBUG */
-      , const DebugCallback::TriggerCondition& debug_callback_trigger)
-#endif /* NDEBUG */
+#ifndef NDEBUG
+      , const DebugCallback::TriggerCondition& debug_callback_trigger
+#endif /* !NDEBUG */
+  )
       : instance_{this, window_support},
 #ifndef NDEBUG
         debug_callback_{this, debug_callback_trigger},
 #endif /* !NDEBUG */
         physical_device_{this, window_support},
         device_{this, window_support},
-        queues_{*this, physical_device_.queue_family_indices()} {}
+        queues_{*this, queue_family_indices()} {}
 
   // This class is neither copyable nor movable.
   BasicContext(const BasicContext&) = delete;
@@ -102,38 +102,38 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   }
 
   // Accessors.
+  const HostMemoryAllocator& allocator() const { return allocator_; }
   const Instance& instance() const { return instance_; }
   const PhysicalDevice& physical_device() const { return physical_device_; }
-  const Device& device() const { return device_; }
-  const Queues& queues() const { return queues_; }
   const QueueFamilyIndices& queue_family_indices() const {
     return physical_device_.queue_family_indices();
   }
   const VkPhysicalDeviceLimits& physical_device_limits() const {
     return physical_device_.physical_device_limits();
   }
-  const HostMemoryAllocator& allocator() const { return allocator_; }
+  const Device& device() const { return device_; }
+  const Queues& queues() const { return queues_; }
 
  private:
   // Wrapper of VkAllocationCallbacks.
-  HostMemoryAllocator allocator_;
+  const HostMemoryAllocator allocator_;
 
   // Wrapper of VkInstance.
-  Instance instance_;
+  const Instance instance_;
 
 #ifndef NDEBUG
   // Wrapper of VkDebugUtilsMessengerEXT.
-  DebugCallback debug_callback_;
+  const DebugCallback debug_callback_;
 #endif /* !NDEBUG */
 
   // Wrapper of VkPhysicalDevice.
-  PhysicalDevice physical_device_;
+  const PhysicalDevice physical_device_;
 
   // Wrapper of VkDevice.
-  Device device_;
+  const Device device_;
 
   // Wrapper of VkQueue.
-  Queues queues_;
+  const Queues queues_;
 
   // Holds operations that are delayed to be executed until the graphics device
   // becomes idle.

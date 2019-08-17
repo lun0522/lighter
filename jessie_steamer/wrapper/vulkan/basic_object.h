@@ -59,7 +59,7 @@ struct QueueFamilyIndices {
 // per-application states.
 class Instance {
  public:
-  // If the window support is requested, WindowSupport::create_surface will be
+  // If the window support is requested, 'WindowSupport::create_surface' will be
   // called internally.
   Instance(const BasicContext* context,
            const absl::optional<WindowSupport>& window_support);

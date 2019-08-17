@@ -12,7 +12,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
@@ -184,7 +183,8 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
 
 } /* namespace */
 
-absl::flat_hash_set<uint32_t> QueueFamilyIndices::GetUniqueFamilyIndices() const {
+absl::flat_hash_set<uint32_t>
+QueueFamilyIndices::GetUniqueFamilyIndices() const {
   absl::flat_hash_set<uint32_t> unique_indices{graphics, transfer};
   if (present.has_value()) {
     unique_indices.emplace(present.value());

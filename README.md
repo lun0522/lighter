@@ -13,7 +13,6 @@ wrapper
 - text_util
 - util
 - vertex_input_util
-- window_context
 
 application
 - util
@@ -129,6 +128,14 @@ exposes only the files needed for on-screen rendering, so applications only need
 to depend on this target and hold one instance of WindowContext. When the window
 is resized, the basic context would not change at all, but this window context
 will handle everything else.
+
+Another decision we made was to create and destroy Vulkan objects in a more RAII
+way. The tutorial does not wrap Vulkan objects that much. Each of those objects
+is created by a function and destroyed by another, where the destruction
+functions are called in the reversed order of construction. This is where RAII
+can do a better job, since if we declare those objects as members in a class,
+they will be constructed in the declaration order and destructed in the reversed
+order by nature. BasicContext and WindowContext are good examples of it.
 
 ## 3.2 Low-level wrappers
 

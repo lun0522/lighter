@@ -50,7 +50,7 @@ class Window {
   // respond to the press.
   enum class KeyMap { kEscape, kUp, kDown, kLeft, kRight };
 
-  Window(const std::string& name, glm::ivec2 screen_size);
+  Window(const std::string& name, const glm::ivec2& screen_size);
 
   // This class is neither copyable nor movable.
   Window(const Window&) = delete;

@@ -8,7 +8,6 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_VALIDATION_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_VALIDATION_H
 
-#include <memory>
 #include <vector>
 
 #include "third_party/vulkan/vulkan.h"
@@ -51,9 +50,9 @@ const std::vector<const char*>& GetRequiredLayers();
 } /* namespace validation */
 
 // Relays debug messages from graphics drivers back to application.
-// We may determine the severity and type of messages that we care about.
 class DebugCallback {
  public:
+  // Specifies messages of which severity and type can trigger debug callbacks.
   struct TriggerCondition {
     TriggerCondition()
         : severity{message_severity::kWarning
@@ -66,8 +65,6 @@ class DebugCallback {
     VkDebugUtilsMessageTypeFlagsEXT type;
   };
 
-  // The constructed callback will be triggered by messages of
-  // 'message_severity' and 'message_type'.
   DebugCallback(const BasicContext* context,
                 const TriggerCondition& trigger_condition);
 
