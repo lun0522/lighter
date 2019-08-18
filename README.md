@@ -28,8 +28,10 @@ run on MacOS, and won't be difficult to run on Linux (just need to find suitable
 third-party library binaries). The code follows [Google C++ style guide](https://google.github.io/styleguide/cppguide.html)
 and only uses the features of C++11 (enhanced by [Abseil library](https://abseil.io)).
 
-We use the [Bazel build system](https://bazel.build), so the applications are
-run in this way from command line:
+Before running any application, shaders should be compiled by executing
+[compile_shaders.sh](https://github.com/lun0522/jessie-steamer/blob/master/compile_shaders.sh)
+(no command line arguments needed). To run applications, since we use the [Bazel build system](https://bazel.build),
+this is how we build and run from command line:
 
 `bazel build -c opt --copt=-DUSE_VULKAN //jessie_steamer/application/vulkan:cube`
 

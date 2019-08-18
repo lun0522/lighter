@@ -38,6 +38,7 @@ cc_library(
         "//third_party:glm",
         "//third_party:stb",
         "@lib-absl//absl/container:flat_hash_map",
+        "@lib-absl//absl/flags:flag",
         "@lib-absl//absl/memory",
         "@lib-absl//absl/strings",
         "@lib-absl//absl/strings:str_format",
@@ -74,6 +75,7 @@ cc_library(
     name = "util",
     hdrs = ["util.h"],
     deps = [
+        "@lib-absl//absl/flags:parse",
         "@lib-absl//absl/strings:str_format",
         "@lib-absl//absl/types:optional",
     ],

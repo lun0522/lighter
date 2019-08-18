@@ -10,7 +10,6 @@
 #include <algorithm>
 
 #include "absl/memory/memory.h"
-#include "absl/strings/str_cat.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/vertex_input_util.h"
 
@@ -28,12 +27,12 @@ using common::VertexAttrib2D;
 constexpr int kImageBindingPoint = 0;
 
 string GetFontPath(CharLoader::Font font) {
-  const string prefix = "external/resource/font/";
+  using common::file::GetResourcePath;
   switch (font) {
     case CharLoader::Font::kGeorgia:
-      return absl::StrCat(prefix, "georgia.ttf");
+      return GetResourcePath("font/georgia.ttf");
     case CharLoader::Font::kOstrich:
-      return absl::StrCat(prefix, "ostrich.ttf");
+      return GetResourcePath("font/ostrich.ttf");
   }
 }
 
@@ -143,6 +142,7 @@ std::unique_ptr<PipelineBuilder> CreatePipelineBuilder(
 std::unique_ptr<Pipeline> BuildPipeline(VkExtent2D target_extent,
                                         const VkRenderPass& render_pass,
                                         PipelineBuilder* pipeline_builder) {
+  using common::file::GetShaderPath;
   return (*pipeline_builder)
       .set_viewport({
           /*viewport=*/VkViewport{
@@ -160,9 +160,9 @@ std::unique_ptr<Pipeline> BuildPipeline(VkExtent2D target_extent,
       })
       .set_render_pass(render_pass, /*subpass_index=*/0)
       .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                   "jessie_steamer/shader/vulkan/simple_2d.vert.spv"})
+                   GetShaderPath("vulkan/simple_2d.vert.spv")})
       .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                   "jessie_steamer/shader/vulkan/simple_2d.frag.spv"})
+                   GetShaderPath("vulkan/simple_2d.frag.spv")})
       .Build();
 }
 

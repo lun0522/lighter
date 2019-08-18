@@ -7,8 +7,8 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 git_repository(
     name = "lib-absl",
     remote = "https://github.com/abseil/abseil-cpp.git",
-    commit = "fcb104594b0bb4b8ac306cb2f55ecdad40974683",
-    shallow_since = "1543960480 -0500",
+    commit = "aa844899c937bde5d2b24f276b59997e5b668bde",
+    shallow_since = "1565288385 -0400",
 )
 
 new_git_repository(

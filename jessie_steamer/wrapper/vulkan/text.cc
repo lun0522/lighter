@@ -94,6 +94,7 @@ Text::Text(SharedBasicContext context, int num_frame)
 
 void Text::Update(VkExtent2D frame_size,
                   const RenderPass& render_pass, uint32_t subpass_index) {
+  using common::file::GetShaderPath;
   pipeline_ = pipeline_builder_
       .set_viewport({
           /*viewport=*/VkViewport{
@@ -111,9 +112,9 @@ void Text::Update(VkExtent2D frame_size,
       })
       .set_render_pass(*render_pass, subpass_index)
       .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                   "jessie_steamer/shader/vulkan/simple_2d.vert.spv"})
+                   GetShaderPath("vulkan/simple_2d.vert.spv")})
       .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                   "jessie_steamer/shader/vulkan/text.frag.spv"})
+                   GetShaderPath("vulkan/text.frag.spv")})
       .Build();
 }
 

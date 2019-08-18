@@ -13,6 +13,7 @@
 #include "absl/memory/memory.h"
 #include "jessie_steamer/application/vulkan/util.h"
 #include "jessie_steamer/common/camera.h"
+#include "jessie_steamer/common/file.h"
 #include "jessie_steamer/common/time.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
@@ -33,6 +34,9 @@ namespace nanosuit {
 namespace {
 
 using namespace wrapper::vulkan;
+
+using common::file::GetResourcePath;
+using common::file::GetShaderPath;
 
 constexpr int kNumFrameInFlight = 2;
 constexpr auto kMultisamplingMode = MultisampleImage::Mode::kEfficient;
@@ -137,7 +141,7 @@ NanosuitApp::NanosuitApp() : Application{"Nanosuit", WindowContext::Config{}} {
   ModelBuilder::TextureBinding skybox_binding{
       /*binding_point=*/4, {
           SharedTexture::CubemapPath{
-              /*directory=*/"external/resource/texture/tidepool",
+              /*directory=*/GetResourcePath("texture/tidepool"),
               /*files=*/{"right.tga", "left.tga", "top.tga", "bottom.tga",
                          "back.tga", "front.tga"},
           },
@@ -162,14 +166,14 @@ NanosuitApp::NanosuitApp() : Application{"Nanosuit", WindowContext::Config{}} {
       ModelBuilder{
           context(), kNumFrameInFlight, /*is_opaque=*/true,
           ModelBuilder::MultiMeshResource{
-              "external/resource/model/nanosuit/nanosuit.obj",
-              "external/resource/model/nanosuit",
+              GetResourcePath("model/nanosuit/nanosuit.obj"),
+              GetResourcePath("model/nanosuit"),
               nanosuit_bindings},
       }
           .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                       "jessie_steamer/shader/vulkan/nanosuit.vert.spv"})
+                       GetShaderPath("vulkan/nanosuit.vert.spv")})
           .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                       "jessie_steamer/shader/vulkan/nanosuit.frag.spv"})
+                       GetShaderPath("vulkan/nanosuit.frag.spv")})
           .add_uniform_buffer({nanosuit_vert_uniform_.get(), trans_desc_info})
           .add_push_constant({VK_SHADER_STAGE_FRAGMENT_BIT,
                               {{nanosuit_frag_constant_.get(), /*offset=*/0}}})
@@ -182,14 +186,14 @@ NanosuitApp::NanosuitApp() : Application{"Nanosuit", WindowContext::Config{}} {
       ModelBuilder{
           context(), kNumFrameInFlight, /*is_opaque=*/true,
           ModelBuilder::SingleMeshResource{
-              "external/resource/model/skybox.obj",
+              GetResourcePath("model/skybox.obj"),
               /*obj_index_base=*/1,
               {{model::ResourceType::kTextureCubemap, skybox_binding}}},
       }
           .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                       "jessie_steamer/shader/vulkan/skybox.vert.spv"})
+                       GetShaderPath("vulkan/skybox.vert.spv")})
           .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                       "jessie_steamer/shader/vulkan/skybox.frag.spv"})
+                       GetShaderPath("vulkan/skybox.frag.spv")})
           .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
                               {{skybox_constant_.get(), /*offset=*/0}}})
           .Build();
@@ -292,7 +296,7 @@ void NanosuitApp::MainLoop() {
 } /* namespace application */
 } /* namespace jessie_steamer */
 
-int main(int argc, const char* argv[]) {
+int main(int argc, char* argv[]) {
   using namespace jessie_steamer::application::vulkan;
-  return AppMain<nanosuit::NanosuitApp>();
+  return AppMain<nanosuit::NanosuitApp>(argc, argv);
 }

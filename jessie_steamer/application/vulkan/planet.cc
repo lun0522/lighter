@@ -14,6 +14,7 @@
 #include "absl/memory/memory.h"
 #include "jessie_steamer/application/vulkan/util.h"
 #include "jessie_steamer/common/camera.h"
+#include "jessie_steamer/common/file.h"
 #include "jessie_steamer/common/time.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
@@ -36,6 +37,9 @@ namespace {
 using namespace wrapper::vulkan;
 
 using std::vector;
+
+using common::file::GetResourcePath;
+using common::file::GetShaderPath;
 
 constexpr int kNumFrameInFlight = 2;
 constexpr int kNumAsteroidRing = 3;
@@ -156,19 +160,19 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
   ModelBuilder::TextureBindingMap planet_bindings;
   planet_bindings[model::ResourceType::kTextureDiffuse] = {
       /*binding_point=*/2,
-      {SharedTexture::SingleTexPath{"external/resource/texture/planet.png"}},
+      {SharedTexture::SingleTexPath{GetResourcePath("texture/planet.png")}},
   };
   planet_model_ =
       ModelBuilder{
           context(), kNumFrameInFlight, /*is_opaque=*/true,
           ModelBuilder::SingleMeshResource{
-              "external/resource/model/sphere.obj",
+              GetResourcePath("model/sphere.obj"),
               /*obj_index_base=*/1, planet_bindings},
       }
           .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                       "jessie_steamer/shader/vulkan/planet.vert.spv"})
+                       GetShaderPath("vulkan/planet.vert.spv")})
           .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                       "jessie_steamer/shader/vulkan/planet.frag.spv"})
+                       GetShaderPath("vulkan/planet.frag.spv")})
           .add_uniform_buffer({light_uniform_.get(), light_desc_info})
           .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
                               {{planet_constant_.get(), /*offset=*/0}}})
@@ -193,14 +197,14 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
       ModelBuilder{
           context(), kNumFrameInFlight, /*is_opaque=*/true,
           ModelBuilder::MultiMeshResource{
-              "external/resource/model/rock/rock.obj",
-              "external/resource/model/rock",
+              GetResourcePath("model/rock/rock.obj"),
+              GetResourcePath("model/rock"),
               {{model::ResourceType::kTextureDiffuse, /*binding_point=*/2}}},
       }
           .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                       "jessie_steamer/shader/vulkan/asteroid.vert.spv"})
+                       GetShaderPath("vulkan/asteroid.vert.spv")})
           .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                       "jessie_steamer/shader/vulkan/planet.frag.spv"})
+                       GetShaderPath("vulkan/planet.frag.spv")})
           .add_instancing({per_instance_attribs,
                            static_cast<uint32_t>(sizeof(Asteroid)),
                            per_asteroid_data_.get()})
@@ -213,7 +217,7 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
   skybox_bindings[model::ResourceType::kTextureCubemap] = {
       /*binding_point=*/1, {
           SharedTexture::CubemapPath{
-              /*directory=*/"external/resource/texture/universe",
+              /*directory=*/GetResourcePath("texture/universe"),
               /*files=*/{"PositiveX.jpg", "NegativeX.jpg", "PositiveY.jpg",
                          "NegativeY.jpg", "PositiveZ.jpg", "NegativeZ.jpg"},
           },
@@ -223,13 +227,13 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
       ModelBuilder{
           context(), kNumFrameInFlight, /*is_opaque=*/true,
           ModelBuilder::SingleMeshResource{
-              "external/resource/model/skybox.obj",
+              GetResourcePath("model/skybox.obj"),
               /*obj_index_base=*/1, skybox_bindings},
       }
           .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                       "jessie_steamer/shader/vulkan/skybox.vert.spv"})
+                       GetShaderPath("vulkan/skybox.vert.spv")})
           .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                       "jessie_steamer/shader/vulkan/skybox.frag.spv"})
+                       GetShaderPath("vulkan/skybox.frag.spv")})
           .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
                               {{skybox_constant_.get(), /*offset=*/0}}})
           .Build();
@@ -365,7 +369,7 @@ void PlanetApp::MainLoop() {
 } /* namespace application */
 } /* namespace jessie_steamer */
 
-int main(int argc, const char* argv[]) {
+int main(int argc, char* argv[]) {
   using namespace jessie_steamer::application::vulkan;
-  return AppMain<planet::PlanetApp>();
+  return AppMain<planet::PlanetApp>(argc, argv);
 }

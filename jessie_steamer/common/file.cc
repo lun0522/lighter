@@ -13,12 +13,20 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_split.h"
 #include "jessie_steamer/common/util.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "third_party/stb/stb_image.h"
+
+ABSL_FLAG(std::string, resource_folder, "external/resource",
+          "Path to the resource folder");
+ABSL_FLAG(std::string, shader_folder, "jessie_steamer/shader",
+          "Path to the shader folder");
+#ifdef USE_VULKAN
+ABSL_FLAG(std::string, vulkan_folder, "external/lib-vulkan/",
+          "Path to the Vulkan SDK folder");
+#endif /* USE_VULKAN */
 
 namespace jessie_steamer {
 namespace common {

@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include "absl/flags/parse.h"
 #include "absl/strings/str_format.h"
 #include "absl/types/optional.h"
 
@@ -33,6 +34,11 @@
 namespace jessie_steamer {
 namespace common {
 namespace util {
+
+// Parses command line arguments. This should be called in main().
+inline void ParseCommandLine(int argc, char* argv[]) {
+  absl::ParseCommandLine(argc, argv);
+}
 
 // Returns the index of the first element that satisfies 'predicate'.
 // If there is no such element, returns 'absl::nullopt'.

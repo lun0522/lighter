@@ -11,10 +11,38 @@
 #include <string>
 #include <vector>
 
+#include "absl/flags/flag.h"
+#include "absl/strings/str_cat.h"
 #include "third_party/glm/glm.hpp"
+
+ABSL_DECLARE_FLAG(std::string, resource_folder);
+ABSL_DECLARE_FLAG(std::string, shader_folder);
+#ifdef USE_VULKAN
+ABSL_DECLARE_FLAG(std::string, vulkan_folder);
+#endif /* USE_VULKAN */
 
 namespace jessie_steamer {
 namespace common {
+namespace file {
+
+// Returns the full path to files in the resource folder.
+inline std::string GetResourcePath(const std::string& relative_path) {
+  return absl::StrCat(absl::GetFlag(FLAGS_resource_folder), "/", relative_path);
+}
+
+// Returns the full path to files in the shader folder.
+inline std::string GetShaderPath(const std::string& relative_path) {
+  return absl::StrCat(absl::GetFlag(FLAGS_shader_folder), "/", relative_path);
+}
+
+#ifdef USE_VULKAN
+// Returns the full path to files in the Vulkan SDK folder.
+inline std::string GetVulkanSdkPath(const std::string& relative_path) {
+  return absl::StrCat(absl::GetFlag(FLAGS_vulkan_folder), "/", relative_path);
+}
+#endif /* USE_VULKAN */
+
+} /* namespace file */
 
 // Reads raw data from file.
 struct RawData {

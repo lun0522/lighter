@@ -311,7 +311,7 @@ Device::Device(const BasicContext* context,
   VkPhysicalDeviceFeatures required_features{};
   required_features.samplerAnisotropy = VK_TRUE;
 
-  // Request support for negative-height viewport.
+  // Request support for negative-height viewport and pushing descriptors.
   vector<const char*> device_extensions{
       VK_KHR_MAINTENANCE1_EXTENSION_NAME,
       VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,

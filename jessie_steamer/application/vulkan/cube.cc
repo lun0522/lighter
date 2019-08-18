@@ -12,6 +12,7 @@
 
 #include "absl/memory/memory.h"
 #include "jessie_steamer/application/vulkan/util.h"
+#include "jessie_steamer/common/file.h"
 #include "jessie_steamer/common/time.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
@@ -33,6 +34,9 @@ namespace cube {
 namespace {
 
 using namespace wrapper::vulkan;
+
+using common::file::GetResourcePath;
+using common::file::GetShaderPath;
 
 constexpr int kNumFrameInFlight = 2;
 constexpr auto kMultisamplingMode = MultisampleImage::Mode::kEfficient;
@@ -85,17 +89,17 @@ CubeApp::CubeApp() : Application{"Cube", WindowContext::Config{}} {
   ModelBuilder::TextureBindingMap bindings{};
   bindings[model::ResourceType::kTextureDiffuse] = {
       /*binding_point=*/1,
-      {SharedTexture::SingleTexPath{"external/resource/texture/statue.jpg"}},
+      {SharedTexture::SingleTexPath{GetResourcePath("texture/statue.jpg")}},
   };
   model_ =
       ModelBuilder{
           context(), kNumFrameInFlight, /*is_opaque=*/true,
-          ModelBuilder::SingleMeshResource{"external/resource/model/cube.obj",
+          ModelBuilder::SingleMeshResource{GetResourcePath("model/cube.obj"),
               /*obj_index_base=*/1, bindings}}
           .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                       "jessie_steamer/shader/vulkan/simple_3d.vert.spv"})
+                       GetShaderPath("vulkan/simple_3d.vert.spv")})
           .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                       "jessie_steamer/shader/vulkan/simple_3d.frag.spv"})
+                       GetShaderPath("vulkan/simple_3d.frag.spv")})
           .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
                               {{push_constant_.get(), /*offset=*/0}}})
           .Build();
@@ -206,7 +210,7 @@ void CubeApp::MainLoop() {
 } /* namespace application */
 } /* namespace jessie_steamer */
 
-int main(int argc, const char* argv[]) {
+int main(int argc, char* argv[]) {
   using namespace jessie_steamer::application::vulkan;
-  return AppMain<cube::CubeApp>();
+  return AppMain<cube::CubeApp>(argc, argv);
 }

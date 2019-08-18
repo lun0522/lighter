@@ -12,19 +12,13 @@
 #include <iostream>
 #include <type_traits>
 
+#include "jessie_steamer/common/file.h"
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/window_context.h"
 
 namespace jessie_steamer {
 namespace application {
 namespace vulkan {
-
-inline void SetBuildEnvironment() {
-  setenv("VK_ICD_FILENAMES",
-         "external/lib-vulkan/etc/vulkan/icd.d/MoltenVK_icd.json", 1);
-#ifndef NDEBUG
-  setenv("VK_LAYER_PATH", "external/lib-vulkan/etc/vulkan/explicit_layer.d", 1);
-#endif /* !NDEBUG */
-}
 
 class Application {
  public:
@@ -47,11 +41,24 @@ class Application {
 };
 
 template <typename AppType>
-int AppMain() {
+int AppMain(int argc, char* argv[]) {
   static_assert(std::is_base_of<Application, AppType>::value,
                 "Not a subclass of Application");
 
-  SetBuildEnvironment();
+  // Set up the path to find Vulkan SDK.
+  common::util::ParseCommandLine(argc, argv);
+  using common::file::GetVulkanSdkPath;
+  setenv("VK_ICD_FILENAMES",
+         GetVulkanSdkPath("etc/vulkan/icd.d/MoltenVK_icd.json").c_str(),
+         /*overwrite=*/1);
+#ifndef NDEBUG
+  setenv("VK_LAYER_PATH",
+         GetVulkanSdkPath("etc/vulkan/explicit_layer.d").c_str(),
+         /*overwrite=*/1);
+#endif /* !NDEBUG */
+
+  // We don't catch exceptions in the debug mode, so that if there is anything
+  // wrong, the debugger would stay at the point it breaks.
 #ifdef NDEBUG
   try {
 #endif /* NDEBUG */
@@ -63,6 +70,7 @@ int AppMain() {
     return EXIT_FAILURE;
   }
 #endif /* NDEBUG */
+
   return EXIT_SUCCESS;
 }
 
