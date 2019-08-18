@@ -68,17 +68,19 @@ functions need access to VkInstance, VkDevice and many other Vulkan objects.
 A lot of them are shared when we render different targets, which makes them the
 "context". The original design of this project was to have a wrapper for each of
 these Vulkan objects, and use one monolithic context class to hold instances of
-all wrappers, including Instance, CommandBuffer and Pipeline, etc. That made it
-easier to follow tutorials, but problems revealed as the project got bigger:
+all wrappers, including **Instance**, **CommandBuffer** and **Pipeline**, etc.
+That made it easier to follow tutorials, but problems revealed as the project
+got bigger:
 
 1. It was convenient to pass a context to a function so that it can fetch
 everything it needs, but this made it harder to know which part of the context
 was actually used. For example, in the past when we [built a pipeline](https://github.com/lun0522/jessie-steamer/blob/1f307a02b25e5f7957b173b96f244ead6cbae53a/jessie_steamer/wrapper/vulkan/pipeline.cc#L47)
-we passed in the entire context but only touched Device, HostMemoryAllocator
-and Swapchain. Among them, Swapchain was actually used only once. It makes more
-sense to only keep those frequently used members (like Instance and Device) in
-the context, and pass others (like Swapchain) as arguments, so that we can more
-easily know what does the function do internally.
+we passed in the entire context but only touched **Device**,
+**HostMemoryAllocator** and **Swapchain**. Among them, **Swapchain** was
+actually used only once. It makes more sense to only keep those frequently used
+members (like **Instance** and **Device**) in the context, and pass others (like
+**Swapchain**) as arguments, so that we can more easily know what does the
+function do internally.
 2. It was very easy to create circular dependencies. Each wrapper class needs
 the context to initialize itself and perform other operations, and the context
 needs to hold instances of wrappers. This could be solved by using forward
@@ -88,54 +90,87 @@ since the circular dependency is prohibited in BUILD files and thus we had to
 to put all source files in one target. That means, all of them become visible
 to the user, however, we actually don't want users to use some classes directly.
 3. It made it harder to extend the program to render more complicated scenes.
-For example, it was fine to put one Swapchain and one Pipeline in the context
-if we were only going to render one cube, however, if we want to further render
-some text on the frame, the Swapchain should be shared, but we would need more
-Pipeline. Besides, when we prepare the texture for the text, we only need to
-make one render call, but when we want to display it on the screen, we need to
-make a render call every frame, hence we need different CommandBuffer in
-different classes.
-4. Some members are not necessary for off-screen rendering, such as
-Surface, Swapchain and common::Window. Besides, we should not depend on GLFW in
-the code and BUILD file. When we do on-screen rendering, if the window is
-resized, we need to recreate resources that are affected by the frame size, such
-as Swapchain and RenderPass, but most members of the context are actually not
-changed. It is possible to decouple the part that is affected by the window.
+For example, it was fine to put one **Swapchain** and one **Pipeline** in the
+context if we were only going to render one cube, however, if we want to further
+render some text on the frame, the **Swapchain** should be shared, but we would
+need more **Pipeline**s. Besides, when we prepare the texture for the text, we
+only need to make one render call, but when we want to display it on the screen,
+we need to make a render call every frame, hence we need different
+**CommandBuffer** in different classes.
+4. Some members are not necessary for off-screen rendering, such as **Surface**,
+**Swapchain** and **Window**. Besides, we should not depend on GLFW in the code
+and BUILD file. When we do on-screen rendering, if the window is resized, we
+need to recreate the resources that are affected by the frame size, such as
+**Swapchain** and **RenderPass**, but most members of the context are actually
+not changed. It is possible to decouple the part that is affected by the window.
 
 The final choice is to create a basic context with minimal number of members:
 
-- Instance
-- PhysicalDevice
-- Device
-- Queue
-- HostMemoryAllocator
-- DebugCallback (only in debug mode)
+- **HostMemoryAllocator**
+- **Instance**
+- **DebugCallback** (only in debug mode)
+- **PhysicalDevice**
+- **Device**
+- **Queues**
 
-They are truly shared throughout the entire graphics program. Since they reside
-in a different file (basic_object), we still need to use forward declarations,
-but we no longer need to do the same for other wrappers like Swapchain and
-Pipeline. When wrappers need to interact with each other, we would pass the
-original Vulkan objects as much as we can, so that wrappers don't need to depend
-on each other. For on-screen rendering, we created a window context, which holds
-a basic context and other members related to the window:
+They are truly shared throughout the entire graphics program. Since these
+members are not defined in the same file as the context, we still need to use
+forward declarations, but we no longer need to do the same for other wrappers
+like **Swapchain** and **Pipeline**. When wrappers need to interact with each
+other, we would pass the original Vulkan objects as much as we can, so that
+wrappers don't need to depend on each other. For on-screen rendering, we created
+a window context, which holds a basic context and other members related to the
+window:
 
-- common::Window
-- Surface
-- Swapchain
+- **Window**
+- **Surface**
+- **Swapchain**
 
 We also created a Bazel target `//jessie_steamer/wrapper/vulkan:on_screen` which
 exposes only the files needed for on-screen rendering, so applications only need
-to depend on this target and hold one instance of WindowContext. When the window
-is resized, the basic context would not change at all, but this window context
-will handle everything else.
+to depend on this target and hold one instance of **WindowContext**.
 
 Another decision we made was to create and destroy Vulkan objects in a more RAII
 way. The tutorial does not wrap Vulkan objects that much. Each of those objects
 is created by a function and destroyed by another, where the destruction
-functions are called in the reversed order of construction. This is where RAII
-can do a better job, since if we declare those objects as members in a class,
-they will be constructed in the declaration order and destructed in the reversed
-order by nature. BasicContext and WindowContext are good examples of it.
+functions are called in the reversed order of construction. However, we found
+that some of these orders are not necessary. For example, render pass and
+pipeline are independent, and they can be created/destroyed in arbitrary order.
+Hence, we extracted objects that should be dealt with carefully in RAII
+and put them in **BasicContext** and **WindowContext**, where we rely on the
+declaration order (which also determines destruction order in nature) to make
+sure they are created/destroyed properly. Other wrapper objects that are not in
+the contexts can be created/destroyed in arbitrary order, so the user need not
+worry about it at all.
+
+We need to pay extra attention to the swapcahin recreation, which happens if the
+window is resized or moved to another monitor. Some objects will be affected,
+such as **Swapchain** (since swapchain image size changes) and **Pipeline**
+(since viewport changes). One way to solve this is to follow the tutorial and
+have methods like `Create()` and `Cleanup()` in those wrappers, so that we can
+destroy expired resources and recreate them. However, the user of them would
+need to worry about when and in what order to call these methods. If an
+exception is thrown between calling `Cleanup()` and `Create()`, or if the user
+calls `Cleanup()` and forgets to call `Create()`, the object will be left in an
+uninitialized state, and the destructor of it would cause more trouble since it
+tries to destroy uninitialized Vulkan objects, unless we make it more
+complicated by adding an extra boolean to track whether it is initialized. To
+make life easier, we decided to make each wrapper have **at most** one method
+that need to be called during the swapchain recreation:
+
+- Nothing in **BasicContext** will change.
+- **Swapchain** actually has no states that should persist, so we simply destroy
+the old instance and create a new one. The user would not need to directly
+manage instances of **Swapchain**, since **WindowContext** takes care of it. The
+user only need to call `WindowContext::Recreate()`.
+- **PipelineBuilder** stores the information that may persist for a pipeline. We
+just need to update a part of the information and rebuild the pipeline. Since
+**Pipeline** is usually managed by higher level wrappers (**Model** and
+**Text**), the user only need to call `Model::Update()` and `Text::Update()`.
+- For now, the user need to manage **RenderPass** and **DepthStencilImage**
+directly, hence the user need to update and rebuild **RenderPass** with
+**RenderPassBuilder**, and create a new **DepthStencilImage** with the updated
+window size. We might find a better way to wrap them.
 
 ## 3.2 Low-level wrappers
 
