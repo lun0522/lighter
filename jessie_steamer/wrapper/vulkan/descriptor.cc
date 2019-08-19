@@ -72,7 +72,6 @@ VkDescriptorSetLayout CreateDescriptorSetLayout(
     }
   }
 
-
   VkDescriptorSetLayoutCreateInfo layout_info{
       VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -229,7 +228,7 @@ void DynamicDescriptor::PushDescriptorSets(
     const VkPipelineLayout& pipeline_layout,
     const vector<VkWriteDescriptorSet>& write_descriptor_sets) const {
   static const auto vkCmdPushDescriptorSetKHR =
-      LoadDeviceFunction<PFN_vkCmdPushDescriptorSetKHR>(
+      util::LoadDeviceFunction<PFN_vkCmdPushDescriptorSetKHR>(
           *context_->device(), "vkCmdPushDescriptorSetKHR");
   vkCmdPushDescriptorSetKHR(
       command_buffer, /*pipelineBindPoint=*/VK_PIPELINE_BIND_POINT_GRAPHICS,

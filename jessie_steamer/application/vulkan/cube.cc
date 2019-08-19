@@ -158,7 +158,7 @@ void CubeApp::UpdateData(int frame, float frame_aspect) {
                                glm::vec3{0.0f, 0.0f, 1.0f});
   glm::mat4 proj = glm::perspective(glm::radians(45.0f),
                                     frame_aspect, 0.1f, 100.0f);
-  *push_constant_->data<Transformation>(frame) = {proj * view * model};
+  *push_constant_->HostData<Transformation>(frame) = {proj * view * model};
 }
 
 void CubeApp::MainLoop() {

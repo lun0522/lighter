@@ -59,7 +59,7 @@ DebugCallback::DebugCallback(const BasicContext* context,
       /*pUserData=*/nullptr,
   };
   const auto vkCreateDebugUtilsMessengerEXT =
-      LoadInstanceFunction<PFN_vkCreateDebugUtilsMessengerEXT>(
+      util::LoadInstanceFunction<PFN_vkCreateDebugUtilsMessengerEXT>(
           *context_->instance(), "vkCreateDebugUtilsMessengerEXT");
   vkCreateDebugUtilsMessengerEXT(*context_->instance(), &create_info,
                                  *context_->allocator(), &callback_);
@@ -67,7 +67,7 @@ DebugCallback::DebugCallback(const BasicContext* context,
 
 DebugCallback::~DebugCallback() {
   const auto vkDestroyDebugUtilsMessengerEXT =
-      LoadInstanceFunction<PFN_vkDestroyDebugUtilsMessengerEXT>(
+      util::LoadInstanceFunction<PFN_vkDestroyDebugUtilsMessengerEXT>(
           *context_->instance(), "vkDestroyDebugUtilsMessengerEXT");
   vkDestroyDebugUtilsMessengerEXT(*context_->instance(), callback_,
                                   *context_->allocator());

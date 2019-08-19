@@ -20,7 +20,7 @@ namespace {
 using std::vector;
 
 using common::VertexAttrib3D;
-using VertexInfo = PerVertexBuffer::InfoNoReuse;
+using VertexInfo = PerVertexBuffer::NoShareIndicesDataInfo;
 
 std::unique_ptr<SamplableImage> CreateTexture(
     const SharedBasicContext& context,
@@ -117,7 +117,10 @@ ModelBuilder::ModelBuilder(SharedBasicContext context,
 void ModelBuilder::LoadSingleMesh(const SingleMeshResource& resource) {
   // load vertices and indices
   const common::ObjFile file{resource.obj_path, resource.obj_index_base};
-  const VertexInfo::PerMeshInfo mesh_info{{file.vertices}, {file.indices}};
+  const VertexInfo::PerMeshInfo mesh_info{
+      PerVertexBuffer::DataInfo{file.vertices},
+      PerVertexBuffer::DataInfo{file.indices},
+  };
   vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
       context_, VertexInfo{/*per_mesh_infos=*/{mesh_info}});
 
@@ -141,8 +144,8 @@ void ModelBuilder::LoadMultiMesh(const MultiMeshResource& resource) {
   for (const auto &mesh_data : loader.mesh_datas()) {
     vertex_info.per_mesh_infos.emplace_back(
         VertexInfo::PerMeshInfo{
-            /*vertices=*/{mesh_data.vertices},
-            /*indices=*/{mesh_data.indices},
+            PerVertexBuffer::DataInfo{mesh_data.vertices},
+            PerVertexBuffer::DataInfo{mesh_data.indices},
         }
     );
   }
@@ -227,7 +230,7 @@ ModelBuilder::CreateDescriptors() {
           absl::make_unique<StaticDescriptor>(context_, descriptor_infos));
       for (const auto& info : uniform_infos_) {
         descriptors[frame].back()->UpdateBufferInfos(
-            info.second, {info.first->descriptor_info(frame)});
+            info.second, {info.first->GetDescriptorInfo(frame)});
       }
       descriptors[frame].back()->UpdateImageInfos(tex_desc_type, image_infos);
     }

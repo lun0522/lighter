@@ -24,8 +24,6 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-namespace util = common::util;
-
 using std::string;
 using std::vector;
 
@@ -35,7 +33,7 @@ void CheckInstanceExtensionSupport(const vector<string>& required) {
   std::cout << "Checking instance extension support..."
             << std::endl << std::endl;
 
-  const auto properties{QueryAttribute<VkExtensionProperties>(
+  const auto properties{util::QueryAttribute<VkExtensionProperties>(
       [](uint32_t* count, VkExtensionProperties* properties) {
         return vkEnumerateInstanceExtensionProperties(
             nullptr, count, properties);
@@ -44,7 +42,7 @@ void CheckInstanceExtensionSupport(const vector<string>& required) {
   const auto get_name = [](const VkExtensionProperties& property) {
     return property.extensionName;
   };
-  const auto unsupported = FindUnsupported<VkExtensionProperties>(
+  const auto unsupported = util::FindUnsupported<VkExtensionProperties>(
       required, properties, get_name);
 
   if (unsupported.has_value()) {
@@ -58,7 +56,7 @@ void CheckInstanceExtensionSupport(const vector<string>& required) {
 void CheckValidationLayerSupport(const vector<string>& required) {
   std::cout << "Checking validation layer support..." << std::endl << std::endl;
 
-  const auto properties{QueryAttribute<VkLayerProperties>(
+  const auto properties{util::QueryAttribute<VkLayerProperties>(
       [](uint32_t* count, VkLayerProperties* properties) {
         return vkEnumerateInstanceLayerProperties(count, properties);
       }
@@ -66,7 +64,7 @@ void CheckValidationLayerSupport(const vector<string>& required) {
   const auto get_name = [](const VkLayerProperties& property) {
     return property.layerName;
   };
-  const auto unsupported = FindUnsupported<VkLayerProperties>(
+  const auto unsupported = util::FindUnsupported<VkLayerProperties>(
       required, properties, get_name);
 
   if (unsupported.has_value()) {
@@ -86,7 +84,7 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
       window_support.swapchain_extensions.begin(),
       window_support.swapchain_extensions.end(),
   };
-  const auto extensions{QueryAttribute<VkExtensionProperties>(
+  const auto extensions{util::QueryAttribute<VkExtensionProperties>(
       [&physical_device](uint32_t* count, VkExtensionProperties* properties) {
         return vkEnumerateDeviceExtensionProperties(
             physical_device, nullptr, count, properties);
@@ -95,7 +93,7 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
   const auto get_name = [](const VkExtensionProperties& property) {
     return property.extensionName;
   };
-  const auto unsupported = FindUnsupported<VkExtensionProperties>(
+  const auto unsupported = util::FindUnsupported<VkExtensionProperties>(
       required, extensions, get_name);
 
   if (unsupported.has_value()) {
@@ -139,7 +137,7 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
 
   // Find queue family that holds graphics queue.
   QueueFamilyIndices candidate{};
-  const auto families{QueryAttribute<VkQueueFamilyProperties>(
+  const auto families{util::QueryAttribute<VkQueueFamilyProperties>(
       [&physical_device](uint32_t* count, VkQueueFamilyProperties* properties) {
         return vkGetPhysicalDeviceQueueFamilyProperties(
             physical_device, count, properties);
@@ -149,7 +147,7 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
     return family.queueCount && (family.queueFlags & VK_QUEUE_GRAPHICS_BIT);
   };
   const auto graphics_queue_index =
-      util::FindIndexOfFirst<VkQueueFamilyProperties>(
+      common::util::FindIndexOfFirst<VkQueueFamilyProperties>(
           families, has_graphics_support);
   if (graphics_queue_index == absl::nullopt) {
     return absl::nullopt;
@@ -169,7 +167,7 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
       return support;
     };
     const auto present_queue_index =
-        util::FindIndexOfFirst<VkQueueFamilyProperties>(
+        common::util::FindIndexOfFirst<VkQueueFamilyProperties>(
             families, has_present_support);
     if (present_queue_index == absl::nullopt) {
       return absl::nullopt;
@@ -273,7 +271,7 @@ PhysicalDevice::PhysicalDevice(
     const absl::optional<WindowSupport>& window_support)
     : context_{context} {
   // Find all physical devices.
-  const auto physical_devices{QueryAttribute<VkPhysicalDevice>(
+  const auto physical_devices{util::QueryAttribute<VkPhysicalDevice>(
       [this](uint32_t* count, VkPhysicalDevice* physical_device) {
         return vkEnumeratePhysicalDevices(
             *context_->instance(), count, physical_device);

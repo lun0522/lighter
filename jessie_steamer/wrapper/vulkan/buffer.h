@@ -18,43 +18,20 @@ namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
-/** VkBuffer represents linear arrays of data and configures usage of the data.
- *    Data can be transferred between buffers with the help of transfer queues.
- *    For buffers that contain large amount of data and do not change very
- *    often, we will create a staging buffer (which is visible to both host and
- *    device, and thus is not the most efficient for device) and a final buffer
- *    (which is only visible to device, and thus is optimal for device access).
- *    The staging buffer will only be used to transfer data to the final buffer,
- *    and then it will be destroyed.
- *
- *  Initialization:
- *    VkDevice
- *    Data size
- *    Buffer usage (vertex/index buffer, src/dst of transfer)
- *    Shared by which device queues
- *
- *------------------------------------------------------------------------------
- *
- *  VkDeviceMemory is a handle to the actual data stored in device memory.
- *    When we transfer data from host to device, we interact with
- *    VkPhysicalDevice rather than VkBuffer.
- *
- *  Initialization:
- *    Data size (can be different from the size we allocate for the buffer
- *      because of alignments)
- *    Memory type (visibility to host and device)
- *    VkBuffer that will be bound with it
- *    VkDevice
- *    VkPhysicalDevice
- */
+// This is the base class of all buffer classes. The user should use it through
+// derived classes. Since all buffers need VkDeviceMemory, which is the handle
+// to the data stored in the device memory, it will be held and destroyed by
+// this base class, and initialized by derived classes.
 class Buffer {
  public:
+  // Information we need to copy one chunk of memory.
   struct CopyInfo {
     const void* data;
     VkDeviceSize size;
     VkDeviceSize offset;
   };
 
+  // Information we need to copy multiple chunks of memory.
   struct CopyInfos {
     VkDeviceSize total_size;
     std::vector<CopyInfo> copy_infos;
@@ -71,10 +48,17 @@ class Buffer {
  protected:
   explicit Buffer(SharedBasicContext context) : context_{std::move(context)} {}
 
+  // Pointer to context.
   SharedBasicContext context_;
+
+  // Opaque device memory object.
   VkDeviceMemory device_memory_;
 };
 
+// This is the base class of the buffers that are used to store plain data.
+// The user should use it through derived classes. Since all buffers of this
+// kind need VkBuffer, which configures the usage of the data, it will be held
+// and destroyed by this base class, and initialized by derived classes.
 class DataBuffer : public Buffer {
  public:
   // This class is neither copyable nor movable.
@@ -89,19 +73,25 @@ class DataBuffer : public Buffer {
   // Inherits constructor.
   using Buffer::Buffer;
 
+  // Opaque buffer object.
   VkBuffer buffer_;
 };
 
+// This is the base class of vertex buffers, and provides shared utility
+// functions. The user should use it through derived classes.
 class VertexBuffer : public DataBuffer {
  public:
   // This class is neither copyable nor movable.
   VertexBuffer(const VertexBuffer&) = delete;
   VertexBuffer& operator=(const VertexBuffer&) = delete;
 
+  ~VertexBuffer() override = default;
+
  protected:
   // Inherits constructor.
   using DataBuffer::DataBuffer;
 
+  // Initializes 'device_memory_' and 'buffer_'.
   // For more efficient memory usage, vertices and indices data are put in the
   // same buffer, hence only total size is needed.
   // A dynamic vertex buffer will be visible to host, which can be used for
@@ -110,32 +100,42 @@ class VertexBuffer : public DataBuffer {
   void CreateBufferAndMemory(VkDeviceSize total_size, bool is_dynamic);
 };
 
+// This is the base class of buffers storing per-vertex data. The user should
+// use it through derived classes.
 class PerVertexBuffer : public VertexBuffer {
  public:
+  // Used to Interpret the data stored in containers.
   struct DataInfo {
-    // Assuming data is used for one mesh.
+    // Assuming the data in 'container' is used for multiple meshes.
     template <typename Container>
-    DataInfo(const Container& container)
+    DataInfo(const Container& container, int num_unit_per_mesh)
         : data{container.data()},
-          size_per_unit{sizeof(container[0])},
-          unit_count{static_cast<int>(container.size())} {}
+          num_unit_per_mesh{num_unit_per_mesh},
+          size_per_mesh{sizeof(container[0]) * num_unit_per_mesh} {}
 
-    // Assuming data is used for multiple meshes, where 'unit_count' of units
-    // used for each mesh.
+    // Assuming all the data in 'container' is used for one mesh.
     template <typename Container>
-    DataInfo(const Container& container, int unit_count)
-        : data{container.data()},
-          size_per_unit{sizeof(container[0])},
-          unit_count{unit_count} {}
-
-    VkDeviceSize GetTotalSize() const { return size_per_unit * unit_count; }
+    explicit DataInfo(const Container& container)
+        : DataInfo{container,
+                   /*num_unit_per_mesh=*/static_cast<int>(container.size())} {}
 
     const void* data;
-    int size_per_unit;
-    int unit_count;
+    int num_unit_per_mesh;
+    size_t size_per_mesh;
   };
 
-  struct InfoNoReuse {
+  // Holds data info for multiple meshes that share indices.
+  // Each mesh has the same number of vertices.
+  struct ShareIndicesDataInfo {
+    int num_mesh;
+    DataInfo per_mesh_vertices;
+    DataInfo shared_indices;
+  };
+
+  // Holds data info for multiple meshes that do not share indices.
+  // Each mesh may have different number of vertices and indices.
+  struct NoShareIndicesDataInfo {
+    // Holds data info for each mesh.
     struct PerMeshInfo {
       DataInfo vertices;
       DataInfo indices;
@@ -143,18 +143,14 @@ class PerVertexBuffer : public VertexBuffer {
     std::vector<PerMeshInfo> per_mesh_infos;
   };
 
-  struct InfoReuse {
-    int num_mesh;
-    DataInfo per_mesh_vertices;
-    DataInfo shared_indices;
-  };
-
-  using Info = absl::variant<InfoNoReuse, InfoReuse>;
+  using BufferDataInfo = absl::variant<ShareIndicesDataInfo,
+                                       NoShareIndicesDataInfo>;
 
   // This class is neither copyable nor movable.
   PerVertexBuffer(const PerVertexBuffer&) = delete;
   PerVertexBuffer& operator=(const PerVertexBuffer&) = delete;
 
+  // Renders one mesh with 'mesh_index' for 'instance_count' times.
   void Draw(const VkCommandBuffer& command_buffer,
             int mesh_index, uint32_t instance_count) const;
 
@@ -162,31 +158,51 @@ class PerVertexBuffer : public VertexBuffer {
   // Inherits constructor.
   using VertexBuffer::VertexBuffer;
 
-  struct MeshData {
-    VkDeviceSize vertices_offset;
-    VkDeviceSize indices_offset;
+  // Holds the data size offset within the vertex buffer and number of indices
+  // in the mesh.
+  struct MeshDataInfo {
     uint32_t indices_count;
+    VkDeviceSize indices_offset;
+    VkDeviceSize vertices_offset;
   };
 
-  CopyInfos CreateCopyInfos(const Info& info);
-  CopyInfos CreateCopyInfos(const InfoNoReuse& info_no_reuse);
-  CopyInfos CreateCopyInfos(const InfoReuse& info_reuse);
+  // These functions populate 'mesh_data_infos_' and return instances of
+  // 'CopyInfos' that can be used for copying data from the host to device.
+  // Previously content in 'mesh_data_infos_' will be cleared.
+  CopyInfos CreateCopyInfos(const BufferDataInfo& info);
+  CopyInfos CreateCopyInfos(const ShareIndicesDataInfo& info_no_reuse);
+  CopyInfos CreateCopyInfos(const NoShareIndicesDataInfo& info_reuse);
 
-  std::vector<MeshData> mesh_datas_;
+  // Holds data info for all meshes stored in the vertex buffer.
+  std::vector<MeshDataInfo> mesh_data_infos_;
 };
 
+// This class creates a vertex buffer that stores static data, which will be
+// transferred to the device via a staging buffer.
 class StaticPerVertexBuffer : public PerVertexBuffer {
  public:
-  StaticPerVertexBuffer(SharedBasicContext context, const Info& info);
+  StaticPerVertexBuffer(SharedBasicContext context, const BufferDataInfo& info);
 
   // This class is neither copyable nor movable.
   StaticPerVertexBuffer(const StaticPerVertexBuffer&) = delete;
   StaticPerVertexBuffer& operator=(const StaticPerVertexBuffer&) = delete;
 };
 
+// This class creates a vertex buffer that stores dynamic data, and is able to
+// re-allocate a larger buffer internally if necessary. This is useful when
+// we want to render the text whose length may change.
+// If possible, the user should compute the maximum required space of this
+// buffer, and pass it as 'initial_size' to the constructor, so that we can
+// pre-allocate enough space and always reuse the same chunk of device memory.
+// Since the data is dynamic, this buffer will be visible to the host, and we
+// don't use the staging buffer.
 class DynamicPerVertexBuffer : public PerVertexBuffer {
  public:
-  DynamicPerVertexBuffer(SharedBasicContext context, int initial_size);
+  // 'initial_size' should be greater than 0.
+  DynamicPerVertexBuffer(SharedBasicContext context, int initial_size)
+      : PerVertexBuffer(std::move(context)) {
+    Reserve(initial_size);
+  }
 
   // This class is neither copyable nor movable.
   DynamicPerVertexBuffer(const DynamicPerVertexBuffer&) = delete;
@@ -195,16 +211,20 @@ class DynamicPerVertexBuffer : public PerVertexBuffer {
   // This buffer can be re-allocated multiple times. If a larger memory is
   // required, the buffer allocated previously will be destructed, and a new one
   // will be allocated. Otherwise, we will reuse the old buffer.
-  void Allocate(const Info& info);
+  void Allocate(const BufferDataInfo& info);
 
  private:
   // Reserves space of the given 'size'. If 'size' is less than the current
   // 'buffer_size_', this will be no-op.
   void Reserve(int size);
 
+  // Tracks the current size of buffer. This is initialized to be 0 so that we
+  // will not try to deallocate an uninitialized buffer in 'Reserve()'.
   VkDeviceSize buffer_size_ = 0;
 };
 
+// Holds vertex data of all instances.
+// Data will be copied to device via a staging buffer.
 class PerInstanceBuffer : public VertexBuffer {
  public:
   PerInstanceBuffer(SharedBasicContext context,
@@ -214,14 +234,22 @@ class PerInstanceBuffer : public VertexBuffer {
   PerInstanceBuffer(const PerInstanceBuffer&) = delete;
   PerInstanceBuffer& operator=(const PerInstanceBuffer&) = delete;
 
+  // Binds vertex data to the given 'binding_point'.
   void Bind(const VkCommandBuffer& command_buffer,
             uint32_t binding_point) const;
 };
 
+// Holds uniform buffer data on both the host and device. To make it more
+// flexible, the user may allocate several chunks of memory in this buffer.
+// For rendering a single frame (for example, when we render single characters
+// onto the text texture), these chunks may store data for different meshes.
+// For rendering multiple frames (which is more general), all chunks can be used
+// for one mesh, and each chunk used for one frame.
+// The user should call 'data()' to update the data on the host, and then call
+// 'Flush()' to send it to the device.
 class UniformBuffer : public DataBuffer {
  public:
-  UniformBuffer(SharedBasicContext context,
-                size_t chunk_size, int num_chunk);
+  UniformBuffer(SharedBasicContext context, size_t chunk_size, int num_chunk);
 
   // This class is neither copyable nor movable.
   UniformBuffer(const UniformBuffer&) = delete;
@@ -229,20 +257,36 @@ class UniformBuffer : public DataBuffer {
 
   ~UniformBuffer() override { delete data_; }
 
+  // Flushes the data from host to device.
   void Flush(int chunk_index) const;
 
+  // Returns the description of the data chunk at 'chunk_index'.
+  VkDescriptorBufferInfo GetDescriptorInfo(int chunk_index) const;
+
+  // Returns a pointer to the data on the host, casted to 'DataType'.
   template <typename DataType>
-  DataType* data(int chunk_index) const {
+  DataType* HostData(int chunk_index) const {
     return reinterpret_cast<DataType*>(data_ + chunk_data_size_ * chunk_index);
   }
 
-  VkDescriptorBufferInfo descriptor_info(int chunk_index) const;
-
  private:
+  // Pointer to data on the host.
   char* data_;
-  size_t chunk_memory_size_, chunk_data_size_;
+
+  // Size of each chunk of data on the host.
+  size_t chunk_data_size_;
+
+  // Since we have to align the memory offset with
+  // 'minUniformBufferOffsetAlignment' on the device, this stores the aligned
+  // value of 'chunk_data_size_'.
+  size_t chunk_memory_size_;
 };
 
+// This is the base class of buffers storing images. The user should use it
+// through derived classes. Since all buffers of this kind need VkImage,
+// which configures how do we use the device memory to store multidimensional
+// data, it will be held and destroyed by this base class, and initialized by
+// derived classes.
 class ImageBuffer : public Buffer {
  public:
   // This class is neither copyable nor movable.
@@ -253,21 +297,27 @@ class ImageBuffer : public Buffer {
     vkDestroyImage(*context_->device(), image_, *context_->allocator());
   }
 
+  // Accessors.
   const VkImage& image() const { return image_; }
 
  protected:
   // Inherits constructor.
   using Buffer::Buffer;
 
+  // Opaque image object.
   VkImage image_;
 };
 
+// This class copies an image on the host to device via the staging buffer,
+// and generates mipmaps if requested.
 class TextureBuffer : public ImageBuffer {
  public:
+  // Description of the image data. The size of 'datas' can only be either 1
+  // or 6 (for cubemaps), otherwise, the constructor will throw an exception.
   struct Info{
-    VkExtent2D extent_2d() const { return {width, height}; }
-    VkExtent3D extent_3d() const { return {width, height, /*depth=*/1}; }
-    VkDeviceSize data_size() const {
+    VkExtent2D GetExtent2D() const { return {width, height}; }
+    VkExtent3D GetExtent3D() const { return {width, height, /*depth=*/1}; }
+    VkDeviceSize GetDataSize() const {
       return datas.size() * width * height * channel;
     }
 
@@ -285,32 +335,40 @@ class TextureBuffer : public ImageBuffer {
   TextureBuffer(const TextureBuffer&) = delete;
   TextureBuffer& operator=(const TextureBuffer&) = delete;
 
+  // Accessors.
   uint32_t mip_levels() const { return mip_levels_; }
 
  private:
+  // Level of mipmaps.
   uint32_t mip_levels_;
 };
 
+// This class creates an image buffer that can be used as off-screen rendering
+// target. No data transfer is required at construction.
 class OffscreenBuffer : public ImageBuffer {
  public:
   OffscreenBuffer(SharedBasicContext context,
-                  VkFormat format, VkExtent2D extent);
+                  const VkExtent2D& extent, VkFormat format);
 
   // This class is neither copyable nor movable.
   OffscreenBuffer(const OffscreenBuffer&) = delete;
   OffscreenBuffer& operator=(const OffscreenBuffer&) = delete;
 };
 
+// This class creates an image buffer that can be used as depth stencil image
+// buffer. No data transfer is required at construction.
 class DepthStencilBuffer : public ImageBuffer {
  public:
   DepthStencilBuffer(SharedBasicContext context,
-                     VkExtent2D extent, VkFormat format);
+                     const VkExtent2D& extent, VkFormat format);
 
   // This class is neither copyable nor movable.
   DepthStencilBuffer(const DepthStencilBuffer&) = delete;
   DepthStencilBuffer& operator=(const DepthStencilBuffer&) = delete;
 };
 
+// This class creates an image buffer for multisampling. No data transfer is
+// required at construction.
 class MultisampleBuffer : public ImageBuffer {
  public:
   enum class Type { kColor, kDepthStencil };
@@ -324,10 +382,17 @@ class MultisampleBuffer : public ImageBuffer {
   MultisampleBuffer& operator=(const MultisampleBuffer&) = delete;
 };
 
+// Holds a small amount of data that can be modified per-frame efficiently.
+// To make it flexible, the user may use one chunk of memory for each frame,
+// just like the uniform buffer. What is different is that this data does not
+// need alignment, and the total size is very limited. According to Vulkan spec,
+// to make it compatible with all devices, we only allow the user to push
+// at most 128 bytes per-frame.
 class PushConstant {
  public:
+  // 'size_per_frame' must be less than 128.
   PushConstant(const SharedBasicContext& context,
-               size_t chunk_size, int num_chunk);
+               size_t size_per_frame, int num_frame);
 
   // This class is neither copyable nor movable.
   PushConstant(const PushConstant&) = delete;
@@ -335,16 +400,21 @@ class PushConstant {
 
   ~PushConstant() { delete[] data_; }
 
-  uint32_t size() const { return size_; }
-
+  // Returns a pointer to the data on the host, casted to 'DataType'.
   template <typename DataType>
-  DataType* data(int chunk_index) const {
-    return reinterpret_cast<DataType*>(data_ + size_ * chunk_index);
+  DataType* HostData(int chunk_index) const {
+    return reinterpret_cast<DataType*>(data_ + size_per_frame_ * chunk_index);
   }
 
+  // Accessors.
+  uint32_t size_per_frame() const { return size_per_frame_; }
+
  private:
-  uint32_t size_;
+  // Pointer to data on the host.
   char* data_;
+
+  // Size of each chunk of data on the host.
+  uint32_t size_per_frame_;
 };
 
 } /* namespace vulkan */

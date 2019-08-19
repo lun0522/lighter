@@ -30,19 +30,7 @@
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
-
-constexpr uint32_t nullflag = 0;
-
-constexpr uint32_t kPerVertexBindingPoint = 0;
-constexpr uint32_t kPerInstanceBindingPointBase = 1;
-
-constexpr int kCubemapImageCount = 6;
-
-constexpr uint32_t kSingleMipLevel = 1;
-constexpr uint32_t kSingleImageLayer = 1;
-constexpr VkSampleCountFlagBits kSingleSample = VK_SAMPLE_COUNT_1_BIT;
-
-constexpr VkAccessFlags kNullAccessFlag = 0;
+namespace util {
 
 template<typename FuncType>
 FuncType LoadInstanceFunction(const VkInstance& instance,
@@ -110,6 +98,24 @@ absl::optional<std::string> FindUnsupported(
 inline float GetWidthHeightRatio(VkExtent2D extent) {
   return static_cast<float>(extent.width) / extent.height;
 }
+
+} /* namespace util */
+
+constexpr uint32_t nullflag = 0;
+
+constexpr uint32_t kPerVertexBindingPoint = 0;
+constexpr uint32_t kPerInstanceBindingPointBase = 1;
+
+constexpr int kCubemapImageCount = 6;
+
+constexpr uint32_t kSingleMipLevel = 1;
+constexpr uint32_t kSingleImageLayer = 1;
+constexpr VkSampleCountFlagBits kSingleSample = VK_SAMPLE_COUNT_1_BIT;
+
+constexpr VkAccessFlags kNullAccessFlag = 0;
+
+// https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap36.html#limits-minmax
+constexpr int kMaxPushConstantSize = 128;
 
 } /* namespace vulkan */
 } /* namespace wrapper */

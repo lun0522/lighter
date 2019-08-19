@@ -40,9 +40,9 @@ using TexPerMesh = std::array<std::vector<std::unique_ptr<SamplableImage>>,
 // For pushing constants.
 struct PushConstantInfo {
   struct Info {
-    uint32_t size() const { return push_constant->size(); }
+    uint32_t size() const { return push_constant->size_per_frame(); }
     const void* data(int frame) const {
-      return push_constant->data<void>(frame);
+      return push_constant->HostData<void>(frame);
     }
 
     const PushConstant* push_constant;

@@ -317,7 +317,8 @@ void PlanetApp::UpdateData(int frame) {
 
   glm::vec3 light_dir{glm::sin(elapsed_time * 0.6f), -0.3f,
                       glm::cos(elapsed_time * 0.6f)};
-  *light_uniform_->data<Light>(frame) = {glm::vec4{light_dir, elapsed_time}};
+  *light_uniform_->HostData<Light>(frame) =
+      {glm::vec4{light_dir, elapsed_time}};
   light_uniform_->Flush(frame);
 
   glm::mat4 model{1.0f};
@@ -325,8 +326,8 @@ void PlanetApp::UpdateData(int frame) {
                       glm::vec3{0.0f, 1.0f, 0.0f});
   glm::mat4 view = camera_->view();
   glm::mat4 proj = camera_->projection();
-  *planet_constant_->data<PlanetTrans>(frame) = {model, proj * view};
-  *skybox_constant_->data<SkyboxTrans>(frame) = {proj, view};
+  *planet_constant_->HostData<PlanetTrans>(frame) = {model, proj * view};
+  *skybox_constant_->HostData<SkyboxTrans>(frame) = {proj, view};
 }
 
 void PlanetApp::MainLoop() {

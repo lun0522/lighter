@@ -17,8 +17,6 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-namespace util = common::util;
-
 using std::vector;
 
 using ColorOps = RenderPassBuilder::Attachment::ColorOps;
@@ -281,10 +279,10 @@ RenderPassBuilder& RenderPassBuilder::set_num_framebuffer(int count) {
 
 RenderPassBuilder& RenderPassBuilder::set_attachment(
     int index, const Attachment& attachment) {
-  util::SetElementWithResizing(CreateClearColor(attachment),
-                               index, &clear_values_);
-  util::SetElementWithResizing(CreateAttachmentDescription(attachment),
-                               index, &attachment_descriptions_);
+  common::util::SetElementWithResizing(CreateClearColor(attachment),
+                                       index, &clear_values_);
+  common::util::SetElementWithResizing(CreateAttachmentDescription(attachment),
+                                       index, &attachment_descriptions_);
   if (attachment_descriptions_.size() > get_images_.size()) {
     get_images_.resize(attachment_descriptions_.size());
   }
@@ -317,7 +315,7 @@ RenderPassBuilder& RenderPassBuilder::set_subpass_description(
   // note that we need to take address of each SubpassAttachments, hence we need
   // to use a list to ensure they won't be moved
   subpass_attachments_.emplace_back(std::move(attachments));
-  util::SetElementWithResizing(
+  common::util::SetElementWithResizing(
       CreateSubpassDescription(subpass_attachments_.back()),
       index, &subpass_descriptions_);
   return *this;

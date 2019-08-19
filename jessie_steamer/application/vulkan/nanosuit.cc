@@ -246,16 +246,16 @@ void NanosuitApp::UpdateData(int frame) {
   glm::mat4 proj = camera_->projection();
   glm::mat4 view_model = view * model;
 
-  *nanosuit_vert_uniform_->data<NanosuitVertTrans>(frame) = {
+  *nanosuit_vert_uniform_->HostData<NanosuitVertTrans>(frame) = {
       view_model,
       proj * view_model,
       glm::transpose(glm::inverse(view_model)),
   };
   nanosuit_vert_uniform_->Flush(frame);
 
-  *nanosuit_frag_constant_->data<NanosuitFragTrans>(frame) =
+  *nanosuit_frag_constant_->HostData<NanosuitFragTrans>(frame) =
       {glm::inverse(view)};
-  *skybox_constant_->data<SkyboxTrans>(frame) = {proj, view};
+  *skybox_constant_->HostData<SkyboxTrans>(frame) = {proj, view};
 }
 
 void NanosuitApp::MainLoop() {

@@ -196,11 +196,12 @@ std::unique_ptr<StaticPerVertexBuffer> CreateVertexBuffer(
   FlipY(&vertices);
 
   auto buffer = absl::make_unique<StaticPerVertexBuffer>(
-      context, PerVertexBuffer::InfoReuse{
+      context, PerVertexBuffer::ShareIndicesDataInfo{
           /*num_mesh=*/static_cast<int>(char_merge_order.size()),
           /*per_mesh_vertices=*/
-          {vertices, /*unit_count=*/text_util::kNumVerticesPerRect},
-          /*shared_indices=*/{text_util::GetIndicesPerRect()},
+          {vertices, /*num_unit_per_mesh=*/text_util::kNumVerticesPerRect},
+          /*shared_indices=*/
+          {PerVertexBuffer::DataInfo{text_util::GetIndicesPerRect()}},
       }
   );
   return buffer;
@@ -225,7 +226,8 @@ CharLoader::CharLoader(SharedBasicContext context,
   CharTextures char_textures = CreateCharTextures(char_lib, font_height);
   image_ = absl::make_unique<OffscreenImage>(context_, /*channel=*/1,
                                              char_textures.extent_after_merge);
-  width_height_ratio_ = GetWidthHeightRatio(char_textures.extent_after_merge);
+  width_height_ratio_ =
+      util::GetWidthHeightRatio(char_textures.extent_after_merge);
 
   vector<char> char_merge_order;
   char_merge_order.reserve(char_texture_map_.size());
@@ -386,7 +388,7 @@ TextLoader::TextTexture TextLoader::CreateTextTexture(
       static_cast<uint32_t>(font_height),
   };
   TextTexture text_texture{
-      GetWidthHeightRatio(extent_after_merge), base_y,
+      util::GetWidthHeightRatio(extent_after_merge), base_y,
       absl::make_unique<OffscreenImage>(context_, /*channel=*/1,
                                         extent_after_merge),
   };
@@ -495,11 +497,12 @@ float LoadCharsVertexData(const string& text, const CharLoader& char_loader,
     FlipY(&vertices);
   }
 
-  vertex_buffer->Allocate(PerVertexBuffer::InfoReuse{
+  vertex_buffer->Allocate(PerVertexBuffer::ShareIndicesDataInfo{
       /*num_mesh=*/static_cast<int>(text.length()),
       /*per_mesh_vertices=*/
-      {vertices, /*unit_count=*/text_util::kNumVerticesPerRect},
-      /*shared_indices=*/{text_util::GetIndicesPerRect()},
+      {vertices, /*num_unit_per_mesh=*/text_util::kNumVerticesPerRect},
+      /*shared_indices=*/
+      {PerVertexBuffer::DataInfo{text_util::GetIndicesPerRect()}},
   });
 
   return offset_x;

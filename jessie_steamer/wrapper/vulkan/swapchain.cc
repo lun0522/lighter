@@ -107,7 +107,7 @@ Swapchain::Swapchain(
   image_extent_ = ChooseExtent(surface_capabilities, screen_size);
 
   // surface formats
-  auto surface_formats{QueryAttribute<VkSurfaceFormatKHR>(
+  auto surface_formats{util::QueryAttribute<VkSurfaceFormatKHR>(
       [&surface, &physical_device]
       (uint32_t* count, VkSurfaceFormatKHR* formats) {
         return vkGetPhysicalDeviceSurfaceFormatsKHR(
@@ -117,7 +117,7 @@ Swapchain::Swapchain(
   VkSurfaceFormatKHR surface_format = ChooseSurfaceFormat(surface_formats);
 
   // present modes
-  auto present_modes{QueryAttribute<VkPresentModeKHR>(
+  auto present_modes{util::QueryAttribute<VkPresentModeKHR>(
       [&surface, &physical_device](uint32_t* count, VkPresentModeKHR* modes) {
         return vkGetPhysicalDeviceSurfacePresentModesKHR(
             physical_device, surface, count, modes);
@@ -166,7 +166,7 @@ Swapchain::Swapchain(
                  "Failed to create swapchain");
 
   // fetch swapchain images
-  auto images{QueryAttribute<VkImage>(
+  auto images{util::QueryAttribute<VkImage>(
       [this](uint32_t *count, VkImage *images) {
         vkGetSwapchainImagesKHR(*context_->device(), swapchain_, count, images);
       }

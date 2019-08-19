@@ -166,7 +166,7 @@ VkSampler CreateSampler(const SharedBasicContext& context,
 TextureImage::TextureImage(SharedBasicContext context,
                            bool generate_mipmaps,
                            const TextureBuffer::Info& info)
-    : Image{std::move(context), info.extent_2d(), info.format},
+    : Image{std::move(context), info.GetExtent2D(), info.format},
       buffer_{context_, generate_mipmaps, info},
       sampler_{CreateSampler(context_, buffer_.mip_levels())} {
   image_view_ = CreateImageView(context_, buffer_.image(), format_,
@@ -234,7 +234,7 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
 OffscreenImage::OffscreenImage(SharedBasicContext context,
                                int channel, const VkExtent2D& extent)
     : Image{std::move(context), extent, FindImageFormatWithChannel(channel)},
-      buffer_{context_, format_, extent_},
+      buffer_{context_, extent_, format_},
       sampler_{CreateSampler(context_, kSingleMipLevel)} {
   image_view_ = CreateImageView(context_, buffer_.image(), format_,
                                 VK_IMAGE_ASPECT_COLOR_BIT,

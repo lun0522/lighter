@@ -119,7 +119,7 @@ void Text::Update(VkExtent2D frame_size,
 }
 
 void Text::UpdateUniformBuffer(int frame, const glm::vec3& color, float alpha) {
-  uniform_buffer_->data<TextRenderInfo>(frame)->color_alpha =
+  uniform_buffer_->HostData<TextRenderInfo>(frame)->color_alpha =
       glm::vec4(color, alpha);
   uniform_buffer_->Flush(frame);
 }
@@ -143,7 +143,7 @@ StaticText::StaticText(SharedBasicContext context,
                                int text_index) {
           descriptors_[frame]->PushBufferInfos(
               command_buffer, pipeline_layout, descriptor_infos[0],
-              {uniform_buffer_->descriptor_info(frame)});
+              {uniform_buffer_->GetDescriptorInfo(frame)});
           descriptors_[frame]->PushImageInfos(
               command_buffer, pipeline_layout,
               VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -163,7 +163,7 @@ glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer,
   UpdateUniformBuffer(frame, color, alpha);
 
   const auto& texture = text_loader_.texture(text_index);
-  const float frame_width_height_ratio = GetWidthHeightRatio(frame_size);
+  const float frame_width_height_ratio = util::GetWidthHeightRatio(frame_size);
   const glm::vec2 ratio = glm::vec2{texture.width_height_ratio /
                                     frame_width_height_ratio, 1.0f} *
                           (height / 1.0f);
@@ -178,12 +178,11 @@ glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer,
       /*tex_coord_bottom_left=*/glm::vec2{0.0f},
       /*tex_coord_increment=*/glm::vec2{1.0f},
       &vertices);
-  vertex_buffer_.Allocate(PerVertexBuffer::InfoReuse{
-      /*num_mesh=*/1,
-      /*per_mesh_vertices=*/
-      {vertices, /*unit_count=*/text_util::kNumVerticesPerRect},
-      /*shared_indices=*/{text_util::GetIndicesPerRect()},
-  });
+  const PerVertexBuffer::NoShareIndicesDataInfo::PerMeshInfo mesh_info{
+      PerVertexBuffer::DataInfo{vertices},
+      PerVertexBuffer::DataInfo{text_util::GetIndicesPerRect()},
+  };
+  vertex_buffer_.Allocate(PerVertexBuffer::NoShareIndicesDataInfo{{mesh_info}});
 
   pipeline_->Bind(command_buffer);
   push_descriptors_[frame](command_buffer, pipeline_->layout(), text_index);
@@ -209,7 +208,7 @@ DynamicText::DynamicText(SharedBasicContext context,
     descriptors_.emplace_back(
         absl::make_unique<StaticDescriptor>(context_, descriptor_infos));
     descriptors_[frame]->UpdateBufferInfos(
-        descriptor_infos[0], {uniform_buffer_->descriptor_info(frame)});
+        descriptor_infos[0], {uniform_buffer_->GetDescriptorInfo(frame)});
     descriptors_[frame]->UpdateImageInfos(
         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, image_infos);
   }
@@ -224,7 +223,7 @@ glm::vec2 DynamicText::Draw(
     float base_x, float base_y, Align align) {
   UpdateUniformBuffer(frame, color, alpha);
 
-  const float frame_width_height_ratio = GetWidthHeightRatio(frame_size);
+  const float frame_width_height_ratio = util::GetWidthHeightRatio(frame_size);
   const glm::vec2 ratio = glm::vec2{char_loader_.width_height_ratio() /
                                     frame_width_height_ratio, 1.0f} *
                           (height / 1.0f);
