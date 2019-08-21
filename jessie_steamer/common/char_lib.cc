@@ -7,7 +7,6 @@
 
 #include "jessie_steamer/common/char_lib.h"
 
-#include "absl/container/flat_hash_set.h"
 #include "absl/memory/memory.h"
 #include "jessie_steamer/common/util.h"
 

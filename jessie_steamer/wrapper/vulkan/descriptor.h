@@ -8,6 +8,7 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_DESCRIPTOR_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_DESCRIPTOR_H
 
+#include <functional>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
@@ -150,10 +151,11 @@ class DynamicDescriptor : public Descriptor {
                       const ImageInfos& image_infos) const;
 
  private:
-  void PushDescriptorSets(
+  std::function<void(
       const VkCommandBuffer& command_buffer,
       const VkPipelineLayout& pipeline_layout,
-      const std::vector<VkWriteDescriptorSet>& write_descriptor_sets) const;
+      const std::vector<VkWriteDescriptorSet>& write_descriptor_sets)>
+      push_descriptor_sets_;
 };
 
 } /* namespace vulkan */

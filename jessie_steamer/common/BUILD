@@ -24,7 +24,6 @@ cc_library(
         "//third_party:freetype",
         "//third_party:glm",
         "@lib-absl//absl/container:flat_hash_map",
-        "@lib-absl//absl/container:flat_hash_set",
         "@lib-absl//absl/memory",
     ],
 )

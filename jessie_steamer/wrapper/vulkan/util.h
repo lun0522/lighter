@@ -32,6 +32,33 @@ namespace wrapper {
 namespace vulkan {
 namespace util {
 
+class QueueUsage {
+ public:
+  explicit QueueUsage(std::vector<uint32_t>&& queue_family_indices) {
+    if (queue_family_indices.empty()) {
+      FATAL("Must contain at least one queue");
+    } else if (queue_family_indices.size() > 1) {
+      common::util::RemoveDuplicate(&queue_family_indices);
+    }
+    unique_family_indices_ = std::move(queue_family_indices);
+    sharing_mode_ = unique_family_indices_.size() == 1 ?
+        VK_SHARING_MODE_EXCLUSIVE : VK_SHARING_MODE_CONCURRENT;
+  }
+
+  // Accessors.
+  const uint32_t* unique_family_indices() const {
+    return unique_family_indices_.data();
+  }
+  uint32_t unique_family_indices_count() const {
+    return CONTAINER_SIZE(unique_family_indices_);
+  }
+  VkSharingMode sharing_mode() const { return sharing_mode_; }
+
+ private:
+  std::vector<uint32_t> unique_family_indices_;
+  VkSharingMode sharing_mode_;
+};
+
 template<typename FuncType>
 FuncType LoadInstanceFunction(const VkInstance& instance,
                               const std::string& func_name) {

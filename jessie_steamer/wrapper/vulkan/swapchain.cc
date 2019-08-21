@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <string>
 
-#include "absl/container/flat_hash_set.h"
 #include "absl/memory/memory.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 
@@ -131,10 +130,11 @@ Swapchain::Swapchain(
     min_image_count = min(surface_capabilities.maxImageCount, min_image_count);
   }
 
-  const auto& unique_indices = context_->GetUniqueFamilyIndices();
-  const vector<uint32_t> queue_family_indices{unique_indices.begin(),
-                                              unique_indices.end()};
-  const bool use_multi_queues = queue_family_indices.size() > 1;
+  const util::QueueUsage queue_usage{{
+      context_->queues().graphics_queue().family_index,
+      context_->queues().transfer_queue().family_index,
+      context_->queues().present_queue().family_index,
+  }};
 
   VkSwapchainCreateInfoKHR swapchain_info{
       VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -148,10 +148,9 @@ Swapchain::Swapchain(
       /*imageArrayLayers=*/1,
       // can be different for post-processing
       /*imageUsage=*/VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-      /*imageSharingMode=*/
-      use_multi_queues ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
-      CONTAINER_SIZE(queue_family_indices),
-      queue_family_indices.data(),
+      queue_usage.sharing_mode(),
+      queue_usage.unique_family_indices_count(),
+      queue_usage.unique_family_indices(),
       // may apply transformations
       /*preTransform=*/surface_capabilities.currentTransform,
       // may change alpha channel

@@ -8,7 +8,6 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_BASIC_OBJECT_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_BASIC_OBJECT_H
 
-#include "absl/container/flat_hash_set.h"
 #include "absl/types/optional.h"
 #include "jessie_steamer/common/util.h"
 #include "third_party/vulkan/vulkan.h"
@@ -50,9 +49,9 @@ struct QueueFamilyIndices {
   uint32_t transfer;
   absl::optional<uint32_t> present;
 
-  // Returns unique queue family indices. We might be using the same queue for
-  // different purposes, so we use a hash set to remove duplicates.
-  absl::flat_hash_set<uint32_t> GetUniqueFamilyIndices() const;
+  // Returns unique queue family indices. Note that we might be using the same
+  // queue for different purposes.
+  std::vector<uint32_t> GetUniqueFamilyIndices() const;
 };
 
 // VkInstance is used to establish connection with Vulkan library and maintain

@@ -55,10 +55,10 @@ class Buffer {
   VkDeviceMemory device_memory_;
 };
 
-// This is the base class of the buffers that are used to store plain data.
-// The user should use it through derived classes. Since all buffers of this
-// kind need VkBuffer, which configures the usage of the data, it will be held
-// and destroyed by this base class, and initialized by derived classes.
+// This is the base class of the buffers that are used to store one dimensional
+// data. The user should use it through derived classes. Since all buffers of
+// this kind need VkBuffer, which configures the usage of the data, it will be
+// held and destroyed by this base class, and initialized by derived classes.
 class DataBuffer : public Buffer {
  public:
   // This class is neither copyable nor movable.
@@ -257,17 +257,17 @@ class UniformBuffer : public DataBuffer {
 
   ~UniformBuffer() override { delete data_; }
 
-  // Flushes the data from host to device.
-  void Flush(int chunk_index) const;
-
-  // Returns the description of the data chunk at 'chunk_index'.
-  VkDescriptorBufferInfo GetDescriptorInfo(int chunk_index) const;
-
   // Returns a pointer to the data on the host, casted to 'DataType'.
   template <typename DataType>
   DataType* HostData(int chunk_index) const {
     return reinterpret_cast<DataType*>(data_ + chunk_data_size_ * chunk_index);
   }
+
+  // Flushes the data from host to device.
+  void Flush(int chunk_index) const;
+
+  // Returns the description of the data chunk at 'chunk_index'.
+  VkDescriptorBufferInfo GetDescriptorInfo(int chunk_index) const;
 
  private:
   // Pointer to data on the host.
@@ -402,8 +402,8 @@ class PushConstant {
 
   // Returns a pointer to the data on the host, casted to 'DataType'.
   template <typename DataType>
-  DataType* HostData(int chunk_index) const {
-    return reinterpret_cast<DataType*>(data_ + size_per_frame_ * chunk_index);
+  DataType* HostData(int frame) const {
+    return reinterpret_cast<DataType*>(data_ + size_per_frame_ * frame);
   }
 
   // Accessors.

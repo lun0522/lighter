@@ -8,6 +8,7 @@
 #ifndef JESSIE_STEAMER_COMMON_UTIL_H
 #define JESSIE_STEAMER_COMMON_UTIL_H
 
+#include <algorithm>
 #include <functional>
 #include <stdexcept>
 #include <vector>
@@ -61,6 +62,15 @@ void SetElementWithResizing(ContentType&& element, int index,
     container->resize(index + 1);
   }
   (*container)[index] = std::move(element);
+}
+
+// Removes duplicated elements from 'container' in-place, hence the size of
+// 'container' may change if there exists any duplicate.
+template <typename ContentType>
+void RemoveDuplicate(std::vector<ContentType>* container) {
+  std::sort(container->begin(), container->end());
+  const auto new_end = std::unique(container->begin(), container->end());
+  container->resize(std::distance(container->begin(), new_end));
 }
 
 // Helper class to enable using an enum class as the key of a hash table:

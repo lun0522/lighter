@@ -199,6 +199,20 @@ DynamicDescriptor::DynamicDescriptor(SharedBasicContext context,
                                      const vector<Info>& infos)
     : Descriptor{std::move(context)} {
   layout_ = CreateDescriptorSetLayout(context_, infos, /*is_dynamic=*/true);
+  const auto vkCmdPushDescriptorSetKHR =
+      util::LoadDeviceFunction<PFN_vkCmdPushDescriptorSetKHR>(
+          *context_->device(), "vkCmdPushDescriptorSetKHR");
+  push_descriptor_sets_ =
+      [vkCmdPushDescriptorSetKHR](
+          const VkCommandBuffer& command_buffer,
+          const VkPipelineLayout& pipeline_layout,
+          const vector<VkWriteDescriptorSet>& write_descriptor_sets) {
+        vkCmdPushDescriptorSetKHR(
+            command_buffer,
+            /*pipelineBindPoint=*/VK_PIPELINE_BIND_POINT_GRAPHICS,
+            pipeline_layout, /*set=*/0, CONTAINER_SIZE(write_descriptor_sets),
+            write_descriptor_sets.data());
+      };
 }
 
 void DynamicDescriptor::PushBufferInfos(
@@ -206,7 +220,7 @@ void DynamicDescriptor::PushBufferInfos(
     const VkPipelineLayout& pipeline_layout,
     const Info& descriptor_info,
     const vector<VkDescriptorBufferInfo>& buffer_infos) const {
-  PushDescriptorSets(
+  push_descriptor_sets_(
       command_buffer, pipeline_layout,
       CreateBuffersWriteDescriptorSets(/*descriptor_set=*/VK_NULL_HANDLE,
                                        descriptor_info, buffer_infos));
@@ -217,23 +231,10 @@ void DynamicDescriptor::PushImageInfos(
     const VkPipelineLayout& pipeline_layout,
     VkDescriptorType descriptor_type,
     const ImageInfos& image_infos) const {
-  PushDescriptorSets(
+  push_descriptor_sets_(
       command_buffer, pipeline_layout,
       CreateImagesWriteDescriptorSets(/*descriptor_set=*/VK_NULL_HANDLE,
                                       descriptor_type, image_infos));
-}
-
-void DynamicDescriptor::PushDescriptorSets(
-    const VkCommandBuffer& command_buffer,
-    const VkPipelineLayout& pipeline_layout,
-    const vector<VkWriteDescriptorSet>& write_descriptor_sets) const {
-  static const auto vkCmdPushDescriptorSetKHR =
-      util::LoadDeviceFunction<PFN_vkCmdPushDescriptorSetKHR>(
-          *context_->device(), "vkCmdPushDescriptorSetKHR");
-  vkCmdPushDescriptorSetKHR(
-      command_buffer, /*pipelineBindPoint=*/VK_PIPELINE_BIND_POINT_GRAPHICS,
-      pipeline_layout, /*set=*/0, CONTAINER_SIZE(write_descriptor_sets),
-      write_descriptor_sets.data());
 }
 
 } /* namespace vulkan */

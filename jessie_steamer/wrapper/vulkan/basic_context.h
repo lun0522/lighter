@@ -13,7 +13,6 @@
 #include <memory>
 #include <vector>
 
-#include "absl/container/flat_hash_set.h"
 #include "absl/types/optional.h"
 #include "jessie_steamer/wrapper/vulkan/basic_object.h"
 #ifndef NDEBUG
@@ -97,7 +96,7 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   }
 
   // Returns unique queue family indices.
-  absl::flat_hash_set<uint32_t> GetUniqueFamilyIndices() const {
+  std::vector<uint32_t> GetUniqueFamilyIndices() const {
     return physical_device_.queue_family_indices().GetUniqueFamilyIndices();
   }
 

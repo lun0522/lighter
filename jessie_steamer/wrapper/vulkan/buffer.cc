@@ -23,21 +23,30 @@ namespace {
 using std::array;
 using std::vector;
 
-uint32_t FindMemoryType(const SharedBasicContext& context,
-                        uint32_t type_filter,
-                        VkMemoryPropertyFlags memory_properties) {
-  // query available types of memory
-  //   .memoryHeaps: memory heaps from which memory can be allocated
-  //   .memoryTypes: memory types that can be used to access memory allocated
-  //                 from heaps
+// Returns an instance of util::QueueUsage that only involves a graphics queue.
+inline util::QueueUsage GetGraphicsQueueUsage(
+    const SharedBasicContext& context) {
+  return util::QueueUsage{{context->queues().graphics_queue().family_index}};
+}
+
+// Returns an instance of util::QueueUsage that only involves a transfer queue.
+inline util::QueueUsage GetTransferQueueUsage(
+    const SharedBasicContext& context) {
+  return util::QueueUsage{{context->queues().transfer_queue().family_index}};
+}
+
+// Returns the index of a VkMemoryType that satisfies both 'memory_type' and
+// 'memory_properties' within VkPhysicalDeviceMemoryProperties.memoryTypes.
+uint32_t FindMemoryTypeIndex(const SharedBasicContext& context,
+                             uint32_t memory_type,
+                             VkMemoryPropertyFlags memory_properties) {
   VkPhysicalDeviceMemoryProperties properties;
   vkGetPhysicalDeviceMemoryProperties(*context->physical_device(), &properties);
 
   for (uint32_t i = 0; i < properties.memoryTypeCount; ++i) {
-    if (type_filter & (1U << i)) {  // types is suitable for buffer
-      auto flags = properties.memoryTypes[i].propertyFlags;
-      if ((flags & memory_properties) ==
-           memory_properties) {  // has required property
+    if ((1U << i) & memory_type) {
+      if ((properties.memoryTypes[i].propertyFlags & memory_properties) ==
+          memory_properties) {
         return i;
       }
     }
@@ -45,19 +54,21 @@ uint32_t FindMemoryType(const SharedBasicContext& context,
   FATAL("Failed to find suitable memory type");
 }
 
+// Creates a buffer of 'data_size' that will be used by 'queues' for
+// 'buffer_usages'
 VkBuffer CreateBuffer(const SharedBasicContext& context,
                       VkDeviceSize data_size,
-                      VkBufferUsageFlags buffer_usages) {
-  // create buffer
+                      VkBufferUsageFlags buffer_usages,
+                      const util::QueueUsage& queue_usage) {
   VkBufferCreateInfo buffer_info{
       VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
       data_size,
       buffer_usages,
-      /*sharingMode=*/VK_SHARING_MODE_EXCLUSIVE,  // only graphics queue access
-      /*queueFamilyIndexCount=*/0,
-      /*pQueueFamilyIndices=*/nullptr,
+      queue_usage.sharing_mode(),
+      queue_usage.unique_family_indices_count(),
+      queue_usage.unique_family_indices(),
   };
 
   VkBuffer buffer;
@@ -67,38 +78,32 @@ VkBuffer CreateBuffer(const SharedBasicContext& context,
   return buffer;
 }
 
+// Allocates device memory for 'buffer' with 'memory_properties'.
 VkDeviceMemory CreateBufferMemory(const SharedBasicContext& context,
                                   const VkBuffer& buffer,
                                   VkMemoryPropertyFlags memory_properties) {
   const VkDevice& device = *context->device();
 
-  // query memory requirements for this buffer
-  //   .size: size of required amount of memory
-  //   .alignment: offset where this buffer begins in allocated region
-  //   .memoryTypeBits: memory types suitable for this buffer
   VkMemoryRequirements memory_requirements;
   vkGetBufferMemoryRequirements(device, buffer, &memory_requirements);
 
-  // allocate memory on device
   VkMemoryAllocateInfo memory_info{
       VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
       /*pNext=*/nullptr,
       /*allocationSize=*/memory_requirements.size,
-      /*memoryTypeIndex=*/FindMemoryType(
-          context, memory_requirements.memoryTypeBits, memory_properties),
+      FindMemoryTypeIndex(context, memory_requirements.memoryTypeBits,
+                          memory_properties),
   };
 
   VkDeviceMemory memory;
-  ASSERT_SUCCESS(
-      vkAllocateMemory(device, &memory_info, *context->allocator(), &memory),
-      "Failed to allocate buffer memory");
+  ASSERT_SUCCESS(vkAllocateMemory(device, &memory_info,
+                                  *context->allocator(), &memory),
+                 "Failed to allocate buffer memory");
 
-  // associate allocated memory with buffer
-  // since this memory is specifically allocated for this buffer, the last
-  // parameter 'memoryOffset' is simply 0
-  // otherwise it should be selected according to mem_requirements.alignment
-  vkBindBufferMemory(device, buffer, memory, 0);
-
+  // Bind the allocated memory with 'buffer'. If this memory is used for
+  // multiple buffers, the memory offset should be re-calculated and
+  // VkMemoryRequirements.alignment should be considered.
+  vkBindBufferMemory(device, buffer, memory, /*memoryOffset=*/0);
   return memory;
 }
 
@@ -109,7 +114,8 @@ VkImage CreateImage(const SharedBasicContext& context,
                     VkImageUsageFlags usage,
                     uint32_t mip_levels,
                     uint32_t layer_count,
-                    VkSampleCountFlagBits sample_count) {
+                    VkSampleCountFlagBits sample_count,
+                    const util::QueueUsage& queue_usage) {
   VkImageCreateInfo image_info{
       VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -124,9 +130,9 @@ VkImage CreateImage(const SharedBasicContext& context,
       // image, otherwise use VK_IMAGE_TILING_OPTIMAL for optimal layout
       /*tiling=*/VK_IMAGE_TILING_OPTIMAL,
       usage,
-      /*sharingMode=*/VK_SHARING_MODE_EXCLUSIVE,
-      /*queueFamilyIndexCount=*/0,
-      /*pQueueFamilyIndices=*/nullptr,
+      queue_usage.sharing_mode(),
+      queue_usage.unique_family_indices_count(),
+      queue_usage.unique_family_indices(),
       // can only be VK_IMAGE_LAYOUT_UNDEFINED or VK_IMAGE_LAYOUT_PREINITIALIZED
       // the first one discards texels while the latter one preserves texels, so
       // the latter one can be used with VK_IMAGE_TILING_LINEAR
@@ -154,14 +160,14 @@ VkDeviceMemory CreateImageMemory(const SharedBasicContext& context,
       VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
       /*pNext=*/nullptr,
       /*allocationSize=*/memory_requirements.size,
-      /*memoryTypeIndex=*/FindMemoryType(
-          context, memory_requirements.memoryTypeBits, memory_properties),
+      FindMemoryTypeIndex(context, memory_requirements.memoryTypeBits,
+                          memory_properties),
   };
 
   VkDeviceMemory memory;
-  ASSERT_SUCCESS(
-      vkAllocateMemory(device, &memory_info, *context->allocator(), &memory),
-      "Failed to allocate image memory");
+  ASSERT_SUCCESS(vkAllocateMemory(device, &memory_info,
+                                  *context->allocator(), &memory),
+                 "Failed to allocate image memory");
   vkBindImageMemory(device, image, memory, 0);
   return memory;
 }
@@ -259,7 +265,8 @@ void CopyHostToBufferViaStaging(const SharedBasicContext& context,
                                 const Buffer::CopyInfos& infos) {
   // create staging buffer and associated memory
   VkBuffer staging_buffer = CreateBuffer(           // source of transfer
-      context, infos.total_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+      context, infos.total_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      GetTransferQueueUsage(context));
   VkDeviceMemory staging_memory = CreateBufferMemory(
       context, staging_buffer,
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT           // host can access it
@@ -443,7 +450,8 @@ void VertexBuffer::CreateBufferAndMemory(VkDeviceSize total_size,
     buffer_usages |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     memory_properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
   }
-  buffer_ = CreateBuffer(context_, total_size, buffer_usages);
+  buffer_ = CreateBuffer(context_, total_size, buffer_usages,
+                         GetGraphicsQueueUsage(context_));
   device_memory_ = CreateBufferMemory(context_, buffer_, memory_properties);
 }
 
@@ -607,7 +615,8 @@ UniformBuffer::UniformBuffer(SharedBasicContext context,
 
   data_ = new char[chunk_data_size_ * num_chunk];
   buffer_ = CreateBuffer(context_, chunk_memory_size_ * num_chunk,
-                         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+                         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                         GetGraphicsQueueUsage(context_));
   device_memory_ = CreateBufferMemory(
       context_, buffer_,
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
@@ -651,7 +660,8 @@ TextureBuffer::TextureBuffer(SharedBasicContext context,
 
   // create staging buffer and associated memory
   VkBuffer staging_buffer = CreateBuffer(           // source of transfer
-      context_, data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+      context_, data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      GetTransferQueueUsage(context_));
   VkDeviceMemory staging_memory = CreateBufferMemory(
       context_, staging_buffer,
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT           // host can access it
@@ -674,7 +684,8 @@ TextureBuffer::TextureBuffer(SharedBasicContext context,
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT
                            | VK_IMAGE_USAGE_SAMPLED_BIT
                            | mipmap_flag,
-                       mip_levels_, layer_count, kSingleSample);
+                       mip_levels_, layer_count, kSingleSample,
+                       GetGraphicsQueueUsage(context_));
   device_memory_ = CreateImageMemory(
       context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
@@ -712,7 +723,8 @@ OffscreenBuffer::OffscreenBuffer(SharedBasicContext context,
                        {extent.width, extent.height, /*depth=*/1},
                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
                            | VK_IMAGE_USAGE_SAMPLED_BIT,
-                       kSingleMipLevel, kSingleImageLayer, kSingleSample);
+                       kSingleMipLevel, kSingleImageLayer, kSingleSample,
+                       GetGraphicsQueueUsage(context_));
   device_memory_ = CreateImageMemory(
       context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }
@@ -723,7 +735,8 @@ DepthStencilBuffer::DepthStencilBuffer(
   image_ = CreateImage(context_, nullflag, format,
                        {extent.width, extent.height, /*depth=*/1},
                        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                       kSingleMipLevel, kSingleImageLayer, kSingleSample);
+                       kSingleMipLevel, kSingleImageLayer, kSingleSample,
+                       GetGraphicsQueueUsage(context_));
   device_memory_ = CreateImageMemory(
       context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }
@@ -745,7 +758,8 @@ MultisampleBuffer::MultisampleBuffer(
   }
   image_ = CreateImage(
       context_, nullflag, format, {extent.width, extent.height, /*depth=*/1},
-      image_usage, kSingleMipLevel, kSingleImageLayer, sample_count);
+      image_usage, kSingleMipLevel, kSingleImageLayer, sample_count,
+      GetGraphicsQueueUsage(context_));
   device_memory_ = CreateImageMemory(
       context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }
@@ -754,8 +768,8 @@ PushConstant::PushConstant(const SharedBasicContext& context,
                            size_t size_per_frame, int num_frame) {
   if (size_per_frame > kMaxPushConstantSize) {
     FATAL(absl::StrFormat(
-        "Pushing constant of size %d bytes per-frame. To be compatible with all"
-        "devices, the size should not be greater than %d bytes.",
+        "Pushing constant of size %d bytes per-frame. To be compatible with "
+        "all devices, the size should not be greater than %d bytes.",
         size_per_frame, kMaxPushConstantSize));
   }
   size_per_frame_ = static_cast<uint32_t>(size_per_frame);
