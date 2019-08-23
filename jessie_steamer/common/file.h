@@ -121,8 +121,8 @@ struct ObjFile {
   ~ObjFile() = default;
 
   // Vertex data, populated with data loaded from the file.
-  std::vector<VertexAttrib3D> vertices;
   std::vector<uint32_t> indices;
+  std::vector<VertexAttrib3D> vertices;
 };
 
 } /* namespace common */

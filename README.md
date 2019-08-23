@@ -178,6 +178,16 @@ window size. We might find a better way to wrap them.
 
 ### 3.2.1 Buffer (buffer)
 
+- **StaticPerVertexBuffer**
+- **DynamicPerVertexBuffer**
+- **PerInstanceBuffer**
+- **UniformBuffer**
+- **TextureBuffer**
+- **OffscreenBuffer**
+- **DepthStencilBuffer**
+- **MultisampleBuffer**
+- **PushConstant**
+
 ### 3.2.2 Command (command)
 
 ### 3.2.3 Descriptor (descriptor)

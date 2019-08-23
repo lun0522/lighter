@@ -179,8 +179,8 @@ glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer,
       /*tex_coord_increment=*/glm::vec2{1.0f},
       &vertices);
   const PerVertexBuffer::NoShareIndicesDataInfo::PerMeshInfo mesh_info{
-      PerVertexBuffer::DataInfo{vertices},
       PerVertexBuffer::DataInfo{text_util::GetIndicesPerRect()},
+      PerVertexBuffer::DataInfo{vertices},
   };
   vertex_buffer_.Allocate(PerVertexBuffer::NoShareIndicesDataInfo{{mesh_info}});
 

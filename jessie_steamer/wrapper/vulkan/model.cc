@@ -118,8 +118,8 @@ void ModelBuilder::LoadSingleMesh(const SingleMeshResource& resource) {
   // load vertices and indices
   const common::ObjFile file{resource.obj_path, resource.obj_index_base};
   const VertexInfo::PerMeshInfo mesh_info{
-      PerVertexBuffer::DataInfo{file.vertices},
       PerVertexBuffer::DataInfo{file.indices},
+      PerVertexBuffer::DataInfo{file.vertices},
   };
   vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
       context_, VertexInfo{/*per_mesh_infos=*/{mesh_info}});
@@ -144,8 +144,8 @@ void ModelBuilder::LoadMultiMesh(const MultiMeshResource& resource) {
   for (const auto &mesh_data : loader.mesh_datas()) {
     vertex_info.per_mesh_infos.emplace_back(
         VertexInfo::PerMeshInfo{
-            PerVertexBuffer::DataInfo{mesh_data.vertices},
             PerVertexBuffer::DataInfo{mesh_data.indices},
+            PerVertexBuffer::DataInfo{mesh_data.vertices},
         }
     );
   }

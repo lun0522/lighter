@@ -24,14 +24,18 @@ namespace vulkan {
 // this base class, and initialized by derived classes.
 class Buffer {
  public:
-  // Information we need to copy one chunk of memory.
+  // Information we need to copy one chunk of memory from host to device.
+  // We assume all the data will be copied to one big chunk of device memory,
+  // although they might be stored in different places on the host.
+  // We will read data of 'size' bytes starting from 'data' pointer on the host,
+  // and then copy to the device memory at 'offset'.
   struct CopyInfo {
     const void* data;
     VkDeviceSize size;
     VkDeviceSize offset;
   };
 
-  // Information we need to copy multiple chunks of memory.
+  // Information we need to copy multiple chunks of memory from host to device.
   struct CopyInfos {
     VkDeviceSize total_size;
     std::vector<CopyInfo> copy_infos;
@@ -92,11 +96,11 @@ class VertexBuffer : public DataBuffer {
   using DataBuffer::DataBuffer;
 
   // Initializes 'device_memory_' and 'buffer_'.
-  // For more efficient memory usage, vertices and indices data are put in the
+  // For more efficient memory usage, indices and vertices data are put in the
   // same buffer, hence only total size is needed.
-  // A dynamic vertex buffer will be visible to host, which can be used for
-  // dynamic text rendering. A non-dynamic vertex buffer will be only visible
-  // to device, and we will use staging buffers to transfer data to it.
+  // If 'is_dynamic' is true, the buffer will be visible to the host, which can
+  // be used for dynamic text rendering. Otherwise, the buffer will be only
+  // visible to the device, and we will use staging buffers to transfer data.
   void CreateBufferAndMemory(VkDeviceSize total_size, bool is_dynamic);
 };
 
@@ -124,7 +128,7 @@ class PerVertexBuffer : public VertexBuffer {
     size_t size_per_mesh;
   };
 
-  // Holds data info for multiple meshes that share indices.
+  // Holds data information for multiple meshes that share indices.
   // Each mesh has the same number of vertices.
   struct ShareIndicesDataInfo {
     int num_mesh;
@@ -132,13 +136,13 @@ class PerVertexBuffer : public VertexBuffer {
     DataInfo shared_indices;
   };
 
-  // Holds data info for multiple meshes that do not share indices.
-  // Each mesh may have different number of vertices and indices.
+  // Holds data information for multiple meshes that do not share indices.
+  // Each mesh may have different number of indices and vertices.
   struct NoShareIndicesDataInfo {
-    // Holds data info for each mesh.
+    // Holds data information for each mesh.
     struct PerMeshInfo {
-      DataInfo vertices;
       DataInfo indices;
+      DataInfo vertices;
     };
     std::vector<PerMeshInfo> per_mesh_infos;
   };
@@ -158,8 +162,8 @@ class PerVertexBuffer : public VertexBuffer {
   // Inherits constructor.
   using VertexBuffer::VertexBuffer;
 
-  // Holds the data size offset within the vertex buffer and number of indices
-  // in the mesh.
+  // Holds the number of indices in the mesh and the data size offset within the
+  // vertex buffer.
   struct MeshDataInfo {
     uint32_t indices_count;
     VkDeviceSize indices_offset;
@@ -168,17 +172,17 @@ class PerVertexBuffer : public VertexBuffer {
 
   // These functions populate 'mesh_data_infos_' and return instances of
   // 'CopyInfos' that can be used for copying data from the host to device.
-  // Previously content in 'mesh_data_infos_' will be cleared.
+  // Previous content in 'mesh_data_infos_' will be cleared.
   CopyInfos CreateCopyInfos(const BufferDataInfo& info);
   CopyInfos CreateCopyInfos(const ShareIndicesDataInfo& info_no_reuse);
   CopyInfos CreateCopyInfos(const NoShareIndicesDataInfo& info_reuse);
 
-  // Holds data info for all meshes stored in the vertex buffer.
+  // Holds data information for all meshes stored in the vertex buffer.
   std::vector<MeshDataInfo> mesh_data_infos_;
 };
 
 // This class creates a vertex buffer that stores static data, which will be
-// transferred to the device via a staging buffer.
+// transferred to the device via the staging buffer.
 class StaticPerVertexBuffer : public PerVertexBuffer {
  public:
   StaticPerVertexBuffer(SharedBasicContext context, const BufferDataInfo& info);
@@ -224,7 +228,7 @@ class DynamicPerVertexBuffer : public PerVertexBuffer {
 };
 
 // Holds vertex data of all instances.
-// Data will be copied to device via a staging buffer.
+// Data will be copied to device via the staging buffer.
 class PerInstanceBuffer : public VertexBuffer {
  public:
   PerInstanceBuffer(SharedBasicContext context,
@@ -242,11 +246,12 @@ class PerInstanceBuffer : public VertexBuffer {
 // Holds uniform buffer data on both the host and device. To make it more
 // flexible, the user may allocate several chunks of memory in this buffer.
 // For rendering a single frame (for example, when we render single characters
-// onto the text texture), these chunks may store data for different meshes.
+// onto a large text texture), these chunks may store data for different meshes.
 // For rendering multiple frames (which is more general), all chunks can be used
 // for one mesh, and each chunk used for one frame.
-// The user should call 'data()' to update the data on the host, and then call
-// 'Flush()' to send it to the device.
+// The user should use 'data()' to update the data on the host, and then call
+// 'Flush()' to send it to the device. This buffer will be visible to the host,
+// and we don't use the staging buffer.
 class UniformBuffer : public DataBuffer {
  public:
   UniformBuffer(SharedBasicContext context, size_t chunk_size, int num_chunk);
@@ -413,7 +418,7 @@ class PushConstant {
   // Pointer to data on the host.
   char* data_;
 
-  // Size of each chunk of data on the host.
+  // Size of data for one frame on the host.
   uint32_t size_per_frame_;
 };
 
