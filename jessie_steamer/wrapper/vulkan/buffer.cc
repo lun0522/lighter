@@ -799,6 +799,14 @@ PushConstant::PushConstant(const SharedBasicContext& context,
   data_ = new char[size_per_frame_ * num_frame];
 }
 
+void PushConstant::Flush(const VkCommandBuffer& command_buffer,
+                         const VkPipelineLayout& pipeline_layout,
+                         int frame, uint32_t offset,
+                         VkShaderStageFlags shader_stage) const {
+  vkCmdPushConstants(command_buffer, pipeline_layout, shader_stage,
+                     offset, size_per_frame_, HostData<void>(frame));
+}
+
 } /* namespace vulkan */
 } /* namespace wrapper */
 } /* namespace jessie_steamer */

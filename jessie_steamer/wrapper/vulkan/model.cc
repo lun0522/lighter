@@ -85,7 +85,7 @@ vector<VkPushConstantRange> CreatePushConstantRanges(
       ranges.emplace_back(VkPushConstantRange{
           push_constant.shader_stage,
           info.offset,
-          info.size(),
+          info.push_constant->size_per_frame(),
       });
     }
   }
@@ -319,9 +319,8 @@ void Model::Draw(const VkCommandBuffer& command_buffer,
   }
   for (const auto& push_constant : push_constant_infos_) {
     for (const auto& info : push_constant.infos) {
-      vkCmdPushConstants(command_buffer, pipeline_->layout(),
-                         push_constant.shader_stage,
-                         info.offset, info.size(), info.data(frame));
+      info.push_constant->Flush(command_buffer, pipeline_->layout(),
+                                frame, info.offset, push_constant.shader_stage);
     }
   }
   for (int mesh_index = 0; mesh_index < mesh_textures_.size(); ++mesh_index) {

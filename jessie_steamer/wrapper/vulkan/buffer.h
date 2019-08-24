@@ -387,12 +387,13 @@ class MultisampleBuffer : public ImageBuffer {
   MultisampleBuffer& operator=(const MultisampleBuffer&) = delete;
 };
 
+// TODO: Control total size of pushing constants per pipeline.
 // Holds a small amount of data that can be modified per-frame efficiently.
 // To make it flexible, the user may use one chunk of memory for each frame,
 // just like the uniform buffer. What is different is that this data does not
-// need alignment, and the total size is very limited. According to Vulkan spec,
-// to make it compatible with all devices, we only allow the user to push
-// at most 128 bytes per-frame.
+// need alignment, and the total size is very limited. According to Vulkan
+// specification, to make it compatible with all devices, we only allow the user
+// to push at most 128 bytes per-frame.
 class PushConstant {
  public:
   // 'size_per_frame' must be less than 128.
@@ -410,6 +411,10 @@ class PushConstant {
   DataType* HostData(int frame) const {
     return reinterpret_cast<DataType*>(data_ + size_per_frame_ * frame);
   }
+
+  void Flush(const VkCommandBuffer& command_buffer,
+             const VkPipelineLayout& pipeline_layout,
+             int frame, uint32_t offset, VkShaderStageFlags shader_stage) const;
 
   // Accessors.
   uint32_t size_per_frame() const { return size_per_frame_; }

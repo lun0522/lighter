@@ -1,7 +1,6 @@
 Files that are waiting to be cleaned up:
 
 wrapper
-- buffer
 - command
 - descriptor
 - image
@@ -178,21 +177,70 @@ window size. We might find a better way to wrap them.
 
 ### 3.2.1 Buffer (buffer)
 
-- **StaticPerVertexBuffer**
-- **DynamicPerVertexBuffer**
-- **PerInstanceBuffer**
-- **UniformBuffer**
-- **TextureBuffer**
-- **OffscreenBuffer**
-- **DepthStencilBuffer**
-- **MultisampleBuffer**
-- **PushConstant**
+![](https://docs.google.com/uc?id=1uVO1xYuN5EX2tBtQ-Yxb44eFEsVMRW7g)
+
+#### 3.2.1.1 **UniformBuffer** and **PushConstant**
+
+(**PushConstant** is not shown in the inheritance graph, since it does not own
+an underlying buffer object.)
+
+Both of them are used to pass uniform data. When constructed, both of them will
+allocate memory on both host and device. The user should call `HostData()` to
+get a pointer to the host data, populate the data and call `Flush()` to send it
+to the device.
+
+According to [Vulkan specification](https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap36.html#limits-minmax),
+to be compatible of all devices, we only allow **PushConstant** to have at most
+128 bytes for each frame. However, it is possible to push more than 128 bytes to
+one graphics pipeline using multiple instances of **PushConstant**. We expect
+the user to refrain from doing that, and we currently cannot detect whether it
+really happens. We might find a better way to enforce the size limit.
+
+#### 3.2.1.2 **StaticPerVertexBuffer** and **DynamicPerVertexBuffer**
+
+**StaticPerVertexBuffer** is more commonly use, which stores vertex data that
+does not change once constructed. The data will be sent to it via the staging
+buffer during construction, so that the final vertex buffer can be made only
+visible to the device, to provide the most efficient data access.
+
+**DynamicPerVertexBuffer** provides a buffer to which we can send different data
+of different size before each render call. The buffer tracks the current size of
+itself. If we try to send data whose size is larger than the current buffer
+size, it will create a new buffer internally. Otherwise, it reuses the old
+buffer. For example, when we want to display the frame rate per-second, we need
+to render one rectangle for each digit, but the digits and the number of digits
+may always change, so we can take advantage of this buffer. We don't use the
+staging buffer since it is dynamic.
+
+These two buffers are usually managed by high-level wrappers (model renderer and
+text renderer), and the user may not need to directly instantiate them.
+
+#### 3.2.1.3 **PerInstanceBuffer**
+
+This buffer simply copies one monolithic chunk of data from the host, and can be
+bound to the specified binding point. The user may need to directly instantiate
+this type of vertex buffer.
+
+#### 3.2.1.4 **TextureBuffer**, **OffscreenBuffer**, **DepthStencilBuffer** and **MultisampleBuffer**
+
+These buffers manage device memory of images. Among them, **TextureBuffer** is
+the only one that copies data from the host at construction, since it stores
+texture images loaded from files. Other buffers are used as rendering targets.
+
+These buffers are usually managed by the **Image** classes, and the user may not
+need to directly instantiate them.
 
 ### 3.2.2 Command (command)
 
+![](https://docs.google.com/uc?id=1UlOc-ts3a55EmIPSYheY_h2jsrw6lQrl)
+
 ### 3.2.3 Descriptor (descriptor)
 
+![](https://docs.google.com/uc?id=18xYBBhYkBQmSu_3TA8AeK8cW-pevtPXn)
+
 ### 3.2.4 Image (image)
+
+![](https://docs.google.com/uc?id=1v3dHjXWTJbwLQKYgqk67zHxHcUAuxWqr)
 
 ### 3.2.5 Pipeline (pipeline)
 
@@ -236,5 +284,8 @@ window size. We might find a better way to wrap them.
 - [Vulkan SDK](https://vulkan.lunarg.com)
 
 ## 5.3 Resources
+
+Class inheritance graphs are generated with [Doxygen](http://www.doxygen.nl)
+and [Graphviz](http://www.graphviz.org).
 
 Fonts, frameworks, 3D models and textures in a separate [resource repo](https://github.com/lun0522/resource).
