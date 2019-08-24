@@ -175,7 +175,7 @@ NanosuitApp::NanosuitApp() : Application{"Nanosuit", WindowContext::Config{}} {
           .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
                        GetShaderPath("vulkan/nanosuit.frag.spv")})
           .add_uniform_buffer({nanosuit_vert_uniform_.get(), trans_desc_info})
-          .add_push_constant({VK_SHADER_STAGE_FRAGMENT_BIT,
+          .set_push_constant({VK_SHADER_STAGE_FRAGMENT_BIT,
                               {{nanosuit_frag_constant_.get(), /*offset=*/0}}})
           .add_shared_texture(Descriptor::ResourceType::kTextureCubemap,
                               skybox_binding)
@@ -194,7 +194,7 @@ NanosuitApp::NanosuitApp() : Application{"Nanosuit", WindowContext::Config{}} {
                        GetShaderPath("vulkan/skybox.vert.spv")})
           .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
                        GetShaderPath("vulkan/skybox.frag.spv")})
-          .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
+          .set_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
                               {{skybox_constant_.get(), /*offset=*/0}}})
           .Build();
 }

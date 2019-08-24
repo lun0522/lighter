@@ -78,16 +78,15 @@ void CreateTextureInfo(const ModelBuilder::BindingPointMap& binding_map,
 }
 
 vector<VkPushConstantRange> CreatePushConstantRanges(
-    const vector<model::PushConstantInfo>& push_constant_infos) {
+    const model::PushConstantInfo& push_constant_info) {
   vector<VkPushConstantRange> ranges;
-  for (const auto& push_constant : push_constant_infos) {
-    for (const auto& info : push_constant.infos) {
-      ranges.emplace_back(VkPushConstantRange{
-          push_constant.shader_stage,
-          info.offset,
-          info.push_constant->size_per_frame(),
-      });
-    }
+  ranges.reserve(push_constant_info.infos.size());
+  for (const auto& info : push_constant_info.infos) {
+    ranges.emplace_back(VkPushConstantRange{
+        push_constant_info.shader_stage,
+        info.offset,
+        info.push_constant->size_per_frame(),
+    });
   }
   return ranges;
 }
@@ -180,8 +179,8 @@ ModelBuilder& ModelBuilder::add_uniform_buffer(UniformInfo&& info) {
   return *this;
 }
 
-ModelBuilder& ModelBuilder::add_push_constant(model::PushConstantInfo&& info) {
-  push_constant_infos_.emplace_back(info);
+ModelBuilder& ModelBuilder::set_push_constant(model::PushConstantInfo&& info) {
+  push_constant_info_ = info;
   return *this;
 }
 
@@ -266,7 +265,9 @@ std::unique_ptr<Model> ModelBuilder::Build() {
       .set_vertex_input(GetBindingDescriptions(bindings),
                         GetAttributeDescriptions(attributes))
       .set_layout({descriptors[0][0]->layout()},
-                  CreatePushConstantRanges(push_constant_infos_));
+                  push_constant_info_.has_value()
+                      ? CreatePushConstantRanges(push_constant_info_.value())
+                      : vector<VkPushConstantRange>{});
 
   instancing_infos_.clear();
   uniform_infos_.clear();
@@ -277,7 +278,7 @@ std::unique_ptr<Model> ModelBuilder::Build() {
   model->shader_infos_ = std::move(shader_infos_);
   model->vertex_buffer_ = std::move(vertex_buffer_);
   model->per_instance_buffers_ = std::move(per_instance_buffers);
-  model->push_constant_infos_ = std::move(push_constant_infos_);
+  model->push_constant_info_ = std::move(push_constant_info_);
   model->shared_textures_ = std::move(shared_textures_);
   model->mesh_textures_ = std::move(mesh_textures_);
   model->descriptors_ = std::move(descriptors);
@@ -317,10 +318,11 @@ void Model::Draw(const VkCommandBuffer& command_buffer,
     per_instance_buffers_[i]->Bind(command_buffer,
                                    kPerInstanceBindingPointBase + i);
   }
-  for (const auto& push_constant : push_constant_infos_) {
-    for (const auto& info : push_constant.infos) {
-      info.push_constant->Flush(command_buffer, pipeline_->layout(),
-                                frame, info.offset, push_constant.shader_stage);
+  if (push_constant_info_.has_value()) {
+    for (const auto& info : push_constant_info_.value().infos) {
+      info.push_constant->Flush(
+          command_buffer, pipeline_->layout(), frame, info.offset,
+          push_constant_info_.value().shader_stage);
     }
   }
   for (int mesh_index = 0; mesh_index < mesh_textures_.size(); ++mesh_index) {

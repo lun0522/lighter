@@ -249,9 +249,9 @@ class PerInstanceBuffer : public VertexBuffer {
 // onto a large text texture), these chunks may store data for different meshes.
 // For rendering multiple frames (which is more general), all chunks can be used
 // for one mesh, and each chunk used for one frame.
-// The user should use 'data()' to update the data on the host, and then call
-// 'Flush()' to send it to the device. This buffer will be visible to the host,
-// and we don't use the staging buffer.
+// The user should use 'HostData()' to update the data on the host, and then
+// call 'Flush()' to send it to the device. This buffer will be visible to the
+// host, and we don't use the staging buffer.
 class UniformBuffer : public DataBuffer {
  public:
   UniformBuffer(SharedBasicContext context, size_t chunk_size, int num_chunk);
@@ -387,7 +387,6 @@ class MultisampleBuffer : public ImageBuffer {
   MultisampleBuffer& operator=(const MultisampleBuffer&) = delete;
 };
 
-// TODO: Control total size of pushing constants per pipeline.
 // Holds a small amount of data that can be modified per-frame efficiently.
 // To make it flexible, the user may use one chunk of memory for each frame,
 // just like the uniform buffer. What is different is that this data does not

@@ -174,7 +174,7 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
           .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
                        GetShaderPath("vulkan/planet.frag.spv")})
           .add_uniform_buffer({light_uniform_.get(), light_desc_info})
-          .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
+          .set_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
                               {{planet_constant_.get(), /*offset=*/0}}})
           .Build();
 
@@ -209,7 +209,7 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
                            static_cast<uint32_t>(sizeof(Asteroid)),
                            per_asteroid_data_.get()})
           .add_uniform_buffer({light_uniform_.get(), light_desc_info})
-          .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
+          .set_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
                               {{planet_constant_.get(), /*offset=*/0}}})
           .Build();
 
@@ -234,7 +234,7 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
                        GetShaderPath("vulkan/skybox.vert.spv")})
           .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
                        GetShaderPath("vulkan/skybox.frag.spv")})
-          .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
+          .set_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
                               {{skybox_constant_.get(), /*offset=*/0}}})
           .Build();
 }

@@ -8,8 +8,11 @@
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
 
 #include <memory>
+#include <numeric>
 
 #include "absl/memory/memory.h"
+#include "absl/strings/str_format.h"
+#include "absl/strings/str_join.h"
 #include "jessie_steamer/common/file.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
@@ -194,6 +197,22 @@ PipelineBuilder& PipelineBuilder::set_vertex_input(
 PipelineBuilder& PipelineBuilder::set_layout(
     vector<VkDescriptorSetLayout>&& descriptor_layouts,
     vector<VkPushConstantRange>&& push_constant_ranges) {
+  // First make sure we don't try to push more than 128 bytes in this pipeline.
+  vector<int> push_constant_sizes(push_constant_ranges.size());
+  for (int i = 0; i < push_constant_ranges.size(); ++i) {
+    push_constant_sizes[i] = push_constant_ranges[i].size;
+  }
+  const int total_push_constant_size = static_cast<int>(std::accumulate(
+      push_constant_sizes.begin(), push_constant_sizes.end(), 0));
+  if (total_push_constant_size > kMaxPushConstantSize) {
+    FATAL(absl::StrFormat(
+        "Pushing constant of total size %d bytes in the pipeline (break down: "
+        "%s). To be compatible with all devices, the total size should not be "
+        "greater than %d bytes.",
+        total_push_constant_size, absl::StrJoin(push_constant_sizes, " "),
+        kMaxPushConstantSize));
+  }
+
   descriptor_layouts_ = std::move(descriptor_layouts);
   push_constant_ranges_ = std::move(push_constant_ranges);
   layout_info_.emplace(VkPipelineLayoutCreateInfo{

@@ -100,7 +100,7 @@ CubeApp::CubeApp() : Application{"Cube", WindowContext::Config{}} {
                        GetShaderPath("vulkan/simple_3d.vert.spv")})
           .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
                        GetShaderPath("vulkan/simple_3d.frag.spv")})
-          .add_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
+          .set_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
                               {{push_constant_.get(), /*offset=*/0}}})
           .Build();
 

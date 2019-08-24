@@ -34,7 +34,12 @@ this is how we build and run from command line:
 
 `bazel build -c opt --copt=-DUSE_VULKAN //jessie_steamer/application/vulkan:cube`
 
-# 1. Common modules (common/)
+This README introduces the modules we created, and the decisions we made when we
+design the structure. The usage of each class is put right before the class
+definition in the header file. Applications under the jessie_steamer/application
+folder are good examples of how to use these classes to render simple scenes.
+
+# 1. Common modules (jessie_steamer/common/)
 
 ## 1.1 Camera (camera)
 
@@ -50,9 +55,9 @@ this is how we build and run from command line:
 
 ## 1.7 Window manager (window)
 
-# 2. OpenGL wrappers (wrapper/opengl/)
+# 2. OpenGL wrappers (jessie_steamer/wrapper/opengl/)
 
-# 3. Vulkan wrappers (wrapper/vulkan/)
+# 3. Vulkan wrappers (jessie_steamer/wrapper/vulkan/)
 
 ## 3.1 Contexts (basic_context, basic_object and window_context)
 
@@ -179,29 +184,25 @@ window size. We might find a better way to wrap them.
 
 ![](https://docs.google.com/uc?id=1uVO1xYuN5EX2tBtQ-Yxb44eFEsVMRW7g)
 
-#### 3.2.1.1 **UniformBuffer** and **PushConstant**
-
 (**PushConstant** is not shown in the inheritance graph, since it does not own
 an underlying buffer object.)
 
+#### 3.2.1.1 **UniformBuffer** and **PushConstant**
+
 Both of them are used to pass uniform data. When constructed, both of them will
-allocate memory on both host and device. The user should call `HostData()` to
-get a pointer to the host data, populate the data and call `Flush()` to send it
-to the device.
+allocate memory on both host and device. Before rendering a frame, the user
+should acquire a pointer to the host data, populate it and flush to the device.
 
 According to [Vulkan specification](https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap36.html#limits-minmax),
 to be compatible of all devices, we only allow **PushConstant** to have at most
-128 bytes for each frame. However, it is possible to push more than 128 bytes to
-one graphics pipeline using multiple instances of **PushConstant**. We expect
-the user to refrain from doing that, and we currently cannot detect whether it
-really happens. We might find a better way to enforce the size limit.
+128 bytes for each frame. Besides, since it is possible to push constant to one
+graphics pipeline using multiple instances of **PushConstant**, we also check
+the total size in **Pipeline** to make sure it is still no more than 128 bytes.
 
 #### 3.2.1.2 **StaticPerVertexBuffer** and **DynamicPerVertexBuffer**
 
 **StaticPerVertexBuffer** is more commonly use, which stores vertex data that
-does not change once constructed. The data will be sent to it via the staging
-buffer during construction, so that the final vertex buffer can be made only
-visible to the device, to provide the most efficient data access.
+does not change once constructed.
 
 **DynamicPerVertexBuffer** provides a buffer to which we can send different data
 of different size before each render call. The buffer tracks the current size of
@@ -209,8 +210,7 @@ itself. If we try to send data whose size is larger than the current buffer
 size, it will create a new buffer internally. Otherwise, it reuses the old
 buffer. For example, when we want to display the frame rate per-second, we need
 to render one rectangle for each digit, but the digits and the number of digits
-may always change, so we can take advantage of this buffer. We don't use the
-staging buffer since it is dynamic.
+may always change, so we can take advantage of this buffer.
 
 These two buffers are usually managed by high-level wrappers (model renderer and
 text renderer), and the user may not need to directly instantiate them.
@@ -256,7 +256,7 @@ need to directly instantiate them.
 
 ### 3.3.2 Text renderer (text and text_util)
 
-# 4. Applications
+# 4. Applications (jessie_steamer/application/)
 
 ## 4.1 Cube scene (cube)
 

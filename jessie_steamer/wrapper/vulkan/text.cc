@@ -130,10 +130,10 @@ StaticText::StaticText(SharedBasicContext context,
                        Font font, int font_height)
     : Text{std::move(context), num_frame},
       text_loader_{context_, texts, font, font_height} {
+  descriptors_.reserve(num_frame);
   push_descriptors_.reserve(num_frame);
 
   const auto& descriptor_infos = CreateDescriptorInfos();
-  descriptors_.reserve(num_frame);
   for (int frame = 0; frame < num_frame; ++frame) {
     descriptors_.emplace_back(
         absl::make_unique<DynamicDescriptor>(context_, descriptor_infos));

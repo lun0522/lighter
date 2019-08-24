@@ -70,7 +70,7 @@ class Model {
   std::vector<PipelineBuilder::ShaderInfo> shader_infos_;
   std::unique_ptr<StaticPerVertexBuffer> vertex_buffer_;
   std::vector<const PerInstanceBuffer*> per_instance_buffers_;
-  std::vector<model::PushConstantInfo> push_constant_infos_;
+  absl::optional<model::PushConstantInfo> push_constant_info_;
   model::TexPerMesh shared_textures_;
   std::vector<model::TexPerMesh> mesh_textures_;
   std::vector<std::vector<std::unique_ptr<StaticDescriptor>>> descriptors_;
@@ -131,7 +131,7 @@ class ModelBuilder {
   ModelBuilder& add_shader(PipelineBuilder::ShaderInfo&& info);
   ModelBuilder& add_instancing(InstancingInfo&& info);
   ModelBuilder& add_uniform_buffer(UniformInfo&& info);
-  ModelBuilder& add_push_constant(model::PushConstantInfo&& info);
+  ModelBuilder& set_push_constant(model::PushConstantInfo&& info);
   ModelBuilder& add_shared_texture(model::ResourceType type,
                                    const TextureBinding& binding);
 
@@ -147,7 +147,7 @@ class ModelBuilder {
   std::unique_ptr<StaticPerVertexBuffer> vertex_buffer_;
   std::vector<InstancingInfo> instancing_infos_;
   std::vector<UniformInfo> uniform_infos_;
-  std::vector<model::PushConstantInfo> push_constant_infos_;
+  absl::optional<model::PushConstantInfo> push_constant_info_;
   BindingPointMap binding_map_;
   model::TexPerMesh shared_textures_;
   std::vector<model::TexPerMesh> mesh_textures_;
