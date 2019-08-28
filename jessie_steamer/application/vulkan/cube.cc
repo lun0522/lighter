@@ -43,10 +43,8 @@ constexpr auto kMultisamplingMode = MultisampleImage::Mode::kEfficient;
 
 enum class SubpassIndex : int { kModel = 0, kText, kNumSubpass };
 
-// alignment requirement:
-// https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
 struct Transformation {
-  alignas(16) glm::mat4 proj_view_model;
+  ALIGN_MAT4 glm::mat4 proj_view_model;
 };
 
 class CubeApp : public Application {

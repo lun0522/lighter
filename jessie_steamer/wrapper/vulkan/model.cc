@@ -55,10 +55,10 @@ void CreateTextureInfo(const ModelBuilder::BindingPointMap& binding_map,
       vector<VkDescriptorImageInfo> descriptor_infos{};
       descriptor_infos.reserve(num_texture);
       for (const auto& texture : mesh_textures[type]) {
-        descriptor_infos.emplace_back(texture->descriptor_info());
+        descriptor_infos.emplace_back(texture->GetDescriptorInfo());
       }
       for (const auto& texture : shared_textures[type]) {
-        descriptor_infos.emplace_back(texture->descriptor_info());
+        descriptor_infos.emplace_back(texture->GetDescriptorInfo());
       }
 
       texture_bindings.emplace_back(Descriptor::Info::Binding{

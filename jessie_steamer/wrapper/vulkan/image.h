@@ -9,6 +9,7 @@
 #define JESSIE_STEAMER_WRAPPER_VULKAN_IMAGE_H
 
 #include <array>
+#include <memory>
 
 #include "absl/types/variant.h"
 #include "jessie_steamer/common/ref_count.h"
@@ -21,47 +22,10 @@ namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
-/** VkImage represents multidimensional data in the swapchain. They can be
- *    color/depth/stencil attachments, textures, etc. The exact purpose
- *    is not specified until we create an image view. For texture images, we use
- *    staging buffers to transfer data to the actual storage. During this
- *    process, the image layout wil change from UNDEFINED (since it may have
- *    very different layouts when it is on host, which makes it unusable for
- *    device) to TRANSFER_DST_OPTIMAL (so that we can transfer data from the
- *    staging buffer to it), and eventually to SHADER_READ_ONLY_OPTIMAL (optimal
- *    for device access).
- *
- *  Initialization:
- *    VkDevice
- *    VkSwapchainKHR
- *
- *------------------------------------------------------------------------------
- *
- *  VkImageView determines how to access and what part of images to access.
- *    We might convert the image format on the fly with it.
- *
- *  Initialization:
- *    VkDevice
- *    Image referenced by it
- *    View type (1D, 2D, 3D, cube, etc.)
- *    Format of the image
- *    Whether and how to remap RGBA channels
- *    Purpose of the image (color, depth, stencil, etc)
- *    Set of mipmap levels and array layers to be accessible
- *
- *------------------------------------------------------------------------------
- *
- *  VkSampler configures how do we sample and filter images.
- *
- *  Initialization:
- *    Minification/magnification filter mode (either nearest or linear)
- *    Mipmap mode (either nearest or linear)
- *    Address mode for u/v/w ([mirror] repeat, [mirror] clamp to edge/border)
- *    Mipmap setting (bias/min/max/compare op)
- *    Anisotropy filter setting (enable or not/max amount of samples)
- *    Border color
- *    Use image coordinates or normalized coordinates
- */
+// This is the base class of all image classes. The user should use it through
+// derived classes. Since all images need VkImageView, which configures how do
+// we interpret the multidimensional data stored with VkImage, it will be held
+// and destroyed by this base class, and initialized by derived classes.
 class Image {
  public:
   virtual ~Image() {
@@ -69,6 +33,7 @@ class Image {
                        *context_->allocator());
   }
 
+  // Accessors.
   const VkImageView& image_view() const { return image_view_; }
   const VkExtent2D& extent() const { return extent_; }
   VkFormat format() const { return format_; }
@@ -77,18 +42,33 @@ class Image {
   Image(SharedBasicContext context, const VkExtent2D& extent, VkFormat format)
       : context_{std::move(context)}, extent_{extent}, format_{format} {}
 
+  // Pointer to context.
   SharedBasicContext context_;
+
+  // Opaque image view object.
   VkImageView image_view_;
+
+  // Image extent.
   const VkExtent2D extent_;
+
+  // Image format.
   const VkFormat format_;
 };
 
+// Interface of images that can be sampled.
 class SamplableImage {
  public:
   virtual ~SamplableImage() = default;
-  virtual VkDescriptorImageInfo descriptor_info() const = 0;
+
+  // Returns an instance of VkDescriptorImageInfo with which we can update
+  // descriptor sets.
+  virtual VkDescriptorImageInfo GetDescriptorInfo() const = 0;
 };
 
+// This class creates a texture image resource on the device, and generates
+// mipmaps if requested.
+// If the image is loaded from a file, the user should not directly instantiate
+// this class, but use SharedTexture which avoids loading the same file twice.
 class TextureImage : public Image {
  public:
   TextureImage(SharedBasicContext context,
@@ -103,18 +83,28 @@ class TextureImage : public Image {
     vkDestroySampler(*context_->device(), sampler_, *context_->allocator());
   }
 
-  VkDescriptorImageInfo descriptor_info() const;
+  // Returns an instance of VkDescriptorImageInfo with which we can update
+  // descriptor sets.
+  VkDescriptorImageInfo GetDescriptorInfo() const;
 
  private:
+  // Image buffer.
   TextureBuffer buffer_;
+
+  // Image sampler.
   VkSampler sampler_;
 };
 
+// This class references to a texture image on the device, which is reference
+// counted. Texture images in the internal resource pool are identified by a
+// string. For single images, the file path will be used as identifier, while
+// for cubemaps, the directory will be used as identifier. The user may create
+// multiple instance of this class with the same path, and they will reference
+// to the same resource in the pool.
 class SharedTexture : public SamplableImage {
  public:
-  // Textures will be put in a unified resource pool. For single images, its
-  // file path will be used as identifier; for cubemaps, its directory will be
-  // used as identifier.
+  // The user should either provide one file path for a single image, or a
+  // directory with 6 relative paths for a cubemap.
   using SingleTexPath = std::string;
   struct CubemapPath {
     std::string directory;
@@ -130,18 +120,25 @@ class SharedTexture : public SamplableImage {
   SharedTexture(SharedTexture&&) = default;
   SharedTexture& operator=(SharedTexture&&) = default;
 
-  VkDescriptorImageInfo descriptor_info() const override {
-    return texture_->descriptor_info();
+  // Overrides.
+  VkDescriptorImageInfo GetDescriptorInfo() const override {
+    return texture_->GetDescriptorInfo();
   }
 
  private:
   using RefCountedTexture = common::RefCountedObject<TextureImage>;
+
+  // Returns a reference to a reference counted texture image. If this image has
+  // no other holder, it will be loaded from the file. Otherwise, this returns
+  // a reference to an existing resource on the device.
   static RefCountedTexture GetTexture(SharedBasicContext context,
                                       const SourcePath& source_path);
 
+  // Reference counted texture image.
   RefCountedTexture texture_;
 };
 
+// This class creates an image that can be used as off-screen rendering target.
 class OffscreenImage : public Image {
  public:
   OffscreenImage(SharedBasicContext context,
@@ -155,31 +152,41 @@ class OffscreenImage : public Image {
     vkDestroySampler(*context_->device(), sampler_, *context_->allocator());
   }
 
-  VkDescriptorImageInfo descriptor_info() const;
+  // Returns an instance of VkDescriptorImageInfo with which we can update
+  // descriptor sets.
+  VkDescriptorImageInfo GetDescriptorInfo() const;
 
  private:
+  // Image buffer.
   OffscreenBuffer buffer_;
+
+  // Image sampler.
   VkSampler sampler_;
 };
 
 using OffscreenImagePtr = const OffscreenImage*;
+
+// This class internally holds a reference to an image for off-screen rendering.
+// Note that this is an unowned relationship, hence the user is responsible for
+// keeping the existence of the resource before done using this class.
 class UnownedOffscreenTexture : public SamplableImage {
  public:
   explicit UnownedOffscreenTexture(OffscreenImagePtr texture)
       : texture_{texture} {}
 
-  VkDescriptorImageInfo descriptor_info() const override {
-    return texture_->descriptor_info();
+  // Overrides.
+  VkDescriptorImageInfo GetDescriptorInfo() const override {
+    return texture_->GetDescriptorInfo();
   }
 
  private:
-  OffscreenImagePtr texture_;
+  // Pointer to image.
+  const OffscreenImagePtr texture_;
 };
 
+// This class creates an image that can be used as depth stencil attachment.
 class DepthStencilImage : public Image {
  public:
-  static VkFormat GetDepthStencilImageFormat(const SharedBasicContext& context);
-
   DepthStencilImage(const SharedBasicContext& context,
                     const VkExtent2D& extent);
 
@@ -188,9 +195,12 @@ class DepthStencilImage : public Image {
   DepthStencilImage& operator=(const DepthStencilImage&) = delete;
 
  private:
+  // Image buffer.
   DepthStencilBuffer buffer_;
 };
 
+// This class references to an existing swapchain image. The user is responsible
+// for keeping the existence of the swapchain before done using this class.
 class SwapchainImage : public Image {
  public:
   SwapchainImage(SharedBasicContext context,
@@ -202,30 +212,45 @@ class SwapchainImage : public Image {
   SwapchainImage& operator=(const SwapchainImage&) = delete;
 };
 
+// This class creates an image for multisampling.
 class MultisampleImage : public Image {
  public:
-  enum class Mode { kBestEffect, kEfficient };
+  // Multisampling modes that determines the quality of rendering.
+  enum class Mode {
+    // Use "just OK" number of sampling points. This is set to 4 internally.
+    kEfficient,
+    // Use the largest number of sampling points that can be supported by the
+    // physical device. We will pay price in performance for better effects.
+    kBestEffect,
+  };
 
+  // Returns a multisampling image for a regular color image 'target_image'.
   static std::unique_ptr<MultisampleImage> CreateColorMultisampleImage(
       SharedBasicContext context,
       const Image& target_image, Mode mode);
 
+  // Returns a multisampling image that can be used as depth stencil attachment.
+  // Note that we don't need to resolve this image to another regular image.
   static std::unique_ptr<MultisampleImage> CreateDepthStencilMultisampleImage(
       SharedBasicContext context,
       const VkExtent2D& extent, Mode mode);
-
-  MultisampleImage(SharedBasicContext context,
-                   const VkExtent2D& extent, VkFormat format,
-                   Mode mode, MultisampleBuffer::Type type);
 
   // This class is neither copyable nor movable.
   MultisampleImage(const MultisampleImage&) = delete;
   MultisampleImage& operator=(const MultisampleImage&) = delete;
 
+  // Accessors.
   VkSampleCountFlagBits sample_count() const { return sample_count_; }
 
  private:
+  MultisampleImage(SharedBasicContext context,
+                   const VkExtent2D& extent, VkFormat format,
+                   Mode mode, MultisampleBuffer::Type type);
+
+  // Number of samples per pixel.
   const VkSampleCountFlagBits sample_count_;
+
+  // Image buffer.
   MultisampleBuffer buffer_;
 };
 

@@ -16,6 +16,11 @@
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/window_context.h"
 
+// Alignment requirement:
+// https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
+#define ALIGN_MAT4 alignas(16)
+#define ALIGN_VEC4 alignas(16)
+
 namespace jessie_steamer {
 namespace application {
 namespace vulkan {

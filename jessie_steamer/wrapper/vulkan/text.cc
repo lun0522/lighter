@@ -148,7 +148,8 @@ StaticText::StaticText(SharedBasicContext context,
               command_buffer, pipeline_layout,
               VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
               {{static_cast<int>(BindingPoint::kTexture),
-                {text_loader_.texture(text_index).image->descriptor_info()}}});
+                {text_loader_.texture(text_index).image
+                     ->GetDescriptorInfo()}}});
         });
   }
 
@@ -200,7 +201,7 @@ DynamicText::DynamicText(SharedBasicContext context,
   const auto& descriptor_infos = CreateDescriptorInfos();
   const Descriptor::ImageInfos image_infos{
       {static_cast<int>(BindingPoint::kTexture),
-       {char_loader_.texture()->descriptor_info()}},
+       {char_loader_.texture()->GetDescriptorInfo()}},
   };
 
   descriptors_.reserve(num_frame);

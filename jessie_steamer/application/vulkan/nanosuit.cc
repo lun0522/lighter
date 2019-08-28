@@ -41,21 +41,19 @@ using common::file::GetShaderPath;
 constexpr int kNumFrameInFlight = 2;
 constexpr auto kMultisamplingMode = MultisampleImage::Mode::kEfficient;
 
-// alignment requirement:
-// https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
 struct NanosuitVertTrans {
-  alignas(16) glm::mat4 view_model;
-  alignas(16) glm::mat4 proj_view_model;
-  alignas(16) glm::mat4 view_model_inv_trs;
+  ALIGN_MAT4 glm::mat4 view_model;
+  ALIGN_MAT4 glm::mat4 proj_view_model;
+  ALIGN_MAT4 glm::mat4 view_model_inv_trs;
 };
 
 struct NanosuitFragTrans {
-  alignas(16) glm::mat4 view_inv;
+  ALIGN_MAT4 glm::mat4 view_inv;
 };
 
 struct SkyboxTrans {
-  alignas(16) glm::mat4 proj;
-  alignas(16) glm::mat4 view;
+  ALIGN_MAT4 glm::mat4 proj;
+  ALIGN_MAT4 glm::mat4 view;
 };
 
 class NanosuitApp : public Application {

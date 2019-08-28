@@ -262,7 +262,7 @@ CharLoader::CharLoader(SharedBasicContext context,
               /*image_infos=*/{
                   {kImageBindingPoint,
                    {char_textures.char_image_map[char_merge_order[i]]
-                        ->descriptor_info()}},
+                        ->GetDescriptorInfo()}},
               });
           vertex_buffer->Draw(command_buffer, /*mesh_index=*/i,
               /*instance_count=*/1);
@@ -400,7 +400,7 @@ TextLoader::TextTexture TextLoader::CreateTextTexture(
                                  /*flip_y=*/true, vertex_buffer);
 
   descriptor->UpdateImageInfos(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, {
-      {kImageBindingPoint, {char_loader.texture()->descriptor_info()}},
+      {kImageBindingPoint, {char_loader.texture()->GetDescriptorInfo()}},
   });
 
   auto render_pass = BuildRenderPass(

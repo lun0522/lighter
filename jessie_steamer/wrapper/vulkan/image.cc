@@ -9,7 +9,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <memory>
 #include <vector>
 
 #include "absl/memory/memory.h"
@@ -50,6 +49,14 @@ VkFormat FindImageFormatWithFeature(const SharedBasicContext& context,
   FATAL("Failed to find suitable image type");
 }
 
+// Returns the image format to use for a depth stencil image.
+VkFormat FindDepthStencilImageFormat(const SharedBasicContext& context) {
+  return FindImageFormatWithFeature(
+      context,
+      {VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT_S8_UINT},
+      VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+}
+
 VkSampleCountFlagBits GetMaxSampleCount(VkSampleCountFlags count_flag) {
   for (auto count : {VK_SAMPLE_COUNT_64_BIT,
                      VK_SAMPLE_COUNT_32_BIT,
@@ -74,10 +81,10 @@ VkSampleCountFlagBits ChooseSampleCount(const VkPhysicalDeviceLimits& limits,
   const VkSampleCountFlagBits max_sample_count =
       GetMaxSampleCount(sample_count_flag);
   switch (mode) {
-    case MultisampleImage::Mode::kBestEffect:
-      return max_sample_count;
     case MultisampleImage::Mode::kEfficient:
       return std::min(VK_SAMPLE_COUNT_4_BIT, max_sample_count);
+    case MultisampleImage::Mode::kBestEffect:
+      return max_sample_count;
   }
 }
 
@@ -174,7 +181,7 @@ TextureImage::TextureImage(SharedBasicContext context,
                                 /*layer_count=*/CONTAINER_SIZE(info.datas));
 }
 
-VkDescriptorImageInfo TextureImage::descriptor_info() const {
+VkDescriptorImageInfo TextureImage::GetDescriptorInfo() const {
   return VkDescriptorImageInfo{
       sampler_,
       image_view_,
@@ -241,7 +248,7 @@ OffscreenImage::OffscreenImage(SharedBasicContext context,
                                 kSingleMipLevel, kSingleImageLayer);
 }
 
-VkDescriptorImageInfo OffscreenImage::descriptor_info() const {
+VkDescriptorImageInfo OffscreenImage::GetDescriptorInfo() const {
   return VkDescriptorImageInfo{
       sampler_,
       image_view_,
@@ -249,17 +256,9 @@ VkDescriptorImageInfo OffscreenImage::descriptor_info() const {
   };
 }
 
-VkFormat DepthStencilImage::GetDepthStencilImageFormat(
-    const SharedBasicContext& context) {
-  return FindImageFormatWithFeature(
-      context,
-      {VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT_S8_UINT},
-      VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-}
-
 DepthStencilImage::DepthStencilImage(const SharedBasicContext& context,
                                      const VkExtent2D& extent)
-    : Image{context, extent, GetDepthStencilImageFormat(context)},
+    : Image{context, extent, FindDepthStencilImageFormat(context)},
       buffer_{context_, extent_, format_} {
   image_view_ = CreateImageView(context_, buffer_.image(), format_,
                                 VK_IMAGE_ASPECT_DEPTH_BIT
@@ -279,19 +278,20 @@ SwapchainImage::SwapchainImage(SharedBasicContext context,
 std::unique_ptr<MultisampleImage> MultisampleImage::CreateColorMultisampleImage(
     SharedBasicContext context,
     const Image& target_image, Mode mode) {
-  return absl::make_unique<MultisampleImage>(
-      std::move(context), target_image.extent(), target_image.format(),
-      mode, MultisampleBuffer::Type::kColor);
+  return std::unique_ptr<MultisampleImage>(
+      new MultisampleImage{std::move(context), target_image.extent(),
+                           target_image.format(),
+                           mode, MultisampleBuffer::Type::kColor});
 }
 
 std::unique_ptr<MultisampleImage>
 MultisampleImage::CreateDepthStencilMultisampleImage(
     SharedBasicContext context,
     const VkExtent2D& extent, Mode mode) {
-  VkFormat format = DepthStencilImage::GetDepthStencilImageFormat(context);
-  return absl::make_unique<MultisampleImage>(
-      std::move(context), extent, format,
-      mode, MultisampleBuffer::Type::kDepthStencil);
+  const VkFormat format = FindDepthStencilImageFormat(context);
+  return std::unique_ptr<MultisampleImage>(
+      new MultisampleImage{std::move(context), extent, format,
+                           mode, MultisampleBuffer::Type::kDepthStencil});
 }
 
 MultisampleImage::MultisampleImage(

@@ -51,23 +51,9 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   // Returns a new instance of BasicContext.
   template <typename... Args>
   static SharedBasicContext GetContext(Args&&... args) {
-    return std::make_shared<BasicContext>(std::forward<Args>(args)...);
+    return std::shared_ptr<BasicContext>(
+        new BasicContext{std::forward<Args>(args)...});
   }
-
-  // This is made public only because 'std::make_shared' needs access.
-  explicit BasicContext(
-      const absl::optional<WindowSupport>& window_support
-#ifndef NDEBUG
-      , const DebugCallback::TriggerCondition& debug_callback_trigger
-#endif /* !NDEBUG */
-  )
-      : instance_{this, window_support},
-#ifndef NDEBUG
-        debug_callback_{this, debug_callback_trigger},
-#endif /* !NDEBUG */
-        physical_device_{this, window_support},
-        device_{this, window_support},
-        queues_{*this, queue_family_indices()} {}
 
   // This class is neither copyable nor movable.
   BasicContext(const BasicContext&) = delete;
@@ -114,6 +100,20 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   const Queues& queues() const { return queues_; }
 
  private:
+  explicit BasicContext(
+      const absl::optional<WindowSupport>& window_support
+#ifndef NDEBUG
+      , const DebugCallback::TriggerCondition& debug_callback_trigger
+#endif /* !NDEBUG */
+  )
+      : instance_{this, window_support},
+#ifndef NDEBUG
+        debug_callback_{this, debug_callback_trigger},
+#endif /* !NDEBUG */
+        physical_device_{this, window_support},
+        device_{this, window_support},
+        queues_{*this, queue_family_indices()} {}
+
   // Wrapper of VkAllocationCallbacks.
   const HostMemoryAllocator allocator_;
 

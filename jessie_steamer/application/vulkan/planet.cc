@@ -45,20 +45,18 @@ constexpr int kNumFrameInFlight = 2;
 constexpr int kNumAsteroidRing = 3;
 constexpr auto kMultisamplingMode = MultisampleImage::Mode::kEfficient;
 
-// alignment requirement:
-// https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
 struct Light {
-  alignas(16) glm::vec4 direction_time;
+  ALIGN_VEC4 glm::vec4 direction_time;
 };
 
 struct PlanetTrans {
-  alignas(16) glm::mat4 model;
-  alignas(16) glm::mat4 proj_view;
+  ALIGN_MAT4 glm::mat4 model;
+  ALIGN_MAT4 glm::mat4 proj_view;
 };
 
 struct SkyboxTrans {
-  alignas(16) glm::mat4 proj;
-  alignas(16) glm::mat4 view;
+  ALIGN_MAT4 glm::mat4 proj;
+  ALIGN_MAT4 glm::mat4 view;
 };
 
 struct Asteroid {

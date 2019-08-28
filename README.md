@@ -59,7 +59,7 @@ folder are good examples of how to use these classes to render simple scenes.
 
 # 3. Vulkan wrappers (jessie_steamer/wrapper/vulkan/)
 
-## 3.1 Contexts (basic_context, basic_object and window_context)
+## 3.1 Contexts (basic_context, basic_object, validation and window_context)
 
 This project was first built following the [Vulkan tutorial by Alexander Overvoorde](https://vulkan-tutorial.com).
 It is an amazing tutorial, but it has also sacrificed something to be an amazing
@@ -241,6 +241,8 @@ need to directly instantiate them.
 ### 3.2.4 Image (image)
 
 ![](https://docs.google.com/uc?id=1v3dHjXWTJbwLQKYgqk67zHxHcUAuxWqr)
+
+![](https://docs.google.com/uc?id=1Q4wvHWjwxGHfFvaUvIhQgmZ-ykuehdZQ)
 
 ### 3.2.5 Pipeline (pipeline)
 
