@@ -11,6 +11,7 @@
 #include <array>
 #include <memory>
 
+#include "absl/types/optional.h"
 #include "absl/types/variant.h"
 #include "jessie_steamer/common/ref_count.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
@@ -37,6 +38,9 @@ class Image {
   const VkImageView& image_view() const { return image_view_; }
   const VkExtent2D& extent() const { return extent_; }
   VkFormat format() const { return format_; }
+  virtual VkSampleCountFlagBits sample_count() const {
+    return VK_SAMPLE_COUNT_1_BIT;
+  }
 
  protected:
   Image(SharedBasicContext context, const VkExtent2D& extent, VkFormat format)
@@ -96,11 +100,12 @@ class TextureImage : public Image {
 };
 
 // This class references to a texture image on the device, which is reference
-// counted. Texture images in the internal resource pool are identified by a
+// counted. The texture image in the internal resource pool is identified by a
 // string. For single images, the file path will be used as identifier, while
 // for cubemaps, the directory will be used as identifier. The user may create
-// multiple instance of this class with the same path, and they will reference
+// multiple instances of this class with the same path, and they will reference
 // to the same resource in the pool.
+// Mipmaps will be generated for single images, not for cubemaps.
 class SharedTexture : public SamplableImage {
  public:
   // The user should either provide one file path for a single image, or a
@@ -172,7 +177,9 @@ using OffscreenImagePtr = const OffscreenImage*;
 class UnownedOffscreenTexture : public SamplableImage {
  public:
   explicit UnownedOffscreenTexture(OffscreenImagePtr texture)
-      : texture_{texture} {}
+      : texture_{texture} {
+    ASSERT_NON_NULL(texture_, "Texture pointer cannot be nullptr");
+  }
 
   // Overrides.
   VkDescriptorImageInfo GetDescriptorInfo() const override {
@@ -215,7 +222,7 @@ class SwapchainImage : public Image {
 // This class creates an image for multisampling.
 class MultisampleImage : public Image {
  public:
-  // Multisampling modes that determines the quality of rendering.
+  // Multisampling modes that determine the quality of rendering.
   enum class Mode {
     // Use "just OK" number of sampling points. This is set to 4 internally.
     kEfficient,
@@ -235,17 +242,29 @@ class MultisampleImage : public Image {
       SharedBasicContext context,
       const VkExtent2D& extent, Mode mode);
 
+  // Convenient function for creating a depth stencil image. Whether the image
+  // is a multisampling image depends on whether 'mode' has value.
+  // Since we don't need to resolve multisampling depth stencil images, we can
+  // directly use whatever image returned by this function.
+  static std::unique_ptr<Image> CreateDepthStencilImage(
+      SharedBasicContext context,
+      const VkExtent2D& extent, const absl::optional<Mode>& mode);
+
   // This class is neither copyable nor movable.
   MultisampleImage(const MultisampleImage&) = delete;
   MultisampleImage& operator=(const MultisampleImage&) = delete;
 
   // Accessors.
-  VkSampleCountFlagBits sample_count() const { return sample_count_; }
+  VkSampleCountFlagBits sample_count() const override { return sample_count_; }
 
  private:
   MultisampleImage(SharedBasicContext context,
                    const VkExtent2D& extent, VkFormat format,
                    Mode mode, MultisampleBuffer::Type type);
+
+  // Returns the number of samples per pixel chosen according to 'mode' and
+  // physical device limits.
+  VkSampleCountFlagBits ChooseSampleCount(Mode mode);
 
   // Number of samples per pixel.
   const VkSampleCountFlagBits sample_count_;

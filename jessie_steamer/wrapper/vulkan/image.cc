@@ -8,7 +8,6 @@
 #include "jessie_steamer/wrapper/vulkan/image.h"
 
 #include <algorithm>
-#include <cmath>
 #include <vector>
 
 #include "absl/memory/memory.h"
@@ -23,7 +22,9 @@ namespace {
 
 using std::vector;
 
-VkFormat FindImageFormatWithChannel(int channel) {
+// Returns the image format to use for a color image given number of 'channel'.
+// Only 1 or 4 channels are supported.
+VkFormat FindColorImageFormat(int channel) {
   switch (channel) {
     case 1:
       return VK_FORMAT_R8_UNORM;
@@ -35,6 +36,8 @@ VkFormat FindImageFormatWithChannel(int channel) {
   }
 }
 
+// Returns image format with specified 'features', and throws a runtime
+// exception if not found.
 VkFormat FindImageFormatWithFeature(const SharedBasicContext& context,
                                     const vector<VkFormat>& candidates,
                                     VkFormatFeatureFlags features) {
@@ -46,7 +49,7 @@ VkFormat FindImageFormatWithFeature(const SharedBasicContext& context,
       return format;
     }
   }
-  FATAL("Failed to find suitable image type");
+  FATAL("Failed to find suitable image format");
 }
 
 // Returns the image format to use for a depth stencil image.
@@ -57,37 +60,22 @@ VkFormat FindDepthStencilImageFormat(const SharedBasicContext& context) {
       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-VkSampleCountFlagBits GetMaxSampleCount(VkSampleCountFlags count_flag) {
+// Returns the maximum number of samples per pixel indicated by 'sample_counts'.
+VkSampleCountFlagBits GetMaxSampleCount(VkSampleCountFlags sample_counts) {
   for (auto count : {VK_SAMPLE_COUNT_64_BIT,
                      VK_SAMPLE_COUNT_32_BIT,
                      VK_SAMPLE_COUNT_16_BIT,
                      VK_SAMPLE_COUNT_8_BIT,
                      VK_SAMPLE_COUNT_4_BIT,
                      VK_SAMPLE_COUNT_2_BIT}) {
-    if (count_flag & count) {
+    if (sample_counts & count) {
       return count;
     }
   }
   FATAL("Multisampling is not supported by hardware");
 }
 
-VkSampleCountFlagBits ChooseSampleCount(const VkPhysicalDeviceLimits& limits,
-                                        MultisampleImage::Mode mode) {
-  const VkSampleCountFlags sample_count_flag = std::min({
-      limits.framebufferColorSampleCounts,
-      limits.framebufferDepthSampleCounts,
-      limits.framebufferStencilSampleCounts,
-  });
-  const VkSampleCountFlagBits max_sample_count =
-      GetMaxSampleCount(sample_count_flag);
-  switch (mode) {
-    case MultisampleImage::Mode::kEfficient:
-      return std::min(VK_SAMPLE_COUNT_4_BIT, max_sample_count);
-    case MultisampleImage::Mode::kBestEffect:
-      return max_sample_count;
-  }
-}
-
+// Creates an image view to specify the usage of image data.
 VkImageView CreateImageView(const SharedBasicContext& context,
                             const VkImage& image,
                             VkFormat format,
@@ -113,14 +101,14 @@ VkImageView CreateImageView(const SharedBasicContext& context,
       image,
       view_type,
       format,
-      // enable swizzling color channels around
+      // Swizzle color channels around.
       VkComponentMapping{
           VK_COMPONENT_SWIZZLE_IDENTITY,
           VK_COMPONENT_SWIZZLE_IDENTITY,
           VK_COMPONENT_SWIZZLE_IDENTITY,
           VK_COMPONENT_SWIZZLE_IDENTITY
       },
-      // specify image's purpose and which part to access
+      // Specify image's purpose and which part to access.
       VkImageSubresourceRange{
           image_aspect,
           /*baseMipLevel=*/0,
@@ -137,8 +125,10 @@ VkImageView CreateImageView(const SharedBasicContext& context,
   return image_view;
 }
 
+// Creates an image sampler.
 VkSampler CreateSampler(const SharedBasicContext& context,
                         int mip_levels) {
+  // 'mipLodBias', 'minLod' and 'maxLod' are used to control mipmapping.
   VkSamplerCreateInfo sampler_info{
       VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -149,13 +139,14 @@ VkSampler CreateSampler(const SharedBasicContext& context,
       /*addressModeU=*/VK_SAMPLER_ADDRESS_MODE_REPEAT,
       /*addressModeV=*/VK_SAMPLER_ADDRESS_MODE_REPEAT,
       /*addressModeW=*/VK_SAMPLER_ADDRESS_MODE_REPEAT,
-      /*mipLodBias=*/0.0f,  // use for mipmapping
+      /*mipLodBias=*/0.0f,
       /*anisotropyEnable=*/VK_TRUE,
-      /*maxAnisotropy=*/16,  // max amount of texel samples used for anisotropy
-      // may compare texels with a certain value and use result for filtering
+      // Max amount of texel samples used for anisotropy.
+      /*maxAnisotropy=*/16,
+      // May compare texels with a certain value and use result for filtering.
       /*compareEnable=*/VK_FALSE,
       /*compareOp=*/VK_COMPARE_OP_ALWAYS,
-      /*minLod=*/0.0f,  // use for mipmapping
+      /*minLod=*/0.0f,
       /*maxLod=*/static_cast<float>(mip_levels),
       /*borderColor=*/VK_BORDER_COLOR_INT_OPAQUE_BLACK,
       /*unnormalizedCoordinates=*/VK_FALSE,
@@ -191,21 +182,21 @@ VkDescriptorImageInfo TextureImage::GetDescriptorInfo() const {
 
 SharedTexture::RefCountedTexture SharedTexture::GetTexture(
     SharedBasicContext context, const SourcePath& source_path) {
-  using RawImage = std::unique_ptr<common::Image>;
-  using CubemapImage = std::array<RawImage, kCubemapImageCount>;
-  using SourceImage = absl::variant<RawImage, CubemapImage>;
+  using SingleImage = std::unique_ptr<common::Image>;
+  using CubemapImage = std::array<SingleImage, kCubemapImageCount>;
+  using SourceImage = absl::variant<SingleImage, CubemapImage>;
 
+  bool generate_mipmaps;
   const std::string* identifier;
   SourceImage source_image;
   const common::Image* sample_image;
   vector<const void*> datas;
-  bool generate_mipmaps;
 
   if (absl::holds_alternative<SingleTexPath>(source_path)) {
     generate_mipmaps = true;
     const auto& single_tex_path = absl::get<SingleTexPath>(source_path);
     identifier = &single_tex_path;
-    auto& image = source_image.emplace<RawImage>(
+    auto& image = source_image.emplace<SingleImage>(
         absl::make_unique<common::Image>(single_tex_path));
     sample_image = image.get();
     datas.emplace_back(image->data);
@@ -217,7 +208,7 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
     datas.resize(cubemap_path.files.size());
     for (int i = 0; i < cubemap_path.files.size(); ++i) {
       images[i] = absl::make_unique<common::Image>(absl::StrFormat(
-          "%s/%s", cubemap_path.directory,cubemap_path.files[i]));
+          "%s/%s", cubemap_path.directory, cubemap_path.files[i]));
       datas[i] = images[i]->data;
     }
     sample_image = images[0].get();
@@ -231,7 +222,7 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
       generate_mipmaps,
       TextureBuffer::Info{
           std::move(datas),
-          FindImageFormatWithChannel(sample_image->channel),
+          FindColorImageFormat(sample_image->channel),
           static_cast<uint32_t>(sample_image->width),
           static_cast<uint32_t>(sample_image->height),
           static_cast<uint32_t>(sample_image->channel),
@@ -240,7 +231,7 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
 
 OffscreenImage::OffscreenImage(SharedBasicContext context,
                                int channel, const VkExtent2D& extent)
-    : Image{std::move(context), extent, FindImageFormatWithChannel(channel)},
+    : Image{std::move(context), extent, FindColorImageFormat(channel)},
       buffer_{context_, extent_, format_},
       sampler_{CreateSampler(context_, kSingleMipLevel)} {
   image_view_ = CreateImageView(context_, buffer_.image(), format_,
@@ -294,13 +285,23 @@ MultisampleImage::CreateDepthStencilMultisampleImage(
                            mode, MultisampleBuffer::Type::kDepthStencil});
 }
 
+std::unique_ptr<Image> MultisampleImage::CreateDepthStencilImage(
+    SharedBasicContext context,
+    const VkExtent2D& extent, const absl::optional<Mode>& mode) {
+  if (mode.has_value()) {
+    return CreateDepthStencilMultisampleImage(std::move(context),
+                                              extent, mode.value());
+  } else {
+    return absl::make_unique<DepthStencilImage>(std::move(context), extent);
+  }
+}
+
 MultisampleImage::MultisampleImage(
     SharedBasicContext context,
     const VkExtent2D& extent, VkFormat format,
     Mode mode, MultisampleBuffer::Type type)
     : Image{std::move(context), extent, format},
-      sample_count_{
-          ChooseSampleCount(context_->physical_device_limits(), mode)},
+      sample_count_{ChooseSampleCount(mode)},
       buffer_{context_, type, extent_, format_, sample_count_} {
   VkImageAspectFlags image_aspect;
   switch (type) {
@@ -314,6 +315,23 @@ MultisampleImage::MultisampleImage(
   image_view_ = CreateImageView(
       context_, buffer_.image(), format_,
       image_aspect, kSingleMipLevel, kSingleImageLayer);
+}
+
+VkSampleCountFlagBits MultisampleImage::ChooseSampleCount(Mode mode) {
+  const auto& limits = context_->physical_device_limits();
+  const VkSampleCountFlags sample_count_flag = std::min({
+      limits.framebufferColorSampleCounts,
+      limits.framebufferDepthSampleCounts,
+      limits.framebufferStencilSampleCounts,
+  });
+  const VkSampleCountFlagBits max_sample_count =
+      GetMaxSampleCount(sample_count_flag);
+  switch (mode) {
+    case Mode::kEfficient:
+      return std::min(VK_SAMPLE_COUNT_4_BIT, max_sample_count);
+    case Mode::kBestEffect:
+      return max_sample_count;
+  }
 }
 
 } /* namespace vulkan */

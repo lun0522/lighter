@@ -8,7 +8,6 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_WINDOW_CONTEXT_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_WINDOW_CONTEXT_H
 
-#include <functional>
 #include <memory>
 #include <string>
 
@@ -44,7 +43,8 @@ class WindowContext {
   };
 
   WindowContext(const std::string& name, const Config& config)
-    : window_{name, config.screen_size} {
+    : window_{name, config.screen_size},
+      multisampling_mode_{config.multisampling_mode} {
     const WindowSupport window_support{
         &surface_,
         common::Window::GetRequiredExtensions(),
@@ -60,18 +60,7 @@ class WindowContext {
 #else  /* !NDEBUG */
         BasicContext::GetContext(window_support, config.debug_callback_trigger);
 #endif /* NDEBUG */
-    const auto multisampling_mode = config.multisampling_mode;
-    create_swapchain_ =
-        [this, multisampling_mode](const glm::ivec2& screen_size) {
-          swapchain_ = absl::make_unique<Swapchain>(
-              context_, surface_,
-              VkExtent2D{
-                  static_cast<uint32_t>(screen_size.x),
-                  static_cast<uint32_t>(screen_size.y),
-              },
-              multisampling_mode);
-        };
-    create_swapchain_(window_.GetScreenSize());
+    CreateSwapchain(window_.GetScreenSize());
   }
 
   // This class is neither copyable nor movable.
@@ -93,7 +82,7 @@ class WindowContext {
   void Recreate() {
     context_->WaitIdle();
     const glm::ivec2 screen_size = window_.Recreate();
-    create_swapchain_(screen_size);
+    CreateSwapchain(screen_size);
   }
 
   // Checks events and returns whether the window should continue to show.
@@ -107,7 +96,7 @@ class WindowContext {
   SharedBasicContext basic_context() const { return context_; }
   common::Window& window() { return window_; }
   const VkSwapchainKHR& swapchain() const { return **swapchain_; }
-  VkExtent2D frame_size() const { return swapchain_->image_extent(); }
+  const VkExtent2D& frame_size() const { return swapchain_->image_extent(); }
   int num_swapchain_image() const {
     return swapchain_->num_swapcahin_image();
   }
@@ -117,23 +106,37 @@ class WindowContext {
   const Image& multisample_image() const {
     return swapchain_->multisample_image();
   }
+  const absl::optional<MultisampleImage::Mode> multisampling_mode() const {
+    return multisampling_mode_;
+  }
 
  private:
+  // Creates a swapchain with the given 'screen_size'. This must not be called
+  // before 'context_' and 'surface_' are created.
+  void CreateSwapchain(const glm::ivec2& screen_size) {
+    swapchain_ = absl::make_unique<Swapchain>(
+        context_, surface_,
+        VkExtent2D{
+            static_cast<uint32_t>(screen_size.x),
+            static_cast<uint32_t>(screen_size.y),
+        },
+        multisampling_mode_);
+  }
+
   // Pointer to basic context.
   SharedBasicContext context_;
 
   // Wrapper of GLFWwindow.
   common::Window window_;
 
+  // Multisampling mode for swapchain images.
+  const absl::optional<MultisampleImage::Mode> multisampling_mode_;
+
   // VkSurfaceKHR interfaces with platform-specific window systems.
   VkSurfaceKHR surface_;
 
   // Wrapper of VkSwapchainKHR.
   std::unique_ptr<Swapchain> swapchain_;
-
-  // Creates a swapchain with the given 'screen_size'.
-  // This must not be called before the surface is created.
-  std::function<void(const glm::ivec2& screen_size)> create_swapchain_;
 };
 
 } /* namespace vulkan */

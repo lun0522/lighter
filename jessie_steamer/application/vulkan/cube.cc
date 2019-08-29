@@ -39,7 +39,6 @@ using common::file::GetResourcePath;
 using common::file::GetShaderPath;
 
 constexpr int kNumFrameInFlight = 2;
-constexpr auto kMultisamplingMode = MultisampleImage::Mode::kEfficient;
 
 enum class SubpassIndex : int { kModel = 0, kText, kNumSubpass };
 
@@ -61,7 +60,7 @@ class CubeApp : public Application {
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PushConstant> push_constant_;
   std::unique_ptr<Model> model_;
-  std::unique_ptr<MultisampleImage> depth_stencil_image_;
+  std::unique_ptr<Image> depth_stencil_image_;
   std::unique_ptr<StaticText> static_text_;
   std::unique_ptr<DynamicText> dynamic_text_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
@@ -115,9 +114,9 @@ CubeApp::CubeApp() : Application{"Cube", WindowContext::Config{}} {
 
 void CubeApp::Recreate() {
   // depth stencil
-  const auto frame_size = window_context_.frame_size();
-  depth_stencil_image_ = MultisampleImage::CreateDepthStencilMultisampleImage(
-      context(), frame_size, kMultisamplingMode);
+  const VkExtent2D& frame_size = window_context_.frame_size();
+  depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
+      context(), frame_size, window_context_.multisampling_mode());
 
   // render pass
   render_pass_ = (*render_pass_builder_)
@@ -164,7 +163,7 @@ void CubeApp::MainLoop() {
   while (window_context_.CheckEvents()) {
     timer_.Tick();
 
-    const VkExtent2D frame_size = window_context_.frame_size();
+    const VkExtent2D& frame_size = window_context_.frame_size();
     const auto update_data = [this, frame_size](int frame) {
       UpdateData(frame, (float)frame_size.width / frame_size.height);
     };

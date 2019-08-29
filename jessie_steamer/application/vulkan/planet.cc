@@ -43,7 +43,6 @@ using common::file::GetShaderPath;
 
 constexpr int kNumFrameInFlight = 2;
 constexpr int kNumAsteroidRing = 3;
-constexpr auto kMultisamplingMode = MultisampleImage::Mode::kEfficient;
 
 struct Light {
   ALIGN_VEC4 glm::vec4 direction_time;
@@ -86,7 +85,7 @@ class PlanetApp : public Application {
   std::unique_ptr<PushConstant> planet_constant_;
   std::unique_ptr<PushConstant> skybox_constant_;
   std::unique_ptr<Model> planet_model_, asteroid_model_, skybox_model_;
-  std::unique_ptr<MultisampleImage> depth_stencil_image_;
+  std::unique_ptr<Image> depth_stencil_image_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
 };
@@ -239,9 +238,9 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
 
 void PlanetApp::Recreate() {
   // depth stencil
-  const auto frame_size = window_context_.frame_size();
-  depth_stencil_image_ = MultisampleImage::CreateDepthStencilMultisampleImage(
-      context(), frame_size, kMultisamplingMode);
+  const VkExtent2D& frame_size = window_context_.frame_size();
+  depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
+      context(), frame_size, window_context_.multisampling_mode());
 
   // render pass
   render_pass_ = (*render_pass_builder_)

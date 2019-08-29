@@ -298,13 +298,8 @@ RenderPassBuilder& RenderPassBuilder::update_image(
   }
 
   const Image& sample_image = get_image(0);
-  VkSampleCountFlagBits sample_count = VK_SAMPLE_COUNT_1_BIT;
-  if (const auto* multisample_image =
-      dynamic_cast<const MultisampleImage*>(&sample_image)) {
-    sample_count = multisample_image->sample_count();
-  }
   attachment_descriptions_[index].format = sample_image.format();
-  attachment_descriptions_[index].samples = sample_count;
+  attachment_descriptions_[index].samples = sample_image.sample_count();
   get_images_[index] = std::move(get_image);
 
   return *this;

@@ -39,7 +39,6 @@ using common::file::GetResourcePath;
 using common::file::GetShaderPath;
 
 constexpr int kNumFrameInFlight = 2;
-constexpr auto kMultisamplingMode = MultisampleImage::Mode::kEfficient;
 
 struct NanosuitVertTrans {
   ALIGN_MAT4 glm::mat4 view_model;
@@ -74,7 +73,7 @@ class NanosuitApp : public Application {
   std::unique_ptr<UniformBuffer> nanosuit_vert_uniform_;
   std::unique_ptr<PushConstant> nanosuit_frag_constant_;
   std::unique_ptr<PushConstant> skybox_constant_;
-  std::unique_ptr<MultisampleImage> depth_stencil_image_;
+  std::unique_ptr<Image> depth_stencil_image_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
 };
@@ -200,8 +199,8 @@ NanosuitApp::NanosuitApp() : Application{"Nanosuit", WindowContext::Config{}} {
 void NanosuitApp::Recreate() {
   // depth stencil
   const auto frame_size = window_context_.frame_size();
-  depth_stencil_image_ = MultisampleImage::CreateDepthStencilMultisampleImage(
-      context(), frame_size, kMultisamplingMode);
+  depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
+      context(), frame_size, window_context_.multisampling_mode());
 
   // render pass
   render_pass_ = (*render_pass_builder_)

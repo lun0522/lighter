@@ -63,7 +63,7 @@ class Swapchain {
   }
 
   const VkSwapchainKHR& operator*() const { return swapchain_; }
-  VkExtent2D image_extent() const { return image_extent_; }
+  const VkExtent2D& image_extent() const { return image_extent_; }
   int num_swapcahin_image() const { return swapcahin_images_.size(); }
   const Image& swapcahin_image(int index) const {
     return *swapcahin_images_[index];
