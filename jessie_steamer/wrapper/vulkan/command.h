@@ -66,6 +66,7 @@ class OneTimeCommand : public Command {
   VkCommandBuffer command_buffer_;
 };
 
+// TODO: Should not assume using swapchain.
 class PerFrameCommand : public Command {
  public:
   using OnRecord = std::function<void(const VkCommandBuffer& command_buffer,

@@ -348,7 +348,7 @@ class TextureBuffer : public ImageBuffer {
   uint32_t mip_levels_;
 };
 
-// This class creates an image buffer that can be used as off-screen rendering
+// This class creates an image buffer that can be used as offscreen rendering
 // target. No data transfer is required at construction.
 class OffscreenBuffer : public ImageBuffer {
  public:

@@ -3,7 +3,6 @@ Files that are waiting to be cleaned up:
 wrapper
 - command
 - descriptor
-- image
 - model
 - pipeline
 - render_pass
@@ -70,13 +69,13 @@ hierarchies, inheritances, interfaces and so on, hence we need to make different
 design decisions.
 
 The first decision we had to make is how to provide a context. Many Vulkan
-functions need access to VkInstance, VkDevice and many other Vulkan objects.
-A lot of them are shared when we render different targets, which makes them the
-"context". The original design of this project was to have a wrapper for each of
-these Vulkan objects, and use one monolithic context class to hold instances of
-all wrappers, including **Instance**, **CommandBuffer** and **Pipeline**, etc.
-That made it easier to follow tutorials, but problems revealed as the project
-got bigger:
+functions need access to **VkInstance**, **VkDevice** and many other Vulkan
+objects. A lot of them are shared when we render different targets, which makes
+them the "context". The original design of this project was to have a wrapper
+for each of these Vulkan objects, and use one monolithic context class to hold
+instances of all wrappers, including **Instance**, **CommandBuffer** and
+**Pipeline**, etc. That made it easier to follow tutorials, but problems
+revealed as the project got bigger:
 
 1. It was convenient to pass a context to a function so that it can fetch
 everything it needs, but this made it harder to know which part of the context
@@ -103,7 +102,7 @@ need more **Pipeline**s. Besides, when we prepare the texture for the text, we
 only need to make one render call, but when we want to display it on the screen,
 we need to make a render call every frame, hence we need different
 **CommandBuffer** in different classes.
-4. Some members are not necessary for off-screen rendering, such as **Surface**,
+4. Some members are not necessary for offscreen rendering, such as **Surface**,
 **Swapchain** and **Window**. Besides, we should not depend on GLFW in the code
 and BUILD file. When we do on-screen rendering, if the window is resized, we
 need to recreate the resources that are affected by the frame size, such as
@@ -242,7 +241,46 @@ need to directly instantiate them.
 
 ![](https://docs.google.com/uc?id=1v3dHjXWTJbwLQKYgqk67zHxHcUAuxWqr)
 
+**Image** is the base class of all other image classes. It provides accessors
+to the image view, extent, format and sample count. These information should be
+enough for setting an image as an attachment in the render pass. All of its
+subclasses can be directly used by the user:
+
+- **OffscreenImage** creates an image that can be used as offscreen rendering
+target.
+- **SwapchainImage** wraps an image retrieved from the swapchain.
+- **TextureImage** copies a texture image from the host memory to the device
+memory.
+- **DepthStencilImage** creates an image that can be used as single-sample depth
+stencil attachment.
+- **MultisampleImage** exposes two convenient constructors to the user. One of
+them creates a multisample image that can be used as color attachment, while
+another one creates a multisample image for depth stencil.
+
+If we want to do multisampling for color images, we would need to create a
+**MultisampleImage**, and then resolve to either **OffscreenImage** or
+**SwapchainImage**. If we want to do multisampling for depth stencil images, we
+don't need to resolve the multisample image. To make life easier,
+**MultisampleImage** provides another convenient constructor that takes in an
+optional multisampling mode. If this mode is `absl::nullopt`, it will return a
+single-sample image, otherwise, it will return a multisample image. The user
+would use the same code in either case, except for specifying the multisampling
+mode.
+
 ![](https://docs.google.com/uc?id=1Q4wvHWjwxGHfFvaUvIhQgmZ-ykuehdZQ)
+
+**SamplableImage** is the interface for images that are associated with
+samplers. We may want to sample from either **OffscreenImage** or
+**TextureImage**, hence we created two classes to wrap them and implement the
+interface:
+
+- **SharedTexture** takes in the source path of a single image or a cubemap, and
+stores a reference to the corresponding image resource on the device. To avoid
+loading the same image from the disk twice, the resource on the device is
+reference counted.
+- **UnownedOffscreenTexture** takes in a const pointer to an offscreen texture.
+It does not own the texture, hence the user is responsible for keeping the
+existence of the texture. 
 
 ### 3.2.5 Pipeline (pipeline)
 
@@ -251,6 +289,11 @@ need to directly instantiate them.
 ### 3.2.7 Swapchain (swapchain)
 
 ### 3.2.8 Synchronization (synchronization)
+
+**Semaphores** are used for GPU->GPU sync, while **Fences** are used for
+GPU->CPU sync. **PerFrameCommand** uses them to coordinate command buffer
+recordings and submissions. The user would not need to directly use them for
+rendering simple scenes.
 
 ## 3.3 High-level wrappers
 
@@ -291,3 +334,7 @@ Class inheritance graphs are generated with [Doxygen](http://www.doxygen.nl)
 and [Graphviz](http://www.graphviz.org).
 
 Fonts, frameworks, 3D models and textures in a separate [resource repo](https://github.com/lun0522/resource).
+
+---
+
+2018.08 - 2019.06 You were here.

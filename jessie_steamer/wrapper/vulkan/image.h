@@ -143,7 +143,7 @@ class SharedTexture : public SamplableImage {
   RefCountedTexture texture_;
 };
 
-// This class creates an image that can be used as off-screen rendering target.
+// This class creates an image that can be used as offscreen rendering target.
 class OffscreenImage : public Image {
  public:
   OffscreenImage(SharedBasicContext context,
@@ -171,7 +171,7 @@ class OffscreenImage : public Image {
 
 using OffscreenImagePtr = const OffscreenImage*;
 
-// This class internally holds a reference to an image for off-screen rendering.
+// This class internally holds a reference to an image for offscreen rendering.
 // Note that this is an unowned relationship, hence the user is responsible for
 // keeping the existence of the resource before done using this class.
 class UnownedOffscreenTexture : public SamplableImage {
@@ -180,6 +180,10 @@ class UnownedOffscreenTexture : public SamplableImage {
       : texture_{texture} {
     ASSERT_NON_NULL(texture_, "Texture pointer cannot be nullptr");
   }
+
+  // This class provides copy constructor and move constructor.
+  UnownedOffscreenTexture(UnownedOffscreenTexture&&) = default;
+  UnownedOffscreenTexture(UnownedOffscreenTexture&) = default;
 
   // Overrides.
   VkDescriptorImageInfo GetDescriptorInfo() const override {
@@ -231,19 +235,19 @@ class MultisampleImage : public Image {
     kBestEffect,
   };
 
-  // Returns a multisampling image for a regular color image 'target_image'.
+  // Returns a multisample image for a regular color image 'target_image'.
   static std::unique_ptr<MultisampleImage> CreateColorMultisampleImage(
       SharedBasicContext context,
       const Image& target_image, Mode mode);
 
-  // Returns a multisampling image that can be used as depth stencil attachment.
+  // Returns a multisample image that can be used as depth stencil attachment.
   // Note that we don't need to resolve this image to another regular image.
   static std::unique_ptr<MultisampleImage> CreateDepthStencilMultisampleImage(
       SharedBasicContext context,
       const VkExtent2D& extent, Mode mode);
 
   // Convenient function for creating a depth stencil image. Whether the image
-  // is a multisampling image depends on whether 'mode' has value.
+  // is a multisample image depends on whether 'mode' has value.
   // Since we don't need to resolve multisampling depth stencil images, we can
   // directly use whatever image returned by this function.
   static std::unique_ptr<Image> CreateDepthStencilImage(
