@@ -94,7 +94,7 @@ VkImageView CreateImageView(const SharedBasicContext& context,
       FATAL(absl::StrFormat("Unsupported layer count: %d", layer_count));
   }
 
-  VkImageViewCreateInfo image_view_info{
+  const VkImageViewCreateInfo image_view_info{
       VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
@@ -129,7 +129,7 @@ VkImageView CreateImageView(const SharedBasicContext& context,
 VkSampler CreateSampler(const SharedBasicContext& context,
                         int mip_levels) {
   // 'mipLodBias', 'minLod' and 'maxLod' are used to control mipmapping.
-  VkSamplerCreateInfo sampler_info{
+  const VkSamplerCreateInfo sampler_info{
       VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,

@@ -19,23 +19,30 @@ namespace {
 
 using std::vector;
 
+// Creates a descriptor pool, assuming it will only be used to allocate memory
+// for one descriptor set.
 VkDescriptorPool CreateDescriptorPool(
     const SharedBasicContext& context,
     const vector<Descriptor::Info>& descriptor_infos) {
-  vector<VkDescriptorPoolSize> pool_sizes;
-  pool_sizes.reserve(descriptor_infos.size());
+  absl::flat_hash_map<VkDescriptorType, uint32_t> pool_size_map;
   for (const auto& info : descriptor_infos) {
     uint32_t total_length = 0;
     for (const auto& binding : info.bindings) {
       total_length += binding.array_length;
     }
+    pool_size_map[info.descriptor_type] += total_length;
+  }
+
+  vector<VkDescriptorPoolSize> pool_sizes;
+  pool_sizes.reserve(pool_size_map.size());
+  for (const auto& info : pool_size_map) {
     pool_sizes.emplace_back(VkDescriptorPoolSize{
-        info.descriptor_type,
-        total_length,
+        /*type=*/info.first,
+        /*descriptorCount=*/info.second,
     });
   }
 
-  VkDescriptorPoolCreateInfo pool_info{
+  const VkDescriptorPoolCreateInfo pool_info{
       VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
@@ -51,6 +58,8 @@ VkDescriptorPool CreateDescriptorPool(
   return pool;
 }
 
+// Creates a descriptor set layout. If 'is_dynamic' is true, the layout will be
+// ready for pushing descriptors.
 VkDescriptorSetLayout CreateDescriptorSetLayout(
     const SharedBasicContext& context,
     const vector<Descriptor::Info>& descriptor_infos,
@@ -74,12 +83,12 @@ VkDescriptorSetLayout CreateDescriptorSetLayout(
     }
   }
 
-  VkDescriptorSetLayoutCreateInfo layout_info{
+  const VkDescriptorSetLayoutCreateInfo layout_info{
       VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
       /*pNext=*/nullptr,
-      /*flags=*/is_dynamic
-                    ? VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR
-                    : nullflag,
+      /*flags=*/
+      is_dynamic ? VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR
+                 : nullflag,
       CONTAINER_SIZE(layout_bindings),
       layout_bindings.data(),
   };
@@ -91,10 +100,11 @@ VkDescriptorSetLayout CreateDescriptorSetLayout(
   return layout;
 }
 
-VkDescriptorSet CreateDescriptorSet(const SharedBasicContext& context,
-                                    const VkDescriptorPool& pool,
-                                    const VkDescriptorSetLayout& layout) {
-  VkDescriptorSetAllocateInfo alloc_info{
+// Allocates one descriptor set from 'pool' with the given 'layout'.
+VkDescriptorSet AllocateDescriptorSet(const SharedBasicContext& context,
+                                      const VkDescriptorPool& pool,
+                                      const VkDescriptorSetLayout& layout) {
+  const VkDescriptorSetAllocateInfo desc_set_info{
       VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
       /*pNext=*/nullptr,
       pool,
@@ -104,11 +114,15 @@ VkDescriptorSet CreateDescriptorSet(const SharedBasicContext& context,
 
   VkDescriptorSet set;
   ASSERT_SUCCESS(
-      vkAllocateDescriptorSets(*context->device(), &alloc_info, &set),
+      vkAllocateDescriptorSets(*context->device(), &desc_set_info, &set),
       "Failed to allocate descriptor set");
   return set;
 }
 
+// Creates a list of VkWriteDescriptorSet for updating descriptor sets.
+// 'info_map' maps each binding point to resources bound to it. The resource
+// InfoType must be either VkDescriptorBufferInfo, VkDescriptorImageInfo or
+// VkBufferView.
 template <typename InfoType>
 vector<VkWriteDescriptorSet> CreateWriteDescriptorSets(
     const VkDescriptorSet& descriptor_set,
@@ -149,30 +163,29 @@ StaticDescriptor::StaticDescriptor(SharedBasicContext context,
     : Descriptor{std::move(context)} {
   pool_ = CreateDescriptorPool(context_, infos);
   layout_ = CreateDescriptorSetLayout(context_, infos, /*is_dynamic=*/false);
-  set_ = CreateDescriptorSet(context_, pool_, layout_);
+  set_ = AllocateDescriptorSet(context_, pool_, layout_);
 }
 
-StaticDescriptor& StaticDescriptor::UpdateBufferInfos(
+const StaticDescriptor& StaticDescriptor::UpdateBufferInfos(
     VkDescriptorType descriptor_type,
-    const BufferInfoMap& buffer_info_map) {
-  UpdateDescriptorSets(
+    const BufferInfoMap& buffer_info_map) const {
+  return UpdateDescriptorSets(
       CreateWriteDescriptorSets(set_, descriptor_type, buffer_info_map));
-  return *this;
 }
 
-StaticDescriptor& StaticDescriptor::UpdateImageInfos(
+const StaticDescriptor& StaticDescriptor::UpdateImageInfos(
     VkDescriptorType descriptor_type,
-    const ImageInfoMap& image_info_map) {
-  UpdateDescriptorSets(
+    const ImageInfoMap& image_info_map) const {
+  return UpdateDescriptorSets(
       CreateWriteDescriptorSets(set_, descriptor_type, image_info_map));
-  return *this;
 }
 
-void StaticDescriptor::UpdateDescriptorSets(
+const StaticDescriptor& StaticDescriptor::UpdateDescriptorSets(
     const vector<VkWriteDescriptorSet>& write_descriptor_sets) const {
   vkUpdateDescriptorSets(*context_->device(),
                          CONTAINER_SIZE(write_descriptor_sets),
                          write_descriptor_sets.data(), 0, nullptr);
+  return *this;
 }
 
 void StaticDescriptor::Bind(const VkCommandBuffer& command_buffer,
@@ -191,15 +204,16 @@ DynamicDescriptor::DynamicDescriptor(SharedBasicContext context,
       util::LoadDeviceFunction<PFN_vkCmdPushDescriptorSetKHR>(
           *context_->device(), "vkCmdPushDescriptorSetKHR");
   push_descriptor_sets_ =
-      [vkCmdPushDescriptorSetKHR](
+      [this, vkCmdPushDescriptorSetKHR](
           const VkCommandBuffer& command_buffer,
           const VkPipelineLayout& pipeline_layout,
-          const vector<VkWriteDescriptorSet>& write_descriptor_sets) {
+          const vector<VkWriteDescriptorSet>& write_descriptor_sets)
+              -> const DynamicDescriptor& {
         vkCmdPushDescriptorSetKHR(
-            command_buffer,
-            /*pipelineBindPoint=*/VK_PIPELINE_BIND_POINT_GRAPHICS,
+            command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
             pipeline_layout, /*set=*/0, CONTAINER_SIZE(write_descriptor_sets),
             write_descriptor_sets.data());
+        return *this;
       };
 }
 
@@ -208,11 +222,10 @@ const DynamicDescriptor& DynamicDescriptor::PushBufferInfos(
     const VkPipelineLayout& pipeline_layout,
     VkDescriptorType descriptor_type,
     const BufferInfoMap& buffer_info_map) const {
-  push_descriptor_sets_(
+  return push_descriptor_sets_(
       command_buffer, pipeline_layout,
       CreateWriteDescriptorSets(/*descriptor_set=*/VK_NULL_HANDLE,
                                 descriptor_type, buffer_info_map));
-  return *this;
 }
 
 const DynamicDescriptor& DynamicDescriptor::PushImageInfos(
@@ -220,11 +233,10 @@ const DynamicDescriptor& DynamicDescriptor::PushImageInfos(
     const VkPipelineLayout& pipeline_layout,
     VkDescriptorType descriptor_type,
     const ImageInfoMap& image_info_map) const {
-  push_descriptor_sets_(
+  return push_descriptor_sets_(
       command_buffer, pipeline_layout,
       CreateWriteDescriptorSets(/*descriptor_set=*/VK_NULL_HANDLE,
                                 descriptor_type, image_info_map));
-  return *this;
 }
 
 } /* namespace vulkan */

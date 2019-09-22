@@ -20,51 +20,15 @@ namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
-/** VkDescriptorPool allocates VkDescriptorSet objects.
- *
- *  Initialization:
- *    Maximum total amount of VkDescriptorSet objects that will be allocated
- *    List of VkDescriptorPoolSize objects (each of them sets that for a certain
- *      descriptor type, how many descriptors will be allocated)
- *
- *------------------------------------------------------------------------------
- *
- *  VkDescriptorSetLayoutBinding configures a binding point.
- *
- *  Initialization:
- *    Binding point
- *    Descriptor type (sampler, uniform buffer, storage buffer, etc.)
- *    Descriptor count (a uniform can be an array. this parameter specifies
- *      the length of the array)
- *    Shader stage (vertex, geometry, fragment, etc. or ALL_GRAPHICS to cover
- *      all graphics stages)
- *
- *------------------------------------------------------------------------------
- *
- *  VkDescriptorSetLayout contains an array of binding descriptions. Multiple
- *    descriptors can have the same layout, so we only need to pass this layout
- *    to the pipeline once. The pipeline requires a list of this kind of layouts
- *    during its initialization.
- *
- *  Initialization:
- *    List of VkDescriptorSetLayoutBinding objects
- *
- *------------------------------------------------------------------------------
- *
- *  VkDescriptorSet is the bridge between resources declared in the shader and
- *    buffers where we hold actual data. vkUpdateDescriptorSets will be called
- *    to build this connection. vkCmdBindDescriptorSets will be called to bind
- *    resources before a render call. Unlike OpenGL where resources are local
- *    to a shader, here we can reuse descriptor sets across different shaders.
- *    We can also use multiple descriptor sets in one shader and use 'set = 1'
- *    to specify from which set the data come from. However, OpenGL won't
- *    recognize this, so we will only use one set in one shader.
- *
- *  Initialization:
- *    VkDescriptorPool (which allocates space for it)
- *    VkDescriptorSetLayout
- *    Descriptor set count
- */
+// VkDescriptorSet bridges resources declared in shaders, and buffers and images
+// that hold the actual data. It can be used across shaders, and we may use
+// multiple descriptor sets in one shader. To be compatible with OpenGL, we will
+// only use one descriptor set in each shader, but the user may now share
+// descriptors across shaders to take advantage of Vulkan.
+// This is the base class of all descriptor classes. The user should use it
+// through derived classes. Since all descriptors need VkDescriptorSetLayout,
+// which declares resources used in each binding point, it will be held and
+// destroyed by this base class, and initialized by derived classes.
 class Descriptor {
  public:
   using TextureType = common::TextureType;
@@ -77,6 +41,7 @@ class Descriptor {
   using ImageInfoMap = absl::flat_hash_map<
       uint32_t, std::vector<VkDescriptorImageInfo>>;
 
+  // Contains the information we need to define the layout of a descriptor set.
   struct Info {
     struct Binding {
       uint32_t binding_point;
@@ -97,18 +62,27 @@ class Descriptor {
                                  *context_->allocator());
   }
 
+  // Accessors.
   const VkDescriptorSetLayout& layout() const { return layout_; }
 
  protected:
   explicit Descriptor(SharedBasicContext context)
       : context_{std::move(context)} {}
 
+  // Pointer to context.
   SharedBasicContext context_;
+
+  // Declares resources used in shaders.
   VkDescriptorSetLayout layout_;
 };
 
+// This class creates descriptors that are updated only once during command
+// buffer recording. UpdateBufferInfos() and UpdateImageInfos() should be called
+// to relate the actual data to the descriptor before draw calls.
 class StaticDescriptor : public Descriptor {
  public:
+  // Declares the resources that are used in shaders and specified by 'infos'.
+  // The descriptor set layout should be fixed once construction is done.
   StaticDescriptor(SharedBasicContext context, const std::vector<Info>& infos);
 
   // This class is neither copyable nor movable.
@@ -116,41 +90,58 @@ class StaticDescriptor : public Descriptor {
   StaticDescriptor& operator=(const StaticDescriptor&) = delete;
 
   ~StaticDescriptor() override {
+    // Descriptor sets are implicitly cleaned up with the descriptor pool.
     vkDestroyDescriptorPool(*context_->device(), pool_, *context_->allocator());
-    // descriptor set is implicitly cleaned up with descriptor pool
   }
 
-  StaticDescriptor& UpdateBufferInfos(VkDescriptorType descriptor_type,
-                                      const BufferInfoMap& buffer_info_map);
+  // Relates the buffer data to this descriptor.
+  const StaticDescriptor& UpdateBufferInfos(
+      VkDescriptorType descriptor_type,
+      const BufferInfoMap& buffer_info_map) const;
 
-  StaticDescriptor& UpdateImageInfos(VkDescriptorType descriptor_type,
-                                     const ImageInfoMap& image_info_map);
+  // Relates the image data to this descriptor.
+  const StaticDescriptor& UpdateImageInfos(
+      VkDescriptorType descriptor_type,
+      const ImageInfoMap& image_info_map) const;
 
+  // Binds to this descriptor when 'command_buffer' is recording commands.
   void Bind(const VkCommandBuffer& command_buffer,
             const VkPipelineLayout& pipeline_layout) const;
 
  private:
-  void UpdateDescriptorSets(
+  // Relates the actual data to this descriptor.
+  const StaticDescriptor& UpdateDescriptorSets(
       const std::vector<VkWriteDescriptorSet>& write_descriptor_sets) const;
 
+  // Descriptor sets are allocated from the pool.
   VkDescriptorPool pool_;
+
+  // Bridges resource declaration in shaders and the actual data.
   VkDescriptorSet set_;
 };
 
+// This class creates descriptors that can be updated multiple times during the
+// command buffer recording. PushBufferInfos() and PushImageInfos() should be
+// called to relate the actual data to the descriptor every time when different
+// data need to be bound.
 class DynamicDescriptor : public Descriptor {
  public:
+  // Declares the resources that are used in shaders and specified by 'infos'.
+  // The descriptor set layout should be fixed once construction is done.
   DynamicDescriptor(SharedBasicContext context, const std::vector<Info>& infos);
 
   // This class is neither copyable nor movable.
   DynamicDescriptor(const DynamicDescriptor&) = delete;
   DynamicDescriptor& operator=(const DynamicDescriptor&) = delete;
 
+  // Relates the buffer data to this descriptor.
   const DynamicDescriptor& PushBufferInfos(
       const VkCommandBuffer& command_buffer,
       const VkPipelineLayout& pipeline_layout,
       VkDescriptorType descriptor_type,
       const BufferInfoMap& buffer_info_map) const;
 
+  // Relates the image data to this descriptor.
   const DynamicDescriptor& PushImageInfos(
       const VkCommandBuffer& command_buffer,
       const VkPipelineLayout& pipeline_layout,
@@ -158,7 +149,8 @@ class DynamicDescriptor : public Descriptor {
       const ImageInfoMap& image_info_map) const;
 
  private:
-  std::function<void(
+  // Relates the actual data to this descriptor.
+  std::function<const DynamicDescriptor&(
       const VkCommandBuffer& command_buffer,
       const VkPipelineLayout& pipeline_layout,
       const std::vector<VkWriteDescriptorSet>& write_descriptor_sets)>

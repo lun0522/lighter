@@ -211,8 +211,9 @@ buffer. For example, when we want to display the frame rate per-second, we need
 to render one rectangle for each digit, but the digits and the number of digits
 may always change, so we can take advantage of this buffer.
 
-These two buffers are usually managed by high-level wrappers (model renderer and
-text renderer), and the user may not need to directly instantiate them.
+These two buffers are usually managed by high-level wrappers (*i.e.*
+model renderer and text renderer), and the user may not need to directly
+instantiate them.
 
 #### 3.2.1.3 **PerInstanceBuffer**
 
@@ -236,6 +237,27 @@ need to directly instantiate them.
 ### 3.2.3 Descriptor (descriptor)
 
 ![](https://docs.google.com/uc?id=18xYBBhYkBQmSu_3TA8AeK8cW-pevtPXn)
+
+- **StaticDescriptor** is meant for descriptors that are only updated once
+during the command buffer recording. It is supported on all hardware.
+- **DynamicDescriptor** is meant for descriptors that are updated multiple times
+during the command buffer recording. It requires the extension
+*VK_KHR_push_descriptor*, hence it may not be available on all hardware.
+
+They are usually managed by high-level wrappers (*i.e.* model renderer and text
+renderer). The user would still need to inform the model renderer of the
+resources declared in the customized shaders. For high-level wrappers, we choose
+which kind of **Descriptor** to use based the lifetime and update frequency of
+the descriptor. For example:
+
+- For the model renderer, since textures used for each mesh keep unchanged
+across frames, we use **StaticDescriptor** so that we only need to update it
+once at the beginning.
+- For the dynamic text renderer, when we render all used characters to a large
+texture, we cannot know how many character textures to bind in the shader code.
+Besides, we only need to create this large texture once, so the lifetime of this
+descriptor is very short. Hence, we use **DynamicDescriptor** to bind the
+character textures one at a time.
 
 ### 3.2.4 Image (image)
 

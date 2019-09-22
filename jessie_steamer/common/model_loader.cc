@@ -19,8 +19,6 @@ namespace {
 using std::string;
 using std::vector;
 
-using absl::StrFormat;
-
 // Translates the resource type we defined to its counterpart in Assimp.
 aiTextureType TextureTypeToAssimpType(TextureType type) {
   switch (type) {
@@ -31,7 +29,7 @@ aiTextureType TextureTypeToAssimpType(TextureType type) {
     case TextureType::kReflection:
       return aiTextureType_AMBIENT;
     default:
-      FATAL(StrFormat("Unsupported resource type: %d", type));
+      FATAL(absl::StrFormat("Unsupported resource type: %d", type));
   }
 }
 
@@ -47,7 +45,8 @@ ModelLoader::ModelLoader(const string& obj_path, const string& tex_path) {
   const aiScene* scene = importer.ReadFile(obj_path, flags);
   if (scene == nullptr || scene->mRootNode == nullptr ||
       (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)) {
-    FATAL(StrFormat("Failed to import scene: %s", importer.GetErrorString()));
+    FATAL(absl::StrFormat("Failed to import scene: %s",
+                          importer.GetErrorString()));
   }
 
   ProcessNode(tex_path, scene->mRootNode, scene);
@@ -120,7 +119,7 @@ void ModelLoader::LoadTextures(const string& directory,
     aiString path;
     material->GetTexture(ai_type, i, &path);
     texture_infos->emplace_back(TextureInfo{
-        StrFormat("%s/%s", directory, path.C_Str()), texture_type});
+        absl::StrFormat("%s/%s", directory, path.C_Str()), texture_type});
   }
 }
 
