@@ -80,7 +80,8 @@ CubeApp::CubeApp() : Application{"Cube", WindowContext::Config{}} {
   // render pass builder
   render_pass_builder_ = RenderPassBuilder::SimpleRenderPassBuilder(
       context(), static_cast<int>(SubpassIndex::kNumSubpass),
-      window_context_.num_swapchain_image());
+      window_context_.num_swapchain_image(),
+      window_context_.multisampling_mode());
 
   // model
   ModelBuilder::TextureBindingMap bindings{};
@@ -119,6 +120,13 @@ void CubeApp::Recreate() {
       context(), frame_size, window_context_.multisampling_mode());
 
   // render pass
+  if (window_context_.multisampling_mode() != absl::nullopt) {
+    render_pass_builder_->update_image(
+        simple_render_pass::kMultisampleAttachmentIndex,
+        [this](int index) -> const Image& {
+          return window_context_.multisample_image();
+        });
+  }
   render_pass_ = (*render_pass_builder_)
       .set_framebuffer_size(frame_size)
       .update_image(simple_render_pass::kColorAttachmentIndex,
@@ -128,10 +136,6 @@ void CubeApp::Recreate() {
       .update_image(simple_render_pass::kDepthStencilAttachmentIndex,
                     [this](int index) -> const Image& {
                       return *depth_stencil_image_;
-                    })
-      .update_image(simple_render_pass::kMultisampleAttachmentIndex,
-                    [this](int index) -> const Image& {
-                      return window_context_.multisample_image();
                     })
       .Build();
 

@@ -12,6 +12,7 @@
 #include <iostream>
 #include <type_traits>
 
+#include "absl/flags/flag.h"
 #include "jessie_steamer/common/file.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/window_context.h"
@@ -20,6 +21,8 @@
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
 #define ALIGN_MAT4 alignas(16)
 #define ALIGN_VEC4 alignas(16)
+
+ABSL_DECLARE_FLAG(bool, performance_mode);
 
 namespace jessie_steamer {
 namespace application {
@@ -53,6 +56,14 @@ int AppMain(int argc, char* argv[]) {
   // Set up the path to find Vulkan SDK.
   common::util::ParseCommandLine(argc, argv);
   using common::file::GetVulkanSdkPath;
+
+  if (absl::GetFlag(FLAGS_performance_mode)) {
+    // To avoid the frame rate being clamped on MacOS when using MoltenVK:
+    // https://github.com/KhronosGroup/MoltenVK/issues/581#issuecomment-487293665
+    setenv("MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS", "0", /*overwrite=*/1);
+    setenv("MVK_CONFIG_PRESENT_WITH_COMMAND_BUFFER", "0", /*overwrite=*/1);
+  }
+
   setenv("VK_ICD_FILENAMES",
          GetVulkanSdkPath("etc/vulkan/icd.d/MoltenVK_icd.json").c_str(),
          /*overwrite=*/1);

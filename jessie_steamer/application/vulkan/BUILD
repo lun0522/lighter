@@ -3,12 +3,14 @@ package(default_visibility = ["//visibility:private"])
 cc_library(
     name = "common",
     hdrs = ["util.h"],
+    srcs = ["util.cc"],
     deps = [
         "//jessie_steamer/application:resource",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:util",
         "//jessie_steamer/wrapper/vulkan:on_screen",
         "//third_party:vulkan",
+        "@lib-absl//absl/flags:flag",
     ],
 )
 

@@ -2,7 +2,6 @@ Files that are waiting to be cleaned up:
 
 wrapper
 - command
-- descriptor
 - model
 - pipeline
 - render_pass

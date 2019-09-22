@@ -162,6 +162,9 @@ class RenderPassBuilder {
     SubpassInfo src_info, dst_info;
   };
 
+  // Specifies which attachment need to be resolved to the target attachment.
+  // Note that 'multisample_reference' is the index of VkAttachmentReference,
+  // while 'target_attachment' is the index of VkAttachmentDescription.
   struct MultisamplingPair {
     int multisample_reference;
     int target_attachment;
@@ -178,7 +181,8 @@ class RenderPassBuilder {
   // window is resized.
   static std::unique_ptr<RenderPassBuilder> SimpleRenderPassBuilder(
       SharedBasicContext context,
-      int num_subpass, int num_swapchain_image);
+      int num_subpass, int num_swapchain_image,
+      absl::optional<MultisampleImage::Mode> multisampling_mode);
 
   explicit RenderPassBuilder(SharedBasicContext context)
     : context_{std::move(context)} {}

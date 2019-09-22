@@ -20,7 +20,7 @@ namespace jessie_steamer {
 namespace common {
 
 // Texture types that can be bound to shaders.
-enum class TextureType {kDiffuse, kSpecular, kReflection, kCubemap, kNumType};
+enum class TextureType { kDiffuse, kSpecular, kReflection, kCubemap, kNumType };
 
 // Model loader backed by Assimp.
 class ModelLoader {
