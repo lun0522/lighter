@@ -89,7 +89,9 @@ class TextLoader {
   TextLoader(const TextLoader&) = delete;
   TextLoader& operator=(const TextLoader&) = delete;
 
-  const TextTexture& texture(int index) const { return text_textures_[index]; }
+  const TextTexture& texture(int index) const {
+    return text_textures_.at(index);
+  }
 
  private:
   TextTexture CreateTextTexture(const std::string& text, int font_height,

@@ -21,36 +21,17 @@ namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
-/** VkSwapchainKHR holds a queue of images to present to the screen.
- *
- *  Initialization:
- *    VkPhysicalDevice (query image extent and format, and present mode)
- *    VkDevice
- *    VkSurfaceKHR
- *    How many images it should hold at least
- *    Surface format of images (R5G6B5, R8G8B8, R8G8B8A8, etc)
- *    Color space of images (sRGB, etc)
- *    Extent of images
- *    Number of layers in each image (maybe useful for stereoscopic apps)
- *    Usage of images (color attachment, depth stencil, etc)
- *    Sharing mode (whether images are shared by multiple queue families.
- *      if shared, we have to specify how many families will share, and
- *      the index of each family)
- *    What pre-transform to do (rotate or mirror images)
- *    What alpha composition to do
- *    Present mode (immediate, mailbox, fifo, etc)
- *    Whether to ignore the color of pixels that are obscured
- *    Old swapchain (when we recreate the swapchain, we don't have to
- *      wait until the old one finishes all operations, but go ahead to
- *      create a new one and inform it of the old one, so that the
- *      transition is more seamless)
- */
+// VkSwapchainKHR holds a queue of images to present to the screen.
+// This is not required for offscreen rendering.
 class Swapchain {
  public:
+  // Required Vulkan extensions for supporting the swapchain.
   static const std::vector<const char*>& GetRequiredExtensions();
 
+  // If 'multisampling_mode' is not absl::nullopt, we will perform multisampling
+  // for swapchain images.
   Swapchain(SharedBasicContext context,
-            const VkSurfaceKHR& surface, VkExtent2D screen_size,
+            const VkSurfaceKHR& surface, const VkExtent2D& screen_size,
             absl::optional<MultisampleImage::Mode> multisampling_mode);
 
   // This class is neither copyable nor movable.
@@ -62,22 +43,33 @@ class Swapchain {
                           *context_->allocator());
   }
 
+  // Overloads.
   const VkSwapchainKHR& operator*() const { return swapchain_; }
+
+  // Accessors.
   const VkExtent2D& image_extent() const { return image_extent_; }
-  int num_swapcahin_image() const { return swapcahin_images_.size(); }
-  const Image& swapcahin_image(int index) const {
-    return *swapcahin_images_[index];
-  }
+  int num_images() const { return swapchain_images_.size(); }
+  const Image& image(int index) const { return *swapchain_images_.at(index); }
   const Image& multisample_image() const {
     ASSERT_NON_NULL(multisample_image_, "Multisampling is not enabled");
     return *multisample_image_;
   }
 
  private:
+  // Pointer to context.
   const SharedBasicContext context_;
+
+  // Opaque swapchain object,
   VkSwapchainKHR swapchain_;
-  std::vector<std::unique_ptr<SwapchainImage>> swapcahin_images_;
+
+  // Wraps images retrieved from the swapchain.
+  std::vector<std::unique_ptr<SwapchainImage>> swapchain_images_;
+
+  // This should have value if multisampling is requested. We only need one
+  // instance of it since we only render to one frame at any time.
   std::unique_ptr<MultisampleImage> multisample_image_;
+
+  // The extent of each swapchain image.
   VkExtent2D image_extent_;
 };
 

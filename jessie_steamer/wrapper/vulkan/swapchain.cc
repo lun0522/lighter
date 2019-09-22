@@ -22,27 +22,32 @@ using std::max;
 using std::min;
 using std::vector;
 
+// Returns the surface format to use.
 VkSurfaceFormatKHR ChooseSurfaceFormat(
     const vector<VkSurfaceFormatKHR>& available) {
-  // if surface has no preferred format, we can choose any format
+  constexpr VkSurfaceFormatKHR best_format{
+    VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+
+  // If the surface has no preferred format, we can choose any format.
   if (available.size() == 1 && available[0].format == VK_FORMAT_UNDEFINED) {
-    return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+    return best_format;
   }
 
-  for (auto candidate : available) {
-    if (candidate.format == VK_FORMAT_B8G8R8A8_UNORM &&
-        candidate.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-      return candidate;
+  // Check whether our preferred format is available. If not, simply choose the
+  // first available one.
+  for (const auto& candidate : available) {
+    if (candidate.format == best_format.format &&
+        candidate.colorSpace == best_format.colorSpace) {
+      return best_format;
     }
   }
-
-  // if our preferred format is not supported, simply choose the first one
   return available[0];
 }
 
+// Returns the present mode to use.
 VkPresentModeKHR ChoosePresentMode(const vector<VkPresentModeKHR>& available) {
   // FIFO mode is guaranteed to be available, but not properly supported by
-  // some drivers. we will prefer MAILBOX and IMMEDIATE mode over it
+  // some drivers. we will prefer MAILBOX and IMMEDIATE mode over it.
   VkPresentModeKHR best_mode = VK_PRESENT_MODE_FIFO_KHR;
 
   for (auto candidate : available) {
@@ -60,23 +65,21 @@ VkPresentModeKHR ChoosePresentMode(const vector<VkPresentModeKHR>& available) {
   return best_mode;
 }
 
-VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities,
-                        VkExtent2D current_extent) {
-  // .currentExtent is the suggested resolution
-  // if it is UINT32_MAX, window manager suggests us to be flexible
+// Returns the image extent to use.
+VkExtent2D ChooseImageExtent(const VkSurfaceCapabilitiesKHR& capabilities,
+                             const VkExtent2D& current_extent) {
+  // .currentExtent is the suggested resolution.
+  // If it is UINT32_MAX, that means the window manager suggests to be flexible.
   if (capabilities.currentExtent.width !=
       std::numeric_limits<uint32_t>::max()) {
     return capabilities.currentExtent;
   } else {
-    current_extent.width = max(capabilities.minImageExtent.width,
-                               current_extent.width);
-    current_extent.width = min(capabilities.maxImageExtent.width,
-                               current_extent.width);
-    current_extent.height = max(capabilities.minImageExtent.height,
-                                current_extent.height);
-    current_extent.height = min(capabilities.maxImageExtent.height,
-                                current_extent.height);
-    return current_extent;
+    VkExtent2D extent = current_extent;
+    extent.width = max(extent.width, capabilities.minImageExtent.width);
+    extent.width = min(extent.width, capabilities.maxImageExtent.width);
+    extent.height = max(extent.height, capabilities.minImageExtent.height);
+    extent.height = min(extent.height, capabilities.maxImageExtent.height);
+    return extent;
   }
 }
 
@@ -94,39 +97,42 @@ const vector<const char*>& Swapchain::GetRequiredExtensions() {
 
 Swapchain::Swapchain(
     SharedBasicContext context,
-    const VkSurfaceKHR& surface, VkExtent2D screen_size,
+    const VkSurfaceKHR& surface, const VkExtent2D& screen_size,
     absl::optional<MultisampleImage::Mode> multisampling_mode)
     : context_{std::move(context)} {
   const VkPhysicalDevice& physical_device = *context_->physical_device();
 
-  // surface capabilities
+  // Choose image extent.
   VkSurfaceCapabilitiesKHR surface_capabilities;
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface,
                                             &surface_capabilities);
-  image_extent_ = ChooseExtent(surface_capabilities, screen_size);
+  image_extent_ = ChooseImageExtent(surface_capabilities, screen_size);
 
-  // surface formats
-  auto surface_formats{util::QueryAttribute<VkSurfaceFormatKHR>(
+  // Choose surface format.
+  const auto surface_formats{util::QueryAttribute<VkSurfaceFormatKHR>(
       [&surface, &physical_device]
       (uint32_t* count, VkSurfaceFormatKHR* formats) {
         return vkGetPhysicalDeviceSurfaceFormatsKHR(
             physical_device, surface, count, formats);
       }
   )};
-  VkSurfaceFormatKHR surface_format = ChooseSurfaceFormat(surface_formats);
+  const VkSurfaceFormatKHR surface_format =
+      ChooseSurfaceFormat(surface_formats);
 
-  // present modes
-  auto present_modes{util::QueryAttribute<VkPresentModeKHR>(
+  // Choose present mode.
+  const auto present_modes{util::QueryAttribute<VkPresentModeKHR>(
       [&surface, &physical_device](uint32_t* count, VkPresentModeKHR* modes) {
         return vkGetPhysicalDeviceSurfacePresentModesKHR(
             physical_device, surface, count, modes);
       }
   )};
-  VkPresentModeKHR present_mode = ChoosePresentMode(present_modes);
+  const VkPresentModeKHR present_mode = ChoosePresentMode(present_modes);
 
-  // minimum amount of images we want to have in swapchain
+  // Choose the minimum number of images we want to have in the swapchain.
+  // Note that the actual number can be higher, so we need to query it later.
   uint32_t min_image_count = surface_capabilities.minImageCount + 1;
-  if (surface_capabilities.maxImageCount > 0) {  // can be 0 if no maximum
+  // If there is no maximum limit, .maxImageCount will be 0.
+  if (surface_capabilities.maxImageCount > 0) {
     min_image_count = min(surface_capabilities.maxImageCount, min_image_count);
   }
 
@@ -136,7 +142,7 @@ Swapchain::Swapchain(
       context_->queues().present_queue().family_index,
   }};
 
-  VkSwapchainCreateInfoKHR swapchain_info{
+  const VkSwapchainCreateInfoKHR swapchain_info{
       VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
@@ -145,18 +151,18 @@ Swapchain::Swapchain(
       surface_format.format,
       surface_format.colorSpace,
       image_extent_,
-      /*imageArrayLayers=*/1,
-      // can be different for post-processing
-      /*imageUsage=*/VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+      kSingleImageLayer,
+      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
       queue_usage.sharing_mode(),
       queue_usage.unique_family_indices_count(),
       queue_usage.unique_family_indices(),
-      // may apply transformations
+      // May apply transformations.
       /*preTransform=*/surface_capabilities.currentTransform,
-      // may change alpha channel
-      /*compositeAlpha=*/VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+      // May alter the alpha channel.
+      VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
       present_mode,
-      /*clipped=*/VK_TRUE,  // don't care about color of pixels obscured
+      // If true, we don't care about color of pixels obscured.
+      /*clipped=*/VK_TRUE,
       /*oldSwapchain=*/VK_NULL_HANDLE,
   };
 
@@ -164,22 +170,22 @@ Swapchain::Swapchain(
                                       *context_->allocator(), &swapchain_),
                  "Failed to create swapchain");
 
-  // fetch swapchain images
-  auto images{util::QueryAttribute<VkImage>(
-      [this](uint32_t *count, VkImage *images) {
+  // Fetch swapchain images.
+  const auto images{util::QueryAttribute<VkImage>(
+      [this](uint32_t* count, VkImage* images) {
         vkGetSwapchainImagesKHR(*context_->device(), swapchain_, count, images);
       }
   )};
-  swapcahin_images_.reserve(images.size());
+  swapchain_images_.reserve(images.size());
   for (const auto& image : images) {
-    swapcahin_images_.emplace_back(absl::make_unique<SwapchainImage>(
+    swapchain_images_.emplace_back(absl::make_unique<SwapchainImage>(
         context_, image, image_extent_, surface_format.format));
   }
 
-  // create multisample image if requested
+  // Create a multisample image if multisampling is enabled.
   if (multisampling_mode.has_value()) {
     multisample_image_ = MultisampleImage::CreateColorMultisampleImage(
-        context_, *swapcahin_images_[0], multisampling_mode.value());
+        context_, *swapchain_images_[0], multisampling_mode.value());
   }
 }
 

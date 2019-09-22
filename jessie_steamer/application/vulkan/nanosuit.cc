@@ -206,7 +206,7 @@ void NanosuitApp::Recreate() {
       context(), frame_size, window_context_.multisampling_mode());
 
   // render pass
-  if (window_context_.multisampling_mode() != absl::nullopt) {
+  if (window_context_.multisampling_mode().has_value()) {
     render_pass_builder_->update_image(
         simple_render_pass::kMultisampleAttachmentIndex,
         [this](int index) -> const Image& {

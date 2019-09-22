@@ -149,7 +149,7 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
   const auto graphics_queue_index =
       common::util::FindIndexOfFirst<VkQueueFamilyProperties>(
           families, has_graphics_support);
-  if (graphics_queue_index == absl::nullopt) {
+  if (!graphics_queue_index.has_value()) {
     return absl::nullopt;
   } else {
     candidate.graphics = candidate.transfer =
@@ -169,7 +169,7 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
     const auto present_queue_index =
         common::util::FindIndexOfFirst<VkQueueFamilyProperties>(
             families, has_present_support);
-    if (present_queue_index == absl::nullopt) {
+    if (!present_queue_index.has_value()) {
       return absl::nullopt;
     } else {
       candidate.present = static_cast<uint32_t>(present_queue_index.value());
@@ -300,7 +300,7 @@ PhysicalDevice::PhysicalDevice(
 Device::Device(const BasicContext* context,
                const absl::optional<WindowSupport>& window_support)
     : context_{context} {
-  if (window_support != absl::nullopt) {
+  if (window_support.has_value()) {
     ASSERT_HAS_VALUE(context_->queue_family_indices().present,
                      "Presentation queue is not properly set up");
   }

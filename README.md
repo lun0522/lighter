@@ -5,7 +5,6 @@ wrapper
 - model
 - pipeline
 - render_pass
-- swapchain
 - text
 - text_util
 - util
@@ -309,6 +308,12 @@ existence of the texture.
 ### 3.2.6 Render pass (render_pass)
 
 ### 3.2.7 Swapchain (swapchain)
+
+**Swapchain** holds wrappers of images retrieved from the swapchain. If
+constructed with multisampling enabled, it will also hold a multisample color
+image. This class is managed by **WindowContext**, hence the user would not need
+to directly interact with it. See more details in how we designed the
+[window context](https://github.com/lun0522/jessie-steamer#31-contexts-basic_context-basic_object-validation-and-window_context).
 
 ### 3.2.8 Synchronization (synchronization)
 

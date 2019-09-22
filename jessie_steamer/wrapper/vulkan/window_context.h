@@ -98,10 +98,10 @@ class WindowContext {
   const VkSwapchainKHR& swapchain() const { return **swapchain_; }
   const VkExtent2D& frame_size() const { return swapchain_->image_extent(); }
   int num_swapchain_image() const {
-    return swapchain_->num_swapcahin_image();
+    return swapchain_->num_images();
   }
   const Image& swapchain_image(int index) const {
-    return swapchain_->swapcahin_image(index);
+    return swapchain_->image(index);
   }
   const Image& multisample_image() const {
     return swapchain_->multisample_image();

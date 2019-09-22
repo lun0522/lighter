@@ -21,10 +21,11 @@ namespace wrapper {
 namespace vulkan {
 
 // VkDescriptorSet bridges resources declared in shaders, and buffers and images
-// that hold the actual data. It can be used across shaders, and we may use
-// multiple descriptor sets in one shader. To be compatible with OpenGL, we will
-// only use one descriptor set in each shader, but the user may now share
-// descriptors across shaders to take advantage of Vulkan.
+// that hold the actual data. It is allocated from VkDescriptorPool.
+// It can be used across shaders, and we may use multiple descriptor sets in one
+// shader. To be compatible with OpenGL, we will only use one descriptor set in
+// each shader, but the user may now share descriptors across shaders to take
+// advantage of Vulkan.
 // This is the base class of all descriptor classes. The user should use it
 // through derived classes. Since all descriptors need VkDescriptorSetLayout,
 // which declares resources used in each binding point, it will be held and
@@ -72,7 +73,7 @@ class Descriptor {
   // Pointer to context.
   SharedBasicContext context_;
 
-  // Declares resources used in shaders.
+  // Opaque descriptor set layout object.
   VkDescriptorSetLayout layout_;
 };
 
@@ -113,10 +114,10 @@ class StaticDescriptor : public Descriptor {
   const StaticDescriptor& UpdateDescriptorSets(
       const std::vector<VkWriteDescriptorSet>& write_descriptor_sets) const;
 
-  // Descriptor sets are allocated from the pool.
+  // Opaque descriptor pool object.
   VkDescriptorPool pool_;
 
-  // Bridges resource declaration in shaders and the actual data.
+  // Opaque descriptor set object.
   VkDescriptorSet set_;
 };
 
