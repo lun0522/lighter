@@ -142,7 +142,7 @@ VkImage CreateImage(const SharedBasicContext& context,
       VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
       /*pNext=*/nullptr,
       flags,
-      /*imageType=*/VK_IMAGE_TYPE_2D,
+      VK_IMAGE_TYPE_2D,
       format,
       extent,
       config.mip_levels,
@@ -326,7 +326,7 @@ void CopyBufferToImage(const SharedBasicContext& context,
         /*bufferRowLength=*/0,
         /*bufferImageHeight=*/0,
         VkImageSubresourceLayers{
-            /*aspectMask=*/VK_IMAGE_ASPECT_COLOR_BIT,
+            VK_IMAGE_ASPECT_COLOR_BIT,
             /*mipLevel=*/0,
             /*baseArrayLayer=*/0,
             image_config.layer_count,
@@ -394,7 +394,7 @@ void GenerateMipmaps(const SharedBasicContext& context,
         /*dstQueueFamilyIndex=*/transfer_queue.family_index,
         image,
         VkImageSubresourceRange{
-            /*aspectMask=*/VK_IMAGE_ASPECT_COLOR_BIT,
+            VK_IMAGE_ASPECT_COLOR_BIT,
             /*baseMipLevel=*/0,  // To be updated.
             /*levelCount=*/1,
             /*baseArrayLayer=*/0,
@@ -420,7 +420,7 @@ void GenerateMipmaps(const SharedBasicContext& context,
       // Blit the previous level to next level after transitioning is done.
       const VkImageBlit image_blit{
           /*srcSubresource=*/VkImageSubresourceLayers{
-              /*aspectMask=*/VK_IMAGE_ASPECT_COLOR_BIT,
+              VK_IMAGE_ASPECT_COLOR_BIT,
               /*mipLevel=*/src_level,
               /*baseArrayLayer=*/0,
               /*layerCount=*/1,
@@ -430,7 +430,7 @@ void GenerateMipmaps(const SharedBasicContext& context,
               ExtentToOffset(prev_extent),
           },
           /*dstSubresource=*/VkImageSubresourceLayers{
-              /*aspectMask=*/VK_IMAGE_ASPECT_COLOR_BIT,
+              VK_IMAGE_ASPECT_COLOR_BIT,
               /*mipLevel=*/dst_level,
               /*baseArrayLayer=*/0,
               /*layerCount=*/1,
@@ -446,8 +446,7 @@ void GenerateMipmaps(const SharedBasicContext& context,
                      /*srcImageLayout=*/VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                      /*dstImage=*/image,
                      /*dstImageLayout=*/VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                     /*regionCount=*/1, &image_blit,
-                     /*filter=*/VK_FILTER_LINEAR);
+                     /*regionCount=*/1, &image_blit, VK_FILTER_LINEAR);
 
       ++dst_level;
       prev_extent = extent;

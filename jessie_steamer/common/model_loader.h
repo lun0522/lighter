@@ -19,15 +19,8 @@
 namespace jessie_steamer {
 namespace common {
 
-// Resource types that can be bound to shaders.
-enum class ResourceType {
-  kTextureDiffuse = 0,
-  kTextureSpecular,
-  kTextureReflection,
-  kTextureCubemap,
-  kNumTextureType,
-  kUniformBuffer,
-};
+// Texture types that can be bound to shaders.
+enum class TextureType {kDiffuse, kSpecular, kReflection, kCubemap, kNumType};
 
 // Model loader backed by Assimp.
 class ModelLoader {
@@ -43,8 +36,8 @@ class ModelLoader {
     // Path to the texture.
     std::string path;
 
-    // Resource type of the texture.
-    ResourceType resource_type;
+    // Texture type.
+    TextureType texture_type;
   };
 
   // Vertex data and textures information for one mesh.
@@ -91,10 +84,10 @@ class ModelLoader {
                     const aiMesh* mesh,
                     const aiScene* scene) const;
 
-  // Loads textures of the given 'resource_type' and appends to 'texture_infos'.
+  // Loads textures of the given 'texture_type' and appends to 'texture_infos'.
   void LoadTextures(const std::string& directory,
                     const aiMaterial* material,
-                    ResourceType resource_type,
+                    TextureType texture_type,
                     std::vector<TextureInfo>* texture_infos) const;
 
   // Holds the data of all meshes in one model.

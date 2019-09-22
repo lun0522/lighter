@@ -146,16 +146,15 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
 
   // model
   Descriptor::Info light_desc_info{
-      /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-      /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
+      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      VK_SHADER_STAGE_FRAGMENT_BIT,
       /*bindings=*/{{
-          Descriptor::ResourceType::kUniformBuffer,
           /*binding_point=*/1,
           /*array_length=*/1,
       }},
   };
   ModelBuilder::TextureBindingMap planet_bindings;
-  planet_bindings[model::ResourceType::kTextureDiffuse] = {
+  planet_bindings[model::TextureType::kDiffuse] = {
       /*binding_point=*/2,
       {SharedTexture::SingleTexPath{GetResourcePath("texture/planet.png")}},
   };
@@ -170,7 +169,11 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
                        GetShaderPath("vulkan/planet.vert.spv")})
           .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
                        GetShaderPath("vulkan/planet.frag.spv")})
-          .add_uniform_buffer({light_uniform_.get(), light_desc_info})
+          .add_uniform_usage(Descriptor::Info{light_desc_info})
+          .add_uniform_resource(
+              /*binding_point=*/1, /*info_gen=*/[this](int frame) {
+                return light_uniform_->GetDescriptorInfo(frame);
+              })
           .set_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
                               {{planet_constant_.get(), /*offset=*/0}}})
           .Build();
@@ -196,7 +199,7 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
           ModelBuilder::MultiMeshResource{
               GetResourcePath("model/rock/rock.obj"),
               GetResourcePath("model/rock"),
-              {{model::ResourceType::kTextureDiffuse, /*binding_point=*/2}}},
+              {{model::TextureType::kDiffuse, /*binding_point=*/2}}},
       }
           .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
                        GetShaderPath("vulkan/asteroid.vert.spv")})
@@ -205,13 +208,17 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
           .add_instancing({per_instance_attribs,
                            static_cast<uint32_t>(sizeof(Asteroid)),
                            per_asteroid_data_.get()})
-          .add_uniform_buffer({light_uniform_.get(), light_desc_info})
+          .add_uniform_usage(Descriptor::Info{light_desc_info})
+          .add_uniform_resource(
+              /*binding_point=*/1, /*info_gen=*/[this](int frame) {
+                return light_uniform_->GetDescriptorInfo(frame);
+              })
           .set_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
                               {{planet_constant_.get(), /*offset=*/0}}})
           .Build();
 
   ModelBuilder::TextureBindingMap skybox_bindings;
-  skybox_bindings[model::ResourceType::kTextureCubemap] = {
+  skybox_bindings[model::TextureType::kCubemap] = {
       /*binding_point=*/1, {
           SharedTexture::CubemapPath{
               /*directory=*/GetResourcePath("texture/universe"),

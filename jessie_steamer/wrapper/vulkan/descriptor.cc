@@ -7,6 +7,8 @@
 
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
 
+#include <type_traits>
+
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 
@@ -19,7 +21,7 @@ using std::vector;
 
 VkDescriptorPool CreateDescriptorPool(
     const SharedBasicContext& context,
-    const vector<StaticDescriptor::Info>& descriptor_infos) {
+    const vector<Descriptor::Info>& descriptor_infos) {
   vector<VkDescriptorPoolSize> pool_sizes;
   pool_sizes.reserve(descriptor_infos.size());
   for (const auto& info : descriptor_infos) {
@@ -51,7 +53,7 @@ VkDescriptorPool CreateDescriptorPool(
 
 VkDescriptorSetLayout CreateDescriptorSetLayout(
     const SharedBasicContext& context,
-    const vector<StaticDescriptor::Info>& descriptor_infos,
+    const vector<Descriptor::Info>& descriptor_infos,
     bool is_dynamic) {
   int total_bindings = 0;
   for (const auto& info : descriptor_infos) {
@@ -78,7 +80,7 @@ VkDescriptorSetLayout CreateDescriptorSetLayout(
       /*flags=*/is_dynamic
                     ? VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR
                     : nullflag,
-      /*bindingCount=*/CONTAINER_SIZE(layout_bindings),
+      CONTAINER_SIZE(layout_bindings),
       layout_bindings.data(),
   };
 
@@ -107,51 +109,34 @@ VkDescriptorSet CreateDescriptorSet(const SharedBasicContext& context,
   return set;
 }
 
-vector<VkWriteDescriptorSet> CreateBuffersWriteDescriptorSets(
-    const VkDescriptorSet& descriptor_set,
-    const Descriptor::Info& descriptor_info,
-    const vector<VkDescriptorBufferInfo>& buffer_infos) {
-  if (descriptor_info.bindings.size() != buffer_infos.size()) {
-    FATAL("Failed to buffer write descriptor sets");
-  }
-
-  vector<VkWriteDescriptorSet> write_desc_sets;
-  write_desc_sets.reserve(buffer_infos.size());
-  for (int i = 0; i < buffer_infos.size(); ++i) {
-    write_desc_sets.emplace_back(VkWriteDescriptorSet{
-        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        /*pNext=*/nullptr,
-        descriptor_set,
-        descriptor_info.bindings[i].binding_point,
-        /*dstArrayElement=*/0,  // target first descriptor in set
-        /*descriptorCount=*/1,  // possible to update multiple descriptors
-        descriptor_info.descriptor_type,
-        /*pImageInfo=*/nullptr,
-        &buffer_infos[i],
-        /*pTexelBufferView=*/nullptr,
-    });
-  }
-  return write_desc_sets;
-}
-
-vector<VkWriteDescriptorSet> CreateImagesWriteDescriptorSets(
+template <typename InfoType>
+vector<VkWriteDescriptorSet> CreateWriteDescriptorSets(
     const VkDescriptorSet& descriptor_set,
     VkDescriptorType descriptor_type,
-    const Descriptor::ImageInfos& image_infos) {
+    const absl::flat_hash_map<uint32_t, vector<InfoType>>& info_map) {
+  static_assert(std::is_same<InfoType, VkDescriptorBufferInfo>::value ||
+                    std::is_same<InfoType, VkDescriptorImageInfo>::value ||
+                    std::is_same<InfoType, VkBufferView>::value,
+                "Unexpected info type");
+
+  using common::util::GetPointerIfTypeExpected;
   vector<VkWriteDescriptorSet> write_desc_sets;
-  write_desc_sets.reserve(image_infos.size());
-  for (const auto& infos : image_infos) {
+  write_desc_sets.reserve(info_map.size());
+  for (const auto& info : info_map) {
     write_desc_sets.emplace_back(VkWriteDescriptorSet{
         VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         /*pNext=*/nullptr,
         descriptor_set,
-        /*dstBinding=*/infos.first,
-        /*dstArrayElement=*/0,  // target first descriptor in set
-        CONTAINER_SIZE(infos.second),
+        /*dstBinding=*/info.first,
+        /*dstArrayElement=*/0,
+        CONTAINER_SIZE(info.second),
         descriptor_type,
-        infos.second.data(),
-        /*pBufferInfo=*/nullptr,
-        /*pTexelBufferView=*/nullptr,
+        /*pImageInfo=*/
+        GetPointerIfTypeExpected<InfoType, VkDescriptorImageInfo>(info.second),
+        /*pBufferInfo=*/
+        GetPointerIfTypeExpected<InfoType, VkDescriptorBufferInfo>(info.second),
+        /*pTexelBufferView=*/
+        GetPointerIfTypeExpected<InfoType, VkBufferView>(info.second),
     });
   }
   return write_desc_sets;
@@ -167,17 +152,20 @@ StaticDescriptor::StaticDescriptor(SharedBasicContext context,
   set_ = CreateDescriptorSet(context_, pool_, layout_);
 }
 
-void StaticDescriptor::UpdateBufferInfos(
-    const Info& descriptor_info,
-    const vector<VkDescriptorBufferInfo>& buffer_infos) const {
+StaticDescriptor& StaticDescriptor::UpdateBufferInfos(
+    VkDescriptorType descriptor_type,
+    const BufferInfoMap& buffer_info_map) {
   UpdateDescriptorSets(
-      CreateBuffersWriteDescriptorSets(set_, descriptor_info, buffer_infos));
+      CreateWriteDescriptorSets(set_, descriptor_type, buffer_info_map));
+  return *this;
 }
 
-void StaticDescriptor::UpdateImageInfos(VkDescriptorType descriptor_type,
-                                  const ImageInfos& image_infos) const {
+StaticDescriptor& StaticDescriptor::UpdateImageInfos(
+    VkDescriptorType descriptor_type,
+    const ImageInfoMap& image_info_map) {
   UpdateDescriptorSets(
-      CreateImagesWriteDescriptorSets(set_, descriptor_type, image_infos));
+      CreateWriteDescriptorSets(set_, descriptor_type, image_info_map));
+  return *this;
 }
 
 void StaticDescriptor::UpdateDescriptorSets(
@@ -215,26 +203,28 @@ DynamicDescriptor::DynamicDescriptor(SharedBasicContext context,
       };
 }
 
-void DynamicDescriptor::PushBufferInfos(
-    const VkCommandBuffer& command_buffer,
-    const VkPipelineLayout& pipeline_layout,
-    const Info& descriptor_info,
-    const vector<VkDescriptorBufferInfo>& buffer_infos) const {
-  push_descriptor_sets_(
-      command_buffer, pipeline_layout,
-      CreateBuffersWriteDescriptorSets(/*descriptor_set=*/VK_NULL_HANDLE,
-                                       descriptor_info, buffer_infos));
-}
-
-void DynamicDescriptor::PushImageInfos(
+const DynamicDescriptor& DynamicDescriptor::PushBufferInfos(
     const VkCommandBuffer& command_buffer,
     const VkPipelineLayout& pipeline_layout,
     VkDescriptorType descriptor_type,
-    const ImageInfos& image_infos) const {
+    const BufferInfoMap& buffer_info_map) const {
   push_descriptor_sets_(
       command_buffer, pipeline_layout,
-      CreateImagesWriteDescriptorSets(/*descriptor_set=*/VK_NULL_HANDLE,
-                                      descriptor_type, image_infos));
+      CreateWriteDescriptorSets(/*descriptor_set=*/VK_NULL_HANDLE,
+                                descriptor_type, buffer_info_map));
+  return *this;
+}
+
+const DynamicDescriptor& DynamicDescriptor::PushImageInfos(
+    const VkCommandBuffer& command_buffer,
+    const VkPipelineLayout& pipeline_layout,
+    VkDescriptorType descriptor_type,
+    const ImageInfoMap& image_info_map) const {
+  push_descriptor_sets_(
+      command_buffer, pipeline_layout,
+      CreateWriteDescriptorSets(/*descriptor_set=*/VK_NULL_HANDLE,
+                                descriptor_type, image_info_map));
+  return *this;
 }
 
 } /* namespace vulkan */

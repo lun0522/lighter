@@ -9,6 +9,7 @@
 #define JESSIE_STEAMER_WRAPPER_VULKAN_MODEL_H
 
 #include <array>
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -33,9 +34,9 @@ namespace wrapper {
 namespace vulkan {
 namespace model {
 
-using ResourceType = common::ResourceType;
+using TextureType = common::TextureType;
 using TexPerMesh = std::array<std::vector<std::unique_ptr<SamplableImage>>,
-                              static_cast<int>(ResourceType::kNumTextureType)>;
+                              static_cast<int>(TextureType::kNumType)>;
 
 // For pushing constants.
 struct PushConstantInfo {
@@ -80,7 +81,7 @@ class Model {
 
 class ModelBuilder {
  public:
-  using UniformInfo = std::pair<const UniformBuffer*, Descriptor::Info>;
+  using BufferInfoGenerator = std::function<VkDescriptorBufferInfo(int frame)>;
 
   // Textures of the same type will be bound to the same point.
   struct TextureBinding {
@@ -90,9 +91,9 @@ class ModelBuilder {
     std::vector<TextureSource> texture_sources;
   };
   using BindingPointMap = absl::flat_hash_map<
-      model::ResourceType, uint32_t, common::util::EnumClassHash>;
+      model::TextureType, uint32_t, common::util::EnumClassHash>;
   using TextureBindingMap = absl::flat_hash_map<
-      model::ResourceType, TextureBinding, common::util::EnumClassHash>;
+      model::TextureType, TextureBinding, common::util::EnumClassHash>;
 
   // Loads with light-weight obj file loader.
   struct SingleMeshResource {
@@ -130,9 +131,11 @@ class ModelBuilder {
 
   ModelBuilder& add_shader(PipelineBuilder::ShaderInfo&& info);
   ModelBuilder& add_instancing(InstancingInfo&& info);
-  ModelBuilder& add_uniform_buffer(UniformInfo&& info);
+  ModelBuilder& add_uniform_usage(Descriptor::Info&& info);
+  ModelBuilder& add_uniform_resource(uint32_t binding_point,
+                                     const BufferInfoGenerator& info_gen);
   ModelBuilder& set_push_constant(model::PushConstantInfo&& info);
-  ModelBuilder& add_shared_texture(model::ResourceType type,
+  ModelBuilder& add_shared_texture(model::TextureType type,
                                    const TextureBinding& binding);
 
  private:
@@ -146,7 +149,8 @@ class ModelBuilder {
   std::vector<PipelineBuilder::ShaderInfo> shader_infos_;
   std::unique_ptr<StaticPerVertexBuffer> vertex_buffer_;
   std::vector<InstancingInfo> instancing_infos_;
-  std::vector<UniformInfo> uniform_infos_;
+  std::vector<Descriptor::Info> uniform_usages_;
+  std::vector<Descriptor::BufferInfoMap> uniform_resource_maps_;
   absl::optional<model::PushConstantInfo> push_constant_info_;
   BindingPointMap binding_map_;
   model::TexPerMesh shared_textures_;

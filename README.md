@@ -244,11 +244,12 @@ need to directly instantiate them.
 **Image** is the base class of all other image classes. It provides accessors
 to the image view, extent, format and sample count. These information should be
 enough for setting an image as an attachment in the render pass. All of its
-subclasses can be directly used by the user:
+subclasses can be directly used by the user, except for **SwapchainImage**,
+which is handled by **Swapchain**:
 
+- **SwapchainImage** wraps an image retrieved from the swapchain.
 - **OffscreenImage** creates an image that can be used as offscreen rendering
 target.
-- **SwapchainImage** wraps an image retrieved from the swapchain.
 - **TextureImage** copies a texture image from the host memory to the device
 memory.
 - **DepthStencilImage** creates an image that can be used as single-sample depth

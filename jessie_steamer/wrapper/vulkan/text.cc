@@ -54,7 +54,6 @@ const vector<Descriptor::Info>& CreateDescriptorInfos() {
             /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
             /*bindings=*/{
                 Descriptor::Info::Binding{
-                    /*resource_type=*/common::ResourceType::kUniformBuffer,
                     /*binding_point=*/
                     static_cast<int>(BindingPoint::kUniformBuffer),
                     /*array_length=*/1,
@@ -66,7 +65,6 @@ const vector<Descriptor::Info>& CreateDescriptorInfos() {
             /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
             /*bindings=*/{
                 Descriptor::Info::Binding{
-                    /*resource_type=*/common::ResourceType::kTextureDiffuse,
                     /*binding_point=*/static_cast<int>(BindingPoint::kTexture),
                     /*array_length=*/1,
                 },
@@ -138,12 +136,14 @@ StaticText::StaticText(SharedBasicContext context,
     descriptors_.emplace_back(
         absl::make_unique<DynamicDescriptor>(context_, descriptor_infos));
     push_descriptors_.emplace_back(
-        [=, &descriptor_infos](const VkCommandBuffer& command_buffer,
-                               const VkPipelineLayout& pipeline_layout,
-                               int text_index) {
+        [=](const VkCommandBuffer& command_buffer,
+            const VkPipelineLayout& pipeline_layout,
+            int text_index) {
           descriptors_[frame]->PushBufferInfos(
-              command_buffer, pipeline_layout, descriptor_infos[0],
-              {uniform_buffer_->GetDescriptorInfo(frame)});
+              command_buffer, pipeline_layout,
+              VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+              {{static_cast<uint32_t>(BindingPoint::kUniformBuffer),
+                {uniform_buffer_->GetDescriptorInfo(frame)}}});
           descriptors_[frame]->PushImageInfos(
               command_buffer, pipeline_layout,
               VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -199,7 +199,7 @@ DynamicText::DynamicText(SharedBasicContext context,
     : Text{std::move(context), num_frame},
       char_loader_{context_, texts, font, font_height} {
   const auto& descriptor_infos = CreateDescriptorInfos();
-  const Descriptor::ImageInfos image_infos{
+  const Descriptor::ImageInfoMap image_info_map{
       {static_cast<int>(BindingPoint::kTexture),
        {char_loader_.texture()->GetDescriptorInfo()}},
   };
@@ -209,9 +209,12 @@ DynamicText::DynamicText(SharedBasicContext context,
     descriptors_.emplace_back(
         absl::make_unique<StaticDescriptor>(context_, descriptor_infos));
     descriptors_[frame]->UpdateBufferInfos(
-        descriptor_infos[0], {uniform_buffer_->GetDescriptorInfo(frame)});
+        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, {
+            {static_cast<int>(BindingPoint::kUniformBuffer),
+             {uniform_buffer_->GetDescriptorInfo(frame)}}
+        });
     descriptors_[frame]->UpdateImageInfos(
-        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, image_infos);
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, image_info_map);
   }
 
   pipeline_builder_.set_layout({descriptors_[0]->layout()},

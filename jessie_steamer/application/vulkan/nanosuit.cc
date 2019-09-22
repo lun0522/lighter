@@ -146,15 +146,14 @@ NanosuitApp::NanosuitApp() : Application{"Nanosuit", WindowContext::Config{}} {
   };
 
   ModelBuilder::BindingPointMap nanosuit_bindings{
-      {model::ResourceType::kTextureDiffuse, /*binding_point=*/1},
-      {model::ResourceType::kTextureSpecular, /*binding_point=*/2},
-      {model::ResourceType::kTextureReflection, /*binding_point=*/3},
+      {model::TextureType::kDiffuse, /*binding_point=*/1},
+      {model::TextureType::kSpecular, /*binding_point=*/2},
+      {model::TextureType::kReflection, /*binding_point=*/3},
   };
   Descriptor::Info trans_desc_info{
-      /*descriptor_type=*/VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-      /*shader_stage=*/VK_SHADER_STAGE_VERTEX_BIT,
+      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      VK_SHADER_STAGE_VERTEX_BIT,
       /*bindings=*/{{
-          Descriptor::ResourceType::kUniformBuffer,
           /*binding_point=*/0,
           /*array_length=*/1,
       }},
@@ -171,11 +170,14 @@ NanosuitApp::NanosuitApp() : Application{"Nanosuit", WindowContext::Config{}} {
                        GetShaderPath("vulkan/nanosuit.vert.spv")})
           .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
                        GetShaderPath("vulkan/nanosuit.frag.spv")})
-          .add_uniform_buffer({nanosuit_vert_uniform_.get(), trans_desc_info})
+          .add_uniform_usage(std::move(trans_desc_info))
+          .add_uniform_resource(
+              /*binding_point=*/0, /*info_gen=*/[this](int frame) {
+                return nanosuit_vert_uniform_->GetDescriptorInfo(frame);
+              })
           .set_push_constant({VK_SHADER_STAGE_FRAGMENT_BIT,
                               {{nanosuit_frag_constant_.get(), /*offset=*/0}}})
-          .add_shared_texture(Descriptor::ResourceType::kTextureCubemap,
-                              skybox_binding)
+          .add_shared_texture(Descriptor::TextureType::kCubemap, skybox_binding)
           .Build();
 
   skybox_binding.binding_point = 1;
@@ -185,7 +187,7 @@ NanosuitApp::NanosuitApp() : Application{"Nanosuit", WindowContext::Config{}} {
           ModelBuilder::SingleMeshResource{
               GetResourcePath("model/skybox.obj"),
               /*obj_index_base=*/1,
-              {{model::ResourceType::kTextureCubemap, skybox_binding}}},
+              {{model::TextureType::kCubemap, skybox_binding}}},
       }
           .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
                        GetShaderPath("vulkan/skybox.vert.spv")})

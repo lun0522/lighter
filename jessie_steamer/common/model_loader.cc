@@ -22,14 +22,13 @@ using std::vector;
 using absl::StrFormat;
 
 // Translates the resource type we defined to its counterpart in Assimp.
-// Only those texture types can be converted.
-aiTextureType ResourceTypeToAssimpType(ResourceType type) {
+aiTextureType TextureTypeToAssimpType(TextureType type) {
   switch (type) {
-    case ResourceType::kTextureDiffuse:
+    case TextureType::kDiffuse:
       return aiTextureType_DIFFUSE;
-    case ResourceType::kTextureSpecular:
+    case TextureType::kSpecular:
       return aiTextureType_SPECULAR;
-    case ResourceType::kTextureReflection:
+    case TextureType::kReflection:
       return aiTextureType_AMBIENT;
     default:
       FATAL(StrFormat("Unsupported resource type: %d", type));
@@ -102,11 +101,9 @@ ModelLoader::MeshData ModelLoader::LoadMesh(const string& directory,
   vector<TextureInfo> textures;
   if (scene->HasMaterials()) {
     const aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-    LoadTextures(directory, material, ResourceType::kTextureDiffuse, &textures);
-    LoadTextures(directory, material, ResourceType::kTextureSpecular,
-                 &textures);
-    LoadTextures(directory, material, ResourceType::kTextureReflection,
-                 &textures);
+    LoadTextures(directory, material, TextureType::kDiffuse, &textures);
+    LoadTextures(directory, material, TextureType::kSpecular, &textures);
+    LoadTextures(directory, material, TextureType::kReflection, &textures);
   }
 
   return MeshData{std::move(vertices), std::move(indices), std::move(textures)};
@@ -114,16 +111,16 @@ ModelLoader::MeshData ModelLoader::LoadMesh(const string& directory,
 
 void ModelLoader::LoadTextures(const string& directory,
                                const aiMaterial* material,
-                               ResourceType resource_type,
+                               TextureType texture_type,
                                vector<TextureInfo>* texture_infos) const {
-  const aiTextureType ai_type = ResourceTypeToAssimpType(resource_type);
+  const aiTextureType ai_type = TextureTypeToAssimpType(texture_type);
   const int num_texture = material->GetTextureCount(ai_type);
   texture_infos->reserve(texture_infos->size() + num_texture);
   for (unsigned int i = 0; i < num_texture; ++i) {
     aiString path;
     material->GetTexture(ai_type, i, &path);
     texture_infos->emplace_back(TextureInfo{
-        StrFormat("%s/%s", directory, path.C_Str()), resource_type});
+        StrFormat("%s/%s", directory, path.C_Str()), texture_type});
   }
 }
 

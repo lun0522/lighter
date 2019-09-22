@@ -84,7 +84,7 @@ CubeApp::CubeApp() : Application{"Cube", WindowContext::Config{}} {
 
   // model
   ModelBuilder::TextureBindingMap bindings{};
-  bindings[model::ResourceType::kTextureDiffuse] = {
+  bindings[model::TextureType::kDiffuse] = {
       /*binding_point=*/1,
       {SharedTexture::SingleTexPath{GetResourcePath("texture/statue.jpg")}},
   };

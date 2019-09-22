@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <functional>
 #include <stdexcept>
+#include <type_traits>
 #include <vector>
 
 #include "absl/flags/parse.h"
@@ -81,6 +82,35 @@ struct EnumClassHash {
     return static_cast<std::size_t>(value);
   }
 };
+
+namespace internal {
+
+// Returns a pointer to the underlying data of 'container', assuming
+// 'ContentType' and 'ExpectedType' are the same.
+template <typename ContentType, typename ExpectedType>
+inline const ExpectedType* GetPointerIfTypeExpectedImpl(
+    const std::vector<ContentType>& container, std::true_type) {
+  return container.data();
+}
+
+// Returns nullptr, assuming 'ContentType' and 'ExpectedType' are different.
+template <typename ContentType, typename ExpectedType>
+inline const ExpectedType* GetPointerIfTypeExpectedImpl(
+    const std::vector<ContentType>& container, std::false_type) {
+  return nullptr;
+}
+
+} /* namespace internal */
+
+// Returns a pointer of 'ExpectedType'. If elements of 'container' are of
+// 'ExpectedType', the returned pointer will point to its underlying data.
+// Otherwise, nullptr will be returned.
+template <typename ContentType, typename ExpectedType>
+const ExpectedType* GetPointerIfTypeExpected(
+    const std::vector<ContentType>& container) {
+  return internal::GetPointerIfTypeExpectedImpl<ContentType, ExpectedType>(
+      container, std::is_same<ContentType, ExpectedType>());
+}
 
 } /* namespace util */
 } /* namespace common */

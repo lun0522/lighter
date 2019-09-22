@@ -53,7 +53,6 @@ vector<Descriptor::Info> CreateDescriptorInfos() {
           /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
           /*bindings=*/{
               Descriptor::Info::Binding{
-                  Descriptor::ResourceType::kTextureDiffuse,
                   kImageBindingPoint,
                   /*array_length=*/1,
               },

@@ -39,40 +39,40 @@ std::unique_ptr<SamplableImage> CreateTexture(
 void CreateTextureInfo(const ModelBuilder::BindingPointMap& binding_map,
                        const model::TexPerMesh& mesh_textures,
                        const model::TexPerMesh& shared_textures,
-                       Descriptor::ImageInfos* image_infos,
-                       Descriptor::Info* texture_info) {
+                       Descriptor::ImageInfoMap* image_info_map,
+                       Descriptor::Info* descriptor_info) {
   vector<Descriptor::Info::Binding> texture_bindings;
 
-  for (int type = 0;
-       type < static_cast<int>(model::ResourceType::kNumTextureType); ++type) {
-    const auto resource_type = static_cast<model::ResourceType>(type);
-    const int num_texture = mesh_textures[type].size() +
-                            shared_textures[type].size();
+  for (int type_index = 0;
+       type_index < static_cast<int>(model::TextureType::kNumType);
+       ++type_index) {
+    const auto texture_type = static_cast<model::TextureType>(type_index);
+    const int num_texture = mesh_textures[type_index].size() +
+                            shared_textures[type_index].size();
 
     if (num_texture != 0) {
-      const auto binding_point = binding_map.find(resource_type)->second;
+      const auto binding_point = binding_map.find(texture_type)->second;
 
       vector<VkDescriptorImageInfo> descriptor_infos{};
       descriptor_infos.reserve(num_texture);
-      for (const auto& texture : mesh_textures[type]) {
+      for (const auto& texture : mesh_textures[type_index]) {
         descriptor_infos.emplace_back(texture->GetDescriptorInfo());
       }
-      for (const auto& texture : shared_textures[type]) {
+      for (const auto& texture : shared_textures[type_index]) {
         descriptor_infos.emplace_back(texture->GetDescriptorInfo());
       }
 
       texture_bindings.emplace_back(Descriptor::Info::Binding{
-          resource_type,
           binding_point,
           CONTAINER_SIZE(descriptor_infos),
       });
-      (*image_infos)[binding_point] = std::move(descriptor_infos);
+      (*image_info_map)[binding_point] = std::move(descriptor_infos);
     }
   }
 
-  *texture_info = Descriptor::Info{
-      /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-      /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
+  *descriptor_info = Descriptor::Info{
+      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      VK_SHADER_STAGE_FRAGMENT_BIT,
       std::move(texture_bindings),
   };
 }
@@ -106,6 +106,8 @@ ModelBuilder::ModelBuilder(SharedBasicContext context,
   } else {
     FATAL("Unrecognized variant type");
   }
+
+  uniform_resource_maps_.resize(num_frame_);
   if (is_opaque) {
     pipeline_builder_->enable_depth_test();
   } else {
@@ -126,10 +128,10 @@ void ModelBuilder::LoadSingleMesh(const SingleMeshResource& resource) {
   // load textures
   mesh_textures_.emplace_back();
   for (const auto& binding : resource.binding_map) {
-    const auto type = binding.first;
-    binding_map_[type] = binding.second.binding_point;
+    const auto texture_type = binding.first;
+    binding_map_[texture_type] = binding.second.binding_point;
     for (const auto& source : binding.second.texture_sources) {
-      mesh_textures_.back()[static_cast<int>(type)].emplace_back(
+      mesh_textures_.back()[static_cast<int>(texture_type)].emplace_back(
           CreateTexture(context_, source));
     }
   }
@@ -157,34 +159,42 @@ void ModelBuilder::LoadMultiMesh(const MultiMeshResource& resource) {
   for (auto& mesh_data : loader.mesh_datas()) {
     mesh_textures_.emplace_back();
     for (auto& texture : mesh_data.textures) {
-      const auto type = static_cast<int>(texture.resource_type);
-      mesh_textures_.back()[type].emplace_back(
+      const auto type_index = static_cast<int>(texture.texture_type);
+      mesh_textures_.back()[type_index].emplace_back(
           absl::make_unique<SharedTexture>(context_, texture.path));
     }
   }
 }
 
 ModelBuilder& ModelBuilder::add_shader(PipelineBuilder::ShaderInfo&& info) {
-  shader_infos_.emplace_back(info);
+  shader_infos_.emplace_back(std::move(info));
   return *this;
 }
 
 ModelBuilder& ModelBuilder::add_instancing(InstancingInfo&& info) {
-  instancing_infos_.emplace_back(info);
+  instancing_infos_.emplace_back(std::move(info));
   return *this;
 }
 
-ModelBuilder& ModelBuilder::add_uniform_buffer(UniformInfo&& info) {
-  uniform_infos_.emplace_back(info);
+ModelBuilder& ModelBuilder::add_uniform_usage(Descriptor::Info&& info) {
+  uniform_usages_.emplace_back(std::move(info));
+  return *this;
+}
+
+ModelBuilder& ModelBuilder::add_uniform_resource(
+    uint32_t binding_point, const BufferInfoGenerator& info_gen) {
+  for (int frame = 0; frame < num_frame_; ++frame) {
+    uniform_resource_maps_[frame][binding_point].emplace_back(info_gen(frame));
+  }
   return *this;
 }
 
 ModelBuilder& ModelBuilder::set_push_constant(model::PushConstantInfo&& info) {
-  push_constant_info_ = info;
+  push_constant_info_ = std::move(info);
   return *this;
 }
 
-ModelBuilder& ModelBuilder::add_shared_texture(model::ResourceType type,
+ModelBuilder& ModelBuilder::add_shared_texture(model::TextureType type,
                                                const TextureBinding& binding) {
   const auto binding_point = binding.binding_point;
   const auto found = binding_map_.find(type);
@@ -207,6 +217,7 @@ std::vector<std::vector<std::unique_ptr<StaticDescriptor>>>
 ModelBuilder::CreateDescriptors() {
   std::vector<std::vector<std::unique_ptr<StaticDescriptor>>> descriptors;
   descriptors.resize(num_frame_);
+  auto descriptor_infos = uniform_usages_;
   for (int frame = 0; frame < num_frame_; ++frame) {
     descriptors[frame].reserve(mesh_textures_.size());
 
@@ -214,24 +225,21 @@ ModelBuilder::CreateDescriptors() {
     // for different meshes, we bind different textures. so we need a 2D array
     // of descriptors.
     for (const auto& mesh_texture : mesh_textures_) {
-      Descriptor::ImageInfos image_infos;
+      Descriptor::ImageInfoMap image_info_map;
       Descriptor::Info texture_info;
       CreateTextureInfo(binding_map_, mesh_texture, shared_textures_,
-                        &image_infos, &texture_info);
-      const VkDescriptorType tex_desc_type = texture_info.descriptor_type;
+                        &image_info_map, &texture_info);
 
-      vector<Descriptor::Info> descriptor_infos{std::move(texture_info)};
-      for (const auto& info : uniform_infos_) {
-        descriptor_infos.emplace_back(info.second);
-      }
-
+      descriptor_infos.emplace_back(std::move(texture_info));
       descriptors[frame].emplace_back(
           absl::make_unique<StaticDescriptor>(context_, descriptor_infos));
-      for (const auto& info : uniform_infos_) {
-        descriptors[frame].back()->UpdateBufferInfos(
-            info.second, {info.first->GetDescriptorInfo(frame)});
-      }
-      descriptors[frame].back()->UpdateImageInfos(tex_desc_type, image_infos);
+      descriptor_infos.resize(descriptor_infos.size() - 1);
+
+      // TODO: Derive descriptor type.
+      descriptors[frame].back()->UpdateBufferInfos(
+          VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uniform_resource_maps_[frame]);
+      descriptors[frame].back()->UpdateImageInfos(
+          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, image_info_map);
     }
   }
   return descriptors;
@@ -270,7 +278,7 @@ std::unique_ptr<Model> ModelBuilder::Build() {
                       : vector<VkPushConstantRange>{});
 
   instancing_infos_.clear();
-  uniform_infos_.clear();
+  uniform_resource_maps_.clear();
   binding_map_.clear();
 
   std::unique_ptr<Model> model{new Model{}};

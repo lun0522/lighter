@@ -67,13 +67,18 @@ namespace vulkan {
  */
 class Descriptor {
  public:
-  using ImageInfos = absl::flat_hash_map<
+  using TextureType = common::TextureType;
+
+  // Maps a binding point to buffers bound to it.
+  using BufferInfoMap = absl::flat_hash_map<
+      uint32_t, std::vector<VkDescriptorBufferInfo>>;
+
+  // Maps a binding point to images bound to it.
+  using ImageInfoMap = absl::flat_hash_map<
       uint32_t, std::vector<VkDescriptorImageInfo>>;
-  using ResourceType = common::ResourceType;
 
   struct Info {
     struct Binding {
-      ResourceType resource_type;
       uint32_t binding_point;
       uint32_t array_length;
     };
@@ -82,6 +87,10 @@ class Descriptor {
     VkShaderStageFlags shader_stage;
     std::vector<Binding> bindings;
   };
+
+  // This class is neither copyable nor movable.
+  Descriptor(const Descriptor&) = delete;
+  Descriptor& operator=(const Descriptor&) = delete;
 
   virtual ~Descriptor() {
     vkDestroyDescriptorSetLayout(*context_->device(), layout_,
@@ -111,17 +120,14 @@ class StaticDescriptor : public Descriptor {
     // descriptor set is implicitly cleaned up with descriptor pool
   }
 
-  void UpdateBufferInfos(
-      const Info& descriptor_info,
-      const std::vector<VkDescriptorBufferInfo>& buffer_infos) const;
+  StaticDescriptor& UpdateBufferInfos(VkDescriptorType descriptor_type,
+                                      const BufferInfoMap& buffer_info_map);
 
-  void UpdateImageInfos(VkDescriptorType descriptor_type,
-                        const ImageInfos& image_infos) const;
+  StaticDescriptor& UpdateImageInfos(VkDescriptorType descriptor_type,
+                                     const ImageInfoMap& image_info_map);
 
   void Bind(const VkCommandBuffer& command_buffer,
             const VkPipelineLayout& pipeline_layout) const;
-
-  const VkDescriptorSet& set() const { return set_; }
 
  private:
   void UpdateDescriptorSets(
@@ -139,16 +145,17 @@ class DynamicDescriptor : public Descriptor {
   DynamicDescriptor(const DynamicDescriptor&) = delete;
   DynamicDescriptor& operator=(const DynamicDescriptor&) = delete;
 
-  void PushBufferInfos(
+  const DynamicDescriptor& PushBufferInfos(
       const VkCommandBuffer& command_buffer,
       const VkPipelineLayout& pipeline_layout,
-      const Info& descriptor_info,
-      const std::vector<VkDescriptorBufferInfo>& buffer_infos) const;
+      VkDescriptorType descriptor_type,
+      const BufferInfoMap& buffer_info_map) const;
 
-  void PushImageInfos(const VkCommandBuffer& command_buffer,
-                      const VkPipelineLayout& pipeline_layout,
-                      VkDescriptorType descriptor_type,
-                      const ImageInfos& image_infos) const;
+  const DynamicDescriptor& PushImageInfos(
+      const VkCommandBuffer& command_buffer,
+      const VkPipelineLayout& pipeline_layout,
+      VkDescriptorType descriptor_type,
+      const ImageInfoMap& image_info_map) const;
 
  private:
   std::function<void(
