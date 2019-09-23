@@ -17,14 +17,9 @@ CharLib::CharLib(const std::vector<std::string>& texts,
                  const std::string& font_path, int font_height) {
   FT_Library lib;
   FT_Face face;
-
-  if (FT_Init_FreeType(&lib)) {
-    FATAL("Failed to init FreeType library");
-  }
-
-  if (FT_New_Face(lib, font_path.c_str(), /*face_index=*/0, &face)) {
-    FATAL("Failed to load font");
-  }
+  ASSERT_FALSE(FT_Init_FreeType(&lib), "Failed to init FreeType library");
+  ASSERT_FALSE(FT_New_Face(lib, font_path.c_str(), /*face_index=*/0, &face),
+               "Failed to load font");
   FT_Set_Pixel_Sizes(face, /*pixel_width=*/0, font_height);
 
   for (const auto& text : texts) {
@@ -33,10 +28,8 @@ CharLib::CharLib(const std::vector<std::string>& texts,
         continue;
       }
 
-      if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
-        FATAL("Failed to load glyph");
-      }
-
+      ASSERT_FALSE(FT_Load_Char(face, c, FT_LOAD_RENDER),
+                   "Failed to load glyph");
       char_info_map_.emplace(c, CharInfo{
           /*bearing=*/{
               face->glyph->bitmap_left,

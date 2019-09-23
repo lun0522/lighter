@@ -8,6 +8,7 @@
 #include "jessie_steamer/wrapper/vulkan/swapchain.h"
 
 #include <algorithm>
+#include <limits>
 #include <string>
 
 #include "absl/memory/memory.h"
@@ -18,8 +19,6 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::max;
-using std::min;
 using std::vector;
 
 // Returns the surface format to use.
@@ -67,20 +66,31 @@ VkPresentModeKHR ChoosePresentMode(const vector<VkPresentModeKHR>& available) {
 
 // Returns the image extent to use.
 VkExtent2D ChooseImageExtent(const VkSurfaceCapabilitiesKHR& capabilities,
-                             const VkExtent2D& current_extent) {
+                             const VkExtent2D& screen_size) {
   // .currentExtent is the suggested resolution.
-  // If it is UINT32_MAX, that means the window manager suggests to be flexible.
+  // If it is UINT32_MAX, that means it is up to the swapchain to choose extent.
   if (capabilities.currentExtent.width !=
       std::numeric_limits<uint32_t>::max()) {
     return capabilities.currentExtent;
   } else {
-    VkExtent2D extent = current_extent;
-    extent.width = max(extent.width, capabilities.minImageExtent.width);
-    extent.width = min(extent.width, capabilities.maxImageExtent.width);
-    extent.height = max(extent.height, capabilities.minImageExtent.height);
-    extent.height = min(extent.height, capabilities.maxImageExtent.height);
+    VkExtent2D extent = screen_size;
+    extent.width = std::max(extent.width, capabilities.minImageExtent.width);
+    extent.width = std::min(extent.width, capabilities.maxImageExtent.width);
+    extent.height = std::max(extent.height, capabilities.minImageExtent.height);
+    extent.height = std::min(extent.height, capabilities.maxImageExtent.height);
     return extent;
   }
+}
+
+// Returns the minimum number of images we want to have in the swapchain.
+// Note that the actual number can be higher.
+uint32_t ChooseMinImageCount(const VkSurfaceCapabilitiesKHR& capabilities) {
+  uint32_t min_count = capabilities.minImageCount + 1;
+  // If there is no maximum limit, .maxImageCount will be 0.
+  if (capabilities.maxImageCount > 0) {
+    min_count = std::min(capabilities.maxImageCount, min_count);
+  }
+  return min_count;
 }
 
 } /* namespace */
@@ -95,25 +105,35 @@ const vector<const char*>& Swapchain::GetRequiredExtensions() {
   return *required_extensions;
 }
 
+VkSurfaceCapabilitiesKHR Surface::GetCapabilities() const {
+  VkSurfaceCapabilitiesKHR capabilities;
+  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+      *context_->physical_device(), surface_, &capabilities);
+  return capabilities;
+}
+
+Surface::~Surface() {
+  if (is_initialized_) {
+    vkDestroySurfaceKHR(*context_->instance(), surface_,
+                        *context_->allocator());
+  }
+}
+
 Swapchain::Swapchain(
     SharedBasicContext context,
-    const VkSurfaceKHR& surface, const VkExtent2D& screen_size,
+    const Surface& surface, const VkExtent2D& screen_size,
     absl::optional<MultisampleImage::Mode> multisampling_mode)
     : context_{std::move(context)} {
-  const VkPhysicalDevice& physical_device = *context_->physical_device();
-
   // Choose image extent.
-  VkSurfaceCapabilitiesKHR surface_capabilities;
-  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface,
-                                            &surface_capabilities);
+  const auto surface_capabilities = surface.GetCapabilities();
   image_extent_ = ChooseImageExtent(surface_capabilities, screen_size);
 
   // Choose surface format.
   const auto surface_formats{util::QueryAttribute<VkSurfaceFormatKHR>(
-      [&surface, &physical_device]
+      [this, &surface]
       (uint32_t* count, VkSurfaceFormatKHR* formats) {
         return vkGetPhysicalDeviceSurfaceFormatsKHR(
-            physical_device, surface, count, formats);
+            *context_->physical_device(), *surface, count, formats);
       }
   )};
   const VkSurfaceFormatKHR surface_format =
@@ -121,20 +141,12 @@ Swapchain::Swapchain(
 
   // Choose present mode.
   const auto present_modes{util::QueryAttribute<VkPresentModeKHR>(
-      [&surface, &physical_device](uint32_t* count, VkPresentModeKHR* modes) {
+      [this, &surface](uint32_t* count, VkPresentModeKHR* modes) {
         return vkGetPhysicalDeviceSurfacePresentModesKHR(
-            physical_device, surface, count, modes);
+            *context_->physical_device(), *surface, count, modes);
       }
   )};
   const VkPresentModeKHR present_mode = ChoosePresentMode(present_modes);
-
-  // Choose the minimum number of images we want to have in the swapchain.
-  // Note that the actual number can be higher, so we need to query it later.
-  uint32_t min_image_count = surface_capabilities.minImageCount + 1;
-  // If there is no maximum limit, .maxImageCount will be 0.
-  if (surface_capabilities.maxImageCount > 0) {
-    min_image_count = min(surface_capabilities.maxImageCount, min_image_count);
-  }
 
   const util::QueueUsage queue_usage{{
       context_->queues().graphics_queue().family_index,
@@ -146,8 +158,8 @@ Swapchain::Swapchain(
       VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
-      surface,
-      min_image_count,
+      *surface,
+      ChooseMinImageCount(surface_capabilities),
       surface_format.format,
       surface_format.colorSpace,
       image_extent_,
@@ -161,7 +173,7 @@ Swapchain::Swapchain(
       // May alter the alpha channel.
       VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
       present_mode,
-      // If true, we don't care about color of pixels obscured.
+      // If true, we don't care about the color of invisible pixels.
       /*clipped=*/VK_TRUE,
       /*oldSwapchain=*/VK_NULL_HANDLE,
   };
@@ -171,11 +183,11 @@ Swapchain::Swapchain(
                  "Failed to create swapchain");
 
   // Fetch swapchain images.
-  const auto images{util::QueryAttribute<VkImage>(
+  const auto images = util::QueryAttribute<VkImage>(
       [this](uint32_t* count, VkImage* images) {
         vkGetSwapchainImagesKHR(*context_->device(), swapchain_, count, images);
       }
-  )};
+  );
   swapchain_images_.reserve(images.size());
   for (const auto& image : images) {
     swapchain_images_.emplace_back(absl::make_unique<SwapchainImage>(

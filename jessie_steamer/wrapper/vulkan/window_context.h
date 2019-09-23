@@ -34,6 +34,28 @@ class WindowContext {
   // Swapchain images will use multisampling unless 'multisampling_mode' is set
   // to absl::nullopt,
   struct Config {
+    // Modifiers.
+    Config& set_screen_size(const glm::ivec2& size) {
+      screen_size = size;
+      return *this;
+    }
+
+    Config& set_multisampling_mode(MultisampleImage::Mode mode) {
+      multisampling_mode = mode;
+      return *this;
+    }
+
+    Config& disable_multisampling() {
+      multisampling_mode = absl::nullopt;
+      return *this;
+    }
+
+    Config& set_debug_callback_trigger(
+        const DebugCallback::TriggerCondition& trigger) {
+      debug_callback_trigger = trigger;
+      return *this;
+    }
+
     glm::ivec2 screen_size{800, 600};
     absl::optional<MultisampleImage::Mode> multisampling_mode =
         MultisampleImage::Mode::kEfficient;
@@ -46,12 +68,12 @@ class WindowContext {
     : window_{name, config.screen_size},
       multisampling_mode_{config.multisampling_mode} {
     const WindowSupport window_support{
-        &surface_,
         common::Window::GetRequiredExtensions(),
         Swapchain::GetRequiredExtensions(),
-        [this](const VkInstance& instance,
-               const VkAllocationCallbacks* allocator) {
-          surface_ = window_.CreateSurface(instance, allocator);
+        *surface_,
+        [this](const BasicContext* context) {
+          surface_.Init(context, window_.CreateSurface(*context->instance(),
+                                                       *context->allocator()));
         },
     };
     context_ =
@@ -66,13 +88,6 @@ class WindowContext {
   // This class is neither copyable nor movable.
   WindowContext(const WindowContext&) = delete;
   WindowContext& operator=(const WindowContext&) = delete;
-
-  ~WindowContext() {
-    // Explicitly destroy swapchain before surface as required by Vulkan.
-    swapchain_ = nullptr;
-    vkDestroySurfaceKHR(*context_->instance(), surface_,
-                        *context_->allocator());
-  }
 
   // Returns whether the window context needs to be recreated.
   bool ShouldRecreate() const { return window_.is_resized(); }
@@ -132,8 +147,8 @@ class WindowContext {
   // Multisampling mode for swapchain images.
   const absl::optional<MultisampleImage::Mode> multisampling_mode_;
 
-  // VkSurfaceKHR interfaces with platform-specific window systems.
-  VkSurfaceKHR surface_;
+  // Wrapper of VkSurfaceKHR.
+  Surface surface_;
 
   // Wrapper of VkSwapchainKHR.
   std::unique_ptr<Swapchain> swapchain_;

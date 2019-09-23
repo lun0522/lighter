@@ -237,15 +237,12 @@ glm::vec2 DynamicText::Draw(
   int num_non_space_char = 0;
   for (auto c : text) {
     if (c == ' ') {
-      if (char_loader_.space_advance() < 0.0f) {
-        FATAL("Space was not loaded");
-      }
-      total_width_in_tex_coord += char_loader_.space_advance();
+      ASSERT_HAS_VALUE(char_loader_.space_advance(), "Space was not loaded");
+      total_width_in_tex_coord += char_loader_.space_advance().value();
     } else {
-      auto found = texture_map.find(c);
-      if (found == texture_map.end()) {
-        FATAL(absl::StrFormat("'%c' was not loaded", c));
-      }
+      const auto found = texture_map.find(c);
+      ASSERT_FALSE(found == texture_map.end(),
+                   absl::StrFormat("'%c' was not loaded", c));
       ++num_non_space_char;
       total_width_in_tex_coord += found->second.advance_x;
     }

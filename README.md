@@ -175,6 +175,12 @@ directly, hence the user need to update and rebuild **RenderPass** with
 **RenderPassBuilder**, and create a new **DepthStencilImage** with the updated
 window size. We might find a better way to wrap them.
 
+**Surface** is a bit different. Since it is owned by **WindowContext** but
+initialized by **BasicContext**, it has an `Init()` method that need to be
+called after construction, and we need to use an extra boolean to track whether
+it has been initialized. The good thing is, this is handled by
+**WindowContext**, so the user would not need to worry about it.
+
 ## 3.2 Low-level wrappers
 
 ### 3.2.1 Buffer (buffer)

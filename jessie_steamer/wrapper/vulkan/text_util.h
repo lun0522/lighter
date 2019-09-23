@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/types/optional.h"
 #include "jessie_steamer/common/char_lib.h"
 #include "jessie_steamer/common/file.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
@@ -49,8 +50,8 @@ class CharLoader {
   CharLoader& operator=(const CharLoader&) = delete;
 
   OffscreenImagePtr texture() const { return image_.get(); }
-  float width_height_ratio()  const { return width_height_ratio_; }
-  float space_advance()       const { return space_advance_x_; }
+  float width_height_ratio() const { return width_height_ratio_; }
+  absl::optional<float> space_advance() const { return space_advance_x_; }
 
   const absl::flat_hash_map<char, CharTextureInfo>& char_texture_map() const {
     return char_texture_map_;
@@ -69,7 +70,7 @@ class CharLoader {
   SharedBasicContext context_;
   std::unique_ptr<OffscreenImage> image_;
   float width_height_ratio_;
-  float space_advance_x_ = -1.0f;
+  absl::optional<float> space_advance_x_;
   absl::flat_hash_map<char, CharTextureInfo> char_texture_map_;
 };
 

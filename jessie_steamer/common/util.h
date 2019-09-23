@@ -14,6 +14,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "absl/base/optimization.h"
 #include "absl/flags/parse.h"
 #include "absl/strings/str_format.h"
 #include "absl/types/optional.h"
@@ -27,11 +28,25 @@
       __func__, __FILE__, __LINE__, error)};
 #endif /* NDEBUG */
 
+#define ASSERT_TRUE(expr, error)              \
+  if (!ABSL_PREDICT_TRUE(expr))               \
+    FATAL(error);
+
+#define ASSERT_FALSE(expr, error)             \
+  if (ABSL_PREDICT_FALSE(expr))               \
+    FATAL(error);
+
 #define ASSERT_HAS_VALUE(object, error)       \
-  if (!object.has_value()) { FATAL(error); }
+  if (!ABSL_PREDICT_TRUE(object.has_value())) \
+    FATAL(error);
+
+#define ASSERT_NO_VALUE(object, error)        \
+  if (ABSL_PREDICT_FALSE(object.has_value())) \
+    FATAL(error);
 
 #define ASSERT_NON_NULL(pointer, error)       \
-  if (pointer == nullptr) { FATAL(error); }
+  if (!ABSL_PREDICT_TRUE(pointer != nullptr)) \
+    FATAL(error);
 
 namespace jessie_steamer {
 namespace common {
@@ -69,9 +84,11 @@ void SetElementWithResizing(ContentType&& element, int index,
 // 'container' may change if there exists any duplicate.
 template <typename ContentType>
 void RemoveDuplicate(std::vector<ContentType>* container) {
-  std::sort(container->begin(), container->end());
-  const auto new_end = std::unique(container->begin(), container->end());
-  container->resize(std::distance(container->begin(), new_end));
+  if (container->size() > 1) {
+    std::sort(container->begin(), container->end());
+    const auto new_end = std::unique(container->begin(), container->end());
+    container->resize(std::distance(container->begin(), new_end));
+  }
 }
 
 // Helper class to enable using an enum class as the key of a hash table:

@@ -20,10 +20,9 @@
 #include "jessie_steamer/common/util.h"
 #include "third_party/vulkan/vulkan.h"
 
-#define ASSERT_SUCCESS(event, error)                      \
-  if (event != VK_SUCCESS) {                              \
-    FATAL(absl::StrFormat("Errno %d: %s", event, error))  \
-  }
+#define ASSERT_SUCCESS(event, error)                          \
+  ASSERT_TRUE(event == VK_SUCCESS,                            \
+              absl::StrFormat("Errno %d: %s", event, error))
 
 #define CONTAINER_SIZE(container) static_cast<uint32_t>(container.size())
 
@@ -35,11 +34,9 @@ namespace util {
 class QueueUsage {
  public:
   explicit QueueUsage(std::vector<uint32_t>&& queue_family_indices) {
-    if (queue_family_indices.empty()) {
-      FATAL("Must contain at least one queue");
-    } else if (queue_family_indices.size() > 1) {
-      common::util::RemoveDuplicate(&queue_family_indices);
-    }
+    ASSERT_FALSE(queue_family_indices.empty(),
+                 "Must contain at least one queue");
+    common::util::RemoveDuplicate(&queue_family_indices);
     unique_family_indices_ = std::move(queue_family_indices);
     sharing_mode_ = unique_family_indices_.size() == 1 ?
         VK_SHARING_MODE_EXCLUSIVE : VK_SHARING_MODE_CONCURRENT;

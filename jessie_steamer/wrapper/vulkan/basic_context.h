@@ -32,15 +32,15 @@ using ReleaseExpiredResourceOp = std::function<void(const BasicContext&)>;
 
 // Information that we need to use a window. We need to make sure the window and
 // swapchain are supported by checking supports for relevant extensions.
-// The caller does not need to initialize 'surface', but should be responsible
-// for destructing 'surface' at the end.
+// The user should leave 'surface' uninitialized when instantiate this class,
+// and provide 'create_surface' that initializes 'surface'.
+// Note that only VkAllocationCallbacks and VkInstance are guaranteed to exist
+// when 'create_surface' is called.
 struct WindowSupport {
-  VkSurfaceKHR* surface;
   const std::vector<const char*>& window_extensions;
   const std::vector<const char*>& swapchain_extensions;
-  const std::function<void(
-      const VkInstance& instance,
-      const VkAllocationCallbacks* allocator)>& create_surface;
+  const VkSurfaceKHR& surface;
+  const std::function<void(const BasicContext* context)>& create_surface;
 };
 
 // Members of this class are required for all graphics applications.
@@ -59,11 +59,9 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   BasicContext(const BasicContext&) = delete;
   BasicContext& operator=(const BasicContext&) = delete;
 
-#ifdef NDEBUG
-  ~BasicContext() = default;
-#else  /* !NDEBUG */
+#ifndef NDEBUG
   ~BasicContext() { std::cout << "Context destructed properly" << std::endl; }
-#endif /* NDEBUG */
+#endif  /* !NDEBUG */
 
   // Records an operation that releases an expired resource, so that it can be
   // executed once the graphics device becomes idle. This is used for resources

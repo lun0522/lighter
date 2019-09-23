@@ -201,6 +201,7 @@ cc_library(
         "@lib-absl//absl/container:flat_hash_map",
         "@lib-absl//absl/memory",
         "@lib-absl//absl/strings:str_format",
+        "@lib-absl//absl/types:optional",
     ],
 )
 

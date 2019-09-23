@@ -30,8 +30,6 @@ class Camera {
   Camera(const Camera&) = delete;
   Camera& operator=(const Camera&) = delete;
 
-  ~Camera() = default;
-
   // Accessors.
   const glm::vec3& position() const { return pos_; }
   const glm::vec3& direction() const { return front_; }
@@ -118,8 +116,6 @@ class UserControlledCamera : public Camera {
   UserControlledCamera(const UserControlledCamera&) = delete;
   UserControlledCamera& operator=(const UserControlledCamera&) = delete;
 
-  ~UserControlledCamera() = default;
-
   // Calibrates the camera with screen size and cursor position.
   // This should be called after the screen is created or resized.
   void Calibrate(const glm::ivec2& screen_size, const glm::dvec2& cursor_pos);
@@ -147,13 +143,13 @@ class UserControlledCamera : public Camera {
   // Whether the camera responds to user inputs.
   bool is_active_ = false;
 
-  // The current position of cursor in the screen coordinate.
+  // Current position of cursor in the screen coordinate.
   glm::dvec2 cursor_pos_;
 
-  // The movement speed of camera (forward/backward/left/right).
+  // Movement speed of camera (forward/backward/left/right).
   const float move_speed_;
 
-  // The turning speed of camera (pitch/yaw).
+  // Turning speed of camera (pitch/yaw).
   const float turn_speed_;
 
   // The camera should always face the center in the lock center mode.

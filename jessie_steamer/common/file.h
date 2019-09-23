@@ -118,8 +118,6 @@ struct ObjFile {
   ObjFile(const ObjFile&) = delete;
   ObjFile& operator=(const ObjFile&) = delete;
 
-  ~ObjFile() = default;
-
   // Vertex data, populated with data loaded from the file.
   std::vector<uint32_t> indices;
   std::vector<VertexAttrib3D> vertices;

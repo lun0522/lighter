@@ -375,10 +375,9 @@ void GenerateMipmaps(const SharedBasicContext& context,
   VkFormatProperties properties;
   vkGetPhysicalDeviceFormatProperties(*context->physical_device(),
                                       image_format, &properties);
-  if (!(properties.optimalTilingFeatures &
-        VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
-    FATAL("Image format does not support linear blitting");
-  }
+  ASSERT_TRUE(properties.optimalTilingFeatures &
+                  VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT,
+              "Image format does not support linear blitting");
 
   const auto& transfer_queue = context->queues().transfer_queue();
   OneTimeCommand command{context, &transfer_queue};
@@ -587,9 +586,7 @@ StaticPerVertexBuffer::StaticPerVertexBuffer(
 }
 
 void DynamicPerVertexBuffer::Reserve(int size) {
-  if (size <= 0) {
-    FATAL("Buffer size must be greater than 0");
-  }
+  ASSERT_TRUE(size > 0, "Buffer size must be greater than 0");
   if (size <= buffer_size_) {
     return;
   }
@@ -673,9 +670,8 @@ TextureBuffer::TextureBuffer(SharedBasicContext context,
   const VkDeviceSize data_size = info.GetDataSize();
 
   const auto layer_count = CONTAINER_SIZE(info.datas);
-  if (layer_count != 1 && layer_count != kCubemapImageCount) {
-    FATAL(absl::StrFormat("Invalid number of images: %d", layer_count));
-  }
+  ASSERT_TRUE(layer_count == 1 || layer_count == kCubemapImageCount,
+              absl::StrFormat("Invalid number of images: %d", layer_count));
 
   // Generate mipmaps if requested.
   vector<VkExtent2D> mipmap_extents;
@@ -788,12 +784,11 @@ MultisampleBuffer::MultisampleBuffer(
 
 PushConstant::PushConstant(const SharedBasicContext& context,
                            size_t size_per_frame, int num_frame) {
-  if (size_per_frame > kMaxPushConstantSize) {
-    FATAL(absl::StrFormat(
-        "Pushing constant of size %d bytes per-frame. To be compatible with "
-        "all devices, the size should not be greater than %d bytes.",
-        size_per_frame, kMaxPushConstantSize));
-  }
+  ASSERT_TRUE(size_per_frame <= kMaxPushConstantSize,
+              absl::StrFormat("Pushing constant of size %d bytes per-frame. To "
+                              "be compatible with all devices, the size should "
+                              "not be greater than %d bytes.",
+                              size_per_frame, kMaxPushConstantSize));
   size_per_frame_ = static_cast<uint32_t>(size_per_frame);
   data_ = new char[size_per_frame_ * num_frame];
 }

@@ -200,11 +200,12 @@ ModelBuilder& ModelBuilder::add_shared_texture(model::TextureType type,
   const auto found = binding_map_.find(type);
   if (found == binding_map_.end()) {
     binding_map_[type] = binding_point;
-  } else if (found->second != binding_point) {
-    FATAL(absl::StrFormat(
-        "Extra textures of type %d is bound to point %d, but mesh textures "
-        "of same type are bound to point %d",
-        type, binding_point, found->second));
+  } else {
+    ASSERT_TRUE(found->second == binding_point,
+                absl::StrFormat("Extra textures of type %d is bound to point "
+                                "%d, but mesh textures of same type are bound "
+                                "to point %d",
+                                type, binding_point, found->second));
   }
   for (const auto& source : binding.texture_sources) {
     shared_textures_[static_cast<int>(type)].emplace_back(

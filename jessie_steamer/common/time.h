@@ -24,8 +24,6 @@ class Timer {
   Timer(const Timer&) = delete;
   Timer& operator=(const Timer&) = delete;
 
-  ~Timer() = default;
-
   // Informs the timer that a new frame is starting to be rendered.
   // The frame rate is updated per second.
   void Tick() {
@@ -63,19 +61,19 @@ class Timer {
         float, std::chrono::seconds::period>(t2 - t1).count();
   }
 
-  // The time point when the timer was launched.
+  // Time point when the timer was launched.
   const TimePoint launch_time_;
 
-  // The time point when the frame rate was last updated.
+  // Time point when the frame rate was last updated.
   TimePoint last_update_time_;
 
-  // The time point when the last frame was rendered.
+  // Time point when the last frame was rendered.
   TimePoint last_frame_time_;
 
-  // The number of frames that have been rendered since 'last_update_time_'.
+  // Number of frames that have been rendered since 'last_update_time_'.
   int frame_count_;
 
-  // The number of frames rendered per second.
+  // Number of frames rendered per second.
   int frame_rate_;
 };
 

@@ -30,8 +30,6 @@ class HostMemoryAllocator {
   HostMemoryAllocator(const HostMemoryAllocator&) = delete;
   HostMemoryAllocator& operator=(const HostMemoryAllocator&) = delete;
 
-  ~HostMemoryAllocator() = default;
-
   // Overloads.
   const VkAllocationCallbacks* operator*() const {
     return allocation_callback_;
@@ -178,13 +176,13 @@ class Queues {
   void SetQueue(const VkDevice& device, uint32_t family_index,
                 Queue* queue) const;
 
-  // The graphics queue.
+  // Graphics queue.
   Queue graphics_queue_;
 
-  // The transfer queue.
+  // Transfer queue.
   Queue transfer_queue_;
 
-  // The presentation queue.
+  // Presentation queue.
   absl::optional<Queue> present_queue_;
 };
 

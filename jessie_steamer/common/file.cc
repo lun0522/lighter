@@ -56,11 +56,10 @@ inline absl::string_view GetSuffix(const string& text, size_t start_pos) {
 vector<string> SplitText(absl::string_view text, char delimiter,
                          int num_segment) {
   const vector<string> result = absl::StrSplit(text, delimiter);
-  if (result.size() != num_segment) {
-    FATAL(absl::StrFormat(
-        "Invalid number of segments (expected %d, but get %d)",
-        num_segment, result.size()));
-  }
+  ASSERT_TRUE(
+      result.size() == num_segment,
+      absl::StrFormat("Invalid number of segments (expected %d, but get %d)",
+                      num_segment, result.size()));
   return result;
 }
 
@@ -104,9 +103,8 @@ Image::Image(const string& path) {
 Image::Image(int width, int height, int channel,
              const void* raw_data, bool flip_y)
     : width{width}, height{height}, channel{channel} {
-  if (channel != 1 && channel != 4) {
-    FATAL(absl::StrFormat("Unsupported number of channels: %d", channel));
-  }
+  ASSERT_TRUE(channel == 1 || channel == 4,
+              absl::StrFormat("Unsupported number of channels: %d", channel));
 
   const size_t total_size = width * height * channel;
   data = std::malloc(total_size);

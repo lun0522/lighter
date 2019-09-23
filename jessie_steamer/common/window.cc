@@ -72,12 +72,9 @@ Window::Window(const std::string& name, const glm::ivec2& screen_size) {
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #ifdef __APPLE__
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 #endif
-
-  if (glfwVulkanSupported() == GL_FALSE) {
-    FATAL("Vulkan not supported");
-  }
+  ASSERT_TRUE(glfwVulkanSupported() == GLFW_TRUE, "Vulkan is not supported");
 
   window_ = glfwCreateWindow(screen_size.x, screen_size.y, name.c_str(),
                              nullptr, nullptr);
@@ -96,9 +93,7 @@ VkSurfaceKHR Window::CreateSurface(const VkInstance& instance,
                                    const VkAllocationCallbacks* allocator) {
   VkSurfaceKHR surface;
   auto result = glfwCreateWindowSurface(instance, window_, allocator, &surface);
-  if (result != VK_SUCCESS) {
-    FATAL("Failed to create window surface");
-  }
+  ASSERT_TRUE(result == VK_SUCCESS, "Failed to create window surface");
   return surface;
 }
 #endif /* USE_VULKAN */

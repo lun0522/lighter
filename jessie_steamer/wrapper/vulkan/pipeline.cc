@@ -204,14 +204,14 @@ PipelineBuilder& PipelineBuilder::set_layout(
   }
   const auto total_push_constant_size = static_cast<int>(std::accumulate(
       push_constant_sizes.begin(), push_constant_sizes.end(), 0));
-  if (total_push_constant_size > kMaxPushConstantSize) {
-    FATAL(absl::StrFormat(
-        "Pushing constant of total size %d bytes in the pipeline (break down: "
-        "%s). To be compatible with all devices, the total size should not be "
-        "greater than %d bytes.",
-        total_push_constant_size, absl::StrJoin(push_constant_sizes, " + "),
-        kMaxPushConstantSize));
-  }
+  ASSERT_TRUE(total_push_constant_size <= kMaxPushConstantSize,
+              absl::StrFormat(
+                  "Pushing constant of total size %d bytes in the pipeline "
+                  "(break down: %s). To be compatible with all devices, the "
+                  "total size should not be greater than %d bytes.",
+                  total_push_constant_size,
+                  absl::StrJoin(push_constant_sizes, " + "),
+                  kMaxPushConstantSize));
 
   descriptor_layouts_ = std::move(descriptor_layouts);
   push_constant_ranges_ = std::move(push_constant_ranges);

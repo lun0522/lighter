@@ -218,9 +218,7 @@ CharLoader::CharLoader(SharedBasicContext context,
                        Font font, int font_height)
     : context_{std::move(context)} {
   common::CharLib char_lib{texts, GetFontPath(font), font_height};
-  if (char_lib.char_info_map().empty()) {
-    FATAL("No character loaded");
-  }
+  ASSERT_FALSE(char_lib.char_info_map().empty(), "No character loaded");
 
   CharTextures char_textures = CreateCharTextures(char_lib, font_height);
   image_ = absl::make_unique<OffscreenImage>(context_, /*channel=*/1,
@@ -369,7 +367,7 @@ TextLoader::TextTexture TextLoader::CreateTextTexture(
   float highest_baseline = 0.0f;
   for (auto c : text) {
     if (c == ' ') {
-      total_width_in_loader_tex += char_loader.space_advance();
+      total_width_in_loader_tex += char_loader.space_advance().value();
     } else {
       const auto& char_texture = char_texture_map.find(c)->second;
       total_width_in_loader_tex += char_texture.advance_x;
@@ -476,7 +474,7 @@ float LoadCharsVertexData(const string& text, const CharLoader& char_loader,
   vertices.reserve(text_util::kNumVerticesPerRect * text.length());
   for (auto c : text) {
     if (c == ' ') {
-      offset_x += char_loader.space_advance() * ratio.x;
+      offset_x += char_loader.space_advance().value() * ratio.x;
       continue;
     }
     const auto& char_texture = char_loader.char_texture_map().find(c)->second;

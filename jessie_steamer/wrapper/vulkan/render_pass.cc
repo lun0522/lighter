@@ -137,9 +137,7 @@ vector<VkFramebuffer> CreateFramebuffers(
 
 vector<VkAttachmentReference> RenderPassBuilder::CreateMultisamplingReferences(
     int num_color_references, const vector<MultisamplingPair>& pairs) {
-  if (pairs.empty()) {
-    FATAL("No multisampling pairs provided");
-  }
+  ASSERT_FALSE(pairs.empty(), "No multisampling pairs provided");
   vector<VkAttachmentReference> references(
       num_color_references,
       VkAttachmentReference{
@@ -312,11 +310,10 @@ RenderPassBuilder& RenderPassBuilder::set_attachment(
 
 RenderPassBuilder& RenderPassBuilder::update_image(
     int index, GetImage&& get_image) {
+  ASSERT_TRUE(index < attachment_descriptions_.size(),
+              absl::StrFormat("Attachment description at index %d has not been "
+                              "set", index));
   ASSERT_NON_NULL(get_image, "get_image cannot be nullptr");
-  if (index >= attachment_descriptions_.size()) {
-    FATAL(absl::StrFormat(
-        "Attachment description at index %d has not been set", index));
-  }
 
   const Image& sample_image = get_image(0);
   attachment_descriptions_[index].format = sample_image.format();
@@ -379,11 +376,10 @@ std::unique_ptr<RenderPass> RenderPassBuilder::Build() const {
 void RenderPass::Run(const VkCommandBuffer& command_buffer,
                      int framebuffer_index,
                      const vector<RenderOp>& render_ops) const {
-  if (render_ops.size() != num_subpass_) {
-    FATAL(absl::StrFormat("Render pass contains %d subpasses, but %d render "
-                          "operations are provided",
-                          num_subpass_, render_ops.size()));
-  }
+  ASSERT_TRUE(render_ops.size() == num_subpass_,
+              absl::StrFormat("Render pass contains %d subpasses, but %d "
+                              "render operations are provided",
+                              num_subpass_, render_ops.size()));
 
   VkRenderPassBeginInfo begin_info{
       VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,

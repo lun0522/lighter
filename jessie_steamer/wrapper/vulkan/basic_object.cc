@@ -7,6 +7,7 @@
 
 #include "jessie_steamer/wrapper/vulkan/basic_object.h"
 
+#include <algorithm>
 #include <functional>
 #include <iostream>
 #include <string>
@@ -33,21 +34,19 @@ void CheckInstanceExtensionSupport(const vector<string>& required) {
   std::cout << "Checking instance extension support..."
             << std::endl << std::endl;
 
-  const auto properties{util::QueryAttribute<VkExtensionProperties>(
+  const auto properties = util::QueryAttribute<VkExtensionProperties>(
       [](uint32_t* count, VkExtensionProperties* properties) {
         return vkEnumerateInstanceExtensionProperties(
             nullptr, count, properties);
       }
-  )};
+  );
   const auto get_name = [](const VkExtensionProperties& property) {
     return property.extensionName;
   };
   const auto unsupported = util::FindUnsupported<VkExtensionProperties>(
       required, properties, get_name);
-
-  if (unsupported.has_value()) {
-    FATAL(absl::StrCat("Unsupported: ", unsupported.value()));
-  }
+  ASSERT_NO_VALUE(unsupported,
+                  absl::StrCat("Unsupported: ", unsupported.value()));
 }
 
 #ifndef NDEBUG
@@ -56,20 +55,18 @@ void CheckInstanceExtensionSupport(const vector<string>& required) {
 void CheckValidationLayerSupport(const vector<string>& required) {
   std::cout << "Checking validation layer support..." << std::endl << std::endl;
 
-  const auto properties{util::QueryAttribute<VkLayerProperties>(
+  const auto properties = util::QueryAttribute<VkLayerProperties>(
       [](uint32_t* count, VkLayerProperties* properties) {
         return vkEnumerateInstanceLayerProperties(count, properties);
       }
-  )};
+  );
   const auto get_name = [](const VkLayerProperties& property) {
     return property.layerName;
   };
   const auto unsupported = util::FindUnsupported<VkLayerProperties>(
       required, properties, get_name);
-
-  if (unsupported.has_value()) {
-    FATAL(absl::StrCat("Unsupported: ", unsupported.value()));
-  }
+  ASSERT_NO_VALUE(unsupported,
+                  absl::StrCat("Unsupported: ", unsupported.value()));
 }
 #endif /* !NDEBUG */
 
@@ -84,18 +81,17 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
       window_support.swapchain_extensions.begin(),
       window_support.swapchain_extensions.end(),
   };
-  const auto extensions{util::QueryAttribute<VkExtensionProperties>(
+  const auto extensions = util::QueryAttribute<VkExtensionProperties>(
       [&physical_device](uint32_t* count, VkExtensionProperties* properties) {
         return vkEnumerateDeviceExtensionProperties(
             physical_device, nullptr, count, properties);
       }
-  )};
+  );
   const auto get_name = [](const VkExtensionProperties& property) {
     return property.extensionName;
   };
   const auto unsupported = util::FindUnsupported<VkExtensionProperties>(
       required, extensions, get_name);
-
   if (unsupported.has_value()) {
     std::cout << "Unsupported: " << unsupported.value() << std::endl;
     return false;
@@ -105,9 +101,9 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
   // window system, so we need to query details.
   uint32_t format_count, mode_count;
   vkGetPhysicalDeviceSurfaceFormatsKHR(
-      physical_device, *window_support.surface, &format_count, nullptr);
+      physical_device, window_support.surface, &format_count, nullptr);
   vkGetPhysicalDeviceSurfacePresentModesKHR(
-      physical_device, *window_support.surface, &mode_count, nullptr);
+      physical_device, window_support.surface, &mode_count, nullptr);
   return format_count && mode_count;
 }
 
@@ -137,12 +133,12 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
 
   // Find queue family that holds graphics queue.
   QueueFamilyIndices candidate{};
-  const auto families{util::QueryAttribute<VkQueueFamilyProperties>(
+  const auto families = util::QueryAttribute<VkQueueFamilyProperties>(
       [&physical_device](uint32_t* count, VkQueueFamilyProperties* properties) {
         return vkGetPhysicalDeviceQueueFamilyProperties(
             physical_device, count, properties);
       }
-  )};
+  );
   const auto has_graphics_support = [](const VkQueueFamilyProperties& family) {
     return family.queueCount && (family.queueFlags & VK_QUEUE_GRAPHICS_BIT);
   };
@@ -163,7 +159,7 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
         (const VkQueueFamilyProperties& family) mutable {
       VkBool32 support = VK_FALSE;
       vkGetPhysicalDeviceSurfaceSupportKHR(
-          physical_device, index++, *window_support.value().surface, &support);
+          physical_device, index++, window_support.value().surface, &support);
       return support;
     };
     const auto present_queue_index =
@@ -258,7 +254,7 @@ Instance::Instance(const BasicContext* context,
 
   // Create surface if the window support is requested.
   if (window_support.has_value()) {
-    window_support.value().create_surface(instance_, *context_->allocator());
+    window_support.value().create_surface(context_);
   }
 }
 
@@ -271,12 +267,12 @@ PhysicalDevice::PhysicalDevice(
     const absl::optional<WindowSupport>& window_support)
     : context_{context} {
   // Find all physical devices.
-  const auto physical_devices{util::QueryAttribute<VkPhysicalDevice>(
+  const auto physical_devices = util::QueryAttribute<VkPhysicalDevice>(
       [this](uint32_t* count, VkPhysicalDevice* physical_device) {
         return vkEnumeratePhysicalDevices(
             *context_->instance(), count, physical_device);
       }
-  )};
+  );
 
   // Find a suitable device. If window support is requested, also request for
   // the swapchain and presentation queue here.
