@@ -31,8 +31,6 @@ namespace vulkan {
 class WindowContext {
  public:
   // Configurations used to initialize the window context.
-  // Swapchain images will use multisampling unless 'multisampling_mode' is set
-  // to absl::nullopt,
   struct Config {
     // Modifiers.
     Config& set_screen_size(const glm::ivec2& size) {
@@ -121,7 +119,7 @@ class WindowContext {
   const Image& multisample_image() const {
     return swapchain_->multisample_image();
   }
-  const absl::optional<MultisampleImage::Mode> multisampling_mode() const {
+  absl::optional<MultisampleImage::Mode> multisampling_mode() const {
     return multisampling_mode_;
   }
 

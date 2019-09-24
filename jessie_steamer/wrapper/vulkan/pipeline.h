@@ -58,7 +58,7 @@ class Pipeline {
   const VkPipelineLayout& layout()  const { return layout_; }
 
  private:
-  SharedBasicContext context_;
+  const SharedBasicContext context_;
   VkPipeline pipeline_;
   VkPipelineLayout layout_;
 };
@@ -103,7 +103,7 @@ class PipelineBuilder {
  private:
   using RenderPassInfo = std::pair<VkRenderPass, uint32_t>;
 
-  SharedBasicContext context_;
+  const SharedBasicContext context_;
   VkPipelineInputAssemblyStateCreateInfo input_assembly_info_;
   VkPipelineRasterizationStateCreateInfo rasterizer_info_;
   VkPipelineMultisampleStateCreateInfo multisample_info_;

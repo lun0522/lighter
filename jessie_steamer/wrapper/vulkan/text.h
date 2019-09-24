@@ -38,7 +38,7 @@ class Text {
   Text(SharedBasicContext context, int num_frame);
   void UpdateUniformBuffer(int frame, const glm::vec3& color, float alpha);
 
-  SharedBasicContext context_;
+  const SharedBasicContext context_;
   DynamicPerVertexBuffer vertex_buffer_;
   std::unique_ptr<UniformBuffer> uniform_buffer_;
   PipelineBuilder pipeline_builder_;

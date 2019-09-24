@@ -11,6 +11,7 @@
 #include <functional>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/synchronization.h"
 #include "third_party/vulkan/vulkan.h"
@@ -19,22 +20,15 @@ namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
-/** VkCommandPool allocates command buffer memory.
- *
- *  Initialization:
- *    Queue family index
- *
- *------------------------------------------------------------------------------
- *
- *  VkCommandBuffer records all operations we want to perform and submit to a
- *    device queue for execution. Primary level command buffers can call
- *    secondary level ones and submit to queues, while secondary levels ones
- *    are not directly submitted.
- *
- *  Initialization:
- *    VkCommandPool
- *    Level (either primary or secondary)
- */
+// VkCommandBuffer records operations that we want to perform, and submits to a
+// device queue for execution. It is allocated from VkCommandPool.
+// Both primary level and secondary level command buffers can record commands,
+// but only the primary can be submitted to the queue. The secondary can be
+// built in different threads and executed in different primary command buffers.
+// This is the base class of all command classes. The user should use it through
+// derived classes. Since all commands need VkCommandPool, which allocates
+// command buffers, it will be held and destroyed by this base class, and
+// initialized by derived classes.
 class Command {
  public:
   virtual ~Command() {
@@ -45,50 +39,77 @@ class Command {
  protected:
   explicit Command(SharedBasicContext context) : context_{std::move(context)} {}
 
-  SharedBasicContext context_;
+  // Pointer to context.
+  const SharedBasicContext context_;
+
+  // Opaque command pool object.
   VkCommandPool command_pool_;
 };
 
+// This class creates a command that is meant to be executed for only once.
 class OneTimeCommand : public Command {
  public:
+  // Specifies which operations should be performed.
   using OnRecord = std::function<void(const VkCommandBuffer& command_buffer)>;
 
+  // The recorded operations will be submitted to 'queue'.
   OneTimeCommand(SharedBasicContext context, const Queues::Queue* queue);
 
   // This class is neither copyable nor movable.
   OneTimeCommand(const OneTimeCommand&) = delete;
   OneTimeCommand& operator=(const OneTimeCommand&) = delete;
 
+  // Executes the command once and waits for completion.
   void Run(const OnRecord& on_record);
 
  private:
+  // Used to execute the command.
   const Queues::Queue* queue_;
+
+  // Opaque command buffer object.
   VkCommandBuffer command_buffer_;
 };
 
-// TODO: Should not assume using swapchain.
+// This classes creates a command that will be executed in every frame.
+// It assumes that the user is doing on-screen rendering, and handles the
+// synchronization internally.
 class PerFrameCommand : public Command {
  public:
+  // Specifies which operations should be performed. Since the swapchain holds
+  // several images, 'framebuffer_index' will be the index of the swapchain
+  // image used in this recording.
   using OnRecord = std::function<void(const VkCommandBuffer& command_buffer,
                                       uint32_t framebuffer_index)>;
+
+  // The user may want to do multiple buffering, hence each swapchain image may
+  // have multiple frames. 'current_frame' will be used in this recording.
   using UpdateData = std::function<void (int current_frame)>;
 
+  // Each swapchain image will be 'num_frame_in_flight' buffered.
   PerFrameCommand(SharedBasicContext context, int num_frame_in_flight);
 
   // This class is neither copyable nor movable.
   PerFrameCommand(const Command&) = delete;
   PerFrameCommand& operator=(const Command&) = delete;
 
-  VkResult Run(int current_frame,
-               const VkSwapchainKHR& swapchain,
-               const UpdateData& update_data,
-               const OnRecord& on_record);
+  // Records operations for a new frame and submits to the graphics queue,
+  // without waiting for completion. The return value can be:
+  //   - absl::nullopt, if the swapchain can be kept using, or
+  //   - otherwise, if the swapchain need to be rebuilt.
+  // If any unexpected error occurs, a runtime exception will be thrown.
+  absl::optional<VkResult> Run(int current_frame,
+                               const VkSwapchainKHR& swapchain,
+                               const UpdateData& update_data,
+                               const OnRecord& on_record);
 
  private:
+  // Opaque command buffer objects.
+  std::vector<VkCommandBuffer> command_buffers_;
+
+  // These are used for synchronization. See comments in Run() for details.
   Semaphores image_available_semas_;
   Semaphores render_finished_semas_;
   Fences in_flight_fences_;
-  std::vector<VkCommandBuffer> command_buffers_;
 };
 
 } /* namespace vulkan */

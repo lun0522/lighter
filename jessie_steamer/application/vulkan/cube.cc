@@ -196,7 +196,7 @@ void CubeApp::MainLoop() {
           render_pass_->Run(command_buffer, framebuffer_index, render_ops);
         });
 
-    if (draw_result != VK_SUCCESS || window_context_.ShouldRecreate()) {
+    if (draw_result.has_value() || window_context_.ShouldRecreate()) {
       window_context_.Recreate();
       Recreate();
     }

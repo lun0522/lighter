@@ -7,6 +7,9 @@
 
 #include "jessie_steamer/wrapper/vulkan/command.h"
 
+#include <limits>
+
+#include "absl/strings/str_format.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 
@@ -15,23 +18,22 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::vector;
+constexpr auto kTimeoutForever = std::numeric_limits<uint64_t>::max();
 
+// Creates a command pool on 'queue'. If 'is_transient' is true, the command
+// pool is expected to have a short lifetime.
 VkCommandPool CreateCommandPool(const SharedBasicContext& context,
                                 const Queues::Queue& queue,
                                 bool is_transient) {
-  // create pool to hold command buffers
-  VkCommandPoolCreateInfo pool_info{
+  const auto flags =
+      is_transient ? VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
+                   : VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+  const VkCommandPoolCreateInfo pool_info{
       VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       /*pNext=*/nullptr,
-      /*flags=*/nullflag,
+      flags,
       queue.family_index,
   };
-  if (is_transient) {
-    pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-  } else {
-    pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-  }
 
   VkCommandPool pool;
   ASSERT_SUCCESS(vkCreateCommandPool(*context->device(), &pool_info,
@@ -40,43 +42,39 @@ VkCommandPool CreateCommandPool(const SharedBasicContext& context,
   return pool;
 }
 
-VkCommandBuffer CreateCommandBuffer(const SharedBasicContext& context,
-                                    const VkCommandPool& command_pool) {
-  // allocate command buffer
-  VkCommandBufferAllocateInfo buffer_info{
-      VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-      /*pNext=*/nullptr,
-      command_pool,
-      // secondary level command buffer can be called from primary level
-      /*level=*/VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-      /*commandBufferCount=*/1,
-  };
-
-  VkCommandBuffer buffer;
-  ASSERT_SUCCESS(
-      vkAllocateCommandBuffers(*context->device(), &buffer_info, &buffer),
-      "Failed to allocate command buffer");
-  return buffer;
-}
-
-vector<VkCommandBuffer> CreateCommandBuffers(
+// Allocates command buffers of 'count' from 'command_pool'.
+std::vector<VkCommandBuffer> AllocateCommandBuffers(
     const SharedBasicContext& context,
-    const VkCommandPool& command_pool, int count) {
-  // allocate command buffers
-  VkCommandBufferAllocateInfo buffer_info{
+    const VkCommandPool& command_pool, uint32_t count) {
+  const VkCommandBufferAllocateInfo buffer_info{
       VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
       /*pNext=*/nullptr,
       command_pool,
-      // secondary level command buffers can be called from primary level
-      /*level=*/VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-      /*commandBufferCount=*/static_cast<uint32_t>(count),
+      VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+      count,
   };
 
-  vector<VkCommandBuffer> buffers(count);
+  std::vector<VkCommandBuffer> buffers(count);
   ASSERT_SUCCESS(vkAllocateCommandBuffers(*context->device(), &buffer_info,
                                           buffers.data()),
                  "Failed to allocate command buffers");
   return buffers;
+}
+
+// Checks the given 'result'. The return value is the same as
+// PerFrameCommand::Run().
+absl::optional<VkResult> CheckResult(VkResult result) {
+  // VK_ERROR_OUT_OF_DATE_KHR means the swapchain can no longer present image.
+  // VK_SUBOPTIMAL_KHR is not ideal, but we would consider it as a good state.
+  switch (result) {
+    case VK_ERROR_OUT_OF_DATE_KHR:
+      return result;
+    case VK_SUCCESS:
+    case VK_SUBOPTIMAL_KHR:
+      return absl::nullopt;
+    default:
+      FATAL(absl::StrFormat("Errno: %d", result));
+  }
 }
 
 } /* namespace */
@@ -85,12 +83,13 @@ OneTimeCommand::OneTimeCommand(SharedBasicContext context,
                                const Queues::Queue* queue)
     : Command{std::move(context)}, queue_{queue} {
   command_pool_ = CreateCommandPool(context_, *queue_, /*is_transient=*/true);
-  command_buffer_ = CreateCommandBuffer(context_, command_pool_);
+  command_buffer_ =
+      AllocateCommandBuffers(context_, command_pool_, /*count=*/1)[0];
 }
 
 void OneTimeCommand::Run(const OnRecord& on_record) {
-  // record command
-  VkCommandBufferBeginInfo begin_info{
+  // Record operations.
+  const VkCommandBufferBeginInfo begin_info{
       VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
       /*pNext=*/nullptr,
       /*flags=*/VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
@@ -102,8 +101,8 @@ void OneTimeCommand::Run(const OnRecord& on_record) {
   ASSERT_SUCCESS(vkEndCommandBuffer(command_buffer_),
                  "Failed to end recording command buffer");
 
-  // submit command buffers, wait until finish and cleanup
-  VkSubmitInfo submit_info{
+  // Submit the command buffer, wait until finish and cleanup.
+  const VkSubmitInfo submit_info{
       VK_STRUCTURE_TYPE_SUBMIT_INFO,
       /*pNext=*/nullptr,
       /*waitSemaphoreCount=*/0,
@@ -114,7 +113,8 @@ void OneTimeCommand::Run(const OnRecord& on_record) {
       /*signalSemaphoreCount=*/0,
       /*pSignalSemaphores=*/nullptr,
   };
-  vkQueueSubmit(queue_->queue, 1, &submit_info, VK_NULL_HANDLE);
+  vkQueueSubmit(queue_->queue, /*submitCount=*/1, &submit_info,
+                /*fence=*/VK_NULL_HANDLE);
   vkQueueWaitIdle(queue_->queue);
 }
 
@@ -126,53 +126,55 @@ PerFrameCommand::PerFrameCommand(SharedBasicContext context,
       in_flight_fences_{context_, num_frame_in_flight, /*is_signaled=*/true} {
   command_pool_ = CreateCommandPool(
       context_, context_->queues().graphics_queue(), /*is_transient=*/false);
-  command_buffers_ = CreateCommandBuffers(context_, command_pool_,
-                                          num_frame_in_flight);
+  command_buffers_ = AllocateCommandBuffers(
+      context_, command_pool_, static_cast<uint32_t>(num_frame_in_flight));
 }
 
-VkResult PerFrameCommand::Run(int current_frame,
-                              const VkSwapchainKHR& swapchain,
-                              const UpdateData& update_data,
-                              const OnRecord& on_record) {
-  // Action  |  Acquire image  | Submit commands |  Present image  |
-  // Wait on |        -        | Image available | Render finished |
-  // Signal  | Image available | Render finished |        -        |
-  //         ^                                   ^
-  //   Wait for fence                       Signal fence
+absl::optional<VkResult> PerFrameCommand::Run(int current_frame,
+                                              const VkSwapchainKHR& swapchain,
+                                              const UpdateData& update_data,
+                                              const OnRecord& on_record) {
+  // Each "action" may firstly "wait on" a semaphore, then perform the action
+  // itself, and finally "signal" another semaphore:
+  //   |----------------------------------------------------------------|
+  //   |  Action  |  Acquire image  | Submit commands |  Present image  |
+  //   |----------------------------------------------------------------|
+  //   |  Wait on |        -        | Image available | Render finished |
+  //   |----------------------------------------------------------------|
+  //   |  Signal  | Image available | Render finished |        -        |
+  //   |----------------------------------------------------------------|
+  //              ^                                   ^
+  //        Wait for fence                       Signal fence
 
-  // fence was initialized to signaled state
-  // so waiting for it at the beginning is fine
+  // Fences are initialized to the signaled state, hence waiting for them at the
+  // beginning is fine.
   const VkDevice& device = *context_->device();
-  vkWaitForFences(device, 1, &in_flight_fences_[current_frame],
-                  VK_TRUE, std::numeric_limits<uint64_t>::max());
+  vkWaitForFences(device, /*fenceCount=*/1, &in_flight_fences_[current_frame],
+                  /*waitAll=*/VK_TRUE, kTimeoutForever);
 
-  // update per-frame data
+  // Update per-frame data.
   update_data(current_frame);
 
-  // acquire swapchain image
+  // Acquire the next available swapchain image.
   uint32_t image_index;
-  VkResult acquire_result = vkAcquireNextImageKHR(
-      device, swapchain, std::numeric_limits<uint64_t>::max(),
-      image_available_semas_[current_frame], VK_NULL_HANDLE, &image_index);
-  switch (acquire_result) {
-    case VK_ERROR_OUT_OF_DATE_KHR:  // swapchain can no longer present image
-      return acquire_result;
-    case VK_SUCCESS:
-    case VK_SUBOPTIMAL_KHR:  // may be considered as good state as well
-      break;
-    default:
-      FATAL("Failed to acquire swapchain image");
+  const auto acquire_result =
+      CheckResult(vkAcquireNextImageKHR(device, swapchain, kTimeoutForever,
+                                        image_available_semas_[current_frame],
+                                        /*fence=*/VK_NULL_HANDLE,
+                                        &image_index));
+  if (acquire_result.has_value()) {
+    return acquire_result;
   }
 
-  // record command in command buffer
+  // Record operations.
   auto& command_buffer = command_buffers_[current_frame];
-  VkCommandBufferBeginInfo begin_info{
+  const VkCommandBufferBeginInfo begin_info{
       VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
       /*pNext=*/nullptr,
       /*flags=*/VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+      // 'pInheritanceInfo' specifies what do secondary buffers inherit from
+      // primary buffers.
       /*pInheritanceInfo=*/nullptr,
-      // .pInheritanceInfo sets what to inherit from primary buffers
-      // to secondary buffers
   };
 
   ASSERT_SUCCESS(vkBeginCommandBuffer(command_buffer, &begin_info),
@@ -181,55 +183,46 @@ VkResult PerFrameCommand::Run(int current_frame,
   ASSERT_SUCCESS(vkEndCommandBuffer(command_buffer),
                  "Failed to end recording command buffer");
 
-  // we have to wait only if we want to write to color attachment
-  // so we actually can start running pipeline long before that image is ready
-  VkPipelineStageFlags wait_stages[]{
-      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-  };
-
-  VkSubmitInfo submit_info{
+  // We can start the pipeline without waiting, until we need to write to the
+  // swapchain image, since that image may still being presented on the screen.
+  constexpr VkPipelineStageFlags kWaitStage =
+      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  const VkSubmitInfo submit_info{
       VK_STRUCTURE_TYPE_SUBMIT_INFO,
       /*pNext=*/nullptr,
       /*waitSemaphoreCount=*/1,
-      &image_available_semas_[current_frame],
-      // we specify one stage for each semaphore, so no need to pass count
-      wait_stages,
+      /*pWaitSemaphores=*/&image_available_semas_[current_frame],
+      // One semaphore waits for one stage, hence there is no need to pass
+      // the count of stages.
+      &kWaitStage,
       /*commandBufferCount=*/1,
       &command_buffer,
       /*signalSemaphoreCount=*/1,
-      &render_finished_semas_[current_frame],
+      /*pSignalSemaphores=*/&render_finished_semas_[current_frame],
   };
 
-  // reset to fences unsignaled state
+  // Reset the fence to the unsignaled state. Note that we don't need to do this
+  // for semaphores.
   vkResetFences(device, /*fenceCount=*/1, &in_flight_fences_[current_frame]);
   ASSERT_SUCCESS(vkQueueSubmit(context_->queues().graphics_queue().queue,
                                /*submitCount=*/1, &submit_info,
                                in_flight_fences_[current_frame]),
-                 "Failed to submit draw command buffer");
+                 "Failed to submit command buffer");
 
-  // present image to screen
-  VkPresentInfoKHR present_info{
+  // Present the swapchain image to screen.
+  const VkPresentInfoKHR present_info{
       VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
       /*pNext=*/nullptr,
       /*waitSemaphoreCount=*/1,
-      &render_finished_semas_[current_frame],
+      /*pWaitSemaphores=*/&render_finished_semas_[current_frame],
       /*swapchainCount=*/1,
       &swapchain,
-      &image_index,  // image for each swapchain
+      &image_index,
+      // May use 'pResults' to check if each swapchain rendered successfully.
       /*pResults=*/nullptr,
-      // may use .pResults to check whether each swapchain rendered successfully
   };
-  const VkResult present_result = vkQueuePresentKHR(
-      context_->queues().present_queue().queue, &present_info);
-  switch (present_result) {
-    case VK_ERROR_OUT_OF_DATE_KHR:  // swapchain can no longer present image
-      return present_result;
-    case VK_SUCCESS:
-    case VK_SUBOPTIMAL_KHR:  // may be considered as good state as well
-      return VK_SUCCESS;
-    default:
-      FATAL("Failed to present swapchain image");
-  }
+  return CheckResult(vkQueuePresentKHR(context_->queues().present_queue().queue,
+                                       &present_info));
 }
 
 } /* namespace vulkan */

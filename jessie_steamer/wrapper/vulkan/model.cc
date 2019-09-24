@@ -282,8 +282,7 @@ std::unique_ptr<Model> ModelBuilder::Build() {
   uniform_resource_maps_.clear();
   binding_map_.clear();
 
-  std::unique_ptr<Model> model{new Model{}};
-  model->context_ = std::move(context_);
+  std::unique_ptr<Model> model{new Model{context_}};
   model->shader_infos_ = std::move(shader_infos_);
   model->vertex_buffer_ = std::move(vertex_buffer_);
   model->per_instance_buffers_ = std::move(per_instance_buffers);

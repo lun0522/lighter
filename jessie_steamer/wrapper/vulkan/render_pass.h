@@ -94,7 +94,7 @@ class RenderPass {
   const VkRenderPass& operator*() const { return render_pass_; }
 
  private:
-  SharedBasicContext context_;
+  const SharedBasicContext context_;
   const int num_subpass_;
   VkRenderPass render_pass_;
   VkExtent2D framebuffer_size_;
@@ -205,7 +205,7 @@ class RenderPassBuilder {
   std::unique_ptr<RenderPass> Build() const;
 
  private:
-  SharedBasicContext context_;
+  const SharedBasicContext context_;
   absl::optional<VkExtent2D> framebuffer_size_;
   absl::optional<int> num_framebuffer_;
   std::vector<GetImage> get_images_;

@@ -47,7 +47,7 @@ class Image {
       : context_{std::move(context)}, extent_{extent}, format_{format} {}
 
   // Pointer to context.
-  SharedBasicContext context_;
+  const SharedBasicContext context_;
 
   // Opaque image view object.
   VkImageView image_view_;

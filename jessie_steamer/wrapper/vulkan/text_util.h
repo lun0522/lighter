@@ -67,7 +67,7 @@ class CharLoader {
   CharTextures CreateCharTextures(const common::CharLib& char_lib,
                                   int font_height);
 
-  SharedBasicContext context_;
+  const SharedBasicContext context_;
   std::unique_ptr<OffscreenImage> image_;
   float width_height_ratio_;
   absl::optional<float> space_advance_x_;
@@ -102,7 +102,7 @@ class TextLoader {
                                 PipelineBuilder* pipeline_builder,
                                 DynamicPerVertexBuffer* vertex_buffer) const;
 
-  SharedBasicContext context_;
+  const SharedBasicContext context_;
   std::vector<TextTexture> text_textures_;
 };
 

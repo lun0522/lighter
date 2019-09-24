@@ -71,7 +71,7 @@ class Descriptor {
       : context_{std::move(context)} {}
 
   // Pointer to context.
-  SharedBasicContext context_;
+  const SharedBasicContext context_;
 
   // Opaque descriptor set layout object.
   VkDescriptorSetLayout layout_;

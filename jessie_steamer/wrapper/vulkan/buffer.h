@@ -53,7 +53,7 @@ class Buffer {
   explicit Buffer(SharedBasicContext context) : context_{std::move(context)} {}
 
   // Pointer to context.
-  SharedBasicContext context_;
+  const SharedBasicContext context_;
 
   // Opaque device memory object.
   VkDeviceMemory device_memory_;

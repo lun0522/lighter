@@ -65,9 +65,10 @@ class Model {
 
  private:
   friend class ModelBuilder;
-  Model() = default;
 
-  SharedBasicContext context_;
+  Model(SharedBasicContext context) : context_{std::move(context)} {}
+
+  const SharedBasicContext context_;
   std::vector<PipelineBuilder::ShaderInfo> shader_infos_;
   std::unique_ptr<StaticPerVertexBuffer> vertex_buffer_;
   std::vector<const PerInstanceBuffer*> per_instance_buffers_;
@@ -144,7 +145,7 @@ class ModelBuilder {
   std::vector<std::vector<std::unique_ptr<StaticDescriptor>>>
   CreateDescriptors();
 
-  SharedBasicContext context_;
+  const SharedBasicContext context_;
   const int num_frame_;
   std::vector<PipelineBuilder::ShaderInfo> shader_infos_;
   std::unique_ptr<StaticPerVertexBuffer> vertex_buffer_;

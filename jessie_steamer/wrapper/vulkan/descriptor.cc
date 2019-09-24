@@ -182,9 +182,10 @@ const StaticDescriptor& StaticDescriptor::UpdateImageInfos(
 
 const StaticDescriptor& StaticDescriptor::UpdateDescriptorSets(
     const vector<VkWriteDescriptorSet>& write_descriptor_sets) const {
-  vkUpdateDescriptorSets(*context_->device(),
-                         CONTAINER_SIZE(write_descriptor_sets),
-                         write_descriptor_sets.data(), 0, nullptr);
+  vkUpdateDescriptorSets(
+      *context_->device(),
+      CONTAINER_SIZE(write_descriptor_sets), write_descriptor_sets.data(),
+      /*descriptorCopyCount=*/0, /*pDescriptorCopies=*/nullptr);
   return *this;
 }
 

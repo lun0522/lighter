@@ -67,7 +67,7 @@ VkPresentModeKHR ChoosePresentMode(const vector<VkPresentModeKHR>& available) {
 // Returns the image extent to use.
 VkExtent2D ChooseImageExtent(const VkSurfaceCapabilitiesKHR& capabilities,
                              const VkExtent2D& screen_size) {
-  // .currentExtent is the suggested resolution.
+  // 'currentExtent' is the suggested resolution.
   // If it is UINT32_MAX, that means it is up to the swapchain to choose extent.
   if (capabilities.currentExtent.width !=
       std::numeric_limits<uint32_t>::max()) {
@@ -86,7 +86,7 @@ VkExtent2D ChooseImageExtent(const VkSurfaceCapabilitiesKHR& capabilities,
 // Note that the actual number can be higher.
 uint32_t ChooseMinImageCount(const VkSurfaceCapabilitiesKHR& capabilities) {
   uint32_t min_count = capabilities.minImageCount + 1;
-  // If there is no maximum limit, .maxImageCount will be 0.
+  // If there is no maximum limit, 'maxImageCount' will be 0.
   if (capabilities.maxImageCount > 0) {
     min_count = std::min(capabilities.maxImageCount, min_count);
   }

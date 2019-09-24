@@ -77,7 +77,7 @@ Window::Window(const std::string& name, const glm::ivec2& screen_size) {
   ASSERT_TRUE(glfwVulkanSupported() == GLFW_TRUE, "Vulkan is not supported");
 
   window_ = glfwCreateWindow(screen_size.x, screen_size.y, name.c_str(),
-                             nullptr, nullptr);
+                             /*monitor=*/nullptr, /*share=*/nullptr);
   ASSERT_NON_NULL(window_, "Failed to create window");
 
   glfwMakeContextCurrent(window_);

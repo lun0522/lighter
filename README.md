@@ -1,7 +1,6 @@
 Files that are waiting to be cleaned up:
 
 wrapper
-- command
 - model
 - pipeline
 - render_pass
@@ -237,6 +236,17 @@ need to directly instantiate them.
 ### 3.2.2 Command (command)
 
 ![](https://docs.google.com/uc?id=1UlOc-ts3a55EmIPSYheY_h2jsrw6lQrl)
+
+- **OneTimeCommand** is used for commands that will only be executed only once.
+For example, we only need to transfer data to the static vertex buffer once. The
+user can specify which device queue to use.
+- **PerFrameCommand** is used for commands that will be executed every frame.
+This is used for on-screen rendering, and it handles the synchronization
+internally, so that the user won't need to use semaphores and fences directly.
+
+Both of them are meant to be used directly by the user. We will add more command
+classes for offscreen rendering and other use cases, and always shield the
+complexity of synchronization from the user.
 
 ### 3.2.3 Descriptor (descriptor)
 

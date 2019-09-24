@@ -37,7 +37,7 @@ void CheckInstanceExtensionSupport(const vector<string>& required) {
   const auto properties = util::QueryAttribute<VkExtensionProperties>(
       [](uint32_t* count, VkExtensionProperties* properties) {
         return vkEnumerateInstanceExtensionProperties(
-            nullptr, count, properties);
+            /*pLayerName=*/nullptr, count, properties);
       }
   );
   const auto get_name = [](const VkExtensionProperties& property) {
@@ -84,7 +84,7 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
   const auto extensions = util::QueryAttribute<VkExtensionProperties>(
       [&physical_device](uint32_t* count, VkExtensionProperties* properties) {
         return vkEnumerateDeviceExtensionProperties(
-            physical_device, nullptr, count, properties);
+            physical_device, /*pLayerName=*/nullptr, count, properties);
       }
   );
   const auto get_name = [](const VkExtensionProperties& property) {
@@ -101,9 +101,11 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
   // window system, so we need to query details.
   uint32_t format_count, mode_count;
   vkGetPhysicalDeviceSurfaceFormatsKHR(
-      physical_device, window_support.surface, &format_count, nullptr);
+      physical_device, window_support.surface, &format_count,
+      /*pSurfaceFormats=*/nullptr);
   vkGetPhysicalDeviceSurfacePresentModesKHR(
-      physical_device, window_support.surface, &mode_count, nullptr);
+      physical_device, window_support.surface, &mode_count,
+      /*pPresentModes=*/nullptr);
   return format_count && mode_count;
 }
 

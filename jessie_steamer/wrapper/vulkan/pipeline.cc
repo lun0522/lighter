@@ -55,7 +55,7 @@ vector<VkPipelineShaderStageCreateInfo> CreateShaderStageInfos(
         module.first,
         module.second,
         /*pName=*/"main",  // entry point of this shader
-        // may use .pSpecializationInfo to specify shader constants
+        // May use 'pSpecializationInfo' to specify shader constants.
         /*pSpecializationInfo=*/nullptr,
     });
   }
@@ -83,9 +83,9 @@ PipelineBuilder::PipelineBuilder(SharedBasicContext context)
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
-      // .topology can be line, line strp, triangle fan, etc
+      // 'topology' can be line, line strip, triangle fan, etc
       /*topology=*/VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-      // .primitiveRestartEnable matters for drawing line/triangle strips
+      // 'primitiveRestartEnable' matters for drawing line/triangle strips
       /*primitiveRestartEnable=*/VK_FALSE,
   };
 
@@ -313,7 +313,7 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
       /*subpass=*/render_pass_info_.value().second,
       /*basePipelineHandle=*/VK_NULL_HANDLE,
       /*basePipelineIndex=*/0,
-      // .basePipelineHandle can be used to copy settings from another piepeline
+      // 'basePipelineHandle' can be used to copy settings from another piepeline
   };
 
   VkPipeline pipeline;

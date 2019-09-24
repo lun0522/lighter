@@ -67,6 +67,8 @@ cc_library(
         ":util",
         "//jessie_steamer/common:util",
         "//third_party:vulkan",
+        "@lib-absl//absl/strings:str_format",
+        "@lib-absl//absl/types:optional",
     ],
 )
 
