@@ -150,8 +150,14 @@ cc_library(
 
 cc_library(
     name = "render_pass",
-    hdrs = ["render_pass.h"],
-    srcs = ["render_pass.cc"],
+    hdrs = [
+        "render_pass.h",
+        "render_pass_util.h",
+    ],
+    srcs = [
+        "render_pass.cc",
+        "render_pass_util.cc",
+    ],
     deps = [
         ":basics",
         ":image",

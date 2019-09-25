@@ -60,7 +60,7 @@ class OneTimeCommand : public Command {
   OneTimeCommand& operator=(const OneTimeCommand&) = delete;
 
   // Executes the command once and waits for completion.
-  void Run(const OnRecord& on_record);
+  void Run(const OnRecord& on_record) const;
 
  private:
   // Used to execute the command.

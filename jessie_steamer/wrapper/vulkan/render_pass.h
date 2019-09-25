@@ -22,15 +22,6 @@
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
-namespace simple_render_pass {
-
-enum AttachmentIndex {
-  kColorAttachmentIndex = 0,
-  kDepthStencilAttachmentIndex,
-  kMultisampleAttachmentIndex,
-};
-
-} /* namespace simple_render_pass */
 
 /** VkRenderPass specifies types of attachments that will be accessed.
  *
@@ -172,17 +163,6 @@ class RenderPassBuilder {
 
   static std::vector<VkAttachmentReference> CreateMultisamplingReferences(
       int num_color_references, const std::vector<MultisamplingPair>& pairs);
-
-  // Contains one color attachment (at index 0) and one depth attachment (at
-  // index 1). Only the first subpass will use the depth attachment and is
-  // intended for rendering opaque objects. Following subpasses are intended for
-  // transparent objects and text. Each of them will depend on the previous one.
-  // Only set_framebuffer_size() and update_image() need to be called when the
-  // window is resized.
-  static std::unique_ptr<RenderPassBuilder> SimpleRenderPassBuilder(
-      SharedBasicContext context,
-      int num_subpass, int num_swapchain_image,
-      absl::optional<MultisampleImage::Mode> multisampling_mode);
 
   explicit RenderPassBuilder(SharedBasicContext context)
     : context_{std::move(context)} {}

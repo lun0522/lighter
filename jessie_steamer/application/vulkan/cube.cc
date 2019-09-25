@@ -19,6 +19,7 @@
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/model.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
+#include "jessie_steamer/wrapper/vulkan/render_pass_util.h"
 #include "jessie_steamer/wrapper/vulkan/text.h"
 #include "jessie_steamer/wrapper/vulkan/window_context.h"
 #include "third_party/glm/glm.hpp"
@@ -78,7 +79,7 @@ CubeApp::CubeApp() : Application{"Cube", WindowContext::Config{}} {
       context(), sizeof(Transformation), kNumFrameInFlight);
 
   // render pass builder
-  render_pass_builder_ = RenderPassBuilder::SimpleRenderPassBuilder(
+  render_pass_builder_ = naive_render_pass::NaiveRenderPassBuilder(
       context(), static_cast<int>(SubpassIndex::kNumSubpass),
       window_context_.num_swapchain_image(),
       window_context_.multisampling_mode());
@@ -122,18 +123,18 @@ void CubeApp::Recreate() {
   // render pass
   if (window_context_.multisampling_mode().has_value()) {
     render_pass_builder_->update_image(
-        simple_render_pass::kMultisampleAttachmentIndex,
+        naive_render_pass::kMultisampleAttachmentIndex,
         [this](int index) -> const Image& {
           return window_context_.multisample_image();
         });
   }
   render_pass_ = (*render_pass_builder_)
       .set_framebuffer_size(frame_size)
-      .update_image(simple_render_pass::kColorAttachmentIndex,
+      .update_image(naive_render_pass::kColorAttachmentIndex,
                     [this](int index) -> const Image& {
                       return window_context_.swapchain_image(index);
                     })
-      .update_image(simple_render_pass::kDepthStencilAttachmentIndex,
+      .update_image(naive_render_pass::kDepthStencilAttachmentIndex,
                     [this](int index) -> const Image& {
                       return *depth_stencil_image_;
                     })

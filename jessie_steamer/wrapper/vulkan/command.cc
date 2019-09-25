@@ -87,7 +87,7 @@ OneTimeCommand::OneTimeCommand(SharedBasicContext context,
       AllocateCommandBuffers(context_, command_pool_, /*count=*/1)[0];
 }
 
-void OneTimeCommand::Run(const OnRecord& on_record) {
+void OneTimeCommand::Run(const OnRecord& on_record) const {
   // Record operations.
   const VkCommandBufferBeginInfo begin_info{
       VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,

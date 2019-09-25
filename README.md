@@ -321,7 +321,7 @@ existence of the texture.
 
 ### 3.2.5 Pipeline (pipeline)
 
-### 3.2.6 Render pass (render_pass)
+### 3.2.6 Render pass (render_pass and render_pass_util)
 
 ### 3.2.7 Swapchain (swapchain)
 

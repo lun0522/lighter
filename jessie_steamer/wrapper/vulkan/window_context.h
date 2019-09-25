@@ -33,8 +33,8 @@ class WindowContext {
   // Configurations used to initialize the window context.
   struct Config {
     // Modifiers.
-    Config& set_screen_size(const glm::ivec2& size) {
-      screen_size = size;
+    Config& set_screen_size(int width, int height) {
+      screen_size = {width, height};
       return *this;
     }
 

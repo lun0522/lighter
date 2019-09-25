@@ -223,9 +223,9 @@ void TransitionImageLayout(
     const array<VkAccessFlags, 2>& access_flags,
     const array<VkPipelineStageFlags, 2>& pipeline_stages) {
   const auto& transfer_queue = context->queues().transfer_queue();
-  OneTimeCommand command{context, &transfer_queue};
+  const OneTimeCommand command{context, &transfer_queue};
   command.Run([&](const VkCommandBuffer& command_buffer) {
-    VkImageMemoryBarrier barrier{
+    const VkImageMemoryBarrier barrier{
         VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
         /*pNext=*/nullptr,
         access_flags[0],
@@ -273,13 +273,9 @@ void CopyBufferToBuffer(const SharedBasicContext& context,
                         VkDeviceSize data_size,
                         const VkBuffer& src_buffer,
                         const VkBuffer& dst_buffer) {
-  OneTimeCommand command{context, &context->queues().transfer_queue()};
+  const OneTimeCommand command{context, &context->queues().transfer_queue()};
   command.Run([&](const VkCommandBuffer& command_buffer) {
-    VkBufferCopy region{
-        /*srcOffset=*/0,
-        /*dstOffset=*/0,
-        data_size,
-    };
+    const VkBufferCopy region{/*srcOffset=*/0, /*dstOffset=*/0, data_size};
     vkCmdCopyBuffer(command_buffer, src_buffer, dst_buffer,
                     /*regionCount=*/1, &region);
   });
@@ -291,10 +287,10 @@ void CopyHostToBufferViaStaging(const SharedBasicContext& context,
                                 const VkBuffer& buffer,
                                 const Buffer::CopyInfos& copy_infos) {
   // Create staging buffer and associated memory, which is accessible from host.
-  VkBuffer staging_buffer = CreateBuffer(
+  const VkBuffer staging_buffer = CreateBuffer(
       context, copy_infos.total_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       GetTransferQueueUsage(context));
-  VkDeviceMemory staging_memory = CreateBufferMemory(
+  const VkDeviceMemory staging_memory = CreateBufferMemory(
       context, staging_buffer, kHostVisibleMemory);
 
   // Copy from host to staging buffer.
@@ -317,9 +313,9 @@ void CopyBufferToImage(const SharedBasicContext& context,
                        const ImageConfig& image_config,
                        const VkExtent3D& image_extent,
                        VkImageLayout image_layout) {
-  OneTimeCommand command{context, &context->queues().transfer_queue()};
+  const OneTimeCommand command{context, &context->queues().transfer_queue()};
   command.Run([&](const VkCommandBuffer& command_buffer) {
-    VkBufferImageCopy region{
+    const VkBufferImageCopy region{
         // First three parameters specify pixels layout in buffer.
         // Setting all of them to 0 means pixels are tightly packed.
         /*bufferOffset=*/0,
@@ -380,7 +376,7 @@ void GenerateMipmaps(const SharedBasicContext& context,
               "Image format does not support linear blitting");
 
   const auto& transfer_queue = context->queues().transfer_queue();
-  OneTimeCommand command{context, &transfer_queue};
+  const OneTimeCommand command{context, &transfer_queue};
   command.Run([&](const VkCommandBuffer& command_buffer) {
     VkImageMemoryBarrier barrier{
         VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -593,8 +589,8 @@ void DynamicPerVertexBuffer::Reserve(int size) {
 
   if (buffer_size_ > 0) {
     // Make copy of 'buffer_' and 'device_memory_' since they will be changed.
-    VkBuffer buffer = buffer_;
-    VkDeviceMemory device_memory = device_memory_;
+    const VkBuffer buffer = buffer_;
+    const VkDeviceMemory device_memory = device_memory_;
     context_->AddReleaseExpiredResourceOp(
         [buffer, device_memory](const BasicContext& context) {
           vkDestroyBuffer(*context.device(), buffer, *context.allocator());
@@ -681,10 +677,10 @@ TextureBuffer::TextureBuffer(SharedBasicContext context,
   }
 
   // Create staging buffer and associated memory.
-  VkBuffer staging_buffer = CreateBuffer(
+  const VkBuffer staging_buffer = CreateBuffer(
       context_, data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       GetTransferQueueUsage(context_));
-  VkDeviceMemory staging_memory = CreateBufferMemory(
+  const VkDeviceMemory staging_memory = CreateBufferMemory(
       context_, staging_buffer, kHostVisibleMemory);
 
   // Copy from host to staging buffer.
