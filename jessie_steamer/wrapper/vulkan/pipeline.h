@@ -38,30 +38,7 @@ namespace vulkan {
  *    VkRenderPass and subpass
  *    BasePipeline (may copy settings from another pipeline)
  */
-class Pipeline {
- public:
-  Pipeline(SharedBasicContext context,
-           const VkPipeline& pipeline,
-           const VkPipelineLayout& pipeline_layout)
-    : context_{std::move(context)},
-      pipeline_{pipeline}, layout_{pipeline_layout} {}
-
-  // This class is neither copyable nor movable.
-  Pipeline(const Pipeline&) = delete;
-  Pipeline& operator=(const Pipeline&) = delete;
-
-  ~Pipeline();
-
-  void Bind(const VkCommandBuffer& command_buffer) const;
-
-  const VkPipeline& operator*()     const { return pipeline_; }
-  const VkPipelineLayout& layout()  const { return layout_; }
-
- private:
-  const SharedBasicContext context_;
-  VkPipeline pipeline_;
-  VkPipelineLayout layout_;
-};
+class Pipeline;
 
 class PipelineBuilder {
  public:
@@ -120,6 +97,33 @@ class PipelineBuilder {
   std::vector<VkDescriptorSetLayout> descriptor_layouts_;
   std::vector<VkPushConstantRange> push_constant_ranges_;
   std::vector<ShaderModule> shader_modules_;
+};
+
+class Pipeline {
+ public:
+  // This class is neither copyable nor movable.
+  Pipeline(const Pipeline&) = delete;
+  Pipeline& operator=(const Pipeline&) = delete;
+
+  ~Pipeline();
+
+  void Bind(const VkCommandBuffer& command_buffer) const;
+
+  const VkPipeline& operator*()     const { return pipeline_; }
+  const VkPipelineLayout& layout()  const { return layout_; }
+
+ private:
+  friend std::unique_ptr<Pipeline> PipelineBuilder::Build();
+
+  Pipeline(SharedBasicContext context,
+           const VkPipeline& pipeline,
+           const VkPipelineLayout& pipeline_layout)
+      : context_{std::move(context)},
+        pipeline_{pipeline}, layout_{pipeline_layout} {}
+
+  const SharedBasicContext context_;
+  const VkPipeline pipeline_;
+  const VkPipelineLayout layout_;
 };
 
 } /* namespace vulkan */

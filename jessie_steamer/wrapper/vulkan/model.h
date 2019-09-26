@@ -50,35 +50,7 @@ struct PushConstantInfo {
 
 } /* namespace model */
 
-class Model {
- public:
-  // This class is neither copyable nor movable.
-  Model(const Model&) = delete;
-  Model& operator=(const Model&) = delete;
-
-  // Should be called after initialization and whenever frame is resized.
-  void Update(VkExtent2D frame_size, VkSampleCountFlagBits sample_count,
-              const RenderPass& render_pass, uint32_t subpass_index);
-
-  void Draw(const VkCommandBuffer& command_buffer,
-            int frame, uint32_t instance_count) const;
-
- private:
-  friend class ModelBuilder;
-
-  Model(SharedBasicContext context) : context_{std::move(context)} {}
-
-  const SharedBasicContext context_;
-  std::vector<PipelineBuilder::ShaderInfo> shader_infos_;
-  std::unique_ptr<StaticPerVertexBuffer> vertex_buffer_;
-  std::vector<const PerInstanceBuffer*> per_instance_buffers_;
-  absl::optional<model::PushConstantInfo> push_constant_info_;
-  model::TexPerMesh shared_textures_;
-  std::vector<model::TexPerMesh> mesh_textures_;
-  std::vector<std::vector<std::unique_ptr<StaticDescriptor>>> descriptors_;
-  std::unique_ptr<PipelineBuilder> pipeline_builder_;
-  std::unique_ptr<Pipeline> pipeline_;
-};
+class Model;
 
 class ModelBuilder {
  public:
@@ -157,6 +129,55 @@ class ModelBuilder {
   model::TexPerMesh shared_textures_;
   std::vector<model::TexPerMesh> mesh_textures_;
   std::unique_ptr<PipelineBuilder> pipeline_builder_;
+};
+
+class Model {
+ public:
+  // This class is neither copyable nor movable.
+  Model(const Model&) = delete;
+  Model& operator=(const Model&) = delete;
+
+  // Should be called after initialization and whenever frame is resized.
+  void Update(VkExtent2D frame_size, VkSampleCountFlagBits sample_count,
+              const RenderPass& render_pass, uint32_t subpass_index);
+
+  void Draw(const VkCommandBuffer& command_buffer,
+            int frame, uint32_t instance_count) const;
+
+ private:
+  friend std::unique_ptr<Model> ModelBuilder::Build();
+
+  Model(SharedBasicContext context,
+        std::vector<PipelineBuilder::ShaderInfo>&& shader_infos,
+        std::unique_ptr<StaticPerVertexBuffer>&& vertex_buffer,
+        std::vector<const PerInstanceBuffer*>&& per_instance_buffers,
+        absl::optional<model::PushConstantInfo>&& push_constant_info,
+        model::TexPerMesh&& shared_textures,
+        std::vector<model::TexPerMesh>&& mesh_textures,
+        std::vector<std::vector<std::unique_ptr<StaticDescriptor>>>&&
+        descriptors,
+        std::unique_ptr<PipelineBuilder>&& pipeline_builder)
+      : context_{std::move(context)},
+        shader_infos_{std::move(shader_infos)},
+        vertex_buffer_{std::move(vertex_buffer)},
+        per_instance_buffers_{std::move(per_instance_buffers)},
+        push_constant_info_{std::move(push_constant_info)},
+        shared_textures_{std::move(shared_textures)},
+        mesh_textures_{std::move(mesh_textures)},
+        descriptors_{std::move(descriptors)},
+        pipeline_builder_{std::move(pipeline_builder)} {}
+
+  const SharedBasicContext context_;
+  const std::vector<PipelineBuilder::ShaderInfo> shader_infos_;
+  const std::unique_ptr<StaticPerVertexBuffer> vertex_buffer_;
+  const std::vector<const PerInstanceBuffer*> per_instance_buffers_;
+  const absl::optional<model::PushConstantInfo> push_constant_info_;
+  const model::TexPerMesh shared_textures_;
+  const std::vector<model::TexPerMesh> mesh_textures_;
+  const std::vector<std::vector<std::unique_ptr<StaticDescriptor>>>
+      descriptors_;
+  std::unique_ptr<PipelineBuilder> pipeline_builder_;
+  std::unique_ptr<Pipeline> pipeline_;
 };
 
 } /* namespace vulkan */

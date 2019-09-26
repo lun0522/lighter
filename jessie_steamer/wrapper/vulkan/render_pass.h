@@ -55,43 +55,8 @@ namespace vulkan {
  *    - VK_IMAGE_LAYOUT_UNDEFINED: don't care about layout before this render
  *                                 pass
  */
-class RenderPass {
- public:
-  using RenderOp = std::function<void(const VkCommandBuffer&)>;
 
-  RenderPass(SharedBasicContext context,
-             int num_subpass,
-             const VkRenderPass& render_pass,
-             VkExtent2D framebuffer_size,
-             std::vector<VkClearValue> clear_values,
-             std::vector<VkFramebuffer>&& framebuffers)
-    : context_{std::move(context)},
-      num_subpass_{num_subpass},
-      render_pass_{render_pass},
-      framebuffer_size_{framebuffer_size},
-      clear_values_{std::move(clear_values)},
-      framebuffers_{std::move(framebuffers)} {}
-
-  // This class is neither copyable nor movable.
-  RenderPass(const RenderPass&) = delete;
-  RenderPass& operator=(const RenderPass&) = delete;
-
-  ~RenderPass();
-
-  void Run(const VkCommandBuffer& command_buffer,
-           int framebuffer_index,
-           const std::vector<RenderOp>& render_ops) const;
-
-  const VkRenderPass& operator*() const { return render_pass_; }
-
- private:
-  const SharedBasicContext context_;
-  const int num_subpass_;
-  VkRenderPass render_pass_;
-  VkExtent2D framebuffer_size_;
-  std::vector<VkClearValue> clear_values_;
-  std::vector<VkFramebuffer> framebuffers_;
-};
+class RenderPass;
 
 class RenderPassBuilder {
  public:
@@ -194,6 +159,48 @@ class RenderPassBuilder {
   std::vector<VkAttachmentDescription> attachment_descriptions_;
   std::vector<VkSubpassDescription> subpass_descriptions_;
   std::vector<VkSubpassDependency> subpass_dependencies_;
+};
+
+class RenderPass {
+ public:
+  // Specifies rendering operations to perform in one subpass.
+  using RenderOp = std::function<void(const VkCommandBuffer&)>;
+
+  // This class is neither copyable nor movable.
+  RenderPass(const RenderPass&) = delete;
+  RenderPass& operator=(const RenderPass&) = delete;
+
+  ~RenderPass();
+
+  void Run(const VkCommandBuffer& command_buffer,
+           int framebuffer_index,
+           const std::vector<RenderOp>& render_ops) const;
+
+  const VkRenderPass& operator*() const { return render_pass_; }
+
+ private:
+  friend std::unique_ptr<RenderPass> RenderPassBuilder::Build() const;
+
+  // 'clear_values' is intended to be passed by value.
+  RenderPass(SharedBasicContext context,
+             int num_subpass,
+             const VkRenderPass& render_pass,
+             const VkExtent2D& framebuffer_size,
+             std::vector<VkClearValue> clear_values,
+             std::vector<VkFramebuffer>&& framebuffers)
+      : context_{std::move(context)},
+        num_subpass_{num_subpass},
+        render_pass_{render_pass},
+        framebuffer_size_{framebuffer_size},
+        clear_values_{std::move(clear_values)},
+        framebuffers_{std::move(framebuffers)} {}
+
+  const SharedBasicContext context_;
+  const int num_subpass_;
+  VkRenderPass render_pass_;
+  const VkExtent2D framebuffer_size_;
+  const std::vector<VkClearValue> clear_values_;
+  const std::vector<VkFramebuffer> framebuffers_;
 };
 
 } /* namespace vulkan */

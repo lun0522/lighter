@@ -282,16 +282,11 @@ std::unique_ptr<Model> ModelBuilder::Build() {
   uniform_resource_maps_.clear();
   binding_map_.clear();
 
-  std::unique_ptr<Model> model{new Model{context_}};
-  model->shader_infos_ = std::move(shader_infos_);
-  model->vertex_buffer_ = std::move(vertex_buffer_);
-  model->per_instance_buffers_ = std::move(per_instance_buffers);
-  model->push_constant_info_ = std::move(push_constant_info_);
-  model->shared_textures_ = std::move(shared_textures_);
-  model->mesh_textures_ = std::move(mesh_textures_);
-  model->descriptors_ = std::move(descriptors);
-  model->pipeline_builder_ = std::move(pipeline_builder_);
-  return model;
+  return std::unique_ptr<Model>{new Model{
+    context_, std::move(shader_infos_), std::move(vertex_buffer_),
+    std::move(per_instance_buffers), std::move(push_constant_info_),
+    std::move(shared_textures_), std::move(mesh_textures_),
+    std::move(descriptors), std::move(pipeline_builder_)}};
 }
 
 void Model::Update(VkExtent2D frame_size, VkSampleCountFlagBits sample_count,

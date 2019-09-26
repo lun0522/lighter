@@ -79,7 +79,7 @@ CubeApp::CubeApp() : Application{"Cube", WindowContext::Config{}} {
       context(), sizeof(Transformation), kNumFrameInFlight);
 
   // render pass builder
-  render_pass_builder_ = naive_render_pass::NaiveRenderPassBuilder(
+  render_pass_builder_ = naive_render_pass::GetNaiveRenderPassBuilder(
       context(), static_cast<int>(SubpassIndex::kNumSubpass),
       window_context_.num_swapchain_image(),
       window_context_.multisampling_mode());

@@ -26,7 +26,7 @@ using SubpassDependency = RenderPassBuilder::SubpassDependency;
 
 namespace naive_render_pass {
 
-std::unique_ptr<RenderPassBuilder> NaiveRenderPassBuilder(
+std::unique_ptr<RenderPassBuilder> GetNaiveRenderPassBuilder(
     SharedBasicContext context,
     int num_subpass, int num_swapchain_image,
     absl::optional<MultisampleImage::Mode> multisampling_mode) {

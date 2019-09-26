@@ -328,7 +328,8 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
   }
   shader_modules_.clear();
 
-  return absl::make_unique<Pipeline>(context_, pipeline, pipeline_layout);
+  return std::unique_ptr<Pipeline>{
+    new Pipeline{context_, pipeline, pipeline_layout}};
 }
 
 void Pipeline::Bind(const VkCommandBuffer& command_buffer) const {

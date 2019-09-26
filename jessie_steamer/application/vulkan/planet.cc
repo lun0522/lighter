@@ -142,7 +142,7 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
       context(), sizeof(SkyboxTrans), kNumFrameInFlight);
 
   // render pass builder
-  render_pass_builder_ = naive_render_pass::NaiveRenderPassBuilder(
+  render_pass_builder_ = naive_render_pass::GetNaiveRenderPassBuilder(
       context(), /*num_subpass=*/1, window_context_.num_swapchain_image(),
       window_context_.multisampling_mode());
 

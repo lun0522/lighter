@@ -7,7 +7,6 @@
 
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
 
-#include "absl/memory/memory.h"
 #include "absl/strings/str_format.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
@@ -235,11 +234,11 @@ std::unique_ptr<RenderPass> RenderPassBuilder::Build() const {
                                     *context_->allocator(), &render_pass),
                  "Failed to create render pass");
 
-  return absl::make_unique<RenderPass>(
-      context_, /*num_subpass=*/subpass_descriptions_.size(), render_pass,
-      framebuffer_size_.value(), clear_values_,
+  return std::unique_ptr<RenderPass>{new RenderPass{
+      context_, /*num_subpass=*/static_cast<int>(subpass_descriptions_.size()),
+      render_pass, framebuffer_size_.value(), clear_values_,
       CreateFramebuffers(context_, render_pass, get_images_,
-                         framebuffer_size_.value(), num_framebuffer_.value()));
+                         framebuffer_size_.value(), num_framebuffer_.value())}};
 }
 
 void RenderPass::Run(const VkCommandBuffer& command_buffer,
