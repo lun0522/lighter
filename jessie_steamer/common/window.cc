@@ -105,22 +105,22 @@ Window& Window::SetCursorHidden(bool hidden) {
 }
 
 Window& Window::RegisterPressKeyCallback(
-    KeyMap key, const PressKeyCallback& callback) {
+    KeyMap key, PressKeyCallback&& callback) {
   const auto glfw_key = WindowKeyToGlfwKey(key);
   if (callback == nullptr) {
     press_key_callbacks_.erase(glfw_key);
   } else {
-    press_key_callbacks_.emplace(glfw_key, callback);
+    press_key_callbacks_.emplace(glfw_key, std::move(callback));
   }
   return *this;
 }
 
-Window& Window::RegisterMoveCursorCallback(MoveCursorCallback callback) {
+Window& Window::RegisterMoveCursorCallback(MoveCursorCallback&& callback) {
   move_cursor_callback_ = std::move(callback);
   return *this;
 }
 
-Window& Window::RegisterScrollCallback(ScrollCallback callback) {
+Window& Window::RegisterScrollCallback(ScrollCallback&& callback) {
   scroll_callback_ = std::move(callback);
   return *this;
 }

@@ -122,8 +122,8 @@ class Pipeline {
         pipeline_{pipeline}, layout_{pipeline_layout} {}
 
   const SharedBasicContext context_;
-  const VkPipeline pipeline_;
-  const VkPipelineLayout layout_;
+  VkPipeline pipeline_;
+  VkPipelineLayout layout_;
 };
 
 } /* namespace vulkan */

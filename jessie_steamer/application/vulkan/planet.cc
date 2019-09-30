@@ -37,10 +37,9 @@ namespace {
 
 using namespace wrapper::vulkan;
 
-using std::vector;
-
 using common::file::GetResourcePath;
 using common::file::GetShaderPath;
+using std::vector;
 
 constexpr int kNumFrameInFlight = 2;
 constexpr int kNumAsteroidRing = 3;
@@ -253,22 +252,24 @@ void PlanetApp::Recreate() {
 
   // render pass
   if (window_context_.multisampling_mode().has_value()) {
-    render_pass_builder_->update_image(
+    render_pass_builder_->UpdateAttachmentImage(
         naive_render_pass::kMultisampleAttachmentIndex,
-        [this](int index) -> const Image& {
+        [this](int framebuffer_index) -> const Image& {
           return window_context_.multisample_image();
         });
   }
   render_pass_ = (*render_pass_builder_)
-      .set_framebuffer_size(frame_size)
-      .update_image(naive_render_pass::kColorAttachmentIndex,
-                    [this](int index) -> const Image& {
-                      return window_context_.swapchain_image(index);
-                    })
-      .update_image(naive_render_pass::kDepthStencilAttachmentIndex,
-                    [this](int index) -> const Image& {
-                      return *depth_stencil_image_;
-                    })
+      .SetFramebufferSize(frame_size)
+      .UpdateAttachmentImage(
+          naive_render_pass::kColorAttachmentIndex,
+          [this](int framebuffer_index) -> const Image& {
+            return window_context_.swapchain_image(framebuffer_index);
+          })
+      .UpdateAttachmentImage(
+          naive_render_pass::kDepthStencilAttachmentIndex,
+          [this](int framebuffer_index) -> const Image& {
+            return *depth_stencil_image_;
+          })
       .Build();
 
   // camera

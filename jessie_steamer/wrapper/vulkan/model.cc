@@ -17,9 +17,9 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
+using common::VertexAttrib3D;
 using std::vector;
 
-using common::VertexAttrib3D;
 using VertexInfo = PerVertexBuffer::NoShareIndicesDataInfo;
 
 std::unique_ptr<SamplableImage> CreateTexture(

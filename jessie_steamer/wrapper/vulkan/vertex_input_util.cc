@@ -14,10 +14,9 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::vector;
-
 using common::VertexAttrib2D;
 using common::VertexAttrib3D;
+using std::vector;
 
 } /* namespace */
 

@@ -137,6 +137,7 @@ constexpr uint32_t kSingleImageLayer = 1;
 constexpr VkSampleCountFlagBits kSingleSample = VK_SAMPLE_COUNT_1_BIT;
 
 constexpr VkAccessFlags kNullAccessFlag = 0;
+constexpr uint32_t kExternalSubpassIndex = VK_SUBPASS_EXTERNAL;
 
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap36.html#limits-minmax
 constexpr int kMaxPushConstantSize = 128;

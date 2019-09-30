@@ -21,10 +21,9 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
+using common::VertexAttrib2D;
 using std::string;
 using std::vector;
-
-using common::VertexAttrib2D;
 
 enum class BindingPoint : int { kUniformBuffer = 0, kTexture };
 

@@ -18,11 +18,10 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
+using common::VertexAttrib2D;
 using std::array;
 using std::string;
 using std::vector;
-
-using common::VertexAttrib2D;
 
 constexpr int kImageBindingPoint = 0;
 
@@ -66,8 +65,8 @@ std::unique_ptr<RenderPassBuilder> CreateRenderPassBuilder(
   auto render_pass_builder = absl::make_unique<RenderPassBuilder>(context);
 
   (*render_pass_builder)
-      .set_num_framebuffer(1)
-      .set_subpass_description(
+      .SetNumFramebuffer(1)
+      .SetSubpass(
           /*index=*/0,
           RenderPassBuilder::SubpassAttachments{
               /*color_refs=*/{
@@ -80,13 +79,13 @@ std::unique_ptr<RenderPassBuilder> CreateRenderPassBuilder(
               /*depth_stencil_ref=*/absl::nullopt,
           }
       )
-      .add_subpass_dependency(RenderPassBuilder::SubpassDependency{
-          /*src_info=*/RenderPassBuilder::SubpassDependency::SubpassInfo{
-              /*index=*/VK_SUBPASS_EXTERNAL,
+      .AddSubpassDependency(RenderPassBuilder::SubpassDependency{
+          /*prev_subpass=*/RenderPassBuilder::SubpassDependency::SubpassInfo{
+              kExternalSubpassIndex,
               /*stage_mask=*/VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
               /*access_mask=*/0,
           },
-          /*dst_info=*/RenderPassBuilder::SubpassDependency::SubpassInfo{
+          /*next_subpass=*/RenderPassBuilder::SubpassDependency::SubpassInfo{
               /*index=*/0,
               /*stage_mask=*/VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
               /*access_mask=*/VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
@@ -102,19 +101,19 @@ std::unique_ptr<RenderPass> BuildRenderPass(
     RenderPassBuilder* render_pass_builder) {
   constexpr int kColorAttachmentIndex = 0;
   return (*render_pass_builder)
-      .set_framebuffer_size(target_extent)
-      .set_attachment(
+      .SetFramebufferSize(target_extent)
+      .SetAttachment(
           kColorAttachmentIndex,
           RenderPassBuilder::Attachment{
               /*attachment_ops=*/RenderPassBuilder::Attachment::ColorOps{
-                  /*load_color=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-                  /*store_color=*/VK_ATTACHMENT_STORE_OP_STORE,
+                  /*load_color_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+                  /*store_color_op=*/VK_ATTACHMENT_STORE_OP_STORE,
               },
               /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
               /*final_layout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
           }
       )
-      .update_image(kColorAttachmentIndex, std::move(get_target_image))
+      .UpdateAttachmentImage(kColorAttachmentIndex, std::move(get_target_image))
       .Build();
 }
 

@@ -17,18 +17,23 @@ namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
+// Contains one color attachment and one depth attachment. Only the first
+// subpass will use the depth attachment and is intended for rendering opaque
+// objects. Following subpasses are intended for transparent objects and text.
+// Each of them will depend on the COLOR_ATTACHMENT_OUTPUT stage of the previous
+// subpass. The user still needs to call SetFramebufferSize() and
+// UpdateAttachmentImage() when the window is resized.
 namespace naive_render_pass {
 
-// Contains one color attachment (at index 0) and one depth attachment (at
-// index 1). Only the first subpass will use the depth attachment and is
-// intended for rendering opaque objects. Following subpasses are intended for
-// transparent objects and text. Each of them will depend on the previous one.
-// Only set_framebuffer_size() and update_image() need to be called when the
-// window is resized.
 enum AttachmentIndex {
   kColorAttachmentIndex = 0,
   kDepthStencilAttachmentIndex,
   kMultisampleAttachmentIndex,
+};
+
+enum SubpassIndex {
+  kNativeSubpassIndex = 0,
+  kFirstExtraSubpassIndex,
 };
 
 std::unique_ptr<RenderPassBuilder> GetNaiveRenderPassBuilder(

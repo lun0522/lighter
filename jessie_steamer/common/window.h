@@ -34,13 +34,14 @@ void GlfwScrollCallback(GLFWwindow* window, double x_pos, double y_pos);
 
 } /* namespace window_callback */
 
-// Window backed by GLFW. It handles all interactions with the user, and the
-// presentation of rendered frames.
+// This class is backed by GLFW. It handles all interactions with the user, and
+// the presentation of rendered frames.
 class Window {
  public:
   // Returns the names of required extensions for creating the window.
   static const std::vector<const char*>& GetRequiredExtensions();
 
+  // Callbacks used for responding to user inputs.
   using PressKeyCallback = std::function<void()>;
   using MoveCursorCallback = std::function<void(double x_pos, double y_pos)>;
   using ScrollCallback = std::function<void(double x_pos, double y_pos)>;
@@ -70,16 +71,15 @@ class Window {
   // Registers a callback that will be invoked when the 'key' is pressed.
   // 'callback' can be nullptr, which invalidates the callback previously
   // registered for 'key'.
-  Window& RegisterPressKeyCallback(
-      KeyMap key, const PressKeyCallback& callback);
+  Window& RegisterPressKeyCallback(KeyMap key, PressKeyCallback&& callback);
 
   // Registers a callback that will be invoked when the cursor is moved.
   // 'callback' can be nullptr, which invalidates callbacks registered before.
-  Window& RegisterMoveCursorCallback(MoveCursorCallback callback);
+  Window& RegisterMoveCursorCallback(MoveCursorCallback&& callback);
 
   // Registers a callback that will be invoked when the user scrolls.
   // 'callback' can be nullptr, which invalidates callbacks registered before.
-  Window& RegisterScrollCallback(ScrollCallback callback);
+  Window& RegisterScrollCallback(ScrollCallback&& callback);
 
   // Processes user inputs to the window. Callbacks will be invoked if
   // conditions are satisfied.
