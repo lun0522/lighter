@@ -65,7 +65,7 @@ std::unique_ptr<RenderPassBuilder> CreateRenderPassBuilder(
   auto render_pass_builder = absl::make_unique<RenderPassBuilder>(context);
 
   (*render_pass_builder)
-      .SetNumFramebuffer(1)
+      .SetNumFramebuffers(1)
       .SetSubpass(
           /*index=*/0,
           RenderPassBuilder::SubpassAttachments{
@@ -195,9 +195,9 @@ std::unique_ptr<StaticPerVertexBuffer> CreateVertexBuffer(
 
   auto buffer = absl::make_unique<StaticPerVertexBuffer>(
       context, PerVertexBuffer::ShareIndicesDataInfo{
-          /*num_mesh=*/static_cast<int>(char_merge_order.size()),
+          /*num_meshes=*/static_cast<int>(char_merge_order.size()),
           /*per_mesh_vertices=*/
-          {vertices, /*num_unit_per_mesh=*/text_util::kNumVerticesPerRect},
+          {vertices, /*num_units_per_mesh=*/text_util::kNumVerticesPerRect},
           /*shared_indices=*/
           {PerVertexBuffer::DataInfo{text_util::GetIndicesPerRect()}},
       }
@@ -494,9 +494,9 @@ float LoadCharsVertexData(const string& text, const CharLoader& char_loader,
   }
 
   vertex_buffer->Allocate(PerVertexBuffer::ShareIndicesDataInfo{
-      /*num_mesh=*/static_cast<int>(text.length()),
+      /*num_meshes=*/static_cast<int>(text.length()),
       /*per_mesh_vertices=*/
-      {vertices, /*num_unit_per_mesh=*/text_util::kNumVerticesPerRect},
+      {vertices, /*num_units_per_mesh=*/text_util::kNumVerticesPerRect},
       /*shared_indices=*/
       {PerVertexBuffer::DataInfo{text_util::GetIndicesPerRect()}},
   });

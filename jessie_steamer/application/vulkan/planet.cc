@@ -79,7 +79,7 @@ class PlanetApp : public Application {
   common::Timer timer_;
   std::unique_ptr<common::UserControlledCamera> camera_;
   std::unique_ptr<PerFrameCommand> command_;
-  int num_asteroid_;
+  int num_asteroids_ = -1;
   std::unique_ptr<PerInstanceBuffer> per_asteroid_data_;
   std::unique_ptr<UniformBuffer> light_uniform_;
   std::unique_ptr<PushConstant> planet_constant_;
@@ -142,8 +142,9 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
 
   // render pass builder
   render_pass_builder_ = naive_render_pass::GetNaiveRenderPassBuilder(
-      context(), /*num_subpass=*/1, window_context_.num_swapchain_image(),
-      window_context_.multisampling_mode());
+      context(), /*num_subpasses=*/1,
+      /*num_framebuffers=*/window_context_.num_swapchain_images(),
+      /*present_to_screen=*/true, window_context_.multisampling_mode());
 
   // model
   Descriptor::Info light_desc_info{
@@ -266,7 +267,7 @@ void PlanetApp::Recreate() {
             return window_context_.swapchain_image(framebuffer_index);
           })
       .UpdateAttachmentImage(
-          naive_render_pass::kDepthStencilAttachmentIndex,
+          naive_render_pass::kDepthAttachmentIndex,
           [this](int framebuffer_index) -> const Image& {
             return *depth_stencil_image_;
           })
@@ -297,10 +298,10 @@ void PlanetApp::GenAsteroidModels() {
   std::uniform_real_distribution<float> radius_gen{-1.5f, 1.5f};
   std::uniform_real_distribution<float> scale_gen{1.0f, 3.0f};
 
-  num_asteroid_ = static_cast<int>(std::accumulate(
+  num_asteroids_ = static_cast<int>(std::accumulate(
       num_asteroid.begin(), num_asteroid.end(), 0));
   vector<Asteroid> asteroids;
-  asteroids.reserve(num_asteroid_);
+  asteroids.reserve(num_asteroids_);
 
   for (int ring = 0; ring < kNumAsteroidRing; ++ring) {
     for (int i = 0; i < num_asteroid[ring]; ++i) {
@@ -353,7 +354,7 @@ void PlanetApp::MainLoop() {
           planet_model_->Draw(command_buffer, current_frame_,
                               /*instance_count=*/1);
           asteroid_model_->Draw(command_buffer, current_frame_,
-                                static_cast<uint32_t>(num_asteroid_));
+                                static_cast<uint32_t>(num_asteroids_));
           skybox_model_->Draw(command_buffer, current_frame_,
                               /*instance_count=*/1);
         },

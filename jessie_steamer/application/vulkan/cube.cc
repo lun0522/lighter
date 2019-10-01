@@ -81,8 +81,8 @@ CubeApp::CubeApp() : Application{"Cube", WindowContext::Config{}} {
   // render pass builder
   render_pass_builder_ = naive_render_pass::GetNaiveRenderPassBuilder(
       context(), static_cast<int>(SubpassIndex::kNumSubpass),
-      window_context_.num_swapchain_image(),
-      window_context_.multisampling_mode());
+      /*num_framebuffers=*/window_context_.num_swapchain_images(),
+      /*present_to_screen=*/true, window_context_.multisampling_mode());
 
   // model
   ModelBuilder::TextureBindingMap bindings{};
@@ -136,7 +136,7 @@ void CubeApp::Recreate() {
             return window_context_.swapchain_image(framebuffer_index);
           })
       .UpdateAttachmentImage(
-          naive_render_pass::kDepthStencilAttachmentIndex,
+          naive_render_pass::kDepthAttachmentIndex,
           [this](int framebuffer_index) -> const Image& {
             return *depth_stencil_image_;
           })

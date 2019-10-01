@@ -51,15 +51,15 @@ inline absl::string_view GetSuffix(const string& text, size_t start_pos) {
   return absl::string_view{text.c_str() + start_pos, text.length() - start_pos};
 }
 
-// Splits the given 'text' by 'delimiter', while 'num_segment' is the expected
+// Splits the given 'text' by 'delimiter', while 'num_segments' is the expected
 // length of results. An exception will be thrown if the length does not match.
 vector<string> SplitText(absl::string_view text, char delimiter,
-                         int num_segment) {
+                         int num_segments) {
   const vector<string> result = absl::StrSplit(text, delimiter);
   ASSERT_TRUE(
-      result.size() == num_segment,
+      result.size() == num_segments,
       absl::StrFormat("Invalid number of segments (expected %d, but get %d)",
-                      num_segment, result.size()));
+                      num_segments, result.size()));
   return result;
 }
 
@@ -147,21 +147,21 @@ ObjFile::ObjFile(const string& path, int index_base) {
           case ' ': {
             // Position.
             const auto nums = SplitText(GetSuffix(line, non_space + 2), ' ',
-                                        /*num_segment=*/3);
+                                        /*num_segments=*/3);
             positions.emplace_back(stof(nums[0]), stof(nums[1]), stof(nums[2]));
             break;
           }
           case 'n': {
             // Normal.
             const auto nums = SplitText(GetSuffix(line, non_space + 3), ' ',
-                                        /*num_segment=*/3);
+                                        /*num_segments=*/3);
             normals.emplace_back(stof(nums[0]), stof(nums[1]), stof(nums[2]));
             break;
           }
           case 't': {
             // Texture coordinates.
             const auto nums = SplitText(GetSuffix(line, non_space + 3), ' ',
-                                        /*num_segment=*/2);
+                                        /*num_segments=*/2);
             tex_coords.emplace_back(stof(nums[0]), stof(nums[1]));
             break;
           }
@@ -174,14 +174,14 @@ ObjFile::ObjFile(const string& path, int index_base) {
       case 'f': {
         // Face.
         for (const auto& seg : SplitText(GetSuffix(line, non_space + 2), ' ',
-                                         /*num_segment=*/3)) {
+                                         /*num_segments=*/3)) {
           const auto found = loaded_vertices.find(seg);
           if (found != loaded_vertices.end()) {
             indices.emplace_back(found->second);
           } else {
             indices.emplace_back(vertices.size());
             loaded_vertices.emplace(seg, vertices.size());
-            const auto idxs = SplitText(seg, '/', /*num_segment=*/3);
+            const auto idxs = SplitText(seg, '/', /*num_segments=*/3);
             vertices.emplace_back(
                 positions.at(stoi(idxs[0]) - index_base),
                 normals.at(stoi(idxs[2]) - index_base),

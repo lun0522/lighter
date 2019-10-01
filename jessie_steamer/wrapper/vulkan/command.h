@@ -85,8 +85,8 @@ class PerFrameCommand : public Command {
   // have multiple frames. 'current_frame' will be used in this recording.
   using UpdateData = std::function<void (int current_frame)>;
 
-  // Each swapchain image will be 'num_frame_in_flight' buffered.
-  PerFrameCommand(SharedBasicContext context, int num_frame_in_flight);
+  // Each swapchain image will be 'num_frames_in_flight' buffered.
+  PerFrameCommand(SharedBasicContext context, int num_frames_in_flight);
 
   // This class is neither copyable nor movable.
   PerFrameCommand(const Command&) = delete;

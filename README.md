@@ -3,7 +3,6 @@ Files that are waiting to be cleaned up:
 wrapper
 - model
 - pipeline
-- render_pass
 - text
 - text_util
 - util
@@ -317,11 +316,28 @@ loading the same image from the disk twice, the resource on the device is
 reference counted.
 - **UnownedOffscreenTexture** takes in a const pointer to an offscreen texture.
 It does not own the texture, hence the user is responsible for keeping the
-existence of the texture. 
+existence of the texture.
 
 ### 3.2.5 Pipeline (pipeline)
 
 ### 3.2.6 Render pass (render_pass and render_pass_util)
+
+We provide a builder class to create instances of **RenderPass**. The user may
+set framebuffer count and size, add attachments and associated images, add
+subpasses and set dependencies between subpasses through **RenderPassBuilder**.
+When used to build **RenderPass**, the internal states of the builder would not
+be changed, hence later the user may update the builder and create another
+**RenderPass** with similar settings, which is useful, for example, when the
+window is resized and we need to recreate the render pass with swapchain images
+of the updated size.
+
+Since setting up a render pass requires a bit of understanding of Vulkan
+concepts, such as the image layout, pipeline stage and memory access mask, and
+most of them are very similar when rendering simple scenes, we aim to provide
+utils to create render pass builders with commonly used settings in
+*render_pass_util*. For now, we only have a naive one for rendering simple
+objects and text. More of them will be added for more complex scenes and
+rendering techniques, such as deferred rendering.
 
 ### 3.2.7 Swapchain (swapchain)
 

@@ -117,7 +117,7 @@ vector<VkFramebuffer> CreateFramebuffers(
     const SharedBasicContext& context,
     const VkRenderPass& render_pass,
     const vector<RenderPassBuilder::GetImage>& get_images,
-    int num_framebuffer, const VkExtent2D& framebuffer_size) {
+    int num_framebuffers, const VkExtent2D& framebuffer_size) {
   vector<VkImageView> image_views(get_images.size());
   VkFramebufferCreateInfo framebuffer_info{
       VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -131,7 +131,7 @@ vector<VkFramebuffer> CreateFramebuffers(
       kSingleImageLayer,
   };
 
-  vector<VkFramebuffer> framebuffers(num_framebuffer);
+  vector<VkFramebuffer> framebuffers(num_framebuffers);
   for (int i = 0; i < framebuffers.size(); ++i) {
     for (int image_index = 0; image_index < get_images.size(); ++image_index) {
       image_views[image_index] =
@@ -163,8 +163,8 @@ vector<VkAttachmentReference> RenderPassBuilder::CreateMultisamplingReferences(
   return references;
 }
 
-RenderPassBuilder& RenderPassBuilder::SetNumFramebuffer(int count) {
-  num_framebuffer_ = count;
+RenderPassBuilder& RenderPassBuilder::SetNumFramebuffers(int count) {
+  num_framebuffers_ = count;
   return *this;
 }
 
@@ -198,14 +198,14 @@ RenderPassBuilder& RenderPassBuilder::UpdateAttachmentImage(
 RenderPassBuilder& RenderPassBuilder::SetSubpass(
     int index, SubpassAttachments&& attachments) {
   if (attachments.multisampling_refs.has_value()) {
-    const int num_multisampling_attachment =
+    const int num_multisampling_attachments =
         attachments.multisampling_refs.value().size();
-    const int num_color_attachment = attachments.color_refs.size();
-    ASSERT_TRUE(num_multisampling_attachment == num_color_attachment,
+    const int num_color_attachments = attachments.color_refs.size();
+    ASSERT_TRUE(num_multisampling_attachments == num_color_attachments,
                 absl::StrFormat(
                     "Number of multisampling attachment (%d) must be equal to "
                     "the number of color attachments (%d)",
-                    num_multisampling_attachment, num_color_attachment));
+                    num_multisampling_attachments, num_color_attachments));
   }
   SetElementWithResizing(std::move(attachments), index, &subpass_attachments_);
   return *this;
@@ -218,7 +218,7 @@ RenderPassBuilder& RenderPassBuilder::AddSubpassDependency(
 }
 
 std::unique_ptr<RenderPass> RenderPassBuilder::Build() const {
-  ASSERT_HAS_VALUE(num_framebuffer_, "Number of framebuffers is not set");
+  ASSERT_HAS_VALUE(num_framebuffers_, "Number of framebuffers is not set");
   ASSERT_HAS_VALUE(framebuffer_size_, "Framebuffer size is not set");
   for (int i = 0; i < get_attachment_images_.size(); ++i) {
     ASSERT_NON_NULL(
@@ -246,19 +246,20 @@ std::unique_ptr<RenderPass> RenderPassBuilder::Build() const {
                  "Failed to create render pass");
 
   return std::unique_ptr<RenderPass>{new RenderPass{
-      context_, /*num_subpass=*/static_cast<int>(subpass_descriptions.size()),
+      context_, /*num_subpasses=*/static_cast<int>(subpass_descriptions.size()),
       render_pass, clear_values_, framebuffer_size_.value(),
       CreateFramebuffers(context_, render_pass, get_attachment_images_,
-                         num_framebuffer_.value(), framebuffer_size_.value())}};
+                         num_framebuffers_.value(),
+                         framebuffer_size_.value())}};
 }
 
 void RenderPass::Run(const VkCommandBuffer& command_buffer,
                      int framebuffer_index,
                      const vector<RenderOp>& render_ops) const {
-  ASSERT_TRUE(render_ops.size() == num_subpass_,
+  ASSERT_TRUE(render_ops.size() == num_subpasses_,
               absl::StrFormat("Render pass contains %d subpasses, but %d "
                               "rendering operations are provided",
-                              num_subpass_, render_ops.size()));
+                              num_subpasses_, render_ops.size()));
 
   const VkRenderPassBeginInfo begin_info{
       VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,

@@ -116,9 +116,9 @@ const std::array<uint32_t, kNumIndicesPerRect>& GetIndicesPerRect();
 
 // Returns the data size used for vertex buffer. Is is assumed that indices will
 // be shared and each vertex data is of type VertexAttrib2D.
-inline int GetVertexDataSize(int num_rect) {
+inline int GetVertexDataSize(int num_rects) {
   return sizeof(GetIndicesPerRect()[0]) * kNumIndicesPerRect +
-         sizeof(common::VertexAttrib2D) * kNumVerticesPerRect * num_rect;
+         sizeof(common::VertexAttrib2D) * kNumVerticesPerRect * num_rects;
 }
 
 // Appends pos and tex_coord to 'vertices' in CCW order.

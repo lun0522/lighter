@@ -91,7 +91,7 @@ class ModelBuilder {
   };
 
   ModelBuilder(SharedBasicContext context,
-               int num_frame, bool is_opaque, const ModelResource& resource);
+               int num_frames, bool is_opaque, const ModelResource& resource);
 
   // This class is neither copyable nor movable.
   ModelBuilder(const ModelBuilder&) = delete;
@@ -118,7 +118,7 @@ class ModelBuilder {
   CreateDescriptors();
 
   const SharedBasicContext context_;
-  const int num_frame_;
+  const int num_frames_;
   std::vector<PipelineBuilder::ShaderInfo> shader_infos_;
   std::unique_ptr<StaticPerVertexBuffer> vertex_buffer_;
   std::vector<InstancingInfo> instancing_infos_;

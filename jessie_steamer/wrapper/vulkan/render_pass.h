@@ -124,7 +124,7 @@ class RenderPassBuilder {
   RenderPassBuilder& operator=(const RenderPassBuilder&) = delete;
 
   // Sets the number of framebuffers.
-  RenderPassBuilder& SetNumFramebuffer(int count);
+  RenderPassBuilder& SetNumFramebuffers(int count);
 
   // Sets the size of each framebuffer. This must be called if the rendering
   // target is resized.
@@ -152,7 +152,7 @@ class RenderPassBuilder {
   const SharedBasicContext context_;
 
   // Number of framebuffers. It must have value when Build() is called.
-  absl::optional<int> num_framebuffer_;
+  absl::optional<int> num_framebuffers_;
 
   // Size of each framebuffer. It must have value when Build() is called.
   absl::optional<VkExtent2D> framebuffer_size_;
@@ -199,7 +199,7 @@ class RenderPass {
   // Generates commands for rendering to the framebuffer at 'framebuffer_index'.
   // This should be called when 'command_buffer' is recording commands.
   // Each element of 'render_ops' represents the operations to perform in each
-  // subpass, hence the size of 'render_ops' must be equal to 'num_subpass_'.
+  // subpass, hence the size of 'render_ops' must be equal to 'num_subpasses_'.
   void Run(const VkCommandBuffer& command_buffer,
            int framebuffer_index,
            const std::vector<RenderOp>& render_ops) const;
@@ -212,13 +212,13 @@ class RenderPass {
 
   // 'clear_values' is intended to be passed by value.
   RenderPass(SharedBasicContext context,
-             int num_subpass,
+             int num_subpasses,
              const VkRenderPass& render_pass,
              std::vector<VkClearValue> clear_values,
              const VkExtent2D& framebuffer_size,
              std::vector<VkFramebuffer>&& framebuffers)
       : context_{std::move(context)},
-        num_subpass_{num_subpass},
+        num_subpasses_{num_subpasses},
         render_pass_{render_pass},
         clear_values_{std::move(clear_values)},
         framebuffer_size_{framebuffer_size},
@@ -228,7 +228,7 @@ class RenderPass {
   const SharedBasicContext context_;
 
   // Number of subpasses.
-  const int num_subpass_;
+  const int num_subpasses_;
 
   // Opaque render pass object.
   VkRenderPass render_pass_;

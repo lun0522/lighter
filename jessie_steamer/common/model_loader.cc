@@ -113,9 +113,9 @@ void ModelLoader::LoadTextures(const string& directory,
                                TextureType texture_type,
                                vector<TextureInfo>* texture_infos) const {
   const aiTextureType ai_type = TextureTypeToAssimpType(texture_type);
-  const int num_texture = material->GetTextureCount(ai_type);
-  texture_infos->reserve(texture_infos->size() + num_texture);
-  for (unsigned int i = 0; i < num_texture; ++i) {
+  const int num_textures = material->GetTextureCount(ai_type);
+  texture_infos->reserve(texture_infos->size() + num_textures);
+  for (unsigned int i = 0; i < num_textures; ++i) {
     aiString path;
     material->GetTexture(ai_type, i, &path);
     texture_infos->emplace_back(TextureInfo{

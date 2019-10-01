@@ -85,13 +85,13 @@ VertexInputAttribute GetVertexAttributes<VertexAttrib3D>() {
 
 vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(
     const vector<VertexInputAttribute>& attributes) {
-  int num_attribute = 0;
+  int num_attributes = 0;
   for (const auto& attribs : attributes) {
-    num_attribute += attribs.attributes.size();
+    num_attributes += attribs.attributes.size();
   }
 
   vector<VkVertexInputAttributeDescription> descriptions;
-  descriptions.reserve(num_attribute);
+  descriptions.reserve(num_attributes);
   for (const auto& attribs : attributes) {
     for (const auto& attrib : attribs.attributes) {
       descriptions.emplace_back(VkVertexInputAttributeDescription{

@@ -47,14 +47,14 @@ void CreateTextureInfo(const ModelBuilder::BindingPointMap& binding_map,
        type_index < static_cast<int>(model::TextureType::kNumType);
        ++type_index) {
     const auto texture_type = static_cast<model::TextureType>(type_index);
-    const int num_texture = mesh_textures[type_index].size() +
-                            shared_textures[type_index].size();
+    const int num_textures = mesh_textures[type_index].size() +
+                             shared_textures[type_index].size();
 
-    if (num_texture != 0) {
+    if (num_textures != 0) {
       const auto binding_point = binding_map.find(texture_type)->second;
 
       vector<VkDescriptorImageInfo> descriptor_infos{};
-      descriptor_infos.reserve(num_texture);
+      descriptor_infos.reserve(num_textures);
       for (const auto& texture : mesh_textures[type_index]) {
         descriptor_infos.emplace_back(texture->GetDescriptorInfo());
       }
@@ -94,10 +94,10 @@ vector<VkPushConstantRange> CreatePushConstantRanges(
 } /* namespace */
 
 ModelBuilder::ModelBuilder(SharedBasicContext context,
-                           int num_frame, bool is_opaque,
+                           int num_frames, bool is_opaque,
                            const ModelResource& resource)
     : context_{std::move(context)},
-      num_frame_{num_frame},
+      num_frames_{num_frames},
       pipeline_builder_{absl::make_unique<PipelineBuilder>(context_)} {
   if (absl::holds_alternative<SingleMeshResource>(resource)) {
     LoadSingleMesh(absl::get<SingleMeshResource>(resource));
@@ -107,7 +107,7 @@ ModelBuilder::ModelBuilder(SharedBasicContext context,
     FATAL("Unrecognized variant type");
   }
 
-  uniform_resource_maps_.resize(num_frame_);
+  uniform_resource_maps_.resize(num_frames_);
   if (is_opaque) {
     pipeline_builder_->enable_depth_test();
   } else {
@@ -183,7 +183,7 @@ ModelBuilder& ModelBuilder::add_uniform_usage(Descriptor::Info&& info) {
 
 ModelBuilder& ModelBuilder::add_uniform_resource(
     uint32_t binding_point, const BufferInfoGenerator& info_gen) {
-  for (int frame = 0; frame < num_frame_; ++frame) {
+  for (int frame = 0; frame < num_frames_; ++frame) {
     uniform_resource_maps_[frame][binding_point].emplace_back(info_gen(frame));
   }
   return *this;
@@ -217,9 +217,9 @@ ModelBuilder& ModelBuilder::add_shared_texture(model::TextureType type,
 std::vector<std::vector<std::unique_ptr<StaticDescriptor>>>
 ModelBuilder::CreateDescriptors() {
   std::vector<std::vector<std::unique_ptr<StaticDescriptor>>> descriptors;
-  descriptors.resize(num_frame_);
+  descriptors.resize(num_frames_);
   auto descriptor_infos = uniform_usages_;
-  for (int frame = 0; frame < num_frame_; ++frame) {
+  for (int frame = 0; frame < num_frames_; ++frame) {
     descriptors[frame].reserve(mesh_textures_.size());
 
     // for different frames, we get data from different parts of uniform buffer.

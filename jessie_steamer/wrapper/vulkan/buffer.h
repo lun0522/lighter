@@ -112,26 +112,26 @@ class PerVertexBuffer : public VertexBuffer {
   struct DataInfo {
     // Assuming the data in 'container' is used for multiple meshes.
     template <typename Container>
-    DataInfo(const Container& container, int num_unit_per_mesh)
+    DataInfo(const Container& container, int num_units_per_mesh)
         : data{container.data()},
-          num_unit_per_mesh{num_unit_per_mesh},
-          size_per_mesh{sizeof(container[0]) * num_unit_per_mesh} {}
+          num_units_per_mesh{num_units_per_mesh},
+          size_per_mesh{sizeof(container[0]) * num_units_per_mesh} {}
 
     // Assuming all the data in 'container' is used for one mesh.
     template <typename Container>
     explicit DataInfo(const Container& container)
         : DataInfo{container,
-                   /*num_unit_per_mesh=*/static_cast<int>(container.size())} {}
+                   /*num_units_per_mesh=*/static_cast<int>(container.size())} {}
 
     const void* data;
-    int num_unit_per_mesh;
+    int num_units_per_mesh;
     size_t size_per_mesh;
   };
 
   // Holds data information for multiple meshes that share indices.
   // Each mesh has the same number of vertices.
   struct ShareIndicesDataInfo {
-    int num_mesh;
+    int num_meshes;
     DataInfo per_mesh_vertices;
     DataInfo shared_indices;
   };
@@ -254,7 +254,7 @@ class PerInstanceBuffer : public VertexBuffer {
 // host, and we don't use the staging buffer.
 class UniformBuffer : public DataBuffer {
  public:
-  UniformBuffer(SharedBasicContext context, size_t chunk_size, int num_chunk);
+  UniformBuffer(SharedBasicContext context, size_t chunk_size, int num_chunks);
 
   // This class is neither copyable nor movable.
   UniformBuffer(const UniformBuffer&) = delete;
@@ -397,7 +397,7 @@ class PushConstant {
  public:
   // 'size_per_frame' must be less than 128.
   PushConstant(const SharedBasicContext& context,
-               size_t size_per_frame, int num_frame);
+               size_t size_per_frame, int num_frames);
 
   // This class is neither copyable nor movable.
   PushConstant(const PushConstant&) = delete;

@@ -110,9 +110,7 @@ class WindowContext {
   common::Window& window() { return window_; }
   const VkSwapchainKHR& swapchain() const { return **swapchain_; }
   const VkExtent2D& frame_size() const { return swapchain_->image_extent(); }
-  int num_swapchain_image() const {
-    return swapchain_->num_images();
-  }
+  int num_swapchain_images() const { return swapchain_->num_images(); }
   const Image& swapchain_image(int index) const {
     return swapchain_->image(index);
   }

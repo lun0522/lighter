@@ -500,13 +500,13 @@ PerVertexBuffer::CopyInfos PerVertexBuffer::CreateCopyInfos(
   constexpr int kIndicesOffset = 0;
   const auto& vertices_info = info.per_mesh_vertices;
   const auto& indices_info = info.shared_indices;
-  mesh_data_infos_.reserve(info.num_mesh);
+  mesh_data_infos_.reserve(info.num_meshes);
   const VkDeviceSize initial_vertices_offset =
       kIndicesOffset + indices_info.size_per_mesh;
   VkDeviceSize vertices_offset = initial_vertices_offset;
-  for (int i = 0; i < info.num_mesh; ++i) {
+  for (int i = 0; i < info.num_meshes; ++i) {
     mesh_data_infos_.emplace_back(MeshDataInfo{
-        static_cast<uint32_t>(indices_info.num_unit_per_mesh),
+        static_cast<uint32_t>(indices_info.num_units_per_mesh),
         kIndicesOffset,
         vertices_offset,
     });
@@ -522,7 +522,7 @@ PerVertexBuffer::CopyInfos PerVertexBuffer::CreateCopyInfos(
           },
           CopyInfo{
               vertices_info.data,
-              vertices_info.size_per_mesh * info.num_mesh,
+              vertices_info.size_per_mesh * info.num_meshes,
               initial_vertices_offset,
           },
       },
@@ -543,7 +543,7 @@ PerVertexBuffer::CopyInfos PerVertexBuffer::CreateCopyInfos(
     const size_t vertices_data_size = mesh_info.vertices.size_per_mesh;
     const VkDeviceSize vertices_offset = indices_offset + indices_data_size;
     mesh_data_infos_.emplace_back(MeshDataInfo{
-        static_cast<uint32_t>(mesh_info.indices.num_unit_per_mesh),
+        static_cast<uint32_t>(mesh_info.indices.num_units_per_mesh),
         indices_offset,
         vertices_offset,
     });
@@ -626,7 +626,7 @@ void PerInstanceBuffer::Bind(const VkCommandBuffer& command_buffer,
 }
 
 UniformBuffer::UniformBuffer(SharedBasicContext context,
-                             size_t chunk_size, int num_chunk)
+                             size_t chunk_size, int num_chunks)
     : DataBuffer{std::move(context)} {
   const VkDeviceSize alignment =
       context_->physical_device_limits().minUniformBufferOffsetAlignment;
@@ -634,8 +634,8 @@ UniformBuffer::UniformBuffer(SharedBasicContext context,
   chunk_memory_size_ =
       (chunk_data_size_ + alignment - 1) / alignment * alignment;
 
-  data_ = new char[chunk_data_size_ * num_chunk];
-  buffer_ = CreateBuffer(context_, chunk_memory_size_ * num_chunk,
+  data_ = new char[chunk_data_size_ * num_chunks];
+  buffer_ = CreateBuffer(context_, chunk_memory_size_ * num_chunks,
                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                          GetGraphicsQueueUsage(context_));
   device_memory_ = CreateBufferMemory(

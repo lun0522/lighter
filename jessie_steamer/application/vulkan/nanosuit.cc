@@ -133,8 +133,9 @@ NanosuitApp::NanosuitApp() : Application{"Nanosuit", WindowContext::Config{}} {
 
   // render pass builder
   render_pass_builder_ = naive_render_pass::GetNaiveRenderPassBuilder(
-      context(), /*num_subpass=*/1, window_context_.num_swapchain_image(),
-      window_context_.multisampling_mode());
+      context(), /*num_subpasses=*/1,
+      /*num_framebuffers=*/window_context_.num_swapchain_images(),
+      /*present_to_screen=*/true, window_context_.multisampling_mode());
 
   // model
   ModelBuilder::TextureBinding skybox_binding{
@@ -222,7 +223,7 @@ void NanosuitApp::Recreate() {
             return window_context_.swapchain_image(framebuffer_index);
           })
       .UpdateAttachmentImage(
-          naive_render_pass::kDepthStencilAttachmentIndex,
+          naive_render_pass::kDepthAttachmentIndex,
           [this](int framebuffer_index) -> const Image& {
             return *depth_stencil_image_;
           })

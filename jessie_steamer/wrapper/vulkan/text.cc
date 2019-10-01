@@ -76,12 +76,12 @@ const vector<Descriptor::Info>& CreateDescriptorInfos() {
 
 } /* namespace */
 
-Text::Text(SharedBasicContext context, int num_frame)
+Text::Text(SharedBasicContext context, int num_frames)
     : context_{std::move(context)},
-      vertex_buffer_{context_, text_util::GetVertexDataSize(/*num_rect=*/1)},
+      vertex_buffer_{context_, text_util::GetVertexDataSize(/*num_rects=*/1)},
       pipeline_builder_{context_} {
   uniform_buffer_ = absl::make_unique<UniformBuffer>(
-      context_, sizeof(TextRenderInfo), num_frame);
+      context_, sizeof(TextRenderInfo), num_frames);
   pipeline_builder_
       .set_vertex_input(
           GetBindingDescriptions({GetPerVertexBindings<VertexAttrib2D>()}),
@@ -122,16 +122,16 @@ void Text::UpdateUniformBuffer(int frame, const glm::vec3& color, float alpha) {
 }
 
 StaticText::StaticText(SharedBasicContext context,
-                       int num_frame,
+                       int num_frames,
                        const vector<string>& texts,
                        Font font, int font_height)
-    : Text{std::move(context), num_frame},
+    : Text{std::move(context), num_frames},
       text_loader_{context_, texts, font, font_height} {
-  descriptors_.reserve(num_frame);
-  push_descriptors_.reserve(num_frame);
+  descriptors_.reserve(num_frames);
+  push_descriptors_.reserve(num_frames);
 
   const auto& descriptor_infos = CreateDescriptorInfos();
-  for (int frame = 0; frame < num_frame; ++frame) {
+  for (int frame = 0; frame < num_frames; ++frame) {
     descriptors_.emplace_back(
         absl::make_unique<DynamicDescriptor>(context_, descriptor_infos));
     push_descriptors_.emplace_back(
@@ -192,10 +192,10 @@ glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer,
 }
 
 DynamicText::DynamicText(SharedBasicContext context,
-                         int num_frame,
+                         int num_frames,
                          const vector<string>& texts,
                          Font font, int font_height)
-    : Text{std::move(context), num_frame},
+    : Text{std::move(context), num_frames},
       char_loader_{context_, texts, font, font_height} {
   const auto& descriptor_infos = CreateDescriptorInfos();
   const Descriptor::ImageInfoMap image_info_map{
@@ -203,8 +203,8 @@ DynamicText::DynamicText(SharedBasicContext context,
        {char_loader_.texture()->GetDescriptorInfo()}},
   };
 
-  descriptors_.reserve(num_frame);
-  for (int frame = 0; frame < num_frame; ++frame) {
+  descriptors_.reserve(num_frames);
+  for (int frame = 0; frame < num_frames; ++frame) {
     descriptors_.emplace_back(
         absl::make_unique<StaticDescriptor>(context_, descriptor_infos));
     descriptors_[frame]->UpdateBufferInfos(
@@ -233,7 +233,7 @@ glm::vec2 DynamicText::Draw(
   const auto& texture_map = char_loader_.char_texture_map();
 
   float total_width_in_tex_coord = 0.0f;
-  int num_non_space_char = 0;
+  int num_non_space_chars = 0;
   for (auto c : text) {
     if (c == ' ') {
       ASSERT_HAS_VALUE(char_loader_.space_advance(), "Space was not loaded");
@@ -242,7 +242,7 @@ glm::vec2 DynamicText::Draw(
       const auto found = texture_map.find(c);
       ASSERT_FALSE(found == texture_map.end(),
                    absl::StrFormat("'%c' was not loaded", c));
-      ++num_non_space_char;
+      ++num_non_space_chars;
       total_width_in_tex_coord += found->second.advance_x;
     }
   }
@@ -255,7 +255,7 @@ glm::vec2 DynamicText::Draw(
 
   pipeline_->Bind(command_buffer);
   descriptors_[frame]->Bind(command_buffer, pipeline_->layout());
-  for (int i = 0; i < num_non_space_char; ++i) {
+  for (int i = 0; i < num_non_space_chars; ++i) {
     vertex_buffer_.Draw(command_buffer, /*mesh_index=*/i, /*instance_count=*/1);
   }
 
