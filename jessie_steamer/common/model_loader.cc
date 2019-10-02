@@ -7,8 +7,8 @@
 
 #include "jessie_steamer/common/model_loader.h"
 
-#include "absl/strings/str_format.h"
 #include "jessie_steamer/common/util.h"
+#include "third_party/absl/strings/str_format.h"
 #include "third_party/assimp/Importer.hpp"
 #include "third_party/assimp/postprocess.h"
 

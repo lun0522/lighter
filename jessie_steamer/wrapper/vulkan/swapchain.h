@@ -11,10 +11,10 @@
 #include <memory>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
+#include "third_party/absl/types/optional.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {

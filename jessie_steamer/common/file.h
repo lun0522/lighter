@@ -11,8 +11,8 @@
 #include <string>
 #include <vector>
 
-#include "absl/flags/flag.h"
-#include "absl/strings/str_cat.h"
+#include "third_party/absl/flags/flag.h"
+#include "third_party/absl/strings/str_cat.h"
 #include "third_party/glm/glm.hpp"
 
 ABSL_DECLARE_FLAG(std::string, resource_folder);

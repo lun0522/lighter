@@ -10,10 +10,10 @@
 
 #include <memory>
 
-#include "absl/types/optional.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
+#include "third_party/absl/types/optional.h"
 
 namespace jessie_steamer {
 namespace wrapper {

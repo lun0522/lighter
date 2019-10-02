@@ -10,10 +10,10 @@
 #include <array>
 #include <cstring>
 
-#include "absl/strings/str_format.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
+#include "third_party/absl/strings/str_format.h"
 
 namespace jessie_steamer {
 namespace wrapper {

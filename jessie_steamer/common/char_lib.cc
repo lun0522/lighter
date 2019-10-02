@@ -7,8 +7,8 @@
 
 #include "jessie_steamer/common/char_lib.h"
 
-#include "absl/memory/memory.h"
 #include "jessie_steamer/common/util.h"
+#include "third_party/absl/memory/memory.h"
 
 namespace jessie_steamer {
 namespace common {

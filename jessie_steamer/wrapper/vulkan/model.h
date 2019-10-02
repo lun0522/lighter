@@ -15,9 +15,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
-#include "absl/types/optional.h"
-#include "absl/types/variant.h"
 #include "jessie_steamer/common/model_loader.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
@@ -27,6 +24,9 @@
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
 #include "jessie_steamer/wrapper/vulkan/vertex_input_util.h"
+#include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/types/optional.h"
+#include "third_party/absl/types/variant.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {

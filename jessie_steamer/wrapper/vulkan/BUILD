@@ -35,10 +35,10 @@ cc_library(
     deps = [
         ":util",
         "//jessie_steamer/common:util",
+        "//third_party/absl/memory",
+        "//third_party/absl/strings",
+        "//third_party/absl/types:optional",
         "//third_party:vulkan",
-        "@lib-absl//absl/memory",
-        "@lib-absl//absl/strings",
-        "@lib-absl//absl/types:optional",
     ],
 )
 
@@ -51,9 +51,9 @@ cc_library(
         ":command",
         ":util",
         "//jessie_steamer/common:util",
+        "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:variant",
         "//third_party:vulkan",
-        "@lib-absl//absl/strings:str_format",
-        "@lib-absl//absl/types:variant",
     ],
 )
 
@@ -66,9 +66,9 @@ cc_library(
         ":synchronization",
         ":util",
         "//jessie_steamer/common:util",
+        "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:optional",
         "//third_party:vulkan",
-        "@lib-absl//absl/strings:str_format",
-        "@lib-absl//absl/types:optional",
     ],
 )
 
@@ -81,8 +81,8 @@ cc_library(
         ":util",
         "//jessie_steamer/common:model_loader",
         "//jessie_steamer/common:util",
+        "//third_party/absl/container:flat_hash_map",
         "//third_party:vulkan",
-        "@lib-absl//absl/container:flat_hash_map",
     ],
 )
 
@@ -97,11 +97,11 @@ cc_library(
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:ref_count",
         "//jessie_steamer/common:util",
+        "//third_party/absl/memory",
+        "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:optional",
+        "//third_party/absl/types:variant",
         "//third_party:vulkan",
-        "@lib-absl//absl/memory",
-        "@lib-absl//absl/strings:str_format",
-        "@lib-absl//absl/types:optional",
-        "@lib-absl//absl/types:variant",
     ]
 )
 
@@ -121,12 +121,12 @@ cc_library(
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:model_loader",
         "//jessie_steamer/common:util",
+        "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/memory",
+        "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:optional",
+        "//third_party/absl/types:variant",
         "//third_party:vulkan",
-        "@lib-absl//absl/memory",
-        "@lib-absl//absl/container:flat_hash_map",
-        "@lib-absl//absl/strings:str_format",
-        "@lib-absl//absl/types:optional",
-        "@lib-absl//absl/types:variant",
     ],
 )
 
@@ -140,11 +140,11 @@ cc_library(
         ":util",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:util",
+        "//third_party/absl/memory",
+        "//third_party/absl/strings",
+        "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:optional",
         "//third_party:vulkan",
-        "@lib-absl//absl/memory",
-        "@lib-absl//absl/strings",
-        "@lib-absl//absl/strings:str_format",
-        "@lib-absl//absl/types:optional",
     ],
 )
 
@@ -163,11 +163,11 @@ cc_library(
         ":image",
         ":util",
         "//jessie_steamer/common:util",
+        "//third_party/absl/memory",
+        "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:optional",
+        "//third_party/absl/types:variant",
         "//third_party:vulkan",
-        "@lib-absl//absl/memory",
-        "@lib-absl//absl/strings:str_format",
-        "@lib-absl//absl/types:optional",
-        "@lib-absl//absl/types:variant",
     ],
 )
 
@@ -205,11 +205,11 @@ cc_library(
         "//jessie_steamer/common:char_lib",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:util",
+        "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/memory",
+        "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:optional",
         "//third_party:glm",
-        "@lib-absl//absl/container:flat_hash_map",
-        "@lib-absl//absl/memory",
-        "@lib-absl//absl/strings:str_format",
-        "@lib-absl//absl/types:optional",
     ],
 )
 
@@ -218,11 +218,11 @@ cc_library(
     hdrs = ["util.h"],
     deps = [
         "//jessie_steamer/common:util",
+        "//third_party/absl/container:flat_hash_set",
+        "//third_party/absl/strings",
+        "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:optional",
         "//third_party:vulkan",
-        "@lib-absl//absl/container:flat_hash_set",
-        "@lib-absl//absl/strings",
-        "@lib-absl//absl/strings:str_format",
-        "@lib-absl//absl/types:optional",
     ],
 )
 
@@ -250,8 +250,8 @@ cc_library(
         ":util",
         "//jessie_steamer/common:window",
         "//jessie_steamer/common:util",
+        "//third_party/absl/memory",
+        "//third_party/absl/types:optional",
         "//third_party:vulkan",
-        "@lib-absl//absl/memory",
-        "@lib-absl//absl/types:optional",
     ],
 )

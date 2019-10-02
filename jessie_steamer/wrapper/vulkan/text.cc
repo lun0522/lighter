@@ -9,11 +9,11 @@
 
 #include <algorithm>
 
-#include "absl/memory/memory.h"
-#include "absl/strings/str_format.h"
 #include "jessie_steamer/common/file.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 #include "jessie_steamer/wrapper/vulkan/vertex_input_util.h"
+#include "third_party/absl/memory/memory.h"
+#include "third_party/absl/strings/str_format.h"
 #include "third_party/glm/glm.hpp"
 
 namespace jessie_steamer {

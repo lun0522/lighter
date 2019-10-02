@@ -13,11 +13,11 @@
 #include <string>
 #include <vector>
 
-#include "absl/container/flat_hash_set.h"
-#include "absl/strings/str_cat.h"
-#include "absl/strings/str_format.h"
-#include "absl/types/optional.h"
 #include "jessie_steamer/common/util.h"
+#include "third_party/absl/container/flat_hash_set.h"
+#include "third_party/absl/strings/str_cat.h"
+#include "third_party/absl/strings/str_format.h"
+#include "third_party/absl/types/optional.h"
 #include "third_party/vulkan/vulkan.h"
 
 #define ASSERT_SUCCESS(event, error)                          \

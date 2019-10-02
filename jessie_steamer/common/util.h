@@ -14,10 +14,10 @@
 #include <type_traits>
 #include <vector>
 
-#include "absl/base/optimization.h"
-#include "absl/flags/parse.h"
-#include "absl/strings/str_format.h"
-#include "absl/types/optional.h"
+#include "third_party/absl/base/optimization.h"
+#include "third_party/absl/flags/parse.h"
+#include "third_party/absl/strings/str_format.h"
+#include "third_party/absl/types/optional.h"
 
 #ifdef NDEBUG
 #define FATAL(error) throw std::runtime_error{error};

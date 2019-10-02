@@ -13,8 +13,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
-#include "absl/types/optional.h"
 #include "jessie_steamer/common/char_lib.h"
 #include "jessie_steamer/common/file.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
@@ -23,6 +21,8 @@
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
+#include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/types/optional.h"
 #include "third_party/glm/glm.hpp"
 
 namespace jessie_steamer {

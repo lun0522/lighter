@@ -10,10 +10,10 @@
 #include <algorithm>
 #include <vector>
 
-#include "absl/memory/memory.h"
-#include "absl/strings/str_format.h"
 #include "jessie_steamer/common/file.h"
 #include "jessie_steamer/common/util.h"
+#include "third_party/absl/memory/memory.h"
+#include "third_party/absl/strings/str_format.h"
 
 namespace jessie_steamer {
 namespace wrapper {

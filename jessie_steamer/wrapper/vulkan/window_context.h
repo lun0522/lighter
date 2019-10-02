@@ -11,8 +11,6 @@
 #include <memory>
 #include <string>
 
-#include "absl/memory/memory.h"
-#include "absl/types/optional.h"
 #include "jessie_steamer/common/window.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
@@ -20,6 +18,8 @@
 #ifndef NDEBUG
 #include "jessie_steamer/wrapper/vulkan/validation.h"
 #endif /* !NDEBUG */
+#include "third_party/absl/memory/memory.h"
+#include "third_party/absl/types/optional.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 

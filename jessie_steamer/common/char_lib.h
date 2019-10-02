@@ -12,8 +12,8 @@
 #include <string>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "jessie_steamer/common/file.h"
+#include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/freetype/ft2build.h"
 #include FT_FREETYPE_H
 #include "third_party/glm/glm.hpp"

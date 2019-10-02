@@ -10,12 +10,12 @@
 #include <memory>
 #include <numeric>
 
-#include "absl/memory/memory.h"
-#include "absl/strings/str_format.h"
-#include "absl/strings/str_join.h"
 #include "jessie_steamer/common/file.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
+#include "third_party/absl/memory/memory.h"
+#include "third_party/absl/strings/str_format.h"
+#include "third_party/absl/strings/str_join.h"
 
 namespace jessie_steamer {
 namespace wrapper {

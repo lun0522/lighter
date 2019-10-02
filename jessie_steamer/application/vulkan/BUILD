@@ -9,8 +9,8 @@ cc_library(
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:util",
         "//jessie_steamer/wrapper/vulkan:on_screen",
+        "//third_party/absl/flags:flag",
         "//third_party:vulkan",
-        "@lib-absl//absl/flags:flag",
     ],
 )
 
@@ -20,8 +20,8 @@ cc_binary(
     deps = [
         ":common",
         "//jessie_steamer/common:time",
+        "//third_party/absl/memory",
         "//third_party:glm",
-        "@lib-absl//absl/memory",
     ],
 )
 
@@ -32,8 +32,8 @@ cc_binary(
         ":common",
         "//jessie_steamer/common:camera",
         "//jessie_steamer/common:time",
+        "//third_party/absl/memory",
         "//third_party:glm",
-        "@lib-absl//absl/memory",
     ],
 )
 
@@ -44,7 +44,7 @@ cc_binary(
         ":common",
         "//jessie_steamer/common:camera",
         "//jessie_steamer/common:time",
+        "//third_party/absl/memory",
         "//third_party:glm",
-        "@lib-absl//absl/memory",
     ],
 )

@@ -9,7 +9,7 @@
 
 #include <vector>
 
-#include "absl/memory/memory.h"
+#include "third_party/absl/memory/memory.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {

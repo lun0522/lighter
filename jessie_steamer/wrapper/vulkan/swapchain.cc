@@ -11,8 +11,8 @@
 #include <limits>
 #include <string>
 
-#include "absl/memory/memory.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
+#include "third_party/absl/memory/memory.h"
 
 namespace jessie_steamer {
 namespace wrapper {

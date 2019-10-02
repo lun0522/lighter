@@ -8,8 +8,8 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_BASIC_OBJECT_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_BASIC_OBJECT_H
 
-#include "absl/types/optional.h"
 #include "jessie_steamer/common/util.h"
+#include "third_party/absl/types/optional.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {

@@ -12,10 +12,10 @@
 #include <iostream>
 #include <type_traits>
 
-#include "absl/flags/flag.h"
 #include "jessie_steamer/common/file.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/window_context.h"
+#include "third_party/absl/flags/flag.h"
 
 // Alignment requirement:
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout

@@ -11,7 +11,6 @@
 #include <random>
 #include <vector>
 
-#include "absl/memory/memory.h"
 #include "jessie_steamer/application/vulkan/util.h"
 #include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/file.h"
@@ -23,6 +22,7 @@
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass_util.h"
 #include "jessie_steamer/wrapper/vulkan/window_context.h"
+#include "third_party/absl/memory/memory.h"
 #include "third_party/glm/glm.hpp"
 // different from OpenGL, where depth values are in range [-1.0, 1.0]
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE

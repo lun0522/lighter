@@ -13,11 +13,11 @@
 #include <memory>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "jessie_steamer/wrapper/vulkan/basic_object.h"
 #ifndef NDEBUG
 #include "jessie_steamer/wrapper/vulkan/validation.h"
 #endif /* !NDEBUG */
+#include "third_party/absl/types/optional.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {

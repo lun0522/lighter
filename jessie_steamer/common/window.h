@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
+#include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/glm/glm.hpp"
 #ifdef USE_VULKAN
 #include "third_party/vulkan/vulkan.h"

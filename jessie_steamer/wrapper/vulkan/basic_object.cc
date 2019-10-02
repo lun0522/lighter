@@ -13,12 +13,12 @@
 #include <string>
 #include <vector>
 
-#include "absl/strings/str_cat.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 #ifndef NDEBUG
 #include "jessie_steamer/wrapper/vulkan/validation.h"
 #endif /* !NDEBUG */
+#include "third_party/absl/strings/str_cat.h"
 
 namespace jessie_steamer {
 namespace wrapper {

@@ -11,9 +11,9 @@
 #include <functional>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "jessie_steamer/common/model_loader.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
+#include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {

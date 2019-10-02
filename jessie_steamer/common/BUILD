@@ -21,10 +21,10 @@ cc_library(
     deps = [
         ":file",
         ":util",
+        "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/memory",
         "//third_party:freetype",
         "//third_party:glm",
-        "@lib-absl//absl/container:flat_hash_map",
-        "@lib-absl//absl/memory",
     ],
 )
 
@@ -34,13 +34,13 @@ cc_library(
     hdrs = ["file.h"],
     deps = [
         ":util",
+        "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/flags:flag",
+        "//third_party/absl/memory",
+        "//third_party/absl/strings",
+        "//third_party/absl/strings:str_format",
         "//third_party:glm",
         "//third_party:stb",
-        "@lib-absl//absl/container:flat_hash_map",
-        "@lib-absl//absl/flags:flag",
-        "@lib-absl//absl/memory",
-        "@lib-absl//absl/strings",
-        "@lib-absl//absl/strings:str_format",
     ],
 )
 
@@ -51,8 +51,8 @@ cc_library(
     deps = [
         ":file",
         ":util",
+        "//third_party/absl/strings:str_format",
         "//third_party:assimp",
-        "@lib-absl//absl/strings:str_format",
     ],
 )
 
@@ -60,8 +60,8 @@ cc_library(
     name = "ref_count",
     hdrs = ["ref_count.h"],
     deps = [
-        "@lib-absl//absl/container:flat_hash_map",
-        "@lib-absl//absl/memory",
+        "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/memory",
     ],
 )
 
@@ -74,10 +74,10 @@ cc_library(
     name = "util",
     hdrs = ["util.h"],
     deps = [
-        "@lib-absl//absl/base",
-        "@lib-absl//absl/flags:parse",
-        "@lib-absl//absl/strings:str_format",
-        "@lib-absl//absl/types:optional",
+        "//third_party/absl/base:core_headers",
+        "//third_party/absl/flags:parse",
+        "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:optional",
     ],
 )
 
@@ -87,9 +87,9 @@ cc_library(
     hdrs = ["window.h"],
     deps = [
         ":util",
+        "//third_party/absl/container:flat_hash_map",
         "//third_party:glm",
         "//third_party:glfw",
-        "@lib-absl//absl/container:flat_hash_map",
     ] + select({
         "use_vulkan": ["//third_party:vulkan"],
         "//conditions:default": [],
