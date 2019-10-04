@@ -11,7 +11,5 @@ layout(location = 0) in vec2 tex_coord;
 layout(location = 0) out vec4 frag_color;
 
 void main() {
-  frag_color = vec4(text_render_info.color_alpha.rgb *
-                    texture(tex_sampler, tex_coord).r,
-                    text_render_info.color_alpha.a);
+  frag_color = text_render_info.color_alpha * texture(tex_sampler, tex_coord).r;
 }

@@ -95,16 +95,6 @@ uint32_t ChooseMinImageCount(const VkSurfaceCapabilitiesKHR& capabilities) {
 
 } /* namespace */
 
-const vector<const char*>& Swapchain::GetRequiredExtensions() {
-  static vector<const char*>* required_extensions = nullptr;
-  if (required_extensions == nullptr) {
-    required_extensions = new vector<const char*>{
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-    };
-  }
-  return *required_extensions;
-}
-
 VkSurfaceCapabilitiesKHR Surface::GetCapabilities() const {
   VkSurfaceCapabilitiesKHR capabilities;
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
@@ -199,6 +189,16 @@ Swapchain::Swapchain(
     multisample_image_ = MultisampleImage::CreateColorMultisampleImage(
         context_, *swapchain_images_[0], multisampling_mode.value());
   }
+}
+
+const vector<const char*>& Swapchain::GetRequiredExtensions() {
+  static vector<const char*>* required_extensions = nullptr;
+  if (required_extensions == nullptr) {
+    required_extensions = new vector<const char*>{
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    };
+  }
+  return *required_extensions;
 }
 
 } /* namespace vulkan */

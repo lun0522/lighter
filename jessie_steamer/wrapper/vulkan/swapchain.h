@@ -33,9 +33,6 @@ class Surface {
 
   ~Surface();
 
-  // Overloads.
-  const VkSurfaceKHR& operator*() const { return surface_; }
-
   // Populates the surface information.
   void Init(const BasicContext* context, const VkSurfaceKHR& surface) {
     context_ = context;
@@ -45,6 +42,9 @@ class Surface {
 
   // Returns the capabilities of the surface.
   VkSurfaceCapabilitiesKHR GetCapabilities() const;
+
+  // Overloads.
+  const VkSurfaceKHR& operator*() const { return surface_; }
 
  private:
   // Pointer to context.
@@ -63,9 +63,6 @@ class Surface {
 // This is not required for offscreen rendering.
 class Swapchain {
  public:
-  // Required Vulkan extensions for supporting the swapchain.
-  static const std::vector<const char*>& GetRequiredExtensions();
-
   // If 'multisampling_mode' is not absl::nullopt, we will perform multisampling
   // for swapchain images.
   Swapchain(SharedBasicContext context,
@@ -80,6 +77,9 @@ class Swapchain {
     vkDestroySwapchainKHR(*context_->device(), swapchain_,
                           *context_->allocator());
   }
+
+  // Returns the names of required Vulkan extensions for the swapchain.
+  static const std::vector<const char*>& GetRequiredExtensions();
 
   // Overloads.
   const VkSwapchainKHR& operator*() const { return swapchain_; }

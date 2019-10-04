@@ -17,7 +17,7 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using common::VertexAttrib3D;
+using common::VertexAttribute3D;
 using std::vector;
 
 using VertexInfo = PerVertexBuffer::NoShareIndicesDataInfo;
@@ -108,10 +108,10 @@ ModelBuilder::ModelBuilder(SharedBasicContext context,
   }
 
   uniform_resource_maps_.resize(num_frames_);
+  pipeline_builder_->SetColorBlend(
+      {pipeline::GetColorBlendState(/*enable_blend=*/!is_opaque)});
   if (is_opaque) {
-    pipeline_builder_->enable_depth_test();
-  } else {
-    pipeline_builder_->enable_alpha_blend();
+    pipeline_builder_->EnableDepthTest();
   }
 }
 
@@ -250,33 +250,35 @@ std::unique_ptr<Model> ModelBuilder::Build() {
   auto descriptors = CreateDescriptors();
 
   vector<const PerInstanceBuffer*> per_instance_buffers;
-  vector<VertexInputBinding> bindings{GetPerVertexBindings<VertexAttrib3D>()};
-  vector<VertexInputAttribute> attributes{
-    GetVertexAttributes<VertexAttrib3D>()};
+  vector<pipeline::VertexInputBinding> bindings{
+      pipeline::GetPerVertexBinding<VertexAttribute3D>()};
+  vector<pipeline::VertexInputAttribute> attributes{
+      pipeline::GetPerVertexAttribute<VertexAttribute3D>()};
 
   for (int i = 0; i < instancing_infos_.size(); ++i) {
     auto& info = instancing_infos_[i];
     ASSERT_NON_NULL(info.per_instance_buffer,
                     "Per instance buffer not provided");
     per_instance_buffers.emplace_back(info.per_instance_buffer);
-    bindings.emplace_back(VertexInputBinding{
+    bindings.emplace_back(pipeline::VertexInputBinding{
         kPerInstanceBindingPointBase + i,
         info.data_size,
         /*instancing=*/true,
     });
-    attributes.emplace_back(VertexInputAttribute{
+    attributes.emplace_back(pipeline::VertexInputAttribute{
         kPerInstanceBindingPointBase + i,
         info.per_instance_attribs,
     });
   }
 
   (*pipeline_builder_)
-      .set_vertex_input(GetBindingDescriptions(bindings),
-                        GetAttributeDescriptions(attributes))
-      .set_layout({descriptors[0][0]->layout()},
-                  push_constant_info_.has_value()
-                      ? CreatePushConstantRanges(push_constant_info_.value())
-                      : vector<VkPushConstantRange>{});
+      .SetVertexInput(GetBindingDescriptions(bindings),
+                      GetAttributeDescriptions(attributes))
+      .SetPipelineLayout(
+          {descriptors[0][0]->layout()},
+          push_constant_info_.has_value()
+              ? CreatePushConstantRanges(push_constant_info_.value())
+              : vector<VkPushConstantRange>{});
 
   instancing_infos_.clear();
   uniform_resource_maps_.clear();
@@ -292,7 +294,7 @@ std::unique_ptr<Model> ModelBuilder::Build() {
 void Model::Update(VkExtent2D frame_size, VkSampleCountFlagBits sample_count,
                    const RenderPass& render_pass, uint32_t subpass_index) {
   (*pipeline_builder_)
-      .set_viewport({
+      .SetViewport({
           /*viewport=*/VkViewport{
               /*x=*/0.0f,
               /*y=*/0.0f,
@@ -306,10 +308,10 @@ void Model::Update(VkExtent2D frame_size, VkSampleCountFlagBits sample_count,
               frame_size,
           },
       })
-      .set_render_pass(*render_pass, subpass_index)
-      .set_sample_count(sample_count);
+      .SetRenderPass(*render_pass, subpass_index)
+      .SetSampleCount(sample_count);
   for (const auto& info : shader_infos_) {
-    pipeline_builder_->add_shader(info);
+    pipeline_builder_->AddShader(info);
   }
   pipeline_ = pipeline_builder_->Build();
 }

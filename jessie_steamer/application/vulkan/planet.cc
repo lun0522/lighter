@@ -180,6 +180,7 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
                               {{planet_constant_.get(), /*offset=*/0}}})
           .Build();
 
+  using VertexAttribute = pipeline::VertexInputAttribute::Attribute;
   GenAsteroidModels();
   vector<VertexAttribute> per_instance_attribs{
       {/*location=*/3, offsetof(Asteroid, theta), VK_FORMAT_R32_SFLOAT},

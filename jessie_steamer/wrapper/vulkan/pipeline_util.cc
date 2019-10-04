@@ -1,24 +1,44 @@
 //
-//  vertex_input_util.cc
+//  pipeline_util.cc
 //
 //  Created by Pujun Lun on 6/19/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "jessie_steamer/wrapper/vulkan/vertex_input_util.h"
+#include "jessie_steamer/wrapper/vulkan/pipeline_util.h"
 
 #include "jessie_steamer/common/file.h"
 
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
+namespace pipeline {
 namespace {
 
-using common::VertexAttrib2D;
-using common::VertexAttrib3D;
+using common::VertexAttribute2D;
+using common::VertexAttribute3D;
 using std::vector;
 
+using VertexAttribute = VertexInputAttribute::Attribute;
+
 } /* namespace */
+
+VkPipelineColorBlendAttachmentState GetColorBlendState(bool enable_blend) {
+  return VkPipelineColorBlendAttachmentState{
+      /*blendEnable=*/static_cast<VkBool32>(enable_blend ? VK_TRUE : VK_FALSE),
+      /*srcColorBlendFactor=*/VK_BLEND_FACTOR_SRC_ALPHA,
+      /*dstColorBlendFactor=*/VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+      /*colorBlendOp=*/VK_BLEND_OP_ADD,
+      /*srcAlphaBlendFactor=*/VK_BLEND_FACTOR_ONE,
+      /*dstAlphaBlendFactor=*/VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+      /*alphaBlendOp=*/VK_BLEND_OP_ADD,
+      /*colorWriteMask=*/
+      VK_COLOR_COMPONENT_R_BIT
+          | VK_COLOR_COMPONENT_G_BIT
+          | VK_COLOR_COMPONENT_B_BIT
+          | VK_COLOR_COMPONENT_A_BIT,
+  };
+}
 
 vector<VkVertexInputBindingDescription> GetBindingDescriptions(
     const vector<VertexInputBinding>& bindings) {
@@ -28,56 +48,56 @@ vector<VkVertexInputBindingDescription> GetBindingDescriptions(
     descriptions.emplace_back(VkVertexInputBindingDescription{
         binding.binding_point,
         binding.data_size,
-        binding.instancing ? VK_VERTEX_INPUT_RATE_INSTANCE :
-        VK_VERTEX_INPUT_RATE_VERTEX,
+        binding.instancing ? VK_VERTEX_INPUT_RATE_INSTANCE
+                           : VK_VERTEX_INPUT_RATE_VERTEX,
     });
   }
   return descriptions;
 }
 
 template <>
-VertexInputAttribute GetVertexAttributes<VertexAttrib2D>() {
+VertexInputAttribute GetPerVertexAttribute<VertexAttribute2D>() {
   return VertexInputAttribute{
       kPerVertexBindingPoint,
       /*attributes=*/{
           VertexAttribute{
               /*location=*/0,
               /*offset=*/
-              static_cast<uint32_t>(offsetof(VertexAttrib2D, pos)),
-              /*format=*/VK_FORMAT_R32G32_SFLOAT,
+              static_cast<uint32_t>(offsetof(VertexAttribute2D, pos)),
+              VK_FORMAT_R32G32_SFLOAT,
           },
           VertexAttribute{
               /*location=*/1,
               /*offset=*/
-              static_cast<uint32_t>(offsetof(VertexAttrib2D, tex_coord)),
-              /*format=*/VK_FORMAT_R32G32_SFLOAT,
+              static_cast<uint32_t>(offsetof(VertexAttribute2D, tex_coord)),
+              VK_FORMAT_R32G32_SFLOAT,
           },
       },
   };
 }
 
 template <>
-VertexInputAttribute GetVertexAttributes<VertexAttrib3D>() {
+VertexInputAttribute GetPerVertexAttribute<VertexAttribute3D>() {
   return VertexInputAttribute{
       kPerVertexBindingPoint,
       /*attributes=*/{
           VertexAttribute{
               /*location=*/0,
               /*offset=*/
-              static_cast<uint32_t>(offsetof(VertexAttrib3D, pos)),
-              /*format=*/VK_FORMAT_R32G32B32_SFLOAT,
+              static_cast<uint32_t>(offsetof(VertexAttribute3D, pos)),
+              VK_FORMAT_R32G32B32_SFLOAT,
           },
           VertexAttribute{
               /*location=*/1,
               /*offset=*/
-              static_cast<uint32_t>(offsetof(VertexAttrib3D, norm)),
-              /*format=*/VK_FORMAT_R32G32B32_SFLOAT,
+              static_cast<uint32_t>(offsetof(VertexAttribute3D, norm)),
+              VK_FORMAT_R32G32B32_SFLOAT,
           },
           VertexAttribute{
               /*location=*/2,
               /*offset=*/
-              static_cast<uint32_t>(offsetof(VertexAttrib3D, tex_coord)),
-              /*format=*/VK_FORMAT_R32G32_SFLOAT,
+              static_cast<uint32_t>(offsetof(VertexAttribute3D, tex_coord)),
+              VK_FORMAT_R32G32_SFLOAT,
           },
       },
   };
@@ -105,6 +125,7 @@ vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(
   return descriptions;
 }
 
+} /* namespace pipeline */
 } /* namespace vulkan */
 } /* namespace wrapper */
 } /* namespace jessie_steamer */

@@ -38,9 +38,6 @@ void GlfwScrollCallback(GLFWwindow* window, double x_pos, double y_pos);
 // the presentation of rendered frames.
 class Window {
  public:
-  // Returns the names of required extensions for creating the window.
-  static const std::vector<const char*>& GetRequiredExtensions();
-
   // Callbacks used for responding to user inputs.
   using PressKeyCallback = std::function<void()>;
   using MoveCursorCallback = std::function<void(double x_pos, double y_pos)>;
@@ -93,6 +90,9 @@ class Window {
   // Returns whether the window has received the signal that indicates it should
   // be closed.
   bool ShouldQuit() const;
+
+  // Returns the names of required extensions for creating the window.
+  static const std::vector<const char*>& GetRequiredExtensions();
 
   // Returns the size of window.
   glm::ivec2 GetScreenSize() const;

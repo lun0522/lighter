@@ -27,8 +27,8 @@ using std::vector;
 VkShaderModule CreateShaderModule(const SharedBasicContext& context,
                                   const std::string& path) {
   const auto raw_data = absl::make_unique<common::RawData>(path);
-  VkShaderModuleCreateInfo module_info{
-      /*sType=*/VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+  const VkShaderModuleCreateInfo module_info{
+      VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
       raw_data->size,
@@ -52,9 +52,9 @@ vector<VkPipelineShaderStageCreateInfo> CreateShaderStageInfos(
         VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         /*pNext=*/nullptr,
         /*flags=*/nullflag,
-        module.first,
-        module.second,
-        /*pName=*/"main",  // entry point of this shader
+        /*stage=*/module.first,
+        /*module=*/module.second,
+        /*pName=*/"main",  // Entry point of this shader.
         // May use 'pSpecializationInfo' to specify shader constants.
         /*pSpecializationInfo=*/nullptr,
     });
@@ -69,9 +69,23 @@ VkPipelineViewportStateCreateInfo CreateViewportStateInfo(
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
       /*viewportCount=*/1,
-      &viewport_info.first,
+      /*pViewports=*/&viewport_info.first,
       /*scissorCount=*/1,
-      &viewport_info.second,
+      /*pScissors=*/&viewport_info.second,
+  };
+}
+
+VkPipelineColorBlendStateCreateInfo CreateColorBlendInfo(
+    const vector<VkPipelineColorBlendAttachmentState>& color_blend_states) {
+  return VkPipelineColorBlendStateCreateInfo{
+      VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/nullflag,
+      /*logicOpEnable=*/VK_FALSE,
+      VK_LOGIC_OP_CLEAR,
+      CONTAINER_SIZE(color_blend_states),
+      color_blend_states.data(),
+      /*blendConstants=*/{0.0f, 0.0f, 0.0f, 0.0f},
   };
 }
 
@@ -83,9 +97,9 @@ PipelineBuilder::PipelineBuilder(SharedBasicContext context)
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
-      // 'topology' can be line, line strip, triangle fan, etc
-      /*topology=*/VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-      // 'primitiveRestartEnable' matters for drawing line/triangle strips
+      // 'topology' can be line, line strip, triangle fan, etc.
+      VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+      // 'primitiveRestartEnable' matters for drawing line/triangle strips.
       /*primitiveRestartEnable=*/VK_FALSE,
   };
 
@@ -93,15 +107,15 @@ PipelineBuilder::PipelineBuilder(SharedBasicContext context)
       VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
-      // fragments beyond clip space will be discarded, not clamped
+      // If false, fragments beyond clip space will be discarded, not clamped.
       /*depthClampEnable=*/VK_FALSE,
-      // disable outputs to framebuffer if TRUE
+      // If true, disable outputs to the framebuffer.
       /*rasterizerDiscardEnable=*/VK_FALSE,
-      // fill polygons with fragments
-      /*polygonMode=*/VK_POLYGON_MODE_FILL,
-      /*cullMode=*/VK_CULL_MODE_BACK_BIT,
-      /*frontFace=*/VK_FRONT_FACE_COUNTER_CLOCKWISE,
-      // don't let rasterizer alter depth values
+      // Fill polygons with fragments.
+      VK_POLYGON_MODE_FILL,
+      VK_CULL_MODE_BACK_BIT,
+      VK_FRONT_FACE_COUNTER_CLOCKWISE,
+      // Whether to let the rasterizer alter depth values.
       /*depthBiasEnable=*/VK_FALSE,
       /*depthBiasConstantFactor=*/0.0f,
       /*depthBiasClamp=*/0.0f,
@@ -128,41 +142,13 @@ PipelineBuilder::PipelineBuilder(SharedBasicContext context)
       /*depthTestEnable=*/VK_FALSE,
       /*depthWriteEnable=*/VK_FALSE,
       /*depthCompareOp=*/VK_COMPARE_OP_LESS_OR_EQUAL,
-      // may only keep fragments in a specific depth range
+      // We may only keep fragments in a specific depth range.
       /*depthBoundsTestEnable=*/VK_FALSE,
       /*stencilTestEnable=*/VK_FALSE,
       /*front=*/VkStencilOpState{},
       /*back=*/VkStencilOpState{},
       /*minDepthBounds=*/0.0f,
       /*maxDepthBounds=*/1.0f,
-  };
-
-  // config per attached framebuffer
-  color_blend_attachment_ = {
-      /*blendEnable=*/VK_FALSE,
-      /*srcColorBlendFactor=*/VK_BLEND_FACTOR_SRC_COLOR,
-      /*dstColorBlendFactor=*/VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR,
-      /*colorBlendOp=*/VK_BLEND_OP_ADD,
-      /*srcAlphaBlendFactor=*/VK_BLEND_FACTOR_SRC_ALPHA,
-      /*dstAlphaBlendFactor=*/VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-      /*alphaBlendOp=*/VK_BLEND_OP_ADD,
-      /*colorWriteMask=*/VK_COLOR_COMPONENT_R_BIT
-                             | VK_COLOR_COMPONENT_G_BIT
-                             | VK_COLOR_COMPONENT_B_BIT
-                             | VK_COLOR_COMPONENT_A_BIT,
-  };
-
-  // global color blending settings
-  color_blend_info_ = {
-      VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
-      /*logicOpEnable=*/VK_FALSE,
-      /*logicOp=*/VK_LOGIC_OP_CLEAR,
-      /*attachmentCount=*/1,
-      &color_blend_attachment_,
-      /*blendConstants=*/{0.0f, 0.0f, 0.0f, 0.0f},
-      // may set blend constants here
   };
 
   // some properties can be modified without recreating entire pipeline
@@ -175,7 +161,7 @@ PipelineBuilder::PipelineBuilder(SharedBasicContext context)
   };
 }
 
-PipelineBuilder& PipelineBuilder::set_vertex_input(
+PipelineBuilder& PipelineBuilder::SetVertexInput(
     vector<VkVertexInputBindingDescription>&& binding_descriptions,
     vector<VkVertexInputAttributeDescription>&& attribute_descriptions) {
   binding_descriptions_ = std::move(binding_descriptions);
@@ -194,7 +180,7 @@ PipelineBuilder& PipelineBuilder::set_vertex_input(
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::set_layout(
+PipelineBuilder& PipelineBuilder::SetPipelineLayout(
     vector<VkDescriptorSetLayout>&& descriptor_layouts,
     vector<VkPushConstantRange>&& push_constant_ranges) {
   // First make sure we don't try to push more than 128 bytes in this pipeline.
@@ -227,7 +213,13 @@ PipelineBuilder& PipelineBuilder::set_layout(
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::set_viewport(ViewportInfo&& info) {
+PipelineBuilder& PipelineBuilder::SetColorBlend(
+    vector<VkPipelineColorBlendAttachmentState>&& color_blend_states) {
+  color_blend_states_ = std::move(color_blend_states);
+  return *this;
+}
+
+PipelineBuilder& PipelineBuilder::SetViewport(ViewportInfo&& info) {
   viewport_info_.emplace(std::move(info));
   // flip viewport as suggested by:
   // https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport
@@ -238,41 +230,36 @@ PipelineBuilder& PipelineBuilder::set_viewport(ViewportInfo&& info) {
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::set_render_pass(
-    const VkRenderPass& render_pass, uint32_t subpass_index) {
+PipelineBuilder& PipelineBuilder::SetRenderPass(const VkRenderPass& render_pass,
+                                                uint32_t subpass_index) {
   render_pass_info_.emplace(render_pass, subpass_index);
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::set_sample_count(
+PipelineBuilder& PipelineBuilder::SetSampleCount(
     VkSampleCountFlagBits sample_count) {
   multisample_info_.rasterizationSamples = sample_count;
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::add_shader(const ShaderInfo& info) {
+PipelineBuilder& PipelineBuilder::AddShader(const ShaderInfo& info) {
   shader_modules_.emplace_back(info.first,
                                CreateShaderModule(context_, info.second));
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::enable_depth_test() {
+PipelineBuilder& PipelineBuilder::EnableDepthTest() {
   depth_stencil_info_.depthTestEnable = VK_TRUE;
   depth_stencil_info_.depthWriteEnable = VK_TRUE;
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::enable_stencil_test() {
+PipelineBuilder& PipelineBuilder::EnableStencilTest() {
   depth_stencil_info_.stencilTestEnable = VK_TRUE;
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::enable_alpha_blend() {
-  color_blend_attachment_.blendEnable = VK_TRUE;
-  return *this;
-}
-
-PipelineBuilder& PipelineBuilder::set_front_face_clockwise() {
+PipelineBuilder& PipelineBuilder::SetFrontFaceClockwise() {
   rasterizer_info_.frontFace = VK_FRONT_FACE_CLOCKWISE;
   return *this;
 }
@@ -282,11 +269,14 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
   ASSERT_HAS_VALUE(layout_info_, "Layout is not set");
   ASSERT_HAS_VALUE(viewport_info_, "Viewport is not set");
   ASSERT_HAS_VALUE(render_pass_info_, "Render pass is not set");
+  ASSERT_NON_EMPTY(color_blend_states_, "Color blend is not set");
 
-  const VkDevice &device = *context_->device();
-  const VkAllocationCallbacks *allocator = *context_->allocator();
-  auto shader_stage_infos = CreateShaderStageInfos(shader_modules_);
-  auto viewport_state_info = CreateViewportStateInfo(viewport_info_.value());
+  const VkDevice& device = *context_->device();
+  const VkAllocationCallbacks* allocator = *context_->allocator();
+  const auto shader_stage_infos = CreateShaderStageInfos(shader_modules_);
+  const auto viewport_state_info =
+      CreateViewportStateInfo(viewport_info_.value());
+  const auto color_blend_info = CreateColorBlendInfo(color_blend_states_);
 
   VkPipelineLayout pipeline_layout;
   ASSERT_SUCCESS(vkCreatePipelineLayout(device, &layout_info_.value(),
@@ -306,7 +296,7 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
       &rasterizer_info_,
       &multisample_info_,
       &depth_stencil_info_,
-      &color_blend_info_,
+      &color_blend_info,
       &dynamic_state_info_,
       pipeline_layout,
       /*renderPass=*/render_pass_info_.value().first,
@@ -318,7 +308,8 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
 
   VkPipeline pipeline;
   ASSERT_SUCCESS(
-      vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_info,
+      vkCreateGraphicsPipelines(device, /*pipelineCache=*/VK_NULL_HANDLE,
+                                /*createInfoCount=*/1, &pipeline_info,
                                 allocator, &pipeline),
       "Failed to create graphics pipeline");
 
@@ -329,7 +320,7 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
   shader_modules_.clear();
 
   return std::unique_ptr<Pipeline>{
-    new Pipeline{context_, pipeline, pipeline_layout}};
+      new Pipeline{context_, pipeline, pipeline_layout}};
 }
 
 void Pipeline::Bind(const VkCommandBuffer& command_buffer) const {

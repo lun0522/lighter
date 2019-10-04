@@ -148,7 +148,7 @@ vector<VkFramebuffer> CreateFramebuffers(
 
 vector<VkAttachmentReference> RenderPassBuilder::CreateMultisamplingReferences(
     int num_color_refs, const vector<MultisamplingPair>& pairs) {
-  ASSERT_FALSE(pairs.empty(), "No multisampling pairs provided");
+  ASSERT_NON_EMPTY(pairs, "No multisampling pairs provided");
   vector<VkAttachmentReference> references(
       num_color_refs,
       VkAttachmentReference{VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED}

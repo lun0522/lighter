@@ -14,7 +14,6 @@
 #include <vector>
 
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
-#include "jessie_steamer/wrapper/vulkan/render_pass.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -22,28 +21,21 @@ namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
-/** VkPipeline stores the entire graphics pipeline.
- *
- *  Initialization:
- *    ShaderStage (vertex and fragment shaders)
- *    VertexInputState (how to interpret vertex attributes)
- *    InputAssemblyState (what topology to use)
- *    ViewportState (viewport and scissor)
- *    RasterizationState (lines, polygons, face culling, etc)
- *    MultisampleState (how many sample points)
- *    DepthStencilState
- *    ColorBlendState
- *    DynamicState (which properties of this pipeline will be dynamic)
- *    VkPipelineLayout (set uniform values)
- *    VkRenderPass and subpass
- *    BasePipeline (may copy settings from another pipeline)
- */
+// Forward declarations.
 class Pipeline;
 
+// The user should use this class to create Pipeline. The internal states,
+// except for shader modules, are preserved when it is used to build a pipeline,
+// so the user can add shaders again and reuse the builder later.
 class PipelineBuilder {
  public:
+  // Shader stage and file path of the shader.
   using ShaderInfo = std::pair<VkShaderStageFlagBits, std::string>;
+
+  // Shader stage and shader module.
   using ShaderModule = std::pair<VkShaderStageFlagBits, VkShaderModule>;
+
+  // Viewport and scissor.
   using ViewportInfo = std::pair<VkViewport, VkRect2D>;
 
   explicit PipelineBuilder(SharedBasicContext context);
@@ -52,41 +44,45 @@ class PipelineBuilder {
   PipelineBuilder(const PipelineBuilder&) = delete;
   PipelineBuilder& operator=(const PipelineBuilder&) = delete;
 
-  // All these information must be set before Build().
-  PipelineBuilder& set_vertex_input(
+  // All these information must be set before calling Build().
+  PipelineBuilder& SetVertexInput(
       std::vector<VkVertexInputBindingDescription>&& binding_descriptions,
       std::vector<VkVertexInputAttributeDescription>&& attribute_descriptions);
-  PipelineBuilder& set_layout(
+  PipelineBuilder& SetPipelineLayout(
       std::vector<VkDescriptorSetLayout>&& descriptor_layouts,
       std::vector<VkPushConstantRange>&& push_constant_ranges);
-  PipelineBuilder& set_viewport(ViewportInfo&& info);
-  PipelineBuilder& set_render_pass(const VkRenderPass& render_pass,
-                                   uint32_t subpass_index);
-  PipelineBuilder& set_sample_count(VkSampleCountFlagBits sample_count);
-  PipelineBuilder& add_shader(const ShaderInfo& info);
+  PipelineBuilder& SetColorBlend(
+      std::vector<VkPipelineColorBlendAttachmentState>&& color_blend_states);
+  PipelineBuilder& SetViewport(ViewportInfo&& info);
+  PipelineBuilder& SetRenderPass(const VkRenderPass& render_pass,
+                                 uint32_t subpass_index);
+  PipelineBuilder& SetSampleCount(VkSampleCountFlagBits sample_count);
+  PipelineBuilder& AddShader(const ShaderInfo& info);
 
   // By default depth testing, stencil testing and alpha blending are disabled,
   // and front face is counter-clockwise.
-  PipelineBuilder& enable_depth_test();
-  PipelineBuilder& enable_stencil_test();
-  PipelineBuilder& enable_alpha_blend();
-  PipelineBuilder& set_front_face_clockwise();
+  PipelineBuilder& EnableDepthTest();
+  PipelineBuilder& EnableStencilTest();
+  PipelineBuilder& SetFrontFaceClockwise();
 
   // Build() can be called multiple times. Note that 'shader_modules_' is
-  // cleared after each call to Build() to save memory, so add_shader() should
-  // be called before next call to Build().
+  // cleared after each call to Build() to save memory, so AddShader() should
+  // be called for all shaders before the next call to Build().
   std::unique_ptr<Pipeline> Build();
 
  private:
+  // Render pass and subpass index where this pipeline will be used.
   using RenderPassInfo = std::pair<VkRenderPass, uint32_t>;
 
+  // Pointer to context.
   const SharedBasicContext context_;
+
+  // Following members are required to build the pipeline.
   VkPipelineInputAssemblyStateCreateInfo input_assembly_info_;
   VkPipelineRasterizationStateCreateInfo rasterizer_info_;
   VkPipelineMultisampleStateCreateInfo multisample_info_;
   VkPipelineDepthStencilStateCreateInfo depth_stencil_info_;
-  VkPipelineColorBlendAttachmentState color_blend_attachment_;
-  VkPipelineColorBlendStateCreateInfo color_blend_info_;
+  std::vector<VkPipelineColorBlendAttachmentState> color_blend_states_;
   VkPipelineDynamicStateCreateInfo dynamic_state_info_;
   absl::optional<VkPipelineVertexInputStateCreateInfo> vertex_input_info_;
   absl::optional<VkPipelineLayoutCreateInfo> layout_info_;
@@ -107,10 +103,15 @@ class Pipeline {
 
   ~Pipeline();
 
+  // Binds to this pipeline. This should be called when 'command_buffer' is
+  // recording commands.
   void Bind(const VkCommandBuffer& command_buffer) const;
 
-  const VkPipeline& operator*()     const { return pipeline_; }
-  const VkPipelineLayout& layout()  const { return layout_; }
+  // Overloads.
+  const VkPipeline& operator*() const { return pipeline_; }
+
+  // Accessors.
+  const VkPipelineLayout& layout() const { return layout_; }
 
  private:
   friend std::unique_ptr<Pipeline> PipelineBuilder::Build();
@@ -121,8 +122,13 @@ class Pipeline {
       : context_{std::move(context)},
         pipeline_{pipeline}, layout_{pipeline_layout} {}
 
+  // Pointer to context.
   const SharedBasicContext context_;
+
+  // Opaque pipeline object.
   VkPipeline pipeline_;
+
+  // Opaque pipeline layout object.
   VkPipelineLayout layout_;
 };
 

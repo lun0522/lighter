@@ -105,7 +105,7 @@ CubeApp::CubeApp() : Application{"Cube", WindowContext::Config{}} {
 
   // text
   constexpr CharLoader::Font kFont = Text::Font::kGeorgia;
-  constexpr int kFontHeight = 50;
+  constexpr int kFontHeight = 100;
   static_text_ = absl::make_unique<StaticText>(
       context(), kNumFrameInFlight,
       std::vector<std::string>{"FPS: "}, kFont, kFontHeight);
@@ -179,8 +179,8 @@ void CubeApp::MainLoop() {
           model_->Draw(command_buffer, current_frame_, /*instance_count=*/1);
         },
         [&](const VkCommandBuffer& command_buffer) {
-          const glm::vec3 kColor{0.7f};
-          constexpr float kAlpha = 1.0f;
+          const glm::vec3 kColor{1.0f};
+          constexpr float kAlpha = 0.5f;
           constexpr float kHeight = 0.05f;
           constexpr float kBaseX = 0.04f;
           constexpr float kBaseY = 0.05f;

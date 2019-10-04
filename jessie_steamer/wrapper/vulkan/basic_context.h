@@ -30,9 +30,6 @@ class BasicContext;
 // Each wrapper class would hold a shared pointer to the context.
 using SharedBasicContext = std::shared_ptr<BasicContext>;
 
-// Specifies how to release an expired resource.
-using ReleaseExpiredResourceOp = std::function<void(const BasicContext&)>;
-
 // Information that we need to use a window. We need to make sure the window and
 // swapchain are supported by checking supports for relevant extensions.
 // The user should leave 'surface' uninitialized when instantiate this class,
@@ -51,6 +48,9 @@ struct WindowSupport {
 // 'BasicContext::GetContext' to get an instance whose lifetime is self-managed.
 class BasicContext : public std::enable_shared_from_this<BasicContext> {
  public:
+  // Specifies how to release an expired resource.
+  using ReleaseExpiredResourceOp = std::function<void(const BasicContext&)>;
+
   // Returns a new instance of BasicContext.
   template <typename... Args>
   static SharedBasicContext GetContext(Args&&... args) {

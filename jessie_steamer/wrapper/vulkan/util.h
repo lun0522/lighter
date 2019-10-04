@@ -34,8 +34,7 @@ namespace util {
 class QueueUsage {
  public:
   explicit QueueUsage(std::vector<uint32_t>&& queue_family_indices) {
-    ASSERT_FALSE(queue_family_indices.empty(),
-                 "Must contain at least one queue");
+    ASSERT_NON_EMPTY(queue_family_indices, "Must contain at least one queue");
     common::util::RemoveDuplicate(&queue_family_indices);
     unique_family_indices_ = std::move(queue_family_indices);
     sharing_mode_ = unique_family_indices_.size() == 1 ?

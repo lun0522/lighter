@@ -10,8 +10,8 @@
 #include <algorithm>
 
 #include "jessie_steamer/common/file.h"
+#include "jessie_steamer/wrapper/vulkan/pipeline_util.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
-#include "jessie_steamer/wrapper/vulkan/vertex_input_util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/glm/glm.hpp"
@@ -21,7 +21,7 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using common::VertexAttrib2D;
+using common::VertexAttribute2D;
 using std::string;
 using std::vector;
 
@@ -83,17 +83,19 @@ Text::Text(SharedBasicContext context, int num_frames)
   uniform_buffer_ = absl::make_unique<UniformBuffer>(
       context_, sizeof(TextRenderInfo), num_frames);
   pipeline_builder_
-      .set_vertex_input(
-          GetBindingDescriptions({GetPerVertexBindings<VertexAttrib2D>()}),
-          GetAttributeDescriptions({GetVertexAttributes<VertexAttrib2D>()}))
-      .enable_alpha_blend();
+      .SetVertexInput(
+          pipeline::GetBindingDescriptions(
+              {pipeline::GetPerVertexBinding<VertexAttribute2D>()}),
+          pipeline::GetAttributeDescriptions(
+              {pipeline::GetPerVertexAttribute<VertexAttribute2D>()}))
+      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)});
 }
 
 void Text::Update(VkExtent2D frame_size,
                   const RenderPass& render_pass, uint32_t subpass_index) {
   using common::file::GetShaderPath;
   pipeline_ = pipeline_builder_
-      .set_viewport({
+      .SetViewport({
           /*viewport=*/VkViewport{
               /*x=*/0.0f,
               /*y=*/0.0f,
@@ -107,11 +109,11 @@ void Text::Update(VkExtent2D frame_size,
               frame_size,
           },
       })
-      .set_render_pass(*render_pass, subpass_index)
-      .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                   GetShaderPath("vulkan/simple_2d.vert.spv")})
-      .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                   GetShaderPath("vulkan/text.frag.spv")})
+      .SetRenderPass(*render_pass, subpass_index)
+      .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
+                  GetShaderPath("vulkan/simple_2d.vert.spv")})
+      .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                  GetShaderPath("vulkan/text.frag.spv")})
       .Build();
 }
 
@@ -152,8 +154,8 @@ StaticText::StaticText(SharedBasicContext context,
         });
   }
 
-  pipeline_builder_.set_layout({descriptors_[0]->layout()},
-                               /*push_constant_ranges=*/{});
+  pipeline_builder_.SetPipelineLayout({descriptors_[0]->layout()},
+                                      /*push_constant_ranges=*/{});
 }
 
 glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer,
@@ -170,7 +172,7 @@ glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer,
   const float width_in_frame = 1.0f * ratio.x;
   const float offset_x = GetOffsetX(base_x, align, width_in_frame);
 
-  vector<VertexAttrib2D> vertices;
+  vector<VertexAttribute2D> vertices;
   vertices.reserve(text_util::kNumVerticesPerRect);
   text_util::AppendCharPosAndTexCoord(
       /*pos_bottom_left=*/{offset_x, base_y - texture.base_y * ratio.y},
@@ -216,8 +218,8 @@ DynamicText::DynamicText(SharedBasicContext context,
         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, image_info_map);
   }
 
-  pipeline_builder_.set_layout({descriptors_[0]->layout()},
-                                /*push_constant_ranges=*/{});
+  pipeline_builder_.SetPipelineLayout({descriptors_[0]->layout()},
+                                      /*push_constant_ranges=*/{});
 }
 
 glm::vec2 DynamicText::Draw(

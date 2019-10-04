@@ -32,7 +32,7 @@ namespace vulkan {
 // destroyed by this base class, and initialized by derived classes.
 class Descriptor {
  public:
-  using TextureType = common::TextureType;
+  using TextureType = common::ModelLoader::TextureType;
 
   // Maps a binding point to buffers bound to it.
   using BufferInfoMap = absl::flat_hash_map<

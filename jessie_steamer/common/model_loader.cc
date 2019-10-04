@@ -20,7 +20,8 @@ using std::string;
 using std::vector;
 
 // Translates the resource type we defined to its counterpart in Assimp.
-aiTextureType TextureTypeToAssimpType(TextureType type) {
+aiTextureType TextureTypeToAssimpType(ModelLoader::TextureType type) {
+  using TextureType = ModelLoader::TextureType;
   switch (type) {
     case TextureType::kDiffuse:
       return aiTextureType_DIFFUSE;
@@ -70,7 +71,7 @@ ModelLoader::MeshData ModelLoader::LoadMesh(const string& directory,
                                             const aiScene* scene) const {
   // Load vertices. Assimp allows a vertex to have multiple sets of texture
   // coordinates. We will simply use the first set.
-  vector<VertexAttrib3D> vertices;
+  vector<VertexAttribute3D> vertices;
   vertices.reserve(mesh->mNumVertices);
   constexpr int kTexCoordSetIndex = 0;
   const aiVector3D* tex_coord_set = mesh->mTextureCoords[kTexCoordSetIndex];

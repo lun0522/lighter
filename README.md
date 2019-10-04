@@ -6,7 +6,6 @@ wrapper
 - text
 - text_util
 - util
-- vertex_input_util
 
 application
 - util
@@ -318,7 +317,7 @@ reference counted.
 It does not own the texture, hence the user is responsible for keeping the
 existence of the texture.
 
-### 3.2.5 Pipeline (pipeline)
+### 3.2.5 Pipeline (pipeline and pipeline_util)
 
 ### 3.2.6 Render pass (render_pass and render_pass_util)
 

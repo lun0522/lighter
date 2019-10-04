@@ -88,8 +88,8 @@ struct Image {
 };
 
 // 2D vertex data, consisting of position and texture coordinates.
-struct VertexAttrib2D {
-  VertexAttrib2D(const glm::vec2& pos, const glm::vec2& tex_coord)
+struct VertexAttribute2D {
+  VertexAttribute2D(const glm::vec2& pos, const glm::vec2& tex_coord)
       : pos{pos}, tex_coord{tex_coord} {}
 
   // Vertex data.
@@ -98,10 +98,10 @@ struct VertexAttrib2D {
 };
 
 // 3D vertex data, consisting of position, normal and texture coordinates.
-struct VertexAttrib3D {
-  VertexAttrib3D(const glm::vec3& pos,
-                 const glm::vec3& norm,
-                 const glm::vec2& tex_coord)
+struct VertexAttribute3D {
+  VertexAttribute3D(const glm::vec3& pos,
+                    const glm::vec3& norm,
+                    const glm::vec2& tex_coord)
       : pos{pos}, norm{norm}, tex_coord{tex_coord} {}
 
   // Vertex data.
@@ -120,7 +120,7 @@ struct ObjFile {
 
   // Vertex data, populated with data loaded from the file.
   std::vector<uint32_t> indices;
-  std::vector<VertexAttrib3D> vertices;
+  std::vector<VertexAttribute3D> vertices;
 };
 
 } /* namespace common */

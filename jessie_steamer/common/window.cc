@@ -55,18 +55,6 @@ void GlfwScrollCallback(GLFWwindow* window, double x_pos, double y_pos) {
 
 } /* namespace window_callback */
 
-const vector<const char*>& Window::GetRequiredExtensions() {
-  static vector<const char*>* required_extensions = nullptr;
-  if (required_extensions == nullptr) {
-    uint32_t extension_count;
-    const char** glfw_extensions =
-        glfwGetRequiredInstanceExtensions(&extension_count);
-    required_extensions = new vector<const char*>{
-        glfw_extensions, glfw_extensions + extension_count};
-  }
-  return *required_extensions;
-}
-
 Window::Window(const std::string& name, const glm::ivec2& screen_size) {
   glfwInit();
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -146,6 +134,18 @@ glm::ivec2 Window::Recreate() {
 
 bool Window::ShouldQuit() const {
   return glfwWindowShouldClose(window_);
+}
+
+const vector<const char*>& Window::GetRequiredExtensions() {
+  static vector<const char*>* required_extensions = nullptr;
+  if (required_extensions == nullptr) {
+    uint32_t extension_count;
+    const char** glfw_extensions =
+        glfwGetRequiredInstanceExtensions(&extension_count);
+    required_extensions = new vector<const char*>{
+        glfw_extensions, glfw_extensions + extension_count};
+  }
+  return *required_extensions;
 }
 
 glm::ivec2 Window::GetScreenSize() const {

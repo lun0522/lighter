@@ -117,7 +117,6 @@ cc_library(
         ":pipeline",
         ":render_pass",
         ":util",
-        ":vertex_input_util",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:model_loader",
         "//jessie_steamer/common:util",
@@ -132,11 +131,16 @@ cc_library(
 
 cc_library(
     name = "pipeline",
-    hdrs = ["pipeline.h"],
-    srcs = ["pipeline.cc"],
+    hdrs = [
+        "pipeline.h",
+        "pipeline_util.h",
+    ],
+    srcs = [
+        "pipeline.cc",
+        "pipeline_util.cc",
+    ],
     deps = [
         ":basics",
-        ":render_pass",
         ":util",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:util",
@@ -201,7 +205,6 @@ cc_library(
         ":pipeline",
         ":render_pass",
         ":util",
-        ":vertex_input_util",
         "//jessie_steamer/common:char_lib",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:util",
@@ -222,17 +225,6 @@ cc_library(
         "//third_party/absl/strings",
         "//third_party/absl/strings:str_format",
         "//third_party/absl/types:optional",
-        "//third_party:vulkan",
-    ],
-)
-
-cc_library(
-    name = "vertex_input_util",
-    hdrs = ["vertex_input_util.h"],
-    srcs = ["vertex_input_util.cc"],
-    deps = [
-        ":util",
-        "//jessie_steamer/common:file",
         "//third_party:vulkan",
     ],
 )

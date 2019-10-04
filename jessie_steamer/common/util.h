@@ -48,6 +48,10 @@
   if (!ABSL_PREDICT_TRUE(pointer != nullptr)) \
     FATAL(error);
 
+#define ASSERT_NON_EMPTY(container, error)    \
+  if (ABSL_PREDICT_FALSE(container.empty()))  \
+    FATAL(error);
+
 namespace jessie_steamer {
 namespace common {
 namespace util {

@@ -22,8 +22,8 @@
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
+#include "jessie_steamer/wrapper/vulkan/pipeline_util.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
-#include "jessie_steamer/wrapper/vulkan/vertex_input_util.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/variant.h"
@@ -34,7 +34,7 @@ namespace wrapper {
 namespace vulkan {
 namespace model {
 
-using TextureType = common::TextureType;
+using TextureType = common::ModelLoader::TextureType;
 using TexPerMesh = std::array<std::vector<std::unique_ptr<SamplableImage>>,
                               static_cast<int>(TextureType::kNumType)>;
 
@@ -85,7 +85,7 @@ class ModelBuilder {
   // For instancing, caller must provide information about per-instance vertex
   // attributes.
   struct InstancingInfo {
-    std::vector<VertexAttribute> per_instance_attribs;
+    std::vector<pipeline::VertexInputAttribute::Attribute> per_instance_attribs;
     uint32_t data_size;
     const PerInstanceBuffer* per_instance_buffer;
   };

@@ -10,7 +10,7 @@
 #include <algorithm>
 
 #include "jessie_steamer/wrapper/vulkan/command.h"
-#include "jessie_steamer/wrapper/vulkan/vertex_input_util.h"
+#include "jessie_steamer/wrapper/vulkan/pipeline_util.h"
 #include "third_party/absl/memory/memory.h"
 
 namespace jessie_steamer {
@@ -18,7 +18,7 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using common::VertexAttrib2D;
+using common::VertexAttribute2D;
 using std::array;
 using std::string;
 using std::vector;
@@ -120,19 +120,18 @@ std::unique_ptr<RenderPass> BuildRenderPass(
 std::unique_ptr<PipelineBuilder> CreatePipelineBuilder(
     const SharedBasicContext& context,
     const VkDescriptorSetLayout& descriptor_layout,
-    bool enable_alpha_blend) {
+    bool enable_color_blend) {
   auto pipeline_builder = absl::make_unique<PipelineBuilder>(context);
 
   (*pipeline_builder)
-      .set_vertex_input(
-          GetBindingDescriptions({GetPerVertexBindings<VertexAttrib2D>()}),
-          GetAttributeDescriptions({GetVertexAttributes<VertexAttrib2D>()}))
-      .set_layout({descriptor_layout}, /*push_constant_ranges=*/{})
-      .enable_alpha_blend()
-      .set_front_face_clockwise();  // since we will flip y coordinates
-  if (enable_alpha_blend) {
-    pipeline_builder->enable_alpha_blend();
-  }
+      .SetVertexInput(
+          pipeline::GetBindingDescriptions(
+              {pipeline::GetPerVertexBinding<VertexAttribute2D>()}),
+          pipeline::GetAttributeDescriptions(
+              {pipeline::GetPerVertexAttribute<VertexAttribute2D>()}))
+      .SetPipelineLayout({descriptor_layout}, /*push_constant_ranges=*/{})
+      .SetColorBlend({pipeline::GetColorBlendState(enable_color_blend)})
+      .SetFrontFaceClockwise();  // since we will flip y coordinates
 
   return pipeline_builder;
 }
@@ -142,7 +141,7 @@ std::unique_ptr<Pipeline> BuildPipeline(VkExtent2D target_extent,
                                         PipelineBuilder* pipeline_builder) {
   using common::file::GetShaderPath;
   return (*pipeline_builder)
-      .set_viewport({
+      .SetViewport({
           /*viewport=*/VkViewport{
               /*x=*/0.0f,
               /*y=*/0.0f,
@@ -156,16 +155,16 @@ std::unique_ptr<Pipeline> BuildPipeline(VkExtent2D target_extent,
               target_extent,
           },
       })
-      .set_render_pass(render_pass, /*subpass_index=*/0)
-      .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                   GetShaderPath("vulkan/simple_2d.vert.spv")})
-      .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                   GetShaderPath("vulkan/simple_2d.frag.spv")})
+      .SetRenderPass(render_pass, /*subpass_index=*/0)
+      .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
+                  GetShaderPath("vulkan/simple_2d.vert.spv")})
+      .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                  GetShaderPath("vulkan/simple_2d.frag.spv")})
       .Build();
 }
 
 // Flips y coordinate of each vertex in NDC.
-inline void FlipY(vector<VertexAttrib2D>* vertices) {
+inline void FlipY(vector<VertexAttribute2D>* vertices) {
   for (auto& vertex : *vertices) {
     vertex.pos.y *= -1;
   }
@@ -176,7 +175,7 @@ std::unique_ptr<StaticPerVertexBuffer> CreateVertexBuffer(
     const vector<char>& char_merge_order,
     const absl::flat_hash_map<char, CharLoader::CharTextureInfo>&
         char_texture_map) {
-  vector<VertexAttrib2D> vertices;
+  vector<VertexAttribute2D> vertices;
   vertices.reserve(text_util::kNumVerticesPerRect * char_merge_order.size());
   for (auto c : char_merge_order) {
     const CharLoader::CharTextureInfo& texture_info =
@@ -217,7 +216,7 @@ CharLoader::CharLoader(SharedBasicContext context,
                        Font font, int font_height)
     : context_{std::move(context)} {
   common::CharLib char_lib{texts, GetFontPath(font), font_height};
-  ASSERT_FALSE(char_lib.char_info_map().empty(), "No character loaded");
+  ASSERT_NON_EMPTY(char_lib.char_info_map(), "No character loaded");
 
   CharTextures char_textures = CreateCharTextures(char_lib, font_height);
   image_ = absl::make_unique<OffscreenImage>(context_, /*channel=*/1,
@@ -243,8 +242,8 @@ CharLoader::CharLoader(SharedBasicContext context,
       [this](int index) -> const Image& { return *image_; },
       render_pass_builder.get());
 
-  auto pipeline_builder = CreatePipelineBuilder(context_, descriptor->layout(),
-                                                /*enable_alpha_blend=*/false);
+  auto pipeline_builder = CreatePipelineBuilder(
+      context_, descriptor->layout(), /*enable_color_blend=*/false);
   auto pipeline = BuildPipeline(char_textures.extent_after_merge,
                                 **render_pass, pipeline_builder.get());
 
@@ -341,8 +340,8 @@ TextLoader::TextLoader(SharedBasicContext context,
   auto descriptor = absl::make_unique<StaticDescriptor>(
       context_, CreateDescriptorInfos());
   auto render_pass_builder = CreateRenderPassBuilder(context_);
-  auto pipeline_builder = CreatePipelineBuilder(context_, descriptor->layout(),
-                                                /*enable_alpha_blend=*/true);
+  auto pipeline_builder = CreatePipelineBuilder(
+      context_, descriptor->layout(), /*enable_color_blend=*/true);
 
   CharLoader char_loader{context_, texts, font, font_height};
   text_textures_.reserve(texts.size());
@@ -442,23 +441,23 @@ void AppendCharPosAndTexCoord(const glm::vec2 &pos_bottom_left,
                               const glm::vec2 &pos_increment,
                               const glm::vec2 &tex_coord_bottom_left,
                               const glm::vec2 &tex_coord_increment,
-                              vector<VertexAttrib2D> *vertices) {
+                              vector<VertexAttribute2D> *vertices) {
   const glm::vec2 pos_top_right = pos_bottom_left + pos_increment;
   const glm::vec2 tex_coord_top_right = tex_coord_bottom_left +
                                         tex_coord_increment;
-  vertices->emplace_back(VertexAttrib2D{
+  vertices->emplace_back(VertexAttribute2D{
       NormalizePos(pos_bottom_left),
       tex_coord_bottom_left,
   });
-  vertices->emplace_back(VertexAttrib2D{
+  vertices->emplace_back(VertexAttribute2D{
       NormalizePos({pos_top_right.x, pos_bottom_left.y}),
       {tex_coord_top_right.x, tex_coord_bottom_left.y},
   });
-  vertices->emplace_back(VertexAttrib2D{
+  vertices->emplace_back(VertexAttribute2D{
       NormalizePos(pos_top_right),
       tex_coord_top_right,
   });
-  vertices->emplace_back(VertexAttrib2D{
+  vertices->emplace_back(VertexAttribute2D{
       NormalizePos({pos_bottom_left.x, pos_top_right.y}),
       {tex_coord_bottom_left.x, tex_coord_top_right.y},
   });
@@ -469,7 +468,7 @@ float LoadCharsVertexData(const string& text, const CharLoader& char_loader,
                          float base_y, bool flip_y,
                          DynamicPerVertexBuffer* vertex_buffer) {
   float offset_x = initial_offset_x;
-  vector<VertexAttrib2D> vertices;
+  vector<VertexAttribute2D> vertices;
   vertices.reserve(text_util::kNumVerticesPerRect * text.length());
   for (auto c : text) {
     if (c == ' ') {

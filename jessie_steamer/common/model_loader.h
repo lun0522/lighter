@@ -19,12 +19,14 @@
 namespace jessie_steamer {
 namespace common {
 
-// Texture types that can be bound to shaders.
-enum class TextureType { kDiffuse, kSpecular, kReflection, kCubemap, kNumType };
-
 // Model loader backed by Assimp.
 class ModelLoader {
  public:
+  // Texture types that can be bound to shaders.
+  enum class TextureType {
+      kDiffuse, kSpecular, kReflection, kCubemap, kNumType,
+  };
+
   // Information about a texture.
   struct TextureInfo {
     // This class is only movable.
@@ -47,7 +49,7 @@ class ModelLoader {
     MeshData& operator=(MeshData&&) noexcept = default;
 
     // Vertex data of the mesh.
-    std::vector<VertexAttrib3D> vertices;
+    std::vector<VertexAttribute3D> vertices;
     std::vector<uint32_t> indices;
 
     // Textures information of the mesh.
