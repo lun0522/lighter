@@ -7,7 +7,6 @@
 
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
 
-#include <memory>
 #include <numeric>
 
 #include "jessie_steamer/common/file.h"
@@ -24,9 +23,10 @@ namespace {
 
 using std::vector;
 
+// Loads the shader from 'file_path' and creates a shader module for it.
 VkShaderModule CreateShaderModule(const SharedBasicContext& context,
-                                  const std::string& path) {
-  const auto raw_data = absl::make_unique<common::RawData>(path);
+                                  const std::string& file_path) {
+  const auto raw_data = absl::make_unique<common::RawData>(file_path);
   const VkShaderModuleCreateInfo module_info{
       VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -43,8 +43,11 @@ VkShaderModule CreateShaderModule(const SharedBasicContext& context,
   return module;
 }
 
+// Creates shader stages given 'shader_modules', assuming the entry point of
+// each shader is a main() function.
 vector<VkPipelineShaderStageCreateInfo> CreateShaderStageInfos(
     const vector<PipelineBuilder::ShaderModule>& shader_modules) {
+  static constexpr char kShaderEntryPoint[] = "main";
   vector<VkPipelineShaderStageCreateInfo> shader_stages;
   shader_stages.reserve(shader_modules.size());
   for (const auto& module : shader_modules) {
@@ -54,7 +57,7 @@ vector<VkPipelineShaderStageCreateInfo> CreateShaderStageInfos(
         /*flags=*/nullflag,
         /*stage=*/module.first,
         /*module=*/module.second,
-        /*pName=*/"main",  // Entry point of this shader.
+        /*pName=*/kShaderEntryPoint,
         // May use 'pSpecializationInfo' to specify shader constants.
         /*pSpecializationInfo=*/nullptr,
     });
@@ -62,6 +65,7 @@ vector<VkPipelineShaderStageCreateInfo> CreateShaderStageInfos(
   return shader_stages;
 }
 
+// Creates a viewport state given 'viewport_info'.
 VkPipelineViewportStateCreateInfo CreateViewportStateInfo(
     const PipelineBuilder::ViewportInfo& viewport_info) {
   return VkPipelineViewportStateCreateInfo{
@@ -75,6 +79,7 @@ VkPipelineViewportStateCreateInfo CreateViewportStateInfo(
   };
 }
 
+// Creates a color blend state given 'color_blend_states' of color attachments.
 VkPipelineColorBlendStateCreateInfo CreateColorBlendInfo(
     const vector<VkPipelineColorBlendAttachmentState>& color_blend_states) {
   return VkPipelineColorBlendStateCreateInfo{
@@ -103,7 +108,7 @@ PipelineBuilder::PipelineBuilder(SharedBasicContext context)
       /*primitiveRestartEnable=*/VK_FALSE,
   };
 
-  rasterizer_info_ = {
+  rasterization_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
@@ -123,7 +128,7 @@ PipelineBuilder::PipelineBuilder(SharedBasicContext context)
       /*lineWidth=*/1.0f,
   };
 
-  multisample_info_ = {
+  multisampling_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
@@ -151,7 +156,6 @@ PipelineBuilder::PipelineBuilder(SharedBasicContext context)
       /*maxDepthBounds=*/1.0f,
   };
 
-  // some properties can be modified without recreating entire pipeline
   dynamic_state_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -159,93 +163,6 @@ PipelineBuilder::PipelineBuilder(SharedBasicContext context)
       /*dynamicStateCount=*/0,
       /*pDynamicStates=*/nullptr,
   };
-}
-
-PipelineBuilder& PipelineBuilder::SetVertexInput(
-    vector<VkVertexInputBindingDescription>&& binding_descriptions,
-    vector<VkVertexInputAttributeDescription>&& attribute_descriptions) {
-  binding_descriptions_ = std::move(binding_descriptions);
-  attribute_descriptions_ = std::move(attribute_descriptions);
-  vertex_input_info_.emplace(VkPipelineVertexInputStateCreateInfo{
-      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
-      // vertex binding descriptions
-      CONTAINER_SIZE(binding_descriptions_),
-      binding_descriptions_.data(),
-      // vertex attribute descriptions
-      CONTAINER_SIZE(attribute_descriptions_),
-      attribute_descriptions_.data(),
-  });
-  return *this;
-}
-
-PipelineBuilder& PipelineBuilder::SetPipelineLayout(
-    vector<VkDescriptorSetLayout>&& descriptor_layouts,
-    vector<VkPushConstantRange>&& push_constant_ranges) {
-  // First make sure we don't try to push more than 128 bytes in this pipeline.
-  vector<int> push_constant_sizes(push_constant_ranges.size());
-  for (int i = 0; i < push_constant_ranges.size(); ++i) {
-    push_constant_sizes[i] = push_constant_ranges[i].size;
-  }
-  const auto total_push_constant_size = static_cast<int>(std::accumulate(
-      push_constant_sizes.begin(), push_constant_sizes.end(), 0));
-  ASSERT_TRUE(total_push_constant_size <= kMaxPushConstantSize,
-              absl::StrFormat(
-                  "Pushing constant of total size %d bytes in the pipeline "
-                  "(break down: %s). To be compatible with all devices, the "
-                  "total size should not be greater than %d bytes.",
-                  total_push_constant_size,
-                  absl::StrJoin(push_constant_sizes, " + "),
-                  kMaxPushConstantSize));
-
-  descriptor_layouts_ = std::move(descriptor_layouts);
-  push_constant_ranges_ = std::move(push_constant_ranges);
-  layout_info_.emplace(VkPipelineLayoutCreateInfo{
-      VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
-      CONTAINER_SIZE(descriptor_layouts_),
-      descriptor_layouts_.data(),
-      CONTAINER_SIZE(push_constant_ranges_),
-      push_constant_ranges_.data(),
-  });
-  return *this;
-}
-
-PipelineBuilder& PipelineBuilder::SetColorBlend(
-    vector<VkPipelineColorBlendAttachmentState>&& color_blend_states) {
-  color_blend_states_ = std::move(color_blend_states);
-  return *this;
-}
-
-PipelineBuilder& PipelineBuilder::SetViewport(ViewportInfo&& info) {
-  viewport_info_.emplace(std::move(info));
-  // flip viewport as suggested by:
-  // https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport
-  auto& viewport = viewport_info_->first;
-  float height = viewport.y - viewport.height;
-  viewport.y += viewport.height;
-  viewport.height = height;
-  return *this;
-}
-
-PipelineBuilder& PipelineBuilder::SetRenderPass(const VkRenderPass& render_pass,
-                                                uint32_t subpass_index) {
-  render_pass_info_.emplace(render_pass, subpass_index);
-  return *this;
-}
-
-PipelineBuilder& PipelineBuilder::SetSampleCount(
-    VkSampleCountFlagBits sample_count) {
-  multisample_info_.rasterizationSamples = sample_count;
-  return *this;
-}
-
-PipelineBuilder& PipelineBuilder::AddShader(const ShaderInfo& info) {
-  shader_modules_.emplace_back(info.first,
-                               CreateShaderModule(context_, info.second));
-  return *this;
 }
 
 PipelineBuilder& PipelineBuilder::EnableDepthTest() {
@@ -260,16 +177,104 @@ PipelineBuilder& PipelineBuilder::EnableStencilTest() {
 }
 
 PipelineBuilder& PipelineBuilder::SetFrontFaceClockwise() {
-  rasterizer_info_.frontFace = VK_FRONT_FACE_CLOCKWISE;
+  rasterization_info_.frontFace = VK_FRONT_FACE_CLOCKWISE;
+  return *this;
+}
+
+PipelineBuilder& PipelineBuilder::SetMultisampling(
+    VkSampleCountFlagBits sample_count) {
+  multisampling_info_.rasterizationSamples = sample_count;
+  return *this;
+}
+
+PipelineBuilder& PipelineBuilder::SetVertexInput(
+    vector<VkVertexInputBindingDescription>&& binding_descriptions,
+    vector<VkVertexInputAttributeDescription>&& attribute_descriptions) {
+  binding_descriptions_ = std::move(binding_descriptions);
+  attribute_descriptions_ = std::move(attribute_descriptions);
+  vertex_input_info_.emplace(VkPipelineVertexInputStateCreateInfo{
+      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/nullflag,
+      CONTAINER_SIZE(binding_descriptions_),
+      binding_descriptions_.data(),
+      CONTAINER_SIZE(attribute_descriptions_),
+      attribute_descriptions_.data(),
+  });
+  return *this;
+}
+
+PipelineBuilder& PipelineBuilder::SetPipelineLayout(
+    vector<VkDescriptorSetLayout>&& descriptor_layouts,
+    vector<VkPushConstantRange>&& push_constant_ranges) {
+  // Make sure no more than 128 bytes constants are pushed in this pipeline.
+  vector<int> push_constant_sizes(push_constant_ranges.size());
+  for (int i = 0; i < push_constant_ranges.size(); ++i) {
+    push_constant_sizes[i] = push_constant_ranges[i].size;
+  }
+  const auto total_push_constant_size =
+      std::accumulate(push_constant_sizes.begin(),
+                      push_constant_sizes.end(), 0);
+  ASSERT_TRUE(total_push_constant_size <= kMaxPushConstantSize,
+              absl::StrFormat(
+                  "Pushing constant of total size %d bytes in the pipeline "
+                  "(break down: %s). To be compatible with all devices, the "
+                  "total size should not be greater than %d bytes.",
+                  total_push_constant_size,
+                  absl::StrJoin(push_constant_sizes, " + "),
+                  kMaxPushConstantSize));
+
+  descriptor_layouts_ = std::move(descriptor_layouts);
+  push_constant_ranges_ = std::move(push_constant_ranges);
+  pipeline_layout_info_.emplace(VkPipelineLayoutCreateInfo{
+      VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/nullflag,
+      CONTAINER_SIZE(descriptor_layouts_),
+      descriptor_layouts_.data(),
+      CONTAINER_SIZE(push_constant_ranges_),
+      push_constant_ranges_.data(),
+  });
+  return *this;
+}
+
+PipelineBuilder& PipelineBuilder::SetViewport(ViewportInfo&& info) {
+  viewport_info_.emplace(std::move(info));
+  // Flip the viewport as suggested by:
+  // https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport
+  auto& viewport = viewport_info_->first;
+  float height = viewport.y - viewport.height;
+  viewport.y += viewport.height;
+  viewport.height = height;
+  return *this;
+}
+
+PipelineBuilder& PipelineBuilder::SetRenderPass(const VkRenderPass& render_pass,
+                                                uint32_t subpass_index) {
+  render_pass_info_.emplace(render_pass, subpass_index);
+  return *this;
+}
+
+PipelineBuilder& PipelineBuilder::SetColorBlend(
+    vector<VkPipelineColorBlendAttachmentState>&& color_blend_states) {
+  color_blend_states_ = std::move(color_blend_states);
+  return *this;
+}
+
+PipelineBuilder& PipelineBuilder::AddShader(const ShaderInfo& info) {
+  shader_modules_.emplace_back(
+      /*shader_stage*/info.first,
+      CreateShaderModule(context_, /*file_path=*/info.second));
   return *this;
 }
 
 std::unique_ptr<Pipeline> PipelineBuilder::Build() {
   ASSERT_HAS_VALUE(vertex_input_info_, "Vertex input is not set");
-  ASSERT_HAS_VALUE(layout_info_, "Layout is not set");
+  ASSERT_HAS_VALUE(pipeline_layout_info_, "Pipeline layout is not set");
   ASSERT_HAS_VALUE(viewport_info_, "Viewport is not set");
   ASSERT_HAS_VALUE(render_pass_info_, "Render pass is not set");
   ASSERT_NON_EMPTY(color_blend_states_, "Color blend is not set");
+  ASSERT_NON_EMPTY(shader_modules_, "Shader is not set");
 
   const VkDevice& device = *context_->device();
   const VkAllocationCallbacks* allocator = *context_->allocator();
@@ -279,11 +284,11 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
   const auto color_blend_info = CreateColorBlendInfo(color_blend_states_);
 
   VkPipelineLayout pipeline_layout;
-  ASSERT_SUCCESS(vkCreatePipelineLayout(device, &layout_info_.value(),
+  ASSERT_SUCCESS(vkCreatePipelineLayout(device, &pipeline_layout_info_.value(),
                                         allocator, &pipeline_layout),
                  "Failed to create pipeline layout");
 
-  VkGraphicsPipelineCreateInfo pipeline_info{
+  const VkGraphicsPipelineCreateInfo pipeline_info{
       VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
@@ -293,17 +298,18 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
       &input_assembly_info_,
       /*pTessellationState=*/nullptr,
       &viewport_state_info,
-      &rasterizer_info_,
-      &multisample_info_,
+      &rasterization_info_,
+      &multisampling_info_,
       &depth_stencil_info_,
       &color_blend_info,
       &dynamic_state_info_,
       pipeline_layout,
       /*renderPass=*/render_pass_info_.value().first,
       /*subpass=*/render_pass_info_.value().second,
+      // 'basePipelineHandle' and 'basePipelineIndex' can be used to copy
+      // settings from another pipeline.
       /*basePipelineHandle=*/VK_NULL_HANDLE,
       /*basePipelineIndex=*/0,
-      // 'basePipelineHandle' can be used to copy settings from another piepeline
   };
 
   VkPipeline pipeline;
@@ -313,7 +319,8 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
                                 allocator, &pipeline),
       "Failed to create graphics pipeline");
 
-  // shader modules can be destroyed after pipeline is constructed
+  // Shader modules can be destroyed to save the host memory after the pipeline
+  // is created.
   for (auto& module : shader_modules_) {
     vkDestroyShaderModule(device, module.second, allocator);
   }

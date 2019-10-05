@@ -390,7 +390,7 @@ class MultisampleBuffer : public ImageBuffer {
 // Holds a small amount of data that can be modified per-frame efficiently.
 // To make it flexible, the user may use one chunk of memory for each frame,
 // just like the uniform buffer. What is different is that this data does not
-// need alignment, and the total size is very limited. According to Vulkan
+// need alignment, and the total size is very limited. According to the Vulkan
 // specification, to make it compatible with all devices, we only allow the user
 // to push at most 128 bytes per-frame.
 class PushConstant {

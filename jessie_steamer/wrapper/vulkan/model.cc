@@ -309,7 +309,7 @@ void Model::Update(VkExtent2D frame_size, VkSampleCountFlagBits sample_count,
           },
       })
       .SetRenderPass(*render_pass, subpass_index)
-      .SetSampleCount(sample_count);
+      .SetMultisampling(sample_count);
   for (const auto& info : shader_infos_) {
     pipeline_builder_->AddShader(info);
   }

@@ -77,7 +77,8 @@ class RefCountedObject {
   // the identifier, and the value is a pair of the actual object and its
   // reference count. The object will be erased from the pool if it no longer
   // has any holder.
-  using ObjectAndCount = std::pair<std::unique_ptr<ObjectType>, int>;
+  using ObjectAndCount = std::pair</*object_ptr*/std::unique_ptr<ObjectType>,
+                                   /*ref_count*/int>;
   static absl::flat_hash_map<std::string, ObjectAndCount> ref_count_map_;
 
   // Identifier of the object.

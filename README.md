@@ -2,7 +2,6 @@ Files that are waiting to be cleaned up:
 
 wrapper
 - model
-- pipeline
 - text
 - text_util
 - util
@@ -193,7 +192,7 @@ Both of them are used to pass uniform data. When constructed, both of them will
 allocate memory on both host and device. Before rendering a frame, the user
 should acquire a pointer to the host data, populate it and flush to the device.
 
-According to [Vulkan specification](https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap36.html#limits-minmax),
+According to the [Vulkan specification](https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap36.html#limits-minmax),
 to be compatible of all devices, we only allow **PushConstant** to have at most
 128 bytes for each frame. Besides, since it is possible to push constant to one
 graphics pipeline using multiple instances of **PushConstant**, we also check
@@ -279,7 +278,7 @@ character textures one at a time.
 to the image view, extent, format and sample count. These information should be
 enough for setting an image as an attachment in the render pass. All of its
 subclasses can be directly used by the user, except for **SwapchainImage**,
-which is handled by **Swapchain**:
+which is managed by **Swapchain**:
 
 - **SwapchainImage** wraps an image retrieved from the swapchain.
 - **OffscreenImage** creates an image that can be used as offscreen rendering
@@ -318,6 +317,25 @@ It does not own the texture, hence the user is responsible for keeping the
 existence of the texture.
 
 ### 3.2.5 Pipeline (pipeline and pipeline_util)
+
+We provide a builder class to create instances of **Pipeline**. The user may
+set up depth and stencil testing, front face direction, multisampling, vertex
+input bindings and attributes, descriptor set layouts, push constant ranges,
+viewport and scissor, render pass and subpass, color blending, and multiple
+shaders used in the pipeline through **PipelineBuilder**. We also provide helper
+functions in *pipeline_util* for setting color blending and vertex input
+bindings and attributes.
+
+If any state is changed, the user can reuse the builder, update the states and
+rebuild the pipeline. For example, after the window is resized, the user may
+need to create a new pipeline with updated render pass and viewport. Note that
+to save the host memory, we release shader modules once the pipeline is built,
+hence the user should add all shaders again through the builder before using it
+to build another pipeline.
+
+Setting up such a pipeline can be tiring. This is usually managed by high-level
+wrappers (*i.e.* model renderer and text renderer), hence the user would not
+directly interact with it.
 
 ### 3.2.6 Render pass (render_pass and render_pass_util)
 
