@@ -278,7 +278,7 @@ class UniformBuffer : public DataBuffer {
   // Pointer to data on the host.
   char* data_;
 
-  // Size of each chunk of data on the host.
+  // Size of each chunk of data in bytes on the host.
   size_t chunk_data_size_;
 
   // Since we have to align the memory offset with
@@ -393,6 +393,8 @@ class MultisampleBuffer : public ImageBuffer {
 // need alignment, and the total size is very limited. According to the Vulkan
 // specification, to make it compatible with all devices, we only allow the user
 // to push at most 128 bytes per-frame.
+// The user should use 'HostData()' to update the data on the host, and then
+// call 'Flush()' to send it to the device.
 class PushConstant {
  public:
   // 'size_per_frame' must be less than 128.
@@ -411,9 +413,12 @@ class PushConstant {
     return reinterpret_cast<DataType*>(data_ + size_per_frame_ * frame);
   }
 
+  // Flushes the data from host to device. Data of 'size_per_frame_' will be
+  // sent, and written to the target with 'target_offset' bytes.
   void Flush(const VkCommandBuffer& command_buffer,
              const VkPipelineLayout& pipeline_layout,
-             int frame, uint32_t offset, VkShaderStageFlags shader_stage) const;
+             int frame, uint32_t target_offset,
+             VkShaderStageFlags shader_stage) const;
 
   // Accessors.
   uint32_t size_per_frame() const { return size_per_frame_; }
@@ -422,7 +427,7 @@ class PushConstant {
   // Pointer to data on the host.
   char* data_;
 
-  // Size of data for one frame on the host.
+  // Size of data for one frame in bytes.
   uint32_t size_per_frame_;
 };
 

@@ -29,7 +29,7 @@ VkPipelineColorBlendAttachmentState GetColorBlendState(bool enable_blend);
 /* Vertex input binding */
 
 // Specifies that at 'binding_point', each vertex will get data of 'data_size'.
-// 'instancing' determines whether to update data per instance or per vertex.
+// 'instancing' determines whether to update data per-instance or per-vertex.
 // Note that the binding point is not a binding number in the shader, but the
 // vertex buffer binding point used in vkCmdBindVertexBuffers(),
 struct VertexInputBinding {
@@ -39,7 +39,7 @@ struct VertexInputBinding {
 };
 
 // Convenient function to return an instance of VertexInputBinding, assuming
-// each vertex will get data of DataType, which is updated per vertex.
+// each vertex will get data of DataType, which is updated per-vertex.
 template <typename DataType>
 VertexInputBinding GetPerVertexBinding() {
   return VertexInputBinding{
@@ -70,7 +70,7 @@ struct VertexInputAttribute {
 };
 
 // Convenient function to return an instance of VertexInputAttribute, assuming
-// each vertex will get data of DataType, which is updated per vertex.
+// each vertex will get data of DataType, which is updated per-vertex.
 // For now this is only implemented for VertexAttribute2D and VertexAttribute3D.
 template <typename DataType>
 VertexInputAttribute GetPerVertexAttribute();

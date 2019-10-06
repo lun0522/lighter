@@ -6,7 +6,6 @@
 //
 
 #include <array>
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -36,12 +35,9 @@ namespace {
 
 using namespace wrapper::vulkan;
 
-using common::file::GetResourcePath;
-using common::file::GetShaderPath;
+constexpr int kNumFramesInFlight = 2;
 
-constexpr int kNumFrameInFlight = 2;
-
-enum class SubpassIndex : int { kModel = 0, kText, kNumSubpass };
+enum class SubpassIndex : int { kModel = 0, kText, kNumSubpasses };
 
 struct Transformation {
   ALIGN_MAT4 glm::mat4 proj_view_model;
@@ -71,46 +67,49 @@ class CubeApp : public Application {
 } /* namespace */
 
 CubeApp::CubeApp() : Application{"Cube", WindowContext::Config{}} {
+  using common::file::GetResourcePath;
+  using common::file::GetShaderPath;
+
   // command buffer
-  command_ = absl::make_unique<PerFrameCommand>(context(), kNumFrameInFlight);
+  command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
   // push constant
   push_constant_ = absl::make_unique<PushConstant>(
-      context(), sizeof(Transformation), kNumFrameInFlight);
+      context(), sizeof(Transformation), kNumFramesInFlight);
 
   // render pass builder
   render_pass_builder_ = naive_render_pass::GetNaiveRenderPassBuilder(
-      context(), static_cast<int>(SubpassIndex::kNumSubpass),
+      context(), static_cast<int>(SubpassIndex::kNumSubpasses),
       /*num_framebuffers=*/window_context_.num_swapchain_images(),
       /*present_to_screen=*/true, window_context_.multisampling_mode());
 
   // model
   ModelBuilder::TextureBindingMap bindings{};
-  bindings[model::TextureType::kDiffuse] = {
+  bindings[ModelBuilder::TextureType::kDiffuse] = {
       /*binding_point=*/1,
       {SharedTexture::SingleTexPath{GetResourcePath("texture/statue.jpg")}},
   };
   model_ =
       ModelBuilder{
-          context(), kNumFrameInFlight, /*is_opaque=*/true,
+          context(), kNumFramesInFlight,
           ModelBuilder::SingleMeshResource{GetResourcePath("model/cube.obj"),
               /*obj_index_base=*/1, bindings}}
-          .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                       GetShaderPath("vulkan/simple_3d.vert.spv")})
-          .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                       GetShaderPath("vulkan/simple_3d.frag.spv")})
-          .set_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
-                              {{push_constant_.get(), /*offset=*/0}}})
+          .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
+                      GetShaderPath("vulkan/simple_3d.vert.spv")})
+          .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                      GetShaderPath("vulkan/simple_3d.frag.spv")})
+          .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
+          .AddPushConstant(push_constant_.get(), /*target_offset=*/0)
           .Build();
 
   // text
   constexpr CharLoader::Font kFont = Text::Font::kGeorgia;
   constexpr int kFontHeight = 100;
   static_text_ = absl::make_unique<StaticText>(
-      context(), kNumFrameInFlight,
+      context(), kNumFramesInFlight,
       std::vector<std::string>{"FPS: "}, kFont, kFontHeight);
   dynamic_text_ = absl::make_unique<DynamicText>(
-      context(), kNumFrameInFlight,
+      context(), kNumFramesInFlight,
       std::vector<std::string>{"01234567890"}, kFont, kFontHeight);
 }
 
@@ -143,7 +142,8 @@ void CubeApp::Recreate() {
       .Build();
 
   // model
-  model_->Update(frame_size, depth_stencil_image_->sample_count(),
+  model_->Update(/*is_opaque=*/true, frame_size,
+                 depth_stencil_image_->sample_count(),
                  *render_pass_, static_cast<int>(SubpassIndex::kModel));
 
   // text
@@ -204,7 +204,7 @@ void CubeApp::MainLoop() {
       Recreate();
     }
 
-    current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
+    current_frame_ = (current_frame_ + 1) % kNumFramesInFlight;
   }
   context()->WaitIdle();  // wait for all async operations finish
 }

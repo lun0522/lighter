@@ -96,7 +96,7 @@ std::unique_ptr<RenderPassBuilder> CreateRenderPassBuilder(
 }
 
 std::unique_ptr<RenderPass> BuildRenderPass(
-    VkExtent2D target_extent,
+    const VkExtent2D& target_extent,
     RenderPassBuilder::GetImage&& get_target_image,
     RenderPassBuilder* render_pass_builder) {
   constexpr int kColorAttachmentIndex = 0;
@@ -131,12 +131,13 @@ std::unique_ptr<PipelineBuilder> CreatePipelineBuilder(
               {pipeline::GetPerVertexAttribute<VertexAttribute2D>()}))
       .SetPipelineLayout({descriptor_layout}, /*push_constant_ranges=*/{})
       .SetColorBlend({pipeline::GetColorBlendState(enable_color_blend)})
-      .SetFrontFaceClockwise();  // since we will flip y coordinates
+      // Reverse the front face direction since we will flip y coordinates.
+      .SetFrontFaceDirection(/*counter_clockwise=*/false);
 
   return pipeline_builder;
 }
 
-std::unique_ptr<Pipeline> BuildPipeline(VkExtent2D target_extent,
+std::unique_ptr<Pipeline> BuildPipeline(const VkExtent2D& target_extent,
                                         const VkRenderPass& render_pass,
                                         PipelineBuilder* pipeline_builder) {
   using common::file::GetShaderPath;

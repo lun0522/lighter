@@ -791,10 +791,10 @@ PushConstant::PushConstant(const SharedBasicContext& context,
 
 void PushConstant::Flush(const VkCommandBuffer& command_buffer,
                          const VkPipelineLayout& pipeline_layout,
-                         int frame, uint32_t offset,
+                         int frame, uint32_t target_offset,
                          VkShaderStageFlags shader_stage) const {
   vkCmdPushConstants(command_buffer, pipeline_layout, shader_stage,
-                     offset, size_per_frame_, HostData<void>(frame));
+                     target_offset, size_per_frame_, HostData<void>(frame));
 }
 
 } /* namespace vulkan */

@@ -118,9 +118,11 @@ absl::optional<std::string> FindUnsupported(
   return absl::nullopt;
 }
 
-inline float GetWidthHeightRatio(VkExtent2D extent) {
+inline float GetWidthHeightRatio(const VkExtent2D& extent) {
   return static_cast<float>(extent.width) / extent.height;
 }
+
+inline VkBool32 ToVkBool(bool value) { return value ? VK_TRUE : VK_FALSE; }
 
 } /* namespace util */
 

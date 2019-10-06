@@ -25,7 +25,7 @@ using VertexAttribute = VertexInputAttribute::Attribute;
 
 VkPipelineColorBlendAttachmentState GetColorBlendState(bool enable_blend) {
   return VkPipelineColorBlendAttachmentState{
-      /*blendEnable=*/static_cast<VkBool32>(enable_blend ? VK_TRUE : VK_FALSE),
+      /*blendEnable=*/util::ToVkBool(enable_blend),
       /*srcColorBlendFactor=*/VK_BLEND_FACTOR_SRC_ALPHA,
       /*dstColorBlendFactor=*/VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
       /*colorBlendOp=*/VK_BLEND_OP_ADD,

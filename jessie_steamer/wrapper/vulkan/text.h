@@ -31,7 +31,7 @@ class Text {
   enum class Align { kLeft, kCenter, kRight };
 
   // Should be called after initialization and whenever frame is resized.
-  void Update(VkExtent2D frame_size,
+  void Update(const VkExtent2D& frame_size,
               const RenderPass& render_pass, uint32_t subpass_index);
 
  protected:
@@ -58,7 +58,7 @@ class StaticText : public Text {
 
   // Renders text and returns left and right boundary.
   glm::vec2 Draw(const VkCommandBuffer& command_buffer,
-                 int frame, VkExtent2D frame_size, int text_index,
+                 int frame, const VkExtent2D& frame_size, int text_index,
                  const glm::vec3& color, float alpha, float height,
                  float base_x, float base_y, Align align);
 
@@ -83,9 +83,9 @@ class DynamicText : public Text {
 
   // Renders text and returns left and right boundary.
   glm::vec2 Draw(const VkCommandBuffer& command_buffer,
-                 int frame, VkExtent2D frame_size, const std::string& text,
-                 const glm::vec3& color, float alpha, float height,
-                 float base_x, float base_y, Align align);
+                 int frame, const VkExtent2D& frame_size,
+                 const std::string& text, const glm::vec3& color, float alpha,
+                 float height, float base_x, float base_y, Align align);
 
  private:
   CharLoader char_loader_;

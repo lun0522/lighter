@@ -6,7 +6,6 @@
 //
 
 #include <array>
-#include <iostream>
 #include <numeric>
 #include <random>
 #include <vector>
@@ -37,12 +36,10 @@ namespace {
 
 using namespace wrapper::vulkan;
 
-using common::file::GetResourcePath;
-using common::file::GetShaderPath;
 using std::vector;
 
-constexpr int kNumFrameInFlight = 2;
-constexpr int kNumAsteroidRing = 3;
+constexpr int kNumFramesInFlight = 2;
+constexpr int kNumAsteroidRings = 3;
 
 struct Light {
   ALIGN_VEC4 glm::vec4 direction_time;
@@ -93,6 +90,12 @@ class PlanetApp : public Application {
 } /* namespace */
 
 PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
+  using common::file::GetResourcePath;
+  using common::file::GetShaderPath;
+  using WindowKey = common::Window::KeyMap;
+  using ControlKey = common::UserControlledCamera::ControlKey;
+  using TextureType = ModelBuilder::TextureType;
+
   // camera
   common::Camera::Config config;
   config.position = glm::vec3{1.6f, -5.1f, -5.9f};
@@ -100,8 +103,6 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
   camera_ = absl::make_unique<common::UserControlledCamera>(
       config, common::UserControlledCamera::ControlConfig{});
 
-  using WindowKey = common::Window::KeyMap;
-  using ControlKey = common::UserControlledCamera::ControlKey;
   window_context_.window()
       .SetCursorHidden(true)
       .RegisterMoveCursorCallback([this](double x_pos, double y_pos) {
@@ -130,15 +131,15 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
                                 [this]() { should_quit_ = true; });
 
   // command buffer
-  command_ = absl::make_unique<PerFrameCommand>(context(), kNumFrameInFlight);
+  command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
   // uniform buffer and push constants
   light_uniform_ = absl::make_unique<UniformBuffer>(
-      context(), sizeof(Light), kNumFrameInFlight);
+      context(), sizeof(Light), kNumFramesInFlight);
   planet_constant_ = absl::make_unique<PushConstant>(
-      context(), sizeof(PlanetTrans), kNumFrameInFlight);
+      context(), sizeof(PlanetTrans), kNumFramesInFlight);
   skybox_constant_ = absl::make_unique<PushConstant>(
-      context(), sizeof(SkyboxTrans), kNumFrameInFlight);
+      context(), sizeof(SkyboxTrans), kNumFramesInFlight);
 
   // render pass builder
   render_pass_builder_ = naive_render_pass::GetNaiveRenderPassBuilder(
@@ -147,37 +148,27 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
       /*present_to_screen=*/true, window_context_.multisampling_mode());
 
   // model
-  Descriptor::Info light_desc_info{
-      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-      VK_SHADER_STAGE_FRAGMENT_BIT,
-      /*bindings=*/{{
-          /*binding_point=*/1,
-          /*array_length=*/1,
-      }},
-  };
   ModelBuilder::TextureBindingMap planet_bindings;
-  planet_bindings[model::TextureType::kDiffuse] = {
+  planet_bindings[TextureType::kDiffuse] = {
       /*binding_point=*/2,
       {SharedTexture::SingleTexPath{GetResourcePath("texture/planet.png")}},
   };
   planet_model_ =
       ModelBuilder{
-          context(), kNumFrameInFlight, /*is_opaque=*/true,
+          context(), kNumFramesInFlight,
           ModelBuilder::SingleMeshResource{
               GetResourcePath("model/sphere.obj"),
-              /*obj_index_base=*/1, planet_bindings},
-      }
-          .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                       GetShaderPath("vulkan/planet.vert.spv")})
-          .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                       GetShaderPath("vulkan/planet.frag.spv")})
-          .add_uniform_usage(Descriptor::Info{light_desc_info})
-          .add_uniform_resource(
-              /*binding_point=*/1, /*info_gen=*/[this](int frame) {
-                return light_uniform_->GetDescriptorInfo(frame);
-              })
-          .set_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
-                              {{planet_constant_.get(), /*offset=*/0}}})
+              /*obj_index_base=*/1, planet_bindings}}
+          .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
+                      GetShaderPath("vulkan/planet.vert.spv")})
+          .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                      GetShaderPath("vulkan/planet.frag.spv")})
+          .AddUniformBinding(
+              VK_SHADER_STAGE_FRAGMENT_BIT,
+              /*bindings=*/{{/*binding_point=*/1, /*array_length=*/1}})
+          .AddUniformBuffer(/*binding_point=*/1, *light_uniform_)
+          .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
+          .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
           .Build();
 
   using VertexAttribute = pipeline::VertexInputAttribute::Attribute;
@@ -195,33 +186,30 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
     });
     attrib_offset += sizeof(glm::vec4);
   }
-  light_desc_info.shader_stage |= VK_SHADER_STAGE_VERTEX_BIT;
   asteroid_model_ =
       ModelBuilder{
-          context(), kNumFrameInFlight, /*is_opaque=*/true,
+          context(), kNumFramesInFlight,
           ModelBuilder::MultiMeshResource{
               GetResourcePath("model/rock/rock.obj"),
               GetResourcePath("model/rock"),
-              {{model::TextureType::kDiffuse, /*binding_point=*/2}}},
-      }
-          .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                       GetShaderPath("vulkan/asteroid.vert.spv")})
-          .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                       GetShaderPath("vulkan/planet.frag.spv")})
-          .add_instancing({per_instance_attribs,
-                           static_cast<uint32_t>(sizeof(Asteroid)),
-                           per_asteroid_data_.get()})
-          .add_uniform_usage(Descriptor::Info{light_desc_info})
-          .add_uniform_resource(
-              /*binding_point=*/1, /*info_gen=*/[this](int frame) {
-                return light_uniform_->GetDescriptorInfo(frame);
-              })
-          .set_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
-                              {{planet_constant_.get(), /*offset=*/0}}})
+              {{TextureType::kDiffuse, /*binding_point=*/2}}}}
+          .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
+                      GetShaderPath("vulkan/asteroid.vert.spv")})
+          .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                      GetShaderPath("vulkan/planet.frag.spv")})
+          .AddPerInstanceBuffer({per_instance_attribs,
+                                 static_cast<uint32_t>(sizeof(Asteroid)),
+                                 per_asteroid_data_.get()})
+          .AddUniformBinding(
+              VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+              /*bindings=*/{{/*binding_point=*/1, /*array_length=*/1}})
+          .AddUniformBuffer(/*binding_point=*/1, *light_uniform_)
+          .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
+          .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
           .Build();
 
   ModelBuilder::TextureBindingMap skybox_bindings;
-  skybox_bindings[model::TextureType::kCubemap] = {
+  skybox_bindings[TextureType::kCubemap] = {
       /*binding_point=*/1, {
           SharedTexture::CubemapPath{
               /*directory=*/GetResourcePath("texture/universe"),
@@ -232,17 +220,16 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
   };
   skybox_model_ =
       ModelBuilder{
-          context(), kNumFrameInFlight, /*is_opaque=*/true,
+          context(), kNumFramesInFlight,
           ModelBuilder::SingleMeshResource{
               GetResourcePath("model/skybox.obj"),
-              /*obj_index_base=*/1, skybox_bindings},
-      }
-          .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                       GetShaderPath("vulkan/skybox.vert.spv")})
-          .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                       GetShaderPath("vulkan/skybox.frag.spv")})
-          .set_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
-                              {{skybox_constant_.get(), /*offset=*/0}}})
+              /*obj_index_base=*/1, skybox_bindings}}
+          .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
+                      GetShaderPath("vulkan/skybox.vert.spv")})
+          .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                      GetShaderPath("vulkan/skybox.frag.spv")})
+          .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
+          .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
           .Build();
 }
 
@@ -279,18 +266,19 @@ void PlanetApp::Recreate() {
                      window_context_.window().GetCursorPos());
 
   // model
+  constexpr bool kIsObjectOpaque = true;
   const auto sample_count = depth_stencil_image_->sample_count();
-  planet_model_->Update(frame_size, sample_count,
+  planet_model_->Update(kIsObjectOpaque, frame_size, sample_count,
                         *render_pass_, /*subpass_index=*/0);
-  asteroid_model_->Update(frame_size, sample_count,
+  asteroid_model_->Update(kIsObjectOpaque, frame_size, sample_count,
                           *render_pass_, /*subpass_index=*/0);
-  skybox_model_->Update(frame_size, sample_count,
+  skybox_model_->Update(kIsObjectOpaque, frame_size, sample_count,
                         *render_pass_, /*subpass_index=*/0);
 }
 
 void PlanetApp::GenAsteroidModels() {
-  const std::array<int, kNumAsteroidRing> num_asteroid = {300, 500, 700};
-  const std::array<float, kNumAsteroidRing> radii = {6.0f, 12.0f,  18.0f};
+  const std::array<int, kNumAsteroidRings> num_asteroid = {300, 500, 700};
+  const std::array<float, kNumAsteroidRings> radii = {6.0f, 12.0f,  18.0f};
 
   std::random_device device;
   std::mt19937 rand_gen{device()};
@@ -304,7 +292,7 @@ void PlanetApp::GenAsteroidModels() {
   vector<Asteroid> asteroids;
   asteroids.reserve(num_asteroids_);
 
-  for (int ring = 0; ring < kNumAsteroidRing; ++ring) {
+  for (int ring = 0; ring < kNumAsteroidRings; ++ring) {
     for (int i = 0; i < num_asteroid[ring]; ++i) {
       glm::mat4 model{1.0f};
       model = glm::rotate(model, glm::radians(angle_gen(rand_gen)),
@@ -371,7 +359,7 @@ void PlanetApp::MainLoop() {
       Recreate();
     }
 
-    current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
+    current_frame_ = (current_frame_ + 1) % kNumFramesInFlight;
     camera_->SetActivity(true);  // not activated until first frame is displayed
   }
   context()->WaitIdle();  // wait for all async operations finish

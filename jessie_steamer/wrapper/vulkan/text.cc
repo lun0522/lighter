@@ -91,7 +91,7 @@ Text::Text(SharedBasicContext context, int num_frames)
       .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)});
 }
 
-void Text::Update(VkExtent2D frame_size,
+void Text::Update(const VkExtent2D& frame_size,
                   const RenderPass& render_pass, uint32_t subpass_index) {
   using common::file::GetShaderPath;
   pipeline_ = pipeline_builder_
@@ -158,8 +158,8 @@ StaticText::StaticText(SharedBasicContext context,
                                       /*push_constant_ranges=*/{});
 }
 
-glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer,
-                           int frame, VkExtent2D frame_size, int text_index,
+glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer, int frame,
+                           const VkExtent2D& frame_size, int text_index,
                            const glm::vec3& color, float alpha, float height,
                            float base_x, float base_y, Align align) {
   UpdateUniformBuffer(frame, color, alpha);
@@ -223,9 +223,9 @@ DynamicText::DynamicText(SharedBasicContext context,
 }
 
 glm::vec2 DynamicText::Draw(
-    const VkCommandBuffer& command_buffer, int frame, VkExtent2D frame_size,
-    const string& text, const glm::vec3& color, float alpha, float height,
-    float base_x, float base_y, Align align) {
+    const VkCommandBuffer& command_buffer, int frame,
+    const VkExtent2D& frame_size, const string& text, const glm::vec3& color,
+    float alpha, float height, float base_x, float base_y, Align align) {
   UpdateUniformBuffer(frame, color, alpha);
 
   const float frame_width_height_ratio = util::GetWidthHeightRatio(frame_size);

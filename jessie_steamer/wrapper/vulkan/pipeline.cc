@@ -165,19 +165,22 @@ PipelineBuilder::PipelineBuilder(SharedBasicContext context)
   };
 }
 
-PipelineBuilder& PipelineBuilder::EnableDepthTest() {
-  depth_stencil_info_.depthTestEnable = VK_TRUE;
-  depth_stencil_info_.depthWriteEnable = VK_TRUE;
+PipelineBuilder& PipelineBuilder::SetDepthTestEnabled(bool enable_test) {
+  depth_stencil_info_.depthTestEnable = util::ToVkBool(enable_test);
+  depth_stencil_info_.depthWriteEnable = util::ToVkBool(enable_test);
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::EnableStencilTest() {
-  depth_stencil_info_.stencilTestEnable = VK_TRUE;
+PipelineBuilder& PipelineBuilder::SetStencilTestEnable(bool enable_test) {
+  depth_stencil_info_.stencilTestEnable = util::ToVkBool(enable_test);
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::SetFrontFaceClockwise() {
-  rasterization_info_.frontFace = VK_FRONT_FACE_CLOCKWISE;
+PipelineBuilder& PipelineBuilder::SetFrontFaceDirection(
+    bool counter_clockwise) {
+  rasterization_info_.frontFace = counter_clockwise
+                                      ? VK_FRONT_FACE_COUNTER_CLOCKWISE
+                                      : VK_FRONT_FACE_CLOCKWISE;
   return *this;
 }
 

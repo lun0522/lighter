@@ -6,8 +6,6 @@
 //
 
 #include <array>
-#include <iostream>
-#include <string>
 #include <vector>
 
 #include "jessie_steamer/application/vulkan/util.h"
@@ -36,10 +34,7 @@ namespace {
 
 using namespace wrapper::vulkan;
 
-using common::file::GetResourcePath;
-using common::file::GetShaderPath;
-
-constexpr int kNumFrameInFlight = 2;
+constexpr int kNumFramesInFlight = 2;
 
 struct NanosuitVertTrans {
   ALIGN_MAT4 glm::mat4 view_model;
@@ -82,6 +77,12 @@ class NanosuitApp : public Application {
 } /* namespace */
 
 NanosuitApp::NanosuitApp() : Application{"Nanosuit", WindowContext::Config{}} {
+  using common::file::GetResourcePath;
+  using common::file::GetShaderPath;
+  using WindowKey = common::Window::KeyMap;
+  using ControlKey = common::UserControlledCamera::ControlKey;
+  using TextureType = ModelBuilder::TextureType;
+
   // camera
   common::Camera::Config config;
   common::UserControlledCamera::ControlConfig control_config;
@@ -91,8 +92,6 @@ NanosuitApp::NanosuitApp() : Application{"Nanosuit", WindowContext::Config{}} {
   camera_ = absl::make_unique<common::UserControlledCamera>(
       config, control_config);
 
-  using WindowKey = common::Window::KeyMap;
-  using ControlKey = common::UserControlledCamera::ControlKey;
   window_context_.window()
       .SetCursorHidden(true)
       .RegisterMoveCursorCallback([this](double x_pos, double y_pos) {
@@ -121,15 +120,15 @@ NanosuitApp::NanosuitApp() : Application{"Nanosuit", WindowContext::Config{}} {
                                 [this]() { should_quit_ = true; });
 
   // command buffer
-  command_ = absl::make_unique<PerFrameCommand>(context(), kNumFrameInFlight);
+  command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
   // uniform buffer and push constants
   nanosuit_vert_uniform_ = absl::make_unique<UniformBuffer>(
-      context(), sizeof(NanosuitVertTrans), kNumFrameInFlight);
+      context(), sizeof(NanosuitVertTrans), kNumFramesInFlight);
   nanosuit_frag_constant_ = absl::make_unique<PushConstant>(
-      context(), sizeof(NanosuitFragTrans), kNumFrameInFlight);
+      context(), sizeof(NanosuitFragTrans), kNumFramesInFlight);
   skybox_constant_ = absl::make_unique<PushConstant>(
-      context(), sizeof(SkyboxTrans), kNumFrameInFlight);
+      context(), sizeof(SkyboxTrans), kNumFramesInFlight);
 
   // render pass builder
   render_pass_builder_ = naive_render_pass::GetNaiveRenderPassBuilder(
@@ -149,55 +148,44 @@ NanosuitApp::NanosuitApp() : Application{"Nanosuit", WindowContext::Config{}} {
   };
 
   ModelBuilder::BindingPointMap nanosuit_bindings{
-      {model::TextureType::kDiffuse, /*binding_point=*/1},
-      {model::TextureType::kSpecular, /*binding_point=*/2},
-      {model::TextureType::kReflection, /*binding_point=*/3},
-  };
-  Descriptor::Info trans_desc_info{
-      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-      VK_SHADER_STAGE_VERTEX_BIT,
-      /*bindings=*/{{
-          /*binding_point=*/0,
-          /*array_length=*/1,
-      }},
+      {TextureType::kDiffuse, /*binding_point=*/1},
+      {TextureType::kSpecular, /*binding_point=*/2},
+      {TextureType::kReflection, /*binding_point=*/3},
   };
   nanosuit_model_ =
       ModelBuilder{
-          context(), kNumFrameInFlight, /*is_opaque=*/true,
+          context(), kNumFramesInFlight,
           ModelBuilder::MultiMeshResource{
               GetResourcePath("model/nanosuit/nanosuit.obj"),
               GetResourcePath("model/nanosuit"),
-              nanosuit_bindings},
-      }
-          .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                       GetShaderPath("vulkan/nanosuit.vert.spv")})
-          .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                       GetShaderPath("vulkan/nanosuit.frag.spv")})
-          .add_uniform_usage(std::move(trans_desc_info))
-          .add_uniform_resource(
-              /*binding_point=*/0, /*info_gen=*/[this](int frame) {
-                return nanosuit_vert_uniform_->GetDescriptorInfo(frame);
-              })
-          .set_push_constant({VK_SHADER_STAGE_FRAGMENT_BIT,
-                              {{nanosuit_frag_constant_.get(), /*offset=*/0}}})
-          .add_shared_texture(Descriptor::TextureType::kCubemap, skybox_binding)
+              nanosuit_bindings}}
+          .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
+                      GetShaderPath("vulkan/nanosuit.vert.spv")})
+          .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                      GetShaderPath("vulkan/nanosuit.frag.spv")})
+          .AddUniformBinding(
+              VK_SHADER_STAGE_VERTEX_BIT,
+              /*bindings=*/{{/*binding_point=*/0, /*array_length=*/1}})
+          .AddUniformBuffer(/*binding_point=*/0, *nanosuit_vert_uniform_)
+          .SetPushConstantShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT)
+          .AddPushConstant(nanosuit_frag_constant_.get(), /*target_offset=*/0)
+          .AddSharedTextures(Descriptor::TextureType::kCubemap, skybox_binding)
           .Build();
 
   skybox_binding.binding_point = 1;
   skybox_model_ =
       ModelBuilder{
-          context(), kNumFrameInFlight, /*is_opaque=*/true,
+          context(), kNumFramesInFlight,
           ModelBuilder::SingleMeshResource{
               GetResourcePath("model/skybox.obj"),
               /*obj_index_base=*/1,
-              {{model::TextureType::kCubemap, skybox_binding}}},
-      }
-          .add_shader({VK_SHADER_STAGE_VERTEX_BIT,
-                       GetShaderPath("vulkan/skybox.vert.spv")})
-          .add_shader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                       GetShaderPath("vulkan/skybox.frag.spv")})
-          .set_push_constant({VK_SHADER_STAGE_VERTEX_BIT,
-                              {{skybox_constant_.get(), /*offset=*/0}}})
+              {{TextureType::kCubemap, skybox_binding}}}}
+          .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
+                      GetShaderPath("vulkan/skybox.vert.spv")})
+          .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
+                      GetShaderPath("vulkan/skybox.frag.spv")})
+          .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
+          .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
           .Build();
 }
 
@@ -234,10 +222,11 @@ void NanosuitApp::Recreate() {
                      window_context_.window().GetCursorPos());
 
   // model
+  constexpr bool kIsObjectOpaque = true;
   const auto sample_count = depth_stencil_image_->sample_count();
-  nanosuit_model_->Update(frame_size, sample_count,
+  nanosuit_model_->Update(kIsObjectOpaque, frame_size, sample_count,
                           *render_pass_, /*subpass_index=*/0);
-  skybox_model_->Update(frame_size, sample_count,
+  skybox_model_->Update(kIsObjectOpaque, frame_size, sample_count,
                         *render_pass_, /*subpass_index=*/0);
 }
 
@@ -292,7 +281,7 @@ void NanosuitApp::MainLoop() {
       Recreate();
     }
 
-    current_frame_ = (current_frame_ + 1) % kNumFrameInFlight;
+    current_frame_ = (current_frame_ + 1) % kNumFramesInFlight;
     camera_->SetActivity(true);  // not activated until first frame is displayed
   }
   context()->WaitIdle();  // wait for all async operations finish

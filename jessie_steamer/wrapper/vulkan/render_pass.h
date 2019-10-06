@@ -207,6 +207,11 @@ class RenderPass {
   // Overloads.
   const VkRenderPass& operator*() const { return render_pass_; }
 
+  // Accessors.
+  int num_color_attachments(int subpass_index) const {
+    return num_color_attachments_.at(subpass_index);
+  }
+
  private:
   friend std::unique_ptr<RenderPass> RenderPassBuilder::Build() const;
 
@@ -216,13 +221,15 @@ class RenderPass {
              const VkRenderPass& render_pass,
              std::vector<VkClearValue> clear_values,
              const VkExtent2D& framebuffer_size,
-             std::vector<VkFramebuffer>&& framebuffers)
+             std::vector<VkFramebuffer>&& framebuffers,
+             std::vector<int>&& num_color_attachments)
       : context_{std::move(context)},
         num_subpasses_{num_subpasses},
         render_pass_{render_pass},
         clear_values_{std::move(clear_values)},
         framebuffer_size_{framebuffer_size},
-        framebuffers_{std::move(framebuffers)} {}
+        framebuffers_{std::move(framebuffers)},
+        num_color_attachments_{std::move(num_color_attachments)} {}
 
   // Pointer to context.
   const SharedBasicContext context_;
@@ -242,6 +249,9 @@ class RenderPass {
 
   // Framebuffers that are used as rendering targets.
   const std::vector<VkFramebuffer> framebuffers_;
+
+  // Number of color attachments in the subpass with the same index.
+  const std::vector<int> num_color_attachments_;
 };
 
 } /* namespace vulkan */

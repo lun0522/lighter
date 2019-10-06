@@ -32,29 +32,22 @@
 namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
-namespace model {
 
-using TextureType = common::ModelLoader::TextureType;
-using TexPerMesh = std::array<std::vector<std::unique_ptr<SamplableImage>>,
-                              static_cast<int>(TextureType::kNumType)>;
-
-// For pushing constants.
-struct PushConstantInfo {
-  struct Info {
-    const PushConstant* push_constant;
-    uint32_t offset;
-  };
-  VkShaderStageFlags shader_stage;
-  std::vector<Info> infos;
-};
-
-} /* namespace model */
-
+// Forward declarations.
 class Model;
 
 class ModelBuilder {
  public:
-  using BufferInfoGenerator = std::function<VkDescriptorBufferInfo(int frame)>;
+  using TextureType = common::ModelLoader::TextureType;
+
+  // Each mesh can have any type of textures, and a list of samplable images
+  // in each type.
+  using TexturesPerMesh =
+      std::array<std::vector<std::unique_ptr<SamplableImage>>,
+                 static_cast<int>(TextureType::kNumTypes)>;
+
+  // Each element is the descriptor used by the mesh at the same index.
+  using DescriptorsPerFrame = std::vector<std::unique_ptr<StaticDescriptor>>;
 
   // Textures of the same type will be bound to the same point.
   struct TextureBinding {
@@ -64,9 +57,9 @@ class ModelBuilder {
     std::vector<TextureSource> texture_sources;
   };
   using BindingPointMap = absl::flat_hash_map<
-      model::TextureType, uint32_t, common::util::EnumClassHash>;
+      TextureType, uint32_t, common::util::EnumClassHash>;
   using TextureBindingMap = absl::flat_hash_map<
-      model::TextureType, TextureBinding, common::util::EnumClassHash>;
+      TextureType, TextureBinding, common::util::EnumClassHash>;
 
   // Loads with light-weight obj file loader.
   struct SingleMeshResource {
@@ -84,51 +77,100 @@ class ModelBuilder {
 
   // For instancing, caller must provide information about per-instance vertex
   // attributes.
-  struct InstancingInfo {
+  struct PerInstanceBufferInfo {
     std::vector<pipeline::VertexInputAttribute::Attribute> per_instance_attribs;
     uint32_t data_size;
     const PerInstanceBuffer* per_instance_buffer;
   };
 
+  // Contains information for pushing constants. We assume that in each frame,
+  // for each PushConstant, all the data prepared for one frame will be sent to
+  // the device, written with 'offset' bytes, and consumed in 'shader_stage'.
+  struct PushConstantInfos {
+    struct Info {
+      const PushConstant* push_constant;
+      uint32_t target_offset;
+    };
+
+    VkShaderStageFlags shader_stage;
+    std::vector<Info> infos;
+  };
+
   ModelBuilder(SharedBasicContext context,
-               int num_frames, bool is_opaque, const ModelResource& resource);
+               int num_frames, const ModelResource& resource);
 
   // This class is neither copyable nor movable.
   ModelBuilder(const ModelBuilder&) = delete;
   ModelBuilder& operator=(const ModelBuilder&) = delete;
+
+  // Adds textures shared by all meshes, such as the skybox texture.
+  // Note that if ModelResource contains any mesh textures of the same type,
+  // 'binding.binding_point' must be the same to their binding point.
+  ModelBuilder& AddSharedTextures(TextureType type,
+                                  const TextureBinding& binding);
+
+  // Adds a per-instance vertex buffer.
+  ModelBuilder& AddPerInstanceBuffer(PerInstanceBufferInfo&& info);
+
+  // Declares how many uniform data should be expected at each binding point.
+  ModelBuilder& AddUniformBinding(
+      VkShaderStageFlags shader_stage,
+      std::vector<Descriptor::Info::Binding>&& bindings);
+
+  // Binds 'uniform_buffer' to 'binding_point'. The user may bind multiple
+  // buffers to one point.
+  ModelBuilder& AddUniformBuffer(uint32_t binding_point,
+                                 const UniformBuffer& uniform_buffer);
+
+  // Sets pushed constants will be used in which shader stages.
+  ModelBuilder& SetPushConstantShaderStage(VkShaderStageFlags shader_stage);
+
+  // Adds a push constant data source. The user is responsible for keeping the
+  // existence of 'push_constant'.
+  ModelBuilder& AddPushConstant(const PushConstant* push_constant,
+                                uint32_t target_offset);
+
+  // Adds a shader. The instance of Model will store the shader information,
+  // hence unlike PipelineBuilder, the user do not need to add shaders again.
+  ModelBuilder& AddShader(PipelineBuilder::ShaderInfo&& info);
 
   // Should be called after all setters are called. Note that all internal
   // states will be invalid after calling Build(), and the caller should discard
   // the builder and perform all updates on the Model instance.
   std::unique_ptr<Model> Build();
 
-  ModelBuilder& add_shader(PipelineBuilder::ShaderInfo&& info);
-  ModelBuilder& add_instancing(InstancingInfo&& info);
-  ModelBuilder& add_uniform_usage(Descriptor::Info&& info);
-  ModelBuilder& add_uniform_resource(uint32_t binding_point,
-                                     const BufferInfoGenerator& info_gen);
-  ModelBuilder& set_push_constant(model::PushConstantInfo&& info);
-  ModelBuilder& add_shared_texture(model::TextureType type,
-                                   const TextureBinding& binding);
-
  private:
+  // Loads meshes and populates 'vertex_buffer_', 'binding_map_' and
+  // 'mesh_textures_'.
   void LoadSingleMesh(const SingleMeshResource& resource);
   void LoadMultiMesh(const MultiMeshResource& resource);
-  std::vector<std::vector<std::unique_ptr<StaticDescriptor>>>
-  CreateDescriptors();
 
+  // Creates descriptors for all resources used for rendering the model.
+  std::vector<DescriptorsPerFrame> CreateDescriptors() const;
+
+  // Pointer to context.
   const SharedBasicContext context_;
+
+  // Number of frames.
   const int num_frames_;
-  std::vector<PipelineBuilder::ShaderInfo> shader_infos_;
+
   std::unique_ptr<StaticPerVertexBuffer> vertex_buffer_;
-  std::vector<InstancingInfo> instancing_infos_;
-  std::vector<Descriptor::Info> uniform_usages_;
-  std::vector<Descriptor::BufferInfoMap> uniform_resource_maps_;
-  absl::optional<model::PushConstantInfo> push_constant_info_;
   BindingPointMap binding_map_;
-  model::TexPerMesh shared_textures_;
-  std::vector<model::TexPerMesh> mesh_textures_;
-  std::unique_ptr<PipelineBuilder> pipeline_builder_;
+
+  // Each element stores textures for the mesh at the same index.
+  std::vector<TexturesPerMesh> mesh_textures_;
+
+  // Stores the textures shared by all meshes.
+  TexturesPerMesh shared_textures_;
+
+  std::vector<PerInstanceBufferInfo> per_instance_buffer_infos_;
+  std::vector<Descriptor::Info> uniform_descriptor_infos_;
+  // Elements are indexed by the frame, and the length of this should be equal
+  // to 'num_frames_'. Each element maps binding points to buffer infos of the
+  // uniform buffers bound to them.
+  std::vector<Descriptor::BufferInfoMap> uniform_buffer_info_maps_;
+  absl::optional<PushConstantInfos> push_constant_infos_;
+  std::vector<PipelineBuilder::ShaderInfo> shader_infos_;
 };
 
 class Model {
@@ -138,24 +180,29 @@ class Model {
   Model& operator=(const Model&) = delete;
 
   // Should be called after initialization and whenever frame is resized.
-  void Update(VkExtent2D frame_size, VkSampleCountFlagBits sample_count,
+  // If the object is opaque, depth testing will be enabled.
+  void Update(bool is_opaque,
+              const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
               const RenderPass& render_pass, uint32_t subpass_index);
 
   void Draw(const VkCommandBuffer& command_buffer,
             int frame, uint32_t instance_count) const;
 
  private:
+  using DescriptorsPerFrame = ModelBuilder::DescriptorsPerFrame;
+  using PushConstantInfos = ModelBuilder::PushConstantInfos;
+  using TexturesPerMesh = ModelBuilder::TexturesPerMesh;
+
   friend std::unique_ptr<Model> ModelBuilder::Build();
 
   Model(SharedBasicContext context,
         std::vector<PipelineBuilder::ShaderInfo>&& shader_infos,
         std::unique_ptr<StaticPerVertexBuffer>&& vertex_buffer,
         std::vector<const PerInstanceBuffer*>&& per_instance_buffers,
-        absl::optional<model::PushConstantInfo>&& push_constant_info,
-        model::TexPerMesh&& shared_textures,
-        std::vector<model::TexPerMesh>&& mesh_textures,
-        std::vector<std::vector<std::unique_ptr<StaticDescriptor>>>&&
-        descriptors,
+        absl::optional<PushConstantInfos>&& push_constant_info,
+        TexturesPerMesh&& shared_textures,
+        std::vector<TexturesPerMesh>&& mesh_textures,
+        std::vector<DescriptorsPerFrame>&& descriptors,
         std::unique_ptr<PipelineBuilder>&& pipeline_builder)
       : context_{std::move(context)},
         shader_infos_{std::move(shader_infos)},
@@ -171,11 +218,10 @@ class Model {
   const std::vector<PipelineBuilder::ShaderInfo> shader_infos_;
   const std::unique_ptr<StaticPerVertexBuffer> vertex_buffer_;
   const std::vector<const PerInstanceBuffer*> per_instance_buffers_;
-  const absl::optional<model::PushConstantInfo> push_constant_info_;
-  const model::TexPerMesh shared_textures_;
-  const std::vector<model::TexPerMesh> mesh_textures_;
-  const std::vector<std::vector<std::unique_ptr<StaticDescriptor>>>
-      descriptors_;
+  const absl::optional<PushConstantInfos> push_constant_info_;
+  const TexturesPerMesh shared_textures_;
+  const std::vector<TexturesPerMesh> mesh_textures_;
+  const std::vector<DescriptorsPerFrame> descriptors_;
   std::unique_ptr<PipelineBuilder> pipeline_builder_;
   std::unique_ptr<Pipeline> pipeline_;
 };

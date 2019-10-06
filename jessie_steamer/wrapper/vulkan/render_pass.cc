@@ -98,6 +98,17 @@ vector<VkSubpassDescription> CreateSubpassDescriptions(
   return descriptions;
 }
 
+// Returns the number of color attachments in each subpass.
+vector<int> GetNumberColorAttachmentsInSubpasses(
+    const vector<RenderPassBuilder::SubpassAttachments>& subpass_attachments) {
+  vector<int> num_color_attachments;
+  num_color_attachments.reserve(subpass_attachments.size());
+  for (const auto& attachments : subpass_attachments) {
+    num_color_attachments.emplace_back(attachments.color_refs.size());
+  }
+  return num_color_attachments;
+}
+
 // Converts RenderPassBuilder::SubpassDependency to VkSubpassDependency.
 VkSubpassDependency CreateSubpassDependency(
     const RenderPassBuilder::SubpassDependency& dependency) {
@@ -250,7 +261,8 @@ std::unique_ptr<RenderPass> RenderPassBuilder::Build() const {
       render_pass, clear_values_, framebuffer_size_.value(),
       CreateFramebuffers(context_, render_pass, get_attachment_images_,
                          num_framebuffers_.value(),
-                         framebuffer_size_.value())}};
+                         framebuffer_size_.value()),
+      GetNumberColorAttachmentsInSubpasses(subpass_attachments_)}};
 }
 
 void RenderPass::Run(const VkCommandBuffer& command_buffer,
