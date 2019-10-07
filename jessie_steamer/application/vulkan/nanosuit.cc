@@ -35,6 +35,7 @@ namespace {
 using namespace wrapper::vulkan;
 
 constexpr int kNumFramesInFlight = 2;
+constexpr int kObjFileIndexBase = 1;
 
 struct NanosuitVertTrans {
   ALIGN_MAT4 glm::mat4 view_model;
@@ -86,7 +87,7 @@ NanosuitApp::NanosuitApp() : Application{"Nanosuit", WindowContext::Config{}} {
   // camera
   common::Camera::Config config;
   common::UserControlledCamera::ControlConfig control_config;
-  config.position = glm::vec3{0.0f, 3.5f, 12.0f};
+  config.position = glm::vec3{0.0f, 3.5f, -12.0f};
   config.look_at = glm::vec3{0.0f, 3.5f, 0.0f};
   control_config.lock_center = true;
   camera_ = absl::make_unique<common::UserControlledCamera>(
@@ -137,55 +138,53 @@ NanosuitApp::NanosuitApp() : Application{"Nanosuit", WindowContext::Config{}} {
       /*present_to_screen=*/true, window_context_.multisampling_mode());
 
   // model
-  ModelBuilder::TextureBinding skybox_binding{
-      /*binding_point=*/4, {
-          SharedTexture::CubemapPath{
-              /*directory=*/GetResourcePath("texture/tidepool"),
-              /*files=*/{"right.tga", "left.tga", "top.tga", "bottom.tga",
-                         "back.tga", "front.tga"},
-          },
+  const SharedTexture::CubemapPath skybox_path{
+      /*directory=*/GetResourcePath("texture/tidepool"),
+      /*files=*/{
+          "right.tga", "left.tga",
+          "top.tga", "bottom.tga",
+          "back.tga", "front.tga",
       },
   };
 
-  ModelBuilder::BindingPointMap nanosuit_bindings{
-      {TextureType::kDiffuse, /*binding_point=*/1},
-      {TextureType::kSpecular, /*binding_point=*/2},
-      {TextureType::kReflection, /*binding_point=*/3},
-  };
   nanosuit_model_ =
       ModelBuilder{
           context(), kNumFramesInFlight,
           ModelBuilder::MultiMeshResource{
               GetResourcePath("model/nanosuit/nanosuit.obj"),
               GetResourcePath("model/nanosuit"),
-              nanosuit_bindings}}
-          .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
-                      GetShaderPath("vulkan/nanosuit.vert.spv")})
-          .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                      GetShaderPath("vulkan/nanosuit.frag.spv")})
+          }}
+          .AddSharedTexture(TextureType::kCubemap, skybox_path)
+          .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/1)
+          .AddTextureBindingPoint(TextureType::kSpecular, /*binding_point=*/2)
+          .AddTextureBindingPoint(TextureType::kReflection, /*binding_point=*/3)
+          .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/4)
           .AddUniformBinding(
-              VK_SHADER_STAGE_VERTEX_BIT,
-              /*bindings=*/{{/*binding_point=*/0, /*array_length=*/1}})
+               VK_SHADER_STAGE_VERTEX_BIT,
+               /*bindings=*/{{/*binding_point=*/0, /*array_length=*/1}})
           .AddUniformBuffer(/*binding_point=*/0, *nanosuit_vert_uniform_)
           .SetPushConstantShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT)
           .AddPushConstant(nanosuit_frag_constant_.get(), /*target_offset=*/0)
-          .AddSharedTextures(Descriptor::TextureType::kCubemap, skybox_binding)
+          .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
+                     GetShaderPath("vulkan/nanosuit.vert.spv"))
+          .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                     GetShaderPath("vulkan/nanosuit.frag.spv"))
           .Build();
 
-  skybox_binding.binding_point = 1;
   skybox_model_ =
       ModelBuilder{
           context(), kNumFramesInFlight,
           ModelBuilder::SingleMeshResource{
-              GetResourcePath("model/skybox.obj"),
-              /*obj_index_base=*/1,
-              {{TextureType::kCubemap, skybox_binding}}}}
-          .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
-                      GetShaderPath("vulkan/skybox.vert.spv")})
-          .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                      GetShaderPath("vulkan/skybox.frag.spv")})
+              GetResourcePath("model/skybox.obj"), kObjFileIndexBase,
+              /*tex_source_map=*/{{TextureType::kCubemap, {skybox_path}}},
+          }}
+          .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/1)
           .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
           .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
+          .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
+                     GetShaderPath("vulkan/skybox.vert.spv"))
+          .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                     GetShaderPath("vulkan/skybox.frag.spv"))
           .Build();
 }
 

@@ -36,6 +36,7 @@ namespace {
 using namespace wrapper::vulkan;
 
 constexpr int kNumFramesInFlight = 2;
+constexpr int kObjFileIndexBase = 1;
 
 enum class SubpassIndex : int { kModel = 0, kText, kNumSubpasses };
 
@@ -83,23 +84,27 @@ CubeApp::CubeApp() : Application{"Cube", WindowContext::Config{}} {
       /*num_framebuffers=*/window_context_.num_swapchain_images(),
       /*present_to_screen=*/true, window_context_.multisampling_mode());
 
+  // TODO: Add utils for resource paths and shader paths.
   // model
-  ModelBuilder::TextureBindingMap bindings{};
-  bindings[ModelBuilder::TextureType::kDiffuse] = {
-      /*binding_point=*/1,
-      {SharedTexture::SingleTexPath{GetResourcePath("texture/statue.jpg")}},
-  };
   model_ =
       ModelBuilder{
           context(), kNumFramesInFlight,
-          ModelBuilder::SingleMeshResource{GetResourcePath("model/cube.obj"),
-              /*obj_index_base=*/1, bindings}}
-          .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
-                      GetShaderPath("vulkan/simple_3d.vert.spv")})
-          .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                      GetShaderPath("vulkan/simple_3d.frag.spv")})
+          ModelBuilder::SingleMeshResource{
+              GetResourcePath("model/cube.obj"), kObjFileIndexBase,
+              /*tex_source_map=*/{{
+                  ModelBuilder::TextureType::kDiffuse,
+                  {SharedTexture::SingleTexPath{
+                       GetResourcePath("texture/statue.jpg")}},
+              }}
+          }}
+          .AddTextureBindingPoint(ModelBuilder::TextureType::kDiffuse,
+                                  /*binding_point=*/1)
           .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
           .AddPushConstant(push_constant_.get(), /*target_offset=*/0)
+          .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
+                     GetShaderPath("vulkan/simple_3d.vert.spv"))
+          .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                     GetShaderPath("vulkan/simple_3d.frag.spv"))
           .Build();
 
   // text

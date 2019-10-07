@@ -1,7 +1,6 @@
 Files that are waiting to be cleaned up:
 
 wrapper
-- model
 - text
 - text_util
 - util
@@ -51,6 +50,12 @@ folder are good examples of how to use these classes to render simple scenes.
 # 2. OpenGL wrappers (jessie_steamer/wrapper/opengl/)
 
 # 3. Vulkan wrappers (jessie_steamer/wrapper/vulkan/)
+
+We don't aim to implement OpenGL APIs on the top of Vulkan APIs, but we will try
+to create different levels of wrappers to enable the user to take advantage of
+Vulkan to meet different needs. The user may simply use the high-level wrappers
+to render simple models and texts, which should not be much harder than using
+OpenGL APIs (hope so), or directly use low-level wrappers for flexibility.
 
 ## 3.1 Contexts (basic_context, basic_object, validation and window_context)
 
@@ -374,6 +379,72 @@ rendering simple scenes.
 ## 3.3 High-level wrappers
 
 ### 3.3.1 Model renderer (model)
+
+**Model** is built to shield a great deal of low-level details from the user, so
+that a few lines of code should be enough to display a model on the screen. We
+will illustrate how to use **ModelBuilder** and **Model**.
+
+#### 3.3.1.1 Load vertex data and textures
+
+The user need to specify how to load the model vertex data and textures when
+constructing **ModelBuilder**.
+
+- **SingleMeshResource** is meant for loading a single mesh, such as a sphere or
+cube. We will need to specify which file contains the vertex data (only
+Wavefront .obj files are supported for now), and which textures to use. Textures
+are either loaded from files or existing offscreen images. This is backed by the
+simple parser in **common::ObjFile**.
+- **MultiMeshResource** is meant for complex models with multiple meshes.
+Internally, meshes will be loaded with **common::ModelLoader**, which is backed
+by Assimp. We will need to specify the path to the model file, and the directory
+where textures are located, assuming all textures are in the same directory.
+
+In both cases, **Model** will hold the vertex buffer. If any textures are loaded
+from existing offscreen images, the user will be responsible for keeping the
+existence of the images. For simplicity, we will bind all textures of the same
+type to the same binding point as an array. The user need to specify the binding
+point for each type.
+
+#### 3.3.1.2 Bind per-instance vertex buffers, uniform buffers and push constants
+
+All these information are optional. If any resources are used, the user is
+responsible for keeping the existence of those resources, since **ModelBuilder**
+does not own them.
+
+- Per-instance vertex buffers are used for instanced drawing. Apart from
+providing the buffer itself, the user should also specify vertex input
+attributes and the size of vertex data for each instance.
+- Uniform buffers can be bound in two steps. The first step is to provide the
+binding information, which declares that at which shader stages, which binding
+points are used by uniform buffers, and the array length at each point. The
+second step is to bind buffers. The user may bind multiple buffers to one
+binding point.
+- For push constants, since we can only have one push constant block in the
+entire pipeline, there is no binding point or array length to specify. We will
+need to specify at which shader stages they will be used, and which instances of
+**PushConstant** will provide the data (targeting different offsets).
+
+#### 3.3.1.3 Add shaders
+
+The user simply need to provide the file path of the shader, and specify which
+stage is it used for. Unlike **PipelineBuilder** which holds file contents of
+shaders and destroys them to save the host memory when possible, **Model** only
+stores the file path, hence the user does not need to add shaders again when
+the internal pipeline of **Model** is rebuilt.
+
+#### 3.3.1.3 Build and update the model
+
+After all the information above are set, the user can build a new instance of
+**Model**. After that, all internal states of the **ModelBuilder** instance will
+be invalidated, hence it should be simply discarded.
+
+**Model** will preserve the instance of **PipelineBuilder** for future updates.
+For example, if the window is resized, the render pass and framebuffer size may
+change, in which case the user would need to inform **Model**. Internally, the
+graphics pipeline will be rebuilt. Besides that, if the user wants to make an
+opaque object transparent, or the other way around, **Model** should also be
+updated. As a future optimization, we may make color blend a part of dynamic
+states to avoid rebuilding the entire pipeline for changing transparency.
 
 ### 3.3.2 Text renderer (text and text_util)
 

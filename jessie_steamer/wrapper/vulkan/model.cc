@@ -22,10 +22,10 @@ using std::vector;
 
 using VertexInfo = PerVertexBuffer::NoShareIndicesDataInfo;
 
-// Visits variants of TextureSource and constructs an image from 'source'.
+// Visits variants of TextureSource and constructs a texture from 'source'.
 std::unique_ptr<SamplableImage> CreateTexture(
     const SharedBasicContext& context,
-    const ModelBuilder::TextureBinding::TextureSource& source) {
+    const ModelBuilder::TextureSource& source) {
   if (absl::holds_alternative<SharedTexture::SourcePath>(source)) {
     return absl::make_unique<SharedTexture>(
         context, absl::get<SharedTexture::SourcePath>(source));
@@ -62,9 +62,9 @@ void CreateTextureInfo(const ModelBuilder::BindingPointMap& binding_map,
 
     if (num_textures != 0) {
       const auto found = binding_map.find(texture_type);
-      ASSERT_FALSE(found == binding_map.end(),
-                   absl::StrFormat("Texture type %d not found in binding map",
-                                   type_index));
+      ASSERT_TRUE(found != binding_map.end(),
+                  absl::StrFormat("Binding point of texture type %d is not set",
+                                  type_index));
       const auto binding_point = found->second;
 
       // Populate 'descriptor_info' with declarations of resources.
@@ -121,16 +121,16 @@ void ExtractPerInstanceBufferInfos(
   for (int i = 0; i < infos.size(); ++i) {
     const auto& info = infos[i];
     ASSERT_NON_NULL(info.per_instance_buffer,
-                    "Per-instance buffer not provided");
+                    "Per-instance vertex buffer not provided");
     per_instance_buffers->emplace_back(info.per_instance_buffer);
     bindings.emplace_back(pipeline::VertexInputBinding{
         kPerInstanceBindingPointBase + i,
-        info.data_size,
+        info.per_instance_data_size,
         /*instancing=*/true,
     });
     attributes.emplace_back(pipeline::VertexInputAttribute{
         kPerInstanceBindingPointBase + i,
-        info.per_instance_attribs,
+        info.vertex_input_attributes,
     });
   }
 
@@ -156,21 +156,21 @@ ModelBuilder::ModelBuilder(SharedBasicContext context,
 
 void ModelBuilder::LoadSingleMesh(const SingleMeshResource& resource) {
   // Load indices and vertices.
-  const common::ObjFile file{resource.obj_path, resource.obj_index_base};
-  const VertexInfo::PerMeshInfo mesh_info{
+  const common::ObjFile file{resource.obj_path, resource.obj_file_index_base};
+  VertexInfo::PerMeshInfo mesh_info{
       PerVertexBuffer::DataInfo{file.indices},
       PerVertexBuffer::DataInfo{file.vertices},
   };
   vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
-      context_, VertexInfo{/*per_mesh_infos=*/{mesh_info}});
+      context_, VertexInfo{/*per_mesh_infos=*/{std::move(mesh_info)}});
 
   // Load textures.
   mesh_textures_.emplace_back();
-  for (const auto& binding : resource.binding_map) {
-    const auto texture_type = binding.first;
-    binding_map_[texture_type] = binding.second.binding_point;
-    for (const auto& source : binding.second.texture_sources) {
-      const auto type_index = static_cast<int>(texture_type);
+  for (const auto& info : resource.tex_source_map) {
+    const auto type_index = static_cast<int>(info.first);
+    const auto& sources = info.second;
+    mesh_textures_.back()[type_index].reserve(sources.size());
+    for (const auto& source : sources) {
       mesh_textures_.back()[type_index].emplace_back(
           CreateTexture(context_, source));
     }
@@ -179,7 +179,7 @@ void ModelBuilder::LoadSingleMesh(const SingleMeshResource& resource) {
 
 void ModelBuilder::LoadMultiMesh(const MultiMeshResource& resource) {
   // Load indices and vertices.
-  const common::ModelLoader loader{resource.obj_path, resource.tex_path};
+  const common::ModelLoader loader{resource.model_path, resource.texture_dir};
   VertexInfo vertex_info;
   vertex_info.per_mesh_infos.reserve(loader.mesh_datas().size());
   for (const auto& mesh_data : loader.mesh_datas()) {
@@ -192,7 +192,6 @@ void ModelBuilder::LoadMultiMesh(const MultiMeshResource& resource) {
       absl::make_unique<StaticPerVertexBuffer>(context_, vertex_info);
 
   // Load textures.
-  binding_map_ = resource.binding_map;
   mesh_textures_.reserve(loader.mesh_datas().size());
   for (const auto& mesh_data : loader.mesh_datas()) {
     mesh_textures_.emplace_back();
@@ -204,23 +203,16 @@ void ModelBuilder::LoadMultiMesh(const MultiMeshResource& resource) {
   }
 }
 
-ModelBuilder& ModelBuilder::AddSharedTextures(TextureType type,
-                                              const TextureBinding& binding) {
-  const auto binding_point = binding.binding_point;
-  const auto found = binding_map_.find(type);
-  if (found == binding_map_.end()) {
-    binding_map_[type] = binding_point;
-  } else {
-    ASSERT_TRUE(found->second == binding_point,
-                absl::StrFormat("Shared textures of type %d is bound to point "
-                                "%d, but mesh textures of the same type are "
-                                "bound to point %d",
-                                type, binding_point, found->second));
-  }
-  for (const auto& source : binding.texture_sources) {
-    shared_textures_[static_cast<int>(type)].emplace_back(
-        CreateTexture(context_, source));
-  }
+ModelBuilder& ModelBuilder::AddSharedTexture(
+    TextureType type, const TextureSource& texture_source) {
+  shared_textures_[static_cast<int>(type)].emplace_back(
+      CreateTexture(context_, texture_source));
+  return *this;
+}
+
+ModelBuilder& ModelBuilder::AddTextureBindingPoint(TextureType type,
+                                                   uint32_t binding_point) {
+  texture_binding_map_[type] = binding_point;
   return *this;
 }
 
@@ -268,16 +260,17 @@ ModelBuilder& ModelBuilder::AddPushConstant(const PushConstant* push_constant,
   return *this;
 }
 
-ModelBuilder& ModelBuilder::AddShader(PipelineBuilder::ShaderInfo&& info) {
-  shader_infos_.emplace_back(std::move(info));
+ModelBuilder& ModelBuilder::AddShader(VkShaderStageFlagBits shader_stage,
+                                      std::string&& file_path) {
+  shader_infos_.emplace_back(shader_stage, std::move(file_path));
   return *this;
 }
 
 vector<ModelBuilder::DescriptorsPerFrame>
 ModelBuilder::CreateDescriptors() const {
-  // For different frames, we get data from different parts of uniform buffer.
-  // For different meshes, we bind different textures. Hence, we need a 2D array
-  // of descriptors.
+  // For different frames, we get data from different parts of uniform buffers.
+  // For different meshes, we bind different textures.
+  // Hence, we need a 2D array: descriptors[num_frames][num_meshes].
   vector<DescriptorsPerFrame> descriptors(num_frames_);
   auto descriptor_infos = uniform_descriptor_infos_;
   // The last element will store the descriptor info of textures.
@@ -287,12 +280,10 @@ ModelBuilder::CreateDescriptors() const {
     descriptors[frame].reserve(mesh_textures_.size());
 
     for (const auto& mesh_texture : mesh_textures_) {
-      Descriptor::Info texture_info;
       Descriptor::ImageInfoMap image_info_map;
-      CreateTextureInfo(binding_map_, mesh_texture, shared_textures_,
-                        &texture_info, &image_info_map);
+      CreateTextureInfo(texture_binding_map_, mesh_texture, shared_textures_,
+                        &descriptor_infos.back(), &image_info_map);
 
-      descriptor_infos.back() = std::move(texture_info);
       descriptors[frame].emplace_back(
           absl::make_unique<StaticDescriptor>(context_, descriptor_infos));
       // TODO: Derive descriptor type.
@@ -324,23 +315,22 @@ std::unique_ptr<Model> ModelBuilder::Build() {
   ExtractPerInstanceBufferInfos(per_instance_buffer_infos_,
                                 pipeline_builder.get(), &per_instance_buffers);
 
-  binding_map_.clear();
   per_instance_buffer_infos_.clear();
   uniform_descriptor_infos_.clear();
   uniform_buffer_info_maps_.clear();
 
   return std::unique_ptr<Model>{new Model{
-    context_, std::move(shader_infos_), std::move(vertex_buffer_),
-    std::move(per_instance_buffers), std::move(push_constant_infos_),
-    std::move(shared_textures_), std::move(mesh_textures_),
-    std::move(descriptors), std::move(pipeline_builder)}};
+      context_, std::move(shader_infos_), std::move(vertex_buffer_),
+      std::move(per_instance_buffers), std::move(push_constant_infos_),
+      std::move(shared_textures_), std::move(mesh_textures_),
+      std::move(descriptors), std::move(pipeline_builder)}};
 }
 
-void Model::Update(bool is_opaque, const VkExtent2D& frame_size,
+void Model::Update(bool is_object_opaque, const VkExtent2D& frame_size,
                    VkSampleCountFlagBits sample_count,
                    const RenderPass& render_pass, uint32_t subpass_index) {
   (*pipeline_builder_)
-      .SetDepthTestEnabled(/*enable_test=*/is_opaque)
+      .SetDepthTestEnabled(/*enable_test=*/is_object_opaque)
       .SetMultisampling(sample_count)
       .SetViewport({
           /*viewport=*/VkViewport{
@@ -360,7 +350,8 @@ void Model::Update(bool is_opaque, const VkExtent2D& frame_size,
       .SetColorBlend(
           vector<VkPipelineColorBlendAttachmentState>(
               render_pass.num_color_attachments(subpass_index),
-              pipeline::GetColorBlendState(/*enable_blend=*/!is_opaque)));
+              pipeline::GetColorBlendState(
+                  /*enable_blend=*/!is_object_opaque)));
   for (const auto& info : shader_infos_) {
     pipeline_builder_->AddShader(info);
   }

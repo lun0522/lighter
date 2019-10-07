@@ -38,8 +38,9 @@ using namespace wrapper::vulkan;
 
 using std::vector;
 
-constexpr int kNumFramesInFlight = 2;
 constexpr int kNumAsteroidRings = 3;
+constexpr int kNumFramesInFlight = 2;
+constexpr int kObjFileIndexBase = 1;
 
 struct Light {
   ALIGN_VEC4 glm::vec4 direction_time;
@@ -148,27 +149,28 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
       /*present_to_screen=*/true, window_context_.multisampling_mode());
 
   // model
-  ModelBuilder::TextureBindingMap planet_bindings;
-  planet_bindings[TextureType::kDiffuse] = {
-      /*binding_point=*/2,
-      {SharedTexture::SingleTexPath{GetResourcePath("texture/planet.png")}},
-  };
   planet_model_ =
       ModelBuilder{
           context(), kNumFramesInFlight,
           ModelBuilder::SingleMeshResource{
-              GetResourcePath("model/sphere.obj"),
-              /*obj_index_base=*/1, planet_bindings}}
-          .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
-                      GetShaderPath("vulkan/planet.vert.spv")})
-          .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                      GetShaderPath("vulkan/planet.frag.spv")})
+              GetResourcePath("model/sphere.obj"), kObjFileIndexBase,
+              /*tex_source_map=*/{{
+                  TextureType::kDiffuse,
+                  {SharedTexture::SingleTexPath{
+                       GetResourcePath("texture/planet.png")}},
+              }}
+          }}
+          .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/2)
           .AddUniformBinding(
               VK_SHADER_STAGE_FRAGMENT_BIT,
               /*bindings=*/{{/*binding_point=*/1, /*array_length=*/1}})
           .AddUniformBuffer(/*binding_point=*/1, *light_uniform_)
           .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
           .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
+          .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
+                     GetShaderPath("vulkan/planet.vert.spv"))
+          .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                     GetShaderPath("vulkan/planet.frag.spv"))
           .Build();
 
   using VertexAttribute = pipeline::VertexInputAttribute::Attribute;
@@ -192,12 +194,9 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
           ModelBuilder::MultiMeshResource{
               GetResourcePath("model/rock/rock.obj"),
               GetResourcePath("model/rock"),
-              {{TextureType::kDiffuse, /*binding_point=*/2}}}}
-          .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
-                      GetShaderPath("vulkan/asteroid.vert.spv")})
-          .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                      GetShaderPath("vulkan/planet.frag.spv")})
-          .AddPerInstanceBuffer({per_instance_attribs,
+          }}
+          .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/2)
+          .AddPerInstanceBuffer({std::move(per_instance_attribs),
                                  static_cast<uint32_t>(sizeof(Asteroid)),
                                  per_asteroid_data_.get()})
           .AddUniformBinding(
@@ -206,30 +205,35 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
           .AddUniformBuffer(/*binding_point=*/1, *light_uniform_)
           .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
           .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
+          .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
+                     GetShaderPath("vulkan/asteroid.vert.spv"))
+          .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                     GetShaderPath("vulkan/planet.frag.spv"))
           .Build();
 
-  ModelBuilder::TextureBindingMap skybox_bindings;
-  skybox_bindings[TextureType::kCubemap] = {
-      /*binding_point=*/1, {
-          SharedTexture::CubemapPath{
-              /*directory=*/GetResourcePath("texture/universe"),
-              /*files=*/{"PositiveX.jpg", "NegativeX.jpg", "PositiveY.jpg",
-                         "NegativeY.jpg", "PositiveZ.jpg", "NegativeZ.jpg"},
-          },
+  const SharedTexture::CubemapPath skybox_path{
+      /*directory=*/GetResourcePath("texture/universe"),
+      /*files=*/{
+          "PositiveX.jpg", "NegativeX.jpg",
+          "PositiveY.jpg", "NegativeY.jpg",
+          "PositiveZ.jpg", "NegativeZ.jpg",
       },
   };
+
   skybox_model_ =
       ModelBuilder{
           context(), kNumFramesInFlight,
           ModelBuilder::SingleMeshResource{
-              GetResourcePath("model/skybox.obj"),
-              /*obj_index_base=*/1, skybox_bindings}}
-          .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
-                      GetShaderPath("vulkan/skybox.vert.spv")})
-          .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                      GetShaderPath("vulkan/skybox.frag.spv")})
+              GetResourcePath("model/skybox.obj"), kObjFileIndexBase,
+              {{TextureType::kCubemap, {skybox_path}}},
+          }}
+          .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/1)
           .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
           .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
+          .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
+                     GetShaderPath("vulkan/skybox.vert.spv"))
+          .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                     GetShaderPath("vulkan/skybox.frag.spv"))
           .Build();
 }
 

@@ -36,21 +36,21 @@ aiTextureType TextureTypeToAssimpType(ModelLoader::TextureType type) {
 
 } /* namespace */
 
-ModelLoader::ModelLoader(const string& obj_path, const string& tex_path) {
+ModelLoader::ModelLoader(const string& model_path, const string& texture_dir) {
   constexpr unsigned int flags = aiProcess_Triangulate
                                      | aiProcess_GenNormals
                                      | aiProcess_PreTransformVertices
                                      | aiProcess_FlipUVs;
 
   Assimp::Importer importer;
-  const aiScene* scene = importer.ReadFile(obj_path, flags);
+  const aiScene* scene = importer.ReadFile(model_path, flags);
   if (scene == nullptr || scene->mRootNode == nullptr ||
       (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)) {
     FATAL(absl::StrFormat("Failed to import scene: %s",
                           importer.GetErrorString()));
   }
 
-  ProcessNode(tex_path, scene->mRootNode, scene);
+  ProcessNode(texture_dir, scene->mRootNode, scene);
 }
 
 void ModelLoader::ProcessNode(const string& directory,

@@ -56,9 +56,9 @@ class ModelLoader {
     std::vector<TextureInfo> textures;
   };
 
-  // Loads a Wavefront .obj file from 'obj_path' and textures from the directory
-  // 'tex_path'.
-  ModelLoader(const std::string& obj_path, const std::string& tex_path);
+  // Loads the model from 'model_path' and textures from 'texture_dir', assuming
+  // all textures are in the same directory.
+  ModelLoader(const std::string& model_path, const std::string& texture_dir);
 
   // This class is neither copyable nor movable.
   ModelLoader(const ModelLoader&) = delete;
