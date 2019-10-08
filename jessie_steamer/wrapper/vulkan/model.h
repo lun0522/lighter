@@ -106,7 +106,7 @@ class ModelBuilder {
   // If any offscreen images are used in 'resource', the user is responsible for
   // keeping the existence of them.
   ModelBuilder(SharedBasicContext context,
-               int num_frames, const ModelResource& resource);
+               int num_frames_in_flight, const ModelResource& resource);
 
   // This class is neither copyable nor movable.
   ModelBuilder(const ModelBuilder&) = delete;
@@ -165,8 +165,8 @@ class ModelBuilder {
   // Pointer to context.
   const SharedBasicContext context_;
 
-  // Number of frames.
-  const int num_frames_;
+  // Number of frames in flight.
+  const int num_frames_in_flight_;
 
   // Holds per-vertex data.
   std::unique_ptr<StaticPerVertexBuffer> vertex_buffer_;
@@ -188,7 +188,7 @@ class ModelBuilder {
 
   // Each element maps binding points to buffer infos of the uniform buffers
   // bound to them. Elements are indexed by the frame, and the length of this
-  // should be equal to 'num_frames_'.
+  // should be equal to 'num_frames_in_flight_'.
   std::vector<Descriptor::BufferInfoMap> uniform_buffer_info_maps_;
 
   // Describes push constant data sources.

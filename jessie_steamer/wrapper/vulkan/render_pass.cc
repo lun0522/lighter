@@ -179,12 +179,6 @@ RenderPassBuilder& RenderPassBuilder::SetNumFramebuffers(int count) {
   return *this;
 }
 
-RenderPassBuilder& RenderPassBuilder::SetFramebufferSize(
-    const VkExtent2D& size) {
-  framebuffer_size_ = size;
-  return *this;
-}
-
 RenderPassBuilder& RenderPassBuilder::SetAttachment(
     int index, const Attachment& attachment) {
   SetElementWithResizing(CreateClearColor(attachment), index, &clear_values_);
@@ -230,7 +224,6 @@ RenderPassBuilder& RenderPassBuilder::AddSubpassDependency(
 
 std::unique_ptr<RenderPass> RenderPassBuilder::Build() const {
   ASSERT_HAS_VALUE(num_framebuffers_, "Number of framebuffers is not set");
-  ASSERT_HAS_VALUE(framebuffer_size_, "Framebuffer size is not set");
   for (int i = 0; i < get_attachment_images_.size(); ++i) {
     ASSERT_NON_NULL(
         get_attachment_images_[i],
@@ -256,12 +249,13 @@ std::unique_ptr<RenderPass> RenderPassBuilder::Build() const {
                                     *context_->allocator(), &render_pass),
                  "Failed to create render pass");
 
+  const auto framebuffer_size =
+      get_attachment_images_[0](/*framebuffer_index=*/0).extent();
   return std::unique_ptr<RenderPass>{new RenderPass{
       context_, /*num_subpasses=*/static_cast<int>(subpass_descriptions.size()),
-      render_pass, clear_values_, framebuffer_size_.value(),
+      render_pass, clear_values_, framebuffer_size,
       CreateFramebuffers(context_, render_pass, get_attachment_images_,
-                         num_framebuffers_.value(),
-                         framebuffer_size_.value()),
+                         num_framebuffers_.value(), framebuffer_size),
       GetNumberColorAttachmentsInSubpasses(subpass_attachments_)}};
 }
 

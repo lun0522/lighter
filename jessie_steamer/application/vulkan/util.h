@@ -17,11 +17,6 @@
 #include "jessie_steamer/wrapper/vulkan/window_context.h"
 #include "third_party/absl/flags/flag.h"
 
-// Alignment requirement:
-// https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
-#define ALIGN_MAT4 alignas(16)
-#define ALIGN_VEC4 alignas(16)
-
 ABSL_DECLARE_FLAG(bool, performance_mode);
 
 namespace jessie_steamer {

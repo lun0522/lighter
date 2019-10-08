@@ -23,8 +23,11 @@ using std::array;
 using std::string;
 using std::vector;
 
+constexpr int kColorAttachmentIndex = 0;
 constexpr int kImageBindingPoint = 0;
+constexpr int kNativeSubpassIndex = 0;
 
+// Returns the path to font file.
 string GetFontPath(CharLoader::Font font) {
   using common::file::GetResourcePath;
   switch (font) {
@@ -35,6 +38,8 @@ string GetFontPath(CharLoader::Font font) {
   }
 }
 
+// Returns the interval between two adjacent characters on the character factory
+// texture in number of pixels.
 int GetIntervalBetweenChars(int font_height) {
   constexpr int kFontHeightToIntervalRatio = 20;
   constexpr int kMinIntervalBetweenChars = 2;
@@ -45,11 +50,12 @@ int GetIntervalBetweenChars(int font_height) {
   return interval;
 }
 
+// Returns descriptor infos for rendering characters.
 vector<Descriptor::Info> CreateDescriptorInfos() {
   return {
       Descriptor::Info{
-          /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          /*shader_stage=*/VK_SHADER_STAGE_FRAGMENT_BIT,
+          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          VK_SHADER_STAGE_FRAGMENT_BIT,
           /*bindings=*/{
               Descriptor::Info::Binding{
                   kImageBindingPoint,
@@ -60,48 +66,14 @@ vector<Descriptor::Info> CreateDescriptorInfos() {
   };
 }
 
+// Returns a render pass builder for rendering characters. Subpasses and the
+// description of one color attachment has been added.
 std::unique_ptr<RenderPassBuilder> CreateRenderPassBuilder(
     const SharedBasicContext& context) {
   auto render_pass_builder = absl::make_unique<RenderPassBuilder>(context);
 
   (*render_pass_builder)
       .SetNumFramebuffers(1)
-      .SetSubpass(
-          /*index=*/0,
-          RenderPassBuilder::SubpassAttachments{
-              /*color_refs=*/{
-                  VkAttachmentReference{
-                      /*attachment=*/0,
-                      /*layout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                  },
-              },
-              /*multisampling_refs=*/absl::nullopt,
-              /*depth_stencil_ref=*/absl::nullopt,
-          }
-      )
-      .AddSubpassDependency(RenderPassBuilder::SubpassDependency{
-          /*prev_subpass=*/RenderPassBuilder::SubpassDependency::SubpassInfo{
-              kExternalSubpassIndex,
-              /*stage_mask=*/VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-              /*access_mask=*/0,
-          },
-          /*next_subpass=*/RenderPassBuilder::SubpassDependency::SubpassInfo{
-              /*index=*/0,
-              /*stage_mask=*/VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-              /*access_mask=*/VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-          },
-      });
-
-  return render_pass_builder;
-}
-
-std::unique_ptr<RenderPass> BuildRenderPass(
-    const VkExtent2D& target_extent,
-    RenderPassBuilder::GetImage&& get_target_image,
-    RenderPassBuilder* render_pass_builder) {
-  constexpr int kColorAttachmentIndex = 0;
-  return (*render_pass_builder)
-      .SetFramebufferSize(target_extent)
       .SetAttachment(
           kColorAttachmentIndex,
           RenderPassBuilder::Attachment{
@@ -113,10 +85,50 @@ std::unique_ptr<RenderPass> BuildRenderPass(
               /*final_layout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
           }
       )
-      .UpdateAttachmentImage(kColorAttachmentIndex, std::move(get_target_image))
+      .SetSubpass(
+          kNativeSubpassIndex,
+          RenderPassBuilder::SubpassAttachments{
+              /*color_refs=*/{
+                  VkAttachmentReference{
+                      kColorAttachmentIndex,
+                      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                  },
+              },
+              /*multisampling_refs=*/absl::nullopt,
+              /*depth_stencil_ref=*/absl::nullopt,
+          }
+      )
+      .AddSubpassDependency(RenderPassBuilder::SubpassDependency{
+          /*prev_subpass=*/RenderPassBuilder::SubpassDependency::SubpassInfo{
+              kExternalSubpassIndex,
+              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+              /*access_mask=*/0,
+          },
+          /*next_subpass=*/RenderPassBuilder::SubpassDependency::SubpassInfo{
+              kNativeSubpassIndex,
+              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+              VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+          },
+      });
+
+  return render_pass_builder;
+}
+
+// Returns a render pass based on 'builder', targeting 'image'.
+std::unique_ptr<RenderPass> BuildRenderPass(const Image& image,
+                                            RenderPassBuilder* builder) {
+  return (*builder)
+      .UpdateAttachmentImage(
+          kColorAttachmentIndex,
+          [&image](int framebuffer_index) -> const Image& {
+            return image;
+          })
       .Build();
 }
 
+// Returns a pipeline builder, assuming the per-vertex data is of type
+// VertexAttribute2D, and the front face direction is clockwise, since we will
+// flip Y coordinates.
 std::unique_ptr<PipelineBuilder> CreatePipelineBuilder(
     const SharedBasicContext& context,
     const VkDescriptorSetLayout& descriptor_layout,
@@ -131,13 +143,13 @@ std::unique_ptr<PipelineBuilder> CreatePipelineBuilder(
               {pipeline::GetPerVertexAttribute<VertexAttribute2D>()}))
       .SetPipelineLayout({descriptor_layout}, /*push_constant_ranges=*/{})
       .SetColorBlend({pipeline::GetColorBlendState(enable_color_blend)})
-      // Reverse the front face direction since we will flip y coordinates.
       .SetFrontFaceDirection(/*counter_clockwise=*/false);
 
   return pipeline_builder;
 }
 
-std::unique_ptr<Pipeline> BuildPipeline(const VkExtent2D& target_extent,
+// Returns a pipeline based on 'builder', targeting 'image'.
+std::unique_ptr<Pipeline> BuildPipeline(const Image& image,
                                         const VkRenderPass& render_pass,
                                         PipelineBuilder* pipeline_builder) {
   using common::file::GetShaderPath;
@@ -146,17 +158,17 @@ std::unique_ptr<Pipeline> BuildPipeline(const VkExtent2D& target_extent,
           /*viewport=*/VkViewport{
               /*x=*/0.0f,
               /*y=*/0.0f,
-              static_cast<float>(target_extent.width),
-              static_cast<float>(target_extent.height),
+              static_cast<float>(image.extent().width),
+              static_cast<float>(image.extent().height),
               /*minDepth=*/0.0f,
               /*maxDepth=*/1.0f,
           },
           /*scissor=*/VkRect2D{
               /*offset=*/{0, 0},
-              target_extent,
+              image.extent(),
           },
       })
-      .SetRenderPass(render_pass, /*subpass_index=*/0)
+      .SetRenderPass(render_pass, kNativeSubpassIndex)
       .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
                   GetShaderPath("vulkan/simple_2d.vert.spv")})
       .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -164,7 +176,7 @@ std::unique_ptr<Pipeline> BuildPipeline(const VkExtent2D& target_extent,
       .Build();
 }
 
-// Flips y coordinate of each vertex in NDC.
+// Flips Y coordinates of each vertex in NDC.
 inline void FlipY(vector<VertexAttribute2D>* vertices) {
   for (auto& vertex : *vertices) {
     vertex.pos.y *= -1;
@@ -213,13 +225,12 @@ inline glm::vec2 NormalizePos(const glm::vec2& coordinate) {
 } /* namespace */
 
 CharLoader::CharLoader(SharedBasicContext context,
-                       const vector<string>& texts,
-                       Font font, int font_height)
+                       const vector<string>& texts, Font font, int font_height)
     : context_{std::move(context)} {
-  common::CharLib char_lib{texts, GetFontPath(font), font_height};
+  const common::CharLib char_lib{texts, GetFontPath(font), font_height};
   ASSERT_NON_EMPTY(char_lib.char_info_map(), "No character loaded");
 
-  CharTextures char_textures = CreateCharTextures(char_lib, font_height);
+  const CharTextures char_textures = CreateCharTextures(char_lib, font_height);
   image_ = absl::make_unique<OffscreenImage>(context_, /*channel=*/1,
                                              char_textures.extent_after_merge);
   width_height_ratio_ =
@@ -227,46 +238,44 @@ CharLoader::CharLoader(SharedBasicContext context,
 
   vector<char> char_merge_order;
   char_merge_order.reserve(char_texture_map_.size());
-  for (const auto& ch : char_texture_map_) {
-    char_merge_order.emplace_back(ch.first);
+  for (const auto& pair : char_texture_map_) {
+    char_merge_order.emplace_back(pair.first);
   }
 
-  auto vertex_buffer = CreateVertexBuffer(context_, char_merge_order,
-                                          char_texture_map_);
+  const auto vertex_buffer = CreateVertexBuffer(context_, char_merge_order,
+                                                char_texture_map_);
 
-  auto descriptor = absl::make_unique<DynamicDescriptor>(
-      context_, CreateDescriptorInfos());
+  const auto descriptor =
+      absl::make_unique<DynamicDescriptor>(context_, CreateDescriptorInfos());
 
   auto render_pass_builder = CreateRenderPassBuilder(context_);
-  auto render_pass = BuildRenderPass(
-      char_textures.extent_after_merge,
-      [this](int index) -> const Image& { return *image_; },
-      render_pass_builder.get());
+  const auto render_pass = BuildRenderPass(*image_, render_pass_builder.get());
 
-  auto pipeline_builder = CreatePipelineBuilder(
-      context_, descriptor->layout(), /*enable_color_blend=*/false);
-  auto pipeline = BuildPipeline(char_textures.extent_after_merge,
-                                **render_pass, pipeline_builder.get());
+  auto pipeline_builder = CreatePipelineBuilder(context_, descriptor->layout(),
+                                                /*enable_color_blend=*/false);
+  const auto pipeline = BuildPipeline(*image_, **render_pass,
+                                      pipeline_builder.get());
 
-  vector<RenderPass::RenderOp> render_ops{
+  const vector<RenderPass::RenderOp> render_ops{
       [&](const VkCommandBuffer& command_buffer) {
         pipeline->Bind(command_buffer);
         for (int i = 0; i < char_merge_order.size(); ++i) {
+          const auto& char_image =
+              char_textures.char_image_map.find(char_merge_order[i])->second;
           descriptor->PushImageInfos(
               command_buffer, pipeline->layout(),
-              /*descriptor_type=*/VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-              /*image_infos=*/{
-                  {kImageBindingPoint,
-                   {char_textures.char_image_map[char_merge_order[i]]
-                        ->GetDescriptorInfo()}},
+              VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+              /*image_info_map=*/{{
+                  kImageBindingPoint,
+                  {char_image->GetDescriptorInfo()}},
               });
           vertex_buffer->Draw(command_buffer, /*mesh_index=*/i,
-              /*instance_count=*/1);
+                              /*instance_count=*/1);
         }
       },
   };
 
-  OneTimeCommand command{context_, &context_->queues().graphics_queue()};
+  const OneTimeCommand command{context_, &context_->queues().graphics_queue()};
   command.Run([&](const VkCommandBuffer& command_buffer) {
     render_pass->Run(command_buffer, /*framebuffer_index=*/0, render_ops);
   });
@@ -290,14 +299,16 @@ CharLoader::CharTextures CharLoader::CreateCharTextures(
   };
   const glm::vec2 ratio = 1.0f / glm::vec2{total_width, font_height};
 
-  const float interval_in_tex = interval_between_chars * ratio.x;
+  const float interval_in_texture =
+      static_cast<float>(interval_between_chars) * ratio.x;
   float offset_x = 0.0f;
   for (const auto& ch : char_lib.char_info_map()) {
     const char character = ch.first;
     const auto& info = ch.second;
-    const float advance_x = info.advance_x * ratio.x;
+    const float advance_x = static_cast<float>(info.advance.x) * ratio.x;
     if (character == ' ') {
-      // no texture will be wasted for space. we only record its advance
+      // We don't need to render the space character. Instead, we only record
+      // its advance.
       space_advance_x_ = advance_x;
     } else {
       const glm::vec2 size =
@@ -321,7 +332,7 @@ CharLoader::CharTextures CharLoader::CreateCharTextures(
               }
           )
       );
-      offset_x += size.x + interval_in_tex;
+      offset_x += size.x + interval_in_texture;
     }
   }
   return char_textures;
@@ -344,7 +355,7 @@ TextLoader::TextLoader(SharedBasicContext context,
   auto pipeline_builder = CreatePipelineBuilder(
       context_, descriptor->layout(), /*enable_color_blend=*/true);
 
-  CharLoader char_loader{context_, texts, font, font_height};
+  const CharLoader char_loader{context_, texts, font, font_height};
   text_textures_.reserve(texts.size());
   for (const auto& text : texts) {
     text_textures_.emplace_back(
@@ -377,7 +388,7 @@ TextLoader::TextTexture TextLoader::CreateTextTexture(
   const glm::vec2 ratio = glm::vec2{1.0f / total_width_in_loader_tex, 1.0f};
   const float base_y = highest_baseline;
 
-  VkExtent2D extent_after_merge{
+  const VkExtent2D extent_after_merge{
       static_cast<uint32_t>(total_width_in_loader_tex *
                             char_loader.width_height_ratio() *
                             (font_height / 1.0f)),
@@ -399,15 +410,13 @@ TextLoader::TextTexture TextLoader::CreateTextTexture(
       {kImageBindingPoint, {char_loader.texture()->GetDescriptorInfo()}},
   });
 
-  auto render_pass = BuildRenderPass(
-      extent_after_merge,
-      [&](int index) -> const Image& { return *text_texture.image; },
-      render_pass_builder);
+  const auto render_pass =
+      BuildRenderPass(*text_texture.image, render_pass_builder);
 
-  auto pipeline = BuildPipeline(extent_after_merge, **render_pass,
-                                pipeline_builder);
+  const auto pipeline = BuildPipeline(*text_texture.image, **render_pass,
+                                      pipeline_builder);
 
-  vector<RenderPass::RenderOp> render_ops{
+  const vector<RenderPass::RenderOp> render_ops{
       [&](const VkCommandBuffer& command_buffer) {
         pipeline->Bind(command_buffer);
         descriptor->Bind(command_buffer, pipeline->layout());
@@ -418,7 +427,7 @@ TextLoader::TextTexture TextLoader::CreateTextTexture(
       },
   };
 
-  OneTimeCommand command{context_, &context_->queues().graphics_queue()};
+  const OneTimeCommand command{context_, &context_->queues().graphics_queue()};
   command.Run([&](const VkCommandBuffer& command_buffer) {
     render_pass->Run(command_buffer, /*framebuffer_index=*/0, render_ops);
   });
@@ -438,10 +447,10 @@ const array<uint32_t, kNumIndicesPerRect>& GetIndicesPerRect() {
   return *indices_per_rect;
 }
 
-void AppendCharPosAndTexCoord(const glm::vec2 &pos_bottom_left,
-                              const glm::vec2 &pos_increment,
-                              const glm::vec2 &tex_coord_bottom_left,
-                              const glm::vec2 &tex_coord_increment,
+void AppendCharPosAndTexCoord(const glm::vec2& pos_bottom_left,
+                              const glm::vec2& pos_increment,
+                              const glm::vec2& tex_coord_bottom_left,
+                              const glm::vec2& tex_coord_increment,
                               vector<VertexAttribute2D> *vertices) {
   const glm::vec2 pos_top_right = pos_bottom_left + pos_increment;
   const glm::vec2 tex_coord_top_right = tex_coord_bottom_left +

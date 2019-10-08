@@ -10,6 +10,7 @@
 #include <algorithm>
 
 #include "jessie_steamer/common/file.h"
+#include "jessie_steamer/wrapper/vulkan/align.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline_util.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 #include "third_party/absl/memory/memory.h"
@@ -27,10 +28,8 @@ using std::vector;
 
 enum class BindingPoint : int { kUniformBuffer = 0, kTexture };
 
-// alignment requirement:
-// https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap14.html#interfaces-resources-layout
 struct TextRenderInfo {
-  alignas(16) glm::vec4 color_alpha;
+  ALIGN_VEC4 glm::vec4 color_alpha;
 };
 
 float GetOffsetX(float base_x, Text::Align align, float total_width) {
@@ -76,12 +75,12 @@ const vector<Descriptor::Info>& CreateDescriptorInfos() {
 
 } /* namespace */
 
-Text::Text(SharedBasicContext context, int num_frames)
+Text::Text(SharedBasicContext context, int num_frames_in_flight)
     : context_{std::move(context)},
       vertex_buffer_{context_, text_util::GetVertexDataSize(/*num_rects=*/1)},
       pipeline_builder_{context_} {
   uniform_buffer_ = absl::make_unique<UniformBuffer>(
-      context_, sizeof(TextRenderInfo), num_frames);
+      context_, sizeof(TextRenderInfo), num_frames_in_flight);
   pipeline_builder_
       .SetVertexInput(
           pipeline::GetBindingDescriptions(
@@ -124,16 +123,16 @@ void Text::UpdateUniformBuffer(int frame, const glm::vec3& color, float alpha) {
 }
 
 StaticText::StaticText(SharedBasicContext context,
-                       int num_frames,
+                       int num_frames_in_flight,
                        const vector<string>& texts,
                        Font font, int font_height)
-    : Text{std::move(context), num_frames},
+    : Text{std::move(context), num_frames_in_flight},
       text_loader_{context_, texts, font, font_height} {
-  descriptors_.reserve(num_frames);
-  push_descriptors_.reserve(num_frames);
+  descriptors_.reserve(num_frames_in_flight);
+  push_descriptors_.reserve(num_frames_in_flight);
 
   const auto& descriptor_infos = CreateDescriptorInfos();
-  for (int frame = 0; frame < num_frames; ++frame) {
+  for (int frame = 0; frame < num_frames_in_flight; ++frame) {
     descriptors_.emplace_back(
         absl::make_unique<DynamicDescriptor>(context_, descriptor_infos));
     push_descriptors_.emplace_back(
@@ -194,10 +193,10 @@ glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer, int frame,
 }
 
 DynamicText::DynamicText(SharedBasicContext context,
-                         int num_frames,
+                         int num_frames_in_flight,
                          const vector<string>& texts,
                          Font font, int font_height)
-    : Text{std::move(context), num_frames},
+    : Text{std::move(context), num_frames_in_flight},
       char_loader_{context_, texts, font, font_height} {
   const auto& descriptor_infos = CreateDescriptorInfos();
   const Descriptor::ImageInfoMap image_info_map{
@@ -205,8 +204,8 @@ DynamicText::DynamicText(SharedBasicContext context,
        {char_loader_.texture()->GetDescriptorInfo()}},
   };
 
-  descriptors_.reserve(num_frames);
-  for (int frame = 0; frame < num_frames; ++frame) {
+  descriptors_.reserve(num_frames_in_flight);
+  for (int frame = 0; frame < num_frames_in_flight; ++frame) {
     descriptors_.emplace_back(
         absl::make_unique<StaticDescriptor>(context_, descriptor_infos));
     descriptors_[frame]->UpdateBufferInfos(

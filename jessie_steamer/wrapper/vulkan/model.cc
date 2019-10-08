@@ -142,9 +142,11 @@ void ExtractPerInstanceBufferInfos(
 } /* namespace */
 
 ModelBuilder::ModelBuilder(SharedBasicContext context,
-                           int num_frames, const ModelResource& resource)
+                           int num_frames_in_flight,
+                           const ModelResource& resource)
     : context_{std::move(context)},
-      num_frames_{num_frames}, uniform_buffer_info_maps_(num_frames_) {
+      num_frames_in_flight_{num_frames_in_flight},
+      uniform_buffer_info_maps_(num_frames_in_flight_) {
   if (absl::holds_alternative<SingleMeshResource>(resource)) {
     LoadSingleMesh(absl::get<SingleMeshResource>(resource));
   } else if (absl::holds_alternative<MultiMeshResource>(resource)) {
@@ -166,9 +168,9 @@ void ModelBuilder::LoadSingleMesh(const SingleMeshResource& resource) {
 
   // Load textures.
   mesh_textures_.emplace_back();
-  for (const auto& info : resource.tex_source_map) {
-    const auto type_index = static_cast<int>(info.first);
-    const auto& sources = info.second;
+  for (const auto& pair : resource.tex_source_map) {
+    const auto type_index = static_cast<int>(pair.first);
+    const auto& sources = pair.second;
     mesh_textures_.back()[type_index].reserve(sources.size());
     for (const auto& source : sources) {
       mesh_textures_.back()[type_index].emplace_back(
@@ -234,7 +236,7 @@ ModelBuilder& ModelBuilder::AddUniformBinding(
 
 ModelBuilder& ModelBuilder::AddUniformBuffer(
     uint32_t binding_point, const UniformBuffer& uniform_buffer) {
-  for (int frame = 0; frame < num_frames_; ++frame) {
+  for (int frame = 0; frame < num_frames_in_flight_; ++frame) {
     uniform_buffer_info_maps_[frame][binding_point].emplace_back(
         uniform_buffer.GetDescriptorInfo(frame));
   }
@@ -271,12 +273,12 @@ ModelBuilder::CreateDescriptors() const {
   // For different frames, we get data from different parts of uniform buffers.
   // For different meshes, we bind different textures.
   // Hence, we need a 2D array: descriptors[num_frames][num_meshes].
-  vector<DescriptorsPerFrame> descriptors(num_frames_);
+  vector<DescriptorsPerFrame> descriptors(num_frames_in_flight_);
   auto descriptor_infos = uniform_descriptor_infos_;
   // The last element will store the descriptor info of textures.
   descriptor_infos.resize(descriptor_infos.size() + 1);
 
-  for (int frame = 0; frame < num_frames_; ++frame) {
+  for (int frame = 0; frame < num_frames_in_flight_; ++frame) {
     descriptors[frame].reserve(mesh_textures_.size());
 
     for (const auto& mesh_texture : mesh_textures_) {

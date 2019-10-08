@@ -40,8 +40,8 @@ new_git_repository(
 new_git_repository(
     name = "lib-glm",
     remote = "https://github.com/g-truc/glm.git",
-    commit = "d162eee1e6f7c317a09229fe6ceab8ec6ab9a4b4",
-    shallow_since = "1554197305 +0200",
+    commit = "4db8f89aace8f04c839b606e15b39fb8383ec732",
+    shallow_since = "1567951122 +0200",
     strip_prefix = "glm",
     build_file = "//:third_party/BUILD.glm",
 )
@@ -56,9 +56,9 @@ new_git_repository(
 
 http_archive(
     name = "lib-vulkan",
-    url = "https://sdk.lunarg.com/sdk/download/1.1.108.0/mac/vulkansdk-macos-1.1.108.0.tar.gz",
-    sha256 = "f493b0e9abc73e80a29fa24ef9bae3c2311513df973ade6ffc56008c30eaf60d",
-    strip_prefix = "vulkansdk-macos-1.1.108.0/macOS",
+    url = "https://sdk.lunarg.com/sdk/download/1.1.121.1/mac/vulkansdk-macos-1.1.121.1.tar.gz",
+    sha256 = "c4a177a2a08bb2496dff02cdc1730ce5893c599ae9b6b9867895970a5f987c4f",
+    strip_prefix = "vulkansdk-macos-1.1.121.1/macOS",
     build_file = "//:third_party/BUILD.vulkan",
 )
 

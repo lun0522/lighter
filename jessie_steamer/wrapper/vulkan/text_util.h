@@ -42,8 +42,7 @@ class CharLoader {
   };
 
   CharLoader(SharedBasicContext context,
-             const std::vector<std::string>& texts,
-             Font font, int font_height);
+             const std::vector<std::string>& texts, Font font, int font_height);
 
   // This class is neither copyable nor movable.
   CharLoader(const CharLoader&) = delete;

@@ -28,7 +28,7 @@ class CharLib {
   // https://learnopengl.com/img/in-practice/glyph.png
   struct CharInfo {
     glm::ivec2 bearing;
-    unsigned int advance_x;
+    glm::ivec2 advance;
     std::unique_ptr<Image> image;
   };
 

@@ -12,6 +12,7 @@
 #include "jessie_steamer/application/vulkan/util.h"
 #include "jessie_steamer/common/file.h"
 #include "jessie_steamer/common/time.h"
+#include "jessie_steamer/wrapper/vulkan/align.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
@@ -133,7 +134,6 @@ void CubeApp::Recreate() {
         });
   }
   render_pass_ = (*render_pass_builder_)
-      .SetFramebufferSize(frame_size)
       .UpdateAttachmentImage(
           naive_render_pass::kColorAttachmentIndex,
           [this](int framebuffer_index) -> const Image& {
@@ -147,7 +147,7 @@ void CubeApp::Recreate() {
       .Build();
 
   // model
-  model_->Update(/*is_opaque=*/true, frame_size,
+  model_->Update(/*is_object_opaque=*/true, frame_size,
                  depth_stencil_image_->sample_count(),
                  *render_pass_, static_cast<int>(SubpassIndex::kModel));
 

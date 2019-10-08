@@ -35,10 +35,10 @@ VkDescriptorPool CreateDescriptorPool(
 
   vector<VkDescriptorPoolSize> pool_sizes;
   pool_sizes.reserve(pool_size_map.size());
-  for (const auto& info : pool_size_map) {
+  for (const auto& pair : pool_size_map) {
     pool_sizes.emplace_back(VkDescriptorPoolSize{
-        /*type=*/info.first,
-        /*descriptorCount=*/info.second,
+        /*type=*/pair.first,
+        /*descriptorCount=*/pair.second,
     });
   }
 

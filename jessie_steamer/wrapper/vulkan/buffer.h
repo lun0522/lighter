@@ -399,7 +399,7 @@ class PushConstant {
  public:
   // 'size_per_frame' must be less than 128.
   PushConstant(const SharedBasicContext& context,
-               size_t size_per_frame, int num_frames);
+               size_t size_per_frame, int num_frames_in_flight);
 
   // This class is neither copyable nor movable.
   PushConstant(const PushConstant&) = delete;

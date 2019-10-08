@@ -36,7 +36,10 @@ CharLib::CharLib(const std::vector<std::string>& texts,
               face->glyph->bitmap_top,
           },
           // Advance is measured in number of 1/64 pixels.
-          /*advance_x=*/static_cast<unsigned int>(face->glyph->advance.x) >> 6,
+          /*advance=*/{
+              static_cast<unsigned int>(face->glyph->advance.x) >> 6U,
+              static_cast<unsigned int>(face->glyph->advance.y) >> 6U,
+          },
           /*image=*/absl::make_unique<Image>(
               /*width=*/face->glyph->bitmap.width,
               /*height=*/face->glyph->bitmap.rows,

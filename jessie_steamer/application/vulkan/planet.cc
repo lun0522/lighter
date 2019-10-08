@@ -14,6 +14,7 @@
 #include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/file.h"
 #include "jessie_steamer/common/time.h"
+#include "jessie_steamer/wrapper/vulkan/align.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
@@ -104,7 +105,7 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
   camera_ = absl::make_unique<common::UserControlledCamera>(
       config, common::UserControlledCamera::ControlConfig{});
 
-  window_context_.window()
+  (*window_context_.mutable_window())
       .SetCursorHidden(true)
       .RegisterMoveCursorCallback([this](double x_pos, double y_pos) {
         camera_->DidMoveCursor(x_pos, y_pos);
@@ -252,7 +253,6 @@ void PlanetApp::Recreate() {
         });
   }
   render_pass_ = (*render_pass_builder_)
-      .SetFramebufferSize(frame_size)
       .UpdateAttachmentImage(
           naive_render_pass::kColorAttachmentIndex,
           [this](int framebuffer_index) -> const Image& {

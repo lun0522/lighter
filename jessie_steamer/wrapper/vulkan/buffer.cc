@@ -779,14 +779,14 @@ MultisampleBuffer::MultisampleBuffer(
 }
 
 PushConstant::PushConstant(const SharedBasicContext& context,
-                           size_t size_per_frame, int num_frame) {
+                           size_t size_per_frame, int num_frames_in_flight) {
   ASSERT_TRUE(size_per_frame <= kMaxPushConstantSize,
               absl::StrFormat("Pushing constant of size %d bytes per-frame. To "
                               "be compatible with all devices, the size should "
                               "not be greater than %d bytes.",
                               size_per_frame, kMaxPushConstantSize));
   size_per_frame_ = static_cast<uint32_t>(size_per_frame);
-  data_ = new char[size_per_frame_ * num_frame];
+  data_ = new char[size_per_frame_ * num_frames_in_flight];
 }
 
 void PushConstant::Flush(const VkCommandBuffer& command_buffer,

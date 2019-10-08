@@ -126,10 +126,6 @@ class RenderPassBuilder {
   // Sets the number of framebuffers.
   RenderPassBuilder& SetNumFramebuffers(int count);
 
-  // Sets the size of each framebuffer. This must be called if the rendering
-  // target is resized.
-  RenderPassBuilder& SetFramebufferSize(const VkExtent2D& size);
-
   // Sets the image attachment at 'index'.
   RenderPassBuilder& SetAttachment(int index, const Attachment& attachment);
 
@@ -145,6 +141,8 @@ class RenderPassBuilder {
   RenderPassBuilder& AddSubpassDependency(const SubpassDependency& dependency);
 
   // Returns a render pass. This keeps internal states of the builder unchanged.
+  // For simplicity, the size of framebuffers will be the same to the first
+  // color attachment.
   std::unique_ptr<RenderPass> Build() const;
 
  private:
@@ -153,9 +151,6 @@ class RenderPassBuilder {
 
   // Number of framebuffers. It must have value when Build() is called.
   absl::optional<int> num_framebuffers_;
-
-  // Size of each framebuffer. It must have value when Build() is called.
-  absl::optional<VkExtent2D> framebuffer_size_;
 
   // Descriptions of attachments used in this render pass.
   std::vector<VkAttachmentDescription> attachment_descriptions_;

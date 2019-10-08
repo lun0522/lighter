@@ -7,6 +7,7 @@ compilation_mode()
 cc_library(
     name = "on_screen",
     deps = [
+        ":align",
         ":buffer",
         ":command",
         ":image",
@@ -17,6 +18,11 @@ cc_library(
     ],
     data = ["@resource//:resource"],
     visibility = ["//jessie_steamer:__subpackages__"],
+)
+
+cc_library(
+    name = "align",
+    hdrs = ["align.h"],
 )
 
 cc_library(
@@ -197,6 +203,7 @@ cc_library(
         "text_util.cc",
     ],
     deps = [
+        ":align",
         ":basics",
         ":buffer",
         ":command",
