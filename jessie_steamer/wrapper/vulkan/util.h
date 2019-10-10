@@ -18,6 +18,7 @@
 #include "third_party/absl/strings/str_cat.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/optional.h"
+#include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
 #define ASSERT_SUCCESS(event, error)                          \
@@ -120,6 +121,10 @@ absl::optional<std::string> FindUnsupported(
 
 inline float GetWidthHeightRatio(const VkExtent2D& extent) {
   return static_cast<float>(extent.width) / extent.height;
+}
+
+inline glm::vec2 ExtentToVec(const VkExtent2D& extent) {
+  return glm::vec2{extent.width, extent.height};
 }
 
 inline VkBool32 ToVkBool(bool value) { return value ? VK_TRUE : VK_FALSE; }

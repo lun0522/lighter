@@ -148,7 +148,7 @@ StaticText::StaticText(SharedBasicContext context,
               command_buffer, pipeline_layout,
               VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
               {{static_cast<int>(BindingPoint::kTexture),
-                {text_loader_.texture(text_index).image
+                {text_loader_.texture_info(text_index).image
                      ->GetDescriptorInfo()}}});
         });
   }
@@ -163,9 +163,9 @@ glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer, int frame,
                            float base_x, float base_y, Align align) {
   UpdateUniformBuffer(frame, color, alpha);
 
-  const auto& texture = text_loader_.texture(text_index);
+  const auto& texture_info = text_loader_.texture_info(text_index);
   const float frame_width_height_ratio = util::GetWidthHeightRatio(frame_size);
-  const glm::vec2 ratio = glm::vec2{texture.width_height_ratio /
+  const glm::vec2 ratio = glm::vec2{texture_info.width_height_ratio /
                                     frame_width_height_ratio, 1.0f} *
                           (height / 1.0f);
   const float width_in_frame = 1.0f * ratio.x;
@@ -174,7 +174,7 @@ glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer, int frame,
   vector<VertexAttribute2D> vertices;
   vertices.reserve(text_util::kNumVerticesPerRect);
   text_util::AppendCharPosAndTexCoord(
-      /*pos_bottom_left=*/{offset_x, base_y - texture.base_y * ratio.y},
+      /*pos_bottom_left=*/{offset_x, base_y - texture_info.base_y * ratio.y},
       /*pos_increment=*/glm::vec2{1.0f} * ratio,
       /*tex_coord_bottom_left=*/glm::vec2{0.0f},
       /*tex_coord_increment=*/glm::vec2{1.0f},
@@ -201,7 +201,7 @@ DynamicText::DynamicText(SharedBasicContext context,
   const auto& descriptor_infos = CreateDescriptorInfos();
   const Descriptor::ImageInfoMap image_info_map{
       {static_cast<int>(BindingPoint::kTexture),
-       {char_loader_.texture()->GetDescriptorInfo()}},
+       {char_loader_.library_image()->GetDescriptorInfo()}},
   };
 
   descriptors_.reserve(num_frames_in_flight);
@@ -228,21 +228,20 @@ glm::vec2 DynamicText::Draw(
   UpdateUniformBuffer(frame, color, alpha);
 
   const float frame_width_height_ratio = util::GetWidthHeightRatio(frame_size);
-  const glm::vec2 ratio = glm::vec2{char_loader_.width_height_ratio() /
+  const glm::vec2 ratio = glm::vec2{char_loader_.GetWidthHeightRatio() /
                                     frame_width_height_ratio, 1.0f} *
                           (height / 1.0f);
-  const auto& texture_map = char_loader_.char_texture_map();
+  const auto& char_texture_info_map = char_loader_.char_texture_info_map();
 
   float total_width_in_tex_coord = 0.0f;
   int num_non_space_chars = 0;
-  for (auto c : text) {
-    if (c == ' ') {
-      ASSERT_HAS_VALUE(char_loader_.space_advance(), "Space was not loaded");
-      total_width_in_tex_coord += char_loader_.space_advance().value();
+  for (auto character : text) {
+    if (character == ' ') {
+      total_width_in_tex_coord += char_loader_.space_advance();
     } else {
-      const auto found = texture_map.find(c);
-      ASSERT_FALSE(found == texture_map.end(),
-                   absl::StrFormat("'%c' was not loaded", c));
+      const auto found = char_texture_info_map.find(character);
+      ASSERT_FALSE(found == char_texture_info_map.end(),
+                   absl::StrFormat("'%c' was not loaded", character));
       ++num_non_space_chars;
       total_width_in_tex_coord += found->second.advance_x;
     }

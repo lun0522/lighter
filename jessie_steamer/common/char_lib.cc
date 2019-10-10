@@ -23,31 +23,33 @@ CharLib::CharLib(const std::vector<std::string>& texts,
   FT_Set_Pixel_Sizes(face, /*pixel_width=*/0, font_height);
 
   for (const auto& text : texts) {
-    for (auto c : text) {
-      if (char_info_map_.find(c) != char_info_map_.end()) {
+    for (auto character : text) {
+      if (char_info_map_.find(character) != char_info_map_.end()) {
         continue;
       }
 
-      ASSERT_FALSE(FT_Load_Char(face, c, FT_LOAD_RENDER),
+      ASSERT_FALSE(FT_Load_Char(face, character, FT_LOAD_RENDER),
                    "Failed to load glyph");
-      char_info_map_.emplace(c, CharInfo{
-          /*bearing=*/{
-              face->glyph->bitmap_left,
-              face->glyph->bitmap_top,
-          },
-          // Advance is measured in number of 1/64 pixels.
-          /*advance=*/{
-              static_cast<unsigned int>(face->glyph->advance.x) >> 6U,
-              static_cast<unsigned int>(face->glyph->advance.y) >> 6U,
-          },
-          /*image=*/absl::make_unique<Image>(
-              /*width=*/face->glyph->bitmap.width,
-              /*height=*/face->glyph->bitmap.rows,
-              /*channel=*/1,
-              /*raw_data=*/face->glyph->bitmap.buffer,
-              /*flip_y=*/true
-          ),
-      });
+      char_info_map_.emplace(
+          character, CharInfo{
+              /*bearing=*/{
+                  face->glyph->bitmap_left,
+                  face->glyph->bitmap_top,
+              },
+              // Advance is measured in number of 1/64 pixels.
+              /*advance=*/{
+                  static_cast<unsigned int>(face->glyph->advance.x) >> 6U,
+                  static_cast<unsigned int>(face->glyph->advance.y) >> 6U,
+              },
+              /*image=*/absl::make_unique<Image>(
+                  /*width=*/face->glyph->bitmap.width,
+                  /*height=*/face->glyph->bitmap.rows,
+                  /*channel=*/1,
+                  /*raw_data=*/face->glyph->bitmap.buffer,
+                  /*flip_y=*/true
+              ),
+          }
+      );
     }
   }
 
