@@ -1,8 +1,6 @@
 Files that are waiting to be cleaned up:
 
 wrapper
-- text
-- text_util
 - util
 
 application

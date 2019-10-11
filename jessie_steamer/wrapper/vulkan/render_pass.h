@@ -134,8 +134,17 @@ class RenderPassBuilder {
   // The user is responsible for keeping 'get_image' valid until Build().
   RenderPassBuilder& UpdateAttachmentImage(int index, GetImage&& get_image);
 
-  // Sets the subpass at 'index' with 'attachments' used for this subpass.
-  RenderPassBuilder& SetSubpass(int index, SubpassAttachments&& attachments);
+  // Sets the subpass at 'index' with color attachments and optional depth
+  // stencil attachments used for this subpass.
+  RenderPassBuilder& SetSubpass(
+      int index, std::vector<VkAttachmentReference>&& color_refs,
+      absl::optional<VkAttachmentReference>&& depth_stencil_ref);
+
+  // Sets multisampling relationships for the subpass at 'subpass_index'.
+  // The user must have called SetSubpass() for this subpass.
+  RenderPassBuilder& SetMultisampling(
+      int subpass_index,
+      std::vector<VkAttachmentReference>&& multisampling_refs);
 
   // Creates a dependency relationship.
   RenderPassBuilder& AddSubpassDependency(const SubpassDependency& dependency);

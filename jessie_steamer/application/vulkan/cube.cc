@@ -124,6 +124,7 @@ void CubeApp::Recreate() {
   const VkExtent2D& frame_size = window_context_.frame_size();
   depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
       context(), frame_size, window_context_.multisampling_mode());
+  const auto sample_count = depth_stencil_image_->sample_count();
 
   // render pass
   if (window_context_.multisampling_mode().has_value()) {
@@ -147,14 +148,13 @@ void CubeApp::Recreate() {
       .Build();
 
   // model
-  model_->Update(/*is_object_opaque=*/true, frame_size,
-                 depth_stencil_image_->sample_count(),
+  model_->Update(/*is_object_opaque=*/true, frame_size, sample_count,
                  *render_pass_, static_cast<int>(SubpassIndex::kModel));
 
   // text
-  static_text_->Update(frame_size, *render_pass_,
+  static_text_->Update(frame_size, sample_count, *render_pass_,
                        static_cast<int>(SubpassIndex::kText));
-  dynamic_text_->Update(frame_size, *render_pass_,
+  dynamic_text_->Update(frame_size, sample_count, *render_pass_,
                         static_cast<int>(SubpassIndex::kText));
 }
 

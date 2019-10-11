@@ -201,18 +201,32 @@ RenderPassBuilder& RenderPassBuilder::UpdateAttachmentImage(
 }
 
 RenderPassBuilder& RenderPassBuilder::SetSubpass(
-    int index, SubpassAttachments&& attachments) {
-  if (attachments.multisampling_refs.has_value()) {
-    const int num_multisampling_attachments =
-        attachments.multisampling_refs.value().size();
-    const int num_color_attachments = attachments.color_refs.size();
-    ASSERT_TRUE(num_multisampling_attachments == num_color_attachments,
-                absl::StrFormat(
-                    "Number of multisampling attachment (%d) must be equal to "
-                    "the number of color attachments (%d)",
-                    num_multisampling_attachments, num_color_attachments));
-  }
+    int index, std::vector<VkAttachmentReference>&& color_refs,
+    absl::optional<VkAttachmentReference>&& depth_stencil_ref) {
+  SubpassAttachments attachments{
+      std::move(color_refs),
+      /*multisampling_refs=*/absl::nullopt,  // To be updated.
+      std::move(depth_stencil_ref),
+  };
   SetElementWithResizing(std::move(attachments), index, &subpass_attachments_);
+  return *this;
+}
+
+RenderPassBuilder& RenderPassBuilder::SetMultisampling(
+    int subpass_index,
+    std::vector<VkAttachmentReference>&& multisampling_refs) {
+  ASSERT_TRUE(subpass_index < subpass_attachments_.size(),
+              absl::StrFormat("Subpass at index %d is not set", subpass_index));
+  const int num_color_attachments =
+      subpass_attachments_[subpass_index].color_refs.size();
+  ASSERT_TRUE(multisampling_refs.size() == num_color_attachments,
+              absl::StrFormat("Number of multisampling attachment (%d) must be "
+                              "equal to the number of color attachments (%d) "
+                              "for subpass %d",
+                              multisampling_refs.size(), num_color_attachments,
+                              subpass_index));
+  subpass_attachments_[subpass_index].multisampling_refs =
+      std::move(multisampling_refs);
   return *this;
 }
 

@@ -88,16 +88,13 @@ std::unique_ptr<RenderPassBuilder> CreateRenderPassBuilder(
       )
       .SetSubpass(
           kNativeSubpassIndex,
-          RenderPassBuilder::SubpassAttachments{
-              /*color_refs=*/{
-                  VkAttachmentReference{
-                      kColorAttachmentIndex,
-                      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                  },
+          /*color_refs=*/{
+              VkAttachmentReference{
+                  kColorAttachmentIndex,
+                  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
               },
-              /*multisampling_refs=*/absl::nullopt,
-              /*depth_stencil_ref=*/absl::nullopt,
-          }
+          },
+          /*depth_stencil_ref=*/absl::nullopt
       )
       .AddSubpassDependency(RenderPassBuilder::SubpassDependency{
           /*prev_subpass=*/RenderPassBuilder::SubpassDependency::SubpassInfo{
@@ -393,8 +390,7 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
     if (character == ' ') {
       total_advance_x += char_loader.space_advance();
     } else {
-      const auto& texture_info =
-          char_loader.char_texture_info_map().find(character)->second;
+      const auto& texture_info = char_loader.char_texture_info(character);
       total_advance_x += texture_info.advance_x;
       highest_base_y = std::max(highest_base_y,
                                 texture_info.size.y - texture_info.bearing.y);
@@ -503,8 +499,7 @@ float LoadCharsVertexData(const string& text, const CharLoader& char_loader,
       offset_x += char_loader.space_advance() * ratio.x;
       continue;
     }
-    const auto& texture_info =
-        char_loader.char_texture_info_map().find(character)->second;
+    const auto& texture_info = char_loader.char_texture_info(character);
     const glm::vec2& size_in_tex = texture_info.size;
     text_util::AppendCharPosAndTexCoord(
         /*pos_bottom_left=*/
@@ -521,7 +516,7 @@ float LoadCharsVertexData(const string& text, const CharLoader& char_loader,
     FlipYCoord(&vertices);
   }
 
-  vertex_buffer->Allocate(PerVertexBuffer::ShareIndicesDataInfo{
+  vertex_buffer->CopyHostData(PerVertexBuffer::ShareIndicesDataInfo{
       /*num_meshes=*/static_cast<int>(text.length()),
       /*per_mesh_vertices=*/
       {vertices, /*num_units_per_mesh=*/text_util::kNumVerticesPerRect},

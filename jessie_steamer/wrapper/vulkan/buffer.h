@@ -215,7 +215,7 @@ class DynamicPerVertexBuffer : public PerVertexBuffer {
   // This buffer can be re-allocated multiple times. If a larger memory is
   // required, the buffer allocated previously will be destructed, and a new one
   // will be allocated. Otherwise, we will reuse the old buffer.
-  void Allocate(const BufferDataInfo& info);
+  void CopyHostData(const BufferDataInfo& info);
 
  private:
   // Reserves space of the given 'size'. If 'size' is less than the current

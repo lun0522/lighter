@@ -601,7 +601,7 @@ void DynamicPerVertexBuffer::Reserve(int size) {
   CreateBufferAndMemory(buffer_size_, /*is_dynamic=*/true);
 }
 
-void DynamicPerVertexBuffer::Allocate(const BufferDataInfo& info) {
+void DynamicPerVertexBuffer::CopyHostData(const BufferDataInfo& info) {
   const CopyInfos copy_infos = CreateCopyInfos(info);
   Reserve(copy_infos.total_size);
   CopyHostToBuffer(context_, /*map_offset=*/0, /*map_size=*/buffer_size_,

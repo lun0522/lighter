@@ -26,6 +26,8 @@ using SubpassDependency = RenderPassBuilder::SubpassDependency;
 
 namespace naive_render_pass {
 
+// TODO: To render transparent objects, we still need to use depth buffer (read
+// only) and MSAA. To render text, we don't use depth buffer at all.
 std::unique_ptr<RenderPassBuilder> GetNaiveRenderPassBuilder(
     SharedBasicContext context,
     int num_subpasses, int num_framebuffers, bool present_to_screen,
@@ -76,85 +78,75 @@ std::unique_ptr<RenderPassBuilder> GetNaiveRenderPassBuilder(
           },
       });
 
+  // If multisampling is used, we will use the multisample attachment as color
+  // attachment for all subpasses.
+  std::vector<VkAttachmentReference> color_refs{
+      VkAttachmentReference{
+          kColorAttachmentIndex,
+          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+      },
+  };
   if (multisampling_mode.has_value()) {
-    (*builder)
-        .SetAttachment(
-            kMultisampleAttachmentIndex, Attachment{
-                /*attachment_ops=*/Attachment::ColorOps{
-                    /*load_color_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-                    /*store_color_op=*/VK_ATTACHMENT_STORE_OP_STORE,
-                },
-                /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
-                /*final_layout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            }
-        )
-        .SetSubpass(
-            kNativeSubpassIndex, SubpassAttachments{
-                /*color_refs=*/{
-                    VkAttachmentReference{
-                        kMultisampleAttachmentIndex,
-                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                    },
-                },
-                /*multisampling_refs=*/
-                RenderPassBuilder::CreateMultisamplingReferences(
-                    /*num_color_refs=*/1,
-                    /*pairs=*/std::vector<MultisamplingPair>{
-                        MultisamplingPair{
-                            /*multisample_reference=*/0,
-                            /*target_attachment=*/kColorAttachmentIndex,
-                        },
-                    }
-                ),
-                /*depth_stencil_ref=*/VkAttachmentReference{
-                    kDepthAttachmentIndex,
-                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                },
-            });
-  } else {
-    builder->SetSubpass(
-        kNativeSubpassIndex, SubpassAttachments{
-            /*color_refs=*/{
-                VkAttachmentReference{
-                    kColorAttachmentIndex,
-                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                },
+    color_refs[0].attachment = kMultisampleAttachmentIndex;
+    builder->SetAttachment(
+        kMultisampleAttachmentIndex, Attachment{
+            /*attachment_ops=*/Attachment::ColorOps{
+                /*load_color_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+                /*store_color_op=*/VK_ATTACHMENT_STORE_OP_STORE,
             },
-            /*multisampling_refs=*/absl::nullopt,
-            /*depth_stencil_ref=*/VkAttachmentReference{
-                kDepthAttachmentIndex,
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-            },
-        });
+            /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
+            /*final_layout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        }
+    );
   }
 
-  for (uint32_t subpass = kFirstExtraSubpassIndex; subpass < num_subpasses;
-       ++subpass) {
+  // Only the first subpass uses the depth stencil attachment.
+  builder->SetSubpass(
+      kNativeSubpassIndex,
+      std::vector<VkAttachmentReference>{color_refs},
+      /*depth_stencil_ref=*/VkAttachmentReference{
+          kDepthAttachmentIndex,
+          VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+      }
+  );
+  for (uint32_t subpass_index = kFirstExtraSubpassIndex;
+       subpass_index < num_subpasses; ++subpass_index) {
     (*builder)
         .SetSubpass(
-            /*index=*/subpass, SubpassAttachments{
-                /*color_refs=*/{
-                    VkAttachmentReference{
-                        kColorAttachmentIndex,
-                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                    },
-                },
-                /*multisampling_refs=*/absl::nullopt,
-                /*depth_stencil_ref=*/absl::nullopt,
-            })
+            subpass_index,
+            std::vector<VkAttachmentReference>{color_refs},
+            /*depth_stencil_ref=*/absl::nullopt
+        )
         .AddSubpassDependency(SubpassDependency{
             /*prev_subpass=*/SubpassDependency::SubpassInfo{
-                /*index=*/subpass - 1,
+                subpass_index - 1,
                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                 VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
             },
             /*next_subpass=*/SubpassDependency::SubpassInfo{
-                /*index=*/subpass,
+                subpass_index,
                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                 VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
                     | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
             },
         });
+  }
+
+  // If multisampling is used, only the last subpass need to resolve the
+  // multisample attachment.
+  if (multisampling_mode.has_value()) {
+    builder->SetMultisampling(
+        num_subpasses - 1,
+        RenderPassBuilder::CreateMultisamplingReferences(
+            /*num_color_refs=*/1,
+            /*pairs=*/std::vector<MultisamplingPair>{
+                MultisamplingPair{
+                    /*multisample_reference=*/0,
+                    /*target_attachment=*/kColorAttachmentIndex,
+                },
+            }
+        )
+    );
   }
 
   return builder;

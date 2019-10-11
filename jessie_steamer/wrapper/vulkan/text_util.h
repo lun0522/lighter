@@ -78,9 +78,12 @@ class CharLoader {
     ASSERT_HAS_VALUE(space_advance_x_, "Space is not loaded");
     return space_advance_x_.value();
   }
-  const CharTextureInfoMap& char_texture_info_map() const {
-    return char_texture_info_map_;
-  };
+  const CharTextureInfo& char_texture_info(char character) const {
+    const auto found = char_texture_info_map_.find(character);
+    ASSERT_FALSE(found == char_texture_info_map_.end(),
+                 absl::StrFormat("'%c' was not loaded", character));
+    return found->second;
+  }
 
  private:
   // Maps each character to its texture image.
