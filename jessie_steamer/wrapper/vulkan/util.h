@@ -32,14 +32,20 @@ namespace wrapper {
 namespace vulkan {
 namespace util {
 
+// This class is used to extract unique queues from a list of queues that may
+// contain duplicates. Since we may use one device queue for different purposes,
+// such as graphics and presentation, we need to know how many unique queues are
+// actually used. If there is only one unique queue, resources will not be
+// shared across queues.
 class QueueUsage {
  public:
   explicit QueueUsage(std::vector<uint32_t>&& queue_family_indices) {
     ASSERT_NON_EMPTY(queue_family_indices, "Must contain at least one queue");
     common::util::RemoveDuplicate(&queue_family_indices);
     unique_family_indices_ = std::move(queue_family_indices);
-    sharing_mode_ = unique_family_indices_.size() == 1 ?
-        VK_SHARING_MODE_EXCLUSIVE : VK_SHARING_MODE_CONCURRENT;
+    sharing_mode_ = unique_family_indices_.size() == 1
+                        ? VK_SHARING_MODE_EXCLUSIVE
+                        : VK_SHARING_MODE_CONCURRENT;
   }
 
   // Accessors.
@@ -52,10 +58,15 @@ class QueueUsage {
   VkSharingMode sharing_mode() const { return sharing_mode_; }
 
  private:
+  // Family indices of unique queues.
   std::vector<uint32_t> unique_family_indices_;
+
+  // Whether resources will be shared by multiple queues.
   VkSharingMode sharing_mode_;
 };
 
+// Returns a function pointer to a Vulkan instance function, and throws a
+// runtime exception if it does not exist.
 template<typename FuncType>
 FuncType LoadInstanceFunction(const VkInstance& instance,
                               const std::string& func_name) {
@@ -66,6 +77,8 @@ FuncType LoadInstanceFunction(const VkInstance& instance,
   return func;
 }
 
+// Returns a function pointer to a Vulkan device function, and throws a runtime
+// exception if it does not exist.
 template<typename FuncType>
 FuncType LoadDeviceFunction(const VkDevice& device,
                             const std::string& func_name) {
@@ -89,6 +102,9 @@ std::vector<AttribType> QueryAttribute(
   return attribs;
 }
 
+// Checks whether 'attribs' covers 'required' attributes. If not, returns the
+// name of the first uncovered attribute. 'get_name' should be able to return
+// the name of any attribute of AttribType.
 template <typename AttribType>
 absl::optional<std::string> FindUnsupported(
     const std::vector<std::string>& required,
@@ -119,14 +135,17 @@ absl::optional<std::string> FindUnsupported(
   return absl::nullopt;
 }
 
+// Returns the width height ratio of the 2D 'extent'.
 inline float GetWidthHeightRatio(const VkExtent2D& extent) {
   return static_cast<float>(extent.width) / extent.height;
 }
 
+// Converts a VkExtent2D to glm::vec2.
 inline glm::vec2 ExtentToVec(const VkExtent2D& extent) {
   return glm::vec2{extent.width, extent.height};
 }
 
+// Converts a bool to VkBool32.
 inline VkBool32 ToVkBool(bool value) { return value ? VK_TRUE : VK_FALSE; }
 
 } /* namespace util */

@@ -12,27 +12,10 @@
 
 #include "jessie_steamer/application/vulkan/util.h"
 #include "jessie_steamer/common/camera.h"
-#include "jessie_steamer/common/file.h"
-#include "jessie_steamer/common/time.h"
-#include "jessie_steamer/wrapper/vulkan/align.h"
-#include "jessie_steamer/wrapper/vulkan/buffer.h"
-#include "jessie_steamer/wrapper/vulkan/command.h"
-#include "jessie_steamer/wrapper/vulkan/image.h"
-#include "jessie_steamer/wrapper/vulkan/model.h"
-#include "jessie_steamer/wrapper/vulkan/render_pass.h"
-#include "jessie_steamer/wrapper/vulkan/render_pass_util.h"
-#include "jessie_steamer/wrapper/vulkan/window_context.h"
-#include "third_party/absl/memory/memory.h"
-#include "third_party/glm/glm.hpp"
-// different from OpenGL, where depth values are in range [-1.0, 1.0]
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "third_party/glm/gtc/matrix_transform.hpp"
-#include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
 namespace application {
 namespace vulkan {
-namespace planet {
 namespace {
 
 using namespace wrapper::vulkan;
@@ -42,6 +25,11 @@ using std::vector;
 constexpr int kNumAsteroidRings = 3;
 constexpr int kNumFramesInFlight = 2;
 constexpr int kObjFileIndexBase = 1;
+
+enum SubpassIndex {
+  kModelSubpassIndex = 0,
+  kNumSubpasses,
+};
 
 struct Light {
   ALIGN_VEC4 glm::vec4 direction_time;
@@ -57,6 +45,7 @@ struct SkyboxTrans {
   ALIGN_MAT4 glm::mat4 view;
 };
 
+// Contains the data shared by all vertices of an asteroid.
 struct Asteroid {
   float theta;
   float radius;
@@ -65,12 +54,19 @@ struct Asteroid {
 
 class PlanetApp : public Application {
  public:
-  PlanetApp();
+  explicit PlanetApp(const WindowContext::Config& config);
+
+  // Overrides.
   void MainLoop() override;
 
  private:
+  // Recreates the swapchain and associated resources.
   void Recreate();
+
+  // Populates 'num_asteroids_' and 'per_asteroid_data_'.
   void GenAsteroidModels();
+
+  // Updates per-frame data.
   void UpdateData(int frame);
 
   bool should_quit_ = false;
@@ -91,20 +87,23 @@ class PlanetApp : public Application {
 
 } /* namespace */
 
-PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
+PlanetApp::PlanetApp(const WindowContext::Config& window_config)
+    : Application{"Planet", window_config} {
   using common::file::GetResourcePath;
   using common::file::GetShaderPath;
   using WindowKey = common::Window::KeyMap;
   using ControlKey = common::UserControlledCamera::ControlKey;
   using TextureType = ModelBuilder::TextureType;
+  using VertexAttribute = pipeline::VertexInputAttribute::Attribute;
 
-  // camera
+  /* Camera */
   common::Camera::Config config;
   config.position = glm::vec3{1.6f, -5.1f, -5.9f};
   config.look_at = glm::vec3{-2.4f, -0.8f, 0.0f};
   camera_ = absl::make_unique<common::UserControlledCamera>(
       config, common::UserControlledCamera::ControlConfig{});
 
+  /* Window */
   (*window_context_.mutable_window())
       .SetCursorHidden(true)
       .RegisterMoveCursorCallback([this](double x_pos, double y_pos) {
@@ -132,10 +131,10 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
       .RegisterPressKeyCallback(WindowKey::kEscape,
                                 [this]() { should_quit_ = true; });
 
-  // command buffer
+  /* Command buffer */
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
-  // uniform buffer and push constants
+  /* Uniform buffer and push constants */
   light_uniform_ = absl::make_unique<UniformBuffer>(
       context(), sizeof(Light), kNumFramesInFlight);
   planet_constant_ = absl::make_unique<PushConstant>(
@@ -143,13 +142,13 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
   skybox_constant_ = absl::make_unique<PushConstant>(
       context(), sizeof(SkyboxTrans), kNumFramesInFlight);
 
-  // render pass builder
+  /* Render pass */
   render_pass_builder_ = naive_render_pass::GetNaiveRenderPassBuilder(
-      context(), /*num_subpasses=*/1,
+      context(), kNumSubpasses,
       /*num_framebuffers=*/window_context_.num_swapchain_images(),
       /*present_to_screen=*/true, window_context_.multisampling_mode());
 
-  // model
+  /* Model */
   planet_model_ =
       ModelBuilder{
           context(), kNumFramesInFlight,
@@ -174,19 +173,17 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
                      GetShaderPath("vulkan/planet.frag.spv"))
           .Build();
 
-  using VertexAttribute = pipeline::VertexInputAttribute::Attribute;
   GenAsteroidModels();
   vector<VertexAttribute> per_instance_attribs{
       {/*location=*/3, offsetof(Asteroid, theta), VK_FORMAT_R32_SFLOAT},
       {/*location=*/4, offsetof(Asteroid, radius), VK_FORMAT_R32_SFLOAT},
   };
   per_instance_attribs.reserve(6);
-  int attrib_offset = offsetof(Asteroid, model);
+  uint32_t attrib_offset = offsetof(Asteroid, model);
+  // The mat4 will be bound as 4 vec4.
   for (uint32_t location = 5; location <= 8; ++location) {
     per_instance_attribs.emplace_back(VertexAttribute{
-        location, static_cast<uint32_t>(attrib_offset),
-        VK_FORMAT_R32G32B32A32_SFLOAT,
-    });
+        location, attrib_offset, VK_FORMAT_R32G32B32A32_SFLOAT});
     attrib_offset += sizeof(glm::vec4);
   }
   asteroid_model_ =
@@ -239,12 +236,12 @@ PlanetApp::PlanetApp() : Application{"Planet", WindowContext::Config{}} {
 }
 
 void PlanetApp::Recreate() {
-  // depth stencil
+  /* Depth image */
   const VkExtent2D& frame_size = window_context_.frame_size();
   depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
       context(), frame_size, window_context_.multisampling_mode());
 
-  // render pass
+  /* Render pass */
   if (window_context_.multisampling_mode().has_value()) {
     render_pass_builder_->UpdateAttachmentImage(
         naive_render_pass::kMultisampleAttachmentIndex,
@@ -265,25 +262,26 @@ void PlanetApp::Recreate() {
           })
       .Build();
 
-  // camera
+  /* Camera */
   camera_->Calibrate(window_context_.window().GetScreenSize(),
                      window_context_.window().GetCursorPos());
 
-  // model
+  /* Model */
   constexpr bool kIsObjectOpaque = true;
   const auto sample_count = depth_stencil_image_->sample_count();
   planet_model_->Update(kIsObjectOpaque, frame_size, sample_count,
-                        *render_pass_, /*subpass_index=*/0);
+                        *render_pass_, kModelSubpassIndex);
   asteroid_model_->Update(kIsObjectOpaque, frame_size, sample_count,
-                          *render_pass_, /*subpass_index=*/0);
+                          *render_pass_, kModelSubpassIndex);
   skybox_model_->Update(kIsObjectOpaque, frame_size, sample_count,
-                        *render_pass_, /*subpass_index=*/0);
+                        *render_pass_, kModelSubpassIndex);
 }
 
 void PlanetApp::GenAsteroidModels() {
   const std::array<int, kNumAsteroidRings> num_asteroid = {300, 500, 700};
   const std::array<float, kNumAsteroidRings> radii = {6.0f, 12.0f,  18.0f};
 
+  // Randomly generate rotation, radius and scale for each asteroid.
   std::random_device device;
   std::mt19937 rand_gen{device()};
   std::uniform_real_distribution<float> axis_gen{0.0f, 1.0f};
@@ -319,8 +317,8 @@ void PlanetApp::GenAsteroidModels() {
 void PlanetApp::UpdateData(int frame) {
   const float elapsed_time = timer_.GetElapsedTimeSinceLaunch();
 
-  glm::vec3 light_dir{glm::sin(elapsed_time * 0.6f), -0.3f,
-                      glm::cos(elapsed_time * 0.6f)};
+  const glm::vec3 light_dir{glm::sin(elapsed_time * 0.6f), -0.3f,
+                            glm::cos(elapsed_time * 0.6f)};
   *light_uniform_->HostData<Light>(frame) =
       {glm::vec4{light_dir, elapsed_time}};
   light_uniform_->Flush(frame);
@@ -328,21 +326,20 @@ void PlanetApp::UpdateData(int frame) {
   glm::mat4 model{1.0f};
   model = glm::rotate(model, elapsed_time * glm::radians(5.0f),
                       glm::vec3{0.0f, 1.0f, 0.0f});
-  glm::mat4 view = camera_->view();
-  glm::mat4 proj = camera_->projection();
+  const glm::mat4& view = camera_->view();
+  const glm::mat4& proj = camera_->projection();
   *planet_constant_->HostData<PlanetTrans>(frame) = {model, proj * view};
   *skybox_constant_->HostData<SkyboxTrans>(frame) = {proj, view};
 }
 
 void PlanetApp::MainLoop() {
+  const auto update_data = [this](int frame) { UpdateData(frame); };
+
   Recreate();
-  const auto update_data = [this](int frame) {
-    UpdateData(frame);
-  };
   while (!should_quit_ && window_context_.CheckEvents()) {
     timer_.Tick();
 
-    vector<RenderPass::RenderOp> render_ops{
+    const vector<RenderPass::RenderOp> render_ops{
         [&](const VkCommandBuffer& command_buffer) {
           planet_model_->Draw(command_buffer, current_frame_,
                               /*instance_count=*/1);
@@ -352,7 +349,7 @@ void PlanetApp::MainLoop() {
                               /*instance_count=*/1);
         },
     };
-    auto draw_result = command_->Run(
+    const auto draw_result = command_->Run(
         current_frame_, window_context_.swapchain(), update_data,
         [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
           render_pass_->Run(command_buffer, framebuffer_index, render_ops);
@@ -364,17 +361,17 @@ void PlanetApp::MainLoop() {
     }
 
     current_frame_ = (current_frame_ + 1) % kNumFramesInFlight;
-    camera_->SetActivity(true);  // not activated until first frame is displayed
+    // Camera is not activated until first frame is displayed.
+    camera_->SetActivity(true);
   }
-  context()->WaitIdle();  // wait for all async operations finish
+  context()->WaitIdle();
 }
 
-} /* namespace planet */
 } /* namespace vulkan */
 } /* namespace application */
 } /* namespace jessie_steamer */
 
 int main(int argc, char* argv[]) {
   using namespace jessie_steamer::application::vulkan;
-  return AppMain<planet::PlanetApp>(argc, argv);
+  return AppMain<PlanetApp>(argc, argv, WindowContext::Config{});
 }

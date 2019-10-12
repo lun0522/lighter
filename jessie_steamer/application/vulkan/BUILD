@@ -7,9 +7,12 @@ cc_library(
     deps = [
         "//jessie_steamer/application:resource",
         "//jessie_steamer/common:file",
+        "//jessie_steamer/common:time",
         "//jessie_steamer/common:util",
         "//jessie_steamer/wrapper/vulkan:on_screen",
         "//third_party/absl/flags:flag",
+        "//third_party/absl/memory",
+        "//third_party:glm",
         "//third_party:vulkan",
     ],
 )
@@ -17,12 +20,7 @@ cc_library(
 cc_binary(
     name = "cube",
     srcs = ["cube.cc"],
-    deps = [
-        ":common",
-        "//jessie_steamer/common:time",
-        "//third_party/absl/memory",
-        "//third_party:glm",
-    ],
+    deps = [":common"],
 )
 
 cc_binary(
@@ -31,9 +29,6 @@ cc_binary(
     deps = [
         ":common",
         "//jessie_steamer/common:camera",
-        "//jessie_steamer/common:time",
-        "//third_party/absl/memory",
-        "//third_party:glm",
     ],
 )
 
@@ -43,8 +38,5 @@ cc_binary(
     deps = [
         ":common",
         "//jessie_steamer/common:camera",
-        "//jessie_steamer/common:time",
-        "//third_party/absl/memory",
-        "//third_party:glm",
     ],
 )

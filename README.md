@@ -1,14 +1,3 @@
-Files that are waiting to be cleaned up:
-
-wrapper
-- util
-
-application
-- util
-- cube
-- nanosuit
-- planet
-
 # 0. Introduction
 
 This project aims to build a low-level graphics engine with **reusable**

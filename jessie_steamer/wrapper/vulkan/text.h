@@ -77,6 +77,7 @@ class StaticText : public Text {
   StaticText& operator=(const StaticText&) = delete;
 
   // Renders text at 'text_index' and returns left and right boundary.
+  // Every character will keep its original width height ratio.
   // 'height', 'base_x', 'base_y' and returned values are in range [0.0, 1.0].
   // This should be called when 'command_buffer' is recording commands.
   glm::vec2 Draw(const VkCommandBuffer& command_buffer,
@@ -114,6 +115,7 @@ class DynamicText : public Text {
 
   // Renders 'text' and returns left and right boundary. Each character of
   // 'text' must have been included in 'texts' passed to the constructor.
+  // Every character will keep its original width height ratio.
   // 'height', 'base_x', 'base_y' and returned values are in range [0.0, 1.0].
   // This should be called when 'command_buffer' is recording commands.
   glm::vec2 Draw(const VkCommandBuffer& command_buffer,
