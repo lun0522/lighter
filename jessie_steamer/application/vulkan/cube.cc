@@ -30,9 +30,13 @@ enum SubpassIndex {
   kNumSubpasses,
 };
 
+/* BEGIN: Consistent with structs used in shaders. */
+
 struct Transformation {
   ALIGN_MAT4 glm::mat4 proj_view_model;
 };
+
+/* END: Consistent with structs used in shaders. */
 
 class CubeApp : public Application {
  public:
@@ -52,12 +56,12 @@ class CubeApp : public Application {
   common::Timer timer_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PushConstant> push_constant_;
-  std::unique_ptr<Model> model_;
-  std::unique_ptr<Image> depth_stencil_image_;
-  std::unique_ptr<StaticText> static_text_;
-  std::unique_ptr<DynamicText> dynamic_text_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
+  std::unique_ptr<Image> depth_stencil_image_;
+  std::unique_ptr<Model> model_;
+  std::unique_ptr<StaticText> static_text_;
+  std::unique_ptr<DynamicText> dynamic_text_;
 };
 
 } /* namespace */

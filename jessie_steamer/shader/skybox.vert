@@ -24,7 +24,7 @@ layout(location = 2) in vec2 in_tex_coord;
 layout(location = 0) out vec3 tex_coord;
 
 void main() {
-  // ignore translation, so that camera never moves relative to skybox
+  // Ignore translation, so that camera never moves relative to skybox.
   gl_Position = trans.proj * mat4(mat3(trans.view)) * vec4(in_pos, 1.0);
   gl_Position.zw = vec2(1.0);
   tex_coord = in_pos;

@@ -25,6 +25,8 @@ enum SubpassIndex {
   kNumSubpasses,
 };
 
+/* BEGIN: Consistent with structs used in shaders. */
+
 struct NanosuitVertTrans {
   ALIGN_MAT4 glm::mat4 view_model;
   ALIGN_MAT4 glm::mat4 proj_view_model;
@@ -39,6 +41,8 @@ struct SkyboxTrans {
   ALIGN_MAT4 glm::mat4 proj;
   ALIGN_MAT4 glm::mat4 view;
 };
+
+/* END: Consistent with structs used in shaders. */
 
 class NanosuitApp : public Application {
  public:
@@ -59,13 +63,13 @@ class NanosuitApp : public Application {
   common::Timer timer_;
   std::unique_ptr<common::UserControlledCamera> camera_;
   std::unique_ptr<PerFrameCommand> command_;
-  std::unique_ptr<Model> nanosuit_model_, skybox_model_;
   std::unique_ptr<UniformBuffer> nanosuit_vert_uniform_;
   std::unique_ptr<PushConstant> nanosuit_frag_constant_;
   std::unique_ptr<PushConstant> skybox_constant_;
-  std::unique_ptr<Image> depth_stencil_image_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
+  std::unique_ptr<Image> depth_stencil_image_;
+  std::unique_ptr<Model> nanosuit_model_, skybox_model_;
 };
 
 } /* namespace */
@@ -184,6 +188,10 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
 }
 
 void NanosuitApp::Recreate() {
+  /* Camera */
+  camera_->Calibrate(window_context_.window().GetScreenSize(),
+                     window_context_.window().GetCursorPos());
+
   /* Depth image */
   const auto frame_size = window_context_.frame_size();
   depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
@@ -209,10 +217,6 @@ void NanosuitApp::Recreate() {
             return *depth_stencil_image_;
           })
       .Build();
-
-  /* Camera */
-  camera_->Calibrate(window_context_.window().GetScreenSize(),
-                     window_context_.window().GetCursorPos());
 
   /* Model */
   constexpr bool kIsObjectOpaque = true;

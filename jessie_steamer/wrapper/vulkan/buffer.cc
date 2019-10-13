@@ -287,10 +287,10 @@ void CopyHostToBufferViaStaging(const SharedBasicContext& context,
                                 const VkBuffer& buffer,
                                 const Buffer::CopyInfos& copy_infos) {
   // Create staging buffer and associated memory, which is accessible from host.
-  const VkBuffer staging_buffer = CreateBuffer(
+  VkBuffer staging_buffer = CreateBuffer(
       context, copy_infos.total_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       GetTransferQueueUsage(context));
-  const VkDeviceMemory staging_memory = CreateBufferMemory(
+  VkDeviceMemory staging_memory = CreateBufferMemory(
       context, staging_buffer, kHostVisibleMemory);
 
   // Copy from host to staging buffer.
@@ -334,6 +334,142 @@ void CopyBufferToImage(const SharedBasicContext& context,
                            /*regionCount=*/1, &region);
   });
 }
+
+/* BEGIN: Following functions populate 'mesh_data_infos' and return instances of
+ * CopyInfos that can be used for copying data from the host to device. */
+
+Buffer::CopyInfos CreateCopyInfos(
+    const PerVertexBuffer::NoIndicesDataInfo& info,
+    PerVertexBuffer::MeshDataInfos* mesh_data_infos) {
+  // Vertex buffer layout (@ refers to the index of mesh):
+  // | vertices@0 | vertices@1 | vertices@2 | ...
+  using MeshDataInfos = PerVertexBuffer::MeshDataInfosNoIndices;
+  const auto& vertices_infos = info.per_mesh_infos;
+  auto& mesh_infos = mesh_data_infos->emplace<MeshDataInfos>().infos;
+  mesh_infos.reserve(vertices_infos.size());
+  vector<Buffer::CopyInfo> copy_infos;
+  copy_infos.reserve(vertices_infos.size());
+
+  VkDeviceSize vertices_offset = 0;
+  for (const auto vertices_info : vertices_infos) {
+    mesh_infos.emplace_back(MeshDataInfos::Info{
+        static_cast<uint32_t>(vertices_info.size_per_mesh),
+        vertices_offset,
+    });
+    copy_infos.emplace_back(Buffer::CopyInfo{
+        vertices_info.data,
+        vertices_info.size_per_mesh,
+        vertices_offset,
+    });
+    vertices_offset += vertices_info.size_per_mesh;
+  }
+
+  return Buffer::CopyInfos{
+      /*total_size=*/vertices_offset,
+      std::move(copy_infos),
+  };
+}
+
+Buffer::CopyInfos CreateCopyInfos(
+    const PerVertexBuffer::ShareIndicesDataInfo& info,
+    PerVertexBuffer::MeshDataInfos* mesh_data_infos) {
+  // Vertex buffer layout (@ refers to the index of mesh):
+  // | shared indices | vertices@0 | vertices@1 | vertices@2 | ...
+  using MeshDataInfos = PerVertexBuffer::MeshDataInfosWithIndices;
+  auto& mesh_infos = mesh_data_infos->emplace<MeshDataInfos>().infos;
+  mesh_infos.reserve(info.num_meshes);
+  const auto& vertices_info = info.per_mesh_vertices;
+  const auto& indices_info = info.shared_indices;
+
+  constexpr int kIndicesOffset = 0;
+  const VkDeviceSize initial_vertices_offset =
+      kIndicesOffset + indices_info.size_per_mesh;
+  VkDeviceSize vertices_offset = initial_vertices_offset;
+  for (int i = 0; i < info.num_meshes; ++i) {
+    mesh_infos.emplace_back(MeshDataInfos::Info{
+        static_cast<uint32_t>(indices_info.num_units_per_mesh),
+        kIndicesOffset,
+        vertices_offset,
+    });
+    vertices_offset += vertices_info.size_per_mesh;
+  }
+
+  return Buffer::CopyInfos{
+      /*total_size=*/vertices_offset,
+      /*copy_infos=*/{
+          Buffer::CopyInfo{
+              indices_info.data,
+              indices_info.size_per_mesh,
+              kIndicesOffset,
+          },
+          Buffer::CopyInfo{
+              vertices_info.data,
+              vertices_info.size_per_mesh * info.num_meshes,
+              initial_vertices_offset,
+          },
+      },
+  };
+}
+
+Buffer::CopyInfos CreateCopyInfos(
+    const PerVertexBuffer::NoShareIndicesDataInfo& info,
+    PerVertexBuffer::MeshDataInfos* mesh_data_infos) {
+  // Vertex buffer layout (@ refers to the index of mesh):
+  // | indices@0 | vertices@0 | indices@1 | vertices@1 | ...
+  using MeshDataInfos = PerVertexBuffer::MeshDataInfosWithIndices;
+  const auto& per_mesh_infos = info.per_mesh_infos;
+  auto& mesh_infos = mesh_data_infos->emplace<MeshDataInfos>().infos;
+  mesh_infos.reserve(per_mesh_infos.size());
+  vector<Buffer::CopyInfo> copy_infos;
+  copy_infos.reserve(per_mesh_infos.size() * 2);
+
+  VkDeviceSize indices_offset = 0;
+  for (const auto& mesh_info : per_mesh_infos) {
+    const size_t indices_data_size = mesh_info.indices.size_per_mesh;
+    const size_t vertices_data_size = mesh_info.vertices.size_per_mesh;
+    const VkDeviceSize vertices_offset = indices_offset + indices_data_size;
+    mesh_infos.emplace_back(MeshDataInfos::Info{
+        static_cast<uint32_t>(mesh_info.indices.num_units_per_mesh),
+        indices_offset,
+        vertices_offset,
+    });
+    copy_infos.emplace_back(Buffer::CopyInfo{
+        mesh_info.indices.data,
+        indices_data_size,
+        indices_offset,
+    });
+    copy_infos.emplace_back(Buffer::CopyInfo{
+        mesh_info.vertices.data,
+        vertices_data_size,
+        vertices_offset,
+    });
+    indices_offset += indices_data_size + vertices_data_size;
+  }
+
+  return Buffer::CopyInfos{
+      /*total_size=*/indices_offset,
+      std::move(copy_infos),
+  };
+}
+
+/* END: Above functions populate 'mesh_data_infos' and return instances of
+ * CopyInfos that can be used for copying data from the host to device. */
+
+// Helps to visit variants of BufferDataInfo and dispatch the call to the
+// correct version of CreateCopyInfos().
+struct BufferDataInfoVisitor {
+  explicit BufferDataInfoVisitor(
+      PerVertexBuffer::MeshDataInfos* mesh_data_infos)
+      : mesh_data_infos{mesh_data_infos} {}
+
+  template<typename InfoType>
+  Buffer::CopyInfos operator()(const InfoType& info) const {
+    return CreateCopyInfos(info, mesh_data_infos);
+  }
+
+  // Mesh data infos to fill when operator() is invoked.
+  PerVertexBuffer::MeshDataInfos* mesh_data_infos;
+};
 
 // Converts 2D dimension to 3D offset, where the expanded dimension is set to 1.
 inline VkOffset3D ExtentToOffset(const VkExtent2D& extent) {
@@ -483,94 +619,31 @@ void VertexBuffer::CreateBufferAndMemory(VkDeviceSize total_size,
 
 PerVertexBuffer::CopyInfos PerVertexBuffer::CreateCopyInfos(
     const BufferDataInfo& info) {
-  mesh_data_infos_.clear();
-  if (absl::holds_alternative<ShareIndicesDataInfo>(info)) {
-    return CreateCopyInfos(absl::get<ShareIndicesDataInfo>(info));
-  } else if (absl::holds_alternative<NoShareIndicesDataInfo>(info)) {
-    return CreateCopyInfos(absl::get<NoShareIndicesDataInfo>(info));
-  } else {
-    FATAL("Unrecognized variant type");
-  }
-}
-
-PerVertexBuffer::CopyInfos PerVertexBuffer::CreateCopyInfos(
-    const ShareIndicesDataInfo& info) {
-  // Vertex buffer layout (@ refers to the index of mesh):
-  // | shared indices | vertices@0 | vertices@1 | vertices@2 | ...
-  constexpr int kIndicesOffset = 0;
-  const auto& vertices_info = info.per_mesh_vertices;
-  const auto& indices_info = info.shared_indices;
-  mesh_data_infos_.reserve(info.num_meshes);
-  const VkDeviceSize initial_vertices_offset =
-      kIndicesOffset + indices_info.size_per_mesh;
-  VkDeviceSize vertices_offset = initial_vertices_offset;
-  for (int i = 0; i < info.num_meshes; ++i) {
-    mesh_data_infos_.emplace_back(MeshDataInfo{
-        static_cast<uint32_t>(indices_info.num_units_per_mesh),
-        kIndicesOffset,
-        vertices_offset,
-    });
-    vertices_offset += vertices_info.size_per_mesh;
-  }
-  return CopyInfos{
-      /*total_size=*/vertices_offset,
-      /*copy_infos=*/{
-          CopyInfo{
-              indices_info.data,
-              indices_info.size_per_mesh,
-              kIndicesOffset,
-          },
-          CopyInfo{
-              vertices_info.data,
-              vertices_info.size_per_mesh * info.num_meshes,
-              initial_vertices_offset,
-          },
-      },
-  };
-}
-
-PerVertexBuffer::CopyInfos PerVertexBuffer::CreateCopyInfos(
-    const NoShareIndicesDataInfo& info) {
-  // Vertex buffer layout (@ refers to the index of mesh):
-  // | indices@0 | vertices@0 | indices@1 | vertices@1 | ...
-  const auto& per_mesh_infos = info.per_mesh_infos;
-  mesh_data_infos_.reserve(per_mesh_infos.size());
-  vector<CopyInfo> copy_infos;
-  copy_infos.reserve(per_mesh_infos.size() * 2);
-  VkDeviceSize indices_offset = 0;
-  for (const auto& mesh_info : per_mesh_infos) {
-    const size_t indices_data_size = mesh_info.indices.size_per_mesh;
-    const size_t vertices_data_size = mesh_info.vertices.size_per_mesh;
-    const VkDeviceSize vertices_offset = indices_offset + indices_data_size;
-    mesh_data_infos_.emplace_back(MeshDataInfo{
-        static_cast<uint32_t>(mesh_info.indices.num_units_per_mesh),
-        indices_offset,
-        vertices_offset,
-    });
-    copy_infos.emplace_back(CopyInfo{
-        mesh_info.indices.data,
-        indices_data_size,
-        indices_offset,
-    });
-    copy_infos.emplace_back(CopyInfo{
-        mesh_info.vertices.data,
-        vertices_data_size,
-        vertices_offset,
-    });
-    indices_offset += indices_data_size + vertices_data_size;
-  }
-  return CopyInfos{/*total_size=*/indices_offset, std::move(copy_infos)};
+  return absl::visit(BufferDataInfoVisitor{&mesh_data_infos_}, info);
 }
 
 void PerVertexBuffer::Draw(const VkCommandBuffer& command_buffer,
                            int mesh_index, uint32_t instance_count) const {
-  const MeshDataInfo& info = mesh_data_infos_[mesh_index];
-  vkCmdBindIndexBuffer(command_buffer, buffer_, info.indices_offset,
-                       VK_INDEX_TYPE_UINT32);
-  vkCmdBindVertexBuffers(command_buffer, kPerVertexBindingPoint,
-                         /*bindingCount=*/1, &buffer_, &info.vertices_offset);
-  vkCmdDrawIndexed(command_buffer, info.indices_count, instance_count,
-                   /*firstIndex=*/0, /*vertexOffset=*/0, /*firstInstance=*/0);
+  if (absl::holds_alternative<MeshDataInfosNoIndices>(mesh_data_infos_)) {
+    const auto& mesh_info =
+        absl::get<MeshDataInfosNoIndices>(mesh_data_infos_).infos[mesh_index];
+    vkCmdBindVertexBuffers(command_buffer, kPerVertexBindingPoint,
+                           /*bindingCount=*/1, &buffer_,
+                           &mesh_info.vertices_offset);
+    vkCmdDraw(command_buffer, mesh_info.vertices_count, instance_count,
+              /*firstVertex=*/0, /*firstInstance=*/0);
+  } else if (
+      absl::holds_alternative<MeshDataInfosWithIndices>(mesh_data_infos_)) {
+    const auto& mesh_info =
+        absl::get<MeshDataInfosWithIndices>(mesh_data_infos_).infos[mesh_index];
+    vkCmdBindIndexBuffer(command_buffer, buffer_, mesh_info.indices_offset,
+                         VK_INDEX_TYPE_UINT32);
+    vkCmdBindVertexBuffers(command_buffer, kPerVertexBindingPoint,
+                           /*bindingCount=*/1, &buffer_,
+                           &mesh_info.vertices_offset);
+    vkCmdDrawIndexed(command_buffer, mesh_info.indices_count, instance_count,
+                     /*firstIndex=*/0, /*vertexOffset=*/0, /*firstInstance=*/0);
+  }
 }
 
 StaticPerVertexBuffer::StaticPerVertexBuffer(
@@ -589,8 +662,8 @@ void DynamicPerVertexBuffer::Reserve(int size) {
 
   if (buffer_size_ > 0) {
     // Make copy of 'buffer_' and 'device_memory_' since they will be changed.
-    const VkBuffer buffer = buffer_;
-    const VkDeviceMemory device_memory = device_memory_;
+    VkBuffer buffer = buffer_;
+    VkDeviceMemory device_memory = device_memory_;
     context_->AddReleaseExpiredResourceOp(
         [buffer, device_memory](const BasicContext& context) {
           vkDestroyBuffer(*context.device(), buffer, *context.allocator());
@@ -677,10 +750,10 @@ TextureBuffer::TextureBuffer(SharedBasicContext context,
   }
 
   // Create staging buffer and associated memory.
-  const VkBuffer staging_buffer = CreateBuffer(
+  VkBuffer staging_buffer = CreateBuffer(
       context_, data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       GetTransferQueueUsage(context_));
-  const VkDeviceMemory staging_memory = CreateBufferMemory(
+  VkDeviceMemory staging_memory = CreateBufferMemory(
       context_, staging_buffer, kHostVisibleMemory);
 
   // Copy from host to staging buffer.

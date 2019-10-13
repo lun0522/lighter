@@ -73,10 +73,7 @@ class Swapchain {
   Swapchain(const Swapchain&) = delete;
   Swapchain& operator=(const Swapchain&) = delete;
 
-  ~Swapchain() {
-    vkDestroySwapchainKHR(*context_->device(), swapchain_,
-                          *context_->allocator());
-  }
+  ~Swapchain();
 
   // Returns the names of required Vulkan extensions for the swapchain.
   static const std::vector<const char*>& GetRequiredExtensions();

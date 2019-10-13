@@ -1,11 +1,24 @@
 #version 460 core
 
-layout(binding = 0) uniform sampler2D tex_sampler;
+#if defined(TARGET_OPENGL)
+layout(binding = 0) uniform Alpha {
+  float value;
+} alpha;
 
-layout(location = 0) in vec2 tex_coord;
+#elif defined(TARGET_VULKAN)
+layout(push_constant) uniform Alpha {
+  float value;
+} alpha;
 
-layout(location = 0) out float frag_color;
+#else
+#error Unrecognized target
+
+#endif  // TARGET_OPENGL || TARGET_VULKAN
+
+layout(location = 0) in vec3 color;
+
+layout(location = 0) out vec4 frag_color;
 
 void main() {
-  frag_color = texture(tex_sampler, tex_coord).r;
+  frag_color = vec4(color, alpha.value);
 }

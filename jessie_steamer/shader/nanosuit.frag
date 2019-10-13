@@ -29,9 +29,9 @@ layout(location = 0) out vec4 frag_color;
 void main() {
   vec3 color = texture(diff_sampler, tex_coord).rgb +
                texture(spec_sampler, tex_coord).rgb * 0.3f;
-  vec3 view_dir = normalize(-pos_view);  // view space
+  vec3 view_dir = normalize(-pos_view);  // View space.
   vec3 refl_dir = reflect(-view_dir, normalize(norm_view));
-  refl_dir = (trans_frag.view_inv * vec4(refl_dir, 0.0)).xyz;  // world space
+  refl_dir = (trans_frag.view_inv * vec4(refl_dir, 0.0)).xyz;  // World space.
   vec3 env_color = texture(skybox_sampler, refl_dir).rgb;
   color = mix(color, env_color, texture(refl_sampler, tex_coord).r);
   frag_color = vec4(color, 1.0);

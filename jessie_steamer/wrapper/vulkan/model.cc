@@ -17,7 +17,7 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using common::VertexAttribute3D;
+using common::Vertex3DWithTex;
 using std::vector;
 
 using VertexInfo = PerVertexBuffer::NoShareIndicesDataInfo;
@@ -110,13 +110,13 @@ void ExtractPerInstanceBufferInfos(
     vector<const PerInstanceBuffer*>* per_instance_buffers) {
   per_instance_buffers->reserve(infos.size());
 
-  vector<pipeline::VertexInputBinding> bindings{
-      pipeline::GetPerVertexBinding<VertexAttribute3D>()};
-  bindings.reserve(infos.size());
+  vector<pipeline::VertexInputBinding> bindings;
+  bindings.reserve(infos.size() + 1);
+  bindings.emplace_back(pipeline::GetPerVertexBinding<Vertex3DWithTex>());
 
-  vector<pipeline::VertexInputAttribute> attributes{
-      pipeline::GetPerVertexAttribute<VertexAttribute3D>()};
-  attributes.reserve(infos.size());
+  vector<pipeline::VertexInputAttribute> attributes;
+  attributes.reserve(infos.size() + 1);
+  attributes.emplace_back(pipeline::GetPerVertexAttribute<Vertex3DWithTex>());
 
   for (int i = 0; i < infos.size(); ++i) {
     const auto& info = infos[i];
@@ -160,8 +160,8 @@ void ModelBuilder::LoadSingleMesh(const SingleMeshResource& resource) {
   // Load indices and vertices.
   const common::ObjFile file{resource.obj_path, resource.obj_file_index_base};
   VertexInfo::PerMeshInfo mesh_info{
-      PerVertexBuffer::DataInfo{file.indices},
-      PerVertexBuffer::DataInfo{file.vertices},
+      PerVertexBuffer::VertexDataInfo{file.indices},
+      PerVertexBuffer::VertexDataInfo{file.vertices},
   };
   vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
       context_, VertexInfo{/*per_mesh_infos=*/{std::move(mesh_info)}});
@@ -186,8 +186,8 @@ void ModelBuilder::LoadMultiMesh(const MultiMeshResource& resource) {
   vertex_info.per_mesh_infos.reserve(loader.mesh_datas().size());
   for (const auto& mesh_data : loader.mesh_datas()) {
     vertex_info.per_mesh_infos.emplace_back(VertexInfo::PerMeshInfo{
-        PerVertexBuffer::DataInfo{mesh_data.indices},
-        PerVertexBuffer::DataInfo{mesh_data.vertices},
+        PerVertexBuffer::VertexDataInfo{mesh_data.indices},
+        PerVertexBuffer::VertexDataInfo{mesh_data.vertices},
     });
   }
   vertex_buffer_ =

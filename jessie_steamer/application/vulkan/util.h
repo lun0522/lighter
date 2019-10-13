@@ -20,6 +20,8 @@
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/model.h"
+#include "jessie_steamer/wrapper/vulkan/pipeline.h"
+#include "jessie_steamer/wrapper/vulkan/pipeline_util.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass_util.h"
 #include "jessie_steamer/wrapper/vulkan/window_context.h"

@@ -178,10 +178,10 @@ constexpr int kNumIndicesPerRect = 6;
 const std::array<uint32_t, kNumIndicesPerRect>& GetIndicesPerRect();
 
 // Returns the data size used for vertex buffer. Is is assumed that indices will
-// be shared and each vertex data is of type VertexAttribute2D.
+// be shared and each vertex data is of type Vertex2D.
 inline int GetVertexDataSize(int num_rects) {
   return sizeof(GetIndicesPerRect()[0]) * kNumIndicesPerRect +
-         sizeof(common::VertexAttribute2D) * kNumVerticesPerRect * num_rects;
+         sizeof(common::Vertex2D) * kNumVerticesPerRect * num_rects;
 }
 
 // Appends pos and tex_coord to 'vertices' in CCW order.
@@ -190,7 +190,7 @@ void AppendCharPosAndTexCoord(const glm::vec2& pos_bottom_left,
                               const glm::vec2& pos_increment,
                               const glm::vec2& tex_coord_bottom_left,
                               const glm::vec2& tex_coord_increment,
-                              std::vector<common::VertexAttribute2D>* vertices);
+                              std::vector<common::Vertex2D>* vertices);
 
 // Fills 'vertex_buffer' with data of characters in 'text', and returns the
 // right boundary of rendered text (i.e. final X offset).

@@ -18,7 +18,7 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using common::VertexAttribute2D;
+using common::Vertex2D;
 using std::array;
 using std::string;
 using std::vector;
@@ -124,9 +124,8 @@ std::unique_ptr<RenderPass> BuildRenderPass(
       .Build();
 }
 
-// Returns a pipeline builder, assuming the per-vertex data is of type
-// VertexAttribute2D, and the front face direction is clockwise, since we will
-// flip Y coordinates.
+// Returns a pipeline builder, assuming the per-vertex data is of type Vertex2D,
+// and the front face direction is clockwise, since we will flip Y coordinates.
 std::unique_ptr<PipelineBuilder> CreatePipelineBuilder(
     const SharedBasicContext& context,
     const VkDescriptorSetLayout& descriptor_layout,
@@ -136,9 +135,9 @@ std::unique_ptr<PipelineBuilder> CreatePipelineBuilder(
   (*pipeline_builder)
       .SetVertexInput(
           pipeline::GetBindingDescriptions(
-              {pipeline::GetPerVertexBinding<VertexAttribute2D>()}),
+              {pipeline::GetPerVertexBinding<Vertex2D>()}),
           pipeline::GetAttributeDescriptions(
-              {pipeline::GetPerVertexAttribute<VertexAttribute2D>()}))
+              {pipeline::GetPerVertexAttribute<Vertex2D>()}))
       .SetPipelineLayout({descriptor_layout}, /*push_constant_ranges=*/{})
       .SetColorBlend({pipeline::GetColorBlendState(enable_color_blend)})
       .SetFrontFaceDirection(/*counter_clockwise=*/false);
@@ -168,14 +167,14 @@ std::unique_ptr<Pipeline> BuildPipeline(const Image& target_image,
       })
       .SetRenderPass(render_pass, kNativeSubpassIndex)
       .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
-                  GetShaderPath("vulkan/simple_2d.vert.spv")})
+                  GetShaderPath("vulkan/char.vert.spv")})
       .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                  GetShaderPath("vulkan/simple_2d.frag.spv")})
+                  GetShaderPath("vulkan/char.frag.spv")})
       .Build();
 }
 
 // Flips Y coordinates of each vertex in NDC.
-inline void FlipYCoord(vector<VertexAttribute2D>* vertices) {
+inline void FlipYCoord(vector<Vertex2D>* vertices) {
   for (auto& vertex : *vertices) {
     vertex.pos.y *= -1;
   }
@@ -321,7 +320,7 @@ void CharLoader::CreateCharTextures(
 
 std::unique_ptr<StaticPerVertexBuffer> CharLoader::CreateVertexBuffer(
     const vector<char>& char_merge_order) const {
-  vector<VertexAttribute2D> vertices;
+  vector<Vertex2D> vertices;
   vertices.reserve(text_util::kNumVerticesPerRect * char_merge_order.size());
   for (auto character : char_merge_order) {
     const auto& texture_info = char_texture_info_map_.find(character)->second;
@@ -343,7 +342,7 @@ std::unique_ptr<StaticPerVertexBuffer> CharLoader::CreateVertexBuffer(
           /*per_mesh_vertices=*/
           {vertices, /*num_units_per_mesh=*/text_util::kNumVerticesPerRect},
           /*shared_indices=*/
-          {PerVertexBuffer::DataInfo{text_util::GetIndicesPerRect()}},
+          {PerVertexBuffer::VertexDataInfo{text_util::GetIndicesPerRect()}},
       }
   );
 }
@@ -464,24 +463,24 @@ void AppendCharPosAndTexCoord(const glm::vec2& pos_bottom_left,
                               const glm::vec2& pos_increment,
                               const glm::vec2& tex_coord_bottom_left,
                               const glm::vec2& tex_coord_increment,
-                              vector<VertexAttribute2D>* vertices) {
+                              vector<Vertex2D>* vertices) {
   const glm::vec2 pos_top_right = pos_bottom_left + pos_increment;
   const glm::vec2 tex_coord_top_right = tex_coord_bottom_left +
                                         tex_coord_increment;
   vertices->reserve(vertices->size() + kNumVerticesPerRect);
-  vertices->emplace_back(VertexAttribute2D{
+  vertices->emplace_back(Vertex2D{
       NormalizePos(pos_bottom_left),
       tex_coord_bottom_left,
   });
-  vertices->emplace_back(VertexAttribute2D{
+  vertices->emplace_back(Vertex2D{
       NormalizePos({pos_top_right.x, pos_bottom_left.y}),
       {tex_coord_top_right.x, tex_coord_bottom_left.y},
   });
-  vertices->emplace_back(VertexAttribute2D{
+  vertices->emplace_back(Vertex2D{
       NormalizePos(pos_top_right),
       tex_coord_top_right,
   });
-  vertices->emplace_back(VertexAttribute2D{
+  vertices->emplace_back(Vertex2D{
       NormalizePos({pos_bottom_left.x, pos_top_right.y}),
       {tex_coord_bottom_left.x, tex_coord_top_right.y},
   });
@@ -492,7 +491,7 @@ float LoadCharsVertexData(const string& text, const CharLoader& char_loader,
                           float base_y, bool flip_y,
                           DynamicPerVertexBuffer* vertex_buffer) {
   float offset_x = initial_offset_x;
-  vector<VertexAttribute2D> vertices;
+  vector<Vertex2D> vertices;
   vertices.reserve(text_util::kNumVerticesPerRect * text.length());
   for (auto character : text) {
     if (character == ' ') {
@@ -521,7 +520,7 @@ float LoadCharsVertexData(const string& text, const CharLoader& char_loader,
       /*per_mesh_vertices=*/
       {vertices, /*num_units_per_mesh=*/text_util::kNumVerticesPerRect},
       /*shared_indices=*/
-      {PerVertexBuffer::DataInfo{text_util::GetIndicesPerRect()}},
+      {PerVertexBuffer::VertexDataInfo{text_util::GetIndicesPerRect()}},
   });
 
   return offset_x;

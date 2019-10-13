@@ -22,16 +22,19 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using common::VertexAttribute2D;
+using common::Vertex2D;
 using std::string;
 using std::vector;
 
 enum BindingPoint { kUniformBufferBindingPoint = 0, kTextureBindingPoint };
 
-// Consistent with text.frag::TextRenderInfo.
+/* BEGIN: Consistent with structs used in shaders. */
+
 struct TextRenderInfo {
   ALIGN_VEC4 glm::vec4 color_alpha;
 };
+
+/* END: Consistent with structs used in shaders. */
 
 // Returns the starting horizontal offset.
 float GetOffsetX(float base_x, Text::Align align, float total_width) {
@@ -84,9 +87,9 @@ Text::Text(SharedBasicContext context, int num_frames_in_flight)
       pipeline_builder_{context_} {
   pipeline_builder_.SetVertexInput(
       pipeline::GetBindingDescriptions(
-          {pipeline::GetPerVertexBinding<VertexAttribute2D>()}),
+          {pipeline::GetPerVertexBinding<Vertex2D>()}),
       pipeline::GetAttributeDescriptions(
-          {pipeline::GetPerVertexAttribute<VertexAttribute2D>()}));
+          {pipeline::GetPerVertexAttribute<Vertex2D>()}));
 }
 
 void Text::Update(const VkExtent2D& frame_size,
@@ -115,7 +118,7 @@ void Text::Update(const VkExtent2D& frame_size,
               render_pass.num_color_attachments(subpass_index),
               pipeline::GetColorBlendState(/*enable_blend=*/true)))
       .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
-                  GetShaderPath("vulkan/simple_2d.vert.spv")})
+                  GetShaderPath("vulkan/char.vert.spv")})
       .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
                   GetShaderPath("vulkan/text.frag.spv")})
       .Build();
@@ -182,7 +185,7 @@ glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer, int frame,
   const float width_in_frame = 1.0f * ratio.x;
   const float offset_x = GetOffsetX(base_x, align, width_in_frame);
 
-  vector<VertexAttribute2D> vertices;
+  vector<Vertex2D> vertices;
   vertices.reserve(text_util::kNumVerticesPerRect);
   text_util::AppendCharPosAndTexCoord(
       /*pos_bottom_left=*/{offset_x, base_y - texture_info.base_y * ratio.y},
@@ -191,8 +194,8 @@ glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer, int frame,
       /*tex_coord_increment=*/glm::vec2{1.0f},
       &vertices);
   const PerVertexBuffer::NoShareIndicesDataInfo::PerMeshInfo mesh_info{
-      PerVertexBuffer::DataInfo{text_util::GetIndicesPerRect()},
-      PerVertexBuffer::DataInfo{vertices},
+      PerVertexBuffer::VertexDataInfo{text_util::GetIndicesPerRect()},
+      PerVertexBuffer::VertexDataInfo{vertices},
   };
   vertex_buffer_.CopyHostData(
       PerVertexBuffer::NoShareIndicesDataInfo{{mesh_info}});

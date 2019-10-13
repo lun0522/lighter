@@ -31,6 +31,15 @@ enum SubpassIndex {
   kNumSubpasses,
 };
 
+// Contains the data shared by all vertices of an asteroid.
+struct Asteroid {
+  float theta;
+  float radius;
+  glm::mat4 model;
+};
+
+/* BEGIN: Consistent with structs used in shaders. */
+
 struct Light {
   ALIGN_VEC4 glm::vec4 direction_time;
 };
@@ -45,12 +54,7 @@ struct SkyboxTrans {
   ALIGN_MAT4 glm::mat4 view;
 };
 
-// Contains the data shared by all vertices of an asteroid.
-struct Asteroid {
-  float theta;
-  float radius;
-  glm::mat4 model;
-};
+/* END: Consistent with structs used in shaders. */
 
 class PlanetApp : public Application {
  public:
@@ -71,18 +75,18 @@ class PlanetApp : public Application {
 
   bool should_quit_ = false;
   int current_frame_ = 0;
+  int num_asteroids_ = -1;
   common::Timer timer_;
   std::unique_ptr<common::UserControlledCamera> camera_;
   std::unique_ptr<PerFrameCommand> command_;
-  int num_asteroids_ = -1;
   std::unique_ptr<PerInstanceBuffer> per_asteroid_data_;
   std::unique_ptr<UniformBuffer> light_uniform_;
   std::unique_ptr<PushConstant> planet_constant_;
   std::unique_ptr<PushConstant> skybox_constant_;
-  std::unique_ptr<Model> planet_model_, asteroid_model_, skybox_model_;
-  std::unique_ptr<Image> depth_stencil_image_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
+  std::unique_ptr<Image> depth_stencil_image_;
+  std::unique_ptr<Model> planet_model_, asteroid_model_, skybox_model_;
 };
 
 } /* namespace */
@@ -236,6 +240,10 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
 }
 
 void PlanetApp::Recreate() {
+  /* Camera */
+  camera_->Calibrate(window_context_.window().GetScreenSize(),
+                     window_context_.window().GetCursorPos());
+
   /* Depth image */
   const VkExtent2D& frame_size = window_context_.frame_size();
   depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
@@ -261,10 +269,6 @@ void PlanetApp::Recreate() {
             return *depth_stencil_image_;
           })
       .Build();
-
-  /* Camera */
-  camera_->Calibrate(window_context_.window().GetScreenSize(),
-                     window_context_.window().GetCursorPos());
 
   /* Model */
   constexpr bool kIsObjectOpaque = true;

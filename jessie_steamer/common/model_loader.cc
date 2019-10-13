@@ -71,7 +71,7 @@ ModelLoader::MeshData ModelLoader::LoadMesh(const string& directory,
                                             const aiScene* scene) const {
   // Load vertices. Assimp allows a vertex to have multiple sets of texture
   // coordinates. We will simply use the first set.
-  vector<VertexAttribute3D> vertices;
+  vector<Vertex3DWithTex> vertices;
   vertices.reserve(mesh->mNumVertices);
   constexpr int kTexCoordSetIndex = 0;
   const aiVector3D* tex_coord_set = mesh->mTextureCoords[kTexCoordSetIndex];

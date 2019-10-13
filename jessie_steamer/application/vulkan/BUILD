@@ -40,3 +40,9 @@ cc_binary(
         "//jessie_steamer/common:camera",
     ],
 )
+
+cc_binary(
+    name = "triangle",
+    srcs = ["triangle.cc"],
+    deps = [":common"],
+)

@@ -49,7 +49,7 @@ class ModelLoader {
     MeshData& operator=(MeshData&&) noexcept = default;
 
     // Vertex data of the mesh.
-    std::vector<VertexAttribute3D> vertices;
+    std::vector<Vertex3DWithTex> vertices;
     std::vector<uint32_t> indices;
 
     // Textures information of the mesh.

@@ -12,6 +12,7 @@ cc_library(
         ":command",
         ":image",
         ":model",
+        ":pipeline",
         ":render_pass",
         ":text",
         ":window",

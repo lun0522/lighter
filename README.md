@@ -11,12 +11,15 @@ Before running any application, shaders should be compiled by executing
 (no command line arguments needed). To run applications, since we use the [Bazel build system](https://bazel.build),
 this is how we build and run from command line:
 
-`bazel build -c opt --copt=-DUSE_VULKAN //jessie_steamer/application/vulkan:cube`
+`bazel build -c opt --copt=-DUSE_VULKAN //jessie_steamer/application/vulkan:triangle`
 
 This README introduces the modules we created, and the decisions we made when we
 design the structure. The usage of each class is put right before the class
-definition in the header file. Applications under the jessie_steamer/application
-folder are good examples of how to use these classes to render simple scenes.
+definition in header files. You can start with a
+[Vulkan "Hello Triangle" example](https://github.com/lun0522/jessie-steamer/tree/master/jessie_steamer/application/vulkan),
+and then take a look at other applications under the jessie_steamer/application
+folder, which are good examples of how to use other features such as rendering
+models, skybox and text.
 
 # 1. Common modules (jessie_steamer/common/)
 
@@ -437,11 +440,13 @@ states to avoid rebuilding the entire pipeline for changing transparency.
 
 # 4. Applications (jessie_steamer/application/)
 
-## 4.1 Cube scene (cube)
+## 4.1 Triangle scene (triangle)
 
-## 4.2 Nanosuit scene (nanosuit)
+## 4.2 Cube scene (cube)
 
-## 4.3 Planet and asteroids scene (planet)
+## 4.3 Nanosuit scene (nanosuit)
+
+## 4.4 Planet and asteroids scene (planet)
 
 # 5. Acknowledgements
 

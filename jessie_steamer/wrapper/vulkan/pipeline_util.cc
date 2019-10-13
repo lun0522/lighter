@@ -15,8 +15,9 @@ namespace vulkan {
 namespace pipeline {
 namespace {
 
-using common::VertexAttribute2D;
-using common::VertexAttribute3D;
+using common::Vertex2D;
+using common::Vertex3DNoTex;
+using common::Vertex3DWithTex;
 using std::vector;
 
 using VertexAttribute = VertexInputAttribute::Attribute;
@@ -56,20 +57,18 @@ vector<VkVertexInputBindingDescription> GetBindingDescriptions(
 }
 
 template <>
-VertexInputAttribute GetPerVertexAttribute<VertexAttribute2D>() {
+VertexInputAttribute GetPerVertexAttribute<Vertex2D>() {
   return VertexInputAttribute{
       kPerVertexBindingPoint,
       /*attributes=*/{
           VertexAttribute{
               /*location=*/0,
-              /*offset=*/
-              static_cast<uint32_t>(offsetof(VertexAttribute2D, pos)),
+              /*offset=*/static_cast<uint32_t>(offsetof(Vertex2D, pos)),
               VK_FORMAT_R32G32_SFLOAT,
           },
           VertexAttribute{
               /*location=*/1,
-              /*offset=*/
-              static_cast<uint32_t>(offsetof(VertexAttribute2D, tex_coord)),
+              /*offset=*/static_cast<uint32_t>(offsetof(Vertex2D, tex_coord)),
               VK_FORMAT_R32G32_SFLOAT,
           },
       },
@@ -77,26 +76,43 @@ VertexInputAttribute GetPerVertexAttribute<VertexAttribute2D>() {
 }
 
 template <>
-VertexInputAttribute GetPerVertexAttribute<VertexAttribute3D>() {
+VertexInputAttribute GetPerVertexAttribute<Vertex3DNoTex>() {
   return VertexInputAttribute{
       kPerVertexBindingPoint,
       /*attributes=*/{
           VertexAttribute{
               /*location=*/0,
-              /*offset=*/
-              static_cast<uint32_t>(offsetof(VertexAttribute3D, pos)),
+              /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DNoTex, pos)),
               VK_FORMAT_R32G32B32_SFLOAT,
           },
           VertexAttribute{
               /*location=*/1,
-              /*offset=*/
-              static_cast<uint32_t>(offsetof(VertexAttribute3D, norm)),
+              /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DNoTex, color)),
+              VK_FORMAT_R32G32B32_SFLOAT,
+          },
+      },
+  };
+}
+
+template <>
+VertexInputAttribute GetPerVertexAttribute<Vertex3DWithTex>() {
+  return VertexInputAttribute{
+      kPerVertexBindingPoint,
+      /*attributes=*/{
+          VertexAttribute{
+              /*location=*/0,
+              /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DWithTex, pos)),
+              VK_FORMAT_R32G32B32_SFLOAT,
+          },
+          VertexAttribute{
+              /*location=*/1,
+              /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DWithTex, norm)),
               VK_FORMAT_R32G32B32_SFLOAT,
           },
           VertexAttribute{
               /*location=*/2,
               /*offset=*/
-              static_cast<uint32_t>(offsetof(VertexAttribute3D, tex_coord)),
+              static_cast<uint32_t>(offsetof(Vertex3DWithTex, tex_coord)),
               VK_FORMAT_R32G32_SFLOAT,
           },
       },

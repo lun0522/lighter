@@ -7,6 +7,7 @@
 
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
 
+#include <iostream>
 #include <numeric>
 
 #include "jessie_steamer/common/file.h"
@@ -340,6 +341,9 @@ void Pipeline::Bind(const VkCommandBuffer& command_buffer) const {
 Pipeline::~Pipeline() {
   vkDestroyPipeline(*context_->device(), pipeline_, *context_->allocator());
   vkDestroyPipelineLayout(*context_->device(), layout_, *context_->allocator());
+#ifndef NDEBUG
+  std::cout << "Pipeline destructed" << std::endl;
+#endif  /* !NDEBUG */
 }
 
 } /* namespace vulkan */

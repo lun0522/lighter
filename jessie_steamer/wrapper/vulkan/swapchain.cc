@@ -8,8 +8,8 @@
 #include "jessie_steamer/wrapper/vulkan/swapchain.h"
 
 #include <algorithm>
+#include <iostream>
 #include <limits>
-#include <string>
 
 #include "jessie_steamer/wrapper/vulkan/util.h"
 #include "third_party/absl/memory/memory.h"
@@ -199,6 +199,14 @@ const vector<const char*>& Swapchain::GetRequiredExtensions() {
     };
   }
   return *required_extensions;
+}
+
+Swapchain::~Swapchain() {
+  vkDestroySwapchainKHR(*context_->device(), swapchain_,
+                        *context_->allocator());
+#ifndef NDEBUG
+  std::cout << "Swapchain destructed" << std::endl;
+#endif  /* !NDEBUG */
 }
 
 } /* namespace vulkan */

@@ -108,32 +108,39 @@ class VertexBuffer : public DataBuffer {
 // use it through derived classes.
 class PerVertexBuffer : public VertexBuffer {
  public:
-  // Used to Interpret the data stored in containers.
-  struct DataInfo {
+  // Used to Interpret the vertex data stored in containers.
+  struct VertexDataInfo {
     // Assuming the data in 'container' is used for multiple meshes.
     template <typename Container>
-    DataInfo(const Container& container, int num_units_per_mesh)
+    VertexDataInfo(const Container& container, int num_units_per_mesh)
         : data{container.data()},
           num_units_per_mesh{num_units_per_mesh},
           size_per_mesh{sizeof(container[0]) * num_units_per_mesh} {}
 
     // Assuming all the data in 'container' is used for one mesh.
     template <typename Container>
-    explicit DataInfo(const Container& container)
-        : DataInfo{container,
-                   /*num_units_per_mesh=*/static_cast<int>(container.size())} {}
+    explicit VertexDataInfo(const Container& container)
+        : VertexDataInfo{
+              container,
+              /*num_units_per_mesh=*/static_cast<int>(container.size())} {}
 
     const void* data;
     int num_units_per_mesh;
     size_t size_per_mesh;
   };
 
+  // Holds data information for multiple meshes that do not have indices.
+  // Each mesh may have different number of vertices.
+  struct NoIndicesDataInfo {
+    std::vector<VertexDataInfo> per_mesh_infos;
+  };
+
   // Holds data information for multiple meshes that share indices.
   // Each mesh has the same number of vertices.
   struct ShareIndicesDataInfo {
     int num_meshes;
-    DataInfo per_mesh_vertices;
-    DataInfo shared_indices;
+    VertexDataInfo per_mesh_vertices;
+    VertexDataInfo shared_indices;
   };
 
   // Holds data information for multiple meshes that do not share indices.
@@ -141,14 +148,39 @@ class PerVertexBuffer : public VertexBuffer {
   struct NoShareIndicesDataInfo {
     // Holds data information for each mesh.
     struct PerMeshInfo {
-      DataInfo indices;
-      DataInfo vertices;
+      VertexDataInfo indices;
+      VertexDataInfo vertices;
     };
     std::vector<PerMeshInfo> per_mesh_infos;
   };
 
-  using BufferDataInfo = absl::variant<ShareIndicesDataInfo,
+  using BufferDataInfo = absl::variant<NoIndicesDataInfo,
+                                       ShareIndicesDataInfo,
                                        NoShareIndicesDataInfo>;
+
+  // Holds the number of vertices in each mesh and the data size offset within
+  // the vertex buffer.
+  struct MeshDataInfosNoIndices {
+    struct Info {
+      uint32_t vertices_count;
+      VkDeviceSize vertices_offset;
+    };
+    std::vector<Info> infos;
+  };
+
+  // Holds the number of indices in each mesh and the data size offset within
+  // the vertex buffer.
+  struct MeshDataInfosWithIndices {
+    struct Info {
+      uint32_t indices_count;
+      VkDeviceSize indices_offset;
+      VkDeviceSize vertices_offset;
+    };
+    std::vector<Info> infos;
+  };
+
+  using MeshDataInfos = absl::variant<MeshDataInfosNoIndices,
+                                      MeshDataInfosWithIndices>;
 
   // This class is neither copyable nor movable.
   PerVertexBuffer(const PerVertexBuffer&) = delete;
@@ -162,23 +194,13 @@ class PerVertexBuffer : public VertexBuffer {
   // Inherits constructor.
   using VertexBuffer::VertexBuffer;
 
-  // Holds the number of indices in the mesh and the data size offset within the
-  // vertex buffer.
-  struct MeshDataInfo {
-    uint32_t indices_count;
-    VkDeviceSize indices_offset;
-    VkDeviceSize vertices_offset;
-  };
-
-  // These functions populate 'mesh_data_infos_' and return instances of
-  // 'CopyInfos' that can be used for copying data from the host to device.
+  // Populates 'mesh_data_infos_' and returns an instance of CopyInfos that can
+  // be used for copying data from the host to device.
   // Previous content in 'mesh_data_infos_' will be cleared.
   CopyInfos CreateCopyInfos(const BufferDataInfo& info);
-  CopyInfos CreateCopyInfos(const ShareIndicesDataInfo& info_no_reuse);
-  CopyInfos CreateCopyInfos(const NoShareIndicesDataInfo& info_reuse);
 
   // Holds data information for all meshes stored in the vertex buffer.
-  std::vector<MeshDataInfo> mesh_data_infos_;
+  MeshDataInfos mesh_data_infos_;
 };
 
 // This class creates a vertex buffer that stores static data, which will be

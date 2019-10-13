@@ -71,7 +71,8 @@ struct VertexInputAttribute {
 
 // Convenient function to return an instance of VertexInputAttribute, assuming
 // each vertex will get data of DataType, which is updated per-vertex.
-// For now this is only implemented for VertexAttribute2D and VertexAttribute3D.
+// For now this is only implemented for Vertex2D, Vertex3DNoTex and
+// Vertex3DWithTex.
 template <typename DataType>
 VertexInputAttribute GetPerVertexAttribute();
 
