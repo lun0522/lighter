@@ -7,7 +7,6 @@
 
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
 
-#include <iostream>
 #include <numeric>
 
 #include "jessie_steamer/common/file.h"
@@ -242,14 +241,14 @@ PipelineBuilder& PipelineBuilder::SetPipelineLayout(
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::SetViewport(ViewportInfo&& info) {
-  viewport_info_.emplace(std::move(info));
+PipelineBuilder& PipelineBuilder::SetViewport(VkViewport&& viewport,
+                                              VkRect2D&& scissor) {
   // Flip the viewport as suggested by:
   // https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport
-  auto& viewport = viewport_info_->first;
-  float height = viewport.y - viewport.height;
+  const float height = viewport.y - viewport.height;
   viewport.y += viewport.height;
   viewport.height = height;
+  viewport_info_.emplace(std::move(viewport), std::move(scissor));
   return *this;
 }
 
@@ -265,10 +264,10 @@ PipelineBuilder& PipelineBuilder::SetColorBlend(
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::AddShader(const ShaderInfo& info) {
+PipelineBuilder& PipelineBuilder::AddShader(VkShaderStageFlagBits shader_stage,
+                                            const std::string& file_path) {
   shader_modules_.emplace_back(
-      /*shader_stage*/info.first,
-      CreateShaderModule(context_, /*file_path=*/info.second));
+      shader_stage, CreateShaderModule(context_, file_path));
   return *this;
 }
 
@@ -342,7 +341,7 @@ Pipeline::~Pipeline() {
   vkDestroyPipeline(*context_->device(), pipeline_, *context_->allocator());
   vkDestroyPipelineLayout(*context_->device(), layout_, *context_->allocator());
 #ifndef NDEBUG
-  std::cout << "Pipeline destructed" << std::endl;
+  LOG << "Pipeline destructed" << std::endl;
 #endif  /* !NDEBUG */
 }
 

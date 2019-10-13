@@ -159,12 +159,13 @@ ModelBuilder::ModelBuilder(SharedBasicContext context,
 void ModelBuilder::LoadSingleMesh(const SingleMeshResource& resource) {
   // Load indices and vertices.
   const common::ObjFile file{resource.obj_path, resource.obj_file_index_base};
-  VertexInfo::PerMeshInfo mesh_info{
-      PerVertexBuffer::VertexDataInfo{file.indices},
-      PerVertexBuffer::VertexDataInfo{file.vertices},
-  };
   vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
-      context_, VertexInfo{/*per_mesh_infos=*/{std::move(mesh_info)}});
+      context_, VertexInfo{
+          /*per_mesh_infos=*/{{
+              PerVertexBuffer::VertexDataInfo{file.indices},
+              PerVertexBuffer::VertexDataInfo{file.vertices},
+          }},
+      });
 
   // Load textures.
   mesh_textures_.emplace_back();
@@ -334,7 +335,7 @@ void Model::Update(bool is_object_opaque, const VkExtent2D& frame_size,
   (*pipeline_builder_)
       .SetDepthTestEnabled(/*enable_test=*/is_object_opaque)
       .SetMultisampling(sample_count)
-      .SetViewport({
+      .SetViewport(
           /*viewport=*/VkViewport{
               /*x=*/0.0f,
               /*y=*/0.0f,
@@ -346,8 +347,8 @@ void Model::Update(bool is_object_opaque, const VkExtent2D& frame_size,
           /*scissor=*/VkRect2D{
               /*offset=*/{0, 0},
               frame_size,
-          },
-      })
+          }
+      )
       .SetRenderPass(*render_pass, subpass_index)
       .SetColorBlend(
           vector<VkPipelineColorBlendAttachmentState>(
@@ -355,7 +356,8 @@ void Model::Update(bool is_object_opaque, const VkExtent2D& frame_size,
               pipeline::GetColorBlendState(
                   /*enable_blend=*/!is_object_opaque)));
   for (const auto& info : shader_infos_) {
-    pipeline_builder_->AddShader(info);
+    pipeline_builder_->AddShader(/*shader_stage=*/info.first,
+                                 /*file_path=*/info.second);
   }
   pipeline_ = pipeline_builder_->Build();
 }

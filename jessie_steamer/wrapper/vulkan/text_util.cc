@@ -151,7 +151,7 @@ std::unique_ptr<Pipeline> BuildPipeline(const Image& target_image,
                                         PipelineBuilder* pipeline_builder) {
   using common::file::GetShaderPath;
   return (*pipeline_builder)
-      .SetViewport({
+      .SetViewport(
           /*viewport=*/VkViewport{
               /*x=*/0.0f,
               /*y=*/0.0f,
@@ -163,13 +163,13 @@ std::unique_ptr<Pipeline> BuildPipeline(const Image& target_image,
           /*scissor=*/VkRect2D{
               /*offset=*/{0, 0},
               target_image.extent(),
-          },
-      })
+          }
+      )
       .SetRenderPass(render_pass, kNativeSubpassIndex)
-      .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
-                  GetShaderPath("vulkan/char.vert.spv")})
-      .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                  GetShaderPath("vulkan/char.frag.spv")})
+      .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
+                 GetShaderPath("vulkan/char.vert.spv"))
+      .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 GetShaderPath("vulkan/char.frag.spv"))
       .Build();
 }
 

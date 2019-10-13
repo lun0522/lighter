@@ -7,9 +7,7 @@
 
 #include "jessie_steamer/wrapper/vulkan/basic_object.h"
 
-#include <algorithm>
 #include <functional>
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -31,8 +29,8 @@ using std::vector;
 // Checks support for 'required' extensions, and throws a runtime exception
 // if any of them is not supported.
 void CheckInstanceExtensionSupport(const vector<string>& required) {
-  std::cout << "Checking instance extension support..."
-            << std::endl << std::endl;
+  LOG << "Checking instance extension support..." << std::endl;
+  LOG << std::endl;
 
   const auto properties = util::QueryAttribute<VkExtensionProperties>(
       [](uint32_t* count, VkExtensionProperties* properties) {
@@ -53,7 +51,8 @@ void CheckInstanceExtensionSupport(const vector<string>& required) {
 // Checks support for 'required' layers, and throws a runtime exception if any
 // of them is not supported.
 void CheckValidationLayerSupport(const vector<string>& required) {
-  std::cout << "Checking validation layer support..." << std::endl << std::endl;
+  LOG << "Checking validation layer support..." << std::endl;
+  LOG << std::endl;
 
   const auto properties = util::QueryAttribute<VkLayerProperties>(
       [](uint32_t* count, VkLayerProperties* properties) {
@@ -73,8 +72,8 @@ void CheckValidationLayerSupport(const vector<string>& required) {
 // Returns whether swapchain is supported.
 bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
                          const WindowSupport& window_support) {
-  std::cout << "Checking swapchain support..."
-            << std::endl << std::endl;
+  LOG << "Checking swapchain support..." << std::endl;
+  LOG << std::endl;
 
   // Query support for device extensions.
   const vector<string> required{
@@ -93,7 +92,7 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
   const auto unsupported = util::FindUnsupported<VkExtensionProperties>(
       required, extensions, get_name);
   if (unsupported.has_value()) {
-    std::cout << "Unsupported: " << unsupported.value() << std::endl;
+    LOG << "Unsupported: " << unsupported.value() << std::endl;
     return false;
   }
 
@@ -117,8 +116,8 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
     const absl::optional<WindowSupport>& window_support) {
   VkPhysicalDeviceProperties properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
-  std::cout << "Found device: " << properties.deviceName
-            << std::endl << std::endl;
+  LOG << "Found device: " << properties.deviceName << std::endl;
+  LOG << std::endl;
 
   // Request swapchain support if use window.
   if (window_support.has_value() &&
@@ -229,7 +228,7 @@ Instance::Instance(const BasicContext* context,
       /*applicationVersion=*/VK_MAKE_VERSION(1, 0, 0),
       /*pEngineName=*/"No Engine",
       /*engineVersion=*/VK_MAKE_VERSION(1, 0, 0),
-      /*apiVersion=*/VK_API_VERSION_1_0,
+      VK_API_VERSION_1_0,
   };
 
   // [required]

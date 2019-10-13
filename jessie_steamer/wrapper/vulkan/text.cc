@@ -98,7 +98,7 @@ void Text::Update(const VkExtent2D& frame_size,
   using common::file::GetShaderPath;
   pipeline_ = pipeline_builder_
       .SetMultisampling(sample_count)
-      .SetViewport({
+      .SetViewport(
           /*viewport=*/VkViewport{
               /*x=*/0.0f,
               /*y=*/0.0f,
@@ -110,17 +110,17 @@ void Text::Update(const VkExtent2D& frame_size,
           /*scissor=*/VkRect2D{
               /*offset=*/{0, 0},
               frame_size,
-          },
-      })
+          }
+      )
       .SetRenderPass(*render_pass, subpass_index)
       .SetColorBlend(
           vector<VkPipelineColorBlendAttachmentState>(
               render_pass.num_color_attachments(subpass_index),
               pipeline::GetColorBlendState(/*enable_blend=*/true)))
-      .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
-                  GetShaderPath("vulkan/char.vert.spv")})
-      .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                  GetShaderPath("vulkan/text.frag.spv")})
+      .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
+                 GetShaderPath("vulkan/char.vert.spv"))
+      .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 GetShaderPath("vulkan/text.frag.spv"))
       .Build();
 }
 

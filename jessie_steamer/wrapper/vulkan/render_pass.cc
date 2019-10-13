@@ -7,8 +7,6 @@
 
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
 
-#include <iostream>
-
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 #include "third_party/absl/strings/str_format.h"
@@ -314,7 +312,7 @@ RenderPass::~RenderPass() {
   vkDestroyRenderPass(*context_->device(), render_pass_,
                       *context_->allocator());
 #ifndef NDEBUG
-  std::cout << "Render pass destructed" << std::endl;
+  LOG << "Render pass destructed" << std::endl;
 #endif  /* !NDEBUG */
 }
 

@@ -9,10 +9,10 @@
 #define JESSIE_STEAMER_WRAPPER_VULKAN_BASIC_CONTEXT_H
 
 #include <functional>
-#include <iostream>
 #include <memory>
 #include <vector>
 
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_object.h"
 #ifndef NDEBUG
 #include "jessie_steamer/wrapper/vulkan/validation.h"
@@ -63,7 +63,7 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   BasicContext& operator=(const BasicContext&) = delete;
 
 #ifndef NDEBUG
-  ~BasicContext() { std::cout << "Context destructed properly" << std::endl; }
+  ~BasicContext() { LOG << "Context destructed properly" << std::endl; }
 #endif  /* !NDEBUG */
 
   // Records an operation that releases an expired resource, so that it can be

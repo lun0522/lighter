@@ -1,12 +1,12 @@
 //
-//  time.h
+//  timer.h
 //
 //  Created by Pujun Lun on 5/11/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef JESSIE_STEAMER_COMMON_TIME_H
-#define JESSIE_STEAMER_COMMON_TIME_H
+#ifndef JESSIE_STEAMER_COMMON_TIMER_H
+#define JESSIE_STEAMER_COMMON_TIMER_H
 
 #include <chrono>
 
@@ -80,4 +80,4 @@ class Timer {
 } /* namespace common */
 } /* namespace jessie_steamer */
 
-#endif /* JESSIE_STEAMER_COMMON_TIME_H */
+#endif /* JESSIE_STEAMER_COMMON_TIMER_H */

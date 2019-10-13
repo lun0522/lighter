@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <iostream>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
@@ -18,6 +19,13 @@
 #include "third_party/absl/flags/parse.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/optional.h"
+
+#ifdef NDEBUG
+#define LOG std::cout << ::jessie_steamer::common::util::PrintTime << ' '
+#else  /* !NDEBUG */
+#define LOG std::cout << '[' << ::jessie_steamer::common::util::PrintTime \
+                      << absl::StrFormat(" %s:%d] ", __FILE__, __LINE__)
+#endif /* NDEBUG */
 
 #ifdef NDEBUG
 #define FATAL(error) throw std::runtime_error{error};
@@ -60,6 +68,9 @@ namespace util {
 inline void ParseCommandLine(int argc, char* argv[]) {
   absl::ParseCommandLine(argc, argv);
 }
+
+// Prints the current time in "YYYY-MM-DD HH:MM:SS.fff" format.
+std::ostream& PrintTime(std::ostream& os);
 
 // Returns the index of the first element that satisfies 'predicate'.
 // If there is no such element, returns 'absl::nullopt'.

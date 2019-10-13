@@ -7,7 +7,7 @@ cc_library(
     deps = [
         "//jessie_steamer/application:resource",
         "//jessie_steamer/common:file",
-        "//jessie_steamer/common:time",
+        "//jessie_steamer/common:timer",
         "//jessie_steamer/common:util",
         "//jessie_steamer/wrapper/vulkan:on_screen",
         "//third_party/absl/flags:flag",

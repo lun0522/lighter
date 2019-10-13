@@ -30,9 +30,6 @@ class Pipeline;
 class PipelineBuilder {
  public:
   // TODO: Similar to texture image, make a shader file pool.
-  using ShaderInfo = std::pair</*shader_stage*/VkShaderStageFlagBits,
-                               /*file_path*/std::string>;
-
   using ShaderModule = std::pair</*shader_stage*/VkShaderStageFlagBits,
                                  /*shader_module*/VkShaderModule>;
 
@@ -68,7 +65,7 @@ class PipelineBuilder {
       std::vector<VkPushConstantRange>&& push_constant_ranges);
 
   // Sets the viewport and scissor.
-  PipelineBuilder& SetViewport(ViewportInfo&& info);
+  PipelineBuilder& SetViewport(VkViewport&& viewport, VkRect2D&& scissor);
 
   // Specifies that this pipeline will be used in the subpass of 'render_pass'
   // with 'subpass_index'.
@@ -83,7 +80,8 @@ class PipelineBuilder {
 
   // Adds a shader to the pipeline. Note that after Build() is called, the user
   // should add all shaders again before building another pipeline.
-  PipelineBuilder& AddShader(const ShaderInfo& info);
+  PipelineBuilder& AddShader(VkShaderStageFlagBits shader_stage,
+                             const std::string& file_path);
 
   // Returns a pipeline. This can be called multiple times. Note that after one
   // call, the user should add all shaders again before another call.

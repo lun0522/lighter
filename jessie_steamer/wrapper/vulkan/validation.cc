@@ -7,8 +7,7 @@
 
 #include "jessie_steamer/wrapper/vulkan/validation.h"
 
-#include <iostream>
-
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 
@@ -25,7 +24,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
     VkDebugUtilsMessageTypeFlagsEXT message_type,
     const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
     void* user_data) {
-  std::cout << "[Validation] " << callback_data->pMessage << std::endl;
+  LOG << callback_data->pMessage << std::endl;
   return VK_FALSE;
 }
 

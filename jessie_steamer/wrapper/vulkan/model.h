@@ -103,6 +103,10 @@ class ModelBuilder {
   // Each element is the descriptor used by the mesh at the same index.
   using DescriptorsPerFrame = std::vector<std::unique_ptr<StaticDescriptor>>;
 
+  // Specifies a shader resource.
+  using ShaderInfo = std::pair</*shader_stage*/VkShaderStageFlagBits,
+                               /*file_path*/std::string>;
+
   // If any offscreen images are used in 'resource', the user is responsible for
   // keeping the existence of them.
   ModelBuilder(SharedBasicContext context,
@@ -195,7 +199,7 @@ class ModelBuilder {
   absl::optional<PushConstantInfos> push_constant_infos_;
 
   // Shaders used in the graphics pipeline.
-  std::vector<PipelineBuilder::ShaderInfo> shader_infos_;
+  std::vector<ShaderInfo> shader_infos_;
 };
 
 // The Model and its builder class are used to:
@@ -236,7 +240,7 @@ class Model {
   friend std::unique_ptr<Model> ModelBuilder::Build();
 
   Model(SharedBasicContext context,
-        std::vector<PipelineBuilder::ShaderInfo>&& shader_infos,
+        std::vector<ModelBuilder::ShaderInfo>&& shader_infos,
         std::unique_ptr<StaticPerVertexBuffer>&& vertex_buffer,
         std::vector<const PerInstanceBuffer*>&& per_instance_buffers,
         absl::optional<PushConstantInfos>&& push_constant_info,
@@ -258,7 +262,7 @@ class Model {
   const SharedBasicContext context_;
 
   // Shaders used in the graphics pipeline.
-  const std::vector<PipelineBuilder::ShaderInfo> shader_infos_;
+  const std::vector<ModelBuilder::ShaderInfo> shader_infos_;
 
   // Holds per-vertex data.
   const std::unique_ptr<StaticPerVertexBuffer> vertex_buffer_;

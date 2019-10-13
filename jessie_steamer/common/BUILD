@@ -66,13 +66,14 @@ cc_library(
 )
 
 cc_library(
-    name = "time",
-    hdrs = ["time.h"],
+    name = "timer",
+    hdrs = ["timer.h"],
 )
 
 cc_library(
     name = "util",
     hdrs = ["util.h"],
+    srcs = ["util.cc"],
     deps = [
         "//third_party/absl/base:core_headers",
         "//third_party/absl/flags:parse",

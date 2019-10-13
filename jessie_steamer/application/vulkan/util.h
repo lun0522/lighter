@@ -9,11 +9,10 @@
 #define JESSIE_STEAMER_APPLICATION_VULKAN_UTIL_H
 
 #include <cstdlib>
-#include <iostream>
 #include <type_traits>
 
 #include "jessie_steamer/common/file.h"
-#include "jessie_steamer/common/time.h"
+#include "jessie_steamer/common/timer.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/align.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"

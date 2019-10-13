@@ -145,7 +145,7 @@ void TriangleApp::Recreate() {
   const auto sample_count = depth_stencil_image_->sample_count();
   (*pipeline_builder_)
       .SetMultisampling(sample_count)
-      .SetViewport({
+      .SetViewport(
           /*viewport=*/VkViewport{
               /*x=*/0.0f,
               /*y=*/0.0f,
@@ -157,17 +157,17 @@ void TriangleApp::Recreate() {
           /*scissor=*/VkRect2D{
               /*offset=*/{0, 0},
               frame_size,
-          },
-      })
+          }
+      )
       .SetRenderPass(**render_pass_, kTriangleSubpassIndex)
       .SetColorBlend(
           vector<VkPipelineColorBlendAttachmentState>(
               render_pass_->num_color_attachments(kTriangleSubpassIndex),
               pipeline::GetColorBlendState(/*enable_blend=*/true)))
-      .AddShader({VK_SHADER_STAGE_VERTEX_BIT,
-                  GetShaderPath("vulkan/simple_2d.vert.spv")})
-      .AddShader({VK_SHADER_STAGE_FRAGMENT_BIT,
-                  GetShaderPath("vulkan/simple_2d.frag.spv")});
+      .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
+                 GetShaderPath("vulkan/simple_2d.vert.spv"))
+      .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 GetShaderPath("vulkan/simple_2d.frag.spv"));
   pipeline_ = pipeline_builder_->Build();
 }
 

@@ -9,7 +9,6 @@
 #define JESSIE_STEAMER_WRAPPER_VULKAN_UTIL_H
 
 #include <functional>
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -115,17 +114,17 @@ absl::optional<std::string> FindUnsupported(
     available.emplace(get_name(atr));
   }
 
-  std::cout << "Available:" << std::endl;
+  LOG << "Available:" << std::endl;
   for (const auto& avl : available) {
-    std::cout << "\t" << avl << std::endl;
+    LOG << "\t" << avl << std::endl;
   }
-  std::cout << std::endl;
+  LOG << std::endl;
 
-  std::cout << "Required:" << std::endl;
+  LOG << "Required:" << std::endl;
   for (const auto& req : required) {
-    std::cout << "\t" << req << std::endl;
+    LOG << "\t" << req << std::endl;
   }
-  std::cout << std::endl;
+  LOG << std::endl;
 
   for (const auto& req : required) {
     if (available.find(req) == available.end()) {

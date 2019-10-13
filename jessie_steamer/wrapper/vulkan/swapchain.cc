@@ -8,7 +8,6 @@
 #include "jessie_steamer/wrapper/vulkan/swapchain.h"
 
 #include <algorithm>
-#include <iostream>
 #include <limits>
 
 #include "jessie_steamer/wrapper/vulkan/util.h"
@@ -205,7 +204,7 @@ Swapchain::~Swapchain() {
   vkDestroySwapchainKHR(*context_->device(), swapchain_,
                         *context_->allocator());
 #ifndef NDEBUG
-  std::cout << "Swapchain destructed" << std::endl;
+  LOG << "Swapchain destructed" << std::endl;
 #endif  /* !NDEBUG */
 }
 

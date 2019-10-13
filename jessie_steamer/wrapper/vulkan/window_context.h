@@ -48,11 +48,13 @@ class WindowContext {
       return *this;
     }
 
+#ifndef NDEBUG
     Config& set_debug_callback_trigger(
         const DebugCallback::TriggerCondition& trigger) {
       debug_callback_trigger = trigger;
       return *this;
     }
+#endif /* !NDEBUG */
 
     glm::ivec2 screen_size{800, 600};
     absl::optional<MultisampleImage::Mode> multisampling_mode =

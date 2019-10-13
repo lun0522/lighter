@@ -9,9 +9,10 @@ SHADERS_DIR="${BASE_DIR}/jessie_steamer/shader"
 COMPILED_GL_DIR="${SHADERS_DIR}/opengl"
 COMPILED_VK_DIR="${SHADERS_DIR}/vulkan"
 COMPILED_EXT=".spv"
+DATE_FORMAT="+%F %T"
 
 if [ ! -e ${COMPILER_BIN} ]; then
-  echo "Downloading shader compiler..."
+  echo "$(DATE "${DATE_FORMAT}") Downloading shader compiler..."
   COMPRESSED="/tmp/glslang.zip"
   wget -O ${COMPRESSED} ${COMPILER_ADDR}
   unzip -p ${COMPRESSED} bin/glslangValidator > ${COMPILER_BIN}
@@ -19,7 +20,7 @@ if [ ! -e ${COMPILER_BIN} ]; then
   rm ${COMPRESSED}
 fi
 
-echo "Compiling shaders..."
+echo "$(DATE "${DATE_FORMAT}") Compiling shaders..."
 for ext in ".vert" ".frag"; do
   for file in "${SHADERS_DIR}"/*"${ext}"; do
     output=$(basename "${file}")${COMPILED_EXT}
@@ -27,4 +28,4 @@ for ext in ".vert" ".frag"; do
     ${COMPILER_BIN} -V -DTARGET_VULKAN "${file}" -o "${COMPILED_VK_DIR}/${output}"
   done
 done
-echo "Finished!"
+echo "$(DATE "${DATE_FORMAT}") Finished!"
