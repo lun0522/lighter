@@ -12,7 +12,6 @@
 
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
-#include "jessie_steamer/wrapper/vulkan/util.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace jessie_steamer {
@@ -601,6 +600,15 @@ void GenerateMipmaps(const SharedBasicContext& context,
 
 } /* namespace */
 
+vector<VertexBuffer::Attribute> VertexBuffer::GetAttributes(
+    uint32_t start_location) const {
+  auto mutable_attributes = attributes_;
+  for (auto& attribute : mutable_attributes) {
+    attribute.location = start_location++;
+  }
+  return mutable_attributes;
+}
+
 void VertexBuffer::CreateBufferAndMemory(VkDeviceSize total_size,
                                          bool is_dynamic) {
   VkBufferUsageFlags buffer_usages = VK_BUFFER_USAGE_INDEX_BUFFER_BIT
@@ -623,13 +631,13 @@ PerVertexBuffer::CopyInfos PerVertexBuffer::CreateCopyInfos(
 }
 
 void PerVertexBuffer::Draw(const VkCommandBuffer& command_buffer,
+                           uint32_t binding_point,
                            int mesh_index, uint32_t instance_count) const {
   if (absl::holds_alternative<MeshDataInfosNoIndices>(mesh_data_infos_)) {
     const auto& mesh_info =
         absl::get<MeshDataInfosNoIndices>(mesh_data_infos_).infos[mesh_index];
-    vkCmdBindVertexBuffers(command_buffer, kPerVertexBindingPoint,
-                           /*bindingCount=*/1, &buffer_,
-                           &mesh_info.vertices_offset);
+    vkCmdBindVertexBuffers(command_buffer, binding_point, /*bindingCount=*/1,
+                           &buffer_, &mesh_info.vertices_offset);
     vkCmdDraw(command_buffer, mesh_info.vertices_count, instance_count,
               /*firstVertex=*/0, /*firstInstance=*/0);
   } else if (
@@ -638,17 +646,17 @@ void PerVertexBuffer::Draw(const VkCommandBuffer& command_buffer,
         absl::get<MeshDataInfosWithIndices>(mesh_data_infos_).infos[mesh_index];
     vkCmdBindIndexBuffer(command_buffer, buffer_, mesh_info.indices_offset,
                          VK_INDEX_TYPE_UINT32);
-    vkCmdBindVertexBuffers(command_buffer, kPerVertexBindingPoint,
-                           /*bindingCount=*/1, &buffer_,
-                           &mesh_info.vertices_offset);
+    vkCmdBindVertexBuffers(command_buffer, binding_point, /*bindingCount=*/1,
+                           &buffer_, &mesh_info.vertices_offset);
     vkCmdDrawIndexed(command_buffer, mesh_info.indices_count, instance_count,
                      /*firstIndex=*/0, /*vertexOffset=*/0, /*firstInstance=*/0);
   }
 }
 
 StaticPerVertexBuffer::StaticPerVertexBuffer(
-    SharedBasicContext context, const BufferDataInfo& info)
-    : PerVertexBuffer{std::move(context)} {
+    SharedBasicContext context, const BufferDataInfo& info,
+    std::vector<Attribute>&& attributes)
+    : PerVertexBuffer{std::move(context), std::move(attributes)} {
   const CopyInfos copy_infos = CreateCopyInfos(info);
   CreateBufferAndMemory(copy_infos.total_size, /*is_dynamic=*/false);
   CopyHostToBufferViaStaging(context_, buffer_, copy_infos);
@@ -681,14 +689,18 @@ void DynamicPerVertexBuffer::CopyHostData(const BufferDataInfo& info) {
                    device_memory_, copy_infos.copy_infos);
 }
 
-PerInstanceBuffer::PerInstanceBuffer(SharedBasicContext context,
-    const void* data, size_t data_size)
-    : VertexBuffer{std::move(context)} {
-  CreateBufferAndMemory(data_size, /*is_dynamic=*/false);
-  CopyHostToBufferViaStaging(context_, buffer_, CopyInfos{
-      /*total_size=*/data_size,
-      /*copy_infos=*/{CopyInfo{data, data_size, /*offset=*/0}},
-  });
+PerInstanceBuffer::PerInstanceBuffer(
+    SharedBasicContext context, const void* data,
+    uint32_t per_instance_data_size, uint32_t num_instances,
+    std::vector<Attribute>&& attributes)
+    : VertexBuffer{std::move(context), std::move(attributes)},
+      per_instance_data_size_{per_instance_data_size} {
+  const uint32_t total_size = per_instance_data_size * num_instances;
+  CreateBufferAndMemory(total_size, /*is_dynamic=*/false);
+  CopyHostToBufferViaStaging(
+      context_, buffer_, CopyInfos{
+          total_size, /*copy_infos=*/{CopyInfo{data, total_size, /*offset=*/0}},
+      });
 }
 
 void PerInstanceBuffer::Bind(const VkCommandBuffer& command_buffer,

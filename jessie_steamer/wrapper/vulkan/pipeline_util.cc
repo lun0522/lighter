@@ -20,7 +20,7 @@ using common::Vertex3DNoTex;
 using common::Vertex3DWithTex;
 using std::vector;
 
-using VertexAttribute = VertexInputAttribute::Attribute;
+using VertexAttribute = VertexBuffer::Attribute;
 
 } /* namespace */
 
@@ -57,86 +57,70 @@ vector<VkVertexInputBindingDescription> GetBindingDescriptions(
 }
 
 template <>
-VertexInputAttribute GetPerVertexAttribute<Vertex2D>() {
-  return VertexInputAttribute{
-      kPerVertexBindingPoint,
-      /*attributes=*/{
-          VertexAttribute{
-              /*location=*/0,
-              /*offset=*/static_cast<uint32_t>(offsetof(Vertex2D, pos)),
-              VK_FORMAT_R32G32_SFLOAT,
-          },
-          VertexAttribute{
-              /*location=*/1,
-              /*offset=*/static_cast<uint32_t>(offsetof(Vertex2D, tex_coord)),
-              VK_FORMAT_R32G32_SFLOAT,
-          },
+vector<VertexAttribute> GetVertexAttribute<Vertex2D>() {
+  return {
+      VertexAttribute{
+          /*location=*/0,  // To be updated.
+          /*offset=*/static_cast<uint32_t>(offsetof(Vertex2D, pos)),
+          VK_FORMAT_R32G32_SFLOAT,
+      },
+      VertexAttribute{
+          /*location=*/0,  // To be updated.
+          /*offset=*/static_cast<uint32_t>(offsetof(Vertex2D, tex_coord)),
+          VK_FORMAT_R32G32_SFLOAT,
       },
   };
 }
 
 template <>
-VertexInputAttribute GetPerVertexAttribute<Vertex3DNoTex>() {
-  return VertexInputAttribute{
-      kPerVertexBindingPoint,
-      /*attributes=*/{
-          VertexAttribute{
-              /*location=*/0,
-              /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DNoTex, pos)),
-              VK_FORMAT_R32G32B32_SFLOAT,
-          },
-          VertexAttribute{
-              /*location=*/1,
-              /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DNoTex, color)),
-              VK_FORMAT_R32G32B32_SFLOAT,
-          },
+vector<VertexAttribute> GetVertexAttribute<Vertex3DNoTex>() {
+  return {
+      VertexAttribute{
+          /*location=*/0,  // To be updated.
+          /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DNoTex, pos)),
+          VK_FORMAT_R32G32B32_SFLOAT,
+      },
+      VertexAttribute{
+          /*location=*/0,  // To be updated.
+          /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DNoTex, color)),
+          VK_FORMAT_R32G32B32_SFLOAT,
       },
   };
 }
 
 template <>
-VertexInputAttribute GetPerVertexAttribute<Vertex3DWithTex>() {
-  return VertexInputAttribute{
-      kPerVertexBindingPoint,
-      /*attributes=*/{
-          VertexAttribute{
-              /*location=*/0,
-              /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DWithTex, pos)),
-              VK_FORMAT_R32G32B32_SFLOAT,
-          },
-          VertexAttribute{
-              /*location=*/1,
-              /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DWithTex, norm)),
-              VK_FORMAT_R32G32B32_SFLOAT,
-          },
-          VertexAttribute{
-              /*location=*/2,
-              /*offset=*/
-              static_cast<uint32_t>(offsetof(Vertex3DWithTex, tex_coord)),
-              VK_FORMAT_R32G32_SFLOAT,
-          },
+vector<VertexAttribute> GetVertexAttribute<Vertex3DWithTex>() {
+  return {
+      VertexAttribute{
+          /*location=*/0,  // To be updated.
+          /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DWithTex, pos)),
+          VK_FORMAT_R32G32B32_SFLOAT,
+      },
+      VertexAttribute{
+          /*location=*/0,  // To be updated.
+          /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DWithTex, norm)),
+          VK_FORMAT_R32G32B32_SFLOAT,
+      },
+      VertexAttribute{
+          /*location=*/0,  // To be updated.
+          /*offset=*/
+          static_cast<uint32_t>(offsetof(Vertex3DWithTex, tex_coord)),
+          VK_FORMAT_R32G32_SFLOAT,
       },
   };
 }
 
 vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(
-    const vector<VertexInputAttribute>& attributes) {
-  int num_attributes = 0;
-  for (const auto& attribs : attributes) {
-    num_attributes += attribs.attributes.size();
-  }
-
+    uint32_t binding_point, const vector<VertexAttribute>& attributes) {
   vector<VkVertexInputAttributeDescription> descriptions;
-  descriptions.reserve(num_attributes);
-  for (const auto& attribs : attributes) {
-    for (const auto& attrib : attribs.attributes) {
-      descriptions.emplace_back(VkVertexInputAttributeDescription{
-          attrib.location,
-          attribs.binding_point,
-          attrib.format,
-          attrib.offset,
-      });
-    }
+  descriptions.reserve(attributes.size());
+  for (const auto& attribute : attributes) {
+    descriptions.emplace_back(VkVertexInputAttributeDescription{
+        attribute.location,
+        binding_point,
+        attribute.format,
+        attribute.offset,
+    });
   }
   return descriptions;
 }

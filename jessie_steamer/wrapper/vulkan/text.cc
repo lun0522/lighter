@@ -26,6 +26,8 @@ using common::Vertex2D;
 using std::string;
 using std::vector;
 
+constexpr uint32_t kVertexBufferBindingPoint = 0;
+
 enum BindingPoint { kUniformBufferBindingPoint = 0, kTextureBindingPoint };
 
 /* BEGIN: Consistent with structs used in shaders. */
@@ -82,14 +84,16 @@ const vector<Descriptor::Info>& GetDescriptorInfos() {
 
 Text::Text(SharedBasicContext context, int num_frames_in_flight)
     : context_{std::move(context)},
-      vertex_buffer_{context_, text_util::GetVertexDataSize(/*num_rects=*/1)},
+      vertex_buffer_{context_, text_util::GetVertexDataSize(/*num_rects=*/1),
+                     pipeline::GetVertexAttribute<Vertex2D>()},
       uniform_buffer_{context_, sizeof(TextRenderInfo), num_frames_in_flight},
       pipeline_builder_{context_} {
   pipeline_builder_.SetVertexInput(
-      pipeline::GetBindingDescriptions(
-          {pipeline::GetPerVertexBinding<Vertex2D>()}),
+      pipeline::GetBindingDescriptions({
+          pipeline::GetPerVertexBinding<Vertex2D>(kVertexBufferBindingPoint)}),
       pipeline::GetAttributeDescriptions(
-          {pipeline::GetPerVertexAttribute<Vertex2D>()}));
+          kVertexBufferBindingPoint,
+          vertex_buffer_.GetAttributes(/*start_location=*/0)));
 }
 
 void Text::Update(const VkExtent2D& frame_size,
@@ -202,7 +206,8 @@ glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer, int frame,
 
   pipeline_->Bind(command_buffer);
   push_descriptors_[frame](command_buffer, pipeline_->layout(), text_index);
-  vertex_buffer_.Draw(command_buffer, /*mesh_index=*/0, /*instance_count=*/1);
+  vertex_buffer_.Draw(command_buffer, kVertexBufferBindingPoint,
+                      /*mesh_index=*/0, /*instance_count=*/1);
 
   return glm::vec2{offset_x, offset_x + width_in_frame};
 }
@@ -271,7 +276,8 @@ glm::vec2 DynamicText::Draw(
   pipeline_->Bind(command_buffer);
   descriptors_[frame]->Bind(command_buffer, pipeline_->layout());
   for (int i = 0; i < num_non_space_chars; ++i) {
-    vertex_buffer_.Draw(command_buffer, /*mesh_index=*/i, /*instance_count=*/1);
+    vertex_buffer_.Draw(command_buffer, kVertexBufferBindingPoint,
+                        /*mesh_index=*/i, /*instance_count=*/1);
   }
 
   return glm::vec2{initial_offset_x, final_offset_x};

@@ -27,6 +27,7 @@ constexpr int kColorAttachmentIndex = 0;
 constexpr int kImageBindingPoint = 0;
 constexpr int kNativeSubpassIndex = 0;
 constexpr int kSingleChannel = 1;
+constexpr uint32_t kVertexBufferBindingPoint = 0;
 
 // Returns the path to font file.
 string GetFontPath(CharLoader::Font font) {
@@ -128,16 +129,19 @@ std::unique_ptr<RenderPass> BuildRenderPass(
 // and the front face direction is clockwise, since we will flip Y coordinates.
 std::unique_ptr<PipelineBuilder> CreatePipelineBuilder(
     const SharedBasicContext& context,
+    const PerVertexBuffer& vertex_buffer,
     const VkDescriptorSetLayout& descriptor_layout,
     bool enable_color_blend) {
   auto pipeline_builder = absl::make_unique<PipelineBuilder>(context);
 
   (*pipeline_builder)
       .SetVertexInput(
-          pipeline::GetBindingDescriptions(
-              {pipeline::GetPerVertexBinding<Vertex2D>()}),
+          pipeline::GetBindingDescriptions({
+              pipeline::GetPerVertexBinding<Vertex2D>(
+                  kVertexBufferBindingPoint)}),
           pipeline::GetAttributeDescriptions(
-              {pipeline::GetPerVertexAttribute<Vertex2D>()}))
+              kVertexBufferBindingPoint,
+                  vertex_buffer.GetAttributes(/*start_location=*/0)))
       .SetPipelineLayout({descriptor_layout}, /*push_constant_ranges=*/{})
       .SetColorBlend({pipeline::GetColorBlendState(enable_color_blend)})
       .SetFrontFaceDirection(/*counter_clockwise=*/false);
@@ -217,8 +221,9 @@ CharLoader::CharLoader(SharedBasicContext context,
   const auto render_pass = BuildRenderPass(*char_lib_image_,
                                            render_pass_builder.get());
 
-  auto pipeline_builder = CreatePipelineBuilder(context_, descriptor->layout(),
-                                                /*enable_color_blend=*/false);
+  auto pipeline_builder =
+      CreatePipelineBuilder(context_, *vertex_buffer, descriptor->layout(),
+                            /*enable_color_blend=*/false);
   const auto pipeline = BuildPipeline(*char_lib_image_, **render_pass,
                                       pipeline_builder.get());
 
@@ -235,8 +240,8 @@ CharLoader::CharLoader(SharedBasicContext context,
                   kImageBindingPoint,
                   {char_image->GetDescriptorInfo()}},
               });
-          vertex_buffer->Draw(command_buffer, /*mesh_index=*/i,
-                              /*instance_count=*/1);
+          vertex_buffer->Draw(command_buffer, kVertexBufferBindingPoint,
+                              /*mesh_index=*/i, /*instance_count=*/1);
         }
       },
   };
@@ -343,7 +348,8 @@ std::unique_ptr<StaticPerVertexBuffer> CharLoader::CreateVertexBuffer(
           {vertices, /*num_units_per_mesh=*/text_util::kNumVerticesPerRect},
           /*shared_indices=*/
           {PerVertexBuffer::VertexDataInfo{text_util::GetIndicesPerRect()}},
-      }
+      },
+      pipeline::GetVertexAttribute<Vertex2D>()
   );
 }
 
@@ -356,15 +362,17 @@ TextLoader::TextLoader(SharedBasicContext context,
         return lhs.length() > rhs.length();
       });
   DynamicPerVertexBuffer vertex_buffer{
-    context_, text_util::GetVertexDataSize(longest_text->length())};
+      context_, text_util::GetVertexDataSize(longest_text->length()),
+      pipeline::GetVertexAttribute<Vertex2D>()};
 
   auto descriptor = absl::make_unique<StaticDescriptor>(
       context_, CreateDescriptorInfos());
   auto render_pass_builder = CreateRenderPassBuilder(context_);
   // Advance can be negative, and thus bounding boxes of characters may have
   // overlap, hence we need to enable color blending.
-  auto pipeline_builder = CreatePipelineBuilder(
-      context_, descriptor->layout(), /*enable_color_blend=*/true);
+  auto pipeline_builder =
+      CreatePipelineBuilder(context_, vertex_buffer, descriptor->layout(),
+                            /*enable_color_blend=*/true);
 
   const CharLoader char_loader{context_, texts, font, font_height};
   text_texture_infos_.reserve(texts.size());
@@ -430,8 +438,8 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
         pipeline->Bind(command_buffer);
         descriptor->Bind(command_buffer, pipeline->layout());
         for (int i = 0; i < text.length(); ++i) {
-          vertex_buffer->Draw(command_buffer, /*mesh_index=*/i,
-                              /*instance_count=*/1);
+          vertex_buffer->Draw(command_buffer, kVertexBufferBindingPoint,
+                              /*mesh_index=*/i, /*instance_count=*/1);
         }
       },
   };

@@ -10,6 +10,7 @@
 
 #include <vector>
 
+#include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -22,7 +23,7 @@ namespace pipeline {
 
 // Returns the color blend state that gives:
 //   C = Cs * As + Cd * (1. - As)
-//   A = As * 1. + Ad * (1. - As)
+//   A = 1. * As + Ad * (1. - As)
 // Where: C - color, A - alpha, s - source, d - destination.
 VkPipelineColorBlendAttachmentState GetColorBlendState(bool enable_blend);
 
@@ -40,10 +41,12 @@ struct VertexInputBinding {
 
 // Convenient function to return an instance of VertexInputBinding, assuming
 // each vertex will get data of DataType, which is updated per-vertex.
+// Note that the binding point is not a binding number in the shader, but the
+// vertex buffer binding point used in vkCmdBindVertexBuffers(),
 template <typename DataType>
-VertexInputBinding GetPerVertexBinding() {
+VertexInputBinding GetPerVertexBinding(uint32_t binding_point) {
   return VertexInputBinding{
-      kPerVertexBindingPoint,
+      binding_point,
       /*data_size=*/static_cast<uint32_t>(sizeof(DataType)),
       /*instancing=*/false,
   };
@@ -55,30 +58,18 @@ std::vector<VkVertexInputBindingDescription> GetBindingDescriptions(
 
 /* Vertex input attribute */
 
+// Convenient function to return a list of VertexBuffer::Attribute, assuming
+// each vertex will get data of DataType. For now this is only implemented for
+// Vertex2D, Vertex3DNoTex and Vertex3DWithTex.
+template <typename DataType>
+std::vector<VertexBuffer::Attribute> GetVertexAttribute();
+
 // Interprets the data bound to 'binding_point'.
 // Note that the binding point is not a binding number in the shader, but the
 // vertex buffer binding point used in vkCmdBindVertexBuffers(),
-struct VertexInputAttribute {
-  struct Attribute {
-    uint32_t location;
-    uint32_t offset;
-    VkFormat format;
-  };
-
-  uint32_t binding_point;
-  std::vector<Attribute> attributes;
-};
-
-// Convenient function to return an instance of VertexInputAttribute, assuming
-// each vertex will get data of DataType, which is updated per-vertex.
-// For now this is only implemented for Vertex2D, Vertex3DNoTex and
-// Vertex3DWithTex.
-template <typename DataType>
-VertexInputAttribute GetPerVertexAttribute();
-
-// Converts VertexInputAttribute to VkVertexInputAttributeDescription.
 std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(
-    const std::vector<VertexInputAttribute>& attributes);
+    uint32_t binding_point,
+    const std::vector<VertexBuffer::Attribute>& attributes);
 
 } /* namespace pipeline */
 } /* namespace vulkan */

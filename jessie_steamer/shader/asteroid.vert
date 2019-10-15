@@ -26,7 +26,7 @@ layout(location = 1) in vec3 in_norm;
 layout(location = 2) in vec2 in_tex_coord;
 layout(location = 3) in float theta;
 layout(location = 4) in float radius;
-layout(location = 5) in mat4 model;  // takes up 4 binding locations.
+layout(location = 5) in mat4 model;  // Takes up 4 binding locations.
 
 layout(location = 0) out vec3 norm;
 layout(location = 1) out vec2 tex_coord;
@@ -41,9 +41,9 @@ void main() {
                        vec4(sin_ea, 0.0,  cos_ea, 0.0),
                        vec4(              center, 1.0));
   vec4 pos_world = to_world * model * vec4(in_pos, 1.0);
-  // since the orientation of each asteroid changes per-frame, passing inversed
+  // Since the orientation of each asteroid changes per-frame, passing inversed
   // transposed model matrix to calculate normals in world space would be too
-  // expensive. this is an approximation of the real normal.
+  // expensive. We approximate the normal by pretending an asteroid as a sphere.
   norm = normalize(pos_world.xyz / pos_world.w - center);
   gl_Position = trans.proj_view * pos_world;
   tex_coord = in_tex_coord;

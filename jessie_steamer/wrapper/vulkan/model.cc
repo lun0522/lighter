@@ -22,6 +22,9 @@ using std::vector;
 
 using VertexInfo = PerVertexBuffer::NoShareIndicesDataInfo;
 
+constexpr uint32_t kPerVertexBufferBindingPoint = 0;
+constexpr uint32_t kPerInstanceBufferBindingPointBase = 1;
+
 // Visits variants of TextureSource and constructs a texture from 'source'.
 std::unique_ptr<SamplableImage> CreateTexture(
     const SharedBasicContext& context,
@@ -102,41 +105,39 @@ vector<VkPushConstantRange> CreatePushConstantRanges(
   return ranges;
 }
 
-// Extracts per-instance vertex buffer infos, updates 'pipeline_builder' with
-// vertex input bindings and attributes, and populates 'per_instance_buffers'.
-void ExtractPerInstanceBufferInfos(
-    const vector<ModelBuilder::PerInstanceBufferInfo>& infos,
-    PipelineBuilder* pipeline_builder,
-    vector<const PerInstanceBuffer*>* per_instance_buffers) {
-  per_instance_buffers->reserve(infos.size());
-
+// Updates 'pipeline_builder' with vertex input bindings and attributes,
+// assuming per-vertex data is of type Vertex3DWithTex.
+void SetPipelineVertexInput(
+    const PerVertexBuffer& per_vertex_buffer,
+    const vector<const PerInstanceBuffer*>& per_instance_buffers,
+    PipelineBuilder* pipeline_builder) {
   vector<pipeline::VertexInputBinding> bindings;
-  bindings.reserve(infos.size() + 1);
-  bindings.emplace_back(pipeline::GetPerVertexBinding<Vertex3DWithTex>());
+  bindings.reserve(per_instance_buffers.size() + 1);
+  bindings.emplace_back(pipeline::GetPerVertexBinding<Vertex3DWithTex>(
+      kPerVertexBufferBindingPoint));
 
-  vector<pipeline::VertexInputAttribute> attributes;
-  attributes.reserve(infos.size() + 1);
-  attributes.emplace_back(pipeline::GetPerVertexAttribute<Vertex3DWithTex>());
+  auto attribute_descs = pipeline::GetAttributeDescriptions(
+      kPerVertexBufferBindingPoint,
+      per_vertex_buffer.GetAttributes(/*start_location=*/0));
+  uint32_t attribute_start_location = attribute_descs.size();
 
-  for (int i = 0; i < infos.size(); ++i) {
-    const auto& info = infos[i];
-    ASSERT_NON_NULL(info.per_instance_buffer,
+  for (int i = 0; i < per_instance_buffers.size(); ++i) {
+    ASSERT_NON_NULL(per_instance_buffers[i],
                     "Per-instance vertex buffer not provided");
-    per_instance_buffers->emplace_back(info.per_instance_buffer);
     bindings.emplace_back(pipeline::VertexInputBinding{
-        kPerInstanceBindingPointBase + i,
-        info.per_instance_data_size,
+        kPerInstanceBufferBindingPointBase + i,
+        per_instance_buffers[i]->per_instance_data_size(),
         /*instancing=*/true,
     });
-    attributes.emplace_back(pipeline::VertexInputAttribute{
-        kPerInstanceBindingPointBase + i,
-        info.vertex_input_attributes,
-    });
+    auto per_instance_attrib_descs = pipeline::GetAttributeDescriptions(
+        kPerInstanceBufferBindingPointBase + i,
+        per_instance_buffers[i]->GetAttributes(attribute_start_location));
+    attribute_start_location += per_instance_attrib_descs.size();
+    common::util::VectorAppend(&attribute_descs, &per_instance_attrib_descs);
   }
 
-  pipeline_builder->SetVertexInput(
-      pipeline::GetBindingDescriptions(bindings),
-      pipeline::GetAttributeDescriptions(attributes));
+  pipeline_builder->SetVertexInput(pipeline::GetBindingDescriptions(bindings),
+                                   std::move(attribute_descs));
 }
 
 } /* namespace */
@@ -159,13 +160,15 @@ ModelBuilder::ModelBuilder(SharedBasicContext context,
 void ModelBuilder::LoadSingleMesh(const SingleMeshResource& resource) {
   // Load indices and vertices.
   const common::ObjFile file{resource.obj_path, resource.obj_file_index_base};
+  VertexInfo vertex_info{
+      /*per_mesh_infos=*/{{
+          PerVertexBuffer::VertexDataInfo{file.indices},
+          PerVertexBuffer::VertexDataInfo{file.vertices},
+      }},
+  };
   vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
-      context_, VertexInfo{
-          /*per_mesh_infos=*/{{
-              PerVertexBuffer::VertexDataInfo{file.indices},
-              PerVertexBuffer::VertexDataInfo{file.vertices},
-          }},
-      });
+      context_, std::move(vertex_info),
+      pipeline::GetVertexAttribute<Vertex3DWithTex>());
 
   // Load textures.
   mesh_textures_.emplace_back();
@@ -191,8 +194,8 @@ void ModelBuilder::LoadMultiMesh(const MultiMeshResource& resource) {
         PerVertexBuffer::VertexDataInfo{mesh_data.vertices},
     });
   }
-  vertex_buffer_ =
-      absl::make_unique<StaticPerVertexBuffer>(context_, vertex_info);
+  vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
+      context_, vertex_info, pipeline::GetVertexAttribute<Vertex3DWithTex>());
 
   // Load textures.
   mesh_textures_.reserve(loader.mesh_datas().size());
@@ -219,8 +222,9 @@ ModelBuilder& ModelBuilder::AddTextureBindingPoint(TextureType type,
   return *this;
 }
 
-ModelBuilder& ModelBuilder::AddPerInstanceBuffer(PerInstanceBufferInfo&& info) {
-  per_instance_buffer_infos_.emplace_back(std::move(info));
+ModelBuilder& ModelBuilder::AddPerInstanceBuffer(
+    const PerInstanceBuffer* buffer) {
+  per_instance_buffers_.emplace_back(buffer);
   return *this;
 }
 
@@ -313,18 +317,15 @@ std::unique_ptr<Model> ModelBuilder::Build() {
       push_constant_infos_.has_value()
           ? CreatePushConstantRanges(push_constant_infos_.value())
           : vector<VkPushConstantRange>{});
+  SetPipelineVertexInput(*vertex_buffer_, per_instance_buffers_,
+                         pipeline_builder.get());
 
-  vector<const PerInstanceBuffer*> per_instance_buffers;
-  ExtractPerInstanceBufferInfos(per_instance_buffer_infos_,
-                                pipeline_builder.get(), &per_instance_buffers);
-
-  per_instance_buffer_infos_.clear();
   uniform_descriptor_infos_.clear();
   uniform_buffer_info_maps_.clear();
 
   return std::unique_ptr<Model>{new Model{
       context_, std::move(shader_infos_), std::move(vertex_buffer_),
-      std::move(per_instance_buffers), std::move(push_constant_infos_),
+      std::move(per_instance_buffers_), std::move(push_constant_infos_),
       std::move(shared_textures_), std::move(mesh_textures_),
       std::move(descriptors), std::move(pipeline_builder)}};
 }
@@ -367,7 +368,7 @@ void Model::Draw(const VkCommandBuffer& command_buffer,
   pipeline_->Bind(command_buffer);
   for (int i = 0; i < per_instance_buffers_.size(); ++i) {
     per_instance_buffers_[i]->Bind(command_buffer,
-                                   kPerInstanceBindingPointBase + i);
+                                   kPerInstanceBufferBindingPointBase + i);
   }
   if (push_constant_info_.has_value()) {
     for (const auto& info : push_constant_info_.value().infos) {
@@ -378,7 +379,8 @@ void Model::Draw(const VkCommandBuffer& command_buffer,
   }
   for (int mesh_index = 0; mesh_index < mesh_textures_.size(); ++mesh_index) {
     descriptors_[frame][mesh_index]->Bind(command_buffer, pipeline_->layout());
-    vertex_buffer_->Draw(command_buffer, mesh_index, instance_count);
+    vertex_buffer_->Draw(command_buffer, kPerVertexBufferBindingPoint,
+                         mesh_index, instance_count);
   }
 }
 

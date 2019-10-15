@@ -151,9 +151,6 @@ inline VkBool32 ToVkBool(bool value) { return value ? VK_TRUE : VK_FALSE; }
 
 constexpr uint32_t nullflag = 0;
 
-constexpr uint32_t kPerVertexBindingPoint = 0;
-constexpr uint32_t kPerInstanceBindingPointBase = 1;
-
 constexpr int kCubemapImageCount = 6;
 
 constexpr uint32_t kSingleMipLevel = 1;

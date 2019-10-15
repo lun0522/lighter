@@ -98,7 +98,6 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
   using WindowKey = common::Window::KeyMap;
   using ControlKey = common::UserControlledCamera::ControlKey;
   using TextureType = ModelBuilder::TextureType;
-  using VertexAttribute = pipeline::VertexInputAttribute::Attribute;
 
   /* Camera */
   common::Camera::Config config;
@@ -178,18 +177,6 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
           .Build();
 
   GenAsteroidModels();
-  vector<VertexAttribute> per_instance_attribs{
-      {/*location=*/3, offsetof(Asteroid, theta), VK_FORMAT_R32_SFLOAT},
-      {/*location=*/4, offsetof(Asteroid, radius), VK_FORMAT_R32_SFLOAT},
-  };
-  per_instance_attribs.reserve(6);
-  uint32_t attrib_offset = offsetof(Asteroid, model);
-  // The mat4 will be bound as 4 vec4.
-  for (uint32_t location = 5; location <= 8; ++location) {
-    per_instance_attribs.emplace_back(VertexAttribute{
-        location, attrib_offset, VK_FORMAT_R32G32B32A32_SFLOAT});
-    attrib_offset += sizeof(glm::vec4);
-  }
   asteroid_model_ =
       ModelBuilder{
           context(), kNumFramesInFlight,
@@ -198,9 +185,7 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
               GetResourcePath("model/rock"),
           }}
           .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/2)
-          .AddPerInstanceBuffer({std::move(per_instance_attribs),
-                                 static_cast<uint32_t>(sizeof(Asteroid)),
-                                 per_asteroid_data_.get()})
+          .AddPerInstanceBuffer(per_asteroid_data_.get())
           .AddUniformBinding(
               VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
               /*bindings=*/{{/*binding_point=*/1, /*array_length=*/1}})
@@ -314,8 +299,21 @@ void PlanetApp::GenAsteroidModels() {
     }
   }
 
+  // 'location' will be overwritten, so we don't set the value.
+  vector<VertexBuffer::Attribute> per_instance_attribs{
+      {/*location=*/0, offsetof(Asteroid, theta), VK_FORMAT_R32_SFLOAT},
+      {/*location=*/0, offsetof(Asteroid, radius), VK_FORMAT_R32_SFLOAT},
+  };
+  per_instance_attribs.reserve(6);
+  uint32_t attrib_offset = offsetof(Asteroid, model);
+  // The mat4 will be bound as 4 vec4.
+  for (int i = 0; i < 4; ++i) {
+    per_instance_attribs.emplace_back(VertexBuffer::Attribute{
+        /*location=*/0, attrib_offset, VK_FORMAT_R32G32B32A32_SFLOAT});
+    attrib_offset += sizeof(glm::vec4);
+  }
   per_asteroid_data_ = absl::make_unique<PerInstanceBuffer>(
-      context(), asteroids.data(), sizeof(Asteroid) * asteroids.size());
+      context(), asteroids, std::move(per_instance_attribs));
 }
 
 void PlanetApp::UpdateData(int frame) {

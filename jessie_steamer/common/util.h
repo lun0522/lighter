@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <functional>
 #include <iostream>
+#include <iterator>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
@@ -104,6 +105,15 @@ void RemoveDuplicate(std::vector<ContentType>* container) {
     const auto new_end = std::unique(container->begin(), container->end());
     container->resize(std::distance(container->begin(), new_end));
   }
+}
+
+// Moves all elements of 'src' to the end of 'dst'.
+template <typename ContentType>
+void VectorAppend(std::vector<ContentType>* dst,
+                  std::vector<ContentType>* src) {
+  dst->reserve(src->size() + dst->size());
+  std::move(src->begin(), src->end(), std::back_inserter(*dst));
+  src->clear();
 }
 
 // Helper class to enable using an enum class as the key of a hash table:

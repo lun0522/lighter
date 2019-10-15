@@ -78,15 +78,6 @@ class ModelBuilder {
   };
   using ModelResource = absl::variant<SingleMeshResource, MultiMeshResource>;
 
-  // TODO: Put these info in PerInstanceBuffer.
-  // Contains information for instancing.
-  struct PerInstanceBufferInfo {
-    std::vector<pipeline::VertexInputAttribute::Attribute>
-        vertex_input_attributes;
-    uint32_t per_instance_data_size;
-    const PerInstanceBuffer* per_instance_buffer;
-  };
-
   // Contains information for pushing constants. We assume that in each frame,
   // for each PushConstant, PushConstant::size_per_frame() bytes will be sent to
   // the device, written with 'target_offset' bytes, and used in 'shader_stage'.
@@ -128,7 +119,10 @@ class ModelBuilder {
 
   // Adds a per-instance vertex buffer.
   // The user is responsible for keeping the existence of the buffer.
-  ModelBuilder& AddPerInstanceBuffer(PerInstanceBufferInfo&& info);
+  // Note that this class assumes the per-vertex data type is Vertex3DWithTex,
+  // hence vertex attributes of user-provided per-instance buffers will be bound
+  // to locations starting from 3.
+  ModelBuilder& AddPerInstanceBuffer(const PerInstanceBuffer* buffer);
 
   // Declares how many uniform data should be expected at each binding point.
   ModelBuilder& AddUniformBinding(
@@ -184,8 +178,8 @@ class ModelBuilder {
   // Maps each texture type to its binding point.
   BindingPointMap texture_binding_map_;
 
-  // Describes the usage of per-instance vertex buffers.
-  std::vector<PerInstanceBufferInfo> per_instance_buffer_infos_;
+  // Per-instance vertex buffers.
+  std::vector<const PerInstanceBuffer*> per_instance_buffers_;
 
   // Declares uniform data used in shaders.
   std::vector<Descriptor::Info> uniform_descriptor_infos_;

@@ -8,9 +8,11 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_BUFFER_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_BUFFER_H
 
+#include <functional>
 #include <vector>
 
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
+#include "jessie_steamer/wrapper/vulkan/util.h"
 #include "third_party/absl/types/variant.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -85,23 +87,39 @@ class DataBuffer : public Buffer {
 // functions. The user should use it through derived classes.
 class VertexBuffer : public DataBuffer {
  public:
+  // Vertex input attribute.
+  struct Attribute {
+    uint32_t location;
+    uint32_t offset;
+    VkFormat format;
+  };
+
   // This class is neither copyable nor movable.
   VertexBuffer(const VertexBuffer&) = delete;
   VertexBuffer& operator=(const VertexBuffer&) = delete;
 
   ~VertexBuffer() override = default;
 
+  // Returns attributes of the vertex data stored in this buffer.
+  // The 'location' field of attributes will start from 'start_location'.
+  std::vector<Attribute> GetAttributes(uint32_t start_location) const;
+
  protected:
-  // Inherits constructor.
-  using DataBuffer::DataBuffer;
+  // The 'location' field of each attribute can be filled any value, since they
+  // will be overwritten when GetAttributes() is called.
+  VertexBuffer(SharedBasicContext context, std::vector<Attribute>&& attributes)
+      : DataBuffer{std::move(context)}, attributes_{std::move(attributes)} {}
 
   // Initializes 'device_memory_' and 'buffer_'.
-  // For more efficient memory usage, indices and vertices data are put in the
+  // For more efficient memory access, indices and vertices data are put in the
   // same buffer, hence only total size is needed.
   // If 'is_dynamic' is true, the buffer will be visible to the host, which can
   // be used for dynamic text rendering. Otherwise, the buffer will be only
   // visible to the device, and we will use staging buffers to transfer data.
   void CreateBufferAndMemory(VkDeviceSize total_size, bool is_dynamic);
+
+  // Attributes of the vertex data stored in this buffer.
+  std::vector<Attribute> attributes_;
 };
 
 // This is the base class of buffers storing per-vertex data. The user should
@@ -187,7 +205,7 @@ class PerVertexBuffer : public VertexBuffer {
   PerVertexBuffer& operator=(const PerVertexBuffer&) = delete;
 
   // Renders one mesh with 'mesh_index' for 'instance_count' times.
-  void Draw(const VkCommandBuffer& command_buffer,
+  void Draw(const VkCommandBuffer& command_buffer, uint32_t binding_point,
             int mesh_index, uint32_t instance_count) const;
 
  protected:
@@ -207,7 +225,8 @@ class PerVertexBuffer : public VertexBuffer {
 // transferred to the device via the staging buffer.
 class StaticPerVertexBuffer : public PerVertexBuffer {
  public:
-  StaticPerVertexBuffer(SharedBasicContext context, const BufferDataInfo& info);
+  StaticPerVertexBuffer(SharedBasicContext context, const BufferDataInfo& info,
+                        std::vector<Attribute>&& attributes);
 
   // This class is neither copyable nor movable.
   StaticPerVertexBuffer(const StaticPerVertexBuffer&) = delete;
@@ -225,8 +244,9 @@ class StaticPerVertexBuffer : public PerVertexBuffer {
 class DynamicPerVertexBuffer : public PerVertexBuffer {
  public:
   // 'initial_size' should be greater than 0.
-  DynamicPerVertexBuffer(SharedBasicContext context, int initial_size)
-      : PerVertexBuffer(std::move(context)) {
+  DynamicPerVertexBuffer(SharedBasicContext context, int initial_size,
+                         std::vector<Attribute>&& attributes)
+      : PerVertexBuffer{std::move(context), std::move(attributes)} {
     Reserve(initial_size);
   }
 
@@ -253,8 +273,16 @@ class DynamicPerVertexBuffer : public PerVertexBuffer {
 // Data will be copied to device via the staging buffer.
 class PerInstanceBuffer : public VertexBuffer {
  public:
-  PerInstanceBuffer(SharedBasicContext context,
-                    const void* data, size_t data_size);
+  PerInstanceBuffer(SharedBasicContext context, const void* data,
+                    uint32_t per_instance_data_size, uint32_t num_instances,
+                    std::vector<Attribute>&& attributes);
+
+  template <typename Container>
+  PerInstanceBuffer(SharedBasicContext context, const Container& container,
+                    std::vector<Attribute>&& attributes)
+      : PerInstanceBuffer{std::move(context), container.data(),
+                          sizeof(container[0]), CONTAINER_SIZE(container),
+                          std::move(attributes)} {}
 
   // This class is neither copyable nor movable.
   PerInstanceBuffer(const PerInstanceBuffer&) = delete;
@@ -263,6 +291,13 @@ class PerInstanceBuffer : public VertexBuffer {
   // Binds vertex data to the given 'binding_point'.
   void Bind(const VkCommandBuffer& command_buffer,
             uint32_t binding_point) const;
+
+  // Accessors.
+  uint32_t per_instance_data_size() const { return per_instance_data_size_; }
+
+ private:
+  // Per-instance data size.
+  const uint32_t per_instance_data_size_;
 };
 
 // Holds uniform buffer data on both the host and device. To make it more

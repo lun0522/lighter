@@ -21,6 +21,7 @@ using namespace wrapper::vulkan;
 using std::vector;
 
 constexpr int kNumFramesInFlight = 2;
+constexpr uint32_t kVertexBufferBindingPoint = 0;
 
 enum SubpassIndex {
   kTriangleSubpassIndex = 0,
@@ -81,8 +82,9 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   const PerVertexBuffer::NoIndicesDataInfo vertex_data_info{
       /*per_mesh_infos=*/{{PerVertexBuffer::VertexDataInfo{vertex_data}}}
   };
-  vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(context(),
-                                                            vertex_data_info);
+  vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
+      context(), vertex_data_info,
+      pipeline::GetVertexAttribute<Vertex3DNoTex>());
 
   /* Push constant */
   push_constant_ = absl::make_unique<PushConstant>(context(), sizeof(Alpha),
@@ -101,15 +103,15 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
 
   /* Pipeline */
   const vector<pipeline::VertexInputBinding> bindings{
-      pipeline::GetPerVertexBinding<Vertex3DNoTex>()};
-  const vector<pipeline::VertexInputAttribute> attributes{
-      pipeline::GetPerVertexAttribute<Vertex3DNoTex>()};
+      pipeline::GetPerVertexBinding<Vertex3DNoTex>(kVertexBufferBindingPoint)};
   pipeline_builder_ = absl::make_unique<PipelineBuilder>(context());
   (*pipeline_builder_)
       // TODO: No need to do depth test.
       .SetDepthTestEnabled(/*enable_test=*/true)
       .SetVertexInput(pipeline::GetBindingDescriptions(bindings),
-                      pipeline::GetAttributeDescriptions(attributes))
+                      pipeline::GetAttributeDescriptions(
+                          kVertexBufferBindingPoint,
+                          vertex_buffer_->GetAttributes(/*start_location=*/0)))
       .SetPipelineLayout(/*descriptor_layouts=*/{}, {push_constant_range});
 }
 
@@ -190,8 +192,8 @@ void TriangleApp::MainLoop() {
           push_constant_->Flush(command_buffer, pipeline_->layout(),
                                 current_frame_, /*target_offset=*/0,
                                 VK_SHADER_STAGE_FRAGMENT_BIT);
-          vertex_buffer_->Draw(command_buffer, /*mesh_index=*/0,
-                               /*instance_count=*/1);
+          vertex_buffer_->Draw(command_buffer, kVertexBufferBindingPoint,
+                               /*mesh_index=*/0, /*instance_count=*/1);
         },
     };
     const auto draw_result = command_->Run(

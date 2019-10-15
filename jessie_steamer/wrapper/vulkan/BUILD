@@ -148,6 +148,7 @@ cc_library(
     ],
     deps = [
         ":basics",
+        ":buffer",
         ":util",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:util",
