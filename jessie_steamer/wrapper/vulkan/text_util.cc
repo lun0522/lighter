@@ -135,13 +135,9 @@ std::unique_ptr<PipelineBuilder> CreatePipelineBuilder(
   auto pipeline_builder = absl::make_unique<PipelineBuilder>(context);
 
   (*pipeline_builder)
-      .SetVertexInput(
-          pipeline::GetBindingDescriptions({
-              pipeline::GetPerVertexBinding<Vertex2D>(
-                  kVertexBufferBindingPoint)}),
-          pipeline::GetAttributeDescriptions(
-              kVertexBufferBindingPoint,
-                  vertex_buffer.GetAttributes(/*start_location=*/0)))
+      .AddVertexInput(kVertexBufferBindingPoint,
+                      pipeline::GetPerVertexBindingDescription<Vertex2D>(),
+                      vertex_buffer.GetAttributes(/*start_location=*/0))
       .SetPipelineLayout({descriptor_layout}, /*push_constant_ranges=*/{})
       .SetColorBlend({pipeline::GetColorBlendState(enable_color_blend)})
       .SetFrontFaceDirection(/*counter_clockwise=*/false);

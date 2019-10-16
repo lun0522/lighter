@@ -160,7 +160,7 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
         (const VkQueueFamilyProperties& family) mutable {
       VkBool32 support = VK_FALSE;
       vkGetPhysicalDeviceSurfaceSupportKHR(
-          physical_device, index++, window_support.value().surface, &support);
+          physical_device, index++, window_support->surface, &support);
       return support;
     };
     const auto present_queue_index =
@@ -198,8 +198,8 @@ Instance::Instance(const BasicContext* context,
   if (window_support.has_value()) {
     instance_extensions.insert(
         instance_extensions.end(),
-        window_support.value().window_extensions.begin(),
-        window_support.value().window_extensions.end()
+        window_support->window_extensions.begin(),
+        window_support->window_extensions.end()
     );
   }
 #ifndef NDEBUG
@@ -255,7 +255,7 @@ Instance::Instance(const BasicContext* context,
 
   // Create surface if the window support is requested.
   if (window_support.has_value()) {
-    window_support.value().create_surface(context_);
+    window_support->create_surface(context_);
   }
 }
 
@@ -315,8 +315,8 @@ Device::Device(const BasicContext* context,
   if (window_support.has_value()) {
     device_extensions.insert(
         device_extensions.end(),
-        window_support.value().swapchain_extensions.begin(),
-        window_support.value().swapchain_extensions.end());
+        window_support->swapchain_extensions.begin(),
+        window_support->swapchain_extensions.end());
   }
 
   // Specify which queue we want to use.

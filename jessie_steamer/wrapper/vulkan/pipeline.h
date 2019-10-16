@@ -10,7 +10,6 @@
 
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
@@ -30,10 +29,17 @@ class Pipeline;
 class PipelineBuilder {
  public:
   // TODO: Similar to texture image, make a shader file pool.
-  using ShaderModule = std::pair</*shader_stage*/VkShaderStageFlagBits,
-                                 /*shader_module*/VkShaderModule>;
+  // Contains a loaded shader.
+  struct ShaderInfo {
+    VkShaderStageFlagBits stage;
+    VkShaderModule module;
+  };
 
-  using ViewportInfo = std::pair</*viewport*/VkViewport, /*scissor*/VkRect2D>;
+  // Describes a viewport transformation.
+  struct ViewportInfo {
+    VkViewport viewport;
+    VkRect2D scissor;
+  };
 
   // Internal states will be filled with default settings, unless they are of
   // absl::optional or std::vector types.
@@ -50,10 +56,14 @@ class PipelineBuilder {
   PipelineBuilder& SetFrontFaceDirection(bool counter_clockwise);
   PipelineBuilder& SetMultisampling(VkSampleCountFlagBits sample_count);
 
-  // Sets vertex input bindings and attributes. The user may use helper
-  // functions in pipeline_util to construct input arguments.
-  PipelineBuilder& SetVertexInput(
-      std::vector<VkVertexInputBindingDescription>&& binding_descriptions,
+  // Adds descriptions for the vertex data bound to 'binding_point'.
+  // The user does not need to set the 'binding' field of 'binding_description'
+  // and 'attribute_descriptions', since it will be assigned by this function.
+  // Note that 'binding_point' is not a binding number in the shader, but the
+  // vertex buffer binding point used in vkCmdBindVertexBuffers().
+  PipelineBuilder& AddVertexInput(
+      uint32_t binding_point,
+      VkVertexInputBindingDescription&& binding_description,
       std::vector<VkVertexInputAttributeDescription>&& attribute_descriptions);
 
   // Sets descriptor set layouts and push constant ranges used in this pipeline.
@@ -88,8 +98,11 @@ class PipelineBuilder {
   std::unique_ptr<Pipeline> Build();
 
  private:
-  using RenderPassInfo = std::pair</*render_pass*/VkRenderPass,
-                                   /*subpass_index*/uint32_t>;
+  // Refers to a subpass within a render pass.
+  struct RenderPassInfo {
+    VkRenderPass render_pass;
+    uint32_t subpass_index;
+  };
 
   // Pointer to context.
   const SharedBasicContext context_;
@@ -111,7 +124,6 @@ class PipelineBuilder {
   VkPipelineDynamicStateCreateInfo dynamic_state_info_;
 
   // Configures vertex input bindings and attributes.
-  absl::optional<VkPipelineVertexInputStateCreateInfo> vertex_input_info_;
   std::vector<VkVertexInputBindingDescription> binding_descriptions_;
   std::vector<VkVertexInputAttributeDescription> attribute_descriptions_;
 
@@ -130,7 +142,7 @@ class PipelineBuilder {
   std::vector<VkPipelineColorBlendAttachmentState> color_blend_states_;
 
   // Shaders used in the pipeline. This will be cleared after Build() is called.
-  std::vector<ShaderModule> shader_modules_;
+  std::vector<ShaderInfo> shader_infos_;
 };
 
 // VkPipeline configures multiple shader stages, multiple fixed function stages

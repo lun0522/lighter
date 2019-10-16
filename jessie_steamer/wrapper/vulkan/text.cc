@@ -88,12 +88,10 @@ Text::Text(SharedBasicContext context, int num_frames_in_flight)
                      pipeline::GetVertexAttribute<Vertex2D>()},
       uniform_buffer_{context_, sizeof(TextRenderInfo), num_frames_in_flight},
       pipeline_builder_{context_} {
-  pipeline_builder_.SetVertexInput(
-      pipeline::GetBindingDescriptions({
-          pipeline::GetPerVertexBinding<Vertex2D>(kVertexBufferBindingPoint)}),
-      pipeline::GetAttributeDescriptions(
-          kVertexBufferBindingPoint,
-          vertex_buffer_.GetAttributes(/*start_location=*/0)));
+  pipeline_builder_.AddVertexInput(
+      kVertexBufferBindingPoint,
+      pipeline::GetPerVertexBindingDescription<Vertex2D>(),
+      vertex_buffer_.GetAttributes(/*start_location=*/0));
 }
 
 void Text::Update(const VkExtent2D& frame_size,

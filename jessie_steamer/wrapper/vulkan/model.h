@@ -12,7 +12,6 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "jessie_steamer/common/model_loader.h"
@@ -94,9 +93,11 @@ class ModelBuilder {
   // Each element is the descriptor used by the mesh at the same index.
   using DescriptorsPerFrame = std::vector<std::unique_ptr<StaticDescriptor>>;
 
-  // Specifies a shader resource.
-  using ShaderInfo = std::pair</*shader_stage*/VkShaderStageFlagBits,
-                               /*file_path*/std::string>;
+  // Specifies a shader resource on the disk.
+  struct ShaderInfo {
+    VkShaderStageFlagBits shader_stage;
+    std::string file_path;
+  };
 
   // If any offscreen images are used in 'resource', the user is responsible for
   // keeping the existence of them.

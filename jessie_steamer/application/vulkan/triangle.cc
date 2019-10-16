@@ -102,16 +102,13 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
       /*present_to_screen=*/true, window_context_.multisampling_mode());
 
   /* Pipeline */
-  const vector<pipeline::VertexInputBinding> bindings{
-      pipeline::GetPerVertexBinding<Vertex3DNoTex>(kVertexBufferBindingPoint)};
   pipeline_builder_ = absl::make_unique<PipelineBuilder>(context());
   (*pipeline_builder_)
       // TODO: No need to do depth test.
       .SetDepthTestEnabled(/*enable_test=*/true)
-      .SetVertexInput(pipeline::GetBindingDescriptions(bindings),
-                      pipeline::GetAttributeDescriptions(
-                          kVertexBufferBindingPoint,
-                          vertex_buffer_->GetAttributes(/*start_location=*/0)))
+      .AddVertexInput(kVertexBufferBindingPoint,
+                      pipeline::GetPerVertexBindingDescription<Vertex3DNoTex>(),
+                      vertex_buffer_->GetAttributes(/*start_location=*/0))
       .SetPipelineLayout(/*descriptor_layouts=*/{}, {push_constant_range});
 }
 

@@ -299,17 +299,16 @@ void PlanetApp::GenAsteroidModels() {
     }
   }
 
-  // 'location' will be overwritten, so we don't set the value.
   vector<VertexBuffer::Attribute> per_instance_attribs{
-      {/*location=*/0, offsetof(Asteroid, theta), VK_FORMAT_R32_SFLOAT},
-      {/*location=*/0, offsetof(Asteroid, radius), VK_FORMAT_R32_SFLOAT},
+      {offsetof(Asteroid, theta), VK_FORMAT_R32_SFLOAT},
+      {offsetof(Asteroid, radius), VK_FORMAT_R32_SFLOAT},
   };
   per_instance_attribs.reserve(6);
   uint32_t attrib_offset = offsetof(Asteroid, model);
   // The mat4 will be bound as 4 vec4.
   for (int i = 0; i < 4; ++i) {
-    per_instance_attribs.emplace_back(VertexBuffer::Attribute{
-        /*location=*/0, attrib_offset, VK_FORMAT_R32G32B32A32_SFLOAT});
+    per_instance_attribs.emplace_back(
+        VertexBuffer::Attribute{attrib_offset, VK_FORMAT_R32G32B32A32_SFLOAT});
     attrib_offset += sizeof(glm::vec4);
   }
   per_asteroid_data_ = absl::make_unique<PerInstanceBuffer>(

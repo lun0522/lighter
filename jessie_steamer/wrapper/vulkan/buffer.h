@@ -8,7 +8,6 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_BUFFER_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_BUFFER_H
 
-#include <functional>
 #include <vector>
 
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
@@ -89,7 +88,6 @@ class VertexBuffer : public DataBuffer {
  public:
   // Vertex input attribute.
   struct Attribute {
-    uint32_t location;
     uint32_t offset;
     VkFormat format;
   };
@@ -102,11 +100,11 @@ class VertexBuffer : public DataBuffer {
 
   // Returns attributes of the vertex data stored in this buffer.
   // The 'location' field of attributes will start from 'start_location'.
-  std::vector<Attribute> GetAttributes(uint32_t start_location) const;
+  // For flexibility, the 'binding' field will not be set.
+  std::vector<VkVertexInputAttributeDescription>
+  GetAttributes(uint32_t start_location) const;
 
  protected:
-  // The 'location' field of each attribute can be filled any value, since they
-  // will be overwritten when GetAttributes() is called.
   VertexBuffer(SharedBasicContext context, std::vector<Attribute>&& attributes)
       : DataBuffer{std::move(context)}, attributes_{std::move(attributes)} {}
 
@@ -119,7 +117,7 @@ class VertexBuffer : public DataBuffer {
   void CreateBufferAndMemory(VkDeviceSize total_size, bool is_dynamic);
 
   // Attributes of the vertex data stored in this buffer.
-  std::vector<Attribute> attributes_;
+  const std::vector<Attribute> attributes_;
 };
 
 // This is the base class of buffers storing per-vertex data. The user should

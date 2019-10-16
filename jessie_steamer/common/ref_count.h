@@ -10,7 +10,6 @@
 
 #include <memory>
 #include <string>
-#include <utility>
 
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/memory/memory.h"
@@ -32,14 +31,15 @@ class RefCountedObject {
     auto found = ref_count_map_.find(identifier);
     if (found == ref_count_map_.end()) {
       auto inserted = ref_count_map_.emplace(
-          identifier,
-          std::make_pair(absl::make_unique<ObjectType>(
-              std::forward<Args>(args)...), 0));
+          identifier, ObjectWithCounter{
+              absl::make_unique<ObjectType>(std::forward<Args>(args)...),
+              /*ref_count=*/0,
+          });
       found = inserted.first;
     }
-    auto& counter = found->second;
-    ++counter.second;
-    return RefCountedObject{identifier, counter.first.get()};
+    auto& ref_counted_object = found->second;
+    ++ref_counted_object.ref_count;
+    return RefCountedObject{identifier, ref_counted_object.object.get()};
   }
 
   // This class is only movable.
@@ -60,7 +60,7 @@ class RefCountedObject {
       return;
     }
     auto found = ref_count_map_.find(identifier_);
-    if (--found->second.second == 0) {
+    if (--found->second.ref_count == 0) {
       ref_count_map_.erase(found);
     }
   }
@@ -77,9 +77,11 @@ class RefCountedObject {
   // the identifier, and the value is a pair of the actual object and its
   // reference count. The object will be erased from the pool if it no longer
   // has any holder.
-  using ObjectAndCount = std::pair</*object_ptr*/std::unique_ptr<ObjectType>,
-                                   /*ref_count*/int>;
-  static absl::flat_hash_map<std::string, ObjectAndCount> ref_count_map_;
+  struct ObjectWithCounter {
+    std::unique_ptr<ObjectType> object;
+    int ref_count;
+  };
+  static absl::flat_hash_map<std::string, ObjectWithCounter> ref_count_map_;
 
   // Identifier of the object.
   std::string identifier_;
@@ -90,7 +92,7 @@ class RefCountedObject {
 
 template <typename ObjectType>
 absl::flat_hash_map<std::string,
-                    typename RefCountedObject<ObjectType>::ObjectAndCount>
+                    typename RefCountedObject<ObjectType>::ObjectWithCounter>
     RefCountedObject<ObjectType>::ref_count_map_{};
 
 } /* namespace common */

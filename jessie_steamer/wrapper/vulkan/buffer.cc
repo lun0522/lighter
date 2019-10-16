@@ -600,13 +600,19 @@ void GenerateMipmaps(const SharedBasicContext& context,
 
 } /* namespace */
 
-vector<VertexBuffer::Attribute> VertexBuffer::GetAttributes(
+vector<VkVertexInputAttributeDescription> VertexBuffer::GetAttributes(
     uint32_t start_location) const {
-  auto mutable_attributes = attributes_;
-  for (auto& attribute : mutable_attributes) {
-    attribute.location = start_location++;
+  vector<VkVertexInputAttributeDescription> descriptions;
+  descriptions.reserve(attributes_.size());
+  for (const auto& attribute : attributes_) {
+    descriptions.emplace_back(VkVertexInputAttributeDescription{
+        start_location++,
+        /*binding=*/0,  // To be updated.
+        attribute.format,
+        attribute.offset,
+    });
   }
-  return mutable_attributes;
+  return descriptions;
 }
 
 void VertexBuffer::CreateBufferAndMemory(VkDeviceSize total_size,

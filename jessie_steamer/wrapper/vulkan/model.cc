@@ -111,33 +111,29 @@ void SetPipelineVertexInput(
     const PerVertexBuffer& per_vertex_buffer,
     const vector<const PerInstanceBuffer*>& per_instance_buffers,
     PipelineBuilder* pipeline_builder) {
-  vector<pipeline::VertexInputBinding> bindings;
-  bindings.reserve(per_instance_buffers.size() + 1);
-  bindings.emplace_back(pipeline::GetPerVertexBinding<Vertex3DWithTex>(
-      kPerVertexBufferBindingPoint));
+  uint32_t attribute_start_location = 0;
 
-  auto attribute_descs = pipeline::GetAttributeDescriptions(
+  auto per_vertex_attributes =
+      per_vertex_buffer.GetAttributes(attribute_start_location);
+  attribute_start_location += per_vertex_attributes.size();
+  pipeline_builder->AddVertexInput(
       kPerVertexBufferBindingPoint,
-      per_vertex_buffer.GetAttributes(/*start_location=*/0));
-  uint32_t attribute_start_location = attribute_descs.size();
+      pipeline::GetPerVertexBindingDescription<Vertex3DWithTex>(),
+      std::move(per_vertex_attributes));
 
   for (int i = 0; i < per_instance_buffers.size(); ++i) {
     ASSERT_NON_NULL(per_instance_buffers[i],
                     "Per-instance vertex buffer not provided");
-    bindings.emplace_back(pipeline::VertexInputBinding{
+    auto per_instance_binding = pipeline::GetBindingDescription(
+        /*stride=*/per_instance_buffers[i]->per_instance_data_size(),
+        /*instancing=*/true);
+    auto per_instance_attributes =
+        per_instance_buffers[i]->GetAttributes(attribute_start_location);
+    attribute_start_location += per_instance_attributes.size();
+    pipeline_builder->AddVertexInput(
         kPerInstanceBufferBindingPointBase + i,
-        per_instance_buffers[i]->per_instance_data_size(),
-        /*instancing=*/true,
-    });
-    auto per_instance_attrib_descs = pipeline::GetAttributeDescriptions(
-        kPerInstanceBufferBindingPointBase + i,
-        per_instance_buffers[i]->GetAttributes(attribute_start_location));
-    attribute_start_location += per_instance_attrib_descs.size();
-    common::util::VectorAppend(&attribute_descs, &per_instance_attrib_descs);
+        std::move(per_instance_binding), std::move(per_instance_attributes));
   }
-
-  pipeline_builder->SetVertexInput(pipeline::GetBindingDescriptions(bindings),
-                                   std::move(attribute_descs));
 }
 
 } /* namespace */
@@ -253,7 +249,7 @@ ModelBuilder& ModelBuilder::SetPushConstantShaderStage(
   if (!push_constant_infos_.has_value()) {
     push_constant_infos_.emplace();
   }
-  push_constant_infos_.value().shader_stage = shader_stage;
+  push_constant_infos_->shader_stage = shader_stage;
   return *this;
 }
 
@@ -262,14 +258,14 @@ ModelBuilder& ModelBuilder::AddPushConstant(const PushConstant* push_constant,
   if (!push_constant_infos_.has_value()) {
     push_constant_infos_.emplace();
   }
-  push_constant_infos_.value().infos.emplace_back(
+  push_constant_infos_->infos.emplace_back(
       PushConstantInfos::Info{push_constant, target_offset});
   return *this;
 }
 
 ModelBuilder& ModelBuilder::AddShader(VkShaderStageFlagBits shader_stage,
                                       std::string&& file_path) {
-  shader_infos_.emplace_back(shader_stage, std::move(file_path));
+  shader_infos_.emplace_back(ShaderInfo{shader_stage, std::move(file_path)});
   return *this;
 }
 
@@ -305,7 +301,7 @@ ModelBuilder::CreateDescriptors() const {
 
 std::unique_ptr<Model> ModelBuilder::Build() {
   if (push_constant_infos_.has_value()) {
-    ASSERT_NON_EMPTY(push_constant_infos_.value().infos,
+    ASSERT_NON_EMPTY(push_constant_infos_->infos,
                      "Push constant data source is not set");
   }
   ASSERT_NON_EMPTY(shader_infos_, "Shader is not set");
@@ -357,8 +353,7 @@ void Model::Update(bool is_object_opaque, const VkExtent2D& frame_size,
               pipeline::GetColorBlendState(
                   /*enable_blend=*/!is_object_opaque)));
   for (const auto& info : shader_infos_) {
-    pipeline_builder_->AddShader(/*shader_stage=*/info.first,
-                                 /*file_path=*/info.second);
+    pipeline_builder_->AddShader(info.shader_stage, info.file_path);
   }
   pipeline_ = pipeline_builder_->Build();
 }
@@ -371,10 +366,10 @@ void Model::Draw(const VkCommandBuffer& command_buffer,
                                    kPerInstanceBufferBindingPointBase + i);
   }
   if (push_constant_info_.has_value()) {
-    for (const auto& info : push_constant_info_.value().infos) {
+    for (const auto& info : push_constant_info_->infos) {
       info.push_constant->Flush(
           command_buffer, pipeline_->layout(), frame, info.target_offset,
-          push_constant_info_.value().shader_stage);
+          push_constant_info_->shader_stage);
     }
   }
   for (int mesh_index = 0; mesh_index < mesh_textures_.size(); ++mesh_index) {

@@ -29,32 +29,24 @@ VkPipelineColorBlendAttachmentState GetColorBlendState(bool enable_blend);
 
 /* Vertex input binding */
 
-// Specifies that at 'binding_point', each vertex will get data of 'data_size'.
-// 'instancing' determines whether to update data per-instance or per-vertex.
-// Note that the binding point is not a binding number in the shader, but the
-// vertex buffer binding point used in vkCmdBindVertexBuffers(),
-struct VertexInputBinding {
-  uint32_t binding_point;
-  uint32_t data_size;
-  bool instancing;
-};
+// Returns how to interpret the vertex data. Note that the 'binding' field of
+// the returned value will not be set, since it will be assigned in pipeline.
+VkVertexInputBindingDescription GetBindingDescription(uint32_t stride,
+                                                      bool instancing);
 
-// Convenient function to return an instance of VertexInputBinding, assuming
+// Convenient function to return VkVertexInputBindingDescription, assuming
 // each vertex will get data of DataType, which is updated per-vertex.
-// Note that the binding point is not a binding number in the shader, but the
-// vertex buffer binding point used in vkCmdBindVertexBuffers(),
 template <typename DataType>
-VertexInputBinding GetPerVertexBinding(uint32_t binding_point) {
-  return VertexInputBinding{
-      binding_point,
-      /*data_size=*/static_cast<uint32_t>(sizeof(DataType)),
-      /*instancing=*/false,
-  };
+inline VkVertexInputBindingDescription GetPerVertexBindingDescription() {
+  return GetBindingDescription(sizeof(DataType), /*instancing=*/false);
 }
 
-// Converts VertexInputBinding to VkVertexInputBindingDescription.
-std::vector<VkVertexInputBindingDescription> GetBindingDescriptions(
-    const std::vector<VertexInputBinding>& bindings);
+// Convenient function to return VkVertexInputBindingDescription, assuming
+// each vertex will get data of DataType, which is updated per-instance.
+template <typename DataType>
+inline VkVertexInputBindingDescription GetPerInstanceBindingDescription() {
+  return GetBindingDescription(sizeof(DataType), /*instancing=*/true);
+}
 
 /* Vertex input attribute */
 
@@ -63,13 +55,6 @@ std::vector<VkVertexInputBindingDescription> GetBindingDescriptions(
 // Vertex2D, Vertex3DNoTex and Vertex3DWithTex.
 template <typename DataType>
 std::vector<VertexBuffer::Attribute> GetVertexAttribute();
-
-// Interprets the data bound to 'binding_point'.
-// Note that the binding point is not a binding number in the shader, but the
-// vertex buffer binding point used in vkCmdBindVertexBuffers(),
-std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(
-    uint32_t binding_point,
-    const std::vector<VertexBuffer::Attribute>& attributes);
 
 } /* namespace pipeline */
 } /* namespace vulkan */
