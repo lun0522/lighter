@@ -165,9 +165,10 @@ PipelineBuilder::PipelineBuilder(SharedBasicContext context)
   };
 }
 
-PipelineBuilder& PipelineBuilder::SetDepthTestEnabled(bool enable_test) {
+PipelineBuilder& PipelineBuilder::SetDepthTestEnabled(bool enable_test,
+                                                      bool enable_write) {
   depth_stencil_info_.depthTestEnable = util::ToVkBool(enable_test);
-  depth_stencil_info_.depthWriteEnable = util::ToVkBool(enable_test);
+  depth_stencil_info_.depthWriteEnable = util::ToVkBool(enable_write);
   return *this;
 }
 

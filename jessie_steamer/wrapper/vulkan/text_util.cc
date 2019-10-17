@@ -11,6 +11,7 @@
 
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline_util.h"
+#include "jessie_steamer/wrapper/vulkan/render_pass_util.h"
 #include "third_party/absl/memory/memory.h"
 
 namespace jessie_steamer {
@@ -23,11 +24,14 @@ using std::array;
 using std::string;
 using std::vector;
 
-constexpr int kColorAttachmentIndex = 0;
 constexpr int kImageBindingPoint = 0;
-constexpr int kNativeSubpassIndex = 0;
 constexpr int kSingleChannel = 1;
 constexpr uint32_t kVertexBufferBindingPoint = 0;
+
+enum SubpassIndex {
+  kTextSubpassIndex = 0,
+  kNumSubpasses,
+};
 
 // Returns the path to font file.
 string GetFontPath(CharLoader::Font font) {
@@ -72,45 +76,14 @@ vector<Descriptor::Info> CreateDescriptorInfos() {
 // Returns a render pass builder for rendering characters.
 std::unique_ptr<RenderPassBuilder> CreateRenderPassBuilder(
     const SharedBasicContext& context) {
-  auto render_pass_builder = absl::make_unique<RenderPassBuilder>(context);
-
-  (*render_pass_builder)
-      .SetNumFramebuffers(1)
-      .SetAttachment(
-          kColorAttachmentIndex,
-          RenderPassBuilder::Attachment{
-              /*attachment_ops=*/RenderPassBuilder::Attachment::ColorOps{
-                  /*load_color_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-                  /*store_color_op=*/VK_ATTACHMENT_STORE_OP_STORE,
-              },
-              /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
-              /*final_layout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-          }
-      )
-      .SetSubpass(
-          kNativeSubpassIndex,
-          /*color_refs=*/{
-              VkAttachmentReference{
-                  kColorAttachmentIndex,
-                  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-              },
-          },
-          /*depth_stencil_ref=*/absl::nullopt
-      )
-      .AddSubpassDependency(RenderPassBuilder::SubpassDependency{
-          /*prev_subpass=*/RenderPassBuilder::SubpassDependency::SubpassInfo{
-              kExternalSubpassIndex,
-              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-              /*access_mask=*/0,
-          },
-          /*next_subpass=*/RenderPassBuilder::SubpassDependency::SubpassInfo{
-              kNativeSubpassIndex,
-              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-              VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-          },
-      });
-
-  return render_pass_builder;
+  const naive_render_pass::SubpassConfig subpass_config{
+      /*use_opaque_subpass=*/false,
+      /*num_transparent_subpasses=*/0,
+      /*num_post_processing_subpasses=*/kNumSubpasses,
+  };
+  return naive_render_pass::GetRenderPassBuilder(
+      context, subpass_config, /*num_framebuffers=*/1,
+      /*present_to_screen=*/false, /*multisampling_mode=*/absl::nullopt);
 }
 
 // Returns a render pass that renders to 'target_image'.
@@ -118,7 +91,7 @@ std::unique_ptr<RenderPass> BuildRenderPass(
     const Image& target_image, RenderPassBuilder* render_pass_builder) {
   return (*render_pass_builder)
       .UpdateAttachmentImage(
-          kColorAttachmentIndex,
+          naive_render_pass::kColorAttachmentIndex,
           [&target_image](int framebuffer_index) -> const Image& {
             return target_image;
           })
@@ -165,7 +138,7 @@ std::unique_ptr<Pipeline> BuildPipeline(const Image& target_image,
               target_image.extent(),
           }
       )
-      .SetRenderPass(render_pass, kNativeSubpassIndex)
+      .SetRenderPass(render_pass, kTextSubpassIndex)
       .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
                  GetShaderPath("vulkan/char.vert.spv"))
       .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,

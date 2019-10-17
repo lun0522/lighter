@@ -28,6 +28,7 @@ enum SubpassIndex {
   kModelSubpassIndex = 0,
   kTextSubpassIndex,
   kNumSubpasses,
+  kNumPostProcessingSubpasses = kNumSubpasses - kTextSubpassIndex,
 };
 
 /* BEGIN: Consistent with structs used in shaders. */
@@ -79,8 +80,13 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
       context(), sizeof(Transformation), kNumFramesInFlight);
 
   /* Render pass */
-  render_pass_builder_ = naive_render_pass::GetNaiveRenderPassBuilder(
-      context(), kNumSubpasses,
+  const naive_render_pass::SubpassConfig subpass_config{
+      /*use_opaque_subpass=*/true,
+      /*num_transparent_subpasses=*/0,
+      /*num_post_processing_subpasses=*/kNumPostProcessingSubpasses,
+  };
+  render_pass_builder_ = naive_render_pass::GetRenderPassBuilder(
+      context(), subpass_config,
       /*num_framebuffers=*/window_context_.num_swapchain_images(),
       /*present_to_screen=*/true, window_context_.multisampling_mode());
 
@@ -146,15 +152,13 @@ void CubeApp::Recreate() {
       .Build();
 
   /* Model */
-  const auto sample_count = depth_stencil_image_->sample_count();
-  model_->Update(/*is_object_opaque=*/true, frame_size, sample_count,
+  model_->Update(/*is_object_opaque=*/true, frame_size,
+                 depth_stencil_image_->sample_count(),
                  *render_pass_, kModelSubpassIndex);
 
   /* Text */
-  static_text_->Update(frame_size, sample_count, *render_pass_,
-                       kTextSubpassIndex);
-  dynamic_text_->Update(frame_size, sample_count, *render_pass_,
-                        kTextSubpassIndex);
+  static_text_->Update(frame_size, *render_pass_, kTextSubpassIndex);
+  dynamic_text_->Update(frame_size, *render_pass_, kTextSubpassIndex);
 }
 
 void CubeApp::UpdateData(int frame, float frame_aspect) {

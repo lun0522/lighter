@@ -51,7 +51,7 @@ class PipelineBuilder {
 
   // By default, depth testing and stencil testing are disabled, front face
   // direction is counter-clockwise, and the rasterizer only takes one sample.
-  PipelineBuilder& SetDepthTestEnabled(bool enable_test);
+  PipelineBuilder& SetDepthTestEnabled(bool enable_test, bool enable_write);
   PipelineBuilder& SetStencilTestEnable(bool enable_test);
   PipelineBuilder& SetFrontFaceDirection(bool counter_clockwise);
   PipelineBuilder& SetMultisampling(VkSampleCountFlagBits sample_count);

@@ -17,23 +17,29 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
+using std::vector;
 using Attachment = RenderPassBuilder::Attachment;
 using MultisamplingPair = RenderPassBuilder::MultisamplingPair;
 using SubpassAttachments = RenderPassBuilder::SubpassAttachments;
 using SubpassDependency = RenderPassBuilder::SubpassDependency;
+using SubpassInfo = SubpassDependency::SubpassInfo;
 
 } /* namespace */
 
 namespace naive_render_pass {
 
-// TODO: To render transparent objects, we still need to use depth buffer (read
-// only) and MSAA. To render text, we don't use depth buffer at all.
-std::unique_ptr<RenderPassBuilder> GetNaiveRenderPassBuilder(
-    SharedBasicContext context,
-    int num_subpasses, int num_framebuffers, bool present_to_screen,
+std::unique_ptr<RenderPassBuilder> GetRenderPassBuilder(
+    SharedBasicContext context, const SubpassConfig& subpass_config,
+    int num_framebuffers, bool present_to_screen,
     absl::optional<MultisampleImage::Mode> multisampling_mode) {
   auto builder = absl::make_unique<RenderPassBuilder>(std::move(context));
 
+  /* Framebuffers and attachments */
+  const int num_subpasses_with_depth_attachment =
+      (subpass_config.use_opaque_subpass ? 1 : 0) +
+      subpass_config.num_transparent_subpasses;
+  const bool use_multisampling = (num_subpasses_with_depth_attachment > 0) &&
+                                 multisampling_mode.has_value();
   (*builder)
       .SetNumFramebuffers(num_framebuffers)
       .SetAttachment(
@@ -44,50 +50,28 @@ std::unique_ptr<RenderPassBuilder> GetNaiveRenderPassBuilder(
               },
               /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
               /*final_layout=*/
-              present_to_screen
-                  ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-                  : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+              present_to_screen ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+                                : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
           }
-      )
-      .SetAttachment(
-          kDepthAttachmentIndex, Attachment{
-              /*attachment_ops=*/Attachment::DepthStencilOps{
-                  /*load_depth_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-                  /*store_depth_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                  /*load_stencil_op=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                  /*store_stencil_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
-              },
-              // We don't care about the content previously stored in the depth
-              // stencil buffer, so even if it has been transitioned to the
-              // optimal layout, we still use UNDEFINED as the initial layout.
-              /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
-              /*final_layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-          }
-      )
-      .AddSubpassDependency(SubpassDependency{
-          /*prev_subpass=*/SubpassDependency::SubpassInfo{
-              kExternalSubpassIndex,
-              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-              VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-          },
-          /*next_subpass=*/SubpassDependency::SubpassInfo{
-              kNativeSubpassIndex,
-              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-              VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
-                  | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-          },
-      });
-
-  // If multisampling is used, we will use the multisample attachment as color
-  // attachment for all subpasses.
-  std::vector<VkAttachmentReference> color_refs{
-      VkAttachmentReference{
-          kColorAttachmentIndex,
-          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-      },
-  };
-  if (multisampling_mode.has_value()) {
-    color_refs[0].attachment = kMultisampleAttachmentIndex;
+      );
+  if (num_subpasses_with_depth_attachment > 0) {
+    builder->SetAttachment(
+        kDepthAttachmentIndex, Attachment{
+            /*attachment_ops=*/Attachment::DepthStencilOps{
+                /*load_depth_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+                /*store_depth_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                /*load_stencil_op=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                /*store_stencil_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            },
+            // We don't care about the content previously stored in the depth
+            // stencil buffer, so even if it has been transitioned to the
+            // optimal layout, we still use UNDEFINED as the initial layout.
+            /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
+            /*final_layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        }
+    );
+  }
+  if (use_multisampling) {
     builder->SetAttachment(
         kMultisampleAttachmentIndex, Attachment{
             /*attachment_ops=*/Attachment::ColorOps{
@@ -100,31 +84,49 @@ std::unique_ptr<RenderPassBuilder> GetNaiveRenderPassBuilder(
     );
   }
 
-  // Only the first subpass uses the depth stencil attachment.
-  builder->SetSubpass(
-      kNativeSubpassIndex,
-      std::vector<VkAttachmentReference>{color_refs},
-      /*depth_stencil_ref=*/VkAttachmentReference{
-          kDepthAttachmentIndex,
-          VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-      }
-  );
-  for (uint32_t subpass_index = kFirstExtraSubpassIndex;
-       subpass_index < num_subpasses; ++subpass_index) {
+  /* Subpasses */
+  vector<VkAttachmentReference> color_refs{
+      VkAttachmentReference{
+          use_multisampling ? kMultisampleAttachmentIndex
+                            : kColorAttachmentIndex,
+          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+      },
+  };
+  const VkAttachmentReference depth_stencil_ref{
+      kDepthAttachmentIndex,
+      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+  };
+  int subpass_index = 0;
+  for (int i = 0; i < num_subpasses_with_depth_attachment; ++i) {
+    builder->SetSubpass(
+        subpass_index++,
+        vector<VkAttachmentReference>{color_refs},
+        depth_stencil_ref
+    );
+  }
+  color_refs[0].attachment = kColorAttachmentIndex;
+  for (int i = 0; i < subpass_config.num_post_processing_subpasses; ++i) {
+    builder->SetSubpass(
+        subpass_index++,
+        vector<VkAttachmentReference>{color_refs},
+        /*depth_stencil_ref=*/absl::nullopt
+    );
+  }
+  const int num_subpasses = subpass_index;
+
+  /* Subpass dependencies */
+  for (uint32_t index = 0; index < num_subpasses; ++index) {
+    const uint32_t prev_subpass_index =
+        (index > 0) ? (index - 1) : kExternalSubpassIndex;
     (*builder)
-        .SetSubpass(
-            subpass_index,
-            std::vector<VkAttachmentReference>{color_refs},
-            /*depth_stencil_ref=*/absl::nullopt
-        )
         .AddSubpassDependency(SubpassDependency{
-            /*prev_subpass=*/SubpassDependency::SubpassInfo{
-                subpass_index - 1,
+            /*prev_subpass=*/SubpassInfo{
+                prev_subpass_index,
                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                 VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
             },
-            /*next_subpass=*/SubpassDependency::SubpassInfo{
-                subpass_index,
+            /*next_subpass=*/SubpassInfo{
+                index,
                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                 VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
                     | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
@@ -132,14 +134,13 @@ std::unique_ptr<RenderPassBuilder> GetNaiveRenderPassBuilder(
         });
   }
 
-  // If multisampling is used, only the last subpass need to resolve the
-  // multisample attachment.
-  if (multisampling_mode.has_value()) {
+  /* Multisampling */
+  if (use_multisampling) {
     builder->SetMultisampling(
-        num_subpasses - 1,
+        /*subpass_index=*/num_subpasses_with_depth_attachment - 1,
         RenderPassBuilder::CreateMultisamplingReferences(
             /*num_color_refs=*/1,
-            /*pairs=*/std::vector<MultisamplingPair>{
+            /*pairs=*/vector<MultisamplingPair>{
                 MultisamplingPair{
                     /*multisample_reference=*/0,
                     /*target_attachment=*/kColorAttachmentIndex,

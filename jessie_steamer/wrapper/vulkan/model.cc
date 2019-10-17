@@ -330,7 +330,8 @@ void Model::Update(bool is_object_opaque, const VkExtent2D& frame_size,
                    VkSampleCountFlagBits sample_count,
                    const RenderPass& render_pass, uint32_t subpass_index) {
   (*pipeline_builder_)
-      .SetDepthTestEnabled(/*enable_test=*/is_object_opaque)
+      .SetDepthTestEnabled(/*enable_test=*/true,
+                           /*enable_write=*/is_object_opaque)
       .SetMultisampling(sample_count)
       .SetViewport(
           /*viewport=*/VkViewport{

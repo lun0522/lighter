@@ -54,7 +54,6 @@ class TriangleApp : public Application {
   common::Timer timer_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PerVertexBuffer> vertex_buffer_;
-  std::unique_ptr<Image> depth_stencil_image_;
   std::unique_ptr<PushConstant> push_constant_;
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
@@ -74,7 +73,7 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
   /* Vertex buffer */
-  std::array<Vertex3DNoTex, 3> vertex_data{
+  const std::array<Vertex3DNoTex, 3> vertex_data{
       Vertex3DNoTex{/*pos=*/{ 0.5f, -0.5f, 0.0f}, /*color=*/{1.0f, 0.0f, 0.0f}},
       Vertex3DNoTex{/*pos=*/{ 0.0f,  0.5f, 0.0f}, /*color=*/{0.0f, 0.0f, 1.0f}},
       Vertex3DNoTex{/*pos=*/{-0.5f, -0.5f, 0.0f}, /*color=*/{0.0f, 1.0f, 0.0f}},
@@ -96,16 +95,19 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   };
 
   /* Render pass */
-  render_pass_builder_ = naive_render_pass::GetNaiveRenderPassBuilder(
-      context(), kNumSubpasses,
+  const naive_render_pass::SubpassConfig subpass_config{
+      /*use_opaque_subpass=*/false,
+      /*num_transparent_subpasses=*/0,
+      /*num_post_processing_subpasses=*/kNumSubpasses,
+  };
+  render_pass_builder_ = naive_render_pass::GetRenderPassBuilder(
+      context(), subpass_config,
       /*num_framebuffers=*/window_context_.num_swapchain_images(),
-      /*present_to_screen=*/true, window_context_.multisampling_mode());
+      /*present_to_screen=*/true, /*multisampling_mode=*/absl::nullopt);
 
   /* Pipeline */
   pipeline_builder_ = absl::make_unique<PipelineBuilder>(context());
   (*pipeline_builder_)
-      // TODO: No need to do depth test.
-      .SetDepthTestEnabled(/*enable_test=*/true)
       .AddVertexInput(kVertexBufferBindingPoint,
                       pipeline::GetPerVertexBindingDescription<Vertex3DNoTex>(),
                       vertex_buffer_->GetAttributes(/*start_location=*/0))
@@ -113,37 +115,19 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
 }
 
 void TriangleApp::Recreate() {
-  /* Depth image */
-  const VkExtent2D& frame_size = window_context_.frame_size();
-  depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
-      context(), frame_size, window_context_.multisampling_mode());
-
   /* Render pass */
-  if (window_context_.multisampling_mode().has_value()) {
-    render_pass_builder_->UpdateAttachmentImage(
-        naive_render_pass::kMultisampleAttachmentIndex,
-        [this](int framebuffer_index) -> const Image& {
-          return window_context_.multisample_image();
-        });
-  }
   render_pass_ = (*render_pass_builder_)
       .UpdateAttachmentImage(
           naive_render_pass::kColorAttachmentIndex,
           [this](int framebuffer_index) -> const Image& {
             return window_context_.swapchain_image(framebuffer_index);
           })
-      .UpdateAttachmentImage(
-          naive_render_pass::kDepthAttachmentIndex,
-          [this](int framebuffer_index) -> const Image& {
-            return *depth_stencil_image_;
-          })
       .Build();
 
   /* Pipeline */
   using common::file::GetShaderPath;
-  const auto sample_count = depth_stencil_image_->sample_count();
+  const VkExtent2D& frame_size = window_context_.frame_size();
   (*pipeline_builder_)
-      .SetMultisampling(sample_count)
       .SetViewport(
           /*viewport=*/VkViewport{
               /*x=*/0.0f,
@@ -159,10 +143,7 @@ void TriangleApp::Recreate() {
           }
       )
       .SetRenderPass(**render_pass_, kTriangleSubpassIndex)
-      .SetColorBlend(
-          vector<VkPipelineColorBlendAttachmentState>(
-              render_pass_->num_color_attachments(kTriangleSubpassIndex),
-              pipeline::GetColorBlendState(/*enable_blend=*/true)))
+      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)})
       .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
                  GetShaderPath("vulkan/simple_2d.vert.spv"))
       .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -215,5 +196,6 @@ void TriangleApp::MainLoop() {
 
 int main(int argc, char* argv[]) {
   using namespace jessie_steamer::application::vulkan;
-  return AppMain<TriangleApp>(argc, argv, WindowContext::Config{});
+  return AppMain<TriangleApp>(
+      argc, argv, WindowContext::Config{}.disable_multisampling());
 }

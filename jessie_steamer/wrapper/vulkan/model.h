@@ -214,7 +214,7 @@ class Model {
   Model(const Model&) = delete;
   Model& operator=(const Model&) = delete;
 
-  // TODO: Transparency can be changed via dynamic states.
+  // TODO: Transparency and viewport can be changed via dynamic states.
   // Updates internal states and rebuilds the graphics pipeline.
   // For simplicity, the render area will be the same to 'frame_size'.
   // This must have been called once before calling Draw() for the first time.

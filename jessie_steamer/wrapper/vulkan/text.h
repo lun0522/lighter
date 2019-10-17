@@ -34,12 +34,11 @@ class Text {
   // We only support the horizontal layout for now.
   enum class Align { kLeft, kCenter, kRight };
 
-  // TODO: No need to do multisampling.
   // Rebuilds the graphics pipeline.
   // For simplicity, the render area will be the same to 'frame_size'.
   // This should be called after a renderer is constructed and whenever
   // framebuffers are resized.
-  void Update(const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
+  void Update(const VkExtent2D& frame_size,
               const RenderPass& render_pass, uint32_t subpass_index);
 
  protected:

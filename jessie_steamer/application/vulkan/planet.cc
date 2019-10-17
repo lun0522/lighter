@@ -146,8 +146,13 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       context(), sizeof(SkyboxTrans), kNumFramesInFlight);
 
   /* Render pass */
-  render_pass_builder_ = naive_render_pass::GetNaiveRenderPassBuilder(
-      context(), kNumSubpasses,
+  const naive_render_pass::SubpassConfig subpass_config{
+      /*use_opaque_subpass=*/true,
+      /*num_transparent_subpasses=*/0,
+      /*num_post_processing_subpasses=*/0,
+  };
+  render_pass_builder_ = naive_render_pass::GetRenderPassBuilder(
+      context(), subpass_config,
       /*num_framebuffers=*/window_context_.num_swapchain_images(),
       /*present_to_screen=*/true, window_context_.multisampling_mode());
 
