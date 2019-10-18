@@ -108,7 +108,7 @@ class RenderPassBuilder {
   // while 'target_attachment' is the index of VkAttachmentDescription.
   struct MultisamplingPair {
     int multisample_reference;
-    int target_attachment;
+    uint32_t target_attachment;
   };
 
   // Creates a list of VkAttachmentReference to describe the multisampling

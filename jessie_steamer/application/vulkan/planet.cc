@@ -83,7 +83,7 @@ class PlanetApp : public Application {
   std::unique_ptr<UniformBuffer> light_uniform_;
   std::unique_ptr<PushConstant> planet_constant_;
   std::unique_ptr<PushConstant> skybox_constant_;
-  std::unique_ptr<RenderPassBuilder> render_pass_builder_;
+  std::unique_ptr<NaiveRenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
   std::unique_ptr<Image> depth_stencil_image_;
   std::unique_ptr<Model> planet_model_, asteroid_model_, skybox_model_;
@@ -146,12 +146,12 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       context(), sizeof(SkyboxTrans), kNumFramesInFlight);
 
   /* Render pass */
-  const naive_render_pass::SubpassConfig subpass_config{
+  const NaiveRenderPassBuilder::SubpassConfig subpass_config{
       /*use_opaque_subpass=*/true,
       /*num_transparent_subpasses=*/0,
-      /*num_post_processing_subpasses=*/0,
+      /*num_overlay_subpasses=*/0,
   };
-  render_pass_builder_ = naive_render_pass::GetRenderPassBuilder(
+  render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
       context(), subpass_config,
       /*num_framebuffers=*/window_context_.num_swapchain_images(),
       /*present_to_screen=*/true, window_context_.multisampling_mode());
@@ -240,29 +240,29 @@ void PlanetApp::Recreate() {
       context(), frame_size, window_context_.multisampling_mode());
 
   /* Render pass */
-  if (window_context_.multisampling_mode().has_value()) {
-    render_pass_builder_->UpdateAttachmentImage(
-        naive_render_pass::kMultisampleAttachmentIndex,
-        [this](int framebuffer_index) -> const Image& {
-          return window_context_.multisample_image();
-        });
-  }
-  render_pass_ = (*render_pass_builder_)
+  (*render_pass_builder_->mutable_builder())
       .UpdateAttachmentImage(
-          naive_render_pass::kColorAttachmentIndex,
+          render_pass_builder_->color_attachment_index(),
           [this](int framebuffer_index) -> const Image& {
             return window_context_.swapchain_image(framebuffer_index);
           })
       .UpdateAttachmentImage(
-          naive_render_pass::kDepthAttachmentIndex,
+          render_pass_builder_->depth_attachment_index(),
           [this](int framebuffer_index) -> const Image& {
             return *depth_stencil_image_;
-          })
-      .Build();
+          });
+  if (render_pass_builder_->has_multisample_attachment()) {
+    render_pass_builder_->mutable_builder()->UpdateAttachmentImage(
+        render_pass_builder_->multisample_attachment_index(),
+        [this](int framebuffer_index) -> const Image& {
+          return window_context_.multisample_image();
+        });
+  }
+  render_pass_ = (**render_pass_builder_).Build();
 
   /* Model */
   constexpr bool kIsObjectOpaque = true;
-  const auto sample_count = depth_stencil_image_->sample_count();
+  const VkSampleCountFlagBits sample_count = window_context_.sample_count();
   planet_model_->Update(kIsObjectOpaque, frame_size, sample_count,
                         *render_pass_, kModelSubpassIndex);
   asteroid_model_->Update(kIsObjectOpaque, frame_size, sample_count,

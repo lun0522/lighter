@@ -21,7 +21,7 @@
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
-#include "jessie_steamer/wrapper/vulkan/render_pass.h"
+#include "jessie_steamer/wrapper/vulkan/render_pass_util.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/glm/glm.hpp"
@@ -158,7 +158,7 @@ class TextLoader {
       const std::string& text, int font_height,
       const CharLoader& char_loader,
       StaticDescriptor* descriptor,
-      RenderPassBuilder* render_pass_builder,
+      NaiveRenderPassBuilder* render_pass_builder,
       PipelineBuilder* pipeline_builder,
       DynamicPerVertexBuffer* vertex_buffer) const;
 

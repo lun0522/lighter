@@ -11,7 +11,7 @@
 
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline_util.h"
-#include "jessie_steamer/wrapper/vulkan/render_pass_util.h"
+#include "jessie_steamer/wrapper/vulkan/render_pass.h"
 #include "third_party/absl/memory/memory.h"
 
 namespace jessie_steamer {
@@ -74,28 +74,27 @@ vector<Descriptor::Info> CreateDescriptorInfos() {
 }
 
 // Returns a render pass builder for rendering characters.
-std::unique_ptr<RenderPassBuilder> CreateRenderPassBuilder(
+std::unique_ptr<NaiveRenderPassBuilder> CreateRenderPassBuilder(
     const SharedBasicContext& context) {
-  const naive_render_pass::SubpassConfig subpass_config{
+  const NaiveRenderPassBuilder::SubpassConfig subpass_config{
       /*use_opaque_subpass=*/false,
       /*num_transparent_subpasses=*/0,
-      /*num_post_processing_subpasses=*/kNumSubpasses,
+      /*num_overlay_subpasses=*/kNumSubpasses,
   };
-  return naive_render_pass::GetRenderPassBuilder(
+  return absl::make_unique<NaiveRenderPassBuilder>(
       context, subpass_config, /*num_framebuffers=*/1,
       /*present_to_screen=*/false, /*multisampling_mode=*/absl::nullopt);
 }
 
 // Returns a render pass that renders to 'target_image'.
 std::unique_ptr<RenderPass> BuildRenderPass(
-    const Image& target_image, RenderPassBuilder* render_pass_builder) {
-  return (*render_pass_builder)
-      .UpdateAttachmentImage(
-          naive_render_pass::kColorAttachmentIndex,
-          [&target_image](int framebuffer_index) -> const Image& {
-            return target_image;
-          })
-      .Build();
+    const Image& target_image, NaiveRenderPassBuilder* render_pass_builder) {
+  render_pass_builder->mutable_builder()->UpdateAttachmentImage(
+      render_pass_builder->color_attachment_index(),
+      [&target_image](int framebuffer_index) -> const Image& {
+          return target_image;
+      });
+  return (**render_pass_builder).Build();
 }
 
 // Returns a pipeline builder, assuming the per-vertex data is of type Vertex2D,
@@ -357,7 +356,7 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
     const string& text, int font_height,
     const CharLoader& char_loader,
     StaticDescriptor* descriptor,
-    RenderPassBuilder* render_pass_builder,
+    NaiveRenderPassBuilder* render_pass_builder,
     PipelineBuilder* pipeline_builder,
     DynamicPerVertexBuffer* vertex_buffer) const {
   float total_advance_x = 0.0f;

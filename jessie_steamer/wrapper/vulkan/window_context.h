@@ -117,11 +117,16 @@ class WindowContext {
   const Image& swapchain_image(int index) const {
     return swapchain_->image(index);
   }
-  const Image& multisample_image() const {
-    return swapchain_->multisample_image();
+  bool use_multisampling() const { return swapchain_->use_multisampling(); }
+  VkSampleCountFlagBits sample_count() const {
+    return swapchain_->sample_count();
   }
   absl::optional<MultisampleImage::Mode> multisampling_mode() const {
     return multisampling_mode_;
+  }
+  // The user is responsible for checking if multisampling is used.
+  const Image& multisample_image() const {
+    return swapchain_->multisample_image();
   }
 
  private:

@@ -85,10 +85,13 @@ class Swapchain {
   const VkExtent2D& image_extent() const { return image_extent_; }
   int num_images() const { return swapchain_images_.size(); }
   const Image& image(int index) const { return *swapchain_images_.at(index); }
-  const Image& multisample_image() const {
-    ASSERT_NON_NULL(multisample_image_, "Multisampling is not enabled");
-    return *multisample_image_;
+  bool use_multisampling() const { return multisample_image_ != nullptr; }
+  VkSampleCountFlagBits sample_count() const {
+    return use_multisampling() ? multisample_image_->sample_count()
+                               : swapchain_images_[0]->sample_count();
   }
+  // The user is responsible for checking if multisampling is used.
+  const Image& multisample_image() const { return *multisample_image_; }
 
  private:
   // Pointer to context.

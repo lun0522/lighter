@@ -9,7 +9,6 @@
 
 #include <vector>
 
-#include "third_party/absl/memory/memory.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -26,24 +25,34 @@ using SubpassInfo = SubpassDependency::SubpassInfo;
 
 } /* namespace */
 
-namespace naive_render_pass {
-
-std::unique_ptr<RenderPassBuilder> GetRenderPassBuilder(
+NaiveRenderPassBuilder::NaiveRenderPassBuilder(
     SharedBasicContext context, const SubpassConfig& subpass_config,
     int num_framebuffers, bool present_to_screen,
-    absl::optional<MultisampleImage::Mode> multisampling_mode) {
-  auto builder = absl::make_unique<RenderPassBuilder>(std::move(context));
-
-  /* Framebuffers and attachments */
+    absl::optional<MultisampleImage::Mode> multisampling_mode)
+    : builder_{std::move(context)} {
   const int num_subpasses_with_depth_attachment =
       (subpass_config.use_opaque_subpass ? 1 : 0) +
       subpass_config.num_transparent_subpasses;
-  const bool use_multisampling = (num_subpasses_with_depth_attachment > 0) &&
-                                 multisampling_mode.has_value();
-  (*builder)
+  const int num_subpasses = num_subpasses_with_depth_attachment +
+                            subpass_config.num_overlay_subpasses;
+
+  const bool use_depth_attachment = (num_subpasses_with_depth_attachment > 0);
+  if (use_depth_attachment) {
+    depth_attachment_index_ = color_attachment_index_ + 1;
+  }
+
+  const bool use_multisample_attachment = multisampling_mode.has_value();
+  if (use_multisample_attachment) {
+    multisample_attachment_index_ =
+        1 + (use_depth_attachment ? depth_attachment_index_.value()
+                                  : color_attachment_index_);
+  }
+
+  /* Framebuffers and attachments */
+  builder_
       .SetNumFramebuffers(num_framebuffers)
       .SetAttachment(
-          kColorAttachmentIndex, Attachment{
+          color_attachment_index(), Attachment{
               /*attachment_ops=*/Attachment::ColorOps{
                   /*load_color_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
                   /*store_color_op=*/VK_ATTACHMENT_STORE_OP_STORE,
@@ -54,9 +63,9 @@ std::unique_ptr<RenderPassBuilder> GetRenderPassBuilder(
                                 : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
           }
       );
-  if (num_subpasses_with_depth_attachment > 0) {
-    builder->SetAttachment(
-        kDepthAttachmentIndex, Attachment{
+  if (use_depth_attachment) {
+    builder_.SetAttachment(
+        depth_attachment_index(), Attachment{
             /*attachment_ops=*/Attachment::DepthStencilOps{
                 /*load_depth_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
                 /*store_depth_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -71,9 +80,9 @@ std::unique_ptr<RenderPassBuilder> GetRenderPassBuilder(
         }
     );
   }
-  if (use_multisampling) {
-    builder->SetAttachment(
-        kMultisampleAttachmentIndex, Attachment{
+  if (use_multisample_attachment) {
+    builder_.SetAttachment(
+        multisample_attachment_index(), Attachment{
             /*attachment_ops=*/Attachment::ColorOps{
                 /*load_color_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
                 /*store_color_op=*/VK_ATTACHMENT_STORE_OP_STORE,
@@ -84,41 +93,39 @@ std::unique_ptr<RenderPassBuilder> GetRenderPassBuilder(
     );
   }
 
-  /* Subpasses */
-  vector<VkAttachmentReference> color_refs{
+  /* Subpasses descriptions */
+  const vector<VkAttachmentReference> color_refs{
       VkAttachmentReference{
-          use_multisampling ? kMultisampleAttachmentIndex
-                            : kColorAttachmentIndex,
+          use_multisample_attachment ? multisample_attachment_index()
+                                     : color_attachment_index(),
           VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
       },
   };
   const VkAttachmentReference depth_stencil_ref{
-      kDepthAttachmentIndex,
+      use_depth_attachment ? depth_attachment_index() : VK_ATTACHMENT_UNUSED,
       VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
   };
   int subpass_index = 0;
   for (int i = 0; i < num_subpasses_with_depth_attachment; ++i) {
-    builder->SetSubpass(
+    builder_.SetSubpass(
         subpass_index++,
         vector<VkAttachmentReference>{color_refs},
         depth_stencil_ref
     );
   }
-  color_refs[0].attachment = kColorAttachmentIndex;
-  for (int i = 0; i < subpass_config.num_post_processing_subpasses; ++i) {
-    builder->SetSubpass(
+  for (int i = 0; i < subpass_config.num_overlay_subpasses; ++i) {
+    builder_.SetSubpass(
         subpass_index++,
         vector<VkAttachmentReference>{color_refs},
         /*depth_stencil_ref=*/absl::nullopt
     );
   }
-  const int num_subpasses = subpass_index;
 
   /* Subpass dependencies */
   for (uint32_t index = 0; index < num_subpasses; ++index) {
     const uint32_t prev_subpass_index =
         (index > 0) ? (index - 1) : kExternalSubpassIndex;
-    (*builder)
+    builder_
         .AddSubpassDependency(SubpassDependency{
             /*prev_subpass=*/SubpassInfo{
                 prev_subpass_index,
@@ -135,25 +142,21 @@ std::unique_ptr<RenderPassBuilder> GetRenderPassBuilder(
   }
 
   /* Multisampling */
-  if (use_multisampling) {
-    builder->SetMultisampling(
-        /*subpass_index=*/num_subpasses_with_depth_attachment - 1,
+  if (use_multisample_attachment) {
+    builder_.SetMultisampling(
+        /*subpass_index=*/num_subpasses - 1,
         RenderPassBuilder::CreateMultisamplingReferences(
             /*num_color_refs=*/1,
             /*pairs=*/vector<MultisamplingPair>{
                 MultisamplingPair{
                     /*multisample_reference=*/0,
-                    /*target_attachment=*/kColorAttachmentIndex,
+                    /*target_attachment=*/color_attachment_index(),
                 },
             }
         )
     );
   }
-
-  return builder;
 }
-
-} /* namespace naive_render_pass */
 
 } /* namespace vulkan */
 } /* namespace wrapper */

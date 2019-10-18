@@ -55,7 +55,7 @@ class TriangleApp : public Application {
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PerVertexBuffer> vertex_buffer_;
   std::unique_ptr<PushConstant> push_constant_;
-  std::unique_ptr<RenderPassBuilder> render_pass_builder_;
+  std::unique_ptr<NaiveRenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
   std::unique_ptr<PipelineBuilder> pipeline_builder_;
   std::unique_ptr<Pipeline> pipeline_;
@@ -95,15 +95,15 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   };
 
   /* Render pass */
-  const naive_render_pass::SubpassConfig subpass_config{
+  const NaiveRenderPassBuilder::SubpassConfig subpass_config{
       /*use_opaque_subpass=*/false,
       /*num_transparent_subpasses=*/0,
-      /*num_post_processing_subpasses=*/kNumSubpasses,
+      /*num_overlay_subpasses=*/kNumSubpasses,
   };
-  render_pass_builder_ = naive_render_pass::GetRenderPassBuilder(
+  render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
       context(), subpass_config,
       /*num_framebuffers=*/window_context_.num_swapchain_images(),
-      /*present_to_screen=*/true, /*multisampling_mode=*/absl::nullopt);
+      /*present_to_screen=*/true, window_context_.multisampling_mode());
 
   /* Pipeline */
   pipeline_builder_ = absl::make_unique<PipelineBuilder>(context());
@@ -116,18 +116,25 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
 
 void TriangleApp::Recreate() {
   /* Render pass */
-  render_pass_ = (*render_pass_builder_)
-      .UpdateAttachmentImage(
-          naive_render_pass::kColorAttachmentIndex,
-          [this](int framebuffer_index) -> const Image& {
-            return window_context_.swapchain_image(framebuffer_index);
-          })
-      .Build();
+  render_pass_builder_->mutable_builder()->UpdateAttachmentImage(
+      render_pass_builder_->color_attachment_index(),
+      [this](int framebuffer_index) -> const Image& {
+        return window_context_.swapchain_image(framebuffer_index);
+      });
+  if (render_pass_builder_->has_multisample_attachment()) {
+    render_pass_builder_->mutable_builder()->UpdateAttachmentImage(
+        render_pass_builder_->multisample_attachment_index(),
+        [this](int framebuffer_index) -> const Image& {
+          return window_context_.multisample_image();
+        });
+  }
+  render_pass_ = (**render_pass_builder_).Build();
 
   /* Pipeline */
   using common::file::GetShaderPath;
   const VkExtent2D& frame_size = window_context_.frame_size();
   (*pipeline_builder_)
+      .SetMultisampling(window_context_.sample_count())
       .SetViewport(
           /*viewport=*/VkViewport{
               /*x=*/0.0f,
@@ -196,6 +203,5 @@ void TriangleApp::MainLoop() {
 
 int main(int argc, char* argv[]) {
   using namespace jessie_steamer::application::vulkan;
-  return AppMain<TriangleApp>(
-      argc, argv, WindowContext::Config{}.disable_multisampling());
+  return AppMain<TriangleApp>(argc, argv, WindowContext::Config{});
 }

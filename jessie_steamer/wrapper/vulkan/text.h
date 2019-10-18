@@ -38,7 +38,7 @@ class Text {
   // For simplicity, the render area will be the same to 'frame_size'.
   // This should be called after a renderer is constructed and whenever
   // framebuffers are resized.
-  void Update(const VkExtent2D& frame_size,
+  void Update(const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
               const RenderPass& render_pass, uint32_t subpass_index);
 
  protected:

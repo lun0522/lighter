@@ -95,9 +95,11 @@ Text::Text(SharedBasicContext context, int num_frames_in_flight)
 }
 
 void Text::Update(const VkExtent2D& frame_size,
+                  VkSampleCountFlagBits sample_count,
                   const RenderPass& render_pass, uint32_t subpass_index) {
   using common::file::GetShaderPath;
   pipeline_ = pipeline_builder_
+      .SetMultisampling(sample_count)
       .SetViewport(
           /*viewport=*/VkViewport{
               /*x=*/0.0f,

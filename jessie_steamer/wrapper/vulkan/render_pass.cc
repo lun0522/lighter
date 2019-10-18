@@ -167,7 +167,7 @@ vector<VkAttachmentReference> RenderPassBuilder::CreateMultisamplingReferences(
   for (const auto& pair : pairs) {
     references[pair.multisample_reference] =
         VkAttachmentReference{
-            /*attachment=*/static_cast<uint32_t>(pair.target_attachment),
+            pair.target_attachment,
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         };
   }

@@ -28,7 +28,7 @@ enum SubpassIndex {
   kModelSubpassIndex = 0,
   kTextSubpassIndex,
   kNumSubpasses,
-  kNumPostProcessingSubpasses = kNumSubpasses - kTextSubpassIndex,
+  kNumOverlaySubpasses = kNumSubpasses - kTextSubpassIndex,
 };
 
 /* BEGIN: Consistent with structs used in shaders. */
@@ -57,7 +57,7 @@ class CubeApp : public Application {
   common::Timer timer_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PushConstant> push_constant_;
-  std::unique_ptr<RenderPassBuilder> render_pass_builder_;
+  std::unique_ptr<NaiveRenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
   std::unique_ptr<Image> depth_stencil_image_;
   std::unique_ptr<Model> model_;
@@ -80,12 +80,12 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
       context(), sizeof(Transformation), kNumFramesInFlight);
 
   /* Render pass */
-  const naive_render_pass::SubpassConfig subpass_config{
+  const NaiveRenderPassBuilder::SubpassConfig subpass_config{
       /*use_opaque_subpass=*/true,
       /*num_transparent_subpasses=*/0,
-      /*num_post_processing_subpasses=*/kNumPostProcessingSubpasses,
+      /*num_overlay_subpasses=*/kNumOverlaySubpasses,
   };
-  render_pass_builder_ = naive_render_pass::GetRenderPassBuilder(
+  render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
       context(), subpass_config,
       /*num_framebuffers=*/window_context_.num_swapchain_images(),
       /*present_to_screen=*/true, window_context_.multisampling_mode());
@@ -131,34 +131,34 @@ void CubeApp::Recreate() {
       context(), frame_size, window_context_.multisampling_mode());
 
   /* Render pass */
-  if (window_context_.multisampling_mode().has_value()) {
-    render_pass_builder_->UpdateAttachmentImage(
-        naive_render_pass::kMultisampleAttachmentIndex,
-        [this](int framebuffer_index) -> const Image& {
-          return window_context_.multisample_image();
-        });
-  }
-  render_pass_ = (*render_pass_builder_)
+  (*render_pass_builder_->mutable_builder())
       .UpdateAttachmentImage(
-          naive_render_pass::kColorAttachmentIndex,
+          render_pass_builder_->color_attachment_index(),
           [this](int framebuffer_index) -> const Image& {
             return window_context_.swapchain_image(framebuffer_index);
           })
       .UpdateAttachmentImage(
-          naive_render_pass::kDepthAttachmentIndex,
+          render_pass_builder_->depth_attachment_index(),
           [this](int framebuffer_index) -> const Image& {
             return *depth_stencil_image_;
-          })
-      .Build();
+          });
+  if (render_pass_builder_->has_multisample_attachment()) {
+    render_pass_builder_->mutable_builder()->UpdateAttachmentImage(
+        render_pass_builder_->multisample_attachment_index(),
+        [this](int framebuffer_index) -> const Image& {
+          return window_context_.multisample_image();
+        });
+  }
+  render_pass_ = (**render_pass_builder_).Build();
 
-  /* Model */
-  model_->Update(/*is_object_opaque=*/true, frame_size,
-                 depth_stencil_image_->sample_count(),
+  /* Model and text */
+  const VkSampleCountFlagBits sample_count = window_context_.sample_count();
+  model_->Update(/*is_object_opaque=*/true, frame_size, sample_count,
                  *render_pass_, kModelSubpassIndex);
-
-  /* Text */
-  static_text_->Update(frame_size, *render_pass_, kTextSubpassIndex);
-  dynamic_text_->Update(frame_size, *render_pass_, kTextSubpassIndex);
+  static_text_->Update(frame_size, sample_count,
+                       *render_pass_, kTextSubpassIndex);
+  dynamic_text_->Update(frame_size, sample_count,
+                        *render_pass_, kTextSubpassIndex);
 }
 
 void CubeApp::UpdateData(int frame, float frame_aspect) {
