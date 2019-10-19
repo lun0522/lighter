@@ -14,6 +14,7 @@
 
 #include "jessie_steamer/common/ref_count.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
+#include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -49,16 +50,20 @@ class ShaderModule {
   VkShaderModule shader_module_;
 };
 
-// The user should use this class to create Pipeline.
-// All internal states are preserved when it is used to build a pipeline, so the
-// user can reuse the builder later.
+// The user should use this class to create Pipeline. All internal states are
+// preserved when it is used to build a pipeline, so it can be reused later.
+// Shader modules can be destroyed after the pipeline is built in order to save
+// the host memory. The user may control whether this should happen. One way is
+// to use AutoReleaseShaderPool; another way is to use SetShaderResourcePolicy()
+// and ReleaseUnusedShaders() for fine-grained control.
 class PipelineBuilder {
  public:
-  // Contains a shader resource.
-  struct ShaderInfo {
-    VkShaderStageFlagBits shader_stage;
-    std::string file_path;
-  };
+  // Shader modules are reference counted.
+  using RefCountedShaderModule = common::RefCountedObject<ShaderModule>;
+
+  // An instance of this will preserve all shader modules created within its
+  // scope, and release them once it goes out of scope.
+  using AutoReleaseShaderPool = common::AutoReleasePool<ShaderModule>;
 
   // Describes a viewport transformation.
   struct ViewportInfo {
@@ -73,6 +78,9 @@ class PipelineBuilder {
   // This class is neither copyable nor movable.
   PipelineBuilder(const PipelineBuilder&) = delete;
   PipelineBuilder& operator=(const PipelineBuilder&) = delete;
+
+  // Sets a name for pipeline. This is for debugging purpose.
+  PipelineBuilder& SetName(std::string&& name);
 
   // By default, depth testing and stencil testing are disabled, front face
   // direction is counter-clockwise, and the rasterizer only takes one sample.
@@ -113,9 +121,18 @@ class PipelineBuilder {
   PipelineBuilder& SetColorBlend(
       std::vector<VkPipelineColorBlendAttachmentState>&& color_blend_states);
 
+  // Sets whether shader modules should be destroyed after the pipeline is
+  // built in order to save the host memory. By default this is true.
+  static void SetShaderResourcePolicy(bool destroy_if_unused) {
+    RefCountedShaderModule::SetPolicy(destroy_if_unused);
+  }
+
+  // Releases shader modules that are currently unused.
+  static void ReleaseUnusedShaders() { RefCountedShaderModule::Clean(); }
+
   // Loads a shader that will be used at 'shader_stage' from 'file_path'.
-  PipelineBuilder& AddShader(VkShaderStageFlagBits shader_stage,
-                             const std::string& file_path);
+  PipelineBuilder& SetShader(VkShaderStageFlagBits shader_stage,
+                             std::string&& file_path);
 
   // Returns a pipeline. This can be called multiple times.
   std::unique_ptr<Pipeline> Build() const;
@@ -129,6 +146,9 @@ class PipelineBuilder {
 
   // Pointer to context.
   const SharedBasicContext context_;
+
+  // Name of pipeline (used for debugging).
+  std::string name_;
 
   // Specifies how to assemble primitives.
   VkPipelineInputAssemblyStateCreateInfo input_assembly_info_;
@@ -164,8 +184,8 @@ class PipelineBuilder {
   // Color blend states of each color attachment.
   std::vector<VkPipelineColorBlendAttachmentState> color_blend_states_;
 
-  // Shaders used in the pipeline. This will be cleared after Build() is called.
-  std::vector<ShaderInfo> shader_infos_;
+  // Maps each shader stage to the file path of shader used in that stage.
+  absl::flat_hash_map<VkShaderStageFlagBits, std::string> shader_file_path_map_;
 };
 
 // VkPipeline configures multiple shader stages, multiple fixed function stages
@@ -199,13 +219,17 @@ class Pipeline {
   friend std::unique_ptr<Pipeline> PipelineBuilder::Build() const;
 
   Pipeline(SharedBasicContext context,
+           const std::string& name,
            const VkPipeline& pipeline,
            const VkPipelineLayout& pipeline_layout)
-      : context_{std::move(context)},
+      : context_{std::move(context)}, name_{name},
         pipeline_{pipeline}, layout_{pipeline_layout} {}
 
   // Pointer to context.
   const SharedBasicContext context_;
+
+  // Name of pipeline (used for debugging).
+  const std::string name_;
 
   // Opaque pipeline object.
   VkPipeline pipeline_;

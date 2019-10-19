@@ -396,9 +396,11 @@ point for each type.
 
 Shaders are added after a builder is constructed. By default, shader modules are
 released to save the host memory. However, this will cause more I/O the next
-time we rebuild the model. The default choice is made with the assumption that
-we don't rebuild the model very frequently. The user can change this setting
-through **Model**.
+time we rebuild the model. If multiple models share the same shaders, the user
+can use **ModelBuilder::AutoReleaseShaderPool** (which is an alias of
+**PipelineBuilder::AutoReleaseShaderPool**) to prevent shaders from being auto
+released. Especially when rendering texts, the same shaders are expected to be
+used for multiple times, and the auto release pool will be of great help.
 
 #### 3.3.1.2 Bind per-instance vertex buffers, uniform buffers and push constants
 

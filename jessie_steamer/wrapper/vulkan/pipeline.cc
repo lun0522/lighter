@@ -22,6 +22,7 @@ namespace vulkan {
 namespace {
 
 using std::vector;
+using RefCountedShaderModule = PipelineBuilder::RefCountedShaderModule;
 
 // Creates a viewport state given 'viewport_info'.
 VkPipelineViewportStateCreateInfo CreateViewportStateInfo(
@@ -69,25 +70,25 @@ VkPipelineVertexInputStateCreateInfo CreateVertexInputInfo(
   };
 }
 
-// Each shader will use its file path as the identifier.
-using RefCountedShaderModule = common::RefCountedObject<ShaderModule>;
-
 // Contains a loaded shader 'module' that will be used at 'stage'.
 struct ShaderStage {
   VkShaderStageFlagBits stage;
   RefCountedShaderModule module;
 };
 
-// Loads shaders in 'shader_infos'.
+// Loads shaders in 'shader_file_path_map'.
 vector<ShaderStage> CreateShaderStages(
     const SharedBasicContext& context,
-    const vector<PipelineBuilder::ShaderInfo>& shader_infos) {
+    const absl::flat_hash_map<VkShaderStageFlagBits, std::string>&
+        shader_file_path_map) {
   vector<ShaderStage> shader_stages;
-  shader_stages.reserve(shader_infos.size());
-  for (const auto& info : shader_infos) {
+  shader_stages.reserve(shader_file_path_map.size());
+  for (const auto& pair : shader_file_path_map) {
+    const auto& file_path = pair.second;
     shader_stages.emplace_back(ShaderStage{
-        info.shader_stage, RefCountedShaderModule::Get(
-            /*identifier=*/info.file_path, context, info.file_path),
+        /*stage=*/pair.first,
+        RefCountedShaderModule::Get(
+            /*identifier=*/file_path, context, file_path),
     });
   }
   return shader_stages;
@@ -121,6 +122,8 @@ vector<VkPipelineShaderStageCreateInfo> CreateShaderStageInfos(
 ShaderModule::ShaderModule(SharedBasicContext context,
                            const std::string& file_path)
     : context_{std::move(context)} {
+  context_->RegisterRefCountPool<RefCountedShaderModule>();
+
   const auto raw_data = absl::make_unique<common::RawData>(file_path);
   const VkShaderModuleCreateInfo module_info{
       VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -201,6 +204,11 @@ PipelineBuilder::PipelineBuilder(SharedBasicContext context)
       /*dynamicStateCount=*/0,
       /*pDynamicStates=*/nullptr,
   };
+}
+
+PipelineBuilder& PipelineBuilder::SetName(std::string&& name) {
+  name_ = std::move(name);
+  return *this;
 }
 
 PipelineBuilder& PipelineBuilder::SetDepthTestEnabled(bool enable_test,
@@ -299,9 +307,9 @@ PipelineBuilder& PipelineBuilder::SetColorBlend(
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::AddShader(VkShaderStageFlagBits shader_stage,
-                                            const std::string& file_path) {
-  shader_infos_.emplace_back(ShaderInfo{shader_stage, file_path});
+PipelineBuilder& PipelineBuilder::SetShader(VkShaderStageFlagBits shader_stage,
+                                            std::string&& file_path) {
+  shader_file_path_map_[shader_stage] = std::move(file_path);
   return *this;
 }
 
@@ -310,7 +318,7 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() const {
   ASSERT_HAS_VALUE(viewport_info_, "Viewport is not set");
   ASSERT_HAS_VALUE(render_pass_info_, "Render pass is not set");
   ASSERT_NON_EMPTY(color_blend_states_, "Color blend is not set");
-  ASSERT_NON_EMPTY(shader_infos_, "Shader is not set");
+  ASSERT_NON_EMPTY(shader_file_path_map_, "Shader is not set");
 
   const auto viewport_state_info =
       CreateViewportStateInfo(viewport_info_.value());
@@ -319,7 +327,8 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() const {
                                                        attribute_descriptions_);
   // Shader modules can be destroyed to save the host memory after the pipeline
   // is created.
-  const auto shader_stages = CreateShaderStages(context_, shader_infos_);
+  const auto shader_stages =
+      CreateShaderStages(context_, shader_file_path_map_);
   const auto shader_stage_infos = CreateShaderStageInfos(shader_stages);
 
   VkPipelineLayout pipeline_layout;
@@ -362,7 +371,7 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() const {
       "Failed to create graphics pipeline");
 
   return std::unique_ptr<Pipeline>{
-      new Pipeline{context_, pipeline, pipeline_layout}};
+      new Pipeline{context_, name_, pipeline, pipeline_layout}};
 }
 
 void Pipeline::Bind(const VkCommandBuffer& command_buffer) const {
@@ -373,7 +382,7 @@ Pipeline::~Pipeline() {
   vkDestroyPipeline(*context_->device(), pipeline_, *context_->allocator());
   vkDestroyPipelineLayout(*context_->device(), layout_, *context_->allocator());
 #ifndef NDEBUG
-  LOG << "Pipeline destructed" << std::endl;
+  LOG << absl::StreamFormat("Pipeline '%s' destructed", name_) << std::endl;
 #endif  /* !NDEBUG */
 }
 

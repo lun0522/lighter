@@ -151,45 +151,42 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
       },
   };
 
-  nanosuit_model_ =
-      ModelBuilder{
-          context(), kNumFramesInFlight,
-          ModelBuilder::MultiMeshResource{
-              GetResourcePath("model/nanosuit/nanosuit.obj"),
-              GetResourcePath("model/nanosuit"),
-          }}
-          .AddSharedTexture(TextureType::kCubemap, skybox_path)
-          .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/1)
-          .AddTextureBindingPoint(TextureType::kSpecular, /*binding_point=*/2)
-          .AddTextureBindingPoint(TextureType::kReflection, /*binding_point=*/3)
-          .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/4)
-          .AddUniformBinding(
-               VK_SHADER_STAGE_VERTEX_BIT,
-               /*bindings=*/{{/*binding_point=*/0, /*array_length=*/1}})
-          .AddUniformBuffer(/*binding_point=*/0, *nanosuit_vert_uniform_)
-          .SetPushConstantShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT)
-          .AddPushConstant(nanosuit_frag_constant_.get(), /*target_offset=*/0)
-          .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
-                     GetShaderPath("vulkan/nanosuit.vert.spv"))
-          .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                     GetShaderPath("vulkan/nanosuit.frag.spv"))
-          .Build();
+  nanosuit_model_ = ModelBuilder{
+      context(), "nanosuit", kNumFramesInFlight,
+      ModelBuilder::MultiMeshResource{
+          GetResourcePath("model/nanosuit/nanosuit.obj"),
+          GetResourcePath("model/nanosuit")}}
+      .AddSharedTexture(TextureType::kCubemap, skybox_path)
+      .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/1)
+      .AddTextureBindingPoint(TextureType::kSpecular, /*binding_point=*/2)
+      .AddTextureBindingPoint(TextureType::kReflection, /*binding_point=*/3)
+      .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/4)
+      .AddUniformBinding(
+           VK_SHADER_STAGE_VERTEX_BIT,
+           /*bindings=*/{{/*binding_point=*/0, /*array_length=*/1}})
+      .AddUniformBuffer(/*binding_point=*/0, *nanosuit_vert_uniform_)
+      .SetPushConstantShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT)
+      .AddPushConstant(nanosuit_frag_constant_.get(), /*target_offset=*/0)
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                 GetShaderPath("vulkan/nanosuit.vert.spv"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 GetShaderPath("vulkan/nanosuit.frag.spv"))
+      .Build();
 
-  skybox_model_ =
-      ModelBuilder{
-          context(), kNumFramesInFlight,
-          ModelBuilder::SingleMeshResource{
-              GetResourcePath("model/skybox.obj"), kObjFileIndexBase,
-              /*tex_source_map=*/{{TextureType::kCubemap, {skybox_path}}},
-          }}
-          .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/1)
-          .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
-          .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
-          .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
-                     GetShaderPath("vulkan/skybox.vert.spv"))
-          .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                     GetShaderPath("vulkan/skybox.frag.spv"))
-          .Build();
+  skybox_model_ = ModelBuilder{
+      context(), "skybox", kNumFramesInFlight,
+      ModelBuilder::SingleMeshResource{
+          GetResourcePath("model/skybox.obj"), kObjFileIndexBase,
+          /*tex_source_map=*/{{TextureType::kCubemap, {skybox_path}}},
+      }}
+      .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/1)
+      .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
+      .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                 GetShaderPath("vulkan/skybox.vert.spv"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 GetShaderPath("vulkan/skybox.frag.spv"))
+      .Build();
 }
 
 void NanosuitApp::Recreate() {
@@ -281,12 +278,11 @@ void NanosuitApp::MainLoop() {
       window_context_.Recreate();
       Recreate();
     }
-
     current_frame_ = (current_frame_ + 1) % kNumFramesInFlight;
     // Camera is not activated until first frame is displayed.
     camera_->SetActivity(true);
   }
-  context()->WaitIdle();
+  context()->OnExit();
 }
 
 } /* namespace vulkan */

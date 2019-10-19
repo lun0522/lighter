@@ -73,6 +73,21 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
     release_expired_rsrc_ops_.emplace_back(std::move(op));
   }
 
+  // Registers a pool of reference counted objects. This should be called if
+  // those objects should be constructed and destructed with this context.
+  // The pool is static while this context is not, hence we need to collect the
+  // pools and release them before the program ends, so that the context can be
+  // destructed properly.
+  template <typename RefCountedObjectType>
+  void RegisterRefCountPool() {
+    static bool first_time = true;
+    if (first_time) {
+      first_time = false;
+      release_ref_count_pool_ops_.emplace_back(
+          []() { RefCountedObjectType::Clean(); });
+    }
+  }
+
   // Waits for the graphics device becomes idle, and releases expired resources.
   void WaitIdle() {
     device_.WaitIdle();
@@ -80,6 +95,13 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
       for (const auto& op : release_expired_rsrc_ops_) { op(*this); }
       release_expired_rsrc_ops_.clear();
     }
+  }
+
+  // The user must call this before exiting the main() function.
+  void OnExit() {
+    device_.WaitIdle();
+    for (const auto& op : release_expired_rsrc_ops_) { op(*this); }
+    for (const auto& op : release_ref_count_pool_ops_) { op(); }
   }
 
   // Returns unique queue family indices.
@@ -101,6 +123,9 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   const Queues& queues() const { return queues_; }
 
  private:
+  // Specifies how to release a pool of reference counted objects.
+  using ReleaseRefCountPoolOp = std::function<void()>;
+
   explicit BasicContext(
       const absl::optional<WindowSupport>& window_support
 #ifndef NDEBUG
@@ -135,9 +160,11 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   // Wrapper of VkQueue.
   const Queues queues_;
 
-  // Holds operations that are delayed to be executed until the graphics device
-  // becomes idle.
+  // Ops that are delayed to be executed until the graphics device becomes idle.
   std::vector<ReleaseExpiredResourceOp> release_expired_rsrc_ops_;
+
+  // Ops that are delayed to be executed before exiting the program.
+  std::vector<ReleaseRefCountPoolOp> release_ref_count_pool_ops_;
 };
 
 } /* namespace vulkan */

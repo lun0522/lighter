@@ -72,6 +72,9 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
   using common::file::GetResourcePath;
   using common::file::GetShaderPath;
 
+  // Prevent shaders from being auto released.
+  ModelBuilder::AutoReleaseShaderPool shader_pool;
+
   /* Command buffer */
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
@@ -92,26 +95,25 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
 
   // TODO: Add utils for resource paths and shader paths.
   /* Model */
-  model_ =
-      ModelBuilder{
-          context(), kNumFramesInFlight,
-          ModelBuilder::SingleMeshResource{
-              GetResourcePath("model/cube.obj"), kObjFileIndexBase,
-              /*tex_source_map=*/{{
-                  ModelBuilder::TextureType::kDiffuse,
-                  {SharedTexture::SingleTexPath{
-                       GetResourcePath("texture/statue.jpg")}},
-              }}
+  model_ = ModelBuilder{
+      context(), "cube", kNumFramesInFlight,
+      ModelBuilder::SingleMeshResource{
+          GetResourcePath("model/cube.obj"), kObjFileIndexBase,
+          /*tex_source_map=*/{{
+              ModelBuilder::TextureType::kDiffuse,
+              {SharedTexture::SingleTexPath{
+                   GetResourcePath("texture/statue.jpg")}},
           }}
-          .AddTextureBindingPoint(ModelBuilder::TextureType::kDiffuse,
-                                  /*binding_point=*/1)
-          .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
-          .AddPushConstant(push_constant_.get(), /*target_offset=*/0)
-          .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
-                     GetShaderPath("vulkan/simple_3d.vert.spv"))
-          .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                     GetShaderPath("vulkan/simple_3d.frag.spv"))
-          .Build();
+      }}
+      .AddTextureBindingPoint(ModelBuilder::TextureType::kDiffuse,
+                              /*binding_point=*/1)
+      .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
+      .AddPushConstant(push_constant_.get(), /*target_offset=*/0)
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                 GetShaderPath("vulkan/simple_3d.vert.spv"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 GetShaderPath("vulkan/simple_3d.frag.spv"))
+      .Build();
 
   /* Text */
   constexpr auto kFont = Text::Font::kGeorgia;
@@ -125,6 +127,9 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
 }
 
 void CubeApp::Recreate() {
+  // Prevent shaders from being auto released.
+  ModelBuilder::AutoReleaseShaderPool shader_pool;
+
   /* Depth image */
   const VkExtent2D& frame_size = window_context_.frame_size();
   depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
@@ -212,10 +217,9 @@ void CubeApp::MainLoop() {
       window_context_.Recreate();
       Recreate();
     }
-
     current_frame_ = (current_frame_ + 1) % kNumFramesInFlight;
   }
-  context()->WaitIdle();
+  context()->OnExit();
 }
 
 } /* namespace vulkan */

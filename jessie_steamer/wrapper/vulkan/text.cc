@@ -82,19 +82,22 @@ const vector<Descriptor::Info>& GetDescriptorInfos() {
 
 } /* namespace */
 
-Text::Text(SharedBasicContext context, int num_frames_in_flight)
+Text::Text(SharedBasicContext context,
+           string&& pipeline_name,
+           int num_frames_in_flight)
     : context_{std::move(context)},
       vertex_buffer_{context_, text_util::GetVertexDataSize(/*num_rects=*/1),
                      pipeline::GetVertexAttribute<Vertex2D>()},
       uniform_buffer_{context_, sizeof(TextRenderInfo), num_frames_in_flight},
       pipeline_builder_{context_} {
   pipeline_builder_
+      .SetName(std::move(pipeline_name))
       .AddVertexInput(kVertexBufferBindingPoint,
                       pipeline::GetPerVertexBindingDescription<Vertex2D>(),
                       vertex_buffer_.GetAttributes(/*start_location=*/0))
-      .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                  common::file::GetShaderPath("vulkan/char.vert.spv"))
-      .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
                  common::file::GetShaderPath("vulkan/text.frag.spv"));
 }
 
@@ -135,7 +138,7 @@ StaticText::StaticText(SharedBasicContext context,
                        int num_frames_in_flight,
                        const vector<string>& texts,
                        Font font, int font_height)
-    : Text{std::move(context), num_frames_in_flight},
+    : Text{std::move(context), "static text", num_frames_in_flight},
       text_loader_{context_, texts, font, font_height} {
   descriptors_.reserve(num_frames_in_flight);
   push_descriptors_.reserve(num_frames_in_flight);
@@ -213,7 +216,7 @@ DynamicText::DynamicText(SharedBasicContext context,
                          int num_frames_in_flight,
                          const vector<string>& texts,
                          Font font, int font_height)
-    : Text{std::move(context), num_frames_in_flight},
+    : Text{std::move(context), "dynamic text", num_frames_in_flight},
       char_loader_{context_, texts, font, font_height} {
   const auto& descriptor_infos = GetDescriptorInfos();
   const Descriptor::ImageInfoMap image_info_map{{

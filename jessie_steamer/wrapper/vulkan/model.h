@@ -37,8 +37,14 @@ class Model;
 
 // The user should use this class to create Model. After calling Build(),
 // internal states will be invalidated, and the builder should be discarded.
+// When building multiple models that share shaders, the user may use
+// AutoReleaseShaderPool to prevent shaders from being auto released.
 class ModelBuilder {
  public:
+  // An instance of this will preserve all shader modules created within its
+  // scope, and release them once goes out of scope.
+  using AutoReleaseShaderPool = PipelineBuilder::AutoReleaseShaderPool;
+
   using TextureType = common::ModelLoader::TextureType;
 
   // Each mesh can have any type of textures, and a list of samplable images
@@ -96,7 +102,9 @@ class ModelBuilder {
   // If any offscreen images are used in 'resource', the user is responsible for
   // keeping the existence of them.
   ModelBuilder(SharedBasicContext context,
-               int num_frames_in_flight, const ModelResource& resource);
+               std::string&& name,
+               int num_frames_in_flight,
+               const ModelResource& resource);
 
   // This class is neither copyable nor movable.
   ModelBuilder(const ModelBuilder&) = delete;
@@ -138,7 +146,7 @@ class ModelBuilder {
                                 uint32_t target_offset);
 
   // Loads a shader that will be used at 'shader_stage' from 'file_path'.
-  ModelBuilder& AddShader(VkShaderStageFlagBits shader_stage,
+  ModelBuilder& SetShader(VkShaderStageFlagBits shader_stage,
                           std::string&& file_path);
 
   // Returns a model. All internal states will be invalidated after this.

@@ -135,6 +135,21 @@ template <typename ObjectType>
 typename RefCountedObject<ObjectType>::ObjectPool
     RefCountedObject<ObjectType>::object_pool_{};
 
+// An instance of this class preserves reference counted objects of ObjectType
+// within its scope, even if the reference count of an object drops to zero.
+// When it goes out of scope, objects with zero reference count will be
+// automatically released. The usage of it is very similar to std::lock_guard.
+template <typename ObjectType>
+struct AutoReleasePool {
+  AutoReleasePool() {
+    RefCountedObject<ObjectType>::SetPolicy(/*destroy_if_unused=*/false);
+  }
+
+  ~AutoReleasePool() {
+    RefCountedObject<ObjectType>::SetPolicy(/*destroy_if_unused=*/true);
+  }
+};
+
 } /* namespace common */
 } /* namespace jessie_steamer */
 

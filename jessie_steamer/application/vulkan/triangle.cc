@@ -108,13 +108,14 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   /* Pipeline */
   pipeline_builder_ = absl::make_unique<PipelineBuilder>(context());
   (*pipeline_builder_)
+      .SetName("triangle")
       .AddVertexInput(kVertexBufferBindingPoint,
                       pipeline::GetPerVertexBindingDescription<Vertex3DNoTex>(),
                       vertex_buffer_->GetAttributes(/*start_location=*/0))
       .SetPipelineLayout(/*descriptor_layouts=*/{}, {push_constant_range})
-      .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                  common::file::GetShaderPath("vulkan/simple_2d.vert.spv"))
-      .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
                  common::file::GetShaderPath("vulkan/simple_2d.frag.spv"));
 }
 
@@ -190,10 +191,9 @@ void TriangleApp::MainLoop() {
       window_context_.Recreate();
       Recreate();
     }
-
     current_frame_ = (current_frame_ + 1) % kNumFramesInFlight;
   }
-  context()->WaitIdle();
+  context()->OnExit();
 }
 
 } /* namespace vulkan */

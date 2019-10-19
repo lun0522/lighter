@@ -182,6 +182,8 @@ VkDescriptorImageInfo TextureImage::GetDescriptorInfo() const {
 
 SharedTexture::RefCountedTexture SharedTexture::GetTexture(
     SharedBasicContext context, const SourcePath& source_path) {
+  context->RegisterRefCountPool<SharedTexture::RefCountedTexture>();
+
   using SingleImage = std::unique_ptr<common::Image>;
   using CubemapImage = std::array<SingleImage, kCubemapImageCount>;
   using SourceImage = absl::variant<SingleImage, CubemapImage>;
@@ -217,9 +219,7 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
   }
 
   return RefCountedTexture::Get(
-      *identifier,
-      std::move(context),
-      generate_mipmaps,
+      *identifier, std::move(context), generate_mipmaps,
       TextureBuffer::Info{
           std::move(datas),
           FindColorImageFormat(sample_image->channel),

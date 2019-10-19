@@ -101,21 +101,23 @@ std::unique_ptr<RenderPass> BuildRenderPass(
 // and the front face direction is clockwise, since we will flip Y coordinates.
 std::unique_ptr<PipelineBuilder> CreatePipelineBuilder(
     const SharedBasicContext& context,
+    string&& pipeline_name,
     const PerVertexBuffer& vertex_buffer,
     const VkDescriptorSetLayout& descriptor_layout,
     bool enable_color_blend) {
   auto pipeline_builder = absl::make_unique<PipelineBuilder>(context);
 
   (*pipeline_builder)
+      .SetName(std::move(pipeline_name))
       .AddVertexInput(kVertexBufferBindingPoint,
                       pipeline::GetPerVertexBindingDescription<Vertex2D>(),
                       vertex_buffer.GetAttributes(/*start_location=*/0))
       .SetPipelineLayout({descriptor_layout}, /*push_constant_ranges=*/{})
       .SetColorBlend({pipeline::GetColorBlendState(enable_color_blend)})
       .SetFrontFaceDirection(/*counter_clockwise=*/false)
-      .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                  common::file::GetShaderPath("vulkan/char.vert.spv"))
-      .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
                  common::file::GetShaderPath("vulkan/char.frag.spv"));
 
   return pipeline_builder;
@@ -189,8 +191,8 @@ CharLoader::CharLoader(SharedBasicContext context,
                                            render_pass_builder.get());
 
   auto pipeline_builder =
-      CreatePipelineBuilder(context_, *vertex_buffer, descriptor->layout(),
-                            /*enable_color_blend=*/false);
+      CreatePipelineBuilder(context_, "char loader", *vertex_buffer,
+                            descriptor->layout(), /*enable_color_blend=*/false);
   const auto pipeline = BuildPipeline(*char_lib_image_, **render_pass,
                                       pipeline_builder.get());
 
@@ -338,8 +340,8 @@ TextLoader::TextLoader(SharedBasicContext context,
   // Advance can be negative, and thus bounding boxes of characters may have
   // overlap, hence we need to enable color blending.
   auto pipeline_builder =
-      CreatePipelineBuilder(context_, vertex_buffer, descriptor->layout(),
-                            /*enable_color_blend=*/true);
+      CreatePipelineBuilder(context_, "text loader", vertex_buffer,
+                            descriptor->layout(), /*enable_color_blend=*/true);
 
   const CharLoader char_loader{context_, texts, font, font_height};
   text_texture_infos_.reserve(texts.size());

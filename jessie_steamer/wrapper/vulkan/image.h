@@ -130,6 +130,12 @@ class SharedTexture : public SamplableImage {
     return texture_->GetDescriptorInfo();
   }
 
+  // Sets whether textures loaded from files should be destroyed if they no
+  // longer have any holder. By default this is true.
+  static void SetTextureResourcePolicy(bool destroy_if_unused) {
+    RefCountedTexture::SetPolicy(destroy_if_unused);
+  }
+
  private:
   using RefCountedTexture = common::RefCountedObject<TextureImage>;
 

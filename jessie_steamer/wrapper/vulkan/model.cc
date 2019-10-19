@@ -139,12 +139,14 @@ void SetPipelineVertexInput(
 } /* namespace */
 
 ModelBuilder::ModelBuilder(SharedBasicContext context,
+                           std::string&& name,
                            int num_frames_in_flight,
                            const ModelResource& resource)
     : context_{std::move(context)},
       num_frames_in_flight_{num_frames_in_flight},
       uniform_buffer_info_maps_(num_frames_in_flight_),
       pipeline_builder_{absl::make_unique<PipelineBuilder>(context_)} {
+  pipeline_builder_->SetName(std::move(name));
   if (absl::holds_alternative<SingleMeshResource>(resource)) {
     LoadSingleMesh(absl::get<SingleMeshResource>(resource));
   } else if (absl::holds_alternative<MultiMeshResource>(resource)) {
@@ -264,9 +266,9 @@ ModelBuilder& ModelBuilder::AddPushConstant(const PushConstant* push_constant,
   return *this;
 }
 
-ModelBuilder& ModelBuilder::AddShader(VkShaderStageFlagBits shader_stage,
+ModelBuilder& ModelBuilder::SetShader(VkShaderStageFlagBits shader_stage,
                                       std::string&& file_path) {
-  pipeline_builder_->AddShader(shader_stage, std::move(file_path));
+  pipeline_builder_->SetShader(shader_stage, std::move(file_path));
   return *this;
 }
 

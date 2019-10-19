@@ -157,51 +157,49 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       /*present_to_screen=*/true, window_context_.multisampling_mode());
 
   /* Model */
-  planet_model_ =
-      ModelBuilder{
-          context(), kNumFramesInFlight,
-          ModelBuilder::SingleMeshResource{
-              GetResourcePath("model/sphere.obj"), kObjFileIndexBase,
-              /*tex_source_map=*/{{
-                  TextureType::kDiffuse,
-                  {SharedTexture::SingleTexPath{
-                       GetResourcePath("texture/planet.png")}},
-              }}
+  planet_model_ = ModelBuilder{
+      context(), "planet", kNumFramesInFlight,
+      ModelBuilder::SingleMeshResource{
+          GetResourcePath("model/sphere.obj"), kObjFileIndexBase,
+          /*tex_source_map=*/{{
+              TextureType::kDiffuse,
+              {SharedTexture::SingleTexPath{
+                   GetResourcePath("texture/planet.png")}},
           }}
-          .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/2)
-          .AddUniformBinding(
-              VK_SHADER_STAGE_FRAGMENT_BIT,
-              /*bindings=*/{{/*binding_point=*/1, /*array_length=*/1}})
-          .AddUniformBuffer(/*binding_point=*/1, *light_uniform_)
-          .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
-          .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
-          .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
-                     GetShaderPath("vulkan/planet.vert.spv"))
-          .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                     GetShaderPath("vulkan/planet.frag.spv"))
-          .Build();
+      }}
+      .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/2)
+      .AddUniformBinding(
+          VK_SHADER_STAGE_FRAGMENT_BIT,
+          /*bindings=*/{{/*binding_point=*/1, /*array_length=*/1}})
+      .AddUniformBuffer(/*binding_point=*/1, *light_uniform_)
+      .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
+      .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                 GetShaderPath("vulkan/planet.vert.spv"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 GetShaderPath("vulkan/planet.frag.spv"))
+      .Build();
 
   GenAsteroidModels();
-  asteroid_model_ =
-      ModelBuilder{
-          context(), kNumFramesInFlight,
-          ModelBuilder::MultiMeshResource{
-              GetResourcePath("model/rock/rock.obj"),
-              GetResourcePath("model/rock"),
-          }}
-          .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/2)
-          .AddPerInstanceBuffer(per_asteroid_data_.get())
-          .AddUniformBinding(
-              VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-              /*bindings=*/{{/*binding_point=*/1, /*array_length=*/1}})
-          .AddUniformBuffer(/*binding_point=*/1, *light_uniform_)
-          .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
-          .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
-          .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
-                     GetShaderPath("vulkan/asteroid.vert.spv"))
-          .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                     GetShaderPath("vulkan/planet.frag.spv"))
-          .Build();
+  asteroid_model_ = ModelBuilder{
+      context(), "asteroid", kNumFramesInFlight,
+      ModelBuilder::MultiMeshResource{
+          GetResourcePath("model/rock/rock.obj"),
+          GetResourcePath("model/rock"),
+      }}
+      .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/2)
+      .AddPerInstanceBuffer(per_asteroid_data_.get())
+      .AddUniformBinding(
+          VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+          /*bindings=*/{{/*binding_point=*/1, /*array_length=*/1}})
+      .AddUniformBuffer(/*binding_point=*/1, *light_uniform_)
+      .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
+      .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                 GetShaderPath("vulkan/asteroid.vert.spv"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 GetShaderPath("vulkan/planet.frag.spv"))
+      .Build();
 
   const SharedTexture::CubemapPath skybox_path{
       /*directory=*/GetResourcePath("texture/universe"),
@@ -212,21 +210,20 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       },
   };
 
-  skybox_model_ =
-      ModelBuilder{
-          context(), kNumFramesInFlight,
-          ModelBuilder::SingleMeshResource{
-              GetResourcePath("model/skybox.obj"), kObjFileIndexBase,
-              {{TextureType::kCubemap, {skybox_path}}},
-          }}
-          .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/1)
-          .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
-          .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
-          .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
-                     GetShaderPath("vulkan/skybox.vert.spv"))
-          .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                     GetShaderPath("vulkan/skybox.frag.spv"))
-          .Build();
+  skybox_model_ = ModelBuilder{
+      context(), "skybox", kNumFramesInFlight,
+      ModelBuilder::SingleMeshResource{
+          GetResourcePath("model/skybox.obj"), kObjFileIndexBase,
+          {{TextureType::kCubemap, {skybox_path}}},
+      }}
+      .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/1)
+      .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
+      .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                 GetShaderPath("vulkan/skybox.vert.spv"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 GetShaderPath("vulkan/skybox.frag.spv"))
+      .Build();
 }
 
 void PlanetApp::Recreate() {
@@ -365,12 +362,11 @@ void PlanetApp::MainLoop() {
       window_context_.Recreate();
       Recreate();
     }
-
     current_frame_ = (current_frame_ + 1) % kNumFramesInFlight;
     // Camera is not activated until first frame is displayed.
     camera_->SetActivity(true);
   }
-  context()->WaitIdle();
+  context()->OnExit();
 }
 
 } /* namespace vulkan */

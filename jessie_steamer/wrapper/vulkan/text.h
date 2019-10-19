@@ -42,7 +42,9 @@ class Text {
               const RenderPass& render_pass, uint32_t subpass_index);
 
  protected:
-  Text(SharedBasicContext context, int num_frames_in_flight);
+  Text(SharedBasicContext context,
+       std::string&& pipeline_name,
+       int num_frames_in_flight);
 
   // Updates the color and alpha sent to the shader.
   void UpdateUniformBuffer(int frame, const glm::vec3& color, float alpha);
