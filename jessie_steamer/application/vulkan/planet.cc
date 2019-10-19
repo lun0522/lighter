@@ -38,7 +38,7 @@ struct Asteroid {
   glm::mat4 model;
 };
 
-/* BEGIN: Consistent with structs used in shaders. */
+/* BEGIN: Consistent with uniform blocks defined in shaders. */
 
 struct Light {
   ALIGN_VEC4 glm::vec4 direction_time;
@@ -54,7 +54,7 @@ struct SkyboxTrans {
   ALIGN_MAT4 glm::mat4 view;
 };
 
-/* END: Consistent with structs used in shaders. */
+/* END: Consistent with uniform blocks defined in shaders. */
 
 class PlanetApp : public Application {
  public:
@@ -258,7 +258,7 @@ void PlanetApp::Recreate() {
           return window_context_.multisample_image();
         });
   }
-  render_pass_ = (**render_pass_builder_).Build();
+  render_pass_ = (*render_pass_builder_)->Build();
 
   /* Model */
   constexpr bool kIsObjectOpaque = true;

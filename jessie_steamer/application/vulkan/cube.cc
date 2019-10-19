@@ -31,13 +31,13 @@ enum SubpassIndex {
   kNumOverlaySubpasses = kNumSubpasses - kTextSubpassIndex,
 };
 
-/* BEGIN: Consistent with structs used in shaders. */
+/* BEGIN: Consistent with uniform blocks defined in shaders. */
 
 struct Transformation {
   ALIGN_MAT4 glm::mat4 proj_view_model;
 };
 
-/* END: Consistent with structs used in shaders. */
+/* END: Consistent with uniform blocks defined in shaders. */
 
 class CubeApp : public Application {
  public:
@@ -149,7 +149,7 @@ void CubeApp::Recreate() {
           return window_context_.multisample_image();
         });
   }
-  render_pass_ = (**render_pass_builder_).Build();
+  render_pass_ = (*render_pass_builder_)->Build();
 
   /* Model and text */
   const VkSampleCountFlagBits sample_count = window_context_.sample_count();

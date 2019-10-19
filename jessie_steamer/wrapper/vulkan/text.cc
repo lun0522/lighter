@@ -30,13 +30,13 @@ constexpr uint32_t kVertexBufferBindingPoint = 0;
 
 enum BindingPoint { kUniformBufferBindingPoint = 0, kTextureBindingPoint };
 
-/* BEGIN: Consistent with structs used in shaders. */
+/* BEGIN: Consistent with uniform blocks defined in shaders. */
 
 struct TextRenderInfo {
   ALIGN_VEC4 glm::vec4 color_alpha;
 };
 
-/* END: Consistent with structs used in shaders. */
+/* END: Consistent with uniform blocks defined in shaders. */
 
 // Returns the starting horizontal offset.
 float GetOffsetX(float base_x, Text::Align align, float total_width) {
@@ -88,16 +88,19 @@ Text::Text(SharedBasicContext context, int num_frames_in_flight)
                      pipeline::GetVertexAttribute<Vertex2D>()},
       uniform_buffer_{context_, sizeof(TextRenderInfo), num_frames_in_flight},
       pipeline_builder_{context_} {
-  pipeline_builder_.AddVertexInput(
-      kVertexBufferBindingPoint,
-      pipeline::GetPerVertexBindingDescription<Vertex2D>(),
-      vertex_buffer_.GetAttributes(/*start_location=*/0));
+  pipeline_builder_
+      .AddVertexInput(kVertexBufferBindingPoint,
+                      pipeline::GetPerVertexBindingDescription<Vertex2D>(),
+                      vertex_buffer_.GetAttributes(/*start_location=*/0))
+      .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
+                 common::file::GetShaderPath("vulkan/char.vert.spv"))
+      .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 common::file::GetShaderPath("vulkan/text.frag.spv"));
 }
 
 void Text::Update(const VkExtent2D& frame_size,
                   VkSampleCountFlagBits sample_count,
                   const RenderPass& render_pass, uint32_t subpass_index) {
-  using common::file::GetShaderPath;
   pipeline_ = pipeline_builder_
       .SetMultisampling(sample_count)
       .SetViewport(
@@ -119,10 +122,6 @@ void Text::Update(const VkExtent2D& frame_size,
           vector<VkPipelineColorBlendAttachmentState>(
               render_pass.num_color_attachments(subpass_index),
               pipeline::GetColorBlendState(/*enable_blend=*/true)))
-      .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetShaderPath("vulkan/char.vert.spv"))
-      .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetShaderPath("vulkan/text.frag.spv"))
       .Build();
 }
 

@@ -116,6 +116,19 @@ void VectorAppend(std::vector<ContentType>* dst,
   src->clear();
 }
 
+// Erases elements in 'container' that satisfies the 'predicate'.
+template <typename Container, typename Predicate>
+void EraseIf(const Predicate& predicate, Container* container) {
+  auto iter = container->begin();
+  while (iter != container->end()) {
+    if (predicate(*iter)) {
+      container->erase(iter++);
+    } else {
+      ++iter;
+    }
+  }
+}
+
 // Helper class to enable using an enum class as the key of a hash table:
 //   absl::flat_hash_map<KeyType, ValueType, EnumClassHash>;
 struct EnumClassHash {

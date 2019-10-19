@@ -143,7 +143,8 @@ ModelBuilder::ModelBuilder(SharedBasicContext context,
                            const ModelResource& resource)
     : context_{std::move(context)},
       num_frames_in_flight_{num_frames_in_flight},
-      uniform_buffer_info_maps_(num_frames_in_flight_) {
+      uniform_buffer_info_maps_(num_frames_in_flight_),
+      pipeline_builder_{absl::make_unique<PipelineBuilder>(context_)} {
   if (absl::holds_alternative<SingleMeshResource>(resource)) {
     LoadSingleMesh(absl::get<SingleMeshResource>(resource));
   } else if (absl::holds_alternative<MultiMeshResource>(resource)) {
@@ -265,7 +266,7 @@ ModelBuilder& ModelBuilder::AddPushConstant(const PushConstant* push_constant,
 
 ModelBuilder& ModelBuilder::AddShader(VkShaderStageFlagBits shader_stage,
                                       std::string&& file_path) {
-  shader_infos_.emplace_back(ShaderInfo{shader_stage, std::move(file_path)});
+  pipeline_builder_->AddShader(shader_stage, std::move(file_path));
   return *this;
 }
 
@@ -304,32 +305,30 @@ std::unique_ptr<Model> ModelBuilder::Build() {
     ASSERT_NON_EMPTY(push_constant_infos_->infos,
                      "Push constant data source is not set");
   }
-  ASSERT_NON_EMPTY(shader_infos_, "Shader is not set");
 
-  auto pipeline_builder = absl::make_unique<PipelineBuilder>(context_);
   auto descriptors = CreateDescriptors();
-  pipeline_builder->SetPipelineLayout(
+  pipeline_builder_->SetPipelineLayout(
       {descriptors[0][0]->layout()},
       push_constant_infos_.has_value()
           ? CreatePushConstantRanges(push_constant_infos_.value())
           : vector<VkPushConstantRange>{});
   SetPipelineVertexInput(*vertex_buffer_, per_instance_buffers_,
-                         pipeline_builder.get());
+                         pipeline_builder_.get());
 
   uniform_descriptor_infos_.clear();
   uniform_buffer_info_maps_.clear();
 
   return std::unique_ptr<Model>{new Model{
-      context_, std::move(shader_infos_), std::move(vertex_buffer_),
-      std::move(per_instance_buffers_), std::move(push_constant_infos_),
-      std::move(shared_textures_), std::move(mesh_textures_),
-      std::move(descriptors), std::move(pipeline_builder)}};
+      context_, std::move(vertex_buffer_), std::move(per_instance_buffers_),
+      std::move(push_constant_infos_), std::move(shared_textures_),
+      std::move(mesh_textures_), std::move(descriptors),
+      std::move(pipeline_builder_)}};
 }
 
 void Model::Update(bool is_object_opaque, const VkExtent2D& frame_size,
                    VkSampleCountFlagBits sample_count,
                    const RenderPass& render_pass, uint32_t subpass_index) {
-  (*pipeline_builder_)
+  pipeline_ = (*pipeline_builder_)
       .SetDepthTestEnabled(/*enable_test=*/true,
                            /*enable_write=*/is_object_opaque)
       .SetMultisampling(sample_count)
@@ -352,11 +351,8 @@ void Model::Update(bool is_object_opaque, const VkExtent2D& frame_size,
           vector<VkPipelineColorBlendAttachmentState>(
               render_pass.num_color_attachments(subpass_index),
               pipeline::GetColorBlendState(
-                  /*enable_blend=*/!is_object_opaque)));
-  for (const auto& info : shader_infos_) {
-    pipeline_builder_->AddShader(info.shader_stage, info.file_path);
-  }
-  pipeline_ = pipeline_builder_->Build();
+                  /*enable_blend=*/!is_object_opaque)))
+      .Build();
 }
 
 void Model::Draw(const VkCommandBuffer& command_buffer,

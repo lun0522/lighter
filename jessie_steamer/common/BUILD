@@ -60,6 +60,7 @@ cc_library(
     name = "ref_count",
     hdrs = ["ref_count.h"],
     deps = [
+        ":util",
         "//third_party/absl/container:flat_hash_map",
         "//third_party/absl/memory",
     ],

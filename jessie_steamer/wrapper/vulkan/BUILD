@@ -151,6 +151,7 @@ cc_library(
         ":buffer",
         ":util",
         "//jessie_steamer/common:file",
+        "//jessie_steamer/common:ref_count",
         "//jessie_steamer/common:util",
         "//third_party/absl/memory",
         "//third_party/absl/strings",

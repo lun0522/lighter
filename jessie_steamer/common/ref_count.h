@@ -10,15 +10,21 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
+#include "jessie_steamer/common/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/memory/memory.h"
 
 namespace jessie_steamer {
 namespace common {
 
-// Reference counted objects that use strings as the identifier. We can use the
+// Each reference counted object uses a string as its identifier. We can use the
 // object with operators '.' and '->', as if using std smart pointers.
+// By default, an object will be destroyed if its reference count drops to zero.
+// The user may call SetPolicy() to change the policy, in which case objects
+// with zero reference counts will stay in the pool, until the policy changes
+// again or the user calls Clean().
 template <typename ObjectType>
 class RefCountedObject {
  public:
@@ -28,15 +34,20 @@ class RefCountedObject {
   // construct a new object.
   template <typename... Args>
   static RefCountedObject Get(const std::string& identifier, Args&&... args) {
-    auto found = ref_count_map_.find(identifier);
-    if (found == ref_count_map_.end()) {
-      auto inserted = ref_count_map_.emplace(
-          identifier, ObjectWithCounter{
+    auto found = ref_count_map().find(identifier);
+    if (found == ref_count_map().end()) {
+      const auto inserted = ref_count_map().emplace(
+          identifier, typename ObjectPool::ObjectWithCounter{
               absl::make_unique<ObjectType>(std::forward<Args>(args)...),
               /*ref_count=*/0,
           });
       found = inserted.first;
     }
+#ifndef NDEBUG
+    else {
+      LOG << "Cache hit: " << identifier << std::endl;
+    }
+#endif  /* !NDEBUG */
     auto& ref_counted_object = found->second;
     ++ref_counted_object.ref_count;
     return RefCountedObject{identifier, ref_counted_object.object.get()};
@@ -59,10 +70,28 @@ class RefCountedObject {
     if (identifier_.empty()) {
       return;
     }
-    auto found = ref_count_map_.find(identifier_);
-    if (--found->second.ref_count == 0) {
-      ref_count_map_.erase(found);
+    const auto found = ref_count_map().find(identifier_);
+    if (--found->second.ref_count == 0 && object_pool_.destroy_if_unused) {
+      ref_count_map().erase(found);
     }
+  }
+
+  // If true, an object will be destroyed if its reference count drops to zero.
+  static void SetPolicy(bool destroy_if_unused) {
+    object_pool_.destroy_if_unused = destroy_if_unused;
+    if (destroy_if_unused) {
+      Clean();
+    }
+  }
+
+  // Destroys all objects with zero reference counts in the pool;
+  static void Clean() {
+    using ObjectWithCounter = typename ObjectPool::ObjectWithCounter;
+    static const auto remove_unused =
+        [](const std::pair<const std::string, ObjectWithCounter>& pair) {
+          return pair.second.ref_count == 0;
+        };
+    common::util::EraseIf(remove_unused, &ref_count_map());
   }
 
   // Overloads.
@@ -70,18 +99,30 @@ class RefCountedObject {
   const ObjectType& operator*() const { return *object_ptr_; }
 
  private:
+  // An object pool shared by all objects of the same class. The key of
+  // 'ref_count_map' is the identifier, and the value is the actual object and
+  // its reference count.
+  struct ObjectPool {
+    struct ObjectWithCounter {
+      std::unique_ptr<ObjectType> object;
+      int ref_count;
+    };
+    using RefCountMap = absl::flat_hash_map<std::string, ObjectWithCounter>;
+
+    RefCountMap ref_count_map;
+    bool destroy_if_unused = true;
+  };
+
   RefCountedObject(std::string identifier, const ObjectType* object_ptr)
       : identifier_{std::move(identifier)}, object_ptr_{object_ptr} {}
 
-  // An objects pool shared by all objects of the same class, where the key is
-  // the identifier, and the value is a pair of the actual object and its
-  // reference count. The object will be erased from the pool if it no longer
-  // has any holder.
-  struct ObjectWithCounter {
-    std::unique_ptr<ObjectType> object;
-    int ref_count;
-  };
-  static absl::flat_hash_map<std::string, ObjectWithCounter> ref_count_map_;
+  // Accessors.
+  static typename ObjectPool::RefCountMap& ref_count_map() {
+    return object_pool_.ref_count_map;
+  }
+
+  // All objects of the same class will share one pool.
+  static ObjectPool object_pool_;
 
   // Identifier of the object.
   std::string identifier_;
@@ -91,9 +132,8 @@ class RefCountedObject {
 };
 
 template <typename ObjectType>
-absl::flat_hash_map<std::string,
-                    typename RefCountedObject<ObjectType>::ObjectWithCounter>
-    RefCountedObject<ObjectType>::ref_count_map_{};
+typename RefCountedObject<ObjectType>::ObjectPool
+    RefCountedObject<ObjectType>::object_pool_{};
 
 } /* namespace common */
 } /* namespace jessie_steamer */

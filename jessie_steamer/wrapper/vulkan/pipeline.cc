@@ -23,48 +23,6 @@ namespace {
 
 using std::vector;
 
-// Loads the shader from 'file_path' and creates a shader module for it.
-VkShaderModule CreateShaderModule(const SharedBasicContext& context,
-                                  const std::string& file_path) {
-  const auto raw_data = absl::make_unique<common::RawData>(file_path);
-  const VkShaderModuleCreateInfo module_info{
-      VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
-      raw_data->size,
-      reinterpret_cast<const uint32_t*>(raw_data->data),
-  };
-
-  VkShaderModule module;
-  ASSERT_SUCCESS(vkCreateShaderModule(*context->device(), &module_info,
-                                      *context->allocator(), &module),
-                 "Failed to create shader module");
-
-  return module;
-}
-
-// Creates shader stages given 'shader_modules', assuming the entry point of
-// each shader is a main() function.
-vector<VkPipelineShaderStageCreateInfo> CreateShaderStageInfos(
-    const vector<PipelineBuilder::ShaderInfo>& shader_infos) {
-  static constexpr char kShaderEntryPoint[] = "main";
-  vector<VkPipelineShaderStageCreateInfo> shader_stages;
-  shader_stages.reserve(shader_infos.size());
-  for (const auto& info : shader_infos) {
-    shader_stages.emplace_back(VkPipelineShaderStageCreateInfo{
-        VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        /*pNext=*/nullptr,
-        /*flags=*/nullflag,
-        info.stage,
-        info.module,
-        /*pName=*/kShaderEntryPoint,
-        // May use 'pSpecializationInfo' to specify shader constants.
-        /*pSpecializationInfo=*/nullptr,
-    });
-  }
-  return shader_stages;
-}
-
 // Creates a viewport state given 'viewport_info'.
 VkPipelineViewportStateCreateInfo CreateViewportStateInfo(
     const PipelineBuilder::ViewportInfo& viewport_info) {
@@ -94,7 +52,87 @@ VkPipelineColorBlendStateCreateInfo CreateColorBlendInfo(
   };
 }
 
+// Creates a vertex input state. The user is responsible for keeping the
+// existence of 'attribute_descriptions' and 'attribute_descriptions' until the
+// returned value is no longer used.
+VkPipelineVertexInputStateCreateInfo CreateVertexInputInfo(
+    const vector<VkVertexInputBindingDescription>& binding_descriptions,
+    const vector<VkVertexInputAttributeDescription>& attribute_descriptions) {
+  return VkPipelineVertexInputStateCreateInfo{
+      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/nullflag,
+      CONTAINER_SIZE(binding_descriptions),
+      binding_descriptions.data(),
+      CONTAINER_SIZE(attribute_descriptions),
+      attribute_descriptions.data(),
+  };
+}
+
+// Each shader will use its file path as the identifier.
+using RefCountedShaderModule = common::RefCountedObject<ShaderModule>;
+
+// Contains a loaded shader 'module' that will be used at 'stage'.
+struct ShaderStage {
+  VkShaderStageFlagBits stage;
+  RefCountedShaderModule module;
+};
+
+// Loads shaders in 'shader_infos'.
+vector<ShaderStage> CreateShaderStages(
+    const SharedBasicContext& context,
+    const vector<PipelineBuilder::ShaderInfo>& shader_infos) {
+  vector<ShaderStage> shader_stages;
+  shader_stages.reserve(shader_infos.size());
+  for (const auto& info : shader_infos) {
+    shader_stages.emplace_back(ShaderStage{
+        info.shader_stage, RefCountedShaderModule::Get(
+            /*identifier=*/info.file_path, context, info.file_path),
+    });
+  }
+  return shader_stages;
+}
+
+// Extracts shader stage infos, assuming the entry point of each shader is a
+// main() function. The user is responsible for keeping the existence of
+// 'shader_stages' until the returned value is no longer used.
+vector<VkPipelineShaderStageCreateInfo> CreateShaderStageInfos(
+    const vector<ShaderStage>& shader_stages) {
+  static constexpr char kShaderEntryPoint[] = "main";
+  vector<VkPipelineShaderStageCreateInfo> shader_stage_infos;
+  shader_stage_infos.reserve(shader_stages.size());
+  for (const auto& stage : shader_stages) {
+    shader_stage_infos.emplace_back(VkPipelineShaderStageCreateInfo{
+        VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        /*pNext=*/nullptr,
+        /*flags=*/nullflag,
+        stage.stage,
+        **stage.module,
+        /*pName=*/kShaderEntryPoint,
+        // May use 'pSpecializationInfo' to specify shader constants.
+        /*pSpecializationInfo=*/nullptr,
+    });
+  }
+  return shader_stage_infos;
+}
+
 } /* namespace */
+
+ShaderModule::ShaderModule(SharedBasicContext context,
+                           const std::string& file_path)
+    : context_{std::move(context)} {
+  const auto raw_data = absl::make_unique<common::RawData>(file_path);
+  const VkShaderModuleCreateInfo module_info{
+      VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/nullflag,
+      raw_data->size,
+      reinterpret_cast<const uint32_t*>(raw_data->data),
+  };
+  ASSERT_SUCCESS(vkCreateShaderModule(*context_->device(), &module_info,
+                                      *context_->allocator(), &shader_module_),
+                 "Failed to create shader module");
+}
 
 PipelineBuilder::PipelineBuilder(SharedBasicContext context)
     : context_{std::move(context)} {
@@ -245,7 +283,7 @@ PipelineBuilder& PipelineBuilder::SetViewport(VkViewport&& viewport,
   const float height = viewport.y - viewport.height;
   viewport.y += viewport.height;
   viewport.height = height;
-  viewport_info_.emplace(ViewportInfo{std::move(viewport), std::move(scissor)});
+  viewport_info_.emplace(ViewportInfo{viewport, scissor});
   return *this;
 }
 
@@ -263,40 +301,33 @@ PipelineBuilder& PipelineBuilder::SetColorBlend(
 
 PipelineBuilder& PipelineBuilder::AddShader(VkShaderStageFlagBits shader_stage,
                                             const std::string& file_path) {
-  shader_infos_.emplace_back(ShaderInfo{
-      shader_stage, CreateShaderModule(context_, file_path)
-  });
+  shader_infos_.emplace_back(ShaderInfo{shader_stage, file_path});
   return *this;
 }
 
-std::unique_ptr<Pipeline> PipelineBuilder::Build() {
+std::unique_ptr<Pipeline> PipelineBuilder::Build() const {
   ASSERT_HAS_VALUE(pipeline_layout_info_, "Pipeline layout is not set");
   ASSERT_HAS_VALUE(viewport_info_, "Viewport is not set");
   ASSERT_HAS_VALUE(render_pass_info_, "Render pass is not set");
   ASSERT_NON_EMPTY(color_blend_states_, "Color blend is not set");
   ASSERT_NON_EMPTY(shader_infos_, "Shader is not set");
 
-  const VkDevice& device = *context_->device();
-  const VkAllocationCallbacks* allocator = *context_->allocator();
-  const auto shader_stage_infos = CreateShaderStageInfos(shader_infos_);
   const auto viewport_state_info =
       CreateViewportStateInfo(viewport_info_.value());
   const auto color_blend_info = CreateColorBlendInfo(color_blend_states_);
-
-  const VkPipelineVertexInputStateCreateInfo vertex_input_info{
-      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
-      CONTAINER_SIZE(binding_descriptions_),
-      binding_descriptions_.data(),
-      CONTAINER_SIZE(attribute_descriptions_),
-      attribute_descriptions_.data(),
-  };
+  const auto vertex_input_info = CreateVertexInputInfo(binding_descriptions_,
+                                                       attribute_descriptions_);
+  // Shader modules can be destroyed to save the host memory after the pipeline
+  // is created.
+  const auto shader_stages = CreateShaderStages(context_, shader_infos_);
+  const auto shader_stage_infos = CreateShaderStageInfos(shader_stages);
 
   VkPipelineLayout pipeline_layout;
-  ASSERT_SUCCESS(vkCreatePipelineLayout(device, &pipeline_layout_info_.value(),
-                                        allocator, &pipeline_layout),
-                 "Failed to create pipeline layout");
+  ASSERT_SUCCESS(
+      vkCreatePipelineLayout(
+          *context_->device(), &pipeline_layout_info_.value(),
+          *context_->allocator(), &pipeline_layout),
+      "Failed to create pipeline layout");
 
   const VkGraphicsPipelineCreateInfo pipeline_info{
       VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -324,17 +355,11 @@ std::unique_ptr<Pipeline> PipelineBuilder::Build() {
 
   VkPipeline pipeline;
   ASSERT_SUCCESS(
-      vkCreateGraphicsPipelines(device, /*pipelineCache=*/VK_NULL_HANDLE,
-                                /*createInfoCount=*/1, &pipeline_info,
-                                allocator, &pipeline),
+      vkCreateGraphicsPipelines(
+          *context_->device(), /*pipelineCache=*/VK_NULL_HANDLE,
+          /*createInfoCount=*/1, &pipeline_info, *context_->allocator(),
+          &pipeline),
       "Failed to create graphics pipeline");
-
-  // Shader modules can be destroyed to save the host memory after the pipeline
-  // is created.
-  for (auto& info : shader_infos_) {
-    vkDestroyShaderModule(device, info.module, allocator);
-  }
-  shader_infos_.clear();
 
   return std::unique_ptr<Pipeline>{
       new Pipeline{context_, pipeline, pipeline_layout}};

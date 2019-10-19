@@ -25,7 +25,7 @@ enum SubpassIndex {
   kNumSubpasses,
 };
 
-/* BEGIN: Consistent with structs used in shaders. */
+/* BEGIN: Consistent with uniform blocks defined in shaders. */
 
 struct NanosuitVertTrans {
   ALIGN_MAT4 glm::mat4 view_model;
@@ -42,7 +42,7 @@ struct SkyboxTrans {
   ALIGN_MAT4 glm::mat4 view;
 };
 
-/* END: Consistent with structs used in shaders. */
+/* END: Consistent with uniform blocks defined in shaders. */
 
 class NanosuitApp : public Application {
  public:
@@ -221,7 +221,7 @@ void NanosuitApp::Recreate() {
           return window_context_.multisample_image();
         });
   }
-  render_pass_ = (**render_pass_builder_).Build();
+  render_pass_ = (*render_pass_builder_)->Build();
 
   /* Model */
   constexpr bool kIsObjectOpaque = true;

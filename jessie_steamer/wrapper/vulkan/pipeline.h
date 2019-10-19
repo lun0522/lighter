@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "jessie_steamer/common/ref_count.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/vulkan/vulkan.h"
@@ -23,16 +24,40 @@ namespace vulkan {
 // Forward declarations.
 class Pipeline;
 
-// The user should use this class to create Pipeline. The internal states,
-// except for shader modules, are preserved when it is used to build a pipeline,
-// so the user can add shaders again and reuse the builder later.
+// This class loads a shader from 'file_path' and creates a VkShaderModule.
+class ShaderModule {
+ public:
+  ShaderModule(SharedBasicContext context, const std::string& file_path);
+
+  // This class is neither copyable nor movable.
+  ShaderModule(const ShaderModule&) = delete;
+  ShaderModule& operator=(const ShaderModule&) = delete;
+
+  ~ShaderModule() {
+    vkDestroyShaderModule(*context_->device(), shader_module_,
+                          *context_->allocator());
+  }
+
+  // Overloads.
+  const VkShaderModule& operator*() const { return shader_module_; }
+
+ private:
+  // Pointer to context.
+  const SharedBasicContext context_;
+
+  // Opaque shader module object.
+  VkShaderModule shader_module_;
+};
+
+// The user should use this class to create Pipeline.
+// All internal states are preserved when it is used to build a pipeline, so the
+// user can reuse the builder later.
 class PipelineBuilder {
  public:
-  // TODO: Similar to texture image, make a shader file pool.
-  // Contains a loaded shader.
+  // Contains a shader resource.
   struct ShaderInfo {
-    VkShaderStageFlagBits stage;
-    VkShaderModule module;
+    VkShaderStageFlagBits shader_stage;
+    std::string file_path;
   };
 
   // Describes a viewport transformation.
@@ -88,14 +113,12 @@ class PipelineBuilder {
   PipelineBuilder& SetColorBlend(
       std::vector<VkPipelineColorBlendAttachmentState>&& color_blend_states);
 
-  // Adds a shader to the pipeline. Note that after Build() is called, the user
-  // should add all shaders again before building another pipeline.
+  // Loads a shader that will be used at 'shader_stage' from 'file_path'.
   PipelineBuilder& AddShader(VkShaderStageFlagBits shader_stage,
                              const std::string& file_path);
 
-  // Returns a pipeline. This can be called multiple times. Note that after one
-  // call, the user should add all shaders again before another call.
-  std::unique_ptr<Pipeline> Build();
+  // Returns a pipeline. This can be called multiple times.
+  std::unique_ptr<Pipeline> Build() const;
 
  private:
   // Refers to a subpass within a render pass.
@@ -173,7 +196,7 @@ class Pipeline {
   const VkPipelineLayout& layout() const { return layout_; }
 
  private:
-  friend std::unique_ptr<Pipeline> PipelineBuilder::Build();
+  friend std::unique_ptr<Pipeline> PipelineBuilder::Build() const;
 
   Pipeline(SharedBasicContext context,
            const VkPipeline& pipeline,

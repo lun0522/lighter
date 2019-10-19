@@ -94,7 +94,7 @@ std::unique_ptr<RenderPass> BuildRenderPass(
       [&target_image](int framebuffer_index) -> const Image& {
           return target_image;
       });
-  return (**render_pass_builder).Build();
+  return (*render_pass_builder)->Build();
 }
 
 // Returns a pipeline builder, assuming the per-vertex data is of type Vertex2D,
@@ -112,7 +112,11 @@ std::unique_ptr<PipelineBuilder> CreatePipelineBuilder(
                       vertex_buffer.GetAttributes(/*start_location=*/0))
       .SetPipelineLayout({descriptor_layout}, /*push_constant_ranges=*/{})
       .SetColorBlend({pipeline::GetColorBlendState(enable_color_blend)})
-      .SetFrontFaceDirection(/*counter_clockwise=*/false);
+      .SetFrontFaceDirection(/*counter_clockwise=*/false)
+      .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
+                 common::file::GetShaderPath("vulkan/char.vert.spv"))
+      .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 common::file::GetShaderPath("vulkan/char.frag.spv"));
 
   return pipeline_builder;
 }
@@ -121,7 +125,6 @@ std::unique_ptr<PipelineBuilder> CreatePipelineBuilder(
 std::unique_ptr<Pipeline> BuildPipeline(const Image& target_image,
                                         const VkRenderPass& render_pass,
                                         PipelineBuilder* pipeline_builder) {
-  using common::file::GetShaderPath;
   return (*pipeline_builder)
       .SetViewport(
           /*viewport=*/VkViewport{
@@ -138,10 +141,6 @@ std::unique_ptr<Pipeline> BuildPipeline(const Image& target_image,
           }
       )
       .SetRenderPass(render_pass, kTextSubpassIndex)
-      .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetShaderPath("vulkan/char.vert.spv"))
-      .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetShaderPath("vulkan/char.frag.spv"))
       .Build();
 }
 

@@ -60,7 +60,7 @@ class NaiveRenderPassBuilder {
   NaiveRenderPassBuilder& operator=(const NaiveRenderPassBuilder&) = delete;
 
   // Overloads.
-  const RenderPassBuilder& operator*() const { return builder_; }
+  const RenderPassBuilder* operator->() const { return &builder_; }
 
   // Accessors.
   RenderPassBuilder* mutable_builder() { return &builder_; }

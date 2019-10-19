@@ -93,12 +93,6 @@ class ModelBuilder {
   // Each element is the descriptor used by the mesh at the same index.
   using DescriptorsPerFrame = std::vector<std::unique_ptr<StaticDescriptor>>;
 
-  // Specifies a shader resource on the disk.
-  struct ShaderInfo {
-    VkShaderStageFlagBits shader_stage;
-    std::string file_path;
-  };
-
   // If any offscreen images are used in 'resource', the user is responsible for
   // keeping the existence of them.
   ModelBuilder(SharedBasicContext context,
@@ -143,8 +137,7 @@ class ModelBuilder {
   ModelBuilder& AddPushConstant(const PushConstant* push_constant,
                                 uint32_t target_offset);
 
-  // Adds a shader. The instance of Model will store the shader information,
-  // hence unlike PipelineBuilder, the user only need to add shaders once here.
+  // Loads a shader that will be used at 'shader_stage' from 'file_path'.
   ModelBuilder& AddShader(VkShaderStageFlagBits shader_stage,
                           std::string&& file_path);
 
@@ -193,8 +186,8 @@ class ModelBuilder {
   // Describes push constant data sources.
   absl::optional<PushConstantInfos> push_constant_infos_;
 
-  // Shaders used in the graphics pipeline.
-  std::vector<ShaderInfo> shader_infos_;
+  // Builder of graphics pipeline.
+  std::unique_ptr<PipelineBuilder> pipeline_builder_;
 };
 
 // The Model and its builder class are used to:
@@ -235,7 +228,6 @@ class Model {
   friend std::unique_ptr<Model> ModelBuilder::Build();
 
   Model(SharedBasicContext context,
-        std::vector<ModelBuilder::ShaderInfo>&& shader_infos,
         std::unique_ptr<StaticPerVertexBuffer>&& vertex_buffer,
         std::vector<const PerInstanceBuffer*>&& per_instance_buffers,
         absl::optional<PushConstantInfos>&& push_constant_info,
@@ -244,7 +236,6 @@ class Model {
         std::vector<DescriptorsPerFrame>&& descriptors,
         std::unique_ptr<PipelineBuilder>&& pipeline_builder)
       : context_{std::move(context)},
-        shader_infos_{std::move(shader_infos)},
         vertex_buffer_{std::move(vertex_buffer)},
         per_instance_buffers_{std::move(per_instance_buffers)},
         push_constant_info_{std::move(push_constant_info)},
@@ -255,9 +246,6 @@ class Model {
 
   // Pointer to context.
   const SharedBasicContext context_;
-
-  // Shaders used in the graphics pipeline.
-  const std::vector<ModelBuilder::ShaderInfo> shader_infos_;
 
   // Holds per-vertex data.
   const std::unique_ptr<StaticPerVertexBuffer> vertex_buffer_;

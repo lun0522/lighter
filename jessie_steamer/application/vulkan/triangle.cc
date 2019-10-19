@@ -28,13 +28,13 @@ enum SubpassIndex {
   kNumSubpasses,
 };
 
-/* BEGIN: Consistent with structs used in shaders. */
+/* BEGIN: Consistent with uniform blocks defined in shaders. */
 
 struct Alpha {
   ALIGN_SCALAR(float) float value;
 };
 
-/* END: Consistent with structs used in shaders. */
+/* END: Consistent with uniform blocks defined in shaders. */
 
 class TriangleApp : public Application {
  public:
@@ -111,7 +111,11 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
       .AddVertexInput(kVertexBufferBindingPoint,
                       pipeline::GetPerVertexBindingDescription<Vertex3DNoTex>(),
                       vertex_buffer_->GetAttributes(/*start_location=*/0))
-      .SetPipelineLayout(/*descriptor_layouts=*/{}, {push_constant_range});
+      .SetPipelineLayout(/*descriptor_layouts=*/{}, {push_constant_range})
+      .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
+                 common::file::GetShaderPath("vulkan/simple_2d.vert.spv"))
+      .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 common::file::GetShaderPath("vulkan/simple_2d.frag.spv"));
 }
 
 void TriangleApp::Recreate() {
@@ -128,10 +132,9 @@ void TriangleApp::Recreate() {
           return window_context_.multisample_image();
         });
   }
-  render_pass_ = (**render_pass_builder_).Build();
+  render_pass_ = (*render_pass_builder_)->Build();
 
   /* Pipeline */
-  using common::file::GetShaderPath;
   const VkExtent2D& frame_size = window_context_.frame_size();
   (*pipeline_builder_)
       .SetMultisampling(window_context_.sample_count())
@@ -150,11 +153,7 @@ void TriangleApp::Recreate() {
           }
       )
       .SetRenderPass(**render_pass_, kTriangleSubpassIndex)
-      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)})
-      .AddShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetShaderPath("vulkan/simple_2d.vert.spv"))
-      .AddShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetShaderPath("vulkan/simple_2d.frag.spv"));
+      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)});
   pipeline_ = pipeline_builder_->Build();
 }
 

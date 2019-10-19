@@ -323,10 +323,9 @@ bindings and attributes.
 
 If any state is changed, the user can reuse the builder, update the states and
 rebuild the pipeline. For example, after the window is resized, the user may
-need to create a new pipeline with updated render pass and viewport. Note that
-to save the host memory, we release shader modules once the pipeline is built,
-hence the user should add all shaders again through the builder before using it
-to build another pipeline.
+need to create a new pipeline with updated render pass and viewport. Since
+shaders are referenced counted, it is up to the user to decide whether or not
+to release shaders after the pipeline is built.
 
 Setting up such a pipeline can be tiring. This is usually managed by high-level
 wrappers (*i.e.* model renderer and text renderer), hence the user would not
@@ -374,7 +373,7 @@ rendering simple scenes.
 that a few lines of code should be enough to display a model on the screen. We
 will illustrate how to use **ModelBuilder** and **Model**.
 
-#### 3.3.1.1 Load vertex data and textures
+#### 3.3.1.1 Load vertex data, textures and shaders
 
 The user need to specify how to load the model vertex data and textures when
 constructing **ModelBuilder**.
@@ -395,6 +394,12 @@ existence of the images. For simplicity, we will bind all textures of the same
 type to the same binding point as an array. The user need to specify the binding
 point for each type.
 
+Shaders are added after a builder is constructed. By default, shader modules are
+released to save the host memory. However, this will cause more I/O the next
+time we rebuild the model. The default choice is made with the assumption that
+we don't rebuild the model very frequently. The user can change this setting
+through **Model**.
+
 #### 3.3.1.2 Bind per-instance vertex buffers, uniform buffers and push constants
 
 All these information are optional. If any resources are used, the user is
@@ -413,14 +418,6 @@ binding point.
 entire pipeline, there is no binding point or array length to specify. We will
 need to specify at which shader stages they will be used, and which instances of
 **PushConstant** will provide the data (targeting different offsets).
-
-#### 3.3.1.3 Add shaders
-
-The user simply need to provide the file path of the shader, and specify which
-stage is it used for. Unlike **PipelineBuilder** which holds file contents of
-shaders and destroys them to save the host memory when possible, **Model** only
-stores the file path, hence the user does not need to add shaders again when
-the internal pipeline of **Model** is rebuilt.
 
 #### 3.3.1.3 Build and update the model
 
