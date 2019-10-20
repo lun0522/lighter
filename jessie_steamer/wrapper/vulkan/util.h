@@ -47,6 +47,10 @@ class QueueUsage {
                         : VK_SHARING_MODE_CONCURRENT;
   }
 
+  // This class is only movable.
+  QueueUsage(QueueUsage&&) noexcept = default;
+  QueueUsage& operator=(QueueUsage&&) noexcept = default;
+
   // Accessors.
   const uint32_t* unique_family_indices() const {
     return unique_family_indices_.data();
@@ -114,17 +118,17 @@ absl::optional<std::string> FindUnsupported(
     available.emplace(get_name(atr));
   }
 
-  LOG << "Available:" << std::endl;
+  LOG_INFO << "Available:";
   for (const auto& avl : available) {
-    LOG << "\t" << avl << std::endl;
+    LOG_INFO << "\t" << avl;
   }
-  LOG << std::endl;
+  LOG_EMPTY_LINE;
 
-  LOG << "Required:" << std::endl;
+  LOG_INFO << "Required:";
   for (const auto& req : required) {
-    LOG << "\t" << req << std::endl;
+    LOG_INFO << "\t" << req;
   }
-  LOG << std::endl;
+  LOG_EMPTY_LINE;
 
   for (const auto& req : required) {
     if (available.find(req) == available.end()) {

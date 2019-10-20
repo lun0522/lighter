@@ -1,17 +1,88 @@
+Jessie Steamer
+---
+
+A low-level graphics engine.
+
+Table of Contents
+---
+
+   * [0. Introduction](#0-introduction)
+   * [1. Common modules (jessie_steamer/common/)](#1-common-modules-jessie_steamercommon)
+      * [1.1 Camera (camera)](#11-camera-camera)
+      * [1.2 Character library (char_lib)](#12-character-library-char_lib)
+      * [1.3 File utils (file)](#13-file-utils-file)
+      * [1.4 Model loader (model_loader)](#14-model-loader-model_loader)
+      * [1.5 Reference counting (ref_count)](#15-reference-counting-ref_count)
+      * [1.6 Time utils (time)](#16-time-utils-time)
+      * [1.7 Window manager (window)](#17-window-manager-window)
+   * [2. OpenGL wrappers (jessie_steamer/wrapper/opengl/)](#2-opengl-wrappers-jessie_steamerwrapperopengl)
+   * [3. Vulkan wrappers (jessie_steamer/wrapper/vulkan/)](#3-vulkan-wrappers-jessie_steamerwrappervulkan)
+      * [3.1 Contexts (basic_context, basic_object, validation and window_context)](#31-contexts-basic_context-basic_object-validation-and-window_context)
+      * [3.2 Low-level wrappers](#32-low-level-wrappers)
+         * [3.2.1 Buffer (buffer)](#321-buffer-buffer)
+            * [3.2.1.1 UniformBuffer and PushConstant](#3211-uniformbuffer-and-pushconstant)
+            * [3.2.1.2 StaticPerVertexBuffer and DynamicPerVertexBuffer](#3212-staticpervertexbuffer-and-dynamicpervertexbuffer)
+            * [3.2.1.3 PerInstanceBuffer](#3213-perinstancebuffer)
+            * [3.2.1.4 TextureBuffer, OffscreenBuffer, DepthStencilBuffer and MultisampleBuffer](#3214-texturebuffer-offscreenbuffer-depthstencilbuffer-and-multisamplebuffer)
+         * [3.2.2 Command (command)](#322-command-command)
+         * [3.2.3 Descriptor (descriptor)](#323-descriptor-descriptor)
+         * [3.2.4 Image (image)](#324-image-image)
+         * [3.2.5 Pipeline (pipeline and pipeline_util)](#325-pipeline-pipeline-and-pipeline_util)
+         * [3.2.6 Render pass (render_pass and render_pass_util)](#326-render-pass-render_pass-and-render_pass_util)
+         * [3.2.7 Swapchain (swapchain)](#327-swapchain-swapchain)
+         * [3.2.8 Synchronization (synchronization)](#328-synchronization-synchronization)
+      * [3.3 High-level wrappers](#33-high-level-wrappers)
+         * [3.3.1 Model renderer (model)](#331-model-renderer-model)
+            * [3.3.1.1 Load vertex data, textures and shaders](#3311-load-vertex-data-textures-and-shaders)
+            * [3.3.1.2 Bind per-instance vertex buffers, uniform buffers and push constants](#3312-bind-per-instance-vertex-buffers-uniform-buffers-and-push-constants)
+            * [3.3.1.3 Build and update the model](#3313-build-and-update-the-model)
+         * [3.3.2 Text renderer (text and text_util)](#332-text-renderer-text-and-text_util)
+   * [4. Applications (jessie_steamer/application/)](#4-applications-jessie_steamerapplication)
+      * [4.1 Triangle scene (triangle)](#41-triangle-scene-triangle)
+      * [4.2 Cube scene (cube)](#42-cube-scene-cube)
+      * [4.3 Nanosuit scene (nanosuit)](#43-nanosuit-scene-nanosuit)
+      * [4.4 Planet and asteroids scene (planet)](#44-planet-and-asteroids-scene-planet)
+   * [5. Acknowledgements](#5-acknowledgements)
+      * [5.1 Tutorials](#51-tutorials)
+      * [5.2 Dependencies](#52-dependencies)
+      * [5.3 Resources](#53-resources)
+
 # 0. Introduction
 
 This project aims to build a low-level graphics engine with **reusable**
 infrastructures, with either OpenGL or Vulkan as backend. It should be able to
-run on MacOS, and won't be difficult to run on Linux (just need to find suitable
-third-party library binaries). The code follows [Google C++ style guide](https://google.github.io/styleguide/cppguide.html)
-and only uses the features of C++11 (enhanced by [Abseil library](https://abseil.io)).
+run on MacOS. We will add support for Linux later. The code follows
+[Google C++ style guide](https://google.github.io/styleguide/cppguide.html) and
+only uses the features of C++11 (enhanced by [Abseil library](https://abseil.io)).
 
 Before running any application, shaders should be compiled by executing
 [compile_shaders.sh](https://github.com/lun0522/jessie-steamer/blob/master/compile_shaders.sh)
-(no command line arguments needed). To run applications, since we use the [Bazel build system](https://bazel.build),
-this is how we build and run from command line:
+(no command line arguments needed). To run applications, since we use the
+[Bazel build system](https://bazel.build), this is how we run from command line:
 
-`bazel build -c opt --copt=-DUSE_VULKAN //jessie_steamer/application/vulkan:triangle`
+```bash
+bazel run -c opt --copt=-DUSE_VULKAN //jessie_steamer/application/vulkan:triangle
+```
+
+You can also just build it with Bazel and directly launch the executable, which
+is more useful for debugging with external tools:
+
+```bash
+bazel build -c opt --copt=-DUSE_VULKAN //jessie_steamer/application/vulkan:triangle
+bazel-bin/jessie_steamer/application/vulkan/triangle --resource_folder=<path to resource folder> --shader_folder=<path to shader folder> --vulkan_folder=<path to Vulkan SDK folder>
+```
+
+Here is the meaning of each flag (note that these are not required if you 
+directly use `bazel run`):
+
+- *resource_folder*: Since resource files are stored in a separate
+[resource repo](https://github.com/lun0522/resource), it must have been
+downloaded, and the path to it should be specified with this flag.
+- *shader_folder*: The local address of [this folder](https://github.com/lun0522/jessie-steamer/tree/master/jessie_steamer/shader)
+should be specified with this flag.
+- *vulkan_folder*: The [Vulkan SDK](https://vulkan.lunarg.com) must have been 
+downloaded, and the path to the platform specific folder should be specified
+with this flag.
 
 This README introduces the modules we created, and the decisions we made when we
 design the structure. The usage of each class is put right before the class
@@ -49,11 +120,12 @@ OpenGL APIs (hope so), or directly use low-level wrappers for flexibility.
 
 ## 3.1 Contexts (basic_context, basic_object, validation and window_context)
 
-This project was first built following the [Vulkan tutorial by Alexander Overvoorde](https://vulkan-tutorial.com).
-It is an amazing tutorial, but it has also sacrificed something to be an amazing
-one. It is very understandable that the author put almost all the code in one
-source file, without encapsulating components into different classes, however,
-this style is not good for building reusable infrastructures. We need to have
+This project was first built following the
+[Vulkan tutorial by Alexander Overvoorde](https://vulkan-tutorial.com). It is an
+amazing tutorial, but it has also sacrificed something to be an amazing one. It
+is very understandable that the author put almost all the code in one source
+file, without encapsulating components into different classes, however, this
+style is not good for building reusable infrastructures. We need to have
 hierarchies, inheritances, interfaces and so on, hence we need to make different
 design decisions.
 
@@ -181,7 +253,7 @@ it has been initialized. The good thing is, this is handled by
 (**PushConstant** is not shown in the inheritance graph, since it does not own
 an underlying buffer object.)
 
-#### 3.2.1.1 **UniformBuffer** and **PushConstant**
+#### 3.2.1.1 UniformBuffer and PushConstant
 
 Both of them are used to pass uniform data. When constructed, both of them will
 allocate memory on both host and device. Before rendering a frame, the user
@@ -193,7 +265,7 @@ to be compatible of all devices, we only allow **PushConstant** to have at most
 graphics pipeline using multiple instances of **PushConstant**, we also check
 the total size in **Pipeline** to make sure it is still no more than 128 bytes.
 
-#### 3.2.1.2 **StaticPerVertexBuffer** and **DynamicPerVertexBuffer**
+#### 3.2.1.2 StaticPerVertexBuffer and DynamicPerVertexBuffer
 
 **StaticPerVertexBuffer** is more commonly use, which stores vertex data that
 does not change once constructed.
@@ -210,13 +282,13 @@ These two buffers are usually managed by high-level wrappers (*i.e.*
 model renderer and text renderer), and the user may not need to directly
 instantiate them.
 
-#### 3.2.1.3 **PerInstanceBuffer**
+#### 3.2.1.3 PerInstanceBuffer
 
 This buffer simply copies one monolithic chunk of data from the host, and can be
 bound to the specified binding point. The user may need to directly instantiate
 this type of vertex buffer.
 
-#### 3.2.1.4 **TextureBuffer**, **OffscreenBuffer**, **DepthStencilBuffer** and **MultisampleBuffer**
+#### 3.2.1.4 TextureBuffer, OffscreenBuffer, DepthStencilBuffer and MultisampleBuffer
 
 These buffers manage device memory of images. Among them, **TextureBuffer** is
 the only one that copies data from the host at construction, since it stores
@@ -468,10 +540,10 @@ states to avoid rebuilding the entire pipeline for changing transparency.
 
 ## 5.3 Resources
 
-Class inheritance graphs are generated with [Doxygen](http://www.doxygen.nl)
-and [Graphviz](http://www.graphviz.org).
-
-Fonts, frameworks, 3D models and textures in a separate [resource repo](https://github.com/lun0522/resource).
+- Table of content of each README is generated with [github-markdown-toc](https://github.com/ekalinin/github-markdown-toc)
+- Class inheritance graphs are generated with [Doxygen](http://www.doxygen.nl)
+and [Graphviz](http://www.graphviz.org)
+- Fonts, frameworks, 3D models and textures in a separate [resource repo](https://github.com/lun0522/resource)
 
 ---
 

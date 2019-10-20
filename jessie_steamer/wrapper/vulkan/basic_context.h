@@ -63,7 +63,7 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   BasicContext& operator=(const BasicContext&) = delete;
 
 #ifndef NDEBUG
-  ~BasicContext() { LOG << "Context destructed properly" << std::endl; }
+  ~BasicContext() { LOG_INFO << "Context destructed properly"; }
 #endif  /* !NDEBUG */
 
   // Records an operation that releases an expired resource, so that it can be
@@ -89,6 +89,8 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   }
 
   // Waits for the graphics device becomes idle, and releases expired resources.
+  // This should be called in the middle of the program when we want to destroy
+  // and recreate some resources, such as the swapchain and data buffers.
   void WaitIdle() {
     device_.WaitIdle();
     if (!release_expired_rsrc_ops_.empty()) {
@@ -97,7 +99,9 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
     }
   }
 
-  // The user must call this before exiting the main() function.
+  // Waits for the graphics device becomes idle, and releases expired resources
+  // and reference counted objects. This should be called when the program is
+  // about to end, and right before other resources get destroyed.
   void OnExit() {
     device_.WaitIdle();
     for (const auto& op : release_expired_rsrc_ops_) { op(*this); }

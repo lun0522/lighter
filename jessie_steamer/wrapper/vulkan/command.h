@@ -81,11 +81,11 @@ class PerFrameCommand : public Command {
   using OnRecord = std::function<void(const VkCommandBuffer& command_buffer,
                                       uint32_t framebuffer_index)>;
 
-  // The user may want to do multiple buffering, hence each swapchain image may
-  // have multiple frames. 'current_frame' will be used in this recording.
+  // The user may want to do multiple buffering. 'current_frame' refers to which
+  // "buffer" are we rendering to.
   using UpdateData = std::function<void (int current_frame)>;
 
-  // Each swapchain image will be 'num_frames_in_flight' buffered.
+  // Our rendering is 'num_frames_in_flight'-buffered.
   PerFrameCommand(SharedBasicContext context, int num_frames_in_flight);
 
   // This class is neither copyable nor movable.

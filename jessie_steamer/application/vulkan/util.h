@@ -101,7 +101,7 @@ int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
     app.MainLoop();
 #ifdef NDEBUG
   } catch (const std::exception& e) {
-    std::cerr << "Error: /n/t" << e.what() << std::endl;
+    LOG_ERROR << "Error: " << e.what();
     return EXIT_FAILURE;
   }
 #endif /* NDEBUG */

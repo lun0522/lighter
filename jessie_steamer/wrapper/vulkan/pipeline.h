@@ -110,6 +110,9 @@ class PipelineBuilder {
   // Sets the viewport and scissor.
   PipelineBuilder& SetViewport(VkViewport&& viewport, VkRect2D&& scissor);
 
+  // Sets a viewport transform that renders to full frame.
+  PipelineBuilder& SetFullFrameViewport(const VkExtent2D& frame_size);
+
   // Specifies that this pipeline will be used in the subpass of 'render_pass'
   // with 'subpass_index'.
   PipelineBuilder& SetRenderPass(const VkRenderPass& render_pass,

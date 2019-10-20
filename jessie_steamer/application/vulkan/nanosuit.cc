@@ -85,8 +85,8 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
   /* Camera */
   common::Camera::Config config;
   common::UserControlledCamera::ControlConfig control_config;
-  config.position = glm::vec3{0.0f, 3.5f, -12.0f};
-  config.look_at = glm::vec3{0.0f, 3.5f, 0.0f};
+  config.position = glm::vec3{0.0f, 4.0f, -12.0f};
+  config.look_at = glm::vec3{0.0f, 4.0f, 0.0f};
   control_config.lock_center = true;
   camera_ = absl::make_unique<common::UserControlledCamera>(
       config, control_config);
@@ -282,7 +282,7 @@ void NanosuitApp::MainLoop() {
     // Camera is not activated until first frame is displayed.
     camera_->SetActivity(true);
   }
-  context()->OnExit();
+  window_context_.OnExit();
 }
 
 } /* namespace vulkan */

@@ -334,20 +334,7 @@ void Model::Update(bool is_object_opaque, const VkExtent2D& frame_size,
       .SetDepthTestEnabled(/*enable_test=*/true,
                            /*enable_write=*/is_object_opaque)
       .SetMultisampling(sample_count)
-      .SetViewport(
-          /*viewport=*/VkViewport{
-              /*x=*/0.0f,
-              /*y=*/0.0f,
-              static_cast<float>(frame_size.width),
-              static_cast<float>(frame_size.height),
-              /*minDepth=*/0.0f,
-              /*maxDepth=*/1.0f,
-          },
-          /*scissor=*/VkRect2D{
-              /*offset=*/{0, 0},
-              frame_size,
-          }
-      )
+      .SetFullFrameViewport(frame_size)
       .SetRenderPass(*render_pass, subpass_index)
       .SetColorBlend(
           vector<VkPipelineColorBlendAttachmentState>(

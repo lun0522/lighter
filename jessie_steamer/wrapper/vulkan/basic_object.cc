@@ -29,8 +29,8 @@ using std::vector;
 // Checks support for 'required' extensions, and throws a runtime exception
 // if any of them is not supported.
 void CheckInstanceExtensionSupport(const vector<string>& required) {
-  LOG << "Checking instance extension support..." << std::endl;
-  LOG << std::endl;
+  LOG_INFO << "Checking instance extension support...";
+  LOG_EMPTY_LINE;
 
   const auto properties = util::QueryAttribute<VkExtensionProperties>(
       [](uint32_t* count, VkExtensionProperties* properties) {
@@ -51,8 +51,8 @@ void CheckInstanceExtensionSupport(const vector<string>& required) {
 // Checks support for 'required' layers, and throws a runtime exception if any
 // of them is not supported.
 void CheckValidationLayerSupport(const vector<string>& required) {
-  LOG << "Checking validation layer support..." << std::endl;
-  LOG << std::endl;
+  LOG_INFO << "Checking validation layer support...";
+  LOG_EMPTY_LINE;
 
   const auto properties = util::QueryAttribute<VkLayerProperties>(
       [](uint32_t* count, VkLayerProperties* properties) {
@@ -72,8 +72,8 @@ void CheckValidationLayerSupport(const vector<string>& required) {
 // Returns whether swapchain is supported.
 bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
                          const WindowSupport& window_support) {
-  LOG << "Checking swapchain support..." << std::endl;
-  LOG << std::endl;
+  LOG_INFO << "Checking swapchain support...";
+  LOG_EMPTY_LINE;
 
   // Query support for device extensions.
   const vector<string> required{
@@ -92,7 +92,7 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
   const auto unsupported = util::FindUnsupported<VkExtensionProperties>(
       required, extensions, get_name);
   if (unsupported.has_value()) {
-    LOG << "Unsupported: " << unsupported.value() << std::endl;
+    LOG_INFO << "Unsupported: " << unsupported.value();
     return false;
   }
 
@@ -116,8 +116,8 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
     const absl::optional<WindowSupport>& window_support) {
   VkPhysicalDeviceProperties properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
-  LOG << "Found device: " << properties.deviceName << std::endl;
-  LOG << std::endl;
+  LOG_INFO << "Found device: " << properties.deviceName;
+  LOG_EMPTY_LINE;
 
   // Request swapchain support if use window.
   if (window_support.has_value() &&

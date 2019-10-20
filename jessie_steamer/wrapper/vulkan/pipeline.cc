@@ -295,6 +295,25 @@ PipelineBuilder& PipelineBuilder::SetViewport(VkViewport&& viewport,
   return *this;
 }
 
+PipelineBuilder& PipelineBuilder::SetFullFrameViewport(
+    const VkExtent2D& frame_size) {
+  SetViewport(
+      /*viewport=*/VkViewport{
+          /*x=*/0.0f,
+          /*y=*/0.0f,
+          static_cast<float>(frame_size.width),
+          static_cast<float>(frame_size.height),
+          /*minDepth=*/0.0f,
+          /*maxDepth=*/1.0f,
+      },
+      /*scissor=*/VkRect2D{
+          /*offset=*/{0, 0},
+          frame_size,
+      }
+  );
+  return *this;
+}
+
 PipelineBuilder& PipelineBuilder::SetRenderPass(const VkRenderPass& render_pass,
                                                 uint32_t subpass_index) {
   render_pass_info_.emplace(RenderPassInfo{render_pass, subpass_index});
@@ -382,7 +401,7 @@ Pipeline::~Pipeline() {
   vkDestroyPipeline(*context_->device(), pipeline_, *context_->allocator());
   vkDestroyPipelineLayout(*context_->device(), layout_, *context_->allocator());
 #ifndef NDEBUG
-  LOG << absl::StreamFormat("Pipeline '%s' destructed", name_) << std::endl;
+  LOG_INFO << absl::StreamFormat("Pipeline '%s' destructed", name_);
 #endif  /* !NDEBUG */
 }
 

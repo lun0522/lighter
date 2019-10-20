@@ -45,7 +45,7 @@ class RefCountedObject {
     }
 #ifndef NDEBUG
     else {
-      LOG << "Cache hit: " << identifier << std::endl;
+      LOG_INFO << "Cache hit: " << identifier;
     }
 #endif  /* !NDEBUG */
     auto& ref_counted_object = found->second;

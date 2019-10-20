@@ -204,7 +204,7 @@ Swapchain::~Swapchain() {
   vkDestroySwapchainKHR(*context_->device(), swapchain_,
                         *context_->allocator());
 #ifndef NDEBUG
-  LOG << "Swapchain destructed" << std::endl;
+  LOG_INFO << "Swapchain destructed";
 #endif  /* !NDEBUG */
 }
 

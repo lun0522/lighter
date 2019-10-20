@@ -219,7 +219,7 @@ void CubeApp::MainLoop() {
     }
     current_frame_ = (current_frame_ + 1) % kNumFramesInFlight;
   }
-  context()->OnExit();
+  window_context_.OnExit();
 }
 
 } /* namespace vulkan */

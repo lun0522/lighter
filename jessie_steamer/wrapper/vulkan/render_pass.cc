@@ -312,7 +312,7 @@ RenderPass::~RenderPass() {
   vkDestroyRenderPass(*context_->device(), render_pass_,
                       *context_->allocator());
 #ifndef NDEBUG
-  LOG << "Render pass destructed" << std::endl;
+  LOG_INFO << "Render pass destructed";
 #endif  /* !NDEBUG */
 }
 

@@ -366,7 +366,7 @@ void PlanetApp::MainLoop() {
     // Camera is not activated until first frame is displayed.
     camera_->SetActivity(true);
   }
-  context()->OnExit();
+  window_context_.OnExit();
 }
 
 } /* namespace vulkan */

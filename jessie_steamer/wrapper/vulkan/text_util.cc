@@ -128,20 +128,7 @@ std::unique_ptr<Pipeline> BuildPipeline(const Image& target_image,
                                         const VkRenderPass& render_pass,
                                         PipelineBuilder* pipeline_builder) {
   return (*pipeline_builder)
-      .SetViewport(
-          /*viewport=*/VkViewport{
-              /*x=*/0.0f,
-              /*y=*/0.0f,
-              static_cast<float>(target_image.extent().width),
-              static_cast<float>(target_image.extent().height),
-              /*minDepth=*/0.0f,
-              /*maxDepth=*/1.0f,
-          },
-          /*scissor=*/VkRect2D{
-              /*offset=*/{0, 0},
-              target_image.extent(),
-          }
-      )
+      .SetFullFrameViewport(target_image.extent())
       .SetRenderPass(render_pass, kTextSubpassIndex)
       .Build();
 }

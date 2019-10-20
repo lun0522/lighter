@@ -107,6 +107,10 @@ class WindowContext {
     return !window_.ShouldQuit();
   }
 
+  // Bridges to BasicContext::OnExit(). This should be called when the program
+  // is about to end, and right before other resources get destroyed.
+  void OnExit() { context_->OnExit(); }
+
   // Accessors.
   SharedBasicContext basic_context() const { return context_; }
   common::Window* mutable_window() { return &window_; }

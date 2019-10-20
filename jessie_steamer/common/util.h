@@ -22,11 +22,17 @@
 #include "third_party/absl/types/optional.h"
 
 #ifdef NDEBUG
-#define LOG std::cout << ::jessie_steamer::common::util::PrintTime << ' '
+#define LOG(stream) ::jessie_steamer::common::util::Logger{stream}          \
+                        << ::jessie_steamer::common::util::PrintTime << ' '
 #else  /* !NDEBUG */
-#define LOG std::cout << '[' << ::jessie_steamer::common::util::PrintTime \
-                      << absl::StrFormat(" %s:%d] ", __FILE__, __LINE__)
+#define LOG(stream) ::jessie_steamer::common::util::Logger{stream}          \
+                        << '[' << ::jessie_steamer::common::util::PrintTime \
+                        << absl::StrFormat(" %s:%d] ", __FILE__, __LINE__)
 #endif /* NDEBUG */
+
+#define LOG_INFO LOG(std::cout)
+#define LOG_EMPTY_LINE LOG_INFO
+#define LOG_ERROR LOG(std::cerr)
 
 #ifdef NDEBUG
 #define FATAL(error) throw std::runtime_error{error};
@@ -72,6 +78,28 @@ inline void ParseCommandLine(int argc, char* argv[]) {
 
 // Prints the current time in "YYYY-MM-DD HH:MM:SS.fff" format.
 std::ostream& PrintTime(std::ostream& os);
+
+// This class simply wraps a std::ostream. When an instance of it gets
+// destructed, it will append std::endl to the end;
+class Logger {
+ public:
+  explicit Logger(std::ostream& os) : os_{os} {}
+
+  // This class is neither copyable nor movable.
+  Logger(const Logger&) = delete;
+  Logger& operator=(const Logger&) = delete;
+
+  ~Logger() { os_ << std::endl; }
+
+  template <typename Streamable>
+  Logger& operator<<(const Streamable& streamable) {
+    os_ << streamable;
+    return *this;
+  }
+
+ private:
+  std::ostream& os_;
+};
 
 // Returns the index of the first element that satisfies 'predicate'.
 // If there is no such element, returns 'absl::nullopt'.

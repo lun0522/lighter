@@ -106,20 +106,7 @@ void Text::Update(const VkExtent2D& frame_size,
                   const RenderPass& render_pass, uint32_t subpass_index) {
   pipeline_ = pipeline_builder_
       .SetMultisampling(sample_count)
-      .SetViewport(
-          /*viewport=*/VkViewport{
-              /*x=*/0.0f,
-              /*y=*/0.0f,
-              static_cast<float>(frame_size.width),
-              static_cast<float>(frame_size.height),
-              /*minDepth=*/0.0f,
-              /*maxDepth=*/1.0f,
-          },
-          /*scissor=*/VkRect2D{
-              /*offset=*/{0, 0},
-              frame_size,
-          }
-      )
+      .SetFullFrameViewport(frame_size)
       .SetRenderPass(*render_pass, subpass_index)
       .SetColorBlend(
           vector<VkPipelineColorBlendAttachmentState>(

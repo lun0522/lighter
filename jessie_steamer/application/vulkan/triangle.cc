@@ -136,23 +136,9 @@ void TriangleApp::Recreate() {
   render_pass_ = (*render_pass_builder_)->Build();
 
   /* Pipeline */
-  const VkExtent2D& frame_size = window_context_.frame_size();
   (*pipeline_builder_)
       .SetMultisampling(window_context_.sample_count())
-      .SetViewport(
-          /*viewport=*/VkViewport{
-              /*x=*/0.0f,
-              /*y=*/0.0f,
-              static_cast<float>(frame_size.width),
-              static_cast<float>(frame_size.height),
-              /*minDepth=*/0.0f,
-              /*maxDepth=*/1.0f,
-          },
-          /*scissor=*/VkRect2D{
-              /*offset=*/{0, 0},
-              frame_size,
-          }
-      )
+      .SetFullFrameViewport(window_context_.frame_size())
       .SetRenderPass(**render_pass_, kTriangleSubpassIndex)
       .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)});
   pipeline_ = pipeline_builder_->Build();
@@ -193,7 +179,7 @@ void TriangleApp::MainLoop() {
     }
     current_frame_ = (current_frame_ + 1) % kNumFramesInFlight;
   }
-  context()->OnExit();
+  window_context_.OnExit();
 }
 
 } /* namespace vulkan */

@@ -24,7 +24,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
     VkDebugUtilsMessageTypeFlagsEXT message_type,
     const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
     void* user_data) {
-  LOG << callback_data->pMessage << std::endl;
+  LOG_INFO << callback_data->pMessage;
   return VK_FALSE;
 }
 
