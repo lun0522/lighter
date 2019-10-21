@@ -30,9 +30,16 @@ inline std::string GetResourcePath(const std::string& relative_path) {
   return absl::StrCat(absl::GetFlag(FLAGS_resource_folder), "/", relative_path);
 }
 
-// Returns the full path to files in the shader folder.
-inline std::string GetShaderPath(const std::string& relative_path) {
-  return absl::StrCat(absl::GetFlag(FLAGS_shader_folder), "/", relative_path);
+// Returns the full path to the compiled shader to use with OpenGL.
+inline std::string GetGlShaderPath(const std::string& relative_path) {
+  return absl::StrCat(absl::GetFlag(FLAGS_shader_folder), "/opengl/",
+                      relative_path, ".spv");
+}
+
+// Returns the full path to the compiled shader to use with Vulkan.
+inline std::string GetVkShaderPath(const std::string& relative_path) {
+  return absl::StrCat(absl::GetFlag(FLAGS_shader_folder), "/vulkan/",
+                      relative_path, ".spv");
 }
 
 #ifdef USE_VULKAN

@@ -65,8 +65,6 @@ class TriangleApp : public Application {
 
 TriangleApp::TriangleApp(const WindowContext::Config& window_config)
     : Application{"Hello Triangle", window_config} {
-  using common::file::GetResourcePath;
-  using common::file::GetShaderPath;
   using common::Vertex3DNoTex;
 
   /* Command buffer */
@@ -114,9 +112,9 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
                       vertex_buffer_->GetAttributes(/*start_location=*/0))
       .SetPipelineLayout(/*descriptor_layouts=*/{}, {push_constant_range})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetShaderPath("vulkan/simple_2d.vert.spv"))
+                 common::file::GetVkShaderPath("simple_2d.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetShaderPath("vulkan/simple_2d.frag.spv"));
+                 common::file::GetVkShaderPath("simple_2d.frag"));
 }
 
 void TriangleApp::Recreate() {
@@ -138,7 +136,7 @@ void TriangleApp::Recreate() {
   /* Pipeline */
   (*pipeline_builder_)
       .SetMultisampling(window_context_.sample_count())
-      .SetFullFrameViewport(window_context_.frame_size())
+      .SetViewport(pipeline::GetFullFrameViewport(window_context_.frame_size()))
       .SetRenderPass(**render_pass_, kTriangleSubpassIndex)
       .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)});
   pipeline_ = pipeline_builder_->Build();

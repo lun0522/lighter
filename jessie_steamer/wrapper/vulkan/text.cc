@@ -96,9 +96,9 @@ Text::Text(SharedBasicContext context,
                       pipeline::GetPerVertexBindingDescription<Vertex2D>(),
                       vertex_buffer_.GetAttributes(/*start_location=*/0))
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetShaderPath("vulkan/char.vert.spv"))
+                 common::file::GetVkShaderPath("char.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetShaderPath("vulkan/text.frag.spv"));
+                 common::file::GetVkShaderPath("text.frag"));
 }
 
 void Text::Update(const VkExtent2D& frame_size,
@@ -106,7 +106,7 @@ void Text::Update(const VkExtent2D& frame_size,
                   const RenderPass& render_pass, uint32_t subpass_index) {
   pipeline_ = pipeline_builder_
       .SetMultisampling(sample_count)
-      .SetFullFrameViewport(frame_size)
+      .SetViewport(pipeline::GetFullFrameViewport(frame_size))
       .SetRenderPass(*render_pass, subpass_index)
       .SetColorBlend(
           vector<VkPipelineColorBlendAttachmentState>(

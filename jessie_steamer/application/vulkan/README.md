@@ -1,6 +1,20 @@
 Vulkan Hello Triangle Example
 ---
 
+Table of Contents
+---
+
+  * [0. Introduction](#0-introduction)
+  * [1. Construct resources - TriangleApp::TriangleApp()](#1-construct-resources---triangleapptriangleapp)
+     * [1.1 Command buffer](#11-command-buffer)
+     * [1.2 Vertex buffer](#12-vertex-buffer)
+     * [1.3 Push constant](#13-push-constant)
+     * [1.4 Render pass](#14-render-pass)
+     * [1.5 Graphics pipeline](#15-graphics-pipeline)
+  * [2. Recreate swapchain - TriangleApp::Recreate()](#2-recreate-swapchain---triangleapprecreate)
+  * [3. Update per-frame data - TriangleApp::UpdateData()](#3-update-per-frame-data---triangleappupdatedata)
+  * [4. Main loop - TriangleApp::MainLoop()](#4-main-loop---triangleappmainloop)
+
 ## 0. Introduction
 
 This is a breakdown of the code of [triangle scene](https://github.com/lun0522/jessie-steamer/blob/master/jessie_steamer/application/vulkan/triangle.cc),
@@ -176,9 +190,9 @@ pipeline_builder_ = absl::make_unique<PipelineBuilder>(context());
                     vertex_buffer_->GetAttributes(/*start_location=*/0))
     .SetPipelineLayout(/*descriptor_layouts=*/{}, {push_constant_range})
     .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-               common::file::GetShaderPath("vulkan/simple_2d.vert.spv"))
+               common::file::GetVkShaderPath("simple_2d.vert"))
     .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-               common::file::GetShaderPath("vulkan/simple_2d.frag.spv"));
+               common::file::GetVkShaderPath("simple_2d.frag"));
 ```
 
 ## 2. Recreate swapchain - TriangleApp::Recreate()
@@ -207,12 +221,13 @@ render_pass_ = (*render_pass_builder_)->Build();
 ```
 
 Similarly, some pipeline states may also change in those cases, and we also need
-to build a new `Pipeline`:
+to build a new `Pipeline`. Note that color blend need to be enabled for the
+fading in and out effect:
 
 ```cpp
 (*pipeline_builder_)
     .SetMultisampling(window_context_.sample_count())
-    .SetFullFrameViewport(window_context_.frame_size())
+    .SetViewport(pipeline::GetFullFrameViewport(window_context_.frame_size()))
     .SetRenderPass(**render_pass_, kTriangleSubpassIndex)
     .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)});
 pipeline_ = pipeline_builder_->Build();

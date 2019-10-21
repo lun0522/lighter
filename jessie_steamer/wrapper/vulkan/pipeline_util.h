@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
+#include "jessie_steamer/wrapper/vulkan/pipeline.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -20,6 +21,10 @@ namespace vulkan {
 namespace pipeline {
 
 /* Color blend */
+
+// Returns a viewport transform targeting the full frame of 'frame_size'.
+PipelineBuilder::ViewportInfo GetFullFrameViewport(
+    const VkExtent2D& frame_size);
 
 // Returns the color blend state that gives:
 //   C = Cs * As + Cd * (1. - As)

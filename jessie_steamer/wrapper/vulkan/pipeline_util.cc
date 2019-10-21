@@ -24,6 +24,24 @@ using VertexAttribute = VertexBuffer::Attribute;
 
 } /* namespace */
 
+PipelineBuilder::ViewportInfo GetFullFrameViewport(
+    const VkExtent2D& frame_size) {
+  return PipelineBuilder::ViewportInfo{
+      /*viewport=*/VkViewport{
+          /*x=*/0.0f,
+          /*y=*/0.0f,
+          static_cast<float>(frame_size.width),
+          static_cast<float>(frame_size.height),
+          /*minDepth=*/0.0f,
+          /*maxDepth=*/1.0f,
+      },
+      /*scissor=*/VkRect2D{
+          /*offset=*/{0, 0},
+          frame_size,
+      }
+  };
+}
+
 VkPipelineColorBlendAttachmentState GetColorBlendState(bool enable_blend) {
   return VkPipelineColorBlendAttachmentState{
       /*blendEnable=*/util::ToVkBool(enable_blend),

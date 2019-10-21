@@ -94,7 +94,7 @@ class PlanetApp : public Application {
 PlanetApp::PlanetApp(const WindowContext::Config& window_config)
     : Application{"Planet", window_config} {
   using common::file::GetResourcePath;
-  using common::file::GetShaderPath;
+  using common::file::GetVkShaderPath;
   using WindowKey = common::Window::KeyMap;
   using ControlKey = common::UserControlledCamera::ControlKey;
   using TextureType = ModelBuilder::TextureType;
@@ -175,9 +175,9 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetShaderPath("vulkan/planet.vert.spv"))
+                 GetVkShaderPath("planet.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetShaderPath("vulkan/planet.frag.spv"))
+                 GetVkShaderPath("planet.frag"))
       .Build();
 
   GenAsteroidModels();
@@ -196,9 +196,9 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetShaderPath("vulkan/asteroid.vert.spv"))
+                 GetVkShaderPath("asteroid.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetShaderPath("vulkan/planet.frag.spv"))
+                 GetVkShaderPath("planet.frag"))
       .Build();
 
   const SharedTexture::CubemapPath skybox_path{
@@ -220,9 +220,9 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetShaderPath("vulkan/skybox.vert.spv"))
+                 GetVkShaderPath("skybox.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetShaderPath("vulkan/skybox.frag.spv"))
+                 GetVkShaderPath("skybox.frag"))
       .Build();
 }
 

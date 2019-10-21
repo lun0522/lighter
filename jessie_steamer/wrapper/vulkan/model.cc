@@ -334,7 +334,7 @@ void Model::Update(bool is_object_opaque, const VkExtent2D& frame_size,
       .SetDepthTestEnabled(/*enable_test=*/true,
                            /*enable_write=*/is_object_opaque)
       .SetMultisampling(sample_count)
-      .SetFullFrameViewport(frame_size)
+      .SetViewport(pipeline::GetFullFrameViewport(frame_size))
       .SetRenderPass(*render_pass, subpass_index)
       .SetColorBlend(
           vector<VkPipelineColorBlendAttachmentState>(

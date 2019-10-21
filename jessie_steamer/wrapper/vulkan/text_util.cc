@@ -116,9 +116,9 @@ std::unique_ptr<PipelineBuilder> CreatePipelineBuilder(
       .SetColorBlend({pipeline::GetColorBlendState(enable_color_blend)})
       .SetFrontFaceDirection(/*counter_clockwise=*/false)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetShaderPath("vulkan/char.vert.spv"))
+                 common::file::GetVkShaderPath("char.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetShaderPath("vulkan/char.frag.spv"));
+                 common::file::GetVkShaderPath("char.frag"));
 
   return pipeline_builder;
 }
@@ -128,7 +128,7 @@ std::unique_ptr<Pipeline> BuildPipeline(const Image& target_image,
                                         const VkRenderPass& render_pass,
                                         PipelineBuilder* pipeline_builder) {
   return (*pipeline_builder)
-      .SetFullFrameViewport(target_image.extent())
+      .SetViewport(pipeline::GetFullFrameViewport(target_image.extent()))
       .SetRenderPass(render_pass, kTextSubpassIndex)
       .Build();
 }

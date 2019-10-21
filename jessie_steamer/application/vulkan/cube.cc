@@ -69,9 +69,6 @@ class CubeApp : public Application {
 
 CubeApp::CubeApp(const WindowContext::Config& window_config)
     : Application{"Cube", window_config} {
-  using common::file::GetResourcePath;
-  using common::file::GetShaderPath;
-
   // Prevent shaders from being auto released.
   ModelBuilder::AutoReleaseShaderPool shader_pool;
 
@@ -98,11 +95,11 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
   model_ = ModelBuilder{
       context(), "cube", kNumFramesInFlight,
       ModelBuilder::SingleMeshResource{
-          GetResourcePath("model/cube.obj"), kObjFileIndexBase,
+          common::file::GetResourcePath("model/cube.obj"), kObjFileIndexBase,
           /*tex_source_map=*/{{
               ModelBuilder::TextureType::kDiffuse,
               {SharedTexture::SingleTexPath{
-                   GetResourcePath("texture/statue.jpg")}},
+                   common::file::GetResourcePath("texture/statue.jpg")}},
           }}
       }}
       .AddTextureBindingPoint(ModelBuilder::TextureType::kDiffuse,
@@ -110,9 +107,9 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(push_constant_.get(), /*target_offset=*/0)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetShaderPath("vulkan/simple_3d.vert.spv"))
+                 common::file::GetVkShaderPath("simple_3d.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetShaderPath("vulkan/simple_3d.frag.spv"))
+                 common::file::GetVkShaderPath("simple_3d.frag"))
       .Build();
 
   /* Text */
