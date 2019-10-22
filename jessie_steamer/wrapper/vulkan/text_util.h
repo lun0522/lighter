@@ -89,10 +89,11 @@ class CharLoader {
   // Maps each character to its texture image.
   using CharImageMap = absl::flat_hash_map<char, std::unique_ptr<TextureImage>>;
 
-  // Computes the extent of 'char_lib_image_'.
+  // Computes the extent of 'char_lib_image_'. The width will be the total width
+  // of characters (excluding space) in 'char_lib', and the height will be the
+  // same to that of the tallest character.
   VkExtent2D GetCharLibImageExtent(const common::CharLib& char_lib,
-                                   int interval_between_chars,
-                                   int font_height) const;
+                                   int interval_between_chars) const;
 
   // Returns the horizontal advance of space character. If space is not loaded
   // in 'char_lib', returns absl::nullopt.

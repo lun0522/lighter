@@ -157,7 +157,7 @@ CharLoader::CharLoader(SharedBasicContext context,
     const int interval_between_chars = GetIntervalBetweenChars(font_height);
     char_lib_image_ = absl::make_unique<OffscreenImage>(
         context_, kSingleChannel,
-        GetCharLibImageExtent(char_lib, interval_between_chars, font_height));
+        GetCharLibImageExtent(char_lib, interval_between_chars));
     space_advance_x_ = GetSpaceAdvanceX(char_lib, *char_lib_image_);
     CreateCharTextures(char_lib, interval_between_chars, *char_lib_image_,
                        &char_image_map, &char_texture_info_map_);
@@ -209,19 +209,19 @@ CharLoader::CharLoader(SharedBasicContext context,
 }
 
 VkExtent2D CharLoader::GetCharLibImageExtent(const common::CharLib& char_lib,
-                                             int interval_between_chars,
-                                             int font_height) const {
+                                             int interval_between_chars) const {
   ASSERT_NON_EMPTY(char_lib.char_info_map(), "No character loaded");
-  int total_width = 0;
+  int total_width = 0, height = 0;
   for (const auto& pair : char_lib.char_info_map()) {
     if (pair.first != ' ') {
       total_width += pair.second.image->width + interval_between_chars;
+      height = std::max(height, pair.second.image->height);
     }
   }
   total_width -= interval_between_chars;
   return VkExtent2D{
       static_cast<uint32_t>(total_width),
-      static_cast<uint32_t>(font_height),
+      static_cast<uint32_t>(height),
   };
 }
 

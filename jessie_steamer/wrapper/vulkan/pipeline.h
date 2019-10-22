@@ -219,10 +219,10 @@ class Pipeline {
   friend std::unique_ptr<Pipeline> PipelineBuilder::Build() const;
 
   Pipeline(SharedBasicContext context,
-           const std::string& name,
+           std::string name,
            const VkPipeline& pipeline,
            const VkPipelineLayout& pipeline_layout)
-      : context_{std::move(context)}, name_{name},
+      : context_{std::move(context)}, name_{std::move(name)},
         pipeline_{pipeline}, layout_{pipeline_layout} {}
 
   // Pointer to context.

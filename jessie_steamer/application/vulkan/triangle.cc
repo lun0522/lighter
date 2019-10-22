@@ -112,9 +112,9 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
                       vertex_buffer_->GetAttributes(/*start_location=*/0))
       .SetPipelineLayout(/*descriptor_layouts=*/{}, {push_constant_range})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("simple_2d.vert"))
+                 common::file::GetVkShaderPath("pure_color.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetVkShaderPath("simple_2d.frag"));
+                 common::file::GetVkShaderPath("pure_color.frag"));
 }
 
 void TriangleApp::Recreate() {

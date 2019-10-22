@@ -14,6 +14,9 @@ Table of Contents
   * [2. Recreate swapchain - TriangleApp::Recreate()](#2-recreate-swapchain---triangleapprecreate)
   * [3. Update per-frame data - TriangleApp::UpdateData()](#3-update-per-frame-data---triangleappupdatedata)
   * [4. Main loop - TriangleApp::MainLoop()](#4-main-loop---triangleappmainloop)
+  * [5. Appendix - Shader code](#5-appendix---shader-code)
+     * [5.1 Vertex shader (pure_color.vert)](#51-vertex-shader-pure_colorvert)
+     * [5.2 Fragment shader (pure_color.frag)](#52-fragment-shader-pure_colorfrag)
 
 ## 0. Introduction
 
@@ -190,9 +193,9 @@ pipeline_builder_ = absl::make_unique<PipelineBuilder>(context());
                     vertex_buffer_->GetAttributes(/*start_location=*/0))
     .SetPipelineLayout(/*descriptor_layouts=*/{}, {push_constant_range})
     .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-               common::file::GetVkShaderPath("simple_2d.vert"))
+               common::file::GetVkShaderPath("pure_color.vert"))
     .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-               common::file::GetVkShaderPath("simple_2d.frag"));
+               common::file::GetVkShaderPath("pure_color.frag"));
 ```
 
 ## 2. Recreate swapchain - TriangleApp::Recreate()
@@ -316,3 +319,35 @@ If the user closes the window and the main loop is about to end, we must call
 not return until the device becomes idle and `BasicContext` has cleaned up
 static resources (see details in `BasicContext::OnExit()`). After that, it is
 safe to destruct `TriangleApp` and all the resources we created.
+
+## 5. Appendix - Shader code
+
+### 5.1 Vertex shader (pure_color.vert)
+
+```glsl
+layout(location = 0) in vec3 in_pos;
+layout(location = 1) in vec3 in_color;
+
+layout(location = 0) out vec3 color;
+
+void main() {
+  gl_Position = vec4(in_pos, 1.0);
+  color = in_color;
+}
+```
+
+### 5.2 Fragment shader (pure_color.frag)
+
+```glsl
+layout(push_constant) uniform Alpha {
+  float value;
+} alpha;
+
+layout(location = 0) in vec3 color;
+
+layout(location = 0) out vec4 frag_color;
+
+void main() {
+  frag_color = vec4(color, alpha.value);
+}
+```

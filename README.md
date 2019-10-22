@@ -104,7 +104,7 @@ models, skybox and text.
 
 ## 1.5 Reference counting (ref_count)
 
-## 1.6 Time utils (time)
+## 1.6 Time utils (timer)
 
 ## 1.7 Window manager (window)
 
@@ -509,6 +509,74 @@ states to avoid rebuilding the entire pipeline for changing transparency.
 
 ### 3.3.2 Text renderer (text and text_util)
 
+#### 3.3.2.1 CharLoader and TextLoader
+
+**common::CharLib** loads textures of each single character. If we want to use
+those textures, here are some options we have:
+
+1. Directly bind the texture of the character that we want to render, and render
+characters one by one. In this way we need to do lots of bindings and render
+calls, and the textures of characters might not be stored together on the
+device, hence we might not be able to take advantage of the cache.
+2. Put all textures in one array, and pass the index of the character that we
+want to render via push constants or uniform buffers. However, we still need to
+define the length of the array, but we may not know which characters will be
+used when we write the shader code, especially if we want to render unicode.
+Besides, this does not take advantage of the cache either.
+3. Render the characters that we might want to use onto a big texture. After
+this, the textures of single characters can be destroyed. When we want to render
+any of these characters, we only need to bind that big texture.
+
+**CharLoader** helps us take the last approach. It takes in all characters that
+might be used later, loads their textures via **common::CharLib**, renders them
+to a texture that is just big enough, and records the glyph of each character
+and where to find that character on the big texture. For example, if we want to
+display the frame rate with numbers, we can tell it that we might use numbers
+from 0 to 9, and it will create such a texture:
+
+![](https://docs.google.com/uc?id=17NVplvW-bEUrtdWdmXgsl-wkaOr4iW-Q)
+
+The order of characters does not matter at this step, as long as we keep track
+of the location of each of them. The color of characters appears red because
+this texture only has R channel. Note that this texture has been flipped
+vertically to make readers easier to understand it, but it is actually upside
+down, which makes it easier to use later because of the coordinate system.
+
+Sometimes we have some fixed texts. They might be a word, a sentence or
+anything else as long as we don't change the order of characters. Take
+displaying the frame rate as an example, we may always want to show the text
+"FPS:" on the screen. We may change its color, transparency and location on the
+screen, but the text itself does not change. In this case, we can use
+**TextLoader** to render those characters onto a separate texture, so that later
+when we want to display this text, we only need to bind one texture and do one
+render call:
+
+![](https://docs.google.com/uc?id=12TBpr-_zRjC23QE1pPPkGA41pw-fCWht)
+
+This texture has also been flipped for readability. **TextLoader** first uses
+**CharLoader** to render all characters onto one big texture without a specific
+order, and then render different texts to different textures. These two classes
+actually share a lot in common: same shaders, same descriptors, same render
+pass, etc.
+
+#### 3.3.2.2 StaticText and DynamicText
+
+![](https://docs.google.com/uc?id=10MEvDtUZsmKL8oskpESNn4ENzs7F1MXZ)
+
+**StaticText** is backed by **TextLoader**. The user should pass in a list of
+static texts that will be rendered later to its constructor. **DynamicText**
+is backed by **CharLoader**. The user should pass in a list of texts that
+contain all the characters that might be rendered later. When rendering the
+text, for **StaticText**, the user should use the index of the text in the list
+to specify which one to render. For **DynamicText**, the user can pass in any
+string, as long as the string does not contain any character that
+**DynamicText** does not expect.
+
+The user can specify different RGBA and location for the text in each frame. For
+now, we only support the horizontal layout and alignment. More support will be
+added in the future. With these two classes, the user would not need to directly
+use **CharLoader** and **TextLoader** for simple scenes.
+
 # 4. Applications (jessie_steamer/application/)
 
 ## 4.1 Triangle scene (triangle)
@@ -540,7 +608,7 @@ states to avoid rebuilding the entire pipeline for changing transparency.
 
 ## 5.3 Resources
 
-- Table of content of each README is generated with [github-markdown-toc](https://github.com/ekalinin/github-markdown-toc)
+- The table of contents of each README is generated with [github-markdown-toc](https://github.com/ekalinin/github-markdown-toc)
 - Class inheritance graphs are generated with [Doxygen](http://www.doxygen.nl)
 and [Graphviz](http://www.graphviz.org)
 - Fonts, frameworks, 3D models and textures in a separate [resource repo](https://github.com/lun0522/resource)
