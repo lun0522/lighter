@@ -94,19 +94,90 @@ models, skybox and text.
 
 # 1. Common modules (jessie_steamer/common/)
 
+These modules are shared by OpenGL and Vulkan wrappers. Most of the code is
+independent of graphics APIs. We have added preprocessors to make sure if we are
+compiling for OpenGL, it won't need to link to any Vulkan stuff.
+
 ## 1.1 Camera (camera)
+
+![](https://docs.google.com/uc?id=1W05t3I4SXnW6lEGaR5nh-si7s4sy46Ji)
+
+**Camera** models a prospective camera. It exposes methods for updating field of
+view, screen size, position and direction, and nothing more. It does not care
+about where the control signal comes from. **UserControlledCamera** is the one
+that we should use in applications. It can respond to inputs from cursor, scroll
+and keyboard. These two classes are not merged into one because in the future
+we may support more off-screen rendering features, in which case the control
+signal may come from a log file or some other sources, not just directly from
+the user.
 
 ## 1.2 Character library (char_lib)
 
+**CharLib** is backed by [FreeType library](https://www.freetype.org). It simply
+loads textures of individual characters. We have higher level wrappers to render
+texts with characters loaded by it, so the user may not need to directly use it.
+
 ## 1.3 File utils (file)
+
+These util classes are used to load raw data or images from files, and load
+vertex data from Wavefront .obj files. The .obj file loader is pretty
+lightweight, and it can only load a single mesh, which is useful enough for
+simple 3D models like cubes and spheres.
 
 ## 1.4 Model loader (model_loader)
 
+**ModelLoader** is backed by [Assimp library](http://www.assimp.org) and is used
+to load complex 3D models. The vertex data and textures of each mesh will be
+gathered in **ModelLoader::MeshData**. We have higher level wrappers of it to
+render models loaded by it, so the user may not need to directly use it.
+
 ## 1.5 Reference counting (ref_count)
 
-## 1.6 Time utils (timer)
+Smart pointers are good enough for managing resources on the host side in this
+project, but we still need something else to manage resources on the device,
+especially if they are loaded from files. For example, we might have loaded some
+textures for rendering a skybox, and later we might want to use the same
+textures to compute reflections when rendering other objects. To avoid loading
+textures again in order to save disk I/O, one option is to have a shared pointer
+to refer to the textures, and pass the pointer around. We think this is not very
+convenient, and we may not know which textures we have already loaded,
+especially when some textures are loaded by the model loader and we never type
+in the file path by ourselves.
+
+Another option is to put the pointer in a hashmap, and create an identifier of
+it. We can use the file path as the identifier in this case, so that we won't
+load a texture twice from the same path, as long as it is still in the hashmap.
+We generalize this idea to create this reference counting class, so that we can
+do the same thing for other resources, such as shader files. All reference
+counted objects of the same class will be put in one hashmap, and will be erased
+from it if the reference count drops to zero.
+
+Shader files are a bit different, since after we construct a graphics pipeline,
+we can already destroy them. Even if the next pipeline to build may use the same
+shaders, their reference counts may have already dropped to zero before that.
+Hence, we allow the user to set a policy to determine whether the object should
+be destroyed when the reference count drops to zero. The user can change the
+policy at anytime, and force cleaning out all objects with zero reference counts
+at anytime. To make it even easier to use, we introduced the auto release pool,
+which sets the policy automatically, to prevent any resource from being
+destroyed before it goes out of scope. The user may create an instance of it to
+preserve loaded shader files, then construct all models and pipelines. When the
+instance goes out of scope, shader files will be released if unused anymore.
+This is similar to using `std::lock_guard`.
+
+## 1.6 Timer (timer)
+
+**Timer** is mainly used to compute the frame rate, which is updated every
+second. The user may also query how long has it been since the timer is
+launched.
 
 ## 1.7 Window manager (window)
+
+**Window** is backed by [GLFW library](https://www.glfw.org). The user can
+register callbacks for cursor, scroll and keyboard inputs, and check whether
+the window is resized or closed in the main loop. For Vulkan applications, it is
+also responsible for providing the names of required extensions and help create
+**VkSurfaceKHR**.
 
 # 2. OpenGL wrappers (jessie_steamer/wrapper/opengl/)
 

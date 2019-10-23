@@ -95,8 +95,8 @@ class Camera {
 };
 
 // A prospective camera model with cursor, scroll and keyboard control.
-// Users are responsible to call 'SetActivity' to activate the camera, and call
-// 'Calibrate' after a screen is created and whenever it is resized.
+// Users are responsible to call SetActivity() to activate the camera, and call
+// Calibrate() after a screen is created and whenever it is resized.
 class UserControlledCamera : public Camera {
  public:
   // Users may use these keys to control the camera.

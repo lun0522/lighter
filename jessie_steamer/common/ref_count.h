@@ -140,7 +140,8 @@ typename RefCountedObject<ObjectType>::ObjectPool
 // When it goes out of scope, objects with zero reference count will be
 // automatically released. The usage of it is very similar to std::lock_guard.
 template <typename ObjectType>
-struct AutoReleasePool {
+class AutoReleasePool {
+ public:
   AutoReleasePool() {
     RefCountedObject<ObjectType>::SetPolicy(/*destroy_if_unused=*/false);
   }
@@ -148,6 +149,11 @@ struct AutoReleasePool {
   ~AutoReleasePool() {
     RefCountedObject<ObjectType>::SetPolicy(/*destroy_if_unused=*/true);
   }
+
+ private:
+  // Force the user to allocate on stack, in order to prevent overcomplications.
+  void* operator new(size_t);
+  void* operator new[](std::size_t);
 };
 
 } /* namespace common */

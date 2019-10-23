@@ -91,8 +91,10 @@ class Window {
   // be closed.
   bool ShouldQuit() const;
 
+#ifdef USE_VULKAN
   // Returns the names of required extensions for creating the window.
   static const std::vector<const char*>& GetRequiredExtensions();
+#endif /* USE_VULKAN */
 
   // Returns the size of window.
   glm::ivec2 GetScreenSize() const;

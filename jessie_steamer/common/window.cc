@@ -136,6 +136,7 @@ bool Window::ShouldQuit() const {
   return glfwWindowShouldClose(window_);
 }
 
+#ifdef USE_VULKAN
 const vector<const char*>& Window::GetRequiredExtensions() {
   static vector<const char*>* required_extensions = nullptr;
   if (required_extensions == nullptr) {
@@ -147,6 +148,7 @@ const vector<const char*>& Window::GetRequiredExtensions() {
   }
   return *required_extensions;
 }
+#endif /* USE_VULKAN */
 
 glm::ivec2 Window::GetScreenSize() const {
   glm::ivec2 extent;
