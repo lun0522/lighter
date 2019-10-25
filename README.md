@@ -64,11 +64,13 @@ Before running any application, shaders should be compiled by executing
 bazel run -c opt --copt=-DUSE_VULKAN //jessie_steamer/application/vulkan:triangle
 ```
 
-You can also just build it with Bazel and directly launch the executable, which
-is more useful for debugging with external tools:
+The compilation mode is specified with the `-c` flag. See details on [Bazel website](https://docs.bazel.build/versions/master/command-line-reference.html#flag--compilation_mode).
+We do turn on the verbose logging mode if not compiled with `-c opt`. You can
+also just build it with Bazel and directly launch the executable, which is more
+useful for debugging with external tools:
 
 ```bash
-bazel build -c opt --copt=-DUSE_VULKAN //jessie_steamer/application/vulkan:triangle
+bazel build -c dbg --copt=-DUSE_VULKAN //jessie_steamer/application/vulkan:triangle
 bazel-bin/jessie_steamer/application/vulkan/triangle --resource_folder=<path to resource folder> --shader_folder=<path to shader folder> --vulkan_folder=<path to Vulkan SDK folder>
 ```
 
@@ -82,11 +84,12 @@ downloaded, and the path to it should be specified with this flag.
 should be specified with this flag.
 - *vulkan_folder*: The [Vulkan SDK](https://vulkan.lunarg.com) must have been 
 downloaded, and the path to the platform specific folder should be specified
-with this flag.
+with this flag. For MacOS, this would be
+`vulkansdk-macos-<version number>/macOS`.
 
 This README introduces the modules we created, and the decisions we made when we
-design the structure. The usage of each class is put right before the class
-definition in header files. You can start with a
+design them. The usage of classes and util functions is put right before the
+declaration in header files. You can start with a
 [Vulkan "Hello Triangle" example](https://github.com/lun0522/jessie-steamer/tree/master/jessie_steamer/application/vulkan),
 and then take a look at other applications under the jessie_steamer/application
 folder, which are good examples of how to use other features such as rendering
@@ -95,21 +98,22 @@ models, skybox and text.
 # 1. Common modules (jessie_steamer/common/)
 
 These modules are shared by OpenGL and Vulkan wrappers. Most of the code is
-independent of graphics APIs. We have added preprocessors to make sure if we are
-compiling for OpenGL, it won't need to link to any Vulkan stuff.
+independent of graphics APIs. For those exceptions, we have added preprocessors
+to make sure if we are not compiling for a certain API, we won't need to link to
+anything related to it.
 
 ## 1.1 Camera (camera)
 
 ![](https://docs.google.com/uc?id=1W05t3I4SXnW6lEGaR5nh-si7s4sy46Ji)
 
-**Camera** models a prospective camera. It exposes methods for updating field of
-view, screen size, position and direction, and nothing more. It does not care
-about where the control signal comes from. **UserControlledCamera** is the one
-that we should use in applications. It can respond to inputs from cursor, scroll
-and keyboard. These two classes are not merged into one because in the future
-we may support more off-screen rendering features, in which case the control
-signal may come from a log file or some other sources, not just directly from
-the user.
+**Camera** models a prospective camera. It exposes methods for updating the
+field of view, screen size, position and direction, and nothing more. It does
+not care about where the control signal comes from. **UserControlledCamera** is
+the one that we should use in applications. It can respond to inputs from
+cursor, scroll and keyboard. These two classes are not merged into one because
+in the future we may support more off-screen rendering features, in which case
+the control signal may come from a log file or some other sources, not just
+directly from the user.
 
 ## 1.2 Character library (char_lib)
 
@@ -139,8 +143,8 @@ especially if they are loaded from files. For example, we might have loaded some
 textures for rendering a skybox, and later we might want to use the same
 textures to compute reflections when rendering other objects. To avoid loading
 textures again in order to save disk I/O, one option is to have a shared pointer
-to refer to the textures, and pass the pointer around. We think this is not very
-convenient, and we may not know which textures we have already loaded,
+to reference to the textures, and pass the pointer around. We think this is not
+very convenient, and we may not know which textures we have already loaded,
 especially when some textures are loaded by the model loader and we never type
 in the file path by ourselves.
 
@@ -181,6 +185,8 @@ also responsible for providing the names of required extensions and help create
 
 # 2. OpenGL wrappers (jessie_steamer/wrapper/opengl/)
 
+Not implemented yet.
+
 # 3. Vulkan wrappers (jessie_steamer/wrapper/vulkan/)
 
 We don't aim to implement OpenGL APIs on the top of Vulkan APIs, but we will try
@@ -205,9 +211,9 @@ functions need access to **VkInstance**, **VkDevice** and many other Vulkan
 objects. A lot of them are shared when we render different targets, which makes
 them the "context". The original design of this project was to have a wrapper
 for each of these Vulkan objects, and use one monolithic context class to hold
-instances of all wrappers, including **Instance**, **CommandBuffer** and
-**Pipeline**, etc. That made it easier to follow tutorials, but problems
-revealed as the project got bigger:
+instances of all wrappers, including **Instance**, **Command** and **Pipeline**,
+etc. That made it easier to follow tutorials, but problems revealed as the
+project got bigger:
 
 1. It was convenient to pass a context to a function so that it can fetch
 everything it needs, but this made it harder to know which part of the context
@@ -216,8 +222,9 @@ we passed in the entire context but only touched **Device**,
 **HostMemoryAllocator** and **Swapchain**. Among them, **Swapchain** was
 actually used only once. It makes more sense to only keep those frequently used
 members (like **Instance** and **Device**) in the context, and pass others (like
-**Swapchain**) as arguments, so that we can more easily know what does the
-function do internally.
+**Swapchain**) as arguments (not to mention **Swapchain** is not used for
+offscreen rendering), so that we can more easily know what does the function do
+internally.
 2. It was very easy to create circular dependencies. Each wrapper class needs
 the context to initialize itself and perform other operations, and the context
 needs to hold instances of wrappers. This could be solved by using forward
@@ -232,12 +239,12 @@ context if we were only going to render one cube, however, if we want to further
 render some text on the frame, the **Swapchain** should be shared, but we would
 need more **Pipeline**s. Besides, when we prepare the texture for the text, we
 only need to make one render call, but when we want to display it on the screen,
-we need to make a render call every frame, hence we need different
-**CommandBuffer** in different classes.
+we need to make a render call every frame, hence we need different **Command**s
+in different classes.
 4. Some members are not necessary for offscreen rendering, such as **Surface**,
 **Swapchain** and **Window**. Besides, we should not depend on GLFW in the code
-and BUILD file. When we do on-screen rendering, if the window is resized, we
-need to recreate the resources that are affected by the frame size, such as
+and BUILD file. When we do onscreen rendering, if the window is resized, we need
+to recreate the resources that are affected by the frame size, such as
 **Swapchain** and **RenderPass**, but most members of the context are actually
 not changed. It is possible to decouple the part that is affected by the window.
 
@@ -255,7 +262,7 @@ members are not defined in the same file as the context, we still need to use
 forward declarations, but we no longer need to do the same for other wrappers
 like **Swapchain** and **Pipeline**. When wrappers need to interact with each
 other, we would pass the original Vulkan objects as much as we can, so that
-wrappers don't need to depend on each other. For on-screen rendering, we created
+wrappers don't need to depend on each other. For onscreen rendering, we created
 a window context, which holds a basic context and other members related to the
 window:
 
@@ -264,33 +271,33 @@ window:
 - **Swapchain**
 
 We also created a Bazel target `//jessie_steamer/wrapper/vulkan:on_screen` which
-exposes only the files needed for on-screen rendering, so applications only need
+exposes only the files needed for onscreen rendering, so applications only need
 to depend on this target and hold one instance of **WindowContext**.
 
 Another decision we made was to create and destroy Vulkan objects in a more RAII
 way. The tutorial does not wrap Vulkan objects that much. Each of those objects
 is created by a function and destroyed by another, where the destruction
 functions are called in the reversed order of construction. However, we found
-that some of these orders are not necessary. For example, render pass and
-pipeline are independent, and they can be created/destroyed in arbitrary order.
-Hence, we extracted objects that should be dealt with carefully in RAII
-and put them in **BasicContext** and **WindowContext**, where we rely on the
-declaration order (which also determines destruction order in nature) to make
-sure they are created/destroyed properly. Other wrapper objects that are not in
-the contexts can be created/destroyed in arbitrary order, so the user need not
-worry about it at all.
+that some of these orders are not necessary. For example, render passes and
+pipelines are independent, and they can be created/destroyed in arbitrary order.
+Hence, we extracted objects that should be dealt with carefully, and put them in
+**BasicContext** and **WindowContext**, where we rely on the declaration order
+(which also determines destruction order in nature) to make sure they are
+created/destroyed properly. Other wrapper objects that are not in the contexts
+can be created/destroyed in arbitrary order, so the user need not worry about it
+at all.
 
 We need to pay extra attention to the swapcahin recreation, which happens if the
 window is resized or moved to another monitor. Some objects will be affected,
-such as **Swapchain** (since swapchain image size changes) and **Pipeline**
-(since viewport changes). One way to solve this is to follow the tutorial and
-have methods like `Create()` and `Cleanup()` in those wrappers, so that we can
-destroy expired resources and recreate them. However, the user of them would
-need to worry about when and in what order to call these methods. If an
-exception is thrown between calling `Cleanup()` and `Create()`, or if the user
-calls `Cleanup()` and forgets to call `Create()`, the object will be left in an
-uninitialized state, and the destructor of it would cause more trouble since it
-tries to destroy uninitialized Vulkan objects, unless we make it more
+such as **Swapchain** (since the size of swapchain images changes) and
+**Pipeline** (since the viewport changes). One way to solve this is to follow
+the tutorial and have methods like `Create()` and `Cleanup()` in those wrappers,
+so that we can destroy expired resources and recreate them. However, the user of
+them would need to worry about when and in what order to call these methods. If
+an exception is thrown between calling `Cleanup()` and `Create()`, or if the
+user calls `Cleanup()` and forgets to call `Create()`, the object will be left
+in an uninitialized state, and the destructor of it would cause more trouble
+since it tries to destroy uninitialized Vulkan objects, unless we make it more
 complicated by adding an extra boolean to track whether it is initialized. To
 make life easier, we decided to make each wrapper have **at most** one method
 that need to be called during the swapchain recreation:
@@ -361,9 +368,9 @@ this type of vertex buffer.
 
 #### 3.2.1.4 TextureBuffer, OffscreenBuffer, DepthStencilBuffer and MultisampleBuffer
 
-These buffers manage device memory of images. Among them, **TextureBuffer** is
-the only one that copies data from the host at construction, since it stores
-texture images loaded from files. Other buffers are used as rendering targets.
+These buffers manage device image memory. Among them, **TextureBuffer** is the
+only one that copies data from the host at construction, since it stores texture
+images loaded from files. Other buffers are used as rendering targets.
 
 These buffers are usually managed by the **Image** classes, and the user may not
 need to directly instantiate them.
@@ -372,11 +379,11 @@ need to directly instantiate them.
 
 ![](https://docs.google.com/uc?id=1UlOc-ts3a55EmIPSYheY_h2jsrw6lQrl)
 
-- **OneTimeCommand** is used for commands that will only be executed only once.
-For example, we only need to transfer data to the static vertex buffer once. The
+- **OneTimeCommand** is used for commands that will be executed only once. For
+example, we only need to transfer data to the static vertex buffer once. The
 user can specify which device queue to use.
 - **PerFrameCommand** is used for commands that will be executed every frame.
-This is used for on-screen rendering, and it handles the synchronization
+This is used for onscreen rendering, and it handles the synchronization
 internally, so that the user won't need to use semaphores and fences directly.
 
 Both of them are meant to be used directly by the user. We will add more command
@@ -396,8 +403,8 @@ during the command buffer recording. It requires the extension
 They are usually managed by high-level wrappers (*i.e.* model renderer and text
 renderer). The user would still need to inform the model renderer of the
 resources declared in the customized shaders. For high-level wrappers, we choose
-which kind of **Descriptor** to use based the lifetime and update frequency of
-the descriptor. For example:
+which kind of **Descriptor** to use based on the lifetime and update frequency
+of the descriptor. For example:
 
 - For the model renderer, since textures used for each mesh keep unchanged
 across frames, we use **StaticDescriptor** so that we only need to update it
@@ -413,16 +420,16 @@ character textures one at a time.
 ![](https://docs.google.com/uc?id=1v3dHjXWTJbwLQKYgqk67zHxHcUAuxWqr)
 
 **Image** is the base class of all other image classes. It provides accessors
-to the image view, extent, format and sample count. These information should be
-enough for setting an image as an attachment in the render pass. All of its
-subclasses can be directly used by the user, except for **SwapchainImage**,
-which is managed by **Swapchain**:
+to the image view, extent, format and sample count (which will be greater than 1
+when multisampling is used). These information should be enough for setting an
+image as an attachment in the render pass. All of its subclasses can be directly
+used by the user, except for **SwapchainImage**, which is managed by
+**Swapchain**:
 
 - **SwapchainImage** wraps an image retrieved from the swapchain.
 - **OffscreenImage** creates an image that can be used as offscreen rendering
 target.
-- **TextureImage** copies a texture image from the host memory to the device
-memory.
+- **TextureImage** copies an image from the host memory to the device memory.
 - **DepthStencilImage** creates an image that can be used as single-sample depth
 stencil attachment.
 - **MultisampleImage** exposes two convenient constructors to the user. One of
@@ -436,8 +443,7 @@ don't need to resolve the multisample image. To make life easier,
 **MultisampleImage** provides another convenient constructor that takes in an
 optional multisampling mode. If this mode is `absl::nullopt`, it will return a
 single-sample image, otherwise, it will return a multisample image. The user
-would use the same code in either case, except for specifying the multisampling
-mode.
+would use the same code to use the depth stencil image in either case.
 
 ![](https://docs.google.com/uc?id=1Q4wvHWjwxGHfFvaUvIhQgmZ-ykuehdZQ)
 
@@ -456,13 +462,22 @@ existence of the texture.
 
 ### 3.2.5 Pipeline (pipeline and pipeline_util)
 
-We provide a builder class to create instances of **Pipeline**. The user may
-set up depth and stencil testing, front face direction, multisampling, vertex
-input bindings and attributes, descriptor set layouts, push constant ranges,
-viewport and scissor, render pass and subpass, color blending, and multiple
-shaders used in the pipeline through **PipelineBuilder**. We also provide helper
-functions in *pipeline_util* for setting color blending and vertex input
-bindings and attributes.
+We provide a builder class to create instances of **Pipeline**. Through
+**PipelineBuilder** the user may set up:
+
+- depth and stencil testing
+- front face direction
+- multisampling
+- vertex input bindings and attributes
+- descriptor set layouts
+- push constant ranges
+- viewport and scissor
+- render pass and subpass
+- color blending
+- shaders used in the pipeline
+
+We also provide helper functions in *pipeline_util* for setting the viewport,
+color blending and vertex input bindings and attributes.
 
 If any state is changed, the user can reuse the builder, update the states and
 rebuild the pipeline. For example, after the window is resized, the user may
@@ -476,9 +491,14 @@ directly interact with it.
 
 ### 3.2.6 Render pass (render_pass and render_pass_util)
 
-We provide a builder class to create instances of **RenderPass**. The user may
-set framebuffer count and size, add attachments and associated images, add
-subpasses and set dependencies between subpasses through **RenderPassBuilder**.
+We provide a builder class to create instances of **RenderPass**. Through
+**RenderPassBuilder**, the user may set:
+
+- number of framebuffers
+- attachments and associated images
+- multisampling relationships
+- subpasses and dependencies between them
+
 When used to build **RenderPass**, the internal states of the builder would not
 be changed, hence later the user may update the builder and create another
 **RenderPass** with similar settings, which is useful, for example, when the
@@ -521,15 +541,16 @@ will illustrate how to use **ModelBuilder** and **Model**.
 The user need to specify how to load the model vertex data and textures when
 constructing **ModelBuilder**.
 
-- **SingleMeshResource** is meant for loading a single mesh, such as a sphere or
-cube. We will need to specify which file contains the vertex data (only
-Wavefront .obj files are supported for now), and which textures to use. Textures
-are either loaded from files or existing offscreen images. This is backed by the
-simple parser in **common::ObjFile**.
+- **SingleMeshResource** is meant for loading a single mesh, such as a cube or
+sphere. We will need to specify which file contains the vertex data (only
+Wavefront .obj files with one mesh are supported for now), and which textures to
+use. Textures are either loaded from files or existing offscreen images. This is
+backed by the simple parser in **common::ObjFile**.
 - **MultiMeshResource** is meant for complex models with multiple meshes.
 Internally, meshes will be loaded with **common::ModelLoader**, which is backed
-by Assimp. We will need to specify the path to the model file, and the directory
-where textures are located, assuming all textures are in the same directory.
+by [Assimp library](http://www.assimp.org). We will need to specify the path to
+the model file, and the directory where textures are located, assuming all
+textures are in the same directory.
 
 In both cases, **Model** will hold the vertex buffer. If any textures are loaded
 from existing offscreen images, the user will be responsible for keeping the
@@ -652,11 +673,41 @@ use **CharLoader** and **TextLoader** for simple scenes.
 
 ## 4.1 Triangle scene (triangle)
 
+![](https://docs.google.com/uc?id=1FgCZ40kg9e0POyJjoB-GlJJLtxWe6y6K)
+
+This is the most basic scene, where we don't have any mesh or texture, but one
+blinking triangle. This proves all the basic functionality for onscreen
+rendering (vertex buffer, command buffer, swapchain, render pass and graphics
+pipeline) is working. We have a [breakdown of the code](https://github.com/lun0522/jessie-steamer/tree/master/jessie_steamer/application/vulkan)
+to illustrate the usage of them. If all resources on the device are destroyed
+properly, the context will be destructed at last, and we should see the log
+"Context destructed properly" in the debug compilation mode.
+
 ## 4.2 Cube scene (cube)
+
+![](https://docs.google.com/uc?id=1UipW6M6x5uLKSOJdTOPNus86CFaicl-i)
+
+The cube model is loaded by our lightweight .obj file loader. The statue image
+on the cube proves we can load images from files. The text that shows the frame
+rate proves the off-screen pipeline and alpha blending are working. Since text
+rendering requires loading the same shaders several times, if the reference
+counting and auto release pool work well, in the debug compilation mode, we
+should see some logs saying cache hits for shaders.
 
 ## 4.3 Nanosuit scene (nanosuit)
 
+![](https://docs.google.com/uc?id=14GFRdlf1qYqZem45e5YKLbjrL5ni84LP)
+
+The nanosuit model is loaded with [Assimp library](http://www.assimp.org). The
+user can use keyboard to control the camera. This scene also tests the skybox
+loading and reference counting for textures, since the skybox texture is also
+used to compute the reflection on the glasses of nanosuit model.
+
 ## 4.4 Planet and asteroids scene (planet)
+
+![](https://docs.google.com/uc?id=1fWg5UHeHI--hP21l_8Rf3ti97OM10Ydq)
+
+This scene is mainly built for testing instanced drawing and the performance.
 
 # 5. Acknowledgements
 
