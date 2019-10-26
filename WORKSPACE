@@ -11,6 +11,7 @@ git_repository(
     shallow_since = "1565288385 -0400",
 )
 
+# NOTE: If this changes, remember to update the dynamic library.
 new_git_repository(
     name = "lib-assimp",
     remote = "https://github.com/assimp/assimp.git",
@@ -20,14 +21,16 @@ new_git_repository(
     build_file = "//:third_party/BUILD.assimp",
 )
 
+# NOTE: If this changes, remember to update the dynamic library.
 http_archive(
     name = "lib-freetype",
-    url = "https://download.savannah.gnu.org/releases/freetype/freetype-2.10.0.tar.gz",
-    sha256 = "955e17244e9b38adb0c98df66abb50467312e6bb70eac07e49ce6bd1a20e809a",
-    strip_prefix = "freetype-2.10.0/include",
+    url = "https://download.savannah.gnu.org/releases/freetype/freetype-2.10.1.tar.gz",
+    sha256 = "3a60d391fd579440561bf0e7f31af2222bc610ad6ce4d9d7bd2165bca8669110",
+    strip_prefix = "freetype-2.10.1/include",
     build_file = "//:third_party/BUILD.freetype",
 )
 
+# NOTE: If this changes, remember to update the dynamic library.
 new_git_repository(
     name = "lib-glfw",
     remote = "https://github.com/glfw/glfw.git",
@@ -49,8 +52,8 @@ new_git_repository(
 new_git_repository(
     name = "lib-stb",
     remote = "https://github.com/nothings/stb.git",
-    commit = "2c2908f50515dcd939f24be261c3ccbcd277bb49",
-    shallow_since = "1551740933 -0800",
+    commit = "052dce117ed989848a950308bd99eef55525dfb1",
+    shallow_since = "1566060782 -0700",
     build_file = "//:third_party/BUILD.stb",
 )
 
@@ -65,6 +68,6 @@ http_archive(
 git_repository(
     name = "resource",
     remote = "https://github.com/lun0522/resource.git",
-    commit = "b18a663156e6e86b33d62dbe11e094b2ae3a3118",
-    shallow_since = "1559518487 -0700",
+    commit = "097a15e0971931ab746442084c4f9e6e4f8cd14e",
+    shallow_since = "1572065350 -0700",
 )
