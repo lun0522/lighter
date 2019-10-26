@@ -67,21 +67,52 @@ class ModelBuilder {
   using TextureSourceMap = absl::flat_hash_map<
       TextureType, std::vector<TextureSource>, common::util::EnumClassHash>;
 
-  // Contains information required for loading one mesh from the Wavefront .obj
-  // file at 'obj_path' and textures in 'tex_source_map' using a light-weight
-  // .obj file loader.
-  struct SingleMeshResource {
-    std::string obj_path;
-    int obj_file_index_base;
-    TextureSourceMap tex_source_map;
+  // Interface of model resource classes.
+  class ModelResource {
+   public:
+    virtual ~ModelResource() = default;
+
+    // Loads meshes and textures, and populates 'vertex_buffer_' and
+    // 'mesh_textures_' of 'builder'.
+    virtual void LoadMesh(ModelBuilder* builder) const = 0;
   };
+
+  // Contains information required for loading one mesh from the Wavefront .obj
+  // file at 'obj_file_path' and textures in 'tex_source_map' using a
+  // lightweight .obj file loader.
+  class SingleMeshResource : public ModelResource {
+   public:
+    SingleMeshResource(std::string&& obj_file_path,
+                       int obj_file_index_base,
+                       TextureSourceMap&& tex_source_map)
+        : obj_file_path_{std::move(obj_file_path)},
+          obj_file_index_base_{obj_file_index_base},
+          tex_source_map_{std::move(tex_source_map)} {}
+
+    // Overrides.
+    void LoadMesh(ModelBuilder* builder) const override;
+
+   private:
+    const std::string obj_file_path_;
+    const int obj_file_index_base_;
+    const TextureSourceMap tex_source_map_;
+  };
+
   // Contains information required for loading the model from 'model_path' and
   // textures from 'texture_dir' using Assimp.
-  struct MultiMeshResource {
-    std::string model_path;
-    std::string texture_dir;
+  class MultiMeshResource : public ModelResource {
+   public:
+    MultiMeshResource(std::string&& model_path, std::string&& texture_dir)
+        : model_path_{std::move(model_path)},
+          texture_dir_{std::move(texture_dir)} {}
+
+    // Overrides.
+    void LoadMesh(ModelBuilder* builder) const override;
+
+   private:
+    const std::string model_path_;
+    const std::string texture_dir_;
   };
-  using ModelResource = absl::variant<SingleMeshResource, MultiMeshResource>;
 
   // Contains information for pushing constants. We assume that in each frame,
   // for each PushConstant, PushConstant::size_per_frame() bytes will be sent to
@@ -155,10 +186,6 @@ class ModelBuilder {
   std::unique_ptr<Model> Build();
 
  private:
-  // Loads meshes and populates 'vertex_buffer_' and 'mesh_textures_'.
-  void LoadSingleMesh(const SingleMeshResource& resource);
-  void LoadMultiMesh(const MultiMeshResource& resource);
-
   // Creates descriptors for all resources used for rendering the model.
   std::vector<DescriptorsPerFrame> CreateDescriptors() const;
 

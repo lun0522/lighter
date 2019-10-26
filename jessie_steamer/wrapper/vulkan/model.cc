@@ -138,6 +138,61 @@ void SetPipelineVertexInput(
 
 } /* namespace */
 
+void ModelBuilder::SingleMeshResource::LoadMesh(ModelBuilder* builder) const {
+  // Load indices and vertices.
+  const common::ObjFile file{obj_file_path_, obj_file_index_base_};
+  VertexInfo vertex_info{
+      /*per_mesh_infos=*/{{
+          PerVertexBuffer::VertexDataInfo{file.indices},
+          PerVertexBuffer::VertexDataInfo{file.vertices},
+      }},
+  };
+  builder->vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
+      builder->context_, std::move(vertex_info),
+      pipeline::GetVertexAttribute<Vertex3DWithTex>());
+
+  // Load textures.
+  auto& mesh_textures = builder->mesh_textures_;
+  mesh_textures.emplace_back();
+  for (const auto& pair : tex_source_map_) {
+    const auto type_index = static_cast<int>(pair.first);
+    const auto& sources = pair.second;
+    mesh_textures.back()[type_index].reserve(sources.size());
+    for (const auto& source : sources) {
+      mesh_textures.back()[type_index].emplace_back(
+          CreateTexture(builder->context_, source));
+    }
+  }
+}
+
+void ModelBuilder::MultiMeshResource::LoadMesh(ModelBuilder* builder) const {
+  // Load indices and vertices.
+  const common::ModelLoader loader{model_path_, texture_dir_};
+  vector<VertexInfo::PerMeshInfo> per_mesh_infos;
+  per_mesh_infos.reserve(loader.mesh_datas().size());
+  for (const auto& mesh_data : loader.mesh_datas()) {
+    per_mesh_infos.emplace_back(VertexInfo::PerMeshInfo{
+        PerVertexBuffer::VertexDataInfo{mesh_data.indices},
+        PerVertexBuffer::VertexDataInfo{mesh_data.vertices},
+    });
+  }
+  builder->vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
+      builder->context_, VertexInfo{std::move(per_mesh_infos)},
+      pipeline::GetVertexAttribute<Vertex3DWithTex>());
+
+  // Load textures.
+  auto& mesh_textures = builder->mesh_textures_;
+  mesh_textures.reserve(loader.mesh_datas().size());
+  for (const auto& mesh_data : loader.mesh_datas()) {
+    mesh_textures.emplace_back();
+    for (const auto& texture : mesh_data.textures) {
+      const auto type_index = static_cast<int>(texture.texture_type);
+      mesh_textures.back()[type_index].emplace_back(
+          absl::make_unique<SharedTexture>(builder->context_, texture.path));
+    }
+  }
+}
+
 ModelBuilder::ModelBuilder(SharedBasicContext context,
                            std::string&& name,
                            int num_frames_in_flight,
@@ -147,65 +202,7 @@ ModelBuilder::ModelBuilder(SharedBasicContext context,
       uniform_buffer_info_maps_(num_frames_in_flight_),
       pipeline_builder_{absl::make_unique<PipelineBuilder>(context_)} {
   pipeline_builder_->SetName(std::move(name));
-  if (absl::holds_alternative<SingleMeshResource>(resource)) {
-    LoadSingleMesh(absl::get<SingleMeshResource>(resource));
-  } else if (absl::holds_alternative<MultiMeshResource>(resource)) {
-    LoadMultiMesh(absl::get<MultiMeshResource>(resource));
-  } else {
-    FATAL("Unrecognized variant type");
-  }
-}
-
-void ModelBuilder::LoadSingleMesh(const SingleMeshResource& resource) {
-  // Load indices and vertices.
-  const common::ObjFile file{resource.obj_path, resource.obj_file_index_base};
-  VertexInfo vertex_info{
-      /*per_mesh_infos=*/{{
-          PerVertexBuffer::VertexDataInfo{file.indices},
-          PerVertexBuffer::VertexDataInfo{file.vertices},
-      }},
-  };
-  vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
-      context_, std::move(vertex_info),
-      pipeline::GetVertexAttribute<Vertex3DWithTex>());
-
-  // Load textures.
-  mesh_textures_.emplace_back();
-  for (const auto& pair : resource.tex_source_map) {
-    const auto type_index = static_cast<int>(pair.first);
-    const auto& sources = pair.second;
-    mesh_textures_.back()[type_index].reserve(sources.size());
-    for (const auto& source : sources) {
-      mesh_textures_.back()[type_index].emplace_back(
-          CreateTexture(context_, source));
-    }
-  }
-}
-
-void ModelBuilder::LoadMultiMesh(const MultiMeshResource& resource) {
-  // Load indices and vertices.
-  const common::ModelLoader loader{resource.model_path, resource.texture_dir};
-  VertexInfo vertex_info;
-  vertex_info.per_mesh_infos.reserve(loader.mesh_datas().size());
-  for (const auto& mesh_data : loader.mesh_datas()) {
-    vertex_info.per_mesh_infos.emplace_back(VertexInfo::PerMeshInfo{
-        PerVertexBuffer::VertexDataInfo{mesh_data.indices},
-        PerVertexBuffer::VertexDataInfo{mesh_data.vertices},
-    });
-  }
-  vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
-      context_, vertex_info, pipeline::GetVertexAttribute<Vertex3DWithTex>());
-
-  // Load textures.
-  mesh_textures_.reserve(loader.mesh_datas().size());
-  for (const auto& mesh_data : loader.mesh_datas()) {
-    mesh_textures_.emplace_back();
-    for (const auto& texture : mesh_data.textures) {
-      const auto type_index = static_cast<int>(texture.texture_type);
-      mesh_textures_.back()[type_index].emplace_back(
-          absl::make_unique<SharedTexture>(context_, texture.path));
-    }
-  }
+  resource.LoadMesh(this);
 }
 
 ModelBuilder& ModelBuilder::AddSharedTexture(

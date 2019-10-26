@@ -77,7 +77,7 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
       Vertex3DNoTex{/*pos=*/{-0.5f, -0.5f, 0.0f}, /*color=*/{0.0f, 1.0f, 0.0f}},
   };
   const PerVertexBuffer::NoIndicesDataInfo vertex_data_info{
-      /*per_mesh_infos=*/{{PerVertexBuffer::VertexDataInfo{vertex_data}}}
+      /*per_mesh_vertices=*/{{PerVertexBuffer::VertexDataInfo{vertex_data}}}
   };
   vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
       context(), vertex_data_info,

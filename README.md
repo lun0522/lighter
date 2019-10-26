@@ -680,7 +680,7 @@ use **CharLoader** and **TextLoader** for simple scenes.
 This is the most basic scene, where we don't have any mesh or texture, but one
 blinking triangle. This proves all the basic functionality for onscreen
 rendering (vertex buffer, command buffer, swapchain, render pass and graphics
-pipeline) is working. We have a [breakdown of the code](https://github.com/lun0522/jessie-steamer/tree/master/jessie_steamer/application/vulkan)
+pipeline) and alpha blending are working. We have a [breakdown of the code](https://github.com/lun0522/jessie-steamer/tree/master/jessie_steamer/application/vulkan)
 to illustrate the usage of them. If all resources on the device are destroyed
 properly, the context will be destructed at last, and we should see the log
 "Context destructed properly" in the debug compilation mode.
@@ -691,10 +691,10 @@ properly, the context will be destructed at last, and we should see the log
 
 The cube model is loaded by our lightweight .obj file loader. The statue image
 on the cube proves we can load images from files. The text that shows the frame
-rate proves the off-screen pipeline and alpha blending are working. Since text
-rendering requires loading the same shaders several times, if the reference
-counting and auto release pool work well, in the debug compilation mode, we
-should see some logs saying cache hits for shaders.
+rate proves the off-screen rendering pipeline is working. Since text rendering
+requires loading the same shaders several times, if the reference counting and
+auto release pool work well, in the debug compilation mode, we should see some
+logs saying cache hits for shaders.
 
 ## 4.3 Nanosuit scene (nanosuit)
 

@@ -94,7 +94,7 @@ data on the host side and copy to the device:
 
 ```cpp
 const PerVertexBuffer::NoIndicesDataInfo vertex_data_info{
-    /*per_mesh_infos=*/{{PerVertexBuffer::VertexDataInfo{vertex_data}}}
+    /*per_mesh_vertices=*/{{PerVertexBuffer::VertexDataInfo{vertex_data}}}
 };
 ```
 

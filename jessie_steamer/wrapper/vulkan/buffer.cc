@@ -334,142 +334,6 @@ void CopyBufferToImage(const SharedBasicContext& context,
   });
 }
 
-/* BEGIN: Following functions populate 'mesh_data_infos' and return instances of
- * CopyInfos that can be used for copying data from the host to device. */
-
-Buffer::CopyInfos CreateCopyInfos(
-    const PerVertexBuffer::NoIndicesDataInfo& info,
-    PerVertexBuffer::MeshDataInfos* mesh_data_infos) {
-  // Vertex buffer layout (@ refers to the index of mesh):
-  // | vertices@0 | vertices@1 | vertices@2 | ...
-  using MeshDataInfos = PerVertexBuffer::MeshDataInfosNoIndices;
-  const auto& vertices_infos = info.per_mesh_infos;
-  auto& mesh_infos = mesh_data_infos->emplace<MeshDataInfos>().infos;
-  mesh_infos.reserve(vertices_infos.size());
-  vector<Buffer::CopyInfo> copy_infos;
-  copy_infos.reserve(vertices_infos.size());
-
-  VkDeviceSize vertices_offset = 0;
-  for (const auto vertices_info : vertices_infos) {
-    mesh_infos.emplace_back(MeshDataInfos::Info{
-        static_cast<uint32_t>(vertices_info.size_per_mesh),
-        vertices_offset,
-    });
-    copy_infos.emplace_back(Buffer::CopyInfo{
-        vertices_info.data,
-        vertices_info.size_per_mesh,
-        vertices_offset,
-    });
-    vertices_offset += vertices_info.size_per_mesh;
-  }
-
-  return Buffer::CopyInfos{
-      /*total_size=*/vertices_offset,
-      std::move(copy_infos),
-  };
-}
-
-Buffer::CopyInfos CreateCopyInfos(
-    const PerVertexBuffer::ShareIndicesDataInfo& info,
-    PerVertexBuffer::MeshDataInfos* mesh_data_infos) {
-  // Vertex buffer layout (@ refers to the index of mesh):
-  // | shared indices | vertices@0 | vertices@1 | vertices@2 | ...
-  using MeshDataInfos = PerVertexBuffer::MeshDataInfosWithIndices;
-  auto& mesh_infos = mesh_data_infos->emplace<MeshDataInfos>().infos;
-  mesh_infos.reserve(info.num_meshes);
-  const auto& vertices_info = info.per_mesh_vertices;
-  const auto& indices_info = info.shared_indices;
-
-  constexpr int kIndicesOffset = 0;
-  const VkDeviceSize initial_vertices_offset =
-      kIndicesOffset + indices_info.size_per_mesh;
-  VkDeviceSize vertices_offset = initial_vertices_offset;
-  for (int i = 0; i < info.num_meshes; ++i) {
-    mesh_infos.emplace_back(MeshDataInfos::Info{
-        static_cast<uint32_t>(indices_info.num_units_per_mesh),
-        kIndicesOffset,
-        vertices_offset,
-    });
-    vertices_offset += vertices_info.size_per_mesh;
-  }
-
-  return Buffer::CopyInfos{
-      /*total_size=*/vertices_offset,
-      /*copy_infos=*/{
-          Buffer::CopyInfo{
-              indices_info.data,
-              indices_info.size_per_mesh,
-              kIndicesOffset,
-          },
-          Buffer::CopyInfo{
-              vertices_info.data,
-              vertices_info.size_per_mesh * info.num_meshes,
-              initial_vertices_offset,
-          },
-      },
-  };
-}
-
-Buffer::CopyInfos CreateCopyInfos(
-    const PerVertexBuffer::NoShareIndicesDataInfo& info,
-    PerVertexBuffer::MeshDataInfos* mesh_data_infos) {
-  // Vertex buffer layout (@ refers to the index of mesh):
-  // | indices@0 | vertices@0 | indices@1 | vertices@1 | ...
-  using MeshDataInfos = PerVertexBuffer::MeshDataInfosWithIndices;
-  const auto& per_mesh_infos = info.per_mesh_infos;
-  auto& mesh_infos = mesh_data_infos->emplace<MeshDataInfos>().infos;
-  mesh_infos.reserve(per_mesh_infos.size());
-  vector<Buffer::CopyInfo> copy_infos;
-  copy_infos.reserve(per_mesh_infos.size() * 2);
-
-  VkDeviceSize indices_offset = 0;
-  for (const auto& mesh_info : per_mesh_infos) {
-    const size_t indices_data_size = mesh_info.indices.size_per_mesh;
-    const size_t vertices_data_size = mesh_info.vertices.size_per_mesh;
-    const VkDeviceSize vertices_offset = indices_offset + indices_data_size;
-    mesh_infos.emplace_back(MeshDataInfos::Info{
-        static_cast<uint32_t>(mesh_info.indices.num_units_per_mesh),
-        indices_offset,
-        vertices_offset,
-    });
-    copy_infos.emplace_back(Buffer::CopyInfo{
-        mesh_info.indices.data,
-        indices_data_size,
-        indices_offset,
-    });
-    copy_infos.emplace_back(Buffer::CopyInfo{
-        mesh_info.vertices.data,
-        vertices_data_size,
-        vertices_offset,
-    });
-    indices_offset += indices_data_size + vertices_data_size;
-  }
-
-  return Buffer::CopyInfos{
-      /*total_size=*/indices_offset,
-      std::move(copy_infos),
-  };
-}
-
-/* END: Above functions populate 'mesh_data_infos' and return instances of
- * CopyInfos that can be used for copying data from the host to device. */
-
-// Helps to visit variants of BufferDataInfo and dispatch the call to the
-// correct version of CreateCopyInfos().
-struct BufferDataInfoVisitor {
-  explicit BufferDataInfoVisitor(
-      PerVertexBuffer::MeshDataInfos* mesh_data_infos)
-      : mesh_data_infos{mesh_data_infos} {}
-
-  template<typename InfoType>
-  Buffer::CopyInfos operator()(const InfoType& info) const {
-    return CreateCopyInfos(info, mesh_data_infos);
-  }
-
-  // Mesh data infos to fill when operator() is invoked.
-  PerVertexBuffer::MeshDataInfos* mesh_data_infos;
-};
-
 // Converts 2D dimension to 3D offset, where the expanded dimension is set to 1.
 inline VkOffset3D ExtentToOffset(const VkExtent2D& extent) {
   return VkOffset3D{
@@ -631,9 +495,108 @@ void VertexBuffer::CreateBufferAndMemory(VkDeviceSize total_size,
   device_memory_ = CreateBufferMemory(context_, buffer_, memory_properties);
 }
 
-PerVertexBuffer::CopyInfos PerVertexBuffer::CreateCopyInfos(
-    const BufferDataInfo& info) {
-  return absl::visit(BufferDataInfoVisitor{&mesh_data_infos_}, info);
+Buffer::CopyInfos PerVertexBuffer::NoIndicesDataInfo::CreateCopyInfos(
+    PerVertexBuffer* buffer) const {
+  // Vertex buffer layout (@ refers to the index of mesh):
+  // | vertices@0 | vertices@1 | vertices@2 | ...
+  auto& mesh_infos =
+      buffer->mesh_data_infos_.emplace<MeshDataInfosNoIndices>().infos;
+  mesh_infos.reserve(per_mesh_vertices_.size());
+  vector<Buffer::CopyInfo> copy_infos;
+  copy_infos.reserve(per_mesh_vertices_.size());
+
+  VkDeviceSize offset = 0;
+  for (const auto vertices : per_mesh_vertices_) {
+    mesh_infos.emplace_back(MeshDataInfosNoIndices::Info{
+        static_cast<uint32_t>(vertices.size_per_mesh),
+        offset,
+    });
+    copy_infos.emplace_back(Buffer::CopyInfo{
+        vertices.data,
+        vertices.size_per_mesh,
+        offset,
+    });
+    offset += vertices.size_per_mesh;
+  }
+
+  return Buffer::CopyInfos{/*total_size=*/offset, std::move(copy_infos)};
+}
+
+Buffer::CopyInfos PerVertexBuffer::ShareIndicesDataInfo::CreateCopyInfos(
+    PerVertexBuffer* buffer) const {
+  // Vertex buffer layout (@ refers to the index of mesh):
+  // | shared indices | vertices@0 | vertices@1 | vertices@2 | ...
+  auto& mesh_infos =
+      buffer->mesh_data_infos_.emplace<MeshDataInfosWithIndices>().infos;
+  mesh_infos.reserve(num_meshes_);
+
+  constexpr int kIndicesOffset = 0;
+  const VkDeviceSize initial_vertices_offset =
+      kIndicesOffset + shared_indices_.size_per_mesh;
+  VkDeviceSize vertices_offset = initial_vertices_offset;
+  for (int i = 0; i < num_meshes_; ++i) {
+    mesh_infos.emplace_back(MeshDataInfosWithIndices::Info{
+        static_cast<uint32_t>(shared_indices_.num_units_per_mesh),
+        kIndicesOffset,
+        vertices_offset,
+    });
+    vertices_offset += per_mesh_vertices_.size_per_mesh;
+  }
+
+  return Buffer::CopyInfos{
+      /*total_size=*/vertices_offset,
+      /*copy_infos=*/{
+          Buffer::CopyInfo{
+              shared_indices_.data,
+              shared_indices_.size_per_mesh,
+              kIndicesOffset,
+          },
+          Buffer::CopyInfo{
+              per_mesh_vertices_.data,
+              per_mesh_vertices_.size_per_mesh * num_meshes_,
+              initial_vertices_offset,
+          },
+      },
+  };
+}
+
+Buffer::CopyInfos PerVertexBuffer::NoShareIndicesDataInfo::CreateCopyInfos(
+    PerVertexBuffer* buffer) const {
+  // Vertex buffer layout (@ refers to the index of mesh):
+  // | indices@0 | vertices@0 | indices@1 | vertices@1 | ...
+  auto& mesh_infos =
+      buffer->mesh_data_infos_.emplace<MeshDataInfosWithIndices>().infos;
+  mesh_infos.reserve(per_mesh_infos_.size());
+  vector<Buffer::CopyInfo> copy_infos;
+  copy_infos.reserve(per_mesh_infos_.size() * 2);
+
+  VkDeviceSize indices_offset = 0;
+  for (const auto& mesh_info : per_mesh_infos_) {
+    const size_t indices_data_size = mesh_info.indices.size_per_mesh;
+    const size_t vertices_data_size = mesh_info.vertices.size_per_mesh;
+    const VkDeviceSize vertices_offset = indices_offset + indices_data_size;
+    mesh_infos.emplace_back(MeshDataInfosWithIndices::Info{
+        static_cast<uint32_t>(mesh_info.indices.num_units_per_mesh),
+        indices_offset,
+        vertices_offset,
+    });
+    copy_infos.emplace_back(Buffer::CopyInfo{
+        mesh_info.indices.data,
+        indices_data_size,
+        indices_offset,
+    });
+    copy_infos.emplace_back(Buffer::CopyInfo{
+        mesh_info.vertices.data,
+        vertices_data_size,
+        vertices_offset,
+    });
+    indices_offset += indices_data_size + vertices_data_size;
+  }
+
+  return Buffer::CopyInfos{
+      /*total_size=*/indices_offset,
+      std::move(copy_infos),
+  };
 }
 
 void PerVertexBuffer::Draw(const VkCommandBuffer& command_buffer,
@@ -663,7 +626,7 @@ StaticPerVertexBuffer::StaticPerVertexBuffer(
     SharedBasicContext context, const BufferDataInfo& info,
     std::vector<Attribute>&& attributes)
     : PerVertexBuffer{std::move(context), std::move(attributes)} {
-  const CopyInfos copy_infos = CreateCopyInfos(info);
+  const CopyInfos copy_infos = info.CreateCopyInfos(this);
   CreateBufferAndMemory(copy_infos.total_size, /*is_dynamic=*/false);
   CopyHostToBufferViaStaging(context_, buffer_, copy_infos);
 }
@@ -689,7 +652,7 @@ void DynamicPerVertexBuffer::Reserve(int size) {
 }
 
 void DynamicPerVertexBuffer::CopyHostData(const BufferDataInfo& info) {
-  const CopyInfos copy_infos = CreateCopyInfos(info);
+  const CopyInfos copy_infos = info.CreateCopyInfos(this);
   Reserve(copy_infos.total_size);
   CopyHostToBuffer(context_, /*map_offset=*/0, /*map_size=*/buffer_size_,
                    device_memory_, copy_infos.copy_infos);

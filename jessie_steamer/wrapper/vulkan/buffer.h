@@ -145,35 +145,6 @@ class PerVertexBuffer : public VertexBuffer {
     size_t size_per_mesh;
   };
 
-  // Holds data information for multiple meshes that do not have indices.
-  // Each mesh may have different number of vertices.
-  struct NoIndicesDataInfo {
-    std::vector<VertexDataInfo> per_mesh_infos;
-  };
-
-  // Holds data information for multiple meshes that share indices.
-  // Each mesh has the same number of vertices.
-  struct ShareIndicesDataInfo {
-    int num_meshes;
-    VertexDataInfo per_mesh_vertices;
-    VertexDataInfo shared_indices;
-  };
-
-  // Holds data information for multiple meshes that do not share indices.
-  // Each mesh may have different number of indices and vertices.
-  struct NoShareIndicesDataInfo {
-    // Holds data information for each mesh.
-    struct PerMeshInfo {
-      VertexDataInfo indices;
-      VertexDataInfo vertices;
-    };
-    std::vector<PerMeshInfo> per_mesh_infos;
-  };
-
-  using BufferDataInfo = absl::variant<NoIndicesDataInfo,
-                                       ShareIndicesDataInfo,
-                                       NoShareIndicesDataInfo>;
-
   // Holds the number of vertices in each mesh and the data size offset within
   // the vertex buffer.
   struct MeshDataInfosNoIndices {
@@ -198,6 +169,70 @@ class PerVertexBuffer : public VertexBuffer {
   using MeshDataInfos = absl::variant<MeshDataInfosNoIndices,
                                       MeshDataInfosWithIndices>;
 
+  // Interface of different forms of buffer data info.
+  class BufferDataInfo {
+   public:
+    virtual ~BufferDataInfo() = default;
+
+    // Populates 'mesh_data_infos_' of 'buffer' and returns an instance of
+    // CopyInfos that can be used for copying data from the host to device.
+    virtual CopyInfos CreateCopyInfos(PerVertexBuffer* buffer) const = 0;
+  };
+
+  // Holds data information for multiple meshes that do not have indices.
+  // Each mesh may have different number of vertices.
+  class NoIndicesDataInfo : public BufferDataInfo {
+   public:
+    explicit NoIndicesDataInfo(std::vector<VertexDataInfo>&& per_mesh_vertices)
+        : per_mesh_vertices_{std::move(per_mesh_vertices)} {}
+
+    // Overrides.
+    CopyInfos CreateCopyInfos(PerVertexBuffer* buffer) const override;
+
+   private:
+    const std::vector<VertexDataInfo> per_mesh_vertices_;
+  };
+
+  // Holds data information for multiple meshes that share indices.
+  // Each mesh has the same number of vertices.
+  class ShareIndicesDataInfo : public BufferDataInfo {
+   public:
+    ShareIndicesDataInfo(int num_meshes,
+                         const VertexDataInfo& per_mesh_vertices,
+                         const VertexDataInfo& shared_indices)
+        : num_meshes_{num_meshes},
+          per_mesh_vertices_{per_mesh_vertices},
+          shared_indices_{shared_indices} {}
+
+    // Overrides.
+    CopyInfos CreateCopyInfos(PerVertexBuffer* buffer) const override;
+
+   private:
+    const int num_meshes_;
+    const VertexDataInfo per_mesh_vertices_;
+    const VertexDataInfo shared_indices_;
+  };
+
+  // Holds data information for multiple meshes that do not share indices.
+  // Each mesh may have different number of indices and vertices.
+  class NoShareIndicesDataInfo : public BufferDataInfo {
+   public:
+    // Holds data information for each mesh.
+    struct PerMeshInfo {
+      VertexDataInfo indices;
+      VertexDataInfo vertices;
+    };
+
+    explicit NoShareIndicesDataInfo(std::vector<PerMeshInfo>&& per_mesh_infos)
+        : per_mesh_infos_{std::move(per_mesh_infos)} {}
+
+    // Overrides.
+    CopyInfos CreateCopyInfos(PerVertexBuffer* buffer) const override;
+
+   private:
+    const std::vector<PerMeshInfo> per_mesh_infos_;
+  };
+
   // This class is neither copyable nor movable.
   PerVertexBuffer(const PerVertexBuffer&) = delete;
   PerVertexBuffer& operator=(const PerVertexBuffer&) = delete;
@@ -209,11 +244,6 @@ class PerVertexBuffer : public VertexBuffer {
  protected:
   // Inherits constructor.
   using VertexBuffer::VertexBuffer;
-
-  // Populates 'mesh_data_infos_' and returns an instance of CopyInfos that can
-  // be used for copying data from the host to device.
-  // Previous content in 'mesh_data_infos_' will be cleared.
-  CopyInfos CreateCopyInfos(const BufferDataInfo& info);
 
   // Holds data information for all meshes stored in the vertex buffer.
   MeshDataInfos mesh_data_infos_;
