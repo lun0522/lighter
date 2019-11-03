@@ -22,7 +22,7 @@ class Camera {
     float far = 100.0f;
     float field_of_view = 45.0f;
     glm::vec3 up{0.0f, 1.0f, 0.0f};
-    glm::vec3 position{0.0f, 0.0f, -1.0f};
+    glm::vec3 position{0.0f, 0.0f, 1.0f};
     glm::vec3 look_at{0.0f, 0.0f, 0.0f};
   };
 

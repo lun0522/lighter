@@ -26,7 +26,7 @@ namespace wrapper {
 namespace vulkan {
 
 // This is the base class of all text renderer classes. The user should use it
-// through derived classes. It gathers common members and methods of renderers.
+// through derived classes. It gathers common members of renderers.
 class Text {
  public:
   using Font = CharLoader::Font;

@@ -150,10 +150,11 @@ class AutoReleasePool {
     RefCountedObject<ObjectType>::SetPolicy(/*destroy_if_unused=*/true);
   }
 
- private:
   // Force the user to allocate on stack, in order to prevent overcomplications.
-  void* operator new(size_t);
-  void* operator new[](std::size_t);
+  void* operator new(size_t) = delete;
+  void* operator new[](std::size_t) = delete;
+
+ private:
 };
 
 } /* namespace common */

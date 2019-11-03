@@ -76,7 +76,7 @@ bazel build -c dbg --copt=-DUSE_VULKAN //jessie_steamer/application/vulkan:trian
 bazel-bin/jessie_steamer/application/vulkan/triangle --resource_folder=<path to resource folder> --shader_folder=<path to shader folder> --vulkan_folder=<path to Vulkan SDK folder>
 ```
 
-Here is the meaning of each flag (note that these are not required if you 
+Here is the meaning of each flag (note that these are **not** required if you 
 directly use `bazel run`):
 
 - *resource_folder*: Since resource files are stored in a separate

@@ -6,6 +6,7 @@ cc_library(
     srcs = ["util.cc"],
     deps = [
         "//jessie_steamer/application:resource",
+        "//jessie_steamer/common:camera",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:timer",
         "//jessie_steamer/common:util",
@@ -15,6 +16,7 @@ cc_library(
         "//third_party:glm",
         "//third_party:vulkan",
     ],
+    visibility = ["//jessie_steamer/application/vulkan:__subpackages__"],
 )
 
 cc_binary(
@@ -26,19 +28,13 @@ cc_binary(
 cc_binary(
     name = "nanosuit",
     srcs = ["nanosuit.cc"],
-    deps = [
-        ":common",
-        "//jessie_steamer/common:camera",
-    ],
+    deps = [":common"],
 )
 
 cc_binary(
     name = "planet",
     srcs = ["planet.cc"],
-    deps = [
-        ":common",
-        "//jessie_steamer/common:camera",
-    ],
+    deps = [":common"],
 )
 
 cc_binary(

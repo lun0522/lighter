@@ -60,7 +60,7 @@ class CubeApp : public Application {
   std::unique_ptr<NaiveRenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
   std::unique_ptr<Image> depth_stencil_image_;
-  std::unique_ptr<Model> model_;
+  std::unique_ptr<Model> cube_model_;
   std::unique_ptr<StaticText> static_text_;
   std::unique_ptr<DynamicText> dynamic_text_;
 };
@@ -92,7 +92,7 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
 
   // TODO: Add utils for resource paths and shader paths.
   /* Model */
-  model_ = ModelBuilder{
+  cube_model_ = ModelBuilder{
       context(), "cube", kNumFramesInFlight,
       ModelBuilder::SingleMeshResource{
           common::file::GetResourcePath("model/cube.obj"), kObjFileIndexBase,
@@ -155,8 +155,8 @@ void CubeApp::Recreate() {
 
   /* Model and text */
   const VkSampleCountFlagBits sample_count = window_context_.sample_count();
-  model_->Update(/*is_object_opaque=*/true, frame_size, sample_count,
-                 *render_pass_, kModelSubpassIndex);
+  cube_model_->Update(/*is_object_opaque=*/true, frame_size, sample_count,
+                      *render_pass_, kModelSubpassIndex);
   static_text_->Update(frame_size, sample_count,
                        *render_pass_, kTextSubpassIndex);
   dynamic_text_->Update(frame_size, sample_count,
@@ -183,7 +183,8 @@ void CubeApp::MainLoop() {
     const VkExtent2D& frame_size = window_context_.frame_size();
     const vector<RenderPass::RenderOp> render_ops{
         [&](const VkCommandBuffer& command_buffer) {
-          model_->Draw(command_buffer, current_frame_, /*instance_count=*/1);
+          cube_model_->Draw(command_buffer, current_frame_,
+                            /*instance_count=*/1);
         },
         [&](const VkCommandBuffer& command_buffer) {
           const glm::vec3 kColor{1.0f};
@@ -201,11 +202,11 @@ void CubeApp::MainLoop() {
                               Text::Align::kLeft);
         },
     };
-    const auto update_data = [this, frame_size](int frame) {
-      UpdateData(frame, (float)frame_size.width / frame_size.height);
-    };
     const auto draw_result = command_->Run(
-        current_frame_, window_context_.swapchain(), update_data,
+        current_frame_, window_context_.swapchain(),
+        [this, frame_size](int frame) {
+          UpdateData(frame, (float)frame_size.width / frame_size.height);
+        },
         [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
           render_pass_->Run(command_buffer, framebuffer_index, render_ops);
         });

@@ -51,7 +51,7 @@ struct PlanetTrans {
 
 struct SkyboxTrans {
   ALIGN_MAT4 glm::mat4 proj;
-  ALIGN_MAT4 glm::mat4 view;
+  ALIGN_MAT4 glm::mat4 view_model;
 };
 
 /* END: Consistent with uniform blocks defined in shaders. */
@@ -86,7 +86,9 @@ class PlanetApp : public Application {
   std::unique_ptr<NaiveRenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
   std::unique_ptr<Image> depth_stencil_image_;
-  std::unique_ptr<Model> planet_model_, asteroid_model_, skybox_model_;
+  std::unique_ptr<Model> planet_model_;
+  std::unique_ptr<Model> asteroid_model_;
+  std::unique_ptr<Model> skybox_model_;
 };
 
 } /* namespace */
@@ -174,10 +176,8 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       .AddUniformBuffer(/*binding_point=*/1, *light_uniform_)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetVkShaderPath("planet.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetVkShaderPath("planet.frag"))
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("planet.vert"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("planet.frag"))
       .Build();
 
   GenAsteroidModels();
@@ -195,10 +195,8 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       .AddUniformBuffer(/*binding_point=*/1, *light_uniform_)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetVkShaderPath("asteroid.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetVkShaderPath("planet.frag"))
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("asteroid.vert"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("planet.frag"))
       .Build();
 
   const SharedTexture::CubemapPath skybox_path{
@@ -219,10 +217,8 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/1)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetVkShaderPath("skybox.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetVkShaderPath("skybox.frag"))
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("skybox.vert"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("skybox.frag"))
       .Build();
 }
 
@@ -332,7 +328,7 @@ void PlanetApp::UpdateData(int frame) {
   const glm::mat4& view = camera_->view();
   const glm::mat4& proj = camera_->projection();
   *planet_constant_->HostData<PlanetTrans>(frame) = {model, proj * view};
-  *skybox_constant_->HostData<SkyboxTrans>(frame) = {proj, view};
+  *skybox_constant_->HostData<SkyboxTrans>(frame) = {proj, /*view_model=*/view};
 }
 
 void PlanetApp::MainLoop() {

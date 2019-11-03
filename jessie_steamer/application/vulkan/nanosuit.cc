@@ -39,7 +39,7 @@ struct NanosuitFragTrans {
 
 struct SkyboxTrans {
   ALIGN_MAT4 glm::mat4 proj;
-  ALIGN_MAT4 glm::mat4 view;
+  ALIGN_MAT4 glm::mat4 view_model;
 };
 
 /* END: Consistent with uniform blocks defined in shaders. */
@@ -69,7 +69,8 @@ class NanosuitApp : public Application {
   std::unique_ptr<NaiveRenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
   std::unique_ptr<Image> depth_stencil_image_;
-  std::unique_ptr<Model> nanosuit_model_, skybox_model_;
+  std::unique_ptr<Model> nanosuit_model_;
+  std::unique_ptr<Model> skybox_model_;
 };
 
 } /* namespace */
@@ -167,10 +168,8 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
       .AddUniformBuffer(/*binding_point=*/0, *nanosuit_vert_uniform_)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT)
       .AddPushConstant(nanosuit_frag_constant_.get(), /*target_offset=*/0)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetVkShaderPath("nanosuit.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetVkShaderPath("nanosuit.frag"))
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("nanosuit.vert"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("nanosuit.frag"))
       .Build();
 
   skybox_model_ = ModelBuilder{
@@ -182,10 +181,8 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
       .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/1)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetVkShaderPath("skybox.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetVkShaderPath("skybox.frag"))
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("skybox.vert"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("skybox.frag"))
       .Build();
 }
 
@@ -250,7 +247,7 @@ void NanosuitApp::UpdateData(int frame) {
 
   *nanosuit_frag_constant_->HostData<NanosuitFragTrans>(frame) =
       {glm::inverse(view)};
-  *skybox_constant_->HostData<SkyboxTrans>(frame) = {proj, view};
+  *skybox_constant_->HostData<SkyboxTrans>(frame) = {proj, /*view_model=*/view};
 }
 
 void NanosuitApp::MainLoop() {
