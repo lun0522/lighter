@@ -82,7 +82,7 @@ class WindowContext {
 #else  /* !NDEBUG */
         BasicContext::GetContext(window_support, config.debug_callback_trigger);
 #endif /* NDEBUG */
-    CreateSwapchain(window_.GetScreenSize());
+    CreateSwapchain(window_.GetFrameSize());
   }
 
   // This class is neither copyable nor movable.
@@ -96,8 +96,8 @@ class WindowContext {
   // recreates expired resource. This should be called before other recreations.
   void Recreate() {
     context_->WaitIdle();
-    const glm::ivec2 screen_size = window_.Recreate();
-    CreateSwapchain(screen_size);
+    const glm::ivec2 frame_size = window_.Recreate();
+    CreateSwapchain(frame_size);
   }
 
   // Checks events and returns whether the window should continue to show.
@@ -134,14 +134,14 @@ class WindowContext {
   }
 
  private:
-  // Creates a swapchain with the given 'screen_size'. This must not be called
+  // Creates a swapchain with the given 'frame_size'. This must not be called
   // before 'context_' and 'surface_' are created.
-  void CreateSwapchain(const glm::ivec2& screen_size) {
+  void CreateSwapchain(const glm::ivec2& frame_size) {
     swapchain_ = absl::make_unique<Swapchain>(
         context_, surface_,
         VkExtent2D{
-            static_cast<uint32_t>(screen_size.x),
-            static_cast<uint32_t>(screen_size.y),
+            static_cast<uint32_t>(frame_size.x),
+            static_cast<uint32_t>(frame_size.y),
         },
         multisampling_mode_);
   }

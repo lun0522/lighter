@@ -42,8 +42,8 @@ class Camera {
   // Updates the field of view and projection matrix.
   void UpdateFieldOfView(float fov);
 
-  // Updates the screen size and projection matrix.
-  void UpdateScreenSize(const glm::ivec2& screen_size);
+  // Updates the screen frame size and projection matrix.
+  void UpdateFrameSize(const glm::ivec2& frame_size);
 
   // Moves the position of camera by 'offset' and updates the view matrix.
   void UpdatePosition(const glm::vec3& offset);
@@ -75,8 +75,8 @@ class Camera {
   // Field of view.
   float fov_;
 
-  // Size of screen.
-  glm::ivec2 screen_size_;
+  // Frame size of screen.
+  glm::ivec2 frame_size_;
 
   // Position.
   glm::vec3 pos_;
@@ -116,9 +116,9 @@ class UserControlledCamera : public Camera {
   UserControlledCamera(const UserControlledCamera&) = delete;
   UserControlledCamera& operator=(const UserControlledCamera&) = delete;
 
-  // Calibrates the camera with screen size and cursor position.
+  // Calibrates the camera with screen frame size and cursor position.
   // This should be called after the screen is created or resized.
-  void Calibrate(const glm::ivec2& screen_size, const glm::dvec2& cursor_pos);
+  void Calibrate(const glm::ivec2& frame_size, const glm::dvec2& cursor_pos);
 
   // Informs the camera that the cursor has been moved to position ('x', 'y').
   // The camera will point to a different direction according to it, while

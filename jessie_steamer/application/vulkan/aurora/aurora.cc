@@ -48,8 +48,8 @@ AuroraApp::AuroraApp(const WindowContext::Config& window_config)
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
   /* Aurora editor */
-  editor_ = absl::make_unique<aurora::Editor>(
-      window_context_, kNumFramesInFlight, window_context_.mutable_window());
+  editor_ = absl::make_unique<aurora::Editor>(window_context_,
+                                              kNumFramesInFlight);
 }
 
 void AuroraApp::Recreate() {
@@ -59,12 +59,16 @@ void AuroraApp::Recreate() {
 
 void AuroraApp::MainLoop() {
   Recreate();
+  editor_->OnEnter(window_context_.mutable_window());
+
   while (!should_quit_ && window_context_.CheckEvents()) {
     timer_.Tick();
 
     const auto draw_result = command_->Run(
         current_frame_, window_context_.swapchain(),
-        [this](int frame) { editor_->UpdateData(frame); },
+        [this](int frame) {
+          editor_->UpdateData(window_context_.window(), frame);
+        },
         [this](const VkCommandBuffer& command_buffer,
                uint32_t framebuffer_index) {
           editor_->Render(command_buffer, framebuffer_index, current_frame_);

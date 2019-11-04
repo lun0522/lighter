@@ -40,14 +40,14 @@ void Camera::UpdateFieldOfView(float fov) {
   UpdateProjection();
 }
 
-void Camera::UpdateScreenSize(const glm::ivec2& screen_size) {
-  screen_size_ = screen_size;
+void Camera::UpdateFrameSize(const glm::ivec2& frame_size) {
+  frame_size_ = frame_size;
   UpdateProjection();
 }
 
 void Camera::UpdateProjection() {
   proj_ = glm::perspective(glm::radians(fov_),
-                           (float)screen_size_.x / screen_size_.y, near_, far_);
+                           (float)frame_size_.x / frame_size_.y, near_, far_);
 }
 
 void Camera::UpdatePosition(const glm::vec3& offset) {
@@ -76,10 +76,10 @@ UserControlledCamera::UserControlledCamera(const Config& config,
           GetRefFrontInZxPlane(),
           glm::normalize(glm::vec2{front().z, front().x}))} {}
 
-void UserControlledCamera::Calibrate(const glm::ivec2& screen_size,
+void UserControlledCamera::Calibrate(const glm::ivec2& frame_size,
                                      const glm::dvec2& cursor_pos) {
   cursor_pos_ = cursor_pos;
-  UpdateScreenSize(screen_size);
+  UpdateFrameSize(frame_size);
 }
 
 void UserControlledCamera::DidMoveCursor(double x, double y) {

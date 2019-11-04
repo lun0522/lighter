@@ -66,7 +66,7 @@ class Swapchain {
   // If 'multisampling_mode' is not absl::nullopt, we will perform multisampling
   // for swapchain images.
   Swapchain(SharedBasicContext context,
-            const Surface& surface, const VkExtent2D& screen_size,
+            const Surface& surface, const VkExtent2D& frame_size,
             absl::optional<MultisampleImage::Mode> multisampling_mode);
 
   // This class is neither copyable nor movable.

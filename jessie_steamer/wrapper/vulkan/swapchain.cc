@@ -65,14 +65,14 @@ VkPresentModeKHR ChoosePresentMode(const vector<VkPresentModeKHR>& available) {
 
 // Returns the image extent to use.
 VkExtent2D ChooseImageExtent(const VkSurfaceCapabilitiesKHR& capabilities,
-                             const VkExtent2D& screen_size) {
+                             const VkExtent2D& frame_size) {
   // 'currentExtent' is the suggested resolution.
   // If it is UINT32_MAX, that means it is up to the swapchain to choose extent.
   if (capabilities.currentExtent.width !=
       std::numeric_limits<uint32_t>::max()) {
     return capabilities.currentExtent;
   } else {
-    VkExtent2D extent = screen_size;
+    VkExtent2D extent = frame_size;
     extent.width = std::max(extent.width, capabilities.minImageExtent.width);
     extent.width = std::min(extent.width, capabilities.maxImageExtent.width);
     extent.height = std::max(extent.height, capabilities.minImageExtent.height);
@@ -110,12 +110,12 @@ Surface::~Surface() {
 
 Swapchain::Swapchain(
     SharedBasicContext context,
-    const Surface& surface, const VkExtent2D& screen_size,
+    const Surface& surface, const VkExtent2D& frame_size,
     absl::optional<MultisampleImage::Mode> multisampling_mode)
     : context_{std::move(context)} {
   // Choose image extent.
   const auto surface_capabilities = surface.GetCapabilities();
-  image_extent_ = ChooseImageExtent(surface_capabilities, screen_size);
+  image_extent_ = ChooseImageExtent(surface_capabilities, frame_size);
 
   // Choose surface format.
   const auto surface_formats{util::QueryAttribute<VkSurfaceFormatKHR>(

@@ -188,7 +188,7 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
 
 void NanosuitApp::Recreate() {
   /* Camera */
-  camera_->Calibrate(window_context_.window().GetScreenSize(),
+  camera_->Calibrate(window_context_.window().GetFrameSize(),
                      window_context_.window().GetCursorPos());
 
   /* Depth image */

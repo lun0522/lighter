@@ -31,6 +31,8 @@ namespace window_callback {
 void GlfwResizeWindowCallback(GLFWwindow* window, int width, int height);
 void GlfwMoveCursorCallback(GLFWwindow* window, double x_pos, double y_pos);
 void GlfwScrollCallback(GLFWwindow* window, double x_pos, double y_pos);
+void GlfwMouseButtonCallback(
+    GLFWwindow* window, int button, int action, int mods);
 
 } /* namespace window_callback */
 
@@ -42,6 +44,7 @@ class Window {
   using PressKeyCallback = std::function<void()>;
   using MoveCursorCallback = std::function<void(double x_pos, double y_pos)>;
   using ScrollCallback = std::function<void(double x_pos, double y_pos)>;
+  using MouseButtonCallback = std::function<void(bool is_left, bool is_press)>;
 
   // Keys that may be handled by the window. Callbacks of keys should be
   // registered with 'RegisterPressKeyCallback', otherwise, the window will not
@@ -78,11 +81,16 @@ class Window {
   // 'callback' can be nullptr, which invalidates callbacks registered before.
   Window& RegisterScrollCallback(ScrollCallback&& callback);
 
+  // Registers a callback that will be invoked when the mouse button is pressed
+  // or released. 'callback' can be nullptr, which invalidates callbacks
+  // registered before.
+  Window& RegisterMouseButtonCallback(MouseButtonCallback&& callback);
+
   // Processes user inputs to the window. Callbacks will be invoked if
   // conditions are satisfied.
   void ProcessUserInputs() const;
 
-  // Resets internal states and returns the current size of window.
+  // Resets internal states and returns the current size of screen frame.
   // This should be called when the window is resized. It will not return if the
   // window is minimized, until the window appears on the screen again.
   glm::ivec2 Recreate();
@@ -96,11 +104,15 @@ class Window {
   static const std::vector<const char*>& GetRequiredExtensions();
 #endif /* USE_VULKAN */
 
-  // Returns the size of window.
-  glm::ivec2 GetScreenSize() const;
+  // Returns the frame size of window. Note that this is different from the
+  // window size on retina displays.
+  glm::ivec2 GetFrameSize() const;
 
   // Returns the position of cursor.
   glm::dvec2 GetCursorPos() const;
+
+  // Returns the position of cursor in the normalized device coordinate.
+  glm::dvec2 GetCursorPosInNdc() const;
 
   // Accessors.
   bool is_resized() const { return is_resized_; }
@@ -110,11 +122,19 @@ class Window {
   friend void window_callback::GlfwMoveCursorCallback(
       GLFWwindow*, double, double);
   friend void window_callback::GlfwScrollCallback(GLFWwindow*, double, double);
+  friend void window_callback::GlfwMouseButtonCallback(
+      GLFWwindow* window, int button, int action, int mods);
 
   // These functions handles window events and invoke callbacks if necessary.
   void DidResizeWindow();
   void DidMoveCursor(double x_pos, double y_pos);
   void DidScroll(double x_pos, double y_pos);
+  void DidClickMouse(bool is_left, bool is_press);
+
+  // Updates 'retina_ratio_'. On retina displays, the framebuffer size will be
+  // greater than the window size. This should be called after the window is
+  // created, and whenever it is recreated.
+  void UpdateRetinaRatio();
 
   // Whether the window has been resized.
   bool is_resized_ = false;
@@ -122,11 +142,18 @@ class Window {
   // Pointer to the backing GLFWwindow.
   GLFWwindow* window_ = nullptr;
 
+  // Ratio between the screen frame size and window size. This is used to
+  // calibrate the cursor position reported by the window manager.
+  glm::ivec2 retina_ratio_;
+
   // Invoked when the cursor is moved.
   MoveCursorCallback move_cursor_callback_;
 
   // Invoked when the user scrolls.
   ScrollCallback scroll_callback_;
+
+  // Invoked wen the mouse button is pressed or released.
+  MouseButtonCallback mouse_button_callback_;
 
   // Maps GLFW keys to their callbacks.
   absl::flat_hash_map<int, std::function<void()>> press_key_callbacks_;

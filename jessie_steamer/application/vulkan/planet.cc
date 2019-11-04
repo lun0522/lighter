@@ -224,7 +224,7 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
 
 void PlanetApp::Recreate() {
   /* Camera */
-  camera_->Calibrate(window_context_.window().GetScreenSize(),
+  camera_->Calibrate(window_context_.window().GetFrameSize(),
                      window_context_.window().GetCursorPos());
 
   /* Depth image */

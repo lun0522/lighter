@@ -7,9 +7,13 @@
 
 #include "jessie_steamer/application/vulkan/aurora/editor.h"
 
+#include <cmath>
 #include <vector>
 
 #include "third_party/absl/memory/memory.h"
+#define GLM_ENABLE_EXPERIMENTAL
+#include "third_party/glm/gtx/intersect.hpp"
+#include "third_party/glm/gtx/vector_angle.hpp"
 
 namespace jessie_steamer {
 namespace application {
@@ -20,6 +24,16 @@ namespace {
 using namespace wrapper::vulkan;
 
 constexpr int kObjFileIndexBase = 1;
+
+// The height of aurora layer is assumed to be at around 100km above the ground.
+constexpr float kEarthModelRadius = 1.0f;
+constexpr float kEarthRadius = 6378.1f;
+constexpr float kAuroraHeight = 100.0f;
+constexpr float kAuroraLayerRadius =
+    (kEarthRadius + kAuroraHeight) / kEarthRadius * kEarthModelRadius;
+
+constexpr float kRotationAngleThreshold = 3e-3;
+constexpr float kInertialRotationCoeff = 5.f;
 
 enum SubpassIndex {
   kModelSubpassIndex = 0,
@@ -39,7 +53,7 @@ struct EarthTrans {
 
 struct SkyboxTrans {
   ALIGN_MAT4 glm::mat4 proj;
-  ALIGN_MAT4 glm::mat4 view;
+  ALIGN_MAT4 glm::mat4 view_model;
 };
 
 struct TextureIndex {
@@ -48,23 +62,19 @@ struct TextureIndex {
 
 /* END: Consistent with uniform blocks defined in shaders. */
 
-// Rotates the given 'model' matrix, so that if 'model' is glm::mat4{1.0f},
-// the modified matrix will make the north pole point to the center of frame.
-void RotateEarthModel(glm::mat4* model) {
-  *model = glm::rotate(*model, glm::radians(-90.0f),
-                       glm::vec3(1.0f, 0.0f, 0.0f));
-  *model = glm::rotate(*model, glm::radians(-90.0f),
-                       glm::vec3(0.0f, 1.0f, 0.0f));
+inline glm::vec3 TransformPoint(const glm::mat4& transform,
+                                const glm::vec3& point) {
+  const glm::vec4 transformed = transform * glm::vec4{point, 1.0f};
+  return glm::vec3{transformed} / transformed.w;
 }
 
 } /* namespace */
 
 Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
-               int num_frames_in_flight, common::Window* mutable_window)
+               int num_frames_in_flight)
     : context_{window_context.basic_context()} {
   using common::file::GetResourcePath;
   using common::file::GetVkShaderPath;
-  using WindowKey = common::Window::KeyMap;
   using TextureType = ModelBuilder::TextureType;
 
   /* Camera */
@@ -73,14 +83,6 @@ Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
   camera_ = absl::make_unique<common::UserControlledCamera>(
       config, common::UserControlledCamera::ControlConfig{});
   camera_->SetActivity(true);
-
-  /* Window */
-  (*mutable_window)
-      .RegisterScrollCallback([this](double x_pos, double y_pos) {
-        camera_->DidScroll(y_pos, 10.0f, 60.0f);
-      })
-      .RegisterPressKeyCallback(WindowKey::kUp, [this]() { is_day = true; })
-      .RegisterPressKeyCallback(WindowKey::kDown, [this]() { is_day = false; });
 
   /* Uniform buffer and push constants */
   uniform_buffer_ = absl::make_unique<UniformBuffer>(
@@ -149,9 +151,25 @@ Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
       .Build();
 }
 
+void Editor::OnEnter(common::Window* mutable_window) {
+  (*mutable_window)
+      .RegisterScrollCallback([this](double x_pos, double y_pos) {
+        camera_->DidScroll(y_pos, 10.0f, 60.0f);
+      })
+      .RegisterMouseButtonCallback([this](bool is_left, bool is_press) {
+        is_pressing_left_ = is_press;
+      });
+}
+
+void Editor::OnExit(common::Window* mutable_window) {
+  (*mutable_window)
+      .RegisterScrollCallback(nullptr)
+      .RegisterMouseButtonCallback(nullptr);
+}
+
 void Editor::Recreate(const wrapper::vulkan::WindowContext& window_context) {
   /* Camera */
-  camera_->Calibrate(window_context.window().GetScreenSize(),
+  camera_->Calibrate(window_context.window().GetFrameSize(),
                      window_context.window().GetCursorPos());
 
   /* Depth image */
@@ -189,18 +207,23 @@ void Editor::Recreate(const wrapper::vulkan::WindowContext& window_context) {
                         *render_pass_, kModelSubpassIndex);
 }
 
-void Editor::UpdateData(int frame) {
+void Editor::UpdateData(const common::Window& window, int frame) {
+  absl::optional<glm::dvec2> click_ndc;
+  if (is_pressing_left_) {
+    click_ndc = window.GetCursorPosInNdc();
+  }
+  earth_.Update(*this, click_ndc);
+
   const glm::mat4& proj = camera_->projection();
   const glm::mat4& view = camera_->view();
-  auto earth_model = glm::mat4{1.0f};
-  RotateEarthModel(&earth_model);
   uniform_buffer_->HostData<EarthTrans>(frame)->proj_view_model =
-      proj * view * earth_model;
+      proj * view * earth_.model_matrix();
   uniform_buffer_->Flush(frame);
 
   earth_constant_->HostData<TextureIndex>(frame)->value =
-      is_day ? kEarthDayTextureIndex : kEarthNightTextureIndex;
-  *skybox_constant_->HostData<SkyboxTrans>(frame) = {proj, view * earth_model};
+      is_day_ ? kEarthDayTextureIndex : kEarthNightTextureIndex;
+  *skybox_constant_->HostData<SkyboxTrans>(frame) =
+      {proj, view * earth_.model_matrix()};
 }
 
 void Editor::Render(const VkCommandBuffer& command_buffer,
@@ -212,6 +235,94 @@ void Editor::Render(const VkCommandBuffer& command_buffer,
                             /*instance_count=*/1);
       },
   });
+}
+
+absl::optional<glm::vec3> Editor::GetIntersectionWithSphere(
+    const glm::vec2& click_ndc, float sphere_radius) const {
+  // All computation will be done in the object space.
+  const glm::mat4 world_to_object = glm::inverse(earth_.model_matrix());
+  const glm::mat4 world_to_ndc = camera_->projection() * camera_->view();
+  const glm::mat4 ndc_to_world = glm::inverse(world_to_ndc);
+  const glm::mat4 ndc_to_object = world_to_object * ndc_to_world;
+
+  const glm::vec3 camera_pos =
+      TransformPoint(world_to_object, camera_->position());
+  // Z value does not matter since this is in the NDC space.
+  const glm::vec3 click_pos =
+      TransformPoint(ndc_to_object, glm::vec3{click_ndc, 1.0f});
+
+  glm::vec3 position, normal;
+  if (glm::intersectRaySphere(
+          camera_pos, glm::normalize(click_pos - camera_pos),
+          /*sphereCenter=*/glm::vec3{0.0f}, sphere_radius, position, normal)) {
+    return position;
+  } else {
+    return absl::nullopt;
+  }
+}
+
+Editor::EarthManager::EarthManager() {
+  // Initially, the north pole points to the center of frame.
+  model_matrix_ = glm::mat4{kEarthModelRadius};
+  model_matrix_ = glm::rotate(model_matrix_, glm::radians(-90.0f),
+                              glm::vec3(1.0f, 0.0f, 0.0f));
+  model_matrix_ = glm::rotate(model_matrix_, glm::radians(-90.0f),
+                              glm::vec3(0.0f, 1.0f, 0.0f));
+}
+
+void Editor::EarthManager::Update(
+    const Editor& editor, const absl::optional<glm::vec2>& click_ndc) {
+  bool may_inertial_rotate = true;
+  if (click_ndc.has_value()) {
+    const auto intersection =
+        editor.GetIntersectionWithSphere(click_ndc.value(), kEarthModelRadius);
+    if (intersection.has_value()) {
+      may_inertial_rotate = false;
+      Rotate(intersection.value());
+    }
+  }
+  if (may_inertial_rotate) {
+    InertialRotate();
+  }
+}
+
+void Editor::EarthManager::Rotate(const glm::vec3& intersection) {
+  rotate_angle_ = 0.0f;
+  if (should_rotate_) {
+    const float angle = glm::angle(last_intersection_, intersection);
+    if (angle > kRotationAngleThreshold) {
+      rotate_angle_ = angle;
+      rotate_axis_ = glm::cross(last_intersection_, intersection);
+      model_matrix_ = glm::rotate(model_matrix_, rotate_angle_, rotate_axis_);
+    }
+  } else {
+    // Since the cursor moves along with the earth, 'last_intersection_' will
+    // not be updated until the mouse button is released and pressed for the
+    // next time.
+    last_intersection_ = intersection;
+    should_rotate_ = true;
+  }
+}
+
+void Editor::EarthManager::InertialRotate() {
+  if (should_inertial_rotate_) {
+    const float elapsed_time = timer_.GetElapsedTimeSinceLaunch() -
+                               inertial_rotate_start_time_;
+    if (rotate_angle_ == 0.0f || elapsed_time > kInertialRotationCoeff) {
+      should_inertial_rotate_ = false;
+    } else {
+      const float fraction =
+          1.0f - std::pow(elapsed_time / kInertialRotationCoeff, 2.0f);
+      model_matrix_ = glm::rotate(model_matrix_, rotate_angle_ * fraction,
+                                  rotate_axis_);
+    }
+  } else if (should_rotate_) {
+    // Start inertial rotation if the earth was rotating, but the left mouse
+    // button is no longer pressed.
+    should_rotate_ = false;
+    inertial_rotate_start_time_ = timer_.GetElapsedTimeSinceLaunch();
+    should_inertial_rotate_ = true;
+  }
 }
 
 } /* namespace aurora */
