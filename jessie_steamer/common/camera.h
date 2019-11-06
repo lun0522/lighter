@@ -21,6 +21,7 @@ class Camera {
     float near = 0.1f;
     float far = 100.0f;
     float field_of_view = 45.0f;
+    float fov_aspect_ratio = 1.0f;
     glm::vec3 up{0.0f, 1.0f, 0.0f};
     glm::vec3 position{0.0f, 0.0f, 1.0f};
     glm::vec3 look_at{0.0f, 0.0f, 0.0f};
@@ -42,8 +43,8 @@ class Camera {
   // Updates the field of view and projection matrix.
   void UpdateFieldOfView(float fov);
 
-  // Updates the screen frame size and projection matrix.
-  void UpdateFrameSize(const glm::ivec2& frame_size);
+  // Updates the aspect ratio of field of view and projection matrix.
+  void UpdateFovAspectRatio(float aspect_ratio);
 
   // Moves the position of camera by 'offset' and updates the view matrix.
   void UpdatePosition(const glm::vec3& offset);
@@ -75,8 +76,8 @@ class Camera {
   // Field of view.
   float fov_;
 
-  // Frame size of screen.
-  glm::ivec2 frame_size_;
+  // Aspect ratio of field of view.
+  float fov_aspect_ratio_;
 
   // Position.
   glm::vec3 pos_;
@@ -96,7 +97,7 @@ class Camera {
 
 // A prospective camera model with cursor, scroll and keyboard control.
 // Users are responsible to call SetActivity() to activate the camera, and call
-// Calibrate() after a screen is created and whenever it is resized.
+// SetCursorPos() after a screen is created and whenever it is resized.
 class UserControlledCamera : public Camera {
  public:
   // Users may use these keys to control the camera.
@@ -109,16 +110,19 @@ class UserControlledCamera : public Camera {
     bool lock_center = false;
   };
 
+  // When the screen is resized, the aspect ratio of field of view will always
+  // be 'fov_aspect_ratio'.
   UserControlledCamera(const Config& config,
-                       const ControlConfig& control_config);
+                       const ControlConfig& control_config,
+                       float fov_aspect_ratio);
 
   // This class is neither copyable nor movable.
   UserControlledCamera(const UserControlledCamera&) = delete;
   UserControlledCamera& operator=(const UserControlledCamera&) = delete;
 
-  // Calibrates the camera with screen frame size and cursor position.
+  // Sets the cursor position.
   // This should be called after the screen is created or resized.
-  void Calibrate(const glm::ivec2& frame_size, const glm::dvec2& cursor_pos);
+  void SetCursorPos(const glm::dvec2& cursor_pos) { cursor_pos_ = cursor_pos; }
 
   // Informs the camera that the cursor has been moved to position ('x', 'y').
   // The camera will point to a different direction according to it, while

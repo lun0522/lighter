@@ -83,6 +83,9 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
   using ControlKey = common::UserControlledCamera::ControlKey;
   using TextureType = ModelBuilder::TextureType;
 
+  const auto original_aspect_ratio =
+      util::GetAspectRatio(window_context_.frame_size());
+
   /* Camera */
   common::Camera::Config config;
   common::UserControlledCamera::ControlConfig control_config;
@@ -90,7 +93,7 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
   config.look_at = glm::vec3{0.0f, 4.0f, 0.0f};
   control_config.lock_center = true;
   camera_ = absl::make_unique<common::UserControlledCamera>(
-      config, control_config);
+      config, control_config, original_aspect_ratio);
 
   /* Window */
   (*window_context_.mutable_window())
@@ -153,7 +156,7 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
   };
 
   nanosuit_model_ = ModelBuilder{
-      context(), "nanosuit", kNumFramesInFlight,
+      context(), "nanosuit", kNumFramesInFlight, original_aspect_ratio,
       ModelBuilder::MultiMeshResource{
           GetResourcePath("model/nanosuit/nanosuit.obj"),
           GetResourcePath("model/nanosuit")}}
@@ -173,7 +176,7 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
       .Build();
 
   skybox_model_ = ModelBuilder{
-      context(), "skybox", kNumFramesInFlight,
+      context(), "skybox", kNumFramesInFlight, original_aspect_ratio,
       ModelBuilder::SingleMeshResource{
           GetResourcePath("model/skybox.obj"), kObjFileIndexBase,
           /*tex_source_map=*/{{TextureType::kCubemap, {skybox_path}}},
@@ -188,8 +191,7 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
 
 void NanosuitApp::Recreate() {
   /* Camera */
-  camera_->Calibrate(window_context_.window().GetFrameSize(),
-                     window_context_.window().GetCursorPos());
+  camera_->SetCursorPos(window_context_.window().GetCursorPos());
 
   /* Depth image */
   const auto frame_size = window_context_.frame_size();

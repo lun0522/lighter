@@ -31,7 +31,8 @@ inline glm::vec3 ComputeFront(const glm::vec3& current_pos,
 
 Camera::Camera(const Config& config)
     : near_{config.near}, far_{config.far}, up_{config.up},
-      fov_{config.field_of_view}, pos_{config.position} {
+      fov_{config.field_of_view},
+      fov_aspect_ratio_{config.fov_aspect_ratio}, pos_{config.position} {
   UpdateDirection(ComputeFront(pos_, config.look_at));
 }
 
@@ -40,14 +41,13 @@ void Camera::UpdateFieldOfView(float fov) {
   UpdateProjection();
 }
 
-void Camera::UpdateFrameSize(const glm::ivec2& frame_size) {
-  frame_size_ = frame_size;
+void Camera::UpdateFovAspectRatio(float aspect_ratio) {
+  fov_aspect_ratio_ = aspect_ratio;
   UpdateProjection();
 }
 
 void Camera::UpdateProjection() {
-  proj_ = glm::perspective(glm::radians(fov_),
-                           (float)frame_size_.x / frame_size_.y, near_, far_);
+  proj_ = glm::perspective(glm::radians(fov_), fov_aspect_ratio_, near_, far_);
 }
 
 void Camera::UpdatePosition(const glm::vec3& offset) {
@@ -66,7 +66,8 @@ void Camera::UpdateView() {
 }
 
 UserControlledCamera::UserControlledCamera(const Config& config,
-                                           const ControlConfig& control_config)
+                                           const ControlConfig& control_config,
+                                           float fov_aspect_ratio)
     : Camera{config},
       move_speed_{control_config.move_speed},
       turn_speed_{control_config.turn_speed},
@@ -74,12 +75,8 @@ UserControlledCamera::UserControlledCamera(const Config& config,
       pitch_{glm::asin(front().y)},
       yaw_{glm::orientedAngle(
           GetRefFrontInZxPlane(),
-          glm::normalize(glm::vec2{front().z, front().x}))} {}
-
-void UserControlledCamera::Calibrate(const glm::ivec2& frame_size,
-                                     const glm::dvec2& cursor_pos) {
-  cursor_pos_ = cursor_pos;
-  UpdateFrameSize(frame_size);
+          glm::normalize(glm::vec2{front().z, front().x}))} {
+  UpdateFovAspectRatio(fov_aspect_ratio);
 }
 
 void UserControlledCamera::DidMoveCursor(double x, double y) {

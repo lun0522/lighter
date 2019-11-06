@@ -84,8 +84,10 @@ const vector<Descriptor::Info>& GetDescriptorInfos() {
 
 Text::Text(SharedBasicContext context,
            string&& pipeline_name,
-           int num_frames_in_flight)
+           int num_frames_in_flight,
+           float viewport_aspect_ratio)
     : context_{std::move(context)},
+      viewport_aspect_ratio_{viewport_aspect_ratio},
       vertex_buffer_{context_, text_util::GetVertexDataSize(/*num_rects=*/1),
                      pipeline::GetVertexAttribute<Vertex2D>()},
       uniform_buffer_{context_, sizeof(TextRenderInfo), num_frames_in_flight},
@@ -106,7 +108,7 @@ void Text::Update(const VkExtent2D& frame_size,
                   const RenderPass& render_pass, uint32_t subpass_index) {
   pipeline_ = pipeline_builder_
       .SetMultisampling(sample_count)
-      .SetViewport(pipeline::GetFullFrameViewport(frame_size))
+      .SetViewport(pipeline::GetViewport(frame_size, viewport_aspect_ratio_))
       .SetRenderPass(*render_pass, subpass_index)
       .SetColorBlend(
           vector<VkPipelineColorBlendAttachmentState>(
@@ -123,9 +125,11 @@ void Text::UpdateUniformBuffer(int frame, const glm::vec3& color, float alpha) {
 
 StaticText::StaticText(SharedBasicContext context,
                        int num_frames_in_flight,
+                       float viewport_aspect_ratio,
                        const vector<string>& texts,
                        Font font, int font_height)
-    : Text{std::move(context), "static text", num_frames_in_flight},
+    : Text{std::move(context), "static text", num_frames_in_flight,
+           viewport_aspect_ratio},
       text_loader_{context_, texts, font, font_height} {
   descriptors_.reserve(num_frames_in_flight);
   push_descriptors_.reserve(num_frames_in_flight);
@@ -163,16 +167,15 @@ StaticText::StaticText(SharedBasicContext context,
 }
 
 glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer, int frame,
-                           const VkExtent2D& frame_size, int text_index,
-                           const glm::vec3& color, float alpha, float height,
-                           float base_x, float base_y, Align align) {
+                           int text_index, const glm::vec3& color, float alpha,
+                           float height, float base_x, float base_y,
+                           Align align) {
   UpdateUniformBuffer(frame, color, alpha);
 
   const auto& texture_info = text_loader_.texture_info(text_index);
-  const float frame_width_height_ratio = util::GetWidthHeightRatio(frame_size);
-  const glm::vec2 ratio = glm::vec2{texture_info.width_height_ratio /
-                                    frame_width_height_ratio, 1.0f} *
-                          (height / 1.0f);
+  const glm::vec2 ratio =
+      glm::vec2{texture_info.aspect_ratio / viewport_aspect_ratio_, 1.0f} *
+      (height / 1.0f);
   const float width_in_frame = 1.0f * ratio.x;
   const float offset_x = GetOffsetX(base_x, align, width_in_frame);
 
@@ -201,9 +204,11 @@ glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer, int frame,
 
 DynamicText::DynamicText(SharedBasicContext context,
                          int num_frames_in_flight,
+                         float viewport_aspect_ratio,
                          const vector<string>& texts,
                          Font font, int font_height)
-    : Text{std::move(context), "dynamic text", num_frames_in_flight},
+    : Text{std::move(context), "dynamic text", num_frames_in_flight,
+           viewport_aspect_ratio},
       char_loader_{context_, texts, font, font_height} {
   const auto& descriptor_infos = GetDescriptorInfos();
   const Descriptor::ImageInfoMap image_info_map{{
@@ -232,14 +237,13 @@ DynamicText::DynamicText(SharedBasicContext context,
 
 glm::vec2 DynamicText::Draw(
     const VkCommandBuffer& command_buffer, int frame,
-    const VkExtent2D& frame_size, const string& text, const glm::vec3& color,
-    float alpha, float height, float base_x, float base_y, Align align) {
+    const string& text, const glm::vec3& color, float alpha,
+    float height, float base_x, float base_y, Align align) {
   UpdateUniformBuffer(frame, color, alpha);
 
-  const float frame_width_height_ratio = util::GetWidthHeightRatio(frame_size);
-  const glm::vec2 ratio = glm::vec2{char_loader_.GetWidthHeightRatio() /
-                                    frame_width_height_ratio, 1.0f} *
-                          (height / 1.0f);
+  const glm::vec2 ratio =
+      glm::vec2{char_loader_.GetAspectRatio() / viewport_aspect_ratio_, 1.0f} *
+      (height / 1.0f);
 
   float total_width_in_tex_coord = 0.0f;
   int num_non_space_chars = 0;

@@ -130,11 +130,13 @@ class ModelBuilder {
   // Each element is the descriptor used by the mesh at the same index.
   using DescriptorsPerFrame = std::vector<std::unique_ptr<StaticDescriptor>>;
 
-  // If any offscreen images are used in 'resource', the user is responsible for
-  // keeping the existence of them.
+  // When the screen is resized, the aspect ratio of viewport will always be
+  // 'viewport_aspect_ratio'. If any offscreen images are used in 'resource',
+  // the user is responsible for keeping the existence of them.
   ModelBuilder(SharedBasicContext context,
                std::string&& name,
                int num_frames_in_flight,
+               float viewport_aspect_ratio,
                const ModelResource& resource);
 
   // This class is neither copyable nor movable.
@@ -194,6 +196,10 @@ class ModelBuilder {
 
   // Number of frames in flight.
   const int num_frames_in_flight_;
+
+  // Aspect ratio of the viewport. This is used to make sure the aspect ratio of
+  // the object does not change when the size of framebuffers changes.
+  const float viewport_aspect_ratio_;
 
   // Holds per-vertex data.
   std::unique_ptr<StaticPerVertexBuffer> vertex_buffer_;
@@ -263,6 +269,7 @@ class Model {
   friend std::unique_ptr<Model> ModelBuilder::Build();
 
   Model(SharedBasicContext context,
+        float viewport_aspect_ratio,
         std::unique_ptr<StaticPerVertexBuffer>&& vertex_buffer,
         std::vector<const PerInstanceBuffer*>&& per_instance_buffers,
         absl::optional<PushConstantInfos>&& push_constant_info,
@@ -271,6 +278,7 @@ class Model {
         std::vector<DescriptorsPerFrame>&& descriptors,
         std::unique_ptr<PipelineBuilder>&& pipeline_builder)
       : context_{std::move(context)},
+        viewport_aspect_ratio_{viewport_aspect_ratio},
         vertex_buffer_{std::move(vertex_buffer)},
         per_instance_buffers_{std::move(per_instance_buffers)},
         push_constant_info_{std::move(push_constant_info)},
@@ -281,6 +289,10 @@ class Model {
 
   // Pointer to context.
   const SharedBasicContext context_;
+
+  // Aspect ratio of the viewport. This is used to make sure the aspect ratio of
+  // the object does not change when the size of framebuffers changes.
+  const float viewport_aspect_ratio_;
 
   // Holds per-vertex data.
   const std::unique_ptr<StaticPerVertexBuffer> vertex_buffer_;

@@ -77,11 +77,15 @@ Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
   using common::file::GetVkShaderPath;
   using TextureType = ModelBuilder::TextureType;
 
+  const auto original_aspect_ratio =
+      util::GetAspectRatio(window_context.frame_size());
+
   /* Camera */
   common::Camera::Config config;
   config.position = glm::vec3{0.0f, 0.0f, 3.0f};
   camera_ = absl::make_unique<common::UserControlledCamera>(
-      config, common::UserControlledCamera::ControlConfig{});
+      config, common::UserControlledCamera::ControlConfig{},
+      original_aspect_ratio);
   camera_->SetActivity(true);
 
   /* Uniform buffer and push constants */
@@ -105,7 +109,7 @@ Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
 
   /* Model */
   earth_model_ = ModelBuilder{
-      context_, "earth", num_frames_in_flight,
+      context_, "earth", num_frames_in_flight, original_aspect_ratio,
       ModelBuilder::SingleMeshResource{
           GetResourcePath("model/sphere.obj"), kObjFileIndexBase,
           /*tex_source_map=*/{{
@@ -138,7 +142,7 @@ Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
   };
 
   skybox_model_ = ModelBuilder{
-      context_, "skybox", num_frames_in_flight,
+      context_, "skybox", num_frames_in_flight, original_aspect_ratio,
       ModelBuilder::SingleMeshResource{
           GetResourcePath("model/skybox.obj"), kObjFileIndexBase,
           {{TextureType::kCubemap, {skybox_path}}},
@@ -169,8 +173,7 @@ void Editor::OnExit(common::Window* mutable_window) {
 
 void Editor::Recreate(const wrapper::vulkan::WindowContext& window_context) {
   /* Camera */
-  camera_->Calibrate(window_context.window().GetFrameSize(),
-                     window_context.window().GetCursorPos());
+  camera_->SetCursorPos(window_context.window().GetCursorPos());
 
   /* Depth image */
   const VkExtent2D& frame_size = window_context.frame_size();
@@ -301,6 +304,7 @@ void Editor::EarthManager::Rotate(const glm::vec3& intersection) {
     // next time.
     last_intersection_ = intersection;
     should_rotate_ = true;
+    should_inertial_rotate_ = false;
   }
 }
 
@@ -319,8 +323,8 @@ void Editor::EarthManager::InertialRotate() {
   } else if (should_rotate_) {
     // Start inertial rotation if the earth was rotating, but the left mouse
     // button is no longer pressed.
-    should_rotate_ = false;
     inertial_rotate_start_time_ = timer_.GetElapsedTimeSinceLaunch();
+    should_rotate_ = false;
     should_inertial_rotate_ = true;
   }
 }

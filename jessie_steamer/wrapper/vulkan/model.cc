@@ -196,9 +196,11 @@ void ModelBuilder::MultiMeshResource::LoadMesh(ModelBuilder* builder) const {
 ModelBuilder::ModelBuilder(SharedBasicContext context,
                            std::string&& name,
                            int num_frames_in_flight,
+                           float viewport_aspect_ratio,
                            const ModelResource& resource)
     : context_{std::move(context)},
       num_frames_in_flight_{num_frames_in_flight},
+      viewport_aspect_ratio_{viewport_aspect_ratio},
       uniform_buffer_info_maps_(num_frames_in_flight_),
       pipeline_builder_{absl::make_unique<PipelineBuilder>(context_)} {
   pipeline_builder_->SetName(std::move(name));
@@ -318,10 +320,10 @@ std::unique_ptr<Model> ModelBuilder::Build() {
   uniform_buffer_info_maps_.clear();
 
   return std::unique_ptr<Model>{new Model{
-      context_, std::move(vertex_buffer_), std::move(per_instance_buffers_),
-      std::move(push_constant_infos_), std::move(shared_textures_),
-      std::move(mesh_textures_), std::move(descriptors),
-      std::move(pipeline_builder_)}};
+      context_, viewport_aspect_ratio_, std::move(vertex_buffer_),
+      std::move(per_instance_buffers_), std::move(push_constant_infos_),
+      std::move(shared_textures_), std::move(mesh_textures_),
+      std::move(descriptors), std::move(pipeline_builder_)}};
 }
 
 void Model::Update(bool is_object_opaque, const VkExtent2D& frame_size,
@@ -331,7 +333,7 @@ void Model::Update(bool is_object_opaque, const VkExtent2D& frame_size,
       .SetDepthTestEnabled(/*enable_test=*/true,
                            /*enable_write=*/is_object_opaque)
       .SetMultisampling(sample_count)
-      .SetViewport(pipeline::GetFullFrameViewport(frame_size))
+      .SetViewport(pipeline::GetViewport(frame_size, viewport_aspect_ratio_))
       .SetRenderPass(*render_pass, subpass_index)
       .SetColorBlend(
           vector<VkPipelineColorBlendAttachmentState>(

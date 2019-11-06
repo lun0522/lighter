@@ -67,9 +67,9 @@ class CharLoader {
   CharLoader(const CharLoader&) = delete;
   CharLoader& operator=(const CharLoader&) = delete;
 
-  // Returns the width height ratio of the character library image.
-  float GetWidthHeightRatio() const {
-    return util::GetWidthHeightRatio(char_lib_image_->extent());
+  // Returns the aspect ratio of the character library image.
+  float GetAspectRatio() const {
+    return util::GetAspectRatio(char_lib_image_->extent());
   }
 
   // Accessors.
@@ -134,7 +134,7 @@ class TextLoader {
  public:
   // Contains information required for rendering a text.
   struct TextTextureInfo {
-    float width_height_ratio;
+    float aspect_ratio;
     float base_y;
     std::unique_ptr<OffscreenImage> image;
   };

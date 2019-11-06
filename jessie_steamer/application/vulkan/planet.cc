@@ -101,12 +101,16 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
   using ControlKey = common::UserControlledCamera::ControlKey;
   using TextureType = ModelBuilder::TextureType;
 
+  const auto original_aspect_ratio =
+      util::GetAspectRatio(window_context_.frame_size());
+
   /* Camera */
   common::Camera::Config config;
   config.position = glm::vec3{1.6f, -5.1f, -5.9f};
   config.look_at = glm::vec3{-2.4f, -0.8f, 0.0f};
   camera_ = absl::make_unique<common::UserControlledCamera>(
-      config, common::UserControlledCamera::ControlConfig{});
+      config, common::UserControlledCamera::ControlConfig{},
+      original_aspect_ratio);
 
   /* Window */
   (*window_context_.mutable_window())
@@ -160,7 +164,7 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
 
   /* Model */
   planet_model_ = ModelBuilder{
-      context(), "planet", kNumFramesInFlight,
+      context(), "planet", kNumFramesInFlight, original_aspect_ratio,
       ModelBuilder::SingleMeshResource{
           GetResourcePath("model/sphere.obj"), kObjFileIndexBase,
           /*tex_source_map=*/{{
@@ -182,7 +186,7 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
 
   GenAsteroidModels();
   asteroid_model_ = ModelBuilder{
-      context(), "asteroid", kNumFramesInFlight,
+      context(), "asteroid", kNumFramesInFlight, original_aspect_ratio,
       ModelBuilder::MultiMeshResource{
           GetResourcePath("model/rock/rock.obj"),
           GetResourcePath("model/rock"),
@@ -209,7 +213,7 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
   };
 
   skybox_model_ = ModelBuilder{
-      context(), "skybox", kNumFramesInFlight,
+      context(), "skybox", kNumFramesInFlight, original_aspect_ratio,
       ModelBuilder::SingleMeshResource{
           GetResourcePath("model/skybox.obj"), kObjFileIndexBase,
           {{TextureType::kCubemap, {skybox_path}}},
@@ -224,8 +228,7 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
 
 void PlanetApp::Recreate() {
   /* Camera */
-  camera_->Calibrate(window_context_.window().GetFrameSize(),
-                     window_context_.window().GetCursorPos());
+  camera_->SetCursorPos(window_context_.window().GetCursorPos());
 
   /* Depth image */
   const VkExtent2D& frame_size = window_context_.frame_size();

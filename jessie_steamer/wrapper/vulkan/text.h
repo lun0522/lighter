@@ -42,15 +42,22 @@ class Text {
               const RenderPass& render_pass, uint32_t subpass_index);
 
  protected:
+  // When the screen is resized, the aspect ratio of viewport will always be
+  // 'viewport_aspect_ratio'.
   Text(SharedBasicContext context,
        std::string&& pipeline_name,
-       int num_frames_in_flight);
+       int num_frames_in_flight,
+       float viewport_aspect_ratio);
 
   // Updates the color and alpha sent to the shader.
   void UpdateUniformBuffer(int frame, const glm::vec3& color, float alpha);
 
   // Pointer to context.
   const SharedBasicContext context_;
+
+  // Aspect ratio of the viewport. This is used to make sure the aspect ratio of
+  // each character does not change when the size of framebuffers changes.
+  float viewport_aspect_ratio_;
 
   // Vertex buffer for rendering bounding boxes of characters or texts.
   DynamicPerVertexBuffer vertex_buffer_;
@@ -70,6 +77,7 @@ class StaticText : public Text {
  public:
   StaticText(SharedBasicContext context,
              int num_frames_in_flight,
+             float viewport_aspect_ratio,
              const std::vector<std::string>& texts,
              Font font, int font_height);
 
@@ -78,13 +86,12 @@ class StaticText : public Text {
   StaticText& operator=(const StaticText&) = delete;
 
   // Renders text at 'text_index' and returns left and right boundary.
-  // Every character will keep its original width height ratio.
+  // Every character will keep its original aspect ratio.
   // 'height', 'base_x', 'base_y' and returned values are in range [0.0, 1.0].
   // This should be called when 'command_buffer' is recording commands.
   glm::vec2 Draw(const VkCommandBuffer& command_buffer,
-                 int frame, const VkExtent2D& frame_size, int text_index,
-                 const glm::vec3& color, float alpha, float height,
-                 float base_x, float base_y, Align align);
+                 int frame, int text_index, const glm::vec3& color, float alpha,
+                 float height, float base_x, float base_y, Align align);
 
  private:
   // Renders each text (containing multiple characters) to one texture.
@@ -107,6 +114,7 @@ class DynamicText : public Text {
  public:
   DynamicText(SharedBasicContext context,
               int num_frames_in_flight,
+              float viewport_aspect_ratio,
               const std::vector<std::string>& texts,
               Font font, int font_height);
 
@@ -116,12 +124,12 @@ class DynamicText : public Text {
 
   // Renders 'text' and returns left and right boundary. Each character of
   // 'text' must have been included in 'texts' passed to the constructor.
-  // Every character will keep its original width height ratio.
+  // Every character will keep its original aspect ratio.
   // 'height', 'base_x', 'base_y' and returned values are in range [0.0, 1.0].
   // This should be called when 'command_buffer' is recording commands.
   glm::vec2 Draw(const VkCommandBuffer& command_buffer,
-                 int frame, const VkExtent2D& frame_size,
-                 const std::string& text, const glm::vec3& color, float alpha,
+                 int frame, const std::string& text,
+                 const glm::vec3& color, float alpha,
                  float height, float base_x, float base_y, Align align);
 
  private:

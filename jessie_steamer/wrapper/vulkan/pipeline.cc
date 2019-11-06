@@ -288,10 +288,9 @@ PipelineBuilder& PipelineBuilder::SetViewport(ViewportInfo&& info) {
   // Flip the viewport as suggested by:
   // https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport
   VkViewport& viewport = info.viewport;
-  const float height = viewport.y - viewport.height;
   viewport.y += viewport.height;
-  viewport.height = height;
-  viewport_info_.emplace(std::move(info));
+  viewport.height *= -1;
+  viewport_info_.emplace(info);
   return *this;
 }
 

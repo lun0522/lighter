@@ -138,8 +138,8 @@ absl::optional<std::string> FindUnsupported(
   return absl::nullopt;
 }
 
-// Returns the width height ratio of the 2D 'extent'.
-inline float GetWidthHeightRatio(const VkExtent2D& extent) {
+// Returns the aspect ratio of the 2D 'extent'.
+inline float GetAspectRatio(const VkExtent2D& extent) {
   return static_cast<float>(extent.width) / extent.height;
 }
 

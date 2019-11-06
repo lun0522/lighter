@@ -42,6 +42,32 @@ PipelineBuilder::ViewportInfo GetFullFrameViewport(
   };
 }
 
+PipelineBuilder::ViewportInfo GetViewport(const VkExtent2D& frame_size,
+                                          float aspect_ratio) {
+  // Do not use unsigned numbers for subtraction.
+  const glm::ivec2 current_size{frame_size.width, frame_size.height};
+  glm::ivec2 effective_size = current_size;
+  if (current_size.x > current_size.y * aspect_ratio) {
+    effective_size.x = current_size.y * aspect_ratio;
+  } else {
+    effective_size.y = current_size.x / aspect_ratio;
+  }
+  return PipelineBuilder::ViewportInfo{
+      /*viewport=*/VkViewport{
+          /*x=*/static_cast<float>(current_size.x - effective_size.x) / 2.0f,
+          /*y=*/static_cast<float>(current_size.y - effective_size.y) / 2.0f,
+          static_cast<float>(effective_size.x),
+          static_cast<float>(effective_size.y),
+          /*minDepth=*/0.0f,
+          /*maxDepth=*/1.0f,
+      },
+      /*scissor=*/VkRect2D{
+          /*offset=*/{0, 0},
+          frame_size,
+      }
+  };
+}
+
 VkPipelineColorBlendAttachmentState GetColorBlendState(bool enable_blend) {
   return VkPipelineColorBlendAttachmentState{
       /*blendEnable=*/util::ToVkBool(enable_blend),

@@ -363,13 +363,12 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
   // In the coordinate of character library image, the width of 'text' is
   // 'total_advance_x' and the height is 1.0. Note that the character library
   // image itself is also rescaled in the horizontal direction, hence we
-  // should also consider its width height ratio. The height of text texture
-  // will be made 'font_height'.
+  // should also consider its aspect ratio. The height of text texture will be
+  // made 'font_height'.
   const glm::vec2 ratio = 1.0f / glm::vec2{total_advance_x, 1.0f};
   const VkExtent2D text_image_extent{
-      static_cast<uint32_t>(
-          (total_advance_x * char_loader.GetWidthHeightRatio()) *
-          (static_cast<float>(font_height) / 1.0f)),
+      static_cast<uint32_t>((total_advance_x * char_loader.GetAspectRatio()) *
+                            (static_cast<float>(font_height) / 1.0f)),
       static_cast<uint32_t>(font_height),
   };
   const float base_y = highest_base_y;
@@ -405,10 +404,8 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
     render_pass->Run(command_buffer, /*framebuffer_index=*/0, render_ops);
   });
 
-  return TextTextureInfo{
-      util::GetWidthHeightRatio(text_image_extent), base_y,
-      std::move(text_image),
-  };
+  return TextTextureInfo{util::GetAspectRatio(text_image_extent), base_y,
+                         std::move(text_image)};
 }
 
 namespace text_util {
