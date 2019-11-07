@@ -16,6 +16,7 @@ cc_library(
     srcs = ["editor.cc"],
     deps = [
         "//jessie_steamer/application/vulkan:common",
+        "//jessie_steamer/common:rotation",
         "//third_party/absl/types:optional",
     ],
 )

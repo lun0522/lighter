@@ -206,4 +206,4 @@ float LoadCharsVertexData(const std::string& text,
 } /* namespace wrapper */
 } /* namespace jessie_steamer */
 
-#endif //JESSIE_STEAMER_WRAPPER_VULKAN_TEXT_UTIL_H
+#endif /* JESSIE_STEAMER_WRAPPER_VULKAN_TEXT_UTIL_H */

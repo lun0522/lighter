@@ -18,4 +18,4 @@ namespace aurora {
 } /* namespace application */
 } /* namespace jessie_steamer */
 
-#endif //JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_VIEWER_H
+#endif /* JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_VIEWER_H */

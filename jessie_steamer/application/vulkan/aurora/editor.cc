@@ -13,7 +13,6 @@
 #include "third_party/absl/memory/memory.h"
 #define GLM_ENABLE_EXPERIMENTAL
 #include "third_party/glm/gtx/intersect.hpp"
-#include "third_party/glm/gtx/vector_angle.hpp"
 
 namespace jessie_steamer {
 namespace application {
@@ -31,9 +30,6 @@ constexpr float kEarthRadius = 6378.1f;
 constexpr float kAuroraHeight = 100.0f;
 constexpr float kAuroraLayerRadius =
     (kEarthRadius + kAuroraHeight) / kEarthRadius * kEarthModelRadius;
-
-constexpr float kRotationAngleThreshold = 3e-3;
-constexpr float kInertialRotationCoeff = 5.f;
 
 enum SubpassIndex {
   kModelSubpassIndex = 0,
@@ -275,57 +271,12 @@ Editor::EarthManager::EarthManager() {
 
 void Editor::EarthManager::Update(
     const Editor& editor, const absl::optional<glm::vec2>& click_ndc) {
-  bool may_inertial_rotate = true;
-  if (click_ndc.has_value()) {
-    const auto intersection =
-        editor.GetIntersectionWithSphere(click_ndc.value(), kEarthModelRadius);
-    if (intersection.has_value()) {
-      may_inertial_rotate = false;
-      Rotate(intersection.value());
-    }
-  }
-  if (may_inertial_rotate) {
-    InertialRotate();
-  }
-}
-
-void Editor::EarthManager::Rotate(const glm::vec3& intersection) {
-  rotate_angle_ = 0.0f;
-  if (should_rotate_) {
-    const float angle = glm::angle(last_intersection_, intersection);
-    if (angle > kRotationAngleThreshold) {
-      rotate_angle_ = angle;
-      rotate_axis_ = glm::cross(last_intersection_, intersection);
-      model_matrix_ = glm::rotate(model_matrix_, rotate_angle_, rotate_axis_);
-    }
-  } else {
-    // Since the cursor moves along with the earth, 'last_intersection_' will
-    // not be updated until the mouse button is released and pressed for the
-    // next time.
-    last_intersection_ = intersection;
-    should_rotate_ = true;
-    should_inertial_rotate_ = false;
-  }
-}
-
-void Editor::EarthManager::InertialRotate() {
-  if (should_inertial_rotate_) {
-    const float elapsed_time = timer_.GetElapsedTimeSinceLaunch() -
-                               inertial_rotate_start_time_;
-    if (rotate_angle_ == 0.0f || elapsed_time > kInertialRotationCoeff) {
-      should_inertial_rotate_ = false;
-    } else {
-      const float fraction =
-          1.0f - std::pow(elapsed_time / kInertialRotationCoeff, 2.0f);
-      model_matrix_ = glm::rotate(model_matrix_, rotate_angle_ * fraction,
-                                  rotate_axis_);
-    }
-  } else if (should_rotate_) {
-    // Start inertial rotation if the earth was rotating, but the left mouse
-    // button is no longer pressed.
-    inertial_rotate_start_time_ = timer_.GetElapsedTimeSinceLaunch();
-    should_rotate_ = false;
-    should_inertial_rotate_ = true;
+  const auto intersection = click_ndc.has_value()
+      ? editor.GetIntersectionWithSphere(click_ndc.value(), kEarthModelRadius)
+      : absl::nullopt;
+  const auto rotation = rotation_manager_.Compute(intersection);
+  if (rotation.has_value()) {
+    model_matrix_ = glm::rotate(model_matrix_, rotation->angle, rotation->axis);
   }
 }
 

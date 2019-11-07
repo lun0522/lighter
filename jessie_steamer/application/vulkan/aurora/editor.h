@@ -12,6 +12,7 @@
 
 #include "jessie_steamer/application/vulkan/util.h"
 #include "jessie_steamer/common/camera.h"
+#include "jessie_steamer/common/rotation.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
@@ -59,18 +60,8 @@ class Editor {
     const glm::mat4& model_matrix() const { return model_matrix_; }
 
    private:
-    void Rotate(const glm::vec3& intersection);
-
-    void InertialRotate();
-
-    bool should_rotate_ = false;
-    glm::vec3 last_intersection_;
-    glm::vec3 rotate_axis_;
-    float rotate_angle_ = 0.0f;
-    bool should_inertial_rotate_ = false;
-    float inertial_rotate_start_time_ = 0.0f;
     glm::mat4 model_matrix_;
-    common::Timer timer_;
+    common::RotationManager rotation_manager_;
   };
 
   absl::optional<glm::vec3> GetIntersectionWithSphere(
@@ -96,4 +87,4 @@ class Editor {
 } /* namespace application */
 } /* namespace jessie_steamer */
 
-#endif //JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_EDITOR_H
+#endif /* JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_EDITOR_H */

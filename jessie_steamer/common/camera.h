@@ -120,8 +120,8 @@ class UserControlledCamera : public Camera {
   UserControlledCamera(const UserControlledCamera&) = delete;
   UserControlledCamera& operator=(const UserControlledCamera&) = delete;
 
-  // Sets the cursor position.
-  // This should be called after the screen is created or resized.
+  // Sets the cursor position. If the user care about the mouse movement, this
+  // should be called after the screen is created or resized.
   void SetCursorPos(const glm::dvec2& cursor_pos) { cursor_pos_ = cursor_pos; }
 
   // Informs the camera that the cursor has been moved to position ('x', 'y').

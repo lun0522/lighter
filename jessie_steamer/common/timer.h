@@ -13,43 +13,21 @@
 namespace jessie_steamer {
 namespace common {
 
-// Timer is used for tracking the frame rate.
-class Timer {
+// This is used to get the elapsed time since the timer is launched.
+class BasicTimer {
  public:
-  Timer() : launch_time_{Now()}, frame_count_{0}, frame_rate_{0} {
-    last_update_time_ = last_frame_time_ = launch_time_;
-  }
+  explicit BasicTimer() : launch_time_{Now()} {}
 
   // This class is neither copyable nor movable.
-  Timer(const Timer&) = delete;
-  Timer& operator=(const Timer&) = delete;
-
-  // Informs the timer that a new frame is starting to be rendered.
-  // The frame rate is updated per second.
-  void Tick() {
-    ++frame_count_;
-    last_frame_time_ = Now();
-    if (TimeInterval(last_update_time_, last_frame_time_) >= 1.0f) {
-      last_update_time_ = last_frame_time_;
-      frame_rate_ = frame_count_;
-      frame_count_ = 0;
-    }
-  }
+  BasicTimer(const BasicTimer&) = delete;
+  BasicTimer& operator=(const BasicTimer&) = delete;
 
   // Returns the time elapsed since the timer was launched in second.
   float GetElapsedTimeSinceLaunch() const {
     return TimeInterval(launch_time_, Now());
   }
 
-  // Returns the time elapsed since the last frame was rendered in second.
-  float GetElapsedTimeSinceLastFrame() const {
-    return TimeInterval(last_frame_time_, Now());
-  }
-
-  // Accessors.
-  int frame_rate() const { return frame_rate_; }
-
- private:
+ protected:
   using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
   // Returns the current time point.
@@ -63,7 +41,40 @@ class Timer {
 
   // Time point when the timer was launched.
   const TimePoint launch_time_;
+};
 
+// This is used for tracking the frame rate.
+class FrameTimer : public BasicTimer {
+ public:
+  explicit FrameTimer() : frame_count_{0}, frame_rate_{0} {
+    last_update_time_ = last_frame_time_ = launch_time_;
+  }
+
+  // This class is neither copyable nor movable.
+  FrameTimer(const FrameTimer&) = delete;
+  FrameTimer& operator=(const FrameTimer&) = delete;
+
+  // Informs the timer that a new frame is starting to be rendered.
+  // The frame rate is updated per second.
+  void Tick() {
+    ++frame_count_;
+    last_frame_time_ = Now();
+    if (TimeInterval(last_update_time_, last_frame_time_) >= 1.0f) {
+      last_update_time_ = last_frame_time_;
+      frame_rate_ = frame_count_;
+      frame_count_ = 0;
+    }
+  }
+
+  // Returns the time elapsed since the last frame was rendered in second.
+  float GetElapsedTimeSinceLastFrame() const {
+    return TimeInterval(last_frame_time_, Now());
+  }
+
+  // Accessors.
+  int frame_rate() const { return frame_rate_; }
+
+ private:
   // Time point when the frame rate was last updated.
   TimePoint last_update_time_;
 

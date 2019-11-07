@@ -31,7 +31,7 @@ class AuroraApp : public Application {
 
   bool should_quit_ = false;
   int current_frame_ = 0;
-  common::Timer timer_;
+  common::FrameTimer timer_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<aurora::Editor> editor_;
 };

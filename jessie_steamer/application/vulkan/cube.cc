@@ -55,7 +55,7 @@ class CubeApp : public Application {
 
   const float original_aspect_ratio_;
   int current_frame_ = 0;
-  common::Timer timer_;
+  common::FrameTimer timer_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PushConstant> push_constant_;
   std::unique_ptr<NaiveRenderPassBuilder> render_pass_builder_;

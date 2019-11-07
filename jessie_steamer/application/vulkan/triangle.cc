@@ -51,7 +51,7 @@ class TriangleApp : public Application {
   void UpdateData(int frame);
 
   int current_frame_ = 0;
-  common::Timer timer_;
+  common::FrameTimer timer_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PerVertexBuffer> vertex_buffer_;
   std::unique_ptr<PushConstant> push_constant_;

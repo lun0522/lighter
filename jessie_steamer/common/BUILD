@@ -67,6 +67,19 @@ cc_library(
 )
 
 cc_library(
+    name = "rotation",
+    hdrs = ["rotation.h"],
+    srcs = ["rotation.cc"],
+    deps = [
+        ":timer",
+        ":util",
+        "//third_party/absl/types:optional",
+        "//third_party/absl/types:variant",
+        "//third_party:glm",
+    ],
+)
+
+cc_library(
     name = "timer",
     hdrs = ["timer.h"],
 )
