@@ -66,9 +66,7 @@ void AuroraApp::MainLoop() {
 
     const auto draw_result = command_->Run(
         current_frame_, window_context_.swapchain(),
-        [this](int frame) {
-          editor_->UpdateData(window_context_.window(), frame);
-        },
+        [this](int frame) { editor_->UpdateData(window_context_, frame); },
         [this](const VkCommandBuffer& command_buffer,
                uint32_t framebuffer_index) {
           editor_->Render(command_buffer, framebuffer_index, current_frame_);

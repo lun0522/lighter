@@ -39,7 +39,8 @@ class Editor {
 
   void Recreate(const wrapper::vulkan::WindowContext& window_context);
 
-  void UpdateData(const common::Window& window, int frame);
+  void UpdateData(const wrapper::vulkan::WindowContext& window_context,
+                  int frame);
 
   void Render(const VkCommandBuffer& command_buffer,
               uint32_t framebuffer_index, int current_frame);
@@ -68,6 +69,7 @@ class Editor {
       const glm::vec2& click_ndc, float sphere_radius) const;
 
   const wrapper::vulkan::SharedBasicContext context_;
+  const float original_aspect_ratio_;
   bool is_day_ = false;
   bool is_pressing_left_ = false;
   EarthManager earth_;

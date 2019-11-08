@@ -68,20 +68,19 @@ inline glm::vec3 TransformPoint(const glm::mat4& transform,
 
 Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
                int num_frames_in_flight)
-    : context_{window_context.basic_context()} {
+    : context_{window_context.basic_context()},
+      original_aspect_ratio_{
+          util::GetAspectRatio(window_context.frame_size())} {
   using common::file::GetResourcePath;
   using common::file::GetVkShaderPath;
   using TextureType = ModelBuilder::TextureType;
-
-  const auto original_aspect_ratio =
-      util::GetAspectRatio(window_context.frame_size());
 
   /* Camera */
   common::Camera::Config config;
   config.position = glm::vec3{0.0f, 0.0f, 3.0f};
   camera_ = absl::make_unique<common::UserControlledCamera>(
       config, common::UserControlledCamera::ControlConfig{},
-      original_aspect_ratio);
+      original_aspect_ratio_);
   camera_->SetActivity(true);
 
   /* Uniform buffer and push constants */
@@ -105,7 +104,7 @@ Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
 
   /* Model */
   earth_model_ = ModelBuilder{
-      context_, "earth", num_frames_in_flight, original_aspect_ratio,
+      context_, "earth", num_frames_in_flight, original_aspect_ratio_,
       ModelBuilder::SingleMeshResource{
           GetResourcePath("model/sphere.obj"), kObjFileIndexBase,
           /*tex_source_map=*/{{
@@ -138,7 +137,7 @@ Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
   };
 
   skybox_model_ = ModelBuilder{
-      context_, "skybox", num_frames_in_flight, original_aspect_ratio,
+      context_, "skybox", num_frames_in_flight, original_aspect_ratio_,
       ModelBuilder::SingleMeshResource{
           GetResourcePath("model/skybox.obj"), kObjFileIndexBase,
           {{TextureType::kCubemap, {skybox_path}}},
@@ -206,10 +205,22 @@ void Editor::Recreate(const wrapper::vulkan::WindowContext& window_context) {
                         *render_pass_, kModelSubpassIndex);
 }
 
-void Editor::UpdateData(const common::Window& window, int frame) {
+void Editor::UpdateData(const wrapper::vulkan::WindowContext& window_context,
+                        int frame) {
   absl::optional<glm::dvec2> click_ndc;
   if (is_pressing_left_) {
-    click_ndc = window.GetCursorPosInNdc();
+    click_ndc = window_context.window().GetCursorPosInNdc();
+    // When the screen is resized, the viewport is changed to maintain the
+    // aspect ratio, hence we need to consider the distortion caused by the
+    // viewport change.
+    const auto current_aspect_ratio =
+        util::GetAspectRatio(window_context.frame_size());
+    const float distortion = current_aspect_ratio / original_aspect_ratio_;
+    if (distortion > 1.0f) {
+      click_ndc->x *= distortion;
+    } else {
+      click_ndc->y /= distortion;
+    }
   }
   earth_.Update(*this, click_ndc);
 

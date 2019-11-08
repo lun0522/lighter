@@ -27,15 +27,19 @@ struct Rotation {
   float angle;
 };
 
+// Returns an instance of Rotation if rotation should be performed.
+// Otherwise, returns absl::nullopt.
 template <typename StateType>
 absl::optional<Rotation> Compute(
     const absl::optional<glm::vec3>& normalized_click_pos,
     RotationManager* rotation_manager);
 
+// This class is used to help visit rotation states and dispatch calls to
+// Compute().
 class StateVisitor {
  public:
-  explicit StateVisitor(const absl::optional<glm::vec3>& normalized_click_pos,
-                        RotationManager* rotation_manager)
+  StateVisitor(const absl::optional<glm::vec3>& normalized_click_pos,
+               RotationManager* rotation_manager)
       : normalized_click_pos_{normalized_click_pos},
         rotation_manager_{rotation_manager} {}
 
@@ -53,6 +57,8 @@ class StateVisitor {
 
 class RotationManager {
  public:
+  // Returns an instance of rotation::Rotation if rotation should be performed.
+  // Otherwise, returns absl::nullopt.
   absl::optional<rotation::Rotation> Compute(
       const absl::optional<glm::vec3>& normalized_click_pos) {
     return absl::visit(
@@ -63,7 +69,8 @@ class RotationManager {
   // The object must be in either stop, rotation or inertial rotation state.
   struct StopState {};
   struct RotationState {
-    glm::vec3 last_click_pos;
+    float last_click_time;
+    glm::vec3 first_click_pos;
     rotation::Rotation rotation;
   };
   struct InertialRotationState {
@@ -76,6 +83,9 @@ class RotationManager {
   friend absl::optional<rotation::Rotation> rotation::Compute(
       const absl::optional<glm::vec3>& normalized_click_pos,
       RotationManager* rotation_manager);
+
+  // Returns the time since this manager is created.
+  float GetReferenceTime() const { return timer_.GetElapsedTimeSinceLaunch(); }
 
   // Records the time since this manager is created.
   const BasicTimer timer_;

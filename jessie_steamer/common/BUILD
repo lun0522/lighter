@@ -72,7 +72,6 @@ cc_library(
     srcs = ["rotation.cc"],
     deps = [
         ":timer",
-        ":util",
         "//third_party/absl/types:optional",
         "//third_party/absl/types:variant",
         "//third_party:glm",
