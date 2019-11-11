@@ -10,11 +10,9 @@
 
 #include <memory>
 
-#include "jessie_steamer/application/vulkan/util.h"
+#include "jessie_steamer/application/vulkan/aurora/button.h"
 #include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/rotation.h"
-#include "third_party/absl/types/optional.h"
-#include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -46,33 +44,11 @@ class Editor {
               uint32_t framebuffer_index, int current_frame);
 
  private:
-  class EarthManager {
-   public:
-    explicit EarthManager();
-
-    // This class is neither copyable nor movable.
-    EarthManager(const EarthManager&) = delete;
-    EarthManager& operator=(const EarthManager&) = delete;
-
-    void Update(const Editor& editor,
-                const absl::optional<glm::vec2>& click_ndc);
-
-    // Accessors.
-    const glm::mat4& model_matrix() const { return model_matrix_; }
-
-   private:
-    glm::mat4 model_matrix_;
-    common::RotationManager rotation_manager_;
-  };
-
-  absl::optional<glm::vec3> GetIntersectionWithSphere(
-      const glm::vec2& click_ndc, float sphere_radius) const;
-
   const wrapper::vulkan::SharedBasicContext context_;
   const float original_aspect_ratio_;
   bool is_day_ = false;
   bool is_pressing_left_ = false;
-  EarthManager earth_;
+  common::Sphere earth_;
   std::unique_ptr<common::UserControlledCamera> camera_;
   std::unique_ptr<wrapper::vulkan::UniformBuffer> uniform_buffer_;
   std::unique_ptr<wrapper::vulkan::PushConstant> earth_constant_;

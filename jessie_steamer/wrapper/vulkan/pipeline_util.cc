@@ -8,6 +8,7 @@
 #include "jessie_steamer/wrapper/vulkan/pipeline_util.h"
 
 #include "jessie_steamer/common/file.h"
+#include "jessie_steamer/common/util.h"
 
 namespace jessie_steamer {
 namespace wrapper {
@@ -46,12 +47,8 @@ PipelineBuilder::ViewportInfo GetViewport(const VkExtent2D& frame_size,
                                           float aspect_ratio) {
   // Do not use unsigned numbers for subtraction.
   const glm::ivec2 current_size{frame_size.width, frame_size.height};
-  glm::ivec2 effective_size = current_size;
-  if (current_size.x > current_size.y * aspect_ratio) {
-    effective_size.x = current_size.y * aspect_ratio;
-  } else {
-    effective_size.y = current_size.x / aspect_ratio;
-  }
+  const glm::ivec2 effective_size =
+      common::util::FindLargestExtent(current_size, aspect_ratio);
   return PipelineBuilder::ViewportInfo{
       /*viewport=*/VkViewport{
           /*x=*/static_cast<float>(current_size.x - effective_size.x) / 2.0f,

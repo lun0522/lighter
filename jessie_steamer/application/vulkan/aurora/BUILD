@@ -11,10 +11,18 @@ cc_binary(
 )
 
 cc_library(
+    name = "button",
+    hdrs = ["button.h"],
+    srcs = ["button.cc"],
+    deps = ["//jessie_steamer/application/vulkan:common"],
+)
+
+cc_library(
     name = "editor",
     hdrs = ["editor.h"],
     srcs = ["editor.cc"],
     deps = [
+        ":button",
         "//jessie_steamer/application/vulkan:common",
         "//jessie_steamer/common:rotation",
         "//third_party/absl/types:optional",

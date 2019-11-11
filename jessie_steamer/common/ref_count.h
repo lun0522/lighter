@@ -24,7 +24,7 @@ namespace common {
 // By default, an object will be destroyed if its reference count drops to zero.
 // The user may call SetPolicy() to change the policy, in which case objects
 // with zero reference counts will stay in the pool, until the policy changes
-// again or the user calls Clean().
+// again or the user calls ReleaseUnusedObjects().
 template <typename ObjectType>
 class RefCountedObject {
  public:
@@ -80,12 +80,12 @@ class RefCountedObject {
   static void SetPolicy(bool destroy_if_unused) {
     object_pool_.destroy_if_unused = destroy_if_unused;
     if (destroy_if_unused) {
-      Clean();
+      ReleaseUnusedObjects();
     }
   }
 
-  // Destroys all objects with zero reference counts in the pool;
-  static void Clean() {
+  // Destroys all objects with zero reference counts in the pool.
+  static void ReleaseUnusedObjects() {
     using ObjectWithCounter = typename ObjectPool::ObjectWithCounter;
     static const auto remove_unused =
         [](const std::pair<const std::string, ObjectWithCounter>& pair) {

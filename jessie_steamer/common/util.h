@@ -157,6 +157,20 @@ void EraseIf(const Predicate& predicate, Container* container) {
   }
 }
 
+// Returns the largest extent that does not exceed 'original_extent', and has
+// the specified 'aspect_ratio'.
+template <typename ExtentType>
+ExtentType FindLargestExtent(const ExtentType& original_extent,
+                             float aspect_ratio) {
+  ExtentType effective_extent = original_extent;
+  if (original_extent.x > original_extent.y * aspect_ratio) {
+    effective_extent.x = original_extent.y * aspect_ratio;
+  } else {
+    effective_extent.y = original_extent.x / aspect_ratio;
+  }
+  return effective_extent;
+}
+
 // Helper class to enable using an enum class as the key of a hash table:
 //   absl::flat_hash_map<KeyType, ValueType, EnumClassHash>;
 struct EnumClassHash {

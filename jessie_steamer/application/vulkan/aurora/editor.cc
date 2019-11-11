@@ -7,12 +7,9 @@
 
 #include "jessie_steamer/application/vulkan/aurora/editor.h"
 
-#include <cmath>
-#include <vector>
-
 #include "third_party/absl/memory/memory.h"
-#define GLM_ENABLE_EXPERIMENTAL
-#include "third_party/glm/gtx/intersect.hpp"
+#include "third_party/absl/types/optional.h"
+#include "third_party/glm/glm.hpp"
 
 namespace jessie_steamer {
 namespace application {
@@ -21,15 +18,6 @@ namespace aurora {
 namespace {
 
 using namespace wrapper::vulkan;
-
-constexpr int kObjFileIndexBase = 1;
-
-// The height of aurora layer is assumed to be at around 100km above the ground.
-constexpr float kEarthModelRadius = 1.0f;
-constexpr float kEarthRadius = 6378.1f;
-constexpr float kAuroraHeight = 100.0f;
-constexpr float kAuroraLayerRadius =
-    (kEarthRadius + kAuroraHeight) / kEarthRadius * kEarthModelRadius;
 
 enum SubpassIndex {
   kModelSubpassIndex = 0,
@@ -58,11 +46,14 @@ struct TextureIndex {
 
 /* END: Consistent with uniform blocks defined in shaders. */
 
-inline glm::vec3 TransformPoint(const glm::mat4& transform,
-                                const glm::vec3& point) {
-  const glm::vec4 transformed = transform * glm::vec4{point, 1.0f};
-  return glm::vec3{transformed} / transformed.w;
-}
+constexpr int kObjFileIndexBase = 1;
+
+// The height of aurora layer is assumed to be at around 100km above the ground.
+constexpr float kEarthModelRadius = 1.0f;
+constexpr float kEarthRadius = 6378.1f;
+constexpr float kAuroraHeight = 100.0f;
+constexpr float kAuroraLayerRadius =
+    (kEarthRadius + kAuroraHeight) / kEarthRadius * kEarthModelRadius;
 
 } /* namespace */
 
@@ -70,7 +61,8 @@ Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
                int num_frames_in_flight)
     : context_{window_context.basic_context()},
       original_aspect_ratio_{
-          util::GetAspectRatio(window_context.frame_size())} {
+          util::GetAspectRatio(window_context.frame_size())},
+      earth_{/*center=*/glm::vec3{0.0f}, kEarthModelRadius} {
   using common::file::GetResourcePath;
   using common::file::GetVkShaderPath;
   using TextureType = ModelBuilder::TextureType;
@@ -209,7 +201,7 @@ void Editor::UpdateData(const wrapper::vulkan::WindowContext& window_context,
                         int frame) {
   absl::optional<glm::dvec2> click_ndc;
   if (is_pressing_left_) {
-    click_ndc = window_context.window().GetCursorPosInNdc();
+    click_ndc = window_context.window().GetNormalizedCursorPos();
     // When the screen is resized, the viewport is changed to maintain the
     // aspect ratio, hence we need to consider the distortion caused by the
     // viewport change.
@@ -222,7 +214,7 @@ void Editor::UpdateData(const wrapper::vulkan::WindowContext& window_context,
       click_ndc->y /= distortion;
     }
   }
-  earth_.Update(*this, click_ndc);
+  earth_.Update(*camera_, click_ndc);
 
   const glm::mat4& proj = camera_->projection();
   const glm::mat4& view = camera_->view();
@@ -233,7 +225,7 @@ void Editor::UpdateData(const wrapper::vulkan::WindowContext& window_context,
   earth_constant_->HostData<TextureIndex>(frame)->value =
       is_day_ ? kEarthDayTextureIndex : kEarthNightTextureIndex;
   *skybox_constant_->HostData<SkyboxTrans>(frame) =
-      {proj, view * earth_.model_matrix()};
+      {proj, view * earth_.GetSkyboxModelMatrix()};
 }
 
 void Editor::Render(const VkCommandBuffer& command_buffer,
@@ -245,50 +237,6 @@ void Editor::Render(const VkCommandBuffer& command_buffer,
                             /*instance_count=*/1);
       },
   });
-}
-
-absl::optional<glm::vec3> Editor::GetIntersectionWithSphere(
-    const glm::vec2& click_ndc, float sphere_radius) const {
-  // All computation will be done in the object space.
-  const glm::mat4 world_to_object = glm::inverse(earth_.model_matrix());
-  const glm::mat4 world_to_ndc = camera_->projection() * camera_->view();
-  const glm::mat4 ndc_to_world = glm::inverse(world_to_ndc);
-  const glm::mat4 ndc_to_object = world_to_object * ndc_to_world;
-
-  const glm::vec3 camera_pos =
-      TransformPoint(world_to_object, camera_->position());
-  // Z value does not matter since this is in the NDC space.
-  const glm::vec3 click_pos =
-      TransformPoint(ndc_to_object, glm::vec3{click_ndc, 1.0f});
-
-  glm::vec3 position, normal;
-  if (glm::intersectRaySphere(
-          camera_pos, glm::normalize(click_pos - camera_pos),
-          /*sphereCenter=*/glm::vec3{0.0f}, sphere_radius, position, normal)) {
-    return position;
-  } else {
-    return absl::nullopt;
-  }
-}
-
-Editor::EarthManager::EarthManager() {
-  // Initially, the north pole points to the center of frame.
-  model_matrix_ = glm::mat4{kEarthModelRadius};
-  model_matrix_ = glm::rotate(model_matrix_, glm::radians(-90.0f),
-                              glm::vec3(1.0f, 0.0f, 0.0f));
-  model_matrix_ = glm::rotate(model_matrix_, glm::radians(-90.0f),
-                              glm::vec3(0.0f, 1.0f, 0.0f));
-}
-
-void Editor::EarthManager::Update(
-    const Editor& editor, const absl::optional<glm::vec2>& click_ndc) {
-  const auto intersection = click_ndc.has_value()
-      ? editor.GetIntersectionWithSphere(click_ndc.value(), kEarthModelRadius)
-      : absl::nullopt;
-  const auto rotation = rotation_manager_.Compute(intersection);
-  if (rotation.has_value()) {
-    model_matrix_ = glm::rotate(model_matrix_, rotation->angle, rotation->axis);
-  }
 }
 
 } /* namespace aurora */

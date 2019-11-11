@@ -8,6 +8,7 @@
 #ifndef JESSIE_STEAMER_COMMON_ROTATION_H
 #define JESSIE_STEAMER_COMMON_ROTATION_H
 
+#include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/timer.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/variant.h"
@@ -55,6 +56,9 @@ class StateVisitor {
 
 } /* namespace rotation */
 
+// This class is used to compute the rotation of 3D objects driven by user
+// inputs. The object can be of any shape, and the user only need to provide a
+// normalized click position on the object.
 class RotationManager {
  public:
   // Returns an instance of rotation::Rotation if rotation should be performed.
@@ -92,6 +96,47 @@ class RotationManager {
 
   // Current state.
   State state_ = StopState{};
+};
+
+// This class models a sphere that rotates following the user input.
+class Sphere {
+ public:
+  Sphere(const glm::vec3& center, float radius);
+
+  // This class is neither copyable nor movable.
+  Sphere(const Sphere&) = delete;
+  Sphere& operator=(const Sphere&) = delete;
+
+  // Updates internal states. 'click_ndc' is the user click position in the
+  // normalized device coordinate. The click does not need to be within the
+  // sphere, since we will compute the intersection internally.
+  void Update(const Camera& camera, const absl::optional<glm::vec2>& click_ndc);
+
+  // Returns a model matrix for skybox. This is independent of the center and
+  // radius of the sphere.
+  glm::mat4 GetSkyboxModelMatrix() const;
+
+  // Accessors.
+  const glm::mat4& model_matrix() const { return model_matrix_; }
+
+ private:
+  // Computes whether the user click intersects with the sphere, and returns
+  // the coordinate of intersection point in object space if any intersection.
+  // Otherwise, returns absl::nullopt.
+  absl::optional<glm::vec3> GetIntersection(const Camera& camera,
+                                            const glm::vec2& click_ndc) const;
+
+  // Center of sphere.
+  const glm::vec3 center_;
+
+  // Radius of sphere.
+  const float radius_;
+
+  // Model matrix of sphere.
+  glm::mat4 model_matrix_;
+
+  // Computes and tracks rotation.
+  RotationManager rotation_manager_;
 };
 
 } /* namespace common */

@@ -177,14 +177,14 @@ glm::dvec2 Window::GetCursorPos() const {
   return pos;
 }
 
-glm::dvec2 Window::GetCursorPosInNdc() const {
+glm::dvec2 Window::GetNormalizedCursorPos() const {
   const glm::ivec2 frame_size = GetFrameSize();
   const glm::dvec2 cursor_pos = GetCursorPos();
-  const glm::dvec2 cursor_pos_norm{cursor_pos.x / frame_size.x,
+  glm::dvec2 normalized_cursor_pos{cursor_pos.x / frame_size.x,
                                    cursor_pos.y / frame_size.y};
-  glm::dvec2 cursor_pos_ndc = cursor_pos_norm * 2.0 - 1.0;
-  cursor_pos_ndc.y *= -1.0;
-  return cursor_pos_ndc;
+  normalized_cursor_pos = normalized_cursor_pos * 2.0 - 1.0;
+  normalized_cursor_pos.y *= -1.0;
+  return normalized_cursor_pos;
 }
 
 void Window::DidResizeWindow() {

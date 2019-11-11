@@ -84,7 +84,7 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
     if (first_time) {
       first_time = false;
       release_ref_count_pool_ops_.emplace_back(
-          []() { RefCountedObjectType::Clean(); });
+          []() { RefCountedObjectType::ReleaseUnusedObjects(); });
     }
   }
 

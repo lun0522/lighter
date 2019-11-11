@@ -128,7 +128,9 @@ class PipelineBuilder {
   }
 
   // Releases shader modules that are currently unused.
-  static void ReleaseUnusedShaders() { RefCountedShaderModule::Clean(); }
+  static void ReleaseUnusedShaders() {
+    RefCountedShaderModule::ReleaseUnusedObjects();
+  }
 
   // Loads a shader that will be used at 'shader_stage' from 'file_path'.
   PipelineBuilder& SetShader(VkShaderStageFlagBits shader_stage,

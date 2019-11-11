@@ -71,6 +71,7 @@ cc_library(
     hdrs = ["rotation.h"],
     srcs = ["rotation.cc"],
     deps = [
+        ":camera",
         ":timer",
         "//third_party/absl/types:optional",
         "//third_party/absl/types:variant",

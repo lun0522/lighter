@@ -111,8 +111,10 @@ class Window {
   // Returns the position of cursor.
   glm::dvec2 GetCursorPos() const;
 
-  // Returns the position of cursor in the normalized device coordinate.
-  glm::dvec2 GetCursorPosInNdc() const;
+  // Returns the position of cursor in the normalized screen coordinate.
+  // Note that this can be different from the normalized device coordinate,
+  // since we may not render to full screen.
+  glm::dvec2 GetNormalizedCursorPos() const;
 
   // Accessors.
   bool is_resized() const { return is_resized_; }
