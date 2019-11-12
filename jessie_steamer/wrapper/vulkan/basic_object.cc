@@ -302,10 +302,11 @@ Device::Device(const BasicContext* context,
                      "Presentation queue is not properly set up");
   }
 
-  // Request support for anisotropy filtering and texture array indexing with
-  // dynamic uniform integers.
+  // Request support for anisotropy filtering, and uniform buffer array and
+  // texture array indexing with dynamic uniform integers.
   VkPhysicalDeviceFeatures required_features{};
   required_features.samplerAnisotropy = VK_TRUE;
+  required_features.shaderUniformBufferArrayDynamicIndexing = VK_TRUE;
   required_features.shaderSampledImageArrayDynamicIndexing = VK_TRUE;
 
   // Request support for negative-height viewport and pushing descriptors.

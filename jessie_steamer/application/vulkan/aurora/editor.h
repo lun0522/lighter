@@ -13,6 +13,9 @@
 #include "jessie_steamer/application/vulkan/aurora/button.h"
 #include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/rotation.h"
+#include "jessie_steamer/common/window.h"
+#include "jessie_steamer/wrapper/vulkan/model.h"
+#include "jessie_steamer/wrapper/vulkan/window_context.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -44,7 +47,6 @@ class Editor {
               uint32_t framebuffer_index, int current_frame);
 
  private:
-  const wrapper::vulkan::SharedBasicContext context_;
   const float original_aspect_ratio_;
   bool is_day_ = false;
   bool is_pressing_left_ = false;

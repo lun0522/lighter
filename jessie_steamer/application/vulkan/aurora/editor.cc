@@ -7,6 +7,7 @@
 
 #include "jessie_steamer/application/vulkan/aurora/editor.h"
 
+#include "jessie_steamer/wrapper/vulkan/align.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/glm/glm.hpp"
@@ -59,13 +60,13 @@ constexpr float kAuroraLayerRadius =
 
 Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
                int num_frames_in_flight)
-    : context_{window_context.basic_context()},
-      original_aspect_ratio_{
+    : original_aspect_ratio_{
           util::GetAspectRatio(window_context.frame_size())},
       earth_{/*center=*/glm::vec3{0.0f}, kEarthModelRadius} {
   using common::file::GetResourcePath;
   using common::file::GetVkShaderPath;
   using TextureType = ModelBuilder::TextureType;
+  const auto context = window_context.basic_context();
 
   /* Camera */
   common::Camera::Config config;
@@ -77,11 +78,11 @@ Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
 
   /* Uniform buffer and push constants */
   uniform_buffer_ = absl::make_unique<UniformBuffer>(
-      context_, sizeof(EarthTrans), num_frames_in_flight);
+      context, sizeof(EarthTrans), num_frames_in_flight);
   earth_constant_ = absl::make_unique<PushConstant>(
-      context_, sizeof(TextureIndex), num_frames_in_flight);
+      context, sizeof(TextureIndex), num_frames_in_flight);
   skybox_constant_ = absl::make_unique<PushConstant>(
-      context_, sizeof(SkyboxTrans), num_frames_in_flight);
+      context, sizeof(SkyboxTrans), num_frames_in_flight);
 
   /* Render pass */
   const NaiveRenderPassBuilder::SubpassConfig subpass_config{
@@ -90,13 +91,13 @@ Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
       /*num_overlay_subpasses=*/0,
   };
   render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
-      context_, subpass_config,
+      context, subpass_config,
       /*num_framebuffers=*/window_context.num_swapchain_images(),
       /*present_to_screen=*/true, window_context.multisampling_mode());
 
   /* Model */
   earth_model_ = ModelBuilder{
-      context_, "earth", num_frames_in_flight, original_aspect_ratio_,
+      context, "earth", num_frames_in_flight, original_aspect_ratio_,
       ModelBuilder::SingleMeshResource{
           GetResourcePath("model/sphere.obj"), kObjFileIndexBase,
           /*tex_source_map=*/{{
@@ -129,7 +130,7 @@ Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
   };
 
   skybox_model_ = ModelBuilder{
-      context_, "skybox", num_frames_in_flight, original_aspect_ratio_,
+      context, "skybox", num_frames_in_flight, original_aspect_ratio_,
       ModelBuilder::SingleMeshResource{
           GetResourcePath("model/skybox.obj"), kObjFileIndexBase,
           {{TextureType::kCubemap, {skybox_path}}},
@@ -165,7 +166,8 @@ void Editor::Recreate(const wrapper::vulkan::WindowContext& window_context) {
   /* Depth image */
   const VkExtent2D& frame_size = window_context.frame_size();
   depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
-      context_, frame_size, window_context.multisampling_mode());
+      window_context.basic_context(), frame_size,
+      window_context.multisampling_mode());
 
   /* Render pass */
   (*render_pass_builder_->mutable_builder())

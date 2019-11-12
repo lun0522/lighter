@@ -44,16 +44,13 @@ class Text {
  protected:
   // When the screen is resized, the aspect ratio of viewport will always be
   // 'viewport_aspect_ratio'.
-  Text(SharedBasicContext context,
+  Text(const SharedBasicContext& context,
        std::string&& pipeline_name,
        int num_frames_in_flight,
        float viewport_aspect_ratio);
 
   // Updates the color and alpha sent to the shader.
   void UpdateUniformBuffer(int frame, const glm::vec3& color, float alpha);
-
-  // Pointer to context.
-  const SharedBasicContext context_;
 
   // Aspect ratio of the viewport. This is used to make sure the aspect ratio of
   // each character does not change when the size of framebuffers changes.
@@ -75,7 +72,7 @@ class Text {
 // the corresponding texture. This is backed by TextLoader.
 class StaticText : public Text {
  public:
-  StaticText(SharedBasicContext context,
+  StaticText(const SharedBasicContext& context,
              int num_frames_in_flight,
              float viewport_aspect_ratio,
              const std::vector<std::string>& texts,
@@ -112,7 +109,7 @@ class StaticText : public Text {
 // needs to bind that texture. This is backed by CharLoader.
 class DynamicText : public Text {
  public:
-  DynamicText(SharedBasicContext context,
+  DynamicText(const SharedBasicContext& context,
               int num_frames_in_flight,
               float viewport_aspect_ratio,
               const std::vector<std::string>& texts,

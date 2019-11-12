@@ -8,11 +8,13 @@
 #ifndef JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_BUTTON_H
 #define JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_BUTTON_H
 
-#include <array>
+#include <memory>
 #include <string>
+#include <vector>
 
-#include "jessie_steamer/application/vulkan/util.h"
+#include "jessie_steamer/wrapper/vulkan/text.h"
 #include "third_party/glm/glm.hpp"
+#include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
 namespace application {
@@ -20,33 +22,32 @@ namespace vulkan {
 namespace aurora {
 namespace button {
 
-enum State { kSelected = 0, kUnselected, kNumStates };
+struct ButtonInfo {
+  enum State { kSelected = 0, kUnselected, kNumStates };
 
-constexpr int kNumVerticesPerRect = 4;
-
-struct RenderInfo {
-  glm::vec4 color_alpha[kNumStates];
-  glm::vec2 position[kNumVerticesPerRect];
+  std::string text;
+  glm::vec3 colors[kNumStates];
+  glm::vec3 center;
 };
 
 } /* namespace button */
 
-template <int NumButtons>
 class Button {
  public:
-  Button(const std::array<std::string, NumButtons>& button_texts,
-         const std::array<glm::vec4[button::kNumStates], NumButtons>&
-             button_color_alphas,
-         const std::array<glm::vec4[button::kNumStates], NumButtons>&
-             text_color_alphas);
+  Button(const wrapper::vulkan::SharedBasicContext& context,
+         wrapper::vulkan::Text::Font font, int font_height,
+         const glm::vec3& text_color, float text_alpha,
+         const glm::vec2& button_size, float button_alpha,
+         const std::vector<button::ButtonInfo>& button_infos);
 
   // This class is neither copyable nor movable.
   Button(const Button&) = delete;
   Button& operator=(const Button&) = delete;
 
+  void Draw(const VkCommandBuffer& command_buffer, int frame) const;
+
  private:
-  std::array<button::RenderInfo, NumButtons> button_render_infos_;
-  std::array<button::RenderInfo, NumButtons> text_render_infos_;
+  std::unique_ptr<wrapper::vulkan::OffscreenImage> buttons_image_;
 };
 
 } /* namespace aurora */

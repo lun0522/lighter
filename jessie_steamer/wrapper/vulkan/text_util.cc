@@ -147,20 +147,20 @@ inline glm::vec2 NormalizePos(const glm::vec2& coordinate) {
 
 } /* namespace */
 
-CharLoader::CharLoader(SharedBasicContext context,
+CharLoader::CharLoader(const SharedBasicContext& context,
                        const vector<string>& texts,
-                       Font font, int font_height)
-    : context_{std::move(context)} {
+                       Font font, int font_height) {
   CharImageMap char_image_map;
   {
     const common::CharLib char_lib{texts, GetFontPath(font), font_height};
     const int interval_between_chars = GetIntervalBetweenChars(font_height);
     char_lib_image_ = absl::make_unique<OffscreenImage>(
-        context_, kSingleChannel,
+        context, kSingleChannel,
         GetCharLibImageExtent(char_lib, interval_between_chars));
     space_advance_x_ = GetSpaceAdvanceX(char_lib, *char_lib_image_);
-    CreateCharTextures(char_lib, interval_between_chars, *char_lib_image_,
-                       &char_image_map, &char_texture_info_map_);
+    CreateCharTextures(context, char_lib, interval_between_chars,
+                       *char_lib_image_, &char_image_map,
+                       &char_texture_info_map_);
   }
 
   vector<char> char_merge_order;
@@ -169,16 +169,16 @@ CharLoader::CharLoader(SharedBasicContext context,
     char_merge_order.emplace_back(pair.first);
   }
 
-  const auto vertex_buffer = CreateVertexBuffer(char_merge_order);
+  const auto vertex_buffer = CreateVertexBuffer(context, char_merge_order);
   const auto descriptor =
-      absl::make_unique<DynamicDescriptor>(context_, CreateDescriptorInfos());
+      absl::make_unique<DynamicDescriptor>(context, CreateDescriptorInfos());
 
-  auto render_pass_builder = CreateRenderPassBuilder(context_);
+  auto render_pass_builder = CreateRenderPassBuilder(context);
   const auto render_pass = BuildRenderPass(*char_lib_image_,
                                            render_pass_builder.get());
 
   auto pipeline_builder =
-      CreatePipelineBuilder(context_, "char loader", *vertex_buffer,
+      CreatePipelineBuilder(context, "char loader", *vertex_buffer,
                             descriptor->layout(), /*enable_color_blend=*/false);
   const auto pipeline = BuildPipeline(*char_lib_image_, **render_pass,
                                       pipeline_builder.get());
@@ -202,7 +202,7 @@ CharLoader::CharLoader(SharedBasicContext context,
       },
   };
 
-  const OneTimeCommand command{context_, &context_->queues().graphics_queue()};
+  const OneTimeCommand command{context, &context->queues().graphics_queue()};
   command.Run([&](const VkCommandBuffer& command_buffer) {
     render_pass->Run(command_buffer, /*framebuffer_index=*/0, render_ops);
   });
@@ -237,6 +237,7 @@ absl::optional<float> CharLoader::GetSpaceAdvanceX(
 }
 
 void CharLoader::CreateCharTextures(
+    const SharedBasicContext& context,
     const common::CharLib& char_lib,
     int interval_between_chars, const Image& target_image,
     CharImageMap* char_image_map,
@@ -264,7 +265,7 @@ void CharLoader::CreateCharTextures(
     char_image_map->emplace(
         character,
         absl::make_unique<TextureImage>(
-            context_,
+            context,
             /*generate_mipmaps=*/false,
             TextureBuffer::Info{
                 {char_info.image->data},
@@ -280,6 +281,7 @@ void CharLoader::CreateCharTextures(
 }
 
 std::unique_ptr<StaticPerVertexBuffer> CharLoader::CreateVertexBuffer(
+    const SharedBasicContext& context,
     const vector<char>& char_merge_order) const {
   vector<Vertex2D> vertices;
   vertices.reserve(text_util::kNumVerticesPerRect * char_merge_order.size());
@@ -298,7 +300,7 @@ std::unique_ptr<StaticPerVertexBuffer> CharLoader::CreateVertexBuffer(
   FlipYCoord(&vertices);
 
   return absl::make_unique<StaticPerVertexBuffer>(
-      context_, PerVertexBuffer::ShareIndicesDataInfo{
+      context, PerVertexBuffer::ShareIndicesDataInfo{
           /*num_meshes=*/static_cast<int>(char_merge_order.size()),
           /*per_mesh_vertices=*/
           {vertices, /*num_units_per_mesh=*/text_util::kNumVerticesPerRect},
@@ -309,38 +311,38 @@ std::unique_ptr<StaticPerVertexBuffer> CharLoader::CreateVertexBuffer(
   );
 }
 
-TextLoader::TextLoader(SharedBasicContext context,
+TextLoader::TextLoader(const SharedBasicContext& context,
                        const vector<string>& texts,
-                       CharLoader::Font font, int font_height)
-    : context_{std::move(context)} {
+                       CharLoader::Font font, int font_height) {
   const auto& longest_text = std::max_element(
       texts.begin(), texts.end(), [](const string& lhs, const string& rhs) {
         return lhs.length() > rhs.length();
       });
   DynamicPerVertexBuffer vertex_buffer{
-      context_, text_util::GetVertexDataSize(longest_text->length()),
+      context, text_util::GetVertexDataSize(longest_text->length()),
       pipeline::GetVertexAttribute<Vertex2D>()};
 
   auto descriptor = absl::make_unique<StaticDescriptor>(
-      context_, CreateDescriptorInfos());
-  auto render_pass_builder = CreateRenderPassBuilder(context_);
+      context, CreateDescriptorInfos());
+  auto render_pass_builder = CreateRenderPassBuilder(context);
   // Advance can be negative, and thus bounding boxes of characters may have
   // overlap, hence we need to enable color blending.
   auto pipeline_builder =
-      CreatePipelineBuilder(context_, "text loader", vertex_buffer,
+      CreatePipelineBuilder(context, "text loader", vertex_buffer,
                             descriptor->layout(), /*enable_color_blend=*/true);
 
-  const CharLoader char_loader{context_, texts, font, font_height};
+  const CharLoader char_loader{context, texts, font, font_height};
   text_texture_infos_.reserve(texts.size());
   for (const auto& text : texts) {
     text_texture_infos_.emplace_back(
-        CreateTextTexture(text, font_height, char_loader, descriptor.get(),
-                          render_pass_builder.get(), pipeline_builder.get(),
-                          &vertex_buffer));
+        CreateTextTexture(context, text, font_height, char_loader,
+                          descriptor.get(), render_pass_builder.get(),
+                          pipeline_builder.get(), &vertex_buffer));
   }
 }
 
 TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
+    const SharedBasicContext& context,
     const string& text, int font_height,
     const CharLoader& char_loader,
     StaticDescriptor* descriptor,
@@ -372,7 +374,7 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
       static_cast<uint32_t>(font_height),
   };
   const float base_y = highest_base_y;
-  auto text_image = absl::make_unique<OffscreenImage>(context_, kSingleChannel,
+  auto text_image = absl::make_unique<OffscreenImage>(context, kSingleChannel,
                                                       text_image_extent);
 
   // The resulting image should be flipped, so that when we use it later, we
@@ -399,7 +401,7 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
       },
   };
 
-  const OneTimeCommand command{context_, &context_->queues().graphics_queue()};
+  const OneTimeCommand command{context, &context->queues().graphics_queue()};
   command.Run([&](const VkCommandBuffer& command_buffer) {
     render_pass->Run(command_buffer, /*framebuffer_index=*/0, render_ops);
   });

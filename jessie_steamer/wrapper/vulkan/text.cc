@@ -82,16 +82,15 @@ const vector<Descriptor::Info>& GetDescriptorInfos() {
 
 } /* namespace */
 
-Text::Text(SharedBasicContext context,
+Text::Text(const SharedBasicContext& context,
            string&& pipeline_name,
            int num_frames_in_flight,
            float viewport_aspect_ratio)
-    : context_{std::move(context)},
-      viewport_aspect_ratio_{viewport_aspect_ratio},
-      vertex_buffer_{context_, text_util::GetVertexDataSize(/*num_rects=*/1),
+    : viewport_aspect_ratio_{viewport_aspect_ratio},
+      vertex_buffer_{context, text_util::GetVertexDataSize(/*num_rects=*/1),
                      pipeline::GetVertexAttribute<Vertex2D>()},
-      uniform_buffer_{context_, sizeof(TextRenderInfo), num_frames_in_flight},
-      pipeline_builder_{context_} {
+      uniform_buffer_{context, sizeof(TextRenderInfo), num_frames_in_flight},
+      pipeline_builder_{context} {
   pipeline_builder_
       .SetName(std::move(pipeline_name))
       .AddVertexInput(kVertexBufferBindingPoint,
@@ -123,21 +122,20 @@ void Text::UpdateUniformBuffer(int frame, const glm::vec3& color, float alpha) {
   uniform_buffer_.Flush(frame);
 }
 
-StaticText::StaticText(SharedBasicContext context,
+StaticText::StaticText(const SharedBasicContext& context,
                        int num_frames_in_flight,
                        float viewport_aspect_ratio,
                        const vector<string>& texts,
                        Font font, int font_height)
-    : Text{std::move(context), "static text", num_frames_in_flight,
-           viewport_aspect_ratio},
-      text_loader_{context_, texts, font, font_height} {
+    : Text{context, "static text", num_frames_in_flight, viewport_aspect_ratio},
+      text_loader_{context, texts, font, font_height} {
   descriptors_.reserve(num_frames_in_flight);
   push_descriptors_.reserve(num_frames_in_flight);
 
   const auto& descriptor_infos = GetDescriptorInfos();
   for (int frame = 0; frame < num_frames_in_flight; ++frame) {
     descriptors_.emplace_back(
-        absl::make_unique<DynamicDescriptor>(context_, descriptor_infos));
+        absl::make_unique<DynamicDescriptor>(context, descriptor_infos));
     push_descriptors_.emplace_back(
         [=](const VkCommandBuffer& command_buffer,
             const VkPipelineLayout& pipeline_layout,
@@ -202,14 +200,14 @@ glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer, int frame,
   return glm::vec2{offset_x, offset_x + width_in_frame};
 }
 
-DynamicText::DynamicText(SharedBasicContext context,
+DynamicText::DynamicText(const SharedBasicContext& context,
                          int num_frames_in_flight,
                          float viewport_aspect_ratio,
                          const vector<string>& texts,
                          Font font, int font_height)
-    : Text{std::move(context), "dynamic text", num_frames_in_flight,
+    : Text{context, "dynamic text", num_frames_in_flight,
            viewport_aspect_ratio},
-      char_loader_{context_, texts, font, font_height} {
+      char_loader_{context, texts, font, font_height} {
   const auto& descriptor_infos = GetDescriptorInfos();
   const Descriptor::ImageInfoMap image_info_map{{
       kTextureBindingPoint,
@@ -219,7 +217,7 @@ DynamicText::DynamicText(SharedBasicContext context,
   descriptors_.reserve(num_frames_in_flight);
   for (int frame = 0; frame < num_frames_in_flight; ++frame) {
     descriptors_.emplace_back(
-        absl::make_unique<StaticDescriptor>(context_, descriptor_infos));
+        absl::make_unique<StaticDescriptor>(context, descriptor_infos));
     descriptors_[frame]->UpdateBufferInfos(
         VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         /*buffer_info_map=*/{{

@@ -125,16 +125,19 @@ class SharedTexture : public SamplableImage {
   SharedTexture(SharedTexture&&) = default;
   SharedTexture& operator=(SharedTexture&&) = default;
 
-  // Overrides.
-  VkDescriptorImageInfo GetDescriptorInfo() const override {
-    return texture_->GetDescriptorInfo();
-  }
-
   // Sets whether textures loaded from files should be destroyed if they no
   // longer have any holder. By default this is true.
   static void SetTextureResourcePolicy(bool destroy_if_unused) {
     RefCountedTexture::SetPolicy(destroy_if_unused);
   }
+
+  // Overrides.
+  VkDescriptorImageInfo GetDescriptorInfo() const override {
+    return texture_->GetDescriptorInfo();
+  }
+
+  // Overloads.
+  const Image* operator->() const { return texture_.operator->(); }
 
  private:
   using RefCountedTexture = common::RefCountedObject<TextureImage>;
@@ -195,6 +198,9 @@ class UnownedOffscreenTexture : public SamplableImage {
   VkDescriptorImageInfo GetDescriptorInfo() const override {
     return texture_->GetDescriptorInfo();
   }
+
+  // Overloads.
+  const Image* operator->() const { return texture_; }
 
  private:
   // Pointer to image.

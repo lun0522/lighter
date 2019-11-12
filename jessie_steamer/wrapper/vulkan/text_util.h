@@ -59,7 +59,7 @@ class CharLoader {
   // 'texts' must contain all characters that might be rendered using this
   // loader. Note that this does not mean the user can only use this to render
   // elements of 'texts'. The user may use any combination of these characters.
-  CharLoader(SharedBasicContext context,
+  CharLoader(const SharedBasicContext& context,
              const std::vector<std::string>& texts,
              Font font, int font_height);
 
@@ -103,6 +103,7 @@ class CharLoader {
   // Populates 'char_texture_map' and 'char_texture_info_map' with characters
   // loaded in 'char_lib', excluding the space character.
   void CreateCharTextures(
+      const SharedBasicContext& context,
       const common::CharLib& char_lib,
       int interval_between_chars, const Image& target_image,
       CharImageMap* char_texture_map,
@@ -111,10 +112,8 @@ class CharLoader {
   // Creates a vertex buffer for rendering characters in 'char_merge_order',
   // which should not include the space character.
   std::unique_ptr<StaticPerVertexBuffer> CreateVertexBuffer(
+      const SharedBasicContext& context,
       const std::vector<char>& char_merge_order) const;
-
-  // Pointer to context.
-  const SharedBasicContext context_;
 
   // Character library image.
   std::unique_ptr<OffscreenImage> char_lib_image_;
@@ -140,7 +139,7 @@ class TextLoader {
   };
 
   // The loader will be able to render any of 'texts'.
-  TextLoader(SharedBasicContext context,
+  TextLoader(const SharedBasicContext& context,
              const std::vector<std::string>& texts,
              CharLoader::Font font, int font_height);
 
@@ -156,15 +155,13 @@ class TextLoader {
  private:
   // Creates texture for 'text'.
   TextTextureInfo CreateTextTexture(
+      const SharedBasicContext& context,
       const std::string& text, int font_height,
       const CharLoader& char_loader,
       StaticDescriptor* descriptor,
       NaiveRenderPassBuilder* render_pass_builder,
       PipelineBuilder* pipeline_builder,
       DynamicPerVertexBuffer* vertex_buffer) const;
-
-  // Pointer to context.
-  const SharedBasicContext context_;
 
   // Texture information of each element of 'texts' passed to the constructor.
   std::vector<TextTextureInfo> text_texture_infos_;
