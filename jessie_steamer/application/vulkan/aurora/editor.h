@@ -51,6 +51,7 @@ class Editor {
   bool is_day_ = false;
   bool is_pressing_left_ = false;
   common::Sphere earth_;
+  std::unique_ptr<Button> button_;
   std::unique_ptr<common::UserControlledCamera> camera_;
   std::unique_ptr<wrapper::vulkan::UniformBuffer> uniform_buffer_;
   std::unique_ptr<wrapper::vulkan::PushConstant> earth_constant_;

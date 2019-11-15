@@ -347,8 +347,8 @@ void Model::Draw(const VkCommandBuffer& command_buffer,
                  int frame, uint32_t instance_count) const {
   pipeline_->Bind(command_buffer);
   for (int i = 0; i < per_instance_buffers_.size(); ++i) {
-    per_instance_buffers_[i]->Bind(command_buffer,
-                                   kPerInstanceBufferBindingPointBase + i);
+    per_instance_buffers_[i]->Bind(
+        command_buffer, kPerInstanceBufferBindingPointBase + i);
   }
   if (push_constant_info_.has_value()) {
     for (const auto& info : push_constant_info_->infos) {

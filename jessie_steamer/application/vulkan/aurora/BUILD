@@ -14,7 +14,10 @@ cc_library(
     name = "button",
     hdrs = ["button.h"],
     srcs = ["button.cc"],
-    deps = ["//jessie_steamer/application/vulkan:common"],
+    deps = [
+        "//jessie_steamer/application/vulkan:common",
+        "//third_party/absl/strings:str_format",
+    ],
 )
 
 cc_library(

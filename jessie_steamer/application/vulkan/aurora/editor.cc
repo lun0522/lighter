@@ -7,6 +7,9 @@
 
 #include "jessie_steamer/application/vulkan/aurora/editor.h"
 
+#include <array>
+#include <vector>
+
 #include "jessie_steamer/wrapper/vulkan/align.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/types/optional.h"
@@ -56,6 +59,10 @@ constexpr float kAuroraHeight = 100.0f;
 constexpr float kAuroraLayerRadius =
     (kEarthRadius + kAuroraHeight) / kEarthRadius * kEarthModelRadius;
 
+glm::vec3 MakeColor(int r, int g, int b) {
+  return glm::vec3{r, g, b} / 255.0f;
+}
+
 } /* namespace */
 
 Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
@@ -67,6 +74,25 @@ Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
   using common::file::GetVkShaderPath;
   using TextureType = ModelBuilder::TextureType;
   const auto context = window_context.basic_context();
+
+  /* Button */
+  using button::ButtonInfo;
+  button_ = absl::make_unique<Button>(
+      context, Text::Font::kOstrich, /*font_height=*/100,
+      /*text_color=*/glm::vec3{1.0f}, /*button_size=*/glm::vec2{0.1f, 0.05f},
+      /*button_alpha=*/std::array<float, ButtonInfo::kNumStates>{1.0f, 0.5f},
+      std::vector<ButtonInfo>{
+          ButtonInfo{
+              "Editing",
+              /*colors=*/{MakeColor( 52, 152, 219), MakeColor( 41, 128, 185)},
+              /*center=*/glm::vec2{-0.5f, 0.0f},
+          },
+          ButtonInfo{
+              "Daylight",
+              /*colors=*/{MakeColor(155,  89, 182), MakeColor(142,  68, 173)},
+              /*center=*/glm::vec2{ 0.5f, 0.0f},
+          },
+      });
 
   /* Camera */
   common::Camera::Config config;
@@ -136,6 +162,10 @@ Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
           {{TextureType::kCubemap, {skybox_path}}},
       }}
       .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/1)
+      // TODO: Remove following three lines.
+      .AddTextureBindingPoint(TextureType::kSpecular, /*binding_point=*/2)
+      .AddSharedTexture(TextureType::kSpecular,
+                        button_->backdoor_buttons_image())
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("skybox.vert"))
