@@ -78,6 +78,9 @@ class CharLoader {
     ASSERT_HAS_VALUE(space_advance_x_, "Space is not loaded");
     return space_advance_x_.value();
   }
+  const CharTextureInfoMap& char_texture_info_map() const {
+    return char_texture_info_map_;
+  }
   const CharTextureInfo& char_texture_info(char character) const {
     const auto found = char_texture_info_map_.find(character);
     ASSERT_FALSE(found == char_texture_info_map_.end(),
@@ -177,7 +180,7 @@ const std::array<uint32_t, kNumIndicesPerRect>& GetIndicesPerRect();
 
 // Returns the data size used for vertex buffer. Is is assumed that indices will
 // be shared and each vertex data is of type Vertex2D.
-inline int GetVertexDataSize(int num_rects) {
+inline size_t GetVertexDataSize(int num_rects) {
   return sizeof(GetIndicesPerRect()[0]) * kNumIndicesPerRect +
          sizeof(common::Vertex2D) * kNumVerticesPerRect * num_rects;
 }
@@ -190,13 +193,13 @@ void AppendCharPosAndTexCoord(const glm::vec2& pos_bottom_left,
                               const glm::vec2& tex_coord_increment,
                               std::vector<common::Vertex2D>* vertices);
 
-// Fills 'vertex_buffer' with data of characters in 'text', and returns the
-// right boundary of rendered text (i.e. final X offset).
+// Appends the vertex data of characters in 'text' to the end of 'vertices',
+// and returns the right boundary of rendered text (i.e. final X offset).
 float LoadCharsVertexData(const std::string& text,
                           const CharLoader& char_loader,
                           const glm::vec2& ratio, float initial_offset_x,
                           float base_y, bool flip_y,
-                          DynamicPerVertexBuffer* vertex_buffer);
+                          std::vector<common::Vertex2D>* vertices);
 
 } /* namespace text_util */
 } /* namespace vulkan */

@@ -104,6 +104,11 @@ class VertexBuffer : public DataBuffer {
   std::vector<VkVertexInputAttributeDescription>
   GetAttributes(uint32_t start_location) const;
 
+  // Renders vertices without using per-vertex buffer.
+  // This should be called when 'command_buffer' is recording commands.
+  static void DrawWithoutBuffer(const VkCommandBuffer& command_buffer,
+                                uint32_t vertex_count, uint32_t instance_count);
+
  protected:
   VertexBuffer(SharedBasicContext context, std::vector<Attribute>&& attributes)
       : DataBuffer{std::move(context)}, attributes_{std::move(attributes)} {}
@@ -238,6 +243,7 @@ class PerVertexBuffer : public VertexBuffer {
   PerVertexBuffer& operator=(const PerVertexBuffer&) = delete;
 
   // Renders one mesh with 'mesh_index' for 'instance_count' times.
+  // This should be called when 'command_buffer' is recording commands.
   void Draw(const VkCommandBuffer& command_buffer, uint32_t binding_point,
             int mesh_index, uint32_t instance_count) const;
 
@@ -272,7 +278,7 @@ class StaticPerVertexBuffer : public PerVertexBuffer {
 class DynamicPerVertexBuffer : public PerVertexBuffer {
  public:
   // 'initial_size' should be greater than 0.
-  DynamicPerVertexBuffer(SharedBasicContext context, int initial_size,
+  DynamicPerVertexBuffer(SharedBasicContext context, size_t initial_size,
                          std::vector<Attribute>&& attributes)
       : PerVertexBuffer{std::move(context), std::move(attributes)} {
     Reserve(initial_size);
@@ -290,7 +296,7 @@ class DynamicPerVertexBuffer : public PerVertexBuffer {
  private:
   // Reserves space of the given 'size'. If 'size' is less than the current
   // 'buffer_size_', this will be no-op.
-  void Reserve(int size);
+  void Reserve(size_t size);
 
   // Tracks the current size of buffer. This is initialized to be 0 so that we
   // will not try to deallocate an uninitialized buffer in 'Reserve()'.

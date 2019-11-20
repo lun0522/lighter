@@ -179,11 +179,23 @@ void CubeApp::UpdateData(int frame) {
 }
 
 void CubeApp::MainLoop() {
+  constexpr float kTextHeight = 0.05f;
+  constexpr float kTextBaseX = 0.04f;
+  constexpr float kTextBaseY = 0.05f;
+  const glm::vec3 kTextColor{1.0f};
+  constexpr float kTextAlpha = 0.5f;
+
   const auto update_data = [this](int frame) { UpdateData(frame); };
 
   Recreate();
   while (window_context_.CheckEvents()) {
     timer_.Tick();
+
+    const glm::vec2 boundary = static_text_->AddText(
+        /*text_index=*/0, kTextHeight, kTextBaseX, kTextBaseY,
+        Text::Align::kLeft);
+    dynamic_text_->AddText(std::to_string(timer_.frame_rate()), kTextHeight,
+                           boundary.y, kTextBaseY, Text::Align::kLeft);
 
     const vector<RenderPass::RenderOp> render_ops{
         [&](const VkCommandBuffer& command_buffer) {
@@ -191,19 +203,10 @@ void CubeApp::MainLoop() {
                             /*instance_count=*/1);
         },
         [&](const VkCommandBuffer& command_buffer) {
-          const glm::vec3 kColor{1.0f};
-          constexpr float kAlpha = 0.5f;
-          constexpr float kHeight = 0.05f;
-          constexpr float kBaseX = 0.04f;
-          constexpr float kBaseY = 0.05f;
-          const glm::vec2 boundary =
-              static_text_->Draw(command_buffer, current_frame_,
-                                 /*text_index=*/0, kColor, kAlpha,
-                                 kHeight, kBaseX, kBaseY, Text::Align::kLeft);
+          static_text_->Draw(command_buffer, current_frame_,
+                             kTextColor, kTextAlpha);
           dynamic_text_->Draw(command_buffer, current_frame_,
-                              std::to_string(timer_.frame_rate()), kColor,
-                              kAlpha, kHeight, boundary.y, kBaseY,
-                              Text::Align::kLeft);
+                              kTextColor, kTextAlpha);
         },
     };
     const auto draw_result = command_->Run(

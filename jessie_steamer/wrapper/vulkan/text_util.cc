@@ -379,9 +379,17 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
 
   // The resulting image should be flipped, so that when we use it later, we
   // don't have to flip Y coordinates again.
+  vector<Vertex2D> vertices;
   text_util::LoadCharsVertexData(text, char_loader, ratio,
                                  /*initial_offset_x=*/0.0f, base_y,
-                                 /*flip_y=*/true, vertex_buffer);
+                                 /*flip_y=*/true, &vertices);
+  vertex_buffer->CopyHostData(PerVertexBuffer::ShareIndicesDataInfo{
+      /*num_meshes=*/static_cast<int>(text.length()),
+      /*per_mesh_vertices=*/
+      {vertices, /*num_units_per_mesh=*/text_util::kNumVerticesPerRect},
+      /*shared_indices=*/
+      {PerVertexBuffer::VertexDataInfo{text_util::GetIndicesPerRect()}},
+  });
 
   descriptor->UpdateImageInfos(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, {
       {kImageBindingPoint, {char_loader.library_image()->GetDescriptorInfo()}},
@@ -452,10 +460,10 @@ void AppendCharPosAndTexCoord(const glm::vec2& pos_bottom_left,
 float LoadCharsVertexData(const string& text, const CharLoader& char_loader,
                           const glm::vec2& ratio, float initial_offset_x,
                           float base_y, bool flip_y,
-                          DynamicPerVertexBuffer* vertex_buffer) {
+                          vector<Vertex2D>* vertices) {
   float offset_x = initial_offset_x;
-  vector<Vertex2D> vertices;
-  vertices.reserve(text_util::kNumVerticesPerRect * text.length());
+  vertices->reserve(
+      vertices->size() + text_util::kNumVerticesPerRect * text.length());
   for (auto character : text) {
     if (character == ' ') {
       offset_x += char_loader.space_advance() * ratio.x;
@@ -471,20 +479,12 @@ float LoadCharsVertexData(const string& text, const CharLoader& char_loader,
         /*tex_coord_bottom_left=*/
         {texture_info.offset_x, 0.0f},
         /*tex_coord_increment=*/size_in_tex,
-        &vertices);
+        vertices);
     offset_x += texture_info.advance_x * ratio.x;
   }
   if (flip_y) {
-    FlipYCoord(&vertices);
+    FlipYCoord(vertices);
   }
-
-  vertex_buffer->CopyHostData(PerVertexBuffer::ShareIndicesDataInfo{
-      /*num_meshes=*/static_cast<int>(text.length()),
-      /*per_mesh_vertices=*/
-      {vertices, /*num_units_per_mesh=*/text_util::kNumVerticesPerRect},
-      /*shared_indices=*/
-      {PerVertexBuffer::VertexDataInfo{text_util::GetIndicesPerRect()}},
-  });
 
   return offset_x;
 }

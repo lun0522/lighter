@@ -23,15 +23,15 @@ layout(push_constant) uniform VerticesInfo {
 
 #endif  // TARGET_OPENGL || TARGET_VULKAN
 
-layout(location = 0) in vec3 in_color;
+layout(location = 0) in vec4 in_color_alpha;
 layout(location = 1) in vec2 center;
 
-layout(location = 0) out vec3 color;
+layout(location = 0) out vec4 color_alpha;
 layout(location = 1) out vec2 tex_coord;
 
 void main() {
   gl_Position = vec4(center + vertices_info.pos_tex_coords[gl_VertexIndex].xy,
                      MIN_DEPTH, 1.0);
-  color = in_color;
+  color_alpha = in_color_alpha;
   tex_coord = vertices_info.pos_tex_coords[gl_VertexIndex].zw;
 }

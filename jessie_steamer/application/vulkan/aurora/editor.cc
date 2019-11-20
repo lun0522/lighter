@@ -77,22 +77,37 @@ Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
 
   /* Button */
   using button::ButtonInfo;
-  button_ = absl::make_unique<Button>(
-      context, Text::Font::kOstrich, /*font_height=*/100,
-      /*text_color=*/glm::vec3{1.0f}, /*button_size=*/glm::vec2{0.1f, 0.05f},
-      /*button_alpha=*/std::array<float, ButtonInfo::kNumStates>{1.0f, 0.5f},
-      std::vector<ButtonInfo>{
-          ButtonInfo{
+  const ButtonInfo button_info{
+      Text::Font::kOstrich, /*font_height=*/100, /*base_y=*/0.2f,
+      /*top_y=*/0.8f, /*text_color=*/glm::vec3{1.0f},
+      /*button_alphas=*/{1.0f, 0.5f}, /*button_infos=*/{
+          ButtonInfo::Info{
+              "Path 1",
+              /*colors=*/{MakeColor(241, 196,  15), MakeColor(243, 156,  18)},
+          },
+          ButtonInfo::Info{
+              "Path 2",
+              /*colors=*/{MakeColor(230, 126,  34), MakeColor(211,  84,   0)},
+          },
+          ButtonInfo::Info{
+              "Path 3",
+              /*colors=*/{MakeColor(231,  76,  60), MakeColor(192,  57,  43)},
+          },
+          ButtonInfo::Info{
               "Editing",
               /*colors=*/{MakeColor( 52, 152, 219), MakeColor( 41, 128, 185)},
-              /*center=*/glm::vec2{-0.5f, 0.0f},
           },
-          ButtonInfo{
+          ButtonInfo::Info{
               "Daylight",
               /*colors=*/{MakeColor(155,  89, 182), MakeColor(142,  68, 173)},
-              /*center=*/glm::vec2{ 0.5f, 0.0f},
           },
-      });
+          ButtonInfo::Info{
+              "Aurora",
+              /*colors=*/{MakeColor( 46, 204, 113), MakeColor( 39, 174,  96)},
+          },
+      },
+  };
+  button_ = absl::make_unique<Button>(context, button_info);
 
   /* Camera */
   common::Camera::Config config;

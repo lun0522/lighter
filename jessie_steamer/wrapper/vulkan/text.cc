@@ -9,7 +9,6 @@
 
 #include <algorithm>
 
-#include "jessie_steamer/common/file.h"
 #include "jessie_steamer/wrapper/vulkan/align.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline_util.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
@@ -116,10 +115,31 @@ void Text::Update(const VkExtent2D& frame_size,
       .Build();
 }
 
-void Text::UpdateUniformBuffer(int frame, const glm::vec3& color, float alpha) {
+int Text::UpdateBuffers(int frame, const glm::vec3& color, float alpha) {
   uniform_buffer_.HostData<TextRenderInfo>(frame)->color_alpha =
       glm::vec4(color, alpha);
   uniform_buffer_.Flush(frame);
+
+  constexpr int kNumVerticesPerMesh = text_util::kNumVerticesPerRect;
+  const int num_meshes = static_cast<int>(vertices_to_draw_.size()) /
+                         kNumVerticesPerMesh;
+  vertex_buffer_.CopyHostData(PerVertexBuffer::ShareIndicesDataInfo{
+      num_meshes,
+      /*per_mesh_vertices=*/{vertices_to_draw_, kNumVerticesPerMesh},
+      /*shared_indices=*/
+      {PerVertexBuffer::VertexDataInfo{text_util::GetIndicesPerRect()}},
+  });
+  vertices_to_draw_.clear();
+
+  return num_meshes;
+}
+
+void Text::SetPipelineLayout(const VkDescriptorSetLayout& layout) {
+  pipeline_builder_.SetPipelineLayout({layout}, /*push_constant_ranges=*/{});
+}
+
+VkDescriptorBufferInfo Text::GetUniformBufferDescriptorInfo(int frame) const {
+  return uniform_buffer_.GetDescriptorInfo(frame);
 }
 
 StaticText::StaticText(const SharedBasicContext& context,
@@ -145,7 +165,7 @@ StaticText::StaticText(const SharedBasicContext& context,
               VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
               /*buffer_info_map=*/{{
                   kUniformBufferBindingPoint,
-                  {uniform_buffer_.GetDescriptorInfo(frame)},
+                  {GetUniformBufferDescriptorInfo(frame)},
               }}
           );
           descriptors_[frame]->PushImageInfos(
@@ -159,45 +179,42 @@ StaticText::StaticText(const SharedBasicContext& context,
           );
         });
   }
-
-  pipeline_builder_.SetPipelineLayout({descriptors_[0]->layout()},
-                                      /*push_constant_ranges=*/{});
+  SetPipelineLayout(descriptors_[0]->layout());
 }
 
-glm::vec2 StaticText::Draw(const VkCommandBuffer& command_buffer, int frame,
-                           int text_index, const glm::vec3& color, float alpha,
-                           float height, float base_x, float base_y,
-                           Align align) {
-  UpdateUniformBuffer(frame, color, alpha);
-
+glm::vec2 StaticText::AddText(int text_index, float height, float base_x,
+                              float base_y, Align align) {
+  texts_to_draw_.emplace_back(text_index);
   const auto& texture_info = text_loader_.texture_info(text_index);
   const glm::vec2 ratio =
-      glm::vec2{texture_info.aspect_ratio / viewport_aspect_ratio_, 1.0f} *
+      glm::vec2{texture_info.aspect_ratio / viewport_aspect_ratio(), 1.0f} *
       (height / 1.0f);
   const float width_in_frame = 1.0f * ratio.x;
   const float offset_x = GetOffsetX(base_x, align, width_in_frame);
-
-  vector<Vertex2D> vertices;
-  vertices.reserve(text_util::kNumVerticesPerRect);
   text_util::AppendCharPosAndTexCoord(
       /*pos_bottom_left=*/{offset_x, base_y - texture_info.base_y * ratio.y},
       /*pos_increment=*/glm::vec2{1.0f} * ratio,
       /*tex_coord_bottom_left=*/glm::vec2{0.0f},
       /*tex_coord_increment=*/glm::vec2{1.0f},
-      &vertices);
-  const PerVertexBuffer::NoShareIndicesDataInfo::PerMeshInfo mesh_info{
-      PerVertexBuffer::VertexDataInfo{text_util::GetIndicesPerRect()},
-      PerVertexBuffer::VertexDataInfo{vertices},
-  };
-  vertex_buffer_.CopyHostData(
-      PerVertexBuffer::NoShareIndicesDataInfo{{mesh_info}});
-
-  pipeline_->Bind(command_buffer);
-  push_descriptors_[frame](command_buffer, pipeline_->layout(), text_index);
-  vertex_buffer_.Draw(command_buffer, kVertexBufferBindingPoint,
-                      /*mesh_index=*/0, /*instance_count=*/1);
+      mutable_vertices());
 
   return glm::vec2{offset_x, offset_x + width_in_frame};
+}
+
+void StaticText::Draw(const VkCommandBuffer& command_buffer,
+                      int frame, const glm::vec3& color, float alpha) {
+  const int num_texts = UpdateBuffers(frame, color, alpha);
+  ASSERT_TRUE(num_texts == texts_to_draw_.size(),
+              absl::StrFormat("Expected number of texts: %d vs %d",
+                              num_texts, texts_to_draw_.size()));
+  pipeline().Bind(command_buffer);
+  for (int i = 0; i < num_texts; ++i) {
+    push_descriptors_[frame](command_buffer, pipeline().layout(),
+                             texts_to_draw_[i]);
+    vertex_buffer().Draw(command_buffer, kVertexBufferBindingPoint,
+                         /*mesh_index=*/i, /*instance_count=*/1);
+  }
+  texts_to_draw_.clear();
 }
 
 DynamicText::DynamicText(const SharedBasicContext& context,
@@ -222,34 +239,25 @@ DynamicText::DynamicText(const SharedBasicContext& context,
         VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         /*buffer_info_map=*/{{
             kUniformBufferBindingPoint,
-            {uniform_buffer_.GetDescriptorInfo(frame)},
+            {GetUniformBufferDescriptorInfo(frame)},
         }}
     );
     descriptors_[frame]->UpdateImageInfos(
         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, image_info_map);
   }
-
-  pipeline_builder_.SetPipelineLayout({descriptors_[0]->layout()},
-                                      /*push_constant_ranges=*/{});
+  SetPipelineLayout(descriptors_[0]->layout());
 }
 
-glm::vec2 DynamicText::Draw(
-    const VkCommandBuffer& command_buffer, int frame,
-    const string& text, const glm::vec3& color, float alpha,
-    float height, float base_x, float base_y, Align align) {
-  UpdateUniformBuffer(frame, color, alpha);
-
+glm::vec2 DynamicText::AddText(const std::string& text, float height,
+                               float base_x, float base_y, Align align) {
   const glm::vec2 ratio =
-      glm::vec2{char_loader_.GetAspectRatio() / viewport_aspect_ratio_, 1.0f} *
+      glm::vec2{char_loader_.GetAspectRatio() / viewport_aspect_ratio(), 1.0f} *
       (height / 1.0f);
-
   float total_width_in_tex_coord = 0.0f;
-  int num_non_space_chars = 0;
   for (auto character : text) {
     if (character == ' ') {
       total_width_in_tex_coord += char_loader_.space_advance();
     } else {
-      ++num_non_space_chars;
       const auto& texture_info = char_loader_.char_texture_info(character);
       total_width_in_tex_coord += texture_info.advance_x;
     }
@@ -257,19 +265,30 @@ glm::vec2 DynamicText::Draw(
 
   const float initial_offset_x = GetOffsetX(base_x, align,
                                             total_width_in_tex_coord * ratio.x);
-  const float final_offset_x =
-      text_util::LoadCharsVertexData(
-          text, char_loader_, ratio, initial_offset_x, base_y, /*flip_y=*/false,
-          &vertex_buffer_);
-
-  pipeline_->Bind(command_buffer);
-  descriptors_[frame]->Bind(command_buffer, pipeline_->layout());
-  for (int i = 0; i < num_non_space_chars; ++i) {
-    vertex_buffer_.Draw(command_buffer, kVertexBufferBindingPoint,
-                        /*mesh_index=*/i, /*instance_count=*/1);
-  }
+  const float final_offset_x = text_util::LoadCharsVertexData(
+      text, char_loader_, ratio, initial_offset_x, base_y, /*flip_y=*/false,
+      mutable_vertices());
 
   return glm::vec2{initial_offset_x, final_offset_x};
+}
+
+void DynamicText::Draw(const VkCommandBuffer& command_buffer,
+                       int frame, const glm::vec3& color, float alpha) {
+  const int num_chars = UpdateBuffers(frame, color, alpha);
+  pipeline().Bind(command_buffer);
+  descriptors_[frame]->Bind(command_buffer, pipeline().layout());
+  for (int i = 0; i < num_chars; ++i) {
+    vertex_buffer().Draw(command_buffer, kVertexBufferBindingPoint,
+                         /*mesh_index=*/i, /*instance_count=*/1);
+  }
+}
+
+float DynamicText::GetMaxBearingY() const {
+  float max_bearing_y = 0.0f;
+  for (const auto& pair : char_loader_.char_texture_info_map()) {
+    max_bearing_y = std::max(max_bearing_y, pair.second.bearing.y);
+  }
+  return max_bearing_y;
 }
 
 } /* namespace vulkan */

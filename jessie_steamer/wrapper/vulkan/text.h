@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 
+#include "jessie_steamer/common/file.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
@@ -49,12 +50,31 @@ class Text {
        int num_frames_in_flight,
        float viewport_aspect_ratio);
 
-  // Updates the color and alpha sent to the shader.
-  void UpdateUniformBuffer(int frame, const glm::vec3& color, float alpha);
+  // Updates uniform buffer and vertex buffer, and returns the number of
+  // meshes to render. 'vertices_to_draw_' will be cleared after calling this.
+  int UpdateBuffers(int frame, const glm::vec3& color, float alpha);
 
+  // Sets layout of graphics pipeline.
+  void SetPipelineLayout(const VkDescriptorSetLayout& layout);
+
+  // Returns descriptor info of uniform buffer at 'frame'.
+  VkDescriptorBufferInfo GetUniformBufferDescriptorInfo(int frame) const;
+
+  // Accessors.
+  float viewport_aspect_ratio() const { return viewport_aspect_ratio_; }
+  const PerVertexBuffer& vertex_buffer() const { return vertex_buffer_; }
+  const Pipeline& pipeline() const { return *pipeline_; }
+  std::vector<common::Vertex2D>* mutable_vertices() {
+    return &vertices_to_draw_;
+  }
+
+ private:
   // Aspect ratio of the viewport. This is used to make sure the aspect ratio of
   // each character does not change when the size of framebuffers changes.
-  float viewport_aspect_ratio_;
+  const float viewport_aspect_ratio_;
+
+  // Vertices of added texts.
+  std::vector<common::Vertex2D> vertices_to_draw_;
 
   // Vertex buffer for rendering bounding boxes of characters or texts.
   DynamicPerVertexBuffer vertex_buffer_;
@@ -82,13 +102,18 @@ class StaticText : public Text {
   StaticText(const StaticText&) = delete;
   StaticText& operator=(const StaticText&) = delete;
 
-  // Renders text at 'text_index' and returns left and right boundary.
-  // Every character will keep its original aspect ratio.
-  // 'height', 'base_x', 'base_y' and returned values are in range [0.0, 1.0].
+  // Creates vertex data for rendering text at 'text_index', and returns left
+  // and right boundary of the rendered text. 'height', 'base_x', 'base_y' and
+  // returned values are in range [0.0, 1.0]. Every character will keep its
+  // original aspect ratio. The vertex data will be cleared after calling Draw()
+  // hence the user should add all texts again before the next call to Draw().
+  glm::vec2 AddText(int text_index, float height, float base_x, float base_y,
+                    Align align);
+
+  // Renders all texts tht have been added.
   // This should be called when 'command_buffer' is recording commands.
-  glm::vec2 Draw(const VkCommandBuffer& command_buffer,
-                 int frame, int text_index, const glm::vec3& color, float alpha,
-                 float height, float base_x, float base_y, Align align);
+  void Draw(const VkCommandBuffer& command_buffer,
+            int frame, const glm::vec3& color, float alpha);
 
  private:
   // Renders each text (containing multiple characters) to one texture.
@@ -96,6 +121,9 @@ class StaticText : public Text {
 
   // Descriptors indexed by frame.
   std::vector<std::unique_ptr<DynamicDescriptor>> descriptors_;
+
+  // Indices of texts to draw. This can contain duplicates.
+  std::vector<int> texts_to_draw_;
 
   // Descriptor updaters indexed by frame. Each of them prepares the descriptor
   // at the same index to render the text at 'text_index'.
@@ -119,15 +147,22 @@ class DynamicText : public Text {
   DynamicText(const DynamicText&) = delete;
   DynamicText& operator=(const DynamicText&) = delete;
 
-  // Renders 'text' and returns left and right boundary. Each character of
-  // 'text' must have been included in 'texts' passed to the constructor.
-  // Every character will keep its original aspect ratio.
-  // 'height', 'base_x', 'base_y' and returned values are in range [0.0, 1.0].
+  // Creates vertex data for rendering 'text', and returns left and right
+  // boundary of the rendered text. Each character must have been included in
+  // 'texts' passed to the constructor. 'height', 'base_x', 'base_y' and
+  // returned values are in range [0.0, 1.0]. Every character will keep its
+  // original aspect ratio. The vertex data will be cleared after calling Draw()
+  // hence the user should add all texts again before the next call to Draw().
+  glm::vec2 AddText(const std::string& text, float height, float base_x,
+                    float base_y, Align align);
+
+  // Renders all texts tht have been added.
   // This should be called when 'command_buffer' is recording commands.
-  glm::vec2 Draw(const VkCommandBuffer& command_buffer,
-                 int frame, const std::string& text,
-                 const glm::vec3& color, float alpha,
-                 float height, float base_x, float base_y, Align align);
+  void Draw(const VkCommandBuffer& command_buffer,
+            int frame, const glm::vec3& color, float alpha);
+
+  // Returns the maximum bearing in Y dimension among all loaded characters.
+  float GetMaxBearingY() const;
 
  private:
   // Renders all characters that may be used onto one big texture, so that we

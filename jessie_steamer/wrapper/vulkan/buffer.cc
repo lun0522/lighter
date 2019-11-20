@@ -479,6 +479,13 @@ vector<VkVertexInputAttributeDescription> VertexBuffer::GetAttributes(
   return descriptions;
 }
 
+void VertexBuffer::DrawWithoutBuffer(
+    const VkCommandBuffer& command_buffer,
+    uint32_t vertex_count, uint32_t instance_count) {
+  vkCmdDraw(command_buffer, vertex_count, instance_count,
+            /*firstVertex=*/0, /*firstInstance=*/0);
+}
+
 void VertexBuffer::CreateBufferAndMemory(VkDeviceSize total_size,
                                          bool is_dynamic) {
   VkBufferUsageFlags buffer_usages = VK_BUFFER_USAGE_INDEX_BUFFER_BIT
@@ -631,8 +638,7 @@ StaticPerVertexBuffer::StaticPerVertexBuffer(
   CopyHostToBufferViaStaging(context_, buffer_, copy_infos);
 }
 
-void DynamicPerVertexBuffer::Reserve(int size) {
-  ASSERT_TRUE(size > 0, "Buffer size must be greater than 0");
+void DynamicPerVertexBuffer::Reserve(size_t size) {
   if (size <= buffer_size_) {
     return;
   }
