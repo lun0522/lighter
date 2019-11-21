@@ -133,6 +133,18 @@ std::unique_ptr<Pipeline> BuildPipeline(const Image& target_image,
       .Build();
 }
 
+// Returns texture sampler config for rendering texts.
+const SamplableImage::Config& GetTextSamplerConfig() {
+  static SamplableImage::Config* config = nullptr;
+  if (config == nullptr) {
+    config = new SamplableImage::Config{
+        VK_FILTER_LINEAR,
+        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+    };
+  }
+  return *config;
+}
+
 // Flips Y coordinates of each vertex in NDC.
 inline void FlipYCoord(vector<Vertex2D>* vertices) {
   for (auto& vertex : *vertices) {
@@ -156,7 +168,8 @@ CharLoader::CharLoader(const SharedBasicContext& context,
     const int interval_between_chars = GetIntervalBetweenChars(font_height);
     char_lib_image_ = absl::make_unique<OffscreenImage>(
         context, kSingleChannel,
-        GetCharLibImageExtent(char_lib, interval_between_chars));
+        GetCharLibImageExtent(char_lib, interval_between_chars),
+        GetTextSamplerConfig());
     space_advance_x_ = GetSpaceAdvanceX(char_lib, *char_lib_image_);
     CreateCharTextures(context, char_lib, interval_between_chars,
                        *char_lib_image_, &char_image_map,
@@ -265,8 +278,7 @@ void CharLoader::CreateCharTextures(
     char_image_map->emplace(
         character,
         absl::make_unique<TextureImage>(
-            context,
-            /*generate_mipmaps=*/false,
+            context, /*generate_mipmaps=*/false, GetTextSamplerConfig(),
             TextureBuffer::Info{
                 {char_info.image->data},
                 VK_FORMAT_R8_UNORM,
@@ -374,8 +386,8 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
       static_cast<uint32_t>(font_height),
   };
   const float base_y = highest_base_y;
-  auto text_image = absl::make_unique<OffscreenImage>(context, kSingleChannel,
-                                                      text_image_extent);
+  auto text_image = absl::make_unique<OffscreenImage>(
+      context, kSingleChannel, text_image_extent, GetTextSamplerConfig());
 
   // The resulting image should be flipped, so that when we use it later, we
   // don't have to flip Y coordinates again.

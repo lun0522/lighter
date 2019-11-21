@@ -127,18 +127,18 @@ VkImageView CreateImageView(const SharedBasicContext& context,
 
 // Creates an image sampler.
 VkSampler CreateSampler(const SharedBasicContext& context,
-                        int mip_levels) {
+                        int mip_levels, const SamplableImage::Config& config) {
   // 'mipLodBias', 'minLod' and 'maxLod' are used to control mipmapping.
   const VkSamplerCreateInfo sampler_info{
       VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
-      /*magFilter=*/VK_FILTER_LINEAR,
-      /*minFilter=*/VK_FILTER_LINEAR,
+      /*magFilter=*/config.filter,
+      /*minFilter=*/config.filter,
       VK_SAMPLER_MIPMAP_MODE_LINEAR,
-      /*addressModeU=*/VK_SAMPLER_ADDRESS_MODE_REPEAT,
-      /*addressModeV=*/VK_SAMPLER_ADDRESS_MODE_REPEAT,
-      /*addressModeW=*/VK_SAMPLER_ADDRESS_MODE_REPEAT,
+      /*addressModeU=*/config.address_mode,
+      /*addressModeV=*/config.address_mode,
+      /*addressModeW=*/config.address_mode,
       /*mipLodBias=*/0.0f,
       /*anisotropyEnable=*/VK_TRUE,
       // Max amount of texel samples used for anisotropy.
@@ -163,10 +163,11 @@ VkSampler CreateSampler(const SharedBasicContext& context,
 
 TextureImage::TextureImage(SharedBasicContext context,
                            bool generate_mipmaps,
+                           const SamplableImage::Config& sampler_config,
                            const TextureBuffer::Info& info)
     : Image{std::move(context), info.GetExtent2D(), info.format},
       buffer_{context_, generate_mipmaps, info},
-      sampler_{CreateSampler(context_, buffer_.mip_levels())} {
+      sampler_{CreateSampler(context_, buffer_.mip_levels(), sampler_config)} {
   image_view_ = CreateImageView(context_, buffer_.image(), format_,
                                 VK_IMAGE_ASPECT_COLOR_BIT, buffer_.mip_levels(),
                                 /*layer_count=*/CONTAINER_SIZE(info.datas));
@@ -181,7 +182,8 @@ VkDescriptorImageInfo TextureImage::GetDescriptorInfo() const {
 }
 
 SharedTexture::RefCountedTexture SharedTexture::GetTexture(
-    SharedBasicContext context, const SourcePath& source_path) {
+    SharedBasicContext context, const SourcePath& source_path,
+    const SamplableImage::Config& sampler_config) {
   context->RegisterRefCountPool<SharedTexture::RefCountedTexture>();
 
   using SingleImage = std::unique_ptr<common::Image>;
@@ -219,7 +221,7 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
   }
 
   return RefCountedTexture::Get(
-      *identifier, std::move(context), generate_mipmaps,
+      *identifier, std::move(context), generate_mipmaps, sampler_config,
       TextureBuffer::Info{
           std::move(datas),
           FindColorImageFormat(sample_image->channel),
@@ -230,10 +232,11 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
 }
 
 OffscreenImage::OffscreenImage(SharedBasicContext context,
-                               int channel, const VkExtent2D& extent)
+                               int channel, const VkExtent2D& extent,
+                               const SamplableImage::Config& sampler_config)
     : Image{std::move(context), extent, FindColorImageFormat(channel)},
       buffer_{context_, extent_, format_},
-      sampler_{CreateSampler(context_, kSingleMipLevel)} {
+      sampler_{CreateSampler(context_, kSingleMipLevel, sampler_config)} {
   image_view_ = CreateImageView(context_, buffer_.image(), format_,
                                 VK_IMAGE_ASPECT_COLOR_BIT,
                                 kSingleMipLevel, kSingleImageLayer);

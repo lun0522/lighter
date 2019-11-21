@@ -157,20 +157,20 @@ vector<TextPosition> CreateTextPositions(int num_buttons, float base_y,
       1.0f / static_cast<float>(num_buttons * kNumButtonStates);
   const float text_height = (top_y - base_y) * button_height / max_bearing_y;
 
-  float offset_y = 0.0f;
+  float offset_y = 1.0f;
   vector<TextPosition> positions;
   positions.reserve(num_buttons * kNumButtonStates);
   for (int button = 0; button < num_buttons; ++button) {
     for (int state = 0; state < kNumButtonStates; ++state) {
+      offset_y -= button_height;
       positions.emplace_back(TextPosition{
           /*base_y=*/offset_y + base_y * button_height,
           text_height,
       });
-      offset_y += button_height;
     }
   }
   for (auto& pos : positions) {
-    pos.base_y += pos.height;
+    pos.base_y = 1.0f - pos.base_y;
     pos.height *= -1;
   }
 
@@ -182,14 +182,17 @@ vector<TextPosition> CreateTextPositions(int num_buttons, float base_y,
 ButtonMaker::ButtonMaker(const SharedBasicContext& context,
                          const button::ButtonInfo& button_info) {
   const int num_buttons = button_info.button_infos.size();
+  const SamplableImage::Config sampler_config{};
   const SharedTexture button_image{
-      context, common::file::GetResourcePath("texture/rect_rounded.jpg")};
+      context, common::file::GetResourcePath("texture/rect_rounded.jpg"),
+      sampler_config};
+  const VkExtent2D buttons_image_extent{
+      button_image->extent().width,
+      static_cast<uint32_t>(button_image->extent().height *
+                            num_buttons * kNumButtonStates),
+  };
   buttons_image_ = absl::make_unique<OffscreenImage>(
-      context, /*channel=*/4, VkExtent2D{
-          button_image->extent().width,
-          static_cast<uint32_t>(button_image->extent().height *
-                                num_buttons * kNumButtonStates),
-      });
+      context, /*channel=*/4, buttons_image_extent, sampler_config);
 
   const auto descriptor = CreateDescriptor(
       context, button_image.GetDescriptorInfo());

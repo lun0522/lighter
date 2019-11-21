@@ -62,6 +62,17 @@ class Image {
 // Interface of images that can be sampled.
 class SamplableImage {
  public:
+  // Configures sampling mode.
+  struct Config {
+    explicit Config(
+        VkFilter filter = VK_FILTER_LINEAR,
+        VkSamplerAddressMode address_mode = VK_SAMPLER_ADDRESS_MODE_REPEAT)
+        : filter{filter}, address_mode{address_mode} {}
+
+    VkFilter filter;
+    VkSamplerAddressMode address_mode;
+  };
+
   virtual ~SamplableImage() = default;
 
   // Returns an instance of VkDescriptorImageInfo with which we can update
@@ -77,6 +88,7 @@ class TextureImage : public Image {
  public:
   TextureImage(SharedBasicContext context,
                bool generate_mipmaps,
+               const SamplableImage::Config& sampler_config,
                const TextureBuffer::Info& info);
 
   // This class is neither copyable nor movable.
@@ -118,8 +130,9 @@ class SharedTexture : public SamplableImage {
   };
   using SourcePath = absl::variant<SingleTexPath, CubemapPath>;
 
-  SharedTexture(SharedBasicContext context, const SourcePath& source_path)
-      : texture_{GetTexture(std::move(context), source_path)} {}
+  SharedTexture(SharedBasicContext context, const SourcePath& source_path,
+                const SamplableImage::Config& sampler_config)
+      : texture_{GetTexture(std::move(context), source_path, sampler_config)} {}
 
   // This class is only movable.
   SharedTexture(SharedTexture&&) = default;
@@ -145,8 +158,9 @@ class SharedTexture : public SamplableImage {
   // Returns a reference to a reference counted texture image. If this image has
   // no other holder, it will be loaded from the file. Otherwise, this returns
   // a reference to an existing resource on the device.
-  static RefCountedTexture GetTexture(SharedBasicContext context,
-                                      const SourcePath& source_path);
+  static RefCountedTexture GetTexture(
+      SharedBasicContext context, const SourcePath& source_path,
+      const SamplableImage::Config& sampler_config);
 
   // Reference counted texture image.
   RefCountedTexture texture_;
@@ -156,7 +170,8 @@ class SharedTexture : public SamplableImage {
 class OffscreenImage : public Image {
  public:
   OffscreenImage(SharedBasicContext context,
-                 int channel, const VkExtent2D& extent);
+                 int channel, const VkExtent2D& extent,
+                 const SamplableImage::Config& sampler_config);
 
   // This class is neither copyable nor movable.
   OffscreenImage(const OffscreenImage&) = delete;
