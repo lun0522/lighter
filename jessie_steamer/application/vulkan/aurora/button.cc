@@ -7,6 +7,8 @@
 
 #include "jessie_steamer/application/vulkan/aurora/button.h"
 
+#include <algorithm>
+
 #include "jessie_steamer/common/file.h"
 #include "jessie_steamer/wrapper/vulkan/align.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
@@ -14,6 +16,7 @@
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline_util.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
+#include "jessie_steamer/wrapper/vulkan/util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 
@@ -43,7 +46,7 @@ constexpr uint32_t kPerInstanceBufferBindingPoint = 0;
 constexpr int kNumButtonStates = button::ButtonInfo::kNumStates;
 
 struct ButtonRenderInfo {
-  glm::vec4 color_alpha;
+  glm::vec3 color;
   glm::vec2 center;
 };
 
@@ -60,6 +63,14 @@ class VerticesInfo {
     ValidateIndex(index);
     pos_tex_coords_[index].x = x;
     pos_tex_coords_[index].y = y;
+    return *this;
+  }
+
+  VerticesInfo& scale_all_pos(const glm::vec2& ratio) {
+    for (auto& pos_tex_coord : pos_tex_coords_) {
+      pos_tex_coord.x *= ratio.x;
+      pos_tex_coord.y *= ratio.y;
+    }
     return *this;
   }
 
@@ -104,7 +115,6 @@ std::unique_ptr<StaticDescriptor> CreateDescriptor(
 std::unique_ptr<PerInstanceBuffer> CreatePerInstanceBuffer(
     const SharedBasicContext& context,
     const vector<button::ButtonInfo::Info>& button_infos) {
-  constexpr float kButtonAlphas[kNumButtonStates]{1.0f, 0.5f};
   const int num_buttons = button_infos.size();
   const float button_height_ndc = 1.0f / static_cast<float>(num_buttons);
 
@@ -114,7 +124,7 @@ std::unique_ptr<PerInstanceBuffer> CreatePerInstanceBuffer(
   for (const auto& info : button_infos) {
     for (int state = 0; state < kNumButtonStates; ++state) {
       render_infos.emplace_back(ButtonRenderInfo{
-          glm::vec4{info.colors[state], kButtonAlphas[state]},
+          info.colors[state],
           /*center=*/glm::vec2{0.0f, offset_y_ndc},
       });
       offset_y_ndc += button_height_ndc;
@@ -122,7 +132,7 @@ std::unique_ptr<PerInstanceBuffer> CreatePerInstanceBuffer(
   }
 
   vector<VertexBuffer::Attribute> per_instance_attribs {
-      {offsetof(ButtonRenderInfo, color_alpha), VK_FORMAT_R32G32B32A32_SFLOAT},
+      {offsetof(ButtonRenderInfo, color), VK_FORMAT_R32G32B32_SFLOAT},
       {offsetof(ButtonRenderInfo, center), VK_FORMAT_R32G32_SFLOAT},
   };
   return absl::make_unique<PerInstanceBuffer>(
@@ -130,11 +140,19 @@ std::unique_ptr<PerInstanceBuffer> CreatePerInstanceBuffer(
 }
 
 std::unique_ptr<PushConstant> CreatePushConstant(
-    const SharedBasicContext& context, int num_buttons) {
-  auto push_constant = absl::make_unique<PushConstant>(
-      context, sizeof(VerticesInfo), /*num_frames_in_flight=*/1);
+    const SharedBasicContext& context,
+    const glm::vec2& button_image_size, int num_buttons) {
+  constexpr float kButtonDimensionToIntervalRatio = 100.0f;
+  const glm::vec2 button_interval =
+      button_image_size / kButtonDimensionToIntervalRatio;
+  const glm::vec2 button_scale =
+      button_image_size /
+      (button_image_size + std::max(button_interval.x, button_interval.y));
   const float button_half_height_ndc =
       1.0f / static_cast<float>(num_buttons) / 2.0f;
+
+  auto push_constant = absl::make_unique<PushConstant>(
+      context, sizeof(VerticesInfo), /*num_frames_in_flight=*/1);
   (*push_constant->HostData<VerticesInfo>(/*frame=*/0))
       .set_pos(0, -1.0f,  button_half_height_ndc)
       .set_pos(1, -1.0f, -button_half_height_ndc)
@@ -142,6 +160,7 @@ std::unique_ptr<PushConstant> CreatePushConstant(
       .set_pos(3, -1.0f, -button_half_height_ndc)
       .set_pos(4,  1.0f, -button_half_height_ndc)
       .set_pos(5,  1.0f,  button_half_height_ndc)
+      .scale_all_pos(button_scale)
       .set_tex_coord(0, 0.0f, 1.0f)
       .set_tex_coord(1, 0.0f, 0.0f)
       .set_tex_coord(2, 1.0f, 1.0f)
@@ -200,7 +219,8 @@ ButtonMaker::ButtonMaker(const SharedBasicContext& context,
   const auto per_instance_buffer =
       CreatePerInstanceBuffer(context, button_info.button_infos);
 
-  const auto push_constant = CreatePushConstant(context, num_buttons);
+  const auto push_constant = CreatePushConstant(
+      context, util::ExtentToVec(button_image->extent()), num_buttons);
   const VkPushConstantRange push_constant_range{
       VK_SHADER_STAGE_VERTEX_BIT, /*offset=*/0,
       push_constant->size_per_frame()};
@@ -230,7 +250,7 @@ ButtonMaker::ButtonMaker(const SharedBasicContext& context,
       .SetPipelineLayout({descriptor->layout()}, {push_constant_range})
       .SetViewport(pipeline::GetFullFrameViewport(buttons_image_->extent()))
       .SetRenderPass(**render_pass, kBackgroundSubpassIndex)
-      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)})
+      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/false)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                  common::file::GetVkShaderPath("make_button.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -252,7 +272,6 @@ ButtonMaker::ButtonMaker(const SharedBasicContext& context,
       num_buttons, button_info.base_y, button_info.top_y,
       text_renderer.GetMaxBearingY());
 
-  // TODO: Render with different alpha.
   int render_count = 0;
   for (int button = 0; button < num_buttons; ++button) {
     for (int state = 0; state < kNumButtonStates; ++state) {
@@ -278,7 +297,7 @@ ButtonMaker::ButtonMaker(const SharedBasicContext& context,
       },
       [&](const VkCommandBuffer& command_buffer) {
         text_renderer.Draw(command_buffer, /*frame=*/0, button_info.text_color,
-                           button_info.button_alphas[0]);
+                           /*alpha=*/1.0f);
       },
   };
 

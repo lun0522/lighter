@@ -28,7 +28,7 @@ layout(location = 0) out vec4 frag_color;
 
 void main() {
   vec3 color = texture(diff_sampler, tex_coord).rgb +
-               texture(spec_sampler, tex_coord).rgb * 0.3f;
+               texture(spec_sampler, tex_coord).rgb * 0.3;
   vec3 view_dir = normalize(-pos_view);  // View space.
   vec3 refl_dir = reflect(-view_dir, normalize(norm_view));
   refl_dir = (trans_frag.view_inv * vec4(refl_dir, 0.0)).xyz;  // World space.

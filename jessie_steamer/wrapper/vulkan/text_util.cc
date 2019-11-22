@@ -47,14 +47,15 @@ string GetFontPath(CharLoader::Font font) {
 // Returns the interval between two adjacent characters on the character library
 // image in number of pixels. We add this interval so that when sampling one
 // character, other characters will not affect the result due to numeric errors.
-int GetIntervalBetweenChars(int font_height) {
-  constexpr int kFontHeightToIntervalRatio = 20;
-  constexpr int kMinIntervalBetweenChars = 2;
-  constexpr int kMaxIntervalBetweenChars = 20;
-  int interval = font_height / kFontHeightToIntervalRatio;
-  interval = std::min(interval, kMaxIntervalBetweenChars);
-  interval = std::max(interval, kMinIntervalBetweenChars);
-  return interval;
+int GetIntervalBetweenChars(const common::CharLib& char_lib) {
+  constexpr int kCharWidthToIntervalRatio = 100;
+  int total_width = 0;
+  for (const auto& pair : char_lib.char_info_map()) {
+    if (pair.first != ' ') {
+      total_width += pair.second.image->width;
+    }
+  }
+  return std::max(total_width / kCharWidthToIntervalRatio, 1);
 }
 
 // Returns descriptor infos for rendering characters.
@@ -165,7 +166,7 @@ CharLoader::CharLoader(const SharedBasicContext& context,
   CharImageMap char_image_map;
   {
     const common::CharLib char_lib{texts, GetFontPath(font), font_height};
-    const int interval_between_chars = GetIntervalBetweenChars(font_height);
+    const int interval_between_chars = GetIntervalBetweenChars(char_lib);
     char_lib_image_ = absl::make_unique<OffscreenImage>(
         context, kSingleChannel,
         GetCharLibImageExtent(char_lib, interval_between_chars),
