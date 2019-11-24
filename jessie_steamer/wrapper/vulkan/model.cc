@@ -347,6 +347,7 @@ void Model::Update(bool is_object_opaque, const VkExtent2D& frame_size,
 
 void Model::Draw(const VkCommandBuffer& command_buffer,
                  int frame, uint32_t instance_count) const {
+  ASSERT_NON_NULL(pipeline_, "Update() must have been called");
   pipeline_->Bind(command_buffer);
   for (int i = 0; i < per_instance_buffers_.size(); ++i) {
     per_instance_buffers_[i]->Bind(

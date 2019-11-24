@@ -61,21 +61,40 @@ class ButtonMaker {
 
 class Button {
  public:
-  Button(const wrapper::vulkan::SharedBasicContext& context,
+  Button(wrapper::vulkan::SharedBasicContext context,
+         float viewport_aspect_ratio,
          const button::ButtonInfo& button_info);
 
   // This class is neither copyable nor movable.
   Button(const Button&) = delete;
   Button& operator=(const Button&) = delete;
 
-  void Draw(const VkCommandBuffer& command_buffer, int frame) const;
+  void Update(const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
+              const wrapper::vulkan::RenderPass& render_pass,
+              uint32_t subpass_index);
+
+  // TODO
+  void Draw(const VkCommandBuffer& command_buffer, int frame,
+            int num_buttons) const;
 
   wrapper::vulkan::OffscreenImagePtr backdoor_buttons_image() const {
     return button_maker_.buttons_image();
   }
 
  private:
+  // Pointer to context.
+  const wrapper::vulkan::SharedBasicContext context_;
+
+  // Aspect ratio of the viewport. This is used to make sure the aspect ratio of
+  // buttons does not change when the size of framebuffers changes.
+  const float viewport_aspect_ratio_;
+
   ButtonMaker button_maker_;
+  std::unique_ptr<wrapper::vulkan::PerInstanceBuffer> per_instance_buffer_;
+  std::unique_ptr<wrapper::vulkan::PushConstant> push_constant_;
+  std::unique_ptr<wrapper::vulkan::StaticDescriptor> descriptor_;
+  wrapper::vulkan::PipelineBuilder pipeline_builder_;
+  std::unique_ptr<wrapper::vulkan::Pipeline> pipeline_;
 };
 
 } /* namespace aurora */

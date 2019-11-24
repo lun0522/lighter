@@ -107,7 +107,8 @@ Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
           },
       },
   };
-  button_ = absl::make_unique<Button>(context, button_info);
+  button_ = absl::make_unique<Button>(
+      context, original_aspect_ratio_, button_info);
 
   /* Camera */
   common::Camera::Config config;

@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "jessie_steamer/common/file.h"
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
@@ -63,7 +64,10 @@ class Text {
   // Accessors.
   float viewport_aspect_ratio() const { return viewport_aspect_ratio_; }
   const PerVertexBuffer& vertex_buffer() const { return vertex_buffer_; }
-  const Pipeline& pipeline() const { return *pipeline_; }
+  const Pipeline& pipeline() const {
+    ASSERT_NON_NULL(pipeline_, "Update() must have been called");
+    return *pipeline_;
+  }
   std::vector<common::Vertex2D>* mutable_vertices() {
     return &vertices_to_draw_;
   }
