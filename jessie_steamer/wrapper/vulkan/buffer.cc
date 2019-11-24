@@ -502,6 +502,31 @@ void VertexBuffer::CreateBufferAndMemory(VkDeviceSize total_size,
   device_memory_ = CreateBufferMemory(context_, buffer_, memory_properties);
 }
 
+DynamicBuffer::DynamicBuffer(size_t initial_size, VertexBuffer* vertex_buffer)
+    : vertex_buffer_{vertex_buffer} {
+  ASSERT_NON_NULL(vertex_buffer_, "Vertex buffer must not be nullptr");
+  Reserve(initial_size);
+}
+
+void DynamicBuffer::Reserve(size_t size) {
+  if (size <= buffer_size_) {
+    return;
+  }
+
+  if (buffer_size_ > 0) {
+    // Make copy of 'buffer_' and 'device_memory_' since they will be changed.
+    VkBuffer buffer = vertex_buffer_->buffer_;
+    VkDeviceMemory device_memory = vertex_buffer_->device_memory_;
+    vertex_buffer_->context_->AddReleaseExpiredResourceOp(
+        [buffer, device_memory](const BasicContext& context) {
+          vkDestroyBuffer(*context.device(), buffer, *context.allocator());
+          vkFreeMemory(*context.device(), device_memory, *context.allocator());
+        });
+  }
+  buffer_size_ = size;
+  vertex_buffer_->CreateBufferAndMemory(buffer_size_, /*is_dynamic=*/true);
+}
+
 Buffer::CopyInfos PerVertexBuffer::NoIndicesDataInfo::CreateCopyInfos(
     PerVertexBuffer* buffer) const {
   // Vertex buffer layout (@ refers to the index of mesh):
@@ -638,38 +663,26 @@ StaticPerVertexBuffer::StaticPerVertexBuffer(
   CopyHostToBufferViaStaging(context_, buffer_, copy_infos);
 }
 
-void DynamicPerVertexBuffer::Reserve(size_t size) {
-  if (size <= buffer_size_) {
-    return;
-  }
-
-  if (buffer_size_ > 0) {
-    // Make copy of 'buffer_' and 'device_memory_' since they will be changed.
-    VkBuffer buffer = buffer_;
-    VkDeviceMemory device_memory = device_memory_;
-    context_->AddReleaseExpiredResourceOp(
-        [buffer, device_memory](const BasicContext& context) {
-          vkDestroyBuffer(*context.device(), buffer, *context.allocator());
-          vkFreeMemory(*context.device(), device_memory, *context.allocator());
-        });
-  }
-  buffer_size_ = size;
-  CreateBufferAndMemory(buffer_size_, /*is_dynamic=*/true);
-}
-
 void DynamicPerVertexBuffer::CopyHostData(const BufferDataInfo& info) {
   const CopyInfos copy_infos = info.CreateCopyInfos(this);
   Reserve(copy_infos.total_size);
-  CopyHostToBuffer(context_, /*map_offset=*/0, /*map_size=*/buffer_size_,
+  CopyHostToBuffer(context_, /*map_offset=*/0, /*map_size=*/buffer_size(),
                    device_memory_, copy_infos.copy_infos);
 }
 
-PerInstanceBuffer::PerInstanceBuffer(
-    SharedBasicContext context, const void* data,
-    uint32_t per_instance_data_size, uint32_t num_instances,
+void PerInstanceBuffer::Bind(const VkCommandBuffer& command_buffer,
+                             uint32_t binding_point) const {
+  constexpr VkDeviceSize kOffset = 0;
+  vkCmdBindVertexBuffers(command_buffer, binding_point, /*bindingCount=*/1,
+                         &buffer_, &kOffset);
+}
+
+StaticPerInstanceBuffer::StaticPerInstanceBuffer(
+    SharedBasicContext context, uint32_t per_instance_data_size,
+    const void* data, uint32_t num_instances,
     std::vector<Attribute>&& attributes)
-    : VertexBuffer{std::move(context), std::move(attributes)},
-      per_instance_data_size_{per_instance_data_size} {
+    : PerInstanceBuffer{std::move(context), per_instance_data_size,
+                        std::move(attributes)} {
   const uint32_t total_size = per_instance_data_size * num_instances;
   CreateBufferAndMemory(total_size, /*is_dynamic=*/false);
   CopyHostToBufferViaStaging(
@@ -678,11 +691,15 @@ PerInstanceBuffer::PerInstanceBuffer(
       });
 }
 
-void PerInstanceBuffer::Bind(const VkCommandBuffer& command_buffer,
-                             uint32_t binding_point) const {
-  constexpr VkDeviceSize kOffset = 0;
-  vkCmdBindVertexBuffers(command_buffer, binding_point, /*bindingCount=*/1,
-                         &buffer_, &kOffset);
+void DynamicPerInstanceBuffer::CopyHostData(
+    const void* data, uint32_t num_instances) {
+  const uint32_t total_size = per_instance_data_size() * num_instances;
+  const CopyInfos copy_infos{
+      total_size, /*copy_infos=*/{CopyInfo{data, total_size, /*offset=*/0}},
+  };
+  Reserve(total_size);
+  CopyHostToBuffer(context_, /*map_offset=*/0, /*map_size=*/buffer_size(),
+                   device_memory_, copy_infos.copy_infos);
 }
 
 UniformBuffer::UniformBuffer(SharedBasicContext context,

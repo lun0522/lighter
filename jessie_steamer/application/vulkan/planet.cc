@@ -79,7 +79,7 @@ class PlanetApp : public Application {
   common::FrameTimer timer_;
   std::unique_ptr<common::UserControlledCamera> camera_;
   std::unique_ptr<PerFrameCommand> command_;
-  std::unique_ptr<PerInstanceBuffer> per_asteroid_data_;
+  std::unique_ptr<StaticPerInstanceBuffer> per_asteroid_data_;
   std::unique_ptr<UniformBuffer> light_uniform_;
   std::unique_ptr<PushConstant> planet_constant_;
   std::unique_ptr<PushConstant> skybox_constant_;
@@ -312,7 +312,7 @@ void PlanetApp::GenAsteroidModels() {
         VertexBuffer::Attribute{attrib_offset, VK_FORMAT_R32G32B32A32_SFLOAT});
     attrib_offset += sizeof(glm::vec4);
   }
-  per_asteroid_data_ = absl::make_unique<PerInstanceBuffer>(
+  per_asteroid_data_ = absl::make_unique<StaticPerInstanceBuffer>(
       context(), asteroids, std::move(per_instance_attribs));
 }
 

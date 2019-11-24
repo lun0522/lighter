@@ -178,10 +178,6 @@ Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
           {{TextureType::kCubemap, {skybox_path}}},
       }}
       .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/1)
-      // TODO: Remove following three lines.
-      .AddTextureBindingPoint(TextureType::kSpecular, /*binding_point=*/2)
-      .AddSharedTexture(TextureType::kSpecular,
-                        button_->backdoor_buttons_image())
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("skybox.vert"))

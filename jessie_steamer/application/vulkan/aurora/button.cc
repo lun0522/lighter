@@ -39,26 +39,6 @@ constexpr int kNumVerticesPerButton = 6;
 constexpr int kNumButtonStates = button::ButtonInfo::kNumStates;
 constexpr uint32_t kPerInstanceBufferBindingPoint = 0;
 
-std::unique_ptr<StaticDescriptor> CreateDescriptor(
-    const SharedBasicContext& context,
-    const VkDescriptorImageInfo& image_info) {
-  const vector<Descriptor::Info> descriptor_infos{
-      Descriptor::Info{
-          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          VK_SHADER_STAGE_FRAGMENT_BIT,
-          /*bindings=*/{
-              Descriptor::Info::Binding{
-                  kImageBindingPoint,
-                  /*array_length=*/1,
-              }},
-      }};
-  auto descriptor = absl::make_unique<StaticDescriptor>(
-      context, descriptor_infos);
-  descriptor->UpdateImageInfos(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                               {{kImageBindingPoint, {image_info}}});
-  return descriptor;
-}
-
 /* BEGIN: Consistent with uniform blocks defined in shaders. */
 
 class VerticesInfo {
@@ -95,6 +75,26 @@ class VerticesInfo {
 };
 
 /* END: Consistent with uniform blocks defined in shaders. */
+
+std::unique_ptr<StaticDescriptor> CreateDescriptor(
+    const SharedBasicContext& context,
+    const VkDescriptorImageInfo& image_info) {
+  const vector<Descriptor::Info> descriptor_infos{
+      Descriptor::Info{
+          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          VK_SHADER_STAGE_FRAGMENT_BIT,
+          /*bindings=*/{
+              Descriptor::Info::Binding{
+                  kImageBindingPoint,
+                  /*array_length=*/1,
+              }},
+      }};
+  auto descriptor = absl::make_unique<StaticDescriptor>(
+      context, descriptor_infos);
+  descriptor->UpdateImageInfos(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                               {{kImageBindingPoint, {image_info}}});
+  return descriptor;
+}
 
 std::unique_ptr<PushConstant> CreateButtonVerticesInfo(
     const SharedBasicContext& context,
@@ -164,7 +164,7 @@ std::unique_ptr<PerInstanceBuffer> CreatePerInstanceBuffer(
       {offsetof(ButtonRenderInfo, color), VK_FORMAT_R32G32B32_SFLOAT},
       {offsetof(ButtonRenderInfo, center), VK_FORMAT_R32G32_SFLOAT},
   };
-  return absl::make_unique<PerInstanceBuffer>(
+  return absl::make_unique<StaticPerInstanceBuffer>(
       context, render_infos, std::move(per_instance_attribs));
 }
 
@@ -326,7 +326,7 @@ struct ButtonRenderInfo {
 };
 
 // TODO
-std::unique_ptr<PerInstanceBuffer> CreatePerInstanceBuffer() {
+std::unique_ptr<DynamicPerInstanceBuffer> CreatePerInstanceBuffer() {
   return {};
 }
 

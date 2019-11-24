@@ -82,6 +82,9 @@ class DataBuffer : public Buffer {
   VkBuffer buffer_;
 };
 
+// Forward declarations.
+class DynamicBuffer;
+
 // This is the base class of vertex buffers, and provides shared utility
 // functions. The user should use it through derived classes.
 class VertexBuffer : public DataBuffer {
@@ -110,6 +113,8 @@ class VertexBuffer : public DataBuffer {
                                 uint32_t vertex_count, uint32_t instance_count);
 
  protected:
+  friend class DynamicBuffer;
+
   VertexBuffer(SharedBasicContext context, std::vector<Attribute>&& attributes)
       : DataBuffer{std::move(context)}, attributes_{std::move(attributes)} {}
 
@@ -123,6 +128,37 @@ class VertexBuffer : public DataBuffer {
 
   // Attributes of the vertex data stored in this buffer.
   const std::vector<Attribute> attributes_;
+};
+
+// This class is a plugin to make a buffer dynamic, i.e., be able to recreate
+// the buffer when Reserve() is called with a larger buffer size. The user
+// should use it through derived classes.
+class DynamicBuffer {
+ public:
+  // This class is neither copyable nor movable.
+  DynamicBuffer(const DynamicBuffer&) = delete;
+  DynamicBuffer& operator=(const DynamicBuffer&) = delete;
+
+  ~DynamicBuffer() = default;
+
+ protected:
+  DynamicBuffer(size_t initial_size, VertexBuffer* vertex_buffer);
+
+  // Reserves space of the given 'size'. If 'size' is less than the current
+  // 'buffer_size_', this will be no-op.
+  void Reserve(size_t size);
+
+  // Accessors.
+  VkDeviceSize buffer_size() const { return buffer_size_; }
+
+ private:
+  // Pointer to the vertex buffer whose buffer and device memory will be managed
+  // bt this class.
+  VertexBuffer* vertex_buffer_;
+
+  // Tracks the current size of buffer. This is initialized to be 0 so that we
+  // will not try to deallocate an uninitialized buffer in 'Reserve()'.
+  VkDeviceSize buffer_size_ = 0;
 };
 
 // This is the base class of buffers storing per-vertex data. The user should
@@ -268,56 +304,33 @@ class StaticPerVertexBuffer : public PerVertexBuffer {
 };
 
 // This class creates a vertex buffer that stores dynamic data, and is able to
-// re-allocate a larger buffer internally if necessary. This is useful when
-// we want to render the text whose length may change.
+// re-allocate a larger buffer internally if necessary.
 // If possible, the user should compute the maximum required space of this
 // buffer, and pass it as 'initial_size' to the constructor, so that we can
 // pre-allocate enough space and always reuse the same chunk of device memory.
 // Since the data is dynamic, this buffer will be visible to the host, and we
 // don't use the staging buffer.
-class DynamicPerVertexBuffer : public PerVertexBuffer {
+class DynamicPerVertexBuffer : public PerVertexBuffer, public DynamicBuffer {
  public:
   // 'initial_size' should be greater than 0.
   DynamicPerVertexBuffer(SharedBasicContext context, size_t initial_size,
                          std::vector<Attribute>&& attributes)
-      : PerVertexBuffer{std::move(context), std::move(attributes)} {
-    Reserve(initial_size);
-  }
+      : PerVertexBuffer{std::move(context), std::move(attributes)},
+        DynamicBuffer{initial_size, this} {}
 
   // This class is neither copyable nor movable.
   DynamicPerVertexBuffer(const DynamicPerVertexBuffer&) = delete;
   DynamicPerVertexBuffer& operator=(const DynamicPerVertexBuffer&) = delete;
 
-  // This buffer can be re-allocated multiple times. If a larger memory is
-  // required, the buffer allocated previously will be destructed, and a new one
-  // will be allocated. Otherwise, we will reuse the old buffer.
+  // Copies host data to device. If the device buffer allocated previously is
+  // not large enough to hold the new data, it will be recreated internally.
   void CopyHostData(const BufferDataInfo& info);
-
- private:
-  // Reserves space of the given 'size'. If 'size' is less than the current
-  // 'buffer_size_', this will be no-op.
-  void Reserve(size_t size);
-
-  // Tracks the current size of buffer. This is initialized to be 0 so that we
-  // will not try to deallocate an uninitialized buffer in 'Reserve()'.
-  VkDeviceSize buffer_size_ = 0;
 };
 
-// Holds vertex data of all instances.
-// Data will be copied to device via the staging buffer.
+// This is the base class of buffers storing per-instance data. The user should
+// use it through derived classes.
 class PerInstanceBuffer : public VertexBuffer {
  public:
-  PerInstanceBuffer(SharedBasicContext context, const void* data,
-                    uint32_t per_instance_data_size, uint32_t num_instances,
-                    std::vector<Attribute>&& attributes);
-
-  template <typename Container>
-  PerInstanceBuffer(SharedBasicContext context, const Container& container,
-                    std::vector<Attribute>&& attributes)
-      : PerInstanceBuffer{std::move(context), container.data(),
-                          sizeof(container[0]), CONTAINER_SIZE(container),
-                          std::move(attributes)} {}
-
   // This class is neither copyable nor movable.
   PerInstanceBuffer(const PerInstanceBuffer&) = delete;
   PerInstanceBuffer& operator=(const PerInstanceBuffer&) = delete;
@@ -329,9 +342,71 @@ class PerInstanceBuffer : public VertexBuffer {
   // Accessors.
   uint32_t per_instance_data_size() const { return per_instance_data_size_; }
 
+ protected:
+  PerInstanceBuffer(SharedBasicContext context,
+                    uint32_t per_instance_data_size,
+                    std::vector<Attribute>&& attributes)
+      : VertexBuffer{std::move(context), std::move(attributes)},
+        per_instance_data_size_{per_instance_data_size} {}
+
  private:
   // Per-instance data size.
   const uint32_t per_instance_data_size_;
+};
+
+// This class creates a vertex buffer that stores static data, which will be
+// transferred to the device via the staging buffer.
+class StaticPerInstanceBuffer : public PerInstanceBuffer {
+ public:
+  StaticPerInstanceBuffer(
+      SharedBasicContext context, uint32_t per_instance_data_size,
+      const void* data, uint32_t num_instances,
+      std::vector<Attribute>&& attributes);
+
+  template <typename Container>
+  StaticPerInstanceBuffer(
+      SharedBasicContext context, const Container& container,
+      std::vector<Attribute>&& attributes)
+      : StaticPerInstanceBuffer{std::move(context), sizeof(container[0]),
+                                container.data(), CONTAINER_SIZE(container),
+                                std::move(attributes)} {}
+
+  // This class is neither copyable nor movable.
+  StaticPerInstanceBuffer(const StaticPerInstanceBuffer&) = delete;
+  StaticPerInstanceBuffer& operator=(const StaticPerInstanceBuffer&) = delete;
+};
+
+// This class creates a vertex buffer that stores dynamic data, and is able to
+// re-allocate a larger buffer internally if necessary.
+// If possible, the user should specify 'max_num_instances', so that we can
+// pre-allocate enough space and always reuse the same chunk of device memory.
+// Since the data is dynamic, this buffer will be visible to the host, and we
+// don't use the staging buffer.
+class DynamicPerInstanceBuffer : public PerInstanceBuffer,
+                                 public DynamicBuffer {
+ public:
+  DynamicPerInstanceBuffer(SharedBasicContext context,
+                           uint32_t per_instance_data_size,
+                           size_t max_num_instances,
+                           std::vector<Attribute>&& attributes)
+      : PerInstanceBuffer{std::move(context), per_instance_data_size,
+                          std::move(attributes)},
+        DynamicBuffer{/*initial_size=*/
+                      per_instance_data_size * max_num_instances, this} {}
+
+  // This class is neither copyable nor movable.
+  DynamicPerInstanceBuffer(const DynamicPerInstanceBuffer&) = delete;
+  DynamicPerInstanceBuffer& operator=(const DynamicPerInstanceBuffer&) = delete;
+
+  // Copies host data to device. If the device buffer allocated previously is
+  // not large enough to hold the new data, it will be recreated internally.
+  void CopyHostData(const void* data, uint32_t num_instances);
+
+  // Convenient method to copy all elements of 'container' to the device.
+  template <typename Container>
+  void CopyHostData(const Container& container) {
+    CopyHostData(container.data(), CONTAINER_SIZE(container));
+  }
 };
 
 // Holds uniform buffer data on both the host and device. To make it more

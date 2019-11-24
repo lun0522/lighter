@@ -90,7 +90,8 @@ class Button {
   const float viewport_aspect_ratio_;
 
   ButtonMaker button_maker_;
-  std::unique_ptr<wrapper::vulkan::PerInstanceBuffer> per_instance_buffer_;
+  std::unique_ptr<wrapper::vulkan::DynamicPerInstanceBuffer>
+      per_instance_buffer_;
   std::unique_ptr<wrapper::vulkan::PushConstant> push_constant_;
   std::unique_ptr<wrapper::vulkan::StaticDescriptor> descriptor_;
   wrapper::vulkan::PipelineBuilder pipeline_builder_;
