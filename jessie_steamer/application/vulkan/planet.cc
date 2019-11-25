@@ -31,12 +31,15 @@ enum SubpassIndex {
   kNumSubpasses,
 };
 
-// Contains the data shared by all vertices of an asteroid.
+/* BEGIN: Consistent with vertex input attributes defined in shaders. */
+
 struct Asteroid {
   float theta;
   float radius;
   glm::mat4 model;
 };
+
+/* END: Consistent with vertex input attributes defined in shaders. */
 
 /* BEGIN: Consistent with uniform blocks defined in shaders. */
 

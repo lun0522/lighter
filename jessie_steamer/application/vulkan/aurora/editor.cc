@@ -25,7 +25,9 @@ using namespace wrapper::vulkan;
 
 enum SubpassIndex {
   kModelSubpassIndex = 0,
+  kButtonSubpassIndex,
   kNumSubpasses,
+  kNumOverlaySubpasses = kButtonSubpassIndex - kModelSubpassIndex,
 };
 
 enum EarthTextureIndex {
@@ -78,32 +80,39 @@ Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
   /* Button */
   using button::ButtonInfo;
   const ButtonInfo button_info{
-      Text::Font::kOstrich, /*font_height=*/100, /*base_y=*/0.2f,
-      /*top_y=*/0.8f, /*text_color=*/glm::vec3{1.0f},
-      /*button_alphas=*/{1.0f, 0.5f}, /*button_infos=*/{
+      Text::Font::kOstrich, /*font_height=*/100, /*base_y=*/0.25f,
+      /*top_y=*/0.75f, /*text_color=*/glm::vec3{1.0f},
+      /*button_alphas=*/{1.0f, 0.5f}, /*button_size=*/glm::vec2{0.2f, 0.1f},
+      /*button_infos=*/{
           ButtonInfo::Info{
               "Path 1",
               /*colors=*/{MakeColor(241, 196,  15), MakeColor(243, 156,  18)},
+              /*center=*/glm::vec2{0.2f, 0.9f},
           },
           ButtonInfo::Info{
               "Path 2",
               /*colors=*/{MakeColor(230, 126,  34), MakeColor(211,  84,   0)},
+              /*center=*/glm::vec2{0.5f, 0.9f},
           },
           ButtonInfo::Info{
               "Path 3",
               /*colors=*/{MakeColor(231,  76,  60), MakeColor(192,  57,  43)},
+              /*center=*/glm::vec2{0.8f, 0.9f},
           },
           ButtonInfo::Info{
               "Editing",
               /*colors=*/{MakeColor( 52, 152, 219), MakeColor( 41, 128, 185)},
+              /*center=*/glm::vec2{0.2f, 0.1f},
           },
           ButtonInfo::Info{
               "Daylight",
               /*colors=*/{MakeColor(155,  89, 182), MakeColor(142,  68, 173)},
+              /*center=*/glm::vec2{0.5f, 0.1f},
           },
           ButtonInfo::Info{
               "Aurora",
               /*colors=*/{MakeColor( 46, 204, 113), MakeColor( 39, 174,  96)},
+              /*center=*/glm::vec2{0.8f, 0.1f},
           },
       },
   };
@@ -130,7 +139,7 @@ Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
   const NaiveRenderPassBuilder::SubpassConfig subpass_config{
       /*use_opaque_subpass=*/true,
       /*num_transparent_subpasses=*/0,
-      /*num_overlay_subpasses=*/0,
+      kNumOverlaySubpasses,
   };
   render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
       context, subpass_config,
@@ -239,6 +248,9 @@ void Editor::Recreate(const wrapper::vulkan::WindowContext& window_context) {
                        *render_pass_, kModelSubpassIndex);
   skybox_model_->Update(kIsObjectOpaque, frame_size, sample_count,
                         *render_pass_, kModelSubpassIndex);
+
+  /* Button */
+  button_->Update(frame_size, sample_count, *render_pass_, kButtonSubpassIndex);
 }
 
 void Editor::UpdateData(const wrapper::vulkan::WindowContext& window_context,
@@ -279,6 +291,12 @@ void Editor::Render(const VkCommandBuffer& command_buffer,
         earth_model_->Draw(command_buffer, current_frame, /*instance_count=*/1);
         skybox_model_->Draw(command_buffer, current_frame,
                             /*instance_count=*/1);
+      },
+      [&](const VkCommandBuffer& command_buffer) {
+        // TODO
+        button_->Draw(
+            command_buffer,
+            std::vector<Button::State>(6, Button::State::kSelected));
       },
   });
 }

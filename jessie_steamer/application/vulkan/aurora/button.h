@@ -8,6 +8,7 @@
 #ifndef JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_BUTTON_H
 #define JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_BUTTON_H
 
+#include <array>
 #include <memory>
 #include <string>
 #include <vector>
@@ -29,6 +30,7 @@ struct ButtonInfo {
   struct Info {
     std::string text;
     glm::vec3 colors[kNumStates];
+    glm::vec2 center;
   };
 
   wrapper::vulkan::Text::Font font;
@@ -37,6 +39,7 @@ struct ButtonInfo {
   float top_y;
   glm::vec3 text_color;
   float button_alphas[kNumStates];
+  glm::vec2 button_size;
   std::vector<Info> button_infos;
 };
 
@@ -44,8 +47,10 @@ struct ButtonInfo {
 
 class ButtonMaker {
  public:
+  using ButtonInfo = button::ButtonInfo;
+
   ButtonMaker(const wrapper::vulkan::SharedBasicContext& context,
-              const button::ButtonInfo& button_info);
+              const ButtonInfo& button_info);
 
   // This class is neither copyable nor movable.
   ButtonMaker(const ButtonMaker&) = delete;
@@ -61,9 +66,12 @@ class ButtonMaker {
 
 class Button {
  public:
+  using ButtonInfo = button::ButtonInfo;
+
+  enum class State { kHidden, kSelected, kUnselected };
+
   Button(wrapper::vulkan::SharedBasicContext context,
-         float viewport_aspect_ratio,
-         const button::ButtonInfo& button_info);
+         float viewport_aspect_ratio, const ButtonInfo& button_info);
 
   // This class is neither copyable nor movable.
   Button(const Button&) = delete;
@@ -73,15 +81,34 @@ class Button {
               const wrapper::vulkan::RenderPass& render_pass,
               uint32_t subpass_index);
 
-  // TODO
-  void Draw(const VkCommandBuffer& command_buffer, int frame,
-            int num_buttons) const;
+  void Draw(const VkCommandBuffer& command_buffer,
+            const std::vector<State>& button_states);
 
   wrapper::vulkan::OffscreenImagePtr backdoor_buttons_image() const {
     return button_maker_.buttons_image();
   }
 
  private:
+  /* BEGIN: Consistent with vertex input attributes defined in shaders. */
+
+  struct ButtonRenderInfo {
+    float alpha;
+    glm::vec2 pos_center_ndc;
+    glm::vec2 tex_coord_center;
+  };
+
+  /* END: Consistent with vertex input attributes defined in shaders. */
+
+  using ButtonRenderInfos =
+      std::vector<std::array<ButtonRenderInfo, ButtonInfo::kNumStates>>;
+
+  ButtonRenderInfos ExtractRenderInfos(
+      const ButtonInfo& button_info) const;
+
+  std::unique_ptr<wrapper::vulkan::PushConstant> CreateButtonVerticesInfo(
+      const wrapper::vulkan::SharedBasicContext& context,
+      const ButtonInfo& button_info) const;
+
   // Pointer to context.
   const wrapper::vulkan::SharedBasicContext context_;
 
@@ -89,7 +116,10 @@ class Button {
   // buttons does not change when the size of framebuffers changes.
   const float viewport_aspect_ratio_;
 
+  const ButtonRenderInfos all_buttons_;
+
   ButtonMaker button_maker_;
+  std::vector<ButtonRenderInfo> buttons_to_render_;
   std::unique_ptr<wrapper::vulkan::DynamicPerInstanceBuffer>
       per_instance_buffer_;
   std::unique_ptr<wrapper::vulkan::PushConstant> push_constant_;
