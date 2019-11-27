@@ -15,6 +15,7 @@
 
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/text.h"
+#include "absl/types/optional.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
@@ -84,9 +85,9 @@ class Button {
   void Draw(const VkCommandBuffer& command_buffer,
             const std::vector<State>& button_states);
 
-  wrapper::vulkan::OffscreenImagePtr backdoor_buttons_image() const {
-    return button_maker_.buttons_image();
-  }
+  absl::optional<int> GetClickedButtonIndex(
+      const glm::vec2& click_ndc,
+      const std::vector<State>& button_states) const;
 
  private:
   /* BEGIN: Consistent with vertex input attributes defined in shaders. */
@@ -115,6 +116,8 @@ class Button {
   // Aspect ratio of the viewport. This is used to make sure the aspect ratio of
   // buttons does not change when the size of framebuffers changes.
   const float viewport_aspect_ratio_;
+
+  const glm::vec2 button_half_size_ndc_;
 
   const ButtonRenderInfos all_buttons_;
 

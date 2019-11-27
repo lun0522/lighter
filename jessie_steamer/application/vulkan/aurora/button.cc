@@ -35,6 +35,7 @@ enum UniformBindingPoint {
   kImageBindingPoint,
 };
 
+constexpr float kNdcDim = 1.0f - (-1.0f);
 constexpr int kNumVerticesPerButton = 6;
 constexpr int kNumButtonStates = button::ButtonInfo::kNumStates;
 constexpr uint32_t kPerInstanceBufferBindingPoint = 0;
@@ -153,7 +154,6 @@ std::unique_ptr<PushConstant> CreateButtonVerticesInfo(
   const glm::vec2& button_scale =
       button_image_size /
       (button_image_size + std::max(button_interval.x, button_interval.y));
-  constexpr float kNdcDim = 1.0f - (-1.0f);
   const float button_half_height_ndc =
       kNdcDim / static_cast<float>(num_buttons * kNumButtonStates) / 2.0f;
 
@@ -320,6 +320,7 @@ Button::Button(SharedBasicContext context,
                const ButtonInfo& button_info)
     : context_{std::move(context)},
       viewport_aspect_ratio_{viewport_aspect_ratio},
+      button_half_size_ndc_{button_info.button_size * kNdcDim / 2.0f},
       all_buttons_{ExtractRenderInfos(button_info)},
       button_maker_{context_, button_info},
       pipeline_builder_{context_} {
@@ -394,9 +395,8 @@ Button::ButtonRenderInfos Button::ExtractRenderInfos(
 
 std::unique_ptr<PushConstant> Button::CreateButtonVerticesInfo(
     const SharedBasicContext& context, const ButtonInfo& button_info) const {
-  constexpr float kNdcDim = 1.0f - (-1.0f);
   const glm::vec2 button_pos_half_size_ndc =
-      button_info.button_size / 2.0f * kNdcDim;
+      button_info.button_size * kNdcDim / 2.0f;
   const int num_buttons = button_info.button_infos.size();
   constexpr float kButtonTexHalfWidth = 1.0f / 2.0f;
   const float button_tex_half_height =
@@ -474,6 +474,28 @@ void Button::Draw(const VkCommandBuffer& command_buffer,
   VertexBuffer::DrawWithoutBuffer(
       command_buffer, kNumVerticesPerButton,
       /*instance_count=*/num_buttons * kNumButtonStates);
+}
+
+absl::optional<int> Button::GetClickedButtonIndex(
+    const glm::vec2& click_ndc, const vector<State>& button_states) const {
+  const int num_buttons = all_buttons_.size();
+  ASSERT_TRUE(button_states.size() == num_buttons,
+              absl::StrFormat("Length of button states (%d) must match with "
+                              "number of buttons (%d)",
+                              button_states.size(), num_buttons));
+
+  for (int i = 0; i < num_buttons; ++i) {
+    if (button_states[i] == State::kHidden) {
+      continue;
+    }
+    const glm::vec2 distance =
+        glm::abs(click_ndc - all_buttons_[i][0].pos_center_ndc);
+    if (distance.x <= button_half_size_ndc_.x &&
+        distance.y <= button_half_size_ndc_.y) {
+      return i;
+    }
+  }
+  return absl::nullopt;
 }
 
 } /* namespace aurora */

@@ -17,6 +17,7 @@ cc_library(
     deps = [
         "//jessie_steamer/application/vulkan:common",
         "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:optional",
     ],
 )
 

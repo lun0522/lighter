@@ -8,11 +8,9 @@
 #include "jessie_steamer/application/vulkan/aurora/editor.h"
 
 #include <array>
-#include <vector>
 
 #include "jessie_steamer/wrapper/vulkan/align.h"
 #include "third_party/absl/memory/memory.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/glm/glm.hpp"
 
 namespace jessie_steamer {
@@ -53,6 +51,7 @@ struct TextureIndex {
 /* END: Consistent with uniform blocks defined in shaders. */
 
 constexpr int kObjFileIndexBase = 1;
+constexpr float kButtonBounceTime = 0.5f;
 
 // The height of aurora layer is assumed to be at around 100km above the ground.
 constexpr float kEarthModelRadius = 1.0f;
@@ -255,7 +254,7 @@ void Editor::Recreate(const wrapper::vulkan::WindowContext& window_context) {
 
 void Editor::UpdateData(const wrapper::vulkan::WindowContext& window_context,
                         int frame) {
-  absl::optional<glm::dvec2> click_ndc;
+  absl::optional<glm::vec2> click_ndc;
   if (is_pressing_left_) {
     click_ndc = window_context.window().GetNormalizedCursorPos();
     // When the screen is resized, the viewport is changed to maintain the
@@ -270,6 +269,19 @@ void Editor::UpdateData(const wrapper::vulkan::WindowContext& window_context,
       click_ndc->y /= distortion;
     }
   }
+
+  absl::optional<StateManager::ButtonIndex> clicked_button;
+  if (click_ndc.has_value()) {
+    const auto clicked_button_index = button_->GetClickedButtonIndex(
+        click_ndc.value(), state_manager_.button_states());
+    if (clicked_button_index.has_value()) {
+      clicked_button = static_cast<StateManager::ButtonIndex>(
+          clicked_button_index.value());
+      // If any button is clicked, the earth is not clicked.
+      click_ndc = absl::nullopt;
+    }
+  }
+  state_manager_.Update(clicked_button);
   earth_.Update(*camera_, click_ndc);
 
   const glm::mat4& proj = camera_->projection();
@@ -279,7 +291,9 @@ void Editor::UpdateData(const wrapper::vulkan::WindowContext& window_context,
   uniform_buffer_->Flush(frame);
 
   earth_constant_->HostData<TextureIndex>(frame)->value =
-      is_day_ ? kEarthDayTextureIndex : kEarthNightTextureIndex;
+      state_manager_.button_state(StateManager::kDaylightButtonIndex) ==
+          Button::State::kSelected ?
+          kEarthDayTextureIndex : kEarthNightTextureIndex;
   *skybox_constant_->HostData<SkyboxTrans>(frame) =
       {proj, view * earth_.GetSkyboxModelMatrix()};
 }
@@ -287,18 +301,97 @@ void Editor::UpdateData(const wrapper::vulkan::WindowContext& window_context,
 void Editor::Render(const VkCommandBuffer& command_buffer,
                     uint32_t framebuffer_index, int current_frame) {
   render_pass_->Run(command_buffer, framebuffer_index, /*render_ops=*/{
-      [&](const VkCommandBuffer& command_buffer) {
+      [this, current_frame](const VkCommandBuffer& command_buffer) {
         earth_model_->Draw(command_buffer, current_frame, /*instance_count=*/1);
         skybox_model_->Draw(command_buffer, current_frame,
                             /*instance_count=*/1);
       },
-      [&](const VkCommandBuffer& command_buffer) {
-        // TODO
-        button_->Draw(
-            command_buffer,
-            std::vector<Button::State>(6, Button::State::kSelected));
+      [this](const VkCommandBuffer& command_buffer) {
+        button_->Draw(command_buffer, state_manager_.button_states());
       },
   });
+}
+
+Editor::StateManager::StateManager() {
+  button_states_.resize(kNumButtons);
+  SetPathButtonStates(Button::State::kHidden);
+  button_states_[kEditingButtonIndex] = Button::State::kUnselected;
+  button_states_[kDaylightButtonIndex] = Button::State::kUnselected;
+  button_states_[kAuroraButtonIndex] = Button::State::kSelected;
+}
+
+void Editor::StateManager::Update(
+    const absl::optional<ButtonIndex>& clicked_button) {
+  if (!clicked_button.has_value()) {
+    click_info_ = absl::nullopt;
+    return;
+  }
+  const ButtonIndex button_index = clicked_button.value();
+
+  if (click_info_.has_value() && click_info_->button_index == button_index &&
+      timer_.GetElapsedTimeSinceLaunch() - click_info_->start_time <
+          kButtonBounceTime) {
+    return;
+  }
+
+  switch (button_index) {
+    case kPath1ButtonIndex:
+    case kPath2ButtonIndex:
+    case kPath3ButtonIndex: {
+      if (button_states_[button_index] == Button::State::kUnselected) {
+        FlipButtonState(last_edited_path_);
+        FlipButtonState(button_index);
+        last_edited_path_ = button_index;
+      }
+      SetAsLastClick(button_index);
+      break;
+    }
+    case kEditingButtonIndex: {
+      FlipButtonState(button_index);
+      SetAsLastClick(button_index);
+      if (button_states_[button_index] == Button::State::kSelected) {
+        SetPathButtonStates(Button::State::kUnselected);
+        FlipButtonState(last_edited_path_);
+      } else {
+        SetPathButtonStates(Button::State::kHidden);
+      }
+      break;
+    }
+    case kDaylightButtonIndex: {
+      FlipButtonState(button_index);
+      SetAsLastClick(button_index);
+      break;
+    }
+    case kAuroraButtonIndex: {
+      // TODO
+      break;
+    }
+    default:
+      FATAL("Unexpected branch");
+  }
+}
+
+void Editor::StateManager::SetPathButtonStates(Button::State state) {
+  button_states_[kPath1ButtonIndex] = state;
+  button_states_[kPath2ButtonIndex] = state;
+  button_states_[kPath3ButtonIndex] = state;
+}
+
+void Editor::StateManager::FlipButtonState(ButtonIndex index) {
+  switch (button_states_[index]) {
+    case Button::State::kHidden:
+      FATAL("Should not call on a hidden button");
+    case Button::State::kSelected:
+      button_states_[index] = Button::State::kUnselected;
+      break;
+    case Button::State::kUnselected:
+      button_states_[index] = Button::State::kSelected;
+      break;
+  }
+}
+
+void Editor::StateManager::SetAsLastClick(ButtonIndex index) {
+  click_info_ = ClickInfo{index, timer_.GetElapsedTimeSinceLaunch()};
 }
 
 } /* namespace aurora */
