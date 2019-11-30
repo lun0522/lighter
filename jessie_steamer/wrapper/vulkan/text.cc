@@ -7,6 +7,7 @@
 
 #include "jessie_steamer/wrapper/vulkan/text.h"
 
+#include <cmath>
 #include <algorithm>
 
 #include "jessie_steamer/wrapper/vulkan/align.h"
@@ -77,6 +78,11 @@ const vector<Descriptor::Info>& GetDescriptorInfos() {
     };
   }
   return *descriptor_infos;
+}
+
+// Returns a copy of 'value', but removes the minus sign of 'value.x' if exists.
+inline glm::vec2 SetXPositive(const glm::vec2& value) {
+  return glm::vec2{std::abs(value.x), value.y};
 }
 
 } /* namespace */
@@ -186,9 +192,10 @@ glm::vec2 StaticText::AddText(int text_index, float height, float base_x,
                               float base_y, Align align) {
   texts_to_draw_.emplace_back(text_index);
   const auto& texture_info = text_loader_.texture_info(text_index);
-  const glm::vec2 ratio =
+  // If 'height' is negative, we should avoid to negate X dimension of ratio.
+  const glm::vec2 ratio = SetXPositive(
       glm::vec2{texture_info.aspect_ratio / viewport_aspect_ratio(), 1.0f} *
-      (height / 1.0f);
+      (height / 1.0f));
   const float width_in_frame = 1.0f * ratio.x;
   const float offset_x = GetOffsetX(base_x, align, width_in_frame);
   text_util::AppendCharPosAndTexCoord(
@@ -250,9 +257,10 @@ DynamicText::DynamicText(const SharedBasicContext& context,
 
 glm::vec2 DynamicText::AddText(const std::string& text, float height,
                                float base_x, float base_y, Align align) {
-  const glm::vec2 ratio =
+  // If 'height' is negative, we should avoid to negate X dimension of ratio.
+  const glm::vec2 ratio = SetXPositive(
       glm::vec2{char_loader_.GetAspectRatio() / viewport_aspect_ratio(), 1.0f} *
-      (height / 1.0f);
+      (height / 1.0f));
   float total_width_in_tex_coord = 0.0f;
   for (auto character : text) {
     if (character == ' ') {

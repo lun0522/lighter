@@ -34,6 +34,8 @@ struct ButtonInfo {
     glm::vec2 center;
   };
 
+  // 'base_y' and 'top_y' are in range [0.0, 1.0]. They control where do we
+  // render text within each button.
   wrapper::vulkan::Text::Font font;
   int font_height;
   float base_y;

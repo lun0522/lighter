@@ -343,12 +343,10 @@ void Editor::StateManager::Update(
         FlipButtonState(button_index);
         last_edited_path_ = button_index;
       }
-      SetAsLastClick(button_index);
       break;
     }
     case kEditingButtonIndex: {
       FlipButtonState(button_index);
-      SetAsLastClick(button_index);
       if (button_states_[button_index] == Button::State::kSelected) {
         SetPathButtonStates(Button::State::kUnselected);
         FlipButtonState(last_edited_path_);
@@ -359,7 +357,6 @@ void Editor::StateManager::Update(
     }
     case kDaylightButtonIndex: {
       FlipButtonState(button_index);
-      SetAsLastClick(button_index);
       break;
     }
     case kAuroraButtonIndex: {
@@ -369,6 +366,7 @@ void Editor::StateManager::Update(
     default:
       FATAL("Unexpected branch");
   }
+  click_info_ = ClickInfo{button_index, timer_.GetElapsedTimeSinceLaunch()};
 }
 
 void Editor::StateManager::SetPathButtonStates(Button::State state) {
@@ -388,10 +386,6 @@ void Editor::StateManager::FlipButtonState(ButtonIndex index) {
       button_states_[index] = Button::State::kSelected;
       break;
   }
-}
-
-void Editor::StateManager::SetAsLastClick(ButtonIndex index) {
-  click_info_ = ClickInfo{index, timer_.GetElapsedTimeSinceLaunch()};
 }
 
 } /* namespace aurora */

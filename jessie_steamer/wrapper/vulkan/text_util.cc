@@ -468,6 +468,11 @@ void AppendCharPosAndTexCoord(const glm::vec2& pos_bottom_left,
       NormalizePos({pos_bottom_left.x, pos_top_right.y}),
       {tex_coord_bottom_left.x, tex_coord_top_right.y},
   });
+  // If the height of character is negative, we reverse the vertices order so
+  // that the faces they form don't get culled.
+  if (pos_increment.y < 0) {
+    std::reverse(vertices->end() - kNumVerticesPerRect, vertices->end());
+  }
 }
 
 float LoadCharsVertexData(const string& text, const CharLoader& char_loader,

@@ -194,8 +194,10 @@ vector<TextPosition> CreateTextPositions(int num_buttons, float base_y,
       });
     }
   }
+  // Flip Y coordinate.
   for (auto& pos : positions) {
-    pos.base_y = 1.0f - pos.base_y - pos.height;
+    pos.base_y = 1.0f - pos.base_y;
+    pos.height *= -1;
   }
 
   return positions;
@@ -404,7 +406,6 @@ std::unique_ptr<PushConstant> Button::CreateButtonVerticesInfo(
 
   auto push_constant = absl::make_unique<PushConstant>(
       context, sizeof(VerticesInfo), /*num_frames_in_flight=*/1);
-  // TODO: height is currently negated
   (*push_constant->HostData<VerticesInfo>(/*frame=*/0))
       .set_pos(0, -button_pos_half_size_ndc.x,  button_pos_half_size_ndc.y)
       .set_pos(1, -button_pos_half_size_ndc.x, -button_pos_half_size_ndc.y)
@@ -412,12 +413,12 @@ std::unique_ptr<PushConstant> Button::CreateButtonVerticesInfo(
       .set_pos(3, -button_pos_half_size_ndc.x, -button_pos_half_size_ndc.y)
       .set_pos(4,  button_pos_half_size_ndc.x, -button_pos_half_size_ndc.y)
       .set_pos(5,  button_pos_half_size_ndc.x,  button_pos_half_size_ndc.y)
-      .set_tex_coord(0, -kButtonTexHalfWidth, -button_tex_half_height)
-      .set_tex_coord(1, -kButtonTexHalfWidth,  button_tex_half_height)
-      .set_tex_coord(2,  kButtonTexHalfWidth, -button_tex_half_height)
-      .set_tex_coord(3, -kButtonTexHalfWidth,  button_tex_half_height)
-      .set_tex_coord(4,  kButtonTexHalfWidth,  button_tex_half_height)
-      .set_tex_coord(5,  kButtonTexHalfWidth, -button_tex_half_height);
+      .set_tex_coord(0, -kButtonTexHalfWidth,  button_tex_half_height)
+      .set_tex_coord(1, -kButtonTexHalfWidth, -button_tex_half_height)
+      .set_tex_coord(2,  kButtonTexHalfWidth,  button_tex_half_height)
+      .set_tex_coord(3, -kButtonTexHalfWidth, -button_tex_half_height)
+      .set_tex_coord(4,  kButtonTexHalfWidth, -button_tex_half_height)
+      .set_tex_coord(5,  kButtonTexHalfWidth,  button_tex_half_height);
   return push_constant;
 }
 
@@ -471,9 +472,8 @@ void Button::Draw(const VkCommandBuffer& command_buffer,
       command_buffer, pipeline_->layout(), /*frame=*/0,
       /*target_offset=*/0, VK_SHADER_STAGE_VERTEX_BIT);
   descriptor_->Bind(command_buffer, pipeline_->layout());
-  VertexBuffer::DrawWithoutBuffer(
-      command_buffer, kNumVerticesPerButton,
-      /*instance_count=*/num_buttons * kNumButtonStates);
+  VertexBuffer::DrawWithoutBuffer(command_buffer, kNumVerticesPerButton,
+                                  buttons_to_render_.size());
 }
 
 absl::optional<int> Button::GetClickedButtonIndex(

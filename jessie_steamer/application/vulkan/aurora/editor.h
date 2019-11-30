@@ -84,8 +84,6 @@ class Editor {
 
     void FlipButtonState(ButtonIndex index);
 
-    void SetAsLastClick(ButtonIndex index);
-
     common::BasicTimer timer_;
     std::vector<Button::State> button_states_;
     absl::optional<ClickInfo> click_info_;

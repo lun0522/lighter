@@ -107,10 +107,11 @@ class StaticText : public Text {
   StaticText& operator=(const StaticText&) = delete;
 
   // Creates vertex data for rendering text at 'text_index', and returns left
-  // and right boundary of the rendered text. 'height', 'base_x', 'base_y' and
-  // returned values are in range [0.0, 1.0]. Every character will keep its
-  // original aspect ratio. The vertex data will be cleared after calling Draw()
-  // hence the user should add all texts again before the next call to Draw().
+  // and right boundary of the rendered text. 'base_x', 'base_y' and returned
+  // values are in range [0.0, 1.0], while 'height' is in range [-1.0, 1.0].
+  // Every character will keep its original aspect ratio. The vertex data will
+  // be cleared after calling Draw(), hence the user should add all texts again
+  // before the next call to Draw().
   glm::vec2 AddText(int text_index, float height, float base_x, float base_y,
                     Align align);
 
@@ -153,10 +154,11 @@ class DynamicText : public Text {
 
   // Creates vertex data for rendering 'text', and returns left and right
   // boundary of the rendered text. Each character must have been included in
-  // 'texts' passed to the constructor. 'height', 'base_x', 'base_y' and
-  // returned values are in range [0.0, 1.0]. Every character will keep its
-  // original aspect ratio. The vertex data will be cleared after calling Draw()
-  // hence the user should add all texts again before the next call to Draw().
+  // 'texts' passed to the constructor. 'base_x', 'base_y' and returned values
+  // are in range [0.0, 1.0], while 'height' is in range [-1.0, 1.0].
+  // Every character will keep its original aspect ratio. The vertex data will
+  // be cleared after calling Draw(), hence the user should add all texts again
+  // before the next call to Draw().
   glm::vec2 AddText(const std::string& text, float height, float base_x,
                     float base_y, Align align);
 
