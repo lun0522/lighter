@@ -29,6 +29,8 @@ namespace vulkan {
 
 // This is the base class of all text renderer classes. The user should use it
 // through derived classes. It gathers common members of renderers.
+// Update() must have been called before calling Draw() for the first time, and
+// whenever the render pass is changed.
 class Text {
  public:
   using Font = CharLoader::Font;
@@ -36,15 +38,20 @@ class Text {
   // We only support the horizontal layout for now.
   enum class Align { kLeft, kCenter, kRight };
 
+  virtual ~Text() = default;
+
   // Rebuilds the graphics pipeline.
   // For simplicity, the render area will be the same to 'frame_size'.
-  // This should be called after a renderer is constructed and whenever
-  // framebuffers are resized.
   void Update(const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
               const RenderPass& render_pass, uint32_t subpass_index);
 
+  // Renders all texts tht have been added.
+  // This should be called when 'command_buffer' is recording commands.
+  virtual void Draw(const VkCommandBuffer& command_buffer,
+                    int frame, const glm::vec3& color, float alpha) = 0;
+
  protected:
-  // When the screen is resized, the aspect ratio of viewport will always be
+  // When the frame is resized, the aspect ratio of viewport will always be
   // 'viewport_aspect_ratio'.
   Text(const SharedBasicContext& context,
        std::string&& pipeline_name,
@@ -115,10 +122,9 @@ class StaticText : public Text {
   glm::vec2 AddText(int text_index, float height, float base_x, float base_y,
                     Align align);
 
-  // Renders all texts tht have been added.
-  // This should be called when 'command_buffer' is recording commands.
+  // Overrides.
   void Draw(const VkCommandBuffer& command_buffer,
-            int frame, const glm::vec3& color, float alpha);
+            int frame, const glm::vec3& color, float alpha) override;
 
  private:
   // Renders each text (containing multiple characters) to one texture.
@@ -162,12 +168,11 @@ class DynamicText : public Text {
   glm::vec2 AddText(const std::string& text, float height, float base_x,
                     float base_y, Align align);
 
-  // Renders all texts tht have been added.
-  // This should be called when 'command_buffer' is recording commands.
+  // Overrides.
   void Draw(const VkCommandBuffer& command_buffer,
-            int frame, const glm::vec3& color, float alpha);
+            int frame, const glm::vec3& color, float alpha) override;
 
-  // Returns the maximum bearing in Y dimension among all loaded characters.
+  // Returns the maximum bearing in Y-axis among all loaded characters.
   float GetMaxBearingY() const;
 
  private:

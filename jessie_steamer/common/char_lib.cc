@@ -44,7 +44,7 @@ CharLib::CharLib(const std::vector<std::string>& texts,
               /*image=*/absl::make_unique<Image>(
                   /*width=*/face->glyph->bitmap.width,
                   /*height=*/face->glyph->bitmap.rows,
-                  /*channel=*/1,
+                  common::kBwImageChannel,
                   /*raw_data=*/face->glyph->bitmap.buffer,
                   /*flip_y=*/true
               ),

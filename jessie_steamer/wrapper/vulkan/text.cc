@@ -192,7 +192,7 @@ glm::vec2 StaticText::AddText(int text_index, float height, float base_x,
                               float base_y, Align align) {
   texts_to_draw_.emplace_back(text_index);
   const auto& texture_info = text_loader_.texture_info(text_index);
-  // If 'height' is negative, we should avoid to negate X dimension of ratio.
+  // If 'height' is negative, we should avoid to negate X-axis of ratio.
   const glm::vec2 ratio = SetXPositive(
       glm::vec2{texture_info.aspect_ratio / viewport_aspect_ratio(), 1.0f} *
       (height / 1.0f));
@@ -257,7 +257,7 @@ DynamicText::DynamicText(const SharedBasicContext& context,
 
 glm::vec2 DynamicText::AddText(const std::string& text, float height,
                                float base_x, float base_y, Align align) {
-  // If 'height' is negative, we should avoid to negate X dimension of ratio.
+  // If 'height' is negative, we should avoid to negate X-axis of ratio.
   const glm::vec2 ratio = SetXPositive(
       glm::vec2{char_loader_.GetAspectRatio() / viewport_aspect_ratio(), 1.0f} *
       (height / 1.0f));

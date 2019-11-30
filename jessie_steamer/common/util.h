@@ -210,6 +210,14 @@ const ExpectedType* GetPointerIfTypeExpected(
 }
 
 } /* namespace util */
+
+constexpr int kSingleImageCount = 1;
+constexpr int kCubemapImageCount = 6;
+
+constexpr int kBwImageChannel = 1;
+constexpr int kRgbImageChannel = 3;
+constexpr int kRgbaImageChannel = 4;
+
 } /* namespace common */
 } /* namespace jessie_steamer */
 

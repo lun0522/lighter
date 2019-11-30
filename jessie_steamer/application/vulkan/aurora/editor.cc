@@ -257,7 +257,7 @@ void Editor::UpdateData(const wrapper::vulkan::WindowContext& window_context,
   absl::optional<glm::vec2> click_ndc;
   if (is_pressing_left_) {
     click_ndc = window_context.window().GetNormalizedCursorPos();
-    // When the screen is resized, the viewport is changed to maintain the
+    // When the frame is resized, the viewport is changed to maintain the
     // aspect ratio, hence we need to consider the distortion caused by the
     // viewport change.
     const auto current_aspect_ratio =

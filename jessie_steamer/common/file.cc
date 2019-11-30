@@ -83,10 +83,10 @@ Image::Image(const string& path) {
   ASSERT_NON_NULL(data, absl::StrCat("Failed to read image from ", path));
 
   switch (channel) {
-    case 1:
-    case 4:
+    case common::kBwImageChannel:
+    case common::kRgbaImageChannel:
       break;
-    case 3: {
+    case common::kRgbImageChannel: {
       stbi_image_free(const_cast<void*>(data));
       data = stbi_load_from_memory(
           reinterpret_cast<const stbi_uc*>(raw_data->data),
@@ -103,7 +103,8 @@ Image::Image(const string& path) {
 Image::Image(int width, int height, int channel,
              const void* raw_data, bool flip_y)
     : width{width}, height{height}, channel{channel} {
-  ASSERT_TRUE(channel == 1 || channel == 4,
+  ASSERT_TRUE(channel == common::kBwImageChannel ||
+              channel == common::kRgbaImageChannel,
               absl::StrFormat("Unsupported number of channels: %d", channel));
 
   const size_t total_size = width * height * channel;

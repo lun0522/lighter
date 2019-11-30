@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "jessie_steamer/common/file.h"
-#include "jessie_steamer/common/util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 
@@ -26,9 +25,9 @@ using std::vector;
 // Only 1 or 4 channels are supported.
 VkFormat FindColorImageFormat(int channel) {
   switch (channel) {
-    case 1:
+    case common::kBwImageChannel:
       return VK_FORMAT_R8_UNORM;
-    case 4:
+    case common::kRgbaImageChannel:
       return VK_FORMAT_R8G8B8A8_UNORM;
     default:
       FATAL(absl::StrFormat(
@@ -84,10 +83,10 @@ VkImageView CreateImageView(const SharedBasicContext& context,
                             uint32_t layer_count) {
   VkImageViewType view_type;
   switch (layer_count) {
-    case 1:
+    case common::kSingleImageCount:
       view_type = VK_IMAGE_VIEW_TYPE_2D;
       break;
-    case kCubemapImageCount:
+    case common::kCubemapImageCount:
       view_type = VK_IMAGE_VIEW_TYPE_CUBE;
       break;
     default:
@@ -187,7 +186,7 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
   context->RegisterRefCountPool<SharedTexture::RefCountedTexture>();
 
   using SingleImage = std::unique_ptr<common::Image>;
-  using CubemapImage = std::array<SingleImage, kCubemapImageCount>;
+  using CubemapImage = std::array<SingleImage, common::kCubemapImageCount>;
   using SourceImage = absl::variant<SingleImage, CubemapImage>;
 
   bool generate_mipmaps;

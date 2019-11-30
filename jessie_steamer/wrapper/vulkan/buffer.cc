@@ -743,7 +743,8 @@ TextureBuffer::TextureBuffer(SharedBasicContext context,
   const VkDeviceSize data_size = info.GetDataSize();
 
   const auto layer_count = CONTAINER_SIZE(info.datas);
-  ASSERT_TRUE(layer_count == 1 || layer_count == kCubemapImageCount,
+  ASSERT_TRUE(layer_count == common::kSingleImageCount ||
+              layer_count == common::kCubemapImageCount,
               absl::StrFormat("Invalid number of images: %d", layer_count));
 
   // Generate mipmaps if requested.
@@ -769,8 +770,10 @@ TextureBuffer::TextureBuffer(SharedBasicContext context,
   }
 
   // Create final image buffer.
-  const VkImageCreateFlags cubemap_flag = layer_count == kCubemapImageCount ?
-      VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : nullflag;
+  const VkImageCreateFlags cubemap_flag =
+      layer_count == common::kCubemapImageCount
+          ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT
+          : nullflag;
   const VkImageUsageFlags mipmap_flag =
       generate_mipmaps ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : nullflag;
 

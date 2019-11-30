@@ -12,6 +12,7 @@
 #include <memory>
 
 #include "jessie_steamer/common/ref_count.h"
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
@@ -126,7 +127,7 @@ class SharedTexture : public SamplableImage {
   struct CubemapPath {
     std::string directory;
     // PosX, NegX, PosY, NegY, PosZ, NegZ.
-    std::array<std::string, kCubemapImageCount> files;
+    std::array<std::string, common::kCubemapImageCount> files;
   };
   using SourcePath = absl::variant<SingleTexPath, CubemapPath>;
 

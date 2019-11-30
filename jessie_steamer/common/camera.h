@@ -110,7 +110,7 @@ class UserControlledCamera : public Camera {
     bool lock_center = false;
   };
 
-  // When the screen is resized, the aspect ratio of field of view will always
+  // When the frame is resized, the aspect ratio of field of view will always
   // be 'fov_aspect_ratio'.
   UserControlledCamera(const Config& config,
                        const ControlConfig& control_config,

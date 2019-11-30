@@ -130,7 +130,7 @@ class ModelBuilder {
   // Each element is the descriptor used by the mesh at the same index.
   using DescriptorsPerFrame = std::vector<std::unique_ptr<StaticDescriptor>>;
 
-  // When the screen is resized, the aspect ratio of viewport will always be
+  // When the frame is resized, the aspect ratio of viewport will always be
   // 'viewport_aspect_ratio'. If any offscreen images are used in 'resource',
   // the user is responsible for keeping the existence of them.
   ModelBuilder(SharedBasicContext context,
@@ -239,7 +239,7 @@ class ModelBuilder {
 //   - Maintain a graphics pipeline internally, and render the model during
 //     command buffer recordings.
 // The user should use ModelBuilder to create instances of this class.
-// Update() should be called before calling Draw() for the first time, and
+// Update() must have been called before calling Draw() for the first time, and
 // whenever the render pass is changed, or if the user wants to change the
 // transparency of the object.
 class Model {
@@ -251,7 +251,6 @@ class Model {
   // TODO: Transparency and viewport can be changed via dynamic states.
   // Updates internal states and rebuilds the graphics pipeline.
   // For simplicity, the render area will be the same to 'frame_size'.
-  // This must have been called once before calling Draw() for the first time.
   void Update(bool is_object_opaque,
               const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
               const RenderPass& render_pass, uint32_t subpass_index);

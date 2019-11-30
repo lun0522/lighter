@@ -155,8 +155,6 @@ inline VkBool32 ToVkBool(bool value) { return value ? VK_TRUE : VK_FALSE; }
 
 constexpr uint32_t nullflag = 0;
 
-constexpr int kCubemapImageCount = 6;
-
 constexpr uint32_t kSingleMipLevel = 1;
 constexpr uint32_t kSingleImageLayer = 1;
 constexpr VkSampleCountFlagBits kSingleSample = VK_SAMPLE_COUNT_1_BIT;

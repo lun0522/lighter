@@ -34,6 +34,22 @@ enum SubpassIndex {
 /* BEGIN: Consistent with vertex input attributes defined in shaders. */
 
 struct Asteroid {
+  static vector<VertexBuffer::Attribute> GetAttributes() {
+    vector<VertexBuffer::Attribute> attributes{
+        {offsetof(Asteroid, theta), VK_FORMAT_R32_SFLOAT},
+        {offsetof(Asteroid, radius), VK_FORMAT_R32_SFLOAT},
+    };
+    // mat4 will be bound as 4 vec4.
+    attributes.reserve(6);
+    uint32_t offset = offsetof(Asteroid, model);
+    for (int i = 0; i < 4; ++i) {
+      attributes.emplace_back(
+          VertexBuffer::Attribute{offset, VK_FORMAT_R32G32B32A32_SFLOAT});
+      offset += sizeof(glm::vec4);
+    }
+    return attributes;
+  }
+
   float theta;
   float radius;
   glm::mat4 model;
@@ -303,20 +319,8 @@ void PlanetApp::GenAsteroidModels() {
     }
   }
 
-  vector<VertexBuffer::Attribute> per_instance_attribs{
-      {offsetof(Asteroid, theta), VK_FORMAT_R32_SFLOAT},
-      {offsetof(Asteroid, radius), VK_FORMAT_R32_SFLOAT},
-  };
-  per_instance_attribs.reserve(6);
-  uint32_t attrib_offset = offsetof(Asteroid, model);
-  // The mat4 will be bound as 4 vec4.
-  for (int i = 0; i < 4; ++i) {
-    per_instance_attribs.emplace_back(
-        VertexBuffer::Attribute{attrib_offset, VK_FORMAT_R32G32B32A32_SFLOAT});
-    attrib_offset += sizeof(glm::vec4);
-  }
   per_asteroid_data_ = absl::make_unique<StaticPerInstanceBuffer>(
-      context(), asteroids, std::move(per_instance_attribs));
+      context(), asteroids, Asteroid::GetAttributes());
 }
 
 void PlanetApp::UpdateData(int frame) {
