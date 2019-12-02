@@ -82,9 +82,6 @@ class DataBuffer : public Buffer {
   VkBuffer buffer_;
 };
 
-// Forward declarations.
-class DynamicBuffer;
-
 // This is the base class of vertex buffers, and provides shared utility
 // functions. The user should use it through derived classes.
 class VertexBuffer : public DataBuffer {

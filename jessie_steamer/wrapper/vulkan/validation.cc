@@ -33,7 +33,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
 namespace validation {
 
 const vector<const char*>& GetRequiredLayers() {
-  static vector<const char*>* validation_layers = nullptr;
+  static const vector<const char*>* validation_layers = nullptr;
   if (validation_layers == nullptr) {
     validation_layers = new vector<const char*>{
         "VK_LAYER_LUNARG_standard_validation",

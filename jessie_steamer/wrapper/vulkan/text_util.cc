@@ -136,7 +136,7 @@ std::unique_ptr<Pipeline> BuildPipeline(const Image& target_image,
 
 // Returns texture sampler config for rendering texts.
 const SamplableImage::Config& GetTextSamplerConfig() {
-  static SamplableImage::Config* config = nullptr;
+  static const SamplableImage::Config* config = nullptr;
   if (config == nullptr) {
     config = new SamplableImage::Config{
         VK_FILTER_LINEAR,
@@ -268,7 +268,7 @@ void CharLoader::CreateCharTextures(
     }
 
     const auto& char_info = pair.second;
-    const float advance_x = static_cast<float>(char_info.advance.x) * ratio.x;
+    const auto advance_x = static_cast<float>(char_info.advance.x) * ratio.x;
     const glm::vec2 size =
         glm::vec2{char_info.image->width, char_info.image->height} * ratio;
     const glm::vec2 bearing = glm::vec2{char_info.bearing} * ratio;
@@ -434,7 +434,7 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
 namespace text_util {
 
 const array<uint32_t, kNumIndicesPerRect>& GetIndicesPerRect() {
-  static array<uint32_t, kNumIndicesPerRect>* indices_per_rect = nullptr;
+  static const array<uint32_t, kNumIndicesPerRect>* indices_per_rect = nullptr;
   if (indices_per_rect == nullptr) {
     indices_per_rect = new array<uint32_t, kNumIndicesPerRect>{
         0, 1, 2, 0, 2, 3,

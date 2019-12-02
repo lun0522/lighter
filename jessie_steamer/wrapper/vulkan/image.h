@@ -264,13 +264,13 @@ class MultisampleImage : public Image {
   };
 
   // Returns a multisample image for a regular color image 'target_image'.
-  static std::unique_ptr<MultisampleImage> CreateColorMultisampleImage(
+  static std::unique_ptr<Image> CreateColorMultisampleImage(
       SharedBasicContext context,
       const Image& target_image, Mode mode);
 
   // Returns a multisample image that can be used as depth stencil attachment.
   // Note that we don't need to resolve this image to another regular image.
-  static std::unique_ptr<MultisampleImage> CreateDepthStencilMultisampleImage(
+  static std::unique_ptr<Image> CreateDepthStencilMultisampleImage(
       SharedBasicContext context,
       const VkExtent2D& extent, Mode mode);
 

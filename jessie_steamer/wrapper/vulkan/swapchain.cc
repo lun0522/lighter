@@ -191,7 +191,7 @@ Swapchain::Swapchain(
 }
 
 const vector<const char*>& Swapchain::GetRequiredExtensions() {
-  static vector<const char*>* required_extensions = nullptr;
+  static const vector<const char*>* required_extensions = nullptr;
   if (required_extensions == nullptr) {
     required_extensions = new vector<const char*>{
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,

@@ -97,7 +97,7 @@ class Camera {
 
 // A prospective camera model with cursor, scroll and keyboard control.
 // Users are responsible to call SetActivity() to activate the camera, and call
-// SetCursorPos() after a screen is created and whenever it is resized.
+// SetCursorPos() after a window is created and whenever it is resized.
 class UserControlledCamera : public Camera {
  public:
   // Users may use these keys to control the camera.
@@ -121,7 +121,7 @@ class UserControlledCamera : public Camera {
   UserControlledCamera& operator=(const UserControlledCamera&) = delete;
 
   // Sets the cursor position. If the user care about the mouse movement, this
-  // should be called after the screen is created or resized.
+  // should be called after the window is created or resized.
   void SetCursorPos(const glm::dvec2& cursor_pos) { cursor_pos_ = cursor_pos; }
 
   // Informs the camera that the cursor has been moved to position ('x', 'y').

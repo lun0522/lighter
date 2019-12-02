@@ -80,6 +80,19 @@ cc_library(
 )
 
 cc_library(
+    name = "spline",
+    hdrs = ["spline.h"],
+    srcs = ["spline.cc"],
+    deps = [
+        ":util",
+        "//third_party/absl/memory",
+        "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:optional",
+        "//third_party:glm",
+    ],
+)
+
+cc_library(
     name = "timer",
     hdrs = ["timer.h"],
 )

@@ -52,7 +52,7 @@ float GetOffsetX(float base_x, Text::Align align, float total_width) {
 
 // Returns descriptor infos for rendering text.
 const vector<Descriptor::Info>& GetDescriptorInfos() {
-  static vector<Descriptor::Info>* descriptor_infos = nullptr;
+  static const vector<Descriptor::Info>* descriptor_infos = nullptr;
   if (descriptor_infos == nullptr) {
     descriptor_infos = new vector<Descriptor::Info>{
         Descriptor::Info{
@@ -127,8 +127,8 @@ int Text::UpdateBuffers(int frame, const glm::vec3& color, float alpha) {
   uniform_buffer_.Flush(frame);
 
   constexpr int kNumVerticesPerMesh = text_util::kNumVerticesPerRect;
-  const int num_meshes = static_cast<int>(vertices_to_draw_.size()) /
-                         kNumVerticesPerMesh;
+  const auto num_meshes = static_cast<int>(vertices_to_draw_.size()) /
+                          kNumVerticesPerMesh;
   vertex_buffer_.CopyHostData(PerVertexBuffer::ShareIndicesDataInfo{
       num_meshes,
       /*per_mesh_vertices=*/{vertices_to_draw_, kNumVerticesPerMesh},

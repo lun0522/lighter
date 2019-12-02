@@ -268,23 +268,21 @@ SwapchainImage::SwapchainImage(SharedBasicContext context,
                                 kSingleMipLevel, kSingleImageLayer);
 }
 
-std::unique_ptr<MultisampleImage> MultisampleImage::CreateColorMultisampleImage(
+std::unique_ptr<Image> MultisampleImage::CreateColorMultisampleImage(
     SharedBasicContext context,
     const Image& target_image, Mode mode) {
-  return std::unique_ptr<MultisampleImage>(
-      new MultisampleImage{std::move(context), target_image.extent(),
-                           target_image.format(),
-                           mode, MultisampleBuffer::Type::kColor});
+  return std::unique_ptr<Image>(new MultisampleImage{
+      std::move(context), target_image.extent(), target_image.format(),
+      mode, MultisampleBuffer::Type::kColor});
 }
 
-std::unique_ptr<MultisampleImage>
-MultisampleImage::CreateDepthStencilMultisampleImage(
+std::unique_ptr<Image> MultisampleImage::CreateDepthStencilMultisampleImage(
     SharedBasicContext context,
     const VkExtent2D& extent, Mode mode) {
   const VkFormat format = FindDepthStencilImageFormat(context);
-  return std::unique_ptr<MultisampleImage>(
-      new MultisampleImage{std::move(context), extent, format,
-                           mode, MultisampleBuffer::Type::kDepthStencil});
+  return std::unique_ptr<Image>(new MultisampleImage{
+      std::move(context), extent, format, mode,
+      MultisampleBuffer::Type::kDepthStencil});
 }
 
 std::unique_ptr<Image> MultisampleImage::CreateDepthStencilImage(

@@ -101,11 +101,11 @@ class Swapchain {
   VkSwapchainKHR swapchain_;
 
   // Wraps images retrieved from the swapchain.
-  std::vector<std::unique_ptr<SwapchainImage>> swapchain_images_;
+  std::vector<std::unique_ptr<Image>> swapchain_images_;
 
   // This should have value if multisampling is requested. We only need one
   // instance of it since we only render to one frame at any time.
-  std::unique_ptr<MultisampleImage> multisample_image_;
+  std::unique_ptr<Image> multisample_image_;
 
   // Extent of each swapchain image.
   VkExtent2D image_extent_;

@@ -152,7 +152,7 @@ bool Window::ShouldQuit() const {
 
 #ifdef USE_VULKAN
 const vector<const char*>& Window::GetRequiredExtensions() {
-  static vector<const char*>* required_extensions = nullptr;
+  static const vector<const char*>* required_extensions = nullptr;
   if (required_extensions == nullptr) {
     uint32_t extension_count;
     const char** glfw_extensions =

@@ -66,7 +66,7 @@ glm::vec3 MakeColor(int r, int g, int b) {
 
 } /* namespace */
 
-Editor::Editor(const wrapper::vulkan::WindowContext& window_context,
+Editor::Editor(const WindowContext& window_context,
                int num_frames_in_flight)
     : original_aspect_ratio_{
           util::GetAspectRatio(window_context.frame_size())},
@@ -209,7 +209,7 @@ void Editor::OnExit(common::Window* mutable_window) {
       .RegisterMouseButtonCallback(nullptr);
 }
 
-void Editor::Recreate(const wrapper::vulkan::WindowContext& window_context) {
+void Editor::Recreate(const WindowContext& window_context) {
   /* Camera */
   camera_->SetCursorPos(window_context.window().GetCursorPos());
 
@@ -252,8 +252,7 @@ void Editor::Recreate(const wrapper::vulkan::WindowContext& window_context) {
   button_->Update(frame_size, sample_count, *render_pass_, kButtonSubpassIndex);
 }
 
-void Editor::UpdateData(const wrapper::vulkan::WindowContext& window_context,
-                        int frame) {
+void Editor::UpdateData(const WindowContext& window_context, int frame) {
   absl::optional<glm::vec2> click_ndc;
   if (is_pressing_left_) {
     click_ndc = window_context.window().GetNormalizedCursorPos();
@@ -292,8 +291,8 @@ void Editor::UpdateData(const wrapper::vulkan::WindowContext& window_context,
 
   earth_constant_->HostData<TextureIndex>(frame)->value =
       state_manager_.button_state(StateManager::kDaylightButtonIndex) ==
-          Button::State::kSelected ?
-          kEarthDayTextureIndex : kEarthNightTextureIndex;
+          Button::State::kSelected ? kEarthDayTextureIndex
+                                   : kEarthNightTextureIndex;
   *skybox_constant_->HostData<SkyboxTrans>(frame) =
       {proj, view * earth_.GetSkyboxModelMatrix()};
 }
