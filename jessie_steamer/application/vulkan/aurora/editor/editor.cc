@@ -5,11 +5,10 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "jessie_steamer/application/vulkan/aurora/editor.h"
+#include "jessie_steamer/application/vulkan/aurora/editor/editor.h"
 
 #include <array>
 
-#include "jessie_steamer/wrapper/vulkan/align.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/glm/glm.hpp"
 
@@ -28,29 +27,6 @@ enum SubpassIndex {
   kNumOverlaySubpasses = kButtonSubpassIndex - kModelSubpassIndex,
 };
 
-enum EarthTextureIndex {
-  kEarthDayTextureIndex = 0,
-  kEarthNightTextureIndex,
-};
-
-/* BEGIN: Consistent with uniform blocks defined in shaders. */
-
-struct EarthTrans {
-  ALIGN_MAT4 glm::mat4 proj_view_model;
-};
-
-struct SkyboxTrans {
-  ALIGN_MAT4 glm::mat4 proj;
-  ALIGN_MAT4 glm::mat4 view_model;
-};
-
-struct TextureIndex {
-  ALIGN_SCALAR(int32_t) int32_t value;
-};
-
-/* END: Consistent with uniform blocks defined in shaders. */
-
-constexpr int kObjFileIndexBase = 1;
 constexpr float kButtonBounceTime = 0.5f;
 
 // The height of aurora layer is assumed to be at around 100km above the ground.
@@ -59,6 +35,7 @@ constexpr float kEarthRadius = 6378.1f;
 constexpr float kAuroraHeight = 100.0f;
 constexpr float kAuroraLayerRadius =
     (kEarthRadius + kAuroraHeight) / kEarthRadius * kEarthModelRadius;
+const glm::vec3 kEarthCenter{0.0f};
 
 glm::vec3 MakeColor(int r, int g, int b) {
   return glm::vec3{r, g, b} / 255.0f;
@@ -66,15 +43,18 @@ glm::vec3 MakeColor(int r, int g, int b) {
 
 } /* namespace */
 
+const int Editor::kNumAuroraPaths = 3;
+
 Editor::Editor(const WindowContext& window_context,
                int num_frames_in_flight)
     : original_aspect_ratio_{
           util::GetAspectRatio(window_context.frame_size())},
-      earth_{/*center=*/glm::vec3{0.0f}, kEarthModelRadius} {
-  using common::file::GetResourcePath;
-  using common::file::GetVkShaderPath;
-  using TextureType = ModelBuilder::TextureType;
+      earth_{kEarthCenter, kEarthModelRadius} {
   const auto context = window_context.basic_context();
+
+  /* Earth and skybox */
+  celestial_ = absl::make_unique<Celestial>(
+      context, original_aspect_ratio_, num_frames_in_flight);
 
   /* Button */
   using button::ButtonInfo;
@@ -126,14 +106,6 @@ Editor::Editor(const WindowContext& window_context,
       original_aspect_ratio_);
   camera_->SetActivity(true);
 
-  /* Uniform buffer and push constants */
-  uniform_buffer_ = absl::make_unique<UniformBuffer>(
-      context, sizeof(EarthTrans), num_frames_in_flight);
-  earth_constant_ = absl::make_unique<PushConstant>(
-      context, sizeof(TextureIndex), num_frames_in_flight);
-  skybox_constant_ = absl::make_unique<PushConstant>(
-      context, sizeof(SkyboxTrans), num_frames_in_flight);
-
   /* Render pass */
   const NaiveRenderPassBuilder::SubpassConfig subpass_config{
       /*use_opaque_subpass=*/true,
@@ -144,53 +116,6 @@ Editor::Editor(const WindowContext& window_context,
       context, subpass_config,
       /*num_framebuffers=*/window_context.num_swapchain_images(),
       /*present_to_screen=*/true, window_context.multisampling_mode());
-
-  /* Model */
-  earth_model_ = ModelBuilder{
-      context, "earth", num_frames_in_flight, original_aspect_ratio_,
-      ModelBuilder::SingleMeshResource{
-          GetResourcePath("model/sphere.obj"), kObjFileIndexBase,
-          /*tex_source_map=*/{{
-              TextureType::kDiffuse, {
-                  SharedTexture::SingleTexPath{
-                      GetResourcePath("texture/earth/day.jpg")},
-                  SharedTexture::SingleTexPath{
-                      GetResourcePath("texture/earth/night.jpg")},
-              },
-          }}
-      }}
-      .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/2)
-      .AddUniformBinding(
-          VK_SHADER_STAGE_VERTEX_BIT,
-          /*bindings=*/{{/*binding_point=*/0, /*array_length=*/1}})
-      .AddUniformBuffer(/*binding_point=*/0, *uniform_buffer_)
-      .SetPushConstantShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT)
-      .AddPushConstant(earth_constant_.get(), /*target_offset=*/0)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("earth.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("earth.frag"))
-      .Build();
-
-  const SharedTexture::CubemapPath skybox_path{
-      /*directory=*/GetResourcePath("texture/universe"),
-      /*files=*/{
-          "PositiveX.jpg", "NegativeX.jpg",
-          "PositiveY.jpg", "NegativeY.jpg",
-          "PositiveZ.jpg", "NegativeZ.jpg",
-      },
-  };
-
-  skybox_model_ = ModelBuilder{
-      context, "skybox", num_frames_in_flight, original_aspect_ratio_,
-      ModelBuilder::SingleMeshResource{
-          GetResourcePath("model/skybox.obj"), kObjFileIndexBase,
-          {{TextureType::kCubemap, {skybox_path}}},
-      }}
-      .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/1)
-      .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
-      .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("skybox.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("skybox.frag"))
-      .Build();
 }
 
 void Editor::OnEnter(common::Window* mutable_window) {
@@ -240,13 +165,10 @@ void Editor::Recreate(const WindowContext& window_context) {
   }
   render_pass_ = (*render_pass_builder_)->Build();
 
-  /* Model */
-  constexpr bool kIsObjectOpaque = true;
+  /* Earth and skybox */
   const VkSampleCountFlagBits sample_count = window_context.sample_count();
-  earth_model_->Update(kIsObjectOpaque, frame_size, sample_count,
-                       *render_pass_, kModelSubpassIndex);
-  skybox_model_->Update(kIsObjectOpaque, frame_size, sample_count,
-                        *render_pass_, kModelSubpassIndex);
+  celestial_->UpdateFramebuffer(frame_size, sample_count, *render_pass_,
+                                kModelSubpassIndex);
 
   /* Button */
   button_->Update(frame_size, sample_count, *render_pass_, kButtonSubpassIndex);
@@ -283,27 +205,21 @@ void Editor::UpdateData(const WindowContext& window_context, int frame) {
   state_manager_.Update(clicked_button);
   earth_.Update(*camera_, click_ndc);
 
-  const glm::mat4& proj = camera_->projection();
-  const glm::mat4& view = camera_->view();
-  uniform_buffer_->HostData<EarthTrans>(frame)->proj_view_model =
-      proj * view * earth_.model_matrix();
-  uniform_buffer_->Flush(frame);
-
-  earth_constant_->HostData<TextureIndex>(frame)->value =
+  const auto earth_texture_index =
       state_manager_.button_state(StateManager::kDaylightButtonIndex) ==
-          Button::State::kSelected ? kEarthDayTextureIndex
-                                   : kEarthNightTextureIndex;
-  *skybox_constant_->HostData<SkyboxTrans>(frame) =
-      {proj, view * earth_.GetSkyboxModelMatrix()};
+          Button::State::kSelected
+          ? Celestial::kEarthDayTextureIndex
+          : Celestial::kEarthNightTextureIndex;
+  celestial_->UpdateEarthData(frame, *camera_, earth_.model_matrix(),
+                              earth_texture_index);
+  celestial_->UpdateSkyboxData(frame, *camera_, earth_.GetSkyboxModelMatrix());
 }
 
 void Editor::Render(const VkCommandBuffer& command_buffer,
                     uint32_t framebuffer_index, int current_frame) {
   render_pass_->Run(command_buffer, framebuffer_index, /*render_ops=*/{
       [this, current_frame](const VkCommandBuffer& command_buffer) {
-        earth_model_->Draw(command_buffer, current_frame, /*instance_count=*/1);
-        skybox_model_->Draw(command_buffer, current_frame,
-                            /*instance_count=*/1);
+        celestial_->Draw(command_buffer, current_frame);
       },
       [this](const VkCommandBuffer& command_buffer) {
         button_->Draw(command_buffer, state_manager_.button_states());
@@ -384,6 +300,42 @@ void Editor::StateManager::FlipButtonState(ButtonIndex index) {
     case Button::State::kUnselected:
       button_states_[index] = Button::State::kSelected;
       break;
+  }
+}
+
+Editor::PathManager::PathManager() {
+  constexpr std::array<float, kNumAuroraPaths> kLatitudes{60.0f, 70.0f, 80.0f};
+  constexpr int kLongitudeStep = 45;
+  constexpr int kNumControlPoints = 360 / kLongitudeStep;
+  constexpr int kMinNumControlPoints = 3;
+  constexpr int kMaxNumControlPoints = 20;
+  constexpr int kMaxRecursionDepth = 20;
+  constexpr float kSplineSmoothness = 1E-2;
+
+  std::vector<glm::vec3> control_points;
+  control_points.reserve(kNumControlPoints);
+  spline_editors_.reserve(kNumAuroraPaths);
+  for (float latitude : kLatitudes) {
+    const float latitude_radians = glm::radians(latitude);
+    control_points.clear();
+    const float sin_latitude = glm::sin(latitude_radians);
+    const float cos_latitude = glm::cos(latitude_radians);
+    for (int longitude = 0; longitude < 360; longitude += kLongitudeStep) {
+      const float longitude_radians =
+          glm::radians(static_cast<float>(longitude));
+      control_points.emplace_back(glm::vec3{
+          glm::cos(longitude_radians) * cos_latitude,
+          sin_latitude,
+          glm::sin(longitude_radians) * cos_latitude,
+      });
+    }
+
+    spline_editors_.emplace_back(absl::make_unique<common::SplineEditor>(
+        kMinNumControlPoints, kMaxNumControlPoints,
+        std::vector<glm::vec3>{control_points},
+        common::CatmullRomSpline::GetOnSphereSpline(
+            kEarthCenter, kAuroraLayerRadius, kMaxRecursionDepth,
+            kSplineSmoothness)));
   }
 }
 

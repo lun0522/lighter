@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "jessie_steamer/application/vulkan/aurora/editor.h"
-#include "jessie_steamer/application/vulkan/aurora/viewer.h"
+#include "jessie_steamer/application/vulkan/aurora/editor/editor.h"
+#include "jessie_steamer/application/vulkan/aurora/viewer/viewer.h"
 #include "jessie_steamer/application/vulkan/util.h"
 
 namespace jessie_steamer {

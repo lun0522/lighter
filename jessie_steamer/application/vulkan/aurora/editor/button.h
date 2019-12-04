@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_BUTTON_H
-#define JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_BUTTON_H
+#ifndef JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_EDITOR_BUTTON_H
+#define JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_EDITOR_BUTTON_H
 
 #include <array>
 #include <memory>
@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "jessie_steamer/common/util.h"
+#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/text.h"
 #include "absl/types/optional.h"
@@ -255,4 +256,4 @@ class Button {
 } /* namespace application */
 } /* namespace jessie_steamer */
 
-#endif /* JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_BUTTON_H */
+#endif /* JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_EDITOR_BUTTON_H */

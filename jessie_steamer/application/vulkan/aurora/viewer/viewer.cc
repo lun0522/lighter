@@ -1,12 +1,11 @@
 //
-//  viewer.h
+//  viewer.cc
 //
 //  Created by Pujun Lun on 11/3/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_VIEWER_H
-#define JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_VIEWER_H
+#include "jessie_steamer/application/vulkan/aurora/viewer/viewer.h"
 
 namespace jessie_steamer {
 namespace application {
@@ -17,5 +16,3 @@ namespace aurora {
 } /* namespace vulkan */
 } /* namespace application */
 } /* namespace jessie_steamer */
-
-#endif /* JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_VIEWER_H */

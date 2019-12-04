@@ -24,7 +24,7 @@ class Spline {
   Spline(const Spline&) = delete;
   Spline& operator=(const Spline&) = delete;
 
-  ~Spline() = default;
+  virtual ~Spline() = default;
 
   virtual void BuildSpline(const std::vector<glm::vec3>& control_points) = 0;
 
@@ -59,35 +59,30 @@ class BezierSpline : public Spline {
 
   void BuildSpline(const std::vector<glm::vec3>& control_points) override;
 
- private:
-  friend class CatmullRomSpline;
-
+ protected:
   void Tessellate(const glm::vec3& p0,
                   const glm::vec3& p1,
                   const glm::vec3& p2,
                   const glm::vec3& p3,
                   int recursion_depth);
 
+ private:
   const int max_recursion_depth_;
   const GetMiddlePoint get_middle_point_;
   const IsSmooth is_smooth_;
   const PostProcessing post_processing_;
 };
 
-class CatmullRomSpline : public Spline {
+class CatmullRomSpline : public BezierSpline {
  public:
-  static constexpr int kMinNumControlPoints = 3;
+  static const int kMinNumControlPoints;
 
   static std::unique_ptr<Spline> GetOnSphereSpline(
       const glm::vec3& sphere_center, float sphere_radius,
       int max_recursion_depth, float smoothness);
 
-  CatmullRomSpline(int max_recursion_depth,
-                   BezierSpline::GetMiddlePoint&& get_middle_point,
-                   BezierSpline::IsSmooth&& is_smooth,
-                   BezierSpline::PostProcessing&& post_processing)
-      : bezier_spline_{max_recursion_depth, std::move(get_middle_point),
-                       std::move(is_smooth), std::move(post_processing)} {}
+  // Inherits constructor.
+  using BezierSpline::BezierSpline;
 
   // This class is neither copyable nor movable.
   CatmullRomSpline(const CatmullRomSpline&) = delete;
@@ -100,8 +95,6 @@ class CatmullRomSpline : public Spline {
                   const glm::vec3& p1,
                   const glm::vec3& p2,
                   const glm::vec3& p3);
-
-  BezierSpline bezier_spline_;
 };
 
 class SplineEditor {

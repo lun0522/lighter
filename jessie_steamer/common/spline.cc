@@ -60,6 +60,8 @@ void BezierSpline::BuildSpline(const vector<glm::vec3>& control_points) {
   FATAL("Unimplemented");
 }
 
+const int CatmullRomSpline::kMinNumControlPoints = 3;
+
 std::unique_ptr<Spline> CatmullRomSpline::GetOnSphereSpline(
     const glm::vec3& sphere_center, float sphere_radius,
     int max_recursion_depth, float smoothness) {
@@ -126,11 +128,11 @@ void CatmullRomSpline::Tessellate(const glm::vec3& p0,
       glm::vec4{p3, 0.0f},
   };
   const glm::mat4 bezier_points = catmull_rom_points * (*catmull_rom_to_bezier);
-  bezier_spline_.Tessellate(bezier_points[0],
-                            bezier_points[1],
-                            bezier_points[2],
-                            bezier_points[3],
-                            /*recursion_depth=*/0);
+  BezierSpline::Tessellate(bezier_points[0],
+                           bezier_points[1],
+                           bezier_points[2],
+                           bezier_points[3],
+                           /*recursion_depth=*/0);
 }
 
 void CatmullRomSpline::BuildSpline(const vector<glm::vec3>& control_points) {
