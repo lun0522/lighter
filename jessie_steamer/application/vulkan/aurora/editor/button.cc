@@ -165,7 +165,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage() const {
       [&](const VkCommandBuffer& command_buffer) {
         pipeline->Bind(command_buffer);
         per_instance_buffer->Bind(
-            command_buffer, kPerInstanceBufferBindingPoint);
+            command_buffer, kPerInstanceBufferBindingPoint, /*offset=*/0);
         push_constant->Flush(
             command_buffer, pipeline->layout(), /*frame=*/0,
             /*target_offset=*/0, VK_SHADER_STAGE_VERTEX_BIT);
@@ -264,29 +264,28 @@ std::unique_ptr<Text> ButtonMaker::CreateTextRenderer(
   return text_renderer;
 }
 
-Button::Button(SharedBasicContext context,
+Button::Button(const SharedBasicContext& context,
                float viewport_aspect_ratio,
                const ButtonInfo& button_info)
-    : context_{std::move(context)},
-      viewport_aspect_ratio_{viewport_aspect_ratio},
+    : viewport_aspect_ratio_{viewport_aspect_ratio},
       button_half_size_ndc_{button_info.button_size * kNdcDim / 2.0f},
       all_buttons_{ExtractRenderInfos(button_info)},
-      buttons_image_{ButtonMaker{context_, &button_info}.CreateButtonsImage()},
-      pipeline_builder_{context_} {
+      buttons_image_{ButtonMaker{context, &button_info}.CreateButtonsImage()},
+      pipeline_builder_{context} {
   const int num_buttons = button_info.button_infos.size();
   buttons_to_render_.reserve(num_buttons);
 
-  descriptor_ = CreateDescriptor(context_, buttons_image_->GetDescriptorInfo());
+  descriptor_ = CreateDescriptor(context, buttons_image_->GetDescriptorInfo());
 
   per_instance_buffer_ = absl::make_unique<DynamicPerInstanceBuffer>(
-      context_, sizeof(ButtonRenderInfo),
+      context, sizeof(ButtonRenderInfo),
       /*max_num_instances=*/num_buttons * kNumButtonStates,
       ButtonRenderInfo::GetAttributes());
 
-  push_constant_ = CreateButtonVerticesData(context_, button_info);
+  vertices_constant_ = CreateButtonVerticesData(context, button_info);
   const VkPushConstantRange push_constant_range{
       VK_SHADER_STAGE_VERTEX_BIT, /*offset=*/0,
-      push_constant_->size_per_frame()};
+      vertices_constant_->size_per_frame()};
 
   pipeline_builder_
       .SetName("draw button")
@@ -400,8 +399,8 @@ void Button::Draw(const VkCommandBuffer& command_buffer,
 
   pipeline_->Bind(command_buffer);
   per_instance_buffer_->Bind(
-      command_buffer, kPerInstanceBufferBindingPoint);
-  push_constant_->Flush(
+      command_buffer, kPerInstanceBufferBindingPoint, /*offset=*/0);
+  vertices_constant_->Flush(
       command_buffer, pipeline_->layout(), /*frame=*/0,
       /*target_offset=*/0, VK_SHADER_STAGE_VERTEX_BIT);
   descriptor_->Bind(command_buffer, pipeline_->layout());

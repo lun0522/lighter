@@ -22,9 +22,11 @@ using namespace wrapper::vulkan;
 
 enum SubpassIndex {
   kModelSubpassIndex = 0,
+  kAuroraPathSubpassIndex,
   kButtonSubpassIndex,
   kNumSubpasses,
-  kNumOverlaySubpasses = kButtonSubpassIndex - kModelSubpassIndex,
+  kNumTransparentSubpasses = kAuroraPathSubpassIndex - kModelSubpassIndex,
+  kNumOverlaySubpasses = kButtonSubpassIndex - kAuroraPathSubpassIndex,
 };
 
 constexpr float kButtonBounceTime = 0.5f;
@@ -55,6 +57,14 @@ Editor::Editor(const WindowContext& window_context,
   /* Earth and skybox */
   celestial_ = absl::make_unique<Celestial>(
       context, original_aspect_ratio_, num_frames_in_flight);
+
+  /* Aurora path */
+  aurora_path_ = absl::make_unique<AuroraPath>(
+      context, kNumAuroraPaths, original_aspect_ratio_, num_frames_in_flight);
+  for (int path = 0; path < kNumAuroraPaths; ++path) {
+    aurora_path_->UpdatePath(path, path_manager_.control_points(path),
+                             path_manager_.spline_points(path));
+  }
 
   /* Button */
   using button::ButtonInfo;
@@ -109,7 +119,7 @@ Editor::Editor(const WindowContext& window_context,
   /* Render pass */
   const NaiveRenderPassBuilder::SubpassConfig subpass_config{
       /*use_opaque_subpass=*/true,
-      /*num_transparent_subpasses=*/0,
+      kNumTransparentSubpasses,
       kNumOverlaySubpasses,
   };
   render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
@@ -165,12 +175,12 @@ void Editor::Recreate(const WindowContext& window_context) {
   }
   render_pass_ = (*render_pass_builder_)->Build();
 
-  /* Earth and skybox */
+  /* Objects in scene */
   const VkSampleCountFlagBits sample_count = window_context.sample_count();
   celestial_->UpdateFramebuffer(frame_size, sample_count, *render_pass_,
                                 kModelSubpassIndex);
-
-  /* Button */
+  aurora_path_->UpdateFramebuffer(frame_size, sample_count, *render_pass_,
+                                  kAuroraPathSubpassIndex);
   button_->Update(frame_size, sample_count, *render_pass_, kButtonSubpassIndex);
 }
 
@@ -213,6 +223,7 @@ void Editor::UpdateData(const WindowContext& window_context, int frame) {
   celestial_->UpdateEarthData(frame, *camera_, earth_.model_matrix(),
                               earth_texture_index);
   celestial_->UpdateSkyboxData(frame, *camera_, earth_.GetSkyboxModelMatrix());
+  aurora_path_->UpdateTransMatrix(frame, *camera_);
 }
 
 void Editor::Render(const VkCommandBuffer& command_buffer,
@@ -220,6 +231,9 @@ void Editor::Render(const VkCommandBuffer& command_buffer,
   render_pass_->Run(command_buffer, framebuffer_index, /*render_ops=*/{
       [this, current_frame](const VkCommandBuffer& command_buffer) {
         celestial_->Draw(command_buffer, current_frame);
+      },
+      [this, current_frame](const VkCommandBuffer& command_buffer) {
+        aurora_path_->Draw(command_buffer, current_frame);
       },
       [this](const VkCommandBuffer& command_buffer) {
         button_->Draw(command_buffer, state_manager_.button_states());

@@ -60,7 +60,7 @@ class Celestial {
 
  private:
   // Aspect ratio of the viewport. This is used to make sure the aspect ratio of
-  // buttons does not change when the size of framebuffers changes.
+  // earth and skybox does not change when the size of framebuffers changes.
   const float viewport_aspect_ratio_;
 
   // Objects used for rendering.

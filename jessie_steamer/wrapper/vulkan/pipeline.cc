@@ -237,6 +237,12 @@ PipelineBuilder& PipelineBuilder::SetMultisampling(
   return *this;
 }
 
+PipelineBuilder& PipelineBuilder::SetPrimitiveTopology(
+    VkPrimitiveTopology topology) {
+  input_assembly_info_.topology = topology;
+  return *this;
+}
+
 PipelineBuilder& PipelineBuilder::AddVertexInput(
     uint32_t binding_point,
     VkVertexInputBindingDescription&& binding_description,

@@ -83,11 +83,13 @@ class PipelineBuilder {
   PipelineBuilder& SetName(std::string&& name);
 
   // By default, depth testing and stencil testing are disabled, front face
-  // direction is counter-clockwise, and the rasterizer only takes one sample.
+  // direction is counter-clockwise, the rasterizer only takes one sample, and
+  // primitive topology is triangle list.
   PipelineBuilder& SetDepthTestEnabled(bool enable_test, bool enable_write);
   PipelineBuilder& SetStencilTestEnable(bool enable_test);
   PipelineBuilder& SetFrontFaceDirection(bool counter_clockwise);
   PipelineBuilder& SetMultisampling(VkSampleCountFlagBits sample_count);
+  PipelineBuilder& SetPrimitiveTopology(VkPrimitiveTopology topology);
 
   // Adds descriptions for the vertex data bound to 'binding_point'.
   // The user does not need to set the 'binding' field of 'binding_description'

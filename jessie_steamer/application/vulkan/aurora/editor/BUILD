@@ -25,9 +25,17 @@ cc_library(
     deps = [
         ":button",
         ":celestial",
+        ":path",
         "//jessie_steamer/application/vulkan:common",
         "//jessie_steamer/common:rotation",
         "//jessie_steamer/common:spline",
         "//third_party/absl/types:optional",
     ],
+)
+
+cc_library(
+    name = "path",
+    hdrs = ["path.h"],
+    srcs = ["path.cc"],
+    deps = ["//jessie_steamer/application/vulkan:common"],
 )

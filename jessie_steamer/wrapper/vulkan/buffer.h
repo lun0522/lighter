@@ -332,9 +332,9 @@ class PerInstanceBuffer : public VertexBuffer {
   PerInstanceBuffer(const PerInstanceBuffer&) = delete;
   PerInstanceBuffer& operator=(const PerInstanceBuffer&) = delete;
 
-  // Binds vertex data to the given 'binding_point'.
+  // Binds vertex data to 'binding_point', skipping instances of count 'offset'.
   void Bind(const VkCommandBuffer& command_buffer,
-            uint32_t binding_point) const;
+            uint32_t binding_point, int offset) const;
 
   // Accessors.
   uint32_t per_instance_data_size() const { return per_instance_data_size_; }

@@ -160,7 +160,7 @@ class Button {
 
   // When the frame is resized, the aspect ratio of viewport will always be
   // 'viewport_aspect_ratio'.
-  Button(wrapper::vulkan::SharedBasicContext context,
+  Button(const wrapper::vulkan::SharedBasicContext& context,
          float viewport_aspect_ratio, const ButtonInfo& button_info);
 
   // This class is neither copyable nor movable.
@@ -223,9 +223,6 @@ class Button {
       const wrapper::vulkan::SharedBasicContext& context,
       const ButtonInfo& button_info) const;
 
-  // Pointer to context.
-  const wrapper::vulkan::SharedBasicContext context_;
-
   // Aspect ratio of the viewport. This is used to make sure the aspect ratio of
   // buttons does not change when the size of framebuffers changes.
   const float viewport_aspect_ratio_;
@@ -245,7 +242,7 @@ class Button {
   // Objects used for rendering.
   std::unique_ptr<wrapper::vulkan::DynamicPerInstanceBuffer>
       per_instance_buffer_;
-  std::unique_ptr<wrapper::vulkan::PushConstant> push_constant_;
+  std::unique_ptr<wrapper::vulkan::PushConstant> vertices_constant_;
   std::unique_ptr<wrapper::vulkan::StaticDescriptor> descriptor_;
   wrapper::vulkan::PipelineBuilder pipeline_builder_;
   std::unique_ptr<wrapper::vulkan::Pipeline> pipeline_;

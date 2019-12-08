@@ -62,7 +62,7 @@ inline VkVertexInputBindingDescription GetPerInstanceBindingDescription() {
 
 // Convenient function to return a list of VertexBuffer::Attribute, assuming
 // each vertex will get data of DataType. For now this is only implemented for
-// Vertex2D, Vertex3DNoTex and Vertex3DWithTex.
+// Vertex2D, Vertex3DPosOnly, Vertex3DNoTex and Vertex3DWithTex.
 template <typename DataType>
 std::vector<VertexBuffer::Attribute> GetVertexAttribute();
 

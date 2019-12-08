@@ -54,7 +54,7 @@ class TriangleApp : public Application {
   common::FrameTimer timer_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PerVertexBuffer> vertex_buffer_;
-  std::unique_ptr<PushConstant> push_constant_;
+  std::unique_ptr<PushConstant> alpha_constant_;
   std::unique_ptr<NaiveRenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
   std::unique_ptr<PipelineBuilder> pipeline_builder_;
@@ -84,12 +84,12 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
       pipeline::GetVertexAttribute<Vertex3DNoTex>());
 
   /* Push constant */
-  push_constant_ = absl::make_unique<PushConstant>(context(), sizeof(Alpha),
+  alpha_constant_ = absl::make_unique<PushConstant>(context(), sizeof(Alpha),
                                                    kNumFramesInFlight);
   const VkPushConstantRange push_constant_range{
       VK_SHADER_STAGE_FRAGMENT_BIT,
       /*offset=*/0,
-      push_constant_->size_per_frame(),
+      alpha_constant_->size_per_frame(),
   };
 
   /* Render pass */
@@ -144,7 +144,7 @@ void TriangleApp::Recreate() {
 
 void TriangleApp::UpdateData(int frame) {
   const float elapsed_time = timer_.GetElapsedTimeSinceLaunch();
-  push_constant_->HostData<Alpha>(frame)->value =
+  alpha_constant_->HostData<Alpha>(frame)->value =
       glm::abs(glm::sin(elapsed_time));
 }
 
@@ -158,9 +158,9 @@ void TriangleApp::MainLoop() {
     const vector<RenderPass::RenderOp> render_ops{
         [&](const VkCommandBuffer& command_buffer) {
           pipeline_->Bind(command_buffer);
-          push_constant_->Flush(command_buffer, pipeline_->layout(),
-                                current_frame_, /*target_offset=*/0,
-                                VK_SHADER_STAGE_FRAGMENT_BIT);
+          alpha_constant_->Flush(command_buffer, pipeline_->layout(),
+                                 current_frame_, /*target_offset=*/0,
+                                 VK_SHADER_STAGE_FRAGMENT_BIT);
           vertex_buffer_->Draw(command_buffer, kVertexBufferBindingPoint,
                                /*mesh_index=*/0, /*instance_count=*/1);
         },

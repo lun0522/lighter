@@ -247,8 +247,7 @@ DynamicText::DynamicText(const SharedBasicContext& context,
         /*buffer_info_map=*/{{
             kUniformBufferBindingPoint,
             {GetUniformBufferDescriptorInfo(frame)},
-        }}
-    );
+        }});
     descriptors_[frame]->UpdateImageInfos(
         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, image_info_map);
   }

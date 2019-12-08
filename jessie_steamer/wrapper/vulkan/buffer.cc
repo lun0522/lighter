@@ -540,7 +540,7 @@ Buffer::CopyInfos PerVertexBuffer::NoIndicesDataInfo::CreateCopyInfos(
   VkDeviceSize offset = 0;
   for (const auto vertices : per_mesh_vertices_) {
     mesh_infos.emplace_back(MeshDataInfosNoIndices::Info{
-        static_cast<uint32_t>(vertices.size_per_mesh),
+        static_cast<uint32_t>(vertices.num_units_per_mesh),
         offset,
     });
     copy_infos.emplace_back(Buffer::CopyInfo{
@@ -671,10 +671,10 @@ void DynamicPerVertexBuffer::CopyHostData(const BufferDataInfo& info) {
 }
 
 void PerInstanceBuffer::Bind(const VkCommandBuffer& command_buffer,
-                             uint32_t binding_point) const {
-  constexpr VkDeviceSize kOffset = 0;
+                             uint32_t binding_point, int offset) const {
+  const VkDeviceSize size_offset = per_instance_data_size_ * offset;
   vkCmdBindVertexBuffers(command_buffer, binding_point, /*bindingCount=*/1,
-                         &buffer_, &kOffset);
+                         &buffer_, &size_offset);
 }
 
 StaticPerInstanceBuffer::StaticPerInstanceBuffer(

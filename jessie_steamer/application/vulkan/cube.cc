@@ -57,7 +57,7 @@ class CubeApp : public Application {
   int current_frame_ = 0;
   common::FrameTimer timer_;
   std::unique_ptr<PerFrameCommand> command_;
-  std::unique_ptr<PushConstant> push_constant_;
+  std::unique_ptr<PushConstant> trans_constant_;
   std::unique_ptr<NaiveRenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
   std::unique_ptr<Image> depth_stencil_image_;
@@ -79,7 +79,7 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
   /* Push constant */
-  push_constant_ = absl::make_unique<PushConstant>(
+  trans_constant_ = absl::make_unique<PushConstant>(
       context(), sizeof(Transformation), kNumFramesInFlight);
 
   /* Render pass */
@@ -108,7 +108,7 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
       .AddTextureBindingPoint(ModelBuilder::TextureType::kDiffuse,
                               /*binding_point=*/1)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
-      .AddPushConstant(push_constant_.get(), /*target_offset=*/0)
+      .AddPushConstant(trans_constant_.get(), /*target_offset=*/0)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                  common::file::GetVkShaderPath("simple_3d.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -175,7 +175,7 @@ void CubeApp::UpdateData(int frame) {
                                      glm::vec3{0.0f, 0.0f, 1.0f});
   const glm::mat4 proj = glm::perspective(glm::radians(45.0f),
                                           original_aspect_ratio_, 0.1f, 100.0f);
-  *push_constant_->HostData<Transformation>(frame) = {proj * view * model};
+  *trans_constant_->HostData<Transformation>(frame) = {proj * view * model};
 }
 
 void CubeApp::MainLoop() {

@@ -104,6 +104,14 @@ struct Vertex2D {
   glm::vec2 tex_coord;
 };
 
+// 3D vertex data, including only position.
+struct Vertex3DPosOnly {
+  Vertex3DPosOnly(const glm::vec3& pos) : pos{pos} {}
+
+  // Vertex data.
+  glm::vec3 pos;
+};
+
 // 3D vertex data, consisting of position and color.
 struct Vertex3DNoTex {
   Vertex3DNoTex(const glm::vec3& pos, const glm::vec3& color)

@@ -17,6 +17,7 @@ namespace pipeline {
 namespace {
 
 using common::Vertex2D;
+using common::Vertex3DPosOnly;
 using common::Vertex3DNoTex;
 using common::Vertex3DWithTex;
 using std::vector;
@@ -101,6 +102,16 @@ vector<VertexAttribute> GetVertexAttribute<Vertex2D>() {
       VertexAttribute{
           /*offset=*/static_cast<uint32_t>(offsetof(Vertex2D, tex_coord)),
           VK_FORMAT_R32G32_SFLOAT,
+      },
+  };
+}
+
+template <>
+vector<VertexAttribute> GetVertexAttribute<Vertex3DPosOnly>() {
+  return {
+      VertexAttribute{
+          /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DNoTex, pos)),
+          VK_FORMAT_R32G32B32_SFLOAT,
       },
   };
 }
