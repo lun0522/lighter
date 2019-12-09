@@ -96,6 +96,7 @@ class ButtonMaker {
     kBackgroundSubpassIndex = 0,
     kTextSubpassIndex,
     kNumSubpasses,
+    kNumOverlaySubpasses = kNumSubpasses - kBackgroundSubpassIndex,
   };
 
   /* BEGIN: Consistent with vertex input attributes defined in shaders. */

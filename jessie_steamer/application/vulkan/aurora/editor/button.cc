@@ -132,7 +132,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage() const {
   const NaiveRenderPassBuilder::SubpassConfig subpass_config{
       /*use_opaque_subpass=*/false,
       /*num_transparent_subpasses=*/0,
-      /*num_overlay_subpasses=*/kNumSubpasses,
+      kNumOverlaySubpasses,
   };
   NaiveRenderPassBuilder render_pass_builder{
       context_, subpass_config, /*num_framebuffers=*/1,

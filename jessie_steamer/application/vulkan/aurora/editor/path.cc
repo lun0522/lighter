@@ -110,10 +110,10 @@ void AuroraPath::UpdatePath(
       });
 }
 
-void AuroraPath::UpdateTransMatrix(int frame, const common::Camera& camera) {
-  // TODO: Pass in earth trans matrix.
+void AuroraPath::UpdateTransMatrix(int frame, const common::Camera& camera,
+                                   const glm::mat4& model) {
   trans_constant_->HostData<Transformation>(frame)->proj_view_model =
-      camera.projection() * camera.view();
+      camera.projection() * camera.view() * model;
 }
 
 void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame) const {

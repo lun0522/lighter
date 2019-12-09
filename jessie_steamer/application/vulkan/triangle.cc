@@ -26,6 +26,7 @@ constexpr uint32_t kVertexBufferBindingPoint = 0;
 enum SubpassIndex {
   kTriangleSubpassIndex = 0,
   kNumSubpasses,
+  kNumOverlaySubpasses = kNumSubpasses - kTriangleSubpassIndex,
 };
 
 /* BEGIN: Consistent with uniform blocks defined in shaders. */
@@ -96,7 +97,7 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   const NaiveRenderPassBuilder::SubpassConfig subpass_config{
       /*use_opaque_subpass=*/false,
       /*num_transparent_subpasses=*/0,
-      /*num_overlay_subpasses=*/kNumSubpasses,
+      kNumOverlaySubpasses,
   };
   render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
       context(), subpass_config,

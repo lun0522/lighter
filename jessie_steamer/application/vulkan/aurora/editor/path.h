@@ -48,7 +48,8 @@ class AuroraPath {
                   const std::vector<glm::vec3>& spline_points);
 
   // Updates the transformation matrix.
-  void UpdateTransMatrix(int frame, const common::Camera& camera);
+  void UpdateTransMatrix(int frame, const common::Camera& camera,
+                         const glm::mat4& model);
 
   // Renders the aurora paths.
   // This should be called when 'command_buffer' is recording commands.

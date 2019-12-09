@@ -11,6 +11,7 @@
 
 #include "third_party/absl/memory/memory.h"
 #include "third_party/glm/glm.hpp"
+#include "third_party/glm/gtc/matrix_transform.hpp"
 
 namespace jessie_steamer {
 namespace application {
@@ -25,19 +26,17 @@ enum SubpassIndex {
   kAuroraPathSubpassIndex,
   kButtonSubpassIndex,
   kNumSubpasses,
-  kNumTransparentSubpasses = kAuroraPathSubpassIndex - kModelSubpassIndex,
-  kNumOverlaySubpasses = kButtonSubpassIndex - kAuroraPathSubpassIndex,
+  kNumTransparentSubpasses = kButtonSubpassIndex - kAuroraPathSubpassIndex,
+  kNumOverlaySubpasses = kNumSubpasses - kButtonSubpassIndex,
 };
 
 constexpr float kButtonBounceTime = 0.5f;
 
 // The height of aurora layer is assumed to be at around 100km above the ground.
-constexpr float kEarthModelRadius = 1.0f;
 constexpr float kEarthRadius = 6378.1f;
 constexpr float kAuroraHeight = 100.0f;
-constexpr float kAuroraLayerRadius =
-    (kEarthRadius + kAuroraHeight) / kEarthRadius * kEarthModelRadius;
-const glm::vec3 kEarthCenter{0.0f};
+constexpr float kAuroraRelativeHeight =
+    (kEarthRadius + kAuroraHeight) / kEarthRadius;
 
 glm::vec3 MakeColor(int r, int g, int b) {
   return glm::vec3{r, g, b} / 255.0f;
@@ -51,7 +50,7 @@ Editor::Editor(const WindowContext& window_context,
                int num_frames_in_flight)
     : original_aspect_ratio_{
           util::GetAspectRatio(window_context.frame_size())},
-      earth_{kEarthCenter, kEarthModelRadius} {
+      earth_{/*center=*/glm::vec3{0.0f}, /*radius=*/1.0f} {
   const auto context = window_context.basic_context();
 
   /* Earth and skybox */
@@ -223,7 +222,10 @@ void Editor::UpdateData(const WindowContext& window_context, int frame) {
   celestial_->UpdateEarthData(frame, *camera_, earth_.model_matrix(),
                               earth_texture_index);
   celestial_->UpdateSkyboxData(frame, *camera_, earth_.GetSkyboxModelMatrix());
-  aurora_path_->UpdateTransMatrix(frame, *camera_);
+
+  const glm::mat4 aurora_model = glm::scale(earth_.model_matrix(),
+                                            glm::vec3{kAuroraRelativeHeight});
+  aurora_path_->UpdateTransMatrix(frame, *camera_, aurora_model);
 }
 
 void Editor::Render(const VkCommandBuffer& command_buffer,
@@ -348,8 +350,7 @@ Editor::PathManager::PathManager() {
         kMinNumControlPoints, kMaxNumControlPoints,
         std::vector<glm::vec3>{control_points},
         common::CatmullRomSpline::GetOnSphereSpline(
-            kEarthCenter, kAuroraLayerRadius, kMaxRecursionDepth,
-            kSplineSmoothness)));
+            kMaxRecursionDepth, kSplineSmoothness)));
   }
 }
 

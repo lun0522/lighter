@@ -31,6 +31,7 @@ constexpr uint32_t kVertexBufferBindingPoint = 0;
 enum SubpassIndex {
   kTextSubpassIndex = 0,
   kNumSubpasses,
+  kNumOverlaySubpasses = kNumSubpasses - kTextSubpassIndex,
 };
 
 // Returns the path to font file.
@@ -80,7 +81,7 @@ std::unique_ptr<NaiveRenderPassBuilder> CreateRenderPassBuilder(
   const NaiveRenderPassBuilder::SubpassConfig subpass_config{
       /*use_opaque_subpass=*/false,
       /*num_transparent_subpasses=*/0,
-      /*num_overlay_subpasses=*/kNumSubpasses,
+      kNumOverlaySubpasses,
   };
   return absl::make_unique<NaiveRenderPassBuilder>(
       context, subpass_config, /*num_framebuffers=*/1,

@@ -46,12 +46,9 @@ class BezierSpline : public Spline {
                                       const glm::vec3& p2,
                                       const glm::vec3& p3)>;
 
-  using PostProcessing = std::function<glm::vec3(const glm::vec3& point)>;
-
   BezierSpline(int max_recursion_depth,
                GetMiddlePoint&& get_middle_point,
-               IsSmooth&& is_smooth,
-               PostProcessing&& post_processing);
+               IsSmooth&& is_smooth);
 
   // This class is neither copyable nor movable.
   BezierSpline(const BezierSpline&) = delete;
@@ -70,7 +67,6 @@ class BezierSpline : public Spline {
   const int max_recursion_depth_;
   const GetMiddlePoint get_middle_point_;
   const IsSmooth is_smooth_;
-  const PostProcessing post_processing_;
 };
 
 class CatmullRomSpline : public BezierSpline {
@@ -78,7 +74,6 @@ class CatmullRomSpline : public BezierSpline {
   static const int kMinNumControlPoints;
 
   static std::unique_ptr<Spline> GetOnSphereSpline(
-      const glm::vec3& sphere_center, float sphere_radius,
       int max_recursion_depth, float smoothness);
 
   // Inherits constructor.

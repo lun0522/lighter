@@ -22,12 +22,10 @@ using std::vector;
 
 BezierSpline::BezierSpline(int max_recursion_depth,
                            GetMiddlePoint&& get_middle_point,
-                           IsSmooth&& is_smooth,
-                           PostProcessing&& post_processing)
+                           IsSmooth&& is_smooth)
     : max_recursion_depth_{max_recursion_depth},
       get_middle_point_{std::move(get_middle_point)},
-      is_smooth_{std::move(is_smooth)},
-      post_processing_{std::move(post_processing)} {
+      is_smooth_{std::move(is_smooth)} {
   ASSERT_NON_NULL(get_middle_point_, "get_middle_point must not be nullptr");
   ASSERT_NON_NULL(is_smooth_, "is_smooth must not be nullptr");
 }
@@ -41,8 +39,7 @@ void BezierSpline::Tessellate(const glm::vec3& p0,
   if (++recursion_depth == max_recursion_depth_ ||
       glm::distance(p0, p3) < kMinDistBetweenPoints ||
       is_smooth_(p0, p1, p2, p3)) {
-    spline_points_.emplace_back(
-        post_processing_ == nullptr ? p0 : post_processing_(p0));
+    spline_points_.emplace_back(p0);
     return;
   }
 
@@ -63,20 +60,18 @@ void BezierSpline::BuildSpline(const vector<glm::vec3>& control_points) {
 const int CatmullRomSpline::kMinNumControlPoints = 3;
 
 std::unique_ptr<Spline> CatmullRomSpline::GetOnSphereSpline(
-    const glm::vec3& sphere_center, float sphere_radius,
     int max_recursion_depth, float smoothness) {
   // Middle point calculation based on Slerp:
   // https://en.wikipedia.org/wiki/Slerp
   BezierSpline::GetMiddlePoint get_middle_point =
-      [&sphere_center](const glm::vec3& p0, const glm::vec3& p1) {
-        const float cos_omega = glm::dot(glm::normalize(p0 - sphere_center),
-                                         glm::normalize(p1 - sphere_center));
+      [](const glm::vec3& p0, const glm::vec3& p1) {
+        const float cos_omega = glm::dot(glm::normalize(p0),
+                                         glm::normalize(p1));
         const float omega = glm::acos(cos_omega);
+        // Interpolation factors for both points are the same since we need the
+        // middle point.
         const float interp = glm::sin(0.5f * omega) / glm::sin(omega);
-        // middle_point = center + interp * (p0 - center)
-        //                       + interp * (p1 - center)
-        //              = center + interp * (p0 + p1 - center * 2)
-        return sphere_center + interp * (p0 + p1 - sphere_center * 2.0f);
+        return interp * (p0 + p1);
       };
 
   BezierSpline::IsSmooth is_smooth = [smoothness](const glm::vec3& p0,
@@ -90,14 +85,8 @@ std::unique_ptr<Spline> CatmullRomSpline::GetOnSphereSpline(
            glm::angle(p1p2, p2p3) <= smoothness;
   };
 
-  BezierSpline::PostProcessing post_processing =
-      [&sphere_center, sphere_radius](const glm::vec3& point) {
-        return sphere_center + (point - sphere_center) * sphere_radius;
-      };
-
   return absl::make_unique<CatmullRomSpline>(
-      max_recursion_depth, std::move(get_middle_point), std::move(is_smooth),
-      std::move(post_processing));
+      max_recursion_depth, std::move(get_middle_point), std::move(is_smooth));
 }
 
 void CatmullRomSpline::Tessellate(const glm::vec3& p0,
