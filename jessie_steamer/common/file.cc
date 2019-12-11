@@ -55,7 +55,8 @@ inline absl::string_view GetSuffix(const string& text, size_t start_pos) {
 // length of results. An exception will be thrown if the length does not match.
 vector<string> SplitText(absl::string_view text, char delimiter,
                          int num_segments) {
-  const vector<string> result = absl::StrSplit(text, delimiter);
+  const vector<string> result =
+      absl::StrSplit(text, delimiter, absl::SkipWhitespace{});
   ASSERT_TRUE(
       result.size() == num_segments,
       absl::StrFormat("Invalid number of segments (expected %d, but get %d)",
@@ -206,7 +207,8 @@ ObjFile::ObjFile(const string& path, int index_base) {
     } catch (const std::invalid_argument& e) {
       FATAL(absl::StrFormat("Invalid argument at line %d: %s", line_num, line));
     } catch (const std::exception& e) {
-      FATAL(absl::StrFormat("Failed to parse line %d: %s", line_num, line));
+      FATAL(absl::StrFormat("Failed to parse line %d: %s\n%s",
+                            line_num, line, e.what()));
     }
   }
 }

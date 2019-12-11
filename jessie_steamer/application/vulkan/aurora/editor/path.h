@@ -1,5 +1,5 @@
 //
-//  celestial.h
+//  path.h
 //
 //  Created by Pujun Lun on 12/6/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
@@ -56,6 +56,14 @@ class AuroraPath {
   void Draw(const VkCommandBuffer& command_buffer, int frame) const;
 
  private:
+  // Vertex buffers for a single aurora path.
+  struct PathVertexBuffers {
+    std::unique_ptr<wrapper::vulkan::DynamicPerInstanceBuffer>
+        control_points_buffer;
+    std::unique_ptr<wrapper::vulkan::DynamicPerVertexBuffer>
+        spline_points_buffer;
+  };
+
   // Number of aurora paths.
   const int num_paths_;
 
@@ -63,14 +71,20 @@ class AuroraPath {
   // aurora paths does not change when the size of framebuffers changes.
   const float viewport_aspect_ratio_;
 
+  // Records the number of control points for each aurora path.
+  std::vector<int> num_control_points_;
+
   // Objects used for rendering.
-  std::vector<std::unique_ptr<wrapper::vulkan::DynamicPerVertexBuffer>>
-      path_vertex_buffers_;
+  std::unique_ptr<wrapper::vulkan::StaticPerVertexBuffer> sphere_vertex_buffer_;
+  std::vector<PathVertexBuffers> paths_vertex_buffers_;
   std::unique_ptr<wrapper::vulkan::DynamicPerInstanceBuffer>
       color_alpha_vertex_buffer_;
-  std::unique_ptr<wrapper::vulkan::PushConstant> trans_constant_;
-  wrapper::vulkan::PipelineBuilder pipeline_builder_;
-  std::unique_ptr<wrapper::vulkan::Pipeline> pipeline_;
+  std::unique_ptr<wrapper::vulkan::PushConstant> control_trans_constant_;
+  std::unique_ptr<wrapper::vulkan::PushConstant> spline_trans_constant_;
+  wrapper::vulkan::PipelineBuilder control_pipeline_builder_;
+  std::unique_ptr<wrapper::vulkan::Pipeline> control_pipeline_;
+  wrapper::vulkan::PipelineBuilder spline_pipeline_builder_;
+  std::unique_ptr<wrapper::vulkan::Pipeline> spline_pipeline_;
 };
 
 } /* namespace aurora */
