@@ -34,7 +34,7 @@ struct ButtonInfo {
   // Contains information for rendering a single button.
   struct Info {
     std::string text;
-    glm::vec3 colors[kNumStates];
+    std::array<glm::vec3, kNumStates> colors;
     glm::vec2 center;
   };
 
@@ -45,7 +45,7 @@ struct ButtonInfo {
   float base_y;
   float top_y;
   glm::vec3 text_color;
-  float button_alphas[kNumStates];
+  std::array<float, kNumStates> button_alphas;
   glm::vec2 button_size;
   std::vector<Info> button_infos;
 };

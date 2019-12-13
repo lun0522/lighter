@@ -8,6 +8,7 @@
 #ifndef JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_EDITOR_EDITOR_H
 #define JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_EDITOR_EDITOR_H
 
+#include <array>
 #include <memory>
 #include <vector>
 
@@ -30,7 +31,16 @@ namespace aurora {
 
 class Editor {
  public:
-  static const int kNumAuroraPaths;
+  enum ButtonIndex {
+    kPath1ButtonIndex,
+    kPath2ButtonIndex,
+    kPath3ButtonIndex,
+    kEditingButtonIndex,
+    kDaylightButtonIndex,
+    kAuroraButtonIndex,
+    kNumButtons,
+    kNumAuroraPaths = kEditingButtonIndex,
+  };
 
   Editor(const wrapper::vulkan::WindowContext& window_context,
          int num_frames_in_flight);
@@ -56,16 +66,6 @@ class Editor {
  private:
   class StateManager {
    public:
-    enum ButtonIndex {
-      kPath1ButtonIndex,
-      kPath2ButtonIndex,
-      kPath3ButtonIndex,
-      kEditingButtonIndex,
-      kDaylightButtonIndex,
-      kAuroraButtonIndex,
-      kNumButtons,
-    };
-
     explicit StateManager();
 
     // This class is neither copyable nor movable.

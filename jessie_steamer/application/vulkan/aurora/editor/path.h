@@ -8,6 +8,7 @@
 #ifndef JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_EDITOR_PATH_H
 #define JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_EDITOR_PATH_H
 
+#include <array>
 #include <memory>
 #include <vector>
 
@@ -17,6 +18,7 @@
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
+#include "third_party/absl/types/optional.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
@@ -27,11 +29,14 @@ namespace aurora {
 
 class AuroraPath {
  public:
+  enum State { kSelected = 0, kUnselected, kNumStates };
+
   // When the frame is resized, the aspect ratio of viewport will always be
   // 'viewport_aspect_ratio'.
   AuroraPath(const wrapper::vulkan::SharedBasicContext& context,
-             int num_paths, float viewport_aspect_ratio,
-             int num_frames_in_flight);
+             float viewport_aspect_ratio, int num_frames_in_flight,
+             const std::vector<std::array<glm::vec3, kNumStates>>& path_colors,
+             const std::array<float, kNumStates>& path_alphas);
 
   // This class is neither copyable nor movable.
   AuroraPath(const AuroraPath&) = delete;
@@ -53,7 +58,8 @@ class AuroraPath {
 
   // Renders the aurora paths.
   // This should be called when 'command_buffer' is recording commands.
-  void Draw(const VkCommandBuffer& command_buffer, int frame) const;
+  void Draw(const VkCommandBuffer& command_buffer, int frame,
+            const absl::optional<int>& selected_path_index);
 
  private:
   // Vertex buffers for a single aurora path.
@@ -64,22 +70,26 @@ class AuroraPath {
         spline_points_buffer;
   };
 
-  // Number of aurora paths.
-  const int num_paths_;
-
   // Aspect ratio of the viewport. This is used to make sure the aspect ratio of
   // aurora paths does not change when the size of framebuffers changes.
   const float viewport_aspect_ratio_;
 
+  std::vector<std::array<glm::vec4, kNumStates>> path_color_alphas_;
+
+  // Number of aurora paths.
+  const int num_paths_;
+
   // Records the number of control points for each aurora path.
   std::vector<int> num_control_points_;
+
+  std::vector<glm::vec4> color_alphas_to_render_;
 
   // Objects used for rendering.
   std::unique_ptr<wrapper::vulkan::StaticPerVertexBuffer> sphere_vertex_buffer_;
   std::vector<PathVertexBuffers> paths_vertex_buffers_;
   std::unique_ptr<wrapper::vulkan::DynamicPerInstanceBuffer>
       color_alpha_vertex_buffer_;
-  std::unique_ptr<wrapper::vulkan::PushConstant> control_trans_constant_;
+  std::unique_ptr<wrapper::vulkan::PushConstant> control_render_constant_;
   std::unique_ptr<wrapper::vulkan::PushConstant> spline_trans_constant_;
   wrapper::vulkan::PipelineBuilder control_pipeline_builder_;
   std::unique_ptr<wrapper::vulkan::Pipeline> control_pipeline_;

@@ -37,5 +37,8 @@ cc_library(
     name = "path",
     hdrs = ["path.h"],
     srcs = ["path.cc"],
-    deps = ["//jessie_steamer/application/vulkan:common"],
+    deps = [
+        "//jessie_steamer/application/vulkan:common",
+        "//third_party/absl/types:optional",
+    ],
 )
