@@ -88,12 +88,17 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
 
   /* Camera */
   common::Camera::Config config;
-  common::UserControlledCamera::ControlConfig control_config;
   config.position = glm::vec3{0.0f, 4.0f, -12.0f};
   config.look_at = glm::vec3{0.0f, 4.0f, 0.0f};
-  control_config.lock_center = true;
+  const common::PerspectiveCamera::PersConfig pers_config{
+      /*fov_aspect_ratio=*/original_aspect_ratio};
+  auto pers_camera =
+      absl::make_unique<common::PerspectiveCamera>(config, pers_config);
+
+  common::UserControlledCamera::ControlConfig control_config;
+  control_config.lock_center = config.look_at;
   camera_ = absl::make_unique<common::UserControlledCamera>(
-      config, control_config, original_aspect_ratio);
+      control_config, std::move(pers_camera));
 
   /* Window */
   (*window_context_.mutable_window())

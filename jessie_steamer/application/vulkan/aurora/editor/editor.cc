@@ -84,8 +84,7 @@ Editor::Editor(const WindowContext& window_context,
 
   /* Aurora path */
   aurora_path_ = absl::make_unique<AuroraPath>(
-      context, original_aspect_ratio, /*control_point_scale=*/2.0f,
-      num_frames_in_flight,
+      context, original_aspect_ratio, num_frames_in_flight,
       /*path_colors=*/vector<array<glm::vec3, kNumButtonStates>>{
           GetAllButtonColors()[kPath1ButtonIndex],
           GetAllButtonColors()[kPath2ButtonIndex],
@@ -135,9 +134,11 @@ Editor::Editor(const WindowContext& window_context,
   /* Camera */
   common::Camera::Config config;
   config.position = glm::vec3{0.0f, 0.0f, 3.0f};
+  const common::PerspectiveCamera::PersConfig pers_config{
+      /*fov_aspect_ratio=*/original_aspect_ratio};
   camera_ = absl::make_unique<common::UserControlledCamera>(
-      config, common::UserControlledCamera::ControlConfig{},
-      original_aspect_ratio);
+      common::UserControlledCamera::ControlConfig{},
+      absl::make_unique<common::PerspectiveCamera>(config, pers_config));
   camera_->SetActivity(true);
 
   /* Render pass */
@@ -241,22 +242,23 @@ void Editor::UpdateData(const WindowContext& window_context, int frame) {
 
   if (state_manager_.is_selected(kEditingButtonIndex)) {
     // Do not interact with earth in editing mode.
-    earth_.Update(*camera_, /*click_ndc=*/absl::nullopt);
+    earth_.Update(camera_->get(), /*click_ndc=*/absl::nullopt);
   } else {
-    earth_.Update(*camera_, click_ndc);
+    earth_.Update(camera_->get(), click_ndc);
   }
 
   const auto earth_texture_index =
       state_manager_.is_selected(kDaylightButtonIndex)
           ? Celestial::kEarthDayTextureIndex
           : Celestial::kEarthNightTextureIndex;
-  celestial_->UpdateEarthData(frame, *camera_, earth_.model_matrix(),
+  celestial_->UpdateEarthData(frame, camera_->get(), earth_.model_matrix(),
                               earth_texture_index);
-  celestial_->UpdateSkyboxData(frame, *camera_, earth_.GetSkyboxModelMatrix());
+  celestial_->UpdateSkyboxData(frame, camera_->get(),
+                               earth_.GetSkyboxModelMatrix());
 
   const glm::mat4 aurora_model = glm::scale(earth_.model_matrix(),
                                             glm::vec3{kAuroraRelativeHeight});
-  aurora_path_->UpdateTransMatrix(frame, *camera_, aurora_model);
+  aurora_path_->UpdateTransMatrix(frame, camera_->get(), aurora_model);
 }
 
 void Editor::Render(const VkCommandBuffer& command_buffer,

@@ -30,24 +30,9 @@ inline glm::vec3 ComputeFront(const glm::vec3& current_pos,
 } /* namespace */
 
 Camera::Camera(const Config& config)
-    : near_{config.near}, far_{config.far}, up_{config.up},
-      fov_{config.field_of_view},
-      fov_aspect_ratio_{config.fov_aspect_ratio}, pos_{config.position} {
+    : near_{config.near}, far_{config.far},
+      up_{config.up}, pos_{config.position} {
   UpdateDirection(ComputeFront(pos_, config.look_at));
-}
-
-void Camera::UpdateFieldOfView(float fov) {
-  fov_ = fov;
-  UpdateProjection();
-}
-
-void Camera::UpdateFovAspectRatio(float aspect_ratio) {
-  fov_aspect_ratio_ = aspect_ratio;
-  UpdateProjection();
-}
-
-void Camera::UpdateProjection() {
-  proj_ = glm::perspective(glm::radians(fov_), fov_aspect_ratio_, near_, far_);
 }
 
 void Camera::UpdatePosition(const glm::vec3& offset) {
@@ -65,22 +50,56 @@ void Camera::UpdateView() {
   view_ = glm::lookAt(pos_, pos_ + front_, up_);
 }
 
-UserControlledCamera::UserControlledCamera(const Config& config,
-                                           const ControlConfig& control_config,
-                                           float fov_aspect_ratio)
-    : Camera{config},
+PerspectiveCamera::PerspectiveCamera(const Camera::Config& config,
+                                     const PersConfig& pers_config)
+    : Camera{config}, fov_{pers_config.field_of_view},
+      fov_aspect_ratio_{pers_config.fov_aspect_ratio} {
+  UpdateProjection();
+}
+
+void PerspectiveCamera::UpdateFieldOfView(float fov) {
+  fov_ = fov;
+  UpdateProjection();
+}
+
+void PerspectiveCamera::UpdateProjection() {
+  proj_ = glm::perspective(glm::radians(fov_), fov_aspect_ratio_, near_, far_);
+}
+
+OrthographicCamera::OrthographicCamera(const Camera::Config& config,
+                                       const OrthoConfig& ortho_config)
+    : Camera{config}, aspect_ratio_{ortho_config.aspect_ratio},
+      view_width_{ortho_config.view_width} {
+  UpdateProjection();
+}
+
+void OrthographicCamera::UpdateViewWidth(float view_width) {
+  view_width_ = view_width;
+  UpdateProjection();
+}
+
+void OrthographicCamera::UpdateProjection() {
+  const float view_height = view_width_ / aspect_ratio_;
+  const auto half_view_size = glm::vec2{view_width_, view_height} / 2.0f;
+  proj_ = glm::ortho(-half_view_size.x, half_view_size.x,
+                     -half_view_size.y, half_view_size.y, near_, far_);
+}
+
+UserControlledCamera::UserControlledCamera(const ControlConfig& control_config,
+                                           std::unique_ptr<Camera>&& camera)
+    : camera_{std::move(camera)},
       move_speed_{control_config.move_speed},
       turn_speed_{control_config.turn_speed},
-      center_{config.look_at}, lock_center_{control_config.lock_center},
-      pitch_{glm::asin(front().y)},
-      yaw_{glm::orientedAngle(
-          GetRefFrontInZxPlane(),
-          glm::normalize(glm::vec2{front().z, front().x}))} {
-  UpdateFovAspectRatio(fov_aspect_ratio);
+      lock_center_{control_config.lock_center} {
+  const glm::vec3& front = camera_->front();
+  pitch_ = glm::asin(front.y);
+  yaw_ = glm::orientedAngle(
+      GetRefFrontInZxPlane(), glm::normalize(glm::vec2{front.z, front.x}));
+  UpdateDirectionIfNeeded();
 }
 
 void UserControlledCamera::DidMoveCursor(double x, double y) {
-  if (!is_active_ || lock_center_) {
+  if (!is_active_ || lock_center_.has_value()) {
     return;
   }
 
@@ -90,7 +109,7 @@ void UserControlledCamera::DidMoveCursor(double x, double y) {
   pitch_ = glm::clamp(pitch_ - offset_y, glm::radians(-89.9f),
                       glm::radians(89.9f));
   yaw_ = glm::mod(yaw_ - offset_x, glm::radians(360.0f));
-  UpdateDirection(/*front=*/{
+  camera_->UpdateDirection(/*front=*/{
       glm::cos(pitch_) * glm::sin(yaw_),
       glm::sin(pitch_),
       glm::cos(pitch_) * glm::cos(yaw_),
@@ -103,8 +122,21 @@ void UserControlledCamera::DidScroll(
     return;
   }
 
-  UpdateFieldOfView(static_cast<float>(
-      glm::clamp(field_of_view() + delta, min_val, max_val)));
+  auto* pers_camera = dynamic_cast<PerspectiveCamera*>(camera_.get());
+  if (pers_camera != nullptr) {
+    pers_camera->UpdateFieldOfView(
+        glm::clamp(pers_camera->field_of_view() + delta, min_val, max_val));
+    return;
+  }
+
+  auto* ortho_camera = dynamic_cast<OrthographicCamera*>(camera_.get());
+  if (ortho_camera != nullptr) {
+    ortho_camera->UpdateViewWidth(
+        glm::clamp(ortho_camera->view_width() + delta, min_val, max_val));
+    return;
+  }
+
+  FATAL("Unrecognized camera type");
 }
 
 void UserControlledCamera::DidPressKey(ControlKey key, float elapsed_time) {
@@ -115,21 +147,25 @@ void UserControlledCamera::DidPressKey(ControlKey key, float elapsed_time) {
   const float distance = elapsed_time * move_speed_;
   switch (key) {
     case ControlKey::kUp:
-      UpdatePosition(/*offset=*/+front() * distance);
+      camera_->UpdatePosition(/*offset=*/+camera_->front() * distance);
       break;
     case ControlKey::kDown:
-      UpdatePosition(/*offset=*/-front() * distance);
+      camera_->UpdatePosition(/*offset=*/-camera_->front() * distance);
       break;
     case ControlKey::kLeft:
-      UpdatePosition(/*offset=*/-right() * distance);
+      camera_->UpdatePosition(/*offset=*/-camera_->right() * distance);
       break;
     case ControlKey::kRight:
-      UpdatePosition(/*offset=*/+right() * distance);
+      camera_->UpdatePosition(/*offset=*/+camera_->right() * distance);
       break;
   }
+  UpdateDirectionIfNeeded();
+}
 
-  if (lock_center_) {
-    UpdateDirection(ComputeFront(position(), center_));
+void UserControlledCamera::UpdateDirectionIfNeeded() {
+  if (lock_center_.has_value()) {
+    camera_->UpdateDirection(
+        ComputeFront(camera_->position(), lock_center_.value()));
   }
 }
 

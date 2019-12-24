@@ -127,9 +127,11 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
   common::Camera::Config config;
   config.position = glm::vec3{1.6f, -5.1f, -5.9f};
   config.look_at = glm::vec3{-2.4f, -0.8f, 0.0f};
+  const common::PerspectiveCamera::PersConfig pers_config{
+      /*fov_aspect_ratio=*/original_aspect_ratio};
   camera_ = absl::make_unique<common::UserControlledCamera>(
-      config, common::UserControlledCamera::ControlConfig{},
-      original_aspect_ratio);
+      common::UserControlledCamera::ControlConfig{},
+      absl::make_unique<common::PerspectiveCamera>(config, pers_config));
 
   /* Window */
   (*window_context_.mutable_window())

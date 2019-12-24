@@ -67,12 +67,10 @@ vector<common::Vertex3DPosOnly> ExtractPos(
 } /* namespace */
 
 AuroraPath::AuroraPath(const SharedBasicContext& context,
-                       float viewport_aspect_ratio, float control_point_scale,
-                       int num_frames_in_flight,
+                       float viewport_aspect_ratio, int num_frames_in_flight,
                        const vector<array<glm::vec3, kNumStates>>& path_colors,
                        const array<float, kNumStates>& path_alphas)
     : viewport_aspect_ratio_{viewport_aspect_ratio},
-      control_point_scale_{control_point_scale},
       num_paths_{static_cast<int>(path_colors.size())},
       num_control_points_(num_paths_), color_alphas_to_render_(num_paths_),
       control_pipeline_builder_{context},

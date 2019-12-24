@@ -108,7 +108,7 @@ anything related to it.
 
 ![](https://docs.google.com/uc?id=1W05t3I4SXnW6lEGaR5nh-si7s4sy46Ji)
 
-**Camera** models a prospective camera. It exposes methods for updating the
+**Camera** models a perspective camera. It exposes methods for updating the
 field of view, screen size, position and direction, and nothing more. It does
 not care about where the control signal comes from. **UserControlledCamera** is
 the one that we should use in applications. It can respond to inputs from
