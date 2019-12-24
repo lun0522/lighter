@@ -83,8 +83,8 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
   using ControlKey = common::UserControlledCamera::ControlKey;
   using TextureType = ModelBuilder::TextureType;
 
-  const auto original_aspect_ratio =
-      util::GetAspectRatio(window_context_.frame_size());
+  const float original_aspect_ratio =
+      window_context_.window().original_aspect_ratio();
 
   /* Camera */
   common::Camera::Config config;
@@ -194,7 +194,7 @@ void NanosuitApp::Recreate() {
   camera_->SetCursorPos(window_context_.window().GetCursorPos());
 
   /* Depth image */
-  const auto frame_size = window_context_.frame_size();
+  const VkExtent2D& frame_size = window_context_.frame_size();
   depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
       context(), frame_size, window_context_.multisampling_mode());
 

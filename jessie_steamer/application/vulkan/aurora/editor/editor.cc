@@ -73,18 +73,19 @@ const array<float, kNumButtonStates>& GetButtonAlphas() {
 
 Editor::Editor(const WindowContext& window_context,
                int num_frames_in_flight)
-    : original_aspect_ratio_{
-          util::GetAspectRatio(window_context.frame_size())},
-      earth_{/*center=*/glm::vec3{0.0f}, /*radius=*/1.0f} {
+    : earth_{/*center=*/glm::vec3{0.0f}, /*radius=*/1.0f} {
   const auto context = window_context.basic_context();
+  const float original_aspect_ratio =
+      window_context.window().original_aspect_ratio();
 
   /* Earth and skybox */
   celestial_ = absl::make_unique<Celestial>(
-      context, original_aspect_ratio_, num_frames_in_flight);
+      context, original_aspect_ratio, num_frames_in_flight);
 
   /* Aurora path */
   aurora_path_ = absl::make_unique<AuroraPath>(
-      context, original_aspect_ratio_, num_frames_in_flight,
+      context, original_aspect_ratio, /*control_point_scale=*/2.0f,
+      num_frames_in_flight,
       /*path_colors=*/vector<array<glm::vec3, kNumButtonStates>>{
           GetAllButtonColors()[kPath1ButtonIndex],
           GetAllButtonColors()[kPath2ButtonIndex],
@@ -129,14 +130,14 @@ Editor::Editor(const WindowContext& window_context,
       },
   };
   button_ = absl::make_unique<Button>(
-      context, original_aspect_ratio_, button_info);
+      context, original_aspect_ratio, button_info);
 
   /* Camera */
   common::Camera::Config config;
   config.position = glm::vec3{0.0f, 0.0f, 3.0f};
   camera_ = absl::make_unique<common::UserControlledCamera>(
       config, common::UserControlledCamera::ControlConfig{},
-      original_aspect_ratio_);
+      original_aspect_ratio);
   camera_->SetActivity(true);
 
   /* Render pass */
@@ -214,9 +215,10 @@ void Editor::UpdateData(const WindowContext& window_context, int frame) {
     // When the frame is resized, the viewport is changed to maintain the
     // aspect ratio, hence we need to consider the distortion caused by the
     // viewport change.
-    const auto current_aspect_ratio =
+    const float current_aspect_ratio =
         util::GetAspectRatio(window_context.frame_size());
-    const float distortion = current_aspect_ratio / original_aspect_ratio_;
+    const float distortion =
+        current_aspect_ratio / window_context.window().original_aspect_ratio();
     if (distortion > 1.0f) {
       click_ndc->x *= distortion;
     } else {
@@ -231,16 +233,21 @@ void Editor::UpdateData(const WindowContext& window_context, int frame) {
     if (clicked_button_index.has_value()) {
       clicked_button = static_cast<ButtonIndex>(
           clicked_button_index.value());
-      // If any button is clicked, the earth is not clicked.
+      // If any button is hit, do not interact with earth or aurora.
       click_ndc = absl::nullopt;
     }
   }
   state_manager_.Update(clicked_button);
-  earth_.Update(*camera_, click_ndc);
+
+  if (state_manager_.is_selected(kEditingButtonIndex)) {
+    // Do not interact with earth in editing mode.
+    earth_.Update(*camera_, /*click_ndc=*/absl::nullopt);
+  } else {
+    earth_.Update(*camera_, click_ndc);
+  }
 
   const auto earth_texture_index =
-      state_manager_.button_state(kDaylightButtonIndex) ==
-          Button::State::kSelected
+      state_manager_.is_selected(kDaylightButtonIndex)
           ? Celestial::kEarthDayTextureIndex
           : Celestial::kEarthNightTextureIndex;
   celestial_->UpdateEarthData(frame, *camera_, earth_.model_matrix(),
@@ -256,7 +263,7 @@ void Editor::Render(const VkCommandBuffer& command_buffer,
                     uint32_t framebuffer_index, int current_frame) {
   absl::optional<int> selected_path_index;
   for (int index = kPath1ButtonIndex; index <= kPath3ButtonIndex; ++index) {
-    if (state_manager_.button_states()[index] == Button::State::kSelected) {
+    if (state_manager_.is_selected(static_cast<ButtonIndex>(index))) {
       selected_path_index = index;
       break;
     }
@@ -302,7 +309,7 @@ void Editor::StateManager::Update(
     case kPath1ButtonIndex:
     case kPath2ButtonIndex:
     case kPath3ButtonIndex: {
-      if (button_states_[button_index] == Button::State::kUnselected) {
+      if (is_unselected(button_index)) {
         FlipButtonState(last_edited_path_);
         FlipButtonState(button_index);
         last_edited_path_ = button_index;
@@ -311,7 +318,7 @@ void Editor::StateManager::Update(
     }
     case kEditingButtonIndex: {
       FlipButtonState(button_index);
-      if (button_states_[button_index] == Button::State::kSelected) {
+      if (is_selected(button_index)) {
         SetPathButtonStates(Button::State::kUnselected);
         FlipButtonState(last_edited_path_);
       } else {

@@ -60,7 +60,9 @@ void GlfwMouseButtonCallback(
 
 } /* namespace window_callback */
 
-Window::Window(const std::string& name, const glm::ivec2& screen_size) {
+Window::Window(const std::string& name, const glm::ivec2& screen_size)
+    : original_aspect_ratio_{
+          static_cast<float>(screen_size.x) / screen_size.y} {
   glfwInit();
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);

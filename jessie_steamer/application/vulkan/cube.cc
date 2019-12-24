@@ -53,7 +53,6 @@ class CubeApp : public Application {
   // Updates per-frame data.
   void UpdateData(int frame);
 
-  const float original_aspect_ratio_;
   int current_frame_ = 0;
   common::FrameTimer timer_;
   std::unique_ptr<PerFrameCommand> command_;
@@ -69,11 +68,12 @@ class CubeApp : public Application {
 } /* namespace */
 
 CubeApp::CubeApp(const WindowContext::Config& window_config)
-    : Application{"Cube", window_config},
-      original_aspect_ratio_{
-          util::GetAspectRatio(window_context_.frame_size())} {
+    : Application{"Cube", window_config} {
   // Prevent shaders from being auto released.
   ModelBuilder::AutoReleaseShaderPool shader_pool;
+
+  const float original_aspect_ratio =
+      window_context_.window().original_aspect_ratio();
 
   /* Command buffer */
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
@@ -96,7 +96,7 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
   // TODO: Add utils for resource paths and shader paths.
   /* Model */
   cube_model_ = ModelBuilder{
-      context(), "cube", kNumFramesInFlight, original_aspect_ratio_,
+      context(), "cube", kNumFramesInFlight, original_aspect_ratio,
       ModelBuilder::SingleMeshResource{
           common::file::GetResourcePath("model/cube.obj"), kObjFileIndexBase,
           /*tex_source_map=*/{{
@@ -119,10 +119,10 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
   constexpr auto kFont = Text::Font::kGeorgia;
   constexpr int kFontHeight = 100;
   static_text_ = absl::make_unique<StaticText>(
-      context(), kNumFramesInFlight, original_aspect_ratio_,
+      context(), kNumFramesInFlight, original_aspect_ratio,
       vector<std::string>{"FPS: "}, kFont, kFontHeight);
   dynamic_text_ = absl::make_unique<DynamicText>(
-      context(), kNumFramesInFlight, original_aspect_ratio_,
+      context(), kNumFramesInFlight, original_aspect_ratio,
       vector<std::string>{"01234567890"}, kFont, kFontHeight);
 }
 
@@ -173,8 +173,9 @@ void CubeApp::UpdateData(int frame) {
                                       glm::vec3{1.0f, 1.0f, 0.0f});
   const glm::mat4 view = glm::lookAt(glm::vec3{3.0f}, glm::vec3{0.0f},
                                      glm::vec3{0.0f, 0.0f, 1.0f});
-  const glm::mat4 proj = glm::perspective(glm::radians(45.0f),
-                                          original_aspect_ratio_, 0.1f, 100.0f);
+  const glm::mat4 proj = glm::perspective(
+      glm::radians(45.0f), window_context_.window().original_aspect_ratio(),
+      0.1f, 100.0f);
   *trans_constant_->HostData<Transformation>(frame) = {proj * view * model};
 }
 

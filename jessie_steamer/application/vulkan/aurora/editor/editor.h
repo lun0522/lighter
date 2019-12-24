@@ -75,8 +75,11 @@ class Editor {
     void Update(const absl::optional<ButtonIndex>& clicked_button);
 
     // Accessors.
-    Button::State button_state(ButtonIndex index) const {
-      return button_states_[index];
+    bool is_selected(ButtonIndex index) const {
+      return button_states_[index] == Button::State::kSelected;
+    }
+    bool is_unselected(ButtonIndex index) const {
+      return button_states_[index] == Button::State::kUnselected;
     }
     const std::vector<Button::State>& button_states() const {
       return button_states_;
@@ -117,7 +120,6 @@ class Editor {
     std::vector<std::unique_ptr<common::SplineEditor>> spline_editors_;
   };
 
-  const float original_aspect_ratio_;
   bool is_pressing_left_ = false;
   common::Sphere earth_;
   StateManager state_manager_;

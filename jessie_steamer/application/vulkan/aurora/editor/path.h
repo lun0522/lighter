@@ -34,7 +34,8 @@ class AuroraPath {
   // When the frame is resized, the aspect ratio of viewport will always be
   // 'viewport_aspect_ratio'.
   AuroraPath(const wrapper::vulkan::SharedBasicContext& context,
-             float viewport_aspect_ratio, int num_frames_in_flight,
+             float viewport_aspect_ratio, float control_point_scale,
+             int num_frames_in_flight,
              const std::vector<std::array<glm::vec3, kNumStates>>& path_colors,
              const std::array<float, kNumStates>& path_alphas);
 
@@ -73,6 +74,8 @@ class AuroraPath {
   // Aspect ratio of the viewport. This is used to make sure the aspect ratio of
   // aurora paths does not change when the size of framebuffers changes.
   const float viewport_aspect_ratio_;
+
+  const float control_point_scale_;
 
   std::vector<std::array<glm::vec4, kNumStates>> path_color_alphas_;
 

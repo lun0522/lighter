@@ -120,8 +120,8 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
   using ControlKey = common::UserControlledCamera::ControlKey;
   using TextureType = ModelBuilder::TextureType;
 
-  const auto original_aspect_ratio =
-      util::GetAspectRatio(window_context_.frame_size());
+  const float original_aspect_ratio =
+      window_context_.window().original_aspect_ratio();
 
   /* Camera */
   common::Camera::Config config;

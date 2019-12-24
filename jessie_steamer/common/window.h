@@ -118,6 +118,7 @@ class Window {
 
   // Accessors.
   bool is_resized() const { return is_resized_; }
+  float original_aspect_ratio() const { return original_aspect_ratio_; }
 
  private:
   friend void window_callback::GlfwResizeWindowCallback(GLFWwindow*, int, int);
@@ -137,6 +138,9 @@ class Window {
   // greater than the window size. This should be called after the window is
   // created, and whenever it is recreated.
   void UpdateRetinaRatio();
+
+  // The aspect ratio of 'screen_size' passed to the constructor.
+  const float original_aspect_ratio_;
 
   // Whether the window has been resized.
   bool is_resized_ = false;
