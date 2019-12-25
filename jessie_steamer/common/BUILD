@@ -74,6 +74,7 @@ cc_library(
     deps = [
         ":camera",
         ":timer",
+        ":util",
         "//third_party/absl/types:optional",
         "//third_party/absl/types:variant",
         "//third_party:glm",

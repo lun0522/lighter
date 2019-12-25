@@ -91,7 +91,7 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
   config.position = glm::vec3{0.0f, 4.0f, -12.0f};
   config.look_at = glm::vec3{0.0f, 4.0f, 0.0f};
   const common::PerspectiveCamera::PersConfig pers_config{
-      /*fov_aspect_ratio=*/original_aspect_ratio};
+      original_aspect_ratio};
   auto pers_camera =
       absl::make_unique<common::PerspectiveCamera>(config, pers_config);
 

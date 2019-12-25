@@ -7,6 +7,7 @@
 
 #include "jessie_steamer/common/rotation.h"
 
+#include "jessie_steamer/common/util.h"
 #define GLM_ENABLE_EXPERIMENTAL
 #include "third_party/glm/gtx/intersect.hpp"
 #include "third_party/glm/gtx/vector_angle.hpp"
@@ -18,9 +19,16 @@ namespace {
 constexpr float kInertialRotationCoeff = 1.5f;
 
 // Applies 'transform' to a 3D 'point'.
-glm::vec3 TransformPoint(const glm::mat4& transform, const glm::vec3& point) {
+inline glm::vec3 TransformPoint(const glm::mat4& transform,
+                                const glm::vec3& point) {
   const glm::vec4 transformed = transform * glm::vec4{point, 1.0f};
   return glm::vec3{transformed} / transformed.w;
+}
+
+// Applies 'transform' to a 3D 'vector'.
+inline glm::vec3 TransformVector(const glm::mat4& transform,
+                                 const glm::vec3& vector) {
+  return glm::vec3{transform * glm::vec4{vector, 0.0f}};
 }
 
 } /* namespace */
@@ -119,23 +127,45 @@ Sphere::Sphere(const glm::vec3& center, float radius)
   model_matrix_ = glm::scale(model_matrix_, glm::vec3{radius_});
 }
 
-absl::optional<glm::vec3> Sphere::GetIntersection(
-    const common::Camera& camera, const glm::vec2& click_ndc) const {
+Sphere::Ray Sphere::GetClickingRay(const Camera& camera,
+                                   const glm::vec2& click_ndc) const {
   // All computation will be done in the object space.
   const glm::mat4 world_to_object = glm::inverse(model_matrix_);
   const glm::mat4 world_to_ndc = camera.projection() * camera.view();
   const glm::mat4 ndc_to_world = glm::inverse(world_to_ndc);
   const glm::mat4 ndc_to_object = world_to_object * ndc_to_world;
 
-  const glm::vec3 camera_pos =
-      TransformPoint(world_to_object, camera.position());
-  // Z value does not matter since this is in the NDC space.
-  const glm::vec3 click_pos =
-      TransformPoint(ndc_to_object, glm::vec3{click_ndc, 1.0f});
+  if (dynamic_cast<const common::PerspectiveCamera*>(&camera) != nullptr) {
+    const glm::vec3 camera_pos =
+        TransformPoint(world_to_object, camera.position());
+    constexpr float kFarPlaneNdc = 1.0f;
+    const glm::vec3 click_pos =
+        TransformPoint(ndc_to_object, glm::vec3{click_ndc, kFarPlaneNdc});
+    return Ray{/*start=*/camera_pos, /*direction=*/click_pos - camera_pos};
+  }
 
+  if (dynamic_cast<const common::OrthographicCamera*>(&camera) != nullptr) {
+#ifdef USE_VULKAN
+    constexpr float kNearPlaneNdc = 0.0f;
+#else  /* !USE_VULKAN */
+    constexpr float kNearPlaneNdc = -1.0f;
+#endif /* USE_VULKAN */
+    const glm::vec3 click_pos =
+        TransformPoint(ndc_to_object, glm::vec3{click_ndc, kNearPlaneNdc});
+    const glm::vec3 camera_dir =
+        TransformVector(world_to_object, camera.front());
+    return Ray{/*start=*/click_pos, /*direction=*/camera_dir};
+  }
+
+  FATAL("Unrecognized camera type");
+}
+
+absl::optional<glm::vec3> Sphere::GetIntersection(
+    const common::Camera& camera, const glm::vec2& click_ndc) const {
+  const Ray ray = GetClickingRay(camera, click_ndc);
   glm::vec3 position, normal;
   if (glm::intersectRaySphere(
-          camera_pos, glm::normalize(click_pos - camera_pos),
+          ray.start, glm::normalize(ray.direction),
           /*sphereCenter=*/glm::vec3{0.0f}, /*sphereRadius=*/1.0f,
           position, normal)) {
     return position;

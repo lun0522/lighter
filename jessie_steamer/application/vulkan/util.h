@@ -27,7 +27,6 @@
 #include "third_party/absl/flags/flag.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/glm/glm.hpp"
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "third_party/glm/gtc/matrix_transform.hpp"
 #include "third_party/vulkan/vulkan.h"
 

@@ -127,7 +127,8 @@ class Editor {
   std::unique_ptr<Celestial> celestial_;
   std::unique_ptr<AuroraPath> aurora_path_;
   std::unique_ptr<Button> button_;
-  std::unique_ptr<common::UserControlledCamera> camera_;
+  std::unique_ptr<common::UserControlledCamera> general_camera_;
+  std::unique_ptr<common::UserControlledCamera> skybox_camera_;
   std::unique_ptr<wrapper::vulkan::NaiveRenderPassBuilder> render_pass_builder_;
   std::unique_ptr<wrapper::vulkan::RenderPass> render_pass_;
   std::unique_ptr<wrapper::vulkan::Image> depth_stencil_image_;

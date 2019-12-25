@@ -120,6 +120,15 @@ class Sphere {
   const glm::mat4& model_matrix() const { return model_matrix_; }
 
  private:
+  // Describes a ray. 'direction' may not be normalized.
+  struct Ray {
+    glm::vec3 start;
+    glm::vec3 direction;
+  };
+
+  // Returns a ray that represents the clicking in the object space.
+  Ray GetClickingRay(const Camera& camera, const glm::vec2& click_ndc) const;
+
   // Computes whether the user click intersects with the sphere, and returns
   // the coordinate of intersection point in object space if any intersection.
   // Otherwise, returns absl::nullopt.

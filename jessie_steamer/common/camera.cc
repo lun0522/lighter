@@ -116,24 +116,30 @@ void UserControlledCamera::DidMoveCursor(double x, double y) {
   });
 }
 
-void UserControlledCamera::DidScroll(
+bool UserControlledCamera::DidScroll(
     double delta, double min_val, double max_val) {
   if (!is_active_) {
-    return;
+    return false;
   }
 
-  auto* pers_camera = dynamic_cast<PerspectiveCamera*>(camera_.get());
-  if (pers_camera != nullptr) {
-    pers_camera->UpdateFieldOfView(
-        glm::clamp(pers_camera->field_of_view() + delta, min_val, max_val));
-    return;
+  if (auto* pers_camera = dynamic_cast<PerspectiveCamera*>(camera_.get())) {
+    const float new_fov =
+        glm::clamp(pers_camera->field_of_view() + delta, min_val, max_val);
+    if (new_fov != pers_camera->field_of_view()) {
+      pers_camera->UpdateFieldOfView(new_fov);
+      return true;
+    }
+    return false;
   }
 
-  auto* ortho_camera = dynamic_cast<OrthographicCamera*>(camera_.get());
-  if (ortho_camera != nullptr) {
-    ortho_camera->UpdateViewWidth(
-        glm::clamp(ortho_camera->view_width() + delta, min_val, max_val));
-    return;
+  if (auto* ortho_camera = dynamic_cast<OrthographicCamera*>(camera_.get())) {
+    const float new_width =
+        glm::clamp(ortho_camera->view_width() + delta, min_val, max_val);
+    if (new_width != ortho_camera->view_width()) {
+      ortho_camera->UpdateViewWidth(new_width);
+      return true;
+    }
+    return false;
   }
 
   FATAL("Unrecognized camera type");

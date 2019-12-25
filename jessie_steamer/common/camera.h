@@ -11,6 +11,9 @@
 #include <memory>
 
 #include "third_party/absl/types/optional.h"
+#ifdef USE_VULKAN
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#endif /* USE_VULKAN */
 #include "third_party/glm/glm.hpp"
 
 namespace jessie_steamer {
@@ -187,10 +190,11 @@ class UserControlledCamera {
   void DidMoveCursor(double x, double y);
 
   // Informs the camera that the scroll input has changed by 'delta', bound by
-  // ['min_val', 'max_val']. For the perspective camera, this changes the field
-  // of view by 'delta'. For the orthographic camera, this changes the width of
-  // view by 'delta'. This will produce the effects of zooming in/out.
-  void DidScroll(double delta, double min_val, double max_val);
+  // ['min_val', 'max_val'], and returns if anything is changed. For the
+  // perspective camera, this changes the field of view by 'delta'. For the
+  // orthographic camera, this changes the width of view by 'delta'.
+  // This will produce the effects of zooming in/out.
+  bool DidScroll(double delta, double min_val, double max_val);
 
   // Informs the camera that 'key' has been pressed.
   // The camera will move to a different position depending on the key, while

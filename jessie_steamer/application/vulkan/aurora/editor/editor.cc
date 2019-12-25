@@ -134,12 +134,21 @@ Editor::Editor(const WindowContext& window_context,
   /* Camera */
   common::Camera::Config config;
   config.position = glm::vec3{0.0f, 0.0f, 3.0f};
+  const common::UserControlledCamera::ControlConfig camera_control_config{};
+
   const common::PerspectiveCamera::PersConfig pers_config{
-      /*fov_aspect_ratio=*/original_aspect_ratio};
-  camera_ = absl::make_unique<common::UserControlledCamera>(
-      common::UserControlledCamera::ControlConfig{},
+      original_aspect_ratio};
+  skybox_camera_ = absl::make_unique<common::UserControlledCamera>(
+      camera_control_config,
       absl::make_unique<common::PerspectiveCamera>(config, pers_config));
-  camera_->SetActivity(true);
+  skybox_camera_->SetActivity(true);
+
+  const common::OrthographicCamera::OrthoConfig ortho_config{
+      /*view_width=*/3.0f, original_aspect_ratio};
+  general_camera_ = absl::make_unique<common::UserControlledCamera>(
+      camera_control_config,
+      absl::make_unique<common::OrthographicCamera>(config, ortho_config));
+  general_camera_->SetActivity(true);
 
   /* Render pass */
   const NaiveRenderPassBuilder::SubpassConfig subpass_config{
@@ -156,7 +165,12 @@ Editor::Editor(const WindowContext& window_context,
 void Editor::OnEnter(common::Window* mutable_window) {
   (*mutable_window)
       .RegisterScrollCallback([this](double x_pos, double y_pos) {
-        camera_->DidScroll(y_pos, 10.0f, 60.0f);
+        // Since we have two cameras, to make sure they always zoom in/out
+        // together, we don't set real limits to the skybox camera, and let the
+        // general camera determine whether or not to zoom in/out.
+        if (general_camera_->DidScroll(y_pos * 0.1f, 0.2f, 5.0f)) {
+          skybox_camera_->DidScroll(y_pos, 0.0f, 90.0f);
+        }
       })
       .RegisterMouseButtonCallback([this](bool is_left, bool is_press) {
         is_pressing_left_ = is_press;
@@ -171,7 +185,8 @@ void Editor::OnExit(common::Window* mutable_window) {
 
 void Editor::Recreate(const WindowContext& window_context) {
   /* Camera */
-  camera_->SetCursorPos(window_context.window().GetCursorPos());
+  general_camera_->SetCursorPos(window_context.window().GetCursorPos());
+  skybox_camera_->SetCursorPos(window_context.window().GetCursorPos());
 
   /* Depth image */
   const VkExtent2D& frame_size = window_context.frame_size();
@@ -242,23 +257,23 @@ void Editor::UpdateData(const WindowContext& window_context, int frame) {
 
   if (state_manager_.is_selected(kEditingButtonIndex)) {
     // Do not interact with earth in editing mode.
-    earth_.Update(camera_->get(), /*click_ndc=*/absl::nullopt);
+    earth_.Update(general_camera_->get(), /*click_ndc=*/absl::nullopt);
   } else {
-    earth_.Update(camera_->get(), click_ndc);
+    earth_.Update(general_camera_->get(), click_ndc);
   }
 
   const auto earth_texture_index =
       state_manager_.is_selected(kDaylightButtonIndex)
           ? Celestial::kEarthDayTextureIndex
           : Celestial::kEarthNightTextureIndex;
-  celestial_->UpdateEarthData(frame, camera_->get(), earth_.model_matrix(),
-                              earth_texture_index);
-  celestial_->UpdateSkyboxData(frame, camera_->get(),
+  celestial_->UpdateEarthData(frame, general_camera_->get(),
+                              earth_.model_matrix(), earth_texture_index);
+  celestial_->UpdateSkyboxData(frame, skybox_camera_->get(),
                                earth_.GetSkyboxModelMatrix());
 
   const glm::mat4 aurora_model = glm::scale(earth_.model_matrix(),
                                             glm::vec3{kAuroraRelativeHeight});
-  aurora_path_->UpdateTransMatrix(frame, camera_->get(), aurora_model);
+  aurora_path_->UpdateTransMatrix(frame, general_camera_->get(), aurora_model);
 }
 
 void Editor::Render(const VkCommandBuffer& command_buffer,
@@ -362,7 +377,7 @@ void Editor::StateManager::FlipButtonState(ButtonIndex index) {
 }
 
 Editor::PathManager::PathManager() {
-  constexpr array<float, kNumAuroraPaths> kLatitudes{60.0f, 70.0f, 80.0f};
+  constexpr array<float, kNumAuroraPaths> kLatitudes{55.0f, 65.0f, 75.0f};
   constexpr int kLongitudeStep = 45;
   constexpr int kNumControlPoints = 360 / kLongitudeStep;
   constexpr int kMinNumControlPoints = 3;
