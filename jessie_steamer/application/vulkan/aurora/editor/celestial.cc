@@ -7,6 +7,7 @@
 
 #include "jessie_steamer/application/vulkan/aurora/editor/celestial.h"
 
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/align.h"
 #include "third_party/absl/memory/memory.h"
 
@@ -25,8 +26,7 @@ struct EarthTrans {
 };
 
 struct SkyboxTrans {
-  ALIGN_MAT4 glm::mat4 proj;
-  ALIGN_MAT4 glm::mat4 view_model;
+  ALIGN_MAT4 glm::mat4 proj_view_model;
 };
 
 struct TextureIndex {
@@ -121,8 +121,8 @@ void Celestial::UpdateEarthData(
 
 void Celestial::UpdateSkyboxData(int frame, const common::Camera& camera,
                                  const glm::mat4& model) {
-  *skybox_constant_->HostData<SkyboxTrans>(frame) =
-      {camera.projection(), camera.view() * model};
+  skybox_constant_->HostData<SkyboxTrans>(frame)->proj_view_model =
+      camera.projection() * camera.GetSkyboxViewMatrix() * model;
 }
 
 void Celestial::Draw(const VkCommandBuffer& command_buffer, int frame) const {

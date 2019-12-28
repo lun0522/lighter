@@ -32,9 +32,11 @@ class AuroraPath {
   enum State { kSelected = 0, kUnselected, kNumStates };
 
   // When the frame is resized, the aspect ratio of viewport will always be
-  // 'viewport_aspect_ratio'.
+  // 'viewport_aspect_ratio'. 'control_point_radius' is measured in the screen
+  // coordinate with range (0.0, 1.0].
   AuroraPath(const wrapper::vulkan::SharedBasicContext& context,
-             float viewport_aspect_ratio, int num_frames_in_flight,
+             int num_frames_in_flight, float viewport_aspect_ratio,
+             float control_point_radius,
              const std::vector<std::array<glm::vec3, kNumStates>>& path_colors,
              const std::array<float, kNumStates>& path_alphas);
 
@@ -52,9 +54,9 @@ class AuroraPath {
   void UpdatePath(int path_index, const std::vector<glm::vec3>& control_points,
                   const std::vector<glm::vec3>& spline_points);
 
-  // Updates the transformation matrix.
-  void UpdateTransMatrix(int frame, const common::Camera& camera,
-                         const glm::mat4& model);
+  // Informs the path renderer that the camera has been updated.
+  void UpdateCamera(int frame, const common::OrthographicCamera& camera,
+                    const glm::mat4& model);
 
   // Renders the aurora paths.
   // This should be called when 'command_buffer' is recording commands.
@@ -74,7 +76,8 @@ class AuroraPath {
   // aurora paths does not change when the size of framebuffers changes.
   const float viewport_aspect_ratio_;
 
-  std::vector<std::array<glm::vec4, kNumStates>> path_color_alphas_;
+  // Desired radius of each control point in the screen coordinate.
+  const float control_point_radius_;
 
   // Number of aurora paths.
   const int num_paths_;
@@ -82,6 +85,12 @@ class AuroraPath {
   // Records the number of control points for each aurora path.
   std::vector<int> num_control_points_;
 
+  // Records for each state, what color and alpha should be used when rendering
+  // the aurora path at the same index.
+  std::vector<std::array<glm::vec4, kNumStates>> path_color_alphas_;
+
+  // Records the color and alpha to use when rendering the aurora path at the
+  // same index.
   std::vector<glm::vec4> color_alphas_to_render_;
 
   // Objects used for rendering.

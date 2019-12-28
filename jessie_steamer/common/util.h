@@ -121,7 +121,7 @@ void SetElementWithResizing(ContentType&& element, int index,
   if (index >= container->size()) {
     container->resize(index + 1);
   }
-  (*container)[index] = std::move(element);
+  (*container)[index] = std::forward<ContentType>(element);
 }
 
 // Removes duplicated elements from 'container' in-place, hence the size of

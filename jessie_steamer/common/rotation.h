@@ -107,14 +107,24 @@ class Sphere {
   Sphere(const Sphere&) = delete;
   Sphere& operator=(const Sphere&) = delete;
 
-  // Updates internal states. 'click_ndc' is the user click position in the
-  // normalized device coordinate. The click does not need to be within the
-  // sphere, since we will compute the intersection internally.
-  void Update(const Camera& camera, const absl::optional<glm::vec2>& click_ndc);
+  // Computes whether the user click intersects with the sphere, and returns
+  // the coordinate of intersection point in object space if any intersection.
+  // Otherwise, returns absl::nullopt.
+  absl::optional<glm::vec3> GetIntersection(const Camera& camera,
+                                            const glm::vec2& click_ndc) const;
+
+  // Returns how should the sphere be rotated. 'click_ndc' is the user click
+  // position in the normalized device coordinate. Because of inertial rotation,
+  // the sphere may need to rotate even if the click is not within the sphere.
+  absl::optional<rotation::Rotation> ShouldRotate(
+      const Camera& camera, const absl::optional<glm::vec2>& click_ndc);
+
+  // Rotates the sphere.
+  void Rotate(const rotation::Rotation& rotation);
 
   // Returns a model matrix for skybox. This is independent of the center and
   // radius of the sphere.
-  glm::mat4 GetSkyboxModelMatrix() const;
+  glm::mat4 GetSkyboxModelMatrix(float scale) const;
 
   // Accessors.
   const glm::mat4& model_matrix() const { return model_matrix_; }
@@ -128,12 +138,6 @@ class Sphere {
 
   // Returns a ray that represents the clicking in the object space.
   Ray GetClickingRay(const Camera& camera, const glm::vec2& click_ndc) const;
-
-  // Computes whether the user click intersects with the sphere, and returns
-  // the coordinate of intersection point in object space if any intersection.
-  // Otherwise, returns absl::nullopt.
-  absl::optional<glm::vec3> GetIntersection(const Camera& camera,
-                                            const glm::vec2& click_ndc) const;
 
   // Center of sphere.
   const glm::vec3 center_;

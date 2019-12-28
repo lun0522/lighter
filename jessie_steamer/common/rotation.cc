@@ -174,19 +174,20 @@ absl::optional<glm::vec3> Sphere::GetIntersection(
   }
 }
 
-void Sphere::Update(const common::Camera& camera,
-                    const absl::optional<glm::vec2>& click_ndc) {
+absl::optional<rotation::Rotation> Sphere::ShouldRotate(
+    const Camera& camera, const absl::optional<glm::vec2>& click_ndc) {
   const auto intersection = click_ndc.has_value()
                                 ? GetIntersection(camera, click_ndc.value())
                                 : absl::nullopt;
-  const auto rotation = rotation_manager_.Compute(intersection);
-  if (rotation.has_value()) {
-    model_matrix_ = glm::rotate(model_matrix_, rotation->angle, rotation->axis);
-  }
+  return rotation_manager_.Compute(intersection);
 }
 
-glm::mat4 Sphere::GetSkyboxModelMatrix() const {
-  glm::mat4 skybox_model = glm::scale(model_matrix_, glm::vec3{1.0f / radius_});
+void Sphere::Rotate(const rotation::Rotation& rotation) {
+  model_matrix_ = glm::rotate(model_matrix_, rotation.angle, rotation.axis);
+}
+
+glm::mat4 Sphere::GetSkyboxModelMatrix(float scale) const {
+  auto skybox_model = glm::scale(model_matrix_, glm::vec3{scale / radius_});
   skybox_model[3] *= glm::vec4{0.0f, 0.0f, 0.0f, 1.0f};
   return skybox_model;
 }

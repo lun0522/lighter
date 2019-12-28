@@ -50,6 +50,10 @@ void Camera::UpdateView() {
   view_ = glm::lookAt(pos_, pos_ + front_, up_);
 }
 
+glm::mat4 Camera::GetSkyboxViewMatrix() const {
+  return glm::mat4{glm::mat3{view_}};
+}
+
 PerspectiveCamera::PerspectiveCamera(const Camera::Config& config,
                                      const PersConfig& pers_config)
     : Camera{config}, fov_{pers_config.field_of_view},

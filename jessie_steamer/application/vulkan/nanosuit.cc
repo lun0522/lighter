@@ -38,8 +38,7 @@ struct NanosuitFragTrans {
 };
 
 struct SkyboxTrans {
-  ALIGN_MAT4 glm::mat4 proj;
-  ALIGN_MAT4 glm::mat4 view_model;
+  ALIGN_MAT4 glm::mat4 proj_view_model;
 };
 
 /* END: Consistent with uniform blocks defined in shaders. */
@@ -241,8 +240,9 @@ void NanosuitApp::UpdateData(int frame) {
                       glm::vec3{0.0f, 1.0f, 0.0f});
   model = glm::scale(model, glm::vec3{0.5f});
 
-  const glm::mat4& view = camera_->view();
-  const glm::mat4& proj = camera_->projection();
+  const common::Camera& camera = camera_->camera();
+  const glm::mat4& view = camera.view();
+  const glm::mat4& proj = camera.projection();
   const glm::mat4 view_model = view * model;
 
   *nanosuit_vert_uniform_->HostData<NanosuitVertTrans>(frame) = {
@@ -254,7 +254,8 @@ void NanosuitApp::UpdateData(int frame) {
 
   *nanosuit_frag_constant_->HostData<NanosuitFragTrans>(frame) =
       {glm::inverse(view)};
-  *skybox_constant_->HostData<SkyboxTrans>(frame) = {proj, /*view_model=*/view};
+  skybox_constant_->HostData<SkyboxTrans>(frame)->proj_view_model =
+      proj * camera.GetSkyboxViewMatrix();
 }
 
 void NanosuitApp::MainLoop() {

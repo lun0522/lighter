@@ -69,8 +69,7 @@ struct PlanetTrans {
 };
 
 struct SkyboxTrans {
-  ALIGN_MAT4 glm::mat4 proj;
-  ALIGN_MAT4 glm::mat4 view_model;
+  ALIGN_MAT4 glm::mat4 proj_view_model;
 };
 
 /* END: Consistent with uniform blocks defined in shaders. */
@@ -337,10 +336,11 @@ void PlanetApp::UpdateData(int frame) {
   glm::mat4 model{1.0f};
   model = glm::rotate(model, elapsed_time * glm::radians(5.0f),
                       glm::vec3{0.0f, 1.0f, 0.0f});
-  const glm::mat4& view = camera_->view();
-  const glm::mat4& proj = camera_->projection();
-  *planet_constant_->HostData<PlanetTrans>(frame) = {model, proj * view};
-  *skybox_constant_->HostData<SkyboxTrans>(frame) = {proj, /*view_model=*/view};
+  const common::Camera& camera = camera_->camera();
+  *planet_constant_->HostData<PlanetTrans>(frame) =
+      {model, camera.projection() * camera.view()};
+  skybox_constant_->HostData<SkyboxTrans>(frame)->proj_view_model =
+      camera.projection() * camera.GetSkyboxViewMatrix();
 }
 
 void PlanetApp::MainLoop() {

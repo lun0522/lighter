@@ -74,13 +74,19 @@ class Editor {
 
     void Update(const absl::optional<ButtonIndex>& clicked_button);
 
-    // Accessors.
-    bool is_selected(ButtonIndex index) const {
+    int GetEditingPathIndex() const;
+
+    bool IsSelected(ButtonIndex index) const {
       return button_states_[index] == Button::State::kSelected;
     }
-    bool is_unselected(ButtonIndex index) const {
+    bool IsUnselected(ButtonIndex index) const {
       return button_states_[index] == Button::State::kUnselected;
     }
+    bool IsEditing() const {
+      return IsSelected(ButtonIndex::kEditingButtonIndex);
+    }
+
+    // Accessors.
     const std::vector<Button::State>& button_states() const {
       return button_states_;
     }
@@ -109,6 +115,9 @@ class Editor {
     PathManager(const PathManager&) = delete;
     PathManager& operator=(const PathManager&) = delete;
 
+    void Update(int path_index, const glm::vec3& click_object);
+
+    // Accessors.
     const std::vector<glm::vec3>& control_points(int path_index) const {
       return spline_editors_.at(path_index)->control_points();
     }
@@ -122,6 +131,7 @@ class Editor {
 
   bool is_pressing_left_ = false;
   common::Sphere earth_;
+  common::Sphere aurora_layer_;
   StateManager state_manager_;
   PathManager path_manager_;
   std::unique_ptr<Celestial> celestial_;

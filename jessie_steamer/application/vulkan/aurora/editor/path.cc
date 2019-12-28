@@ -54,6 +54,7 @@ struct SplineTrans {
 
 /* END: Consistent with uniform blocks defined in shaders. */
 
+// Extracts the position data from a list of Vertex3DWithTex.
 vector<common::Vertex3DPosOnly> ExtractPos(
     const vector<common::Vertex3DWithTex>& vertices) {
   vector<common::Vertex3DPosOnly> vertices_pos;
@@ -67,10 +68,12 @@ vector<common::Vertex3DPosOnly> ExtractPos(
 } /* namespace */
 
 AuroraPath::AuroraPath(const SharedBasicContext& context,
-                       float viewport_aspect_ratio, int num_frames_in_flight,
+                       int num_frames_in_flight, float viewport_aspect_ratio,
+                       float control_point_radius,
                        const vector<array<glm::vec3, kNumStates>>& path_colors,
                        const array<float, kNumStates>& path_alphas)
     : viewport_aspect_ratio_{viewport_aspect_ratio},
+      control_point_radius_{control_point_radius},
       num_paths_{static_cast<int>(path_colors.size())},
       num_control_points_(num_paths_), color_alphas_to_render_(num_paths_),
       control_pipeline_builder_{context},
@@ -198,12 +201,18 @@ void AuroraPath::UpdatePath(
       });
 }
 
-void AuroraPath::UpdateTransMatrix(int frame, const common::Camera& camera,
-                                   const glm::mat4& model) {
+void AuroraPath::UpdateCamera(
+    int frame, const common::OrthographicCamera& camera,
+    const glm::mat4& model) {
   control_render_constant_
       ->HostData<ControlRenderInfo>(frame)->proj_view_model =
   spline_trans_constant_->HostData<SplineTrans>(frame)->proj_view_model =
       camera.projection() * camera.view() * model;
+
+  constexpr float kSphereModelRadius = 1.0f;
+  const float desired_radius = camera.view_width() * control_point_radius_;
+  control_render_constant_->HostData<ControlRenderInfo>(frame)->scale =
+      desired_radius / kSphereModelRadius;
 }
 
 void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
@@ -245,8 +254,6 @@ void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
   const int selected_path = selected_path_index.value();
   control_render_constant_->HostData<ControlRenderInfo>(frame)->color_alpha =
       path_color_alphas_[selected_path][kSelected];
-  // TODO: scale
-  control_render_constant_->HostData<ControlRenderInfo>(frame)->scale = 0.01f;
 
   control_pipeline_->Bind(command_buffer);
   control_render_constant_->Flush(

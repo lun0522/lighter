@@ -39,8 +39,17 @@ constexpr float kButtonBounceTime = 0.5f;
 // The height of aurora layer is assumed to be at around 100km above the ground.
 constexpr float kEarthRadius = 6378.1f;
 constexpr float kAuroraHeight = 100.0f;
-constexpr float kAuroraRelativeHeight =
-    (kEarthRadius + kAuroraHeight) / kEarthRadius;
+constexpr float kEarthModelRadius = 1.0f;
+constexpr float kAuroraLayerModelRadius =
+    (kEarthRadius + kAuroraHeight) / kEarthRadius * kEarthModelRadius;
+
+const glm::vec3& GetEarthModelCenter() {
+  static const glm::vec3* earth_model_center = nullptr;
+  if (earth_model_center == nullptr) {
+    earth_model_center = new glm::vec3{0.0f};
+  }
+  return *earth_model_center;
+}
 
 inline glm::vec3 MakeColor(int r, int g, int b) {
   return glm::vec3{r, g, b} / 255.0f;
@@ -73,7 +82,8 @@ const array<float, kNumButtonStates>& GetButtonAlphas() {
 
 Editor::Editor(const WindowContext& window_context,
                int num_frames_in_flight)
-    : earth_{/*center=*/glm::vec3{0.0f}, /*radius=*/1.0f} {
+    : earth_{GetEarthModelCenter(), kEarthModelRadius},
+      aurora_layer_{GetEarthModelCenter(), kAuroraLayerModelRadius} {
   const auto context = window_context.basic_context();
   const float original_aspect_ratio =
       window_context.window().original_aspect_ratio();
@@ -84,7 +94,8 @@ Editor::Editor(const WindowContext& window_context,
 
   /* Aurora path */
   aurora_path_ = absl::make_unique<AuroraPath>(
-      context, original_aspect_ratio, num_frames_in_flight,
+      context, num_frames_in_flight, original_aspect_ratio,
+      /*control_point_radius=*/0.015f,
       /*path_colors=*/vector<array<glm::vec3, kNumButtonStates>>{
           GetAllButtonColors()[kPath1ButtonIndex],
           GetAllButtonColors()[kPath2ButtonIndex],
@@ -225,6 +236,7 @@ void Editor::Recreate(const WindowContext& window_context) {
 }
 
 void Editor::UpdateData(const WindowContext& window_context, int frame) {
+  // Find clicking point in the normalized device coordinate.
   absl::optional<glm::vec2> click_ndc;
   if (is_pressing_left_) {
     click_ndc = window_context.window().GetNormalizedCursorPos();
@@ -242,6 +254,7 @@ void Editor::UpdateData(const WindowContext& window_context, int frame) {
     }
   }
 
+  // Process clicking on button.
   absl::optional<ButtonIndex> clicked_button;
   if (click_ndc.has_value()) {
     const auto clicked_button_index = button_->GetClickedButtonIndex(
@@ -249,38 +262,52 @@ void Editor::UpdateData(const WindowContext& window_context, int frame) {
     if (clicked_button_index.has_value()) {
       clicked_button = static_cast<ButtonIndex>(
           clicked_button_index.value());
-      // If any button is hit, do not interact with earth or aurora.
-      click_ndc = absl::nullopt;
     }
   }
   state_manager_.Update(clicked_button);
 
-  if (state_manager_.is_selected(kEditingButtonIndex)) {
-    // Do not interact with earth in editing mode.
-    earth_.Update(general_camera_->get(), /*click_ndc=*/absl::nullopt);
-  } else {
-    earth_.Update(general_camera_->get(), click_ndc);
+  // Processing earth rotation. If we are in editing mode, or if any button is
+  // hit, do not interact with earth or aurora.
+  const bool should_interact =
+      !state_manager_.IsEditing() && !clicked_button.has_value();
+  const auto& general_camera = dynamic_cast<const common::OrthographicCamera&>(
+      general_camera_->camera());
+  const auto rotation = earth_.ShouldRotate(
+      general_camera, should_interact ? click_ndc : absl::nullopt);
+  if (rotation.has_value()) {
+    earth_.Rotate(rotation.value());
+    aurora_layer_.Rotate(rotation.value());
   }
 
+  // Process interaction with aurora path.
+  if (state_manager_.IsEditing() && !clicked_button.has_value() &&
+      click_ndc.has_value()) {
+    const auto intersection = aurora_layer_.GetIntersection(
+        general_camera, click_ndc.value());
+    if (intersection.has_value()) {
+      path_manager_.Update(state_manager_.GetEditingPathIndex(),
+                           intersection.value());
+    }
+  }
+
+  // Render earth, aurora and skybox.
   const auto earth_texture_index =
-      state_manager_.is_selected(kDaylightButtonIndex)
+      state_manager_.IsSelected(kDaylightButtonIndex)
           ? Celestial::kEarthDayTextureIndex
           : Celestial::kEarthNightTextureIndex;
-  celestial_->UpdateEarthData(frame, general_camera_->get(),
+  celestial_->UpdateEarthData(frame, general_camera,
                               earth_.model_matrix(), earth_texture_index);
-  celestial_->UpdateSkyboxData(frame, skybox_camera_->get(),
-                               earth_.GetSkyboxModelMatrix());
-
-  const glm::mat4 aurora_model = glm::scale(earth_.model_matrix(),
-                                            glm::vec3{kAuroraRelativeHeight});
-  aurora_path_->UpdateTransMatrix(frame, general_camera_->get(), aurora_model);
+  celestial_->UpdateSkyboxData(frame, skybox_camera_->camera(),
+                               earth_.GetSkyboxModelMatrix(/*scale=*/1.5f));
+  aurora_path_->UpdateCamera(frame, general_camera,
+                             aurora_layer_.model_matrix());
 }
 
 void Editor::Render(const VkCommandBuffer& command_buffer,
                     uint32_t framebuffer_index, int current_frame) {
   absl::optional<int> selected_path_index;
   for (int index = kPath1ButtonIndex; index <= kPath3ButtonIndex; ++index) {
-    if (state_manager_.is_selected(static_cast<ButtonIndex>(index))) {
+    if (state_manager_.IsSelected(static_cast<ButtonIndex>(index))) {
       selected_path_index = index;
       break;
     }
@@ -326,7 +353,7 @@ void Editor::StateManager::Update(
     case kPath1ButtonIndex:
     case kPath2ButtonIndex:
     case kPath3ButtonIndex: {
-      if (is_unselected(button_index)) {
+      if (IsUnselected(button_index)) {
         FlipButtonState(last_edited_path_);
         FlipButtonState(button_index);
         last_edited_path_ = button_index;
@@ -335,7 +362,7 @@ void Editor::StateManager::Update(
     }
     case kEditingButtonIndex: {
       FlipButtonState(button_index);
-      if (is_selected(button_index)) {
+      if (IsSelected(button_index)) {
         SetPathButtonStates(Button::State::kUnselected);
         FlipButtonState(last_edited_path_);
       } else {
@@ -355,6 +382,18 @@ void Editor::StateManager::Update(
       FATAL("Unexpected branch");
   }
   click_info_ = ClickInfo{button_index, timer_.GetElapsedTimeSinceLaunch()};
+}
+
+int Editor::StateManager::GetEditingPathIndex() const {
+  ASSERT_TRUE(IsEditing(), "Not in editing mode");
+  for (int i = 0; i < ButtonIndex::kNumAuroraPaths; ++i) {
+    const auto button_index =
+        static_cast<ButtonIndex>(ButtonIndex::kPath1ButtonIndex + i);
+    if (IsSelected(button_index)) {
+      return i;
+    }
+  }
+  FATAL("In editing mode but no path is selected. Should never reach here!");
 }
 
 void Editor::StateManager::SetPathButtonStates(Button::State state) {
@@ -409,6 +448,11 @@ Editor::PathManager::PathManager() {
         common::CatmullRomSpline::GetOnSphereSpline(
             kMaxRecursionDepth, kSplineSmoothness)));
   }
+}
+
+void Editor::PathManager::Update(
+    int path_index, const glm::vec3& click_object) {
+  // TODO
 }
 
 } /* namespace aurora */

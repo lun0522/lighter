@@ -43,6 +43,9 @@ class Camera {
   // Updates the front and right vector, and view matrix.
   void UpdateDirection(const glm::vec3& front);
 
+  // Returns a view matrix that can be used for rendering skybox.
+  glm::mat4 GetSkyboxViewMatrix() const;
+
   // Accessors.
   const glm::vec3& position() const { return pos_; }
   const glm::vec3& front() const { return front_; }
@@ -205,9 +208,7 @@ class UserControlledCamera {
   void SetActivity(bool active) { is_active_ = active; }
 
   // Accessors.
-  const Camera& get() const { return *camera_; }
-  const glm::mat4& view() const { return camera_->view(); }
-  const glm::mat4& projection() const { return camera_->projection(); }
+  const Camera& camera() const { return *camera_; }
 
  private:
   // Updates camera direction if center is not locked.
