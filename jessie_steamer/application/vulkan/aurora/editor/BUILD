@@ -5,6 +5,7 @@ cc_library(
     hdrs = ["button.h"],
     srcs = ["button.cc"],
     deps = [
+        ":state",
         "//jessie_steamer/application/vulkan:common",
         "//third_party/absl/strings:str_format",
         "//third_party/absl/types:optional",
@@ -26,9 +27,9 @@ cc_library(
         ":button",
         ":celestial",
         ":path",
+        ":state",
         "//jessie_steamer/application/vulkan:common",
         "//jessie_steamer/common:rotation",
-        "//jessie_steamer/common:spline",
         "//third_party/absl/types:optional",
     ],
 )
@@ -38,7 +39,14 @@ cc_library(
     hdrs = ["path.h"],
     srcs = ["path.cc"],
     deps = [
+        ":state",
         "//jessie_steamer/application/vulkan:common",
+        "//jessie_steamer/common:spline",
         "//third_party/absl/types:optional",
     ],
+)
+
+cc_library(
+    name = "state",
+    hdrs = ["state.h"],
 )

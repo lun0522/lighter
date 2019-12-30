@@ -38,7 +38,6 @@ enum UniformBindingPoint {
 constexpr float kNdcDim = 1.0f - (-1.0f);
 constexpr float kUvDim = 1.0f;
 constexpr int kNumVerticesPerButton = 6;
-constexpr int kNumButtonStates = button::ButtonInfo::kNumStates;
 constexpr uint32_t kPerInstanceBufferBindingPoint = 0;
 
 /* BEGIN: Consistent with uniform blocks defined in shaders. */
@@ -112,7 +111,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage() const {
   const VkExtent2D buttons_image_extent{
       background_image->extent().width,
       static_cast<uint32_t>(background_image->extent().height *
-                            num_buttons_ * kNumButtonStates),
+                            num_buttons_ * state::kNumStates),
   };
   auto buttons_image = absl::make_unique<OffscreenImage>(
       context_, common::kRgbaImageChannel, buttons_image_extent,
@@ -172,7 +171,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage() const {
         descriptor->Bind(command_buffer, pipeline->layout());
         VertexBuffer::DrawWithoutBuffer(
             command_buffer, kNumVerticesPerButton,
-            /*instance_count=*/num_buttons_ * kNumButtonStates);
+            /*instance_count=*/num_buttons_ * state::kNumStates);
       },
       [&](const VkCommandBuffer& command_buffer) {
         text_renderer->Draw(command_buffer, /*frame=*/0,
@@ -190,12 +189,12 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage() const {
 
 std::unique_ptr<PerInstanceBuffer> ButtonMaker::CreatePerInstanceData() const {
   const float button_height_ndc =
-      kNdcDim / static_cast<float>(num_buttons_ * kNumButtonStates);
+      kNdcDim / static_cast<float>(num_buttons_ * state::kNumStates);
   float offset_y_ndc = -1.0f + button_height_ndc / 2.0f;
   vector<ButtonRenderInfo> render_infos;
-  render_infos.reserve(num_buttons_ * kNumButtonStates);
+  render_infos.reserve(num_buttons_ * state::kNumStates);
   for (const auto& info : button_info_.button_infos) {
-    for (int state = 0; state < kNumButtonStates; ++state) {
+    for (int state = 0; state < state::kNumStates; ++state) {
       render_infos.emplace_back(ButtonRenderInfo{
           info.colors[state],
           /*center=*/glm::vec2{0.0f, offset_y_ndc},
@@ -217,7 +216,7 @@ std::unique_ptr<PushConstant> ButtonMaker::CreateButtonVerticesData(
   const glm::vec2& button_scale =
       background_image_size / (background_image_size + button_interval);
   const float button_height_ndc =
-      kNdcDim / static_cast<float>(num_buttons_ * kNumButtonStates);
+      kNdcDim / static_cast<float>(num_buttons_ * state::kNumStates);
 
   auto push_constant = absl::make_unique<PushConstant>(
       context_, sizeof(VerticesInfo), /*num_frames_in_flight=*/1);
@@ -246,12 +245,12 @@ std::unique_ptr<Text> ButtonMaker::CreateTextRenderer(
   // Y coordinate is flipped.
   constexpr float kBaseX = kUvDim / 2.0f;
   const float button_height =
-      kUvDim / static_cast<float>(num_buttons_ * kNumButtonStates);
+      kUvDim / static_cast<float>(num_buttons_ * state::kNumStates);
   const float text_height = (button_info_.top_y - button_info_.base_y) *
                             button_height / text_renderer->GetMaxBearingY();
   float offset_y = kUvDim;
   for (int button = 0; button < num_buttons_; ++button) {
-    for (int state = 0; state < kNumButtonStates; ++state) {
+    for (int state = 0; state < state::kNumStates; ++state) {
       offset_y -= button_height;
       const float base_y =
           kUvDim - (offset_y + button_info_.base_y * button_height);
@@ -279,7 +278,7 @@ Button::Button(const SharedBasicContext& context,
 
   per_instance_buffer_ = absl::make_unique<DynamicPerInstanceBuffer>(
       context, sizeof(ButtonRenderInfo),
-      /*max_num_instances=*/num_buttons * kNumButtonStates,
+      /*max_num_instances=*/num_buttons * state::kNumStates,
       ButtonRenderInfo::GetAttributes());
 
   vertices_constant_ = CreateButtonVerticesData(context, button_info);
@@ -304,7 +303,7 @@ Button::ButtonRenderInfos Button::ExtractRenderInfos(
     const ButtonInfo& button_info) const {
   const int num_buttons = button_info.button_infos.size();
   const float button_tex_height =
-      kUvDim / static_cast<float>(num_buttons * kNumButtonStates);
+      kUvDim / static_cast<float>(num_buttons * state::kNumStates);
   constexpr float kTexCenterOffsetX = kUvDim / 2.0f;
   float tex_center_offset_y = button_tex_height / 2.0f;
 
@@ -313,13 +312,13 @@ Button::ButtonRenderInfos Button::ExtractRenderInfos(
   for (const auto& info : button_info.button_infos) {
     const auto& pos_center_ndc = info.center * 2.0f - 1.0f;
     render_infos.emplace_back(
-        std::array<ButtonRenderInfo, ButtonInfo::kNumStates>{
+        std::array<ButtonRenderInfo, state::kNumStates>{
             ButtonRenderInfo{
-                button_info.button_alphas[ButtonInfo::kSelected],
+                button_info.button_alphas[state::kSelected],
                 pos_center_ndc,
                 glm::vec2{kTexCenterOffsetX, tex_center_offset_y}},
             ButtonRenderInfo{
-                button_info.button_alphas[ButtonInfo::kUnselected],
+                button_info.button_alphas[state::kUnselected],
                 pos_center_ndc,
                 glm::vec2{kTexCenterOffsetX,
                           tex_center_offset_y + button_tex_height}},
@@ -328,10 +327,10 @@ Button::ButtonRenderInfos Button::ExtractRenderInfos(
   }
   // Since button maker produces flipped image, we need to flip Y-axis as well.
   for (auto& info : render_infos) {
-    info[ButtonInfo::kSelected].tex_coord_center.y =
-        kUvDim - info[ButtonInfo::kSelected].tex_coord_center.y;
-    info[ButtonInfo::kUnselected].tex_coord_center.y =
-        kUvDim - info[ButtonInfo::kUnselected].tex_coord_center.y;
+    info[state::kSelected].tex_coord_center.y =
+        kUvDim - info[state::kSelected].tex_coord_center.y;
+    info[state::kUnselected].tex_coord_center.y =
+        kUvDim - info[state::kUnselected].tex_coord_center.y;
   }
   return render_infos;
 }
@@ -341,7 +340,7 @@ std::unique_ptr<PushConstant> Button::CreateButtonVerticesData(
   const glm::vec2 button_size_ndc = button_info.button_size * kNdcDim;
   const int num_buttons = button_info.button_infos.size();
   const float button_tex_height =
-      kUvDim / static_cast<float>(num_buttons * kNumButtonStates);
+      kUvDim / static_cast<float>(num_buttons * state::kNumStates);
 
   auto push_constant = absl::make_unique<PushConstant>(
       context, sizeof(VerticesInfo), /*num_frames_in_flight=*/1);
@@ -383,12 +382,11 @@ void Button::Draw(const VkCommandBuffer& command_buffer,
       case State::kHidden:
         break;
       case State::kSelected:
-        buttons_to_render_.emplace_back(
-            all_buttons_[button][ButtonInfo::kSelected]);
+        buttons_to_render_.emplace_back(all_buttons_[button][state::kSelected]);
         break;
       case State::kUnselected:
         buttons_to_render_.emplace_back(
-            all_buttons_[button][ButtonInfo::kUnselected]);
+            all_buttons_[button][state::kUnselected]);
         break;
     }
   }

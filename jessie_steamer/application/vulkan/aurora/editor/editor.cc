@@ -7,6 +7,7 @@
 
 #include "jessie_steamer/application/vulkan/aurora/editor/editor.h"
 
+#include "jessie_steamer/application/vulkan/aurora/editor/state.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/glm/gtc/matrix_transform.hpp"
@@ -22,8 +23,7 @@ using namespace wrapper::vulkan;
 using std::array;
 using std::vector;
 
-constexpr int kNumButtonStates = button::ButtonInfo::kNumStates;
-using ButtonColors = array<glm::vec3, kNumButtonStates>;
+using ButtonColors = array<glm::vec3, state::kNumStates>;
 
 enum SubpassIndex {
   kModelSubpassIndex = 0,
@@ -70,10 +70,10 @@ const array<ButtonColors, Editor::kNumButtons>& GetAllButtonColors() {
   return *all_button_colors;
 }
 
-const array<float, kNumButtonStates>& GetButtonAlphas() {
-  static array<float, kNumButtonStates>* button_alphas = nullptr;
+const array<float, state::kNumStates>& GetButtonAlphas() {
+  static array<float, state::kNumStates>* button_alphas = nullptr;
   if (button_alphas == nullptr) {
-    button_alphas = new array<float, kNumButtonStates>{1.0f, 0.5f};
+    button_alphas = new array<float, state::kNumStates>{1.0f, 0.5f};
   }
   return *button_alphas;
 }
@@ -93,19 +93,40 @@ Editor::Editor(const WindowContext& window_context,
       context, original_aspect_ratio, num_frames_in_flight);
 
   /* Aurora path */
+  constexpr array<float, kNumAuroraPaths> kLatitudes{55.0f, 65.0f, 75.0f};
+  constexpr int kNumControlPointsPerSpline = 8;
+  constexpr int kLongitudeStep = 360 / kNumControlPointsPerSpline;
+  auto generate_control_points =
+      [&kLatitudes](int path_index) -> vector<glm::vec3> {
+        const float latitude = kLatitudes.at(path_index);
+        const float latitude_radians = glm::radians(latitude);
+        const float sin_latitude = glm::sin(latitude_radians);
+        const float cos_latitude = glm::cos(latitude_radians);
+
+        vector<glm::vec3> control_points(kNumControlPointsPerSpline);
+        for (int i = 0; i < control_points.size(); ++i) {
+          const float longitude_radians =
+              glm::radians(static_cast<float>(kLongitudeStep * i));
+          control_points[i] = glm::vec3{
+              glm::cos(longitude_radians) * cos_latitude,
+              sin_latitude,
+              glm::sin(longitude_radians) * cos_latitude,
+          };
+        }
+        return control_points;
+      };
+
   aurora_path_ = absl::make_unique<AuroraPath>(
-      context, num_frames_in_flight, original_aspect_ratio,
-      /*control_point_radius=*/0.015f,
-      /*path_colors=*/vector<array<glm::vec3, kNumButtonStates>>{
-          GetAllButtonColors()[kPath1ButtonIndex],
-          GetAllButtonColors()[kPath2ButtonIndex],
-          GetAllButtonColors()[kPath3ButtonIndex],
-      },
-      /*path_alphas=*/GetButtonAlphas());
-  for (int path = 0; path < kNumAuroraPaths; ++path) {
-    aurora_path_->UpdatePath(path, path_manager_.control_points(path),
-                             path_manager_.spline_points(path));
-  }
+      context, num_frames_in_flight, original_aspect_ratio, AuroraPath::Info{
+          /*max_num_control_points=*/20, /*control_point_radius=*/0.015f,
+          /*max_recursion_depth=*/20, /*spline_smoothness=*/1E-2,
+          /*path_colors=*/vector<array<glm::vec3, state::kNumStates>>{
+              GetAllButtonColors()[kPath1ButtonIndex],
+              GetAllButtonColors()[kPath2ButtonIndex],
+              GetAllButtonColors()[kPath3ButtonIndex],
+          },
+          /*path_alphas=*/GetButtonAlphas(), std::move(generate_control_points),
+      });
 
   /* Button */
   using button::ButtonInfo;
@@ -285,8 +306,8 @@ void Editor::UpdateData(const WindowContext& window_context, int frame) {
     const auto intersection = aurora_layer_.GetIntersection(
         general_camera, click_ndc.value());
     if (intersection.has_value()) {
-      path_manager_.Update(state_manager_.GetEditingPathIndex(),
-                           intersection.value());
+      aurora_path_->DidClick(frame, state_manager_.GetEditingPathIndex(),
+                             intersection.value());
     }
   }
 
@@ -413,46 +434,6 @@ void Editor::StateManager::FlipButtonState(ButtonIndex index) {
       button_states_[index] = Button::State::kSelected;
       break;
   }
-}
-
-Editor::PathManager::PathManager() {
-  constexpr array<float, kNumAuroraPaths> kLatitudes{55.0f, 65.0f, 75.0f};
-  constexpr int kLongitudeStep = 45;
-  constexpr int kNumControlPoints = 360 / kLongitudeStep;
-  constexpr int kMinNumControlPoints = 3;
-  constexpr int kMaxNumControlPoints = 20;
-  constexpr int kMaxRecursionDepth = 20;
-  constexpr float kSplineSmoothness = 1E-2;
-
-  vector<glm::vec3> control_points;
-  control_points.reserve(kNumControlPoints);
-  spline_editors_.reserve(kNumAuroraPaths);
-  for (float latitude : kLatitudes) {
-    const float latitude_radians = glm::radians(latitude);
-    control_points.clear();
-    const float sin_latitude = glm::sin(latitude_radians);
-    const float cos_latitude = glm::cos(latitude_radians);
-    for (int longitude = 0; longitude < 360; longitude += kLongitudeStep) {
-      const float longitude_radians =
-          glm::radians(static_cast<float>(longitude));
-      control_points.emplace_back(glm::vec3{
-          glm::cos(longitude_radians) * cos_latitude,
-          sin_latitude,
-          glm::sin(longitude_radians) * cos_latitude,
-      });
-    }
-
-    spline_editors_.emplace_back(absl::make_unique<common::SplineEditor>(
-        kMinNumControlPoints, kMaxNumControlPoints,
-        vector<glm::vec3>{control_points},
-        common::CatmullRomSpline::GetOnSphereSpline(
-            kMaxRecursionDepth, kSplineSmoothness)));
-  }
-}
-
-void Editor::PathManager::Update(
-    int path_index, const glm::vec3& click_object) {
-  // TODO
 }
 
 } /* namespace aurora */

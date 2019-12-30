@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 
+#include "jessie_steamer/application/vulkan/aurora/editor/state.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
@@ -29,12 +30,10 @@ namespace button {
 
 // Contains information for rendering multiple buttons onto a big texture.
 struct ButtonInfo {
-  enum State { kSelected = 0, kUnselected, kNumStates };
-
   // Contains information for rendering a single button.
   struct Info {
     std::string text;
-    std::array<glm::vec3, kNumStates> colors;
+    std::array<glm::vec3, state::kNumStates> colors;
     glm::vec2 center;
   };
 
@@ -45,7 +44,7 @@ struct ButtonInfo {
   float base_y;
   float top_y;
   glm::vec3 text_color;
-  std::array<float, kNumStates> button_alphas;
+  std::array<float, state::kNumStates> button_alphas;
   glm::vec2 button_size;
   std::vector<Info> button_infos;
 };
@@ -213,7 +212,7 @@ class Button {
   // The first dimension is different buttons, and the second dimension is
   // different states of one button.
   using ButtonRenderInfos =
-      std::vector<std::array<ButtonRenderInfo, ButtonInfo::kNumStates>>;
+      std::vector<std::array<ButtonRenderInfo, state::kNumStates>>;
 
   // Extract ButtonRenderInfos from 'button_info'.
   ButtonRenderInfos ExtractRenderInfos(

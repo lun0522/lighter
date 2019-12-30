@@ -45,7 +45,7 @@ struct ColorAlpha {
 struct ControlRenderInfo {
   ALIGN_MAT4 glm::mat4 proj_view_model;
   ALIGN_VEC4 glm::vec4 color_alpha;
-  ALIGN_SCALAR(float) float scale;
+  ALIGN_SCALAR(float) float radius;
 };
 
 struct SplineTrans {
@@ -69,12 +69,10 @@ vector<common::Vertex3DPosOnly> ExtractPos(
 
 AuroraPath::AuroraPath(const SharedBasicContext& context,
                        int num_frames_in_flight, float viewport_aspect_ratio,
-                       float control_point_radius,
-                       const vector<array<glm::vec3, kNumStates>>& path_colors,
-                       const array<float, kNumStates>& path_alphas)
+                       const Info& info)
     : viewport_aspect_ratio_{viewport_aspect_ratio},
-      control_point_radius_{control_point_radius},
-      num_paths_{static_cast<int>(path_colors.size())},
+      control_point_radius_{info.control_point_radius},
+      num_paths_{static_cast<int>(info.path_colors.size())},
       num_control_points_(num_paths_), color_alphas_to_render_(num_paths_),
       control_pipeline_builder_{context},
       spline_pipeline_builder_{context} {
@@ -84,9 +82,11 @@ AuroraPath::AuroraPath(const SharedBasicContext& context,
   /* Vertex buffer */
   path_color_alphas_.reserve(num_paths_);
   for (int path = 0; path < num_paths_; ++path) {
-    path_color_alphas_.emplace_back(array<glm::vec4, kNumStates>{
-        glm::vec4{path_colors[path][kSelected], path_alphas[kSelected]},
-        glm::vec4{path_colors[path][kUnselected], path_alphas[kUnselected]},
+    path_color_alphas_.emplace_back(array<glm::vec4, state::kNumStates>{
+        glm::vec4{info.path_colors[path][state::kSelected],
+                  info.path_alphas[state::kSelected]},
+        glm::vec4{info.path_colors[path][state::kUnselected],
+                  info.path_alphas[state::kUnselected]},
     });
   }
 
@@ -170,6 +170,17 @@ AuroraPath::AuroraPath(const SharedBasicContext& context,
       .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("spline_3d.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("spline.frag"));
+
+  /* Path editor */
+  spline_editors_.reserve(num_paths_);
+  for (int path = 0; path < num_paths_; ++path) {
+    spline_editors_.emplace_back(absl::make_unique<common::SplineEditor>(
+        common::CatmullRomSpline::kMinNumControlPoints,
+        info.max_num_control_points, info.generate_control_points(path),
+        common::CatmullRomSpline::GetOnSphereSpline(
+            info.max_recursion_depth, info.spline_smoothness)));
+    UpdatePath(path);
+  }
 }
 
 void AuroraPath::UpdateFramebuffer(
@@ -187,20 +198,6 @@ void AuroraPath::UpdateFramebuffer(
       .Build();
 }
 
-void AuroraPath::UpdatePath(
-    int path_index, const vector<glm::vec3>& control_points,
-    const vector<glm::vec3>& spline_points) {
-  num_control_points_.at(path_index) = control_points.size();
-  paths_vertex_buffers_.at(path_index).control_points_buffer->CopyHostData(
-      control_points);
-  paths_vertex_buffers_.at(path_index).spline_points_buffer->CopyHostData(
-      PerVertexBuffer::NoIndicesDataInfo{
-          /*per_mesh_vertices=*/{{
-              PerVertexBuffer::VertexDataInfo{spline_points},
-          }},
-      });
-}
-
 void AuroraPath::UpdateCamera(
     int frame, const common::OrthographicCamera& camera,
     const glm::mat4& model) {
@@ -211,8 +208,21 @@ void AuroraPath::UpdateCamera(
 
   constexpr float kSphereModelRadius = 1.0f;
   const float desired_radius = camera.view_width() * control_point_radius_;
-  control_render_constant_->HostData<ControlRenderInfo>(frame)->scale =
+  control_render_constant_->HostData<ControlRenderInfo>(frame)->radius =
       desired_radius / kSphereModelRadius;
+}
+
+void AuroraPath::UpdatePath(int path_index) {
+  const auto& editor = *spline_editors_[path_index];
+  num_control_points_[path_index] = editor.control_points().size();
+  paths_vertex_buffers_[path_index].control_points_buffer->CopyHostData(
+      editor.control_points());
+  paths_vertex_buffers_[path_index].spline_points_buffer->CopyHostData(
+      PerVertexBuffer::NoIndicesDataInfo{
+          /*per_mesh_vertices=*/{{
+              PerVertexBuffer::VertexDataInfo{editor.spline_points()},
+          }},
+      });
 }
 
 void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
@@ -220,14 +230,16 @@ void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
   // If one path is selected, highlight it. Otherwise, highlight all paths.
   if (selected_path_index.has_value()) {
     for (int path = 0; path < num_paths_; ++path) {
-      color_alphas_to_render_[path] = path_color_alphas_[path][kUnselected];
+      color_alphas_to_render_[path] =
+          path_color_alphas_[path][state::kUnselected];
     }
     const int selected_path = selected_path_index.value();
     color_alphas_to_render_[selected_path] =
-        path_color_alphas_[selected_path][kSelected];
+        path_color_alphas_[selected_path][state::kSelected];
   } else {
     for (int path = 0; path < num_paths_; ++path) {
-      color_alphas_to_render_[path] = path_color_alphas_[path][kSelected];
+      color_alphas_to_render_[path] =
+          path_color_alphas_[path][state::kSelected];
     }
   }
   color_alpha_vertex_buffer_->CopyHostData(color_alphas_to_render_);
@@ -253,7 +265,7 @@ void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
 
   const int selected_path = selected_path_index.value();
   control_render_constant_->HostData<ControlRenderInfo>(frame)->color_alpha =
-      path_color_alphas_[selected_path][kSelected];
+      path_color_alphas_[selected_path][state::kSelected];
 
   control_pipeline_->Bind(command_buffer);
   control_render_constant_->Flush(
@@ -265,6 +277,20 @@ void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
   sphere_vertex_buffer_->Draw(
       command_buffer, static_cast<int>(ControlVertexBufferBindingPoint::kPos),
       /*mesh_index=*/0, num_control_points_[selected_path]);
+}
+
+void AuroraPath::DidClick(int frame, int path_index,
+                          const glm::vec3& click_object_space) {
+  const auto& control_points = spline_editors_.at(path_index)->control_points();
+  const float control_point_radius =
+      control_render_constant_->HostData<ControlRenderInfo>(frame)->radius;
+  for (int i = 0; i < control_points.size(); ++i) {
+    if (glm::distance(click_object_space, control_points[i]) <=
+        control_point_radius) {
+      LOG_INFO << "hit control point " << i;
+      return;
+    }
+  }
 }
 
 } /* namespace aurora */

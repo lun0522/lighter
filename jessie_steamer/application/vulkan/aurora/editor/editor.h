@@ -17,7 +17,6 @@
 #include "jessie_steamer/application/vulkan/aurora/editor/path.h"
 #include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/rotation.h"
-#include "jessie_steamer/common/spline.h"
 #include "jessie_steamer/common/timer.h"
 #include "jessie_steamer/common/window.h"
 #include "jessie_steamer/wrapper/vulkan/window_context.h"
@@ -107,33 +106,10 @@ class Editor {
     ButtonIndex last_edited_path_ = kPath1ButtonIndex;
   };
 
-  class PathManager {
-   public:
-    explicit PathManager();
-
-    // This class is neither copyable nor movable.
-    PathManager(const PathManager&) = delete;
-    PathManager& operator=(const PathManager&) = delete;
-
-    void Update(int path_index, const glm::vec3& click_object);
-
-    // Accessors.
-    const std::vector<glm::vec3>& control_points(int path_index) const {
-      return spline_editors_.at(path_index)->control_points();
-    }
-    const std::vector<glm::vec3>& spline_points(int path_index) const {
-      return spline_editors_.at(path_index)->spline_points();
-    }
-
-   private:
-    std::vector<std::unique_ptr<common::SplineEditor>> spline_editors_;
-  };
-
   bool is_pressing_left_ = false;
   common::Sphere earth_;
   common::Sphere aurora_layer_;
   StateManager state_manager_;
-  PathManager path_manager_;
   std::unique_ptr<Celestial> celestial_;
   std::unique_ptr<AuroraPath> aurora_path_;
   std::unique_ptr<Button> button_;

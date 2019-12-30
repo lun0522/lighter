@@ -9,10 +9,13 @@
 #define JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_EDITOR_PATH_H
 
 #include <array>
+#include <functional>
 #include <memory>
 #include <vector>
 
+#include "jessie_steamer/application/vulkan/aurora/editor/state.h"
 #include "jessie_steamer/common/camera.h"
+#include "jessie_steamer/common/spline.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
@@ -29,16 +32,27 @@ namespace aurora {
 
 class AuroraPath {
  public:
-  enum State { kSelected = 0, kUnselected, kNumStates };
+  // Returns the initial control points of the aurora path at 'path_index'.
+  using GenerateControlPoints =
+      std::function<std::vector<glm::vec3>(int path_index)>;
+
+  // Contains information for rendering aurora paths. 'control_point_radius' is
+  // measured in the screen coordinate with range (0.0, 1.0].
+  struct Info {
+    int max_num_control_points;
+    float control_point_radius;
+    int max_recursion_depth;
+    float spline_smoothness;
+    std::vector<std::array<glm::vec3, state::kNumStates>> path_colors;
+    std::array<float, state::kNumStates> path_alphas;
+    GenerateControlPoints generate_control_points;
+  };
 
   // When the frame is resized, the aspect ratio of viewport will always be
-  // 'viewport_aspect_ratio'. 'control_point_radius' is measured in the screen
-  // coordinate with range (0.0, 1.0].
+  // 'viewport_aspect_ratio'.
   AuroraPath(const wrapper::vulkan::SharedBasicContext& context,
              int num_frames_in_flight, float viewport_aspect_ratio,
-             float control_point_radius,
-             const std::vector<std::array<glm::vec3, kNumStates>>& path_colors,
-             const std::array<float, kNumStates>& path_alphas);
+             const Info& info);
 
   // This class is neither copyable nor movable.
   AuroraPath(const AuroraPath&) = delete;
@@ -50,11 +64,9 @@ class AuroraPath {
       const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
       const wrapper::vulkan::RenderPass& render_pass, uint32_t subpass_index);
 
-  // Updates the vertex data of aurora path at 'path_index'.
-  void UpdatePath(int path_index, const std::vector<glm::vec3>& control_points,
-                  const std::vector<glm::vec3>& spline_points);
-
-  // Informs the path renderer that the camera has been updated.
+  // Informs the path renderer that the camera has been updated. Note that all
+  // control points and spline points are on a unit sphere, hence the 'model'
+  // matrix will determine the height of aurora layer.
   void UpdateCamera(int frame, const common::OrthographicCamera& camera,
                     const glm::mat4& model);
 
@@ -62,6 +74,9 @@ class AuroraPath {
   // This should be called when 'command_buffer' is recording commands.
   void Draw(const VkCommandBuffer& command_buffer, int frame,
             const absl::optional<int>& selected_path_index);
+
+  // Informs the renderer that the user has clicked on the aurora layer.
+  void DidClick(int frame, int path_index, const glm::vec3& click_object_space);
 
  private:
   // Vertex buffers for a single aurora path.
@@ -71,6 +86,9 @@ class AuroraPath {
     std::unique_ptr<wrapper::vulkan::DynamicPerVertexBuffer>
         spline_points_buffer;
   };
+
+  // Updates the vertex data of aurora path at 'path_index'.
+  void UpdatePath(int path_index);
 
   // Aspect ratio of the viewport. This is used to make sure the aspect ratio of
   // aurora paths does not change when the size of framebuffers changes.
@@ -87,11 +105,14 @@ class AuroraPath {
 
   // Records for each state, what color and alpha should be used when rendering
   // the aurora path at the same index.
-  std::vector<std::array<glm::vec4, kNumStates>> path_color_alphas_;
+  std::vector<std::array<glm::vec4, state::kNumStates>> path_color_alphas_;
 
   // Records the color and alpha to use when rendering the aurora path at the
   // same index.
   std::vector<glm::vec4> color_alphas_to_render_;
+
+  // Editors of aurora paths.
+  std::vector<std::unique_ptr<common::SplineEditor>> spline_editors_;
 
   // Objects used for rendering.
   std::unique_ptr<wrapper::vulkan::StaticPerVertexBuffer> sphere_vertex_buffer_;
