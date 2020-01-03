@@ -69,7 +69,7 @@ void AuroraApp::MainLoop() {
         [this](int frame) { editor_->UpdateData(window_context_, frame); },
         [this](const VkCommandBuffer& command_buffer,
                uint32_t framebuffer_index) {
-          editor_->Render(command_buffer, framebuffer_index, current_frame_);
+          editor_->Draw(command_buffer, framebuffer_index, current_frame_);
         });
 
     if (draw_result.has_value() || window_context_.ShouldRecreate()) {

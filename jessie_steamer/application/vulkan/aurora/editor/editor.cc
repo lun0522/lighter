@@ -205,7 +205,11 @@ void Editor::OnEnter(common::Window* mutable_window) {
         }
       })
       .RegisterMouseButtonCallback([this](bool is_left, bool is_press) {
-        is_pressing_left_ = is_press;
+        if (is_left) {
+          did_press_left_ = is_press;
+        } else {
+          did_press_right_ = is_press;
+        }
       });
 }
 
@@ -257,61 +261,64 @@ void Editor::Recreate(const WindowContext& window_context) {
 }
 
 void Editor::UpdateData(const WindowContext& window_context, int frame) {
-  // Find clicking point in the normalized device coordinate.
-  absl::optional<glm::vec2> click_ndc;
-  if (is_pressing_left_) {
-    click_ndc = window_context.window().GetNormalizedCursorPos();
-    // When the frame is resized, the viewport is changed to maintain the
-    // aspect ratio, hence we need to consider the distortion caused by the
-    // viewport change.
-    const float current_aspect_ratio =
-        util::GetAspectRatio(window_context.frame_size());
-    const float distortion =
-        current_aspect_ratio / window_context.window().original_aspect_ratio();
-    if (distortion > 1.0f) {
-      click_ndc->x *= distortion;
-    } else {
-      click_ndc->y /= distortion;
-    }
+  glm::vec2 click_ndc = window_context.window().GetNormalizedCursorPos();
+  // When the frame is resized, the viewport is changed to maintain the aspect
+  // ratio, hence we need to consider the distortion caused by viewport changes.
+  const float current_aspect_ratio =
+      util::GetAspectRatio(window_context.frame_size());
+  const float distortion =
+      current_aspect_ratio / window_context.window().original_aspect_ratio();
+  if (distortion > 1.0f) {
+    click_ndc.x *= distortion;
+  } else {
+    click_ndc.y /= distortion;
   }
 
   // Process clicking on button.
+  absl::optional<int> clicked_button_index;
+  if (did_press_left_) {
+    clicked_button_index = button_->GetClickedButtonIndex(
+        click_ndc, state_manager_.button_states());
+  }
   absl::optional<ButtonIndex> clicked_button;
-  if (click_ndc.has_value()) {
-    const auto clicked_button_index = button_->GetClickedButtonIndex(
-        click_ndc.value(), state_manager_.button_states());
-    if (clicked_button_index.has_value()) {
-      clicked_button = static_cast<ButtonIndex>(
-          clicked_button_index.value());
-    }
+  if (clicked_button_index.has_value()) {
+    clicked_button = static_cast<ButtonIndex>(clicked_button_index.value());
   }
   state_manager_.Update(clicked_button);
 
-  // Processing earth rotation. If we are in editing mode, or if any button is
-  // hit, do not interact with earth or aurora.
-  const bool should_interact =
-      !state_manager_.IsEditing() && !clicked_button.has_value();
+  // Process interaction with earth or aurora layer.
   const auto& general_camera = dynamic_cast<const common::OrthographicCamera&>(
       general_camera_->camera());
-  const auto rotation = earth_.ShouldRotate(
-      general_camera, should_interact ? click_ndc : absl::nullopt);
+  absl::optional<glm::vec2> click_earth_ndc;
+  absl::optional<AuroraPath::ClickInfo> click_aurora_layer;
+  if (!clicked_button.has_value()) {
+    if (state_manager_.IsEditing()) {
+      // If in editing mode, only interact with aurora layer.
+      if (did_press_left_ || did_press_right_) {
+        const auto intersection =
+            aurora_layer_.GetIntersection(general_camera, click_ndc);
+        if (intersection.has_value()) {
+          click_aurora_layer = AuroraPath::ClickInfo{
+              state_manager_.GetEditingPathIndex(),
+              /*is_left_click=*/!did_press_right_,
+              intersection.value(),
+          };
+        }
+      }
+    } else if (did_press_left_) {
+      // If not in editing mode, only interact with earth.
+      click_earth_ndc = click_ndc;
+    }
+  }
+
+  // Compute earth rotation.
+  const auto rotation = earth_.ShouldRotate(general_camera, click_earth_ndc);
   if (rotation.has_value()) {
     earth_.Rotate(rotation.value());
     aurora_layer_.Rotate(rotation.value());
   }
 
-  // Process interaction with aurora path.
-  if (state_manager_.IsEditing() && !clicked_button.has_value() &&
-      click_ndc.has_value()) {
-    const auto intersection = aurora_layer_.GetIntersection(
-        general_camera, click_ndc.value());
-    if (intersection.has_value()) {
-      aurora_path_->DidClick(frame, state_manager_.GetEditingPathIndex(),
-                             intersection.value());
-    }
-  }
-
-  // Render earth, aurora and skybox.
+  // Update earth, aurora and skybox.
   const auto earth_texture_index =
       state_manager_.IsSelected(kDaylightButtonIndex)
           ? Celestial::kEarthDayTextureIndex
@@ -320,12 +327,12 @@ void Editor::UpdateData(const WindowContext& window_context, int frame) {
                               earth_.model_matrix(), earth_texture_index);
   celestial_->UpdateSkyboxData(frame, skybox_camera_->camera(),
                                earth_.GetSkyboxModelMatrix(/*scale=*/1.5f));
-  aurora_path_->UpdateCamera(frame, general_camera,
-                             aurora_layer_.model_matrix());
+  aurora_path_->UpdatePerFrameData(
+      frame, general_camera, aurora_layer_.model_matrix(), click_aurora_layer);
 }
 
-void Editor::Render(const VkCommandBuffer& command_buffer,
-                    uint32_t framebuffer_index, int current_frame) {
+void Editor::Draw(const VkCommandBuffer& command_buffer,
+                  uint32_t framebuffer_index, int current_frame) {
   absl::optional<int> selected_path_index;
   for (int index = kPath1ButtonIndex; index <= kPath3ButtonIndex; ++index) {
     if (state_manager_.IsSelected(static_cast<ButtonIndex>(index))) {
@@ -356,8 +363,7 @@ Editor::StateManager::StateManager() {
   button_states_[kAuroraButtonIndex] = Button::State::kSelected;
 }
 
-void Editor::StateManager::Update(
-    const absl::optional<ButtonIndex>& clicked_button) {
+void Editor::StateManager::Update(absl::optional<ButtonIndex> clicked_button) {
   if (!clicked_button.has_value()) {
     click_info_ = absl::nullopt;
     return;

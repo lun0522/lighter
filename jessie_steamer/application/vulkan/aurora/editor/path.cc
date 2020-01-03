@@ -11,6 +11,7 @@
 #include "jessie_steamer/wrapper/vulkan/align.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline_util.h"
 #include "third_party/absl/memory/memory.h"
+#include "third_party/absl/strings/str_format.h"
 #include "third_party/glm/gtc/matrix_transform.hpp"
 
 namespace jessie_steamer {
@@ -198,9 +199,9 @@ void AuroraPath::UpdateFramebuffer(
       .Build();
 }
 
-void AuroraPath::UpdateCamera(
+void AuroraPath::UpdatePerFrameData(
     int frame, const common::OrthographicCamera& camera,
-    const glm::mat4& model) {
+    const glm::mat4& model, const absl::optional<ClickInfo>& click_info) {
   control_render_constant_
       ->HostData<ControlRenderInfo>(frame)->proj_view_model =
   spline_trans_constant_->HostData<SplineTrans>(frame)->proj_view_model =
@@ -210,6 +211,7 @@ void AuroraPath::UpdateCamera(
   const float desired_radius = camera.view_width() * control_point_radius_;
   control_render_constant_->HostData<ControlRenderInfo>(frame)->radius =
       desired_radius / kSphereModelRadius;
+  last_left_click_control_point_ = ProcessClick(desired_radius, click_info);
 }
 
 void AuroraPath::UpdatePath(int path_index) {
@@ -225,8 +227,36 @@ void AuroraPath::UpdatePath(int path_index) {
       });
 }
 
+absl::optional<int> AuroraPath::ProcessClick(
+    float control_point_radius, const absl::optional<ClickInfo>& click_info) {
+  if (!click_info.has_value()) {
+    return absl::nullopt;
+  }
+
+  const ClickInfo& user_click = click_info.value();
+  if (user_click.path_index >= num_paths_) {
+    FATAL(absl::StrFormat(
+        "Trying to access aurora path at index %d (%d paths exist)",
+        user_click.path_index, num_paths_));
+  }
+
+  if (last_left_click_control_point_.has_value() && user_click.is_left_click) {
+    spline_editors_[user_click.path_index]->UpdateControlPoint(
+        last_left_click_control_point_.value(), user_click.click_object_space);
+    UpdatePath(user_click.path_index);
+    return last_left_click_control_point_;
+  }
+
+  if (user_click.is_left_click) {
+    return spline_editors_[user_click.path_index]->FindClickedControlPoint(
+        user_click.click_object_space, control_point_radius);
+  } else {
+    return absl::nullopt;
+  }
+}
+
 void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
-                      const absl::optional<int>& selected_path_index) {
+                      absl::optional<int> selected_path_index) {
   // If one path is selected, highlight it. Otherwise, highlight all paths.
   if (selected_path_index.has_value()) {
     for (int path = 0; path < num_paths_; ++path) {
@@ -277,20 +307,6 @@ void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
   sphere_vertex_buffer_->Draw(
       command_buffer, static_cast<int>(ControlVertexBufferBindingPoint::kPos),
       /*mesh_index=*/0, num_control_points_[selected_path]);
-}
-
-void AuroraPath::DidClick(int frame, int path_index,
-                          const glm::vec3& click_object_space) {
-  const auto& control_points = spline_editors_.at(path_index)->control_points();
-  const float control_point_radius =
-      control_render_constant_->HostData<ControlRenderInfo>(frame)->radius;
-  for (int i = 0; i < control_points.size(); ++i) {
-    if (glm::distance(click_object_space, control_points[i]) <=
-        control_point_radius) {
-      LOG_INFO << "hit control point " << i;
-      return;
-    }
-  }
 }
 
 } /* namespace aurora */

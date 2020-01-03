@@ -104,11 +104,13 @@ class SplineEditor {
   SplineEditor& operator=(const SplineEditor&) = delete;
 
   absl::optional<int> FindClickedControlPoint(
-      const glm::vec3& click_pos, float max_distance);
+      const glm::vec3& click_pos, float control_point_radius);
 
-  void AddControlPoint(const glm::vec3& position);
+  bool AddControlPoint(const glm::vec3& position);
 
-  void RemoveControlPoint(int index);
+  void UpdateControlPoint(int index, const glm::vec3& position);
+
+  bool RemoveControlPoint(int index);
 
   const std::vector<glm::vec3>& control_points() const {
     return control_points_;

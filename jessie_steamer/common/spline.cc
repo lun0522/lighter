@@ -61,17 +61,9 @@ const int CatmullRomSpline::kMinNumControlPoints = 3;
 
 std::unique_ptr<Spline> CatmullRomSpline::GetOnSphereSpline(
     int max_recursion_depth, float smoothness) {
-  // Middle point calculation based on Slerp:
-  // https://en.wikipedia.org/wiki/Slerp
   BezierSpline::GetMiddlePoint get_middle_point =
       [](const glm::vec3& p0, const glm::vec3& p1) {
-        const float cos_omega = glm::dot(glm::normalize(p0),
-                                         glm::normalize(p1));
-        const float omega = glm::acos(cos_omega);
-        // Interpolation factors for both points are the same since we need the
-        // middle point.
-        const float interp = glm::sin(0.5f * omega) / glm::sin(omega);
-        return interp * (p0 + p1);
+        return glm::normalize(p0 + p1) * glm::length(p0);
       };
 
   BezierSpline::IsSmooth is_smooth = [smoothness](const glm::vec3& p0,
@@ -154,22 +146,37 @@ SplineEditor::SplineEditor(int min_num_control_points,
 }
 
 absl::optional<int> SplineEditor::FindClickedControlPoint(
-    const glm::vec3& click_pos, float max_distance) {
+    const glm::vec3& click_pos, float control_point_radius) {
   for (int i = 0; i < control_points_.size(); ++i) {
-    if (glm::distance(control_points_[i], click_pos) <= max_distance) {
+    if (glm::distance(control_points_[i], click_pos) <= control_point_radius) {
       return i;
     }
   }
   return absl::nullopt;
 }
 
-void SplineEditor::AddControlPoint(const glm::vec3& position) {
+bool SplineEditor::AddControlPoint(const glm::vec3& position) {
+  if (control_points_.size() == max_num_control_points_) {
+    return false;
+  }
+
   // TODO
+  return true;
 }
 
-void SplineEditor::RemoveControlPoint(int index) {
+void SplineEditor::UpdateControlPoint(int index, const glm::vec3& position) {
+  control_points_.at(index) = position;
+  RebuildSpline();
+}
+
+bool SplineEditor::RemoveControlPoint(int index) {
+  if (control_points_.size() == min_num_control_points_) {
+    return false;
+  }
+
   control_points_.erase(control_points_.begin() + index);
   RebuildSpline();
+  return true;
 }
 
 void SplineEditor::RebuildSpline() {

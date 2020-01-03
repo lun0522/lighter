@@ -30,6 +30,7 @@ namespace application {
 namespace vulkan {
 namespace aurora {
 
+// This class is used to render aurora paths and handle user inputs.
 class AuroraPath {
  public:
   // Returns the initial control points of the aurora path at 'path_index'.
@@ -37,7 +38,8 @@ class AuroraPath {
       std::function<std::vector<glm::vec3>(int path_index)>;
 
   // Contains information for rendering aurora paths. 'control_point_radius' is
-  // measured in the screen coordinate with range (0.0, 1.0].
+  // measured in the screen coordinate with range (0.0, 1.0]. The length of
+  // 'path_colors' determines the number of aurora paths to be rendered.
   struct Info {
     int max_num_control_points;
     float control_point_radius;
@@ -46,6 +48,13 @@ class AuroraPath {
     std::vector<std::array<glm::vec3, state::kNumStates>> path_colors;
     std::array<float, state::kNumStates> path_alphas;
     GenerateControlPoints generate_control_points;
+  };
+
+  // Describes a user click.
+  struct ClickInfo {
+    int path_index;
+    bool is_left_click;
+    glm::vec3 click_object_space;
   };
 
   // When the frame is resized, the aspect ratio of viewport will always be
@@ -64,19 +73,17 @@ class AuroraPath {
       const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
       const wrapper::vulkan::RenderPass& render_pass, uint32_t subpass_index);
 
-  // Informs the path renderer that the camera has been updated. Note that all
-  // control points and spline points are on a unit sphere, hence the 'model'
-  // matrix will determine the height of aurora layer.
-  void UpdateCamera(int frame, const common::OrthographicCamera& camera,
-                    const glm::mat4& model);
+  // Updates per-frame data. Note that all control points and spline points are
+  // on a unit sphere, hence the 'model' matrix will determine the height of
+  // aurora layer.
+  void UpdatePerFrameData(
+      int frame, const common::OrthographicCamera& camera,
+      const glm::mat4& model, const absl::optional<ClickInfo>& click_info);
 
   // Renders the aurora paths.
   // This should be called when 'command_buffer' is recording commands.
   void Draw(const VkCommandBuffer& command_buffer, int frame,
-            const absl::optional<int>& selected_path_index);
-
-  // Informs the renderer that the user has clicked on the aurora layer.
-  void DidClick(int frame, int path_index, const glm::vec3& click_object_space);
+            absl::optional<int> selected_path_index);
 
  private:
   // Vertex buffers for a single aurora path.
@@ -90,6 +97,11 @@ class AuroraPath {
   // Updates the vertex data of aurora path at 'path_index'.
   void UpdatePath(int path_index);
 
+  // Processes user click and returns the new value of
+  // 'last_left_click_control_point_'.
+  absl::optional<int> ProcessClick(float control_point_radius,
+                                   const absl::optional<ClickInfo>& click_info);
+
   // Aspect ratio of the viewport. This is used to make sure the aspect ratio of
   // aurora paths does not change when the size of framebuffers changes.
   const float viewport_aspect_ratio_;
@@ -99,6 +111,9 @@ class AuroraPath {
 
   // Number of aurora paths.
   const int num_paths_;
+
+  // Tracks the last left click.
+  absl::optional<int> last_left_click_control_point_;
 
   // Records the number of control points for each aurora path.
   std::vector<int> num_control_points_;

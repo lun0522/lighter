@@ -287,7 +287,7 @@ std::unique_ptr<Image> MultisampleImage::CreateDepthStencilMultisampleImage(
 
 std::unique_ptr<Image> MultisampleImage::CreateDepthStencilImage(
     SharedBasicContext context,
-    const VkExtent2D& extent, const absl::optional<Mode>& mode) {
+    const VkExtent2D& extent, absl::optional<Mode> mode) {
   if (mode.has_value()) {
     return CreateDepthStencilMultisampleImage(std::move(context),
                                               extent, mode.value());

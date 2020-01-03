@@ -42,6 +42,7 @@ cc_library(
         ":state",
         "//jessie_steamer/application/vulkan:common",
         "//jessie_steamer/common:spline",
+        "//third_party/absl/strings:str_format",
         "//third_party/absl/types:optional",
     ],
 )

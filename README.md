@@ -679,8 +679,8 @@ use **CharLoader** and **TextLoader** for simple scenes.
 
 This is the most basic scene, where we don't have any mesh or texture, but one
 blinking triangle. This proves all the basic functionality for onscreen
-rendering (vertex buffer, command buffer, swapchain, render pass and graphics
-pipeline) and alpha blending are working. We have a [breakdown of the code](https://github.com/lun0522/jessie-steamer/tree/master/jessie_steamer/application/vulkan)
+rendering (vertex buffer, push constant, command buffer, swapchain, render pass
+and graphics pipeline) and alpha blending are working. We have a [breakdown of the code](https://github.com/lun0522/jessie-steamer/tree/master/jessie_steamer/application/vulkan)
 to illustrate the usage of them. If all resources on the device are destroyed
 properly, the context will be destructed at last, and we should see the log
 "Context destructed properly" in the debug compilation mode.

@@ -59,8 +59,8 @@ class Editor {
   void UpdateData(const wrapper::vulkan::WindowContext& window_context,
                   int frame);
 
-  void Render(const VkCommandBuffer& command_buffer,
-              uint32_t framebuffer_index, int current_frame);
+  void Draw(const VkCommandBuffer& command_buffer,
+            uint32_t framebuffer_index, int current_frame);
 
  private:
   class StateManager {
@@ -71,7 +71,7 @@ class Editor {
     StateManager(const StateManager&) = delete;
     StateManager& operator=(const StateManager&) = delete;
 
-    void Update(const absl::optional<ButtonIndex>& clicked_button);
+    void Update(absl::optional<ButtonIndex> clicked_button);
 
     int GetEditingPathIndex() const;
 
@@ -106,7 +106,8 @@ class Editor {
     ButtonIndex last_edited_path_ = kPath1ButtonIndex;
   };
 
-  bool is_pressing_left_ = false;
+  bool did_press_left_ = false;
+  bool did_press_right_ = false;
   common::Sphere earth_;
   common::Sphere aurora_layer_;
   StateManager state_manager_;

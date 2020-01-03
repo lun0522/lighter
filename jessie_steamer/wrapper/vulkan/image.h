@@ -280,7 +280,7 @@ class MultisampleImage : public Image {
   // directly use whatever image returned by this function.
   static std::unique_ptr<Image> CreateDepthStencilImage(
       SharedBasicContext context,
-      const VkExtent2D& extent, const absl::optional<Mode>& mode);
+      const VkExtent2D& extent, absl::optional<Mode> mode);
 
   // This class is neither copyable nor movable.
   MultisampleImage(const MultisampleImage&) = delete;
