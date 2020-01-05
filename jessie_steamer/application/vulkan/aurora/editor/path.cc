@@ -211,7 +211,7 @@ void AuroraPath::UpdatePerFrameData(
   const float desired_radius = camera.view_width() * control_point_radius_;
   control_render_constant_->HostData<ControlRenderInfo>(frame)->radius =
       desired_radius / kSphereModelRadius;
-  last_left_click_control_point_ = ProcessClick(desired_radius, click_info);
+  selected_control_point_ = ProcessClick(desired_radius, click_info);
 }
 
 void AuroraPath::UpdatePath(int path_index) {
@@ -240,17 +240,32 @@ absl::optional<int> AuroraPath::ProcessClick(
         user_click.path_index, num_paths_));
   }
 
-  if (last_left_click_control_point_.has_value() && user_click.is_left_click) {
-    spline_editors_[user_click.path_index]->UpdateControlPoint(
-        last_left_click_control_point_.value(), user_click.click_object_space);
+  // If a control point has been selected before this frame, simply move it to
+  // the current click point.
+  auto& editor = *spline_editors_[user_click.path_index];
+  if (selected_control_point_.has_value() && user_click.is_left_click) {
+    editor.UpdateControlPoint(selected_control_point_.value(),
+                              user_click.click_object_space);
     UpdatePath(user_click.path_index);
-    return last_left_click_control_point_;
+    return selected_control_point_;
   }
 
+  const auto clicked_control_point = editor.FindClickedControlPoint(
+      user_click.click_object_space, control_point_radius);
   if (user_click.is_left_click) {
-    return spline_editors_[user_click.path_index]->FindClickedControlPoint(
-        user_click.click_object_space, control_point_radius);
+    // For left click, if no control point has been selected, find out if any
+    // control point is selected in this frame.
+    return clicked_control_point;
   } else {
+    // For right click, if any control point is clicked, remove it. Otherwise,
+    // add a new control point at the click point.
+    const bool is_path_changed =
+        clicked_control_point.has_value()
+            ? editor.RemoveControlPoint(clicked_control_point.value())
+            : editor.AddControlPoint(user_click.click_object_space);
+    if (is_path_changed) {
+      UpdatePath(user_click.path_index);
+    }
     return absl::nullopt;
   }
 }

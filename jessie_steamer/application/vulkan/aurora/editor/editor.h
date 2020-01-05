@@ -107,7 +107,7 @@ class Editor {
   };
 
   bool did_press_left_ = false;
-  bool did_press_right_ = false;
+  bool did_release_right_ = false;
   common::Sphere earth_;
   common::Sphere aurora_layer_;
   StateManager state_manager_;

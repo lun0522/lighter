@@ -208,7 +208,7 @@ void Editor::OnEnter(common::Window* mutable_window) {
         if (is_left) {
           did_press_left_ = is_press;
         } else {
-          did_press_right_ = is_press;
+          did_release_right_ = !is_press;
         }
       });
 }
@@ -286,7 +286,7 @@ void Editor::UpdateData(const WindowContext& window_context, int frame) {
   }
   state_manager_.Update(clicked_button);
 
-  // Process interaction with earth or aurora layer.
+  // Process interaction with earth or aurora layer if no button is clicked.
   const auto& general_camera = dynamic_cast<const common::OrthographicCamera&>(
       general_camera_->camera());
   absl::optional<glm::vec2> click_earth_ndc;
@@ -294,13 +294,13 @@ void Editor::UpdateData(const WindowContext& window_context, int frame) {
   if (!clicked_button.has_value()) {
     if (state_manager_.IsEditing()) {
       // If in editing mode, only interact with aurora layer.
-      if (did_press_left_ || did_press_right_) {
+      if (did_press_left_ || did_release_right_) {
         const auto intersection =
             aurora_layer_.GetIntersection(general_camera, click_ndc);
         if (intersection.has_value()) {
           click_aurora_layer = AuroraPath::ClickInfo{
               state_manager_.GetEditingPathIndex(),
-              /*is_left_click=*/!did_press_right_,
+              /*is_left_click=*/!did_release_right_,
               intersection.value(),
           };
         }
@@ -329,6 +329,9 @@ void Editor::UpdateData(const WindowContext& window_context, int frame) {
                                earth_.GetSkyboxModelMatrix(/*scale=*/1.5f));
   aurora_path_->UpdatePerFrameData(
       frame, general_camera, aurora_layer_.model_matrix(), click_aurora_layer);
+
+  // Reset right mouse button flag.
+  did_release_right_ = false;
 }
 
 void Editor::Draw(const VkCommandBuffer& command_buffer,

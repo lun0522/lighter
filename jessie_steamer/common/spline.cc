@@ -7,6 +7,8 @@
 
 #include "jessie_steamer/common/spline.h"
 
+#include <algorithm>
+
 #include "jessie_steamer/common/util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
@@ -160,7 +162,33 @@ bool SplineEditor::AddControlPoint(const glm::vec3& position) {
     return false;
   }
 
-  // TODO
+  const auto find_closest_point =
+      [&position](const glm::vec3& p0, const glm::vec3& p1) {
+        return glm::distance(p0, position) < glm::distance(p1, position);
+      };
+  const int closest_point_index = std::distance(
+      control_points_.begin(),
+      std::min_element(control_points_.begin(), control_points_.end(),
+                       find_closest_point));
+  const int prev_point_index = static_cast<int>(
+      (closest_point_index - 1) % control_points_.size());
+  const int next_point_index = static_cast<int>(
+      (closest_point_index + 1) % control_points_.size());
+
+  const auto& closest_point = control_points_[closest_point_index];
+  const float prev_point_closeness = glm::dot(
+      glm::normalize(control_points_[prev_point_index] - closest_point),
+      glm::normalize(position - closest_point));
+  const float next_point_closeness = glm::dot(
+      glm::normalize(control_points_[next_point_index] - closest_point),
+      glm::normalize(position - closest_point));
+
+  const int insert_at_index = prev_point_closeness > next_point_closeness
+                                  ? closest_point_index
+                                  : next_point_index;
+  control_points_.insert(control_points_.begin() + insert_at_index, position);
+  RebuildSpline();
+
   return true;
 }
 

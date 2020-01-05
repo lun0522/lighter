@@ -50,7 +50,8 @@ class AuroraPath {
     GenerateControlPoints generate_control_points;
   };
 
-  // Describes a user click.
+  // Describes a user click. Note that paths only respond to left mouse button
+  // press or right button release.
   struct ClickInfo {
     int path_index;
     bool is_left_click;
@@ -98,7 +99,7 @@ class AuroraPath {
   void UpdatePath(int path_index);
 
   // Processes user click and returns the new value of
-  // 'last_left_click_control_point_'.
+  // 'selected_control_point_'.
   absl::optional<int> ProcessClick(float control_point_radius,
                                    const absl::optional<ClickInfo>& click_info);
 
@@ -112,8 +113,8 @@ class AuroraPath {
   // Number of aurora paths.
   const int num_paths_;
 
-  // Tracks the last left click.
-  absl::optional<int> last_left_click_control_point_;
+  // Tracks the control point selected by left click.
+  absl::optional<int> selected_control_point_;
 
   // Records the number of control points for each aurora path.
   std::vector<int> num_control_points_;
