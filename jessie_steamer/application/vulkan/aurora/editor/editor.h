@@ -8,7 +8,6 @@
 #ifndef JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_EDITOR_EDITOR_H
 #define JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_EDITOR_EDITOR_H
 
-#include <array>
 #include <memory>
 #include <vector>
 

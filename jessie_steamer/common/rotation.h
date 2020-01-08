@@ -61,6 +61,9 @@ class StateVisitor {
 // normalized click position on the object.
 class RotationManager {
  public:
+  explicit RotationManager(float inertial_rotation_duration)
+      : inertial_rotation_duration_{inertial_rotation_duration} {}
+
   // Returns an instance of rotation::Rotation if rotation should be performed.
   // Otherwise, returns absl::nullopt.
   absl::optional<rotation::Rotation> Compute(
@@ -83,6 +86,7 @@ class RotationManager {
   };
   using State = absl::variant<StopState, RotationState, InertialRotationState>;
 
+  // Computes state transition.
   template <typename StateType>
   friend absl::optional<rotation::Rotation> rotation::Compute(
       const absl::optional<glm::vec3>& normalized_click_pos,
@@ -94,6 +98,9 @@ class RotationManager {
   // Records the time since this manager is created.
   const BasicTimer timer_;
 
+  // The duration of inertial rotation after the force-driven rotation stops.
+  const float inertial_rotation_duration_;
+
   // Current state.
   State state_ = StopState{};
 };
@@ -101,7 +108,8 @@ class RotationManager {
 // This class models a sphere that rotates following the user input.
 class Sphere {
  public:
-  Sphere(const glm::vec3& center, float radius);
+  Sphere(const glm::vec3& center, float radius,
+         float inertial_rotation_duration);
 
   // This class is neither copyable nor movable.
   Sphere(const Sphere&) = delete;

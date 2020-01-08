@@ -28,12 +28,15 @@ class Spline {
 
   virtual void BuildSpline(const std::vector<glm::vec3>& control_points) = 0;
 
+  int GetSucceedingControlPointIndex(int spline_point_index) const;
+
   const std::vector<glm::vec3>& spline_points() const { return spline_points_; }
 
  protected:
   Spline() = default;
 
   std::vector<glm::vec3> spline_points_;
+  std::vector<int> control_point_precedence_;
 };
 
 class BezierSpline : public Spline {
@@ -53,8 +56,6 @@ class BezierSpline : public Spline {
   // This class is neither copyable nor movable.
   BezierSpline(const BezierSpline&) = delete;
   BezierSpline& operator=(const BezierSpline&) = delete;
-
-  void BuildSpline(const std::vector<glm::vec3>& control_points) override;
 
  protected:
   void Tessellate(const glm::vec3& p0,
@@ -106,9 +107,10 @@ class SplineEditor {
   absl::optional<int> FindClickedControlPoint(
       const glm::vec3& click_pos, float control_point_radius);
 
-  bool AddControlPoint(const glm::vec3& position);
+  bool AddControlPoint(const glm::vec3& click_pos,
+                       float max_distance_from_spline);
 
-  void UpdateControlPoint(int index, const glm::vec3& position);
+  void UpdateControlPoint(int index, const glm::vec3& new_pos);
 
   bool RemoveControlPoint(int index);
 

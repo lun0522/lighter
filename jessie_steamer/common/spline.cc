@@ -22,6 +22,15 @@ using std::vector;
 
 } /* namespace */
 
+int Spline::GetSucceedingControlPointIndex(int spline_point_index) const {
+  const int first_no_less_index = std::distance(
+      control_point_precedence_.begin(),
+      std::lower_bound(control_point_precedence_.begin(),
+                       control_point_precedence_.end(), spline_point_index));
+  return static_cast<int>(
+      first_no_less_index % control_point_precedence_.size());
+}
+
 BezierSpline::BezierSpline(int max_recursion_depth,
                            GetMiddlePoint&& get_middle_point,
                            IsSmooth&& is_smooth)
@@ -53,10 +62,6 @@ void BezierSpline::Tessellate(const glm::vec3& p0,
   const glm::vec3 p30 = get_middle_point_(p20, p21);
   Tessellate(p0, p10, p20, p30, recursion_depth);
   Tessellate(p30, p21, p12, p3, recursion_depth);
-}
-
-void BezierSpline::BuildSpline(const vector<glm::vec3>& control_points) {
-  FATAL("Unimplemented");
 }
 
 const int CatmullRomSpline::kMinNumControlPoints = 3;
@@ -127,7 +132,10 @@ void CatmullRomSpline::BuildSpline(const vector<glm::vec3>& control_points) {
   }
 
   spline_points_.clear();
+  control_point_precedence_.clear();
+  control_point_precedence_.reserve(control_points.size());
   for (int i = 0; i < num_control_points; ++i) {
+    control_point_precedence_.emplace_back(spline_points_.size());
     Tessellate(control_points[(i + 0) % num_control_points],
                control_points[(i + 1) % num_control_points],
                control_points[(i + 2) % num_control_points],
@@ -157,43 +165,35 @@ absl::optional<int> SplineEditor::FindClickedControlPoint(
   return absl::nullopt;
 }
 
-bool SplineEditor::AddControlPoint(const glm::vec3& position) {
+bool SplineEditor::AddControlPoint(const glm::vec3& click_pos,
+                                   float max_distance_from_spline) {
   if (control_points_.size() == max_num_control_points_) {
     return false;
   }
 
+  const auto& spline_points = spline_->spline_points();
   const auto find_closest_point =
-      [&position](const glm::vec3& p0, const glm::vec3& p1) {
-        return glm::distance(p0, position) < glm::distance(p1, position);
+      [&click_pos](const glm::vec3& p0, const glm::vec3& p1) {
+        return glm::distance(p0, click_pos) < glm::distance(p1, click_pos);
       };
-  const int closest_point_index = std::distance(
-      control_points_.begin(),
-      std::min_element(control_points_.begin(), control_points_.end(),
+  const int closest_spline_point_index = std::distance(
+      spline_points.begin(),
+      std::min_element(spline_points.begin(), spline_points.end(),
                        find_closest_point));
-  const int prev_point_index = static_cast<int>(
-      (closest_point_index - 1) % control_points_.size());
-  const int next_point_index = static_cast<int>(
-      (closest_point_index + 1) % control_points_.size());
+  if (glm::distance(spline_points[closest_spline_point_index], click_pos) >
+      max_distance_from_spline) {
+    return false;
+  }
 
-  const auto& closest_point = control_points_[closest_point_index];
-  const float prev_point_closeness = glm::dot(
-      glm::normalize(control_points_[prev_point_index] - closest_point),
-      glm::normalize(position - closest_point));
-  const float next_point_closeness = glm::dot(
-      glm::normalize(control_points_[next_point_index] - closest_point),
-      glm::normalize(position - closest_point));
-
-  const int insert_at_index = prev_point_closeness > next_point_closeness
-                                  ? closest_point_index
-                                  : next_point_index;
-  control_points_.insert(control_points_.begin() + insert_at_index, position);
+  const int insert_at_index =
+      spline_->GetSucceedingControlPointIndex(closest_spline_point_index);
+  control_points_.insert(control_points_.begin() + insert_at_index, click_pos);
   RebuildSpline();
-
   return true;
 }
 
-void SplineEditor::UpdateControlPoint(int index, const glm::vec3& position) {
-  control_points_.at(index) = position;
+void SplineEditor::UpdateControlPoint(int index, const glm::vec3& new_pos) {
+  control_points_.at(index) = new_pos;
   RebuildSpline();
 }
 

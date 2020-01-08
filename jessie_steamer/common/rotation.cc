@@ -16,8 +16,6 @@ namespace jessie_steamer {
 namespace common {
 namespace {
 
-constexpr float kInertialRotationCoeff = 1.5f;
-
 // Applies 'transform' to a 3D 'point'.
 inline glm::vec3 TransformPoint(const glm::mat4& transform,
                                 const glm::vec3& point) {
@@ -70,14 +68,17 @@ absl::optional<Rotation> Compute<RotationManager::InertialRotationState>(
       rotation_manager->GetReferenceTime() - state.start_time;
 
   // Otherwise, if rotation angle is large enough, keep rotating at decreasing
-  // speed, and stop after 'kInertialRotationCoeff' seconds.
-  if (state.rotation.angle == 0.0f || elapsed_time > kInertialRotationCoeff) {
+  // speed, and stop after 'inertial_rotation_duration_' seconds.
+  if (state.rotation.angle == 0.0f ||
+      elapsed_time > rotation_manager->inertial_rotation_duration_) {
     rotation_manager->state_ = RotationManager::StopState{};
     return absl::nullopt;
   } else {
-    const float fraction =
-        1.0f - std::pow(elapsed_time / kInertialRotationCoeff, 2.0f);
-    return Rotation{state.rotation.axis, state.rotation.angle * fraction};
+    const float inertial_rotation_process =
+        elapsed_time / rotation_manager->inertial_rotation_duration_;
+    const float angle = state.rotation.angle *
+                        (1.0f - std::pow(inertial_rotation_process, 2.0f));
+    return Rotation{state.rotation.axis, angle};
   }
 }
 
@@ -116,8 +117,10 @@ absl::optional<Rotation> Compute<RotationManager::RotationState>(
 
 } /* namespace rotation */
 
-Sphere::Sphere(const glm::vec3& center, float radius)
-    : center_{center}, radius_{radius}, model_matrix_{1.0f} {
+Sphere::Sphere(const glm::vec3& center, float radius,
+               float inertial_rotation_duration)
+    : center_{center}, radius_{radius}, model_matrix_{1.0f},
+      rotation_manager_{inertial_rotation_duration} {
   // Initially, the north pole points to the center of frame.
   model_matrix_ = glm::translate(model_matrix_, center_);
   model_matrix_ = glm::rotate(model_matrix_, glm::radians(90.0f),

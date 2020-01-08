@@ -262,7 +262,9 @@ absl::optional<int> AuroraPath::ProcessClick(
     const bool is_path_changed =
         clicked_control_point.has_value()
             ? editor.RemoveControlPoint(clicked_control_point.value())
-            : editor.AddControlPoint(user_click.click_object_space);
+            : editor.AddControlPoint(user_click.click_object_space,
+                                     /*max_distance_from_spline=*/
+                                     control_point_radius);
     if (is_path_changed) {
       UpdatePath(user_click.path_index);
     }

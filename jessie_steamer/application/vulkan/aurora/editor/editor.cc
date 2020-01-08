@@ -7,6 +7,8 @@
 
 #include "jessie_steamer/application/vulkan/aurora/editor/editor.h"
 
+#include <array>
+
 #include "jessie_steamer/application/vulkan/aurora/editor/state.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/glm/glm.hpp"
@@ -35,6 +37,7 @@ enum SubpassIndex {
 };
 
 constexpr float kButtonBounceTime = 0.5f;
+constexpr float kInertialRotationDuration = 1.5f;
 
 // The height of aurora layer is assumed to be at around 100km above the ground.
 constexpr float kEarthRadius = 6378.1f;
@@ -82,8 +85,10 @@ const array<float, state::kNumStates>& GetButtonAlphas() {
 
 Editor::Editor(const WindowContext& window_context,
                int num_frames_in_flight)
-    : earth_{GetEarthModelCenter(), kEarthModelRadius},
-      aurora_layer_{GetEarthModelCenter(), kAuroraLayerModelRadius} {
+    : earth_{GetEarthModelCenter(), kEarthModelRadius,
+             kInertialRotationDuration},
+      aurora_layer_{GetEarthModelCenter(), kAuroraLayerModelRadius,
+                    kInertialRotationDuration} {
   const auto context = window_context.basic_context();
   const float original_aspect_ratio =
       window_context.window().original_aspect_ratio();
