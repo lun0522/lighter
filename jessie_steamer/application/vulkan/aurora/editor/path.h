@@ -44,7 +44,7 @@ class AuroraPath {
     int max_num_control_points;
     float control_point_radius;
     int max_recursion_depth;
-    float spline_smoothness;
+    float spline_roughness;
     std::vector<std::array<glm::vec3, state::kNumStates>> path_colors;
     std::array<float, state::kNumStates> path_alphas;
     GenerateControlPoints generate_control_points;
@@ -101,7 +101,18 @@ class AuroraPath {
   // Processes user click and returns the new value of
   // 'selected_control_point_'.
   absl::optional<int> ProcessClick(float control_point_radius,
+                                   const glm::mat4& proj_view_model,
+                                   const glm::vec3& model_center,
                                    const absl::optional<ClickInfo>& click_info);
+
+  // Returns the index of the clicked control point. If no control point is hit,
+  // returns absl::nullopt.
+  absl::optional<int> FindClickedControlPoint(
+      const ClickInfo& click_info, float control_point_radius);
+
+  bool InsertControlPoint(const ClickInfo& info,
+                          const glm::mat4& proj_view_model,
+                          const glm::vec3& model_center);
 
   // Aspect ratio of the viewport. This is used to make sure the aspect ratio of
   // aurora paths does not change when the size of framebuffers changes.

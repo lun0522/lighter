@@ -66,6 +66,13 @@ vector<common::Vertex3DPosOnly> ExtractPos(
   return vertices_pos;
 }
 
+// Applies 'transform' to a 3D 'point'.
+inline glm::vec3 TransformPoint(const glm::mat4& transform,
+                                const glm::vec3& point) {
+  const glm::vec4 transformed = transform * glm::vec4{point, 1.0f};
+  return glm::vec3{transformed} / transformed.w;
+}
+
 } /* namespace */
 
 AuroraPath::AuroraPath(const SharedBasicContext& context,
@@ -179,7 +186,7 @@ AuroraPath::AuroraPath(const SharedBasicContext& context,
         common::CatmullRomSpline::kMinNumControlPoints,
         info.max_num_control_points, info.generate_control_points(path),
         common::CatmullRomSpline::GetOnSphereSpline(
-            info.max_recursion_depth, info.spline_smoothness)));
+            info.max_recursion_depth, info.spline_roughness)));
     UpdatePath(path);
   }
 }
@@ -202,16 +209,18 @@ void AuroraPath::UpdateFramebuffer(
 void AuroraPath::UpdatePerFrameData(
     int frame, const common::OrthographicCamera& camera,
     const glm::mat4& model, const absl::optional<ClickInfo>& click_info) {
-  control_render_constant_
-      ->HostData<ControlRenderInfo>(frame)->proj_view_model =
-  spline_trans_constant_->HostData<SplineTrans>(frame)->proj_view_model =
+  const auto& proj_view_model =
+      control_render_constant_
+          ->HostData<ControlRenderInfo>(frame)->proj_view_model =
+      spline_trans_constant_->HostData<SplineTrans>(frame)->proj_view_model =
       camera.projection() * camera.view() * model;
 
   constexpr float kSphereModelRadius = 1.0f;
   const float desired_radius = camera.view_width() * control_point_radius_;
   control_render_constant_->HostData<ControlRenderInfo>(frame)->radius =
       desired_radius / kSphereModelRadius;
-  selected_control_point_ = ProcessClick(desired_radius, click_info);
+  selected_control_point_ = ProcessClick(
+      desired_radius, proj_view_model, /*model_center=*/model[3], click_info);
 }
 
 void AuroraPath::UpdatePath(int path_index) {
@@ -228,7 +237,9 @@ void AuroraPath::UpdatePath(int path_index) {
 }
 
 absl::optional<int> AuroraPath::ProcessClick(
-    float control_point_radius, const absl::optional<ClickInfo>& click_info) {
+    float control_point_radius,
+    const glm::mat4& proj_view_model, const glm::vec3& model_center,
+    const absl::optional<ClickInfo>& click_info) {
   if (!click_info.has_value()) {
     return absl::nullopt;
   }
@@ -250,8 +261,8 @@ absl::optional<int> AuroraPath::ProcessClick(
     return selected_control_point_;
   }
 
-  const auto clicked_control_point = editor.FindClickedControlPoint(
-      user_click.click_object_space, control_point_radius);
+  const auto clicked_control_point =
+      FindClickedControlPoint(user_click, control_point_radius);
   if (user_click.is_left_click) {
     // For left click, if no control point has been selected, find out if any
     // control point is selected in this frame.
@@ -262,14 +273,80 @@ absl::optional<int> AuroraPath::ProcessClick(
     const bool is_path_changed =
         clicked_control_point.has_value()
             ? editor.RemoveControlPoint(clicked_control_point.value())
-            : editor.AddControlPoint(user_click.click_object_space,
-                                     /*max_distance_from_spline=*/
-                                     control_point_radius);
+            : InsertControlPoint(user_click, proj_view_model, model_center);
     if (is_path_changed) {
       UpdatePath(user_click.path_index);
     }
     return absl::nullopt;
   }
+}
+
+absl::optional<int> AuroraPath::FindClickedControlPoint(
+    const ClickInfo& click_info, float control_point_radius) {
+  const auto& control_points =
+      spline_editors_[click_info.path_index]->control_points();
+  for (int i = 0; i < control_points.size(); ++i) {
+    if (glm::distance(control_points[i], click_info.click_object_space) <=
+        control_point_radius) {
+      return i;
+    }
+  }
+  return absl::nullopt;
+}
+
+bool AuroraPath::InsertControlPoint(const ClickInfo& info,
+                                    const glm::mat4& proj_view_model,
+                                    const glm::vec3& model_center) {
+  auto& editor = *spline_editors_[info.path_index];
+  if (!editor.CanInsertControlPoint()) {
+    return false;
+  }
+
+  const auto& control_points = editor.control_points();
+  const float model_center_depth =
+      TransformPoint(proj_view_model, model_center).z;
+  const auto& click_pos = info.click_object_space;
+  const glm::vec2 click_pos_ndc = TransformPoint(proj_view_model, click_pos);
+
+  // Find the closest visible control point.
+  struct ClosestPoint {
+    int index;
+    glm::vec2 pos_ndc;
+  };
+  absl::optional<ClosestPoint> closest_control_point;
+  for (int i = 0; i < control_points.size(); i++) {
+    const glm::vec3 control_point_ndc =
+        TransformPoint(proj_view_model, control_points[i]);
+    // If the depth of this control point is no less than the depth of earth
+    // center, it must be invisible from the current view point.
+    if (control_point_ndc.z >= model_center_depth) {
+      continue;
+    }
+    if (!closest_control_point.has_value() ||
+        glm::distance(click_pos_ndc, glm::vec2{control_point_ndc}) <
+            glm::distance(click_pos_ndc, closest_control_point->pos_ndc)) {
+      closest_control_point = ClosestPoint{i, control_point_ndc};
+    }
+  }
+
+  // Check adjacent control points and pick the one closer to the click point.
+  // Since adjacent points may be invisible, we simply use 3D distance.
+  if (closest_control_point.has_value()) {
+    const int prev_point_index = static_cast<int>(
+        (closest_control_point->index - 1) % control_points.size());
+    const int next_point_index = static_cast<int>(
+        (closest_control_point->index + 1) % control_points.size());
+    const float prev_point_distance =
+        glm::distance(control_points[prev_point_index], click_pos);
+    const float next_point_distance =
+        glm::distance(control_points[next_point_index], click_pos);
+    const int insert_at_index =
+        prev_point_distance < next_point_distance
+            ? closest_control_point->index
+            : next_point_index;
+    return editor.InsertControlPoint(insert_at_index, click_pos);
+  }
+  return false;
 }
 
 void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
