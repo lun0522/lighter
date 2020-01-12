@@ -30,6 +30,72 @@ namespace application {
 namespace vulkan {
 namespace aurora {
 
+// This class is used for rendering splines and control points. It should not
+// handle any logic that can be shared with other graphics APIs.
+class SplineRenderer {
+ public:
+  SplineRenderer(const wrapper::vulkan::SharedBasicContext& context,
+                 int num_frames_in_flight, int num_paths);
+
+  // This class is neither copyable nor movable.
+  SplineRenderer(const SplineRenderer&) = delete;
+  SplineRenderer& operator=(const SplineRenderer&) = delete;
+
+  // Updates the vertex data of aurora path at 'path_index'.
+  void UpdatePath(int path_index,
+                  const std::vector<glm::vec3>& control_points,
+                  const std::vector<glm::vec3>& spline_points);
+
+  // Updates internal states and rebuilds the graphics pipeline.
+  void UpdateFramebuffer(
+      VkSampleCountFlagBits sample_count,
+      const wrapper::vulkan::RenderPass& render_pass, uint32_t subpass_index,
+      const wrapper::vulkan::PipelineBuilder::ViewportInfo& viewport);
+
+  // Updates per-frame data. This should be called before calling DrawSplines()
+  // and DrawControlPoints().
+  void UpdatePerFrameData(int frame, float control_point_scale,
+                          const glm::mat4& proj_view_model);
+
+  // Renders all splines that represent aurora paths. The length of
+  // 'color_alphas' must match with the number of aurora paths.
+  // This should be called when 'command_buffer' is recording commands.
+  void DrawSplines(const VkCommandBuffer& command_buffer, int frame,
+                   const std::vector<glm::vec4>& color_alphas);
+
+  // Renders control points for the aurora path at 'path_index'.
+  // This should be called when 'command_buffer' is recording commands.
+  void DrawControlPoints(const VkCommandBuffer& command_buffer, int frame,
+                         int path_index, const glm::vec4& color_alpha);
+
+ private:
+  // Vertex buffers for a single aurora path.
+  struct PathVertexBuffers {
+    std::unique_ptr<wrapper::vulkan::DynamicPerInstanceBuffer>
+        control_points_buffer;
+    std::unique_ptr<wrapper::vulkan::DynamicPerVertexBuffer>
+        spline_points_buffer;
+  };
+
+  // Number of aurora paths.
+  const int num_paths_;
+
+  // Records the number of control points for each aurora path.
+  std::vector<int> num_control_points_;
+
+  // Objects used for rendering.
+  std::unique_ptr<wrapper::vulkan::StaticPerVertexBuffer> sphere_vertex_buffer_;
+  std::vector<PathVertexBuffers> paths_vertex_buffers_;
+  std::unique_ptr<wrapper::vulkan::DynamicPerInstanceBuffer>
+      color_alpha_vertex_buffer_;
+  std::unique_ptr<wrapper::vulkan::PushConstant> control_render_constant_;
+  std::unique_ptr<wrapper::vulkan::PushConstant> spline_trans_constant_;
+  wrapper::vulkan::PipelineBuilder control_pipeline_builder_;
+  std::unique_ptr<wrapper::vulkan::Pipeline> control_pipeline_;
+  wrapper::vulkan::PipelineBuilder spline_pipeline_builder_;
+  std::unique_ptr<wrapper::vulkan::Pipeline> spline_pipeline_;
+};
+
 // This class is used to render aurora paths and handle user inputs.
 class AuroraPath {
  public:
@@ -87,20 +153,12 @@ class AuroraPath {
             absl::optional<int> selected_path_index);
 
  private:
-  // Vertex buffers for a single aurora path.
-  struct PathVertexBuffers {
-    std::unique_ptr<wrapper::vulkan::DynamicPerInstanceBuffer>
-        control_points_buffer;
-    std::unique_ptr<wrapper::vulkan::DynamicPerVertexBuffer>
-        spline_points_buffer;
-  };
-
   // Updates the vertex data of aurora path at 'path_index'.
   void UpdatePath(int path_index);
 
   // Processes user click and returns the new value of
   // 'selected_control_point_'.
-  absl::optional<int> ProcessClick(float control_point_radius,
+  absl::optional<int> ProcessClick(float control_point_radius_object_space,
                                    const glm::mat4& proj_view_model,
                                    const glm::vec3& model_center,
                                    const absl::optional<ClickInfo>& click_info);
@@ -108,8 +166,10 @@ class AuroraPath {
   // Returns the index of the clicked control point. If no control point is hit,
   // returns absl::nullopt.
   absl::optional<int> FindClickedControlPoint(
-      const ClickInfo& click_info, float control_point_radius);
+      const ClickInfo& click_info, float control_point_radius_object_space);
 
+  // Tries to insert a control point at the click position, and returns whether
+  // the point is inserted.
   bool InsertControlPoint(const ClickInfo& info,
                           const glm::mat4& proj_view_model,
                           const glm::vec3& model_center);
@@ -127,9 +187,6 @@ class AuroraPath {
   // Tracks the control point selected by left click.
   absl::optional<int> selected_control_point_;
 
-  // Records the number of control points for each aurora path.
-  std::vector<int> num_control_points_;
-
   // Records for each state, what color and alpha should be used when rendering
   // the aurora path at the same index.
   std::vector<std::array<glm::vec4, state::kNumStates>> path_color_alphas_;
@@ -138,20 +195,11 @@ class AuroraPath {
   // same index.
   std::vector<glm::vec4> color_alphas_to_render_;
 
+  // Renderer of aurora paths.
+  SplineRenderer spline_renderer_;
+
   // Editors of aurora paths.
   std::vector<std::unique_ptr<common::SplineEditor>> spline_editors_;
-
-  // Objects used for rendering.
-  std::unique_ptr<wrapper::vulkan::StaticPerVertexBuffer> sphere_vertex_buffer_;
-  std::vector<PathVertexBuffers> paths_vertex_buffers_;
-  std::unique_ptr<wrapper::vulkan::DynamicPerInstanceBuffer>
-      color_alpha_vertex_buffer_;
-  std::unique_ptr<wrapper::vulkan::PushConstant> control_render_constant_;
-  std::unique_ptr<wrapper::vulkan::PushConstant> spline_trans_constant_;
-  wrapper::vulkan::PipelineBuilder control_pipeline_builder_;
-  std::unique_ptr<wrapper::vulkan::Pipeline> control_pipeline_;
-  wrapper::vulkan::PipelineBuilder spline_pipeline_builder_;
-  std::unique_ptr<wrapper::vulkan::Pipeline> spline_pipeline_;
 };
 
 } /* namespace aurora */

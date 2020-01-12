@@ -12,7 +12,6 @@
 #include "jessie_steamer/application/vulkan/aurora/editor/state.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/glm/glm.hpp"
-#include "third_party/glm/gtc/matrix_transform.hpp"
 
 namespace jessie_steamer {
 namespace application {

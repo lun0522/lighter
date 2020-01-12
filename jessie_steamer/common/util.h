@@ -44,28 +44,23 @@
 #endif /* NDEBUG */
 
 #define ASSERT_TRUE(expr, error)              \
-  if (!ABSL_PREDICT_TRUE(expr))               \
-    FATAL(error);
+    if (!ABSL_PREDICT_TRUE(expr))             \
+      FATAL(error);
 
 #define ASSERT_FALSE(expr, error)             \
-  if (ABSL_PREDICT_FALSE(expr))               \
-    FATAL(error);
+    ASSERT_TRUE(!(expr), error)
 
 #define ASSERT_HAS_VALUE(object, error)       \
-  if (!ABSL_PREDICT_TRUE(object.has_value())) \
-    FATAL(error);
+    ASSERT_TRUE(object.has_value(), error)
 
 #define ASSERT_NO_VALUE(object, error)        \
-  if (ABSL_PREDICT_FALSE(object.has_value())) \
-    FATAL(error);
+    ASSERT_FALSE(object.has_value(), error)
 
 #define ASSERT_NON_NULL(pointer, error)       \
-  if (!ABSL_PREDICT_TRUE(pointer != nullptr)) \
-    FATAL(error);
+    ASSERT_FALSE(pointer == nullptr, error)
 
 #define ASSERT_NON_EMPTY(container, error)    \
-  if (ABSL_PREDICT_FALSE(container.empty()))  \
-    FATAL(error);
+    ASSERT_FALSE(container.empty(), error)
 
 namespace jessie_steamer {
 namespace common {

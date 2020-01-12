@@ -112,11 +112,10 @@ void CatmullRomSpline::Tessellate(const glm::vec3& p0,
 void CatmullRomSpline::BuildSpline(
     const std::vector<glm::vec3>& control_points) {
   const auto num_control_points = static_cast<int>(control_points.size());
-  if (num_control_points < kMinNumControlPoints) {
-    FATAL(absl::StrFormat(
-        "Must have at least %d control points, while %d provided",
-        kMinNumControlPoints, num_control_points));
-  }
+  ASSERT_TRUE(num_control_points >= kMinNumControlPoints,
+              absl::StrFormat(
+                  "Must have at least %d control points, while %d provided",
+                  kMinNumControlPoints, num_control_points));
 
   spline_points_.clear();
   for (int i = 0; i < num_control_points; ++i) {

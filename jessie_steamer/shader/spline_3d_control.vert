@@ -4,14 +4,14 @@
 layout(binding = 0) uniform RenderInfo {
   mat4 proj_view_model;
   vec4 color_alpha;
-  float radius;
+  float scale;
 } render_info;
 
 #elif defined(TARGET_VULKAN)
 layout(push_constant) uniform RenderInfo {
   mat4 proj_view_model;
   vec4 color_alpha;
-  float radius;
+  float scale;
 } render_info;
 
 #else
@@ -26,6 +26,6 @@ layout(location = 0) out vec4 color_alpha;
 
 void main() {
   gl_Position = render_info.proj_view_model *
-                vec4(in_center + in_pos * render_info.radius, 1.0);
+                vec4(in_center + in_pos * render_info.scale, 1.0);
   color_alpha = render_info.color_alpha;
 }

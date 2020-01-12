@@ -22,7 +22,6 @@ namespace {
 
 using namespace wrapper::vulkan;
 
-using std::array;
 using std::vector;
 
 enum class ControlVertexBufferBindingPoint { kCenter = 0, kPos };
@@ -46,7 +45,7 @@ struct ColorAlpha {
 struct ControlRenderInfo {
   ALIGN_MAT4 glm::mat4 proj_view_model;
   ALIGN_VEC4 glm::vec4 color_alpha;
-  ALIGN_SCALAR(float) float radius;
+  ALIGN_SCALAR(float) float scale;
 };
 
 struct SplineTrans {
@@ -75,29 +74,14 @@ inline glm::vec3 TransformPoint(const glm::mat4& transform,
 
 } /* namespace */
 
-AuroraPath::AuroraPath(const SharedBasicContext& context,
-                       int num_frames_in_flight, float viewport_aspect_ratio,
-                       const Info& info)
-    : viewport_aspect_ratio_{viewport_aspect_ratio},
-      control_point_radius_{info.control_point_radius},
-      num_paths_{static_cast<int>(info.path_colors.size())},
-      num_control_points_(num_paths_), color_alphas_to_render_(num_paths_),
-      control_pipeline_builder_{context},
-      spline_pipeline_builder_{context} {
+SplineRenderer::SplineRenderer(const SharedBasicContext& context,
+                               int num_frames_in_flight, int num_paths)
+    : num_paths_{num_paths}, num_control_points_(num_paths_),
+      control_pipeline_builder_{context}, spline_pipeline_builder_{context} {
   using common::file::GetVkShaderPath;
   using common::Vertex3DPosOnly;
 
   /* Vertex buffer */
-  path_color_alphas_.reserve(num_paths_);
-  for (int path = 0; path < num_paths_; ++path) {
-    path_color_alphas_.emplace_back(array<glm::vec4, state::kNumStates>{
-        glm::vec4{info.path_colors[path][state::kSelected],
-                  info.path_alphas[state::kSelected]},
-        glm::vec4{info.path_colors[path][state::kUnselected],
-                  info.path_alphas[state::kUnselected]},
-    });
-  }
-
   const common::ObjFile sphere_file{
       common::file::GetResourcePath("model/small_sphere.obj"),
       /*index_base=*/1};
@@ -178,10 +162,105 @@ AuroraPath::AuroraPath(const SharedBasicContext& context,
       .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("spline_3d.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("spline.frag"));
+}
 
-  /* Path editor */
+void SplineRenderer::UpdatePath(int path_index,
+                                const vector<glm::vec3>& control_points,
+                                const vector<glm::vec3>& spline_points) {
+  num_control_points_[path_index] = control_points.size();
+  paths_vertex_buffers_[path_index].control_points_buffer->CopyHostData(
+      control_points);
+  paths_vertex_buffers_[path_index].spline_points_buffer->CopyHostData(
+      PerVertexBuffer::NoIndicesDataInfo{
+          /*per_mesh_vertices=*/{{
+              PerVertexBuffer::VertexDataInfo{spline_points},
+          }},
+      });
+}
+
+void SplineRenderer::UpdateFramebuffer(
+    VkSampleCountFlagBits sample_count,
+    const RenderPass& render_pass, uint32_t subpass_index,
+    const PipelineBuilder::ViewportInfo& viewport) {
+  control_pipeline_ = control_pipeline_builder_
+      .SetMultisampling(sample_count)
+      .SetViewport(PipelineBuilder::ViewportInfo{viewport})
+      .SetRenderPass(*render_pass, subpass_index)
+      .Build();
+  spline_pipeline_ = spline_pipeline_builder_
+      .SetMultisampling(sample_count)
+      .SetViewport(PipelineBuilder::ViewportInfo{viewport})
+      .SetRenderPass(*render_pass, subpass_index)
+      .Build();
+}
+
+void SplineRenderer::UpdatePerFrameData(int frame, float control_point_scale,
+                                        const glm::mat4& proj_view_model) {
+  auto& control_render_info =
+      *control_render_constant_->HostData<ControlRenderInfo>(frame);
+  control_render_info.proj_view_model = proj_view_model;
+  control_render_info.scale = control_point_scale;
+  spline_trans_constant_->HostData<SplineTrans>(frame)->proj_view_model =
+      proj_view_model;
+}
+
+void SplineRenderer::DrawSplines(
+    const VkCommandBuffer& command_buffer, int frame,
+    const vector<glm::vec4>& color_alphas) {
+  ASSERT_TRUE(color_alphas.size() == num_paths_,
+              absl::StrFormat("Length of 'color_alphas' (%d) must match with "
+                              "the number of aurora paths (%d)",
+                              color_alphas.size(), num_paths_));
+  color_alpha_vertex_buffer_->CopyHostData(color_alphas);
+  spline_pipeline_->Bind(command_buffer);
+  spline_trans_constant_->Flush(command_buffer, spline_pipeline_->layout(),
+                                frame, /*target_offset=*/0,
+                                VK_SHADER_STAGE_VERTEX_BIT);
+  for (int path = 0; path < num_paths_; ++path) {
+    color_alpha_vertex_buffer_->Bind(
+        command_buffer,
+        static_cast<int>(SplineVertexBufferBindingPoint::kColorAlpha),
+        /*offset=*/path);
+    paths_vertex_buffers_[path].spline_points_buffer->Draw(
+        command_buffer, static_cast<int>(SplineVertexBufferBindingPoint::kPos),
+        /*mesh_index=*/0, /*instance_count=*/1);
+  }
+}
+
+void SplineRenderer::DrawControlPoints(
+    const VkCommandBuffer& command_buffer, int frame,
+    int path_index, const glm::vec4& color_alpha) {
+  control_render_constant_->HostData<ControlRenderInfo>(frame)->color_alpha =
+      color_alpha;
+  control_pipeline_->Bind(command_buffer);
+  control_render_constant_->Flush(command_buffer, control_pipeline_->layout(),
+                                  frame, /*target_offset=*/0,
+                                  VK_SHADER_STAGE_VERTEX_BIT);
+  paths_vertex_buffers_[path_index].control_points_buffer->Bind(
+      command_buffer,
+      static_cast<int>(ControlVertexBufferBindingPoint::kCenter), /*offset=*/0);
+  sphere_vertex_buffer_->Draw(
+      command_buffer, static_cast<int>(ControlVertexBufferBindingPoint::kPos),
+      /*mesh_index=*/0, num_control_points_[path_index]);
+}
+
+AuroraPath::AuroraPath(const SharedBasicContext& context,
+                       int num_frames_in_flight, float viewport_aspect_ratio,
+                       const Info& info)
+    : viewport_aspect_ratio_{viewport_aspect_ratio},
+      control_point_radius_{info.control_point_radius},
+      num_paths_{static_cast<int>(info.path_colors.size())},
+      color_alphas_to_render_(num_paths_),
+      spline_renderer_{context, num_frames_in_flight, num_paths_} {
+  path_color_alphas_.reserve(num_paths_);
   spline_editors_.reserve(num_paths_);
   for (int path = 0; path < num_paths_; ++path) {
+    path_color_alphas_.emplace_back(std::array<glm::vec4, state::kNumStates>{
+        glm::vec4{info.path_colors[path][state::kSelected],
+                  info.path_alphas[state::kSelected]},
+        glm::vec4{info.path_colors[path][state::kUnselected],
+                  info.path_alphas[state::kUnselected]},
+    });
     spline_editors_.emplace_back(absl::make_unique<common::SplineEditor>(
         common::CatmullRomSpline::kMinNumControlPoints,
         info.max_num_control_points, info.generate_control_points(path),
@@ -194,50 +273,58 @@ AuroraPath::AuroraPath(const SharedBasicContext& context,
 void AuroraPath::UpdateFramebuffer(
     const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
     const RenderPass& render_pass, uint32_t subpass_index) {
-  control_pipeline_ = control_pipeline_builder_
-      .SetMultisampling(sample_count)
-      .SetViewport(pipeline::GetViewport(frame_size, viewport_aspect_ratio_))
-      .SetRenderPass(*render_pass, subpass_index)
-      .Build();
-  spline_pipeline_ = spline_pipeline_builder_
-      .SetMultisampling(sample_count)
-      .SetViewport(pipeline::GetViewport(frame_size, viewport_aspect_ratio_))
-      .SetRenderPass(*render_pass, subpass_index)
-      .Build();
+  spline_renderer_.UpdateFramebuffer(
+      sample_count, render_pass, subpass_index,
+      pipeline::GetViewport(frame_size, viewport_aspect_ratio_));
 }
 
 void AuroraPath::UpdatePerFrameData(
     int frame, const common::OrthographicCamera& camera,
     const glm::mat4& model, const absl::optional<ClickInfo>& click_info) {
-  const auto& proj_view_model =
-      control_render_constant_
-          ->HostData<ControlRenderInfo>(frame)->proj_view_model =
-      spline_trans_constant_->HostData<SplineTrans>(frame)->proj_view_model =
-      camera.projection() * camera.view() * model;
-
   constexpr float kSphereModelRadius = 1.0f;
-  const float desired_radius = camera.view_width() * control_point_radius_;
-  control_render_constant_->HostData<ControlRenderInfo>(frame)->radius =
-      desired_radius / kSphereModelRadius;
-  selected_control_point_ = ProcessClick(
-      desired_radius, proj_view_model, /*model_center=*/model[3], click_info);
+  const float radius_object_space = camera.view_width() * control_point_radius_;
+  const float control_point_scale = radius_object_space / kSphereModelRadius;
+  const glm::mat4 proj_view_model = camera.projection() * camera.view() * model;
+  spline_renderer_.UpdatePerFrameData(frame, control_point_scale,
+                                      proj_view_model);
+  selected_control_point_ = ProcessClick(radius_object_space, proj_view_model,
+                                         /*model_center=*/model[3], click_info);
+}
+
+void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
+                      absl::optional<int> selected_path_index) {
+  // If one path is selected, highlight it. Otherwise, highlight all paths.
+  if (selected_path_index.has_value()) {
+    for (int path = 0; path < num_paths_; ++path) {
+      color_alphas_to_render_[path] =
+          path_color_alphas_[path][state::kUnselected];
+    }
+    color_alphas_to_render_[selected_path_index.value()] =
+        path_color_alphas_[selected_path_index.value()][state::kSelected];
+  } else {
+    for (int path = 0; path < num_paths_; ++path) {
+      color_alphas_to_render_[path] =
+          path_color_alphas_[path][state::kSelected];
+    }
+  }
+  spline_renderer_.DrawSplines(command_buffer, frame, color_alphas_to_render_);
+
+  // Render controls points only if one path is selected.
+  if (selected_path_index.has_value()) {
+    spline_renderer_.DrawControlPoints(
+        command_buffer, frame, selected_path_index.value(),
+        color_alphas_to_render_[selected_path_index.value()]);
+  }
 }
 
 void AuroraPath::UpdatePath(int path_index) {
-  const auto& editor = *spline_editors_[path_index];
-  num_control_points_[path_index] = editor.control_points().size();
-  paths_vertex_buffers_[path_index].control_points_buffer->CopyHostData(
-      editor.control_points());
-  paths_vertex_buffers_[path_index].spline_points_buffer->CopyHostData(
-      PerVertexBuffer::NoIndicesDataInfo{
-          /*per_mesh_vertices=*/{{
-              PerVertexBuffer::VertexDataInfo{editor.spline_points()},
-          }},
-      });
+  spline_renderer_.UpdatePath(path_index,
+                              spline_editors_[path_index]->control_points(),
+                              spline_editors_[path_index]->spline_points());
 }
 
 absl::optional<int> AuroraPath::ProcessClick(
-    float control_point_radius,
+    float control_point_radius_object_space,
     const glm::mat4& proj_view_model, const glm::vec3& model_center,
     const absl::optional<ClickInfo>& click_info) {
   if (!click_info.has_value()) {
@@ -245,11 +332,10 @@ absl::optional<int> AuroraPath::ProcessClick(
   }
 
   const ClickInfo& user_click = click_info.value();
-  if (user_click.path_index >= num_paths_) {
-    FATAL(absl::StrFormat(
-        "Trying to access aurora path at index %d (%d paths exist)",
-        user_click.path_index, num_paths_));
-  }
+  ASSERT_TRUE(user_click.path_index < num_paths_,
+              absl::StrFormat(
+                  "Trying to access aurora path at index %d (%d paths exist)",
+                  user_click.path_index, num_paths_));
 
   // If a control point has been selected before this frame, simply move it to
   // the current click point.
@@ -262,7 +348,7 @@ absl::optional<int> AuroraPath::ProcessClick(
   }
 
   const auto clicked_control_point =
-      FindClickedControlPoint(user_click, control_point_radius);
+      FindClickedControlPoint(user_click, control_point_radius_object_space);
   if (user_click.is_left_click) {
     // For left click, if no control point has been selected, find out if any
     // control point is selected in this frame.
@@ -282,12 +368,12 @@ absl::optional<int> AuroraPath::ProcessClick(
 }
 
 absl::optional<int> AuroraPath::FindClickedControlPoint(
-    const ClickInfo& click_info, float control_point_radius) {
+    const ClickInfo& click_info, float control_point_radius_object_space) {
   const auto& control_points =
       spline_editors_[click_info.path_index]->control_points();
   for (int i = 0; i < control_points.size(); ++i) {
     if (glm::distance(control_points[i], click_info.click_object_space) <=
-        control_point_radius) {
+        control_point_radius_object_space) {
       return i;
     }
   }
@@ -347,60 +433,6 @@ bool AuroraPath::InsertControlPoint(const ClickInfo& info,
     return editor.InsertControlPoint(insert_at_index, click_pos);
   }
   return false;
-}
-
-void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
-                      absl::optional<int> selected_path_index) {
-  // If one path is selected, highlight it. Otherwise, highlight all paths.
-  if (selected_path_index.has_value()) {
-    for (int path = 0; path < num_paths_; ++path) {
-      color_alphas_to_render_[path] =
-          path_color_alphas_[path][state::kUnselected];
-    }
-    const int selected_path = selected_path_index.value();
-    color_alphas_to_render_[selected_path] =
-        path_color_alphas_[selected_path][state::kSelected];
-  } else {
-    for (int path = 0; path < num_paths_; ++path) {
-      color_alphas_to_render_[path] =
-          path_color_alphas_[path][state::kSelected];
-    }
-  }
-  color_alpha_vertex_buffer_->CopyHostData(color_alphas_to_render_);
-
-  spline_pipeline_->Bind(command_buffer);
-  spline_trans_constant_->Flush(
-      command_buffer, spline_pipeline_->layout(), frame, /*target_offset=*/0,
-      VK_SHADER_STAGE_VERTEX_BIT);
-  for (int path = 0; path < num_paths_; ++path) {
-    color_alpha_vertex_buffer_->Bind(
-        command_buffer,
-        static_cast<int>(SplineVertexBufferBindingPoint::kColorAlpha),
-        /*offset=*/path);
-    paths_vertex_buffers_[path].spline_points_buffer->Draw(
-        command_buffer, static_cast<int>(SplineVertexBufferBindingPoint::kPos),
-        /*mesh_index=*/0, /*instance_count=*/1);
-  }
-
-  // Render controls points only if one path is selected.
-  if (!selected_path_index.has_value()) {
-    return;
-  }
-
-  const int selected_path = selected_path_index.value();
-  control_render_constant_->HostData<ControlRenderInfo>(frame)->color_alpha =
-      path_color_alphas_[selected_path][state::kSelected];
-
-  control_pipeline_->Bind(command_buffer);
-  control_render_constant_->Flush(
-      command_buffer, control_pipeline_->layout(), frame, /*target_offset=*/0,
-      VK_SHADER_STAGE_VERTEX_BIT);
-  paths_vertex_buffers_[selected_path].control_points_buffer->Bind(
-      command_buffer,
-      static_cast<int>(ControlVertexBufferBindingPoint::kCenter), /*offset=*/0);
-  sphere_vertex_buffer_->Draw(
-      command_buffer, static_cast<int>(ControlVertexBufferBindingPoint::kPos),
-      /*mesh_index=*/0, num_control_points_[selected_path]);
 }
 
 } /* namespace aurora */

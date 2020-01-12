@@ -44,11 +44,10 @@ ModelLoader::ModelLoader(const string& model_path, const string& texture_dir) {
 
   Assimp::Importer importer;
   const aiScene* scene = importer.ReadFile(model_path, flags);
-  if (scene == nullptr || scene->mRootNode == nullptr ||
-      (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)) {
-    FATAL(absl::StrFormat("Failed to import scene: %s",
-                          importer.GetErrorString()));
-  }
+  ASSERT_FALSE(scene == nullptr || scene->mRootNode == nullptr ||
+               (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE),
+               absl::StrFormat("Failed to import scene: %s",
+                               importer.GetErrorString()));
 
   ProcessNode(texture_dir, scene->mRootNode, scene);
 }

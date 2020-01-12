@@ -40,9 +40,8 @@ using std::vector;
 // Opens the file in the given 'path' and checks whether it is successful.
 ifstream OpenFile(const string& path) {
   ifstream file{path};
-  if (!file.is_open() || file.bad() || file.fail()) {
-    FATAL(absl::StrCat("Failed to open file: ", path));
-  }
+  ASSERT_FALSE(!file.is_open() || file.bad() || file.fail(),
+               absl::StrCat("Failed to open file: ", path));
   return file;
 }
 
