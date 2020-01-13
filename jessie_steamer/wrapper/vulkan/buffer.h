@@ -10,6 +10,7 @@
 
 #include <vector>
 
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 #include "third_party/absl/types/variant.h"
@@ -428,6 +429,7 @@ class UniformBuffer : public DataBuffer {
   // Returns a pointer to the data on the host, casted to 'DataType'.
   template <typename DataType>
   DataType* HostData(int chunk_index) const {
+    ValidateChunkIndex(chunk_index);
     return reinterpret_cast<DataType*>(data_ + chunk_data_size_ * chunk_index);
   }
 
@@ -437,12 +439,21 @@ class UniformBuffer : public DataBuffer {
   // Returns the description of the data chunk at 'chunk_index'.
   VkDescriptorBufferInfo GetDescriptorInfo(int chunk_index) const;
 
+  // Accessors.
+  int num_chunks() const { return num_chunks_; }
+
  private:
+  // Validates whether 'chunk_index' has exceeded 'num_chunks_'.
+  void ValidateChunkIndex(int chunk_index) const;
+
   // Pointer to data on the host.
   char* data_;
 
   // Size of each chunk of data in bytes on the host.
-  size_t chunk_data_size_;
+  const size_t chunk_data_size_;
+
+  // Number of data chunks.
+  const int num_chunks_;
 
   // Since we have to align the memory offset with
   // 'minUniformBufferOffsetAlignment' on the device, this stores the aligned
@@ -573,6 +584,7 @@ class PushConstant {
   // Returns a pointer to the data on the host, casted to 'DataType'.
   template <typename DataType>
   DataType* HostData(int frame) const {
+    ValidateFrame(frame);
     return reinterpret_cast<DataType*>(data_ + size_per_frame_ * frame);
   }
 
@@ -587,11 +599,17 @@ class PushConstant {
   uint32_t size_per_frame() const { return size_per_frame_; }
 
  private:
+  // Validates whether 'frame' has exceeded 'num_frames_'.
+  void ValidateFrame(int frame) const;
+
   // Pointer to data on the host.
   char* data_;
 
   // Size of data for one frame in bytes.
-  uint32_t size_per_frame_;
+  const uint32_t size_per_frame_;
+
+  // Number of frames.
+  const int num_frames_;
 };
 
 } /* namespace vulkan */

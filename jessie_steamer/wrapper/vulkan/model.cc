@@ -242,8 +242,12 @@ ModelBuilder& ModelBuilder::AddUniformBinding(
 ModelBuilder& ModelBuilder::AddUniformBuffer(
     uint32_t binding_point, const UniformBuffer& uniform_buffer) {
   for (int frame = 0; frame < num_frames_in_flight_; ++frame) {
+    // Uniform buffer may have only one chunk if we want the data to keep
+    // constant throughout all frames.
+    const int uniform_data_chunk_index =
+        uniform_buffer.num_chunks() == 1 ? 0 : frame;
     uniform_buffer_info_maps_[frame][binding_point].emplace_back(
-        uniform_buffer.GetDescriptorInfo(frame));
+        uniform_buffer.GetDescriptorInfo(uniform_data_chunk_index));
   }
   return *this;
 }

@@ -80,27 +80,6 @@ void SetVerticesTexCoords(const glm::vec2& center_uv, const glm::vec2& size_uv,
   set_tex_coord(5,  half_size_uv.x,  half_size_uv.y);
 }
 
-// Returns a descriptor with one image bound to 'kImageBindingPoint'.
-std::unique_ptr<StaticDescriptor> CreateDescriptor(
-    const SharedBasicContext& context,
-    const VkDescriptorImageInfo& image_info) {
-  const vector<Descriptor::Info> descriptor_infos{
-      Descriptor::Info{
-          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          VK_SHADER_STAGE_FRAGMENT_BIT,
-          /*bindings=*/{
-              Descriptor::Info::Binding{
-                  kImageBindingPoint,
-                  /*array_length=*/1,
-              }},
-      }};
-  auto descriptor = absl::make_unique<StaticDescriptor>(
-      context, descriptor_infos);
-  descriptor->UpdateImageInfos(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                               {{kImageBindingPoint, {image_info}}});
-  return descriptor;
-}
-
 } /* namespace */
 
 std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage() const {
@@ -125,8 +104,8 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage() const {
       VK_SHADER_STAGE_VERTEX_BIT, /*offset=*/0,
       push_constant->size_per_frame()};
 
-  const auto descriptor = CreateDescriptor(
-      context_, background_image.GetDescriptorInfo());
+  const auto descriptor =
+      CreateDescriptor(background_image.GetDescriptorInfo());
 
   const NaiveRenderPassBuilder::SubpassConfig subpass_config{
       /*use_opaque_subpass=*/false,
@@ -175,7 +154,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage() const {
       },
       [&](const VkCommandBuffer& command_buffer) {
         text_renderer->Draw(command_buffer, /*frame=*/0,
-                            button_info_.text_color, /*alpha=*/1.0f);
+                            buttons_info_.text_color, /*alpha=*/1.0f);
       },
   };
 
@@ -193,7 +172,7 @@ std::unique_ptr<PerInstanceBuffer> ButtonMaker::CreatePerInstanceData() const {
   float offset_y_ndc = -1.0f + button_height_ndc / 2.0f;
   vector<ButtonRenderInfo> render_infos;
   render_infos.reserve(num_buttons_ * state::kNumStates);
-  for (const auto& info : button_info_.button_infos) {
+  for (const auto& info : buttons_info_.button_infos) {
     for (int state = 0; state < state::kNumStates; ++state) {
       render_infos.emplace_back(ButtonRenderInfo{
           info.colors[state],
@@ -228,17 +207,35 @@ std::unique_ptr<PushConstant> ButtonMaker::CreateButtonVerticesData(
   return push_constant;
 }
 
+std::unique_ptr<StaticDescriptor> ButtonMaker::CreateDescriptor(
+    const VkDescriptorImageInfo& image_info) const {
+  auto descriptor = absl::make_unique<StaticDescriptor>(
+      context_, /*infos=*/vector<Descriptor::Info>{
+          Descriptor::Info{
+              VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+              VK_SHADER_STAGE_FRAGMENT_BIT,
+              /*bindings=*/{
+                  Descriptor::Info::Binding{
+                      kImageBindingPoint,
+                      /*array_length=*/1,
+                  }},
+          }});
+  descriptor->UpdateImageInfos(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                               {{kImageBindingPoint, {image_info}}});
+  return descriptor;
+}
+
 std::unique_ptr<Text> ButtonMaker::CreateTextRenderer(
     const Image& buttons_image, const RenderPass& render_pass) const {
   vector<std::string> texts;
   texts.reserve(num_buttons_);
-  for (const auto& info : button_info_.button_infos) {
+  for (const auto& info : buttons_info_.button_infos) {
     texts.emplace_back(info.text);
   }
   std::unique_ptr<DynamicText> text_renderer = absl::make_unique<DynamicText>(
       context_, /*num_frames_in_flight=*/1,
       util::GetAspectRatio(buttons_image.extent()),
-      texts, button_info_.font, button_info_.font_height);
+      texts, buttons_info_.font, buttons_info_.font_height);
   text_renderer->Update(buttons_image.extent(), buttons_image.sample_count(),
                         render_pass, kTextSubpassIndex);
 
@@ -246,16 +243,16 @@ std::unique_ptr<Text> ButtonMaker::CreateTextRenderer(
   constexpr float kBaseX = kUvDim / 2.0f;
   const float button_height =
       kUvDim / static_cast<float>(num_buttons_ * state::kNumStates);
-  const float text_height = (button_info_.top_y - button_info_.base_y) *
+  const float text_height = (buttons_info_.top_y - buttons_info_.base_y) *
                             button_height / text_renderer->GetMaxBearingY();
   float offset_y = kUvDim;
   for (int button = 0; button < num_buttons_; ++button) {
     for (int state = 0; state < state::kNumStates; ++state) {
       offset_y -= button_height;
       const float base_y =
-          kUvDim - (offset_y + button_info_.base_y * button_height);
+          kUvDim - (offset_y + buttons_info_.base_y * button_height);
       text_renderer->AddText(
-          button_info_.button_infos[button].text, -text_height,
+          buttons_info_.button_infos[button].text, -text_height,
           kBaseX, base_y, Text::Align::kCenter);
     }
   }
@@ -265,26 +262,21 @@ std::unique_ptr<Text> ButtonMaker::CreateTextRenderer(
 
 Button::Button(const SharedBasicContext& context,
                float viewport_aspect_ratio,
-               const ButtonInfo& button_info)
+               const ButtonsInfo& buttons_info)
     : viewport_aspect_ratio_{viewport_aspect_ratio},
-      button_half_size_ndc_{button_info.button_size * kNdcDim / 2.0f},
-      all_buttons_{ExtractRenderInfos(button_info)},
-      buttons_image_{ButtonMaker{context, &button_info}.CreateButtonsImage()},
+      button_half_size_ndc_{buttons_info.button_size * kNdcDim / 2.0f},
+      all_buttons_{ExtractRenderInfos(buttons_info)},
+      buttons_image_{ButtonMaker{context, &buttons_info}.CreateButtonsImage()},
       pipeline_builder_{context} {
-  const int num_buttons = button_info.button_infos.size();
+  const int num_buttons = buttons_info.button_infos.size();
   buttons_to_render_.reserve(num_buttons);
-
-  descriptor_ = CreateDescriptor(context, buttons_image_->GetDescriptorInfo());
 
   per_instance_buffer_ = absl::make_unique<DynamicPerInstanceBuffer>(
       context, sizeof(ButtonRenderInfo),
       /*max_num_instances=*/num_buttons * state::kNumStates,
       ButtonRenderInfo::GetAttributes());
-
-  vertices_constant_ = CreateButtonVerticesData(context, button_info);
-  const VkPushConstantRange push_constant_range{
-      VK_SHADER_STAGE_VERTEX_BIT, /*offset=*/0,
-      vertices_constant_->size_per_frame()};
+  vertices_uniform_ = CreateButtonVerticesData(context, buttons_info);
+  descriptor_ = CreateDescriptor(context);
 
   pipeline_builder_
       .SetName("draw button")
@@ -292,7 +284,7 @@ Button::Button(const SharedBasicContext& context,
           kPerInstanceBufferBindingPoint,
           pipeline::GetPerInstanceBindingDescription<ButtonRenderInfo>(),
           per_instance_buffer_->GetAttributes(/*start_location=*/0))
-      .SetPipelineLayout({descriptor_->layout()}, {push_constant_range})
+      .SetPipelineLayout({descriptor_->layout()}, /*push_constant_ranges=*/{})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                  common::file::GetVkShaderPath("draw_button.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -300,8 +292,8 @@ Button::Button(const SharedBasicContext& context,
 }
 
 Button::ButtonRenderInfos Button::ExtractRenderInfos(
-    const ButtonInfo& button_info) const {
-  const int num_buttons = button_info.button_infos.size();
+    const ButtonsInfo& buttons_info) const {
+  const int num_buttons = buttons_info.button_infos.size();
   const float button_tex_height =
       kUvDim / static_cast<float>(num_buttons * state::kNumStates);
   constexpr float kTexCenterOffsetX = kUvDim / 2.0f;
@@ -309,16 +301,16 @@ Button::ButtonRenderInfos Button::ExtractRenderInfos(
 
   ButtonRenderInfos render_infos;
   render_infos.reserve(num_buttons);
-  for (const auto& info : button_info.button_infos) {
+  for (const auto& info : buttons_info.button_infos) {
     const auto& pos_center_ndc = info.center * 2.0f - 1.0f;
     render_infos.emplace_back(
         std::array<ButtonRenderInfo, state::kNumStates>{
             ButtonRenderInfo{
-                button_info.button_alphas[state::kSelected],
+                buttons_info.button_alphas[state::kSelected],
                 pos_center_ndc,
                 glm::vec2{kTexCenterOffsetX, tex_center_offset_y}},
             ButtonRenderInfo{
-                button_info.button_alphas[state::kUnselected],
+                buttons_info.button_alphas[state::kUnselected],
                 pos_center_ndc,
                 glm::vec2{kTexCenterOffsetX,
                           tex_center_offset_y + button_tex_height}},
@@ -335,22 +327,60 @@ Button::ButtonRenderInfos Button::ExtractRenderInfos(
   return render_infos;
 }
 
-std::unique_ptr<PushConstant> Button::CreateButtonVerticesData(
-    const SharedBasicContext& context, const ButtonInfo& button_info) const {
-  const glm::vec2 button_size_ndc = button_info.button_size * kNdcDim;
-  const int num_buttons = button_info.button_infos.size();
+std::unique_ptr<UniformBuffer> Button::CreateButtonVerticesData(
+    const SharedBasicContext& context, const ButtonsInfo& buttons_info) const {
+  const glm::vec2 button_size_ndc = buttons_info.button_size * kNdcDim;
+  const int num_buttons = buttons_info.button_infos.size();
   const float button_tex_height =
       kUvDim / static_cast<float>(num_buttons * state::kNumStates);
 
-  auto push_constant = absl::make_unique<PushConstant>(
+  auto uniform_buffer = absl::make_unique<UniformBuffer>(
       context, sizeof(VerticesInfo), /*num_frames_in_flight=*/1);
-  auto* vertices_info = push_constant->HostData<VerticesInfo>(/*frame=*/0);
+  auto* vertices_info =
+      uniform_buffer->HostData<VerticesInfo>(/*chunk_index=*/0);
   SetVerticesPositions(button_size_ndc, /*scale=*/glm::vec2{1.0f},
                        vertices_info);
   SetVerticesTexCoords(
       /*center_uv*/glm::vec2{0.0f},
       /*size_uv=*/glm::vec2{kUvDim, button_tex_height}, vertices_info);
-  return push_constant;
+  uniform_buffer->Flush(/*chunk_index=*/0);
+
+  return uniform_buffer;
+}
+
+std::unique_ptr<StaticDescriptor> Button::CreateDescriptor(
+    const SharedBasicContext& context) const {
+  auto descriptor = absl::make_unique<StaticDescriptor>(
+      context, /*infos=*/vector<Descriptor::Info>{
+          Descriptor::Info{
+              VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+              VK_SHADER_STAGE_VERTEX_BIT,
+              /*bindings=*/{
+                  Descriptor::Info::Binding{
+                      kVerticesInfoBindingPoint,
+                      /*array_length=*/1,
+                  },
+              },
+          },
+          Descriptor::Info{
+              VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+              VK_SHADER_STAGE_FRAGMENT_BIT,
+              /*bindings=*/{
+                  Descriptor::Info::Binding{
+                      kImageBindingPoint,
+                      /*array_length=*/1,
+                  }},
+          }});
+  descriptor->UpdateBufferInfos(
+      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      /*buffer_info_map=*/{
+          {kVerticesInfoBindingPoint,
+           {vertices_uniform_->GetDescriptorInfo(/*chunk_index=*/0)},
+      }});
+  descriptor->UpdateImageInfos(
+      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      {{kImageBindingPoint, {buttons_image_->GetDescriptorInfo()}}});
+  return descriptor;
 }
 
 void Button::Update(const VkExtent2D& frame_size,
@@ -398,9 +428,6 @@ void Button::Draw(const VkCommandBuffer& command_buffer,
   pipeline_->Bind(command_buffer);
   per_instance_buffer_->Bind(
       command_buffer, kPerInstanceBufferBindingPoint, /*offset=*/0);
-  vertices_constant_->Flush(
-      command_buffer, pipeline_->layout(), /*frame=*/0,
-      /*target_offset=*/0, VK_SHADER_STAGE_VERTEX_BIT);
   descriptor_->Bind(command_buffer, pipeline_->layout());
   VertexBuffer::DrawWithoutBuffer(command_buffer, kNumVerticesPerButton,
                                   buttons_to_render_.size());

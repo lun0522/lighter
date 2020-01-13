@@ -133,39 +133,39 @@ Editor::Editor(const WindowContext& window_context,
       });
 
   /* Button */
-  using button::ButtonInfo;
-  const ButtonInfo button_info{
+  using button::ButtonsInfo;
+  const ButtonsInfo buttons_info{
       Text::Font::kOstrich, /*font_height=*/100, /*base_y=*/0.25f,
       /*top_y=*/0.75f, /*text_color=*/glm::vec3{1.0f}, GetButtonAlphas(),
       /*button_size=*/glm::vec2{0.2f, 0.1f}, /*button_infos=*/{
-          ButtonInfo::Info{
+          ButtonsInfo::Info{
               "Path 1", GetAllButtonColors()[kPath1ButtonIndex],
               /*center=*/glm::vec2{0.2f, 0.9f},
           },
-          ButtonInfo::Info{
+          ButtonsInfo::Info{
               "Path 2", GetAllButtonColors()[kPath2ButtonIndex],
               /*center=*/glm::vec2{0.5f, 0.9f},
           },
-          ButtonInfo::Info{
+          ButtonsInfo::Info{
               "Path 3", GetAllButtonColors()[kPath3ButtonIndex],
               /*center=*/glm::vec2{0.8f, 0.9f},
           },
-          ButtonInfo::Info{
+          ButtonsInfo::Info{
               "Editing", GetAllButtonColors()[kEditingButtonIndex],
               /*center=*/glm::vec2{0.2f, 0.1f},
           },
-          ButtonInfo::Info{
+          ButtonsInfo::Info{
               "Daylight", GetAllButtonColors()[kDaylightButtonIndex],
               /*center=*/glm::vec2{0.5f, 0.1f},
           },
-          ButtonInfo::Info{
+          ButtonsInfo::Info{
               "Aurora", GetAllButtonColors()[kAuroraButtonIndex],
               /*center=*/glm::vec2{0.8f, 0.1f},
           },
       },
   };
   button_ = absl::make_unique<Button>(
-      context, original_aspect_ratio, button_info);
+      context, original_aspect_ratio, buttons_info);
 
   /* Camera */
   common::Camera::Config config;
@@ -327,10 +327,19 @@ void Editor::UpdateData(const WindowContext& window_context, int frame) {
       state_manager_.IsSelected(kDaylightButtonIndex)
           ? Celestial::kEarthDayTextureIndex
           : Celestial::kEarthNightTextureIndex;
-  celestial_->UpdateEarthData(frame, general_camera,
-                              earth_.model_matrix(), earth_texture_index);
-  celestial_->UpdateSkyboxData(frame, skybox_camera_->camera(),
-                               earth_.GetSkyboxModelMatrix(/*scale=*/1.5f));
+  const glm::mat4 earth_transform_matrix = general_camera.projection() *
+                                           general_camera.view() *
+                                           earth_.model_matrix();
+  celestial_->UpdateEarthData(frame, earth_texture_index,
+                              earth_transform_matrix);
+
+  const auto& skybox_camera = skybox_camera_->camera();
+  const glm::mat4 skybox_transform_matrix =
+      skybox_camera.projection() *
+      skybox_camera.GetSkyboxViewMatrix() *
+      earth_.GetSkyboxModelMatrix(/*scale=*/1.5f);
+  celestial_->UpdateSkyboxData(frame, skybox_transform_matrix);
+
   aurora_path_->UpdatePerFrameData(
       frame, general_camera, aurora_layer_.model_matrix(), click_aurora_layer);
 

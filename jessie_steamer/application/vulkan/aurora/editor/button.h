@@ -16,6 +16,7 @@
 #include "jessie_steamer/application/vulkan/aurora/editor/state.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
+#include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/text.h"
 #include "absl/types/optional.h"
@@ -29,7 +30,7 @@ namespace aurora {
 namespace button {
 
 // Contains information for rendering multiple buttons onto a big texture.
-struct ButtonInfo {
+struct ButtonsInfo {
   // Contains information for rendering a single button.
   struct Info {
     std::string text;
@@ -57,15 +58,15 @@ struct ButtonInfo {
 // calling CreateButtonsImage().
 class ButtonMaker {
  public:
-  using ButtonInfo = button::ButtonInfo;
+  using ButtonsInfo = button::ButtonsInfo;
 
-  // The caller is responsible for keeping the existence of 'button_info' util
+  // The caller is responsible for keeping the existence of 'buttons_info' util
   // finish using this button maker.
   ButtonMaker(wrapper::vulkan::SharedBasicContext context,
-              const ButtonInfo* button_info)
-      : context_{std::move(context)}, button_info_{*button_info},
-        num_buttons_{static_cast<int>(button_info_.button_infos.size())} {
-    ASSERT_NON_NULL(button_info, "Button info must not be nullptr");
+              const ButtonsInfo* buttons_info)
+      : context_{std::move(context)}, buttons_info_{*buttons_info},
+        num_buttons_{static_cast<int>(buttons_info_.button_infos.size())} {
+    ASSERT_NON_NULL(buttons_info, "Buttons info must not be nullptr");
   }
 
   // This class is neither copyable nor movable.
@@ -124,6 +125,10 @@ class ButtonMaker {
   std::unique_ptr<wrapper::vulkan::PushConstant> CreateButtonVerticesData(
       const glm::vec2& background_image_size) const;
 
+  // Returns a descriptor with an image bound to it.
+  std::unique_ptr<wrapper::vulkan::StaticDescriptor> CreateDescriptor(
+      const VkDescriptorImageInfo& image_info) const;
+
   // Returns a renderer for the texts on buttons.
   std::unique_ptr<wrapper::vulkan::Text> CreateTextRenderer(
       const wrapper::vulkan::Image& buttons_image,
@@ -133,7 +138,7 @@ class ButtonMaker {
   const wrapper::vulkan::SharedBasicContext context_;
 
   // Buttons rendering information.
-  const ButtonInfo& button_info_;
+  const ButtonsInfo& buttons_info_;
 
   // Number of buttons. Note that since each button has two states, there will
   // be 'num_buttons_' * 2 buttons on the output of CreateButtonsImage().
@@ -154,14 +159,14 @@ class ButtonMaker {
 // whenever the render pass is changed.
 class Button {
  public:
-  using ButtonInfo = button::ButtonInfo;
+  using ButtonsInfo = button::ButtonsInfo;
 
   enum class State { kHidden, kSelected, kUnselected };
 
   // When the frame is resized, the aspect ratio of viewport will always be
   // 'viewport_aspect_ratio'.
   Button(const wrapper::vulkan::SharedBasicContext& context,
-         float viewport_aspect_ratio, const ButtonInfo& button_info);
+         float viewport_aspect_ratio, const ButtonsInfo& buttons_info);
 
   // This class is neither copyable nor movable.
   Button(const Button&) = delete;
@@ -176,7 +181,7 @@ class Button {
   // Renders all buttons. Buttons in 'State::kHidden' will not be rendered.
   // Others will be rendered with color and alpha selected according to states.
   // The size of 'button_states' must be equal to the size of
-  // 'button_info.button_infos' passed to the constructor.
+  // 'buttons_info.button_infos' passed to the constructor.
   // This should be called when 'command_buffer' is recording commands.
   void Draw(const VkCommandBuffer& command_buffer,
             const std::vector<State>& button_states);
@@ -214,14 +219,18 @@ class Button {
   using ButtonRenderInfos =
       std::vector<std::array<ButtonRenderInfo, state::kNumStates>>;
 
-  // Extract ButtonRenderInfos from 'button_info'.
+  // Extract ButtonRenderInfos from 'buttons_info'.
   ButtonRenderInfos ExtractRenderInfos(
-      const ButtonInfo& button_info) const;
+      const ButtonsInfo& buttons_info) const;
 
-  // Returns a PushConstant that stores the pos and tex_coord of each vertex.
-  std::unique_ptr<wrapper::vulkan::PushConstant> CreateButtonVerticesData(
+  // Returns a UniformBuffer that stores the pos and tex_coord of each vertex.
+  std::unique_ptr<wrapper::vulkan::UniformBuffer> CreateButtonVerticesData(
       const wrapper::vulkan::SharedBasicContext& context,
-      const ButtonInfo& button_info) const;
+      const ButtonsInfo& buttons_info) const;
+
+  // Creates a descriptor for 'vertices_uniform_' and 'buttons_image_'.
+  std::unique_ptr<wrapper::vulkan::StaticDescriptor> CreateDescriptor(
+      const wrapper::vulkan::SharedBasicContext& context) const;
 
   // Aspect ratio of the viewport. This is used to make sure the aspect ratio of
   // buttons does not change when the size of framebuffers changes.
@@ -242,7 +251,7 @@ class Button {
   // Objects used for rendering.
   std::unique_ptr<wrapper::vulkan::DynamicPerInstanceBuffer>
       per_instance_buffer_;
-  std::unique_ptr<wrapper::vulkan::PushConstant> vertices_constant_;
+  std::unique_ptr<wrapper::vulkan::UniformBuffer> vertices_uniform_;
   std::unique_ptr<wrapper::vulkan::StaticDescriptor> descriptor_;
   wrapper::vulkan::PipelineBuilder pipeline_builder_;
   std::unique_ptr<wrapper::vulkan::Pipeline> pipeline_;

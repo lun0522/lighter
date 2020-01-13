@@ -2,22 +2,9 @@
 
 #define NUM_VERTICES_PER_BUTTON 6
 
-#if defined(TARGET_OPENGL)
-
 layout(binding = 0) uniform VerticesInfo {
   vec4 pos_tex_coords[NUM_VERTICES_PER_BUTTON];
 } vertices_info;
-
-#elif defined(TARGET_VULKAN)
-
-layout(push_constant) uniform VerticesInfo {
-  vec4 pos_tex_coords[NUM_VERTICES_PER_BUTTON];
-} vertices_info;
-
-#else
-#error Unrecognized target
-
-#endif  // TARGET_OPENGL || TARGET_VULKAN
 
 layout(location = 0) in float in_alpha;
 layout(location = 1) in vec2 pos_center;

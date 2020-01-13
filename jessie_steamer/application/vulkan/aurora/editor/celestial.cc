@@ -109,20 +109,17 @@ void Celestial::UpdateFramebuffer(
                         render_pass, subpass_index);
 }
 
-void Celestial::UpdateEarthData(
-    int frame, const common::Camera& camera,
-    const glm::mat4& model, EarthTextureIndex texture_index) {
-  earth_uniform_->HostData<EarthTrans>(frame)->proj_view_model =
-      camera.projection() * camera.view() * model;
-  earth_uniform_->Flush(frame);
-
+void Celestial::UpdateEarthData(int frame, EarthTextureIndex texture_index,
+                                const glm::mat4& proj_view_model) {
   earth_constant_->HostData<TextureIndex>(frame)->value = texture_index;
+  earth_uniform_->HostData<EarthTrans>(frame)->proj_view_model =
+      proj_view_model;
+  earth_uniform_->Flush(frame);
 }
 
-void Celestial::UpdateSkyboxData(int frame, const common::Camera& camera,
-                                 const glm::mat4& model) {
+void Celestial::UpdateSkyboxData(int frame, const glm::mat4& proj_view_model) {
   skybox_constant_->HostData<SkyboxTrans>(frame)->proj_view_model =
-      camera.projection() * camera.GetSkyboxViewMatrix() * model;
+      proj_view_model;
 }
 
 void Celestial::Draw(const VkCommandBuffer& command_buffer, int frame) const {

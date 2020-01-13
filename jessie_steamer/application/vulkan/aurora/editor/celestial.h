@@ -8,7 +8,6 @@
 #ifndef JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_EDITOR_CELESTIAL_H
 #define JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_EDITOR_CELESTIAL_H
 
-#include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/model.h"
@@ -47,12 +46,11 @@ class Celestial {
       const wrapper::vulkan::RenderPass& render_pass, uint32_t subpass_index);
 
   // Updates per-frame data for earth.
-  void UpdateEarthData(int frame, const common::Camera& camera,
-                       const glm::mat4& model, EarthTextureIndex texture_index);
+  void UpdateEarthData(int frame, EarthTextureIndex texture_index,
+                       const glm::mat4& proj_view_model);
 
   // Updates per-frame data for skybox.
-  void UpdateSkyboxData(int frame, const common::Camera& camera,
-                        const glm::mat4& model);
+  void UpdateSkyboxData(int frame, const glm::mat4& proj_view_model);
 
   // Renders the earth and skybox.
   // This should be called when 'command_buffer' is recording commands.

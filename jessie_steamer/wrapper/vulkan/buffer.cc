@@ -10,7 +10,6 @@
 #include <array>
 #include <cstring>
 
-#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "third_party/absl/strings/str_format.h"
 
@@ -704,10 +703,10 @@ void DynamicPerInstanceBuffer::CopyHostData(
 
 UniformBuffer::UniformBuffer(SharedBasicContext context,
                              size_t chunk_size, int num_chunks)
-    : DataBuffer{std::move(context)} {
+    : DataBuffer{std::move(context)},
+      chunk_data_size_{chunk_size}, num_chunks_{num_chunks} {
   const VkDeviceSize alignment =
       context_->physical_device_limits().minUniformBufferOffsetAlignment;
-  chunk_data_size_ = chunk_size;
   chunk_memory_size_ =
       (chunk_data_size_ + alignment - 1) / alignment * alignment;
 
@@ -720,6 +719,7 @@ UniformBuffer::UniformBuffer(SharedBasicContext context,
 }
 
 void UniformBuffer::Flush(int chunk_index) const {
+  ValidateChunkIndex(chunk_index);
   const VkDeviceSize src_offset = chunk_data_size_ * chunk_index;
   const VkDeviceSize dst_offset = chunk_memory_size_ * chunk_index;
   CopyHostToBuffer(
@@ -729,11 +729,18 @@ void UniformBuffer::Flush(int chunk_index) const {
 
 VkDescriptorBufferInfo UniformBuffer::GetDescriptorInfo(
     int chunk_index) const {
+  ValidateChunkIndex(chunk_index);
   return VkDescriptorBufferInfo{
       buffer_,
       /*offset=*/chunk_memory_size_ * chunk_index,
       /*range=*/chunk_data_size_,
   };
+}
+
+void UniformBuffer::ValidateChunkIndex(int chunk_index) const {
+  ASSERT_TRUE(chunk_index < num_chunks_,
+              absl::StrFormat("Chunk index (%d) of out range (%d)",
+                              chunk_index, num_chunks_));
 }
 
 TextureBuffer::TextureBuffer(SharedBasicContext context,
@@ -859,13 +866,14 @@ MultisampleBuffer::MultisampleBuffer(
 }
 
 PushConstant::PushConstant(const SharedBasicContext& context,
-                           size_t size_per_frame, int num_frames_in_flight) {
+                           size_t size_per_frame, int num_frames_in_flight)
+    : size_per_frame_{static_cast<uint32_t>(size_per_frame)},
+      num_frames_{num_frames_in_flight} {
   ASSERT_TRUE(size_per_frame <= kMaxPushConstantSize,
               absl::StrFormat("Pushing constant of size %d bytes per-frame. To "
                               "be compatible with all devices, the size should "
                               "not be greater than %d bytes.",
                               size_per_frame, kMaxPushConstantSize));
-  size_per_frame_ = static_cast<uint32_t>(size_per_frame);
   data_ = new char[size_per_frame_ * num_frames_in_flight];
 }
 
@@ -873,8 +881,15 @@ void PushConstant::Flush(const VkCommandBuffer& command_buffer,
                          const VkPipelineLayout& pipeline_layout,
                          int frame, uint32_t target_offset,
                          VkShaderStageFlags shader_stage) const {
+  ValidateFrame(frame);
   vkCmdPushConstants(command_buffer, pipeline_layout, shader_stage,
                      target_offset, size_per_frame_, HostData<void>(frame));
+}
+
+void PushConstant::ValidateFrame(int frame) const {
+  ASSERT_TRUE(frame < num_frames_,
+              absl::StrFormat("Frame (%d) of out range (%d)",
+                              frame, num_frames_));
 }
 
 } /* namespace vulkan */
