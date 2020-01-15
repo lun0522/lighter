@@ -15,6 +15,7 @@
 
 #include "jessie_steamer/application/vulkan/aurora/editor/state.h"
 #include "jessie_steamer/common/util.h"
+#include "jessie_steamer/wrapper/vulkan/align.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
@@ -50,7 +51,31 @@ struct ButtonsInfo {
   std::vector<Info> button_infos;
 };
 
+constexpr int kNumVerticesPerButton = 6;
+
+/* BEGIN: Consistent with uniform blocks defined in shaders. */
+
+struct VerticesInfo {
+  ALIGN_VEC4 glm::vec4 pos_tex_coords[kNumVerticesPerButton];
+};
+
+/* END: Consistent with uniform blocks defined in shaders. */
+
 } /* namespace button */
+
+namespace draw_button {
+
+/* BEGIN: Consistent with vertex input attributes defined in shaders. */
+
+struct RenderInfo {
+  float alpha;
+  glm::vec2 pos_center_ndc;
+  glm::vec2 tex_coord_center;
+};
+
+/* END: Consistent with vertex input attributes defined in shaders. */
+
+} /* namespace draw_button */
 
 // This class is used to render multiple buttons onto a big texture, so that
 // to render all buttons later, we only need to bind one texture and emit one
@@ -145,6 +170,56 @@ class ButtonMaker {
   const int num_buttons_;
 };
 
+class ButtonRenderer {
+ public:
+  using VerticesInfo = button::VerticesInfo;
+
+  ButtonRenderer(
+      const wrapper::vulkan::SharedBasicContext& context,
+      int num_buttons, const VerticesInfo& vertices_info,
+      std::unique_ptr<wrapper::vulkan::OffscreenImage>&& buttons_image);
+
+  // This class is neither copyable nor movable.
+  ButtonRenderer(const ButtonRenderer&) = delete;
+  ButtonRenderer& operator=(const ButtonRenderer&) = delete;
+
+  // Updates internal states and rebuilds the graphics pipeline.
+  void UpdateFramebuffer(
+      VkSampleCountFlagBits sample_count,
+      const wrapper::vulkan::RenderPass& render_pass, uint32_t subpass_index,
+      const wrapper::vulkan::PipelineBuilder::ViewportInfo& viewport);
+
+  void Draw(const VkCommandBuffer& command_buffer,
+            const std::vector<draw_button::RenderInfo>& buttons_to_render);
+
+ private:
+  struct RenderInfo : public draw_button::RenderInfo {
+    static std::vector<wrapper::vulkan::VertexBuffer::Attribute>
+    GetAttributes() {
+      return {
+          {offsetof(RenderInfo, alpha), VK_FORMAT_R32_SFLOAT},
+          {offsetof(RenderInfo, pos_center_ndc), VK_FORMAT_R32G32_SFLOAT},
+          {offsetof(RenderInfo, tex_coord_center), VK_FORMAT_R32G32_SFLOAT},
+      };
+    }
+  };
+
+  // Creates a descriptor for 'vertices_uniform_' and 'buttons_image_'.
+  std::unique_ptr<wrapper::vulkan::StaticDescriptor> CreateDescriptor(
+      const wrapper::vulkan::SharedBasicContext& context) const;
+
+  // Texture that contains all buttons in all states.
+  const std::unique_ptr<wrapper::vulkan::OffscreenImage> buttons_image_;
+
+  // Objects used for rendering.
+  std::unique_ptr<wrapper::vulkan::DynamicPerInstanceBuffer>
+      per_instance_buffer_;
+  std::unique_ptr<wrapper::vulkan::UniformBuffer> vertices_uniform_;
+  std::unique_ptr<wrapper::vulkan::StaticDescriptor> descriptor_;
+  wrapper::vulkan::PipelineBuilder pipeline_builder_;
+  std::unique_ptr<wrapper::vulkan::Pipeline> pipeline_;
+};
+
 // This class is used to render multiple buttons with one render call.
 // These buttons will share:
 //   - Text font, height, location within each button, and color.
@@ -161,6 +236,7 @@ class Button {
  public:
   using ButtonsInfo = button::ButtonsInfo;
 
+  // Possible states of each button.
   enum class State { kHidden, kSelected, kUnselected };
 
   // When the frame is resized, the aspect ratio of viewport will always be
@@ -174,9 +250,10 @@ class Button {
 
   // Updates internal states and rebuilds the graphics pipeline.
   // For simplicity, the render area will be the same to 'frame_size'.
-  void Update(const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
-              const wrapper::vulkan::RenderPass& render_pass,
-              uint32_t subpass_index);
+  void UpdateFramebuffer(const VkExtent2D& frame_size,
+                         VkSampleCountFlagBits sample_count,
+                         const wrapper::vulkan::RenderPass& render_pass,
+                         uint32_t subpass_index);
 
   // Renders all buttons. Buttons in 'State::kHidden' will not be rendered.
   // Others will be rendered with color and alpha selected according to states.
@@ -194,43 +271,19 @@ class Button {
       const std::vector<State>& button_states) const;
 
  private:
-  /* BEGIN: Consistent with vertex input attributes defined in shaders. */
-
-  struct ButtonRenderInfo {
-    static std::vector<wrapper::vulkan::VertexBuffer::Attribute>
-    GetAttributes() {
-      return {
-          {offsetof(ButtonRenderInfo, alpha), VK_FORMAT_R32_SFLOAT},
-          {offsetof(ButtonRenderInfo, pos_center_ndc), VK_FORMAT_R32G32_SFLOAT},
-          {offsetof(ButtonRenderInfo, tex_coord_center),
-           VK_FORMAT_R32G32_SFLOAT},
-      };
-    }
-
-    float alpha;
-    glm::vec2 pos_center_ndc;
-    glm::vec2 tex_coord_center;
-  };
-
-  /* END: Consistent with vertex input attributes defined in shaders. */
-
   // The first dimension is different buttons, and the second dimension is
   // different states of one button.
-  using ButtonRenderInfos =
-      std::vector<std::array<ButtonRenderInfo, state::kNumStates>>;
+  using DrawButtonRenderInfos =
+      std::vector<std::array<draw_button::RenderInfo, state::kNumStates>>;
 
-  // Extract ButtonRenderInfos from 'buttons_info'.
-  ButtonRenderInfos ExtractRenderInfos(
+  // Extract draw_button::RenderInfo from 'buttons_info'.
+  DrawButtonRenderInfos ExtractDrawButtonRenderInfos(
       const ButtonsInfo& buttons_info) const;
 
-  // Returns a UniformBuffer that stores the pos and tex_coord of each vertex.
-  std::unique_ptr<wrapper::vulkan::UniformBuffer> CreateButtonVerticesData(
-      const wrapper::vulkan::SharedBasicContext& context,
+  // Returns a button::VerticesInfo that stores the position and texture
+  // coordinate of each vertex.
+  button::VerticesInfo CreateButtonVerticesInfo(
       const ButtonsInfo& buttons_info) const;
-
-  // Creates a descriptor for 'vertices_uniform_' and 'buttons_image_'.
-  std::unique_ptr<wrapper::vulkan::StaticDescriptor> CreateDescriptor(
-      const wrapper::vulkan::SharedBasicContext& context) const;
 
   // Aspect ratio of the viewport. This is used to make sure the aspect ratio of
   // buttons does not change when the size of framebuffers changes.
@@ -240,21 +293,12 @@ class Button {
   const glm::vec2 button_half_size_ndc_;
 
   // Rendering information for all buttons in all states.
-  const ButtonRenderInfos all_buttons_;
-
-  // Texture that contains all buttons in all states.
-  const std::unique_ptr<wrapper::vulkan::OffscreenImage> buttons_image_;
+  const DrawButtonRenderInfos all_buttons_;
 
   // Contains rendering information for buttons that will be rendered.
-  std::vector<ButtonRenderInfo> buttons_to_render_;
+  std::vector<draw_button::RenderInfo> buttons_to_render_;
 
-  // Objects used for rendering.
-  std::unique_ptr<wrapper::vulkan::DynamicPerInstanceBuffer>
-      per_instance_buffer_;
-  std::unique_ptr<wrapper::vulkan::UniformBuffer> vertices_uniform_;
-  std::unique_ptr<wrapper::vulkan::StaticDescriptor> descriptor_;
-  wrapper::vulkan::PipelineBuilder pipeline_builder_;
-  std::unique_ptr<wrapper::vulkan::Pipeline> pipeline_;
+  std::unique_ptr<ButtonRenderer> button_renderer_;
 };
 
 } /* namespace aurora */

@@ -261,7 +261,8 @@ void Editor::Recreate(const WindowContext& window_context) {
                                 kModelSubpassIndex);
   aurora_path_->UpdateFramebuffer(frame_size, sample_count, *render_pass_,
                                   kAuroraPathSubpassIndex);
-  button_->Update(frame_size, sample_count, *render_pass_, kButtonSubpassIndex);
+  button_->UpdateFramebuffer(frame_size, sample_count, *render_pass_,
+                             kButtonSubpassIndex);
 }
 
 void Editor::UpdateData(const WindowContext& window_context, int frame) {
