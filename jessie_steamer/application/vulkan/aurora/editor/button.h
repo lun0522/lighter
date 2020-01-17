@@ -63,6 +63,24 @@ struct VerticesInfo {
 
 } /* namespace button */
 
+namespace make_button {
+
+/* BEGIN: Consistent with vertex input attributes defined in shaders. */
+
+struct RenderInfo {
+  glm::vec3 color;
+  glm::vec2 center;
+};
+
+/* END: Consistent with vertex input attributes defined in shaders. */
+
+struct TextPos {
+  float base_y;
+  float height;
+};
+
+} /* namespace make_button */
+
 namespace draw_button {
 
 /* BEGIN: Consistent with vertex input attributes defined in shaders. */
@@ -83,16 +101,9 @@ struct RenderInfo {
 // calling CreateButtonsImage().
 class ButtonMaker {
  public:
-  using ButtonsInfo = button::ButtonsInfo;
-
-  // The caller is responsible for keeping the existence of 'buttons_info' util
-  // finish using this button maker.
   ButtonMaker(wrapper::vulkan::SharedBasicContext context,
-              const ButtonsInfo* buttons_info)
-      : context_{std::move(context)}, buttons_info_{*buttons_info},
-        num_buttons_{static_cast<int>(buttons_info_.button_infos.size())} {
-    ASSERT_NON_NULL(buttons_info, "Buttons info must not be nullptr");
-  }
+              wrapper::vulkan::Text::Font font, int font_height,
+              std::vector<std::string>&& texts);
 
   // This class is neither copyable nor movable.
   ButtonMaker(const ButtonMaker&) = delete;
@@ -114,60 +125,43 @@ class ButtonMaker {
   //
   // This layout has been flipped in Y-axis for readability.
   // Also note that buttons are not transparent on this texture.
-  std::unique_ptr<wrapper::vulkan::OffscreenImage> CreateButtonsImage() const;
+  void CreateButtonsImage(
+      const button::VerticesInfo& vertices_info, const glm::vec3& text_color,
+      const std::vector<make_button::RenderInfo>& render_infos,
+      const std::vector<make_button::TextPos>& text_pos);
+
+  std::unique_ptr<wrapper::vulkan::OffscreenImage> GetButtonsImage() {
+    return std::move(buttons_image_);
+  }
+
+  // Accessors.
+  const VkExtent2D& background_image_size() const {
+    return (*background_image_)->extent();
+  }
+  float max_bearing_y() const { return text_renderer_->GetMaxBearingY(); }
 
  private:
-  enum SubpassIndex {
-    kBackgroundSubpassIndex = 0,
-    kTextSubpassIndex,
-    kNumSubpasses,
-    kNumOverlaySubpasses = kNumSubpasses - kBackgroundSubpassIndex,
-  };
-
-  /* BEGIN: Consistent with vertex input attributes defined in shaders. */
-
-  struct ButtonRenderInfo {
+  struct RenderInfo : public make_button::RenderInfo {
     static std::vector<wrapper::vulkan::VertexBuffer::Attribute>
     GetAttributes() {
       return {
-          {offsetof(ButtonRenderInfo, color), VK_FORMAT_R32G32B32_SFLOAT},
-          {offsetof(ButtonRenderInfo, center), VK_FORMAT_R32G32_SFLOAT},
+          {offsetof(RenderInfo, color), VK_FORMAT_R32G32B32_SFLOAT},
+          {offsetof(RenderInfo, center), VK_FORMAT_R32G32_SFLOAT},
       };
     }
-
-    glm::vec3 color;
-    glm::vec2 center;
   };
-
-  /* END: Consistent with vertex input attributes defined in shaders. */
-
-  // Returns a PerInstanceBuffer that stores ButtonRenderInfo for all buttons in
-  // all states.
-  std::unique_ptr<wrapper::vulkan::PerInstanceBuffer>
-  CreatePerInstanceData() const;
-
-  // Returns a PushConstant that stores the pos and tex_coord of each vertex.
-  std::unique_ptr<wrapper::vulkan::PushConstant> CreateButtonVerticesData(
-      const glm::vec2& background_image_size) const;
 
   // Returns a descriptor with an image bound to it.
   std::unique_ptr<wrapper::vulkan::StaticDescriptor> CreateDescriptor(
       const VkDescriptorImageInfo& image_info) const;
 
-  // Returns a renderer for the texts on buttons.
-  std::unique_ptr<wrapper::vulkan::Text> CreateTextRenderer(
-      const wrapper::vulkan::Image& buttons_image,
-      const wrapper::vulkan::RenderPass& render_pass) const;
-
   // Pointer to context.
   const wrapper::vulkan::SharedBasicContext context_;
 
-  // Buttons rendering information.
-  const ButtonsInfo& buttons_info_;
-
-  // Number of buttons. Note that since each button has two states, there will
-  // be 'num_buttons_' * 2 buttons on the output of CreateButtonsImage().
-  const int num_buttons_;
+  const std::vector<std::string> texts_;
+  std::unique_ptr<wrapper::vulkan::SharedTexture> background_image_;
+  std::unique_ptr<wrapper::vulkan::OffscreenImage> buttons_image_;
+  std::unique_ptr<wrapper::vulkan::DynamicText> text_renderer_;
 };
 
 class ButtonRenderer {
@@ -276,13 +270,25 @@ class Button {
   using DrawButtonRenderInfos =
       std::vector<std::array<draw_button::RenderInfo, state::kNumStates>>;
 
+  // Returns a list of make_button::RenderInfo for all buttons in all states.
+  std::vector<make_button::RenderInfo> CreateMakeButtonRenderInfos(
+      const ButtonsInfo& buttons_info) const;
+
+  // Returns a button::VerticesInfo that stores the pos and tex_coord of each
+  // vertex.
+  button::VerticesInfo CreateMakeButtonVerticesInfo(
+      int num_buttons, const glm::vec2& background_image_size) const;
+
+  std::vector<make_button::TextPos> CreateMakeButtonTextPos(
+      float max_bearing_y, const ButtonsInfo& buttons_info) const;
+
   // Extract draw_button::RenderInfo from 'buttons_info'.
   DrawButtonRenderInfos ExtractDrawButtonRenderInfos(
       const ButtonsInfo& buttons_info) const;
 
   // Returns a button::VerticesInfo that stores the position and texture
   // coordinate of each vertex.
-  button::VerticesInfo CreateButtonVerticesInfo(
+  button::VerticesInfo CreateDrawButtonVerticesInfo(
       const ButtonsInfo& buttons_info) const;
 
   // Aspect ratio of the viewport. This is used to make sure the aspect ratio of
