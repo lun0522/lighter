@@ -8,6 +8,7 @@
 #ifndef JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_EDITOR_EDITOR_H
 #define JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_EDITOR_EDITOR_H
 
+#include <array>
 #include <memory>
 #include <vector>
 
@@ -20,6 +21,7 @@
 #include "jessie_steamer/common/window.h"
 #include "jessie_steamer/wrapper/vulkan/window_context.h"
 #include "third_party/absl/types/optional.h"
+#include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -27,8 +29,54 @@ namespace application {
 namespace vulkan {
 namespace aurora {
 
+class EditorRenderer {
+ public:
+  explicit EditorRenderer(const wrapper::vulkan::WindowContext* window_context);
+
+  // This class is neither copyable nor movable.
+  EditorRenderer(const EditorRenderer&) = delete;
+  EditorRenderer& operator=(const EditorRenderer&) = delete;
+
+  void Recreate();
+
+  void Draw(
+      const VkCommandBuffer& command_buffer, int framebuffer_index,
+      const std::vector<wrapper::vulkan::RenderPass::RenderOp>& render_ops);
+
+  const wrapper::vulkan::RenderPass& render_pass() const {
+    return *render_pass_;
+  }
+
+ private:
+  const wrapper::vulkan::WindowContext& window_context_;
+  std::unique_ptr<wrapper::vulkan::NaiveRenderPassBuilder> render_pass_builder_;
+  std::unique_ptr<wrapper::vulkan::RenderPass> render_pass_;
+  std::unique_ptr<wrapper::vulkan::Image> depth_stencil_image_;
+};
+
 class Editor {
  public:
+  Editor(wrapper::vulkan::WindowContext* window_context,
+         int num_frames_in_flight);
+
+  // This class is neither copyable nor movable.
+  Editor(const Editor&) = delete;
+  Editor& operator=(const Editor&) = delete;
+
+  // Registers callbacks.
+  void OnEnter();
+
+  // Unregisters callbacks.
+  void OnExit();
+
+  void Recreate();
+
+  void UpdateData(int frame);
+
+  void Draw(const VkCommandBuffer& command_buffer,
+            uint32_t framebuffer_index, int current_frame);
+
+ private:
   enum ButtonIndex {
     kPath1ButtonIndex,
     kPath2ButtonIndex,
@@ -40,28 +88,6 @@ class Editor {
     kNumAuroraPaths = kEditingButtonIndex,
   };
 
-  Editor(const wrapper::vulkan::WindowContext& window_context,
-         int num_frames_in_flight);
-
-  // This class is neither copyable nor movable.
-  Editor(const Editor&) = delete;
-  Editor& operator=(const Editor&) = delete;
-
-  // Registers callbacks.
-  void OnEnter(common::Window* mutable_window);
-
-  // Unregisters callbacks.
-  void OnExit(common::Window* mutable_window);
-
-  void Recreate(const wrapper::vulkan::WindowContext& window_context);
-
-  void UpdateData(const wrapper::vulkan::WindowContext& window_context,
-                  int frame);
-
-  void Draw(const VkCommandBuffer& command_buffer,
-            uint32_t framebuffer_index, int current_frame);
-
- private:
   class StateManager {
    public:
     explicit StateManager();
@@ -105,8 +131,20 @@ class Editor {
     ButtonIndex last_edited_path_ = kPath1ButtonIndex;
   };
 
+  using ButtonColors = std::array<glm::vec3, state::kNumStates>;
+
+  static const std::array<ButtonColors, kNumButtons>& GetAllButtonColors();
+
+  static const std::array<float, state::kNumStates>& GetButtonAlphas();
+
+  const wrapper::vulkan::RenderPass& render_pass() const {
+    return editor_renderer_.render_pass();
+  }
+
+  wrapper::vulkan::WindowContext& window_context_;
   bool did_press_left_ = false;
   bool did_release_right_ = false;
+  EditorRenderer editor_renderer_;
   common::Sphere earth_;
   common::Sphere aurora_layer_;
   StateManager state_manager_;
@@ -115,9 +153,6 @@ class Editor {
   std::unique_ptr<Button> button_;
   std::unique_ptr<common::UserControlledCamera> general_camera_;
   std::unique_ptr<common::UserControlledCamera> skybox_camera_;
-  std::unique_ptr<wrapper::vulkan::NaiveRenderPassBuilder> render_pass_builder_;
-  std::unique_ptr<wrapper::vulkan::RenderPass> render_pass_;
-  std::unique_ptr<wrapper::vulkan::Image> depth_stencil_image_;
 };
 
 } /* namespace aurora */

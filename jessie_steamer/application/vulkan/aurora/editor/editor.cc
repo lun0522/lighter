@@ -7,11 +7,8 @@
 
 #include "jessie_steamer/application/vulkan/aurora/editor/editor.h"
 
-#include <array>
-
 #include "jessie_steamer/application/vulkan/aurora/editor/state.h"
 #include "third_party/absl/memory/memory.h"
-#include "third_party/glm/glm.hpp"
 
 namespace jessie_steamer {
 namespace application {
@@ -23,8 +20,6 @@ using namespace wrapper::vulkan;
 
 using std::array;
 using std::vector;
-
-using ButtonColors = array<glm::vec3, state::kNumStates>;
 
 enum SubpassIndex {
   kModelSubpassIndex = 0,
@@ -53,26 +48,75 @@ const glm::vec3& GetEarthModelCenter() {
   return *earth_model_center;
 }
 
-inline glm::vec3 MakeColor(int r, int g, int b) {
-  return glm::vec3{r, g, b} / 255.0f;
+} /* namespace */
+
+EditorRenderer::EditorRenderer(const WindowContext* window_context)
+    : window_context_{*window_context} {
+  ASSERT_NON_NULL(window_context, "window_context must not be nullptr");
+  const NaiveRenderPassBuilder::SubpassConfig subpass_config{
+      /*use_opaque_subpass=*/true,
+      kNumTransparentSubpasses,
+      kNumOverlaySubpasses,
+  };
+  render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
+      window_context_.basic_context(), subpass_config,
+      /*num_framebuffers=*/window_context_.num_swapchain_images(),
+      /*present_to_screen=*/true, window_context_.multisampling_mode());
 }
 
-const array<ButtonColors, Editor::kNumButtons>& GetAllButtonColors() {
-  static array<ButtonColors, Editor::kNumButtons>* all_button_colors = nullptr;
+void EditorRenderer::Recreate() {
+  depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
+      window_context_.basic_context(), window_context_.frame_size(),
+      window_context_.multisampling_mode());
+
+  (*render_pass_builder_->mutable_builder())
+      .UpdateAttachmentImage(
+          render_pass_builder_->color_attachment_index(),
+          [this](int framebuffer_index) -> const Image& {
+            return window_context_.swapchain_image(framebuffer_index);
+          })
+      .UpdateAttachmentImage(
+          render_pass_builder_->depth_attachment_index(),
+          [this](int framebuffer_index) -> const Image& {
+            return *depth_stencil_image_;
+          });
+  if (render_pass_builder_->has_multisample_attachment()) {
+    render_pass_builder_->mutable_builder()->UpdateAttachmentImage(
+        render_pass_builder_->multisample_attachment_index(),
+        [this](int framebuffer_index) -> const Image& {
+          return window_context_.multisample_image();
+        });
+  }
+
+  render_pass_ = (*render_pass_builder_)->Build();
+}
+
+void EditorRenderer::Draw(
+    const VkCommandBuffer& command_buffer, int framebuffer_index,
+    const vector<RenderPass::RenderOp>& render_ops) {
+  render_pass_->Run(command_buffer, framebuffer_index, render_ops);
+}
+
+const array<Editor::ButtonColors, Editor::kNumButtons>&
+Editor::GetAllButtonColors() {
+  static array<ButtonColors, kNumButtons>* all_button_colors = nullptr;
   if (all_button_colors == nullptr) {
-    all_button_colors = new array<ButtonColors, Editor::kNumButtons>{
-        ButtonColors{MakeColor(241, 196,  15), MakeColor(243, 156,  18)},
-        ButtonColors{MakeColor(230, 126,  34), MakeColor(211,  84,   0)},
-        ButtonColors{MakeColor(231,  76,  60), MakeColor(192,  57,  43)},
-        ButtonColors{MakeColor( 52, 152, 219), MakeColor( 41, 128, 185)},
-        ButtonColors{MakeColor(155,  89, 182), MakeColor(142,  68, 173)},
-        ButtonColors{MakeColor( 46, 204, 113), MakeColor( 39, 174,  96)},
+    const auto make_color = [](int r, int g, int b) {
+      return glm::vec3{r, g, b} / 255.0f;
+    };
+    all_button_colors = new array<ButtonColors, kNumButtons>{
+        ButtonColors{make_color(241, 196,  15), make_color(243, 156,  18)},
+        ButtonColors{make_color(230, 126,  34), make_color(211,  84,   0)},
+        ButtonColors{make_color(231,  76,  60), make_color(192,  57,  43)},
+        ButtonColors{make_color( 52, 152, 219), make_color( 41, 128, 185)},
+        ButtonColors{make_color(155,  89, 182), make_color(142,  68, 173)},
+        ButtonColors{make_color( 46, 204, 113), make_color( 39, 174,  96)},
     };
   }
   return *all_button_colors;
 }
 
-const array<float, state::kNumStates>& GetButtonAlphas() {
+const array<float, state::kNumStates>& Editor::GetButtonAlphas() {
   static array<float, state::kNumStates>* button_alphas = nullptr;
   if (button_alphas == nullptr) {
     button_alphas = new array<float, state::kNumStates>{1.0f, 0.5f};
@@ -80,17 +124,16 @@ const array<float, state::kNumStates>& GetButtonAlphas() {
   return *button_alphas;
 }
 
-} /* namespace */
-
-Editor::Editor(const WindowContext& window_context,
-               int num_frames_in_flight)
-    : earth_{GetEarthModelCenter(), kEarthModelRadius,
+Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
+    : window_context_{*window_context}, editor_renderer_{window_context},
+      earth_{GetEarthModelCenter(), kEarthModelRadius,
              kInertialRotationDuration},
       aurora_layer_{GetEarthModelCenter(), kAuroraLayerModelRadius,
                     kInertialRotationDuration} {
-  const auto context = window_context.basic_context();
+  ASSERT_NON_NULL(window_context, "window_context must not be nullptr");
+  const auto context = window_context_.basic_context();
   const float original_aspect_ratio =
-      window_context.window().original_aspect_ratio();
+      window_context_.window().original_aspect_ratio();
 
   /* Earth and skybox */
   celestial_ = absl::make_unique<Celestial>(
@@ -133,35 +176,23 @@ Editor::Editor(const WindowContext& window_context,
       });
 
   /* Button */
-  using button::ButtonsInfo;
-  const ButtonsInfo buttons_info{
+  using ButtonInfo = Button::ButtonsInfo::Info;
+  const Button::ButtonsInfo buttons_info{
       Text::Font::kOstrich, /*font_height=*/100, /*base_y=*/0.25f,
       /*top_y=*/0.75f, /*text_color=*/glm::vec3{1.0f}, GetButtonAlphas(),
       /*button_size=*/glm::vec2{0.2f, 0.1f}, /*button_infos=*/{
-          ButtonsInfo::Info{
-              "Path 1", GetAllButtonColors()[kPath1ButtonIndex],
-              /*center=*/glm::vec2{0.2f, 0.9f},
-          },
-          ButtonsInfo::Info{
-              "Path 2", GetAllButtonColors()[kPath2ButtonIndex],
-              /*center=*/glm::vec2{0.5f, 0.9f},
-          },
-          ButtonsInfo::Info{
-              "Path 3", GetAllButtonColors()[kPath3ButtonIndex],
-              /*center=*/glm::vec2{0.8f, 0.9f},
-          },
-          ButtonsInfo::Info{
-              "Editing", GetAllButtonColors()[kEditingButtonIndex],
-              /*center=*/glm::vec2{0.2f, 0.1f},
-          },
-          ButtonsInfo::Info{
-              "Daylight", GetAllButtonColors()[kDaylightButtonIndex],
-              /*center=*/glm::vec2{0.5f, 0.1f},
-          },
-          ButtonsInfo::Info{
-              "Aurora", GetAllButtonColors()[kAuroraButtonIndex],
-              /*center=*/glm::vec2{0.8f, 0.1f},
-          },
+          ButtonInfo{"Path 1", GetAllButtonColors()[kPath1ButtonIndex],
+                     /*center=*/glm::vec2{0.2f, 0.9f}},
+          ButtonInfo{"Path 2", GetAllButtonColors()[kPath2ButtonIndex],
+                     /*center=*/glm::vec2{0.5f, 0.9f}},
+          ButtonInfo{"Path 3", GetAllButtonColors()[kPath3ButtonIndex],
+                     /*center=*/glm::vec2{0.8f, 0.9f}},
+          ButtonInfo{"Editing", GetAllButtonColors()[kEditingButtonIndex],
+                     /*center=*/glm::vec2{0.2f, 0.1f}},
+          ButtonInfo{"Daylight", GetAllButtonColors()[kDaylightButtonIndex],
+                     /*center=*/glm::vec2{0.5f, 0.1f}},
+          ButtonInfo{"Aurora", GetAllButtonColors()[kAuroraButtonIndex],
+                     /*center=*/glm::vec2{0.8f, 0.1f}},
       },
   };
   button_ = absl::make_unique<Button>(
@@ -185,21 +216,10 @@ Editor::Editor(const WindowContext& window_context,
       camera_control_config,
       absl::make_unique<common::OrthographicCamera>(config, ortho_config));
   general_camera_->SetActivity(true);
-
-  /* Render pass */
-  const NaiveRenderPassBuilder::SubpassConfig subpass_config{
-      /*use_opaque_subpass=*/true,
-      kNumTransparentSubpasses,
-      kNumOverlaySubpasses,
-  };
-  render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
-      context, subpass_config,
-      /*num_framebuffers=*/window_context.num_swapchain_images(),
-      /*present_to_screen=*/true, window_context.multisampling_mode());
 }
 
-void Editor::OnEnter(common::Window* mutable_window) {
-  (*mutable_window)
+void Editor::OnEnter() {
+  (*window_context_.mutable_window())
       .RegisterScrollCallback([this](double x_pos, double y_pos) {
         // Since we have two cameras, to make sure they always zoom in/out
         // together, we don't set real limits to the skybox camera, and let the
@@ -217,62 +237,36 @@ void Editor::OnEnter(common::Window* mutable_window) {
       });
 }
 
-void Editor::OnExit(common::Window* mutable_window) {
-  (*mutable_window)
+void Editor::OnExit() {
+  (*window_context_.mutable_window())
       .RegisterScrollCallback(nullptr)
       .RegisterMouseButtonCallback(nullptr);
 }
 
-void Editor::Recreate(const WindowContext& window_context) {
-  /* Camera */
-  general_camera_->SetCursorPos(window_context.window().GetCursorPos());
-  skybox_camera_->SetCursorPos(window_context.window().GetCursorPos());
+void Editor::Recreate() {
+  editor_renderer_.Recreate();
 
-  /* Depth image */
-  const VkExtent2D& frame_size = window_context.frame_size();
-  depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
-      window_context.basic_context(), frame_size,
-      window_context.multisampling_mode());
+  general_camera_->SetCursorPos(window_context_.window().GetCursorPos());
+  skybox_camera_->SetCursorPos(window_context_.window().GetCursorPos());
 
-  /* Render pass */
-  (*render_pass_builder_->mutable_builder())
-      .UpdateAttachmentImage(
-          render_pass_builder_->color_attachment_index(),
-          [&window_context](int framebuffer_index) -> const Image& {
-            return window_context.swapchain_image(framebuffer_index);
-          })
-      .UpdateAttachmentImage(
-          render_pass_builder_->depth_attachment_index(),
-          [this](int framebuffer_index) -> const Image& {
-            return *depth_stencil_image_;
-          });
-  if (render_pass_builder_->has_multisample_attachment()) {
-    render_pass_builder_->mutable_builder()->UpdateAttachmentImage(
-        render_pass_builder_->multisample_attachment_index(),
-        [&window_context](int framebuffer_index) -> const Image& {
-          return window_context.multisample_image();
-        });
-  }
-  render_pass_ = (*render_pass_builder_)->Build();
-
-  /* Objects in scene */
-  const VkSampleCountFlagBits sample_count = window_context.sample_count();
-  celestial_->UpdateFramebuffer(frame_size, sample_count, *render_pass_,
+  const VkExtent2D& frame_size = window_context_.frame_size();
+  const VkSampleCountFlagBits sample_count = window_context_.sample_count();
+  celestial_->UpdateFramebuffer(frame_size, sample_count, render_pass(),
                                 kModelSubpassIndex);
-  aurora_path_->UpdateFramebuffer(frame_size, sample_count, *render_pass_,
+  aurora_path_->UpdateFramebuffer(frame_size, sample_count, render_pass(),
                                   kAuroraPathSubpassIndex);
-  button_->UpdateFramebuffer(frame_size, sample_count, *render_pass_,
+  button_->UpdateFramebuffer(frame_size, sample_count, render_pass(),
                              kButtonSubpassIndex);
 }
 
-void Editor::UpdateData(const WindowContext& window_context, int frame) {
-  glm::vec2 click_ndc = window_context.window().GetNormalizedCursorPos();
+void Editor::UpdateData(int frame) {
+  glm::vec2 click_ndc = window_context_.window().GetNormalizedCursorPos();
   // When the frame is resized, the viewport is changed to maintain the aspect
   // ratio, hence we need to consider the distortion caused by viewport changes.
   const float current_aspect_ratio =
-      util::GetAspectRatio(window_context.frame_size());
+      util::GetAspectRatio(window_context_.frame_size());
   const float distortion =
-      current_aspect_ratio / window_context.window().original_aspect_ratio();
+      current_aspect_ratio / window_context_.window().original_aspect_ratio();
   if (distortion > 1.0f) {
     click_ndc.x *= distortion;
   } else {
@@ -358,7 +352,7 @@ void Editor::Draw(const VkCommandBuffer& command_buffer,
     }
   }
 
-  render_pass_->Run(command_buffer, framebuffer_index, /*render_ops=*/{
+  editor_renderer_.Draw(command_buffer, framebuffer_index, /*render_ops=*/{
       [this, current_frame](const VkCommandBuffer& command_buffer) {
         celestial_->Draw(command_buffer, current_frame);
       },

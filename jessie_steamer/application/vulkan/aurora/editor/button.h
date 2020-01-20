@@ -30,30 +30,9 @@ namespace vulkan {
 namespace aurora {
 namespace button {
 
-// Contains information for rendering multiple buttons onto a big texture.
-struct ButtonsInfo {
-  // Contains information for rendering a single button.
-  struct Info {
-    std::string text;
-    std::array<glm::vec3, state::kNumStates> colors;
-    glm::vec2 center;
-  };
-
-  // 'base_y' and 'top_y' are in range [0.0, 1.0]. They control where do we
-  // render text within each button.
-  wrapper::vulkan::Text::Font font;
-  int font_height;
-  float base_y;
-  float top_y;
-  glm::vec3 text_color;
-  std::array<float, state::kNumStates> button_alphas;
-  glm::vec2 button_size;
-  std::vector<Info> button_infos;
-};
+/* BEGIN: Consistent with uniform blocks defined in shaders. */
 
 constexpr int kNumVerticesPerButton = 6;
-
-/* BEGIN: Consistent with uniform blocks defined in shaders. */
 
 struct VerticesInfo {
   ALIGN_VEC4 glm::vec4 pos_tex_coords[kNumVerticesPerButton];
@@ -166,11 +145,9 @@ class ButtonMaker {
 
 class ButtonRenderer {
  public:
-  using VerticesInfo = button::VerticesInfo;
-
   ButtonRenderer(
       const wrapper::vulkan::SharedBasicContext& context,
-      int num_buttons, const VerticesInfo& vertices_info,
+      int num_buttons, const button::VerticesInfo& vertices_info,
       std::unique_ptr<wrapper::vulkan::OffscreenImage>&& buttons_image);
 
   // This class is neither copyable nor movable.
@@ -228,7 +205,26 @@ class ButtonRenderer {
 // whenever the render pass is changed.
 class Button {
  public:
-  using ButtonsInfo = button::ButtonsInfo;
+  // Contains information for rendering multiple buttons onto a big texture.
+  struct ButtonsInfo {
+    // Contains information for rendering a single button.
+    struct Info {
+      std::string text;
+      std::array<glm::vec3, state::kNumStates> colors;
+      glm::vec2 center;
+    };
+
+    // 'base_y' and 'top_y' are in range [0.0, 1.0]. They control where do we
+    // render text within each button.
+    wrapper::vulkan::Text::Font font;
+    int font_height;
+    float base_y;
+    float top_y;
+    glm::vec3 text_color;
+    std::array<float, state::kNumStates> button_alphas;
+    glm::vec2 button_size;
+    std::vector<Info> button_infos;
+  };
 
   // Possible states of each button.
   enum class State { kHidden, kSelected, kUnselected };

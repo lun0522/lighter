@@ -204,7 +204,7 @@ std::unique_ptr<StaticDescriptor> ButtonMaker::CreateDescriptor(
 
 ButtonRenderer::ButtonRenderer(
     const SharedBasicContext& context,
-    int num_buttons, const VerticesInfo& vertices_info,
+    int num_buttons, const button::VerticesInfo& vertices_info,
     std::unique_ptr<OffscreenImage>&& buttons_image)
     : buttons_image_{std::move(buttons_image)}, pipeline_builder_{context} {
   per_instance_buffer_ = absl::make_unique<DynamicPerInstanceBuffer>(
@@ -213,8 +213,9 @@ ButtonRenderer::ButtonRenderer(
       RenderInfo::GetAttributes());
 
   vertices_uniform_ = absl::make_unique<UniformBuffer>(
-      context, sizeof(VerticesInfo), /*num_frames_in_flight=*/1);
-  *vertices_uniform_->HostData<VerticesInfo>(/*chunk_index=*/0) = vertices_info;
+      context, sizeof(button::VerticesInfo), /*num_frames_in_flight=*/1);
+  *vertices_uniform_->HostData<button::VerticesInfo>(/*chunk_index=*/0) =
+      vertices_info;
   vertices_uniform_->Flush(/*chunk_index=*/0);
 
   descriptor_ = CreateDescriptor(context);
