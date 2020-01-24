@@ -172,9 +172,6 @@ class DynamicText : public Text {
   void Draw(const VkCommandBuffer& command_buffer,
             int frame, const glm::vec3& color, float alpha) override;
 
-  // Returns the maximum bearing in Y-axis among all loaded characters.
-  float GetMaxBearingY() const;
-
  private:
   // Renders all characters that may be used onto one big texture, so that we
   // only need to bind that texture to render different combinations of chars.

@@ -290,14 +290,6 @@ void DynamicText::Draw(const VkCommandBuffer& command_buffer,
   }
 }
 
-float DynamicText::GetMaxBearingY() const {
-  float max_bearing_y = 0.0f;
-  for (const auto& pair : char_loader_.char_texture_info_map()) {
-    max_bearing_y = std::max(max_bearing_y, pair.second.bearing.y);
-  }
-  return max_bearing_y;
-}
-
 } /* namespace vulkan */
 } /* namespace wrapper */
 } /* namespace jessie_steamer */

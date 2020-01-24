@@ -53,11 +53,6 @@ struct RenderInfo {
 
 /* END: Consistent with vertex input attributes defined in shaders. */
 
-struct TextPos {
-  float base_y;
-  float height;
-};
-
 } /* namespace make_button */
 
 namespace draw_button {
@@ -80,13 +75,12 @@ struct RenderInfo {
 // calling CreateButtonsImage().
 class ButtonMaker {
  public:
-  ButtonMaker(wrapper::vulkan::SharedBasicContext context,
-              wrapper::vulkan::Text::Font font, int font_height,
-              std::vector<std::string>&& texts);
-
-  // This class is neither copyable nor movable.
-  ButtonMaker(const ButtonMaker&) = delete;
-  ButtonMaker& operator=(const ButtonMaker&) = delete;
+  struct ButtonInfo {
+    std::string text;
+    std::array<make_button::RenderInfo, state::kNumStates> render_infos;
+    std::array<float, state::kNumStates> base_y;
+    std::array<float, state::kNumStates> height;
+  };
 
   // Returns a texture that contains all buttons in all states. Layout:
   //
@@ -104,23 +98,18 @@ class ButtonMaker {
   //
   // This layout has been flipped in Y-axis for readability.
   // Also note that buttons are not transparent on this texture.
-  void CreateButtonsImage(
-      const button::VerticesInfo& vertices_info, const glm::vec3& text_color,
-      const std::vector<make_button::RenderInfo>& render_infos,
-      const std::vector<make_button::TextPos>& text_pos);
-
-  std::unique_ptr<wrapper::vulkan::OffscreenImage> GetButtonsImage() {
-    return std::move(buttons_image_);
-  }
-
-  // Accessors.
-  const VkExtent2D& background_image_size() const {
-    return (*background_image_)->extent();
-  }
-  float max_bearing_y() const { return text_renderer_->GetMaxBearingY(); }
+  static std::unique_ptr<wrapper::vulkan::OffscreenImage> CreateButtonsImage(
+      const wrapper::vulkan::SharedBasicContext& context,
+      wrapper::vulkan::Text::Font font, int font_height,
+      const glm::vec3& text_color, const common::Image& button_background,
+      const button::VerticesInfo& vertices_info,
+      const std::vector<ButtonInfo>& button_infos);
 
  private:
   struct RenderInfo : public make_button::RenderInfo {
+    RenderInfo(const make_button::RenderInfo& info)
+        : make_button::RenderInfo{info} {}
+
     static std::vector<wrapper::vulkan::VertexBuffer::Attribute>
     GetAttributes() {
       return {
@@ -131,16 +120,9 @@ class ButtonMaker {
   };
 
   // Returns a descriptor with an image bound to it.
-  std::unique_ptr<wrapper::vulkan::StaticDescriptor> CreateDescriptor(
-      const VkDescriptorImageInfo& image_info) const;
-
-  // Pointer to context.
-  const wrapper::vulkan::SharedBasicContext context_;
-
-  const std::vector<std::string> texts_;
-  std::unique_ptr<wrapper::vulkan::SharedTexture> background_image_;
-  std::unique_ptr<wrapper::vulkan::OffscreenImage> buttons_image_;
-  std::unique_ptr<wrapper::vulkan::DynamicText> text_renderer_;
+  static std::unique_ptr<wrapper::vulkan::StaticDescriptor> CreateDescriptor(
+      const wrapper::vulkan::SharedBasicContext& context,
+      const VkDescriptorImageInfo& image_info);
 };
 
 class ButtonRenderer {
@@ -261,6 +243,11 @@ class Button {
       const std::vector<State>& button_states) const;
 
  private:
+  struct TextPos {
+    float base_y;
+    float height;
+  };
+
   // The first dimension is different buttons, and the second dimension is
   // different states of one button.
   using DrawButtonRenderInfos =
@@ -275,8 +262,8 @@ class Button {
   button::VerticesInfo CreateMakeButtonVerticesInfo(
       int num_buttons, const glm::vec2& background_image_size) const;
 
-  std::vector<make_button::TextPos> CreateMakeButtonTextPos(
-      float max_bearing_y, const ButtonsInfo& buttons_info) const;
+  std::vector<TextPos> CreateMakeButtonTextPos(
+      const ButtonsInfo& buttons_info) const;
 
   // Extract draw_button::RenderInfo from 'buttons_info'.
   DrawButtonRenderInfos ExtractDrawButtonRenderInfos(
