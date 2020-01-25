@@ -13,7 +13,7 @@
 #include <memory>
 #include <vector>
 
-#include "jessie_steamer/application/vulkan/aurora/editor/state.h"
+#include "jessie_steamer/application/vulkan/aurora/editor/button_util.h"
 #include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/spline.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
@@ -111,8 +111,8 @@ class AuroraPath {
     float control_point_radius;
     int max_recursion_depth;
     float spline_roughness;
-    std::vector<std::array<glm::vec3, state::kNumStates>> path_colors;
-    std::array<float, state::kNumStates> path_alphas;
+    std::vector<std::array<glm::vec3, button::kNumStates>> path_colors;
+    std::array<float, button::kNumStates> path_alphas;
     GenerateControlPoints generate_control_points;
   };
 
@@ -189,7 +189,7 @@ class AuroraPath {
 
   // Records for each state, what color and alpha should be used when rendering
   // the aurora path at the same index.
-  std::vector<std::array<glm::vec4, state::kNumStates>> path_color_alphas_;
+  std::vector<std::array<glm::vec4, button::kNumStates>> path_color_alphas_;
 
   // Records the color and alpha to use when rendering the aurora path at the
   // same index.

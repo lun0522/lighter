@@ -10,8 +10,6 @@
 #include <algorithm>
 
 #include "jessie_steamer/common/file.h"
-#include "jessie_steamer/wrapper/vulkan/buffer.h"
-#include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline_util.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
@@ -38,189 +36,7 @@ constexpr float kNdcDim = 1.0f - (-1.0f);
 constexpr float kUvDim = 1.0f;
 constexpr uint32_t kPerInstanceBufferBindingPoint = 0;
 
-// Helps to set the position part of VerticesInfo.
-void SetVerticesPositions(const glm::vec2& size_ndc, const glm::vec2& scale,
-                          button::VerticesInfo* info) {
-  const auto set_pos = [info, &scale](int index, float x, float y) {
-    info->pos_tex_coords[index].x = x * scale.x;
-    info->pos_tex_coords[index].y = y * scale.y;
-  };
-  const glm::vec2 half_size_ndc = size_ndc / 2.0f;
-  set_pos(0, -half_size_ndc.x,  half_size_ndc.y);
-  set_pos(1, -half_size_ndc.x, -half_size_ndc.y);
-  set_pos(2,  half_size_ndc.x,  half_size_ndc.y);
-  set_pos(3, -half_size_ndc.x, -half_size_ndc.y);
-  set_pos(4,  half_size_ndc.x, -half_size_ndc.y);
-  set_pos(5,  half_size_ndc.x,  half_size_ndc.y);
-}
-
-// Helps to set the texture coordinate part of VerticesInfo.
-void SetVerticesTexCoords(const glm::vec2& center_uv, const glm::vec2& size_uv,
-                          button::VerticesInfo* info) {
-  const auto set_tex_coord = [info, &center_uv](int index, float x, float y) {
-    info->pos_tex_coords[index].z = center_uv.x + x;
-    info->pos_tex_coords[index].w = center_uv.y + y;
-  };
-  const glm::vec2 half_size_uv = size_uv / 2.0f;
-  set_tex_coord(0, -half_size_uv.x,  half_size_uv.y);
-  set_tex_coord(1, -half_size_uv.x, -half_size_uv.y);
-  set_tex_coord(2,  half_size_uv.x,  half_size_uv.y);
-  set_tex_coord(3, -half_size_uv.x, -half_size_uv.y);
-  set_tex_coord(4,  half_size_uv.x, -half_size_uv.y);
-  set_tex_coord(5,  half_size_uv.x,  half_size_uv.y);
-}
-
 } /* namespace */
-
-std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
-    const SharedBasicContext& context, Text::Font font, int font_height,
-    const glm::vec3& text_color, const common::Image& button_background,
-    const button::VerticesInfo& vertices_info,
-    const vector<ButtonInfo>& button_infos) {
-  ASSERT_TRUE(button_background.channel == common::kBwImageChannel,
-              "Expecting a single-channel button background image");
-
-  const int num_buttons = button_infos.size();
-  const SamplableImage::Config sampler_config{};
-
-  const auto background_image = absl::make_unique<TextureImage>(
-      context, /*generate_mipmaps=*/false, sampler_config,
-      TextureBuffer::Info{
-          {button_background.data},
-          VK_FORMAT_R8_UNORM,
-          static_cast<uint32_t>(button_background.width),
-          static_cast<uint32_t>(button_background.height),
-          common::kBwImageChannel,
-      });
-
-  const VkExtent2D buttons_image_extent{
-      background_image->extent().width,
-      static_cast<uint32_t>(background_image->extent().height *
-                            num_buttons * state::kNumStates),
-  };
-  auto buttons_image = absl::make_unique<OffscreenImage>(
-      context, common::kRgbaImageChannel, buttons_image_extent, sampler_config);
-
-  vector<std::string> texts;
-  texts.reserve(num_buttons);
-  for (const auto& info : button_infos) {
-    texts.emplace_back(info.text);
-  }
-  const auto text_renderer = absl::make_unique<DynamicText>(
-      context, /*num_frames_in_flight=*/1,
-      util::GetAspectRatio(buttons_image->extent()), texts, font, font_height);
-
-  vector<RenderInfo> render_infos;
-  render_infos.reserve(num_buttons * state::kNumStates);
-  for (const auto& info : button_infos) {
-    render_infos.emplace_back(info.render_infos[state::kSelected]);
-    render_infos.emplace_back(info.render_infos[state::kUnselected]);
-  }
-  const auto per_instance_buffer = absl::make_unique<StaticPerInstanceBuffer>(
-      context, render_infos, RenderInfo::GetAttributes());
-
-  auto push_constant = absl::make_unique<PushConstant>(
-      context, sizeof(button::VerticesInfo), /*num_frames_in_flight=*/1);
-  *push_constant->HostData<button::VerticesInfo>(/*frame=*/0) = vertices_info;
-  const VkPushConstantRange push_constant_range{
-      VK_SHADER_STAGE_VERTEX_BIT, /*offset=*/0,
-      push_constant->size_per_frame()};
-
-  const auto descriptor = CreateDescriptor(
-      context, background_image->GetDescriptorInfo());
-
-  enum SubpassIndex {
-    kBackgroundSubpassIndex = 0,
-    kTextSubpassIndex,
-    kNumSubpasses,
-    kNumOverlaySubpasses = kNumSubpasses - kBackgroundSubpassIndex,
-  };
-  const NaiveRenderPassBuilder::SubpassConfig subpass_config{
-      /*use_opaque_subpass=*/false,
-      /*num_transparent_subpasses=*/0,
-      kNumOverlaySubpasses,
-  };
-  NaiveRenderPassBuilder render_pass_builder{
-      context, subpass_config, /*num_framebuffers=*/1,
-      /*present_to_screen=*/false, /*multisampling_mode=*/absl::nullopt,
-  };
-  render_pass_builder.mutable_builder()->UpdateAttachmentImage(
-      render_pass_builder.color_attachment_index(),
-      [&buttons_image](int) -> const Image& { return *buttons_image; });
-  const auto render_pass = render_pass_builder->Build();
-
-  text_renderer->Update(
-      buttons_image->extent(), buttons_image->sample_count(),
-      *render_pass, kTextSubpassIndex);
-  constexpr float kTextBaseX = kUvDim / 2.0f;
-  for (const auto& info : button_infos) {
-    for (int state = 0; state < state::kNumStates; ++state) {
-      text_renderer->AddText(info.text, info.height[state], kTextBaseX,
-                             info.base_y[state], Text::Align::kCenter);
-    }
-  }
-
-  const auto pipeline = PipelineBuilder{context}
-      .SetName("make button")
-      .AddVertexInput(
-          kPerInstanceBufferBindingPoint,
-          pipeline::GetPerInstanceBindingDescription<RenderInfo>(),
-          per_instance_buffer->GetAttributes(/*start_location=*/0))
-      .SetPipelineLayout({descriptor->layout()}, {push_constant_range})
-      .SetViewport(pipeline::GetFullFrameViewport(buttons_image->extent()))
-      .SetRenderPass(**render_pass, kBackgroundSubpassIndex)
-      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/false)})
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("make_button.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetVkShaderPath("make_button.frag"))
-      .Build();
-
-  const vector<RenderPass::RenderOp> render_ops{
-      [&](const VkCommandBuffer& command_buffer) {
-        pipeline->Bind(command_buffer);
-        per_instance_buffer->Bind(
-            command_buffer, kPerInstanceBufferBindingPoint, /*offset=*/0);
-        push_constant->Flush(
-            command_buffer, pipeline->layout(), /*frame=*/0,
-            /*target_offset=*/0, VK_SHADER_STAGE_VERTEX_BIT);
-        descriptor->Bind(command_buffer, pipeline->layout());
-        VertexBuffer::DrawWithoutBuffer(
-            command_buffer, button::kNumVerticesPerButton,
-            /*instance_count=*/render_infos.size());
-      },
-      [&](const VkCommandBuffer& command_buffer) {
-        text_renderer->Draw(command_buffer, /*frame=*/0,
-                            text_color, /*alpha=*/1.0f);
-      },
-  };
-
-  const OneTimeCommand command{context, &context->queues().graphics_queue()};
-  command.Run([&](const VkCommandBuffer& command_buffer) {
-    render_pass->Run(command_buffer, /*framebuffer_index=*/0, render_ops);
-  });
-
-  return buttons_image;
-}
-
-std::unique_ptr<StaticDescriptor> ButtonMaker::CreateDescriptor(
-    const SharedBasicContext& context,
-    const VkDescriptorImageInfo& image_info) {
-  auto descriptor = absl::make_unique<StaticDescriptor>(
-      context, /*infos=*/vector<Descriptor::Info>{
-          Descriptor::Info{
-              VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-              VK_SHADER_STAGE_FRAGMENT_BIT,
-              /*bindings=*/{
-                  Descriptor::Info::Binding{
-                      kImageBindingPoint,
-                      /*array_length=*/1,
-                  }},
-          }});
-  descriptor->UpdateImageInfos(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                               {{kImageBindingPoint, {image_info}}});
-  return descriptor;
-}
 
 ButtonRenderer::ButtonRenderer(
     const SharedBasicContext& context,
@@ -229,7 +45,7 @@ ButtonRenderer::ButtonRenderer(
     : buttons_image_{std::move(buttons_image)}, pipeline_builder_{context} {
   per_instance_buffer_ = absl::make_unique<DynamicPerInstanceBuffer>(
       context, sizeof(RenderInfo),
-      /*max_num_instances=*/num_buttons * state::kNumStates,
+      /*max_num_instances=*/num_buttons * button::kNumStates,
       RenderInfo::GetAttributes());
 
   vertices_uniform_ = absl::make_unique<UniformBuffer>(
@@ -332,11 +148,11 @@ Button::Button(const SharedBasicContext& context,
 
   const auto render_infos = CreateMakeButtonRenderInfos(buttons_info);
   const auto text_pos = CreateMakeButtonTextPos(buttons_info);
-  vector<ButtonMaker::ButtonInfo> button_infos;
+  vector<make_button::ButtonInfo> button_infos;
   button_infos.reserve(num_buttons);
   for (int button = 0; button < num_buttons; ++button) {
-    const int index_base = button * state::kNumStates;
-    button_infos.emplace_back(ButtonMaker::ButtonInfo{
+    const int index_base = button * button::kNumStates;
+    button_infos.emplace_back(make_button::ButtonInfo{
         buttons_info.button_infos[button].text,
         {render_infos[index_base], render_infos[index_base + 1]},
         {text_pos[index_base].base_y, text_pos[index_base + 1].base_y},
@@ -358,12 +174,12 @@ vector<make_button::RenderInfo> Button::CreateMakeButtonRenderInfos(
     const ButtonsInfo& buttons_info) const {
   const int num_buttons = buttons_info.button_infos.size();
   const float button_height_ndc =
-      kNdcDim / static_cast<float>(num_buttons * state::kNumStates);
+      kNdcDim / static_cast<float>(num_buttons * button::kNumStates);
   float offset_y_ndc = -1.0f + button_height_ndc / 2.0f;
   vector<make_button::RenderInfo> render_infos;
-  render_infos.reserve(num_buttons * state::kNumStates);
+  render_infos.reserve(num_buttons * button::kNumStates);
   for (const auto& info : buttons_info.button_infos) {
-    for (int state = 0; state < state::kNumStates; ++state) {
+    for (int state = 0; state < button::kNumStates; ++state) {
       render_infos.emplace_back(make_button::RenderInfo{
           info.colors[state],
           /*center=*/glm::vec2{0.0f, offset_y_ndc},
@@ -384,7 +200,7 @@ button::VerticesInfo Button::CreateMakeButtonVerticesInfo(
   const glm::vec2& button_scale =
       background_image_size / (background_image_size + button_interval);
   const float button_height_ndc =
-      kNdcDim / static_cast<float>(num_buttons * state::kNumStates);
+      kNdcDim / static_cast<float>(num_buttons * button::kNumStates);
 
   button::VerticesInfo vertices_info{};
   SetVerticesPositions(/*size_ndc=*/glm::vec2{kNdcDim, button_height_ndc},
@@ -399,7 +215,7 @@ vector<Button::TextPos> Button::CreateMakeButtonTextPos(
   // Y coordinate is flipped.
   const int num_buttons = buttons_info.button_infos.size();
   const float button_height =
-      kUvDim / static_cast<float>(num_buttons * state::kNumStates);
+      kUvDim / static_cast<float>(num_buttons * button::kNumStates);
   const float text_height =
       (buttons_info.top_y - buttons_info.base_y) * button_height;
 
@@ -407,7 +223,7 @@ vector<Button::TextPos> Button::CreateMakeButtonTextPos(
   vector<TextPos> text_pos;
   text_pos.reserve(num_buttons);
   for (int button = 0; button < num_buttons; ++button) {
-    for (int state = 0; state < state::kNumStates; ++state) {
+    for (int state = 0; state < button::kNumStates; ++state) {
       offset_y -= button_height;
       const float base_y =
           kUvDim - (offset_y + buttons_info.base_y * button_height);
@@ -421,7 +237,7 @@ Button::DrawButtonRenderInfos Button::ExtractDrawButtonRenderInfos(
     const ButtonsInfo& buttons_info) const {
   const int num_buttons = buttons_info.button_infos.size();
   const float button_tex_height =
-      kUvDim / static_cast<float>(num_buttons * state::kNumStates);
+      kUvDim / static_cast<float>(num_buttons * button::kNumStates);
   constexpr float kTexCenterOffsetX = kUvDim / 2.0f;
   float tex_center_offset_y = button_tex_height / 2.0f;
 
@@ -430,13 +246,13 @@ Button::DrawButtonRenderInfos Button::ExtractDrawButtonRenderInfos(
   for (const auto& info : buttons_info.button_infos) {
     const auto& pos_center_ndc = info.center * 2.0f - 1.0f;
     render_infos.emplace_back(
-        std::array<draw_button::RenderInfo, state::kNumStates>{
+        std::array<draw_button::RenderInfo, button::kNumStates>{
             draw_button::RenderInfo{
-                buttons_info.button_alphas[state::kSelected],
+                buttons_info.button_alphas[button::kSelectedState],
                 pos_center_ndc,
                 glm::vec2{kTexCenterOffsetX, tex_center_offset_y}},
             draw_button::RenderInfo{
-                buttons_info.button_alphas[state::kUnselected],
+                buttons_info.button_alphas[button::kUnselectedState],
                 pos_center_ndc,
                 glm::vec2{kTexCenterOffsetX,
                           tex_center_offset_y + button_tex_height}},
@@ -445,10 +261,10 @@ Button::DrawButtonRenderInfos Button::ExtractDrawButtonRenderInfos(
   }
   // Since button maker produces flipped image, we need to flip Y-axis as well.
   for (auto& info : render_infos) {
-    info[state::kSelected].tex_coord_center.y =
-        kUvDim - info[state::kSelected].tex_coord_center.y;
-    info[state::kUnselected].tex_coord_center.y =
-        kUvDim - info[state::kUnselected].tex_coord_center.y;
+    info[button::kSelectedState].tex_coord_center.y =
+        kUvDim - info[button::kSelectedState].tex_coord_center.y;
+    info[button::kUnselectedState].tex_coord_center.y =
+        kUvDim - info[button::kUnselectedState].tex_coord_center.y;
   }
   return render_infos;
 }
@@ -458,7 +274,7 @@ button::VerticesInfo Button::CreateDrawButtonVerticesInfo(
   const glm::vec2 button_size_ndc = buttons_info.button_size * kNdcDim;
   const int num_buttons = buttons_info.button_infos.size();
   const float button_tex_height =
-      kUvDim / static_cast<float>(num_buttons * state::kNumStates);
+      kUvDim / static_cast<float>(num_buttons * button::kNumStates);
 
   button::VerticesInfo vertices_info{};
   SetVerticesPositions(button_size_ndc, /*scale=*/glm::vec2{1.0f},
@@ -492,11 +308,12 @@ void Button::Draw(const VkCommandBuffer& command_buffer,
       case State::kHidden:
         break;
       case State::kSelected:
-        buttons_to_render_.emplace_back(all_buttons_[button][state::kSelected]);
+        buttons_to_render_.emplace_back(
+            all_buttons_[button][button::kSelectedState]);
         break;
       case State::kUnselected:
         buttons_to_render_.emplace_back(
-            all_buttons_[button][state::kUnselected]);
+            all_buttons_[button][button::kUnselectedState]);
         break;
     }
   }

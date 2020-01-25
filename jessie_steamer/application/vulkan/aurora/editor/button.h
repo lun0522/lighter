@@ -13,13 +13,12 @@
 #include <string>
 #include <vector>
 
-#include "jessie_steamer/application/vulkan/aurora/editor/state.h"
+#include "jessie_steamer/application/vulkan/aurora/editor/button_maker.h"
+#include "jessie_steamer/application/vulkan/aurora/editor/button_util.h"
 #include "jessie_steamer/common/util.h"
-#include "jessie_steamer/wrapper/vulkan/align.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
-#include "jessie_steamer/wrapper/vulkan/text.h"
 #include "absl/types/optional.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
@@ -28,32 +27,6 @@ namespace jessie_steamer {
 namespace application {
 namespace vulkan {
 namespace aurora {
-namespace button {
-
-/* BEGIN: Consistent with uniform blocks defined in shaders. */
-
-constexpr int kNumVerticesPerButton = 6;
-
-struct VerticesInfo {
-  ALIGN_VEC4 glm::vec4 pos_tex_coords[kNumVerticesPerButton];
-};
-
-/* END: Consistent with uniform blocks defined in shaders. */
-
-} /* namespace button */
-
-namespace make_button {
-
-/* BEGIN: Consistent with vertex input attributes defined in shaders. */
-
-struct RenderInfo {
-  glm::vec3 color;
-  glm::vec2 center;
-};
-
-/* END: Consistent with vertex input attributes defined in shaders. */
-
-} /* namespace make_button */
 
 namespace draw_button {
 
@@ -68,62 +41,6 @@ struct RenderInfo {
 /* END: Consistent with vertex input attributes defined in shaders. */
 
 } /* namespace draw_button */
-
-// This class is used to render multiple buttons onto a big texture, so that
-// to render all buttons later, we only need to bind one texture and emit one
-// render call. The user should simply discard the instance of this class after
-// calling CreateButtonsImage().
-class ButtonMaker {
- public:
-  struct ButtonInfo {
-    std::string text;
-    std::array<make_button::RenderInfo, state::kNumStates> render_infos;
-    std::array<float, state::kNumStates> base_y;
-    std::array<float, state::kNumStates> height;
-  };
-
-  // Returns a texture that contains all buttons in all states. Layout:
-  //
-  //   |--------------------|
-  //   | Button0 selected   |
-  //   |--------------------|
-  //   | Button0 unselected |
-  //   |--------------------|
-  //   | Button1 selected   |
-  //   |--------------------|
-  //   | Button1 unselected |
-  //   |--------------------|
-  //   |       ......       |
-  //   |--------------------|
-  //
-  // This layout has been flipped in Y-axis for readability.
-  // Also note that buttons are not transparent on this texture.
-  static std::unique_ptr<wrapper::vulkan::OffscreenImage> CreateButtonsImage(
-      const wrapper::vulkan::SharedBasicContext& context,
-      wrapper::vulkan::Text::Font font, int font_height,
-      const glm::vec3& text_color, const common::Image& button_background,
-      const button::VerticesInfo& vertices_info,
-      const std::vector<ButtonInfo>& button_infos);
-
- private:
-  struct RenderInfo : public make_button::RenderInfo {
-    RenderInfo(const make_button::RenderInfo& info)
-        : make_button::RenderInfo{info} {}
-
-    static std::vector<wrapper::vulkan::VertexBuffer::Attribute>
-    GetAttributes() {
-      return {
-          {offsetof(RenderInfo, color), VK_FORMAT_R32G32B32_SFLOAT},
-          {offsetof(RenderInfo, center), VK_FORMAT_R32G32_SFLOAT},
-      };
-    }
-  };
-
-  // Returns a descriptor with an image bound to it.
-  static std::unique_ptr<wrapper::vulkan::StaticDescriptor> CreateDescriptor(
-      const wrapper::vulkan::SharedBasicContext& context,
-      const VkDescriptorImageInfo& image_info);
-};
 
 class ButtonRenderer {
  public:
@@ -192,7 +109,7 @@ class Button {
     // Contains information for rendering a single button.
     struct Info {
       std::string text;
-      std::array<glm::vec3, state::kNumStates> colors;
+      std::array<glm::vec3, button::kNumStates> colors;
       glm::vec2 center;
     };
 
@@ -203,7 +120,7 @@ class Button {
     float base_y;
     float top_y;
     glm::vec3 text_color;
-    std::array<float, state::kNumStates> button_alphas;
+    std::array<float, button::kNumStates> button_alphas;
     glm::vec2 button_size;
     std::vector<Info> button_infos;
   };
@@ -251,7 +168,7 @@ class Button {
   // The first dimension is different buttons, and the second dimension is
   // different states of one button.
   using DrawButtonRenderInfos =
-      std::vector<std::array<draw_button::RenderInfo, state::kNumStates>>;
+      std::vector<std::array<draw_button::RenderInfo, button::kNumStates>>;
 
   // Returns a list of make_button::RenderInfo for all buttons in all states.
   std::vector<make_button::RenderInfo> CreateMakeButtonRenderInfos(

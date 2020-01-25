@@ -7,7 +7,7 @@
 
 #include "jessie_steamer/application/vulkan/aurora/editor/editor.h"
 
-#include "jessie_steamer/application/vulkan/aurora/editor/state.h"
+#include "jessie_steamer/application/vulkan/aurora/editor/button_util.h"
 #include "third_party/absl/memory/memory.h"
 
 namespace jessie_steamer {
@@ -116,10 +116,10 @@ Editor::GetAllButtonColors() {
   return *all_button_colors;
 }
 
-const array<float, state::kNumStates>& Editor::GetButtonAlphas() {
-  static array<float, state::kNumStates>* button_alphas = nullptr;
+const array<float, button::kNumStates>& Editor::GetButtonAlphas() {
+  static array<float, button::kNumStates>* button_alphas = nullptr;
   if (button_alphas == nullptr) {
-    button_alphas = new array<float, state::kNumStates>{1.0f, 0.5f};
+    button_alphas = new array<float, button::kNumStates>{1.0f, 0.5f};
   }
   return *button_alphas;
 }
@@ -167,7 +167,7 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
       context, num_frames_in_flight, original_aspect_ratio, AuroraPath::Info{
           /*max_num_control_points=*/20, /*control_point_radius=*/0.015f,
           /*max_recursion_depth=*/20, /*spline_smoothness=*/1E-2,
-          /*path_colors=*/vector<array<glm::vec3, state::kNumStates>>{
+          /*path_colors=*/vector<array<glm::vec3, button::kNumStates>>{
               GetAllButtonColors()[kPath1ButtonIndex],
               GetAllButtonColors()[kPath2ButtonIndex],
               GetAllButtonColors()[kPath3ButtonIndex],

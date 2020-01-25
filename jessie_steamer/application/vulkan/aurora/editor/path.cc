@@ -255,11 +255,11 @@ AuroraPath::AuroraPath(const SharedBasicContext& context,
   path_color_alphas_.reserve(num_paths_);
   spline_editors_.reserve(num_paths_);
   for (int path = 0; path < num_paths_; ++path) {
-    path_color_alphas_.emplace_back(std::array<glm::vec4, state::kNumStates>{
-        glm::vec4{info.path_colors[path][state::kSelected],
-                  info.path_alphas[state::kSelected]},
-        glm::vec4{info.path_colors[path][state::kUnselected],
-                  info.path_alphas[state::kUnselected]},
+    path_color_alphas_.emplace_back(std::array<glm::vec4, button::kNumStates>{
+        glm::vec4{info.path_colors[path][button::kSelectedState],
+                  info.path_alphas[button::kSelectedState]},
+        glm::vec4{info.path_colors[path][button::kUnselectedState],
+                  info.path_alphas[button::kUnselectedState]},
     });
     spline_editors_.emplace_back(absl::make_unique<common::SplineEditor>(
         common::CatmullRomSpline::kMinNumControlPoints,
@@ -297,14 +297,14 @@ void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
   if (selected_path_index.has_value()) {
     for (int path = 0; path < num_paths_; ++path) {
       color_alphas_to_render_[path] =
-          path_color_alphas_[path][state::kUnselected];
+          path_color_alphas_[path][button::kUnselectedState];
     }
     color_alphas_to_render_[selected_path_index.value()] =
-        path_color_alphas_[selected_path_index.value()][state::kSelected];
+        path_color_alphas_[selected_path_index.value()][button::kSelectedState];
   } else {
     for (int path = 0; path < num_paths_; ++path) {
       color_alphas_to_render_[path] =
-          path_color_alphas_[path][state::kSelected];
+          path_color_alphas_[path][button::kSelectedState];
     }
   }
   spline_renderer_.DrawSplines(command_buffer, frame, color_alphas_to_render_);
