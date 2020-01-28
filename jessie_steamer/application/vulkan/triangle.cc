@@ -87,11 +87,6 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   /* Push constant */
   alpha_constant_ = absl::make_unique<PushConstant>(context(), sizeof(Alpha),
                                                    kNumFramesInFlight);
-  const VkPushConstantRange push_constant_range{
-      VK_SHADER_STAGE_FRAGMENT_BIT,
-      /*offset=*/0,
-      alpha_constant_->size_per_frame(),
-  };
 
   /* Render pass */
   const NaiveRenderPassBuilder::SubpassConfig subpass_config{
@@ -111,7 +106,9 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
       .AddVertexInput(kVertexBufferBindingPoint,
                       pipeline::GetPerVertexBindingDescription<Vertex3DNoTex>(),
                       vertex_buffer_->GetAttributes(/*start_location=*/0))
-      .SetPipelineLayout(/*descriptor_layouts=*/{}, {push_constant_range})
+      .SetPipelineLayout(
+          /*descriptor_layouts=*/{},
+          {alpha_constant_->MakePerFrameRange(VK_SHADER_STAGE_FRAGMENT_BIT)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                  common::file::GetVkShaderPath("pure_color.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,

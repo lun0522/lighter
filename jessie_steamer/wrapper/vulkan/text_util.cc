@@ -405,8 +405,11 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
       {PerVertexBuffer::VertexDataInfo{text_util::GetIndicesPerRect()}},
   });
 
-  descriptor->UpdateImageInfos(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, {
-      {kImageBindingPoint, {char_loader.library_image()->GetDescriptorInfo()}},
+  descriptor->UpdateImageInfos(
+      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      /*image_info_map=*/{
+          {kImageBindingPoint,
+           {char_loader.library_image()->GetDescriptorInfo()}},
   });
   const auto render_pass = BuildRenderPass(*text_image, render_pass_builder);
   const auto pipeline = BuildPipeline(*text_image, **render_pass,

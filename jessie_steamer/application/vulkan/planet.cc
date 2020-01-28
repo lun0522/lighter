@@ -34,6 +34,7 @@ enum SubpassIndex {
 /* BEGIN: Consistent with vertex input attributes defined in shaders. */
 
 struct Asteroid {
+  // Returns vertex input attributes.
   static vector<VertexBuffer::Attribute> GetAttributes() {
     vector<VertexBuffer::Attribute> attributes{
         {offsetof(Asteroid, theta), VK_FORMAT_R32_SFLOAT},

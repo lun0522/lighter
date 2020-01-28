@@ -42,6 +42,9 @@ struct RenderInfo {
 
 } /* namespace draw_button */
 
+// This class is used to render multiple buttons with one render call using
+// Vulkan APIs. It assumes that all buttons will have the same size, but
+// different transparency and center location.
 class ButtonRenderer {
  public:
   ButtonRenderer(
@@ -59,11 +62,15 @@ class ButtonRenderer {
       const wrapper::vulkan::RenderPass& render_pass, uint32_t subpass_index,
       const wrapper::vulkan::PipelineBuilder::ViewportInfo& viewport);
 
+  // Renders buttons. The number of buttons rendered depends on the length of
+  // 'buttons_to_render'.
+  // This should be called when 'command_buffer' is recording commands.
   void Draw(const VkCommandBuffer& command_buffer,
             const std::vector<draw_button::RenderInfo>& buttons_to_render);
 
  private:
   struct RenderInfo : public draw_button::RenderInfo {
+    // Returns vertex input attributes.
     static std::vector<wrapper::vulkan::VertexBuffer::Attribute>
     GetAttributes() {
       return {
@@ -160,29 +167,32 @@ class Button {
       const std::vector<State>& button_states) const;
 
  private:
-  struct TextPos {
-    float base_y;
-    float height;
-  };
-
   // The first dimension is different buttons, and the second dimension is
   // different states of one button.
   using DrawButtonRenderInfos =
       std::vector<std::array<draw_button::RenderInfo, button::kNumStates>>;
 
+  // Describes the vertical position of text.
+  struct TextPos {
+    float base_y;
+    float height;
+  };
+
   // Returns a list of make_button::RenderInfo for all buttons in all states.
   std::vector<make_button::RenderInfo> CreateMakeButtonRenderInfos(
       const ButtonsInfo& buttons_info) const;
 
-  // Returns a button::VerticesInfo that stores the pos and tex_coord of each
-  // vertex.
+  // Returns a button::VerticesInfo that stores the position and texture
+  // coordinate of each vertex.
   button::VerticesInfo CreateMakeButtonVerticesInfo(
       int num_buttons, const glm::vec2& background_image_size) const;
 
+  // Returns a list of TextPos to describe where to put each text when
+  // generating the buttons image.
   std::vector<TextPos> CreateMakeButtonTextPos(
       const ButtonsInfo& buttons_info) const;
 
-  // Extract draw_button::RenderInfo from 'buttons_info'.
+  // Extracts draw_button::RenderInfo from 'buttons_info'.
   DrawButtonRenderInfos ExtractDrawButtonRenderInfos(
       const ButtonsInfo& buttons_info) const;
 
@@ -204,6 +214,7 @@ class Button {
   // Contains rendering information for buttons that will be rendered.
   std::vector<draw_button::RenderInfo> buttons_to_render_;
 
+  // Renderer for buttons.
   std::unique_ptr<ButtonRenderer> button_renderer_;
 };
 

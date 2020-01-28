@@ -100,7 +100,9 @@ std::unique_ptr<StaticDescriptor> ButtonRenderer::CreateDescriptor(
       }});
   descriptor->UpdateImageInfos(
       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-      {{kImageBindingPoint, {buttons_image_->GetDescriptorInfo()}}});
+      /*image_info_map=*/{
+          {kImageBindingPoint, {buttons_image_->GetDescriptorInfo()}},
+      });
   return descriptor;
 }
 
@@ -212,22 +214,20 @@ button::VerticesInfo Button::CreateMakeButtonVerticesInfo(
 
 vector<Button::TextPos> Button::CreateMakeButtonTextPos(
     const ButtonsInfo& buttons_info) const {
-  // Y coordinate is flipped.
   const int num_buttons = buttons_info.button_infos.size();
   const float button_height =
       kUvDim / static_cast<float>(num_buttons * button::kNumStates);
   const float text_height =
       (buttons_info.top_y - buttons_info.base_y) * button_height;
 
-  float offset_y = kUvDim;
+  float offset_y = 0.0f;
   vector<TextPos> text_pos;
   text_pos.reserve(num_buttons);
   for (int button = 0; button < num_buttons; ++button) {
     for (int state = 0; state < button::kNumStates; ++state) {
-      offset_y -= button_height;
-      const float base_y =
-          kUvDim - (offset_y + buttons_info.base_y * button_height);
-      text_pos.emplace_back(TextPos{base_y, -text_height});
+      const float base_y = offset_y + buttons_info.base_y * button_height;
+      text_pos.emplace_back(TextPos{base_y, text_height});
+      offset_y += button_height;
     }
   }
   return text_pos;
@@ -241,6 +241,7 @@ Button::DrawButtonRenderInfos Button::ExtractDrawButtonRenderInfos(
   constexpr float kTexCenterOffsetX = kUvDim / 2.0f;
   float tex_center_offset_y = button_tex_height / 2.0f;
 
+  // Flip Y for texture centers.
   DrawButtonRenderInfos render_infos;
   render_infos.reserve(num_buttons);
   for (const auto& info : buttons_info.button_infos) {
@@ -250,21 +251,14 @@ Button::DrawButtonRenderInfos Button::ExtractDrawButtonRenderInfos(
             draw_button::RenderInfo{
                 buttons_info.button_alphas[button::kSelectedState],
                 pos_center_ndc,
-                glm::vec2{kTexCenterOffsetX, tex_center_offset_y}},
+                glm::vec2{kTexCenterOffsetX, kUvDim - tex_center_offset_y}},
             draw_button::RenderInfo{
                 buttons_info.button_alphas[button::kUnselectedState],
                 pos_center_ndc,
                 glm::vec2{kTexCenterOffsetX,
-                          tex_center_offset_y + button_tex_height}},
+                          kUvDim - (tex_center_offset_y + button_tex_height)}},
         });
     tex_center_offset_y += 2 * button_tex_height;
-  }
-  // Since button maker produces flipped image, we need to flip Y-axis as well.
-  for (auto& info : render_infos) {
-    info[button::kSelectedState].tex_coord_center.y =
-        kUvDim - info[button::kSelectedState].tex_coord_center.y;
-    info[button::kUnselectedState].tex_coord_center.y =
-        kUvDim - info[button::kUnselectedState].tex_coord_center.y;
   }
   return render_infos;
 }
@@ -276,11 +270,12 @@ button::VerticesInfo Button::CreateDrawButtonVerticesInfo(
   const float button_tex_height =
       kUvDim / static_cast<float>(num_buttons * button::kNumStates);
 
+  // Flip Y for texture coordinates.
   button::VerticesInfo vertices_info{};
   SetVerticesPositions(button_size_ndc, /*scale=*/glm::vec2{1.0f},
                        &vertices_info);
   SetVerticesTexCoords(/*center_uv*/glm::vec2{0.0f},
-                       /*size_uv=*/glm::vec2{kUvDim, button_tex_height},
+                       /*size_uv=*/glm::vec2{kUvDim, -button_tex_height},
                        &vertices_info);
   return vertices_info;
 }

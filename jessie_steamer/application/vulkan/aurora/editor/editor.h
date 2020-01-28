@@ -133,9 +133,11 @@ class Editor {
 
   using ButtonColors = std::array<glm::vec3, button::kNumStates>;
 
-  static const std::array<ButtonColors, kNumButtons>& GetAllButtonColors();
+  static const std::array<ButtonColors, kNumButtons>& GetButtonColors();
 
   static const std::array<float, button::kNumStates>& GetButtonAlphas();
+
+  static const std::array<glm::vec2, kNumButtons>& GetButtonCenters();
 
   const wrapper::vulkan::RenderPass& render_pass() const {
     return editor_renderer_.render_pass();

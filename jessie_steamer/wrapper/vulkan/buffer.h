@@ -588,6 +588,12 @@ class PushConstant {
     return reinterpret_cast<DataType*>(data_ + size_per_frame_ * frame);
   }
 
+  // Returns a VkPushConstantRange, assuming we are going to push the data
+  // prepared for one frame.
+  VkPushConstantRange MakePerFrameRange(VkShaderStageFlags shader_stage) {
+    return VkPushConstantRange{shader_stage, /*offset=*/0, size_per_frame()};
+  }
+
   // Flushes the data from host to device. Data of 'size_per_frame_' will be
   // sent, and written to the target with 'target_offset' bytes.
   void Flush(const VkCommandBuffer& command_buffer,

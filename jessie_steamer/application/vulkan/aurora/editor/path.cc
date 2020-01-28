@@ -31,6 +31,7 @@ enum class SplineVertexBufferBindingPoint { kPos = 0, kColorAlpha };
 /* BEGIN: Consistent with vertex input attributes defined in shaders. */
 
 struct ColorAlpha {
+  // Returns vertex input attributes.
   static vector<VertexBuffer::Attribute> GetAttributes() {
     return {{offsetof(ColorAlpha, value), VK_FORMAT_R32G32B32A32_SFLOAT}};
   }
@@ -114,15 +115,8 @@ SplineRenderer::SplineRenderer(const SharedBasicContext& context,
   /* Push constant */
   control_render_constant_ = absl::make_unique<PushConstant>(
       context, sizeof(ControlRenderInfo), num_frames_in_flight);
-  const VkPushConstantRange control_render_constant_range{
-      VK_SHADER_STAGE_VERTEX_BIT, /*offset=*/0,
-      control_render_constant_->size_per_frame()};
-
   spline_trans_constant_ = absl::make_unique<PushConstant>(
       context, sizeof(SplineTrans), num_frames_in_flight);
-  const VkPushConstantRange spline_trans_constant_range{
-      VK_SHADER_STAGE_VERTEX_BIT, /*offset=*/0,
-      spline_trans_constant_->size_per_frame()};
 
   /* Pipeline */
   control_pipeline_builder_
@@ -138,7 +132,8 @@ SplineRenderer::SplineRenderer(const SharedBasicContext& context,
           pipeline::GetPerVertexBindingDescription<Vertex3DPosOnly>(),
           sphere_vertex_buffer_->GetAttributes(/*start_location=*/1))
       .SetPipelineLayout(/*descriptor_layouts=*/{},
-                         {control_render_constant_range})
+                         {control_render_constant_->MakePerFrameRange(
+                             VK_SHADER_STAGE_VERTEX_BIT)})
       .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                  GetVkShaderPath("spline_3d_control.vert"))
@@ -158,7 +153,8 @@ SplineRenderer::SplineRenderer(const SharedBasicContext& context,
           pipeline::GetPerInstanceBindingDescription<ColorAlpha>(),
           color_alpha_vertex_buffer_->GetAttributes(/*start_location=*/1))
       .SetPipelineLayout(/*descriptor_layouts=*/{},
-                         {spline_trans_constant_range})
+                         {spline_trans_constant_->MakePerFrameRange(
+                             VK_SHADER_STAGE_VERTEX_BIT)})
       .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("spline_3d.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("spline.frag"));

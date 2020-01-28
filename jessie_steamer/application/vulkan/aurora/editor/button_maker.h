@@ -66,19 +66,18 @@ class ButtonMaker {
   // Returns a texture that contains all buttons in all states. Layout:
   //
   //   |--------------------|
-  //   | Button0 selected   |
-  //   |--------------------|
-  //   | Button0 unselected |
-  //   |--------------------|
-  //   | Button1 selected   |
+  //   |       ......       |
   //   |--------------------|
   //   | Button1 unselected |
   //   |--------------------|
-  //   |       ......       |
+  //   | Button1 selected   |
+  //   |--------------------|
+  //   | Button0 unselected |
+  //   |--------------------|
+  //   | Button0 selected   |
   //   |--------------------|
   //
-  // This layout has been flipped in Y-axis for readability.
-  // Also note that buttons are not transparent on this texture.
+  // Also note that buttons are opaque on this texture.
   static std::unique_ptr<wrapper::vulkan::OffscreenImage> CreateButtonsImage(
       const wrapper::vulkan::SharedBasicContext& context,
       wrapper::vulkan::Text::Font font, int font_height,

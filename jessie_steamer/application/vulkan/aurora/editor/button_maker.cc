@@ -100,8 +100,9 @@ std::unique_ptr<StaticDescriptor> CreateDescriptor(
                       /*array_length=*/1,
                   }},
           }});
-  descriptor->UpdateImageInfos(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                               {{kImageBindingPoint, {image_info}}});
+  descriptor->UpdateImageInfos(
+      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      /*image_info_map=*/{{kImageBindingPoint, {image_info}}});
   return descriptor;
 }
 
@@ -169,12 +170,9 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
   const auto per_instance_buffer =
       CreatePerInstanceBuffer(context, button_infos);
 
-  auto push_constant = absl::make_unique<PushConstant>(
+  const auto push_constant = absl::make_unique<PushConstant>(
       context, sizeof(button::VerticesInfo), /*num_frames_in_flight=*/1);
   *push_constant->HostData<button::VerticesInfo>(/*frame=*/0) = vertices_info;
-  const VkPushConstantRange push_constant_range{
-      VK_SHADER_STAGE_VERTEX_BIT, /*offset=*/0,
-      push_constant->size_per_frame()};
 
   const auto descriptor = CreateDescriptor(
       context, background_image->GetDescriptorInfo());
@@ -190,7 +188,9 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
           kPerInstanceBufferBindingPoint,
           pipeline::GetPerInstanceBindingDescription<RenderInfo>(),
           per_instance_buffer->GetAttributes(/*start_location=*/0))
-      .SetPipelineLayout({descriptor->layout()}, {push_constant_range})
+      .SetPipelineLayout(
+          {descriptor->layout()},
+          {push_constant->MakePerFrameRange(VK_SHADER_STAGE_VERTEX_BIT)})
       .SetViewport(pipeline::GetFullFrameViewport(buttons_image->extent()))
       .SetRenderPass(**render_pass, kBackgroundSubpassIndex)
       .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/false)})

@@ -98,7 +98,7 @@ void EditorRenderer::Draw(
 }
 
 const array<Editor::ButtonColors, Editor::kNumButtons>&
-Editor::GetAllButtonColors() {
+Editor::GetButtonColors() {
   static array<ButtonColors, kNumButtons>* all_button_colors = nullptr;
   if (all_button_colors == nullptr) {
     const auto make_color = [](int r, int g, int b) {
@@ -122,6 +122,17 @@ const array<float, button::kNumStates>& Editor::GetButtonAlphas() {
     button_alphas = new array<float, button::kNumStates>{1.0f, 0.5f};
   }
   return *button_alphas;
+}
+
+const array<glm::vec2, Editor::kNumButtons>& Editor::GetButtonCenters() {
+  static array<glm::vec2, kNumButtons>* button_centers = nullptr;
+  if (button_centers == nullptr) {
+    button_centers = new array<glm::vec2, kNumButtons>{
+        glm::vec2{0.2f, 0.9f}, glm::vec2{0.5f, 0.9f}, glm::vec2{0.8f, 0.9f},
+        glm::vec2{0.2f, 0.1f}, glm::vec2{0.5f, 0.1f}, glm::vec2{0.8f, 0.1f},
+    };
+  }
+  return *button_centers;
 }
 
 Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
@@ -168,9 +179,9 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
           /*max_num_control_points=*/20, /*control_point_radius=*/0.015f,
           /*max_recursion_depth=*/20, /*spline_smoothness=*/1E-2,
           /*path_colors=*/vector<array<glm::vec3, button::kNumStates>>{
-              GetAllButtonColors()[kPath1ButtonIndex],
-              GetAllButtonColors()[kPath2ButtonIndex],
-              GetAllButtonColors()[kPath3ButtonIndex],
+              GetButtonColors()[kPath1ButtonIndex],
+              GetButtonColors()[kPath2ButtonIndex],
+              GetButtonColors()[kPath3ButtonIndex],
           },
           /*path_alphas=*/GetButtonAlphas(), std::move(generate_control_points),
       });
@@ -181,18 +192,18 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
       Text::Font::kOstrich, /*font_height=*/100, /*base_y=*/0.25f,
       /*top_y=*/0.75f, /*text_color=*/glm::vec3{1.0f}, GetButtonAlphas(),
       /*button_size=*/glm::vec2{0.2f, 0.1f}, /*button_infos=*/{
-          ButtonInfo{"Path 1", GetAllButtonColors()[kPath1ButtonIndex],
-                     /*center=*/glm::vec2{0.2f, 0.9f}},
-          ButtonInfo{"Path 2", GetAllButtonColors()[kPath2ButtonIndex],
-                     /*center=*/glm::vec2{0.5f, 0.9f}},
-          ButtonInfo{"Path 3", GetAllButtonColors()[kPath3ButtonIndex],
-                     /*center=*/glm::vec2{0.8f, 0.9f}},
-          ButtonInfo{"Editing", GetAllButtonColors()[kEditingButtonIndex],
-                     /*center=*/glm::vec2{0.2f, 0.1f}},
-          ButtonInfo{"Daylight", GetAllButtonColors()[kDaylightButtonIndex],
-                     /*center=*/glm::vec2{0.5f, 0.1f}},
-          ButtonInfo{"Aurora", GetAllButtonColors()[kAuroraButtonIndex],
-                     /*center=*/glm::vec2{0.8f, 0.1f}},
+          ButtonInfo{"Path 1", GetButtonColors()[kPath1ButtonIndex],
+                     GetButtonCenters()[kPath1ButtonIndex]},
+          ButtonInfo{"Path 2", GetButtonColors()[kPath2ButtonIndex],
+                     GetButtonCenters()[kPath2ButtonIndex]},
+          ButtonInfo{"Path 3", GetButtonColors()[kPath3ButtonIndex],
+                     GetButtonCenters()[kPath3ButtonIndex]},
+          ButtonInfo{"Editing", GetButtonColors()[kEditingButtonIndex],
+                     GetButtonCenters()[kEditingButtonIndex]},
+          ButtonInfo{"Daylight", GetButtonColors()[kDaylightButtonIndex],
+                     GetButtonCenters()[kDaylightButtonIndex]},
+          ButtonInfo{"Aurora", GetButtonColors()[kAuroraButtonIndex],
+                     GetButtonCenters()[kAuroraButtonIndex]},
       },
   };
   button_ = absl::make_unique<Button>(
