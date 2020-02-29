@@ -7,16 +7,16 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 git_repository(
     name = "lib-absl",
     remote = "https://github.com/abseil/abseil-cpp.git",
-    commit = "aa844899c937bde5d2b24f276b59997e5b668bde",
-    shallow_since = "1565288385 -0400",
+    commit = "b832dce8489ef7b6231384909fd9b68d5a5ff2b7",
+    shallow_since = "1582671418 -0500",
 )
 
 # NOTE: If this changes, remember to update the dynamic library.
 new_git_repository(
     name = "lib-assimp",
     remote = "https://github.com/assimp/assimp.git",
-    commit = "80799bdbf90ce626475635815ee18537718a05b1",
-    shallow_since = "1512998565 +0100",
+    commit = "8f0c6b04b2257a520aaab38421b2e090204b69df",
+    shallow_since = "1578830200 +0100",
     strip_prefix = "include",
     build_file = "//:third_party/BUILD.assimp",
 )
@@ -34,8 +34,8 @@ http_archive(
 new_git_repository(
     name = "lib-glfw",
     remote = "https://github.com/glfw/glfw.git",
-    commit = "b0796109629931b6fa6e449c15a177845256a407",
-    shallow_since = "1555371630 +0200",
+    commit = "0a49ef0a00baa3ab520ddc452f0e3b1e099c5589",
+    shallow_since = "1579473811 +0100",
     strip_prefix = "include/GLFW",
     build_file = "//:third_party/BUILD.glfw",
 )
@@ -43,8 +43,8 @@ new_git_repository(
 new_git_repository(
     name = "lib-glm",
     remote = "https://github.com/g-truc/glm.git",
-    commit = "4db8f89aace8f04c839b606e15b39fb8383ec732",
-    shallow_since = "1567951122 +0200",
+    commit = "13724cfae64a8b5313d1cabc9a963d2c9dbeda12",
+    shallow_since = "1578255577 +0100",
     strip_prefix = "glm",
     build_file = "//:third_party/BUILD.glm",
 )
@@ -59,15 +59,15 @@ new_git_repository(
 
 http_archive(
     name = "lib-vulkan",
-    url = "https://sdk.lunarg.com/sdk/download/1.1.130.0/mac/vulkansdk-macos-1.1.130.0.tar.gz",
-    sha256 = "d6d80ab96e3b4363be969f9d256772e9cfb8f583db130076a9a9618d2551c726",
-    strip_prefix = "vulkansdk-macos-1.1.130.0/macOS",
+    url = "https://sdk.lunarg.com/sdk/download/1.2.131.2/mac/vulkansdk-macos-1.2.131.2.tar.gz",
+    sha256 = "e28363ae0bdb3d881ebf93cdd7a721d052f6a2e5686d0fb3447e6edd585bb53f",
+    strip_prefix = "vulkansdk-macos-1.2.131.2/macOS",
     build_file = "//:third_party/BUILD.vulkan",
 )
 
 git_repository(
     name = "resource",
     remote = "https://github.com/lun0522/resource.git",
-    commit = "51d3fa433f24a23d25f794a7c5cf542653deaef1",
-    shallow_since = "1576993805 -0800",
+    commit = "fc80c718eb0ae3f0f2fb1043ce14102eb14b3289",
+    shallow_since = "1582958847 -0800",
 )
