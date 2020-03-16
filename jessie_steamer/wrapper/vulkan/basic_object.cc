@@ -189,7 +189,7 @@ std::vector<uint32_t> QueueFamilyIndices::GetUniqueFamilyIndices() const {
 
 Instance::Instance(const BasicContext* context,
                    const absl::optional<WindowSupport>& window_support)
-    : context_{context} {
+    : context_{FATAL_IF_NULL(context)} {
   // Request support for pushing descriptors.
   vector<const char*> instance_extensions{
       VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
@@ -266,7 +266,7 @@ Instance::~Instance() {
 PhysicalDevice::PhysicalDevice(
     const BasicContext* context,
     const absl::optional<WindowSupport>& window_support)
-    : context_{context} {
+    : context_{FATAL_IF_NULL(context)} {
   // Find all physical devices.
   const auto physical_devices = util::QueryAttribute<VkPhysicalDevice>(
       [this](uint32_t* count, VkPhysicalDevice* physical_device) {
@@ -296,7 +296,7 @@ PhysicalDevice::PhysicalDevice(
 
 Device::Device(const BasicContext* context,
                const absl::optional<WindowSupport>& window_support)
-    : context_{context} {
+    : context_{FATAL_IF_NULL(context)} {
   if (window_support.has_value()) {
     ASSERT_HAS_VALUE(context_->queue_family_indices().present,
                      "Presentation queue is not properly set up");

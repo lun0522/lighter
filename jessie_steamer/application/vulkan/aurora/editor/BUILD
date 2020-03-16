@@ -45,6 +45,7 @@ cc_library(
         ":button",
         ":celestial",
         ":path",
+        "//jessie_steamer/application/vulkan/aurora:scene",
         "//jessie_steamer/application/vulkan:common",
         "//jessie_steamer/common:rotation",
         "//third_party/absl/types:optional",

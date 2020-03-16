@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "jessie_steamer/common/model_loader.h"
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/vulkan/vulkan.h"
@@ -68,7 +69,7 @@ class Descriptor {
 
  protected:
   explicit Descriptor(SharedBasicContext context)
-      : context_{std::move(context)} {}
+      : context_{std::move(FATAL_IF_NULL(context))} {}
 
   // Pointer to context.
   const SharedBasicContext context_;

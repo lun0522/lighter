@@ -35,12 +35,12 @@
 #define LOG_ERROR LOG(std::cerr)
 
 #ifdef NDEBUG
-#define FATAL(error) throw std::runtime_error{error};
+#define FATAL(error) throw std::runtime_error{error}
 #else  /* !NDEBUG */
 #define FATAL(error)                          \
   throw std::runtime_error{absl::StrFormat(   \
       "%s() in %s at line %d: %s",            \
-      __func__, __FILE__, __LINE__, error)};
+      __func__, __FILE__, __LINE__, error)}
 #endif /* NDEBUG */
 
 #define ASSERT_TRUE(expr, error)              \
@@ -61,6 +61,11 @@
 
 #define ASSERT_NON_EMPTY(container, error)    \
     ASSERT_FALSE(container.empty(), error)
+
+#define FATAL_IF_NULL(pointer)                \
+    (ABSL_PREDICT_TRUE(pointer != nullptr)    \
+        ? pointer                             \
+        : FATAL(#pointer " is nullptr"))
 
 namespace jessie_steamer {
 namespace common {

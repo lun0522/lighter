@@ -11,6 +11,7 @@
 #include <functional>
 #include <vector>
 
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/synchronization.h"
 #include "third_party/absl/types/optional.h"
@@ -37,7 +38,8 @@ class Command {
   }
 
  protected:
-  explicit Command(SharedBasicContext context) : context_{std::move(context)} {}
+  explicit Command(SharedBasicContext context)
+      : context_{std::move(FATAL_IF_NULL(context))} {}
 
   // Pointer to context.
   const SharedBasicContext context_;

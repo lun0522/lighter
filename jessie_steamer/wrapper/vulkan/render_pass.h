@@ -12,6 +12,7 @@
 #include <memory>
 #include <vector>
 
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "third_party/absl/types/optional.h"
@@ -117,7 +118,7 @@ class RenderPassBuilder {
       int num_color_refs, const std::vector<MultisamplingPair>& pairs);
 
   explicit RenderPassBuilder(SharedBasicContext context)
-      : context_{std::move(context)} {}
+      : context_{std::move(FATAL_IF_NULL(context))} {}
 
   // This class is neither copyable nor movable.
   RenderPassBuilder(const RenderPassBuilder&) = delete;
@@ -227,7 +228,7 @@ class RenderPass {
              const VkExtent2D& framebuffer_size,
              std::vector<VkFramebuffer>&& framebuffers,
              std::vector<int>&& num_color_attachments)
-      : context_{std::move(context)},
+      : context_{std::move(FATAL_IF_NULL(context))},
         num_subpasses_{num_subpasses},
         render_pass_{render_pass},
         clear_values_{std::move(clear_values)},

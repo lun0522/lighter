@@ -200,7 +200,7 @@ ModelBuilder::ModelBuilder(SharedBasicContext context,
                            int num_frames_in_flight,
                            float viewport_aspect_ratio,
                            const ModelResource& resource)
-    : context_{std::move(context)},
+    : context_{std::move(FATAL_IF_NULL(context))},
       num_frames_in_flight_{num_frames_in_flight},
       viewport_aspect_ratio_{viewport_aspect_ratio},
       uniform_buffer_info_maps_(num_frames_in_flight_),

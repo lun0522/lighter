@@ -21,11 +21,8 @@ BezierSpline::BezierSpline(int max_recursion_depth,
                            GetMiddlePoint&& get_middle_point,
                            IsSmooth&& is_smooth)
     : max_recursion_depth_{max_recursion_depth},
-      get_middle_point_{std::move(get_middle_point)},
-      is_smooth_{std::move(is_smooth)} {
-  ASSERT_NON_NULL(get_middle_point_, "get_middle_point must not be nullptr");
-  ASSERT_NON_NULL(is_smooth_, "is_smooth must not be nullptr");
-}
+      get_middle_point_{std::move(FATAL_IF_NULL(get_middle_point))},
+      is_smooth_{std::move(FATAL_IF_NULL(is_smooth))} {}
 
 void BezierSpline::Tessellate(const glm::vec3& p0,
                               const glm::vec3& p1,

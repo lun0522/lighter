@@ -5,6 +5,7 @@ cc_library(
     hdrs = ["viewer.h"],
     srcs = ["viewer.cc"],
     deps = [
+        "//jessie_steamer/application/vulkan/aurora:scene",
         "//jessie_steamer/application/vulkan:common",
     ],
 )

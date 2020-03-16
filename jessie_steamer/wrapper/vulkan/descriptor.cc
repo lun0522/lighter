@@ -9,7 +9,6 @@
 
 #include <type_traits>
 
-#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 
 namespace jessie_steamer {

@@ -16,6 +16,8 @@ namespace {
 
 using namespace wrapper::vulkan;
 
+enum class Scene { kNone, kEditor, kViewer };
+
 constexpr int kNumFramesInFlight = 2;
 
 class AuroraApp : public Application {
@@ -26,56 +28,92 @@ class AuroraApp : public Application {
   void MainLoop() override;
 
  private:
-  // Recreates the swapchain and associated resources.
-  void Recreate();
+  // Returns the current scene.
+  aurora::Scene& GetCurrentScene();
+
+  void TransitionSceneIfNeeded();
+
+  bool HasTransitionedScene() const { return current_scene_ != last_scene_; }
 
   bool should_quit_ = false;
   int current_frame_ = 0;
+  Scene last_scene_ = Scene::kNone;
+  Scene current_scene_ = Scene::kEditor;
   common::FrameTimer timer_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<aurora::Editor> editor_;
+  std::unique_ptr<aurora::Viewer> viewer_;
 };
 
 } /* namespace */
 
 AuroraApp::AuroraApp(const WindowContext::Config& window_config)
     : Application{"Aurora Sketcher", window_config} {
-  /* Window */
   window_context_.mutable_window()->RegisterPressKeyCallback(
       common::Window::KeyMap::kEscape, [this]() { should_quit_ = true; });
-
-  /* Command buffer */
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
-
-  /* Aurora editor */
   editor_ = absl::make_unique<aurora::Editor>(&window_context_,
+                                              kNumFramesInFlight);
+  viewer_ = absl::make_unique<aurora::Viewer>(&window_context_,
                                               kNumFramesInFlight);
 }
 
-void AuroraApp::Recreate() {
-  /* Aurora editor */
-  editor_->Recreate();
+aurora::Scene& AuroraApp::GetCurrentScene() {
+  switch (current_scene_) {
+    case Scene::kNone:
+      FATAL("Unexpected branch");
+    case Scene::kEditor:
+      return *editor_;
+    case Scene::kViewer:
+      return *viewer_;
+  }
+}
+
+void AuroraApp::TransitionSceneIfNeeded() {
+  last_scene_ = current_scene_;
+  switch (current_scene_) {
+    case Scene::kNone:
+      FATAL("Unexpected branch");
+    case Scene::kEditor: {
+      if (editor_->ShouldDisplayAurora()) {
+        current_scene_ = Scene::kViewer;
+      }
+      break;
+    }
+    case Scene::kViewer: {
+      if (viewer_->ShouldExit()) {
+        current_scene_ = Scene::kEditor;
+      }
+      break;
+    }
+  }
 }
 
 void AuroraApp::MainLoop() {
-  Recreate();
-  editor_->OnEnter();
-
   while (!should_quit_ && window_context_.CheckEvents()) {
     timer_.Tick();
 
+    auto& scene = GetCurrentScene();
+    if (HasTransitionedScene()) {
+      scene.Recreate();
+      scene.OnEnter();
+    }
+
     const auto draw_result = command_->Run(
         current_frame_, window_context_.swapchain(),
-        [this](int frame) { editor_->UpdateData(frame); },
-        [this](const VkCommandBuffer& command_buffer,
-               uint32_t framebuffer_index) {
-          editor_->Draw(command_buffer, framebuffer_index, current_frame_);
+        [&scene](int frame) { scene.UpdateData(frame); },
+        [this, &scene](const VkCommandBuffer& command_buffer,
+                       uint32_t framebuffer_index) {
+          scene.Draw(command_buffer, framebuffer_index, current_frame_);
         });
 
-    if (draw_result.has_value() || window_context_.ShouldRecreate()) {
-      window_context_.Recreate();
-      Recreate();
+    TransitionSceneIfNeeded();
+    // If scene has been transitioned, the new scene will be recreated anyway.
+    if (!HasTransitionedScene() &&
+        (draw_result.has_value() || window_context_.ShouldRecreate())) {
+      scene.Recreate();
     }
+
     current_frame_ = (current_frame_ + 1) % kNumFramesInFlight;
   }
   window_context_.OnExit();

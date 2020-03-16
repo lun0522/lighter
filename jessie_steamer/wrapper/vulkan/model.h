@@ -276,7 +276,7 @@ class Model {
         std::vector<TexturesPerMesh>&& mesh_textures,
         std::vector<DescriptorsPerFrame>&& descriptors,
         std::unique_ptr<PipelineBuilder>&& pipeline_builder)
-      : context_{std::move(context)},
+      : context_{std::move(FATAL_IF_NULL(context))},
         viewport_aspect_ratio_{viewport_aspect_ratio},
         vertex_buffer_{std::move(vertex_buffer)},
         per_instance_buffers_{std::move(per_instance_buffers)},

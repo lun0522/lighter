@@ -502,8 +502,7 @@ void VertexBuffer::CreateBufferAndMemory(VkDeviceSize total_size,
 }
 
 DynamicBuffer::DynamicBuffer(size_t initial_size, VertexBuffer* vertex_buffer)
-    : vertex_buffer_{vertex_buffer} {
-  ASSERT_NON_NULL(vertex_buffer_, "Vertex buffer must not be nullptr");
+    : vertex_buffer_{FATAL_IF_NULL(vertex_buffer)} {
   Reserve(initial_size);
 }
 

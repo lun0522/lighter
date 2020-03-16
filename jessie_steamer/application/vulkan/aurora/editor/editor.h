@@ -15,6 +15,7 @@
 #include "jessie_steamer/application/vulkan/aurora/editor/button.h"
 #include "jessie_steamer/application/vulkan/aurora/editor/celestial.h"
 #include "jessie_steamer/application/vulkan/aurora/editor/path.h"
+#include "jessie_steamer/application/vulkan/aurora/scene.h"
 #include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/rotation.h"
 #include "jessie_steamer/common/timer.h"
@@ -54,7 +55,7 @@ class EditorRenderer {
   std::unique_ptr<wrapper::vulkan::Image> depth_stencil_image_;
 };
 
-class Editor {
+class Editor : public Scene {
  public:
   Editor(wrapper::vulkan::WindowContext* window_context,
          int num_frames_in_flight);
@@ -63,18 +64,17 @@ class Editor {
   Editor(const Editor&) = delete;
   Editor& operator=(const Editor&) = delete;
 
-  // Registers callbacks.
-  void OnEnter();
+  bool ShouldDisplayAurora() const {
+    return state_manager_.ShouldDisplayAurora();
+  }
 
-  // Unregisters callbacks.
-  void OnExit();
-
-  void Recreate();
-
-  void UpdateData(int frame);
-
+  // Overrides.
+  void OnEnter() override;
+  void OnExit() override;
+  void Recreate() override;
+  void UpdateData(int frame) override;
   void Draw(const VkCommandBuffer& command_buffer,
-            uint32_t framebuffer_index, int current_frame);
+            uint32_t framebuffer_index, int current_frame) override;
 
  private:
   enum ButtonIndex {
@@ -108,6 +108,14 @@ class Editor {
     }
     bool IsEditing() const {
       return IsSelected(ButtonIndex::kEditingButtonIndex);
+    }
+    bool ShouldDisplayAurora() const {
+      return IsSelected(ButtonIndex::kAuroraButtonIndex);
+    }
+
+    void ResetDisplayAuroraButton() {
+      button_states_[ButtonIndex::kAuroraButtonIndex] =
+          Button::State::kUnselected;
     }
 
     // Accessors.

@@ -46,7 +46,7 @@ const vector<const char*>& GetRequiredLayers() {
 
 DebugCallback::DebugCallback(const BasicContext* context,
                              const TriggerCondition& trigger_condition)
-    : context_{context} {
+    : context_{FATAL_IF_NULL(context)} {
   // We may pass data to 'pUserData' which can be retrieved from the callback.
   const VkDebugUtilsMessengerCreateInfoEXT create_info{
       VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,

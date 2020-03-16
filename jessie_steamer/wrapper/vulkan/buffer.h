@@ -52,7 +52,8 @@ class Buffer {
   }
 
  protected:
-  explicit Buffer(SharedBasicContext context) : context_{std::move(context)} {}
+  explicit Buffer(SharedBasicContext context)
+      : context_{std::move(FATAL_IF_NULL(context))} {}
 
   // Pointer to context.
   const SharedBasicContext context_;

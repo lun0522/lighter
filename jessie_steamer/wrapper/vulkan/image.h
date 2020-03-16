@@ -45,7 +45,8 @@ class Image {
 
  protected:
   Image(SharedBasicContext context, const VkExtent2D& extent, VkFormat format)
-      : context_{std::move(context)}, extent_{extent}, format_{format} {}
+      : context_{std::move(FATAL_IF_NULL(context))},
+        extent_{extent}, format_{format} {}
 
   // Pointer to context.
   const SharedBasicContext context_;
@@ -202,9 +203,7 @@ using OffscreenImagePtr = const OffscreenImage*;
 class UnownedOffscreenTexture : public SamplableImage {
  public:
   explicit UnownedOffscreenTexture(OffscreenImagePtr texture)
-      : texture_{texture} {
-    ASSERT_NON_NULL(texture_, "Texture pointer cannot be nullptr");
-  }
+      : texture_{FATAL_IF_NULL(texture)} {}
 
   // This class provides copy constructor and move constructor.
   UnownedOffscreenTexture(UnownedOffscreenTexture&&) = default;

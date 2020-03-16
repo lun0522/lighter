@@ -40,6 +40,7 @@ constexpr float kEarthModelRadius = 1.0f;
 constexpr float kAuroraLayerModelRadius =
     (kEarthRadius + kAuroraHeight) / kEarthRadius * kEarthModelRadius;
 
+// Returns coordinate of earth model center.
 const glm::vec3& GetEarthModelCenter() {
   static const glm::vec3* earth_model_center = nullptr;
   if (earth_model_center == nullptr) {
@@ -51,8 +52,7 @@ const glm::vec3& GetEarthModelCenter() {
 } /* namespace */
 
 EditorRenderer::EditorRenderer(const WindowContext* window_context)
-    : window_context_{*window_context} {
-  ASSERT_NON_NULL(window_context, "window_context must not be nullptr");
+    : window_context_{*FATAL_IF_NULL(window_context)} {
   const NaiveRenderPassBuilder::SubpassConfig subpass_config{
       /*use_opaque_subpass=*/true,
       kNumTransparentSubpasses,
@@ -136,12 +136,12 @@ const array<glm::vec2, Editor::kNumButtons>& Editor::GetButtonCenters() {
 }
 
 Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
-    : window_context_{*window_context}, editor_renderer_{window_context},
+    : window_context_{*FATAL_IF_NULL(window_context)},
+      editor_renderer_{FATAL_IF_NULL(window_context)},
       earth_{GetEarthModelCenter(), kEarthModelRadius,
              kInertialRotationDuration},
       aurora_layer_{GetEarthModelCenter(), kAuroraLayerModelRadius,
                     kInertialRotationDuration} {
-  ASSERT_NON_NULL(window_context, "window_context must not be nullptr");
   const auto context = window_context_.basic_context();
   const float original_aspect_ratio =
       window_context_.window().original_aspect_ratio();
@@ -246,6 +246,7 @@ void Editor::OnEnter() {
           did_release_right_ = !is_press;
         }
       });
+  state_manager_.ResetDisplayAuroraButton();
 }
 
 void Editor::OnExit() {
@@ -382,7 +383,7 @@ Editor::StateManager::StateManager() {
   SetPathButtonStates(Button::State::kHidden);
   button_states_[kEditingButtonIndex] = Button::State::kUnselected;
   button_states_[kDaylightButtonIndex] = Button::State::kUnselected;
-  button_states_[kAuroraButtonIndex] = Button::State::kSelected;
+  button_states_[kAuroraButtonIndex] = Button::State::kUnselected;
 }
 
 void Editor::StateManager::Update(absl::optional<ButtonIndex> clicked_button) {
@@ -419,12 +420,9 @@ void Editor::StateManager::Update(absl::optional<ButtonIndex> clicked_button) {
       }
       break;
     }
-    case kDaylightButtonIndex: {
-      FlipButtonState(button_index);
-      break;
-    }
+    case kDaylightButtonIndex:
     case kAuroraButtonIndex: {
-      // TODO
+      FlipButtonState(button_index);
       break;
     }
     default:

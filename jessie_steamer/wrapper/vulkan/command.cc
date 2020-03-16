@@ -9,7 +9,6 @@
 
 #include <limits>
 
-#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 #include "third_party/absl/strings/str_format.h"
 

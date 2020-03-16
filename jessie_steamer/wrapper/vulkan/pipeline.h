@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "jessie_steamer/common/ref_count.h"
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/optional.h"
@@ -226,7 +227,7 @@ class Pipeline {
            std::string name,
            const VkPipeline& pipeline,
            const VkPipelineLayout& pipeline_layout)
-      : context_{std::move(context)}, name_{std::move(name)},
+      : context_{std::move(FATAL_IF_NULL(context))}, name_{std::move(name)},
         pipeline_{pipeline}, layout_{pipeline_layout} {}
 
   // Pointer to context.

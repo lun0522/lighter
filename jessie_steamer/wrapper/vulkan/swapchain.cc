@@ -112,7 +112,7 @@ Swapchain::Swapchain(
     SharedBasicContext context,
     const Surface& surface, const VkExtent2D& frame_size,
     absl::optional<MultisampleImage::Mode> multisampling_mode)
-    : context_{std::move(context)} {
+    : context_{std::move(FATAL_IF_NULL(context))} {
   // Choose image extent.
   const auto surface_capabilities = surface.GetCapabilities();
   image_extent_ = ChooseImageExtent(surface_capabilities, frame_size);

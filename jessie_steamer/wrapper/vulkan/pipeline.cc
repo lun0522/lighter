@@ -10,7 +10,6 @@
 #include <numeric>
 
 #include "jessie_steamer/common/file.h"
-#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
@@ -121,7 +120,7 @@ vector<VkPipelineShaderStageCreateInfo> CreateShaderStageInfos(
 
 ShaderModule::ShaderModule(SharedBasicContext context,
                            const std::string& file_path)
-    : context_{std::move(context)} {
+    : context_{std::move(FATAL_IF_NULL(context))} {
   context_->RegisterRefCountPool<RefCountedShaderModule>();
 
   const auto raw_data = absl::make_unique<common::RawData>(file_path);
@@ -138,7 +137,7 @@ ShaderModule::ShaderModule(SharedBasicContext context,
 }
 
 PipelineBuilder::PipelineBuilder(SharedBasicContext context)
-    : context_{std::move(context)} {
+    : context_{std::move(FATAL_IF_NULL(context))} {
   input_assembly_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
