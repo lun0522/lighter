@@ -379,7 +379,6 @@ void Editor::Draw(const VkCommandBuffer& command_buffer,
 }
 
 Editor::StateManager::StateManager() {
-  button_states_.resize(kNumButtons);
   SetPathButtonStates(Button::State::kHidden);
   button_states_[kEditingButtonIndex] = Button::State::kUnselected;
   button_states_[kDaylightButtonIndex] = Button::State::kUnselected;

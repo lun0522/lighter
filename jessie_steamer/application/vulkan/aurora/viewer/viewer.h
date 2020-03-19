@@ -26,8 +26,6 @@ class Viewer : public Scene {
   Viewer(const Viewer&) = delete;
   Viewer& operator=(const Viewer&) = delete;
 
-  bool ShouldExit() const { return false; }
-
   // Overrides.
   void OnEnter() override {}
   void OnExit() override {}
@@ -35,6 +33,7 @@ class Viewer : public Scene {
   void UpdateData(int frame) override {}
   void Draw(const VkCommandBuffer& command_buffer,
             uint32_t framebuffer_index, int current_frame) override {}
+  bool ShouldTransitionScene() const override { return false; }
 };
 
 } /* namespace aurora */

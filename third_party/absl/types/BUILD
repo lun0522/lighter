@@ -9,6 +9,12 @@ absl_library(
 )
 
 absl_library(
+    name = "span",
+    hdrs = ["@lib-absl//absl/types:span.h"],
+    deps = ["@lib-absl//absl/types:span"],
+)
+
+absl_library(
     name = "variant",
     hdrs = ["@lib-absl//absl/types:variant.h"],
     deps = ["@lib-absl//absl/types:variant"],

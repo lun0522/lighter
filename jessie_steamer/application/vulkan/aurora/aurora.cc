@@ -71,19 +71,18 @@ aurora::Scene& AuroraApp::GetCurrentScene() {
 
 void AuroraApp::TransitionSceneIfNeeded() {
   last_scene_ = current_scene_;
+  if (!GetCurrentScene().ShouldTransitionScene()) {
+    return;
+  }
   switch (current_scene_) {
     case Scene::kNone:
       FATAL("Unexpected branch");
     case Scene::kEditor: {
-      if (editor_->ShouldDisplayAurora()) {
-        current_scene_ = Scene::kViewer;
-      }
+      current_scene_ = Scene::kViewer;
       break;
     }
     case Scene::kViewer: {
-      if (viewer_->ShouldExit()) {
-        current_scene_ = Scene::kEditor;
-      }
+      current_scene_ = Scene::kEditor;
       break;
     }
   }

@@ -20,6 +20,7 @@
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "absl/types/optional.h"
+#include "absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
@@ -157,14 +158,13 @@ class Button {
   // 'buttons_info.button_infos' passed to the constructor.
   // This should be called when 'command_buffer' is recording commands.
   void Draw(const VkCommandBuffer& command_buffer,
-            const std::vector<State>& button_states);
+            absl::Span<const State> button_states);
 
   // If any button is clicked, returns the index of it. Otherwise, returns
   // absl::nullopt. If the current state of a button is 'State::kHidden', it
   // will be ignored in this click detection.
   absl::optional<int> GetClickedButtonIndex(
-      const glm::vec2& click_ndc,
-      const std::vector<State>& button_states) const;
+      const glm::vec2& click_ndc, absl::Span<const State> button_states) const;
 
  private:
   // The first dimension is different buttons, and the second dimension is

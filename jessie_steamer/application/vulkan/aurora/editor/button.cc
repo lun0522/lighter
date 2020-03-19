@@ -290,7 +290,7 @@ void Button::UpdateFramebuffer(const VkExtent2D& frame_size,
 }
 
 void Button::Draw(const VkCommandBuffer& command_buffer,
-                  const vector<State>& button_states) {
+                  absl::Span<const State> button_states) {
   const int num_buttons = all_buttons_.size();
   ASSERT_TRUE(button_states.size() == num_buttons,
               absl::StrFormat("Length of button states (%d) must match with "
@@ -318,7 +318,7 @@ void Button::Draw(const VkCommandBuffer& command_buffer,
 }
 
 absl::optional<int> Button::GetClickedButtonIndex(
-    const glm::vec2& click_ndc, const vector<State>& button_states) const {
+    const glm::vec2& click_ndc, absl::Span<const State> button_states) const {
   const int num_buttons = all_buttons_.size();
   ASSERT_TRUE(button_states.size() == num_buttons,
               absl::StrFormat("Length of button states (%d) must match with "

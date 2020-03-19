@@ -36,6 +36,9 @@ class Scene {
   // This should be called when 'command_buffer' is recording commands.
   virtual void Draw(const VkCommandBuffer& command_buffer,
                     uint32_t framebuffer_index, int current_frame) = 0;
+
+  // Whether the application should transition to another scene.
+  virtual bool ShouldTransitionScene() const = 0;
 };
 
 } /* namespace aurora */

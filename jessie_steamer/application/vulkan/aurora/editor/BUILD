@@ -10,6 +10,7 @@ cc_library(
         "//jessie_steamer/application/vulkan:common",
         "//third_party/absl/strings:str_format",
         "//third_party/absl/types:optional",
+        "//third_party/absl/types:span",
     ],
 )
 
