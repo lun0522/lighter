@@ -20,7 +20,8 @@ cc_library(
     srcs = ["button_maker.cc"],
     deps = [
         ":button_util",
-        "//jessie_steamer/application/vulkan:common"
+        "//jessie_steamer/application/vulkan:common",
+        "//third_party/absl/types:span",
     ],
 )
 
@@ -50,6 +51,7 @@ cc_library(
         "//jessie_steamer/application/vulkan:common",
         "//jessie_steamer/common:rotation",
         "//third_party/absl/types:optional",
+        "//third_party/absl/types:span",
     ],
 )
 
@@ -63,5 +65,6 @@ cc_library(
         "//jessie_steamer/common:spline",
         "//third_party/absl/strings:str_format",
         "//third_party/absl/types:optional",
+        "//third_party/absl/types:span",
     ],
 )

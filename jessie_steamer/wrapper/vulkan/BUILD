@@ -45,6 +45,7 @@ cc_library(
         "//third_party/absl/memory",
         "//third_party/absl/strings",
         "//third_party/absl/types:optional",
+        "//third_party/absl/types:span",
         "//third_party:vulkan",
     ],
 )
@@ -89,6 +90,7 @@ cc_library(
         "//jessie_steamer/common:model_loader",
         "//jessie_steamer/common:util",
         "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/types:span",
         "//third_party:vulkan",
     ],
 )
@@ -179,6 +181,7 @@ cc_library(
         "//jessie_steamer/common:util",
         "//third_party/absl/strings:str_format",
         "//third_party/absl/types:optional",
+        "//third_party/absl/types:span",
         "//third_party/absl/types:variant",
         "//third_party:vulkan",
     ],
@@ -222,6 +225,7 @@ cc_library(
         "//third_party/absl/memory",
         "//third_party/absl/strings:str_format",
         "//third_party/absl/types:optional",
+        "//third_party/absl/types:span",
         "//third_party:glm",
     ],
 )
@@ -235,6 +239,7 @@ cc_library(
         "//third_party/absl/strings",
         "//third_party/absl/strings:str_format",
         "//third_party/absl/types:optional",
+        "//third_party/absl/types:span",
         "//third_party:glm",
         "//third_party:vulkan",
     ],

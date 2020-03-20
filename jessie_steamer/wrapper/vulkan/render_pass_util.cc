@@ -147,7 +147,7 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
         /*subpass_index=*/num_subpasses - 1,
         RenderPassBuilder::CreateMultisamplingReferences(
             /*num_color_refs=*/1,
-            /*pairs=*/vector<MultisamplingPair>{
+            /*pairs=*/{
                 MultisamplingPair{
                     /*multisample_reference=*/0,
                     /*target_attachment=*/color_attachment_index(),

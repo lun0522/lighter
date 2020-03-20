@@ -17,6 +17,7 @@
 #include "third_party/absl/strings/str_cat.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/optional.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
@@ -110,8 +111,8 @@ std::vector<AttribType> QueryAttribute(
 // the name of any attribute of AttribType.
 template <typename AttribType>
 absl::optional<std::string> FindUnsupported(
-    const std::vector<std::string>& required,
-    const std::vector<AttribType>& attribs,
+    absl::Span<const std::string> required,
+    absl::Span<const AttribType> attribs,
     const std::function<const char*(const AttribType&)>& get_name) {
   absl::flat_hash_set<std::string> available{attribs.size()};
   for (const auto& atr : attribs) {

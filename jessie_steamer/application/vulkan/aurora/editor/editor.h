@@ -10,7 +10,6 @@
 
 #include <array>
 #include <memory>
-#include <vector>
 
 #include "jessie_steamer/application/vulkan/aurora/editor/button.h"
 #include "jessie_steamer/application/vulkan/aurora/editor/celestial.h"
@@ -22,6 +21,7 @@
 #include "jessie_steamer/common/window.h"
 #include "jessie_steamer/wrapper/vulkan/window_context.h"
 #include "third_party/absl/types/optional.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
@@ -44,9 +44,8 @@ class EditorRenderer {
 
   // Renders the aurora path editor using 'render_ops'.
   // This should be called when 'command_buffer' is recording commands.
-  void Draw(
-      const VkCommandBuffer& command_buffer, int framebuffer_index,
-      const std::vector<wrapper::vulkan::RenderPass::RenderOp>& render_ops);
+  void Draw(const VkCommandBuffer& command_buffer, int framebuffer_index,
+            absl::Span<const wrapper::vulkan::RenderPass::RenderOp> render_ops);
 
   // Accessors.
   const wrapper::vulkan::RenderPass& render_pass() const {

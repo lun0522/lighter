@@ -22,7 +22,7 @@ using std::vector;
 // for one descriptor set.
 VkDescriptorPool CreateDescriptorPool(
     const SharedBasicContext& context,
-    const vector<Descriptor::Info>& descriptor_infos) {
+    absl::Span<const Descriptor::Info> descriptor_infos) {
   absl::flat_hash_map<VkDescriptorType, uint32_t> pool_size_map;
   for (const auto& info : descriptor_infos) {
     uint32_t total_length = 0;
@@ -61,7 +61,7 @@ VkDescriptorPool CreateDescriptorPool(
 // ready for pushing descriptors.
 VkDescriptorSetLayout CreateDescriptorSetLayout(
     const SharedBasicContext& context,
-    const vector<Descriptor::Info>& descriptor_infos,
+    absl::Span<const Descriptor::Info> descriptor_infos,
     bool is_dynamic) {
   int total_bindings = 0;
   for (const auto& info : descriptor_infos) {
@@ -135,21 +135,19 @@ vector<VkWriteDescriptorSet> CreateWriteDescriptorSets(
   using common::util::GetPointerIfTypeExpected;
   vector<VkWriteDescriptorSet> write_desc_sets;
   write_desc_sets.reserve(info_map.size());
-  for (const auto& info : info_map) {
+  for (const auto& pair : info_map) {
+    const auto& info = pair.second;
     write_desc_sets.emplace_back(VkWriteDescriptorSet{
         VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         /*pNext=*/nullptr,
         descriptor_set,
-        /*dstBinding=*/info.first,
+        /*dstBinding=*/pair.first,
         /*dstArrayElement=*/0,
-        CONTAINER_SIZE(info.second),
+        CONTAINER_SIZE(info),
         descriptor_type,
-        /*pImageInfo=*/
-        GetPointerIfTypeExpected<InfoType, VkDescriptorImageInfo>(info.second),
-        /*pBufferInfo=*/
-        GetPointerIfTypeExpected<InfoType, VkDescriptorBufferInfo>(info.second),
-        /*pTexelBufferView=*/
-        GetPointerIfTypeExpected<InfoType, VkBufferView>(info.second),
+        /*pImageInfo=*/GetPointerIfTypeExpected<VkDescriptorImageInfo>(info),
+        /*pBufferInfo=*/GetPointerIfTypeExpected<VkDescriptorBufferInfo>(info),
+        /*pTexelBufferView=*/GetPointerIfTypeExpected<VkBufferView>(info),
     });
   }
   return write_desc_sets;
@@ -158,7 +156,7 @@ vector<VkWriteDescriptorSet> CreateWriteDescriptorSets(
 } /* namespace */
 
 StaticDescriptor::StaticDescriptor(SharedBasicContext context,
-                                   const vector<Info>& infos)
+                                   absl::Span<const Info> infos)
     : Descriptor{std::move(context)} {
   pool_ = CreateDescriptorPool(context_, infos);
   layout_ = CreateDescriptorSetLayout(context_, infos, /*is_dynamic=*/false);
@@ -197,7 +195,7 @@ void StaticDescriptor::Bind(const VkCommandBuffer& command_buffer,
 }
 
 DynamicDescriptor::DynamicDescriptor(SharedBasicContext context,
-                                     const vector<Info>& infos)
+                                     absl::Span<const Info> infos)
     : Descriptor{std::move(context)} {
   layout_ = CreateDescriptorSetLayout(context_, infos, /*is_dynamic=*/true);
   const auto vkCmdPushDescriptorSetKHR =

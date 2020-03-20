@@ -16,6 +16,7 @@
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "third_party/absl/types/optional.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/absl/types/variant.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -115,7 +116,7 @@ class RenderPassBuilder {
   // Creates a list of VkAttachmentReference to describe the multisampling
   // relationships. The length of the list will be equal to 'num_color_refs'.
   static std::vector<VkAttachmentReference> CreateMultisamplingReferences(
-      int num_color_refs, const std::vector<MultisamplingPair>& pairs);
+      int num_color_refs, absl::Span<const MultisamplingPair> pairs);
 
   explicit RenderPassBuilder(SharedBasicContext context)
       : context_{std::move(FATAL_IF_NULL(context))} {}
@@ -206,8 +207,7 @@ class RenderPass {
   // Each element of 'render_ops' represents the operations to perform in each
   // subpass, hence the size of 'render_ops' must be equal to 'num_subpasses_'.
   void Run(const VkCommandBuffer& command_buffer,
-           int framebuffer_index,
-           const std::vector<RenderOp>& render_ops) const;
+           int framebuffer_index, absl::Span<const RenderOp> render_ops) const;
 
   // Overloads.
   const VkRenderPass& operator*() const { return render_pass_; }

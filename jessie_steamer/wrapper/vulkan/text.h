@@ -21,6 +21,7 @@
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
 #include "jessie_steamer/wrapper/vulkan/text_util.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 
 namespace jessie_steamer {
@@ -106,7 +107,7 @@ class StaticText : public Text {
   StaticText(const SharedBasicContext& context,
              int num_frames_in_flight,
              float viewport_aspect_ratio,
-             const std::vector<std::string>& texts,
+             absl::Span<const std::string> texts,
              Font font, int font_height);
 
   // This class is neither copyable nor movable.
@@ -151,7 +152,7 @@ class DynamicText : public Text {
   DynamicText(const SharedBasicContext& context,
               int num_frames_in_flight,
               float viewport_aspect_ratio,
-              const std::vector<std::string>& texts,
+              absl::Span<const std::string> texts,
               Font font, int font_height);
 
   // This class is neither copyable nor movable.

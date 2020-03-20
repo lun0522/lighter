@@ -12,7 +12,7 @@
 #include <memory>
 #include <vector>
 
-#include "absl/types/optional.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 
 namespace jessie_steamer {
@@ -31,7 +31,7 @@ class Spline {
 
   // Populates 'spline_points_' with the spline built from 'control_points'.
   // Previous content of 'spline_points_' will be discarded.
-  virtual void BuildSpline(const std::vector<glm::vec3>& control_points) = 0;
+  virtual void BuildSpline(absl::Span<const glm::vec3> control_points) = 0;
 
   // Accessors.
   const std::vector<glm::vec3>& spline_points() const { return spline_points_; }
@@ -107,7 +107,7 @@ class CatmullRomSpline : public BezierSpline {
   CatmullRomSpline& operator=(const CatmullRomSpline&) = delete;
 
   // Overrides.
-  void BuildSpline(const std::vector<glm::vec3>& control_points) override;
+  void BuildSpline(absl::Span<const glm::vec3> control_points) override;
 
  private:
   // Converts Catmull-Rom spline control points to bezier spline control points,

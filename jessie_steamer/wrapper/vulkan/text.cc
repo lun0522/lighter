@@ -151,7 +151,7 @@ VkDescriptorBufferInfo Text::GetUniformBufferDescriptorInfo(int frame) const {
 StaticText::StaticText(const SharedBasicContext& context,
                        int num_frames_in_flight,
                        float viewport_aspect_ratio,
-                       const vector<string>& texts,
+                       absl::Span<const std::string> texts,
                        Font font, int font_height)
     : Text{context, "static text", num_frames_in_flight, viewport_aspect_ratio},
       text_loader_{context, texts, font, font_height} {
@@ -227,7 +227,7 @@ void StaticText::Draw(const VkCommandBuffer& command_buffer,
 DynamicText::DynamicText(const SharedBasicContext& context,
                          int num_frames_in_flight,
                          float viewport_aspect_ratio,
-                         const vector<string>& texts,
+                         absl::Span<const std::string> texts,
                          Font font, int font_height)
     : Text{context, "dynamic text", num_frames_in_flight,
            viewport_aspect_ratio},

@@ -13,7 +13,7 @@
 namespace jessie_steamer {
 namespace common {
 
-CharLib::CharLib(const std::vector<std::string>& texts,
+CharLib::CharLib(absl::Span<const std::string> texts,
                  const std::string& font_path, int font_height) {
   FT_Library lib;
   FT_Face face;

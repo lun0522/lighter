@@ -161,8 +161,8 @@ SplineRenderer::SplineRenderer(const SharedBasicContext& context,
 }
 
 void SplineRenderer::UpdatePath(int path_index,
-                                const vector<glm::vec3>& control_points,
-                                const vector<glm::vec3>& spline_points) {
+                                absl::Span<const glm::vec3> control_points,
+                                absl::Span<const glm::vec3> spline_points) {
   num_control_points_[path_index] = control_points.size();
   paths_vertex_buffers_[path_index].control_points_buffer->CopyHostData(
       control_points);
@@ -202,7 +202,7 @@ void SplineRenderer::UpdatePerFrameData(int frame, float control_point_scale,
 
 void SplineRenderer::DrawSplines(
     const VkCommandBuffer& command_buffer, int frame,
-    const vector<glm::vec4>& color_alphas) {
+    absl::Span<const glm::vec4> color_alphas) {
   ASSERT_TRUE(color_alphas.size() == num_paths_,
               absl::StrFormat("Length of 'color_alphas' (%d) must match with "
                               "the number of aurora paths (%d)",

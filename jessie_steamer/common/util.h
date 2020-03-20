@@ -20,6 +20,7 @@
 #include "third_party/absl/flags/parse.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/optional.h"
+#include "third_party/absl/types/span.h"
 
 #ifdef NDEBUG
 #define LOG(stream) ::jessie_steamer::common::util::Logger{stream}          \
@@ -105,7 +106,7 @@ class Logger {
 // If there is no such element, returns 'absl::nullopt'.
 template <typename ContentType>
 absl::optional<int> FindIndexOfFirst(
-    const std::vector<ContentType>& container,
+    absl::Span<const ContentType> container,
     const std::function<bool(const ContentType&)>& predicate) {
   const auto first_itr = find_if(container.begin(), container.end(), predicate);
   return first_itr == container.end()
@@ -182,18 +183,17 @@ struct EnumClassHash {
 
 namespace internal {
 
-// Returns a pointer to the underlying data of 'container', assuming
-// 'ContentType' and 'ExpectedType' are the same.
-template <typename ContentType, typename ExpectedType>
+// Returns 'pointer', assuming 'ExpectedType' and 'ActualType' are the same.
+template <typename ExpectedType, typename ActualType>
 inline const ExpectedType* GetPointerIfTypeExpectedImpl(
-    const std::vector<ContentType>& container, std::true_type) {
-  return container.data();
+    const ActualType* pointer, std::true_type) {
+  return pointer;
 }
 
-// Returns nullptr, assuming 'ContentType' and 'ExpectedType' are different.
-template <typename ContentType, typename ExpectedType>
+// Returns nullptr, assuming 'ExpectedType' and 'ActualType' are different.
+template <typename ExpectedType, typename ActualType>
 inline const ExpectedType* GetPointerIfTypeExpectedImpl(
-    const std::vector<ContentType>& container, std::false_type) {
+    const ActualType* pointer, std::false_type) {
   return nullptr;
 }
 
@@ -201,12 +201,12 @@ inline const ExpectedType* GetPointerIfTypeExpectedImpl(
 
 // Returns a pointer of 'ExpectedType'. If elements of 'container' are of
 // 'ExpectedType', the returned pointer will point to its underlying data.
-// Otherwise, nullptr will be returned.
-template <typename ContentType, typename ExpectedType>
+// Otherwise, returns nullptr.
+template <typename ExpectedType, typename ContentType>
 const ExpectedType* GetPointerIfTypeExpected(
     const std::vector<ContentType>& container) {
-  return internal::GetPointerIfTypeExpectedImpl<ContentType, ExpectedType>(
-      container, std::is_same<ContentType, ExpectedType>());
+  return internal::GetPointerIfTypeExpectedImpl<ExpectedType, ContentType>(
+      container.data(), std::is_same<ExpectedType, ContentType>());
 }
 
 } /* namespace util */

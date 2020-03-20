@@ -18,6 +18,7 @@
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/text.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
@@ -83,7 +84,7 @@ class ButtonMaker {
       wrapper::vulkan::Text::Font font, int font_height,
       const glm::vec3& text_color, const common::Image& button_background,
       const button::VerticesInfo& vertices_info,
-      const std::vector<make_button::ButtonInfo>& button_infos);
+      absl::Span<const make_button::ButtonInfo> button_infos);
 };
 
 } /* namespace aurora */

@@ -162,7 +162,7 @@ inline glm::vec2 NormalizePos(const glm::vec2& coordinate) {
 } /* namespace */
 
 CharLoader::CharLoader(const SharedBasicContext& context,
-                       const vector<string>& texts,
+                       absl::Span<const std::string> texts,
                        Font font, int font_height) {
   CharImageMap char_image_map;
   {
@@ -326,7 +326,7 @@ std::unique_ptr<StaticPerVertexBuffer> CharLoader::CreateVertexBuffer(
 }
 
 TextLoader::TextLoader(const SharedBasicContext& context,
-                       const vector<string>& texts,
+                       absl::Span<const std::string> texts,
                        CharLoader::Font font, int font_height) {
   const auto& longest_text = std::max_element(
       texts.begin(), texts.end(), [](const string& lhs, const string& rhs) {

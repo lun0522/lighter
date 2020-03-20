@@ -106,8 +106,7 @@ void CatmullRomSpline::Tessellate(const glm::vec3& p0,
                            /*recursion_depth=*/0);
 }
 
-void CatmullRomSpline::BuildSpline(
-    const std::vector<glm::vec3>& control_points) {
+void CatmullRomSpline::BuildSpline(absl::Span<const glm::vec3> control_points) {
   const auto num_control_points = static_cast<int>(control_points.size());
   ASSERT_TRUE(num_control_points >= kMinNumControlPoints,
               absl::StrFormat(

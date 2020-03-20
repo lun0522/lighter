@@ -74,7 +74,7 @@ std::unique_ptr<OffscreenImage> CreateTargetImage(
 // Creates per-instance vertex buffer storing RenderInfo.
 std::unique_ptr<StaticPerInstanceBuffer> CreatePerInstanceBuffer(
     const SharedBasicContext& context,
-    const vector<make_button::ButtonInfo>& button_infos) {
+    absl::Span<const make_button::ButtonInfo> button_infos) {
   vector<ButtonMaker::RenderInfo> render_infos;
   render_infos.reserve(button_infos.size() * button::kNumStates);
   for (const auto& info : button_infos) {
@@ -128,7 +128,7 @@ std::unique_ptr<RenderPass> CreateRenderPass(
 std::unique_ptr<DynamicText> CreateTextRenderer(
     const SharedBasicContext& context, Text::Font font, int font_height,
     const Image& target_image, const RenderPass& render_pass,
-    const vector<make_button::ButtonInfo>& button_infos) {
+    absl::Span<const make_button::ButtonInfo> button_infos) {
   vector<std::string> texts;
   texts.reserve(button_infos.size());
   for (const auto& info : button_infos) {
@@ -159,7 +159,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
     const SharedBasicContext& context, Text::Font font, int font_height,
     const glm::vec3& text_color, const common::Image& button_background,
     const button::VerticesInfo& vertices_info,
-    const vector<make_button::ButtonInfo>& button_infos) {
+    absl::Span<const make_button::ButtonInfo> button_infos) {
   const auto background_image =
       LoadButtonBackgroundImage(context, button_background);
 

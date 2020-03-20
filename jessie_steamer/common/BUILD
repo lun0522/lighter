@@ -24,6 +24,7 @@ cc_library(
         ":util",
         "//third_party/absl/container:flat_hash_map",
         "//third_party/absl/memory",
+        "//third_party/absl/types:span",
         "//third_party:freetype",
         "//third_party:glm",
     ],
@@ -90,6 +91,7 @@ cc_library(
         "//third_party/absl/memory",
         "//third_party/absl/strings:str_format",
         "//third_party/absl/types:optional",
+        "//third_party/absl/types:span",
         "//third_party:glm",
     ],
 )
@@ -108,6 +110,7 @@ cc_library(
         "//third_party/absl/flags:parse",
         "//third_party/absl/strings:str_format",
         "//third_party/absl/types:optional",
+        "//third_party/absl/types:span",
     ],
 )
 

@@ -15,6 +15,7 @@
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -85,7 +86,7 @@ class StaticDescriptor : public Descriptor {
  public:
   // Declares the resources that are used in shaders and specified by 'infos'.
   // The descriptor set layout should be fixed once construction is done.
-  StaticDescriptor(SharedBasicContext context, const std::vector<Info>& infos);
+  StaticDescriptor(SharedBasicContext context, absl::Span<const Info> infos);
 
   // This class is neither copyable nor movable.
   StaticDescriptor(const StaticDescriptor&) = delete;
@@ -130,7 +131,7 @@ class DynamicDescriptor : public Descriptor {
  public:
   // Declares the resources that are used in shaders and specified by 'infos'.
   // The descriptor set layout should be fixed once construction is done.
-  DynamicDescriptor(SharedBasicContext context, const std::vector<Info>& infos);
+  DynamicDescriptor(SharedBasicContext context, absl::Span<const Info> infos);
 
   // This class is neither copyable nor movable.
   DynamicDescriptor(const DynamicDescriptor&) = delete;

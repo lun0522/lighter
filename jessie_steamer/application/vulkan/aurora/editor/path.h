@@ -22,6 +22,7 @@
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
 #include "third_party/absl/types/optional.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
@@ -43,8 +44,8 @@ class SplineRenderer {
 
   // Updates the vertex data of aurora path at 'path_index'.
   void UpdatePath(int path_index,
-                  const std::vector<glm::vec3>& control_points,
-                  const std::vector<glm::vec3>& spline_points);
+                  absl::Span<const glm::vec3> control_points,
+                  absl::Span<const glm::vec3> spline_points);
 
   // Updates internal states and rebuilds the graphics pipeline.
   void UpdateFramebuffer(
@@ -61,7 +62,7 @@ class SplineRenderer {
   // 'color_alphas' must match with the number of aurora paths.
   // This should be called when 'command_buffer' is recording commands.
   void DrawSplines(const VkCommandBuffer& command_buffer, int frame,
-                   const std::vector<glm::vec4>& color_alphas);
+                   absl::Span<const glm::vec4> color_alphas);
 
   // Renders control points for the aurora path at 'path_index'.
   // This should be called when 'command_buffer' is recording commands.

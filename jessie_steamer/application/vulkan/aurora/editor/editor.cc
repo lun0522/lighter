@@ -7,6 +7,8 @@
 
 #include "jessie_steamer/application/vulkan/aurora/editor/editor.h"
 
+#include <vector>
+
 #include "jessie_steamer/application/vulkan/aurora/editor/button_util.h"
 #include "third_party/absl/memory/memory.h"
 
@@ -93,7 +95,7 @@ void EditorRenderer::Recreate() {
 
 void EditorRenderer::Draw(
     const VkCommandBuffer& command_buffer, int framebuffer_index,
-    const vector<RenderPass::RenderOp>& render_ops) {
+    absl::Span<const wrapper::vulkan::RenderPass::RenderOp> render_ops) {
   render_pass_->Run(command_buffer, framebuffer_index, render_ops);
 }
 

@@ -19,8 +19,8 @@
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
-#include "absl/types/optional.h"
-#include "absl/types/span.h"
+#include "third_party/absl/types/optional.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
@@ -67,7 +67,7 @@ class ButtonRenderer {
   // 'buttons_to_render'.
   // This should be called when 'command_buffer' is recording commands.
   void Draw(const VkCommandBuffer& command_buffer,
-            const std::vector<draw_button::RenderInfo>& buttons_to_render);
+            absl::Span<const draw_button::RenderInfo> buttons_to_render);
 
  private:
   struct RenderInfo : public draw_button::RenderInfo {

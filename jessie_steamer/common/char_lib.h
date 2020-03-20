@@ -10,10 +10,10 @@
 
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "jessie_steamer/common/file.h"
 #include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/freetype/ft2build.h"
 #include FT_FREETYPE_H
 #include "third_party/glm/glm.hpp"
@@ -34,7 +34,7 @@ class CharLib {
 
   // We will load all characters in 'texts' from the library. All of them will
   // be of height 'font_height', while the width is self-adjusted.
-  CharLib(const std::vector<std::string>& texts,
+  CharLib(absl::Span<const std::string> texts,
           const std::string& font_path, int font_height);
 
   // This class is neither copyable nor movable.

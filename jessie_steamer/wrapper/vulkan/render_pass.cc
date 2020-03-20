@@ -157,7 +157,7 @@ vector<VkFramebuffer> CreateFramebuffers(
 } /* namespace */
 
 vector<VkAttachmentReference> RenderPassBuilder::CreateMultisamplingReferences(
-    int num_color_refs, const vector<MultisamplingPair>& pairs) {
+    int num_color_refs, absl::Span<const MultisamplingPair> pairs) {
   ASSERT_NON_EMPTY(pairs, "No multisampling pairs provided");
   vector<VkAttachmentReference> references(
       num_color_refs,
@@ -274,7 +274,7 @@ std::unique_ptr<RenderPass> RenderPassBuilder::Build() const {
 
 void RenderPass::Run(const VkCommandBuffer& command_buffer,
                      int framebuffer_index,
-                     const vector<RenderOp>& render_ops) const {
+                     absl::Span<const RenderOp> render_ops) const {
   ASSERT_TRUE(render_ops.size() == num_subpasses_,
               absl::StrFormat("Render pass contains %d subpasses, but %d "
                               "rendering operations are provided",

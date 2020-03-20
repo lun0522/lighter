@@ -18,6 +18,7 @@
 #include "jessie_steamer/wrapper/vulkan/validation.h"
 #endif /* !NDEBUG */
 #include "third_party/absl/types/optional.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -37,8 +38,8 @@ using SharedBasicContext = std::shared_ptr<BasicContext>;
 // Note that only VkAllocationCallbacks and VkInstance are guaranteed to exist
 // when 'create_surface' is called.
 struct WindowSupport {
-  const std::vector<const char*>& window_extensions;
-  const std::vector<const char*>& swapchain_extensions;
+  absl::Span<const char* const> window_extensions;
+  absl::Span<const char* const> swapchain_extensions;
   const VkSurfaceKHR& surface;
   const std::function<void(const BasicContext* context)>& create_surface;
 };

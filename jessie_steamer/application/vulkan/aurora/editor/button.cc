@@ -123,7 +123,7 @@ void ButtonRenderer::UpdateFramebuffer(
 
 void ButtonRenderer::Draw(
     const VkCommandBuffer& command_buffer,
-    const vector<draw_button::RenderInfo>& buttons_to_render) {
+    absl::Span<const draw_button::RenderInfo> buttons_to_render) {
   ASSERT_NON_NULL(pipeline_, "UpdateFramebuffer() must have been called");
   per_instance_buffer_->CopyHostData(buttons_to_render);
   pipeline_->Bind(command_buffer);

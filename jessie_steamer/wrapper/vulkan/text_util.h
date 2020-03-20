@@ -24,6 +24,7 @@
 #include "jessie_steamer/wrapper/vulkan/render_pass_util.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/optional.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 
 namespace jessie_steamer {
@@ -60,8 +61,7 @@ class CharLoader {
   // loader. Note that this does not mean the user can only use this to render
   // elements of 'texts'. The user may use any combination of these characters.
   CharLoader(const SharedBasicContext& context,
-             const std::vector<std::string>& texts,
-             Font font, int font_height);
+             absl::Span<const std::string> texts, Font font, int font_height);
 
   // This class is neither copyable nor movable.
   CharLoader(const CharLoader&) = delete;
@@ -143,7 +143,7 @@ class TextLoader {
 
   // The loader will be able to render any of 'texts'.
   TextLoader(const SharedBasicContext& context,
-             const std::vector<std::string>& texts,
+             absl::Span<const std::string> texts,
              CharLoader::Font font, int font_height);
 
   // This class is neither copyable nor movable.
