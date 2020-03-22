@@ -39,6 +39,10 @@ class Spline {
  protected:
   Spline() = default;
 
+  // Accessors.
+  std::vector<glm::vec3>* mutable_splines() { return &spline_points_; }
+
+ private:
   // Positions of spline points.
   std::vector<glm::vec3> spline_points_;
 };

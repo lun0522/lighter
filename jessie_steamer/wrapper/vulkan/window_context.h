@@ -115,6 +115,9 @@ class WindowContext {
   SharedBasicContext basic_context() const { return context_; }
   common::Window* mutable_window() { return &window_; }
   const common::Window& window() const { return window_; }
+  float original_aspect_ratio() const {
+    return window_.original_aspect_ratio();
+  }
   const VkSwapchainKHR& swapchain() const { return **swapchain_; }
   const VkExtent2D& frame_size() const { return swapchain_->image_extent(); }
   int num_swapchain_images() const { return swapchain_->num_images(); }

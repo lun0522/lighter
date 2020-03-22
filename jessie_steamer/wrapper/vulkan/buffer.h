@@ -55,9 +55,24 @@ class Buffer {
   explicit Buffer(SharedBasicContext context)
       : context_{std::move(FATAL_IF_NULL(context))} {}
 
+  // Adds an op to BasicContext for releasing an expired resource.
+  void AddReleaseExpiredResourceOp(
+      BasicContext::ReleaseExpiredResourceOp&& op) {
+    context_->AddReleaseExpiredResourceOp(std::move(op));
+  }
+
+  // Modifiers.
+  void SetDeviceMemory(const VkDeviceMemory& device_memory) {
+    device_memory_ = device_memory;
+  }
+
+  // Accessors.
+  const VkDeviceMemory& device_memory() const { return device_memory_; }
+
   // Pointer to context.
   const SharedBasicContext context_;
 
+ private:
   // Opaque device memory object.
   VkDeviceMemory device_memory_;
 };
@@ -80,6 +95,15 @@ class DataBuffer : public Buffer {
   // Inherits constructor.
   using Buffer::Buffer;
 
+  // Modifiers.
+  void SetBuffer(const VkBuffer& buffer) {
+    buffer_ = buffer;
+  }
+
+  // Accessors.
+  const VkBuffer& buffer() const { return buffer_; }
+
+ private:
   // Opaque buffer object.
   VkBuffer buffer_;
 };
@@ -286,6 +310,10 @@ class PerVertexBuffer : public VertexBuffer {
   // Inherits constructor.
   using VertexBuffer::VertexBuffer;
 
+  // Accessors.
+  MeshDataInfos* mutable_mesh_data_infos() { return &mesh_data_infos_; }
+
+ private:
   // Holds data information for all meshes stored in the vertex buffer.
   MeshDataInfos mesh_data_infos_;
 };
@@ -484,6 +512,10 @@ class ImageBuffer : public Buffer {
   // Inherits constructor.
   using Buffer::Buffer;
 
+  // Modifiers.
+  void SetImage(const VkImage& image) { image_ = image; }
+
+ private:
   // Opaque image object.
   VkImage image_;
 };

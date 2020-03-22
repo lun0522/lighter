@@ -145,8 +145,7 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
       aurora_layer_{GetEarthModelCenter(), kAuroraLayerModelRadius,
                     kInertialRotationDuration} {
   const auto context = window_context_.basic_context();
-  const float original_aspect_ratio =
-      window_context_.window().original_aspect_ratio();
+  const float original_aspect_ratio = window_context_.original_aspect_ratio();
 
   /* Earth and skybox */
   celestial_ = absl::make_unique<Celestial>(
@@ -280,7 +279,7 @@ void Editor::UpdateData(int frame) {
   const float current_aspect_ratio =
       util::GetAspectRatio(window_context_.frame_size());
   const float distortion =
-      current_aspect_ratio / window_context_.window().original_aspect_ratio();
+      current_aspect_ratio / window_context_.original_aspect_ratio();
   if (distortion > 1.0f) {
     click_ndc.x *= distortion;
   } else {

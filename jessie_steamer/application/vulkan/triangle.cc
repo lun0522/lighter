@@ -96,8 +96,8 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   };
   render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
       context(), subpass_config,
-      /*num_framebuffers=*/window_context_.num_swapchain_images(),
-      /*present_to_screen=*/true, window_context_.multisampling_mode());
+      /*num_framebuffers=*/window_context().num_swapchain_images(),
+      /*present_to_screen=*/true, window_context().multisampling_mode());
 
   /* Pipeline */
   pipeline_builder_ = absl::make_unique<PipelineBuilder>(context());
@@ -120,21 +120,22 @@ void TriangleApp::Recreate() {
   render_pass_builder_->mutable_builder()->UpdateAttachmentImage(
       render_pass_builder_->color_attachment_index(),
       [this](int framebuffer_index) -> const Image& {
-        return window_context_.swapchain_image(framebuffer_index);
+        return window_context().swapchain_image(framebuffer_index);
       });
   if (render_pass_builder_->has_multisample_attachment()) {
     render_pass_builder_->mutable_builder()->UpdateAttachmentImage(
         render_pass_builder_->multisample_attachment_index(),
         [this](int framebuffer_index) -> const Image& {
-          return window_context_.multisample_image();
+          return window_context().multisample_image();
         });
   }
   render_pass_ = (*render_pass_builder_)->Build();
 
   /* Pipeline */
   (*pipeline_builder_)
-      .SetMultisampling(window_context_.sample_count())
-      .SetViewport(pipeline::GetFullFrameViewport(window_context_.frame_size()))
+      .SetMultisampling(window_context().sample_count())
+      .SetViewport(
+          pipeline::GetFullFrameViewport(window_context().frame_size()))
       .SetRenderPass(**render_pass_, kTriangleSubpassIndex)
       .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)});
   pipeline_ = pipeline_builder_->Build();
@@ -150,7 +151,7 @@ void TriangleApp::MainLoop() {
   const auto update_data = [this](int frame) { UpdateData(frame); };
 
   Recreate();
-  while (window_context_.CheckEvents()) {
+  while (mutable_window_context()->CheckEvents()) {
     timer_.Tick();
 
     const vector<RenderPass::RenderOp> render_ops{
@@ -164,18 +165,18 @@ void TriangleApp::MainLoop() {
         },
     };
     const auto draw_result = command_->Run(
-        current_frame_, window_context_.swapchain(), update_data,
+        current_frame_, window_context().swapchain(), update_data,
         [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
           render_pass_->Run(command_buffer, framebuffer_index, render_ops);
         });
 
-    if (draw_result.has_value() || window_context_.ShouldRecreate()) {
-      window_context_.Recreate();
+    if (draw_result.has_value() || window_context().ShouldRecreate()) {
+      mutable_window_context()->Recreate();
       Recreate();
     }
     current_frame_ = (current_frame_ + 1) % kNumFramesInFlight;
   }
-  window_context_.OnExit();
+  mutable_window_context()->OnExit();
 }
 
 } /* namespace vulkan */

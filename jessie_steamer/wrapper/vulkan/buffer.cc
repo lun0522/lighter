@@ -494,9 +494,9 @@ void VertexBuffer::CreateBufferAndMemory(VkDeviceSize total_size,
     buffer_usages |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     memory_properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
   }
-  buffer_ = CreateBuffer(*context_, total_size, buffer_usages,
-                         GetGraphicsQueueUsage(*context_));
-  device_memory_ = CreateBufferMemory(*context_, buffer_, memory_properties);
+  SetBuffer(CreateBuffer(*context_, total_size, buffer_usages,
+                         GetGraphicsQueueUsage(*context_)));
+  SetDeviceMemory(CreateBufferMemory(*context_, buffer(), memory_properties));
 }
 
 DynamicBuffer::DynamicBuffer(size_t initial_size, VertexBuffer* vertex_buffer)
@@ -511,9 +511,9 @@ void DynamicBuffer::Reserve(size_t size) {
 
   if (buffer_size_ > 0) {
     // Make copy of 'buffer_' and 'device_memory_' since they will be changed.
-    VkBuffer buffer = vertex_buffer_->buffer_;
-    VkDeviceMemory device_memory = vertex_buffer_->device_memory_;
-    vertex_buffer_->context_->AddReleaseExpiredResourceOp(
+    auto buffer = vertex_buffer_->buffer();
+    auto device_memory = vertex_buffer_->device_memory();
+    vertex_buffer_->AddReleaseExpiredResourceOp(
         [buffer, device_memory](const BasicContext& context) {
           vkDestroyBuffer(*context.device(), buffer, *context.allocator());
           vkFreeMemory(*context.device(), device_memory, *context.allocator());
@@ -527,8 +527,8 @@ Buffer::CopyInfos PerVertexBuffer::NoIndicesDataInfo::CreateCopyInfos(
     PerVertexBuffer* buffer) const {
   // Vertex buffer layout (@ refers to the index of mesh):
   // | vertices@0 | vertices@1 | vertices@2 | ...
-  auto& mesh_infos =
-      buffer->mesh_data_infos_.emplace<MeshDataInfosNoIndices>().infos;
+  auto& mesh_infos = buffer->mutable_mesh_data_infos()
+                           ->emplace<MeshDataInfosNoIndices>().infos;
   mesh_infos.reserve(per_mesh_vertices_.size());
   vector<Buffer::CopyInfo> copy_infos;
   copy_infos.reserve(per_mesh_vertices_.size());
@@ -554,8 +554,8 @@ Buffer::CopyInfos PerVertexBuffer::ShareIndicesDataInfo::CreateCopyInfos(
     PerVertexBuffer* buffer) const {
   // Vertex buffer layout (@ refers to the index of mesh):
   // | shared indices | vertices@0 | vertices@1 | vertices@2 | ...
-  auto& mesh_infos =
-      buffer->mesh_data_infos_.emplace<MeshDataInfosWithIndices>().infos;
+  auto& mesh_infos = buffer->mutable_mesh_data_infos()
+                           ->emplace<MeshDataInfosWithIndices>().infos;
   mesh_infos.reserve(num_meshes_);
 
   constexpr int kIndicesOffset = 0;
@@ -592,8 +592,8 @@ Buffer::CopyInfos PerVertexBuffer::NoShareIndicesDataInfo::CreateCopyInfos(
     PerVertexBuffer* buffer) const {
   // Vertex buffer layout (@ refers to the index of mesh):
   // | indices@0 | vertices@0 | indices@1 | vertices@1 | ...
-  auto& mesh_infos =
-      buffer->mesh_data_infos_.emplace<MeshDataInfosWithIndices>().infos;
+  auto& mesh_infos = buffer->mutable_mesh_data_infos()
+                           ->emplace<MeshDataInfosWithIndices>().infos;
   mesh_infos.reserve(per_mesh_infos_.size());
   vector<Buffer::CopyInfo> copy_infos;
   copy_infos.reserve(per_mesh_infos_.size() * 2);
@@ -634,17 +634,17 @@ void PerVertexBuffer::Draw(const VkCommandBuffer& command_buffer,
     const auto& mesh_info =
         absl::get<MeshDataInfosNoIndices>(mesh_data_infos_).infos[mesh_index];
     vkCmdBindVertexBuffers(command_buffer, binding_point, /*bindingCount=*/1,
-                           &buffer_, &mesh_info.vertices_offset);
+                           &buffer(), &mesh_info.vertices_offset);
     vkCmdDraw(command_buffer, mesh_info.vertices_count, instance_count,
               /*firstVertex=*/0, /*firstInstance=*/0);
   } else if (
       absl::holds_alternative<MeshDataInfosWithIndices>(mesh_data_infos_)) {
     const auto& mesh_info =
         absl::get<MeshDataInfosWithIndices>(mesh_data_infos_).infos[mesh_index];
-    vkCmdBindIndexBuffer(command_buffer, buffer_, mesh_info.indices_offset,
+    vkCmdBindIndexBuffer(command_buffer, buffer(), mesh_info.indices_offset,
                          VK_INDEX_TYPE_UINT32);
     vkCmdBindVertexBuffers(command_buffer, binding_point, /*bindingCount=*/1,
-                           &buffer_, &mesh_info.vertices_offset);
+                           &buffer(), &mesh_info.vertices_offset);
     vkCmdDrawIndexed(command_buffer, mesh_info.indices_count, instance_count,
                      /*firstIndex=*/0, /*vertexOffset=*/0, /*firstInstance=*/0);
   }
@@ -656,21 +656,21 @@ StaticPerVertexBuffer::StaticPerVertexBuffer(
     : PerVertexBuffer{std::move(context), std::move(attributes)} {
   const CopyInfos copy_infos = info.CreateCopyInfos(this);
   CreateBufferAndMemory(copy_infos.total_size, /*is_dynamic=*/false);
-  CopyHostToBufferViaStaging(context_, buffer_, copy_infos);
+  CopyHostToBufferViaStaging(context_, buffer(), copy_infos);
 }
 
 void DynamicPerVertexBuffer::CopyHostData(const BufferDataInfo& info) {
   const CopyInfos copy_infos = info.CreateCopyInfos(this);
   Reserve(copy_infos.total_size);
   CopyHostToBuffer(*context_, /*map_offset=*/0, /*map_size=*/buffer_size(),
-                   device_memory_, copy_infos.copy_infos);
+                   device_memory(), copy_infos.copy_infos);
 }
 
 void PerInstanceBuffer::Bind(const VkCommandBuffer& command_buffer,
                              uint32_t binding_point, int offset) const {
   const VkDeviceSize size_offset = per_instance_data_size_ * offset;
   vkCmdBindVertexBuffers(command_buffer, binding_point, /*bindingCount=*/1,
-                         &buffer_, &size_offset);
+                         &buffer(), &size_offset);
 }
 
 StaticPerInstanceBuffer::StaticPerInstanceBuffer(
@@ -682,7 +682,7 @@ StaticPerInstanceBuffer::StaticPerInstanceBuffer(
   const uint32_t total_size = per_instance_data_size * num_instances;
   CreateBufferAndMemory(total_size, /*is_dynamic=*/false);
   CopyHostToBufferViaStaging(
-      context_, buffer_, CopyInfos{
+      context_, buffer(), CopyInfos{
           total_size, /*copy_infos=*/{CopyInfo{data, total_size, /*offset=*/0}},
       });
 }
@@ -695,7 +695,7 @@ void DynamicPerInstanceBuffer::CopyHostData(
   };
   Reserve(total_size);
   CopyHostToBuffer(*context_, /*map_offset=*/0, /*map_size=*/buffer_size(),
-                   device_memory_, copy_infos.copy_infos);
+                   device_memory(), copy_infos.copy_infos);
 }
 
 UniformBuffer::UniformBuffer(SharedBasicContext context,
@@ -708,10 +708,10 @@ UniformBuffer::UniformBuffer(SharedBasicContext context,
       (chunk_data_size_ + alignment - 1) / alignment * alignment;
 
   data_ = new char[chunk_data_size_ * num_chunks];
-  buffer_ = CreateBuffer(*context_, chunk_memory_size_ * num_chunks,
+  SetBuffer(CreateBuffer(*context_, chunk_memory_size_ * num_chunks,
                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                         GetGraphicsQueueUsage(*context_));
-  device_memory_ = CreateBufferMemory(*context_, buffer_, kHostVisibleMemory);
+                         GetGraphicsQueueUsage(*context_)));
+  SetDeviceMemory(CreateBufferMemory(*context_, buffer(), kHostVisibleMemory));
 }
 
 void UniformBuffer::Flush(int chunk_index) const {
@@ -719,7 +719,7 @@ void UniformBuffer::Flush(int chunk_index) const {
   const VkDeviceSize src_offset = chunk_data_size_ * chunk_index;
   const VkDeviceSize dst_offset = chunk_memory_size_ * chunk_index;
   CopyHostToBuffer(
-      *context_, dst_offset, chunk_data_size_, device_memory_,
+      *context_, dst_offset, chunk_data_size_, device_memory(),
       {{data_ + src_offset, chunk_data_size_, /*offset=*/0}});
 }
 
@@ -727,7 +727,7 @@ VkDescriptorBufferInfo UniformBuffer::GetDescriptorInfo(
     int chunk_index) const {
   ValidateChunkIndex(chunk_index);
   return VkDescriptorBufferInfo{
-      buffer_,
+      buffer(),
       /*offset=*/chunk_memory_size_ * chunk_index,
       /*range=*/chunk_data_size_,
   };
@@ -783,28 +783,28 @@ TextureBuffer::TextureBuffer(SharedBasicContext context,
   ImageConfig image_config;
   image_config.mip_levels = mip_levels_;
   image_config.layer_count = layer_count;
-  image_ = CreateImage(*context_, image_config, cubemap_flag,
+  SetImage(CreateImage(*context_, image_config, cubemap_flag,
                        info.format, image_extent,
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT
                            | VK_IMAGE_USAGE_SAMPLED_BIT
-                           | mipmap_flag);
-  device_memory_ = CreateImageMemory(
-      *context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                           | mipmap_flag));
+  SetDeviceMemory(CreateImageMemory(
+      *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 
   // Copy data from staging buffer to image buffer.
   TransitionImageLayout(
-      context_, image_, image_config, VK_IMAGE_ASPECT_COLOR_BIT,
+      context_, image(), image_config, VK_IMAGE_ASPECT_COLOR_BIT,
       {VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL},
       {kNullAccessFlag, VK_ACCESS_TRANSFER_WRITE_BIT},
       {VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT});
-  CopyBufferToImage(context_, staging_buffer, image_, image_config,
+  CopyBufferToImage(context_, staging_buffer, image(), image_config,
                     image_extent, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
   if (generate_mipmaps) {
-    GenerateMipmaps(context_, image_, info.format,
+    GenerateMipmaps(context_, image(), info.format,
                     image_extent, mipmap_extents);
   } else {
     TransitionImageLayout(
-        context_, image_, image_config, VK_IMAGE_ASPECT_COLOR_BIT,
+        context_, image(), image_config, VK_IMAGE_ASPECT_COLOR_BIT,
         {VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
         {VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT},
@@ -820,22 +820,22 @@ TextureBuffer::TextureBuffer(SharedBasicContext context,
 OffscreenBuffer::OffscreenBuffer(SharedBasicContext context,
                                  const VkExtent2D& extent, VkFormat format)
     : ImageBuffer{std::move(context)} {
-  image_ = CreateImage(*context_, ImageConfig{}, nullflag, format,
+  SetImage(CreateImage(*context_, ImageConfig{}, nullflag, format,
                        ExpandDimension(extent),
                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-                           | VK_IMAGE_USAGE_SAMPLED_BIT);
-  device_memory_ = CreateImageMemory(
-      *context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                           | VK_IMAGE_USAGE_SAMPLED_BIT));
+  SetDeviceMemory(CreateImageMemory(
+      *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 }
 
 DepthStencilBuffer::DepthStencilBuffer(
     SharedBasicContext context, const VkExtent2D& extent, VkFormat format)
     : ImageBuffer{std::move(context)} {
-  image_ = CreateImage(*context_, ImageConfig{}, nullflag, format,
+  SetImage(CreateImage(*context_, ImageConfig{}, nullflag, format,
                        ExpandDimension(extent),
-                       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
-  device_memory_ = CreateImageMemory(
-      *context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT));
+  SetDeviceMemory(CreateImageMemory(
+      *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 }
 
 MultisampleBuffer::MultisampleBuffer(
@@ -855,10 +855,10 @@ MultisampleBuffer::MultisampleBuffer(
   }
   ImageConfig image_config;
   image_config.sample_count = sample_count;
-  image_ = CreateImage(*context_, image_config, nullflag, format,
-                       ExpandDimension(extent), image_usage);
-  device_memory_ = CreateImageMemory(
-      *context_, image_, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  SetImage(CreateImage(*context_, image_config, nullflag, format,
+                       ExpandDimension(extent), image_usage));
+  SetDeviceMemory(CreateImageMemory(
+      *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 }
 
 PushConstant::PushConstant(const SharedBasicContext& context,

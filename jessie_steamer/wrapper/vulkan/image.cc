@@ -166,15 +166,15 @@ TextureImage::TextureImage(SharedBasicContext context,
     : Image{std::move(context), info.GetExtent2D(), info.format},
       buffer_{context_, generate_mipmaps, info},
       sampler_{CreateSampler(*context_, buffer_.mip_levels(), sampler_config)} {
-  image_view_ = CreateImageView(*context_, buffer_.image(), format_,
-                                VK_IMAGE_ASPECT_COLOR_BIT, buffer_.mip_levels(),
-                                /*layer_count=*/CONTAINER_SIZE(info.datas));
+  SetImageView(CreateImageView(*context_, buffer_.image(), format_,
+                               VK_IMAGE_ASPECT_COLOR_BIT, buffer_.mip_levels(),
+                               /*layer_count=*/CONTAINER_SIZE(info.datas)));
 }
 
 VkDescriptorImageInfo TextureImage::GetDescriptorInfo() const {
   return VkDescriptorImageInfo{
       sampler_,
-      image_view_,
+      image_view(),
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
   };
 }
@@ -235,15 +235,15 @@ OffscreenImage::OffscreenImage(SharedBasicContext context,
     : Image{std::move(context), extent, FindColorImageFormat(channel)},
       buffer_{context_, extent_, format_},
       sampler_{CreateSampler(*context_, kSingleMipLevel, sampler_config)} {
-  image_view_ = CreateImageView(*context_, buffer_.image(), format_,
-                                VK_IMAGE_ASPECT_COLOR_BIT,
-                                kSingleMipLevel, kSingleImageLayer);
+  SetImageView(CreateImageView(*context_, buffer_.image(), format_,
+                               VK_IMAGE_ASPECT_COLOR_BIT,
+                               kSingleMipLevel, kSingleImageLayer));
 }
 
 VkDescriptorImageInfo OffscreenImage::GetDescriptorInfo() const {
   return VkDescriptorImageInfo{
       sampler_,
-      image_view_,
+      image_view(),
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
   };
 }
@@ -252,19 +252,19 @@ DepthStencilImage::DepthStencilImage(const SharedBasicContext& context,
                                      const VkExtent2D& extent)
     : Image{context, extent, FindDepthStencilImageFormat(*context)},
       buffer_{context_, extent_, format_} {
-  image_view_ = CreateImageView(*context_, buffer_.image(), format_,
-                                VK_IMAGE_ASPECT_DEPTH_BIT
-                                    | VK_IMAGE_ASPECT_STENCIL_BIT,
-                                kSingleMipLevel, kSingleImageLayer);
+  SetImageView(CreateImageView(*context_, buffer_.image(), format_,
+                               VK_IMAGE_ASPECT_DEPTH_BIT
+                                   | VK_IMAGE_ASPECT_STENCIL_BIT,
+                               kSingleMipLevel, kSingleImageLayer));
 }
 
 SwapchainImage::SwapchainImage(SharedBasicContext context,
                                const VkImage& image,
                                const VkExtent2D& extent, VkFormat format)
     : Image{std::move(context), extent, format} {
-  image_view_ = CreateImageView(*context_, image, format_,
-                                VK_IMAGE_ASPECT_COLOR_BIT,
-                                kSingleMipLevel, kSingleImageLayer);
+  SetImageView(CreateImageView(*context_, image, format_,
+                               VK_IMAGE_ASPECT_COLOR_BIT,
+                               kSingleMipLevel, kSingleImageLayer));
 }
 
 std::unique_ptr<Image> MultisampleImage::CreateColorMultisampleImage(
@@ -311,9 +311,9 @@ MultisampleImage::MultisampleImage(
       image_aspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
       break;
   }
-  image_view_ = CreateImageView(
+  SetImageView(CreateImageView(
       *context_, buffer_.image(), format_,
-      image_aspect, kSingleMipLevel, kSingleImageLayer);
+      image_aspect, kSingleMipLevel, kSingleImageLayer));
 }
 
 VkSampleCountFlagBits MultisampleImage::ChooseSampleCount(Mode mode) {

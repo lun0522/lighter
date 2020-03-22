@@ -49,12 +49,12 @@ class AuroraApp : public Application {
 
 AuroraApp::AuroraApp(const WindowContext::Config& window_config)
     : Application{"Aurora Sketcher", window_config} {
-  window_context_.mutable_window()->RegisterPressKeyCallback(
+  mutable_window_context()->mutable_window()->RegisterPressKeyCallback(
       common::Window::KeyMap::kEscape, [this]() { should_quit_ = true; });
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
-  editor_ = absl::make_unique<aurora::Editor>(&window_context_,
+  editor_ = absl::make_unique<aurora::Editor>(mutable_window_context(),
                                               kNumFramesInFlight);
-  viewer_ = absl::make_unique<aurora::Viewer>(&window_context_,
+  viewer_ = absl::make_unique<aurora::Viewer>(mutable_window_context(),
                                               kNumFramesInFlight);
 }
 
@@ -89,7 +89,7 @@ void AuroraApp::TransitionSceneIfNeeded() {
 }
 
 void AuroraApp::MainLoop() {
-  while (!should_quit_ && window_context_.CheckEvents()) {
+  while (!should_quit_ && mutable_window_context()->CheckEvents()) {
     timer_.Tick();
 
     auto& scene = GetCurrentScene();
@@ -99,7 +99,7 @@ void AuroraApp::MainLoop() {
     }
 
     const auto draw_result = command_->Run(
-        current_frame_, window_context_.swapchain(),
+        current_frame_, window_context().swapchain(),
         [&scene](int frame) { scene.UpdateData(frame); },
         [this, &scene](const VkCommandBuffer& command_buffer,
                        uint32_t framebuffer_index) {
@@ -109,14 +109,14 @@ void AuroraApp::MainLoop() {
     TransitionSceneIfNeeded();
     // If scene has been transitioned, the new scene will be recreated anyway.
     if (!HasTransitionedScene() &&
-        (draw_result.has_value() || window_context_.ShouldRecreate())) {
-      window_context_.Recreate();
+        (draw_result.has_value() || window_context().ShouldRecreate())) {
+      mutable_window_context()->Recreate();
       scene.Recreate();
     }
 
     current_frame_ = (current_frame_ + 1) % kNumFramesInFlight;
   }
-  window_context_.OnExit();
+  mutable_window_context()->OnExit();
 }
 
 } /* namespace vulkan */

@@ -54,10 +54,17 @@ class Application {
 
  protected:
   // Accessors.
+  const wrapper::vulkan::WindowContext& window_context() {
+    return window_context_;
+  }
+  wrapper::vulkan::WindowContext* mutable_window_context() {
+    return &window_context_;
+  }
   wrapper::vulkan::SharedBasicContext context() const {
     return window_context_.basic_context();
   }
 
+ private:
   // On-screen rendering context.
   wrapper::vulkan::WindowContext window_context_;
 };

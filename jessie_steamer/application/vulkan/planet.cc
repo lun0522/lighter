@@ -120,8 +120,7 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
   using ControlKey = common::UserControlledCamera::ControlKey;
   using TextureType = ModelBuilder::TextureType;
 
-  const float original_aspect_ratio =
-      window_context_.window().original_aspect_ratio();
+  const float original_aspect_ratio = window_context().original_aspect_ratio();
 
   /* Camera */
   common::Camera::Config config;
@@ -134,7 +133,7 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       absl::make_unique<common::PerspectiveCamera>(config, pers_config));
 
   /* Window */
-  (*window_context_.mutable_window())
+  (*mutable_window_context()->mutable_window())
       .SetCursorHidden(true)
       .RegisterMoveCursorCallback([this](double x_pos, double y_pos) {
         camera_->DidMoveCursor(x_pos, y_pos);
@@ -180,8 +179,8 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
   };
   render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
       context(), subpass_config,
-      /*num_framebuffers=*/window_context_.num_swapchain_images(),
-      /*present_to_screen=*/true, window_context_.multisampling_mode());
+      /*num_framebuffers=*/window_context().num_swapchain_images(),
+      /*present_to_screen=*/true, window_context().multisampling_mode());
 
   /* Model */
   planet_model_ = ModelBuilder{
@@ -249,19 +248,19 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
 
 void PlanetApp::Recreate() {
   /* Camera */
-  camera_->SetCursorPos(window_context_.window().GetCursorPos());
+  camera_->SetCursorPos(window_context().window().GetCursorPos());
 
   /* Depth image */
-  const VkExtent2D& frame_size = window_context_.frame_size();
+  const VkExtent2D& frame_size = window_context().frame_size();
   depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
-      context(), frame_size, window_context_.multisampling_mode());
+      context(), frame_size, window_context().multisampling_mode());
 
   /* Render pass */
   (*render_pass_builder_->mutable_builder())
       .UpdateAttachmentImage(
           render_pass_builder_->color_attachment_index(),
           [this](int framebuffer_index) -> const Image& {
-            return window_context_.swapchain_image(framebuffer_index);
+            return window_context().swapchain_image(framebuffer_index);
           })
       .UpdateAttachmentImage(
           render_pass_builder_->depth_attachment_index(),
@@ -272,14 +271,14 @@ void PlanetApp::Recreate() {
     render_pass_builder_->mutable_builder()->UpdateAttachmentImage(
         render_pass_builder_->multisample_attachment_index(),
         [this](int framebuffer_index) -> const Image& {
-          return window_context_.multisample_image();
+          return window_context().multisample_image();
         });
   }
   render_pass_ = (*render_pass_builder_)->Build();
 
   /* Model */
   constexpr bool kIsObjectOpaque = true;
-  const VkSampleCountFlagBits sample_count = window_context_.sample_count();
+  const VkSampleCountFlagBits sample_count = window_context().sample_count();
   planet_model_->Update(kIsObjectOpaque, frame_size, sample_count,
                         *render_pass_, kModelSubpassIndex);
   asteroid_model_->Update(kIsObjectOpaque, frame_size, sample_count,
@@ -348,7 +347,7 @@ void PlanetApp::MainLoop() {
   const auto update_data = [this](int frame) { UpdateData(frame); };
 
   Recreate();
-  while (!should_quit_ && window_context_.CheckEvents()) {
+  while (!should_quit_ && mutable_window_context()->CheckEvents()) {
     timer_.Tick();
 
     const vector<RenderPass::RenderOp> render_ops{
@@ -362,20 +361,20 @@ void PlanetApp::MainLoop() {
         },
     };
     const auto draw_result = command_->Run(
-        current_frame_, window_context_.swapchain(), update_data,
+        current_frame_, window_context().swapchain(), update_data,
         [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
           render_pass_->Run(command_buffer, framebuffer_index, render_ops);
         });
 
-    if (draw_result.has_value() || window_context_.ShouldRecreate()) {
-      window_context_.Recreate();
+    if (draw_result.has_value() || window_context().ShouldRecreate()) {
+      mutable_window_context()->Recreate();
       Recreate();
     }
     current_frame_ = (current_frame_ + 1) % kNumFramesInFlight;
     // Camera is not activated until first frame is displayed.
     camera_->SetActivity(true);
   }
-  window_context_.OnExit();
+  mutable_window_context()->OnExit();
 }
 
 } /* namespace vulkan */

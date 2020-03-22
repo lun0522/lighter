@@ -48,17 +48,21 @@ class Image {
       : context_{std::move(FATAL_IF_NULL(context))},
         extent_{extent}, format_{format} {}
 
+  // Modifiers.
+  void SetImageView(const VkImageView& image_view) { image_view_ = image_view; }
+
   // Pointer to context.
   const SharedBasicContext context_;
-
-  // Opaque image view object.
-  VkImageView image_view_;
 
   // Image extent.
   const VkExtent2D extent_;
 
   // Image format.
   const VkFormat format_;
+
+ private:
+  // Opaque image view object.
+  VkImageView image_view_;
 };
 
 // Interface of images that can be sampled.

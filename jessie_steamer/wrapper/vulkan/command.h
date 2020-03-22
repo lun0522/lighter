@@ -42,18 +42,14 @@ class Command {
       : context_{std::move(FATAL_IF_NULL(context))} {}
 
   // Modifiers.
-  Command& SetCommandPool(const VkCommandPool& command_pool) {
+  void SetCommandPool(const VkCommandPool& command_pool) {
     command_pool_ = command_pool;
-    return *this;
   }
 
-  // Accessors.
-  const BasicContext& context() const { return *context_; }
-
- private:
   // Pointer to context.
   const SharedBasicContext context_;
 
+ private:
   // Opaque command pool object.
   VkCommandPool command_pool_;
 };
@@ -65,7 +61,7 @@ class OneTimeCommand : public Command {
   using OnRecord = std::function<void(const VkCommandBuffer& command_buffer)>;
 
   // The recorded operations will be submitted to 'queue'.
-  OneTimeCommand(SharedBasicContext shared_context, const Queues::Queue* queue);
+  OneTimeCommand(SharedBasicContext context, const Queues::Queue* queue);
 
   // This class is neither copyable nor movable.
   OneTimeCommand(const OneTimeCommand&) = delete;
@@ -98,8 +94,7 @@ class PerFrameCommand : public Command {
   using UpdateData = std::function<void (int current_frame)>;
 
   // Our rendering is 'num_frames_in_flight'-buffered.
-  PerFrameCommand(const SharedBasicContext& shared_context,
-                  int num_frames_in_flight);
+  PerFrameCommand(const SharedBasicContext& context, int num_frames_in_flight);
 
   // This class is neither copyable nor movable.
   PerFrameCommand(const Command&) = delete;

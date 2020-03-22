@@ -72,9 +72,13 @@ class Descriptor {
   explicit Descriptor(SharedBasicContext context)
       : context_{std::move(FATAL_IF_NULL(context))} {}
 
+  // Modifiers.
+  void SetLayout(const VkDescriptorSetLayout& layout) { layout_ = layout; }
+
   // Pointer to context.
   const SharedBasicContext context_;
 
+ private:
   // Opaque descriptor set layout object.
   VkDescriptorSetLayout layout_;
 };

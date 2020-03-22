@@ -78,14 +78,14 @@ absl::optional<VkResult> CheckResult(VkResult result) {
 
 } /* namespace */
 
-OneTimeCommand::OneTimeCommand(SharedBasicContext shared_context,
+OneTimeCommand::OneTimeCommand(SharedBasicContext context,
                                const Queues::Queue* queue)
-    : Command{std::move(shared_context)}, queue_{FATAL_IF_NULL(queue)} {
-  const auto command_pool = CreateCommandPool(context(), *queue_,
+    : Command{std::move(context)}, queue_{FATAL_IF_NULL(queue)} {
+  const auto command_pool = CreateCommandPool(*context_, *queue_,
                                               /*is_transient=*/true);
   SetCommandPool(command_pool);
   command_buffer_ =
-      AllocateCommandBuffers(context(), command_pool, /*count=*/1)[0];
+      AllocateCommandBuffers(*context_, command_pool, /*count=*/1)[0];
 }
 
 void OneTimeCommand::Run(const OnRecord& on_record) const {
@@ -119,18 +119,18 @@ void OneTimeCommand::Run(const OnRecord& on_record) const {
   vkQueueWaitIdle(queue_->queue);
 }
 
-PerFrameCommand::PerFrameCommand(const SharedBasicContext& shared_context,
+PerFrameCommand::PerFrameCommand(const SharedBasicContext& context,
                                  int num_frames_in_flight)
-    : Command{shared_context},
-      image_available_semas_{shared_context, num_frames_in_flight},
-      render_finished_semas_{shared_context, num_frames_in_flight},
-      in_flight_fences_{shared_context, num_frames_in_flight,
+    : Command{context},
+      image_available_semas_{context, num_frames_in_flight},
+      render_finished_semas_{context, num_frames_in_flight},
+      in_flight_fences_{context, num_frames_in_flight,
                         /*is_signaled=*/true} {
   const auto command_pool = CreateCommandPool(
-      context(), context().queues().graphics_queue(), /*is_transient=*/false);
+      *context_, context_->queues().graphics_queue(), /*is_transient=*/false);
   SetCommandPool(command_pool);
   command_buffers_ = AllocateCommandBuffers(
-      context(), command_pool, static_cast<uint32_t>(num_frames_in_flight));
+      *context_, command_pool, static_cast<uint32_t>(num_frames_in_flight));
 }
 
 absl::optional<VkResult> PerFrameCommand::Run(int current_frame,
@@ -151,7 +151,7 @@ absl::optional<VkResult> PerFrameCommand::Run(int current_frame,
 
   // Fences are initialized to the signaled state, hence waiting for them at the
   // beginning is fine.
-  const VkDevice& device = *context().device();
+  const VkDevice& device = *context_->device();
   vkWaitForFences(device, /*fenceCount=*/1, &in_flight_fences_[current_frame],
                   /*waitAll=*/VK_TRUE, kTimeoutForever);
 
@@ -207,7 +207,7 @@ absl::optional<VkResult> PerFrameCommand::Run(int current_frame,
   // Reset the fence to the unsignaled state. Note that we don't need to do this
   // for semaphores.
   vkResetFences(device, /*fenceCount=*/1, &in_flight_fences_[current_frame]);
-  ASSERT_SUCCESS(vkQueueSubmit(context().queues().graphics_queue().queue,
+  ASSERT_SUCCESS(vkQueueSubmit(context_->queues().graphics_queue().queue,
                                /*submitCount=*/1, &submit_info,
                                in_flight_fences_[current_frame]),
                  "Failed to submit command buffer");
@@ -224,8 +224,8 @@ absl::optional<VkResult> PerFrameCommand::Run(int current_frame,
       // May use 'pResults' to check if each swapchain rendered successfully.
       /*pResults=*/nullptr,
   };
-  return CheckResult(vkQueuePresentKHR(context().queues().present_queue().queue,
-                                       &present_info));
+  return CheckResult(vkQueuePresentKHR(
+      context_->queues().present_queue().queue, &present_info));
 }
 
 } /* namespace vulkan */

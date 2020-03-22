@@ -159,8 +159,10 @@ StaticDescriptor::StaticDescriptor(SharedBasicContext context,
                                    absl::Span<const Info> infos)
     : Descriptor{std::move(context)} {
   pool_ = CreateDescriptorPool(*context_, infos);
-  layout_ = CreateDescriptorSetLayout(*context_, infos, /*is_dynamic=*/false);
-  set_ = AllocateDescriptorSet(*context_, pool_, layout_);
+  const auto layout = CreateDescriptorSetLayout(*context_, infos,
+                                                /*is_dynamic=*/false);
+  SetLayout(layout);
+  set_ = AllocateDescriptorSet(*context_, pool_, layout);
 }
 
 const StaticDescriptor& StaticDescriptor::UpdateBufferInfos(
@@ -197,7 +199,7 @@ void StaticDescriptor::Bind(const VkCommandBuffer& command_buffer,
 DynamicDescriptor::DynamicDescriptor(SharedBasicContext context,
                                      absl::Span<const Info> infos)
     : Descriptor{std::move(context)} {
-  layout_ = CreateDescriptorSetLayout(*context_, infos, /*is_dynamic=*/true);
+  SetLayout(CreateDescriptorSetLayout(*context_, infos, /*is_dynamic=*/true));
   const auto vkCmdPushDescriptorSetKHR =
       util::LoadDeviceFunction<PFN_vkCmdPushDescriptorSetKHR>(
           *context_->device(), "vkCmdPushDescriptorSetKHR");
