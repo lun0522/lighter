@@ -46,7 +46,7 @@
 
 #define ASSERT_TRUE(expr, error)              \
     if (!ABSL_PREDICT_TRUE(expr))             \
-      FATAL(error);
+      FATAL(error)
 
 #define ASSERT_FALSE(expr, error)             \
     ASSERT_TRUE(!(expr), error)

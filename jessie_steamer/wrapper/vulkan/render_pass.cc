@@ -124,7 +124,7 @@ VkSubpassDependency CreateSubpassDependency(
 
 // Creates framebuffers.
 vector<VkFramebuffer> CreateFramebuffers(
-    const SharedBasicContext& context,
+    const BasicContext& context,
     const VkRenderPass& render_pass,
     const vector<RenderPassBuilder::GetImage>& get_images,
     int num_framebuffers, const VkExtent2D& framebuffer_size) {
@@ -147,8 +147,8 @@ vector<VkFramebuffer> CreateFramebuffers(
       image_views[image_index] =
           get_images[image_index](/*framebuffer_index=*/i).image_view();
     }
-    ASSERT_SUCCESS(vkCreateFramebuffer(*context->device(), &framebuffer_info,
-                                       *context->allocator(), &framebuffers[i]),
+    ASSERT_SUCCESS(vkCreateFramebuffer(*context.device(), &framebuffer_info,
+                                       *context.allocator(), &framebuffers[i]),
                    "Failed to create framebuffer");
   }
   return framebuffers;
@@ -267,7 +267,7 @@ std::unique_ptr<RenderPass> RenderPassBuilder::Build() const {
   return std::unique_ptr<RenderPass>{new RenderPass{
       context_, /*num_subpasses=*/static_cast<int>(subpass_descriptions.size()),
       render_pass, clear_values_, framebuffer_size,
-      CreateFramebuffers(context_, render_pass, get_attachment_images_,
+      CreateFramebuffers(*context_, render_pass, get_attachment_images_,
                          num_framebuffers_.value(), framebuffer_size),
       GetNumberColorAttachmentsInSubpasses(subpass_attachments_)}};
 }

@@ -21,7 +21,7 @@ constexpr auto kTimeoutForever = std::numeric_limits<uint64_t>::max();
 
 // Creates a command pool on 'queue'. If 'is_transient' is true, the command
 // pool is expected to have a short lifetime.
-VkCommandPool CreateCommandPool(const SharedBasicContext& context,
+VkCommandPool CreateCommandPool(const BasicContext& context,
                                 const Queues::Queue& queue,
                                 bool is_transient) {
   const auto flags =
@@ -35,15 +35,15 @@ VkCommandPool CreateCommandPool(const SharedBasicContext& context,
   };
 
   VkCommandPool pool;
-  ASSERT_SUCCESS(vkCreateCommandPool(*context->device(), &pool_info,
-                                     *context->allocator(), &pool),
+  ASSERT_SUCCESS(vkCreateCommandPool(*context.device(), &pool_info,
+                                     *context.allocator(), &pool),
                  "Failed to create command pool");
   return pool;
 }
 
 // Allocates command buffers of 'count' from 'command_pool'.
 std::vector<VkCommandBuffer> AllocateCommandBuffers(
-    const SharedBasicContext& context,
+    const BasicContext& context,
     const VkCommandPool& command_pool, uint32_t count) {
   const VkCommandBufferAllocateInfo buffer_info{
       VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -54,7 +54,7 @@ std::vector<VkCommandBuffer> AllocateCommandBuffers(
   };
 
   std::vector<VkCommandBuffer> buffers(count);
-  ASSERT_SUCCESS(vkAllocateCommandBuffers(*context->device(), &buffer_info,
+  ASSERT_SUCCESS(vkAllocateCommandBuffers(*context.device(), &buffer_info,
                                           buffers.data()),
                  "Failed to allocate command buffers");
   return buffers;
@@ -78,12 +78,14 @@ absl::optional<VkResult> CheckResult(VkResult result) {
 
 } /* namespace */
 
-OneTimeCommand::OneTimeCommand(SharedBasicContext context,
+OneTimeCommand::OneTimeCommand(SharedBasicContext shared_context,
                                const Queues::Queue* queue)
-    : Command{std::move(context)}, queue_{queue} {
-  command_pool_ = CreateCommandPool(context_, *queue_, /*is_transient=*/true);
+    : Command{std::move(shared_context)}, queue_{FATAL_IF_NULL(queue)} {
+  const auto command_pool = CreateCommandPool(context(), *queue_,
+                                              /*is_transient=*/true);
+  SetCommandPool(command_pool);
   command_buffer_ =
-      AllocateCommandBuffers(context_, command_pool_, /*count=*/1)[0];
+      AllocateCommandBuffers(context(), command_pool, /*count=*/1)[0];
 }
 
 void OneTimeCommand::Run(const OnRecord& on_record) const {
@@ -117,16 +119,18 @@ void OneTimeCommand::Run(const OnRecord& on_record) const {
   vkQueueWaitIdle(queue_->queue);
 }
 
-PerFrameCommand::PerFrameCommand(SharedBasicContext context,
+PerFrameCommand::PerFrameCommand(const SharedBasicContext& shared_context,
                                  int num_frames_in_flight)
-    : Command{std::move(context)},
-      image_available_semas_{context_, num_frames_in_flight},
-      render_finished_semas_{context_, num_frames_in_flight},
-      in_flight_fences_{context_, num_frames_in_flight, /*is_signaled=*/true} {
-  command_pool_ = CreateCommandPool(
-      context_, context_->queues().graphics_queue(), /*is_transient=*/false);
+    : Command{shared_context},
+      image_available_semas_{shared_context, num_frames_in_flight},
+      render_finished_semas_{shared_context, num_frames_in_flight},
+      in_flight_fences_{shared_context, num_frames_in_flight,
+                        /*is_signaled=*/true} {
+  const auto command_pool = CreateCommandPool(
+      context(), context().queues().graphics_queue(), /*is_transient=*/false);
+  SetCommandPool(command_pool);
   command_buffers_ = AllocateCommandBuffers(
-      context_, command_pool_, static_cast<uint32_t>(num_frames_in_flight));
+      context(), command_pool, static_cast<uint32_t>(num_frames_in_flight));
 }
 
 absl::optional<VkResult> PerFrameCommand::Run(int current_frame,
@@ -147,7 +151,7 @@ absl::optional<VkResult> PerFrameCommand::Run(int current_frame,
 
   // Fences are initialized to the signaled state, hence waiting for them at the
   // beginning is fine.
-  const VkDevice& device = *context_->device();
+  const VkDevice& device = *context().device();
   vkWaitForFences(device, /*fenceCount=*/1, &in_flight_fences_[current_frame],
                   /*waitAll=*/VK_TRUE, kTimeoutForever);
 
@@ -203,7 +207,7 @@ absl::optional<VkResult> PerFrameCommand::Run(int current_frame,
   // Reset the fence to the unsignaled state. Note that we don't need to do this
   // for semaphores.
   vkResetFences(device, /*fenceCount=*/1, &in_flight_fences_[current_frame]);
-  ASSERT_SUCCESS(vkQueueSubmit(context_->queues().graphics_queue().queue,
+  ASSERT_SUCCESS(vkQueueSubmit(context().queues().graphics_queue().queue,
                                /*submitCount=*/1, &submit_info,
                                in_flight_fences_[current_frame]),
                  "Failed to submit command buffer");
@@ -220,7 +224,7 @@ absl::optional<VkResult> PerFrameCommand::Run(int current_frame,
       // May use 'pResults' to check if each swapchain rendered successfully.
       /*pResults=*/nullptr,
   };
-  return CheckResult(vkQueuePresentKHR(context_->queues().present_queue().queue,
+  return CheckResult(vkQueuePresentKHR(context().queues().present_queue().queue,
                                        &present_info));
 }
 

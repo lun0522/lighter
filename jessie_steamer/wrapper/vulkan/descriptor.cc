@@ -21,7 +21,7 @@ using std::vector;
 // Creates a descriptor pool, assuming it will only be used to allocate memory
 // for one descriptor set.
 VkDescriptorPool CreateDescriptorPool(
-    const SharedBasicContext& context,
+    const BasicContext& context,
     absl::Span<const Descriptor::Info> descriptor_infos) {
   absl::flat_hash_map<VkDescriptorType, uint32_t> pool_size_map;
   for (const auto& info : descriptor_infos) {
@@ -51,8 +51,8 @@ VkDescriptorPool CreateDescriptorPool(
   };
 
   VkDescriptorPool pool;
-  ASSERT_SUCCESS(vkCreateDescriptorPool(*context->device(), &pool_info,
-                                        *context->allocator(), &pool),
+  ASSERT_SUCCESS(vkCreateDescriptorPool(*context.device(), &pool_info,
+                                        *context.allocator(), &pool),
                  "Failed to create descriptor pool");
   return pool;
 }
@@ -60,7 +60,7 @@ VkDescriptorPool CreateDescriptorPool(
 // Creates a descriptor set layout. If 'is_dynamic' is true, the layout will be
 // ready for pushing descriptors.
 VkDescriptorSetLayout CreateDescriptorSetLayout(
-    const SharedBasicContext& context,
+    const BasicContext& context,
     absl::Span<const Descriptor::Info> descriptor_infos,
     bool is_dynamic) {
   int total_bindings = 0;
@@ -93,14 +93,14 @@ VkDescriptorSetLayout CreateDescriptorSetLayout(
   };
 
   VkDescriptorSetLayout layout;
-  ASSERT_SUCCESS(vkCreateDescriptorSetLayout(*context->device(), &layout_info,
-                                             *context->allocator(), &layout),
+  ASSERT_SUCCESS(vkCreateDescriptorSetLayout(*context.device(), &layout_info,
+                                             *context.allocator(), &layout),
                  "Failed to create descriptor set layout");
   return layout;
 }
 
 // Allocates one descriptor set from 'pool' with the given 'layout'.
-VkDescriptorSet AllocateDescriptorSet(const SharedBasicContext& context,
+VkDescriptorSet AllocateDescriptorSet(const BasicContext& context,
                                       const VkDescriptorPool& pool,
                                       const VkDescriptorSetLayout& layout) {
   const VkDescriptorSetAllocateInfo desc_set_info{
@@ -113,7 +113,7 @@ VkDescriptorSet AllocateDescriptorSet(const SharedBasicContext& context,
 
   VkDescriptorSet set;
   ASSERT_SUCCESS(
-      vkAllocateDescriptorSets(*context->device(), &desc_set_info, &set),
+      vkAllocateDescriptorSets(*context.device(), &desc_set_info, &set),
       "Failed to allocate descriptor set");
   return set;
 }
@@ -158,9 +158,9 @@ vector<VkWriteDescriptorSet> CreateWriteDescriptorSets(
 StaticDescriptor::StaticDescriptor(SharedBasicContext context,
                                    absl::Span<const Info> infos)
     : Descriptor{std::move(context)} {
-  pool_ = CreateDescriptorPool(context_, infos);
-  layout_ = CreateDescriptorSetLayout(context_, infos, /*is_dynamic=*/false);
-  set_ = AllocateDescriptorSet(context_, pool_, layout_);
+  pool_ = CreateDescriptorPool(*context_, infos);
+  layout_ = CreateDescriptorSetLayout(*context_, infos, /*is_dynamic=*/false);
+  set_ = AllocateDescriptorSet(*context_, pool_, layout_);
 }
 
 const StaticDescriptor& StaticDescriptor::UpdateBufferInfos(
@@ -197,7 +197,7 @@ void StaticDescriptor::Bind(const VkCommandBuffer& command_buffer,
 DynamicDescriptor::DynamicDescriptor(SharedBasicContext context,
                                      absl::Span<const Info> infos)
     : Descriptor{std::move(context)} {
-  layout_ = CreateDescriptorSetLayout(context_, infos, /*is_dynamic=*/true);
+  layout_ = CreateDescriptorSetLayout(*context_, infos, /*is_dynamic=*/true);
   const auto vkCmdPushDescriptorSetKHR =
       util::LoadDeviceFunction<PFN_vkCmdPushDescriptorSetKHR>(
           *context_->device(), "vkCmdPushDescriptorSetKHR");

@@ -37,12 +37,12 @@ VkFormat FindColorImageFormat(int channel) {
 
 // Returns image format with specified 'features', and throws a runtime
 // exception if not found.
-VkFormat FindImageFormatWithFeature(const SharedBasicContext& context,
+VkFormat FindImageFormatWithFeature(const BasicContext& context,
                                     const vector<VkFormat>& candidates,
                                     VkFormatFeatureFlags features) {
   for (auto format : candidates) {
     VkFormatProperties properties;
-    vkGetPhysicalDeviceFormatProperties(*context->physical_device(),
+    vkGetPhysicalDeviceFormatProperties(*context.physical_device(),
                                         format, &properties);
     if ((properties.optimalTilingFeatures & features) == features) {
       return format;
@@ -52,10 +52,9 @@ VkFormat FindImageFormatWithFeature(const SharedBasicContext& context,
 }
 
 // Returns the image format to use for a depth stencil image.
-VkFormat FindDepthStencilImageFormat(const SharedBasicContext& context) {
+VkFormat FindDepthStencilImageFormat(const BasicContext& context) {
   return FindImageFormatWithFeature(
-      context,
-      {VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT_S8_UINT},
+      context, {VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT_S8_UINT},
       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
@@ -75,7 +74,7 @@ VkSampleCountFlagBits GetMaxSampleCount(VkSampleCountFlags sample_counts) {
 }
 
 // Creates an image view to specify the usage of image data.
-VkImageView CreateImageView(const SharedBasicContext& context,
+VkImageView CreateImageView(const BasicContext& context,
                             const VkImage& image,
                             VkFormat format,
                             VkImageAspectFlags image_aspect,
@@ -118,14 +117,14 @@ VkImageView CreateImageView(const SharedBasicContext& context,
   };
 
   VkImageView image_view;
-  ASSERT_SUCCESS(vkCreateImageView(*context->device(), &image_view_info,
-                                   *context->allocator(), &image_view),
+  ASSERT_SUCCESS(vkCreateImageView(*context.device(), &image_view_info,
+                                   *context.allocator(), &image_view),
                  "Failed to create image view");
   return image_view;
 }
 
 // Creates an image sampler.
-VkSampler CreateSampler(const SharedBasicContext& context,
+VkSampler CreateSampler(const BasicContext& context,
                         int mip_levels, const SamplableImage::Config& config) {
   // 'mipLodBias', 'minLod' and 'maxLod' are used to control mipmapping.
   const VkSamplerCreateInfo sampler_info{
@@ -152,8 +151,8 @@ VkSampler CreateSampler(const SharedBasicContext& context,
   };
 
   VkSampler sampler;
-  ASSERT_SUCCESS(vkCreateSampler(*context->device(), &sampler_info,
-                                 *context->allocator(), &sampler),
+  ASSERT_SUCCESS(vkCreateSampler(*context.device(), &sampler_info,
+                                 *context.allocator(), &sampler),
                  "Failed to create sampler");
   return sampler;
 }
@@ -166,8 +165,8 @@ TextureImage::TextureImage(SharedBasicContext context,
                            const TextureBuffer::Info& info)
     : Image{std::move(context), info.GetExtent2D(), info.format},
       buffer_{context_, generate_mipmaps, info},
-      sampler_{CreateSampler(context_, buffer_.mip_levels(), sampler_config)} {
-  image_view_ = CreateImageView(context_, buffer_.image(), format_,
+      sampler_{CreateSampler(*context_, buffer_.mip_levels(), sampler_config)} {
+  image_view_ = CreateImageView(*context_, buffer_.image(), format_,
                                 VK_IMAGE_ASPECT_COLOR_BIT, buffer_.mip_levels(),
                                 /*layer_count=*/CONTAINER_SIZE(info.datas));
 }
@@ -235,8 +234,8 @@ OffscreenImage::OffscreenImage(SharedBasicContext context,
                                const SamplableImage::Config& sampler_config)
     : Image{std::move(context), extent, FindColorImageFormat(channel)},
       buffer_{context_, extent_, format_},
-      sampler_{CreateSampler(context_, kSingleMipLevel, sampler_config)} {
-  image_view_ = CreateImageView(context_, buffer_.image(), format_,
+      sampler_{CreateSampler(*context_, kSingleMipLevel, sampler_config)} {
+  image_view_ = CreateImageView(*context_, buffer_.image(), format_,
                                 VK_IMAGE_ASPECT_COLOR_BIT,
                                 kSingleMipLevel, kSingleImageLayer);
 }
@@ -251,9 +250,9 @@ VkDescriptorImageInfo OffscreenImage::GetDescriptorInfo() const {
 
 DepthStencilImage::DepthStencilImage(const SharedBasicContext& context,
                                      const VkExtent2D& extent)
-    : Image{context, extent, FindDepthStencilImageFormat(context)},
+    : Image{context, extent, FindDepthStencilImageFormat(*context)},
       buffer_{context_, extent_, format_} {
-  image_view_ = CreateImageView(context_, buffer_.image(), format_,
+  image_view_ = CreateImageView(*context_, buffer_.image(), format_,
                                 VK_IMAGE_ASPECT_DEPTH_BIT
                                     | VK_IMAGE_ASPECT_STENCIL_BIT,
                                 kSingleMipLevel, kSingleImageLayer);
@@ -263,7 +262,7 @@ SwapchainImage::SwapchainImage(SharedBasicContext context,
                                const VkImage& image,
                                const VkExtent2D& extent, VkFormat format)
     : Image{std::move(context), extent, format} {
-  image_view_ = CreateImageView(context_, image, format_,
+  image_view_ = CreateImageView(*context_, image, format_,
                                 VK_IMAGE_ASPECT_COLOR_BIT,
                                 kSingleMipLevel, kSingleImageLayer);
 }
@@ -279,7 +278,7 @@ std::unique_ptr<Image> MultisampleImage::CreateColorMultisampleImage(
 std::unique_ptr<Image> MultisampleImage::CreateDepthStencilMultisampleImage(
     SharedBasicContext context,
     const VkExtent2D& extent, Mode mode) {
-  const VkFormat format = FindDepthStencilImageFormat(context);
+  const VkFormat format = FindDepthStencilImageFormat(*context);
   return std::unique_ptr<Image>(new MultisampleImage{
       std::move(context), extent, format, mode,
       MultisampleBuffer::Type::kDepthStencil});
@@ -313,7 +312,7 @@ MultisampleImage::MultisampleImage(
       break;
   }
   image_view_ = CreateImageView(
-      context_, buffer_.image(), format_,
+      *context_, buffer_.image(), format_,
       image_aspect, kSingleMipLevel, kSingleImageLayer);
 }
 

@@ -110,6 +110,7 @@ void AuroraApp::MainLoop() {
     // If scene has been transitioned, the new scene will be recreated anyway.
     if (!HasTransitionedScene() &&
         (draw_result.has_value() || window_context_.ShouldRecreate())) {
+      window_context_.Recreate();
       scene.Recreate();
     }
 
