@@ -25,7 +25,7 @@ layout(location = 0) out vec3 norm;
 layout(location = 1) out vec2 tex_coord;
 
 void main() {
-  vec4 pos_world = trans.model * vec4(in_pos, 1.0);
+  const vec4 pos_world = trans.model * vec4(in_pos, 1.0);
   norm = normalize(pos_world.xyz);
   gl_Position = trans.proj_view * pos_world;
   tex_coord = in_tex_coord;

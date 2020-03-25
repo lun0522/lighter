@@ -32,15 +32,15 @@ layout(location = 0) out vec3 norm;
 layout(location = 1) out vec2 tex_coord;
 
 void main() {
-  float extra_angle = light.direction_time.w * 0.1;
-  float sin_ea = sin(extra_angle), cos_ea = cos(extra_angle);
-  float angle = theta + extra_angle;
-  vec3 center = vec3(sin(angle) * radius, 0.0, cos(angle) * radius);
-  mat4 to_world = mat4(vec4(cos_ea, 0.0, -sin_ea, 0.0),
-                       vec4(   0.0, 1.0,     0.0, 0.0),
-                       vec4(sin_ea, 0.0,  cos_ea, 0.0),
-                       vec4(              center, 1.0));
-  vec4 pos_world = to_world * model * vec4(in_pos, 1.0);
+  const float extra_angle = light.direction_time.w * 0.1;
+  const float sin_ea = sin(extra_angle), cos_ea = cos(extra_angle);
+  const float angle = theta + extra_angle;
+  const vec3 center = vec3(sin(angle) * radius, 0.0, cos(angle) * radius);
+  const mat4 to_world = mat4(vec4(cos_ea, 0.0, -sin_ea, 0.0),
+                             vec4(   0.0, 1.0,     0.0, 0.0),
+                             vec4(sin_ea, 0.0,  cos_ea, 0.0),
+                             vec4(              center, 1.0));
+  const vec4 pos_world = to_world * model * vec4(in_pos, 1.0);
   // Since the orientation of each asteroid changes per-frame, passing inversed
   // transposed model matrix to calculate normals in world space would be too
   // expensive. We approximate the normal by pretending an asteroid as a sphere.

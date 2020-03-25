@@ -31,16 +31,17 @@ namespace application {
 namespace vulkan {
 namespace aurora {
 
-// This class is used for rendering splines and control points. It should not
-// handle any logic that can be shared with other graphics APIs.
-class SplineRenderer {
+// This class is used for rendering splines and control points to represent
+// aurora paths, and the viewpoint of user on the earth model.
+// It should not handle any logic that can be shared with other graphics APIs.
+class PathRenderer {
  public:
-  SplineRenderer(const wrapper::vulkan::SharedBasicContext& context,
-                 int num_frames_in_flight, int num_paths);
+  PathRenderer(const wrapper::vulkan::SharedBasicContext& context,
+               int num_frames_in_flight, int num_paths);
 
   // This class is neither copyable nor movable.
-  SplineRenderer(const SplineRenderer&) = delete;
-  SplineRenderer& operator=(const SplineRenderer&) = delete;
+  PathRenderer(const PathRenderer&) = delete;
+  PathRenderer& operator=(const PathRenderer&) = delete;
 
   // Updates the vertex data of aurora path at 'path_index'.
   void UpdatePath(int path_index,
@@ -58,16 +59,21 @@ class SplineRenderer {
   void UpdatePerFrameData(int frame, float control_point_scale,
                           const glm::mat4& proj_view_model);
 
+  // Renders control points for the aurora path at 'path_index'.
+  // This should be called when 'command_buffer' is recording commands.
+  void DrawControlPoints(const VkCommandBuffer& command_buffer, int frame,
+                         int path_index, const glm::vec4& color_alpha);
+
   // Renders all splines that represent aurora paths. The length of
   // 'color_alphas' must match with the number of aurora paths.
   // This should be called when 'command_buffer' is recording commands.
   void DrawSplines(const VkCommandBuffer& command_buffer, int frame,
                    absl::Span<const glm::vec4> color_alphas);
 
-  // Renders control points for the aurora path at 'path_index'.
+  // Renders viewpoint of user on the earth model.
   // This should be called when 'command_buffer' is recording commands.
-  void DrawControlPoints(const VkCommandBuffer& command_buffer, int frame,
-                         int path_index, const glm::vec4& color_alpha);
+  void DrawViewpoint(const VkCommandBuffer& command_buffer, int frame,
+                     const glm::vec3& center, const glm::vec4& color_alpha);
 
  private:
   // Vertex buffers for a single aurora path.
@@ -91,10 +97,13 @@ class SplineRenderer {
       color_alpha_vertex_buffer_;
   std::unique_ptr<wrapper::vulkan::PushConstant> control_render_constant_;
   std::unique_ptr<wrapper::vulkan::PushConstant> spline_trans_constant_;
+  std::unique_ptr<wrapper::vulkan::PushConstant> viewpoint_render_constant_;
   wrapper::vulkan::PipelineBuilder control_pipeline_builder_;
   std::unique_ptr<wrapper::vulkan::Pipeline> control_pipeline_;
   wrapper::vulkan::PipelineBuilder spline_pipeline_builder_;
   std::unique_ptr<wrapper::vulkan::Pipeline> spline_pipeline_;
+  wrapper::vulkan::PipelineBuilder viewpoint_pipeline_builder_;
+  std::unique_ptr<wrapper::vulkan::Pipeline> viewpoint_pipeline_;
 };
 
 // This class is used to render aurora paths and handle user inputs.
@@ -196,8 +205,8 @@ class AuroraPath {
   // same index.
   std::vector<glm::vec4> color_alphas_to_render_;
 
-  // Renderer of aurora paths.
-  SplineRenderer spline_renderer_;
+  // Renderer of aurora paths and viewpoint of user.
+  PathRenderer path_renderer_;
 
   // Editors of aurora paths.
   std::vector<std::unique_ptr<common::SplineEditor>> spline_editors_;

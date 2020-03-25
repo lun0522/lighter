@@ -28,6 +28,8 @@ enum class ControlVertexBufferBindingPoint { kCenter = 0, kPos };
 
 enum class SplineVertexBufferBindingPoint { kPos = 0, kColorAlpha };
 
+constexpr uint32_t kViewpointVertexBufferBindingPoint = 0;
+
 /* BEGIN: Consistent with vertex input attributes defined in shaders. */
 
 struct ColorAlpha {
@@ -53,6 +55,12 @@ struct SplineTrans {
   ALIGN_MAT4 glm::mat4 proj_view_model;
 };
 
+struct ViewpointRenderInfo {
+  ALIGN_MAT4 glm::mat4 proj_view_model;
+  ALIGN_VEC4 glm::vec4 color_alpha;
+  ALIGN_VEC4 glm::vec4 center_scale;
+};
+
 /* END: Consistent with uniform blocks defined in shaders. */
 
 // Extracts the position data from a list of Vertex3DWithTex.
@@ -75,10 +83,11 @@ inline glm::vec3 TransformPoint(const glm::mat4& transform,
 
 } /* namespace */
 
-SplineRenderer::SplineRenderer(const SharedBasicContext& context,
-                               int num_frames_in_flight, int num_paths)
+PathRenderer::PathRenderer(const SharedBasicContext& context,
+                           int num_frames_in_flight, int num_paths)
     : num_paths_{num_paths}, num_control_points_(num_paths_),
-      control_pipeline_builder_{context}, spline_pipeline_builder_{context} {
+      control_pipeline_builder_{context}, spline_pipeline_builder_{context},
+      viewpoint_pipeline_builder_{context} {
   using common::file::GetVkShaderPath;
   using common::Vertex3DPosOnly;
 
@@ -117,18 +126,20 @@ SplineRenderer::SplineRenderer(const SharedBasicContext& context,
       context, sizeof(ControlRenderInfo), num_frames_in_flight);
   spline_trans_constant_ = absl::make_unique<PushConstant>(
       context, sizeof(SplineTrans), num_frames_in_flight);
+  viewpoint_render_constant_ = absl::make_unique<PushConstant>(
+      context, sizeof(ViewpointRenderInfo), num_frames_in_flight);
 
   /* Pipeline */
   control_pipeline_builder_
       .SetName("aurora path control")
       .SetDepthTestEnabled(/*enable_test=*/true, /*enable_write=*/false)
       .AddVertexInput(
-          static_cast<int>(ControlVertexBufferBindingPoint::kCenter),
+          static_cast<uint32_t>(ControlVertexBufferBindingPoint::kCenter),
           pipeline::GetPerInstanceBindingDescription<Vertex3DPosOnly>(),
           paths_vertex_buffers_[0].spline_points_buffer
               ->GetAttributes(/*start_location=*/0))
       .AddVertexInput(
-          static_cast<int>(ControlVertexBufferBindingPoint::kPos),
+          static_cast<uint32_t>(ControlVertexBufferBindingPoint::kPos),
           pipeline::GetPerVertexBindingDescription<Vertex3DPosOnly>(),
           sphere_vertex_buffer_->GetAttributes(/*start_location=*/1))
       .SetPipelineLayout(/*descriptor_layouts=*/{},
@@ -144,12 +155,12 @@ SplineRenderer::SplineRenderer(const SharedBasicContext& context,
       .SetDepthTestEnabled(/*enable_test=*/true, /*enable_write=*/false)
       .SetPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_LINE_STRIP)
       .AddVertexInput(
-          static_cast<int>(SplineVertexBufferBindingPoint::kPos),
+          static_cast<uint32_t>(SplineVertexBufferBindingPoint::kPos),
           pipeline::GetPerVertexBindingDescription<Vertex3DPosOnly>(),
           paths_vertex_buffers_[0].spline_points_buffer
               ->GetAttributes(/*start_location=*/0))
       .AddVertexInput(
-          static_cast<int>(SplineVertexBufferBindingPoint::kColorAlpha),
+          static_cast<uint32_t>(SplineVertexBufferBindingPoint::kColorAlpha),
           pipeline::GetPerInstanceBindingDescription<ColorAlpha>(),
           color_alpha_vertex_buffer_->GetAttributes(/*start_location=*/1))
       .SetPipelineLayout(/*descriptor_layouts=*/{},
@@ -158,11 +169,25 @@ SplineRenderer::SplineRenderer(const SharedBasicContext& context,
       .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("spline_3d.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("spline.frag"));
+
+  viewpoint_pipeline_builder_
+      .SetName("user viewpoint")
+      .SetDepthTestEnabled(/*enable_test=*/true, /*enable_write=*/false)
+      .AddVertexInput(
+          kViewpointVertexBufferBindingPoint,
+          pipeline::GetPerVertexBindingDescription<Vertex3DPosOnly>(),
+          sphere_vertex_buffer_->GetAttributes(/*start_location=*/0))
+      .SetPipelineLayout(/*descriptor_layouts=*/{},
+                         {viewpoint_render_constant_->MakePerFrameRange(
+                             VK_SHADER_STAGE_VERTEX_BIT)})
+      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)})
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("viewpoint.vert"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("spline.frag"));
 }
 
-void SplineRenderer::UpdatePath(int path_index,
-                                absl::Span<const glm::vec3> control_points,
-                                absl::Span<const glm::vec3> spline_points) {
+void PathRenderer::UpdatePath(int path_index,
+                              absl::Span<const glm::vec3> control_points,
+                              absl::Span<const glm::vec3> spline_points) {
   num_control_points_[path_index] = control_points.size();
   paths_vertex_buffers_[path_index].control_points_buffer->CopyHostData(
       control_points);
@@ -174,7 +199,7 @@ void SplineRenderer::UpdatePath(int path_index,
       });
 }
 
-void SplineRenderer::UpdateFramebuffer(
+void PathRenderer::UpdateFramebuffer(
     VkSampleCountFlagBits sample_count,
     const RenderPass& render_pass, uint32_t subpass_index,
     const PipelineBuilder::ViewportInfo& viewport) {
@@ -188,19 +213,50 @@ void SplineRenderer::UpdateFramebuffer(
       .SetViewport(PipelineBuilder::ViewportInfo{viewport})
       .SetRenderPass(*render_pass, subpass_index)
       .Build();
+  viewpoint_pipeline_ = viewpoint_pipeline_builder_
+      .SetMultisampling(sample_count)
+      .SetViewport(PipelineBuilder::ViewportInfo{viewport})
+      .SetRenderPass(*render_pass, subpass_index)
+      .Build();
 }
 
-void SplineRenderer::UpdatePerFrameData(int frame, float control_point_scale,
-                                        const glm::mat4& proj_view_model) {
+void PathRenderer::UpdatePerFrameData(int frame, float control_point_scale,
+                                      const glm::mat4& proj_view_model) {
+  // 'color_alpha' will be updated by DrawControlPoints().
   auto& control_render_info =
       *control_render_constant_->HostData<ControlRenderInfo>(frame);
   control_render_info.proj_view_model = proj_view_model;
   control_render_info.scale = control_point_scale;
+
   spline_trans_constant_->HostData<SplineTrans>(frame)->proj_view_model =
       proj_view_model;
+
+  // 'color_alpha' and 'center_scale' will be updated by DrawViewpoint().
+  viewpoint_render_constant_->HostData<ViewpointRenderInfo>(frame)
+                            ->proj_view_model
+      = proj_view_model;
 }
 
-void SplineRenderer::DrawSplines(
+void PathRenderer::DrawControlPoints(
+    const VkCommandBuffer& command_buffer, int frame,
+    int path_index, const glm::vec4& color_alpha) {
+  control_render_constant_->HostData<ControlRenderInfo>(frame)->color_alpha =
+      color_alpha;
+  control_pipeline_->Bind(command_buffer);
+  control_render_constant_->Flush(command_buffer, control_pipeline_->layout(),
+                                  frame, /*target_offset=*/0,
+                                  VK_SHADER_STAGE_VERTEX_BIT);
+  paths_vertex_buffers_[path_index].control_points_buffer->Bind(
+      command_buffer,
+      static_cast<uint32_t>(ControlVertexBufferBindingPoint::kCenter),
+      /*offset=*/0);
+  sphere_vertex_buffer_->Draw(
+      command_buffer,
+      static_cast<uint32_t>(ControlVertexBufferBindingPoint::kPos),
+      /*mesh_index=*/0, num_control_points_[path_index]);
+}
+
+void PathRenderer::DrawSplines(
     const VkCommandBuffer& command_buffer, int frame,
     absl::Span<const glm::vec4> color_alphas) {
   ASSERT_TRUE(color_alphas.size() == num_paths_,
@@ -215,29 +271,32 @@ void SplineRenderer::DrawSplines(
   for (int path = 0; path < num_paths_; ++path) {
     color_alpha_vertex_buffer_->Bind(
         command_buffer,
-        static_cast<int>(SplineVertexBufferBindingPoint::kColorAlpha),
+        static_cast<uint32_t>(SplineVertexBufferBindingPoint::kColorAlpha),
         /*offset=*/path);
     paths_vertex_buffers_[path].spline_points_buffer->Draw(
-        command_buffer, static_cast<int>(SplineVertexBufferBindingPoint::kPos),
+        command_buffer,
+        static_cast<uint32_t>(SplineVertexBufferBindingPoint::kPos),
         /*mesh_index=*/0, /*instance_count=*/1);
   }
 }
 
-void SplineRenderer::DrawControlPoints(
+void PathRenderer::DrawViewpoint(
     const VkCommandBuffer& command_buffer, int frame,
-    int path_index, const glm::vec4& color_alpha) {
-  control_render_constant_->HostData<ControlRenderInfo>(frame)->color_alpha =
-      color_alpha;
-  control_pipeline_->Bind(command_buffer);
-  control_render_constant_->Flush(command_buffer, control_pipeline_->layout(),
-                                  frame, /*target_offset=*/0,
-                                  VK_SHADER_STAGE_VERTEX_BIT);
-  paths_vertex_buffers_[path_index].control_points_buffer->Bind(
-      command_buffer,
-      static_cast<int>(ControlVertexBufferBindingPoint::kCenter), /*offset=*/0);
+    const glm::vec3& center, const glm::vec4& color_alpha) {
+  const float scale =
+      control_render_constant_->HostData<ControlRenderInfo>(frame)->scale;
+  auto& render_info =
+      *viewpoint_render_constant_->HostData<ViewpointRenderInfo>(frame);
+  render_info.color_alpha = color_alpha;
+  render_info.center_scale = {center, scale};
+
+  viewpoint_pipeline_->Bind(command_buffer);
+  viewpoint_render_constant_->Flush(
+      command_buffer, viewpoint_pipeline_->layout(), frame, /*target_offset=*/0,
+      VK_SHADER_STAGE_VERTEX_BIT);
   sphere_vertex_buffer_->Draw(
-      command_buffer, static_cast<int>(ControlVertexBufferBindingPoint::kPos),
-      /*mesh_index=*/0, num_control_points_[path_index]);
+      command_buffer, kViewpointVertexBufferBindingPoint,
+      /*mesh_index=*/0, /*instance_count=*/1);
 }
 
 AuroraPath::AuroraPath(const SharedBasicContext& context,
@@ -247,7 +306,7 @@ AuroraPath::AuroraPath(const SharedBasicContext& context,
       control_point_radius_{info.control_point_radius},
       num_paths_{static_cast<int>(info.path_colors.size())},
       color_alphas_to_render_(num_paths_),
-      spline_renderer_{context, num_frames_in_flight, num_paths_} {
+      path_renderer_{context, num_frames_in_flight, num_paths_} {
   path_color_alphas_.reserve(num_paths_);
   spline_editors_.reserve(num_paths_);
   for (int path = 0; path < num_paths_; ++path) {
@@ -269,7 +328,7 @@ AuroraPath::AuroraPath(const SharedBasicContext& context,
 void AuroraPath::UpdateFramebuffer(
     const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
     const RenderPass& render_pass, uint32_t subpass_index) {
-  spline_renderer_.UpdateFramebuffer(
+  path_renderer_.UpdateFramebuffer(
       sample_count, render_pass, subpass_index,
       pipeline::GetViewport(frame_size, viewport_aspect_ratio_));
 }
@@ -281,8 +340,8 @@ void AuroraPath::UpdatePerFrameData(
   const float radius_object_space = camera.view_width() * control_point_radius_;
   const float control_point_scale = radius_object_space / kSphereModelRadius;
   const glm::mat4 proj_view_model = camera.projection() * camera.view() * model;
-  spline_renderer_.UpdatePerFrameData(frame, control_point_scale,
-                                      proj_view_model);
+  path_renderer_.UpdatePerFrameData(frame, control_point_scale,
+                                    proj_view_model);
   selected_control_point_ = ProcessClick(radius_object_space, proj_view_model,
                                          /*model_center=*/model[3], click_info);
 }
@@ -303,20 +362,25 @@ void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
           path_color_alphas_[path][button::kSelectedState];
     }
   }
-  spline_renderer_.DrawSplines(command_buffer, frame, color_alphas_to_render_);
+  path_renderer_.DrawSplines(command_buffer, frame, color_alphas_to_render_);
 
   // Render controls points only if one path is selected.
   if (selected_path_index.has_value()) {
-    spline_renderer_.DrawControlPoints(
+    path_renderer_.DrawControlPoints(
         command_buffer, frame, selected_path_index.value(),
         color_alphas_to_render_[selected_path_index.value()]);
   }
+
+  // Render user viewpoint at last.
+  // TODO: These values should not be hardcoded.
+  path_renderer_.DrawViewpoint(command_buffer, frame, {0.0f, 0.0f, 1.0f},
+                               {1.0f, 1.0f, 1.0f, 0.8f});
 }
 
 void AuroraPath::UpdatePath(int path_index) {
-  spline_renderer_.UpdatePath(path_index,
-                              spline_editors_[path_index]->control_points(),
-                              spline_editors_[path_index]->spline_points());
+  path_renderer_.UpdatePath(path_index,
+                            spline_editors_[path_index]->control_points(),
+                            spline_editors_[path_index]->spline_points());
 }
 
 absl::optional<int> AuroraPath::ProcessClick(
@@ -400,7 +464,7 @@ bool AuroraPath::InsertControlPoint(const ClickInfo& info,
     const glm::vec3 control_point_ndc =
         TransformPoint(proj_view_model, control_points[i]);
     // If the depth of this control point is no less than the depth of earth
-    // center, it must be invisible from the current view point.
+    // center, it must be invisible from the current viewpoint.
     if (control_point_ndc.z >= model_center_depth) {
       continue;
     }
