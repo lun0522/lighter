@@ -130,7 +130,7 @@ class Button {
     glm::vec3 text_color;
     std::array<float, button::kNumStates> button_alphas;
     glm::vec2 button_size;
-    std::vector<Info> button_infos;
+    absl::Span<const Info> button_infos;
   };
 
   // Possible states of each button.
@@ -160,11 +160,12 @@ class Button {
   void Draw(const VkCommandBuffer& command_buffer,
             absl::Span<const State> button_states);
 
-  // If any button is clicked, returns the index of it. Otherwise, returns
-  // absl::nullopt. If the current state of a button is 'State::kHidden', it
-  // will be ignored in this click detection.
+  // If any button is clicked, returns 'button_index_offset' plus the index of
+  // it. Otherwise, returns absl::nullopt. If the current state of a button is
+  // 'State::kHidden', it will be ignored in this click detection.
   absl::optional<int> GetClickedButtonIndex(
-      const glm::vec2& click_ndc, absl::Span<const State> button_states) const;
+      const glm::vec2& click_ndc, int button_index_offset,
+      absl::Span<const State> button_states) const;
 
  private:
   // The first dimension is different buttons, and the second dimension is

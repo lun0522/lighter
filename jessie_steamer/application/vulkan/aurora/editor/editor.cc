@@ -32,7 +32,6 @@ enum SubpassIndex {
   kNumOverlaySubpasses = kNumSubpasses - kButtonSubpassIndex,
 };
 
-constexpr float kButtonBounceTime = 0.5f;
 constexpr float kInertialRotationDuration = 1.5f;
 
 // The height of aurora layer is assumed to be at around 100km above the ground.
@@ -49,6 +48,23 @@ const glm::vec3& GetEarthModelCenter() {
     earth_model_center = new glm::vec3{0.0f};
   }
   return *earth_model_center;
+}
+
+// Converts RGB color from range [0, 255] to [0.0, 1.0].
+inline glm::vec3 MakeColor(int r, int g, int b) {
+  return glm::vec3{r, g, b} / 255.0f;
+}
+
+// Distributes buttons evenly within range [0.0, 1.0].
+vector<float> GetButtonCenters(int num_buttons) {
+  ASSERT_TRUE(num_buttons > 0, "num_buttons must be greater than 0");
+  const float button_extent = 1.0f / static_cast<float>(num_buttons);
+  vector<float> button_centers(num_buttons);
+  button_centers[0] = button_extent / 2;
+  for (int i = 1; i < num_buttons; ++i) {
+    button_centers[i] = button_centers[i - 1] + button_extent;
+  }
+  return button_centers;
 }
 
 } /* namespace */
@@ -99,44 +115,6 @@ void EditorRenderer::Draw(
   render_pass_->Run(command_buffer, framebuffer_index, render_ops);
 }
 
-const array<Editor::ButtonColors, Editor::kNumButtons>&
-Editor::GetButtonColors() {
-  static array<ButtonColors, kNumButtons>* all_button_colors = nullptr;
-  if (all_button_colors == nullptr) {
-    const auto make_color = [](int r, int g, int b) {
-      return glm::vec3{r, g, b} / 255.0f;
-    };
-    all_button_colors = new array<ButtonColors, kNumButtons>{
-        ButtonColors{make_color(241, 196,  15), make_color(243, 156,  18)},
-        ButtonColors{make_color(230, 126,  34), make_color(211,  84,   0)},
-        ButtonColors{make_color(231,  76,  60), make_color(192,  57,  43)},
-        ButtonColors{make_color( 52, 152, 219), make_color( 41, 128, 185)},
-        ButtonColors{make_color(155,  89, 182), make_color(142,  68, 173)},
-        ButtonColors{make_color( 46, 204, 113), make_color( 39, 174,  96)},
-    };
-  }
-  return *all_button_colors;
-}
-
-const array<float, button::kNumStates>& Editor::GetButtonAlphas() {
-  static array<float, button::kNumStates>* button_alphas = nullptr;
-  if (button_alphas == nullptr) {
-    button_alphas = new array<float, button::kNumStates>{1.0f, 0.5f};
-  }
-  return *button_alphas;
-}
-
-const array<glm::vec2, Editor::kNumButtons>& Editor::GetButtonCenters() {
-  static array<glm::vec2, kNumButtons>* button_centers = nullptr;
-  if (button_centers == nullptr) {
-    button_centers = new array<glm::vec2, kNumButtons>{
-        glm::vec2{0.2f, 0.9f}, glm::vec2{0.5f, 0.9f}, glm::vec2{0.8f, 0.9f},
-        glm::vec2{0.2f, 0.1f}, glm::vec2{0.5f, 0.1f}, glm::vec2{0.8f, 0.1f},
-    };
-  }
-  return *button_centers;
-}
-
 Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
     : window_context_{*FATAL_IF_NULL(window_context)},
       editor_renderer_{FATAL_IF_NULL(window_context)},
@@ -146,6 +124,19 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
                     kInertialRotationDuration} {
   const auto context = window_context_.basic_context();
   const float original_aspect_ratio = window_context_.original_aspect_ratio();
+
+  // Buttons and paths share color and alpha values.
+  using ButtonColors = array<glm::vec3, button::kNumStates>;
+  const array<ButtonColors, kNumButtons> button_and_path_colors{
+      ButtonColors{MakeColor(241, 196,  15), MakeColor(243, 156,  18)},
+      ButtonColors{MakeColor(230, 126,  34), MakeColor(211,  84,   0)},
+      ButtonColors{MakeColor(231,  76,  60), MakeColor(192,  57,  43)},
+      ButtonColors{MakeColor( 26, 188, 156), MakeColor( 22, 160, 133)},
+      ButtonColors{MakeColor( 52, 152, 219), MakeColor( 41, 128, 185)},
+      ButtonColors{MakeColor(155,  89, 182), MakeColor(142,  68, 173)},
+      ButtonColors{MakeColor( 46, 204, 113), MakeColor( 39, 174,  96)},
+  };
+  constexpr array<float, button::kNumStates> kButtonAndPathAlphas{1.0f, 0.5f};
 
   /* Earth and skybox */
   celestial_ = absl::make_unique<Celestial>(
@@ -175,40 +166,82 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
         return control_points;
       };
 
+  array<ButtonColors, kNumAuroraPaths> aurora_path_colors{};
+  for (int i = 0; i < kNumAuroraPaths; ++i) {
+    aurora_path_colors[i] = button_and_path_colors[i];
+  }
   aurora_path_ = absl::make_unique<AuroraPath>(
       context, num_frames_in_flight, original_aspect_ratio, AuroraPath::Info{
           /*max_num_control_points=*/20, /*control_point_radius=*/0.015f,
           /*max_recursion_depth=*/20, /*spline_smoothness=*/1E-2,
-          /*path_colors=*/vector<array<glm::vec3, button::kNumStates>>{
-              GetButtonColors()[kPath1ButtonIndex],
-              GetButtonColors()[kPath2ButtonIndex],
-              GetButtonColors()[kPath3ButtonIndex],
-          },
-          /*path_alphas=*/GetButtonAlphas(), std::move(generate_control_points),
+          aurora_path_colors, kButtonAndPathAlphas,
+          std::move(generate_control_points),
       });
 
-  /* Button */
-  using ButtonInfo = Button::ButtonsInfo::Info;
-  const Button::ButtonsInfo buttons_info{
-      Text::Font::kOstrich, /*font_height=*/100, /*base_y=*/0.25f,
-      /*top_y=*/0.75f, /*text_color=*/glm::vec3{1.0f}, GetButtonAlphas(),
-      /*button_size=*/glm::vec2{0.2f, 0.1f}, /*button_infos=*/{
-          ButtonInfo{"Path 1", GetButtonColors()[kPath1ButtonIndex],
-                     GetButtonCenters()[kPath1ButtonIndex]},
-          ButtonInfo{"Path 2", GetButtonColors()[kPath2ButtonIndex],
-                     GetButtonCenters()[kPath2ButtonIndex]},
-          ButtonInfo{"Path 3", GetButtonColors()[kPath3ButtonIndex],
-                     GetButtonCenters()[kPath3ButtonIndex]},
-          ButtonInfo{"Editing", GetButtonColors()[kEditingButtonIndex],
-                     GetButtonCenters()[kEditingButtonIndex]},
-          ButtonInfo{"Daylight", GetButtonColors()[kDaylightButtonIndex],
-                     GetButtonCenters()[kDaylightButtonIndex]},
-          ButtonInfo{"Aurora", GetButtonColors()[kAuroraButtonIndex],
-                     GetButtonCenters()[kAuroraButtonIndex]},
-      },
-  };
-  button_ = absl::make_unique<Button>(
-      context, original_aspect_ratio, buttons_info);
+  /* Buttons */
+  {
+    using ButtonInfo = Button::ButtonsInfo::Info;
+    constexpr auto kFont = Text::Font::kOstrich;
+    constexpr int kFontHeight = 100;
+    constexpr float kBaseY = 0.25f;
+    constexpr float kTopY = 0.75f;
+    constexpr float kButtonHeight = 0.08f;
+    const glm::vec3 text_color{1.0f};
+
+    const array<std::string, kNumButtons> button_texts{
+        "Path 1", "Path 2", "Path 3", "Viewpoint",
+        "Editing", "Daylight", "Aurora",
+    };
+
+    /* Top row buttons */
+    {
+      const glm::vec2 button_size{1.0f / kNumTopRowButtons, kButtonHeight};
+      const auto button_centers_x = GetButtonCenters(kNumTopRowButtons);
+      const float button_center_y = 1.0f - kButtonHeight / 2;
+      const auto get_button_info =
+          [&button_texts, &button_and_path_colors, &button_centers_x,
+           button_center_y](int button_index) {
+            return ButtonInfo{
+                button_texts[button_index],
+                button_and_path_colors[button_index],
+                {button_centers_x[button_index], button_center_y},
+            };
+          };
+      array<ButtonInfo, kNumTopRowButtons> button_infos{};
+      for (int i = 0; i < kNumTopRowButtons; ++i) {
+        button_infos[i] = get_button_info(i);
+      }
+      top_row_buttons_ = absl::make_unique<Button>(
+          context, original_aspect_ratio, Button::ButtonsInfo{
+              kFont, kFontHeight, kBaseY, kTopY, text_color,
+              kButtonAndPathAlphas, button_size, button_infos});
+    }
+
+    /* Bottom row buttons */
+    {
+      const glm::vec2 button_size{1.0f / kNumBottomRowButtons, kButtonHeight};
+      const auto button_centers_x = GetButtonCenters(kNumBottomRowButtons);
+      const float button_center_y = kButtonHeight / 2;
+      const auto get_button_info =
+          [&button_texts, &button_and_path_colors, &button_centers_x,
+           button_center_y](int relative_index) {
+            const int button_index = kNumTopRowButtons + relative_index;
+            return ButtonInfo{
+                button_texts[button_index],
+                button_and_path_colors[button_index],
+                {button_centers_x[relative_index], button_center_y},
+            };
+          };
+      array<ButtonInfo, kNumBottomRowButtons> button_infos{};
+      for (int i = 0; i < kNumBottomRowButtons; ++i) {
+        button_infos[i] = get_button_info(i);
+      }
+      bottom_row_buttons_ = absl::make_unique<Button>(
+          context, original_aspect_ratio, Button::ButtonsInfo{
+              kFont, kFontHeight, kBaseY, kTopY, text_color,
+              kButtonAndPathAlphas, button_size, button_infos});
+    }
+  }
 
   /* Camera */
   common::Camera::Config config;
@@ -268,8 +301,10 @@ void Editor::Recreate() {
                                 kModelSubpassIndex);
   aurora_path_->UpdateFramebuffer(frame_size, sample_count, render_pass(),
                                   kAuroraPathSubpassIndex);
-  button_->UpdateFramebuffer(frame_size, sample_count, render_pass(),
-                             kButtonSubpassIndex);
+  top_row_buttons_->UpdateFramebuffer(frame_size, sample_count, render_pass(),
+                                      kButtonSubpassIndex);
+  bottom_row_buttons_->UpdateFramebuffer(frame_size, sample_count,
+                                         render_pass(), kButtonSubpassIndex);
 }
 
 void Editor::UpdateData(int frame) {
@@ -289,8 +324,14 @@ void Editor::UpdateData(int frame) {
   // Process clicking on button.
   absl::optional<int> clicked_button_index;
   if (did_press_left_) {
-    clicked_button_index = button_->GetClickedButtonIndex(
-        click_ndc, state_manager_.button_states());
+    clicked_button_index = top_row_buttons_->GetClickedButtonIndex(
+        click_ndc, /*button_index_offset=*/0,
+        state_manager_.top_row_buttons_states());
+    if (!clicked_button_index.has_value()) {
+      clicked_button_index = bottom_row_buttons_->GetClickedButtonIndex(
+          click_ndc, /*button_index_offset=*/kNumTopRowButtons,
+          state_manager_.bottom_row_buttons_states());
+    }
   }
   absl::optional<ButtonIndex> clicked_button;
   if (clicked_button_index.has_value()) {
@@ -358,7 +399,7 @@ void Editor::UpdateData(int frame) {
 void Editor::Draw(const VkCommandBuffer& command_buffer,
                   uint32_t framebuffer_index, int current_frame) {
   absl::optional<int> selected_path_index;
-  for (int index = kPath1ButtonIndex; index <= kPath3ButtonIndex; ++index) {
+  for (int index = 0; index <= kNumTopRowButtons; ++index) {
     if (state_manager_.IsSelected(static_cast<ButtonIndex>(index))) {
       selected_path_index = index;
       break;
@@ -369,71 +410,54 @@ void Editor::Draw(const VkCommandBuffer& command_buffer,
       [this, current_frame](const VkCommandBuffer& command_buffer) {
         celestial_->Draw(command_buffer, current_frame);
       },
-      [this, current_frame, &selected_path_index](
+      [this, current_frame, selected_path_index](
           const VkCommandBuffer& command_buffer) {
         aurora_path_->Draw(command_buffer, current_frame, selected_path_index);
       },
       [this](const VkCommandBuffer& command_buffer) {
-        button_->Draw(command_buffer, state_manager_.button_states());
+        top_row_buttons_->Draw(
+            command_buffer, state_manager_.top_row_buttons_states());
+        bottom_row_buttons_->Draw(
+            command_buffer, state_manager_.bottom_row_buttons_states());
       },
   });
 }
 
 Editor::StateManager::StateManager() {
-  SetPathButtonStates(Button::State::kHidden);
-  button_states_[kEditingButtonIndex] = Button::State::kUnselected;
-  button_states_[kDaylightButtonIndex] = Button::State::kUnselected;
-  button_states_[kAuroraButtonIndex] = Button::State::kUnselected;
+  SetTopRowButtonsStates(Button::State::kHidden);
+  SetBottomRowButtonsStates(Button::State::kUnselected);
 }
 
 void Editor::StateManager::Update(absl::optional<ButtonIndex> clicked_button) {
-  if (!clicked_button.has_value()) {
-    click_info_ = absl::nullopt;
+  if (!clicked_button.has_value() || clicked_button == last_clicked_button_) {
+    last_clicked_button_ = clicked_button;
     return;
   }
+
   const ButtonIndex button_index = clicked_button.value();
-
-  if (click_info_.has_value() && click_info_->button_index == button_index &&
-      timer_.GetElapsedTimeSinceLaunch() - click_info_->start_time <
-          kButtonBounceTime) {
-    return;
-  }
-
-  switch (button_index) {
-    case kPath1ButtonIndex:
-    case kPath2ButtonIndex:
-    case kPath3ButtonIndex: {
-      if (IsUnselected(button_index)) {
-        FlipButtonState(last_edited_path_);
-        FlipButtonState(button_index);
-        last_edited_path_ = button_index;
-      }
-      break;
-    }
-    case kEditingButtonIndex: {
+  if (button_index < kNumTopRowButtons) {
+    if (IsUnselected(button_index)) {
+      FlipButtonState(last_edited_path_);
       FlipButtonState(button_index);
-      if (IsSelected(button_index)) {
-        SetPathButtonStates(Button::State::kUnselected);
+      last_edited_path_ = button_index;
+    }
+  } else {
+    FlipButtonState(button_index);
+    if (button_index == kEditingButtonIndex) {
+      if (IsEditing()) {
+        SetTopRowButtonsStates(Button::State::kUnselected);
         FlipButtonState(last_edited_path_);
       } else {
-        SetPathButtonStates(Button::State::kHidden);
+        SetTopRowButtonsStates(Button::State::kHidden);
       }
-      break;
     }
-    case kDaylightButtonIndex:
-    case kAuroraButtonIndex: {
-      FlipButtonState(button_index);
-      break;
-    }
-    default:
-      FATAL("Unexpected branch");
   }
-  click_info_ = ClickInfo{button_index, timer_.GetElapsedTimeSinceLaunch()};
+  last_clicked_button_ = clicked_button;
 }
 
 int Editor::StateManager::GetEditingPathIndex() const {
   ASSERT_TRUE(IsEditing(), "Not in editing mode");
-  for (int i = 0; i < ButtonIndex::kNumAuroraPaths; ++i) {
+  for (int i = 0; i < ButtonIndex::kNumTopRowButtons; ++i) {
     const auto button_index =
         static_cast<ButtonIndex>(ButtonIndex::kPath1ButtonIndex + i);
     if (IsSelected(button_index)) {
@@ -443,10 +467,16 @@ int Editor::StateManager::GetEditingPathIndex() const {
   FATAL("In editing mode but no path is selected. Should never reach here!");
 }
 
-void Editor::StateManager::SetPathButtonStates(Button::State state) {
-  button_states_[kPath1ButtonIndex] = state;
-  button_states_[kPath2ButtonIndex] = state;
-  button_states_[kPath3ButtonIndex] = state;
+void Editor::StateManager::SetTopRowButtonsStates(Button::State state) {
+  for (int i = 0; i < kNumTopRowButtons; ++i) {
+    button_states_[i] = state;
+  }
+}
+
+void Editor::StateManager::SetBottomRowButtonsStates(Button::State state) {
+  for (int i = kNumTopRowButtons; i < kNumButtons; ++i) {
+    button_states_[i] = state;
+  }
 }
 
 void Editor::StateManager::FlipButtonState(ButtonIndex index) {

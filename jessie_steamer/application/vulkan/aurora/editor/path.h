@@ -121,7 +121,7 @@ class AuroraPath {
     float control_point_radius;
     int max_recursion_depth;
     float spline_roughness;
-    std::vector<std::array<glm::vec3, button::kNumStates>> path_colors;
+    absl::Span<const std::array<glm::vec3, button::kNumStates>> path_colors;
     std::array<float, button::kNumStates> path_alphas;
     GenerateControlPoints generate_control_points;
   };

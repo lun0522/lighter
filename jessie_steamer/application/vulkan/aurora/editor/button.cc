@@ -143,8 +143,16 @@ Button::Button(const SharedBasicContext& context,
   const int num_buttons = buttons_info.button_infos.size();
   buttons_to_render_.reserve(num_buttons);
 
+  // Background image can be any single channel image.
+  const auto& button_size = buttons_info.button_size;
+  constexpr int kBackgroundImageWidth = 500;
+  const auto background_image_height =
+      static_cast<int>(kBackgroundImageWidth * button_size.y / button_size.x);
+  const vector<char> background_image_pixels(
+      kBackgroundImageWidth * background_image_height, static_cast<char>(255));
   const common::Image background_image{
-    common::file::GetResourcePath("texture/rect_rounded.jpg")};
+      kBackgroundImageWidth, background_image_height, /*channel=*/1,
+      background_image_pixels.data(), /*flip_y=*/false};
   const glm::vec2 background_image_size{background_image.width,
                                         background_image.height};
 
@@ -318,7 +326,8 @@ void Button::Draw(const VkCommandBuffer& command_buffer,
 }
 
 absl::optional<int> Button::GetClickedButtonIndex(
-    const glm::vec2& click_ndc, absl::Span<const State> button_states) const {
+    const glm::vec2& click_ndc, int button_index_offset,
+    absl::Span<const State> button_states) const {
   const int num_buttons = all_buttons_.size();
   ASSERT_TRUE(button_states.size() == num_buttons,
               absl::StrFormat("Length of button states (%d) must match with "
@@ -333,7 +342,7 @@ absl::optional<int> Button::GetClickedButtonIndex(
         glm::abs(click_ndc - all_buttons_[i][0].pos_center_ndc);
     if (distance.x <= button_half_size_ndc_.x &&
         distance.y <= button_half_size_ndc_.y) {
-      return i;
+      return button_index_offset + i;
     }
   }
   return absl::nullopt;

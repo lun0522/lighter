@@ -50,6 +50,7 @@ cc_library(
         "//jessie_steamer/application/vulkan/aurora:scene",
         "//jessie_steamer/application/vulkan:common",
         "//jessie_steamer/common:rotation",
+        "//third_party/absl/strings:str_format",
         "//third_party/absl/types:optional",
         "//third_party/absl/types:span",
     ],

@@ -348,6 +348,12 @@ void AuroraPath::UpdatePerFrameData(
 
 void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
                       absl::optional<int> selected_path_index) {
+  if (selected_path_index.has_value()) {
+    ASSERT_TRUE(selected_path_index.value() < num_paths_,
+                absl::StrFormat("Path index (%d) out of range (%d)",
+                                selected_path_index.value(), num_paths_));
+  }
+
   // If one path is selected, highlight it. Otherwise, highlight all paths.
   if (selected_path_index.has_value()) {
     for (int path = 0; path < num_paths_; ++path) {
@@ -388,6 +394,11 @@ absl::optional<int> AuroraPath::ProcessClick(
     const glm::mat4& proj_view_model, const glm::vec3& model_center,
     const absl::optional<ClickInfo>& click_info) {
   if (!click_info.has_value()) {
+    return absl::nullopt;
+  }
+
+  // TODO
+  if (click_info->path_index == num_paths_) {
     return absl::nullopt;
   }
 
