@@ -16,6 +16,7 @@
 #include "jessie_steamer/application/vulkan/aurora/editor/path.h"
 #include "jessie_steamer/application/vulkan/aurora/scene.h"
 #include "jessie_steamer/common/camera.h"
+#include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/rotation.h"
 #include "jessie_steamer/common/window.h"
 #include "jessie_steamer/wrapper/vulkan/window_context.h"
@@ -109,9 +110,9 @@ class Editor : public Scene {
     // button is clicked.
     void Update(absl::optional<ButtonIndex> clicked_button);
 
-    // Returns the index of aurora path that is being edited. This should be
-    // called only in editing mode.
-    int GetEditingPathIndex() const;
+    // Returns the index of selected aurora path. If viewpoint is seleted
+    // instead, returns absl::nullopt.
+    absl::optional<int> GetSelectedPathIndex() const;
 
     // Convenience functions for reading button states.
     bool IsSelected(ButtonIndex index) const {

@@ -85,7 +85,7 @@ inline glm::vec3 TransformPoint(const glm::mat4& transform,
 
 PathRenderer::PathRenderer(const SharedBasicContext& context,
                            int num_frames_in_flight, int num_paths)
-    : num_paths_{num_paths}, num_control_points_(num_paths_),
+    : num_paths_{num_paths}, num_control_points_per_path_(num_paths_),
       control_pipeline_builder_{context}, spline_pipeline_builder_{context},
       viewpoint_pipeline_builder_{context} {
   using common::file::GetVkShaderPath;
@@ -188,7 +188,7 @@ PathRenderer::PathRenderer(const SharedBasicContext& context,
 void PathRenderer::UpdatePath(int path_index,
                               absl::Span<const glm::vec3> control_points,
                               absl::Span<const glm::vec3> spline_points) {
-  num_control_points_[path_index] = control_points.size();
+  num_control_points_per_path_[path_index] = control_points.size();
   paths_vertex_buffers_[path_index].control_points_buffer->CopyHostData(
       control_points);
   paths_vertex_buffers_[path_index].spline_points_buffer->CopyHostData(
@@ -253,7 +253,7 @@ void PathRenderer::DrawControlPoints(
   sphere_vertex_buffer_->Draw(
       command_buffer,
       static_cast<uint32_t>(ControlVertexBufferBindingPoint::kPos),
-      /*mesh_index=*/0, num_control_points_[path_index]);
+      /*mesh_index=*/0, num_control_points_per_path_[path_index]);
 }
 
 void PathRenderer::DrawSplines(
@@ -305,6 +305,11 @@ AuroraPath::AuroraPath(const SharedBasicContext& context,
     : viewport_aspect_ratio_{viewport_aspect_ratio},
       control_point_radius_{info.control_point_radius},
       num_paths_{static_cast<int>(info.path_colors.size())},
+      viewpoint_color_alphas_{
+          glm::vec4{info.viewpoint_colors[button::kSelectedState],
+                    info.path_alphas[button::kSelectedState]},
+          glm::vec4{info.viewpoint_colors[button::kUnselectedState],
+                    info.path_alphas[button::kUnselectedState]}},
       color_alphas_to_render_(num_paths_),
       path_renderer_{context, num_frames_in_flight, num_paths_} {
   path_color_alphas_.reserve(num_paths_);
@@ -378,9 +383,12 @@ void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
   }
 
   // Render user viewpoint at last.
-  // TODO: These values should not be hardcoded.
+  const bool is_viewpoint_selected = !selected_path_index.has_value();
+  const auto viewpoint_state = is_viewpoint_selected ? button::kSelectedState
+                                                     : button::kUnselectedState;
+  // TODO
   path_renderer_.DrawViewpoint(command_buffer, frame, {0.0f, 0.0f, 1.0f},
-                               {1.0f, 1.0f, 1.0f, 0.8f});
+                               viewpoint_color_alphas_[viewpoint_state]);
 }
 
 void AuroraPath::UpdatePath(int path_index) {
@@ -393,33 +401,31 @@ absl::optional<int> AuroraPath::ProcessClick(
     float control_point_radius_object_space,
     const glm::mat4& proj_view_model, const glm::vec3& model_center,
     const absl::optional<ClickInfo>& click_info) {
-  if (!click_info.has_value()) {
-    return absl::nullopt;
-  }
-
-  // TODO
-  if (click_info->path_index == num_paths_) {
+  // TODO: Process click on viewpoint.
+  if (!click_info.has_value() || !click_info.value().path_index.has_value()) {
     return absl::nullopt;
   }
 
   const ClickInfo& user_click = click_info.value();
-  ASSERT_TRUE(user_click.path_index < num_paths_,
+  const int path_index = user_click.path_index.value();
+  ASSERT_TRUE(path_index < num_paths_,
               absl::StrFormat(
                   "Trying to access aurora path at index %d (%d paths exist)",
-                  user_click.path_index, num_paths_));
+                  path_index, num_paths_));
 
   // If a control point has been selected before this frame, simply move it to
   // the current click point.
-  auto& editor = *spline_editors_[user_click.path_index];
+  auto& editor = *spline_editors_[path_index];
   if (selected_control_point_.has_value() && user_click.is_left_click) {
     editor.UpdateControlPoint(selected_control_point_.value(),
                               user_click.click_object_space);
-    UpdatePath(user_click.path_index);
+    UpdatePath(path_index);
     return selected_control_point_;
   }
 
-  const auto clicked_control_point =
-      FindClickedControlPoint(user_click, control_point_radius_object_space);
+  const auto clicked_control_point = FindClickedControlPoint(
+      path_index, user_click.click_object_space,
+      control_point_radius_object_space);
   if (user_click.is_left_click) {
     // For left click, if no control point has been selected, find out if any
     // control point is selected in this frame.
@@ -430,20 +436,22 @@ absl::optional<int> AuroraPath::ProcessClick(
     const bool is_path_changed =
         clicked_control_point.has_value()
             ? editor.RemoveControlPoint(clicked_control_point.value())
-            : InsertControlPoint(user_click, proj_view_model, model_center);
+            : InsertControlPoint(path_index, user_click.click_object_space,
+                                 proj_view_model, model_center);
     if (is_path_changed) {
-      UpdatePath(user_click.path_index);
+      UpdatePath(path_index);
     }
     return absl::nullopt;
   }
 }
 
 absl::optional<int> AuroraPath::FindClickedControlPoint(
-    const ClickInfo& click_info, float control_point_radius_object_space) {
+    int path_index, const glm::vec3& click_object_space,
+    float control_point_radius_object_space) {
   const auto& control_points =
-      spline_editors_[click_info.path_index]->control_points();
+      spline_editors_[path_index]->control_points();
   for (int i = 0; i < control_points.size(); ++i) {
-    if (glm::distance(control_points[i], click_info.click_object_space) <=
+    if (glm::distance(control_points[i], click_object_space) <=
         control_point_radius_object_space) {
       return i;
     }
@@ -451,10 +459,10 @@ absl::optional<int> AuroraPath::FindClickedControlPoint(
   return absl::nullopt;
 }
 
-bool AuroraPath::InsertControlPoint(const ClickInfo& info,
-                                    const glm::mat4& proj_view_model,
-                                    const glm::vec3& model_center) {
-  auto& editor = *spline_editors_[info.path_index];
+bool AuroraPath::InsertControlPoint(
+    int path_index, const glm::vec3& click_object_space,
+    const glm::mat4& proj_view_model, const glm::vec3& model_center) {
+  auto& editor = *spline_editors_[path_index];
   if (!editor.CanInsertControlPoint()) {
     return false;
   }
@@ -462,8 +470,8 @@ bool AuroraPath::InsertControlPoint(const ClickInfo& info,
   const auto& control_points = editor.control_points();
   const float model_center_depth =
       TransformPoint(proj_view_model, model_center).z;
-  const auto& click_pos = info.click_object_space;
-  const glm::vec2 click_pos_ndc = TransformPoint(proj_view_model, click_pos);
+  const glm::vec2 click_pos_ndc =
+      TransformPoint(proj_view_model, click_object_space);
 
   // Find the closest visible control point.
   struct ClosestPoint {
@@ -494,14 +502,14 @@ bool AuroraPath::InsertControlPoint(const ClickInfo& info,
     const int next_point_index = static_cast<int>(
         (closest_control_point->index + 1) % control_points.size());
     const float prev_point_distance =
-        glm::distance(control_points[prev_point_index], click_pos);
+        glm::distance(control_points[prev_point_index], click_object_space);
     const float next_point_distance =
-        glm::distance(control_points[next_point_index], click_pos);
+        glm::distance(control_points[next_point_index], click_object_space);
     const int insert_at_index =
         prev_point_distance < next_point_distance
             ? closest_control_point->index
             : next_point_index;
-    return editor.InsertControlPoint(insert_at_index, click_pos);
+    return editor.InsertControlPoint(insert_at_index, click_object_space);
   }
   return false;
 }

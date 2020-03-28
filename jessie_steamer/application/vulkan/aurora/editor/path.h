@@ -88,7 +88,7 @@ class PathRenderer {
   const int num_paths_;
 
   // Records the number of control points for each aurora path.
-  std::vector<int> num_control_points_;
+  std::vector<int> num_control_points_per_path_;
 
   // Objects used for rendering.
   std::unique_ptr<wrapper::vulkan::StaticPerVertexBuffer> sphere_vertex_buffer_;
@@ -106,7 +106,8 @@ class PathRenderer {
   std::unique_ptr<wrapper::vulkan::Pipeline> viewpoint_pipeline_;
 };
 
-// This class is used to render aurora paths and handle user inputs.
+// This class is used to render aurora paths and the user viewpoint, and handle
+// user inputs.
 class AuroraPath {
  public:
   // Returns the initial control points of the aurora path at 'path_index'.
@@ -121,6 +122,7 @@ class AuroraPath {
     float control_point_radius;
     int max_recursion_depth;
     float spline_roughness;
+    std::array<glm::vec3, button::kNumStates> viewpoint_colors;
     absl::Span<const std::array<glm::vec3, button::kNumStates>> path_colors;
     std::array<float, button::kNumStates> path_alphas;
     GenerateControlPoints generate_control_points;
@@ -129,7 +131,7 @@ class AuroraPath {
   // Describes a user click. Note that paths only respond to left mouse button
   // press or right button release.
   struct ClickInfo {
-    int path_index;
+    absl::optional<int> path_index;
     bool is_left_click;
     glm::vec3 click_object_space;
   };
@@ -176,11 +178,12 @@ class AuroraPath {
   // Returns the index of the clicked control point. If no control point is hit,
   // returns absl::nullopt.
   absl::optional<int> FindClickedControlPoint(
-      const ClickInfo& click_info, float control_point_radius_object_space);
+      int path_index, const glm::vec3& click_object_space,
+      float control_point_radius_object_space);
 
   // Tries to insert a control point at the click position, and returns whether
   // the point is inserted.
-  bool InsertControlPoint(const ClickInfo& info,
+  bool InsertControlPoint(int path_index, const glm::vec3& click_object_space,
                           const glm::mat4& proj_view_model,
                           const glm::vec3& model_center);
 
@@ -193,6 +196,10 @@ class AuroraPath {
 
   // Number of aurora paths.
   const int num_paths_;
+
+  // Records for each state, what color and alpha should be used when rendering
+  // the viewpoint.
+  const std::array<glm::vec4, button::kNumStates> viewpoint_color_alphas_;
 
   // Tracks the control point selected by left click.
   absl::optional<int> selected_control_point_;

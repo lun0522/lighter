@@ -165,17 +165,13 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
         }
         return control_points;
       };
-
-  array<ButtonColors, kNumAuroraPaths> aurora_path_colors{};
-  for (int i = 0; i < kNumAuroraPaths; ++i) {
-    aurora_path_colors[i] = button_and_path_colors[i];
-  }
   aurora_path_ = absl::make_unique<AuroraPath>(
       context, num_frames_in_flight, original_aspect_ratio, AuroraPath::Info{
           /*max_num_control_points=*/20, /*control_point_radius=*/0.015f,
           /*max_recursion_depth=*/20, /*spline_smoothness=*/1E-2,
-          aurora_path_colors, kButtonAndPathAlphas,
-          std::move(generate_control_points),
+          button_and_path_colors[kViewpointButtonIndex],
+          {&button_and_path_colors[kPath1ButtonIndex], kNumAuroraPaths},
+          kButtonAndPathAlphas, std::move(generate_control_points),
       });
 
   /* Buttons */
@@ -352,7 +348,7 @@ void Editor::UpdateData(int frame) {
             aurora_layer_.GetIntersection(general_camera, click_ndc);
         if (intersection.has_value()) {
           click_aurora_layer = AuroraPath::ClickInfo{
-              state_manager_.GetEditingPathIndex(),
+              state_manager_.GetSelectedPathIndex(),
               /*is_left_click=*/!did_release_right_,
               intersection.value(),
           };
@@ -398,21 +394,13 @@ void Editor::UpdateData(int frame) {
 
 void Editor::Draw(const VkCommandBuffer& command_buffer,
                   uint32_t framebuffer_index, int current_frame) {
-  absl::optional<int> selected_path_index;
-  for (int index = 0; index <= kNumTopRowButtons; ++index) {
-    if (state_manager_.IsSelected(static_cast<ButtonIndex>(index))) {
-      selected_path_index = index;
-      break;
-    }
-  }
-
   editor_renderer_.Draw(command_buffer, framebuffer_index, /*render_ops=*/{
       [this, current_frame](const VkCommandBuffer& command_buffer) {
         celestial_->Draw(command_buffer, current_frame);
       },
-      [this, current_frame, selected_path_index](
-          const VkCommandBuffer& command_buffer) {
-        aurora_path_->Draw(command_buffer, current_frame, selected_path_index);
+      [this, current_frame](const VkCommandBuffer& command_buffer) {
+        aurora_path_->Draw(command_buffer, current_frame,
+                           state_manager_.GetSelectedPathIndex());
       },
       [this](const VkCommandBuffer& command_buffer) {
         top_row_buttons_->Draw(
@@ -455,16 +443,15 @@ void Editor::StateManager::Update(absl::optional<ButtonIndex> clicked_button) {
   last_clicked_button_ = clicked_button;
 }
 
-int Editor::StateManager::GetEditingPathIndex() const {
-  ASSERT_TRUE(IsEditing(), "Not in editing mode");
-  for (int i = 0; i < ButtonIndex::kNumTopRowButtons; ++i) {
+absl::optional<int> Editor::StateManager::GetSelectedPathIndex() const {
+  for (int i = kPath1ButtonIndex; i < ButtonIndex::kNumAuroraPaths; ++i) {
     const auto button_index =
         static_cast<ButtonIndex>(ButtonIndex::kPath1ButtonIndex + i);
     if (IsSelected(button_index)) {
       return i;
     }
   }
-  FATAL("In editing mode but no path is selected. Should never reach here!");
+  return absl::nullopt;
 }
 
 void Editor::StateManager::SetTopRowButtonsStates(Button::State state) {
