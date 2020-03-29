@@ -226,6 +226,20 @@ class UnownedOffscreenTexture : public SamplableImage {
   const OffscreenImagePtr texture_;
 };
 
+// This class creates a staging image.
+class StagingImage : public Image {
+ public:
+  StagingImage(SharedBasicContext context, const Image& target_image);
+
+  // This class is neither copyable nor movable.
+  StagingImage(const StagingImage&) = delete;
+  StagingImage& operator=(const StagingImage&) = delete;
+
+ private:
+  // Image buffer.
+  StagingImageBuffer buffer_;
+};
+
 // This class creates an image that can be used as depth stencil attachment.
 class DepthStencilImage : public Image {
  public:

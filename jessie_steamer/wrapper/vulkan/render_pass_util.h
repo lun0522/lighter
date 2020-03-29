@@ -11,7 +11,6 @@
 #include <memory>
 
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
-#include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
 #include "third_party/absl/types/optional.h"
 
@@ -28,6 +27,11 @@ namespace vulkan {
 // attachment. See comments of SubpassConfig for details about subpasses.
 class NaiveRenderPassBuilder {
  public:
+  // The usage of color attachment at the end of this render pass.
+  enum class ColorAttachmentFinalUsage {
+    kPresentToScreen, kSampledAsTexture, kAccessedByHost,
+  };
+
   // Configures numbers of different kinds of subpasses. If multisampling is
   // enabled, the multisample attachment will be used as the rendering target in
   // opaque and transparent subpasses, instead of the color attachment.
@@ -52,8 +56,8 @@ class NaiveRenderPassBuilder {
   // be read by other shaders.
   NaiveRenderPassBuilder(
       SharedBasicContext context, const SubpassConfig& subpass_config,
-      int num_framebuffers, bool present_to_screen,
-      absl::optional<MultisampleImage::Mode> multisampling_mode);
+      int num_framebuffers, bool use_multisampling,
+      ColorAttachmentFinalUsage color_attachment_final_usage);
 
   // This class is neither copyable nor movable.
   NaiveRenderPassBuilder(const NaiveRenderPassBuilder&) = delete;

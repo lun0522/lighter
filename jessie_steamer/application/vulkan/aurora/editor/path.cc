@@ -131,7 +131,7 @@ PathRenderer::PathRenderer(const SharedBasicContext& context,
 
   /* Pipeline */
   control_pipeline_builder_
-      .SetName("aurora path control")
+      .SetName("Aurora path control")
       .SetDepthTestEnabled(/*enable_test=*/true, /*enable_write=*/false)
       .AddVertexInput(
           static_cast<uint32_t>(ControlVertexBufferBindingPoint::kCenter),
@@ -151,7 +151,7 @@ PathRenderer::PathRenderer(const SharedBasicContext& context,
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("spline.frag"));
 
   spline_pipeline_builder_
-      .SetName("aurora path spline")
+      .SetName("Aurora path spline")
       .SetDepthTestEnabled(/*enable_test=*/true, /*enable_write=*/false)
       .SetPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_LINE_STRIP)
       .AddVertexInput(
@@ -171,7 +171,7 @@ PathRenderer::PathRenderer(const SharedBasicContext& context,
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("spline.frag"));
 
   viewpoint_pipeline_builder_
-      .SetName("user viewpoint")
+      .SetName("User viewpoint")
       .SetDepthTestEnabled(/*enable_test=*/true, /*enable_write=*/false)
       .AddVertexInput(
           kViewpointVertexBufferBindingPoint,
@@ -297,6 +297,15 @@ void PathRenderer::DrawViewpoint(
   sphere_vertex_buffer_->Draw(
       command_buffer, kViewpointVertexBufferBindingPoint,
       /*mesh_index=*/0, /*instance_count=*/1);
+}
+
+vector<const PerVertexBuffer*> PathRenderer::GetPathVertexBuffers() const {
+  vector<const PerVertexBuffer*> buffers;
+  buffers.reserve(num_paths_);
+  for (const auto& buffer : paths_vertex_buffers_) {
+    buffers.emplace_back(buffer.spline_points_buffer.get());
+  }
+  return buffers;
 }
 
 AuroraPath::AuroraPath(const SharedBasicContext& context,

@@ -19,6 +19,7 @@
 #include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/rotation.h"
 #include "jessie_steamer/common/window.h"
+#include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/window_context.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/optional.h"
@@ -71,6 +72,12 @@ class Editor : public Scene {
   Editor(const Editor&) = delete;
   Editor& operator=(const Editor&) = delete;
 
+  // Returns vertex buffers storing splines points that represent aurora paths.
+  std::vector<const wrapper::vulkan::PerVertexBuffer*>
+  GetAuroraPathVertexBuffers() const {
+    return aurora_path_->GetPathVertexBuffers();
+  }
+
   // Overrides.
   void OnEnter() override;
   void OnExit() override;
@@ -85,10 +92,6 @@ class Editor : public Scene {
   // Accessors.
   const glm::vec3& viewpoint_position() const {
     return aurora_path_->viewpoint_position();
-  }
-  static constexpr int num_aurora_paths() { return kNumAuroraPaths; }
-  const std::vector<glm::vec3>& spline_points(int path_index) const {
-    return aurora_path_->spline_points(path_index);
   }
 
  private:

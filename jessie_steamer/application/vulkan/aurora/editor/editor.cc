@@ -101,7 +101,8 @@ EditorRenderer::EditorRenderer(const WindowContext* window_context)
   render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
       window_context_.basic_context(), subpass_config,
       /*num_framebuffers=*/window_context_.num_swapchain_images(),
-      /*present_to_screen=*/true, window_context_.multisampling_mode());
+      window_context_.use_multisampling(),
+      NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kPresentToScreen);
 }
 
 void EditorRenderer::Recreate() {

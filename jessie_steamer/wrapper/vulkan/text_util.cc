@@ -85,7 +85,8 @@ std::unique_ptr<NaiveRenderPassBuilder> CreateRenderPassBuilder(
   };
   return absl::make_unique<NaiveRenderPassBuilder>(
       context, subpass_config, /*num_framebuffers=*/1,
-      /*present_to_screen=*/false, /*multisampling_mode=*/absl::nullopt);
+      /*use_multisampling=*/false,
+      NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kSampledAsTexture);
 }
 
 // Returns a render pass that renders to 'target_image'.

@@ -57,7 +57,7 @@ ButtonRenderer::ButtonRenderer(
   descriptor_ = CreateDescriptor(context);
 
   pipeline_builder_
-      .SetName("draw button")
+      .SetName("Draw button")
       .AddVertexInput(
           kPerInstanceBufferBindingPoint,
           pipeline::GetPerInstanceBindingDescription<RenderInfo>(),

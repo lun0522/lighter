@@ -155,7 +155,8 @@ const NaiveRenderPassBuilder::SubpassConfig subpass_config{
 render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
     context(), subpass_config,
     /*num_framebuffers=*/window_context_.num_swapchain_images(),
-    /*present_to_screen=*/true, window_context_.multisampling_mode());
+    window_context().use_multisampling(),
+    NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kPresentToScreen);
 ```
 
 ### 1.5 Graphics pipeline
@@ -177,7 +178,7 @@ to pass the `VkPushConstantRange` that we prepared earlier.
 ```cpp
 pipeline_builder_ = absl::make_unique<PipelineBuilder>(context());
 (*pipeline_builder_)
-    .SetName("triangle")
+    .SetName("Triangle")
     .AddVertexInput(kVertexBufferBindingPoint,
                     pipeline::GetPerVertexBindingDescription<Vertex3DNoTex>(),
                     vertex_buffer_->GetAttributes(/*start_location=*/0))

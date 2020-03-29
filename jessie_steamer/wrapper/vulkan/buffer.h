@@ -567,6 +567,18 @@ class OffscreenBuffer : public ImageBuffer {
   OffscreenBuffer& operator=(const OffscreenBuffer&) = delete;
 };
 
+// This class creates an staging image buffer, used for transferring other
+// images to host. No data transfer is required at construction.
+class StagingImageBuffer : public ImageBuffer {
+ public:
+  StagingImageBuffer(SharedBasicContext context,
+                     const VkExtent2D& extent, VkFormat format);
+
+  // This class is neither copyable nor movable.
+  StagingImageBuffer(const StagingImageBuffer&) = delete;
+  StagingImageBuffer& operator=(const StagingImageBuffer&) = delete;
+};
+
 // This class creates an image buffer that can be used as depth stencil image
 // buffer. No data transfer is required at construction.
 class DepthStencilBuffer : public ImageBuffer {

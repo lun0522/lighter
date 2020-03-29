@@ -248,6 +248,15 @@ VkDescriptorImageInfo OffscreenImage::GetDescriptorInfo() const {
   };
 }
 
+StagingImage::StagingImage(SharedBasicContext context,
+                           const Image& target_image)
+    : Image{std::move(context), target_image.extent(), target_image.format()},
+      buffer_{context_, extent_, format_} {
+  SetImageView(CreateImageView(*context_, buffer_.image(), format_,
+                               VK_IMAGE_ASPECT_COLOR_BIT,
+                               kSingleMipLevel, kSingleImageLayer));
+}
+
 DepthStencilImage::DepthStencilImage(const SharedBasicContext& context,
                                      const VkExtent2D& extent)
     : Image{context, extent, FindDepthStencilImageFormat(*context)},

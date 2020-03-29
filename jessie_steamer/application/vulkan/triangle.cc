@@ -97,12 +97,13 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
       context(), subpass_config,
       /*num_framebuffers=*/window_context().num_swapchain_images(),
-      /*present_to_screen=*/true, window_context().multisampling_mode());
+      window_context().use_multisampling(),
+      NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kPresentToScreen);
 
   /* Pipeline */
   pipeline_builder_ = absl::make_unique<PipelineBuilder>(context());
   (*pipeline_builder_)
-      .SetName("triangle")
+      .SetName("Triangle")
       .AddVertexInput(kVertexBufferBindingPoint,
                       pipeline::GetPerVertexBindingDescription<Vertex3DNoTex>(),
                       vertex_buffer_->GetAttributes(/*start_location=*/0))

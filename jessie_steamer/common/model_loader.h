@@ -24,7 +24,7 @@ class ModelLoader {
  public:
   // Texture types that can be bound to shaders.
   enum class TextureType {
-      kDiffuse, kSpecular, kReflection, kCubemap, kNumTypes,
+    kDiffuse, kSpecular, kReflection, kCubemap, kNumTypes,
   };
 
   // Information about a texture.

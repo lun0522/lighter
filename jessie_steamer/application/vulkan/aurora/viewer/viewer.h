@@ -8,8 +8,14 @@
 #ifndef JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_VIEWER_VIEWER_H
 #define JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_VIEWER_VIEWER_H
 
+#include <vector>
+
 #include "jessie_steamer/application/vulkan/aurora/scene.h"
+#include "jessie_steamer/application/vulkan/aurora/viewer/path_dumper.h"
+#include "jessie_steamer/wrapper/vulkan/basic_context.h"
+#include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/window_context.h"
+#include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -20,11 +26,18 @@ namespace aurora {
 class Viewer : public Scene {
  public:
   Viewer(wrapper::vulkan::WindowContext* window_context,
-         int num_frames_in_flight) {}
+         int num_frames_in_flight,
+         std::vector<const wrapper::vulkan::PerVertexBuffer*>&&
+             aurora_paths_vertex_buffers);
 
   // This class is neither copyable nor movable.
   Viewer(const Viewer&) = delete;
   Viewer& operator=(const Viewer&) = delete;
+
+  // Dumps aurora paths viewed from 'viewpoint_position'.
+  void UpdateAuroraPaths(const glm::vec3& viewpoint_position) {
+    path_dumper_.DumpAuroraPaths(viewpoint_position);
+  }
 
   // Overrides.
   void OnEnter() override {}
@@ -34,6 +47,12 @@ class Viewer : public Scene {
   void Draw(const VkCommandBuffer& command_buffer,
             uint32_t framebuffer_index, int current_frame) override {}
   bool ShouldTransitionScene() const override { return false; }
+
+ private:
+  // On-screen rendering context.
+  wrapper::vulkan::WindowContext& window_context_;
+
+  PathDumper path_dumper_;
 };
 
 } /* namespace aurora */

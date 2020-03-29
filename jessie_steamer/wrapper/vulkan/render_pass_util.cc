@@ -23,12 +23,26 @@ using SubpassAttachments = RenderPassBuilder::SubpassAttachments;
 using SubpassDependency = RenderPassBuilder::SubpassDependency;
 using SubpassInfo = SubpassDependency::SubpassInfo;
 
+// Returns the final layout of color attachment based on its usage.
+VkImageLayout GetColorAttachmentFinalLayout(
+    NaiveRenderPassBuilder::ColorAttachmentFinalUsage usage) {
+  using Usage = NaiveRenderPassBuilder::ColorAttachmentFinalUsage;
+  switch (usage) {
+    case Usage::kPresentToScreen:
+      return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    case Usage::kSampledAsTexture:
+      return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    case Usage::kAccessedByHost:
+      return VK_IMAGE_LAYOUT_GENERAL;
+  }
+}
+
 } /* namespace */
 
 NaiveRenderPassBuilder::NaiveRenderPassBuilder(
     SharedBasicContext context, const SubpassConfig& subpass_config,
-    int num_framebuffers, bool present_to_screen,
-    absl::optional<MultisampleImage::Mode> multisampling_mode)
+    int num_framebuffers, bool use_multisampling,
+    ColorAttachmentFinalUsage color_attachment_final_usage)
     : builder_{std::move(context)} {
   const int num_subpasses_with_depth_attachment =
       (subpass_config.use_opaque_subpass ? 1 : 0) +
@@ -41,8 +55,7 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
     depth_attachment_index_ = color_attachment_index_ + 1;
   }
 
-  const bool use_multisample_attachment = multisampling_mode.has_value();
-  if (use_multisample_attachment) {
+  if (use_multisampling) {
     multisample_attachment_index_ =
         1 + (use_depth_attachment ? depth_attachment_index_.value()
                                   : color_attachment_index_);
@@ -58,9 +71,7 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
                   /*store_color_op=*/VK_ATTACHMENT_STORE_OP_STORE,
               },
               /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
-              /*final_layout=*/
-              present_to_screen ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-                                : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+              GetColorAttachmentFinalLayout(color_attachment_final_usage),
           }
       );
   if (use_depth_attachment) {
@@ -80,7 +91,7 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
         }
     );
   }
-  if (use_multisample_attachment) {
+  if (use_multisampling) {
     builder_.SetAttachment(
         multisample_attachment_index(), Attachment{
             /*attachment_ops=*/Attachment::ColorOps{
@@ -96,8 +107,8 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
   /* Subpasses descriptions */
   const vector<VkAttachmentReference> color_refs{
       VkAttachmentReference{
-          use_multisample_attachment ? multisample_attachment_index()
-                                     : color_attachment_index(),
+          use_multisampling ? multisample_attachment_index()
+                            : color_attachment_index(),
           VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
       },
   };
@@ -142,7 +153,7 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
   }
 
   /* Multisampling */
-  if (use_multisample_attachment) {
+  if (use_multisampling) {
     builder_.SetMultisampling(
         /*subpass_index=*/num_subpasses - 1,
         RenderPassBuilder::CreateMultisamplingReferences(

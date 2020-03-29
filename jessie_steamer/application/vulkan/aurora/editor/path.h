@@ -75,6 +75,10 @@ class PathRenderer {
   void DrawViewpoint(const VkCommandBuffer& command_buffer, int frame,
                      const glm::vec3& center, const glm::vec4& color_alpha);
 
+  // Returns pointers to spline vertex buffers.
+  std::vector<const wrapper::vulkan::PerVertexBuffer*>
+  GetPathVertexBuffers() const;
+
  private:
   // Vertex buffers for a single aurora path.
   struct PathVertexBuffers {
@@ -166,11 +170,14 @@ class AuroraPath {
   void Draw(const VkCommandBuffer& command_buffer, int frame,
             absl::optional<int> selected_path_index);
 
+  // Returns pointers to spline vertex buffers.
+  std::vector<const wrapper::vulkan::PerVertexBuffer*>
+  GetPathVertexBuffers() const {
+    return path_renderer_.GetPathVertexBuffers();
+  }
+
   // Accessors.
   const glm::vec3& viewpoint_position() const { return viewpoint_pos_; }
-  const std::vector<glm::vec3>& spline_points(int path_index) const {
-    return spline_editors_.at(path_index)->spline_points();
-  }
 
  private:
   // Updates the vertex data of aurora path at 'path_index'.

@@ -116,7 +116,8 @@ std::unique_ptr<RenderPass> CreateRenderPass(
   };
   NaiveRenderPassBuilder render_pass_builder{
       context, subpass_config, /*num_framebuffers=*/1,
-      /*present_to_screen=*/false, /*multisampling_mode=*/absl::nullopt,
+      /*use_multisampling=*/false,
+      NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kSampledAsTexture,
   };
   render_pass_builder.mutable_builder()->UpdateAttachmentImage(
       render_pass_builder.color_attachment_index(),
@@ -183,7 +184,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
       context, font, font_height, *buttons_image, *render_pass, button_infos);
 
   const auto pipeline = PipelineBuilder{context}
-      .SetName("button background")
+      .SetName("Button background")
       .AddVertexInput(
           kPerInstanceBufferBindingPoint,
           pipeline::GetPerInstanceBindingDescription<RenderInfo>(),

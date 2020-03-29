@@ -828,6 +828,15 @@ OffscreenBuffer::OffscreenBuffer(SharedBasicContext context,
       *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 }
 
+StagingImageBuffer::StagingImageBuffer(
+    SharedBasicContext context, const VkExtent2D& extent, VkFormat format)
+    : ImageBuffer{std::move(context)} {
+  SetImage(CreateImage(*context_, ImageConfig{/*need_access_to_texels=*/true},
+                       nullflag, format, ExpandDimension(extent),
+                       VK_IMAGE_USAGE_TRANSFER_DST_BIT));
+  SetDeviceMemory(CreateImageMemory(*context_, image(), kHostVisibleMemory));
+}
+
 DepthStencilBuffer::DepthStencilBuffer(
     SharedBasicContext context, const VkExtent2D& extent, VkFormat format)
     : ImageBuffer{std::move(context)} {
