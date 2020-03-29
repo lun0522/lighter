@@ -114,14 +114,16 @@ class AuroraPath {
   using GenerateControlPoints =
       std::function<std::vector<glm::vec3>(int path_index)>;
 
-  // Contains information for rendering aurora paths. 'control_point_radius' is
-  // measured in the screen coordinate with range (0.0, 1.0]. The length of
-  // 'path_colors' determines the number of aurora paths to be rendered.
+  // Contains information for rendering aurora paths and the user viewpoint.
+  // 'control_point_radius' is measured in the screen coordinate with range
+  // (0.0, 1.0]. The length of 'path_colors' determines the number of aurora
+  // paths to be rendered.
   struct Info {
     int max_num_control_points;
     float control_point_radius;
     int max_recursion_depth;
     float spline_roughness;
+    glm::vec3 viewpoint_initial_pos;
     std::array<glm::vec3, button::kNumStates> viewpoint_colors;
     absl::Span<const std::array<glm::vec3, button::kNumStates>> path_colors;
     std::array<float, button::kNumStates> path_alphas;
@@ -164,6 +166,12 @@ class AuroraPath {
   void Draw(const VkCommandBuffer& command_buffer, int frame,
             absl::optional<int> selected_path_index);
 
+  // Accessors.
+  const glm::vec3& viewpoint_position() const { return viewpoint_pos_; }
+  const std::vector<glm::vec3>& spline_points(int path_index) const {
+    return spline_editors_.at(path_index)->spline_points();
+  }
+
  private:
   // Updates the vertex data of aurora path at 'path_index'.
   void UpdatePath(int path_index);
@@ -203,6 +211,12 @@ class AuroraPath {
 
   // Tracks the control point selected by left click.
   absl::optional<int> selected_control_point_;
+
+  // Position of user viewpoint in object space.
+  glm::vec3 viewpoint_pos_;
+
+  // Whether viewpoint was clicked in the last frame.
+  bool did_click_viewpoint_ = false;
 
   // Records for each state, what color and alpha should be used when rendering
   // the aurora path at the same index.

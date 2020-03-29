@@ -186,7 +186,7 @@ class Button {
   // Returns a button::VerticesInfo that stores the position and texture
   // coordinate of each vertex.
   button::VerticesInfo CreateMakeButtonVerticesInfo(
-      int num_buttons, const glm::vec2& background_image_size) const;
+      int num_buttons, const glm::vec2& button_scale) const;
 
   // Returns a list of TextPos to describe where to put each text when
   // generating the buttons image.
@@ -200,7 +200,7 @@ class Button {
   // Returns a button::VerticesInfo that stores the position and texture
   // coordinate of each vertex.
   button::VerticesInfo CreateDrawButtonVerticesInfo(
-      const ButtonsInfo& buttons_info) const;
+      const ButtonsInfo& buttons_info, const glm::vec2& button_uv_scale) const;
 
   // Aspect ratio of the viewport. This is used to make sure the aspect ratio of
   // buttons does not change when the size of framebuffers changes.

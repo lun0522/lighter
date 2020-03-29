@@ -121,12 +121,7 @@ Sphere::Sphere(const glm::vec3& center, float radius,
                float inertial_rotation_duration)
     : center_{center}, radius_{radius}, model_matrix_{1.0f},
       rotation_manager_{inertial_rotation_duration} {
-  // Initially, the north pole points to the center of frame.
   model_matrix_ = glm::translate(model_matrix_, center_);
-  model_matrix_ = glm::rotate(model_matrix_, glm::radians(90.0f),
-                              glm::vec3(1.0f, 0.0f, 0.0f));
-  model_matrix_ = glm::rotate(model_matrix_, glm::radians(-90.0f),
-                              glm::vec3(0.0f, 1.0f, 0.0f));
   model_matrix_ = glm::scale(model_matrix_, glm::vec3{radius_});
 }
 

@@ -13,11 +13,10 @@ namespace vulkan {
 namespace aurora {
 namespace button {
 
-void SetVerticesPositions(const glm::vec2& size_ndc, const glm::vec2& scale,
-                          VerticesInfo* info) {
-  const auto set_pos = [info, &scale](int index, float x, float y) {
-    info->pos_tex_coords[index].x = x * scale.x;
-    info->pos_tex_coords[index].y = y * scale.y;
+void SetVerticesPositions(const glm::vec2& size_ndc, VerticesInfo* info) {
+  const auto set_pos = [info](int index, float x, float y) {
+    info->pos_tex_coords[index].x = x;
+    info->pos_tex_coords[index].y = y;
   };
   const glm::vec2 half_size_ndc = size_ndc / 2.0f;
   set_pos(0, -half_size_ndc.x,  half_size_ndc.y);

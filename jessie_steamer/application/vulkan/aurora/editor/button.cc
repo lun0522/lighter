@@ -156,6 +156,17 @@ Button::Button(const SharedBasicContext& context,
   const glm::vec2 background_image_size{background_image.width,
                                         background_image.height};
 
+  // On the all buttons texture, if buttons are too close to each other, when
+  // sampling one button, pixels of another button might be included due to
+  // numeric error. There should be intervals between rendered buttons.
+  constexpr float kButtonDimensionToIntervalRatio = 100.0f;
+  const glm::vec2 interval_candidates =
+      background_image_size / kButtonDimensionToIntervalRatio;
+  const float button_interval = std::max(interval_candidates.x,
+                                         interval_candidates.y);
+  const glm::vec2& button_uv_scale =
+      background_image_size / (background_image_size + button_interval);
+
   const auto render_infos = CreateMakeButtonRenderInfos(buttons_info);
   const auto text_pos = CreateMakeButtonTextPos(buttons_info);
   vector<make_button::ButtonInfo> button_infos;
@@ -172,11 +183,11 @@ Button::Button(const SharedBasicContext& context,
   auto buttons_image = ButtonMaker::CreateButtonsImage(
       context, buttons_info.font, buttons_info.font_height,
       buttons_info.text_color, background_image,
-      CreateMakeButtonVerticesInfo(num_buttons, background_image_size),
-      button_infos);
+      CreateMakeButtonVerticesInfo(num_buttons, button_uv_scale), button_infos);
 
   button_renderer_ = absl::make_unique<ButtonRenderer>(
-      context, num_buttons, CreateDrawButtonVerticesInfo(buttons_info),
+      context, num_buttons,
+      CreateDrawButtonVerticesInfo(buttons_info, button_uv_scale),
       std::move(buttons_image));
 }
 
@@ -201,20 +212,14 @@ vector<make_button::RenderInfo> Button::CreateMakeButtonRenderInfos(
 }
 
 button::VerticesInfo Button::CreateMakeButtonVerticesInfo(
-    int num_buttons, const glm::vec2& background_image_size) const {
-  constexpr float kButtonDimensionToIntervalRatio = 100.0f;
-  const glm::vec2 interval_candidates =
-      background_image_size / kButtonDimensionToIntervalRatio;
-  const float button_interval = std::max(interval_candidates.x,
-                                         interval_candidates.y);
-  const glm::vec2& button_scale =
-      background_image_size / (background_image_size + button_interval);
+    int num_buttons, const glm::vec2& button_scale) const {
   const float button_height_ndc =
       kNdcDim / static_cast<float>(num_buttons * button::kNumStates);
+  const auto button_size_ndc =
+      glm::vec2{kNdcDim, button_height_ndc} * button_scale;
 
   button::VerticesInfo vertices_info{};
-  SetVerticesPositions(/*size_ndc=*/glm::vec2{kNdcDim, button_height_ndc},
-                       button_scale, &vertices_info);
+  SetVerticesPositions(button_size_ndc, &vertices_info);
   SetVerticesTexCoords(/*center_uv=*/glm::vec2{kUvDim} / 2.0f,
                        /*size_uv=*/glm::vec2{kUvDim}, &vertices_info);
   return vertices_info;
@@ -272,19 +277,17 @@ Button::DrawButtonRenderInfos Button::ExtractDrawButtonRenderInfos(
 }
 
 button::VerticesInfo Button::CreateDrawButtonVerticesInfo(
-    const ButtonsInfo& buttons_info) const {
+    const ButtonsInfo& buttons_info, const glm::vec2& button_uv_scale) const {
   const glm::vec2 button_size_ndc = buttons_info.button_size * kNdcDim;
   const int num_buttons = buttons_info.button_infos.size();
   const float button_tex_height =
       kUvDim / static_cast<float>(num_buttons * button::kNumStates);
+  const auto size_uv = glm::vec2{kUvDim, -button_tex_height} * button_uv_scale;
 
   // Flip Y for texture coordinates.
   button::VerticesInfo vertices_info{};
-  SetVerticesPositions(button_size_ndc, /*scale=*/glm::vec2{1.0f},
-                       &vertices_info);
-  SetVerticesTexCoords(/*center_uv*/glm::vec2{0.0f},
-                       /*size_uv=*/glm::vec2{kUvDim, -button_tex_height},
-                       &vertices_info);
+  SetVerticesPositions(button_size_ndc, &vertices_info);
+  SetVerticesTexCoords(/*center_uv*/glm::vec2{0.0f}, size_uv, &vertices_info);
   return vertices_info;
 }
 

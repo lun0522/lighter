@@ -68,6 +68,6 @@ http_archive(
 git_repository(
     name = "resource",
     remote = "https://github.com/lun0522/resource.git",
-    commit = "fc80c718eb0ae3f0f2fb1043ce14102eb14b3289",
-    shallow_since = "1582958847 -0800",
+    commit = "252f7234490a7bf59b0ed0f1cbe31aaefaa6ac07",
+    shallow_since = "1585413351 -0700",
 )

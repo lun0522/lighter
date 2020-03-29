@@ -82,6 +82,15 @@ class Editor : public Scene {
     return state_manager_.ShouldDisplayAurora();
   }
 
+  // Accessors.
+  const glm::vec3& viewpoint_position() const {
+    return aurora_path_->viewpoint_position();
+  }
+  static constexpr int num_aurora_paths() { return kNumAuroraPaths; }
+  const std::vector<glm::vec3>& spline_points(int path_index) const {
+    return aurora_path_->spline_points(path_index);
+  }
+
  private:
   enum ButtonIndex {
     kPath1ButtonIndex,
@@ -163,6 +172,9 @@ class Editor : public Scene {
     // Tracks the index of the last edited aurora path.
     ButtonIndex last_edited_path_ = kPath1ButtonIndex;
   };
+
+  // Rotates 'earth_' and 'aurora_layer_' together.
+  void RotateCelestials(const common::rotation::Rotation& rotation);
 
   // Accessors.
   const wrapper::vulkan::RenderPass& render_pass() const {

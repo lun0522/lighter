@@ -30,8 +30,7 @@ struct VerticesInfo {
 /* END: Consistent with uniform blocks defined in shaders. */
 
 // Helps to set the position part of VerticesInfo.
-void SetVerticesPositions(const glm::vec2& size_ndc, const glm::vec2& scale,
-                          VerticesInfo* info);
+void SetVerticesPositions(const glm::vec2& size_ndc, VerticesInfo* info);
 
 // Helps to set the texture coordinate part of VerticesInfo.
 void SetVerticesTexCoords(const glm::vec2& center_uv, const glm::vec2& size_uv,

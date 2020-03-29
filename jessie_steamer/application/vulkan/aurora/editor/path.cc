@@ -310,6 +310,7 @@ AuroraPath::AuroraPath(const SharedBasicContext& context,
                     info.path_alphas[button::kSelectedState]},
           glm::vec4{info.viewpoint_colors[button::kUnselectedState],
                     info.path_alphas[button::kUnselectedState]}},
+      viewpoint_pos_{info.viewpoint_initial_pos},
       color_alphas_to_render_(num_paths_),
       path_renderer_{context, num_frames_in_flight, num_paths_} {
   path_color_alphas_.reserve(num_paths_);
@@ -386,8 +387,7 @@ void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
   const bool is_viewpoint_selected = !selected_path_index.has_value();
   const auto viewpoint_state = is_viewpoint_selected ? button::kSelectedState
                                                      : button::kUnselectedState;
-  // TODO
-  path_renderer_.DrawViewpoint(command_buffer, frame, {0.0f, 0.0f, 1.0f},
+  path_renderer_.DrawViewpoint(command_buffer, frame, viewpoint_pos_,
                                viewpoint_color_alphas_[viewpoint_state]);
 }
 
@@ -401,12 +401,34 @@ absl::optional<int> AuroraPath::ProcessClick(
     float control_point_radius_object_space,
     const glm::mat4& proj_view_model, const glm::vec3& model_center,
     const absl::optional<ClickInfo>& click_info) {
-  // TODO: Process click on viewpoint.
-  if (!click_info.has_value() || !click_info.value().path_index.has_value()) {
+  if (!click_info.has_value()) {
+    did_click_viewpoint_ = false;
     return absl::nullopt;
   }
 
+  // If no 'path_index' specified, process click on viewpoint.
   const ClickInfo& user_click = click_info.value();
+  if (!click_info.value().path_index.has_value()) {
+    // If keep clicking on the viewpoint, or right click for the first time,
+    // simply move the viewpoint to click point.
+    if (did_click_viewpoint_ || !user_click.is_left_click) {
+      viewpoint_pos_ = user_click.click_object_space;
+    }
+    // If left click on the viewpoint or right click anywhere on the earth
+    // model for the first time, start to track clicking.
+    if (!did_click_viewpoint_) {
+      const bool is_left_clicking_on_viewpoint =
+          user_click.is_left_click &&
+          glm::distance(viewpoint_pos_, user_click.click_object_space) <=
+              control_point_radius_object_space;
+      if (is_left_clicking_on_viewpoint || !user_click.is_left_click) {
+        did_click_viewpoint_ = true;
+      }
+    }
+    return absl::nullopt;
+  }
+
+  // Otherwise, process click on aurora paths.
   const int path_index = user_click.path_index.value();
   ASSERT_TRUE(path_index < num_paths_,
               absl::StrFormat(

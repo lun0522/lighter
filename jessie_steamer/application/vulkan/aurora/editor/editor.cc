@@ -38,8 +38,10 @@ constexpr float kInertialRotationDuration = 1.5f;
 constexpr float kEarthRadius = 6378.1f;
 constexpr float kAuroraHeight = 100.0f;
 constexpr float kEarthModelRadius = 1.0f;
+constexpr float kAuroraLayerRelativeScale =
+    (kEarthRadius + kAuroraHeight) / kEarthRadius;
 constexpr float kAuroraLayerModelRadius =
-    (kEarthRadius + kAuroraHeight) / kEarthRadius * kEarthModelRadius;
+    kEarthModelRadius * kAuroraLayerRelativeScale;
 
 // Returns coordinate of earth model center.
 const glm::vec3& GetEarthModelCenter() {
@@ -55,12 +57,32 @@ inline glm::vec3 MakeColor(int r, int g, int b) {
   return glm::vec3{r, g, b} / 255.0f;
 }
 
+// Returns a point on the earth model that has the given 'latitude' and
+// 'longitude', which are measured in degrees. North latitude and East longitude
+// are positive, while South latitude and West longitude are negative.
+glm::vec3 GetLocationOnEarthModel(float latitude, float longitude) {
+  ASSERT_TRUE(glm::abs(latitude) <= 90.0f,
+              absl::StrFormat("Invalid latitude: %f", latitude));
+  ASSERT_TRUE(glm::abs(longitude) <= 180.0f,
+              absl::StrFormat("Invalid longitude: %f", longitude));
+  // Offset is determined by the location of prime meridian on earth textures.
+  longitude -= 90.0f;
+  const float longitude_radians = glm::radians(longitude);
+  const float latitude_radians = glm::radians(latitude);
+  const float cos_latitude = glm::cos(latitude_radians);
+  return kEarthModelRadius * glm::vec3{
+      /*x=*/cos_latitude * glm::cos(longitude_radians),
+      /*y=*/glm::sin(latitude_radians),
+      /*z=*/-cos_latitude * glm::sin(longitude_radians),
+  };
+}
+
 // Distributes buttons evenly within range [0.0, 1.0].
 vector<float> GetButtonCenters(int num_buttons) {
   ASSERT_TRUE(num_buttons > 0, "num_buttons must be greater than 0");
   const float button_extent = 1.0f / static_cast<float>(num_buttons);
   vector<float> button_centers(num_buttons);
-  button_centers[0] = button_extent / 2;
+  button_centers[0] = button_extent / 2.0f;
   for (int i = 1; i < num_buttons; ++i) {
     button_centers[i] = button_centers[i - 1] + button_extent;
   }
@@ -142,33 +164,32 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
   celestial_ = absl::make_unique<Celestial>(
       context, original_aspect_ratio, num_frames_in_flight);
 
+  // Initially, the north pole points to the center of frame.
+  RotateCelestials({/*axis=*/{1.0f, 0.0f, 0.0f},
+                    /*angle=*/glm::radians(90.0f)});
+  RotateCelestials({/*axis=*/{0.0f, 1.0f, 0.0f},
+                    /*angle=*/glm::radians(90.0f)});
+
   /* Aurora path */
   constexpr array<float, kNumAuroraPaths> kLatitudes{55.0f, 65.0f, 75.0f};
   constexpr int kNumControlPointsPerSpline = 8;
   constexpr int kLongitudeStep = 360 / kNumControlPointsPerSpline;
-  auto generate_control_points =
-      [&kLatitudes](int path_index) -> vector<glm::vec3> {
-        const float latitude = kLatitudes.at(path_index);
-        const float latitude_radians = glm::radians(latitude);
-        const float sin_latitude = glm::sin(latitude_radians);
-        const float cos_latitude = glm::cos(latitude_radians);
-
-        vector<glm::vec3> control_points(kNumControlPointsPerSpline);
-        for (int i = 0; i < control_points.size(); ++i) {
-          const float longitude_radians =
-              glm::radians(static_cast<float>(kLongitudeStep * i));
-          control_points[i] = glm::vec3{
-              glm::cos(longitude_radians) * cos_latitude,
-              sin_latitude,
-              glm::sin(longitude_radians) * cos_latitude,
-          };
-        }
-        return control_points;
-      };
+  auto generate_control_points = [&kLatitudes](int path_index) {
+    const float latitude = kLatitudes.at(path_index);
+    vector<glm::vec3> control_points(kNumControlPointsPerSpline);
+    for (int i = 0; i < control_points.size(); ++i) {
+      const auto longitude = static_cast<float>(kLongitudeStep * i - 180);
+      control_points[i] = GetLocationOnEarthModel(latitude, longitude) *
+                          kAuroraLayerRelativeScale;
+    }
+    return control_points;
+  };
+  // Initially, the viewpoint is located at Anchorage, AK, USA.
   aurora_path_ = absl::make_unique<AuroraPath>(
       context, num_frames_in_flight, original_aspect_ratio, AuroraPath::Info{
           /*max_num_control_points=*/20, /*control_point_radius=*/0.015f,
           /*max_recursion_depth=*/20, /*spline_smoothness=*/1E-2,
+          /*viewpoint_initial_pos=*/GetLocationOnEarthModel(61.2f, -149.9f),
           button_and_path_colors[kViewpointButtonIndex],
           {&button_and_path_colors[kPath1ButtonIndex], kNumAuroraPaths},
           kButtonAndPathAlphas, std::move(generate_control_points),
@@ -193,7 +214,7 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
     {
       const glm::vec2 button_size{1.0f / kNumTopRowButtons, kButtonHeight};
       const auto button_centers_x = GetButtonCenters(kNumTopRowButtons);
-      const float button_center_y = 1.0f - kButtonHeight / 2;
+      const float button_center_y = 1.0f - kButtonHeight / 2.0f;
       const auto get_button_info =
           [&button_texts, &button_and_path_colors, &button_centers_x,
            button_center_y](int button_index) {
@@ -217,7 +238,7 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
     {
       const glm::vec2 button_size{1.0f / kNumBottomRowButtons, kButtonHeight};
       const auto button_centers_x = GetButtonCenters(kNumBottomRowButtons);
-      const float button_center_y = kButtonHeight / 2;
+      const float button_center_y = kButtonHeight / 2.0f;
       const auto get_button_info =
           [&button_texts, &button_and_path_colors, &button_centers_x,
            button_center_y](int relative_index) {
@@ -339,16 +360,20 @@ void Editor::UpdateData(int frame) {
   const auto& general_camera = dynamic_cast<const common::OrthographicCamera&>(
       general_camera_->camera());
   absl::optional<glm::vec2> click_earth_ndc;
-  absl::optional<AuroraPath::ClickInfo> click_aurora_layer;
+  absl::optional<AuroraPath::ClickInfo> click_celestial;
   if (!clicked_button.has_value()) {
     if (state_manager_.IsEditing()) {
-      // If in editing mode, only interact with aurora layer.
+      // If editing aurora paths, intersect with aurora layer. If editing
+      // viewpoint, intersect with earth.
       if (did_press_left_ || did_release_right_) {
+        const auto selected_path_index = state_manager_.GetSelectedPathIndex();
+        const auto& celestial_to_intersect =
+            selected_path_index.has_value() ? aurora_layer_ : earth_;
         const auto intersection =
-            aurora_layer_.GetIntersection(general_camera, click_ndc);
+            celestial_to_intersect.GetIntersection(general_camera, click_ndc);
         if (intersection.has_value()) {
-          click_aurora_layer = AuroraPath::ClickInfo{
-              state_manager_.GetSelectedPathIndex(),
+          click_celestial = AuroraPath::ClickInfo{
+              selected_path_index,
               /*is_left_click=*/!did_release_right_,
               intersection.value(),
           };
@@ -363,8 +388,7 @@ void Editor::UpdateData(int frame) {
   // Compute earth rotation.
   const auto rotation = earth_.ShouldRotate(general_camera, click_earth_ndc);
   if (rotation.has_value()) {
-    earth_.Rotate(rotation.value());
-    aurora_layer_.Rotate(rotation.value());
+    RotateCelestials(rotation.value());
   }
 
   // Update earth, aurora and skybox.
@@ -386,7 +410,7 @@ void Editor::UpdateData(int frame) {
   celestial_->UpdateSkyboxData(frame, skybox_transform_matrix);
 
   aurora_path_->UpdatePerFrameData(
-      frame, general_camera, aurora_layer_.model_matrix(), click_aurora_layer);
+      frame, general_camera, aurora_layer_.model_matrix(), click_celestial);
 
   // Reset right mouse button flag.
   did_release_right_ = false;
@@ -409,6 +433,11 @@ void Editor::Draw(const VkCommandBuffer& command_buffer,
             command_buffer, state_manager_.bottom_row_buttons_states());
       },
   });
+}
+
+void Editor::RotateCelestials(const common::rotation::Rotation& rotation) {
+  earth_.Rotate(rotation);
+  aurora_layer_.Rotate(rotation);
 }
 
 Editor::StateManager::StateManager() {
