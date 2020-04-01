@@ -38,10 +38,8 @@ constexpr float kInertialRotationDuration = 1.5f;
 constexpr float kEarthRadius = 6378.1f;
 constexpr float kAuroraHeight = 100.0f;
 constexpr float kEarthModelRadius = 1.0f;
-constexpr float kAuroraLayerRelativeScale =
-    (kEarthRadius + kAuroraHeight) / kEarthRadius;
 constexpr float kAuroraLayerModelRadius =
-    kEarthModelRadius * kAuroraLayerRelativeScale;
+    (kEarthRadius + kAuroraHeight) / kEarthRadius * kEarthModelRadius;
 
 // Returns coordinate of earth model center.
 const glm::vec3& GetEarthModelCenter() {
@@ -57,10 +55,10 @@ inline glm::vec3 MakeColor(int r, int g, int b) {
   return glm::vec3{r, g, b} / 255.0f;
 }
 
-// Returns a point on the earth model that has the given 'latitude' and
-// 'longitude', which are measured in degrees. North latitude and East longitude
-// are positive, while South latitude and West longitude are negative.
-glm::vec3 GetLocationOnEarthModel(float latitude, float longitude) {
+// Returns a point that has the given 'latitude' and 'longitude', which are
+// measured in degrees. North latitude and East longitude are positive, while
+// South latitude and West longitude are negative.
+glm::vec3 GetLocation(float latitude, float longitude) {
   ASSERT_TRUE(glm::abs(latitude) <= 90.0f,
               absl::StrFormat("Invalid latitude: %f", latitude));
   ASSERT_TRUE(glm::abs(longitude) <= 180.0f,
@@ -70,7 +68,7 @@ glm::vec3 GetLocationOnEarthModel(float latitude, float longitude) {
   const float longitude_radians = glm::radians(longitude);
   const float latitude_radians = glm::radians(latitude);
   const float cos_latitude = glm::cos(latitude_radians);
-  return kEarthModelRadius * glm::vec3{
+  return glm::vec3{
       /*x=*/cos_latitude * glm::cos(longitude_radians),
       /*y=*/glm::sin(latitude_radians),
       /*z=*/-cos_latitude * glm::sin(longitude_radians),
@@ -180,17 +178,17 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
     vector<glm::vec3> control_points(kNumControlPointsPerSpline);
     for (int i = 0; i < control_points.size(); ++i) {
       const auto longitude = static_cast<float>(kLongitudeStep * i - 180);
-      control_points[i] = GetLocationOnEarthModel(latitude, longitude) *
-                          kAuroraLayerRelativeScale;
+      control_points[i] = GetLocation(latitude, longitude);
     }
+    LOG_INFO << glm::length(control_points[0]);
     return control_points;
   };
   // Initially, the viewpoint is located at Anchorage, AK, USA.
   aurora_path_ = absl::make_unique<AuroraPath>(
       context, num_frames_in_flight, original_aspect_ratio, AuroraPath::Info{
-          /*max_num_control_points=*/20, /*control_point_radius=*/0.015f,
+          /*max_num_control_points=*/20, /*control_point_radius=*/0.01f,
           /*max_recursion_depth=*/20, /*spline_smoothness=*/1E-2,
-          /*viewpoint_initial_pos=*/GetLocationOnEarthModel(61.2f, -149.9f),
+          /*viewpoint_initial_pos=*/GetLocation(61.2f, -149.9f),
           button_and_path_colors[kViewpointButtonIndex],
           {&button_and_path_colors[kPath1ButtonIndex], kNumAuroraPaths},
           kButtonAndPathAlphas, std::move(generate_control_points),
@@ -411,7 +409,8 @@ void Editor::UpdateData(int frame) {
   celestial_->UpdateSkyboxData(frame, skybox_transform_matrix);
 
   aurora_path_->UpdatePerFrameData(
-      frame, general_camera, aurora_layer_.model_matrix(), click_celestial);
+      frame, general_camera, aurora_layer_.model_matrix(),
+      kAuroraLayerModelRadius, click_celestial);
 
   // Reset right mouse button flag.
   did_release_right_ = false;

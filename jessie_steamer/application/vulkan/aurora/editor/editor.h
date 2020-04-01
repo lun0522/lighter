@@ -63,6 +63,11 @@ class EditorRenderer {
 };
 
 // This class is used to manage and render the aurora path editor scene.
+// Note that to make it easier to handle user interactions with objects in
+// different locations and sizes in the scene, the common::Sphere class will
+// consider the center and radius of spheres, and always convert user click
+// positions to object space before other computation, so that the renderer, the
+// Celestial class, need not worry about it.
 class Editor : public Scene {
  public:
   Editor(wrapper::vulkan::WindowContext* window_context,

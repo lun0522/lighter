@@ -161,9 +161,9 @@ class AuroraPath {
   // Updates per-frame data. Note that all control points and spline points are
   // on a unit sphere, hence the 'model' matrix will determine the height of
   // aurora layer.
-  void UpdatePerFrameData(
-      int frame, const common::OrthographicCamera& camera,
-      const glm::mat4& model, const absl::optional<ClickInfo>& click_info);
+  void UpdatePerFrameData(int frame, const common::OrthographicCamera& camera,
+                          const glm::mat4& model, float model_radius,
+                          const absl::optional<ClickInfo>& click_info);
 
   // Renders the aurora paths.
   // This should be called when 'command_buffer' is recording commands.

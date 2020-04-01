@@ -350,10 +350,10 @@ void AuroraPath::UpdateFramebuffer(
 
 void AuroraPath::UpdatePerFrameData(
     int frame, const common::OrthographicCamera& camera,
-    const glm::mat4& model, const absl::optional<ClickInfo>& click_info) {
-  constexpr float kSphereModelRadius = 1.0f;
+    const glm::mat4& model, float model_radius,
+    const absl::optional<ClickInfo>& click_info) {
   const float radius_object_space = camera.view_width() * control_point_radius_;
-  const float control_point_scale = radius_object_space / kSphereModelRadius;
+  const float control_point_scale = radius_object_space / model_radius;
   const glm::mat4 proj_view_model = camera.projection() * camera.view() * model;
   path_renderer_.UpdatePerFrameData(frame, control_point_scale,
                                     proj_view_model);
