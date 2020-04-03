@@ -40,7 +40,8 @@ class Camera {
   // Moves the position of camera by 'offset' and updates the view matrix.
   void UpdatePosition(const glm::vec3& offset);
 
-  // Updates the front and right vector, and view matrix.
+  // Updates the front and right vector, and view matrix. 'front' does not need
+  // to be normalized.
   void UpdateDirection(const glm::vec3& front);
 
   // Returns a view matrix that can be used for rendering skybox.
@@ -85,12 +86,10 @@ class Camera {
 // A perspective camera model.
 class PerspectiveCamera : public Camera {
  public:
-  // Configurations used to control perspective projection.
+  // Configurations used to control perspective projection. 'field_of_view' is
+  // measured in degrees.
   struct PersConfig {
-    explicit PersConfig(float fov_aspect_ratio)
-        : fov_aspect_ratio{fov_aspect_ratio} {}
-
-    float field_of_view = 45.0f;
+    float field_of_view;
     float fov_aspect_ratio;
   };
 

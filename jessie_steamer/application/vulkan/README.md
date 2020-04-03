@@ -162,8 +162,8 @@ render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
 ### 1.5 Graphics pipeline
 
 Setting up a pipeline can be very complicated as well. The wrapper class
-`Pipeline` already fills it with lots of default settings, and now we only need
-to provide:
+`Pipeline` already fills it with lots of default settings, and now at minimum we
+only need to provide:
 
 1. Vertex input binding descriptions (*i.e.* vertex buffer binding point,
 reading stride and update rate) and vertex attributes. The binding descriptions
@@ -173,7 +173,10 @@ retrieved from the vertex buffer as we already pass them to its constructor.
 2. Pipeline layout, including descriptor layouts and push constant ranges used
 in this pipeline. For this simple scene, we don't use descriptors. We only need
 to pass the `VkPushConstantRange` that we prepared earlier.
-3. Which shaders to use.
+3. Viewport transform. Since this may change when the window is resized, we need
+to set it every time when we build/rebuild the pipeline.
+4. Color blending for each color attachment.
+5. Which shaders to use.
 
 ```cpp
 pipeline_builder_ = absl::make_unique<PipelineBuilder>(context());
@@ -185,6 +188,7 @@ pipeline_builder_ = absl::make_unique<PipelineBuilder>(context());
     .SetPipelineLayout(
         /*descriptor_layouts=*/{},
         {alpha_constant_->MakePerFrameRange(VK_SHADER_STAGE_FRAGMENT_BIT)})
+    .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)})
     .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                common::file::GetVkShaderPath("pure_color.vert"))
     .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -224,8 +228,7 @@ fading in and out effect:
 (*pipeline_builder_)
     .SetMultisampling(window_context_.sample_count())
     .SetViewport(pipeline::GetFullFrameViewport(window_context_.frame_size()))
-    .SetRenderPass(**render_pass_, kTriangleSubpassIndex)
-    .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)});
+    .SetRenderPass(**render_pass_, kTriangleSubpassIndex);
 pipeline_ = pipeline_builder_->Build();
 ```
 
@@ -266,7 +269,7 @@ command buffer is recording commands:
 
 ```cpp
 const vector<RenderPass::RenderOp> render_ops{
-    [&](const VkCommandBuffer& command_buffer) {
+    [this](const VkCommandBuffer& command_buffer) {
       pipeline_->Bind(command_buffer);
       push_constant_->Flush(command_buffer, pipeline_->layout(),
                             current_frame_, /*target_offset=*/0,
@@ -287,7 +290,8 @@ const auto update_data = [this](int frame) { UpdateData(frame); };
 
 const auto draw_result = command_->Run(
     current_frame_, window_context_.swapchain(), update_data,
-    [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
+    [this, &render_ops](const VkCommandBuffer& command_buffer,
+                        uint32_t framebuffer_index) {
       render_pass_->Run(command_buffer, framebuffer_index, render_ops);
     });
 ```

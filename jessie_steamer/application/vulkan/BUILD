@@ -26,6 +26,12 @@ cc_binary(
 )
 
 cc_binary(
+    name = "image_viewer",
+    srcs = ["image_viewer.cc"],
+    deps = [":common"],
+)
+
+cc_binary(
     name = "nanosuit",
     srcs = ["nanosuit.cc"],
     deps = [":common"],

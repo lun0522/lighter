@@ -163,9 +163,8 @@ StaticText::StaticText(const SharedBasicContext& context,
     descriptors_.emplace_back(
         absl::make_unique<DynamicDescriptor>(context, descriptor_infos));
     push_descriptors_.emplace_back(
-        [=](const VkCommandBuffer& command_buffer,
-            const VkPipelineLayout& pipeline_layout,
-            int text_index) {
+        [this, frame](const VkCommandBuffer& command_buffer,
+                      const VkPipelineLayout& pipeline_layout, int text_index) {
           descriptors_[frame]->PushBufferInfos(
               command_buffer, pipeline_layout,
               VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,

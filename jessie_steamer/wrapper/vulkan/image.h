@@ -11,6 +11,7 @@
 #include <array>
 #include <memory>
 
+#include "jessie_steamer/common/file.h"
 #include "jessie_steamer/common/ref_count.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
@@ -96,6 +97,11 @@ class TextureImage : public Image {
                bool generate_mipmaps,
                const SamplableImage::Config& sampler_config,
                const TextureBuffer::Info& info);
+
+  TextureImage(SharedBasicContext context,
+               bool generate_mipmaps,
+               const SamplableImage::Config& sampler_config,
+               const common::Image& image);
 
   // This class is neither copyable nor movable.
   TextureImage(const TextureImage&) = delete;

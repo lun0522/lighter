@@ -40,22 +40,6 @@ enum UniformBindingPoint {
 constexpr float kUvDim = 1.0f;
 constexpr uint32_t kPerInstanceBufferBindingPoint = 0;
 
-// Loads the button background image to device.
-std::unique_ptr<TextureImage> LoadButtonBackgroundImage(
-    const SharedBasicContext& context, const common::Image& button_background) {
-  ASSERT_TRUE(button_background.channel == common::kBwImageChannel,
-              "Expecting a single-channel button background image");
-  return absl::make_unique<TextureImage>(
-      context, /*generate_mipmaps=*/false, SamplableImage::Config{},
-      TextureBuffer::Info{
-          {button_background.data},
-          VK_FORMAT_R8_UNORM,
-          static_cast<uint32_t>(button_background.width),
-          static_cast<uint32_t>(button_background.height),
-          common::kBwImageChannel,
-      });
-}
-
 // Creates a big offscreen image. We will render all buttons in all states onto
 // this image.
 std::unique_ptr<OffscreenImage> CreateTargetImage(
@@ -161,8 +145,11 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
     const glm::vec3& text_color, const common::Image& button_background,
     const button::VerticesInfo& vertices_info,
     absl::Span<const make_button::ButtonInfo> button_infos) {
-  const auto background_image =
-      LoadButtonBackgroundImage(context, button_background);
+  ASSERT_TRUE(button_background.channel == common::kBwImageChannel,
+              "Expecting a single-channel button background image");
+  const auto background_image = absl::make_unique<TextureImage>(
+      context, /*generate_mipmaps=*/false, SamplableImage::Config{},
+      button_background);
 
   const int num_buttons = button_infos.size();
   auto buttons_image = CreateTargetImage(context, num_buttons,
@@ -215,7 +202,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
             command_buffer, button::kNumVerticesPerButton,
             /*instance_count=*/num_buttons * button::kNumStates);
       },
-      [&](const VkCommandBuffer& command_buffer) {
+      [&text_renderer, &text_color](const VkCommandBuffer& command_buffer) {
         // Render texts on buttons.
         text_renderer->Draw(command_buffer, /*frame=*/0,
                             text_color, /*alpha=*/1.0f);
@@ -223,9 +210,10 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
   };
 
   const OneTimeCommand command{context, &context->queues().graphics_queue()};
-  command.Run([&](const VkCommandBuffer& command_buffer) {
-    render_pass->Run(command_buffer, /*framebuffer_index=*/0, render_ops);
-  });
+  command.Run(
+      [&render_pass, &render_ops](const VkCommandBuffer& command_buffer) {
+        render_pass->Run(command_buffer, /*framebuffer_index=*/0, render_ops);
+      });
 
   return buttons_image;
 }

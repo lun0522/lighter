@@ -127,7 +127,7 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
   config.position = glm::vec3{1.6f, -5.1f, -5.9f};
   config.look_at = glm::vec3{-2.4f, -0.8f, 0.0f};
   const common::PerspectiveCamera::PersConfig pers_config{
-      original_aspect_ratio};
+      /*field_of_view=*/45.0f, original_aspect_ratio};
   camera_ = absl::make_unique<common::UserControlledCamera>(
       common::UserControlledCamera::ControlConfig{},
       absl::make_unique<common::PerspectiveCamera>(config, pers_config));
@@ -352,7 +352,7 @@ void PlanetApp::MainLoop() {
     timer_.Tick();
 
     const vector<RenderPass::RenderOp> render_ops{
-        [&](const VkCommandBuffer& command_buffer) {
+        [this](const VkCommandBuffer& command_buffer) {
           planet_model_->Draw(command_buffer, current_frame_,
                               /*instance_count=*/1);
           asteroid_model_->Draw(command_buffer, current_frame_,
@@ -363,7 +363,8 @@ void PlanetApp::MainLoop() {
     };
     const auto draw_result = command_->Run(
         current_frame_, window_context().swapchain(), update_data,
-        [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
+        [this, &render_ops](const VkCommandBuffer& command_buffer,
+                            uint32_t framebuffer_index) {
           render_pass_->Run(command_buffer, framebuffer_index, render_ops);
         });
 
@@ -384,5 +385,7 @@ void PlanetApp::MainLoop() {
 
 int main(int argc, char* argv[]) {
   using namespace jessie_steamer::application::vulkan;
-  return AppMain<PlanetApp>(argc, argv, WindowContext::Config{});
+  const auto config = WindowContext::Config{}.set_multisampling_mode(
+      MultisampleImage::Mode::kEfficient);
+  return AppMain<PlanetApp>(argc, argv, config);
 }

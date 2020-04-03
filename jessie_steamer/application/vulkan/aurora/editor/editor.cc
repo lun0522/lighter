@@ -41,7 +41,7 @@ constexpr float kEarthModelRadius = 1.0f;
 constexpr float kAuroraLayerModelRadius =
     (kEarthRadius + kAuroraHeight) / kEarthRadius * kEarthModelRadius;
 
-// Returns coordinate of earth model center.
+// Returns the coordinate of earth model center.
 const glm::vec3& GetEarthModelCenter() {
   static const glm::vec3* earth_model_center = nullptr;
   if (earth_model_center == nullptr) {
@@ -180,7 +180,6 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
       const auto longitude = static_cast<float>(kLongitudeStep * i - 180);
       control_points[i] = GetLocation(latitude, longitude);
     }
-    LOG_INFO << glm::length(control_points[0]);
     return control_points;
   };
   // Initially, the viewpoint is located at Anchorage, AK, USA.
@@ -214,15 +213,13 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
       const glm::vec2 button_size{1.0f / kNumTopRowButtons, kButtonHeight};
       const auto button_centers_x = GetButtonCenters(kNumTopRowButtons);
       const float button_center_y = 1.0f - kButtonHeight / 2.0f;
-      const auto get_button_info =
-          [&button_texts, &button_and_path_colors, &button_centers_x,
-           button_center_y](int button_index) {
-            return ButtonInfo{
-                button_texts[button_index],
-                button_and_path_colors[button_index],
-                {button_centers_x[button_index], button_center_y},
-            };
-          };
+      const auto get_button_info = [&](int button_index) {
+        return ButtonInfo{
+            button_texts[button_index],
+            button_and_path_colors[button_index],
+            {button_centers_x[button_index], button_center_y},
+        };
+      };
       array<ButtonInfo, kNumTopRowButtons> button_infos{};
       for (int i = 0; i < kNumTopRowButtons; ++i) {
         button_infos[i] = get_button_info(i);
@@ -238,16 +235,14 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
       const glm::vec2 button_size{1.0f / kNumBottomRowButtons, kButtonHeight};
       const auto button_centers_x = GetButtonCenters(kNumBottomRowButtons);
       const float button_center_y = kButtonHeight / 2.0f;
-      const auto get_button_info =
-          [&button_texts, &button_and_path_colors, &button_centers_x,
-           button_center_y](int relative_index) {
-            const int button_index = kNumTopRowButtons + relative_index;
-            return ButtonInfo{
-                button_texts[button_index],
-                button_and_path_colors[button_index],
-                {button_centers_x[relative_index], button_center_y},
-            };
-          };
+      const auto get_button_info = [&](int relative_index) {
+        const int button_index = kNumTopRowButtons + relative_index;
+        return ButtonInfo{
+            button_texts[button_index],
+            button_and_path_colors[button_index],
+            {button_centers_x[relative_index], button_center_y},
+        };
+      };
       array<ButtonInfo, kNumBottomRowButtons> button_infos{};
       for (int i = 0; i < kNumBottomRowButtons; ++i) {
         button_infos[i] = get_button_info(i);
@@ -265,7 +260,7 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
   const common::UserControlledCamera::ControlConfig camera_control_config{};
 
   const common::PerspectiveCamera::PersConfig pers_config{
-      original_aspect_ratio};
+      /*field_of_view=*/45.0f, original_aspect_ratio};
   skybox_camera_ = absl::make_unique<common::UserControlledCamera>(
       camera_control_config,
       absl::make_unique<common::PerspectiveCamera>(config, pers_config));

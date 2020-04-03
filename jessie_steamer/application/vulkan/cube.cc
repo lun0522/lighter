@@ -183,8 +183,8 @@ void CubeApp::MainLoop() {
   constexpr float kTextHeight = 0.05f;
   constexpr float kTextBaseX = 0.04f;
   constexpr float kTextBaseY = 0.05f;
-  const glm::vec3 kTextColor{1.0f};
   constexpr float kTextAlpha = 0.5f;
+  const glm::vec3 text_color{1.0f};
 
   const auto update_data = [this](int frame) { UpdateData(frame); };
 
@@ -199,20 +199,21 @@ void CubeApp::MainLoop() {
                            boundary.y, kTextBaseY, Text::Align::kLeft);
 
     const vector<RenderPass::RenderOp> render_ops{
-        [&](const VkCommandBuffer& command_buffer) {
+        [this](const VkCommandBuffer& command_buffer) {
           cube_model_->Draw(command_buffer, current_frame_,
                             /*instance_count=*/1);
         },
-        [&](const VkCommandBuffer& command_buffer) {
+        [this, &text_color](const VkCommandBuffer& command_buffer) {
           static_text_->Draw(command_buffer, current_frame_,
-                             kTextColor, kTextAlpha);
+                             text_color, kTextAlpha);
           dynamic_text_->Draw(command_buffer, current_frame_,
-                              kTextColor, kTextAlpha);
+                              text_color, kTextAlpha);
         },
     };
     const auto draw_result = command_->Run(
         current_frame_, window_context().swapchain(), update_data,
-        [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
+        [this, &render_ops](const VkCommandBuffer& command_buffer,
+                            uint32_t framebuffer_index) {
           render_pass_->Run(command_buffer, framebuffer_index, render_ops);
         });
 
@@ -231,5 +232,7 @@ void CubeApp::MainLoop() {
 
 int main(int argc, char* argv[]) {
   using namespace jessie_steamer::application::vulkan;
-  return AppMain<CubeApp>(argc, argv, WindowContext::Config{});
+  const auto config = WindowContext::Config{}.set_multisampling_mode(
+      MultisampleImage::Mode::kEfficient);
+  return AppMain<CubeApp>(argc, argv, config);
 }

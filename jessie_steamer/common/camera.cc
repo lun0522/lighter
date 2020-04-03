@@ -21,18 +21,12 @@ const glm::vec2& GetRefFrontInZxPlane() {
   return ref_front_zx;
 }
 
-// Returns the front vector given current position and look at point.
-inline glm::vec3 ComputeFront(const glm::vec3& current_pos,
-                              const glm::vec3& look_at) {
-  return glm::normalize(look_at - current_pos);
-}
-
 } /* namespace */
 
 Camera::Camera(const Config& config)
     : near_{config.near}, far_{config.far},
       up_{config.up}, pos_{config.position} {
-  UpdateDirection(ComputeFront(pos_, config.look_at));
+  UpdateDirection(config.look_at - pos_);
 }
 
 void Camera::UpdatePosition(const glm::vec3& offset) {
@@ -41,7 +35,7 @@ void Camera::UpdatePosition(const glm::vec3& offset) {
 }
 
 void Camera::UpdateDirection(const glm::vec3& front) {
-  front_ = front;
+  front_ = glm::normalize(front);
   right_ = glm::normalize(glm::cross(front_, up_));
   UpdateView();
 }
@@ -174,8 +168,7 @@ void UserControlledCamera::DidPressKey(ControlKey key, float elapsed_time) {
 
 void UserControlledCamera::UpdateDirectionIfNeeded() {
   if (lock_center_.has_value()) {
-    camera_->UpdateDirection(
-        ComputeFront(camera_->position(), lock_center_.value()));
+    camera_->UpdateDirection(lock_center_.value() - camera_->position());
   }
 }
 

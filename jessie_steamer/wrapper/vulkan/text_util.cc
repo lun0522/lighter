@@ -25,7 +25,6 @@ using std::string;
 using std::vector;
 
 constexpr int kImageBindingPoint = 0;
-constexpr int kSingleChannel = 1;
 constexpr uint32_t kVertexBufferBindingPoint = 0;
 
 enum SubpassIndex {
@@ -170,7 +169,7 @@ CharLoader::CharLoader(const SharedBasicContext& context,
     const common::CharLib char_lib{texts, GetFontPath(font), font_height};
     const int interval_between_chars = GetIntervalBetweenChars(char_lib);
     char_lib_image_ = absl::make_unique<OffscreenImage>(
-        context, kSingleChannel,
+        context, common::kBwImageChannel,
         GetCharLibImageExtent(char_lib, interval_between_chars),
         GetTextSamplerConfig());
     space_advance_x_ = GetSpaceAdvanceX(char_lib, *char_lib_image_);
@@ -219,9 +218,10 @@ CharLoader::CharLoader(const SharedBasicContext& context,
   };
 
   const OneTimeCommand command{context, &context->queues().graphics_queue()};
-  command.Run([&](const VkCommandBuffer& command_buffer) {
-    render_pass->Run(command_buffer, /*framebuffer_index=*/0, render_ops);
-  });
+  command.Run(
+      [&render_pass, &render_ops](const VkCommandBuffer& command_buffer) {
+        render_pass->Run(command_buffer, /*framebuffer_index=*/0, render_ops);
+      });
 }
 
 VkExtent2D CharLoader::GetCharLibImageExtent(const common::CharLib& char_lib,
@@ -281,15 +281,8 @@ void CharLoader::CreateCharTextures(
     char_image_map->emplace(
         character,
         absl::make_unique<TextureImage>(
-            context, /*generate_mipmaps=*/false, GetTextSamplerConfig(),
-            TextureBuffer::Info{
-                {char_info.image->data},
-                VK_FORMAT_R8_UNORM,
-                static_cast<uint32_t>(char_info.image->width),
-                static_cast<uint32_t>(char_info.image->height),
-                kSingleChannel,
-            }
-        )
+            context, /*generate_mipmaps=*/false,
+            GetTextSamplerConfig(), *char_info.image)
     );
     offset_x += size.x + normalized_interval;
   }
@@ -390,7 +383,8 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
   };
   const float base_y = highest_base_y;
   auto text_image = absl::make_unique<OffscreenImage>(
-      context, kSingleChannel, text_image_extent, GetTextSamplerConfig());
+      context, common::kBwImageChannel, text_image_extent,
+      GetTextSamplerConfig());
 
   // The resulting image should be flipped, so that when we use it later, we
   // don't have to flip Y coordinates again.
@@ -428,9 +422,10 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
   };
 
   const OneTimeCommand command{context, &context->queues().graphics_queue()};
-  command.Run([&](const VkCommandBuffer& command_buffer) {
-    render_pass->Run(command_buffer, /*framebuffer_index=*/0, render_ops);
-  });
+  command.Run(
+      [&render_pass, &render_ops](const VkCommandBuffer& command_buffer) {
+        render_pass->Run(command_buffer, /*framebuffer_index=*/0, render_ops);
+      });
 
   return TextTextureInfo{util::GetAspectRatio(text_image_extent), base_y,
                          std::move(text_image)};

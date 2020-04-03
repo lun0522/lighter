@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <vector>
 
-#include "jessie_steamer/common/file.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 
@@ -71,6 +70,20 @@ VkSampleCountFlagBits GetMaxSampleCount(VkSampleCountFlags sample_counts) {
     }
   }
   FATAL("Multisampling is not supported by hardware");
+}
+
+// Creates a TextureBuffer::Info object, assuming all images have the same
+// properties as the given 'sample_image'. The size of 'image_datas' can only be
+// either 1 or 6 (for cubemaps)
+TextureBuffer::Info CreateTextureBufferInfo(vector<const void*>&& image_datas,
+                                            const common::Image& sample_image) {
+  return TextureBuffer::Info{
+      std::move(image_datas),
+      FindColorImageFormat(sample_image.channel),
+      static_cast<uint32_t>(sample_image.width),
+      static_cast<uint32_t>(sample_image.height),
+      static_cast<uint32_t>(sample_image.channel),
+  };
 }
 
 // Creates an image view to specify the usage of image data.
@@ -171,6 +184,13 @@ TextureImage::TextureImage(SharedBasicContext context,
                                /*layer_count=*/CONTAINER_SIZE(info.datas)));
 }
 
+TextureImage::TextureImage(SharedBasicContext context,
+                           bool generate_mipmaps,
+                           const SamplableImage::Config& sampler_config,
+                           const common::Image& image)
+    : TextureImage{std::move(context), generate_mipmaps, sampler_config,
+                   CreateTextureBufferInfo({image.data}, image)} {}
+
 VkDescriptorImageInfo TextureImage::GetDescriptorInfo() const {
   return VkDescriptorImageInfo{
       sampler_,
@@ -220,13 +240,7 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
 
   return RefCountedTexture::Get(
       *identifier, std::move(context), generate_mipmaps, sampler_config,
-      TextureBuffer::Info{
-          std::move(datas),
-          FindColorImageFormat(sample_image->channel),
-          static_cast<uint32_t>(sample_image->width),
-          static_cast<uint32_t>(sample_image->height),
-          static_cast<uint32_t>(sample_image->channel),
-      });
+      CreateTextureBufferInfo(std::move(datas), *sample_image));
 }
 
 OffscreenImage::OffscreenImage(SharedBasicContext context,

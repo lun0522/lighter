@@ -11,7 +11,9 @@
 #include <memory>
 #include <vector>
 
+#include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
+#include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
@@ -25,16 +27,19 @@ namespace aurora {
 class PathDumper {
  public:
   PathDumper(const wrapper::vulkan::SharedBasicContext& context,
-             int num_frames_in_flight, int paths_image_dimension,
+             int paths_image_dimension, float camera_field_of_view,
              std::vector<const wrapper::vulkan::PerVertexBuffer*>&&
                  aurora_paths_vertex_buffers);
 
   void DumpAuroraPaths(const glm::vec3& viewpoint_position);
 
  private:
-  const std::vector<const wrapper::vulkan::PerVertexBuffer*>&&
+  const std::vector<const wrapper::vulkan::PerVertexBuffer*>
       aurora_paths_vertex_buffers_;
 
+  std::unique_ptr<common::Camera> camera_;
+  std::vector<wrapper::vulkan::RenderPass::RenderOp> render_ops_;
+  std::unique_ptr<wrapper::vulkan::OneTimeCommand> command_;
   std::unique_ptr<wrapper::vulkan::OffscreenImage> paths_image_;
   std::unique_ptr<wrapper::vulkan::Image> multisample_image_;
   std::unique_ptr<wrapper::vulkan::PushConstant> trans_constant_;

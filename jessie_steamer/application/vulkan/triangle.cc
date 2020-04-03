@@ -18,8 +18,6 @@ namespace {
 
 using namespace wrapper::vulkan;
 
-using std::vector;
-
 constexpr int kNumFramesInFlight = 2;
 constexpr uint32_t kVertexBufferBindingPoint = 0;
 
@@ -110,6 +108,7 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
       .SetPipelineLayout(
           /*descriptor_layouts=*/{},
           {alpha_constant_->MakePerFrameRange(VK_SHADER_STAGE_FRAGMENT_BIT)})
+      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                  common::file::GetVkShaderPath("pure_color.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -137,8 +136,7 @@ void TriangleApp::Recreate() {
       .SetMultisampling(window_context().sample_count())
       .SetViewport(
           pipeline::GetFullFrameViewport(window_context().frame_size()))
-      .SetRenderPass(**render_pass_, kTriangleSubpassIndex)
-      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)});
+      .SetRenderPass(**render_pass_, kTriangleSubpassIndex);
   pipeline_ = pipeline_builder_->Build();
 }
 
@@ -155,8 +153,8 @@ void TriangleApp::MainLoop() {
   while (mutable_window_context()->CheckEvents()) {
     timer_.Tick();
 
-    const vector<RenderPass::RenderOp> render_ops{
-        [&](const VkCommandBuffer& command_buffer) {
+    const std::vector<RenderPass::RenderOp> render_ops{
+        [this](const VkCommandBuffer& command_buffer) {
           pipeline_->Bind(command_buffer);
           alpha_constant_->Flush(command_buffer, pipeline_->layout(),
                                  current_frame_, /*target_offset=*/0,
@@ -167,7 +165,8 @@ void TriangleApp::MainLoop() {
     };
     const auto draw_result = command_->Run(
         current_frame_, window_context().swapchain(), update_data,
-        [&](const VkCommandBuffer& command_buffer, uint32_t framebuffer_index) {
+        [this, &render_ops](const VkCommandBuffer& command_buffer,
+                            uint32_t framebuffer_index) {
           render_pass_->Run(command_buffer, framebuffer_index, render_ops);
         });
 
@@ -186,5 +185,7 @@ void TriangleApp::MainLoop() {
 
 int main(int argc, char* argv[]) {
   using namespace jessie_steamer::application::vulkan;
-  return AppMain<TriangleApp>(argc, argv, WindowContext::Config{});
+  const auto config = WindowContext::Config{}.set_multisampling_mode(
+      MultisampleImage::Mode::kEfficient);
+  return AppMain<TriangleApp>(argc, argv, config);
 }

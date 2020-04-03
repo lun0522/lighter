@@ -156,7 +156,9 @@ absl::optional<VkResult> PerFrameCommand::Run(int current_frame,
                   /*waitAll=*/VK_TRUE, kTimeoutForever);
 
   // Update per-frame data.
-  update_data(current_frame);
+  if (update_data != nullptr) {
+    update_data(current_frame);
+  }
 
   // Acquire the next available swapchain image.
   uint32_t image_index;
