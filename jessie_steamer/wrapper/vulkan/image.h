@@ -91,7 +91,7 @@ class SamplableImage {
 // mipmaps if requested.
 // If the image is loaded from a file, the user should not directly instantiate
 // this class, but use SharedTexture which avoids loading the same file twice.
-class TextureImage : public Image {
+class TextureImage : public Image, public SamplableImage {
  public:
   TextureImage(SharedBasicContext context,
                bool generate_mipmaps,
@@ -111,9 +111,8 @@ class TextureImage : public Image {
     vkDestroySampler(*context_->device(), sampler_, *context_->allocator());
   }
 
-  // Returns an instance of VkDescriptorImageInfo with which we can update
-  // descriptor sets.
-  VkDescriptorImageInfo GetDescriptorInfo() const;
+  // Overrides.
+  VkDescriptorImageInfo GetDescriptorInfo() const override;
 
  private:
   // Image buffer.
@@ -179,7 +178,7 @@ class SharedTexture : public SamplableImage {
 };
 
 // This class creates an image that can be used as offscreen rendering target.
-class OffscreenImage : public Image {
+class OffscreenImage : public Image, public SamplableImage {
  public:
   OffscreenImage(SharedBasicContext context,
                  int channel, const VkExtent2D& extent,
@@ -193,9 +192,8 @@ class OffscreenImage : public Image {
     vkDestroySampler(*context_->device(), sampler_, *context_->allocator());
   }
 
-  // Returns an instance of VkDescriptorImageInfo with which we can update
-  // descriptor sets.
-  VkDescriptorImageInfo GetDescriptorInfo() const;
+  // Overrides.
+  VkDescriptorImageInfo GetDescriptorInfo() const override;
 
  private:
   // Image buffer.

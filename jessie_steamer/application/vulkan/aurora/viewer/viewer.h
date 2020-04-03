@@ -12,6 +12,7 @@
 
 #include "jessie_steamer/application/vulkan/aurora/scene.h"
 #include "jessie_steamer/application/vulkan/aurora/viewer/path_dumper.h"
+#include "jessie_steamer/application/vulkan/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/window_context.h"
@@ -23,6 +24,7 @@ namespace application {
 namespace vulkan {
 namespace aurora {
 
+// TODO: Separate renderer class.
 class Viewer : public Scene {
  public:
   Viewer(wrapper::vulkan::WindowContext* window_context,
@@ -42,10 +44,10 @@ class Viewer : public Scene {
   // Overrides.
   void OnEnter() override {}
   void OnExit() override {}
-  void Recreate() override {}
+  void Recreate() override;
   void UpdateData(int frame) override {}
   void Draw(const VkCommandBuffer& command_buffer,
-            uint32_t framebuffer_index, int current_frame) override {}
+            uint32_t framebuffer_index, int current_frame) override;
   bool ShouldTransitionScene() const override { return false; }
 
  private:
@@ -53,6 +55,10 @@ class Viewer : public Scene {
   wrapper::vulkan::WindowContext& window_context_;
 
   PathDumper path_dumper_;
+  std::unique_ptr<ImageViewer> image_viewer_;
+  std::unique_ptr<wrapper::vulkan::PerFrameCommand> command_;
+  std::unique_ptr<wrapper::vulkan::NaiveRenderPassBuilder> render_pass_builder_;
+  std::unique_ptr<wrapper::vulkan::RenderPass> render_pass_;
 };
 
 } /* namespace aurora */

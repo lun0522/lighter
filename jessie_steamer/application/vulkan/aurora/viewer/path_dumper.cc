@@ -92,10 +92,11 @@ PathDumper::PathDumper(
       /*num_transparent_subpasses=*/0,
       kNumOverlaySubpasses,
   };
+  // TODO: Change usage to kAccessedByHost.
   NaiveRenderPassBuilder render_pass_builder{
       context, subpass_config, /*num_framebuffers=*/1,
       /*use_multisampling=*/true,
-      NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kAccessedByHost,
+      NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kSampledAsTexture,
   };
   (*render_pass_builder.mutable_builder())
       .UpdateAttachmentImage(

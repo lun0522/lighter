@@ -115,6 +115,34 @@ int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
   return EXIT_SUCCESS;
 }
 
+// This class is used for rendering the given image to full screen. It is mainly
+// used for debugging.
+class ImageViewer {
+ public:
+  ImageViewer(const wrapper::vulkan::SharedBasicContext& context,
+              const wrapper::vulkan::SamplableImage& image, int num_channels);
+
+  // This class is neither copyable nor movable.
+  ImageViewer(const ImageViewer&) = delete;
+  ImageViewer& operator=(const ImageViewer&) = delete;
+
+  // Updates internal states and rebuilds the graphics pipeline.
+  void UpdateFramebuffer(const VkExtent2D& frame_size,
+                         const wrapper::vulkan::RenderPass& render_pass,
+                         uint32_t subpass_index);
+
+  // Renders the image.
+  // This should be called when 'command_buffer' is recording commands.
+  void Draw(const VkCommandBuffer& command_buffer) const;
+
+ private:
+  // Objects used for rendering.
+  std::unique_ptr<wrapper::vulkan::StaticDescriptor> descriptor_;
+  std::unique_ptr<wrapper::vulkan::PerVertexBuffer> vertex_buffer_;
+  std::unique_ptr<wrapper::vulkan::PipelineBuilder> pipeline_builder_;
+  std::unique_ptr<wrapper::vulkan::Pipeline> pipeline_;
+};
+
 } /* namespace vulkan */
 } /* namespace application */
 } /* namespace jessie_steamer */

@@ -33,6 +33,10 @@ class PathDumper {
 
   void DumpAuroraPaths(const glm::vec3& viewpoint_position);
 
+  const wrapper::vulkan::SamplableImage& paths_image() const {
+    return *paths_image_;
+  }
+
  private:
   const std::vector<const wrapper::vulkan::PerVertexBuffer*>
       aurora_paths_vertex_buffers_;

@@ -17,8 +17,6 @@ namespace {
 using namespace wrapper::vulkan;
 
 constexpr int kNumFramesInFlight = 2;
-constexpr uint32_t kVertexBufferBindingPoint = 0;
-constexpr uint32_t kImageBindingPoint = 0;
 
 enum SubpassIndex {
   kViewImageSubpassIndex = 0,
@@ -39,65 +37,30 @@ class ImageViewerApp : public Application {
 
   int current_frame_ = 0;
   std::unique_ptr<TextureImage> image_;
-  std::unique_ptr<StaticDescriptor> descriptor_;
+  std::unique_ptr<ImageViewer> image_viewer_;
   std::unique_ptr<PerFrameCommand> command_;
-  std::unique_ptr<PerVertexBuffer> vertex_buffer_;
   std::unique_ptr<NaiveRenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
-  std::unique_ptr<PipelineBuilder> pipeline_builder_;
-  std::unique_ptr<Pipeline> pipeline_;
 };
 
 } /* namespace */
 
 ImageViewerApp::ImageViewerApp(const WindowContext::Config& window_config)
     : Application{"Image viewer", window_config} {
-  using common::Vertex2D;
-
   // No need to do multisampling.
   ASSERT_FALSE(window_context().use_multisampling(), "Not needed");
 
-  /* Image */
+  /* Image and viewer */
   const common::Image image_to_view{
       common::file::GetResourcePath("texture/statue.jpg")};
   image_ = absl::make_unique<TextureImage>(
       context(), /*generate_mipmaps=*/false, SamplableImage::Config{},
       image_to_view);
-
-  /* Descriptor */
-  descriptor_ = absl::make_unique<StaticDescriptor>(
-      context(), /*infos=*/std::vector<Descriptor::Info>{
-          Descriptor::Info{
-              VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-              VK_SHADER_STAGE_FRAGMENT_BIT,
-              /*bindings=*/{
-                  Descriptor::Info::Binding{
-                      kImageBindingPoint,
-                      /*array_length=*/1,
-                  }},
-          }});
-  descriptor_->UpdateImageInfos(
-      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-      /*image_info_map=*/{{kImageBindingPoint, {image_->GetDescriptorInfo()}}});
+  image_viewer_ = absl::make_unique<ImageViewer>(
+      context(), *image_, image_to_view.channel);
 
   /* Command buffer */
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
-
-  /* Vertex buffer */
-  const std::array<Vertex2D, 6> vertex_data{
-      Vertex2D{/*pos=*/{-1.0f, -1.0f}, /*tex_coord=*/{0.0f, 0.0f}},
-      Vertex2D{/*pos=*/{ 1.0f, -1.0f}, /*tex_coord=*/{1.0f, 0.0f}},
-      Vertex2D{/*pos=*/{ 1.0f,  1.0f}, /*tex_coord=*/{1.0f, 1.0f}},
-      Vertex2D{/*pos=*/{-1.0f, -1.0f}, /*tex_coord=*/{0.0f, 0.0f}},
-      Vertex2D{/*pos=*/{ 1.0f,  1.0f}, /*tex_coord=*/{1.0f, 1.0f}},
-      Vertex2D{/*pos=*/{-1.0f,  1.0f}, /*tex_coord=*/{0.0f, 1.0f}},
-  };
-  const PerVertexBuffer::NoIndicesDataInfo vertex_data_info{
-      /*per_mesh_vertices=*/{{PerVertexBuffer::VertexDataInfo{vertex_data}}}
-  };
-  vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
-      context(), vertex_data_info,
-      pipeline::GetVertexAttribute<Vertex2D>());
 
   /* Render pass */
   const NaiveRenderPassBuilder::SubpassConfig subpass_config{
@@ -110,49 +73,23 @@ ImageViewerApp::ImageViewerApp(const WindowContext::Config& window_config)
       /*num_framebuffers=*/window_context().num_swapchain_images(),
       /*use_multisampling=*/false,
       NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kPresentToScreen);
-
-  /* Pipeline */
-  const auto frag_shader_relative_path =
-      image_to_view.channel == common::kBwImageChannel ?
-          "view_bw_image.frag" : "view_color_image.frag";
-  pipeline_builder_ = absl::make_unique<PipelineBuilder>(context());
-  (*pipeline_builder_)
-      .SetName("View image")
-      .AddVertexInput(kVertexBufferBindingPoint,
-                      pipeline::GetPerVertexBindingDescription<Vertex2D>(),
-                      vertex_buffer_->GetAttributes(/*start_location=*/0))
-      .SetPipelineLayout({descriptor_->layout()}, /*push_constant_ranges=*/{})
-      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/false)})
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("view_image.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetVkShaderPath(frag_shader_relative_path));
 }
 
 void ImageViewerApp::Recreate() {
-  /* Render pass */
   render_pass_builder_->mutable_builder()->UpdateAttachmentImage(
       render_pass_builder_->color_attachment_index(),
       [this](int framebuffer_index) -> const Image& {
         return window_context().swapchain_image(framebuffer_index);
       });
   render_pass_ = (*render_pass_builder_)->Build();
-
-  /* Pipeline */
-  (*pipeline_builder_)
-      .SetViewport(
-          pipeline::GetFullFrameViewport(window_context().frame_size()))
-      .SetRenderPass(**render_pass_, kViewImageSubpassIndex);
-  pipeline_ = pipeline_builder_->Build();
+  image_viewer_->UpdateFramebuffer(window_context().frame_size(), *render_pass_,
+                                   kViewImageSubpassIndex);
 }
 
 void ImageViewerApp::MainLoop() {
   const std::vector<RenderPass::RenderOp> render_ops{
       [this](const VkCommandBuffer& command_buffer) {
-        pipeline_->Bind(command_buffer);
-        descriptor_->Bind(command_buffer, pipeline_->layout());
-        vertex_buffer_->Draw(command_buffer, kVertexBufferBindingPoint,
-                             /*mesh_index=*/0, /*instance_count=*/1);
+        image_viewer_->Draw(command_buffer);
       },
   };
 
