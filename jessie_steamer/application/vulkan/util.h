@@ -120,7 +120,8 @@ int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
 class ImageViewer {
  public:
   ImageViewer(const wrapper::vulkan::SharedBasicContext& context,
-              const wrapper::vulkan::SamplableImage& image, int num_channels);
+              const wrapper::vulkan::SamplableImage& image,
+              int num_channels, bool flip_y);
 
   // This class is neither copyable nor movable.
   ImageViewer(const ImageViewer&) = delete;

@@ -64,23 +64,26 @@ class TriangleApp : public Application {
 
 TriangleApp::TriangleApp(const WindowContext::Config& window_config)
     : Application{"Hello Triangle", window_config} {
-  using common::Vertex3DNoTex;
+  using common::Vertex3DWithColor;
 
   /* Command buffer */
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
   /* Vertex buffer */
-  const std::array<Vertex3DNoTex, 3> vertex_data{
-      Vertex3DNoTex{/*pos=*/{ 0.5f, -0.5f, 0.0f}, /*color=*/{1.0f, 0.0f, 0.0f}},
-      Vertex3DNoTex{/*pos=*/{ 0.0f,  0.5f, 0.0f}, /*color=*/{0.0f, 0.0f, 1.0f}},
-      Vertex3DNoTex{/*pos=*/{-0.5f, -0.5f, 0.0f}, /*color=*/{0.0f, 1.0f, 0.0f}},
+  const std::array<Vertex3DWithColor, 3> vertex_data{
+      Vertex3DWithColor{/*pos=*/{0.5f, -0.5f, 0.0f},
+                        /*color=*/{1.0f, 0.0f, 0.0f}},
+      Vertex3DWithColor{/*pos=*/{0.0f, 0.5f, 0.0f},
+                        /*color=*/{0.0f, 0.0f, 1.0f}},
+      Vertex3DWithColor{/*pos=*/{-0.5f, -0.5f, 0.0f},
+                        /*color=*/{0.0f, 1.0f, 0.0f}},
   };
   const PerVertexBuffer::NoIndicesDataInfo vertex_data_info{
       /*per_mesh_vertices=*/{{PerVertexBuffer::VertexDataInfo{vertex_data}}}
   };
   vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
       context(), vertex_data_info,
-      pipeline::GetVertexAttribute<Vertex3DNoTex>());
+      pipeline::GetVertexAttribute<Vertex3DWithColor>());
 
   /* Push constant */
   alpha_constant_ = absl::make_unique<PushConstant>(context(), sizeof(Alpha),
@@ -102,9 +105,10 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   pipeline_builder_ = absl::make_unique<PipelineBuilder>(context());
   (*pipeline_builder_)
       .SetName("Triangle")
-      .AddVertexInput(kVertexBufferBindingPoint,
-                      pipeline::GetPerVertexBindingDescription<Vertex3DNoTex>(),
-                      vertex_buffer_->GetAttributes(/*start_location=*/0))
+      .AddVertexInput(
+          kVertexBufferBindingPoint,
+          pipeline::GetPerVertexBindingDescription<Vertex3DWithColor>(),
+          vertex_buffer_->GetAttributes(/*start_location=*/0))
       .SetPipelineLayout(
           /*descriptor_layouts=*/{},
           {alpha_constant_->MakePerFrameRange(VK_SHADER_STAGE_FRAGMENT_BIT)})
@@ -185,7 +189,5 @@ void TriangleApp::MainLoop() {
 
 int main(int argc, char* argv[]) {
   using namespace jessie_steamer::application::vulkan;
-  const auto config = WindowContext::Config{}.set_multisampling_mode(
-      MultisampleImage::Mode::kEfficient);
-  return AppMain<TriangleApp>(argc, argv, config);
+  return AppMain<TriangleApp>(argc, argv, WindowContext::Config{});
 }

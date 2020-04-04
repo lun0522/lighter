@@ -8,6 +8,7 @@
 #ifndef JESSIE_STEAMER_COMMON_FILE_H
 #define JESSIE_STEAMER_COMMON_FILE_H
 
+#include <array>
 #include <string>
 #include <vector>
 
@@ -99,6 +100,10 @@ struct Vertex2D {
   Vertex2D(const glm::vec2& pos, const glm::vec2& tex_coord)
       : pos{pos}, tex_coord{tex_coord} {}
 
+  // Returns vertices in normalized device coordinate for rendering a
+  // full-screen squad.
+  static std::array<Vertex2D, 6> GetFullScreenSquadVertices(bool flip_y);
+
   // Vertex data.
   glm::vec2 pos;
   glm::vec2 tex_coord;
@@ -106,15 +111,15 @@ struct Vertex2D {
 
 // 3D vertex data, including only position.
 struct Vertex3DPosOnly {
-  Vertex3DPosOnly(const glm::vec3& pos) : pos{pos} {}
+  explicit Vertex3DPosOnly(const glm::vec3& pos) : pos{pos} {}
 
   // Vertex data.
   glm::vec3 pos;
 };
 
 // 3D vertex data, consisting of position and color.
-struct Vertex3DNoTex {
-  Vertex3DNoTex(const glm::vec3& pos, const glm::vec3& color)
+struct Vertex3DWithColor {
+  Vertex3DWithColor(const glm::vec3& pos, const glm::vec3& color)
       : pos{pos}, color{color} {}
 
   // Vertex data.

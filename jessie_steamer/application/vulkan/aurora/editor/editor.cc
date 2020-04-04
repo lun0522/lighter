@@ -275,6 +275,8 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
 }
 
 void Editor::OnEnter() {
+  did_press_left_ = false;
+  did_release_right_ = false;
   (*window_context_.mutable_window())
       .RegisterScrollCallback([this](double x_pos, double y_pos) {
         // Since we have two cameras, to make sure they always zoom in/out

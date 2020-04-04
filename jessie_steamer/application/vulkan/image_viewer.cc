@@ -57,7 +57,7 @@ ImageViewerApp::ImageViewerApp(const WindowContext::Config& window_config)
       context(), /*generate_mipmaps=*/false, SamplableImage::Config{},
       image_to_view);
   image_viewer_ = absl::make_unique<ImageViewer>(
-      context(), *image_, image_to_view.channel);
+      context(), *image_, image_to_view.channel, /*flip_y=*/true);
 
   /* Command buffer */
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
@@ -117,5 +117,6 @@ void ImageViewerApp::MainLoop() {
 
 int main(int argc, char* argv[]) {
   using namespace jessie_steamer::application::vulkan;
-  return AppMain<ImageViewerApp>(argc, argv, WindowContext::Config{});
+  return AppMain<ImageViewerApp>(
+      argc, argv, WindowContext::Config{}.disable_multisampling());
 }

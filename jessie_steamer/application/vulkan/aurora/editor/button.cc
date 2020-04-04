@@ -151,7 +151,7 @@ Button::Button(const SharedBasicContext& context,
   const vector<char> background_image_pixels(
       kBackgroundImageWidth * background_image_height, static_cast<char>(255));
   const common::Image background_image{
-      kBackgroundImageWidth, background_image_height, /*channel=*/1,
+      kBackgroundImageWidth, background_image_height, common::kBwImageChannel,
       background_image_pixels.data(), /*flip_y=*/false};
   const glm::vec2 background_image_size{background_image.width,
                                         background_image.height};

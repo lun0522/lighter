@@ -42,18 +42,19 @@ class Viewer : public Scene {
   }
 
   // Overrides.
-  void OnEnter() override {}
-  void OnExit() override {}
+  void OnEnter() override;
+  void OnExit() override;
   void Recreate() override;
   void UpdateData(int frame) override {}
   void Draw(const VkCommandBuffer& command_buffer,
             uint32_t framebuffer_index, int current_frame) override;
-  bool ShouldTransitionScene() const override { return false; }
+  bool ShouldTransitionScene() const override { return did_press_right_; }
 
  private:
   // On-screen rendering context.
   wrapper::vulkan::WindowContext& window_context_;
 
+  bool did_press_right_ = false;
   PathDumper path_dumper_;
   std::unique_ptr<ImageViewer> image_viewer_;
   std::unique_ptr<wrapper::vulkan::PerFrameCommand> command_;

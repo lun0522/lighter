@@ -35,7 +35,7 @@ Viewer::Viewer(
                    std::move(aurora_paths_vertex_buffers)} {
   image_viewer_ = absl::make_unique<ImageViewer>(
       window_context_.basic_context(), path_dumper_.paths_image(),
-      /*num_channels=*/1);
+      /*num_channels=*/1, /*flip_y=*/true);
 
   const NaiveRenderPassBuilder::SubpassConfig subpass_config{
       /*use_opaque_subpass=*/false,
@@ -47,6 +47,19 @@ Viewer::Viewer(
       /*num_framebuffers=*/window_context_.num_swapchain_images(),
       /*use_multisampling=*/false,
       NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kPresentToScreen);
+}
+
+void Viewer::OnEnter() {
+  // TODO: Find a better way to exit viewer.
+  did_press_right_ = false;
+  window_context_.mutable_window()->RegisterMouseButtonCallback(
+      [this](bool is_left, bool is_press) {
+        did_press_right_ = !is_left && is_press;
+      });
+}
+
+void Viewer::OnExit() {
+  window_context_.mutable_window()->RegisterMouseButtonCallback(nullptr);
 }
 
 void Viewer::Recreate() {

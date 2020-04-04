@@ -127,7 +127,7 @@ class Editor : public Scene {
     // button is clicked.
     void Update(absl::optional<ButtonIndex> clicked_button);
 
-    // Returns the index of selected aurora path. If viewpoint is seleted
+    // Returns the index of selected aurora path. If viewpoint is selected
     // instead, returns absl::nullopt.
     absl::optional<int> GetSelectedPathIndex() const;
 

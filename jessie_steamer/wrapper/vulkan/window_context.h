@@ -57,7 +57,8 @@ class WindowContext {
 #endif /* !NDEBUG */
 
     glm::ivec2 screen_size{800, 600};
-    absl::optional<MultisampleImage::Mode> multisampling_mode;
+    absl::optional<MultisampleImage::Mode> multisampling_mode =
+        MultisampleImage::Mode::kEfficient;
 #ifndef NDEBUG
     DebugCallback::TriggerCondition debug_callback_trigger;
 #endif /* !NDEBUG */

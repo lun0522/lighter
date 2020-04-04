@@ -297,7 +297,5 @@ void NanosuitApp::MainLoop() {
 
 int main(int argc, char* argv[]) {
   using namespace jessie_steamer::application::vulkan;
-  const auto config = WindowContext::Config{}.set_multisampling_mode(
-      MultisampleImage::Mode::kEfficient);
-  return AppMain<NanosuitApp>(argc, argv, config);
+  return AppMain<NanosuitApp>(argc, argv, WindowContext::Config{});
 }

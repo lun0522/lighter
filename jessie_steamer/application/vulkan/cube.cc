@@ -232,7 +232,5 @@ void CubeApp::MainLoop() {
 
 int main(int argc, char* argv[]) {
   using namespace jessie_steamer::application::vulkan;
-  const auto config = WindowContext::Config{}.set_multisampling_mode(
-      MultisampleImage::Mode::kEfficient);
-  return AppMain<CubeApp>(argc, argv, config);
+  return AppMain<CubeApp>(argc, argv, WindowContext::Config{});
 }

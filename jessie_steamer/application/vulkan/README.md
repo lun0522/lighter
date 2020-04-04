@@ -75,14 +75,17 @@ command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 ### 1.2 Vertex buffer
 
 To render the triangle, we only need one mesh with three vertices.
-`Vertex3DNoTex` allows us to directly specify the 3D position and RGB values of
+`Vertex3DWithColor` allows us to directly specify the 3D position and RGB values of
 each vertex:
 
 ```cpp
-const std::array<Vertex3DNoTex, 3> vertex_data{
-    Vertex3DNoTex{/*pos=*/{ 0.5f, -0.5f, 0.0f}, /*color=*/{1.0f, 0.0f, 0.0f}},
-    Vertex3DNoTex{/*pos=*/{ 0.0f,  0.5f, 0.0f}, /*color=*/{0.0f, 0.0f, 1.0f}},
-    Vertex3DNoTex{/*pos=*/{-0.5f, -0.5f, 0.0f}, /*color=*/{0.0f, 1.0f, 0.0f}},
+const std::array<Vertex3DWithColor, 3> vertex_data{
+    Vertex3DWithColor{/*pos=*/{0.5f, -0.5f, 0.0f},
+                      /*color=*/{1.0f, 0.0f, 0.0f}},
+    Vertex3DWithColor{/*pos=*/{0.0f, 0.5f, 0.0f},
+                      /*color=*/{0.0f, 0.0f, 1.0f}},
+    Vertex3DWithColor{/*pos=*/{-0.5f, -0.5f, 0.0f},
+                      /*color=*/{0.0f, 1.0f, 0.0f}},
 };
 ```
 
@@ -105,7 +108,7 @@ We can use the util function `pipeline::GetVertexAttribute()` for this purpose:
 ```cpp
 vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
     context(), vertex_data_info,
-    pipeline::GetVertexAttribute<Vertex3DNoTex>());
+    pipeline::GetVertexAttribute<Vertex3DWithColor>());
 ```
 
 ### 1.3 Push constant
@@ -182,9 +185,10 @@ to set it every time when we build/rebuild the pipeline.
 pipeline_builder_ = absl::make_unique<PipelineBuilder>(context());
 (*pipeline_builder_)
     .SetName("Triangle")
-    .AddVertexInput(kVertexBufferBindingPoint,
-                    pipeline::GetPerVertexBindingDescription<Vertex3DNoTex>(),
-                    vertex_buffer_->GetAttributes(/*start_location=*/0))
+    .AddVertexInput(
+        kVertexBufferBindingPoint,
+        pipeline::GetPerVertexBindingDescription<Vertex3DWithColor>(),
+        vertex_buffer_->GetAttributes(/*start_location=*/0))
     .SetPipelineLayout(
         /*descriptor_layouts=*/{},
         {alpha_constant_->MakePerFrameRange(VK_SHADER_STAGE_FRAGMENT_BIT)})

@@ -18,7 +18,7 @@ namespace {
 
 using common::Vertex2D;
 using common::Vertex3DPosOnly;
-using common::Vertex3DNoTex;
+using common::Vertex3DWithColor;
 using common::Vertex3DWithTex;
 using std::vector;
 
@@ -110,21 +110,21 @@ template <>
 vector<VertexAttribute> GetVertexAttribute<Vertex3DPosOnly>() {
   return {
       VertexAttribute{
-          /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DNoTex, pos)),
+          /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DWithColor, pos)),
           VK_FORMAT_R32G32B32_SFLOAT,
       },
   };
 }
 
 template <>
-vector<VertexAttribute> GetVertexAttribute<Vertex3DNoTex>() {
+vector<VertexAttribute> GetVertexAttribute<Vertex3DWithColor>() {
   return {
       VertexAttribute{
-          /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DNoTex, pos)),
+          /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DWithColor, pos)),
           VK_FORMAT_R32G32B32_SFLOAT,
       },
       VertexAttribute{
-          /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DNoTex, color)),
+          /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DWithColor, color)),
           VK_FORMAT_R32G32B32_SFLOAT,
       },
   };
