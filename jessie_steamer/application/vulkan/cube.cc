@@ -21,15 +21,15 @@ using namespace wrapper::vulkan;
 
 using std::vector;
 
-constexpr int kNumFramesInFlight = 2;
-constexpr int kObjFileIndexBase = 1;
-
 enum SubpassIndex {
   kModelSubpassIndex = 0,
   kTextSubpassIndex,
   kNumSubpasses,
   kNumOverlaySubpasses = kNumSubpasses - kTextSubpassIndex,
 };
+
+constexpr int kNumFramesInFlight = 2;
+constexpr int kObjFileIndexBase = 1;
 
 /* BEGIN: Consistent with uniform blocks defined in shaders. */
 

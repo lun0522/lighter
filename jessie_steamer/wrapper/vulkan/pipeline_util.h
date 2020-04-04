@@ -23,13 +23,13 @@ namespace pipeline {
 /* Color blend */
 
 // Returns a viewport transform targeting the full frame of 'frame_size'.
-PipelineBuilder::ViewportInfo GetFullFrameViewport(
+GraphicsPipelineBuilder::ViewportInfo GetFullFrameViewport(
     const VkExtent2D& frame_size);
 
 // Returns a viewport transform that keeps the aspect ratio of objects
 // unchanged, and fills the frame as much as possible.
-PipelineBuilder::ViewportInfo GetViewport(const VkExtent2D& frame_size,
-                                          float aspect_ratio);
+GraphicsPipelineBuilder::ViewportInfo GetViewport(const VkExtent2D& frame_size,
+                                                  float aspect_ratio);
 
 // Returns the color blend state that gives:
 //   C = Cs * As + Cd * (1. - As)

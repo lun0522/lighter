@@ -55,7 +55,7 @@ ImageViewer::ImageViewer(const SharedBasicContext& context,
   const auto frag_shader_relative_path =
       num_channels == common::kBwImageChannel ? "view_bw_image.frag"
                                               : "view_color_image.frag";
-  pipeline_builder_ = absl::make_unique<PipelineBuilder>(context);
+  pipeline_builder_ = absl::make_unique<GraphicsPipelineBuilder>(context);
   (*pipeline_builder_)
       .SetName("View image")
       .AddVertexInput(kVertexBufferBindingPoint,

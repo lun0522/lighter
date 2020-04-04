@@ -22,14 +22,14 @@ using namespace wrapper::vulkan;
 
 using std::vector;
 
-constexpr int kNumAsteroidRings = 3;
-constexpr int kNumFramesInFlight = 2;
-constexpr int kObjFileIndexBase = 1;
-
 enum SubpassIndex {
   kModelSubpassIndex = 0,
   kNumSubpasses,
 };
+
+constexpr int kNumAsteroidRings = 3;
+constexpr int kNumFramesInFlight = 2;
+constexpr int kObjFileIndexBase = 1;
 
 /* BEGIN: Consistent with vertex input attributes defined in shaders. */
 

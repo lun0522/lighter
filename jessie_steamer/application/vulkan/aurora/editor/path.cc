@@ -202,20 +202,20 @@ void PathRenderer::UpdatePath(int path_index,
 void PathRenderer::UpdateFramebuffer(
     VkSampleCountFlagBits sample_count,
     const RenderPass& render_pass, uint32_t subpass_index,
-    const PipelineBuilder::ViewportInfo& viewport) {
+    const GraphicsPipelineBuilder::ViewportInfo& viewport) {
   control_pipeline_ = control_pipeline_builder_
       .SetMultisampling(sample_count)
-      .SetViewport(PipelineBuilder::ViewportInfo{viewport})
+      .SetViewport(GraphicsPipelineBuilder::ViewportInfo{viewport})
       .SetRenderPass(*render_pass, subpass_index)
       .Build();
   spline_pipeline_ = spline_pipeline_builder_
       .SetMultisampling(sample_count)
-      .SetViewport(PipelineBuilder::ViewportInfo{viewport})
+      .SetViewport(GraphicsPipelineBuilder::ViewportInfo{viewport})
       .SetRenderPass(*render_pass, subpass_index)
       .Build();
   viewpoint_pipeline_ = viewpoint_pipeline_builder_
       .SetMultisampling(sample_count)
-      .SetViewport(PipelineBuilder::ViewportInfo{viewport})
+      .SetViewport(GraphicsPipelineBuilder::ViewportInfo{viewport})
       .SetRenderPass(*render_pass, subpass_index)
       .Build();
 }

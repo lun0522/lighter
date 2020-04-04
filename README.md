@@ -564,7 +564,7 @@ Shaders are added after a builder is constructed. By default, shader modules are
 released to save the host memory. However, this will cause more I/O the next
 time we rebuild the model. If multiple models share the same shaders, the user
 can use **ModelBuilder::AutoReleaseShaderPool** (which is an alias of
-**PipelineBuilder::AutoReleaseShaderPool**) to prevent shaders from being auto
+**ShaderModule::AutoReleaseShaderPool**) to prevent shaders from being auto
 released. Especially when rendering texts, the same shaders are expected to be
 used for multiple times, and the auto release pool will be of great help.
 
@@ -617,15 +617,15 @@ want to render via push constants or uniform buffers. However, we still need to
 define the length of the array, but we may not know which characters will be
 used when we write the shader code, especially if we want to render unicode.
 Besides, this does not take advantage of the cache either.
-3. Render the characters that we might want to use onto a big texture. After
-this, the textures of single characters can be destroyed. When we want to render
-any of these characters, we only need to bind that big texture.
+3. Render the characters that we might want to use onto a character atlas image.
+After this, the textures of single characters can be destroyed. When we want to
+render any of these characters, we only need to bind that atlas texture.
 
 **CharLoader** helps us take the last approach. It takes in all characters that
 might be used later, loads their textures via **common::CharLib**, renders them
 to a texture that is just big enough, and records the glyph of each character
-and where to find that character on the big texture. For example, if we want to
-display the frame rate with numbers, we can tell it that we might use numbers
+and where to find that character on the atlas texture. For example, if we want
+to display the frame rate with numbers, we can tell it that we might use numbers
 from 0 to 9, and it will create such a texture:
 
 ![](https://docs.google.com/uc?id=17NVplvW-bEUrtdWdmXgsl-wkaOr4iW-Q)
@@ -648,10 +648,12 @@ render call:
 ![](https://docs.google.com/uc?id=12TBpr-_zRjC23QE1pPPkGA41pw-fCWht)
 
 This texture has also been flipped for readability. **TextLoader** first uses
-**CharLoader** to render all characters onto one big texture without a specific
+**CharLoader** to render all characters onto one texture without a specific
 order, and then render different texts to different textures. These two classes
 actually share a lot in common: same shaders, same descriptors, same render
 pass, etc.
+
+In the future, we may support rendering texts with signed distance fields.
 
 #### 3.3.2.2 StaticText and DynamicText
 

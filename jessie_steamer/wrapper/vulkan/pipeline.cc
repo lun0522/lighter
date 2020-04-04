@@ -21,11 +21,10 @@ namespace vulkan {
 namespace {
 
 using std::vector;
-using RefCountedShaderModule = PipelineBuilder::RefCountedShaderModule;
 
 // Creates a viewport state given 'viewport_info'.
 VkPipelineViewportStateCreateInfo CreateViewportStateInfo(
-    const PipelineBuilder::ViewportInfo& viewport_info) {
+    const GraphicsPipelineBuilder::ViewportInfo& viewport_info) {
   return VkPipelineViewportStateCreateInfo{
       VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -72,7 +71,7 @@ VkPipelineVertexInputStateCreateInfo CreateVertexInputInfo(
 // Contains a loaded shader 'module' that will be used at 'stage'.
 struct ShaderStage {
   VkShaderStageFlagBits stage;
-  RefCountedShaderModule module;
+  ShaderModule::RefCountedShaderModule module;
 };
 
 // Loads shaders in 'shader_file_path_map'.
@@ -86,7 +85,7 @@ vector<ShaderStage> CreateShaderStages(
     const auto& file_path = pair.second;
     shader_stages.emplace_back(ShaderStage{
         /*stage=*/pair.first,
-        RefCountedShaderModule::Get(
+        ShaderModule::RefCountedShaderModule::Get(
             /*identifier=*/file_path, context, file_path),
     });
   }
@@ -136,7 +135,7 @@ ShaderModule::ShaderModule(SharedBasicContext context,
                  "Failed to create shader module");
 }
 
-PipelineBuilder::PipelineBuilder(SharedBasicContext context)
+GraphicsPipelineBuilder::GraphicsPipelineBuilder(SharedBasicContext context)
     : context_{std::move(FATAL_IF_NULL(context))} {
   input_assembly_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -205,24 +204,25 @@ PipelineBuilder::PipelineBuilder(SharedBasicContext context)
   };
 }
 
-PipelineBuilder& PipelineBuilder::SetName(std::string&& name) {
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetName(std::string&& name) {
   name_ = std::move(name);
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::SetDepthTestEnabled(bool enable_test,
-                                                      bool enable_write) {
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetDepthTestEnabled(
+    bool enable_test, bool enable_write) {
   depth_stencil_info_.depthTestEnable = util::ToVkBool(enable_test);
   depth_stencil_info_.depthWriteEnable = util::ToVkBool(enable_write);
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::SetStencilTestEnable(bool enable_test) {
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetStencilTestEnable(
+    bool enable_test) {
   depth_stencil_info_.stencilTestEnable = util::ToVkBool(enable_test);
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::SetFrontFaceDirection(
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetFrontFaceDirection(
     bool counter_clockwise) {
   rasterization_info_.frontFace = counter_clockwise
                                       ? VK_FRONT_FACE_COUNTER_CLOCKWISE
@@ -230,19 +230,19 @@ PipelineBuilder& PipelineBuilder::SetFrontFaceDirection(
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::SetMultisampling(
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetMultisampling(
     VkSampleCountFlagBits sample_count) {
   multisampling_info_.rasterizationSamples = sample_count;
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::SetPrimitiveTopology(
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetPrimitiveTopology(
     VkPrimitiveTopology topology) {
   input_assembly_info_.topology = topology;
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::AddVertexInput(
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::AddVertexInput(
     uint32_t binding_point,
     VkVertexInputBindingDescription&& binding_description,
     vector<VkVertexInputAttributeDescription>&& attribute_descriptions) {
@@ -255,7 +255,7 @@ PipelineBuilder& PipelineBuilder::AddVertexInput(
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::SetPipelineLayout(
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetPipelineLayout(
     vector<VkDescriptorSetLayout>&& descriptor_layouts,
     vector<VkPushConstantRange>&& push_constant_ranges) {
   // Make sure no more than 128 bytes constants are pushed in this pipeline.
@@ -289,7 +289,8 @@ PipelineBuilder& PipelineBuilder::SetPipelineLayout(
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::SetViewport(ViewportInfo&& info) {
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetViewport(
+    ViewportInfo&& info) {
   // Flip the viewport as suggested by:
   // https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport
   VkViewport& viewport = info.viewport;
@@ -299,25 +300,25 @@ PipelineBuilder& PipelineBuilder::SetViewport(ViewportInfo&& info) {
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::SetRenderPass(const VkRenderPass& render_pass,
-                                                uint32_t subpass_index) {
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetRenderPass(
+    const VkRenderPass& render_pass, uint32_t subpass_index) {
   render_pass_info_.emplace(RenderPassInfo{render_pass, subpass_index});
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::SetColorBlend(
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetColorBlend(
     vector<VkPipelineColorBlendAttachmentState>&& color_blend_states) {
   color_blend_states_ = std::move(color_blend_states);
   return *this;
 }
 
-PipelineBuilder& PipelineBuilder::SetShader(VkShaderStageFlagBits shader_stage,
-                                            std::string&& file_path) {
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetShader(
+    VkShaderStageFlagBits shader_stage, std::string&& file_path) {
   shader_file_path_map_[shader_stage] = std::move(file_path);
   return *this;
 }
 
-std::unique_ptr<Pipeline> PipelineBuilder::Build() const {
+std::unique_ptr<Pipeline> GraphicsPipelineBuilder::Build() const {
   ASSERT_HAS_VALUE(pipeline_layout_info_, "Pipeline layout is not set");
   ASSERT_HAS_VALUE(viewport_info_, "Viewport is not set");
   ASSERT_HAS_VALUE(render_pass_info_, "Render pass is not set");

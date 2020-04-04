@@ -61,7 +61,7 @@ class ButtonRenderer {
   void UpdateFramebuffer(
       VkSampleCountFlagBits sample_count,
       const wrapper::vulkan::RenderPass& render_pass, uint32_t subpass_index,
-      const wrapper::vulkan::PipelineBuilder::ViewportInfo& viewport);
+      const wrapper::vulkan::GraphicsPipelineBuilder::ViewportInfo& viewport);
 
   // Renders buttons. The number of buttons rendered depends on the length of
   // 'buttons_to_render'.
@@ -94,7 +94,7 @@ class ButtonRenderer {
       per_instance_buffer_;
   std::unique_ptr<wrapper::vulkan::UniformBuffer> vertices_uniform_;
   std::unique_ptr<wrapper::vulkan::StaticDescriptor> descriptor_;
-  wrapper::vulkan::PipelineBuilder pipeline_builder_;
+  wrapper::vulkan::GraphicsPipelineBuilder pipeline_builder_;
   std::unique_ptr<wrapper::vulkan::Pipeline> pipeline_;
 };
 

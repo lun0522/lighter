@@ -109,10 +109,10 @@ std::unique_ptr<StaticDescriptor> ButtonRenderer::CreateDescriptor(
 void ButtonRenderer::UpdateFramebuffer(
     VkSampleCountFlagBits sample_count,
     const RenderPass& render_pass, uint32_t subpass_index,
-    const PipelineBuilder::ViewportInfo& viewport) {
+    const GraphicsPipelineBuilder::ViewportInfo& viewport) {
   pipeline_ = pipeline_builder_
       .SetMultisampling(sample_count)
-      .SetViewport(PipelineBuilder::ViewportInfo{viewport})
+      .SetViewport(GraphicsPipelineBuilder::ViewportInfo{viewport})
       .SetRenderPass(*render_pass, subpass_index)
       .SetColorBlend(
           vector<VkPipelineColorBlendAttachmentState>(

@@ -26,9 +26,9 @@ using common::Vertex2D;
 using std::string;
 using std::vector;
 
-constexpr uint32_t kVertexBufferBindingPoint = 0;
-
 enum BindingPoint { kUniformBufferBindingPoint = 0, kTextureBindingPoint };
+
+constexpr uint32_t kVertexBufferBindingPoint = 0;
 
 /* BEGIN: Consistent with uniform blocks defined in shaders. */
 
@@ -233,9 +233,7 @@ DynamicText::DynamicText(const SharedBasicContext& context,
       char_loader_{context, texts, font, font_height} {
   const auto& descriptor_infos = GetDescriptorInfos();
   const Descriptor::ImageInfoMap image_info_map{{
-      kTextureBindingPoint,
-      {char_loader_.library_image()->GetDescriptorInfo()},
-  }};
+      kTextureBindingPoint, {char_loader_.atlas_image()->GetDescriptorInfo()}}};
 
   descriptors_.reserve(num_frames_in_flight);
   for (int frame = 0; frame < num_frames_in_flight; ++frame) {

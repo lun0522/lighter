@@ -170,7 +170,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
   const auto text_renderer = CreateTextRenderer(
       context, font, font_height, *buttons_image, *render_pass, button_infos);
 
-  const auto pipeline = PipelineBuilder{context}
+  const auto pipeline = GraphicsPipelineBuilder{context}
       .SetName("Button background")
       .AddVertexInput(
           kPerInstanceBufferBindingPoint,

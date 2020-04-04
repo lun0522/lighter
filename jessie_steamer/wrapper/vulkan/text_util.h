@@ -32,21 +32,20 @@ namespace wrapper {
 namespace vulkan {
 
 // This class is used to render all characters that might be used later onto
-// a big texture, so that we can render those characters in any combination with
-// only one render call, binding only one texture. We call that texture the
-// "character library image". The user can access it by calling library_image().
-// The user can query the glyph information of each character from
-// char_texture_info_map(). Note that we don't render the space character on the
-// character library image. To query the advance of space, the user should
-// include at least one space in any of 'texts', and call space_advance().
+// a font atlas image, so that we can render those characters in any combination
+// with only one render call, binding only one texture. The user can query the
+// glyph information of each character from char_texture_info_map(). Note that
+// we don't render the space character onto the character atlas image. To query
+// the advance of space, the user should include at least one space in any of
+// 'texts', and call space_advance().
 // For now we only support the horizontal layout.
 class CharLoader {
  public:
   // Fonts that are supported.
   enum class Font { kGeorgia, kOstrich };
 
-  // Contains the information about the glyph of a character on the character
-  // library image. All numbers are in range [0.0, 1.0].
+  // Contains the information about the glyph of a character on the
+  // 'char_atlas_image_'. All numbers are in range [0.0, 1.0].
   struct CharTextureInfo {
     glm::vec2 size;
     glm::vec2 bearing;
@@ -67,13 +66,13 @@ class CharLoader {
   CharLoader(const CharLoader&) = delete;
   CharLoader& operator=(const CharLoader&) = delete;
 
-  // Returns the aspect ratio of the character library image.
+  // Returns the aspect ratio of the character atlas image.
   float GetAspectRatio() const {
-    return util::GetAspectRatio(char_lib_image_->extent());
+    return util::GetAspectRatio(char_atlas_image_->extent());
   }
 
   // Accessors.
-  OffscreenImagePtr library_image() const { return char_lib_image_.get(); }
+  OffscreenImagePtr atlas_image() const { return char_atlas_image_.get(); }
   float space_advance() const {
     ASSERT_HAS_VALUE(space_advance_x_, "Space is not loaded");
     return space_advance_x_.value();
@@ -92,11 +91,11 @@ class CharLoader {
   // Maps each character to its texture image.
   using CharImageMap = absl::flat_hash_map<char, std::unique_ptr<TextureImage>>;
 
-  // Computes the extent of 'char_lib_image_'. The width will be the total width
-  // of characters (excluding space) in 'char_lib', and the height will be the
-  // same to that of the tallest character.
-  VkExtent2D GetCharLibImageExtent(const common::CharLib& char_lib,
-                                   int interval_between_chars) const;
+  // Computes the extent of 'char_atlas_image_'. The width will be the total
+  // width of characters (excluding space) in 'char_lib', and the height will be
+  // the same to that of the tallest character.
+  VkExtent2D GetCharAtlasImageExtent(const common::CharLib& char_lib,
+                                     int interval_between_chars) const;
 
   // Returns the horizontal advance of space character. If space is not loaded
   // in 'char_lib', returns absl::nullopt.
@@ -118,14 +117,14 @@ class CharLoader {
       const SharedBasicContext& context,
       const std::vector<char>& char_merge_order) const;
 
-  // Character library image.
-  std::unique_ptr<OffscreenImage> char_lib_image_;
+  // Character atlas image.
+  std::unique_ptr<OffscreenImage> char_atlas_image_;
 
   // We don't need to render the space character. Instead, we only record
   // its advance.
   absl::optional<float> space_advance_x_;
 
-  // Maps each character to its glyph information on 'char_lib_image_'.
+  // Maps each character to its glyph information on 'char_atlas_image_'.
   CharTextureInfoMap char_texture_info_map_;
 };
 
@@ -163,7 +162,7 @@ class TextLoader {
       const CharLoader& char_loader,
       StaticDescriptor* descriptor,
       NaiveRenderPassBuilder* render_pass_builder,
-      PipelineBuilder* pipeline_builder,
+      GraphicsPipelineBuilder* pipeline_builder,
       DynamicPerVertexBuffer* vertex_buffer) const;
 
   // Texture information of each element of 'texts' passed to the constructor.

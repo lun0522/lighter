@@ -111,7 +111,7 @@ vector<VkPushConstantRange> CreatePushConstantRanges(
 void SetPipelineVertexInput(
     const PerVertexBuffer& per_vertex_buffer,
     const vector<const PerInstanceBuffer*>& per_instance_buffers,
-    PipelineBuilder* pipeline_builder) {
+    GraphicsPipelineBuilder* pipeline_builder) {
   uint32_t attribute_start_location = 0;
 
   auto per_vertex_attributes =
@@ -204,7 +204,7 @@ ModelBuilder::ModelBuilder(SharedBasicContext context,
       num_frames_in_flight_{num_frames_in_flight},
       viewport_aspect_ratio_{viewport_aspect_ratio},
       uniform_buffer_info_maps_(num_frames_in_flight_),
-      pipeline_builder_{absl::make_unique<PipelineBuilder>(context_)} {
+      pipeline_builder_{absl::make_unique<GraphicsPipelineBuilder>(context_)} {
   pipeline_builder_->SetName(std::move(name));
   resource.LoadMesh(this);
 }

@@ -26,9 +26,9 @@ using VertexAttribute = VertexBuffer::Attribute;
 
 } /* namespace */
 
-PipelineBuilder::ViewportInfo GetFullFrameViewport(
+GraphicsPipelineBuilder::ViewportInfo GetFullFrameViewport(
     const VkExtent2D& frame_size) {
-  return PipelineBuilder::ViewportInfo{
+  return GraphicsPipelineBuilder::ViewportInfo{
       /*viewport=*/VkViewport{
           /*x=*/0.0f,
           /*y=*/0.0f,
@@ -44,13 +44,13 @@ PipelineBuilder::ViewportInfo GetFullFrameViewport(
   };
 }
 
-PipelineBuilder::ViewportInfo GetViewport(const VkExtent2D& frame_size,
-                                          float aspect_ratio) {
+GraphicsPipelineBuilder::ViewportInfo GetViewport(const VkExtent2D& frame_size,
+                                                  float aspect_ratio) {
   // Do not use unsigned numbers for subtraction.
   const glm::ivec2 current_size{frame_size.width, frame_size.height};
   const glm::ivec2 effective_size =
       common::util::FindLargestExtent(current_size, aspect_ratio);
-  return PipelineBuilder::ViewportInfo{
+  return GraphicsPipelineBuilder::ViewportInfo{
       /*viewport=*/VkViewport{
           /*x=*/static_cast<float>(current_size.x - effective_size.x) / 2.0f,
           /*y=*/static_cast<float>(current_size.y - effective_size.y) / 2.0f,

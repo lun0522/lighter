@@ -95,7 +95,7 @@ class Text {
   UniformBuffer uniform_buffer_;
 
   // Graphics pipeline.
-  PipelineBuilder pipeline_builder_;
+  GraphicsPipelineBuilder pipeline_builder_;
   std::unique_ptr<Pipeline> pipeline_;
 };
 

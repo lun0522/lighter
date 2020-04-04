@@ -140,7 +140,7 @@ class ImageViewer {
   // Objects used for rendering.
   std::unique_ptr<wrapper::vulkan::StaticDescriptor> descriptor_;
   std::unique_ptr<wrapper::vulkan::PerVertexBuffer> vertex_buffer_;
-  std::unique_ptr<wrapper::vulkan::PipelineBuilder> pipeline_builder_;
+  std::unique_ptr<wrapper::vulkan::GraphicsPipelineBuilder> pipeline_builder_;
   std::unique_ptr<wrapper::vulkan::Pipeline> pipeline_;
 };
 

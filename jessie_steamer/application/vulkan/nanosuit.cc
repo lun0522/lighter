@@ -17,13 +17,13 @@ namespace {
 
 using namespace wrapper::vulkan;
 
-constexpr int kNumFramesInFlight = 2;
-constexpr int kObjFileIndexBase = 1;
-
 enum SubpassIndex {
   kModelSubpassIndex = 0,
   kNumSubpasses,
 };
+
+constexpr int kNumFramesInFlight = 2;
+constexpr int kObjFileIndexBase = 1;
 
 /* BEGIN: Consistent with uniform blocks defined in shaders. */
 

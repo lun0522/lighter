@@ -52,7 +52,7 @@ class PathRenderer {
   void UpdateFramebuffer(
       VkSampleCountFlagBits sample_count,
       const wrapper::vulkan::RenderPass& render_pass, uint32_t subpass_index,
-      const wrapper::vulkan::PipelineBuilder::ViewportInfo& viewport);
+      const wrapper::vulkan::GraphicsPipelineBuilder::ViewportInfo& viewport);
 
   // Updates per-frame data. This should be called before calling DrawSplines()
   // and DrawControlPoints().
@@ -102,11 +102,11 @@ class PathRenderer {
   std::unique_ptr<wrapper::vulkan::PushConstant> control_render_constant_;
   std::unique_ptr<wrapper::vulkan::PushConstant> spline_trans_constant_;
   std::unique_ptr<wrapper::vulkan::PushConstant> viewpoint_render_constant_;
-  wrapper::vulkan::PipelineBuilder control_pipeline_builder_;
+  wrapper::vulkan::GraphicsPipelineBuilder control_pipeline_builder_;
   std::unique_ptr<wrapper::vulkan::Pipeline> control_pipeline_;
-  wrapper::vulkan::PipelineBuilder spline_pipeline_builder_;
+  wrapper::vulkan::GraphicsPipelineBuilder spline_pipeline_builder_;
   std::unique_ptr<wrapper::vulkan::Pipeline> spline_pipeline_;
-  wrapper::vulkan::PipelineBuilder viewpoint_pipeline_builder_;
+  wrapper::vulkan::GraphicsPipelineBuilder viewpoint_pipeline_builder_;
   std::unique_ptr<wrapper::vulkan::Pipeline> viewpoint_pipeline_;
 };
 

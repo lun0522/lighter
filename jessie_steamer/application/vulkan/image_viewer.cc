@@ -16,13 +16,13 @@ namespace {
 
 using namespace wrapper::vulkan;
 
-constexpr int kNumFramesInFlight = 2;
-
 enum SubpassIndex {
   kViewImageSubpassIndex = 0,
   kNumSubpasses,
   kNumOverlaySubpasses = kNumSubpasses - kViewImageSubpassIndex,
 };
+
+constexpr int kNumFramesInFlight = 2;
 
 class ImageViewerApp : public Application {
  public:

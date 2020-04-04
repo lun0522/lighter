@@ -43,7 +43,7 @@ class ModelBuilder {
  public:
   // An instance of this will preserve all shader modules created within its
   // scope, and release them once goes out of scope.
-  using AutoReleaseShaderPool = PipelineBuilder::AutoReleaseShaderPool;
+  using AutoReleaseShaderPool = ShaderModule::AutoReleaseShaderPool;
 
   using TextureType = common::ModelLoader::TextureType;
 
@@ -228,7 +228,7 @@ class ModelBuilder {
   absl::optional<PushConstantInfos> push_constant_infos_;
 
   // Builder of graphics pipeline.
-  std::unique_ptr<PipelineBuilder> pipeline_builder_;
+  std::unique_ptr<GraphicsPipelineBuilder> pipeline_builder_;
 };
 
 // The Model and its builder class are used to:
@@ -275,7 +275,7 @@ class Model {
         TexturesPerMesh&& shared_textures,
         std::vector<TexturesPerMesh>&& mesh_textures,
         std::vector<DescriptorsPerFrame>&& descriptors,
-        std::unique_ptr<PipelineBuilder>&& pipeline_builder)
+        std::unique_ptr<GraphicsPipelineBuilder>&& pipeline_builder)
       : context_{std::move(FATAL_IF_NULL(context))},
         viewport_aspect_ratio_{viewport_aspect_ratio},
         vertex_buffer_{std::move(vertex_buffer)},
@@ -313,7 +313,7 @@ class Model {
 
   // The pipeline builder is preserved, so that the user may update it without
   // rebuilding the entire model.
-  std::unique_ptr<PipelineBuilder> pipeline_builder_;
+  std::unique_ptr<GraphicsPipelineBuilder> pipeline_builder_;
 
   // Wrapper of VkPipeline.
   std::unique_ptr<Pipeline> pipeline_;

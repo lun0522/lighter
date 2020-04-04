@@ -18,14 +18,14 @@ namespace {
 
 using namespace wrapper::vulkan;
 
-constexpr int kNumFramesInFlight = 2;
-constexpr uint32_t kVertexBufferBindingPoint = 0;
-
 enum SubpassIndex {
   kTriangleSubpassIndex = 0,
   kNumSubpasses,
   kNumOverlaySubpasses = kNumSubpasses - kTriangleSubpassIndex,
 };
+
+constexpr int kNumFramesInFlight = 2;
+constexpr uint32_t kVertexBufferBindingPoint = 0;
 
 /* BEGIN: Consistent with uniform blocks defined in shaders. */
 
@@ -56,7 +56,7 @@ class TriangleApp : public Application {
   std::unique_ptr<PushConstant> alpha_constant_;
   std::unique_ptr<NaiveRenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
-  std::unique_ptr<PipelineBuilder> pipeline_builder_;
+  std::unique_ptr<GraphicsPipelineBuilder> pipeline_builder_;
   std::unique_ptr<Pipeline> pipeline_;
 };
 
@@ -102,7 +102,7 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
       NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kPresentToScreen);
 
   /* Pipeline */
-  pipeline_builder_ = absl::make_unique<PipelineBuilder>(context());
+  pipeline_builder_ = absl::make_unique<GraphicsPipelineBuilder>(context());
   (*pipeline_builder_)
       .SetName("Triangle")
       .AddVertexInput(

@@ -24,14 +24,14 @@ using std::array;
 using std::string;
 using std::vector;
 
-constexpr int kImageBindingPoint = 0;
-constexpr uint32_t kVertexBufferBindingPoint = 0;
-
 enum SubpassIndex {
   kTextSubpassIndex = 0,
   kNumSubpasses,
   kNumOverlaySubpasses = kNumSubpasses - kTextSubpassIndex,
 };
+
+constexpr int kImageBindingPoint = 0;
+constexpr uint32_t kVertexBufferBindingPoint = 0;
 
 // Returns the path to font file.
 string GetFontPath(CharLoader::Font font) {
@@ -44,7 +44,7 @@ string GetFontPath(CharLoader::Font font) {
   }
 }
 
-// Returns the interval between two adjacent characters on the character library
+// Returns the interval between two adjacent characters on the character atlas
 // image in number of pixels. We add this interval so that when sampling one
 // character, other characters will not affect the result due to numeric errors.
 int GetIntervalBetweenChars(const common::CharLib& char_lib) {
@@ -101,13 +101,13 @@ std::unique_ptr<RenderPass> BuildRenderPass(
 
 // Returns a pipeline builder, assuming the per-vertex data is of type Vertex2D,
 // and the front face direction is clockwise, since we will flip Y coordinates.
-std::unique_ptr<PipelineBuilder> CreatePipelineBuilder(
+std::unique_ptr<GraphicsPipelineBuilder> CreatePipelineBuilder(
     const SharedBasicContext& context,
     string&& pipeline_name,
     const PerVertexBuffer& vertex_buffer,
     const VkDescriptorSetLayout& descriptor_layout,
     bool enable_color_blend) {
-  auto pipeline_builder = absl::make_unique<PipelineBuilder>(context);
+  auto pipeline_builder = absl::make_unique<GraphicsPipelineBuilder>(context);
 
   (*pipeline_builder)
       .SetName(std::move(pipeline_name))
@@ -126,9 +126,9 @@ std::unique_ptr<PipelineBuilder> CreatePipelineBuilder(
 }
 
 // Returns a pipeline that renders to 'target_image'.
-std::unique_ptr<Pipeline> BuildPipeline(const Image& target_image,
-                                        const VkRenderPass& render_pass,
-                                        PipelineBuilder* pipeline_builder) {
+std::unique_ptr<Pipeline> BuildPipeline(
+    const Image& target_image, const VkRenderPass& render_pass,
+    GraphicsPipelineBuilder* pipeline_builder) {
   return (*pipeline_builder)
       .SetViewport(pipeline::GetFullFrameViewport(target_image.extent()))
       .SetRenderPass(render_pass, kTextSubpassIndex)
@@ -168,13 +168,13 @@ CharLoader::CharLoader(const SharedBasicContext& context,
   {
     const common::CharLib char_lib{texts, GetFontPath(font), font_height};
     const int interval_between_chars = GetIntervalBetweenChars(char_lib);
-    char_lib_image_ = absl::make_unique<OffscreenImage>(
+    char_atlas_image_ = absl::make_unique<OffscreenImage>(
         context, common::kBwImageChannel,
-        GetCharLibImageExtent(char_lib, interval_between_chars),
+        GetCharAtlasImageExtent(char_lib, interval_between_chars),
         GetTextSamplerConfig());
-    space_advance_x_ = GetSpaceAdvanceX(char_lib, *char_lib_image_);
+    space_advance_x_ = GetSpaceAdvanceX(char_lib, *char_atlas_image_);
     CreateCharTextures(context, char_lib, interval_between_chars,
-                       *char_lib_image_, &char_image_map,
+                       *char_atlas_image_, &char_image_map,
                        &char_texture_info_map_);
   }
 
@@ -189,13 +189,13 @@ CharLoader::CharLoader(const SharedBasicContext& context,
       absl::make_unique<DynamicDescriptor>(context, CreateDescriptorInfos());
 
   auto render_pass_builder = CreateRenderPassBuilder(context);
-  const auto render_pass = BuildRenderPass(*char_lib_image_,
+  const auto render_pass = BuildRenderPass(*char_atlas_image_,
                                            render_pass_builder.get());
 
   auto pipeline_builder =
       CreatePipelineBuilder(context, "char loader", *vertex_buffer,
                             descriptor->layout(), /*enable_color_blend=*/false);
-  const auto pipeline = BuildPipeline(*char_lib_image_, **render_pass,
+  const auto pipeline = BuildPipeline(*char_atlas_image_, **render_pass,
                                       pipeline_builder.get());
 
   const vector<RenderPass::RenderOp> render_ops{
@@ -224,8 +224,8 @@ CharLoader::CharLoader(const SharedBasicContext& context,
       });
 }
 
-VkExtent2D CharLoader::GetCharLibImageExtent(const common::CharLib& char_lib,
-                                             int interval_between_chars) const {
+VkExtent2D CharLoader::GetCharAtlasImageExtent(
+    const common::CharLib& char_lib, int interval_between_chars) const {
   ASSERT_NON_EMPTY(char_lib.char_info_map(), "No character loaded");
   int total_width = 0, height = 0;
   for (const auto& pair : char_lib.char_info_map()) {
@@ -355,7 +355,7 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
     const CharLoader& char_loader,
     StaticDescriptor* descriptor,
     NaiveRenderPassBuilder* render_pass_builder,
-    PipelineBuilder* pipeline_builder,
+    GraphicsPipelineBuilder* pipeline_builder,
     DynamicPerVertexBuffer* vertex_buffer) const {
   float total_advance_x = 0.0f;
   float highest_base_y = 0.0f;
@@ -370,8 +370,8 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
     }
   }
 
-  // In the coordinate of character library image, the width of 'text' is
-  // 'total_advance_x' and the height is 1.0. Note that the character library
+  // In the coordinate of character atlas image, the width of 'text' is
+  // 'total_advance_x' and the height is 1.0. Note that the character atlas
   // image itself is also rescaled in the horizontal direction, hence we
   // should also consider its aspect ratio. The height of text texture will be
   // made 'font_height'.
@@ -404,7 +404,7 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
       /*image_info_map=*/{
           {kImageBindingPoint,
-           {char_loader.library_image()->GetDescriptorInfo()}},
+           {char_loader.atlas_image()->GetDescriptorInfo()}},
   });
   const auto render_pass = BuildRenderPass(*text_image, render_pass_builder);
   const auto pipeline = BuildPipeline(*text_image, **render_pass,

@@ -54,7 +54,7 @@ PathDumper::PathDumper(
     SharedBasicContext context,
     int paths_image_dimension, float camera_field_of_view,
     std::vector<const PerVertexBuffer*>&& aurora_paths_vertex_buffers)
-    : context_{std::move(context)} {
+    : context_{std::move(FATAL_IF_NULL(context))} {
   /* Camera */
   common::Camera::Config config;
   // We assume that:
@@ -133,7 +133,7 @@ PathDumper::DumpPathsPass::DumpPathsPass(
   });
 
   /* Pipeline */
-  pipeline_ = PipelineBuilder{context}
+  pipeline_ = GraphicsPipelineBuilder{context}
       .SetName("Dump aurora path")
       .SetMultisampling(multisample_image_->sample_count())
       .SetPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_LINE_STRIP)
@@ -226,7 +226,7 @@ PathDumper::BoldPathsPass::BoldPathsPass(const SharedBasicContext& context,
   });
 
   /* Pipeline */
-  pipeline_ = PipelineBuilder{context}
+  pipeline_ = GraphicsPipelineBuilder{context}
       .SetName("Bold aurora path")
       .AddVertexInput(kVertexBufferBindingPoint,
                       pipeline::GetPerVertexBindingDescription<Vertex2D>(),
