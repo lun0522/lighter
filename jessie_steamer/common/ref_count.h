@@ -22,12 +22,35 @@ namespace common {
 // Each reference counted object uses a string as its identifier. We can use the
 // object with operators '.' and '->', as if using std smart pointers.
 // By default, an object will be destroyed if its reference count drops to zero.
-// The user may call SetPolicy() to change the policy, in which case objects
-// with zero reference counts will stay in the pool, until the policy changes
-// again or the user calls ReleaseUnusedObjects().
+// The user can use AutoReleasePool to change this behavior. See details in
+// class comments.
 template <typename ObjectType>
 class RefCountedObject {
  public:
+  // An instance of this class preserves reference counted objects of ObjectType
+  // within its scope, even if the reference count of an object drops to zero.
+  // When all pools associated with ObjectType go out of scope, objects with
+  // zero reference count will be automatically released. The usage of it is
+  // very similar to std::lock_guard.
+  class AutoReleasePool {
+   public:
+    explicit AutoReleasePool() {
+      RefCountedObject<ObjectType>::RegisterAutoReleasePool();
+    }
+
+    // This class is neither copyable nor movable.
+    AutoReleasePool(const AutoReleasePool&) = delete;
+    AutoReleasePool& operator=(const AutoReleasePool&) = delete;
+
+    ~AutoReleasePool() {
+      RefCountedObject<ObjectType>::UnregisterAutoReleasePool();
+    }
+
+    // Force the user to allocate on stack, in order to avoid overcomplications.
+    void* operator new(size_t) = delete;
+    void* operator new[](std::size_t) = delete;
+  };
+
   // The user should always call this to get an object. If any object with same
   // identifier is still living in the objects pool, it will be returned, and
   // its reference count will be increased. Otherwise, 'args' will be used to
@@ -66,37 +89,27 @@ class RefCountedObject {
     return *this;
   }
 
+  // If reference count drops to zero, and no auto release pool is active, the
+  // object will be destructed.
   ~RefCountedObject() {
     if (identifier_.empty()) {
       return;
     }
     const auto found = ref_count_map().find(identifier_);
-    if (--found->second.ref_count == 0 && object_pool_.destroy_if_unused) {
+    if (--found->second.ref_count == 0 &&
+        object_pool_.num_active_auto_release_pools == 0) {
       ref_count_map().erase(found);
     }
-  }
-
-  // If true, an object will be destroyed if its reference count drops to zero.
-  static void SetPolicy(bool destroy_if_unused) {
-    object_pool_.destroy_if_unused = destroy_if_unused;
-    if (destroy_if_unused) {
-      ReleaseUnusedObjects();
-    }
-  }
-
-  // Destroys all objects with zero reference counts in the pool.
-  static void ReleaseUnusedObjects() {
-    using ObjectWithCounter = typename ObjectPool::ObjectWithCounter;
-    static const auto remove_unused =
-        [](const std::pair<const std::string, ObjectWithCounter>& pair) {
-          return pair.second.ref_count == 0;
-        };
-    common::util::EraseIf(remove_unused, &ref_count_map());
   }
 
   // Overloads.
   const ObjectType* operator->() const { return object_ptr_; }
   const ObjectType& operator*() const { return *object_ptr_; }
+
+  // Accessors.
+  static bool has_active_auto_release_pool() {
+    return object_pool_.num_active_auto_release_pools != 0;
+  }
 
  private:
   // An object pool shared by all objects of the same class. The key of
@@ -110,11 +123,29 @@ class RefCountedObject {
     using RefCountMap = absl::flat_hash_map<std::string, ObjectWithCounter>;
 
     RefCountMap ref_count_map;
-    bool destroy_if_unused = true;
+    int num_active_auto_release_pools = 0;
   };
 
   RefCountedObject(std::string identifier, const ObjectType* object_ptr)
       : identifier_{std::move(identifier)}, object_ptr_{object_ptr} {}
+
+  // Increments the counter value of auto release pools.
+  static void RegisterAutoReleasePool() {
+    ++object_pool_.num_active_auto_release_pools;
+  };
+
+  // Reduces the counter value of auto release pools. If the counter value
+  // drops to zero, releases objects with zero reference count.
+  static void UnregisterAutoReleasePool() {
+    if (--object_pool_.num_active_auto_release_pools == 0) {
+      using ObjectWithCounter = typename ObjectPool::ObjectWithCounter;
+      static const auto remove_unused =
+          [](const std::pair<const std::string, ObjectWithCounter>& pair) {
+            return pair.second.ref_count == 0;
+          };
+      common::util::EraseIf(remove_unused, &ref_count_map());
+    }
+  };
 
   // Accessors.
   static typename ObjectPool::RefCountMap& ref_count_map() {
@@ -134,28 +165,6 @@ class RefCountedObject {
 template <typename ObjectType>
 typename RefCountedObject<ObjectType>::ObjectPool
     RefCountedObject<ObjectType>::object_pool_{};
-
-// An instance of this class preserves reference counted objects of ObjectType
-// within its scope, even if the reference count of an object drops to zero.
-// When it goes out of scope, objects with zero reference count will be
-// automatically released. The usage of it is very similar to std::lock_guard.
-template <typename ObjectType>
-class AutoReleasePool {
- public:
-  AutoReleasePool() {
-    RefCountedObject<ObjectType>::SetPolicy(/*destroy_if_unused=*/false);
-  }
-
-  ~AutoReleasePool() {
-    RefCountedObject<ObjectType>::SetPolicy(/*destroy_if_unused=*/true);
-  }
-
-  // Force the user to allocate on stack, in order to prevent overcomplications.
-  void* operator new(size_t) = delete;
-  void* operator new[](std::size_t) = delete;
-
- private:
-};
 
 } /* namespace common */
 } /* namespace jessie_steamer */

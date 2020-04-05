@@ -120,7 +120,7 @@ vector<VkPipelineShaderStageCreateInfo> CreateShaderStageInfos(
 ShaderModule::ShaderModule(SharedBasicContext context,
                            const std::string& file_path)
     : context_{std::move(FATAL_IF_NULL(context))} {
-  context_->RegisterRefCountPool<RefCountedShaderModule>();
+  context_->RegisterAutoReleasePool<RefCountedShaderModule>("shader");
 
   const auto raw_data = absl::make_unique<common::RawData>(file_path);
   const VkShaderModuleCreateInfo module_info{

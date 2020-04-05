@@ -202,7 +202,7 @@ VkDescriptorImageInfo TextureImage::GetDescriptorInfo() const {
 SharedTexture::RefCountedTexture SharedTexture::GetTexture(
     SharedBasicContext context, const SourcePath& source_path,
     const SamplableImage::Config& sampler_config) {
-  context->RegisterRefCountPool<SharedTexture::RefCountedTexture>();
+  context->RegisterAutoReleasePool<SharedTexture::RefCountedTexture>("texture");
 
   using SingleImage = std::unique_ptr<common::Image>;
   using CubemapImage = std::array<SingleImage, common::kCubemapImageCount>;

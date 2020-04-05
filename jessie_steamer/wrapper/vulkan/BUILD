@@ -41,9 +41,11 @@ cc_library(
     }),
     deps = [
         ":util",
+        "//jessie_steamer/common:ref_count",
         "//jessie_steamer/common:util",
         "//third_party/absl/memory",
         "//third_party/absl/strings",
+        "//third_party/absl/strings:str_format",
         "//third_party/absl/types:optional",
         "//third_party/absl/types:span",
         "//third_party:vulkan",

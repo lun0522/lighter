@@ -149,12 +149,6 @@ class SharedTexture : public SamplableImage {
   SharedTexture(SharedTexture&&) = default;
   SharedTexture& operator=(SharedTexture&&) = default;
 
-  // Sets whether textures loaded from files should be destroyed if they no
-  // longer have any holder. By default this is true.
-  static void SetTextureResourcePolicy(bool destroy_if_unused) {
-    RefCountedTexture::SetPolicy(destroy_if_unused);
-  }
-
   // Overrides.
   VkDescriptorImageInfo GetDescriptorInfo() const override {
     return texture_->GetDescriptorInfo();
@@ -164,6 +158,7 @@ class SharedTexture : public SamplableImage {
   const Image* operator->() const { return texture_.operator->(); }
 
  private:
+  // Reference counted textures.
   using RefCountedTexture = common::RefCountedObject<TextureImage>;
 
   // Returns a reference to a reference counted texture image. If this image has

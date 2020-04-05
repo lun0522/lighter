@@ -145,9 +145,6 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
     const glm::vec3& text_color, const common::Image& button_background,
     const button::VerticesInfo& vertices_info,
     absl::Span<const make_button::ButtonInfo> button_infos) {
-  // Prevent shaders from being auto released.
-  ShaderModule::AutoReleaseShaderPool shader_pool;
-
   ASSERT_TRUE(button_background.channel == common::kBwImageChannel,
               "Expecting a single-channel button background image");
   const auto background_image = absl::make_unique<TextureImage>(

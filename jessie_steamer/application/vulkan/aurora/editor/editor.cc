@@ -143,6 +143,9 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
              kInertialRotationDuration},
       aurora_layer_{GetEarthModelCenter(), kAuroraLayerModelRadius,
                     kInertialRotationDuration} {
+  // Prevent shaders from being auto released.
+  ShaderModule::AutoReleaseShaderPool shader_pool;
+
   const auto context = window_context_.basic_context();
   const float original_aspect_ratio = window_context_.original_aspect_ratio();
 
@@ -303,6 +306,9 @@ void Editor::OnExit() {
 }
 
 void Editor::Recreate() {
+  // Prevent shaders from being auto released.
+  ShaderModule::AutoReleaseShaderPool shader_pool;
+
   editor_renderer_.Recreate();
 
   general_camera_->SetCursorPos(window_context_.window().GetCursorPos());

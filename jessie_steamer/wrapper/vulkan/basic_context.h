@@ -10,13 +10,16 @@
 
 #include <functional>
 #include <memory>
+#include <string>
 #include <vector>
 
+#include "jessie_steamer/common/ref_count.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_object.h"
 #ifndef NDEBUG
 #include "jessie_steamer/wrapper/vulkan/validation.h"
 #endif /* !NDEBUG */
+#include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
@@ -74,18 +77,22 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
     release_expired_rsrc_ops_.emplace_back(std::move(op));
   }
 
-  // Registers a pool of reference counted objects. This should be called if
-  // those objects should be constructed and destructed with this context.
-  // The pool is static while this context is not, hence we need to collect the
-  // pools and release them before the program ends, so that the context can be
-  // destructed properly.
+  // Registers a type of auto release pool. This should be called if the
+  // reference counted objects should be constructed and destructed with this
+  // context. Before exiting the program, we need to make sure all auto release
+  // pools have been released, so do the associated resources, so that this
+  // context can be destructed properly.
   template <typename RefCountedObjectType>
-  void RegisterRefCountPool() {
+  void RegisterAutoReleasePool(const std::string& pool_name) {
     static bool first_time = true;
     if (first_time) {
       first_time = false;
-      release_ref_count_pool_ops_.emplace_back(
-          []() { RefCountedObjectType::ReleaseUnusedObjects(); });
+      check_no_active_auto_release_pool_ops_.emplace_back([pool_name]() {
+        if (RefCountedObjectType::has_active_auto_release_pool()) {
+          FATAL(absl::StrFormat("Number of %s auto release pool is non-zero",
+                                pool_name));
+        }
+      });
     }
   }
 
@@ -100,13 +107,13 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
     }
   }
 
-  // Waits for the graphics device becomes idle, and releases expired resources
-  // and reference counted objects. This should be called when the program is
-  // about to end, and right before other resources get destroyed.
+  // Waits for the graphics device becomes idle, and releases expired resources.
+  // This should be called when the program is about to end, and right before
+  // other resources get destroyed.
   void OnExit() {
     device_.WaitIdle();
     for (const auto& op : release_expired_rsrc_ops_) { op(*this); }
-    for (const auto& op : release_ref_count_pool_ops_) { op(); }
+    for (const auto& op : check_no_active_auto_release_pool_ops_) { op(); }
   }
 
   // Returns unique queue family indices.
@@ -128,9 +135,6 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   const Queues& queues() const { return queues_; }
 
  private:
-  // Specifies how to release a pool of reference counted objects.
-  using ReleaseRefCountPoolOp = std::function<void()>;
-
   explicit BasicContext(
       const absl::optional<WindowSupport>& window_support
 #ifndef NDEBUG
@@ -168,8 +172,9 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   // Ops that are delayed to be executed until the graphics device becomes idle.
   std::vector<ReleaseExpiredResourceOp> release_expired_rsrc_ops_;
 
-  // Ops that are delayed to be executed before exiting the program.
-  std::vector<ReleaseRefCountPoolOp> release_ref_count_pool_ops_;
+  // Ops that are used to check there is no active auto release pool before
+  // exiting the program.
+  std::vector<std::function<void()>> check_no_active_auto_release_pool_ops_;
 };
 
 } /* namespace vulkan */

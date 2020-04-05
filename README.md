@@ -161,11 +161,7 @@ from it if the reference count drops to zero.
 Shader files are a bit different, since after we construct a graphics pipeline,
 we can already destroy them. Even if the next pipeline to build may use the same
 shaders, their reference counts may have already dropped to zero before that.
-Hence, we allow the user to set a policy to determine whether the object should
-be destroyed when the reference count drops to zero. The user can change the
-policy at anytime, and force cleaning out all objects with zero reference counts
-at anytime. To make it even easier to use, we introduced the auto release pool,
-which sets the policy automatically, to prevent any resource from being
+Hence, we introduced the auto release pool to prevent any resource from being
 destroyed before it goes out of scope. The user may create an instance of it to
 preserve loaded shader files, then construct all models and pipelines. When the
 instance goes out of scope, shader files will be released if unused anymore.

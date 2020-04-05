@@ -28,19 +28,17 @@ class Pipeline;
 
 // This class loads a shader from 'file_path' and creates a VkShaderModule.
 // Shader modules can be released after the pipeline is built in order to save
-// the host memory. The user can control whether this should happen by either
-// instantiating an AutoReleasePool, or by calling SetReleasePolicy() and
-// ReleaseUnusedShaders() for fine-grained control.
+// the host memory. The user can avoid this happening by instantiating an
+// AutoReleaseShaderPool.
 class ShaderModule {
  public:
   // Reference counted shader modules.
   using RefCountedShaderModule = common::RefCountedObject<ShaderModule>;
 
   // An instance of this will preserve all shader modules created within its
-  // surrounding scope, and release them once it goes out of scope.
-  // TODO: If we have multiple pools instantiated, we should not turn
-  // auto-release on until all of them go out of scope.
-  using AutoReleaseShaderPool = common::AutoReleasePool<ShaderModule>;
+  // surrounding scope, and release them once all AutoReleaseShaderPool objects
+  // go out of scope.
+  using AutoReleaseShaderPool = RefCountedShaderModule::AutoReleasePool;
 
   ShaderModule(SharedBasicContext context, const std::string& file_path);
 
@@ -51,17 +49,6 @@ class ShaderModule {
   ~ShaderModule() {
     vkDestroyShaderModule(*context_->device(), shader_module_,
                           *context_->allocator());
-  }
-
-  // Sets whether shader modules should be released after the pipeline is built.
-  // By default this is true.
-  static void SetReleasePolicy(bool release_if_unused) {
-    RefCountedShaderModule::SetPolicy(release_if_unused);
-  }
-
-  // Releases shader modules that are currently unused.
-  static void ReleaseUnusedShaders() {
-    RefCountedShaderModule::ReleaseUnusedObjects();
   }
 
   // Overloads.
