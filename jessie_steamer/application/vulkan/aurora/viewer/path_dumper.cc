@@ -148,9 +148,9 @@ PathDumper::DumpPathsPass::DumpPathsPass(
       .SetRenderPass(**render_pass_, kPathsOperationSubpassIndex)
       .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/false)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("dump_path.vert"))
+                 common::file::GetVkShaderPath("aurora/dump_path.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetVkShaderPath("dump_path.frag"))
+                 common::file::GetVkShaderPath("aurora/dump_path.frag"))
       .Build();
 }
 
@@ -236,9 +236,9 @@ PathDumper::BoldPathsPass::BoldPathsPass(const SharedBasicContext& context,
       .SetRenderPass(**render_pass_, kPathsOperationSubpassIndex)
       .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/false)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("bold_path.vert"))
+                 common::file::GetVkShaderPath("aurora/bold_path.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetVkShaderPath("bold_path.frag"))
+                 common::file::GetVkShaderPath("aurora/bold_path.frag"))
       .Build();
 }
 

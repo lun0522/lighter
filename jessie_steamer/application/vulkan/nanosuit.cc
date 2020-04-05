@@ -175,8 +175,10 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
       .AddUniformBuffer(/*binding_point=*/0, *nanosuit_vert_uniform_)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT)
       .AddPushConstant(nanosuit_frag_constant_.get(), /*target_offset=*/0)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("nanosuit.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("nanosuit.frag"))
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                 GetVkShaderPath("nanosuit/nanosuit.vert"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 GetVkShaderPath("nanosuit/nanosuit.frag"))
       .Build();
 
   skybox_model_ = ModelBuilder{

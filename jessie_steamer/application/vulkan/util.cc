@@ -53,8 +53,9 @@ ImageViewer::ImageViewer(const SharedBasicContext& context,
 
   /* Pipeline */
   const auto frag_shader_relative_path =
-      num_channels == common::kBwImageChannel ? "view_bw_image.frag"
-                                              : "view_color_image.frag";
+      num_channels == common::kBwImageChannel
+          ? "image_viewer/view_bw_image.frag"
+          : "image_viewer/view_color_image.frag";
   pipeline_builder_ = absl::make_unique<GraphicsPipelineBuilder>(context);
   (*pipeline_builder_)
       .SetName("View image")
@@ -64,7 +65,7 @@ ImageViewer::ImageViewer(const SharedBasicContext& context,
       .SetPipelineLayout({descriptor_->layout()}, /*push_constant_ranges=*/{})
       .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/false)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("view_image.vert"))
+                 common::file::GetVkShaderPath("image_viewer/view_image.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
                  common::file::GetVkShaderPath(frag_shader_relative_path));
 }

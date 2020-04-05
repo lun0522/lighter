@@ -110,9 +110,9 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(trans_constant_.get(), /*target_offset=*/0)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("simple_3d.vert"))
+                 common::file::GetVkShaderPath("cube/cube.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetVkShaderPath("simple_3d.frag"))
+                 common::file::GetVkShaderPath("cube/cube.frag"))
       .Build();
 
   /* Text */

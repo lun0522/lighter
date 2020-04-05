@@ -118,9 +118,9 @@ std::unique_ptr<GraphicsPipelineBuilder> CreatePipelineBuilder(
       .SetColorBlend({pipeline::GetColorBlendState(enable_color_blend)})
       .SetFrontFaceDirection(/*counter_clockwise=*/false)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("char.vert"))
+                 common::file::GetVkShaderPath("text/char.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetVkShaderPath("char.frag"));
+                 common::file::GetVkShaderPath("text/char.frag"));
 
   return pipeline_builder;
 }

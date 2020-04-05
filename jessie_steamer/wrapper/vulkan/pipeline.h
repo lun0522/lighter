@@ -38,6 +38,8 @@ class ShaderModule {
 
   // An instance of this will preserve all shader modules created within its
   // surrounding scope, and release them once it goes out of scope.
+  // TODO: If we have multiple pools instantiated, we should not turn
+  // auto-release on until all of them go out of scope.
   using AutoReleaseShaderPool = common::AutoReleasePool<ShaderModule>;
 
   ShaderModule(SharedBasicContext context, const std::string& file_path);

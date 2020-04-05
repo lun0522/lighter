@@ -1,4 +1,6 @@
 #!/bin/sh
+#
+# Compile shaders for all targeted graphics APIs.
 
 set -e
 
@@ -8,9 +10,23 @@ BASE_DIR=$(dirname "$0")
 SHADERS_DIR="${BASE_DIR}/jessie_steamer/shader"
 COMPILED_GL_DIR="${SHADERS_DIR}/opengl"
 COMPILED_VK_DIR="${SHADERS_DIR}/vulkan"
-COMPILED_EXT=".spv"
+OUTPUT_FILE_EXT=".spv"
 DATE_FORMAT="+%F %T"
 
+#######################################
+# Compile a shader file.
+# Arguments:
+#   Path to shader file.
+#   Flags to use for compilation.
+#   Output directory.
+#######################################
+compile_shader() {
+  output="$3/$1${OUTPUT_FILE_EXT}"
+  mkdir -p "$(dirname "${output}")"
+  ${COMPILER_BIN} -o "${output}" -V "$2" "$1"
+}
+
+# Download the shader compiler.
 if [ ! -e ${COMPILER_BIN} ]; then
   echo "$(DATE "${DATE_FORMAT}") Downloading shader compiler..."
   COMPRESSED="/tmp/glslang.zip"
@@ -20,12 +36,13 @@ if [ ! -e ${COMPILER_BIN} ]; then
   rm ${COMPRESSED}
 fi
 
+# Compile shaders.
 echo "$(DATE "${DATE_FORMAT}") Compiling shaders..."
-for ext in ".vert" ".frag"; do
-  for file in "${SHADERS_DIR}"/*"${ext}"; do
-    output=$(basename "${file}")${COMPILED_EXT}
-    ${COMPILER_BIN} -V -DTARGET_OPENGL "${file}" -o "${COMPILED_GL_DIR}/${output}"
-    ${COMPILER_BIN} -V -DTARGET_VULKAN "${file}" -o "${COMPILED_VK_DIR}/${output}"
+cd "${SHADERS_DIR}"
+for suffix in "*.vert" "*.frag"; do
+  find . -type f -name "${suffix}" | while read -r file; do
+    compile_shader "${file}" -DTARGET_OPENGL "${COMPILED_GL_DIR}"
+    compile_shader "${file}" -DTARGET_VULKAN "${COMPILED_VK_DIR}"
   done
 done
-echo "$(DATE "${DATE_FORMAT}") Finished!"
+echo "$(DATE "${DATE_FORMAT}") Done!"

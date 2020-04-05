@@ -91,6 +91,9 @@ PathRenderer::PathRenderer(const SharedBasicContext& context,
   using common::file::GetVkShaderPath;
   using common::Vertex3DPosOnly;
 
+  // Prevent shaders from being auto released.
+  ShaderModule::AutoReleaseShaderPool shader_pool;
+
   /* Vertex buffer */
   const common::ObjFile sphere_file{
       common::file::GetResourcePath("model/small_sphere.obj"),
@@ -147,8 +150,9 @@ PathRenderer::PathRenderer(const SharedBasicContext& context,
                              VK_SHADER_STAGE_VERTEX_BIT)})
       .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetVkShaderPath("spline_3d_control.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("spline.frag"));
+                 GetVkShaderPath("aurora/draw_path_control.vert"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 GetVkShaderPath("aurora/draw_path.frag"));
 
   spline_pipeline_builder_
       .SetName("Aurora path spline")
@@ -167,8 +171,10 @@ PathRenderer::PathRenderer(const SharedBasicContext& context,
                          {spline_trans_constant_->MakePerFrameRange(
                              VK_SHADER_STAGE_VERTEX_BIT)})
       .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)})
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("spline_3d.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("spline.frag"));
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                 GetVkShaderPath("aurora/draw_path_spline.vert"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 GetVkShaderPath("aurora/draw_path.frag"));
 
   viewpoint_pipeline_builder_
       .SetName("User viewpoint")
@@ -181,8 +187,10 @@ PathRenderer::PathRenderer(const SharedBasicContext& context,
                          {viewpoint_render_constant_->MakePerFrameRange(
                              VK_SHADER_STAGE_VERTEX_BIT)})
       .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)})
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("viewpoint.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("spline.frag"));
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                 GetVkShaderPath("aurora/viewpoint.vert"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 GetVkShaderPath("aurora/draw_path.frag"));
 }
 
 void PathRenderer::UpdatePath(int path_index,
@@ -203,6 +211,9 @@ void PathRenderer::UpdateFramebuffer(
     VkSampleCountFlagBits sample_count,
     const RenderPass& render_pass, uint32_t subpass_index,
     const GraphicsPipelineBuilder::ViewportInfo& viewport) {
+  // Prevent shaders from being auto released.
+  ShaderModule::AutoReleaseShaderPool shader_pool;
+
   control_pipeline_ = control_pipeline_builder_
       .SetMultisampling(sample_count)
       .SetViewport(GraphicsPipelineBuilder::ViewportInfo{viewport})

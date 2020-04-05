@@ -102,9 +102,9 @@ Text::Text(const SharedBasicContext& context,
                       pipeline::GetPerVertexBindingDescription<Vertex2D>(),
                       vertex_buffer_.GetAttributes(/*start_location=*/0))
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("char.vert"))
+                 common::file::GetVkShaderPath("text/char.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetVkShaderPath("text.frag"));
+                 common::file::GetVkShaderPath("text/text.frag"));
 }
 
 void Text::Update(const VkExtent2D& frame_size,

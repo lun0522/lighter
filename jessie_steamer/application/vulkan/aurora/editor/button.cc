@@ -64,9 +64,9 @@ ButtonRenderer::ButtonRenderer(
           per_instance_buffer_->GetAttributes(/*start_location=*/0))
       .SetPipelineLayout({descriptor_->layout()}, /*push_constant_ranges=*/{})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("draw_button.vert"))
+                 common::file::GetVkShaderPath("aurora/draw_button.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetVkShaderPath("draw_button.frag"));
+                 common::file::GetVkShaderPath("aurora/draw_button.frag"));
 }
 
 std::unique_ptr<StaticDescriptor> ButtonRenderer::CreateDescriptor(

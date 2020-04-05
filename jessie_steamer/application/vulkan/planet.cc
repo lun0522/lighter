@@ -201,8 +201,10 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       .AddUniformBuffer(/*binding_point=*/1, *light_uniform_)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("planet.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("planet.frag"))
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                 GetVkShaderPath("planet/planet.vert"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 GetVkShaderPath("planet/planet.frag"))
       .Build();
 
   GenAsteroidModels();
@@ -220,8 +222,10 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       .AddUniformBuffer(/*binding_point=*/1, *light_uniform_)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("asteroid.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("planet.frag"))
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                 GetVkShaderPath("planet/asteroid.vert"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 GetVkShaderPath("planet/planet.frag"))
       .Build();
 
   const SharedTexture::CubemapPath skybox_path{
