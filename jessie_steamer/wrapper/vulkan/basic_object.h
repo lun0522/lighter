@@ -44,6 +44,7 @@ class HostMemoryAllocator {
 // All queues in one family share the same property.
 struct QueueFamilyIndices {
   uint32_t graphics;
+  uint32_t compute;
   uint32_t transfer;
   absl::optional<uint32_t> present;
 
@@ -165,6 +166,7 @@ class Queues {
 
   // Accessors.
   const Queue& graphics_queue() const { return graphics_queue_; }
+  const Queue& compute_queue() const { return compute_queue_; }
   const Queue& transfer_queue() const { return transfer_queue_; }
   const Queue& present_queue() const {
     ASSERT_HAS_VALUE(present_queue_, "No presentation queue");
@@ -178,6 +180,9 @@ class Queues {
 
   // Graphics queue.
   Queue graphics_queue_;
+
+  // Compute queue.
+  Queue compute_queue_;
 
   // Transfer queue.
   Queue transfer_queue_;

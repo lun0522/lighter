@@ -113,7 +113,8 @@ class StaticDescriptor : public Descriptor {
 
   // Binds to this descriptor when 'command_buffer' is recording commands.
   void Bind(const VkCommandBuffer& command_buffer,
-            const VkPipelineLayout& pipeline_layout) const;
+            const VkPipelineLayout& pipeline_layout,
+            VkPipelineBindPoint pipeline_binding_point) const;
 
  private:
   // Relates the actual data to this descriptor.
@@ -145,6 +146,7 @@ class DynamicDescriptor : public Descriptor {
   const DynamicDescriptor& PushBufferInfos(
       const VkCommandBuffer& command_buffer,
       const VkPipelineLayout& pipeline_layout,
+      VkPipelineBindPoint pipeline_binding_point,
       VkDescriptorType descriptor_type,
       const BufferInfoMap& buffer_info_map) const;
 
@@ -152,6 +154,7 @@ class DynamicDescriptor : public Descriptor {
   const DynamicDescriptor& PushImageInfos(
       const VkCommandBuffer& command_buffer,
       const VkPipelineLayout& pipeline_layout,
+      VkPipelineBindPoint pipeline_binding_point,
       VkDescriptorType descriptor_type,
       const ImageInfoMap& image_info_map) const;
 
@@ -160,6 +163,7 @@ class DynamicDescriptor : public Descriptor {
   std::function<const DynamicDescriptor&(
       const VkCommandBuffer& command_buffer,
       const VkPipelineLayout& pipeline_layout,
+      VkPipelineBindPoint pipeline_binding_point,
       const std::vector<VkWriteDescriptorSet>& write_descriptor_sets)>
       push_descriptor_sets_;
 };

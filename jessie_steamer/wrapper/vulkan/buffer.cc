@@ -484,9 +484,8 @@ void VertexBuffer::DrawWithoutBuffer(
 }
 
 void VertexBuffer::CreateBufferAndMemory(VkDeviceSize total_size,
-                                         bool is_dynamic) {
-  VkBufferUsageFlags buffer_usages = VK_BUFFER_USAGE_INDEX_BUFFER_BIT
-                                         | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+                                         bool is_dynamic, bool has_index_data) {
+  VkBufferUsageFlags buffer_usages = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
   VkMemoryPropertyFlags memory_properties;
   if (is_dynamic) {
     memory_properties = kHostVisibleMemory;
@@ -494,13 +493,18 @@ void VertexBuffer::CreateBufferAndMemory(VkDeviceSize total_size,
     buffer_usages |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     memory_properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
   }
+  if (has_index_data) {
+    buffer_usages |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+  }
   SetBuffer(CreateBuffer(*context_, total_size, buffer_usages,
                          GetGraphicsQueueUsage(*context_)));
   SetDeviceMemory(CreateBufferMemory(*context_, buffer(), memory_properties));
 }
 
-DynamicBuffer::DynamicBuffer(size_t initial_size, VertexBuffer* vertex_buffer)
-    : vertex_buffer_{FATAL_IF_NULL(vertex_buffer)} {
+DynamicBuffer::DynamicBuffer(size_t initial_size, bool has_index_data,
+                             VertexBuffer* vertex_buffer)
+    : has_index_data_{has_index_data},
+      vertex_buffer_{FATAL_IF_NULL(vertex_buffer)} {
   Reserve(initial_size);
 }
 
@@ -520,7 +524,8 @@ void DynamicBuffer::Reserve(size_t size) {
         });
   }
   buffer_size_ = size;
-  vertex_buffer_->CreateBufferAndMemory(buffer_size_, /*is_dynamic=*/true);
+  vertex_buffer_->CreateBufferAndMemory(buffer_size_, /*is_dynamic=*/true,
+                                        has_index_data_);
 }
 
 Buffer::CopyInfos PerVertexBuffer::NoIndicesDataInfo::CreateCopyInfos(
@@ -655,7 +660,8 @@ StaticPerVertexBuffer::StaticPerVertexBuffer(
     std::vector<Attribute>&& attributes)
     : PerVertexBuffer{std::move(context), std::move(attributes)} {
   const CopyInfos copy_infos = info.CreateCopyInfos(this);
-  CreateBufferAndMemory(copy_infos.total_size, /*is_dynamic=*/false);
+  CreateBufferAndMemory(copy_infos.total_size, /*is_dynamic=*/false,
+                        info.has_index_data());
   CopyHostToBufferViaStaging(context_, buffer(), copy_infos);
 }
 
@@ -680,7 +686,8 @@ StaticPerInstanceBuffer::StaticPerInstanceBuffer(
     : PerInstanceBuffer{std::move(context), per_instance_data_size,
                         std::move(attributes)} {
   const uint32_t total_size = per_instance_data_size * num_instances;
-  CreateBufferAndMemory(total_size, /*is_dynamic=*/false);
+  CreateBufferAndMemory(total_size, /*is_dynamic=*/false,
+                        /*has_index_data=*/false);
   CopyHostToBufferViaStaging(
       context_, buffer(), CopyInfos{
           total_size, /*copy_infos=*/{CopyInfo{data, total_size, /*offset=*/0}},
@@ -780,6 +787,7 @@ TextureBuffer::TextureBuffer(SharedBasicContext context,
   const VkImageUsageFlags mipmap_flag =
       generate_mipmaps ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : nullflag;
 
+  // TODO: VK_IMAGE_USAGE_STORAGE_BIT not always needed.
   ImageConfig image_config;
   image_config.mip_levels = mip_levels_;
   image_config.layer_count = layer_count;
@@ -787,6 +795,7 @@ TextureBuffer::TextureBuffer(SharedBasicContext context,
                        info.format, image_extent,
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT
                            | VK_IMAGE_USAGE_SAMPLED_BIT
+                           | VK_IMAGE_USAGE_STORAGE_BIT
                            | mipmap_flag));
   SetDeviceMemory(CreateImageMemory(
       *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
@@ -818,12 +827,20 @@ TextureBuffer::TextureBuffer(SharedBasicContext context,
 }
 
 OffscreenBuffer::OffscreenBuffer(SharedBasicContext context,
+                                 DataSource data_source,
                                  const VkExtent2D& extent, VkFormat format)
     : ImageBuffer{std::move(context)} {
+  VkImageUsageFlags image_usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+  switch (data_source) {
+    case DataSource::kRender:
+      image_usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+      break;
+    case DataSource::kCompute:
+      image_usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+      break;
+  }
   SetImage(CreateImage(*context_, ImageConfig{}, nullflag, format,
-                       ExpandDimension(extent),
-                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-                           | VK_IMAGE_USAGE_SAMPLED_BIT));
+                       ExpandDimension(extent), image_usage));
   SetDeviceMemory(CreateImageMemory(
       *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 }

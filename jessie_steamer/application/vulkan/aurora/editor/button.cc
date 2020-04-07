@@ -57,7 +57,7 @@ ButtonRenderer::ButtonRenderer(
   descriptor_ = CreateDescriptor(context);
 
   pipeline_builder_
-      .SetName("Draw button")
+      .SetPipelineName("Draw button")
       .AddVertexInput(
           kPerInstanceBufferBindingPoint,
           pipeline::GetPerInstanceBindingDescription<RenderInfo>(),
@@ -129,7 +129,8 @@ void ButtonRenderer::Draw(
   pipeline_->Bind(command_buffer);
   per_instance_buffer_->Bind(
       command_buffer, kPerInstanceBufferBindingPoint, /*offset=*/0);
-  descriptor_->Bind(command_buffer, pipeline_->layout());
+  descriptor_->Bind(command_buffer, pipeline_->layout(),
+                    pipeline_->binding_point());
   VertexBuffer::DrawWithoutBuffer(command_buffer, button::kNumVerticesPerButton,
                                   buttons_to_render.size());
 }

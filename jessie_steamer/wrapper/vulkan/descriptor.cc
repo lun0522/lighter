@@ -189,11 +189,12 @@ const StaticDescriptor& StaticDescriptor::UpdateDescriptorSets(
 }
 
 void StaticDescriptor::Bind(const VkCommandBuffer& command_buffer,
-                            const VkPipelineLayout& pipeline_layout) const {
-  vkCmdBindDescriptorSets(
-      command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-      pipeline_layout, /*firstSet=*/0, /*descriptorSetCount=*/1,
-      &set_, /*dynamicOffsetCount=*/0, /*pDynamicOffsets=*/nullptr);
+                            const VkPipelineLayout& pipeline_layout,
+                            VkPipelineBindPoint pipeline_binding_point) const {
+  vkCmdBindDescriptorSets(command_buffer, pipeline_binding_point,
+                          pipeline_layout, /*firstSet=*/0,
+                          /*dePushBufferInfosscriptorSetCount=*/1, &set_,
+                          /*dynamicOffsetCount=*/0, /*pDynamicOffsets=*/nullptr);
 }
 
 DynamicDescriptor::DynamicDescriptor(SharedBasicContext context,
@@ -207,12 +208,13 @@ DynamicDescriptor::DynamicDescriptor(SharedBasicContext context,
       [this, vkCmdPushDescriptorSetKHR](
           const VkCommandBuffer& command_buffer,
           const VkPipelineLayout& pipeline_layout,
+          VkPipelineBindPoint pipeline_binding_point,
           const vector<VkWriteDescriptorSet>& write_descriptor_sets)
               -> const DynamicDescriptor& {
-        vkCmdPushDescriptorSetKHR(
-            command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-            pipeline_layout, /*set=*/0, CONTAINER_SIZE(write_descriptor_sets),
-            write_descriptor_sets.data());
+        vkCmdPushDescriptorSetKHR(command_buffer, pipeline_binding_point,
+                                  pipeline_layout, /*set=*/0,
+                                  CONTAINER_SIZE(write_descriptor_sets),
+                                  write_descriptor_sets.data());
         return *this;
       };
 }
@@ -220,10 +222,11 @@ DynamicDescriptor::DynamicDescriptor(SharedBasicContext context,
 const DynamicDescriptor& DynamicDescriptor::PushBufferInfos(
     const VkCommandBuffer& command_buffer,
     const VkPipelineLayout& pipeline_layout,
+    VkPipelineBindPoint pipeline_binding_point,
     VkDescriptorType descriptor_type,
     const BufferInfoMap& buffer_info_map) const {
   return push_descriptor_sets_(
-      command_buffer, pipeline_layout,
+      command_buffer, pipeline_layout, pipeline_binding_point,
       CreateWriteDescriptorSets(/*descriptor_set=*/VK_NULL_HANDLE,
                                 descriptor_type, buffer_info_map));
 }
@@ -231,10 +234,11 @@ const DynamicDescriptor& DynamicDescriptor::PushBufferInfos(
 const DynamicDescriptor& DynamicDescriptor::PushImageInfos(
     const VkCommandBuffer& command_buffer,
     const VkPipelineLayout& pipeline_layout,
+    VkPipelineBindPoint pipeline_binding_point,
     VkDescriptorType descriptor_type,
     const ImageInfoMap& image_info_map) const {
   return push_descriptor_sets_(
-      command_buffer, pipeline_layout,
+      command_buffer, pipeline_layout, pipeline_binding_point,
       CreateWriteDescriptorSets(/*descriptor_set=*/VK_NULL_HANDLE,
                                 descriptor_type, image_info_map));
 }

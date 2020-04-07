@@ -58,7 +58,7 @@ ImageViewer::ImageViewer(const SharedBasicContext& context,
           : "image_viewer/view_color_image.frag";
   pipeline_builder_ = absl::make_unique<GraphicsPipelineBuilder>(context);
   (*pipeline_builder_)
-      .SetName("View image")
+      .SetPipelineName("View image")
       .AddVertexInput(kVertexBufferBindingPoint,
                       pipeline::GetPerVertexBindingDescription<Vertex2D>(),
                       vertex_buffer_->GetAttributes(/*start_location=*/0))
@@ -81,7 +81,8 @@ void ImageViewer::UpdateFramebuffer(const VkExtent2D& frame_size,
 
 void ImageViewer::Draw(const VkCommandBuffer& command_buffer) const {
   pipeline_->Bind(command_buffer);
-  descriptor_->Bind(command_buffer, pipeline_->layout());
+  descriptor_->Bind(command_buffer, pipeline_->layout(),
+                    pipeline_->binding_point());
   vertex_buffer_->Draw(command_buffer, kVertexBufferBindingPoint,
                        /*mesh_index=*/0, /*instance_count=*/1);
 }

@@ -140,6 +140,7 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
             physical_device, count, properties);
       }
   );
+
   const auto has_graphics_support = [](const VkQueueFamilyProperties& family) {
     return family.queueCount && (family.queueFlags & VK_QUEUE_GRAPHICS_BIT);
   };
@@ -151,6 +152,18 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
   } else {
     candidate.graphics = candidate.transfer =
         static_cast<uint32_t>(graphics_queue_index.value());
+  }
+
+  const auto has_compute_support = [](const VkQueueFamilyProperties& family) {
+    return family.queueCount && (family.queueFlags & VK_QUEUE_COMPUTE_BIT);
+  };
+  const auto compute_queue_index =
+      common::util::FindIndexOfFirst<VkQueueFamilyProperties>(
+          families, has_compute_support);
+  if (!compute_queue_index.has_value()) {
+    return absl::nullopt;
+  } else {
+    candidate.compute = static_cast<uint32_t>(compute_queue_index.value());
   }
 
   // Find queue family that holds presentation queue if use window.
@@ -179,7 +192,7 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
 } /* namespace */
 
 std::vector<uint32_t> QueueFamilyIndices::GetUniqueFamilyIndices() const {
-  std::vector<uint32_t> queue_family_indices{graphics, transfer};
+  std::vector<uint32_t> queue_family_indices{graphics, compute, transfer};
   if (present.has_value()) {
     queue_family_indices.emplace_back(present.value());
   }
@@ -368,6 +381,7 @@ Queues::Queues(const BasicContext& context,
                const QueueFamilyIndices& family_indices) {
   const VkDevice& device = *context.device();
   SetQueue(device, family_indices.graphics, &graphics_queue_);
+  SetQueue(device, family_indices.compute, &compute_queue_);
   SetQueue(device, family_indices.transfer, &transfer_queue_);
   if (family_indices.present.has_value()) {
     present_queue_.emplace();

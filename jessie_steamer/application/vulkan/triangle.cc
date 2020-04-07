@@ -104,7 +104,7 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   /* Pipeline */
   pipeline_builder_ = absl::make_unique<GraphicsPipelineBuilder>(context());
   (*pipeline_builder_)
-      .SetName("Triangle")
+      .SetPipelineName("Triangle")
       .AddVertexInput(
           kVertexBufferBindingPoint,
           pipeline::GetPerVertexBindingDescription<Vertex3DWithColor>(),

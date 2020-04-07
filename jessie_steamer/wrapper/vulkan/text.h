@@ -39,6 +39,10 @@ class Text {
   // We only support the horizontal layout for now.
   enum class Align { kLeft, kCenter, kRight };
 
+  // This class is neither copyable nor movable.
+  Text(const Text&) = delete;
+  Text& operator=(const Text&) = delete;
+
   virtual ~Text() = default;
 
   // Rebuilds the graphics pipeline.
@@ -141,6 +145,7 @@ class StaticText : public Text {
   // at the same index to render the text at 'text_index'.
   std::vector<std::function<void(const VkCommandBuffer& command_buffer,
                                  const VkPipelineLayout& pipeline_layout,
+                                 VkPipelineBindPoint pipeline_binding_point,
                                  int text_index)>> push_descriptors_;
 };
 

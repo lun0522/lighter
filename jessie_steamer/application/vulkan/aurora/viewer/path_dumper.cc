@@ -98,7 +98,8 @@ PathDumper::DumpPathsPass::DumpPathsPass(
   const SamplableImage::Config image_config{
       VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
   paths_image_ = absl::make_unique<OffscreenImage>(
-      context, common::kBwImageChannel, image_extent, image_config);
+      context, OffscreenImage::DataSource::kRender, common::kBwImageChannel,
+      image_extent, image_config);
   multisample_image_ = MultisampleImage::CreateColorMultisampleImage(
       context, *paths_image_, MultisampleImage::Mode::kBestEffect);
 
@@ -134,7 +135,7 @@ PathDumper::DumpPathsPass::DumpPathsPass(
 
   /* Pipeline */
   pipeline_ = GraphicsPipelineBuilder{context}
-      .SetName("Dump aurora path")
+      .SetPipelineName("Dump aurora path")
       .SetMultisampling(multisample_image_->sample_count())
       .SetPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_LINE_STRIP)
       .AddVertexInput(
@@ -201,7 +202,8 @@ PathDumper::BoldPathsPass::BoldPathsPass(const SharedBasicContext& context,
   const SamplableImage::Config image_config{
       VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
   bold_paths_image_ = absl::make_unique<OffscreenImage>(
-      context, common::kBwImageChannel, image_extent, image_config);
+      context, OffscreenImage::DataSource::kRender, common::kBwImageChannel,
+      image_extent, image_config);
 
   /* Render pass */
   const NaiveRenderPassBuilder::SubpassConfig subpass_config{
@@ -227,7 +229,7 @@ PathDumper::BoldPathsPass::BoldPathsPass(const SharedBasicContext& context,
 
   /* Pipeline */
   pipeline_ = GraphicsPipelineBuilder{context}
-      .SetName("Bold aurora path")
+      .SetPipelineName("Bold aurora path")
       .AddVertexInput(kVertexBufferBindingPoint,
                       pipeline::GetPerVertexBindingDescription<Vertex2D>(),
                       vertex_buffer_->GetAttributes(/*start_location=*/0))
@@ -244,7 +246,8 @@ PathDumper::BoldPathsPass::BoldPathsPass(const SharedBasicContext& context,
 
 void PathDumper::BoldPathsPass::Draw(const VkCommandBuffer& command_buffer) {
   pipeline_->Bind(command_buffer);
-  descriptor_->Bind(command_buffer, pipeline_->layout());
+  descriptor_->Bind(command_buffer, pipeline_->layout(),
+                    pipeline_->binding_point());
   render_pass_->Run(command_buffer, /*framebuffer_index=*/0, render_ops_);
 }
 

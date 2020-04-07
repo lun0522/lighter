@@ -62,12 +62,59 @@ class ShaderModule {
   VkShaderModule shader_module_;
 };
 
+// This is the base class of all pipeline builder classes. The user should use
+// it through derived classes.
+class PipelineBuilder {
+ public:
+  // This class is neither copyable nor movable.
+  PipelineBuilder(const PipelineBuilder&) = delete;
+  PipelineBuilder& operator=(const PipelineBuilder&) = delete;
+
+  virtual ~PipelineBuilder() = default;
+
+  // Builds a VkPipeline object. This can be called multiple times.
+  virtual std::unique_ptr<Pipeline> Build() const = 0;
+
+ protected:
+  explicit PipelineBuilder(SharedBasicContext context)
+      : context_{std::move(FATAL_IF_NULL(context))} {}
+
+  // Sets the name for the pipeline.
+  void SetName(std::string&& name) { name_ = std::move(name); }
+
+  // Sets descriptor set layouts and push constant ranges used in this pipeline.
+  void SetLayout(std::vector<VkDescriptorSetLayout>&& descriptor_layouts,
+                 std::vector<VkPushConstantRange>&& push_constant_ranges);
+
+  // Accessors.
+  SharedBasicContext context() const { return context_; }
+  const std::string& name() const { return name_; }
+  bool has_pipeline_layout_info() const {
+    return pipeline_layout_info_.has_value();
+  }
+  const VkPipelineLayoutCreateInfo& pipeline_layout_info() const {
+    return pipeline_layout_info_.value();
+  }
+
+ private:
+  // Pointer to context.
+  const SharedBasicContext context_;
+
+  // Name of the pipeline (used for debugging).
+  std::string name_;
+
+  // Descriptor sets and push constants determine the layout of the pipeline.
+  absl::optional<VkPipelineLayoutCreateInfo> pipeline_layout_info_;
+  std::vector<VkDescriptorSetLayout> descriptor_layouts_;
+  std::vector<VkPushConstantRange> push_constant_ranges_;
+};
+
 // The user should use this class to create graphics pipelines. All internal
 // states are preserved when it is used to build a pipeline, so it can be reused
 // for building another pipeline. Exceptionally, by default, shader modules are
 // released after building one pipeline to save the host memory. This behavior
 // can be changed by the user. See class comments of ShaderModule.
-class GraphicsPipelineBuilder {
+class GraphicsPipelineBuilder : public PipelineBuilder {
  public:
   // Describes a viewport transformation.
   struct ViewportInfo {
@@ -83,8 +130,8 @@ class GraphicsPipelineBuilder {
   GraphicsPipelineBuilder(const GraphicsPipelineBuilder&) = delete;
   GraphicsPipelineBuilder& operator=(const GraphicsPipelineBuilder&) = delete;
 
-  // Sets a name for pipeline. This is for debugging purpose.
-  GraphicsPipelineBuilder& SetName(std::string&& name);
+  // Sets a name for the pipeline. This is for debugging purpose.
+  GraphicsPipelineBuilder& SetPipelineName(std::string&& name);
 
   // By default, depth testing and stencil testing are disabled, front face
   // direction is counter-clockwise, the rasterizer only takes one sample, and
@@ -132,8 +179,8 @@ class GraphicsPipelineBuilder {
   GraphicsPipelineBuilder& SetShader(VkShaderStageFlagBits shader_stage,
                                      std::string&& file_path);
 
-  // Returns a pipeline. This can be called multiple times.
-  std::unique_ptr<Pipeline> Build() const;
+  // Overrides.
+  std::unique_ptr<Pipeline> Build() const override;
 
  private:
   // Refers to a subpass within a render pass.
@@ -141,12 +188,6 @@ class GraphicsPipelineBuilder {
     VkRenderPass render_pass;
     uint32_t subpass_index;
   };
-
-  // Pointer to context.
-  const SharedBasicContext context_;
-
-  // Name of pipeline (used for debugging).
-  std::string name_;
 
   // Specifies how to assemble primitives.
   VkPipelineInputAssemblyStateCreateInfo input_assembly_info_;
@@ -168,11 +209,6 @@ class GraphicsPipelineBuilder {
   std::vector<VkVertexInputBindingDescription> binding_descriptions_;
   std::vector<VkVertexInputAttributeDescription> attribute_descriptions_;
 
-  // Descriptor sets and push constants determine the layout of the pipeline.
-  absl::optional<VkPipelineLayoutCreateInfo> pipeline_layout_info_;
-  std::vector<VkDescriptorSetLayout> descriptor_layouts_;
-  std::vector<VkPushConstantRange> push_constant_ranges_;
-
   // Specifies the viewport and scissor.
   absl::optional<ViewportInfo> viewport_info_;
 
@@ -186,15 +222,51 @@ class GraphicsPipelineBuilder {
   absl::flat_hash_map<VkShaderStageFlagBits, std::string> shader_file_path_map_;
 };
 
+// The user should use this class to create compute pipelines. All internal
+// states are preserved when it is used to build a pipeline, so it can be reused
+// for building another pipeline. Exceptionally, by default, shader modules are
+// released after building one pipeline to save the host memory. This behavior
+// can be changed by the user. See class comments of ShaderModule.
+class ComputePipelineBuilder : public PipelineBuilder {
+ public:
+  explicit ComputePipelineBuilder(SharedBasicContext context)
+      : PipelineBuilder{std::move(FATAL_IF_NULL(context))} {}
+
+  // This class is neither copyable nor movable.
+  ComputePipelineBuilder(const ComputePipelineBuilder&) = delete;
+  ComputePipelineBuilder& operator=(const ComputePipelineBuilder&) = delete;
+
+  // Sets a name for the pipeline. This is for debugging purpose.
+  ComputePipelineBuilder& SetPipelineName(std::string&& name);
+
+  // Sets descriptor set layouts and push constant ranges used in this pipeline.
+  // Note that according to the Vulkan specification, to be compatible with all
+  // devices, we only allow the user to push constants of at most 128 bytes in
+  // total within one pipeline.
+  ComputePipelineBuilder& SetPipelineLayout(
+      std::vector<VkDescriptorSetLayout>&& descriptor_layouts,
+      std::vector<VkPushConstantRange>&& push_constant_ranges);
+
+  // Loads a shader from 'file_path'.
+  ComputePipelineBuilder& SetShader(std::string&& file_path);
+
+  // Overrides.
+  std::unique_ptr<Pipeline> Build() const override;
+
+ private:
+  // Path to shader file.
+  absl::optional<std::string> shader_file_path_;
+};
+
 // VkPipeline configures multiple shader stages, multiple fixed function stages
 // (including vertex input bindings and attributes, primitive assembly,
 // tessellation, viewport and scissor, rasterization, multisampling, depth
 // testing and stencil testing, color blending, and dynamic states), and the
 // pipeline layout (including descriptor set layouts and push constant ranges).
-// The user should use PipelineBuilder to create instances of this class.
-// If any state is changed, for example, the render pass and viewport may change
-// if the window is resized, the user should discard the old pipeline and build
-// a new one with the updated states.
+// The user should use subclasses of PipelineBuilder to create instances of this
+// class. If any state is changed, for example, the render pass and viewport may
+// change if the window is resized, the user should discard the old pipeline and
+// build a new one with the updated states.
 class Pipeline {
  public:
   // This class is neither copyable nor movable.
@@ -212,16 +284,20 @@ class Pipeline {
 
   // Accessors.
   const VkPipelineLayout& layout() const { return layout_; }
+  VkPipelineBindPoint binding_point() const { return binding_point_; }
 
  private:
   friend std::unique_ptr<Pipeline> GraphicsPipelineBuilder::Build() const;
+  friend std::unique_ptr<Pipeline> ComputePipelineBuilder::Build() const;
 
   Pipeline(SharedBasicContext context,
            std::string name,
            const VkPipeline& pipeline,
-           const VkPipelineLayout& pipeline_layout)
+           const VkPipelineLayout& pipeline_layout,
+           VkPipelineBindPoint binding_point)
       : context_{std::move(FATAL_IF_NULL(context))}, name_{std::move(name)},
-        pipeline_{pipeline}, layout_{pipeline_layout} {}
+        pipeline_{pipeline}, layout_{pipeline_layout},
+        binding_point_{binding_point} {}
 
   // Pointer to context.
   const SharedBasicContext context_;
@@ -230,10 +306,13 @@ class Pipeline {
   const std::string name_;
 
   // Opaque pipeline object.
-  VkPipeline pipeline_;
+  const VkPipeline pipeline_;
 
   // Opaque pipeline layout object.
-  VkPipelineLayout layout_;
+  const VkPipelineLayout layout_;
+
+  // Pipeline binding point, either graphics or compute.
+  const VkPipelineBindPoint binding_point_;
 };
 
 } /* namespace vulkan */

@@ -31,6 +31,10 @@ namespace vulkan {
 // and destroyed by this base class, and initialized by derived classes.
 class Image {
  public:
+  // This class is neither copyable nor movable.
+  Image(const Image&) = delete;
+  Image& operator=(const Image&) = delete;
+
   virtual ~Image() {
     vkDestroyImageView(*context_->device(), image_view_,
                        *context_->allocator());
@@ -100,8 +104,8 @@ class TextureImage : public Image, public SamplableImage {
 
   TextureImage(SharedBasicContext context,
                bool generate_mipmaps,
-               const SamplableImage::Config& sampler_config,
-               const common::Image& image);
+               const common::Image& image,
+               const SamplableImage::Config& sampler_config);
 
   // This class is neither copyable nor movable.
   TextureImage(const TextureImage&) = delete;
@@ -172,11 +176,14 @@ class SharedTexture : public SamplableImage {
   RefCountedTexture texture_;
 };
 
-// This class creates an image that can be used as offscreen rendering target.
+// This class creates an image that can be used for offscreen rendering and
+// compute shaders.
 class OffscreenImage : public Image, public SamplableImage {
  public:
+  using DataSource = OffscreenBuffer::DataSource;
+
   OffscreenImage(SharedBasicContext context,
-                 int channel, const VkExtent2D& extent,
+                 DataSource data_source, int channel, const VkExtent2D& extent,
                  const SamplableImage::Config& sampler_config);
 
   // This class is neither copyable nor movable.

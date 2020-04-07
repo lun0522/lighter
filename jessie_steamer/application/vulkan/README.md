@@ -184,7 +184,7 @@ to set it every time when we build/rebuild the pipeline.
 ```cpp
 pipeline_builder_ = absl::make_unique<PipelineBuilder>(context());
 (*pipeline_builder_)
-    .SetName("Triangle")
+    .SetPipelineName("Triangle")
     .AddVertexInput(
         kVertexBufferBindingPoint,
         pipeline::GetPerVertexBindingDescription<Vertex3DWithColor>(),

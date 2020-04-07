@@ -97,7 +97,7 @@ Text::Text(const SharedBasicContext& context,
       uniform_buffer_{context, sizeof(TextRenderInfo), num_frames_in_flight},
       pipeline_builder_{context} {
   pipeline_builder_
-      .SetName(std::move(pipeline_name))
+      .SetPipelineName(std::move(pipeline_name))
       .AddVertexInput(kVertexBufferBindingPoint,
                       pipeline::GetPerVertexBindingDescription<Vertex2D>(),
                       vertex_buffer_.GetAttributes(/*start_location=*/0))
@@ -164,9 +164,11 @@ StaticText::StaticText(const SharedBasicContext& context,
         absl::make_unique<DynamicDescriptor>(context, descriptor_infos));
     push_descriptors_.emplace_back(
         [this, frame](const VkCommandBuffer& command_buffer,
-                      const VkPipelineLayout& pipeline_layout, int text_index) {
+                      const VkPipelineLayout& pipeline_layout,
+                      VkPipelineBindPoint pipeline_binding_point,
+                      int text_index) {
           descriptors_[frame]->PushBufferInfos(
-              command_buffer, pipeline_layout,
+              command_buffer, pipeline_layout, pipeline_binding_point,
               VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
               /*buffer_info_map=*/{{
                   kUniformBufferBindingPoint,
@@ -174,7 +176,7 @@ StaticText::StaticText(const SharedBasicContext& context,
               }}
           );
           descriptors_[frame]->PushImageInfos(
-              command_buffer, pipeline_layout,
+              command_buffer, pipeline_layout, pipeline_binding_point,
               VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
               /*image_info_map=*/{{
                   kTextureBindingPoint,
@@ -216,7 +218,7 @@ void StaticText::Draw(const VkCommandBuffer& command_buffer,
   pipeline().Bind(command_buffer);
   for (int i = 0; i < num_texts; ++i) {
     push_descriptors_[frame](command_buffer, pipeline().layout(),
-                             texts_to_draw_[i]);
+                             pipeline().binding_point(), texts_to_draw_[i]);
     vertex_buffer().Draw(command_buffer, kVertexBufferBindingPoint,
                          /*mesh_index=*/i, /*instance_count=*/1);
   }
@@ -280,7 +282,8 @@ void DynamicText::Draw(const VkCommandBuffer& command_buffer,
                        int frame, const glm::vec3& color, float alpha) {
   const int num_chars = UpdateBuffers(frame, color, alpha);
   pipeline().Bind(command_buffer);
-  descriptors_[frame]->Bind(command_buffer, pipeline().layout());
+  descriptors_[frame]->Bind(command_buffer, pipeline().layout(),
+                            pipeline().binding_point());
   for (int i = 0; i < num_chars; ++i) {
     vertex_buffer().Draw(command_buffer, kVertexBufferBindingPoint,
                          /*mesh_index=*/i, /*instance_count=*/1);

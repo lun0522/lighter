@@ -32,6 +32,10 @@ namespace vulkan {
 // initialized by derived classes.
 class Command {
  public:
+  // This class is neither copyable nor movable.
+  Command(const Command&) = delete;
+  Command& operator=(const Command&) = delete;
+
   virtual ~Command() {
     vkDestroyCommandPool(*context_->device(), command_pool_,
                          *context_->allocator());

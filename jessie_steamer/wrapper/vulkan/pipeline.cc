@@ -135,8 +135,41 @@ ShaderModule::ShaderModule(SharedBasicContext context,
                  "Failed to create shader module");
 }
 
+void PipelineBuilder::SetLayout(
+    vector<VkDescriptorSetLayout>&& descriptor_layouts,
+    vector<VkPushConstantRange>&& push_constant_ranges) {
+  // Make sure no more than 128 bytes constants are pushed in this pipeline.
+  vector<int> push_constant_sizes(push_constant_ranges.size());
+  for (int i = 0; i < push_constant_ranges.size(); ++i) {
+    push_constant_sizes[i] = push_constant_ranges[i].size;
+  }
+  const auto total_push_constant_size =
+      std::accumulate(push_constant_sizes.begin(),
+                      push_constant_sizes.end(), 0);
+  ASSERT_TRUE(total_push_constant_size <= kMaxPushConstantSize,
+              absl::StrFormat(
+                  "Pushing constant of total size %d bytes in the pipeline "
+                  "(break down: %s). To be compatible with all devices, the "
+                  "total size should not be greater than %d bytes.",
+                  total_push_constant_size,
+                  absl::StrJoin(push_constant_sizes, " + "),
+                  kMaxPushConstantSize));
+
+  descriptor_layouts_ = std::move(descriptor_layouts);
+  push_constant_ranges_ = std::move(push_constant_ranges);
+  pipeline_layout_info_.emplace(VkPipelineLayoutCreateInfo{
+      VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/nullflag,
+      CONTAINER_SIZE(descriptor_layouts_),
+      descriptor_layouts_.data(),
+      CONTAINER_SIZE(push_constant_ranges_),
+      push_constant_ranges_.data(),
+  });
+}
+
 GraphicsPipelineBuilder::GraphicsPipelineBuilder(SharedBasicContext context)
-    : context_{std::move(FATAL_IF_NULL(context))} {
+    : PipelineBuilder{std::move(FATAL_IF_NULL(context))} {
   input_assembly_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -204,8 +237,9 @@ GraphicsPipelineBuilder::GraphicsPipelineBuilder(SharedBasicContext context)
   };
 }
 
-GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetName(std::string&& name) {
-  name_ = std::move(name);
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetPipelineName(
+    std::string&& name) {
+  SetName(std::move(name));
   return *this;
 }
 
@@ -258,34 +292,7 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::AddVertexInput(
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetPipelineLayout(
     vector<VkDescriptorSetLayout>&& descriptor_layouts,
     vector<VkPushConstantRange>&& push_constant_ranges) {
-  // Make sure no more than 128 bytes constants are pushed in this pipeline.
-  vector<int> push_constant_sizes(push_constant_ranges.size());
-  for (int i = 0; i < push_constant_ranges.size(); ++i) {
-    push_constant_sizes[i] = push_constant_ranges[i].size;
-  }
-  const auto total_push_constant_size =
-      std::accumulate(push_constant_sizes.begin(),
-                      push_constant_sizes.end(), 0);
-  ASSERT_TRUE(total_push_constant_size <= kMaxPushConstantSize,
-              absl::StrFormat(
-                  "Pushing constant of total size %d bytes in the pipeline "
-                  "(break down: %s). To be compatible with all devices, the "
-                  "total size should not be greater than %d bytes.",
-                  total_push_constant_size,
-                  absl::StrJoin(push_constant_sizes, " + "),
-                  kMaxPushConstantSize));
-
-  descriptor_layouts_ = std::move(descriptor_layouts);
-  push_constant_ranges_ = std::move(push_constant_ranges);
-  pipeline_layout_info_.emplace(VkPipelineLayoutCreateInfo{
-      VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
-      CONTAINER_SIZE(descriptor_layouts_),
-      descriptor_layouts_.data(),
-      CONTAINER_SIZE(push_constant_ranges_),
-      push_constant_ranges_.data(),
-  });
+  SetLayout(std::move(descriptor_layouts), std::move(push_constant_ranges));
   return *this;
 }
 
@@ -319,7 +326,7 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetShader(
 }
 
 std::unique_ptr<Pipeline> GraphicsPipelineBuilder::Build() const {
-  ASSERT_HAS_VALUE(pipeline_layout_info_, "Pipeline layout is not set");
+  ASSERT_TRUE(has_pipeline_layout_info(), "Pipeline layout is not set");
   ASSERT_HAS_VALUE(viewport_info_, "Viewport is not set");
   ASSERT_HAS_VALUE(render_pass_info_, "Render pass is not set");
   ASSERT_NON_EMPTY(color_blend_states_, "Color blend is not set");
@@ -333,14 +340,13 @@ std::unique_ptr<Pipeline> GraphicsPipelineBuilder::Build() const {
   // Shader modules can be destroyed to save the host memory after the pipeline
   // is created.
   const auto shader_stages =
-      CreateShaderStages(context_, shader_file_path_map_);
+      CreateShaderStages(context(), shader_file_path_map_);
   const auto shader_stage_infos = CreateShaderStageInfos(shader_stages);
 
   VkPipelineLayout pipeline_layout;
   ASSERT_SUCCESS(
-      vkCreatePipelineLayout(
-          *context_->device(), &pipeline_layout_info_.value(),
-          *context_->allocator(), &pipeline_layout),
+      vkCreatePipelineLayout(*context()->device(), &pipeline_layout_info(),
+                             *context()->allocator(), &pipeline_layout),
       "Failed to create pipeline layout");
 
   const VkGraphicsPipelineCreateInfo pipeline_info{
@@ -370,17 +376,80 @@ std::unique_ptr<Pipeline> GraphicsPipelineBuilder::Build() const {
   VkPipeline pipeline;
   ASSERT_SUCCESS(
       vkCreateGraphicsPipelines(
-          *context_->device(), /*pipelineCache=*/VK_NULL_HANDLE,
-          /*createInfoCount=*/1, &pipeline_info, *context_->allocator(),
+          *context()->device(), /*pipelineCache=*/VK_NULL_HANDLE,
+          /*createInfoCount=*/1, &pipeline_info, *context()->allocator(),
           &pipeline),
       "Failed to create graphics pipeline");
 
   return std::unique_ptr<Pipeline>{
-      new Pipeline{context_, name_, pipeline, pipeline_layout}};
+      new Pipeline{context(), name(), pipeline, pipeline_layout,
+                   VK_PIPELINE_BIND_POINT_GRAPHICS}};
+}
+
+ComputePipelineBuilder& ComputePipelineBuilder::SetPipelineName(
+    std::string&& name) {
+  SetName(std::move(name));
+  return *this;
+}
+
+ComputePipelineBuilder& ComputePipelineBuilder::SetPipelineLayout(
+    vector<VkDescriptorSetLayout>&& descriptor_layouts,
+    vector<VkPushConstantRange>&& push_constant_ranges) {
+  SetLayout(std::move(descriptor_layouts), std::move(push_constant_ranges));
+  return *this;
+}
+
+ComputePipelineBuilder& ComputePipelineBuilder::SetShader(
+    std::string&& file_path) {
+  shader_file_path_.emplace(std::move(file_path));
+  return *this;
+}
+
+std::unique_ptr<Pipeline> ComputePipelineBuilder::Build() const {
+  ASSERT_TRUE(has_pipeline_layout_info(), "Pipeline layout is not set");
+  ASSERT_HAS_VALUE(shader_file_path_, "Shader is not set");
+
+  // Shader modules can be destroyed to save the host memory after the pipeline
+  // is created.
+  const auto shader_stages = CreateShaderStages(
+      context(), /*shader_file_path_map=*/{
+          {VK_SHADER_STAGE_COMPUTE_BIT, shader_file_path_.value()}});
+  const auto shader_stage_infos = CreateShaderStageInfos(shader_stages);
+  ASSERT_TRUE(shader_stage_infos.size() == 1, "Only expect one shader stage");
+
+  VkPipelineLayout pipeline_layout;
+  ASSERT_SUCCESS(
+      vkCreatePipelineLayout(*context()->device(), &pipeline_layout_info(),
+                             *context()->allocator(), &pipeline_layout),
+      "Failed to create pipeline layout");
+
+  const VkComputePipelineCreateInfo pipeline_info{
+      VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/nullflag,
+      shader_stage_infos[0],
+      pipeline_layout,
+      // 'basePipelineHandle' and 'basePipelineIndex' can be used to copy
+      // settings from another pipeline.
+      /*basePipelineHandle=*/VK_NULL_HANDLE,
+      /*basePipelineIndex=*/0,
+  };
+
+  VkPipeline pipeline;
+  ASSERT_SUCCESS(
+      vkCreateComputePipelines(
+          *context()->device(), /*pipelineCache=*/VK_NULL_HANDLE,
+          /*createInfoCount=*/1, &pipeline_info, *context()->allocator(),
+          &pipeline),
+      "Failed to create compute pipeline");
+
+  return std::unique_ptr<Pipeline>{
+      new Pipeline{context(), name(), pipeline, pipeline_layout,
+                   VK_PIPELINE_BIND_POINT_COMPUTE}};
 }
 
 void Pipeline::Bind(const VkCommandBuffer& command_buffer) const {
-  vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_);
+  vkCmdBindPipeline(command_buffer, binding_point_, pipeline_);
 }
 
 Pipeline::~Pipeline() {

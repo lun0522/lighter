@@ -51,8 +51,8 @@ std::unique_ptr<OffscreenImage> CreateTargetImage(
                             num_buttons * button::kNumStates),
   };
   return absl::make_unique<OffscreenImage>(
-      context, common::kRgbaImageChannel, buttons_image_extent,
-      SamplableImage::Config{});
+      context, OffscreenImage::DataSource::kRender, common::kRgbaImageChannel,
+      buttons_image_extent, SamplableImage::Config{});
 }
 
 // Creates per-instance vertex buffer storing RenderInfo.
@@ -148,8 +148,8 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
   ASSERT_TRUE(button_background.channel == common::kBwImageChannel,
               "Expecting a single-channel button background image");
   const auto background_image = absl::make_unique<TextureImage>(
-      context, /*generate_mipmaps=*/false, SamplableImage::Config{},
-      button_background);
+      context, /*generate_mipmaps=*/false, button_background,
+      SamplableImage::Config{});
 
   const int num_buttons = button_infos.size();
   auto buttons_image = CreateTargetImage(context, num_buttons,
@@ -171,7 +171,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
       context, font, font_height, *buttons_image, *render_pass, button_infos);
 
   const auto pipeline = GraphicsPipelineBuilder{context}
-      .SetName("Button background")
+      .SetPipelineName("Button background")
       .AddVertexInput(
           kPerInstanceBufferBindingPoint,
           pipeline::GetPerInstanceBindingDescription<RenderInfo>(),
@@ -197,7 +197,8 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
         push_constant->Flush(
             command_buffer, pipeline->layout(), /*frame=*/0,
             /*target_offset=*/0, VK_SHADER_STAGE_VERTEX_BIT);
-        descriptor->Bind(command_buffer, pipeline->layout());
+        descriptor->Bind(command_buffer, pipeline->layout(),
+                         pipeline->binding_point());
         VertexBuffer::DrawWithoutBuffer(
             command_buffer, button::kNumVerticesPerButton,
             /*instance_count=*/num_buttons * button::kNumStates);

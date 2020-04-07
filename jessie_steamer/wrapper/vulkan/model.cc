@@ -205,7 +205,7 @@ ModelBuilder::ModelBuilder(SharedBasicContext context,
       viewport_aspect_ratio_{viewport_aspect_ratio},
       uniform_buffer_info_maps_(num_frames_in_flight_),
       pipeline_builder_{absl::make_unique<GraphicsPipelineBuilder>(context_)} {
-  pipeline_builder_->SetName(std::move(name));
+  pipeline_builder_->SetPipelineName(std::move(name));
   resource.LoadMesh(this);
 }
 
@@ -365,7 +365,8 @@ void Model::Draw(const VkCommandBuffer& command_buffer,
     }
   }
   for (int mesh_index = 0; mesh_index < mesh_textures_.size(); ++mesh_index) {
-    descriptors_[frame][mesh_index]->Bind(command_buffer, pipeline_->layout());
+    descriptors_[frame][mesh_index]->Bind(command_buffer, pipeline_->layout(),
+                                          pipeline_->binding_point());
     vertex_buffer_->Draw(command_buffer, kPerVertexBufferBindingPoint,
                          mesh_index, instance_count);
   }

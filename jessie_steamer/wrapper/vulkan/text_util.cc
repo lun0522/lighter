@@ -110,7 +110,7 @@ std::unique_ptr<GraphicsPipelineBuilder> CreatePipelineBuilder(
   auto pipeline_builder = absl::make_unique<GraphicsPipelineBuilder>(context);
 
   (*pipeline_builder)
-      .SetName(std::move(pipeline_name))
+      .SetPipelineName(std::move(pipeline_name))
       .AddVertexInput(kVertexBufferBindingPoint,
                       pipeline::GetPerVertexBindingDescription<Vertex2D>(),
                       vertex_buffer.GetAttributes(/*start_location=*/0))
@@ -169,7 +169,7 @@ CharLoader::CharLoader(const SharedBasicContext& context,
     const common::CharLib char_lib{texts, GetFontPath(font), font_height};
     const int interval_between_chars = GetIntervalBetweenChars(char_lib);
     char_atlas_image_ = absl::make_unique<OffscreenImage>(
-        context, common::kBwImageChannel,
+        context, OffscreenImage::DataSource::kRender, common::kBwImageChannel,
         GetCharAtlasImageExtent(char_lib, interval_between_chars),
         GetTextSamplerConfig());
     space_advance_x_ = GetSpaceAdvanceX(char_lib, *char_atlas_image_);
@@ -205,7 +205,7 @@ CharLoader::CharLoader(const SharedBasicContext& context,
           const auto& char_image =
               char_image_map.find(char_merge_order[i])->second;
           descriptor->PushImageInfos(
-              command_buffer, pipeline->layout(),
+              command_buffer, pipeline->layout(), pipeline->binding_point(),
               VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
               /*image_info_map=*/{{
                   kImageBindingPoint,
@@ -282,7 +282,7 @@ void CharLoader::CreateCharTextures(
         character,
         absl::make_unique<TextureImage>(
             context, /*generate_mipmaps=*/false,
-            GetTextSamplerConfig(), *char_info.image)
+            *char_info.image, GetTextSamplerConfig())
     );
     offset_x += size.x + normalized_interval;
   }
@@ -383,8 +383,8 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
   };
   const float base_y = highest_base_y;
   auto text_image = absl::make_unique<OffscreenImage>(
-      context, common::kBwImageChannel, text_image_extent,
-      GetTextSamplerConfig());
+      context, OffscreenImage::DataSource::kRender, common::kBwImageChannel,
+      text_image_extent, GetTextSamplerConfig());
 
   // The resulting image should be flipped, so that when we use it later, we
   // don't have to flip Y coordinates again.
@@ -413,7 +413,8 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
   const vector<RenderPass::RenderOp> render_ops{
       [&](const VkCommandBuffer& command_buffer) {
         pipeline->Bind(command_buffer);
-        descriptor->Bind(command_buffer, pipeline->layout());
+        descriptor->Bind(command_buffer, pipeline->layout(),
+                         pipeline->binding_point());
         for (int i = 0; i < text.length(); ++i) {
           vertex_buffer->Draw(command_buffer, kVertexBufferBindingPoint,
                               /*mesh_index=*/i, /*instance_count=*/1);

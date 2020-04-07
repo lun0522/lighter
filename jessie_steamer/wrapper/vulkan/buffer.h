@@ -147,15 +147,16 @@ class VertexBuffer : public DataBuffer {
   // If 'is_dynamic' is true, the buffer will be visible to the host, which can
   // be used for dynamic text rendering. Otherwise, the buffer will be only
   // visible to the device, and we will use staging buffers to transfer data.
-  void CreateBufferAndMemory(VkDeviceSize total_size, bool is_dynamic);
+  void CreateBufferAndMemory(VkDeviceSize total_size, bool is_dynamic,
+                             bool has_index_data);
 
   // Attributes of the vertex data stored in this buffer.
   const std::vector<Attribute> attributes_;
 };
 
-// This class is a plugin to make a buffer dynamic, i.e., be able to recreate
-// the buffer when Reserve() is called with a larger buffer size. The user
-// should use it through derived classes.
+// This class is a plugin to make a vertex buffer dynamic, i.e., be able to
+// recreate the buffer when Reserve() is called with a larger buffer size. The
+// user should use it through derived classes.
 class DynamicBuffer {
  public:
   // This class is neither copyable nor movable.
@@ -165,7 +166,8 @@ class DynamicBuffer {
   ~DynamicBuffer() = default;
 
  protected:
-  DynamicBuffer(size_t initial_size, VertexBuffer* vertex_buffer);
+  DynamicBuffer(size_t initial_size, bool has_index_data,
+                VertexBuffer* vertex_buffer);
 
   // Reserves space of the given 'size'. If 'size' is less than the current
   // 'buffer_size_', this will be no-op.
@@ -175,6 +177,9 @@ class DynamicBuffer {
   VkDeviceSize buffer_size() const { return buffer_size_; }
 
  private:
+  // Whether the buffer contains both index and vertex data.
+  const bool has_index_data_;
+
   // Pointer to the vertex buffer whose buffer and device memory will be managed
   // bt this class.
   VertexBuffer* vertex_buffer_;
@@ -209,30 +214,6 @@ class PerVertexBuffer : public VertexBuffer {
     size_t size_per_mesh;
   };
 
-  // Holds the number of vertices in each mesh and the data size offset within
-  // the vertex buffer.
-  struct MeshDataInfosNoIndices {
-    struct Info {
-      uint32_t vertices_count;
-      VkDeviceSize vertices_offset;
-    };
-    std::vector<Info> infos;
-  };
-
-  // Holds the number of indices in each mesh and the data size offset within
-  // the vertex buffer.
-  struct MeshDataInfosWithIndices {
-    struct Info {
-      uint32_t indices_count;
-      VkDeviceSize indices_offset;
-      VkDeviceSize vertices_offset;
-    };
-    std::vector<Info> infos;
-  };
-
-  using MeshDataInfos = absl::variant<MeshDataInfosNoIndices,
-                                      MeshDataInfosWithIndices>;
-
   // Interface of different forms of buffer data info.
   class BufferDataInfo {
    public:
@@ -241,6 +222,9 @@ class PerVertexBuffer : public VertexBuffer {
     // Populates 'mesh_data_infos_' of 'buffer' and returns an instance of
     // CopyInfos that can be used for copying data from the host to device.
     virtual CopyInfos CreateCopyInfos(PerVertexBuffer* buffer) const = 0;
+
+    // Returns whether the buffer contains both index and vertex data.
+    virtual bool has_index_data() const = 0;
   };
 
   // Holds data information for multiple meshes that do not have indices.
@@ -252,6 +236,7 @@ class PerVertexBuffer : public VertexBuffer {
 
     // Overrides.
     CopyInfos CreateCopyInfos(PerVertexBuffer* buffer) const override;
+    bool has_index_data() const override { return false; }
 
    private:
     const std::vector<VertexDataInfo> per_mesh_vertices_;
@@ -270,6 +255,7 @@ class PerVertexBuffer : public VertexBuffer {
 
     // Overrides.
     CopyInfos CreateCopyInfos(PerVertexBuffer* buffer) const override;
+    bool has_index_data() const override { return true; }
 
    private:
     const int num_meshes_;
@@ -292,6 +278,7 @@ class PerVertexBuffer : public VertexBuffer {
 
     // Overrides.
     CopyInfos CreateCopyInfos(PerVertexBuffer* buffer) const override;
+    bool has_index_data() const override { return true; }
 
    private:
     const std::vector<PerMeshInfo> per_mesh_infos_;
@@ -309,6 +296,30 @@ class PerVertexBuffer : public VertexBuffer {
  protected:
   // Inherits constructor.
   using VertexBuffer::VertexBuffer;
+
+  // Holds the number of vertices in each mesh and the data size offset within
+  // the vertex buffer.
+  struct MeshDataInfosNoIndices {
+    struct Info {
+      uint32_t vertices_count;
+      VkDeviceSize vertices_offset;
+    };
+    std::vector<Info> infos;
+  };
+
+  // Holds the number of indices in each mesh and the data size offset within
+  // the vertex buffer.
+  struct MeshDataInfosWithIndices {
+    struct Info {
+      uint32_t indices_count;
+      VkDeviceSize indices_offset;
+      VkDeviceSize vertices_offset;
+    };
+    std::vector<Info> infos;
+  };
+
+  using MeshDataInfos = absl::variant<MeshDataInfosNoIndices,
+      MeshDataInfosWithIndices>;
 
   // Accessors.
   MeshDataInfos* mutable_mesh_data_infos() { return &mesh_data_infos_; }
@@ -339,11 +350,13 @@ class StaticPerVertexBuffer : public PerVertexBuffer {
 // don't use the staging buffer.
 class DynamicPerVertexBuffer : public PerVertexBuffer, public DynamicBuffer {
  public:
-  // 'initial_size' should be greater than 0.
+  // 'initial_size' should be greater than 0. We are conservatively setting
+  // 'has_index_data' to true, so that we don't need to recreate the buffer if
+  // the buffer usage changes.
   DynamicPerVertexBuffer(SharedBasicContext context, size_t initial_size,
                          std::vector<Attribute>&& attributes)
       : PerVertexBuffer{std::move(context), std::move(attributes)},
-        DynamicBuffer{initial_size, this} {}
+        DynamicBuffer{initial_size, /*has_index_data=*/true, this} {}
 
   // This class is neither copyable nor movable.
   DynamicPerVertexBuffer(const DynamicPerVertexBuffer&) = delete;
@@ -419,7 +432,8 @@ class DynamicPerInstanceBuffer : public PerInstanceBuffer,
       : PerInstanceBuffer{std::move(context), per_instance_data_size,
                           std::move(attributes)},
         DynamicBuffer{/*initial_size=*/
-                      per_instance_data_size * max_num_instances, this} {}
+                      per_instance_data_size * max_num_instances,
+                      /*has_index_data=*/false, this} {}
 
   // This class is neither copyable nor movable.
   DynamicPerInstanceBuffer(const DynamicPerInstanceBuffer&) = delete;
@@ -555,11 +569,14 @@ class TextureBuffer : public ImageBuffer {
   uint32_t mip_levels_;
 };
 
-// This class creates an image buffer that can be used as offscreen rendering
-// target. No data transfer is required at construction.
+// This class creates an image buffer that can be used for offscreen rendering
+// and compute shaders. No data transfer is required at construction.
 class OffscreenBuffer : public ImageBuffer {
  public:
-  OffscreenBuffer(SharedBasicContext context,
+  // This buffer is used as either rendering target or compute shader output.
+  enum class DataSource { kRender, kCompute };
+
+  OffscreenBuffer(SharedBasicContext context, DataSource data_source,
                   const VkExtent2D& extent, VkFormat format);
 
   // This class is neither copyable nor movable.
