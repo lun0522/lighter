@@ -122,12 +122,14 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
       }
   };
   // TODO
+  auto original_image_descriptor_info = original_image.GetDescriptorInfo();
+  original_image_descriptor_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
   auto output_image_descriptor_info = image_->GetDescriptorInfo();
   output_image_descriptor_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
   descriptor.UpdateImageInfos(
       VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
       /*image_info_map=*/
-      {{kOriginalImageBindingPoint, {original_image.GetDescriptorInfo()}},
+      {{kOriginalImageBindingPoint, {original_image_descriptor_info}},
        {kOutputImageBindingPoint, {output_image_descriptor_info}}});
 
   const auto pipeline = ComputePipelineBuilder{context()}
@@ -139,6 +141,48 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
 
   const OneTimeCommand command{context(), &context()->queues().compute_queue()};
   command.Run([&](const VkCommandBuffer& command_buffer) {
+    const auto transition_layout = [&](const VkImage& image,
+                                       VkImageLayout src_layout,
+                                       VkImageLayout dst_layout) {
+      const VkImageMemoryBarrier barrier{
+          VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+          /*pNext=*/nullptr,
+          /*srcAccessMask=*/kNullAccessFlag,
+          /*dstAccessMask=*/kNullAccessFlag,
+          src_layout,
+          dst_layout,
+          /*srcQueueFamilyIndex=*/
+          context()->queues().compute_queue().family_index,
+          /*dstQueueFamilyIndex=*/
+          context()->queues().compute_queue().family_index,
+          image,
+          VkImageSubresourceRange{
+              VK_IMAGE_ASPECT_COLOR_BIT,
+              /*baseMipLevel=*/0,
+              /*levelCount=*/1,
+              /*baseArrayLayer=*/0,
+              /*layerCount=*/1,
+          },
+      };
+      vkCmdPipelineBarrier(
+          command_buffer,
+          VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+          VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+          /*dependencyFlags=*/0,
+          /*memoryBarrierCount=*/0,
+          /*pMemoryBarriers=*/nullptr,
+          /*bufferMemoryBarrierCount=*/0,
+          /*pBufferMemoryBarriers=*/nullptr,
+          /*imageMemoryBarrierCount=*/1,
+          &barrier);
+    };
+
+    transition_layout(original_image.image(),
+                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_IMAGE_LAYOUT_GENERAL);
+    transition_layout(image_->image(), VK_IMAGE_LAYOUT_UNDEFINED,
+                      VK_IMAGE_LAYOUT_GENERAL);
+
     pipeline->Bind(command_buffer);
     descriptor.Bind(command_buffer, pipeline->layout(),
                     pipeline->binding_point());
@@ -148,6 +192,9 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
                                                  kWorkGroupSizeY);
     vkCmdDispatch(command_buffer, group_count_x, group_count_y,
                   /*groupCountZ=*/1);
+
+    transition_layout(image_->image(), VK_IMAGE_LAYOUT_GENERAL,
+                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
   });
 
   image_viewer_ = absl::make_unique<ImageViewer>(

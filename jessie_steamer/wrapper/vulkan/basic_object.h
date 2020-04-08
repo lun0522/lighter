@@ -184,6 +184,7 @@ class Queues {
   // Compute queue.
   Queue compute_queue_;
 
+  // TODO: Both graphics queue and compute queue can do transfer.
   // Transfer queue.
   Queue transfer_queue_;
 

@@ -12,6 +12,7 @@ void main() {
   const ivec2 image_size = imageSize(original_image);
   vec4 output_color = imageLoad(original_image,
                                 ivec2(gl_GlobalInvocationID.xy));
-  output_color.rgb *= sin(10.0 * M_PI * gl_GlobalInvocationID.x / image_size.x);
+  output_color.rgb *=
+      sin(10.0 * M_PI * gl_GlobalInvocationID.x / image_size.x) * 0.3 + 0.9;
   imageStore(output_image, ivec2(gl_GlobalInvocationID.xy), output_color);
 }

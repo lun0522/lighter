@@ -118,6 +118,9 @@ class TextureImage : public Image, public SamplableImage {
   // Overrides.
   VkDescriptorImageInfo GetDescriptorInfo() const override;
 
+  // TODO: Remove.
+  const VkImage& image() const { return buffer_.image(); }
+
  private:
   // Image buffer.
   TextureBuffer buffer_;
@@ -196,6 +199,9 @@ class OffscreenImage : public Image, public SamplableImage {
 
   // Overrides.
   VkDescriptorImageInfo GetDescriptorInfo() const override;
+
+  // TODO: Remove.
+  const VkImage& image() const { return buffer_.image(); }
 
  private:
   // Image buffer.
