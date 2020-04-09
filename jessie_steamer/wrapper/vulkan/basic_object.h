@@ -9,6 +9,7 @@
 #define JESSIE_STEAMER_WRAPPER_VULKAN_BASIC_OBJECT_H
 
 #include "jessie_steamer/common/util.h"
+#include "jessie_steamer/wrapper/vulkan/util.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -163,6 +164,18 @@ class Queues {
 
   // Implicitly cleaned up with physical device.
   ~Queues() = default;
+
+  // Returns an instance of util::QueueUsage that only involves
+  // 'graphics_queue_'.
+  util::QueueUsage GetGraphicsQueueUsage() const {
+    return util::QueueUsage{{graphics_queue_.family_index}};
+  }
+
+  // Returns an instance of util::QueueUsage that only involves
+  // 'transfer_queue_'.
+  util::QueueUsage GetTransferQueueUsage() const {
+    return util::QueueUsage{{transfer_queue_.family_index}};
+  }
 
   // Accessors.
   const Queue& graphics_queue() const { return graphics_queue_; }

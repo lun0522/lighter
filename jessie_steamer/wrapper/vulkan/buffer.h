@@ -108,6 +108,26 @@ class DataBuffer : public Buffer {
   VkBuffer buffer_;
 };
 
+// This class creates a chunk of memory that is visible to both host and device,
+// used for transferring data from the host to some memory that is only visible
+// to the device. When construction is done, the data is already sent from the
+// host to the underlying buffer object.
+class StagingBuffer : public DataBuffer {
+ public:
+  StagingBuffer(SharedBasicContext context, const CopyInfos& copy_infos);
+
+  // This class is neither copyable nor movable.
+  StagingBuffer(const StagingBuffer&) = delete;
+  StagingBuffer& operator=(const StagingBuffer&) = delete;
+
+  // Copies data from this buffer to the targeted buffer.
+  void CopyToBuffer(const VkBuffer& target) const;
+
+ private:
+  // Size of data stored in this buffer.
+  const VkDeviceSize data_size_;
+};
+
 // This is the base class of vertex buffers, and provides shared utility
 // functions. The user should use it through derived classes.
 class VertexBuffer : public DataBuffer {
@@ -121,8 +141,6 @@ class VertexBuffer : public DataBuffer {
   // This class is neither copyable nor movable.
   VertexBuffer(const VertexBuffer&) = delete;
   VertexBuffer& operator=(const VertexBuffer&) = delete;
-
-  ~VertexBuffer() override = default;
 
   // Returns attributes of the vertex data stored in this buffer.
   // The 'location' field of attributes will start from 'start_location'.
@@ -502,125 +520,6 @@ class UniformBuffer : public DataBuffer {
   // 'minUniformBufferOffsetAlignment' on the device, this stores the aligned
   // value of 'chunk_data_size_'.
   size_t chunk_memory_size_;
-};
-
-// This is the base class of buffers storing images. The user should use it
-// through derived classes. Since all buffers of this kind need VkImage,
-// which configures how do we use the device memory to store multidimensional
-// data, it will be held and destroyed by this base class, and initialized by
-// derived classes.
-class ImageBuffer : public Buffer {
- public:
-  // This class is neither copyable nor movable.
-  ImageBuffer(const ImageBuffer&) = delete;
-  ImageBuffer& operator=(const ImageBuffer&) = delete;
-
-  ~ImageBuffer() override {
-    vkDestroyImage(*context_->device(), image_, *context_->allocator());
-  }
-
-  // Accessors.
-  const VkImage& image() const { return image_; }
-
- protected:
-  // Inherits constructor.
-  using Buffer::Buffer;
-
-  // Modifiers.
-  void SetImage(const VkImage& image) { image_ = image; }
-
- private:
-  // Opaque image object.
-  VkImage image_;
-};
-
-// This class copies an image on the host to device via the staging buffer,
-// and generates mipmaps if requested.
-class TextureBuffer : public ImageBuffer {
- public:
-  // Description of the image data. The size of 'datas' can only be either 1
-  // or 6 (for cubemaps), otherwise, the constructor will throw an exception.
-  struct Info{
-    VkExtent2D GetExtent2D() const { return {width, height}; }
-    VkExtent3D GetExtent3D() const { return {width, height, /*depth=*/1}; }
-    VkDeviceSize GetDataSize() const {
-      return datas.size() * width * height * channel;
-    }
-
-    std::vector<const void*> datas;
-    VkFormat format;
-    uint32_t width;
-    uint32_t height;
-    uint32_t channel;
-  };
-
-  TextureBuffer(SharedBasicContext context,
-                bool generate_mipmaps, const Info& info);
-
-  // This class is neither copyable nor movable.
-  TextureBuffer(const TextureBuffer&) = delete;
-  TextureBuffer& operator=(const TextureBuffer&) = delete;
-
-  // Accessors.
-  uint32_t mip_levels() const { return mip_levels_; }
-
- private:
-  // Level of mipmaps.
-  uint32_t mip_levels_;
-};
-
-// This class creates an image buffer that can be used for offscreen rendering
-// and compute shaders. No data transfer is required at construction.
-class OffscreenBuffer : public ImageBuffer {
- public:
-  // This buffer is used as either rendering target or compute shader output.
-  enum class DataSource { kRender, kCompute };
-
-  OffscreenBuffer(SharedBasicContext context, DataSource data_source,
-                  const VkExtent2D& extent, VkFormat format);
-
-  // This class is neither copyable nor movable.
-  OffscreenBuffer(const OffscreenBuffer&) = delete;
-  OffscreenBuffer& operator=(const OffscreenBuffer&) = delete;
-};
-
-// This class creates an staging image buffer, used for transferring other
-// images to host. No data transfer is required at construction.
-class StagingImageBuffer : public ImageBuffer {
- public:
-  StagingImageBuffer(SharedBasicContext context,
-                     const VkExtent2D& extent, VkFormat format);
-
-  // This class is neither copyable nor movable.
-  StagingImageBuffer(const StagingImageBuffer&) = delete;
-  StagingImageBuffer& operator=(const StagingImageBuffer&) = delete;
-};
-
-// This class creates an image buffer that can be used as depth stencil image
-// buffer. No data transfer is required at construction.
-class DepthStencilBuffer : public ImageBuffer {
- public:
-  DepthStencilBuffer(SharedBasicContext context,
-                     const VkExtent2D& extent, VkFormat format);
-
-  // This class is neither copyable nor movable.
-  DepthStencilBuffer(const DepthStencilBuffer&) = delete;
-  DepthStencilBuffer& operator=(const DepthStencilBuffer&) = delete;
-};
-
-// This class creates an image buffer for multisampling. No data transfer is
-// required at construction.
-class MultisampleBuffer : public ImageBuffer {
- public:
-  enum class Type { kColor, kDepthStencil };
-
-  MultisampleBuffer(SharedBasicContext context,
-                    Type type, const VkExtent2D& extent, VkFormat format,
-                    VkSampleCountFlagBits sample_count);
-
-  // This class is neither copyable nor movable.
-  MultisampleBuffer(const MultisampleBuffer&) = delete;
-  MultisampleBuffer& operator=(const MultisampleBuffer&) = delete;
 };
 
 // Holds a small amount of data that can be modified per-frame efficiently.

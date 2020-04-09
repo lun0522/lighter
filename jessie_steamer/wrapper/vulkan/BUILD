@@ -104,6 +104,7 @@ cc_library(
     deps = [
         ":basics",
         ":buffer",
+        ":command",
         ":util",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:ref_count",
@@ -235,6 +236,7 @@ cc_library(
 cc_library(
     name = "util",
     hdrs = ["util.h"],
+    srcs = ["util.cc"],
     deps = [
         "//jessie_steamer/common:util",
         "//third_party/absl/container:flat_hash_set",

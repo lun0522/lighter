@@ -12,7 +12,6 @@
 #include <vector>
 
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
-#include "jessie_steamer/wrapper/vulkan/util.h"
 #ifndef NDEBUG
 #include "jessie_steamer/wrapper/vulkan/validation.h"
 #endif /* !NDEBUG */

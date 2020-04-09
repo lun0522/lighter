@@ -39,14 +39,7 @@ namespace util {
 // shared across queues.
 class QueueUsage {
  public:
-  explicit QueueUsage(std::vector<uint32_t>&& queue_family_indices) {
-    ASSERT_NON_EMPTY(queue_family_indices, "Must contain at least one queue");
-    common::util::RemoveDuplicate(&queue_family_indices);
-    unique_family_indices_ = std::move(queue_family_indices);
-    sharing_mode_ = unique_family_indices_.size() == 1
-                        ? VK_SHARING_MODE_EXCLUSIVE
-                        : VK_SHARING_MODE_CONCURRENT;
-  }
+  explicit QueueUsage(std::vector<uint32_t>&& queue_family_indices);
 
   // This class is only movable.
   QueueUsage(QueueUsage&&) noexcept = default;
@@ -152,6 +145,12 @@ inline glm::vec2 ExtentToVec(const VkExtent2D& extent) {
 // Converts a bool to VkBool32.
 inline VkBool32 ToVkBool(bool value) { return value ? VK_TRUE : VK_FALSE; }
 
+// Returns the index of a VkMemoryType that satisfies both 'memory_type' and
+// 'memory_properties' within VkPhysicalDeviceMemoryProperties.memoryTypes.
+uint32_t FindMemoryTypeIndex(const VkPhysicalDevice& physical_device,
+                             uint32_t memory_type,
+                             VkMemoryPropertyFlags memory_properties);
+
 } /* namespace util */
 
 constexpr uint32_t nullflag = 0;
@@ -162,6 +161,9 @@ constexpr VkSampleCountFlagBits kSingleSample = VK_SAMPLE_COUNT_1_BIT;
 
 constexpr VkAccessFlags kNullAccessFlag = 0;
 constexpr uint32_t kExternalSubpassIndex = VK_SUBPASS_EXTERNAL;
+
+constexpr VkMemoryPropertyFlags kHostVisibleMemory =
+    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap36.html#limits-minmax
 constexpr int kMaxPushConstantSize = 128;
