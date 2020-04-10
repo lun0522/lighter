@@ -94,10 +94,10 @@ ImageViewerApp::ImageViewerApp(const WindowContext::Config& window_config)
 void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
   const common::Image image_from_file{file_path};
   const TextureImage original_image(context(), /*generate_mipmaps=*/false,
-                                    image_from_file, SamplableImage::Config{});
+                                    image_from_file, ImageSampler::Config{});
   image_ = absl::make_unique<OffscreenImage>(
-      context(), OffscreenImage::DataSource::kCompute, image_from_file.channel,
-      original_image.extent(), SamplableImage::Config{});
+      context(), OffscreenImage::DataSource::kCompute, original_image.extent(),
+      image_from_file.channel, ImageSampler::Config{});
 
   StaticDescriptor descriptor{
       context(), /*infos=*/std::vector<Descriptor::Info>{

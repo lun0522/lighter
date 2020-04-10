@@ -136,10 +136,10 @@ std::unique_ptr<Pipeline> BuildPipeline(
 }
 
 // Returns texture sampler config for rendering texts.
-const SamplableImage::Config& GetTextSamplerConfig() {
-  static const SamplableImage::Config* config = nullptr;
+const ImageSampler::Config& GetTextSamplerConfig() {
+  static const ImageSampler::Config* config = nullptr;
   if (config == nullptr) {
-    config = new SamplableImage::Config{
+    config = new ImageSampler::Config{
         VK_FILTER_LINEAR,
         VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
     };
@@ -169,9 +169,9 @@ CharLoader::CharLoader(const SharedBasicContext& context,
     const common::CharLib char_lib{texts, GetFontPath(font), font_height};
     const int interval_between_chars = GetIntervalBetweenChars(char_lib);
     char_atlas_image_ = absl::make_unique<OffscreenImage>(
-        context, OffscreenImage::DataSource::kRender, common::kBwImageChannel,
+        context, OffscreenImage::DataSource::kRender,
         GetCharAtlasImageExtent(char_lib, interval_between_chars),
-        GetTextSamplerConfig());
+        common::kBwImageChannel, GetTextSamplerConfig());
     space_advance_x_ = GetSpaceAdvanceX(char_lib, *char_atlas_image_);
     CreateCharTextures(context, char_lib, interval_between_chars,
                        *char_atlas_image_, &char_image_map,
@@ -383,8 +383,8 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
   };
   const float base_y = highest_base_y;
   auto text_image = absl::make_unique<OffscreenImage>(
-      context, OffscreenImage::DataSource::kRender, common::kBwImageChannel,
-      text_image_extent, GetTextSamplerConfig());
+      context, OffscreenImage::DataSource::kRender, text_image_extent,
+      common::kBwImageChannel, GetTextSamplerConfig());
 
   // The resulting image should be flipped, so that when we use it later, we
   // don't have to flip Y coordinates again.

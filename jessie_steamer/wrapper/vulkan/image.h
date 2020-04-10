@@ -74,85 +74,6 @@ class ImageBuffer : public Buffer {
   VkImage image_;
 };
 
-// This class copies an image on the host to device via the staging buffer,
-// and generates mipmaps if requested.
-class TextureBuffer : public ImageBuffer {
- public:
-  // Description of the image data. The size of 'datas' can only be either 1
-  // or 6 (for cubemaps), otherwise, the constructor will throw an exception.
-  struct Info{
-    // Returns the extent of image.
-    VkExtent2D GetExtent2D() const { return {width, height}; }
-    VkExtent3D GetExtent3D() const { return {width, height, /*depth=*/1}; }
-
-    // Returns an instance of CopyInfos that can be used for copying image data
-    // from the host to device memory.
-    CopyInfos GetCopyInfos() const;
-
-    std::vector<const void*> datas;
-    VkFormat format;
-    uint32_t width;
-    uint32_t height;
-    uint32_t channel;
-  };
-
-  TextureBuffer(SharedBasicContext context,
-                bool generate_mipmaps, const Info& info);
-
-  // This class is neither copyable nor movable.
-  TextureBuffer(const TextureBuffer&) = delete;
-  TextureBuffer& operator=(const TextureBuffer&) = delete;
-
-  // Accessors.
-  uint32_t mip_levels() const { return mip_levels_; }
-
- private:
-  // Level of mipmaps.
-  uint32_t mip_levels_;
-};
-
-// This class creates an image buffer that can be used for offscreen rendering
-// and compute shaders. No data transfer is required at construction.
-class OffscreenBuffer : public ImageBuffer {
- public:
-  // This buffer is used as either rendering target or compute shader output.
-  enum class DataSource { kRender, kCompute };
-
-  OffscreenBuffer(SharedBasicContext context, DataSource data_source,
-                  const VkExtent2D& extent, VkFormat format);
-
-  // This class is neither copyable nor movable.
-  OffscreenBuffer(const OffscreenBuffer&) = delete;
-  OffscreenBuffer& operator=(const OffscreenBuffer&) = delete;
-};
-
-// This class creates an image buffer that can be used as depth stencil image
-// buffer. No data transfer is required at construction.
-class DepthStencilBuffer : public ImageBuffer {
- public:
-  DepthStencilBuffer(SharedBasicContext context,
-                     const VkExtent2D& extent, VkFormat format);
-
-  // This class is neither copyable nor movable.
-  DepthStencilBuffer(const DepthStencilBuffer&) = delete;
-  DepthStencilBuffer& operator=(const DepthStencilBuffer&) = delete;
-};
-
-// This class creates an image buffer for multisampling. No data transfer is
-// required at construction.
-class MultisampleBuffer : public ImageBuffer {
- public:
-  enum class Type { kColor, kDepthStencil };
-
-  MultisampleBuffer(SharedBasicContext context,
-                    Type type, const VkExtent2D& extent, VkFormat format,
-                    VkSampleCountFlagBits sample_count);
-
-  // This class is neither copyable nor movable.
-  MultisampleBuffer(const MultisampleBuffer&) = delete;
-  MultisampleBuffer& operator=(const MultisampleBuffer&) = delete;
-};
-
 // This is the base class of all image classes. The user should use it through
 // derived classes. Since all images need VkImageView, which configures how do
 // we interpret the multidimensional data stored with VkImage, it will be held
@@ -198,8 +119,8 @@ class Image {
   VkImageView image_view_;
 };
 
-// Interface of images that can be sampled.
-class SamplableImage {
+// VkSampler configures how do we sample from an image resource on the device.
+class ImageSampler {
  public:
   // Configures sampling mode.
   struct Config {
@@ -212,6 +133,31 @@ class SamplableImage {
     VkSamplerAddressMode address_mode;
   };
 
+  ImageSampler(SharedBasicContext context,
+               int mip_levels, const Config& config);
+
+  // This class is neither copyable nor movable.
+  ImageSampler(const ImageSampler&) = delete;
+  ImageSampler& operator=(const ImageSampler&) = delete;
+
+  ~ImageSampler() {
+    vkDestroySampler(*context_->device(), sampler_, *context_->allocator());
+  }
+
+  // Overloads.
+  const VkSampler& operator*() const { return sampler_; }
+
+ private:
+  // Pointer to context.
+  const SharedBasicContext context_;
+
+  // Opaque image sampler object.
+  VkSampler sampler_;
+};
+
+// Interface of images that can be sampled.
+class SamplableImage {
+ public:
   virtual ~SamplableImage() = default;
 
   // Returns an instance of VkDescriptorImageInfo with which we can update
@@ -219,29 +165,43 @@ class SamplableImage {
   virtual VkDescriptorImageInfo GetDescriptorInfo() const = 0;
 };
 
-// This class creates a texture image resource on the device, and generates
-// mipmaps if requested.
+// This class copies a texture image on the host to device via a staging buffer,
+// and generates mipmaps if requested.
 // If the image is loaded from a file, the user should not directly instantiate
 // this class, but use SharedTexture which avoids loading the same file twice.
 class TextureImage : public Image, public SamplableImage {
  public:
+  // Description of the image data. The size of 'datas' can only be either 1
+  // or 6 (for cubemaps), otherwise, the constructor will throw an exception.
+  struct Info{
+    // Returns the extent of image.
+    VkExtent2D GetExtent2D() const { return {width, height}; }
+    VkExtent3D GetExtent3D() const { return {width, height, /*depth=*/1}; }
+
+    // Returns an instance of CopyInfos that can be used for copying image data
+    // from the host to device memory.
+    Buffer::CopyInfos GetCopyInfos() const;
+
+    std::vector<const void*> datas;
+    VkFormat format;
+    uint32_t width;
+    uint32_t height;
+    uint32_t channel;
+  };
+
   TextureImage(SharedBasicContext context,
                bool generate_mipmaps,
-               const SamplableImage::Config& sampler_config,
-               const TextureBuffer::Info& info);
+               const ImageSampler::Config& sampler_config,
+               const Info& info);
 
   TextureImage(SharedBasicContext context,
                bool generate_mipmaps,
                const common::Image& image,
-               const SamplableImage::Config& sampler_config);
+               const ImageSampler::Config& sampler_config);
 
   // This class is neither copyable nor movable.
   TextureImage(const TextureImage&) = delete;
   TextureImage& operator=(const TextureImage&) = delete;
-
-  ~TextureImage() override {
-    vkDestroySampler(*context_->device(), sampler_, *context_->allocator());
-  }
 
   // Overrides.
   VkDescriptorImageInfo GetDescriptorInfo() const override;
@@ -250,11 +210,29 @@ class TextureImage : public Image, public SamplableImage {
   const VkImage& image() const { return buffer_.image(); }
 
  private:
+  // Texture image buffer on the device.
+  class TextureBuffer : public ImageBuffer {
+   public:
+    TextureBuffer(SharedBasicContext context,
+                  bool generate_mipmaps, const Info& info);
+
+    // This class is neither copyable nor movable.
+    TextureBuffer(const TextureBuffer&) = delete;
+    TextureBuffer& operator=(const TextureBuffer&) = delete;
+
+    // Accessors.
+    int mip_levels() const { return mip_levels_; }
+
+   private:
+    // Mipmapping levels.
+    int mip_levels_ = kSingleMipLevel;
+  };
+
   // Image buffer.
-  TextureBuffer buffer_;
+  const TextureBuffer buffer_;
 
   // Image sampler.
-  VkSampler sampler_;
+  const ImageSampler sampler_;
 };
 
 // This class references to a texture image on the device, which is reference
@@ -277,7 +255,7 @@ class SharedTexture : public SamplableImage {
   using SourcePath = absl::variant<SingleTexPath, CubemapPath>;
 
   SharedTexture(SharedBasicContext context, const SourcePath& source_path,
-                const SamplableImage::Config& sampler_config)
+                const ImageSampler::Config& sampler_config)
       : texture_{GetTexture(std::move(context), source_path, sampler_config)} {}
 
   // This class is only movable.
@@ -293,7 +271,7 @@ class SharedTexture : public SamplableImage {
   const Image* operator->() const { return texture_.operator->(); }
 
  private:
-  // Reference counted textures.
+  // Reference counted texture.
   using RefCountedTexture = common::RefCountedObject<TextureImage>;
 
   // Returns a reference to a reference counted texture image. If this image has
@@ -301,29 +279,26 @@ class SharedTexture : public SamplableImage {
   // a reference to an existing resource on the device.
   static RefCountedTexture GetTexture(
       SharedBasicContext context, const SourcePath& source_path,
-      const SamplableImage::Config& sampler_config);
+      const ImageSampler::Config& sampler_config);
 
   // Reference counted texture image.
   RefCountedTexture texture_;
 };
 
 // This class creates an image that can be used for offscreen rendering and
-// compute shaders.
+// compute shaders. No data transfer is required at construction.
 class OffscreenImage : public Image, public SamplableImage {
  public:
-  using DataSource = OffscreenBuffer::DataSource;
+  // This image is used as either rendering target or compute shader output.
+  enum class DataSource { kRender, kCompute };
 
   OffscreenImage(SharedBasicContext context,
-                 DataSource data_source, int channel, const VkExtent2D& extent,
-                 const SamplableImage::Config& sampler_config);
+                 DataSource data_source, const VkExtent2D& extent, int channel,
+                 const ImageSampler::Config& sampler_config);
 
   // This class is neither copyable nor movable.
   OffscreenImage(const OffscreenImage&) = delete;
   OffscreenImage& operator=(const OffscreenImage&) = delete;
-
-  ~OffscreenImage() override {
-    vkDestroySampler(*context_->device(), sampler_, *context_->allocator());
-  }
 
   // Overrides.
   VkDescriptorImageInfo GetDescriptorInfo() const override;
@@ -332,11 +307,22 @@ class OffscreenImage : public Image, public SamplableImage {
   const VkImage& image() const { return buffer_.image(); }
 
  private:
+  // Offscreen image buffer on the device.
+  class OffscreenBuffer : public ImageBuffer {
+   public:
+    OffscreenBuffer(SharedBasicContext context, DataSource data_source,
+                    const VkExtent2D& extent, VkFormat format);
+
+    // This class is neither copyable nor movable.
+    OffscreenBuffer(const OffscreenBuffer&) = delete;
+    OffscreenBuffer& operator=(const OffscreenBuffer&) = delete;
+  };
+
   // Image buffer.
-  OffscreenBuffer buffer_;
+  const OffscreenBuffer buffer_;
 
   // Image sampler.
-  VkSampler sampler_;
+  const ImageSampler sampler_;
 };
 
 using OffscreenImagePtr = const OffscreenImage*;
@@ -367,6 +353,7 @@ class UnownedOffscreenTexture : public SamplableImage {
 };
 
 // This class creates an image that can be used as depth stencil attachment.
+// No data transfer is required at construction.
 class DepthStencilImage : public Image {
  public:
   DepthStencilImage(const SharedBasicContext& context,
@@ -377,6 +364,17 @@ class DepthStencilImage : public Image {
   DepthStencilImage& operator=(const DepthStencilImage&) = delete;
 
  private:
+  // Depth stencil image buffer on the device.
+  class DepthStencilBuffer : public ImageBuffer {
+   public:
+    DepthStencilBuffer(SharedBasicContext context,
+                       const VkExtent2D& extent, VkFormat format);
+
+    // This class is neither copyable nor movable.
+    DepthStencilBuffer(const DepthStencilBuffer&) = delete;
+    DepthStencilBuffer& operator=(const DepthStencilBuffer&) = delete;
+  };
+
   // Image buffer.
   DepthStencilBuffer buffer_;
 };
@@ -394,7 +392,8 @@ class SwapchainImage : public Image {
   SwapchainImage& operator=(const SwapchainImage&) = delete;
 };
 
-// This class creates an image for multisampling.
+// This class creates an image for multisampling. No data transfer is required
+// at construction.
 class MultisampleImage : public Image {
  public:
   // Multisampling modes that determine the quality of rendering.
@@ -433,6 +432,22 @@ class MultisampleImage : public Image {
   VkSampleCountFlagBits sample_count() const override { return sample_count_; }
 
  private:
+  // Multisample image buffer on the device.
+  class MultisampleBuffer : public ImageBuffer {
+   public:
+    // The multisample image resolves to either color attachments or depth
+    // stencil attachments.
+    enum class Type { kColor, kDepthStencil };
+
+    MultisampleBuffer(SharedBasicContext context,
+                      Type type, const VkExtent2D& extent, VkFormat format,
+                      VkSampleCountFlagBits sample_count);
+
+    // This class is neither copyable nor movable.
+    MultisampleBuffer(const MultisampleBuffer&) = delete;
+    MultisampleBuffer& operator=(const MultisampleBuffer&) = delete;
+  };
+
   MultisampleImage(SharedBasicContext context,
                    const VkExtent2D& extent, VkFormat format,
                    Mode mode, MultisampleBuffer::Type type);

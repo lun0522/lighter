@@ -32,7 +32,7 @@ std::unique_ptr<SamplableImage> CreateTexture(
   if (absl::holds_alternative<SharedTexture::SourcePath>(source)) {
     return absl::make_unique<SharedTexture>(
         context, absl::get<SharedTexture::SourcePath>(source),
-        SamplableImage::Config{});
+        ImageSampler::Config{});
   } else if (absl::holds_alternative<OffscreenImagePtr>(source)) {
     return absl::make_unique<UnownedOffscreenTexture>(
         absl::get<OffscreenImagePtr>(source));
@@ -190,7 +190,7 @@ void ModelBuilder::MultiMeshResource::LoadMesh(ModelBuilder* builder) const {
       const auto type_index = static_cast<int>(texture.texture_type);
       mesh_textures.back()[type_index].emplace_back(
           absl::make_unique<SharedTexture>(
-              builder->context_, texture.path, SamplableImage::Config{}));
+              builder->context_, texture.path, ImageSampler::Config{}));
     }
   }
 }

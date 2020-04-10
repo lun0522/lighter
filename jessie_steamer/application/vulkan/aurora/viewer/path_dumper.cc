@@ -95,11 +95,11 @@ PathDumper::DumpPathsPass::DumpPathsPass(
     std::vector<const PerVertexBuffer*>&& aurora_paths_vertex_buffers)
     : aurora_paths_vertex_buffers_{std::move(aurora_paths_vertex_buffers)} {
   /* Image */
-  const SamplableImage::Config image_config{
+  const ImageSampler::Config sampler_config{
       VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
   paths_image_ = absl::make_unique<OffscreenImage>(
-      context, OffscreenImage::DataSource::kRender, common::kBwImageChannel,
-      image_extent, image_config);
+      context, OffscreenImage::DataSource::kRender, image_extent,
+      common::kBwImageChannel, sampler_config);
   multisample_image_ = MultisampleImage::CreateColorMultisampleImage(
       context, *paths_image_, MultisampleImage::Mode::kBestEffect);
 
@@ -199,11 +199,11 @@ PathDumper::BoldPathsPass::BoldPathsPass(const SharedBasicContext& context,
       context, vertex_data_info, pipeline::GetVertexAttribute<Vertex2D>());
 
   /* Image */
-  const SamplableImage::Config image_config{
+  const ImageSampler::Config sampler_config{
       VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
   bold_paths_image_ = absl::make_unique<OffscreenImage>(
-      context, OffscreenImage::DataSource::kRender, common::kBwImageChannel,
-      image_extent, image_config);
+      context, OffscreenImage::DataSource::kRender, image_extent,
+      common::kBwImageChannel, sampler_config);
 
   /* Render pass */
   const NaiveRenderPassBuilder::SubpassConfig subpass_config{

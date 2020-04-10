@@ -51,8 +51,8 @@ std::unique_ptr<OffscreenImage> CreateTargetImage(
                             num_buttons * button::kNumStates),
   };
   return absl::make_unique<OffscreenImage>(
-      context, OffscreenImage::DataSource::kRender, common::kRgbaImageChannel,
-      buttons_image_extent, SamplableImage::Config{});
+      context, OffscreenImage::DataSource::kRender, buttons_image_extent,
+      common::kRgbaImageChannel, ImageSampler::Config{});
 }
 
 // Creates per-instance vertex buffer storing RenderInfo.
@@ -149,7 +149,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
               "Expecting a single-channel button background image");
   const auto background_image = absl::make_unique<TextureImage>(
       context, /*generate_mipmaps=*/false, button_background,
-      SamplableImage::Config{});
+      ImageSampler::Config{});
 
   const int num_buttons = button_infos.size();
   auto buttons_image = CreateTargetImage(context, num_buttons,

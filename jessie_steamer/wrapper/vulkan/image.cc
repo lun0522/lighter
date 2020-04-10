@@ -98,9 +98,9 @@ VkSampleCountFlagBits GetMaxSampleCount(VkSampleCountFlags sample_counts) {
 // Creates a TextureBuffer::Info object, assuming all images have the same
 // properties as the given 'sample_image'. The size of 'image_datas' can only be
 // either 1 or 6 (for cubemaps)
-TextureBuffer::Info CreateTextureBufferInfo(vector<const void*>&& image_datas,
-                                            const common::Image& sample_image) {
-  return TextureBuffer::Info{
+TextureImage::Info CreateTextureBufferInfo(const common::Image& sample_image,
+                                           vector<const void*>&& image_datas) {
+  return TextureImage::Info{
       std::move(image_datas),
       FindColorImageFormat(sample_image.channel),
       static_cast<uint32_t>(sample_image.width),
@@ -407,7 +407,7 @@ VkImageView CreateImageView(const BasicContext& context,
 
 // Creates an image sampler.
 VkSampler CreateSampler(const BasicContext& context,
-                        int mip_levels, const SamplableImage::Config& config) {
+                        int mip_levels, const ImageSampler::Config& config) {
   // 'mipLodBias', 'minLod' and 'maxLod' are used to control mipmapping.
   const VkSamplerCreateInfo sampler_info{
       VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -467,10 +467,15 @@ void ImageStagingBuffer::CopyToImage(const VkImage& target,
   });
 }
 
-Buffer::CopyInfos TextureBuffer::Info::GetCopyInfos() const {
+ImageSampler::ImageSampler(SharedBasicContext context,
+                           int mip_levels, const Config& config)
+    : context_{std::move(FATAL_IF_NULL(context))},
+      sampler_{CreateSampler(*context_, mip_levels, config)} {}
+
+Buffer::CopyInfos TextureImage::Info::GetCopyInfos() const {
   const VkDeviceSize single_image_data_size = width * height * channel;
   const VkDeviceSize total_data_size = single_image_data_size * datas.size();
-  vector<CopyInfo> copy_infos(datas.size());
+  vector<Buffer::CopyInfo> copy_infos(datas.size());
   for (int i = 0; i < copy_infos.size(); ++i) {
     copy_infos[i] = {datas[i], single_image_data_size,
                      /*offset=*/single_image_data_size * i};
@@ -478,20 +483,49 @@ Buffer::CopyInfos TextureBuffer::Info::GetCopyInfos() const {
   return {total_data_size, std::move(copy_infos)};
 }
 
-TextureBuffer::TextureBuffer(SharedBasicContext context,
-                             bool generate_mipmaps, const Info& info)
-    : ImageBuffer{std::move(context)}, mip_levels_{kSingleMipLevel} {
+TextureImage::TextureImage(SharedBasicContext context,
+                           bool generate_mipmaps,
+                           const ImageSampler::Config& sampler_config,
+                           const Info& info)
+    : Image{std::move(FATAL_IF_NULL(context)), info.GetExtent2D(), info.format},
+      buffer_{context_, generate_mipmaps, info},
+      sampler_{context_, buffer_.mip_levels(), sampler_config} {
+  SetImageView(CreateImageView(*context_, buffer_.image(), format_,
+                               VK_IMAGE_ASPECT_COLOR_BIT, buffer_.mip_levels(),
+                               /*layer_count=*/CONTAINER_SIZE(info.datas)));
+}
+
+TextureImage::TextureImage(SharedBasicContext context,
+                           bool generate_mipmaps, const common::Image& image,
+                           const ImageSampler::Config& sampler_config)
+    : TextureImage{std::move(context), generate_mipmaps, sampler_config,
+                   CreateTextureBufferInfo(image, {image.data})} {}
+
+VkDescriptorImageInfo TextureImage::GetDescriptorInfo() const {
+  return VkDescriptorImageInfo{
+      *sampler_,
+      image_view(),
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+  };
+}
+
+TextureImage::TextureBuffer::TextureBuffer(
+    SharedBasicContext context, bool generate_mipmaps, const Info& info)
+    : ImageBuffer{std::move(FATAL_IF_NULL(context))} {
   const VkExtent3D image_extent = info.GetExtent3D();
-  const auto layer_count = CONTAINER_SIZE(info.datas);
+  const uint32_t layer_count = CONTAINER_SIZE(info.datas);
   ASSERT_TRUE(layer_count == common::kSingleImageCount ||
                   layer_count == common::kCubemapImageCount,
               absl::StrFormat("Invalid number of images: %d", layer_count));
+
+  ImageConfig image_config;
+  image_config.layer_count = CONTAINER_SIZE(info.datas);
 
   // Generate mipmap extents if requested.
   vector<VkExtent2D> mipmap_extents;
   if (generate_mipmaps) {
     mipmap_extents = GenerateMipmapExtents(image_extent);
-    mip_levels_ = mipmap_extents.size() + 1;
+    mip_levels_ = image_config.mip_levels = mipmap_extents.size() + 1;
   }
 
   // Create image buffer.
@@ -503,9 +537,6 @@ TextureBuffer::TextureBuffer(SharedBasicContext context,
       generate_mipmaps ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : nullflag;
 
   // TODO: VK_IMAGE_USAGE_STORAGE_BIT not always needed.
-  ImageConfig image_config;
-  image_config.mip_levels = mip_levels_;
-  image_config.layer_count = layer_count;
   SetImage(CreateImage(*context_, image_config, cubemap_flag,
                        info.format, image_extent,
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT
@@ -523,7 +554,7 @@ TextureBuffer::TextureBuffer(SharedBasicContext context,
       {VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT});
 
   const ImageStagingBuffer staging_buffer{context_, info.GetCopyInfos()};
-  staging_buffer.CopyToImage(image(), image_extent, layer_count);
+  staging_buffer.CopyToImage(image(), image_extent, image_config.layer_count);
 
   if (generate_mipmaps) {
     GenerateMipmaps(context_, image(), info.format,
@@ -539,91 +570,14 @@ TextureBuffer::TextureBuffer(SharedBasicContext context,
   }
 }
 
-OffscreenBuffer::OffscreenBuffer(SharedBasicContext context,
-                                 DataSource data_source,
-                                 const VkExtent2D& extent, VkFormat format)
-    : ImageBuffer{std::move(context)} {
-  VkImageUsageFlags image_usage = VK_IMAGE_USAGE_SAMPLED_BIT;
-  switch (data_source) {
-    case DataSource::kRender:
-      image_usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-      break;
-    case DataSource::kCompute:
-      image_usage |= VK_IMAGE_USAGE_STORAGE_BIT;
-      break;
-  }
-  SetImage(CreateImage(*context_, ImageConfig{}, nullflag, format,
-                       ExpandDimension(extent), image_usage));
-  SetDeviceMemory(CreateImageMemory(
-      *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
-}
-
-DepthStencilBuffer::DepthStencilBuffer(
-    SharedBasicContext context, const VkExtent2D& extent, VkFormat format)
-    : ImageBuffer{std::move(context)} {
-  SetImage(CreateImage(*context_, ImageConfig{}, nullflag, format,
-                       ExpandDimension(extent),
-                       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT));
-  SetDeviceMemory(CreateImageMemory(
-      *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
-}
-
-MultisampleBuffer::MultisampleBuffer(
-    SharedBasicContext context,
-    Type type, const VkExtent2D& extent, VkFormat format,
-    VkSampleCountFlagBits sample_count)
-    : ImageBuffer{std::move(context)} {
-  VkImageUsageFlags image_usage;
-  switch (type) {
-    case Type::kColor:
-      image_usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-                        | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
-      break;
-    case Type::kDepthStencil:
-      image_usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-      break;
-  }
-  ImageConfig image_config;
-  image_config.sample_count = sample_count;
-  SetImage(CreateImage(*context_, image_config, nullflag, format,
-                       ExpandDimension(extent), image_usage));
-  SetDeviceMemory(CreateImageMemory(
-      *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
-}
-
-TextureImage::TextureImage(SharedBasicContext context,
-                           bool generate_mipmaps,
-                           const SamplableImage::Config& sampler_config,
-                           const TextureBuffer::Info& info)
-    : Image{std::move(context), info.GetExtent2D(), info.format},
-      buffer_{context_, generate_mipmaps, info},
-      sampler_{CreateSampler(*context_, buffer_.mip_levels(), sampler_config)} {
-  SetImageView(CreateImageView(*context_, buffer_.image(), format_,
-                               VK_IMAGE_ASPECT_COLOR_BIT, buffer_.mip_levels(),
-                               /*layer_count=*/CONTAINER_SIZE(info.datas)));
-}
-
-TextureImage::TextureImage(SharedBasicContext context,
-                           bool generate_mipmaps, const common::Image& image,
-                           const SamplableImage::Config& sampler_config)
-    : TextureImage{std::move(context), generate_mipmaps, sampler_config,
-                   CreateTextureBufferInfo({image.data}, image)} {}
-
-VkDescriptorImageInfo TextureImage::GetDescriptorInfo() const {
-  return VkDescriptorImageInfo{
-      sampler_,
-      image_view(),
-      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-  };
-}
-
 SharedTexture::RefCountedTexture SharedTexture::GetTexture(
     SharedBasicContext context, const SourcePath& source_path,
-    const SamplableImage::Config& sampler_config) {
+    const ImageSampler::Config& sampler_config) {
+  FATAL_IF_NULL(context);
   context->RegisterAutoReleasePool<SharedTexture::RefCountedTexture>("texture");
 
   using SingleImage = std::unique_ptr<common::Image>;
-  using CubemapImage = std::array<SingleImage, common::kCubemapImageCount>;
+  using CubemapImage = array<SingleImage, common::kCubemapImageCount>;
   using SourceImage = absl::variant<SingleImage, CubemapImage>;
 
   bool generate_mipmaps;
@@ -658,16 +612,16 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
 
   return RefCountedTexture::Get(
       *identifier, std::move(context), generate_mipmaps, sampler_config,
-      CreateTextureBufferInfo(std::move(datas), *sample_image));
+      CreateTextureBufferInfo(*sample_image, std::move(datas)));
 }
 
 OffscreenImage::OffscreenImage(
     SharedBasicContext context,
-    DataSource data_source, int channel, const VkExtent2D& extent,
-    const SamplableImage::Config& sampler_config)
+    DataSource data_source, const VkExtent2D& extent, int channel,
+    const ImageSampler::Config& sampler_config)
     : Image{std::move(context), extent, FindColorImageFormat(channel)},
       buffer_{context_, data_source, extent_, format_},
-      sampler_{CreateSampler(*context_, kSingleMipLevel, sampler_config)} {
+      sampler_{context_, kSingleMipLevel, sampler_config} {
   SetImageView(CreateImageView(*context_, buffer_.image(), format_,
                                VK_IMAGE_ASPECT_COLOR_BIT,
                                kSingleMipLevel, kSingleImageLayer));
@@ -675,10 +629,29 @@ OffscreenImage::OffscreenImage(
 
 VkDescriptorImageInfo OffscreenImage::GetDescriptorInfo() const {
   return VkDescriptorImageInfo{
-      sampler_,
+      *sampler_,
       image_view(),
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
   };
+}
+
+OffscreenImage::OffscreenBuffer::OffscreenBuffer(
+    SharedBasicContext context, DataSource data_source,
+    const VkExtent2D& extent, VkFormat format)
+    : ImageBuffer{std::move(context)} {
+  VkImageUsageFlags image_usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+  switch (data_source) {
+    case DataSource::kRender:
+      image_usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+      break;
+    case DataSource::kCompute:
+      image_usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+      break;
+  }
+  SetImage(CreateImage(*context_, ImageConfig{}, nullflag, format,
+                       ExpandDimension(extent), image_usage));
+  SetDeviceMemory(CreateImageMemory(
+      *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 }
 
 DepthStencilImage::DepthStencilImage(const SharedBasicContext& context,
@@ -689,6 +662,16 @@ DepthStencilImage::DepthStencilImage(const SharedBasicContext& context,
                                VK_IMAGE_ASPECT_DEPTH_BIT
                                    | VK_IMAGE_ASPECT_STENCIL_BIT,
                                kSingleMipLevel, kSingleImageLayer));
+}
+
+DepthStencilImage::DepthStencilBuffer::DepthStencilBuffer(
+    SharedBasicContext context, const VkExtent2D& extent, VkFormat format)
+    : ImageBuffer{std::move(context)} {
+  SetImage(CreateImage(*context_, ImageConfig{}, nullflag, format,
+                       ExpandDimension(extent),
+                       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT));
+  SetDeviceMemory(CreateImageMemory(
+      *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 }
 
 SwapchainImage::SwapchainImage(SharedBasicContext context,
@@ -764,6 +747,29 @@ VkSampleCountFlagBits MultisampleImage::ChooseSampleCount(Mode mode) {
     case Mode::kBestEffect:
       return max_sample_count;
   }
+}
+
+MultisampleImage::MultisampleBuffer::MultisampleBuffer(
+    SharedBasicContext context,
+    Type type, const VkExtent2D& extent, VkFormat format,
+    VkSampleCountFlagBits sample_count)
+    : ImageBuffer{std::move(context)} {
+  VkImageUsageFlags image_usage;
+  switch (type) {
+    case Type::kColor:
+      image_usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+                        | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+      break;
+    case Type::kDepthStencil:
+      image_usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+      break;
+  }
+  ImageConfig image_config;
+  image_config.sample_count = sample_count;
+  SetImage(CreateImage(*context_, image_config, nullflag, format,
+                       ExpandDimension(extent), image_usage));
+  SetDeviceMemory(CreateImageMemory(
+      *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 }
 
 } /* namespace vulkan */
