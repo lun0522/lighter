@@ -18,6 +18,7 @@
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
+#include "jessie_steamer/wrapper/vulkan/image_util.h"
 #include "jessie_steamer/wrapper/vulkan/model.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline_util.h"

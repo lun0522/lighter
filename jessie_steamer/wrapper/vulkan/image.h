@@ -90,6 +90,7 @@ class Image {
   }
 
   // Accessors.
+  virtual const VkImage& image() const = 0;
   const VkImageView& image_view() const { return image_view_; }
   const VkExtent2D& extent() const { return extent_; }
   VkFormat format() const { return format_; }
@@ -204,10 +205,8 @@ class TextureImage : public Image, public SamplableImage {
   TextureImage& operator=(const TextureImage&) = delete;
 
   // Overrides.
+  const VkImage& image() const override { return buffer_.image(); }
   VkDescriptorImageInfo GetDescriptorInfo() const override;
-
-  // TODO: Remove.
-  const VkImage& image() const { return buffer_.image(); }
 
  private:
   // Texture image buffer on the device.
@@ -301,10 +300,8 @@ class OffscreenImage : public Image, public SamplableImage {
   OffscreenImage& operator=(const OffscreenImage&) = delete;
 
   // Overrides.
+  const VkImage& image() const override { return buffer_.image(); }
   VkDescriptorImageInfo GetDescriptorInfo() const override;
-
-  // TODO: Remove.
-  const VkImage& image() const { return buffer_.image(); }
 
  private:
   // Offscreen image buffer on the device.
@@ -363,6 +360,9 @@ class DepthStencilImage : public Image {
   DepthStencilImage(const DepthStencilImage&) = delete;
   DepthStencilImage& operator=(const DepthStencilImage&) = delete;
 
+  // Overrides.
+  const VkImage& image() const override { return buffer_.image(); }
+
  private:
   // Depth stencil image buffer on the device.
   class DepthStencilBuffer : public ImageBuffer {
@@ -390,6 +390,13 @@ class SwapchainImage : public Image {
   // This class is neither copyable nor movable.
   SwapchainImage(const SwapchainImage&) = delete;
   SwapchainImage& operator=(const SwapchainImage&) = delete;
+
+  // Overrides.
+  const VkImage& image() const override { return image_; }
+
+ private:
+  // Swapchain image.
+  VkImage image_;
 };
 
 // This class creates an image for multisampling. No data transfer is required
@@ -427,6 +434,9 @@ class MultisampleImage : public Image {
   // This class is neither copyable nor movable.
   MultisampleImage(const MultisampleImage&) = delete;
   MultisampleImage& operator=(const MultisampleImage&) = delete;
+
+  // Overrides.
+  const VkImage& image() const override { return buffer_.image(); }
 
   // Accessors.
   VkSampleCountFlagBits sample_count() const override { return sample_count_; }

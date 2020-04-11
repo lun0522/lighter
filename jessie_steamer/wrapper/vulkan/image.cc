@@ -678,8 +678,8 @@ DepthStencilImage::DepthStencilBuffer::DepthStencilBuffer(
 SwapchainImage::SwapchainImage(SharedBasicContext context,
                                const VkImage& image,
                                const VkExtent2D& extent, VkFormat format)
-    : Image{std::move(context), extent, format} {
-  SetImageView(CreateImageView(*context_, image, format_,
+    : Image{std::move(context), extent, format}, image_{image} {
+  SetImageView(CreateImageView(*context_, image_, format_,
                                VK_IMAGE_ASPECT_COLOR_BIT,
                                kSingleMipLevel, kSingleImageLayer));
 }

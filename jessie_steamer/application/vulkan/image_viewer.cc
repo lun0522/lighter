@@ -92,12 +92,35 @@ ImageViewerApp::ImageViewerApp(const WindowContext::Config& window_config)
 }
 
 void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
+  using ImageUsage = ImageLayoutManager::ImageUsage;
+  enum ProcessingStage {
+    kComputingStage,
+    kRenderingStage,
+    kNumStages,
+  };
+
   const common::Image image_from_file{file_path};
   const TextureImage original_image(context(), /*generate_mipmaps=*/false,
                                     image_from_file, ImageSampler::Config{});
   image_ = absl::make_unique<OffscreenImage>(
       context(), OffscreenImage::DataSource::kCompute, original_image.extent(),
       image_from_file.channel, ImageSampler::Config{});
+
+  auto original_image_usage =
+      ImageLayoutManager::UsageInfo{
+          &original_image.image(), "Original image",
+          /*initial_layout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}
+          .AddUsage(kComputingStage, ImageUsage::kLinearReadByShader);
+
+  auto processed_image_usage =
+      ImageLayoutManager::UsageInfo{&image_->image(), "Processed image"}
+          .AddUsage(kComputingStage, ImageUsage::kLinearReadByShader)
+          .AddUsage(kRenderingStage, ImageUsage::kSampledAsTexture);
+
+  const ImageLayoutManager layout_manager{
+    kNumStages,
+    {std::move(original_image_usage), std::move(processed_image_usage)},
+  };
 
   StaticDescriptor descriptor{
       context(), /*infos=*/std::vector<Descriptor::Info>{
@@ -123,9 +146,12 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
   };
   // TODO
   auto original_image_descriptor_info = original_image.GetDescriptorInfo();
-  original_image_descriptor_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+  original_image_descriptor_info.imageLayout =
+      layout_manager.GetImageLayoutAtStage(original_image.image(),
+                                           kComputingStage);
   auto output_image_descriptor_info = image_->GetDescriptorInfo();
-  output_image_descriptor_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+  output_image_descriptor_info.imageLayout =
+      layout_manager.GetImageLayoutAtStage(image_->image(), kComputingStage);
   descriptor.UpdateImageInfos(
       VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
       /*image_info_map=*/
@@ -141,47 +167,9 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
 
   const OneTimeCommand command{context(), &context()->queues().compute_queue()};
   command.Run([&](const VkCommandBuffer& command_buffer) {
-    const auto transition_layout = [&](const VkImage& image,
-                                       VkImageLayout src_layout,
-                                       VkImageLayout dst_layout) {
-      const VkImageMemoryBarrier barrier{
-          VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-          /*pNext=*/nullptr,
-          /*srcAccessMask=*/kNullAccessFlag,
-          /*dstAccessMask=*/kNullAccessFlag,
-          src_layout,
-          dst_layout,
-          /*srcQueueFamilyIndex=*/
-          context()->queues().compute_queue().family_index,
-          /*dstQueueFamilyIndex=*/
-          context()->queues().compute_queue().family_index,
-          image,
-          VkImageSubresourceRange{
-              VK_IMAGE_ASPECT_COLOR_BIT,
-              /*baseMipLevel=*/0,
-              /*levelCount=*/1,
-              /*baseArrayLayer=*/0,
-              /*layerCount=*/1,
-          },
-      };
-      vkCmdPipelineBarrier(
-          command_buffer,
-          VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-          VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-          /*dependencyFlags=*/0,
-          /*memoryBarrierCount=*/0,
-          /*pMemoryBarriers=*/nullptr,
-          /*bufferMemoryBarrierCount=*/0,
-          /*pBufferMemoryBarriers=*/nullptr,
-          /*imageMemoryBarrierCount=*/1,
-          &barrier);
-    };
-
-    transition_layout(original_image.image(),
-                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                      VK_IMAGE_LAYOUT_GENERAL);
-    transition_layout(image_->image(), VK_IMAGE_LAYOUT_UNDEFINED,
-                      VK_IMAGE_LAYOUT_GENERAL);
+    layout_manager.InsertMemoryBarrierBeforeStage(
+        command_buffer, context()->queues().compute_queue().family_index,
+        kComputingStage);
 
     pipeline->Bind(command_buffer);
     descriptor.Bind(command_buffer, pipeline->layout(),
@@ -193,8 +181,9 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
     vkCmdDispatch(command_buffer, group_count_x, group_count_y,
                   /*groupCountZ=*/1);
 
-    transition_layout(image_->image(), VK_IMAGE_LAYOUT_GENERAL,
-                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    layout_manager.InsertMemoryBarrierBeforeStage(
+        command_buffer, context()->queues().compute_queue().family_index,
+        kRenderingStage);
   });
 
   image_viewer_ = absl::make_unique<ImageViewer>(

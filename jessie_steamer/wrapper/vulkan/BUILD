@@ -11,6 +11,7 @@ cc_library(
         ":buffer",
         ":command",
         ":image",
+        ":image_util",
         ":model",
         ":pipeline",
         ":render_pass",
@@ -122,7 +123,14 @@ cc_library(
     name = "image_util",
     hdrs = ["image_util.h"],
     srcs = ["image_util.cc"],
-    deps = ["//third_party:vulkan"],
+    deps = [
+        ":util",
+        "//jessie_steamer/common:util",
+        "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:span",
+        "//third_party:vulkan",
+    ],
 )
 
 cc_library(
