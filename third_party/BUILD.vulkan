@@ -4,18 +4,18 @@ licenses(["notice"])
 
 cc_library(
     name = "vulkan",
-    srcs = ["lib/libvulkan.1.dylib"],
+    srcs = ["lib/libvulkan.dylib"],
     hdrs = glob(["include/vulkan/*.h"]),
     strip_include_prefix = "include/vulkan",
     include_prefix = "third_party/vulkan",
     data = select({
         "optimal_build": [
-            "etc/vulkan/icd.d/MoltenVK_icd.json",
+            "share/vulkan/icd.d/MoltenVK_icd.json",
             "lib/libMoltenVK.dylib",
         ],
         "//conditions:default": glob(
-            ["etc/**/*", "lib/**/*"],
-            exclude = ["lib/libvulkan.1.dylib"],
+            ["share/**/*", "lib/**/*"],
+            exclude = ["lib/libvulkan.dylib"],
         ),
     }),
 )

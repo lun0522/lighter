@@ -36,7 +36,7 @@ const vector<const char*>& GetRequiredLayers() {
   static const vector<const char*>* validation_layers = nullptr;
   if (validation_layers == nullptr) {
     validation_layers = new vector<const char*>{
-        "VK_LAYER_LUNARG_standard_validation",
+        "VK_LAYER_KHRONOS_validation",
     };
   }
   return *validation_layers;

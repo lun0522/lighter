@@ -90,11 +90,11 @@ int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
   // Set up the path to find Vulkan SDK.
   using common::file::GetVulkanSdkPath;
   setenv("VK_ICD_FILENAMES",
-         GetVulkanSdkPath("etc/vulkan/icd.d/MoltenVK_icd.json").c_str(),
+         GetVulkanSdkPath("share/vulkan/icd.d/MoltenVK_icd.json").c_str(),
          /*overwrite=*/1);
 #ifndef NDEBUG
   setenv("VK_LAYER_PATH",
-         GetVulkanSdkPath("etc/vulkan/explicit_layer.d").c_str(),
+         GetVulkanSdkPath("share/vulkan/explicit_layer.d").c_str(),
          /*overwrite=*/1);
 #endif /* !NDEBUG */
 

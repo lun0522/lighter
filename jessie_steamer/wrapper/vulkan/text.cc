@@ -117,7 +117,7 @@ void Text::Update(const VkExtent2D& frame_size,
       .SetColorBlend(
           vector<VkPipelineColorBlendAttachmentState>(
               render_pass.num_color_attachments(subpass_index),
-              pipeline::GetColorBlendState(/*enable_blend=*/true)))
+              pipeline::GetColorAlphaBlendState(/*enable_blend=*/true)))
       .Build();
 }
 

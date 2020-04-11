@@ -105,6 +105,7 @@ cc_library(
         ":basics",
         ":buffer",
         ":command",
+        ":image_util",
         ":util",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:ref_count",
@@ -115,6 +116,13 @@ cc_library(
         "//third_party/absl/types:variant",
         "//third_party:vulkan",
     ]
+)
+
+cc_library(
+    name = "image_util",
+    hdrs = ["image_util.h"],
+    srcs = ["image_util.cc"],
+    deps = ["//third_party:vulkan"],
 )
 
 cc_library(

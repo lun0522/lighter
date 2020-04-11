@@ -25,7 +25,7 @@ using DepthStencilOps = RenderPassBuilder::Attachment::DepthStencilOps;
 VkClearValue CreateClearColor(const RenderPassBuilder::Attachment& attachment) {
   VkClearValue clear_value{};
   if (absl::holds_alternative<ColorOps>(attachment.attachment_ops)) {
-    clear_value.color = {{0.0f, 0.0f, 0.0f, 0.0f}};
+    clear_value.color = {{0, 0, 0, 0}};
   } else if (absl::holds_alternative<DepthStencilOps>(
       attachment.attachment_ops)) {
     clear_value.depthStencil = {/*depth=*/1.0f, /*stencil=*/0};

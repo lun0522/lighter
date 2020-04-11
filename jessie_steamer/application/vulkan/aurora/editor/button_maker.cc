@@ -181,7 +181,8 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
           {push_constant->MakePerFrameRange(VK_SHADER_STAGE_VERTEX_BIT)})
       .SetViewport(pipeline::GetFullFrameViewport(buttons_image->extent()))
       .SetRenderPass(**render_pass, kBackgroundSubpassIndex)
-      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/false)})
+      .SetColorBlend(
+          {pipeline::GetColorAlphaBlendState(/*enable_blend=*/false)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                  common::file::GetVkShaderPath("aurora/make_button.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,

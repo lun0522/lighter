@@ -148,7 +148,7 @@ PathRenderer::PathRenderer(const SharedBasicContext& context,
       .SetPipelineLayout(/*descriptor_layouts=*/{},
                          {control_render_constant_->MakePerFrameRange(
                              VK_SHADER_STAGE_VERTEX_BIT)})
-      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)})
+      .SetColorBlend({pipeline::GetColorAlphaBlendState(/*enable_blend=*/true)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                  GetVkShaderPath("aurora/draw_path_control.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -170,7 +170,7 @@ PathRenderer::PathRenderer(const SharedBasicContext& context,
       .SetPipelineLayout(/*descriptor_layouts=*/{},
                          {spline_trans_constant_->MakePerFrameRange(
                              VK_SHADER_STAGE_VERTEX_BIT)})
-      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)})
+      .SetColorBlend({pipeline::GetColorAlphaBlendState(/*enable_blend=*/true)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                  GetVkShaderPath("aurora/draw_path_spline.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -186,7 +186,7 @@ PathRenderer::PathRenderer(const SharedBasicContext& context,
       .SetPipelineLayout(/*descriptor_layouts=*/{},
                          {viewpoint_render_constant_->MakePerFrameRange(
                              VK_SHADER_STAGE_VERTEX_BIT)})
-      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)})
+      .SetColorBlend({pipeline::GetColorAlphaBlendState(/*enable_blend=*/true)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                  GetVkShaderPath("aurora/viewpoint.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,

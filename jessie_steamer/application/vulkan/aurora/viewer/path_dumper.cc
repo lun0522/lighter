@@ -147,7 +147,8 @@ PathDumper::DumpPathsPass::DumpPathsPass(
                              VK_SHADER_STAGE_VERTEX_BIT)})
       .SetViewport(pipeline::GetFullFrameViewport(image_extent))
       .SetRenderPass(**render_pass_, kPathsOperationSubpassIndex)
-      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/false)})
+      .SetColorBlend(
+          {pipeline::GetColorAlphaBlendState(/*enable_blend=*/false)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                  common::file::GetVkShaderPath("aurora/dump_path.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -236,7 +237,8 @@ PathDumper::BoldPathsPass::BoldPathsPass(const SharedBasicContext& context,
       .SetPipelineLayout({descriptor_->layout()}, /*push_constant_ranges=*/{})
       .SetViewport(pipeline::GetFullFrameViewport(image_extent))
       .SetRenderPass(**render_pass_, kPathsOperationSubpassIndex)
-      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/false)})
+      .SetColorBlend(
+          {pipeline::GetColorAlphaBlendState(/*enable_blend=*/false)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                  common::file::GetVkShaderPath("aurora/bold_path.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,

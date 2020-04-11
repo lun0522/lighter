@@ -344,7 +344,7 @@ void Model::Update(bool is_object_opaque, const VkExtent2D& frame_size,
       .SetColorBlend(
           vector<VkPipelineColorBlendAttachmentState>(
               render_pass.num_color_attachments(subpass_index),
-              pipeline::GetColorBlendState(
+              pipeline::GetColorAlphaBlendState(
                   /*enable_blend=*/!is_object_opaque)))
       .Build();
 }

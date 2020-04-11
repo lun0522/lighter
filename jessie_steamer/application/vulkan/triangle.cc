@@ -112,7 +112,7 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
       .SetPipelineLayout(
           /*descriptor_layouts=*/{},
           {alpha_constant_->MakePerFrameRange(VK_SHADER_STAGE_FRAGMENT_BIT)})
-      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/true)})
+      .SetColorBlend({pipeline::GetColorAlphaBlendState(/*enable_blend=*/true)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                  common::file::GetVkShaderPath("triangle/triangle.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,

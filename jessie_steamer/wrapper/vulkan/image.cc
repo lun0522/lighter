@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "jessie_steamer/wrapper/vulkan/command.h"
+#include "jessie_steamer/wrapper/vulkan/image_util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 

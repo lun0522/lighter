@@ -63,7 +63,8 @@ ImageViewer::ImageViewer(const SharedBasicContext& context,
                       pipeline::GetPerVertexBindingDescription<Vertex2D>(),
                       vertex_buffer_->GetAttributes(/*start_location=*/0))
       .SetPipelineLayout({descriptor_->layout()}, /*push_constant_ranges=*/{})
-      .SetColorBlend({pipeline::GetColorBlendState(/*enable_blend=*/false)})
+      .SetColorBlend(
+          {pipeline::GetColorAlphaBlendState(/*enable_blend=*/false)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                  common::file::GetVkShaderPath("image_viewer/view_image.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,

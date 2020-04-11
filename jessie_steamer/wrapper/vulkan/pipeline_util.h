@@ -31,11 +31,15 @@ GraphicsPipelineBuilder::ViewportInfo GetFullFrameViewport(
 GraphicsPipelineBuilder::ViewportInfo GetViewport(const VkExtent2D& frame_size,
                                                   float aspect_ratio);
 
-// Returns the color blend state that gives:
+// Returns the blend state that simply adds up source and destination colors.
+// This is used for single channel images that do not have alpha channels.
+VkPipelineColorBlendAttachmentState GetColorBlendState(bool enable_blend);
+
+// Returns the blend state that gives:
 //   C = Cs * As + Cd * (1. - As)
 //   A = 1. * As + Ad * (1. - As)
 // Where: C - color, A - alpha, s - source, d - destination.
-VkPipelineColorBlendAttachmentState GetColorBlendState(bool enable_blend);
+VkPipelineColorBlendAttachmentState GetColorAlphaBlendState(bool enable_blend);
 
 /* Vertex input binding */
 
