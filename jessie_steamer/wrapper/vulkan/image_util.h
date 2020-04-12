@@ -8,8 +8,10 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_IMAGE_UTIL_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_IMAGE_UTIL_H
 
-#include <vector>
+#include <iterator>
+#include <memory>
 #include <string>
+#include <vector>
 
 #include "jessie_steamer/common/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
@@ -23,6 +25,7 @@ namespace vulkan {
 class ImageLayoutManager {
  public:
   enum class ImageUsage {
+    kDontCare,
     kRenderingTarget,
     kSampledAsTexture,
     kPresentToScreen,
@@ -34,16 +37,24 @@ class ImageLayoutManager {
     kLinearWriteByHost,
   };
 
-  struct UsageInfo {
-    struct UsageAtStage {
-      ImageUsage usage;
-      int stage;
-    };
+  struct UsageAtStage {
+    ImageUsage usage;
+    int stage;
+  };
 
-    UsageInfo(const VkImage* image, std::string&& image_name,
-              VkImageLayout initial_layout = VK_IMAGE_LAYOUT_UNDEFINED)
-        : image{FATAL_IF_NULL(image)}, image_name{std::move(image_name)},
-          initial_layout{initial_layout} {}
+  struct UsageInfo {
+    UsageInfo(const VkImage* image, std::string&& image_name)
+        : image{FATAL_IF_NULL(image)}, image_name{std::move(image_name)} {}
+
+    UsageInfo& SetInitialUsage(ImageUsage usage) {
+      initial_usage = usage;
+      return *this;
+    }
+
+    UsageInfo& SetFinalUsage(ImageUsage usage) {
+      final_usage = usage;
+      return *this;
+    }
 
     UsageInfo& AddUsage(int stage, ImageUsage usage) {
       usages.emplace_back(UsageAtStage{usage, stage});
@@ -52,11 +63,12 @@ class ImageLayoutManager {
 
     const VkImage* image;
     const std::string image_name;
-    const VkImageLayout initial_layout;
+    ImageUsage initial_usage = ImageUsage::kDontCare;
+    ImageUsage final_usage = ImageUsage::kDontCare;
     std::vector<UsageAtStage> usages;
   };
 
-  ImageLayoutManager(int num_stages, absl::Span<const UsageInfo> infos);
+  ImageLayoutManager(int num_stages, absl::Span<const UsageInfo> usage_infos);
 
   // This class is neither copyable nor movable.
   ImageLayoutManager(const ImageLayoutManager&) = delete;
@@ -71,14 +83,44 @@ class ImageLayoutManager {
                                       int stage) const;
 
  private:
-  void ValidateStage(int stage) const;
+  class ImageUsageHistory {
+   public:
+    ImageUsageHistory(int num_stages, const UsageInfo& usage_info);
 
-  void BuildUsageMap(const UsageInfo& info);
+    // This class is neither copyable nor movable.
+    ImageUsageHistory(const ImageUsageHistory&) = delete;
+    ImageUsageHistory& operator=(const ImageUsageHistory&) = delete;
 
-  const int num_stages_;
+    bool IsUsageChanged(int stage) const {
+      ValidateStage(stage);
+      return usage_at_stages_[stage] != usage_at_stages_[stage + 1];
+    }
 
-  absl::flat_hash_map<const VkImage*, std::vector<VkImageLayout>>
-      image_layouts_map_;
+    ImageUsage GetUsageAtStage(int stage) const {
+      ValidateStage(stage);
+      return usage_at_stages_[stage + 1]->usage;
+    }
+
+    ImageUsage GetUsageAtPreviousStage(int stage) const {
+      ValidateStage(stage);
+      return std::prev(usage_at_stages_[stage + 1])->usage;
+    }
+
+    ImageUsage GetUsageAtNextStage(int stage) const {
+      ValidateStage(stage);
+      return std::next(usage_at_stages_[stage + 1])->usage;
+    }
+
+   private:
+    void ValidateStage(int stage) const;
+
+    const int num_stages_;
+    std::vector<UsageAtStage> usage_change_points_;
+    std::vector<std::vector<UsageAtStage>::iterator> usage_at_stages_;
+  };
+
+  absl::flat_hash_map<const VkImage*, std::unique_ptr<ImageUsageHistory>>
+      image_usage_history_map_;
 };
 
 } /* namespace vulkan */

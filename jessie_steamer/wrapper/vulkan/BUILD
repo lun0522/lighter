@@ -127,6 +127,7 @@ cc_library(
         ":util",
         "//jessie_steamer/common:util",
         "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/memory",
         "//third_party/absl/strings:str_format",
         "//third_party/absl/types:span",
         "//third_party:vulkan",

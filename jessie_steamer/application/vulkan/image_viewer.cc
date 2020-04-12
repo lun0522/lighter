@@ -107,9 +107,8 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
       image_from_file.channel, ImageSampler::Config{});
 
   auto original_image_usage =
-      ImageLayoutManager::UsageInfo{
-          &original_image.image(), "Original image",
-          /*initial_layout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}
+      ImageLayoutManager::UsageInfo{&original_image.image(), "Original image"}
+          .SetInitialUsage(ImageUsage::kSampledAsTexture)
           .AddUsage(kComputingStage, ImageUsage::kLinearReadByShader);
 
   auto processed_image_usage =

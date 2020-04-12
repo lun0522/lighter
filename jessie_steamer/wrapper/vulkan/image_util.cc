@@ -7,7 +7,10 @@
 
 #include "jessie_steamer/wrapper/vulkan/image_util.h"
 
+#include <queue>
+
 #include "jessie_steamer/wrapper/vulkan/util.h"
+#include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace jessie_steamer {
@@ -15,9 +18,22 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
+using ImageUsageAtStage = ImageLayoutManager::UsageAtStage;
+
+struct ImageAtStageComparator {
+  bool operator()(const ImageUsageAtStage& lhs, const ImageUsageAtStage& rhs) {
+    return lhs.stage > rhs.stage;
+  }
+};
+
+using ImageUsageAtStageQueue = std::priority_queue<
+    ImageUsageAtStage, std::vector<ImageUsageAtStage>, ImageAtStageComparator>;
+
 VkImageLayout GetImageLayout(ImageLayoutManager::ImageUsage usage) {
   using ImageUsage = ImageLayoutManager::ImageUsage;
   switch (usage) {
+    case ImageUsage::kDontCare:
+      return VK_IMAGE_LAYOUT_UNDEFINED;
     case ImageUsage::kRenderingTarget:
       return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     case ImageUsage::kSampledAsTexture:
@@ -38,74 +54,106 @@ VkImageLayout GetImageLayout(ImageLayoutManager::ImageUsage usage) {
 
 } /* namespace */
 
-ImageLayoutManager::ImageLayoutManager(int num_stages,
-                                       absl::Span<const UsageInfo> infos)
+ImageLayoutManager::ImageUsageHistory::ImageUsageHistory(
+    int num_stages, const UsageInfo& usage_info)
     : num_stages_{num_stages} {
-  std::for_each(infos.begin(), infos.end(),
-                [this](const UsageInfo& info) { BuildUsageMap(info); });
+  for (const auto& usage : usage_info.usages) {
+    ValidateStage(usage.stage);
+  }
+
+  // Put usages in a min heap, ordered by the stage. The initial usage is put at
+  // stage -1 temporarily. We will shift all stages by 1 later.
+  // If the user does not specify a final usage, we won't need to transition the
+  // image layout, so we don't need to push it into the heap.
+  ImageUsageAtStageQueue usage_queue{usage_info.usages.begin(),
+                                     usage_info.usages.end()};
+  usage_queue.push({usage_info.initial_usage, /*stage=*/-1});
+  if (usage_info.final_usage != ImageUsage::kDontCare) {
+    usage_queue.push({usage_info.final_usage, /*stage=*/num_stages_});
+  }
+
+  // Pop usages out of the heap and populate 'usage_change_points_'. If the next
+  // usage is the same to the previous one, we won't need to transition the
+  // image layout, so we don't need to store it anymore. Note that we don't
+  // allow the user to specify different usages for one stage.
+  while (!usage_queue.empty()) {
+    const auto next_usage = usage_queue.top();
+    usage_queue.pop();
+    if (!usage_change_points_.empty()) {
+      const auto& last_change_point = usage_change_points_.back();
+      if (next_usage.usage == last_change_point.usage) {
+        continue;
+      }
+      if (next_usage.stage == last_change_point.stage) {
+        ASSERT_TRUE(next_usage.usage == last_change_point.usage,
+                    absl::StrFormat("Conflicted image usages specified for %s: "
+                                    "%d vs %d at stage %d",
+                                    usage_info.image_name,
+                                    static_cast<int>(next_usage.usage),
+                                    static_cast<int>(last_change_point.usage),
+                                    next_usage.stage));
+        continue;
+      }
+    }
+    usage_change_points_.emplace_back(next_usage);
+  }
+
+  // Shift stages by 1, so that all stages are non-negative, and the usage at
+  // index 0 represents the initial usage.
+  for (auto& change_point : usage_change_points_) {
+    ++change_point.stage;
+  }
+  ASSERT_TRUE(usage_change_points_[0].usage == usage_info.initial_usage &&
+                  usage_change_points_[0].stage == 0,
+              "The first change point must be the initial usage");
+
+  // Populate 'usage_at_stages_'. Each element should be an iterator referencing
+  // to the usage change point that defines the usage at the current stage.
+  usage_at_stages_.resize(num_stages_ + 2, usage_change_points_.end());
+  for (auto iter = usage_change_points_.begin();
+       iter != usage_change_points_.end(); ++iter) {
+    usage_at_stages_[iter->stage] = iter;
+  }
+  auto change_point_iter = usage_change_points_.end();
+  for (auto& usage : usage_at_stages_) {
+    if (usage == usage_change_points_.end()) {
+      usage = change_point_iter;
+    } else {
+      change_point_iter = usage;
+    }
+  }
 }
 
-void ImageLayoutManager::ValidateStage(int stage) const {
+void ImageLayoutManager::ImageUsageHistory::ValidateStage(int stage) const {
   ASSERT_TRUE(
       stage >= 0 && stage < num_stages_,
       absl::StrFormat("Stage must be in range [0, %d], while %d provided",
                       num_stages_ - 1, stage));
 }
 
-void ImageLayoutManager::BuildUsageMap(const UsageInfo& info) {
-  ASSERT_TRUE(image_layouts_map_.find(info.image) == image_layouts_map_.end(),
-              absl::StrFormat("Duplicated image usages specified for %s",
-                              info.image_name));
-
-  absl::flat_hash_map<int, ImageUsage> usage_map;
-  for (const auto& usage_at_stage : info.usages) {
-    ValidateStage(usage_at_stage.stage);
-    const auto iter = usage_map.find(usage_at_stage.stage);
-    if (iter != usage_map.end()) {
-      ASSERT_TRUE(iter->second == usage_at_stage.usage,
-                  absl::StrFormat("Conflicted image usages specified for %s: "
-                                  "%d vs %d at stage %d",
-                                  info.image_name,
-                                  static_cast<int>(iter->second),
-                                  static_cast<int>(usage_at_stage.usage),
-                                  usage_at_stage.stage));
-    }
-    usage_map[usage_at_stage.stage] = usage_at_stage.usage;
-  }
-
-  // Assign to stages where the image layout should be changed.
-  auto& layouts = image_layouts_map_[info.image];
-  layouts.resize(num_stages_ + 1, VK_IMAGE_LAYOUT_UNDEFINED);
-  layouts[0] = info.initial_layout;
-  for (const auto& pair : usage_map) {
-    layouts[pair.first + 1] = GetImageLayout(pair.second);
-  }
-
-  // Assign to stages where the layout does not change from the previous stage.
-  VkImageLayout previous_layout = layouts[0];
-  for (int i = 1; i < layouts.size(); ++i) {
-    if (layouts[i] == VK_IMAGE_LAYOUT_UNDEFINED) {
-      layouts[i] = previous_layout;
-    } else {
-      previous_layout = layouts[i];
-    }
+ImageLayoutManager::ImageLayoutManager(
+    int num_stages, absl::Span<const UsageInfo> usage_infos) {
+  for (const auto& info : usage_infos) {
+    ASSERT_TRUE(image_usage_history_map_.find(info.image) ==
+                image_usage_history_map_.end(),
+                absl::StrFormat("Duplicated image usages specified for %s",
+                                info.image_name));
+    image_usage_history_map_[info.image] =
+        absl::make_unique<ImageUsageHistory>(num_stages, info);
   }
 }
 
 VkImageLayout ImageLayoutManager::GetImageLayoutAtStage(const VkImage& image,
                                                         int stage) const {
-  const auto iter = image_layouts_map_.find(&image);
-  ASSERT_FALSE(iter == image_layouts_map_.end(),
+  const auto iter = image_usage_history_map_.find(&image);
+  ASSERT_FALSE(iter == image_usage_history_map_.end(),
                "This manager does not have info about the image");
-  ValidateStage(stage);
-  return iter->second[stage + 1];
+  return GetImageLayout(iter->second->GetUsageAtStage(stage));
 }
 
 bool ImageLayoutManager::NeedMemoryBarrierBeforeStage(int stage) const {
-  ValidateStage(stage);
-  for (const auto& pair : image_layouts_map_) {
-    const auto& layouts = pair.second;
-    if (layouts[stage] != layouts[stage + 1]) {
+  for (const auto& pair : image_usage_history_map_) {
+    if (pair.second->IsUsageChanged(stage)) {
       return true;
     }
   }
@@ -115,19 +163,17 @@ bool ImageLayoutManager::NeedMemoryBarrierBeforeStage(int stage) const {
 void ImageLayoutManager::InsertMemoryBarrierBeforeStage(
     const VkCommandBuffer& command_buffer,
     uint32_t queue_family_index, int stage) const {
-  ValidateStage(stage);
-
   std::vector<VkImageMemoryBarrier> barriers;
-  for (const auto& pair : image_layouts_map_) {
-    const auto& layouts = pair.second;
-    if (layouts[stage] != layouts[stage + 1]) {
+  for (const auto& pair : image_usage_history_map_) {
+    const auto& usage_history = pair.second;
+    if (usage_history->IsUsageChanged(stage)) {
       barriers.emplace_back(VkImageMemoryBarrier{
           VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
           /*pNext=*/nullptr,
           /*srcAccessMask=*/kNullAccessFlag,
           /*dstAccessMask=*/kNullAccessFlag,
-          layouts[stage],
-          layouts[stage + 1],
+          GetImageLayout(usage_history->GetUsageAtPreviousStage(stage)),
+          GetImageLayout(usage_history->GetUsageAtStage(stage)),
           /*srcQueueFamilyIndex=*/queue_family_index,
           /*dstQueueFamilyIndex=*/queue_family_index,
           *pair.first,
