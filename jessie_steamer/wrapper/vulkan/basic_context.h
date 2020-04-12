@@ -89,7 +89,7 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
       first_time = false;
       check_no_active_auto_release_pool_ops_.emplace_back([pool_name]() {
         if (RefCountedObjectType::has_active_auto_release_pool()) {
-          FATAL(absl::StrFormat("Number of %s auto release pool is non-zero",
+          FATAL(absl::StrFormat("Number of '%s' auto release pool is non-zero",
                                 pool_name));
         }
       });

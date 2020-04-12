@@ -107,14 +107,14 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
       image_from_file.channel, ImageSampler::Config{});
 
   auto original_image_usage =
-      ImageLayoutManager::UsageInfo{&original_image.image(), "Original image"}
-          .SetInitialUsage(ImageUsage::kSampledAsTexture)
-          .AddUsage(kComputingStage, ImageUsage::kLinearReadByShader);
+      ImageLayoutManager::UsageInfo{&original_image.image(), "Original"}
+          .SetInitialUsage(ImageUsage::kSampledInFragmentShader)
+          .AddUsage(kComputingStage, ImageUsage::kLinearReadInComputeShader);
 
   auto processed_image_usage =
-      ImageLayoutManager::UsageInfo{&image_->image(), "Processed image"}
-          .AddUsage(kComputingStage, ImageUsage::kLinearReadByShader)
-          .AddUsage(kRenderingStage, ImageUsage::kSampledAsTexture);
+      ImageLayoutManager::UsageInfo{&image_->image(), "Processed"}
+          .AddUsage(kComputingStage, ImageUsage::kLinearReadInComputeShader)
+          .AddUsage(kRenderingStage, ImageUsage::kSampledInFragmentShader);
 
   const ImageLayoutManager layout_manager{
     kNumStages,
