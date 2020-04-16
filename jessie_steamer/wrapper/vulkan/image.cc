@@ -537,7 +537,8 @@ TextureImage::TextureBuffer::TextureBuffer(
   const VkImageUsageFlags mipmap_flag =
       generate_mipmaps ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : nullflag;
 
-  // TODO: VK_IMAGE_USAGE_STORAGE_BIT not always needed.
+  // TODO: VK_IMAGE_USAGE_STORAGE_BIT not always needed. Should infer from image
+  // usages.
   SetImage(CreateImage(*context_, image_config, cubemap_flag,
                        info.format, image_extent,
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT
@@ -640,10 +641,13 @@ OffscreenImage::OffscreenBuffer::OffscreenBuffer(
     SharedBasicContext context, DataSource data_source,
     const VkExtent2D& extent, VkFormat format)
     : ImageBuffer{std::move(context)} {
+  // TODO: VK_IMAGE_USAGE_STORAGE_BIT not always needed. Should infer from image
+  // usages.
   VkImageUsageFlags image_usage = VK_IMAGE_USAGE_SAMPLED_BIT;
   switch (data_source) {
     case DataSource::kRender:
       image_usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+      image_usage |= VK_IMAGE_USAGE_STORAGE_BIT;
       break;
     case DataSource::kCompute:
       image_usage |= VK_IMAGE_USAGE_STORAGE_BIT;

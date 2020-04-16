@@ -8,6 +8,7 @@
 #include "jessie_steamer/application/vulkan/aurora/viewer/viewer.h"
 
 #include "jessie_steamer/common/util.h"
+#include "third_party/absl/types/span.h"
 
 namespace jessie_steamer {
 namespace application {
@@ -75,12 +76,12 @@ void Viewer::Recreate() {
 
 void Viewer::Draw(const VkCommandBuffer& command_buffer,
                   uint32_t framebuffer_index, int current_frame) {
-  const std::vector<RenderPass::RenderOp> render_ops{
+  const RenderPass::RenderOp render_op =
       [this](const VkCommandBuffer& command_buffer) {
         image_viewer_->Draw(command_buffer);
-      },
-  };
-  render_pass_->Run(command_buffer, framebuffer_index, render_ops);
+      };
+  render_pass_->Run(command_buffer, framebuffer_index,
+                    absl::MakeSpan(&render_op, 1));
 }
 
 } /* namespace aurora */

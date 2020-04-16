@@ -5,7 +5,6 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include <cmath>
 #include <vector>
 
 #include "jessie_steamer/application/vulkan/util.h"
@@ -59,12 +58,6 @@ class ImageViewerApp : public Application {
   std::unique_ptr<RenderPass> render_pass_;
 };
 
-// Return the work group size for one dimension.
-inline uint32_t GetWorkGroupCount(int image_size, uint32_t work_group_size) {
-  return static_cast<uint32_t>(std::ceil(
-      static_cast<float>(image_size) / work_group_size));
-}
-
 } /* namespace */
 
 ImageViewerApp::ImageViewerApp(const WindowContext::Config& window_config)
@@ -96,7 +89,7 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
   enum ProcessingStage {
     kComputingStage,
     kRenderingStage,
-    kNumStages,
+    kNumProcessingStages,
   };
 
   const common::Image image_from_file{file_path};
@@ -117,8 +110,8 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
           .AddUsage(kRenderingStage, ImageUsage::kSampledInFragmentShader);
 
   const ImageLayoutManager layout_manager{
-    kNumStages,
-    {std::move(original_image_usage), std::move(processed_image_usage)},
+      kNumProcessingStages,
+      {std::move(original_image_usage), std::move(processed_image_usage)},
   };
 
   StaticDescriptor descriptor{
@@ -173,10 +166,10 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
     pipeline->Bind(command_buffer);
     descriptor.Bind(command_buffer, pipeline->layout(),
                     pipeline->binding_point());
-    const auto group_count_x = GetWorkGroupCount(image_from_file.width,
-                                                 kWorkGroupSizeX);
-    const auto group_count_y = GetWorkGroupCount(image_from_file.height,
-                                                 kWorkGroupSizeY);
+    const auto group_count_x = util::GetWorkGroupCount(image_from_file.width,
+                                                       kWorkGroupSizeX);
+    const auto group_count_y = util::GetWorkGroupCount(image_from_file.height,
+                                                       kWorkGroupSizeY);
     vkCmdDispatch(command_buffer, group_count_x, group_count_y,
                   /*groupCountZ=*/1);
 

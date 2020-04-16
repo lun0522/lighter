@@ -24,7 +24,7 @@ CharLib::CharLib(absl::Span<const std::string> texts,
 
   for (const auto& text : texts) {
     for (auto character : text) {
-      if (char_info_map_.find(character) != char_info_map_.end()) {
+      if (char_info_map_.contains(character)) {
         continue;
       }
 

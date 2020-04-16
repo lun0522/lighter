@@ -8,6 +8,7 @@
 #ifndef JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_VIEWER_PATH_DUMPER_H
 #define JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_VIEWER_PATH_DUMPER_H
 
+#include <array>
 #include <memory>
 #include <vector>
 
@@ -15,6 +16,7 @@
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
+#include "jessie_steamer/wrapper/vulkan/image_util.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
 #include "third_party/glm/glm.hpp"
@@ -32,57 +34,39 @@ class PathDumper {
              std::vector<const wrapper::vulkan::PerVertexBuffer*>&&
                  aurora_paths_vertex_buffers);
 
+  // This class is neither copyable nor movable.
+  PathDumper(const PathDumper&) = delete;
+  PathDumper& operator=(const PathDumper&) = delete;
+
   void DumpAuroraPaths(const glm::vec3& viewpoint_position);
 
   const wrapper::vulkan::SamplableImage& paths_image() const {
-    return bold_paths_pass_->bold_paths_image();
+    return *paths_images_[1];
   }
 
  private:
-  class DumpPathsPass {
+  class PathRenderer {
    public:
-    DumpPathsPass(const wrapper::vulkan::SharedBasicContext& context,
-                  const VkExtent2D& image_extent,
-                  std::vector<const wrapper::vulkan::PerVertexBuffer*>&&
-                      aurora_paths_vertex_buffers);
+    PathRenderer(const wrapper::vulkan::SharedBasicContext& context,
+                 const wrapper::vulkan::Image& paths_image,
+                 std::vector<const wrapper::vulkan::PerVertexBuffer*>&&
+                     aurora_paths_vertex_buffers);
+
+    // This class is neither copyable nor movable.
+    PathRenderer(const PathRenderer&) = delete;
+    PathRenderer& operator=(const PathRenderer&) = delete;
 
     void UpdateData(const common::Camera& camera);
 
     void Draw(const VkCommandBuffer& command_buffer);
 
-    const wrapper::vulkan::SamplableImage& paths_image() const {
-      return *paths_image_;
-    }
-
    private:
     const std::vector<const wrapper::vulkan::PerVertexBuffer*>
         aurora_paths_vertex_buffers_;
-    std::unique_ptr<wrapper::vulkan::OffscreenImage> paths_image_;
     std::unique_ptr<wrapper::vulkan::Image> multisample_image_;
     std::unique_ptr<wrapper::vulkan::PushConstant> trans_constant_;
     std::unique_ptr<wrapper::vulkan::RenderPass> render_pass_;
-    std::vector<wrapper::vulkan::RenderPass::RenderOp> render_ops_;
-    std::unique_ptr<wrapper::vulkan::Pipeline> pipeline_;
-  };
-
-  class BoldPathsPass {
-   public:
-    BoldPathsPass(const wrapper::vulkan::SharedBasicContext& context,
-                  const wrapper::vulkan::SamplableImage& paths_image,
-                  const VkExtent2D& image_extent);
-
-    void Draw(const VkCommandBuffer& command_buffer);
-
-    const wrapper::vulkan::SamplableImage& bold_paths_image() const {
-      return *bold_paths_image_;
-    }
-
-   private:
-    std::unique_ptr<wrapper::vulkan::StaticDescriptor> descriptor_;
-    std::unique_ptr<wrapper::vulkan::PerVertexBuffer> vertex_buffer_;
-    std::unique_ptr<wrapper::vulkan::OffscreenImage> bold_paths_image_;
-    std::unique_ptr<wrapper::vulkan::RenderPass> render_pass_;
-    std::vector<wrapper::vulkan::RenderPass::RenderOp> render_ops_;
+    wrapper::vulkan::RenderPass::RenderOp render_op_;
     std::unique_ptr<wrapper::vulkan::Pipeline> pipeline_;
   };
 
@@ -90,8 +74,9 @@ class PathDumper {
   const wrapper::vulkan::SharedBasicContext context_;
 
   std::unique_ptr<common::Camera> camera_;
-  std::unique_ptr<DumpPathsPass> dump_paths_pass_;
-  std::unique_ptr<BoldPathsPass> bold_paths_pass_;
+  std::array<std::unique_ptr<wrapper::vulkan::OffscreenImage>, 2> paths_images_;
+  std::unique_ptr<wrapper::vulkan::ImageLayoutManager> image_layout_manager_;
+  std::unique_ptr<PathRenderer> path_renderer_;
 };
 
 } /* namespace aurora */

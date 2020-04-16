@@ -4,7 +4,10 @@ cc_library(
     name = "path_dumper",
     hdrs = ["path_dumper.h"],
     srcs = ["path_dumper.cc"],
-    deps = ["//jessie_steamer/application/vulkan:common"],
+    deps = [
+        "//jessie_steamer/application/vulkan:common",
+        "//third_party/absl/types:span",
+    ],
 )
 
 cc_library(
@@ -15,5 +18,6 @@ cc_library(
         ":path_dumper",
         "//jessie_steamer/application/vulkan/aurora:scene",
         "//jessie_steamer/application/vulkan:common",
+        "//third_party/absl/types:span",
     ],
 )

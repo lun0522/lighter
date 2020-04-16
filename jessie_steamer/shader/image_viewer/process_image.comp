@@ -9,10 +9,12 @@ layout(binding = 1, rgba8) uniform writeonly image2D output_image;
 layout(local_size_x = 32, local_size_y = 32) in;
 
 void main() {
+  const ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
   const ivec2 image_size = imageSize(original_image);
-  vec4 output_color = imageLoad(original_image,
-                                ivec2(gl_GlobalInvocationID.xy));
-  output_color.rgb *=
-      sin(10.0 * M_PI * gl_GlobalInvocationID.x / image_size.x) * 0.3 + 0.9;
-  imageStore(output_image, ivec2(gl_GlobalInvocationID.xy), output_color);
+  if (any(greaterThanEqual(coord, image_size))) {
+    return;
+  }
+  vec4 output_color = imageLoad(original_image, coord);
+  output_color.rgb *= sin(10.0 * M_PI * coord.x / image_size.x) * 0.3 + 0.9;
+  imageStore(output_image, coord, output_color);
 }

@@ -29,6 +29,7 @@ namespace vulkan {
 class ImageLayoutManager {
  public:
   // Usages of images that we can handle.
+  // TODO: Break down to read/write + usage.
   enum class ImageUsage {
     kDontCare,
     kRenderingTarget,
@@ -41,6 +42,8 @@ class ImageLayoutManager {
     kLinearReadInComputeShader,
     kLinearWriteInFragmentShader,
     kLinearWriteInComputeShader,
+    kLinearReadWriteInFragmentShader,
+    kLinearReadWriteInComputeShader,
     kLinearReadByHost,
     kLinearWriteByHost,
   };
@@ -97,6 +100,7 @@ class ImageLayoutManager {
   // Insert memory barriers before 'stage' for transitioning image layouts,
   // using the queue with 'queue_family_index'.
   // This should be called when 'command_buffer' is recording commands.
+  // TODO: Also need to insert after last stage for final layout.
   void InsertMemoryBarrierBeforeStage(const VkCommandBuffer& command_buffer,
                                       uint32_t queue_family_index,
                                       int stage) const;

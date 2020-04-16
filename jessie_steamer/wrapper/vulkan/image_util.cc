@@ -74,6 +74,14 @@ BarrierInfo GetBarrierInfo(ImageLayoutManager::ImageUsage usage) {
     case ImageUsage::kLinearWriteInComputeShader:
       return {VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT};
 
+    case ImageUsage::kLinearReadWriteInFragmentShader:
+      return {VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+              VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT};
+
+    case ImageUsage::kLinearReadWriteInComputeShader:
+      return {VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+              VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT};
+
     case ImageUsage::kLinearReadByHost:
       return {VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_HOST_READ_BIT};
 
@@ -108,6 +116,8 @@ VkImageLayout GetImageLayout(ImageLayoutManager::ImageUsage usage) {
     case ImageUsage::kLinearReadInComputeShader:
     case ImageUsage::kLinearWriteInFragmentShader:
     case ImageUsage::kLinearWriteInComputeShader:
+    case ImageUsage::kLinearReadWriteInFragmentShader:
+    case ImageUsage::kLinearReadWriteInComputeShader:
     case ImageUsage::kLinearReadByHost:
     case ImageUsage::kLinearWriteByHost:
       return VK_IMAGE_LAYOUT_GENERAL;
@@ -196,10 +206,9 @@ void ImageLayoutManager::ImageUsageHistory::ValidateStage(int stage) const {
 ImageLayoutManager::ImageLayoutManager(
     int num_stages, absl::Span<const UsageInfo> usage_infos) {
   for (const auto& info : usage_infos) {
-    ASSERT_TRUE(image_usage_history_map_.find(info.image) ==
-                image_usage_history_map_.end(),
-                absl::StrFormat("Duplicated image usages specified for %s",
-                                info.image_name));
+    ASSERT_FALSE(image_usage_history_map_.contains(info.image),
+                 absl::StrFormat("Duplicated image usages specified for %s",
+                                 info.image_name));
     image_usage_history_map_[info.image] =
         absl::make_unique<ImageUsageHistory>(num_stages, info);
   }

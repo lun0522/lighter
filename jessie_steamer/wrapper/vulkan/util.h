@@ -8,6 +8,7 @@
 #ifndef JESSIE_STEAMER_WRAPPER_VULKAN_UTIL_H
 #define JESSIE_STEAMER_WRAPPER_VULKAN_UTIL_H
 
+#include <cmath>
 #include <functional>
 #include <string>
 #include <vector>
@@ -125,11 +126,17 @@ absl::optional<std::string> FindUnsupported(
   LOG_EMPTY_LINE;
 
   for (const auto& req : required) {
-    if (available.find(req) == available.end()) {
+    if (!available.contains(req)) {
       return req;
     }
   }
   return absl::nullopt;
+}
+
+// Return the work group size for one dimension used for compute shader.
+inline uint32_t GetWorkGroupCount(int total_size, uint32_t work_group_size) {
+  return static_cast<uint32_t>(std::ceil(
+      static_cast<float>(total_size) / work_group_size));
 }
 
 // Returns the aspect ratio of the 2D 'extent'.
