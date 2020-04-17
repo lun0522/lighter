@@ -288,11 +288,8 @@ class SharedTexture : public SamplableImage {
 // compute shaders. No data transfer is required at construction.
 class OffscreenImage : public Image, public SamplableImage {
  public:
-  // This image is used as either rendering target or compute shader output.
-  enum class DataSource { kRender, kCompute };
-
   OffscreenImage(SharedBasicContext context,
-                 DataSource data_source, const VkExtent2D& extent, int channel,
+                 const VkExtent2D& extent, int channel, VkImageUsageFlags usage,
                  const ImageSampler::Config& sampler_config);
 
   // This class is neither copyable nor movable.
@@ -307,8 +304,8 @@ class OffscreenImage : public Image, public SamplableImage {
   // Offscreen image buffer on the device.
   class OffscreenBuffer : public ImageBuffer {
    public:
-    OffscreenBuffer(SharedBasicContext context, DataSource data_source,
-                    const VkExtent2D& extent, VkFormat format);
+    OffscreenBuffer(SharedBasicContext context, const VkExtent2D& extent,
+                    VkFormat format, VkImageUsageFlags usage);
 
     // This class is neither copyable nor movable.
     OffscreenBuffer(const OffscreenBuffer&) = delete;

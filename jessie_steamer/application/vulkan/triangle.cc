@@ -157,21 +157,20 @@ void TriangleApp::MainLoop() {
   while (mutable_window_context()->CheckEvents()) {
     timer_.Tick();
 
-    const std::vector<RenderPass::RenderOp> render_ops{
-        [this](const VkCommandBuffer& command_buffer) {
-          pipeline_->Bind(command_buffer);
-          alpha_constant_->Flush(command_buffer, pipeline_->layout(),
-                                 current_frame_, /*target_offset=*/0,
-                                 VK_SHADER_STAGE_FRAGMENT_BIT);
-          vertex_buffer_->Draw(command_buffer, kVertexBufferBindingPoint,
-                               /*mesh_index=*/0, /*instance_count=*/1);
-        },
-    };
     const auto draw_result = command_->Run(
         current_frame_, window_context().swapchain(), update_data,
-        [this, &render_ops](const VkCommandBuffer& command_buffer,
-                            uint32_t framebuffer_index) {
-          render_pass_->Run(command_buffer, framebuffer_index, render_ops);
+        [this](const VkCommandBuffer& command_buffer,
+               uint32_t framebuffer_index) {
+          render_pass_->Run(command_buffer, framebuffer_index, /*render_ops=*/{
+              [this](const VkCommandBuffer& command_buffer) {
+                pipeline_->Bind(command_buffer);
+                alpha_constant_->Flush(command_buffer, pipeline_->layout(),
+                                       current_frame_, /*target_offset=*/0,
+                                       VK_SHADER_STAGE_FRAGMENT_BIT);
+                vertex_buffer_->Draw(command_buffer, kVertexBufferBindingPoint,
+                                     /*mesh_index=*/0, /*instance_count=*/1);
+              },
+          });
         });
 
     if (draw_result.has_value() || window_context().ShouldRecreate()) {

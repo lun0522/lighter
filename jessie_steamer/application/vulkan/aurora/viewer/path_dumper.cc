@@ -26,7 +26,6 @@ using namespace wrapper::vulkan;
 enum ProcessingStage {
   kRenderPathsStage,
   kComputeDistanceFieldStage,
-  kPresentStage,
   kNumProcessingStages,
 };
 
@@ -69,7 +68,6 @@ PathDumper::PathDumper(
     int paths_image_dimension, float camera_field_of_view,
     std::vector<const PerVertexBuffer*>&& aurora_paths_vertex_buffers)
     : context_{std::move(FATAL_IF_NULL(context))} {
-  using ImageUsage = ImageLayoutManager::ImageUsage;
   /* Camera */
   common::Camera::Config config;
   // We assume that:
@@ -91,27 +89,30 @@ PathDumper::PathDumper(
       static_cast<uint32_t>(paths_image_dimension)};
   const ImageSampler::Config sampler_config{
       VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
-  for (auto& image : paths_images_) {
-    image = absl::make_unique<OffscreenImage>(
-        context_, OffscreenImage::DataSource::kRender, paths_image_extent,
-        common::kBwImageChannel, sampler_config);
-  }
 
-  const std::array<ImageLayoutManager::UsageInfo, 2> image_usages{
-      ImageLayoutManager::UsageInfo{&paths_images_[0]->image(), "First"}
-          .SetInitialUsage(ImageUsage::kSampledInFragmentShader)
-          .AddUsage(kComputeDistanceFieldStage,
-                    ImageUsage::kLinearReadWriteInComputeShader)
-          .AddUsage(kPresentStage, ImageUsage::kSampledInFragmentShader),
-      ImageLayoutManager::UsageInfo{&paths_images_[1]->image(), "Second"}
-          .SetInitialUsage(ImageUsage::kDontCare)
-          .AddUsage(kComputeDistanceFieldStage,
-                    ImageUsage::kLinearReadWriteInComputeShader)
-          .AddUsage(kPresentStage, ImageUsage::kSampledInFragmentShader),
-  };
+  auto first_image_usage = image::UsageInfo{"First"}
+      .SetInitialUsage(image::Usage::kSampledInFragmentShader)
+      .AddUsage(kComputeDistanceFieldStage,
+                image::Usage::kLinearReadWriteInComputeShader)
+      .SetFinalUsage(image::Usage::kSampledInFragmentShader);
+  paths_images_[0] = absl::make_unique<OffscreenImage>(
+      context_, paths_image_extent, common::kBwImageChannel,
+      first_image_usage.GetImageUsageFlags(), sampler_config);
+
+  auto second_image_usage = image::UsageInfo{"Second"}
+      .SetInitialUsage(image::Usage::kDontCare)
+      .AddUsage(kComputeDistanceFieldStage,
+                image::Usage::kLinearReadWriteInComputeShader)
+      .SetFinalUsage(image::Usage::kSampledInFragmentShader);
+  paths_images_[1] = absl::make_unique<OffscreenImage>(
+      context_, paths_image_extent, common::kBwImageChannel,
+      second_image_usage.GetImageUsageFlags(), sampler_config);
 
   image_layout_manager_ = absl::make_unique<ImageLayoutManager>(
-      kNumProcessingStages, image_usages);
+      kNumProcessingStages, ImageLayoutManager::UsageInfoMap{
+          {&paths_images_[0]->image(), std::move(first_image_usage)},
+          {&paths_images_[1]->image(), std::move(second_image_usage)},
+      });
 
   /* Render pass */
   path_renderer_ = absl::make_unique<PathRenderer>(
@@ -152,12 +153,12 @@ void PathDumper::DumpAuroraPaths(const glm::vec3& viewpoint_position) {
   // TODO
   auto original_image_descriptor_info = paths_images_[0]->GetDescriptorInfo();
   original_image_descriptor_info.imageLayout =
-      image_layout_manager_->GetImageLayoutAtStage(paths_images_[0]->image(),
-                                                   kComputeDistanceFieldStage);
+      image_layout_manager_->GetLayoutAtStage(paths_images_[0]->image(),
+                                              kComputeDistanceFieldStage);
   auto output_image_descriptor_info = paths_images_[1]->GetDescriptorInfo();
   output_image_descriptor_info.imageLayout =
-      image_layout_manager_->GetImageLayoutAtStage(paths_images_[1]->image(),
-                                                   kComputeDistanceFieldStage);
+      image_layout_manager_->GetLayoutAtStage(paths_images_[1]->image(),
+                                              kComputeDistanceFieldStage);
   descriptor.UpdateImageInfos(
       VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
       /*image_info_map=*/
@@ -193,9 +194,8 @@ void PathDumper::DumpAuroraPaths(const glm::vec3& viewpoint_position) {
     vkCmdDispatch(command_buffer, group_count_x, group_count_y,
                   /*groupCountZ=*/1);
 
-    image_layout_manager_->InsertMemoryBarrierBeforeStage(
-        command_buffer, context_->queues().compute_queue().family_index,
-        kPresentStage);
+    image_layout_manager_->InsertMemoryBarrierAfterFinalStage(
+        command_buffer, context_->queues().compute_queue().family_index);
   });
 }
 

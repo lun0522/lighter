@@ -18,20 +18,19 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using ImageUsage = ImageLayoutManager::ImageUsage;
-using ImageUsageAtStage = ImageLayoutManager::UsageAtStage;
-
 // A comparator used to build a priority queue of ImageAtStage objects, ordered
 // by the stage in ascending order.
 struct ImageAtStageComparator {
-  bool operator()(const ImageUsageAtStage& lhs, const ImageUsageAtStage& rhs) {
+  bool operator()(const image::UsageAtStage& lhs,
+                  const image::UsageAtStage& rhs) {
     return lhs.stage > rhs.stage;
   }
 };
 
 // Min heap of ImageAtStage objects ordered by the stage.
 using ImageUsageAtStageQueue = std::priority_queue<
-    ImageUsageAtStage, std::vector<ImageUsageAtStage>, ImageAtStageComparator>;
+    image::UsageAtStage, std::vector<image::UsageAtStage>,
+    ImageAtStageComparator>;
 
 // Information we need for inserting a image memory barrier.
 struct BarrierInfo {
@@ -40,96 +39,145 @@ struct BarrierInfo {
 };
 
 // Returns BarrierInfo used for inserting a image memory barrier.
-// TODO: Let render pass handle ImageUsage::kPresentToScreen.
-BarrierInfo GetBarrierInfo(ImageLayoutManager::ImageUsage usage) {
+// TODO: Let render pass handle image::Usage::kPresentToScreen.
+BarrierInfo GetBarrierInfo(image::Usage usage) {
   switch (usage) {
-    case ImageUsage::kDontCare:
+    case image::Usage::kDontCare:
       return {VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, kNullAccessFlag};
 
-    case ImageUsage::kRenderingTarget:
+    case image::Usage::kRenderingTarget:
       return {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
               VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT};
 
-    case ImageUsage::kPresentToScreen:
+    case image::Usage::kPresentToScreen:
       FATAL("Should be done by render pass");
 
-    case ImageUsage::kSrcOfCopyOnDevice:
+    case image::Usage::kSrcOfCopyOnDevice:
       return {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT};
 
-    case ImageUsage::kDstOfCopyOnDevice:
+    case image::Usage::kDstOfCopyOnDevice:
       return {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT};
 
-    case ImageUsage::kSampledInFragmentShader:
-    case ImageUsage::kLinearReadInFragmentShader:
+    case image::Usage::kSampledInFragmentShader:
+    case image::Usage::kLinearReadInFragmentShader:
       return {VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT};
 
-    case ImageUsage::kLinearWriteInFragmentShader:
+    case image::Usage::kLinearWriteInFragmentShader:
       return {VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
               VK_ACCESS_SHADER_WRITE_BIT};
 
-    case ImageUsage::kSampledInComputeShader:
-    case ImageUsage::kLinearReadInComputeShader:
+    case image::Usage::kSampledInComputeShader:
+    case image::Usage::kLinearReadInComputeShader:
       return {VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT};
 
-    case ImageUsage::kLinearWriteInComputeShader:
+    case image::Usage::kLinearWriteInComputeShader:
       return {VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT};
 
-    case ImageUsage::kLinearReadWriteInFragmentShader:
+    case image::Usage::kLinearReadWriteInFragmentShader:
       return {VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
               VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT};
 
-    case ImageUsage::kLinearReadWriteInComputeShader:
+    case image::Usage::kLinearReadWriteInComputeShader:
       return {VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
               VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT};
 
-    case ImageUsage::kLinearReadByHost:
+    case image::Usage::kLinearReadByHost:
       return {VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_HOST_READ_BIT};
 
-    case ImageUsage::kLinearWriteByHost:
+    case image::Usage::kLinearWriteByHost:
       return {VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_HOST_WRITE_BIT};
   }
 }
 
 // Returns which image layout should be used for 'usage'.
-VkImageLayout GetImageLayout(ImageLayoutManager::ImageUsage usage) {
+VkImageLayout GetImageLayout(image::Usage usage) {
   switch (usage) {
-    case ImageUsage::kDontCare:
+    case image::Usage::kDontCare:
       return VK_IMAGE_LAYOUT_UNDEFINED;
 
-    case ImageUsage::kRenderingTarget:
+    case image::Usage::kRenderingTarget:
       return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    case ImageUsage::kPresentToScreen:
+    case image::Usage::kPresentToScreen:
       return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-    case ImageUsage::kSrcOfCopyOnDevice:
+    case image::Usage::kSrcOfCopyOnDevice:
       return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 
-    case ImageUsage::kDstOfCopyOnDevice:
+    case image::Usage::kDstOfCopyOnDevice:
       return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 
-    case ImageUsage::kSampledInFragmentShader:
-    case ImageUsage::kSampledInComputeShader:
+    case image::Usage::kSampledInFragmentShader:
+    case image::Usage::kSampledInComputeShader:
       return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    case ImageUsage::kLinearReadInFragmentShader:
-    case ImageUsage::kLinearReadInComputeShader:
-    case ImageUsage::kLinearWriteInFragmentShader:
-    case ImageUsage::kLinearWriteInComputeShader:
-    case ImageUsage::kLinearReadWriteInFragmentShader:
-    case ImageUsage::kLinearReadWriteInComputeShader:
-    case ImageUsage::kLinearReadByHost:
-    case ImageUsage::kLinearWriteByHost:
+    case image::Usage::kLinearReadInFragmentShader:
+    case image::Usage::kLinearReadInComputeShader:
+    case image::Usage::kLinearWriteInFragmentShader:
+    case image::Usage::kLinearWriteInComputeShader:
+    case image::Usage::kLinearReadWriteInFragmentShader:
+    case image::Usage::kLinearReadWriteInComputeShader:
+    case image::Usage::kLinearReadByHost:
+    case image::Usage::kLinearWriteByHost:
       return VK_IMAGE_LAYOUT_GENERAL;
+  }
+}
+
+// Returns the VkImageUsageFlagBits corresponding to 'usage'. Note that this
+// must not be called with image::Usage::kDontCare since it doesn't have flag.
+VkImageUsageFlagBits GetImageUsageFlagBits(image::Usage usage) {
+  switch (usage) {
+    case image::Usage::kDontCare:
+      FATAL("No usage flag bits if don't care about usage");
+
+    case image::Usage::kRenderingTarget:
+    case image::Usage::kPresentToScreen:
+      return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    case image::Usage::kSrcOfCopyOnDevice:
+      return VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+    case image::Usage::kDstOfCopyOnDevice:
+      return VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+    case image::Usage::kSampledInFragmentShader:
+    case image::Usage::kSampledInComputeShader:
+      return VK_IMAGE_USAGE_SAMPLED_BIT;
+
+    case image::Usage::kLinearReadInFragmentShader:
+    case image::Usage::kLinearReadInComputeShader:
+    case image::Usage::kLinearWriteInFragmentShader:
+    case image::Usage::kLinearWriteInComputeShader:
+    case image::Usage::kLinearReadWriteInFragmentShader:
+    case image::Usage::kLinearReadWriteInComputeShader:
+    case image::Usage::kLinearReadByHost:
+    case image::Usage::kLinearWriteByHost:
+      return VK_IMAGE_USAGE_STORAGE_BIT;
   }
 }
 
 } /* namespace */
 
+VkImageUsageFlags image::UsageInfo::GetImageUsageFlags() const {
+  uint32_t flags = 0;
+  for (auto usage : {initial_usage, final_usage}) {
+    if (usage != image::Usage::kDontCare) {
+      flags |= GetImageUsageFlagBits(usage);
+    }
+  }
+  for (const auto& usage : usage_at_stages) {
+    if (usage.usage != image::Usage::kDontCare) {
+      flags |= GetImageUsageFlagBits(usage.usage);
+    }
+  }
+  ASSERT_FALSE(flags == 0, "No usage found");
+  return static_cast<VkImageUsageFlags>(flags);
+}
+
 ImageLayoutManager::ImageUsageHistory::ImageUsageHistory(
-    int num_stages, const UsageInfo& usage_info)
+    int num_stages, const image::UsageInfo& usage_info)
     : num_stages_{num_stages}, image_name_{usage_info.image_name} {
-  for (const auto& usage : usage_info.usages) {
+  for (const auto& usage : usage_info.usage_at_stages) {
     ValidateStage(usage.stage);
   }
 
@@ -137,10 +185,10 @@ ImageLayoutManager::ImageUsageHistory::ImageUsageHistory(
   // stage -1 temporarily. We will shift all stages by 1 later.
   // If the user does not specify a final usage, we won't need to transition the
   // image layout, so we don't need to push it into the heap.
-  ImageUsageAtStageQueue usage_queue{usage_info.usages.begin(),
-                                     usage_info.usages.end()};
+  ImageUsageAtStageQueue usage_queue{usage_info.usage_at_stages.begin(),
+                                     usage_info.usage_at_stages.end()};
   usage_queue.push({usage_info.initial_usage, /*stage=*/-1});
-  if (usage_info.final_usage != ImageUsage::kDontCare) {
+  if (usage_info.final_usage != image::Usage::kDontCare) {
     usage_queue.push({usage_info.final_usage, /*stage=*/num_stages_});
   }
 
@@ -203,19 +251,17 @@ void ImageLayoutManager::ImageUsageHistory::ValidateStage(int stage) const {
                       num_stages_ - 1, stage));
 }
 
-ImageLayoutManager::ImageLayoutManager(
-    int num_stages, absl::Span<const UsageInfo> usage_infos) {
-  for (const auto& info : usage_infos) {
-    ASSERT_FALSE(image_usage_history_map_.contains(info.image),
-                 absl::StrFormat("Duplicated image usages specified for %s",
-                                 info.image_name));
-    image_usage_history_map_[info.image] =
-        absl::make_unique<ImageUsageHistory>(num_stages, info);
+ImageLayoutManager::ImageLayoutManager(int num_stages,
+                                       const UsageInfoMap& usage_info_map)
+    : num_stages_{num_stages} {
+  for (const auto& pair : usage_info_map) {
+    image_usage_history_map_[pair.first] =
+        absl::make_unique<ImageUsageHistory>(num_stages_, pair.second);
   }
 }
 
-VkImageLayout ImageLayoutManager::GetImageLayoutAtStage(const VkImage& image,
-                                                        int stage) const {
+VkImageLayout ImageLayoutManager::GetLayoutAtStage(const VkImage& image,
+                                                   int stage) const {
   const auto iter = image_usage_history_map_.find(&image);
   ASSERT_FALSE(iter == image_usage_history_map_.end(),
                "This manager does not have info about the image");
@@ -239,49 +285,73 @@ void ImageLayoutManager::InsertMemoryBarrierBeforeStage(
     if (!usage_history->IsUsageChanged(stage)) {
       continue;
     }
-
-    const auto prev_usage = usage_history->GetUsageAtPreviousStage(stage);
-    const auto curr_usage = usage_history->GetUsageAtCurrentStage(stage);
-    const auto prev_stage_barrier_info = GetBarrierInfo(prev_usage);
-    const auto curr_stage_barrier_info = GetBarrierInfo(curr_usage);
-
-    const VkImageMemoryBarrier barrier{
-        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-        /*pNext=*/nullptr,
-        /*srcAccessMask=*/prev_stage_barrier_info.access_mask,
-        /*dstAccessMask=*/curr_stage_barrier_info.access_mask,
-        /*oldLayout=*/GetImageLayout(prev_usage),
-        /*newLayout=*/GetImageLayout(curr_usage),
-        /*srcQueueFamilyIndex=*/queue_family_index,
-        /*dstQueueFamilyIndex=*/queue_family_index,
-        /*image=*/*pair.first,
-        VkImageSubresourceRange{
-            VK_IMAGE_ASPECT_COLOR_BIT,
-            /*baseMipLevel=*/0,
-            /*levelCount=*/1,
-            /*baseArrayLayer=*/0,
-            /*layerCount=*/1,
-        },
-    };
-
-    vkCmdPipelineBarrier(
-        command_buffer,
-        prev_stage_barrier_info.pipeline_stage,
-        curr_stage_barrier_info.pipeline_stage,
-        /*dependencyFlags=*/0,
-        /*memoryBarrierCount=*/0,
-        /*pMemoryBarriers=*/nullptr,
-        /*bufferMemoryBarrierCount=*/0,
-        /*pBufferMemoryBarriers=*/nullptr,
-        /*imageMemoryBarrierCount=*/1,
-        &barrier);
-
+    InsertMemoryBarrier(command_buffer, queue_family_index, *pair.first,
+                        usage_history->GetUsageAtPreviousStage(stage),
+                        usage_history->GetUsageAtCurrentStage(stage));
 #ifndef NDEBUG
     LOG_INFO << absl::StreamFormat("Inserted memory barrier for image '%s' "
                                    "before stage %d",
                                    pair.second->image_name(), stage);
 #endif /* !NDEBUG */
   }
+}
+
+void ImageLayoutManager::InsertMemoryBarrierAfterFinalStage(
+    const VkCommandBuffer& command_buffer, uint32_t queue_family_index) const {
+  const int last_stage = num_stages_ - 1;
+  for (const auto& pair : image_usage_history_map_) {
+    const auto& usage_history = pair.second;
+    if (!usage_history->IsUsageChangedAfterFinalStage()) {
+      continue;
+    }
+    InsertMemoryBarrier(command_buffer, queue_family_index, *pair.first,
+                        usage_history->GetUsageAtCurrentStage(last_stage),
+                        usage_history->GetUsageAtNextStage(last_stage));
+#ifndef NDEBUG
+    LOG_INFO << absl::StreamFormat("Inserted memory barrier for image '%s' "
+                                   "after final stage",
+                                   pair.second->image_name());
+#endif /* !NDEBUG */
+  }
+}
+
+void ImageLayoutManager::InsertMemoryBarrier(
+    const VkCommandBuffer& command_buffer, uint32_t queue_family_index,
+    const VkImage& image, image::Usage prev_usage,
+    image::Usage curr_usage) const {
+  const auto prev_stage_barrier_info = GetBarrierInfo(prev_usage);
+  const auto curr_stage_barrier_info = GetBarrierInfo(curr_usage);
+
+  const VkImageMemoryBarrier barrier{
+      VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+      /*pNext=*/nullptr,
+      /*srcAccessMask=*/prev_stage_barrier_info.access_mask,
+      /*dstAccessMask=*/curr_stage_barrier_info.access_mask,
+      /*oldLayout=*/GetImageLayout(prev_usage),
+      /*newLayout=*/GetImageLayout(curr_usage),
+      /*srcQueueFamilyIndex=*/queue_family_index,
+      /*dstQueueFamilyIndex=*/queue_family_index,
+      image,
+      VkImageSubresourceRange{
+          VK_IMAGE_ASPECT_COLOR_BIT,
+          /*baseMipLevel=*/0,
+          /*levelCount=*/1,
+          /*baseArrayLayer=*/0,
+          /*layerCount=*/1,
+      },
+  };
+
+  vkCmdPipelineBarrier(
+      command_buffer,
+      prev_stage_barrier_info.pipeline_stage,
+      curr_stage_barrier_info.pipeline_stage,
+      /*dependencyFlags=*/0,
+      /*memoryBarrierCount=*/0,
+      /*pMemoryBarriers=*/nullptr,
+      /*bufferMemoryBarrierCount=*/0,
+      /*pBufferMemoryBarriers=*/nullptr,
+      /*imageMemoryBarrierCount=*/1,
+      &barrier);
 }
 
 } /* namespace vulkan */

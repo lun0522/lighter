@@ -13,6 +13,7 @@ cc_library(
         "//jessie_steamer/wrapper/vulkan:on_screen",
         "//third_party/absl/flags:flag",
         "//third_party/absl/memory",
+        "//third_party/absl/types:span",
         "//third_party:glm",
         "//third_party:vulkan",
     ],

@@ -10,6 +10,7 @@
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
+#include "jessie_steamer/wrapper/vulkan/image_util.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline_util.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
@@ -50,9 +51,13 @@ std::unique_ptr<OffscreenImage> CreateTargetImage(
       static_cast<uint32_t>(background_image_extent.height *
                             num_buttons * button::kNumStates),
   };
+  const auto image_usage_flags = image::UsageInfo{"Buttons image"}
+      .SetInitialUsage(image::Usage::kRenderingTarget)
+      .SetFinalUsage(image::Usage::kSampledInFragmentShader)
+      .GetImageUsageFlags();
   return absl::make_unique<OffscreenImage>(
-      context, OffscreenImage::DataSource::kRender, buttons_image_extent,
-      common::kRgbaImageChannel, ImageSampler::Config{});
+      context, buttons_image_extent, common::kRgbaImageChannel,
+      image_usage_flags, ImageSampler::Config{});
 }
 
 // Creates per-instance vertex buffer storing RenderInfo.

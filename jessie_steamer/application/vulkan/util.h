@@ -27,6 +27,7 @@
 #include "jessie_steamer/wrapper/vulkan/window_context.h"
 #include "third_party/absl/flags/flag.h"
 #include "third_party/absl/memory/memory.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/glm/gtc/matrix_transform.hpp"
 #include "third_party/vulkan/vulkan.h"

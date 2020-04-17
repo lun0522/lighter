@@ -514,7 +514,7 @@ TextureImage::TextureBuffer::TextureBuffer(
     SharedBasicContext context, bool generate_mipmaps, const Info& info)
     : ImageBuffer{std::move(FATAL_IF_NULL(context))} {
   const VkExtent3D image_extent = info.GetExtent3D();
-  const uint32_t layer_count = CONTAINER_SIZE(info.datas);
+  const auto layer_count = CONTAINER_SIZE(info.datas);
   ASSERT_TRUE(layer_count == common::kSingleImageCount ||
                   layer_count == common::kCubemapImageCount,
               absl::StrFormat("Invalid number of images: %d", layer_count));
@@ -619,10 +619,10 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
 
 OffscreenImage::OffscreenImage(
     SharedBasicContext context,
-    DataSource data_source, const VkExtent2D& extent, int channel,
+    const VkExtent2D& extent, int channel, VkImageUsageFlags usage,
     const ImageSampler::Config& sampler_config)
     : Image{std::move(context), extent, FindColorImageFormat(channel)},
-      buffer_{context_, data_source, extent_, format_},
+      buffer_{context_, extent_, format_, usage},
       sampler_{context_, kSingleMipLevel, sampler_config} {
   SetImageView(CreateImageView(*context_, buffer_.image(), format_,
                                VK_IMAGE_ASPECT_COLOR_BIT,
@@ -638,23 +638,11 @@ VkDescriptorImageInfo OffscreenImage::GetDescriptorInfo() const {
 }
 
 OffscreenImage::OffscreenBuffer::OffscreenBuffer(
-    SharedBasicContext context, DataSource data_source,
-    const VkExtent2D& extent, VkFormat format)
+    SharedBasicContext context,
+    const VkExtent2D& extent, VkFormat format, VkImageUsageFlags usage)
     : ImageBuffer{std::move(context)} {
-  // TODO: VK_IMAGE_USAGE_STORAGE_BIT not always needed. Should infer from image
-  // usages.
-  VkImageUsageFlags image_usage = VK_IMAGE_USAGE_SAMPLED_BIT;
-  switch (data_source) {
-    case DataSource::kRender:
-      image_usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-      image_usage |= VK_IMAGE_USAGE_STORAGE_BIT;
-      break;
-    case DataSource::kCompute:
-      image_usage |= VK_IMAGE_USAGE_STORAGE_BIT;
-      break;
-  }
   SetImage(CreateImage(*context_, ImageConfig{}, nullflag, format,
-                       ExpandDimension(extent), image_usage));
+                       ExpandDimension(extent), usage));
   SetDeviceMemory(CreateImageMemory(
       *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 }

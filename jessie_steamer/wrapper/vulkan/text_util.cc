@@ -10,6 +10,7 @@
 #include <algorithm>
 
 #include "jessie_steamer/wrapper/vulkan/command.h"
+#include "jessie_steamer/wrapper/vulkan/image_util.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline_util.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
 #include "third_party/absl/memory/memory.h"
@@ -168,10 +169,13 @@ CharLoader::CharLoader(const SharedBasicContext& context,
   {
     const common::CharLib char_lib{texts, GetFontPath(font), font_height};
     const int interval_between_chars = GetIntervalBetweenChars(char_lib);
+    const auto image_usage_flags = image::UsageInfo{"Char atlas"}
+        .SetInitialUsage(image::Usage::kRenderingTarget)
+        .SetFinalUsage(image::Usage::kSampledInFragmentShader)
+        .GetImageUsageFlags();
     char_atlas_image_ = absl::make_unique<OffscreenImage>(
-        context, OffscreenImage::DataSource::kRender,
-        GetCharAtlasImageExtent(char_lib, interval_between_chars),
-        common::kBwImageChannel, GetTextSamplerConfig());
+        context, GetCharAtlasImageExtent(char_lib, interval_between_chars),
+        common::kBwImageChannel, image_usage_flags, GetTextSamplerConfig());
     space_advance_x_ = GetSpaceAdvanceX(char_lib, *char_atlas_image_);
     CreateCharTextures(context, char_lib, interval_between_chars,
                        *char_atlas_image_, &char_image_map,
@@ -382,9 +386,13 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
       static_cast<uint32_t>(font_height),
   };
   const float base_y = highest_base_y;
+  const auto image_usage_flags = image::UsageInfo{"Text image"}
+      .SetInitialUsage(image::Usage::kRenderingTarget)
+      .SetFinalUsage(image::Usage::kSampledInFragmentShader)
+      .GetImageUsageFlags();
   auto text_image = absl::make_unique<OffscreenImage>(
-      context, OffscreenImage::DataSource::kRender, text_image_extent,
-      common::kBwImageChannel, GetTextSamplerConfig());
+      context, text_image_extent, common::kBwImageChannel, image_usage_flags,
+      GetTextSamplerConfig());
 
   // The resulting image should be flipped, so that when we use it later, we
   // don't have to flip Y coordinates again.

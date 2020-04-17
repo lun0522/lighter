@@ -267,19 +267,18 @@ void NanosuitApp::MainLoop() {
   while (!should_quit_ && mutable_window_context()->CheckEvents()) {
     timer_.Tick();
 
-    const std::vector<RenderPass::RenderOp> render_ops{
-        [this](const VkCommandBuffer& command_buffer) {
-          nanosuit_model_->Draw(command_buffer, current_frame_,
-                                /*instance_count=*/1);
-          skybox_model_->Draw(command_buffer, current_frame_,
-                              /*instance_count=*/1);
-        },
-    };
     const auto draw_result = command_->Run(
         current_frame_, window_context().swapchain(), update_data,
-        [this, &render_ops](const VkCommandBuffer& command_buffer,
-                            uint32_t framebuffer_index) {
-          render_pass_->Run(command_buffer, framebuffer_index, render_ops);
+        [this](const VkCommandBuffer& command_buffer,
+               uint32_t framebuffer_index) {
+          render_pass_->Run(command_buffer, framebuffer_index, /*render_ops=*/{
+              [this](const VkCommandBuffer& command_buffer) {
+                nanosuit_model_->Draw(command_buffer, current_frame_,
+                                      /*instance_count=*/1);
+                skybox_model_->Draw(command_buffer, current_frame_,
+                                    /*instance_count=*/1);
+              },
+          });
         });
 
     if (draw_result.has_value() || window_context().ShouldRecreate()) {

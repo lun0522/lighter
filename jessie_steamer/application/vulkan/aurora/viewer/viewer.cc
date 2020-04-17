@@ -76,12 +76,11 @@ void Viewer::Recreate() {
 
 void Viewer::Draw(const VkCommandBuffer& command_buffer,
                   uint32_t framebuffer_index, int current_frame) {
-  const RenderPass::RenderOp render_op =
-      [this](const VkCommandBuffer& command_buffer) {
-        image_viewer_->Draw(command_buffer);
-      };
-  render_pass_->Run(command_buffer, framebuffer_index,
-                    absl::MakeSpan(&render_op, 1));
+  render_pass_->Run(command_buffer, framebuffer_index, /*render_ops=*/{
+        [this](const VkCommandBuffer& command_buffer) {
+          image_viewer_->Draw(command_buffer);
+        },
+  });
 }
 
 } /* namespace aurora */

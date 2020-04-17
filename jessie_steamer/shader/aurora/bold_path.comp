@@ -13,12 +13,13 @@ void main() {
   if (any(greaterThanEqual(coord, imageSize(original_image)))) {
     return;
   }
-  uint output_color = 0;
+  float output_color = 0.0;
   for (int x = -SAMPLING_RADIUS; x <= SAMPLING_RADIUS; ++x) {
     for (int y = -SAMPLING_RADIUS; y <= SAMPLING_RADIUS; ++y) {
       output_color +=
-          uint(imageLoad(original_image, ivec2(coord.x + x, coord.y + y)).r);
+          imageLoad(original_image, ivec2(coord.x + x, coord.y + y)).r;
     }
   }
-  imageStore(output_image, coord, uvec4(output_color, 0, 0, 0));
+  output_color /= (SAMPLING_RADIUS * SAMPLING_RADIUS / 5.0);
+  imageStore(output_image, coord, vec4(output_color, 0.0, 0.0, 0.0));
 }

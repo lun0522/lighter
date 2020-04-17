@@ -235,6 +235,7 @@ cc_library(
         ":command",
         ":descriptor",
         ":image",
+        ":image_util",
         ":pipeline",
         ":render_pass",
         ":util",

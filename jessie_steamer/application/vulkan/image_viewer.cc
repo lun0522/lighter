@@ -85,34 +85,30 @@ ImageViewerApp::ImageViewerApp(const WindowContext::Config& window_config)
 }
 
 void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
-  using ImageUsage = ImageLayoutManager::ImageUsage;
   enum ProcessingStage {
     kComputingStage,
-    kRenderingStage,
     kNumProcessingStages,
   };
 
   const common::Image image_from_file{file_path};
   const TextureImage original_image(context(), /*generate_mipmaps=*/false,
                                     image_from_file, ImageSampler::Config{});
+  auto original_image_usage = image::UsageInfo{"Original"}
+      .SetInitialUsage(image::Usage::kSampledInFragmentShader)
+      .AddUsage(kComputingStage, image::Usage::kLinearReadInComputeShader);
+
+  auto processed_image_usage = image::UsageInfo{"Processed"}
+      .AddUsage(kComputingStage, image::Usage::kLinearReadInComputeShader)
+      .SetFinalUsage(image::Usage::kSampledInFragmentShader);
   image_ = absl::make_unique<OffscreenImage>(
-      context(), OffscreenImage::DataSource::kCompute, original_image.extent(),
-      image_from_file.channel, ImageSampler::Config{});
-
-  auto original_image_usage =
-      ImageLayoutManager::UsageInfo{&original_image.image(), "Original"}
-          .SetInitialUsage(ImageUsage::kSampledInFragmentShader)
-          .AddUsage(kComputingStage, ImageUsage::kLinearReadInComputeShader);
-
-  auto processed_image_usage =
-      ImageLayoutManager::UsageInfo{&image_->image(), "Processed"}
-          .AddUsage(kComputingStage, ImageUsage::kLinearReadInComputeShader)
-          .AddUsage(kRenderingStage, ImageUsage::kSampledInFragmentShader);
+      context(), original_image.extent(), image_from_file.channel,
+      processed_image_usage.GetImageUsageFlags(), ImageSampler::Config{});
 
   const ImageLayoutManager layout_manager{
-      kNumProcessingStages,
-      {std::move(original_image_usage), std::move(processed_image_usage)},
-  };
+      kNumProcessingStages, /*usage_info_map=*/{
+          {&original_image.image(), std::move(original_image_usage)},
+          {&image_->image(), std::move(processed_image_usage)},
+      }};
 
   StaticDescriptor descriptor{
       context(), /*infos=*/std::vector<Descriptor::Info>{
@@ -139,11 +135,10 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
   // TODO
   auto original_image_descriptor_info = original_image.GetDescriptorInfo();
   original_image_descriptor_info.imageLayout =
-      layout_manager.GetImageLayoutAtStage(original_image.image(),
-                                           kComputingStage);
+      layout_manager.GetLayoutAtStage(original_image.image(), kComputingStage);
   auto output_image_descriptor_info = image_->GetDescriptorInfo();
   output_image_descriptor_info.imageLayout =
-      layout_manager.GetImageLayoutAtStage(image_->image(), kComputingStage);
+      layout_manager.GetLayoutAtStage(image_->image(), kComputingStage);
   descriptor.UpdateImageInfos(
       VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
       /*image_info_map=*/
@@ -173,9 +168,8 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
     vkCmdDispatch(command_buffer, group_count_x, group_count_y,
                   /*groupCountZ=*/1);
 
-    layout_manager.InsertMemoryBarrierBeforeStage(
-        command_buffer, context()->queues().compute_queue().family_index,
-        kRenderingStage);
+    layout_manager.InsertMemoryBarrierAfterFinalStage(
+        command_buffer, context()->queues().compute_queue().family_index);
   });
 
   image_viewer_ = absl::make_unique<ImageViewer>(
@@ -194,19 +188,19 @@ void ImageViewerApp::Recreate() {
 }
 
 void ImageViewerApp::MainLoop() {
-  const std::vector<RenderPass::RenderOp> render_ops{
+  const RenderPass::RenderOp render_op =
       [this](const VkCommandBuffer& command_buffer) {
         image_viewer_->Draw(command_buffer);
-      },
-  };
+      };
 
   Recreate();
   while (mutable_window_context()->CheckEvents()) {
     const auto draw_result = command_->Run(
         current_frame_, window_context().swapchain(), /*update_data=*/nullptr,
-        [this, &render_ops](const VkCommandBuffer& command_buffer,
+        [this, &render_op](const VkCommandBuffer& command_buffer,
                             uint32_t framebuffer_index) {
-          render_pass_->Run(command_buffer, framebuffer_index, render_ops);
+          render_pass_->Run(command_buffer, framebuffer_index,
+                            absl::MakeSpan(&render_op, 1));
         });
 
     if (draw_result.has_value() || window_context().ShouldRecreate()) {
