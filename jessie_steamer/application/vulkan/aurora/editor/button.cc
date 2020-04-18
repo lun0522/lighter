@@ -25,8 +25,6 @@ namespace {
 
 using namespace wrapper::vulkan;
 
-using std::vector;
-
 enum UniformBindingPoint {
   kVerticesInfoBindingPoint = 0,
   kImageBindingPoint,
@@ -72,7 +70,7 @@ ButtonRenderer::ButtonRenderer(
 std::unique_ptr<StaticDescriptor> ButtonRenderer::CreateDescriptor(
     const SharedBasicContext& context) const {
   auto descriptor = absl::make_unique<StaticDescriptor>(
-      context, /*infos=*/vector<Descriptor::Info>{
+      context, /*infos=*/std::vector<Descriptor::Info>{
           Descriptor::Info{
               VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
               VK_SHADER_STAGE_VERTEX_BIT,
@@ -115,7 +113,7 @@ void ButtonRenderer::UpdateFramebuffer(
       .SetViewport(GraphicsPipelineBuilder::ViewportInfo{viewport})
       .SetRenderPass(*render_pass, subpass_index)
       .SetColorBlend(
-          vector<VkPipelineColorBlendAttachmentState>(
+          std::vector<VkPipelineColorBlendAttachmentState>(
               render_pass.num_color_attachments(subpass_index),
               pipeline::GetColorAlphaBlendState(/*enable_blend=*/true)))
       .Build();
@@ -149,7 +147,7 @@ Button::Button(const SharedBasicContext& context,
   constexpr int kBackgroundImageWidth = 500;
   const auto background_image_height =
       static_cast<int>(kBackgroundImageWidth * button_size.y / button_size.x);
-  const vector<char> background_image_pixels(
+  const std::vector<char> background_image_pixels(
       kBackgroundImageWidth * background_image_height, static_cast<char>(255));
   const common::Image background_image{
       kBackgroundImageWidth, background_image_height, common::kBwImageChannel,
@@ -170,7 +168,7 @@ Button::Button(const SharedBasicContext& context,
 
   const auto render_infos = CreateMakeButtonRenderInfos(buttons_info);
   const auto text_pos = CreateMakeButtonTextPos(buttons_info);
-  vector<make_button::ButtonInfo> button_infos;
+  std::vector<make_button::ButtonInfo> button_infos;
   button_infos.reserve(num_buttons);
   for (int button = 0; button < num_buttons; ++button) {
     const int index_base = button * button::kNumStates;
@@ -192,13 +190,13 @@ Button::Button(const SharedBasicContext& context,
       std::move(buttons_image));
 }
 
-vector<make_button::RenderInfo> Button::CreateMakeButtonRenderInfos(
+std::vector<make_button::RenderInfo> Button::CreateMakeButtonRenderInfos(
     const ButtonsInfo& buttons_info) const {
   const int num_buttons = buttons_info.button_infos.size();
   const float button_height_ndc =
       kNdcDim / static_cast<float>(num_buttons * button::kNumStates);
   float offset_y_ndc = -1.0f + button_height_ndc / 2.0f;
-  vector<make_button::RenderInfo> render_infos;
+  std::vector<make_button::RenderInfo> render_infos;
   render_infos.reserve(num_buttons * button::kNumStates);
   for (const auto& info : buttons_info.button_infos) {
     for (int state = 0; state < button::kNumStates; ++state) {
@@ -226,7 +224,7 @@ button::VerticesInfo Button::CreateMakeButtonVerticesInfo(
   return vertices_info;
 }
 
-vector<Button::TextPos> Button::CreateMakeButtonTextPos(
+std::vector<Button::TextPos> Button::CreateMakeButtonTextPos(
     const ButtonsInfo& buttons_info) const {
   const int num_buttons = buttons_info.button_infos.size();
   const float button_height =
@@ -235,7 +233,7 @@ vector<Button::TextPos> Button::CreateMakeButtonTextPos(
       (buttons_info.top_y - buttons_info.base_y) * button_height;
 
   float offset_y = 0.0f;
-  vector<TextPos> text_pos;
+  std::vector<TextPos> text_pos;
   text_pos.reserve(num_buttons);
   for (int button = 0; button < num_buttons; ++button) {
     for (int state = 0; state < button::kNumStates; ++state) {

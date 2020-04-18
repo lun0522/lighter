@@ -16,8 +16,6 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::vector;
-
 // Returns a callback that simply prints the error reason.
 VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
@@ -32,10 +30,10 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
 
 namespace validation {
 
-const vector<const char*>& GetRequiredLayers() {
-  static const vector<const char*>* validation_layers = nullptr;
+const std::vector<const char*>& GetRequiredLayers() {
+  static const std::vector<const char*>* validation_layers = nullptr;
   if (validation_layers == nullptr) {
-    validation_layers = new vector<const char*>{
+    validation_layers = new std::vector<const char*>{
         "VK_LAYER_KHRONOS_validation",
     };
   }

@@ -29,7 +29,7 @@ class NaiveRenderPassBuilder {
  public:
   // The usage of color attachment at the end of this render pass.
   enum class ColorAttachmentFinalUsage {
-    kPresentToScreen, kSampledAsTexture, kAccessedByHost,
+    kPresentToScreen, kSampledAsTexture, kAccessedLinearly,
   };
 
   // Configures numbers of different kinds of subpasses. If multisampling is

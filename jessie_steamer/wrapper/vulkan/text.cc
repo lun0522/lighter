@@ -23,8 +23,6 @@ namespace vulkan {
 namespace {
 
 using common::Vertex2D;
-using std::string;
-using std::vector;
 
 enum BindingPoint { kUniformBufferBindingPoint = 0, kTextureBindingPoint };
 
@@ -51,10 +49,10 @@ float GetOffsetX(float base_x, Text::Align align, float total_width) {
 }
 
 // Returns descriptor infos for rendering text.
-const vector<Descriptor::Info>& GetDescriptorInfos() {
-  static const vector<Descriptor::Info>* descriptor_infos = nullptr;
+const std::vector<Descriptor::Info>& GetDescriptorInfos() {
+  static const std::vector<Descriptor::Info>* descriptor_infos = nullptr;
   if (descriptor_infos == nullptr) {
-    descriptor_infos = new vector<Descriptor::Info>{
+    descriptor_infos = new std::vector<Descriptor::Info>{
         Descriptor::Info{
             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -88,11 +86,11 @@ inline glm::vec2 SetXPositive(const glm::vec2& value) {
 } /* namespace */
 
 Text::Text(const SharedBasicContext& context,
-           string&& pipeline_name,
+           std::string&& pipeline_name,
            int num_frames_in_flight,
            float viewport_aspect_ratio)
     : viewport_aspect_ratio_{viewport_aspect_ratio},
-      vertex_buffer_{context, text_util::GetVertexDataSize(/*num_rects=*/1),
+      vertex_buffer_{context, text::GetVertexDataSize(/*num_rects=*/1),
                      pipeline::GetVertexAttribute<Vertex2D>()},
       uniform_buffer_{context, sizeof(TextRenderInfo), num_frames_in_flight},
       pipeline_builder_{context} {
@@ -115,7 +113,7 @@ void Text::Update(const VkExtent2D& frame_size,
       .SetViewport(pipeline::GetViewport(frame_size, viewport_aspect_ratio_))
       .SetRenderPass(*render_pass, subpass_index)
       .SetColorBlend(
-          vector<VkPipelineColorBlendAttachmentState>(
+          std::vector<VkPipelineColorBlendAttachmentState>(
               render_pass.num_color_attachments(subpass_index),
               pipeline::GetColorAlphaBlendState(/*enable_blend=*/true)))
       .Build();
@@ -126,14 +124,14 @@ int Text::UpdateBuffers(int frame, const glm::vec3& color, float alpha) {
       glm::vec4(color, alpha);
   uniform_buffer_.Flush(frame);
 
-  constexpr int kNumVerticesPerMesh = text_util::kNumVerticesPerRect;
+  constexpr int kNumVerticesPerMesh = text::kNumVerticesPerRect;
   const auto num_meshes = static_cast<int>(vertices_to_draw_.size()) /
                           kNumVerticesPerMesh;
   vertex_buffer_.CopyHostData(PerVertexBuffer::ShareIndicesDataInfo{
       num_meshes,
       /*per_mesh_vertices=*/{vertices_to_draw_, kNumVerticesPerMesh},
       /*shared_indices=*/
-      {PerVertexBuffer::VertexDataInfo{text_util::GetIndicesPerRect()}},
+      {PerVertexBuffer::VertexDataInfo{text::GetIndicesPerRect()}},
   });
   vertices_to_draw_.clear();
 
@@ -199,7 +197,7 @@ glm::vec2 StaticText::AddText(int text_index, float height, float base_x,
       (height / 1.0f));
   const float width_in_frame = 1.0f * ratio.x;
   const float offset_x = GetOffsetX(base_x, align, width_in_frame);
-  text_util::AppendCharPosAndTexCoord(
+  text::AppendCharPosAndTexCoord(
       /*pos_bottom_left=*/{offset_x, base_y - texture_info.base_y * ratio.y},
       /*pos_increment=*/glm::vec2{1.0f} * ratio,
       /*tex_coord_bottom_left=*/glm::vec2{0.0f},
@@ -271,7 +269,7 @@ glm::vec2 DynamicText::AddText(const std::string& text, float height,
 
   const float initial_offset_x = GetOffsetX(base_x, align,
                                             total_width_in_tex_coord * ratio.x);
-  const float final_offset_x = text_util::LoadCharsVertexData(
+  const float final_offset_x = text::LoadCharsVertexData(
       text, char_loader_, ratio, initial_offset_x, base_y, /*flip_y=*/false,
       mutable_vertices());
 

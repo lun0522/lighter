@@ -14,8 +14,6 @@ namespace jessie_steamer {
 namespace common {
 namespace {
 
-using std::vector;
-
 // Translates the key we defined to its counterpart in GLFW.
 int WindowKeyToGlfwKey(Window::KeyMap key) {
   using KeyMap = Window::KeyMap;
@@ -153,13 +151,13 @@ bool Window::ShouldQuit() const {
 }
 
 #ifdef USE_VULKAN
-const vector<const char*>& Window::GetRequiredExtensions() {
-  static const vector<const char*>* required_extensions = nullptr;
+const std::vector<const char*>& Window::GetRequiredExtensions() {
+  static const std::vector<const char*>* required_extensions = nullptr;
   if (required_extensions == nullptr) {
     uint32_t extension_count;
     const char** glfw_extensions =
         glfwGetRequiredInstanceExtensions(&extension_count);
-    required_extensions = new vector<const char*>{
+    required_extensions = new std::vector<const char*>{
         glfw_extensions, glfw_extensions + extension_count};
   }
   return *required_extensions;

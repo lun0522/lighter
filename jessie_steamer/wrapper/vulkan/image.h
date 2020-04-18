@@ -192,11 +192,13 @@ class TextureImage : public Image, public SamplableImage {
 
   TextureImage(SharedBasicContext context,
                bool generate_mipmaps,
+               VkImageUsageFlags usage_flags,
                const ImageSampler::Config& sampler_config,
                const Info& info);
 
   TextureImage(SharedBasicContext context,
                bool generate_mipmaps,
+               VkImageUsageFlags usage_flags,
                const common::Image& image,
                const ImageSampler::Config& sampler_config);
 
@@ -213,7 +215,9 @@ class TextureImage : public Image, public SamplableImage {
   class TextureBuffer : public ImageBuffer {
    public:
     TextureBuffer(SharedBasicContext context,
-                  bool generate_mipmaps, const Info& info);
+                  bool generate_mipmaps,
+                  VkImageUsageFlags usage_flags,
+                  const Info& info);
 
     // This class is neither copyable nor movable.
     TextureBuffer(const TextureBuffer&) = delete;
@@ -253,9 +257,12 @@ class SharedTexture : public SamplableImage {
   };
   using SourcePath = absl::variant<SingleTexPath, CubemapPath>;
 
-  SharedTexture(SharedBasicContext context, const SourcePath& source_path,
+  SharedTexture(SharedBasicContext context,
+                const SourcePath& source_path,
+                VkImageUsageFlags usage_flags,
                 const ImageSampler::Config& sampler_config)
-      : texture_{GetTexture(std::move(context), source_path, sampler_config)} {}
+      : texture_{GetTexture(std::move(context), source_path, usage_flags,
+                            sampler_config)} {}
 
   // This class is only movable.
   SharedTexture(SharedTexture&&) = default;
@@ -277,7 +284,9 @@ class SharedTexture : public SamplableImage {
   // no other holder, it will be loaded from the file. Otherwise, this returns
   // a reference to an existing resource on the device.
   static RefCountedTexture GetTexture(
-      SharedBasicContext context, const SourcePath& source_path,
+      SharedBasicContext context,
+      const SourcePath& source_path,
+      VkImageUsageFlags usage_flags,
       const ImageSampler::Config& sampler_config);
 
   // Reference counted texture image.
@@ -289,7 +298,8 @@ class SharedTexture : public SamplableImage {
 class OffscreenImage : public Image, public SamplableImage {
  public:
   OffscreenImage(SharedBasicContext context,
-                 const VkExtent2D& extent, int channel, VkImageUsageFlags usage,
+                 const VkExtent2D& extent, int channel,
+                 VkImageUsageFlags usage_flags,
                  const ImageSampler::Config& sampler_config);
 
   // This class is neither copyable nor movable.
@@ -305,7 +315,7 @@ class OffscreenImage : public Image, public SamplableImage {
   class OffscreenBuffer : public ImageBuffer {
    public:
     OffscreenBuffer(SharedBasicContext context, const VkExtent2D& extent,
-                    VkFormat format, VkImageUsageFlags usage);
+                    VkFormat format, VkImageUsageFlags usage_flags);
 
     // This class is neither copyable nor movable.
     OffscreenBuffer(const OffscreenBuffer&) = delete;

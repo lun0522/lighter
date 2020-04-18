@@ -169,7 +169,7 @@ class TextLoader {
   std::vector<TextTextureInfo> text_texture_infos_;
 };
 
-namespace text_util {
+namespace text {
 
 constexpr int kNumVerticesPerRect = 4;
 constexpr int kNumIndicesPerRect = 6;
@@ -200,7 +200,7 @@ float LoadCharsVertexData(const std::string& text,
                           float base_y, bool flip_y,
                           std::vector<common::Vertex2D>* vertices);
 
-} /* namespace text_util */
+} /* namespace text */
 } /* namespace vulkan */
 } /* namespace wrapper */
 } /* namespace jessie_steamer */

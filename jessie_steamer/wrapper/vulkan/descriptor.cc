@@ -16,8 +16,6 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::vector;
-
 // Creates a descriptor pool, assuming it will only be used to allocate memory
 // for one descriptor set.
 VkDescriptorPool CreateDescriptorPool(
@@ -32,7 +30,7 @@ VkDescriptorPool CreateDescriptorPool(
     pool_size_map[info.descriptor_type] += total_length;
   }
 
-  vector<VkDescriptorPoolSize> pool_sizes;
+  std::vector<VkDescriptorPoolSize> pool_sizes;
   pool_sizes.reserve(pool_size_map.size());
   for (const auto& pair : pool_size_map) {
     pool_sizes.emplace_back(VkDescriptorPoolSize{
@@ -68,7 +66,7 @@ VkDescriptorSetLayout CreateDescriptorSetLayout(
     total_bindings += info.bindings.size();
   }
 
-  vector<VkDescriptorSetLayoutBinding> layout_bindings;
+  std::vector<VkDescriptorSetLayoutBinding> layout_bindings;
   layout_bindings.reserve(total_bindings);
   for (const auto& info : descriptor_infos) {
     for (int i = 0; i < info.bindings.size(); ++i) {
@@ -123,17 +121,17 @@ VkDescriptorSet AllocateDescriptorSet(const BasicContext& context,
 // InfoType must be either VkDescriptorBufferInfo, VkDescriptorImageInfo or
 // VkBufferView.
 template <typename InfoType>
-vector<VkWriteDescriptorSet> CreateWriteDescriptorSets(
+std::vector<VkWriteDescriptorSet> CreateWriteDescriptorSets(
     const VkDescriptorSet& descriptor_set,
     VkDescriptorType descriptor_type,
-    const absl::flat_hash_map<uint32_t, vector<InfoType>>& info_map) {
+    const absl::flat_hash_map<uint32_t, std::vector<InfoType>>& info_map) {
   static_assert(std::is_same<InfoType, VkDescriptorBufferInfo>::value ||
                     std::is_same<InfoType, VkDescriptorImageInfo>::value ||
                     std::is_same<InfoType, VkBufferView>::value,
                 "Unexpected info type");
 
   using common::util::GetPointerIfTypeExpected;
-  vector<VkWriteDescriptorSet> write_desc_sets;
+  std::vector<VkWriteDescriptorSet> write_desc_sets;
   write_desc_sets.reserve(info_map.size());
   for (const auto& pair : info_map) {
     const auto& info = pair.second;
@@ -180,7 +178,7 @@ const StaticDescriptor& StaticDescriptor::UpdateImageInfos(
 }
 
 const StaticDescriptor& StaticDescriptor::UpdateDescriptorSets(
-    const vector<VkWriteDescriptorSet>& write_descriptor_sets) const {
+    const std::vector<VkWriteDescriptorSet>& write_descriptor_sets) const {
   vkUpdateDescriptorSets(
       *context_->device(),
       CONTAINER_SIZE(write_descriptor_sets), write_descriptor_sets.data(),
@@ -209,7 +207,7 @@ DynamicDescriptor::DynamicDescriptor(SharedBasicContext context,
           const VkCommandBuffer& command_buffer,
           const VkPipelineLayout& pipeline_layout,
           VkPipelineBindPoint pipeline_binding_point,
-          const vector<VkWriteDescriptorSet>& write_descriptor_sets)
+          const std::vector<VkWriteDescriptorSet>& write_descriptor_sets)
               -> const DynamicDescriptor& {
         vkCmdPushDescriptorSetKHR(command_buffer, pipeline_binding_point,
                                   pipeline_layout, /*set=*/0,

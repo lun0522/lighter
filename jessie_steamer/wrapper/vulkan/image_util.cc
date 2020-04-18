@@ -158,23 +158,29 @@ VkImageUsageFlagBits GetImageUsageFlagBits(image::Usage usage) {
 
 } /* namespace */
 
-VkImageUsageFlags image::UsageInfo::GetImageUsageFlags() const {
+namespace image {
+
+std::vector<Usage> UsageInfo::GetAllUsages() const {
+  std::vector<Usage> usages{initial_usage, final_usage};
+  usages.reserve(usages.size() + usage_at_stages.size());
+  for (const auto& usage_at_stage : usage_at_stages) {
+    usages.emplace_back(usage_at_stage.usage);
+  }
+  return usages;
+}
+
+VkImageUsageFlags GetImageUsageFlags(absl::Span<const Usage> usages) {
   uint32_t flags = 0;
-  for (auto usage : {initial_usage, final_usage}) {
+  for (const auto& usage : usages) {
     if (usage != image::Usage::kDontCare) {
       flags |= GetImageUsageFlagBits(usage);
-    }
-  }
-  for (const auto& usage : usage_at_stages) {
-    if (usage.usage != image::Usage::kDontCare) {
-      flags |= GetImageUsageFlagBits(usage.usage);
     }
   }
   ASSERT_FALSE(flags == 0, "No usage found");
   return static_cast<VkImageUsageFlags>(flags);
 }
 
-ImageLayoutManager::ImageUsageHistory::ImageUsageHistory(
+LayoutManager::UsageHistory::UsageHistory(
     int num_stages, const image::UsageInfo& usage_info)
     : num_stages_{num_stages}, image_name_{usage_info.image_name} {
   for (const auto& usage : usage_info.usage_at_stages) {
@@ -244,23 +250,22 @@ ImageLayoutManager::ImageUsageHistory::ImageUsageHistory(
   }
 }
 
-void ImageLayoutManager::ImageUsageHistory::ValidateStage(int stage) const {
+void LayoutManager::UsageHistory::ValidateStage(int stage) const {
   ASSERT_TRUE(
       stage >= 0 && stage < num_stages_,
       absl::StrFormat("Stage must be in range [0, %d], while %d provided",
                       num_stages_ - 1, stage));
 }
 
-ImageLayoutManager::ImageLayoutManager(int num_stages,
-                                       const UsageInfoMap& usage_info_map)
+LayoutManager::LayoutManager(int num_stages, const UsageInfoMap& usage_info_map)
     : num_stages_{num_stages} {
   for (const auto& pair : usage_info_map) {
     image_usage_history_map_[pair.first] =
-        absl::make_unique<ImageUsageHistory>(num_stages_, pair.second);
+        absl::make_unique<UsageHistory>(num_stages_, pair.second);
   }
 }
 
-VkImageLayout ImageLayoutManager::GetLayoutAtStage(const VkImage& image,
+VkImageLayout LayoutManager::GetLayoutAtStage(const VkImage& image,
                                                    int stage) const {
   const auto iter = image_usage_history_map_.find(&image);
   ASSERT_FALSE(iter == image_usage_history_map_.end(),
@@ -268,7 +273,7 @@ VkImageLayout ImageLayoutManager::GetLayoutAtStage(const VkImage& image,
   return GetImageLayout(iter->second->GetUsageAtCurrentStage(stage));
 }
 
-bool ImageLayoutManager::NeedMemoryBarrierBeforeStage(int stage) const {
+bool LayoutManager::NeedMemoryBarrierBeforeStage(int stage) const {
   for (const auto& pair : image_usage_history_map_) {
     if (pair.second->IsUsageChanged(stage)) {
       return true;
@@ -277,7 +282,7 @@ bool ImageLayoutManager::NeedMemoryBarrierBeforeStage(int stage) const {
   return false;
 }
 
-void ImageLayoutManager::InsertMemoryBarrierBeforeStage(
+void LayoutManager::InsertMemoryBarrierBeforeStage(
     const VkCommandBuffer& command_buffer,
     uint32_t queue_family_index, int stage) const {
   for (const auto& pair : image_usage_history_map_) {
@@ -296,7 +301,7 @@ void ImageLayoutManager::InsertMemoryBarrierBeforeStage(
   }
 }
 
-void ImageLayoutManager::InsertMemoryBarrierAfterFinalStage(
+void LayoutManager::InsertMemoryBarrierAfterFinalStage(
     const VkCommandBuffer& command_buffer, uint32_t queue_family_index) const {
   const int last_stage = num_stages_ - 1;
   for (const auto& pair : image_usage_history_map_) {
@@ -315,7 +320,7 @@ void ImageLayoutManager::InsertMemoryBarrierAfterFinalStage(
   }
 }
 
-void ImageLayoutManager::InsertMemoryBarrier(
+void LayoutManager::InsertMemoryBarrier(
     const VkCommandBuffer& command_buffer, uint32_t queue_family_index,
     const VkImage& image, image::Usage prev_usage,
     image::Usage curr_usage) const {
@@ -354,6 +359,7 @@ void ImageLayoutManager::InsertMemoryBarrier(
       &barrier);
 }
 
+} /* namespace image */
 } /* namespace vulkan */
 } /* namespace wrapper */
 } /* namespace jessie_steamer */

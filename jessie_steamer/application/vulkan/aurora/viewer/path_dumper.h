@@ -41,10 +41,12 @@ class PathDumper {
   void DumpAuroraPaths(const glm::vec3& viewpoint_position);
 
   const wrapper::vulkan::SamplableImage& paths_image() const {
-    return *paths_images_[1];
+    return *images_[distance_field_generator_->result_image_index()];
   }
 
  private:
+  enum ImageIndex { kPingImageIndex = 0, kPongImageIndex, kNumImages };
+
   class PathRenderer {
    public:
     PathRenderer(const wrapper::vulkan::SharedBasicContext& context,
@@ -70,13 +72,43 @@ class PathDumper {
     std::unique_ptr<wrapper::vulkan::Pipeline> pipeline_;
   };
 
+  class DistanceFieldGenerator {
+   public:
+    DistanceFieldGenerator(
+        const wrapper::vulkan::SharedBasicContext& context,
+        const std::array<std::unique_ptr<wrapper::vulkan::OffscreenImage>,
+                         kNumImages>& images,
+        const wrapper::vulkan::image::LayoutManager& image_layout_manager);
+
+    // This class is neither copyable nor movable.
+    DistanceFieldGenerator(const DistanceFieldGenerator&) = delete;
+    DistanceFieldGenerator& operator=(const DistanceFieldGenerator&) = delete;
+
+    void Generate(
+        const VkCommandBuffer& command_buffer,
+        const std::array<std::unique_ptr<wrapper::vulkan::OffscreenImage>,
+            kNumImages>& images,
+        const wrapper::vulkan::image::LayoutManager& image_layout_manager);
+
+    ImageIndex result_image_index() const { return result_image_index_; }
+
+   private:
+    ImageIndex result_image_index_ = kPingImageIndex;
+    std::array<std::unique_ptr<wrapper::vulkan::StaticDescriptor>, kNumImages>
+        descriptors_;
+    std::unique_ptr<wrapper::vulkan::Pipeline> bold_path_pipeline_;
+    std::unique_ptr<wrapper::vulkan::Pipeline> distance_field_pipeline_;
+  };
+
   // Pointer to context.
   const wrapper::vulkan::SharedBasicContext context_;
 
   std::unique_ptr<common::Camera> camera_;
-  std::array<std::unique_ptr<wrapper::vulkan::OffscreenImage>, 2> paths_images_;
-  std::unique_ptr<wrapper::vulkan::ImageLayoutManager> image_layout_manager_;
+  std::array<std::unique_ptr<wrapper::vulkan::OffscreenImage>, kNumImages>
+      images_;
+  std::unique_ptr<wrapper::vulkan::image::LayoutManager> image_layout_manager_;
   std::unique_ptr<PathRenderer> path_renderer_;
+  std::unique_ptr<DistanceFieldGenerator> distance_field_generator_;
 };
 
 } /* namespace aurora */

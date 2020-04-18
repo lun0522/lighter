@@ -22,12 +22,9 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::string;
-using std::vector;
-
 // Checks support for 'required' extensions, and throws a runtime exception
 // if any of them is not supported.
-void CheckInstanceExtensionSupport(const vector<string>& required) {
+void CheckInstanceExtensionSupport(const std::vector<std::string>& required) {
   LOG_INFO << "Checking instance extension support...";
   LOG_EMPTY_LINE;
 
@@ -49,7 +46,7 @@ void CheckInstanceExtensionSupport(const vector<string>& required) {
 #ifndef NDEBUG
 // Checks support for 'required' layers, and throws a runtime exception if any
 // of them is not supported.
-void CheckValidationLayerSupport(const vector<string>& required) {
+void CheckValidationLayerSupport(const std::vector<std::string>& required) {
   LOG_INFO << "Checking validation layer support...";
   LOG_EMPTY_LINE;
 
@@ -75,7 +72,7 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
   LOG_EMPTY_LINE;
 
   // Query support for device extensions.
-  const vector<string> required{
+  const std::vector<std::string> required{
       window_support.swapchain_extensions.begin(),
       window_support.swapchain_extensions.end(),
   };
@@ -203,7 +200,7 @@ Instance::Instance(const BasicContext* context,
                    const absl::optional<WindowSupport>& window_support)
     : context_{FATAL_IF_NULL(context)} {
   // Request support for pushing descriptors.
-  vector<const char*> instance_extensions{
+  std::vector<const char*> instance_extensions{
       VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
   };
   // Request support for window if necessary.
@@ -322,7 +319,7 @@ Device::Device(const BasicContext* context,
   required_features.shaderSampledImageArrayDynamicIndexing = VK_TRUE;
 
   // Request support for negative-height viewport and pushing descriptors.
-  vector<const char*> device_extensions{
+  std::vector<const char*> device_extensions{
       VK_KHR_MAINTENANCE1_EXTENSION_NAME,
       VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
   };
@@ -335,7 +332,7 @@ Device::Device(const BasicContext* context,
   }
 
   // Specify which queue we want to use.
-  vector<VkDeviceQueueCreateInfo> queue_infos;
+  std::vector<VkDeviceQueueCreateInfo> queue_infos;
   // 'priority' is always required even if there is only one queue.
   constexpr float kPriority = 1.0f;
   for (uint32_t family_index : context_->GetUniqueFamilyIndices()) {

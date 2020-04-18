@@ -20,8 +20,6 @@ namespace {
 
 using namespace wrapper::vulkan;
 
-using std::vector;
-
 enum SubpassIndex {
   kModelSubpassIndex = 0,
   kNumSubpasses,
@@ -35,8 +33,8 @@ constexpr int kObjFileIndexBase = 1;
 
 struct Asteroid {
   // Returns vertex input attributes.
-  static vector<VertexBuffer::Attribute> GetAttributes() {
-    vector<VertexBuffer::Attribute> attributes{
+  static std::vector<VertexBuffer::Attribute> GetAttributes() {
+    std::vector<VertexBuffer::Attribute> attributes{
         {offsetof(Asteroid, theta), VK_FORMAT_R32_SFLOAT},
         {offsetof(Asteroid, radius), VK_FORMAT_R32_SFLOAT},
     };
@@ -306,7 +304,7 @@ void PlanetApp::GenAsteroidModels() {
 
   num_asteroids_ = static_cast<int>(std::accumulate(
       num_asteroid.begin(), num_asteroid.end(), 0));
-  vector<Asteroid> asteroids;
+  std::vector<Asteroid> asteroids;
   asteroids.reserve(num_asteroids_);
 
   for (int ring = 0; ring < kNumAsteroidRings; ++ring) {
@@ -355,7 +353,7 @@ void PlanetApp::MainLoop() {
   while (!should_quit_ && mutable_window_context()->CheckEvents()) {
     timer_.Tick();
 
-    const vector<RenderPass::RenderOp> render_ops{
+    const std::vector<RenderPass::RenderOp> render_ops{
         [this](const VkCommandBuffer& command_buffer) {
           planet_model_->Draw(command_buffer, current_frame_,
                               /*instance_count=*/1);

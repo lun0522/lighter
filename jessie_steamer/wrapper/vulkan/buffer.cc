@@ -17,8 +17,6 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::vector;
-
 // Creates a buffer of 'data_size' for 'buffer_usages'
 VkBuffer CreateBuffer(const BasicContext& context,
                       VkDeviceSize data_size,
@@ -78,7 +76,7 @@ void CopyHostToBuffer(const BasicContext& context,
                       VkDeviceSize map_offset,
                       VkDeviceSize map_size,
                       const VkDeviceMemory& device_memory,
-                      const vector<Buffer::CopyInfo>& copy_infos) {
+                      const std::vector<Buffer::CopyInfo>& copy_infos) {
   // Data transfer may not happen immediately, for example, because it is only
   // written to cache and not yet to device. We can either flush host writes
   // with vkFlushMappedMemoryRanges and vkInvalidateMappedMemoryRanges, or
@@ -115,9 +113,9 @@ void StagingBuffer::CopyToBuffer(const VkBuffer& target) const {
   });
 }
 
-vector<VkVertexInputAttributeDescription> VertexBuffer::GetAttributes(
+std::vector<VkVertexInputAttributeDescription> VertexBuffer::GetAttributes(
     uint32_t start_location) const {
-  vector<VkVertexInputAttributeDescription> descriptions;
+  std::vector<VkVertexInputAttributeDescription> descriptions;
   descriptions.reserve(attributes_.size());
   for (const auto& attribute : attributes_) {
     descriptions.emplace_back(VkVertexInputAttributeDescription{
@@ -189,7 +187,7 @@ Buffer::CopyInfos PerVertexBuffer::NoIndicesDataInfo::CreateCopyInfos(
   auto& mesh_infos = buffer->mutable_mesh_data_infos()
                            ->emplace<MeshDataInfosNoIndices>().infos;
   mesh_infos.reserve(per_mesh_vertices_.size());
-  vector<Buffer::CopyInfo> copy_infos;
+  std::vector<Buffer::CopyInfo> copy_infos;
   copy_infos.reserve(per_mesh_vertices_.size());
 
   VkDeviceSize offset = 0;
@@ -254,7 +252,7 @@ Buffer::CopyInfos PerVertexBuffer::NoShareIndicesDataInfo::CreateCopyInfos(
   auto& mesh_infos = buffer->mutable_mesh_data_infos()
                            ->emplace<MeshDataInfosWithIndices>().infos;
   mesh_infos.reserve(per_mesh_infos_.size());
-  vector<Buffer::CopyInfo> copy_infos;
+  std::vector<Buffer::CopyInfo> copy_infos;
   copy_infos.reserve(per_mesh_infos_.size() * 2);
 
   VkDeviceSize indices_offset = 0;
@@ -311,7 +309,7 @@ void PerVertexBuffer::Draw(const VkCommandBuffer& command_buffer,
 
 StaticPerVertexBuffer::StaticPerVertexBuffer(
     SharedBasicContext context, const BufferDataInfo& info,
-    vector<Attribute>&& attributes)
+    std::vector<Attribute>&& attributes)
     : PerVertexBuffer{std::move(context), std::move(attributes)} {
   const CopyInfos copy_infos = info.CreateCopyInfos(this);
   CreateBufferAndMemory(copy_infos.total_size, /*is_dynamic=*/false,
@@ -336,7 +334,8 @@ void PerInstanceBuffer::Bind(const VkCommandBuffer& command_buffer,
 
 StaticPerInstanceBuffer::StaticPerInstanceBuffer(
     SharedBasicContext context, uint32_t per_instance_data_size,
-    const void* data, uint32_t num_instances, vector<Attribute>&& attributes)
+    const void* data, uint32_t num_instances,
+    std::vector<Attribute>&& attributes)
     : PerInstanceBuffer{std::move(context), per_instance_data_size,
                         std::move(attributes)} {
   const uint32_t total_size = per_instance_data_size * num_instances;

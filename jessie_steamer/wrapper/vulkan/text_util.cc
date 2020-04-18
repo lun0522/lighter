@@ -21,9 +21,6 @@ namespace vulkan {
 namespace {
 
 using common::Vertex2D;
-using std::array;
-using std::string;
-using std::vector;
 
 enum SubpassIndex {
   kTextSubpassIndex = 0,
@@ -35,7 +32,7 @@ constexpr int kImageBindingPoint = 0;
 constexpr uint32_t kVertexBufferBindingPoint = 0;
 
 // Returns the path to font file.
-string GetFontPath(CharLoader::Font font) {
+std::string GetFontPath(CharLoader::Font font) {
   using common::file::GetResourcePath;
   switch (font) {
     case CharLoader::Font::kGeorgia:
@@ -60,7 +57,7 @@ int GetIntervalBetweenChars(const common::CharLib& char_lib) {
 }
 
 // Returns descriptor infos for rendering characters.
-vector<Descriptor::Info> CreateDescriptorInfos() {
+std::vector<Descriptor::Info> CreateDescriptorInfos() {
   return {
       Descriptor::Info{
           VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -104,7 +101,7 @@ std::unique_ptr<RenderPass> BuildRenderPass(
 // and the front face direction is clockwise, since we will flip Y coordinates.
 std::unique_ptr<GraphicsPipelineBuilder> CreatePipelineBuilder(
     const SharedBasicContext& context,
-    string&& pipeline_name,
+    std::string&& pipeline_name,
     const PerVertexBuffer& vertex_buffer,
     const VkDescriptorSetLayout& descriptor_layout,
     bool enable_color_blend) {
@@ -149,7 +146,7 @@ const ImageSampler::Config& GetTextSamplerConfig() {
 }
 
 // Flips Y coordinates of each vertex in NDC.
-inline void FlipYCoord(vector<Vertex2D>* vertices) {
+inline void FlipYCoord(std::vector<Vertex2D>* vertices) {
   for (auto& vertex : *vertices) {
     vertex.pos.y *= -1;
   }
@@ -169,20 +166,20 @@ CharLoader::CharLoader(const SharedBasicContext& context,
   {
     const common::CharLib char_lib{texts, GetFontPath(font), font_height};
     const int interval_between_chars = GetIntervalBetweenChars(char_lib);
-    const auto image_usage_flags = image::UsageInfo{"Char atlas"}
-        .SetInitialUsage(image::Usage::kRenderingTarget)
-        .SetFinalUsage(image::Usage::kSampledInFragmentShader)
-        .GetImageUsageFlags();
     char_atlas_image_ = absl::make_unique<OffscreenImage>(
         context, GetCharAtlasImageExtent(char_lib, interval_between_chars),
-        common::kBwImageChannel, image_usage_flags, GetTextSamplerConfig());
+        common::kBwImageChannel,
+        image::GetImageUsageFlags({
+            image::Usage::kRenderingTarget,
+            image::Usage::kSampledInFragmentShader}),
+        GetTextSamplerConfig());
     space_advance_x_ = GetSpaceAdvanceX(char_lib, *char_atlas_image_);
     CreateCharTextures(context, char_lib, interval_between_chars,
                        *char_atlas_image_, &char_image_map,
                        &char_texture_info_map_);
   }
 
-  vector<char> char_merge_order;
+  std::vector<char> char_merge_order;
   char_merge_order.reserve(char_texture_info_map_.size());
   for (const auto& pair : char_texture_info_map_) {
     char_merge_order.emplace_back(pair.first);
@@ -202,7 +199,7 @@ CharLoader::CharLoader(const SharedBasicContext& context,
   const auto pipeline = BuildPipeline(*char_atlas_image_, **render_pass,
                                       pipeline_builder.get());
 
-  const vector<RenderPass::RenderOp> render_ops{
+  const std::vector<RenderPass::RenderOp> render_ops{
       [&](const VkCommandBuffer& command_buffer) {
         pipeline->Bind(command_buffer);
         for (int i = 0; i < char_merge_order.size(); ++i) {
@@ -265,6 +262,8 @@ void CharLoader::CreateCharTextures(
   const glm::vec2 ratio = 1.0f / util::ExtentToVec(target_image.extent());
   const float normalized_interval =
       static_cast<float>(interval_between_chars) * ratio.x;
+  const auto image_usage_flags =
+      image::GetImageUsageFlags({image::Usage::kSampledInFragmentShader});
 
   float offset_x = 0.0f;
   for (const auto& pair : char_lib.char_info_map()) {
@@ -285,7 +284,7 @@ void CharLoader::CreateCharTextures(
     char_image_map->emplace(
         character,
         absl::make_unique<TextureImage>(
-            context, /*generate_mipmaps=*/false,
+            context, /*generate_mipmaps=*/false, image_usage_flags,
             *char_info.image, GetTextSamplerConfig())
     );
     offset_x += size.x + normalized_interval;
@@ -294,12 +293,12 @@ void CharLoader::CreateCharTextures(
 
 std::unique_ptr<StaticPerVertexBuffer> CharLoader::CreateVertexBuffer(
     const SharedBasicContext& context,
-    const vector<char>& char_merge_order) const {
-  vector<Vertex2D> vertices;
-  vertices.reserve(text_util::kNumVerticesPerRect * char_merge_order.size());
+    const std::vector<char>& char_merge_order) const {
+  std::vector<Vertex2D> vertices;
+  vertices.reserve(text::kNumVerticesPerRect * char_merge_order.size());
   for (auto character : char_merge_order) {
     const auto& texture_info = char_texture_info_map_.find(character)->second;
-    text_util::AppendCharPosAndTexCoord(
+    text::AppendCharPosAndTexCoord(
         /*pos_bottom_left=*/
         {texture_info.offset_x, 0.0f},
         /*pos_increment=*/texture_info.size,
@@ -315,9 +314,9 @@ std::unique_ptr<StaticPerVertexBuffer> CharLoader::CreateVertexBuffer(
       context, PerVertexBuffer::ShareIndicesDataInfo{
           /*num_meshes=*/static_cast<int>(char_merge_order.size()),
           /*per_mesh_vertices=*/
-          {vertices, /*num_units_per_mesh=*/text_util::kNumVerticesPerRect},
+          {vertices, /*num_units_per_mesh=*/text::kNumVerticesPerRect},
           /*shared_indices=*/
-          {PerVertexBuffer::VertexDataInfo{text_util::GetIndicesPerRect()}},
+          {PerVertexBuffer::VertexDataInfo{text::GetIndicesPerRect()}},
       },
       pipeline::GetVertexAttribute<Vertex2D>()
   );
@@ -327,11 +326,12 @@ TextLoader::TextLoader(const SharedBasicContext& context,
                        absl::Span<const std::string> texts,
                        CharLoader::Font font, int font_height) {
   const auto& longest_text = std::max_element(
-      texts.begin(), texts.end(), [](const string& lhs, const string& rhs) {
+      texts.begin(), texts.end(),
+      [](const std::string& lhs, const std::string& rhs) {
         return lhs.length() > rhs.length();
       });
   DynamicPerVertexBuffer vertex_buffer{
-      context, text_util::GetVertexDataSize(longest_text->length()),
+      context, text::GetVertexDataSize(longest_text->length()),
       pipeline::GetVertexAttribute<Vertex2D>()};
 
   auto descriptor = absl::make_unique<StaticDescriptor>(
@@ -355,7 +355,7 @@ TextLoader::TextLoader(const SharedBasicContext& context,
 
 TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
     const SharedBasicContext& context,
-    const string& text, int font_height,
+    const std::string& text, int font_height,
     const CharLoader& char_loader,
     StaticDescriptor* descriptor,
     NaiveRenderPassBuilder* render_pass_builder,
@@ -386,26 +386,24 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
       static_cast<uint32_t>(font_height),
   };
   const float base_y = highest_base_y;
-  const auto image_usage_flags = image::UsageInfo{"Text image"}
-      .SetInitialUsage(image::Usage::kRenderingTarget)
-      .SetFinalUsage(image::Usage::kSampledInFragmentShader)
-      .GetImageUsageFlags();
   auto text_image = absl::make_unique<OffscreenImage>(
-      context, text_image_extent, common::kBwImageChannel, image_usage_flags,
+      context, text_image_extent, common::kBwImageChannel,
+      image::GetImageUsageFlags({
+          image::Usage::kRenderingTarget,
+          image::Usage::kSampledInFragmentShader}),
       GetTextSamplerConfig());
 
   // The resulting image should be flipped, so that when we use it later, we
   // don't have to flip Y coordinates again.
-  vector<Vertex2D> vertices;
-  text_util::LoadCharsVertexData(text, char_loader, ratio,
-                                 /*initial_offset_x=*/0.0f, base_y,
-                                 /*flip_y=*/true, &vertices);
+  std::vector<Vertex2D> vertices;
+  text::LoadCharsVertexData(text, char_loader, ratio, /*initial_offset_x=*/0.0f,
+                            base_y, /*flip_y=*/true, &vertices);
   vertex_buffer->CopyHostData(PerVertexBuffer::ShareIndicesDataInfo{
       /*num_meshes=*/static_cast<int>(text.length()),
       /*per_mesh_vertices=*/
-      {vertices, /*num_units_per_mesh=*/text_util::kNumVerticesPerRect},
+      {vertices, /*num_units_per_mesh=*/text::kNumVerticesPerRect},
       /*shared_indices=*/
-      {PerVertexBuffer::VertexDataInfo{text_util::GetIndicesPerRect()}},
+      {PerVertexBuffer::VertexDataInfo{text::GetIndicesPerRect()}},
   });
 
   descriptor->UpdateImageInfos(
@@ -418,7 +416,7 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
   const auto pipeline = BuildPipeline(*text_image, **render_pass,
                                       pipeline_builder);
 
-  const vector<RenderPass::RenderOp> render_ops{
+  const std::vector<RenderPass::RenderOp> render_ops{
       [&](const VkCommandBuffer& command_buffer) {
         pipeline->Bind(command_buffer);
         descriptor->Bind(command_buffer, pipeline->layout(),
@@ -440,12 +438,13 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
                          std::move(text_image)};
 }
 
-namespace text_util {
+namespace text {
 
-const array<uint32_t, kNumIndicesPerRect>& GetIndicesPerRect() {
-  static const array<uint32_t, kNumIndicesPerRect>* indices_per_rect = nullptr;
+const std::array<uint32_t, kNumIndicesPerRect>& GetIndicesPerRect() {
+  static const std::array<uint32_t, kNumIndicesPerRect>* indices_per_rect =
+      nullptr;
   if (indices_per_rect == nullptr) {
-    indices_per_rect = new array<uint32_t, kNumIndicesPerRect>{
+    indices_per_rect = new std::array<uint32_t, kNumIndicesPerRect>{
         0, 1, 2, 0, 2, 3,
     };
   }
@@ -456,7 +455,7 @@ void AppendCharPosAndTexCoord(const glm::vec2& pos_bottom_left,
                               const glm::vec2& pos_increment,
                               const glm::vec2& tex_coord_bottom_left,
                               const glm::vec2& tex_coord_increment,
-                              vector<Vertex2D>* vertices) {
+                              std::vector<Vertex2D>* vertices) {
   const glm::vec2 pos_top_right = pos_bottom_left + pos_increment;
   const glm::vec2 tex_coord_top_right = tex_coord_bottom_left +
                                         tex_coord_increment;
@@ -484,13 +483,14 @@ void AppendCharPosAndTexCoord(const glm::vec2& pos_bottom_left,
   }
 }
 
-float LoadCharsVertexData(const string& text, const CharLoader& char_loader,
+float LoadCharsVertexData(const std::string& text,
+                          const CharLoader& char_loader,
                           const glm::vec2& ratio, float initial_offset_x,
                           float base_y, bool flip_y,
-                          vector<Vertex2D>* vertices) {
+                          std::vector<Vertex2D>* vertices) {
   float offset_x = initial_offset_x;
   vertices->reserve(
-      vertices->size() + text_util::kNumVerticesPerRect * text.length());
+      vertices->size() + text::kNumVerticesPerRect * text.length());
   for (auto character : text) {
     if (character == ' ') {
       offset_x += char_loader.space_advance() * ratio.x;
@@ -498,7 +498,7 @@ float LoadCharsVertexData(const string& text, const CharLoader& char_loader,
     }
     const auto& texture_info = char_loader.char_texture_info(character);
     const glm::vec2& size_in_tex = texture_info.size;
-    text_util::AppendCharPosAndTexCoord(
+    text::AppendCharPosAndTexCoord(
         /*pos_bottom_left=*/
         {offset_x + texture_info.bearing.x * ratio.x,
          base_y + (texture_info.bearing.y - size_in_tex.y) * ratio.y},
@@ -516,8 +516,7 @@ float LoadCharsVertexData(const string& text, const CharLoader& char_loader,
   return offset_x;
 }
 
-} /* namespace text_util */
-
+} /* namespace text */
 } /* namespace vulkan */
 } /* namespace wrapper */
 } /* namespace jessie_steamer */

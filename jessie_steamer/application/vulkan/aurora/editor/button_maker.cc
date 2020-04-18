@@ -24,8 +24,6 @@ namespace {
 
 using namespace wrapper::vulkan;
 
-using std::vector;
-
 enum SubpassIndex {
   kBackgroundSubpassIndex = 0,
   kTextSubpassIndex,
@@ -51,20 +49,19 @@ std::unique_ptr<OffscreenImage> CreateTargetImage(
       static_cast<uint32_t>(background_image_extent.height *
                             num_buttons * button::kNumStates),
   };
-  const auto image_usage_flags = image::UsageInfo{"Buttons image"}
-      .SetInitialUsage(image::Usage::kRenderingTarget)
-      .SetFinalUsage(image::Usage::kSampledInFragmentShader)
-      .GetImageUsageFlags();
   return absl::make_unique<OffscreenImage>(
       context, buttons_image_extent, common::kRgbaImageChannel,
-      image_usage_flags, ImageSampler::Config{});
+      image::GetImageUsageFlags({
+          image::Usage::kRenderingTarget,
+          image::Usage::kSampledInFragmentShader}),
+      ImageSampler::Config{});
 }
 
 // Creates per-instance vertex buffer storing RenderInfo.
 std::unique_ptr<StaticPerInstanceBuffer> CreatePerInstanceBuffer(
     const SharedBasicContext& context,
     absl::Span<const make_button::ButtonInfo> button_infos) {
-  vector<ButtonMaker::RenderInfo> render_infos;
+  std::vector<ButtonMaker::RenderInfo> render_infos;
   render_infos.reserve(button_infos.size() * button::kNumStates);
   for (const auto& info : button_infos) {
     render_infos.emplace_back(info.render_info[button::kSelectedState]);
@@ -79,7 +76,7 @@ std::unique_ptr<StaticDescriptor> CreateDescriptor(
     const SharedBasicContext& context,
     const VkDescriptorImageInfo& image_info) {
   auto descriptor = absl::make_unique<StaticDescriptor>(
-      context, /*infos=*/vector<Descriptor::Info>{
+      context, /*infos=*/std::vector<Descriptor::Info>{
           Descriptor::Info{
               VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
               VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -119,7 +116,7 @@ std::unique_ptr<DynamicText> CreateTextRenderer(
     const SharedBasicContext& context, Text::Font font, int font_height,
     const Image& target_image, const RenderPass& render_pass,
     absl::Span<const make_button::ButtonInfo> button_infos) {
-  vector<std::string> texts;
+  std::vector<std::string> texts;
   texts.reserve(button_infos.size());
   for (const auto& info : button_infos) {
     texts.emplace_back(info.text);
@@ -153,8 +150,9 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
   ASSERT_TRUE(button_background.channel == common::kBwImageChannel,
               "Expecting a single-channel button background image");
   const auto background_image = absl::make_unique<TextureImage>(
-      context, /*generate_mipmaps=*/false, button_background,
-      ImageSampler::Config{});
+      context, /*generate_mipmaps=*/false,
+      image::GetImageUsageFlags({image::Usage::kSampledInFragmentShader}),
+      button_background, ImageSampler::Config{});
 
   const int num_buttons = button_infos.size();
   auto buttons_image = CreateTargetImage(context, num_buttons,
@@ -194,7 +192,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
                  common::file::GetVkShaderPath("aurora/make_button.frag"))
       .Build();
 
-  const vector<RenderPass::RenderOp> render_ops{
+  const std::vector<RenderPass::RenderOp> render_ops{
       [&](const VkCommandBuffer& command_buffer) {
         // Render buttons' background.
         pipeline->Bind(command_buffer);

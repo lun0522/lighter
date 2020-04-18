@@ -22,8 +22,6 @@ namespace {
 
 using namespace wrapper::vulkan;
 
-using std::vector;
-
 enum class ControlVertexBufferBindingPoint { kCenter = 0, kPos };
 
 enum class SplineVertexBufferBindingPoint { kPos = 0, kColorAlpha };
@@ -34,7 +32,7 @@ constexpr uint32_t kViewpointVertexBufferBindingPoint = 0;
 
 struct ColorAlpha {
   // Returns vertex input attributes.
-  static vector<VertexBuffer::Attribute> GetAttributes() {
+  static std::vector<VertexBuffer::Attribute> GetAttributes() {
     return {{offsetof(ColorAlpha, value), VK_FORMAT_R32G32B32A32_SFLOAT}};
   }
 
@@ -64,9 +62,9 @@ struct ViewpointRenderInfo {
 /* END: Consistent with uniform blocks defined in shaders. */
 
 // Extracts the position data from a list of Vertex3DWithTex.
-vector<common::Vertex3DPosOnly> ExtractPos(
-    const vector<common::Vertex3DWithTex>& vertices) {
-  vector<common::Vertex3DPosOnly> vertices_pos;
+std::vector<common::Vertex3DPosOnly> ExtractPos(
+    const std::vector<common::Vertex3DWithTex>& vertices) {
+  std::vector<common::Vertex3DPosOnly> vertices_pos;
   vertices_pos.reserve(vertices.size());
   for (const auto& vertex : vertices) {
     vertices_pos.emplace_back(vertex.pos);
@@ -310,8 +308,8 @@ void PathRenderer::DrawViewpoint(
       /*mesh_index=*/0, /*instance_count=*/1);
 }
 
-vector<const PerVertexBuffer*> PathRenderer::GetPathVertexBuffers() const {
-  vector<const PerVertexBuffer*> buffers;
+std::vector<const PerVertexBuffer*> PathRenderer::GetPathVertexBuffers() const {
+  std::vector<const PerVertexBuffer*> buffers;
   buffers.reserve(num_paths_);
   for (const auto& buffer : paths_vertex_buffers_) {
     buffers.emplace_back(buffer.spline_points_buffer.get());

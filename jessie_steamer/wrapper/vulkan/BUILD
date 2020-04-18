@@ -11,7 +11,6 @@ cc_library(
         ":buffer",
         ":command",
         ":image",
-        ":image_util",
         ":model",
         ":pipeline",
         ":render_pass",
@@ -100,38 +99,30 @@ cc_library(
 
 cc_library(
     name = "image",
-    hdrs = ["image.h"],
-    srcs = ["image.cc"],
+    hdrs = [
+        "image.h",
+        "image_util.h",
+    ],
+    srcs = [
+        "image.cc",
+        "image_util.cc",
+    ],
     deps = [
         ":basics",
         ":buffer",
         ":command",
-        ":image_util",
         ":util",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:ref_count",
         "//jessie_steamer/common:util",
-        "//third_party/absl/memory",
-        "//third_party/absl/strings:str_format",
-        "//third_party/absl/types:optional",
-        "//third_party/absl/types:variant",
-        "//third_party:vulkan",
-    ]
-)
-
-cc_library(
-    name = "image_util",
-    hdrs = ["image_util.h"],
-    srcs = ["image_util.cc"],
-    deps = [
-        ":util",
-        "//jessie_steamer/common:util",
         "//third_party/absl/container:flat_hash_map",
         "//third_party/absl/memory",
         "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:optional",
         "//third_party/absl/types:span",
+        "//third_party/absl/types:variant",
         "//third_party:vulkan",
-    ],
+    ]
 )
 
 cc_library(
@@ -145,7 +136,6 @@ cc_library(
         ":image",
         ":pipeline",
         ":render_pass",
-        ":util",
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:model_loader",
         "//jessie_steamer/common:util",
@@ -235,7 +225,6 @@ cc_library(
         ":command",
         ":descriptor",
         ":image",
-        ":image_util",
         ":pipeline",
         ":render_pass",
         ":util",

@@ -32,29 +32,24 @@ namespace jessie_steamer {
 namespace common {
 namespace {
 
-using std::ifstream;
-using std::stof;
-using std::string;
-using std::vector;
-
 // Opens the file in the given 'path' and checks whether it is successful.
-ifstream OpenFile(const string& path) {
-  ifstream file{path};
+std::ifstream OpenFile(const std::string& path) {
+  std::ifstream file{path};
   ASSERT_FALSE(!file.is_open() || file.bad() || file.fail(),
                absl::StrCat("Failed to open file: ", path));
   return file;
 }
 
 // Returns the suffix of the given 'text', starting from index 'start_pos'.
-inline absl::string_view GetSuffix(const string& text, size_t start_pos) {
+inline absl::string_view GetSuffix(const std::string& text, size_t start_pos) {
   return absl::string_view{text.c_str() + start_pos, text.length() - start_pos};
 }
 
 // Splits the given 'text' by 'delimiter', while 'num_segments' is the expected
 // length of results. An exception will be thrown if the length does not match.
-vector<string> SplitText(absl::string_view text, char delimiter,
-                         int num_segments) {
-  const vector<string> result =
+std::vector<std::string> SplitText(absl::string_view text, char delimiter,
+                                   int num_segments) {
+  const std::vector<std::string> result =
       absl::StrSplit(text, delimiter, absl::SkipWhitespace{});
   ASSERT_TRUE(
       result.size() == num_segments,
@@ -65,8 +60,8 @@ vector<string> SplitText(absl::string_view text, char delimiter,
 
 } /* namespace */
 
-RawData::RawData(const string& path) {
-  ifstream file = OpenFile(path);
+RawData::RawData(const std::string& path) {
+  std::ifstream file = OpenFile(path);
   file.seekg(0, std::ios::end);
   size = file.tellg();
   auto* content = new char[size];
@@ -75,7 +70,7 @@ RawData::RawData(const string& path) {
   data = content;
 }
 
-Image::Image(const string& path) {
+Image::Image(const std::string& path) {
   const auto raw_data = absl::make_unique<RawData>(path);
   data = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(raw_data->data),
                                static_cast<int>(raw_data->size),
@@ -148,17 +143,17 @@ std::array<Vertex2D, 6> Vertex2D::GetFullScreenSquadVertices(bool flip_y) {
   }
 }
 
-ObjFile::ObjFile(const string& path, int index_base) {
-  ifstream file = OpenFile(path);
+ObjFile::ObjFile(const std::string& path, int index_base) {
+  std::ifstream file = OpenFile(path);
 
-  vector<glm::vec3> positions;
-  vector<glm::vec3> normals;
-  vector<glm::vec2> tex_coords;
-  absl::flat_hash_map<string, uint32_t> loaded_vertices;
+  std::vector<glm::vec3> positions;
+  std::vector<glm::vec3> normals;
+  std::vector<glm::vec2> tex_coords;
+  absl::flat_hash_map<std::string, uint32_t> loaded_vertices;
 
-  const auto parse_line = [&](const string& line) {
+  const auto parse_line = [&](const std::string& line) {
     const size_t non_space = line.find_first_not_of(' ');
-    if (non_space == string::npos || line[0] == '#') {
+    if (non_space == std::string::npos || line[0] == '#') {
       // Skip blank lines and comments.
       return;
     }
@@ -220,7 +215,7 @@ ObjFile::ObjFile(const string& path, int index_base) {
   };
 
   int line_num = 1;
-  for (string line; getline(file, line); ++line_num) {
+  for (std::string line; getline(file, line); ++line_num) {
     try {
       parse_line(line);
     } catch (const std::out_of_range& e) {

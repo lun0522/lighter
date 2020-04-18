@@ -20,9 +20,6 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::array;
-using std::vector;
-
 // A collection of commonly used options when we create VkImage.
 struct ImageConfig {
   explicit ImageConfig(bool need_access_to_texels = false) {
@@ -61,7 +58,7 @@ VkFormat FindColorImageFormat(int channel) {
 // Returns image format with specified 'features', and throws a runtime
 // exception if not found.
 VkFormat FindImageFormatWithFeature(const BasicContext& context,
-                                    const vector<VkFormat>& candidates,
+                                    const std::vector<VkFormat>& candidates,
                                     VkFormatFeatureFlags features) {
   for (auto format : candidates) {
     VkFormatProperties properties;
@@ -99,8 +96,8 @@ VkSampleCountFlagBits GetMaxSampleCount(VkSampleCountFlags sample_counts) {
 // Creates a TextureBuffer::Info object, assuming all images have the same
 // properties as the given 'sample_image'. The size of 'image_datas' can only be
 // either 1 or 6 (for cubemaps)
-TextureImage::Info CreateTextureBufferInfo(const common::Image& sample_image,
-                                           vector<const void*>&& image_datas) {
+TextureImage::Info CreateTextureBufferInfo(
+    const common::Image& sample_image, std::vector<const void*>&& image_datas) {
   return TextureImage::Info{
       std::move(image_datas),
       FindColorImageFormat(sample_image.channel),
@@ -178,7 +175,7 @@ VkDeviceMemory CreateImageMemory(const BasicContext& context,
 void WaitForImageMemoryBarrier(
     const VkImageMemoryBarrier& barrier,
     const VkCommandBuffer& command_buffer,
-    const array<VkPipelineStageFlags, 2>& pipeline_stages) {
+    const std::array<VkPipelineStageFlags, 2>& pipeline_stages) {
   vkCmdPipelineBarrier(
       command_buffer,
       pipeline_stages[0],
@@ -200,9 +197,9 @@ void TransitionImageLayout(
     const SharedBasicContext& context,
     const VkImage& image, const ImageConfig& image_config,
     VkImageAspectFlags image_aspect,
-    const array<VkImageLayout, 2>& image_layouts,
-    const array<VkAccessFlags, 2>& access_flags,
-    const array<VkPipelineStageFlags, 2>& pipeline_stages) {
+    const std::array<VkImageLayout, 2>& image_layouts,
+    const std::array<VkAccessFlags, 2>& access_flags,
+    const std::array<VkPipelineStageFlags, 2>& pipeline_stages) {
   const auto& transfer_queue = context->queues().transfer_queue();
   const OneTimeCommand command{context, &transfer_queue};
   command.Run([&](const VkCommandBuffer& command_buffer) {
@@ -243,10 +240,10 @@ inline VkExtent3D ExpandDimension(const VkExtent2D& extent) {
 }
 
 // Returns extents of mipmaps. The original extent will not be included.
-vector<VkExtent2D> GenerateMipmapExtents(const VkExtent3D& image_extent) {
+std::vector<VkExtent2D> GenerateMipmapExtents(const VkExtent3D& image_extent) {
   const int largest_dim = std::max(image_extent.width, image_extent.height);
   const int mip_levels = std::floor(static_cast<float>(std::log2(largest_dim)));
-  vector<VkExtent2D> mipmap_extents(mip_levels);
+  std::vector<VkExtent2D> mipmap_extents(mip_levels);
   VkExtent2D extent{image_extent.width, image_extent.height};
   for (int level = 0; level < mip_levels; ++level) {
     extent.width = extent.width > 1 ? extent.width / 2 : 1;
@@ -260,7 +257,7 @@ vector<VkExtent2D> GenerateMipmapExtents(const VkExtent3D& image_extent) {
 void GenerateMipmaps(const SharedBasicContext& context,
                      const VkImage& image, VkFormat image_format,
                      const VkExtent3D& image_extent,
-                     const vector<VkExtent2D>& mipmap_extents) {
+                     const std::vector<VkExtent2D>& mipmap_extents) {
   VkFormatProperties properties;
   vkGetPhysicalDeviceFormatProperties(*context->physical_device(),
                                       image_format, &properties);
@@ -476,7 +473,7 @@ ImageSampler::ImageSampler(SharedBasicContext context,
 Buffer::CopyInfos TextureImage::Info::GetCopyInfos() const {
   const VkDeviceSize single_image_data_size = width * height * channel;
   const VkDeviceSize total_data_size = single_image_data_size * datas.size();
-  vector<Buffer::CopyInfo> copy_infos(datas.size());
+  std::vector<Buffer::CopyInfo> copy_infos(datas.size());
   for (int i = 0; i < copy_infos.size(); ++i) {
     copy_infos[i] = {datas[i], single_image_data_size,
                      /*offset=*/single_image_data_size * i};
@@ -486,10 +483,11 @@ Buffer::CopyInfos TextureImage::Info::GetCopyInfos() const {
 
 TextureImage::TextureImage(SharedBasicContext context,
                            bool generate_mipmaps,
+                           VkImageUsageFlags usage_flags,
                            const ImageSampler::Config& sampler_config,
                            const Info& info)
     : Image{std::move(FATAL_IF_NULL(context)), info.GetExtent2D(), info.format},
-      buffer_{context_, generate_mipmaps, info},
+      buffer_{context_, generate_mipmaps, usage_flags, info},
       sampler_{context_, buffer_.mip_levels(), sampler_config} {
   SetImageView(CreateImageView(*context_, buffer_.image(), format_,
                                VK_IMAGE_ASPECT_COLOR_BIT, buffer_.mip_levels(),
@@ -497,9 +495,11 @@ TextureImage::TextureImage(SharedBasicContext context,
 }
 
 TextureImage::TextureImage(SharedBasicContext context,
-                           bool generate_mipmaps, const common::Image& image,
+                           bool generate_mipmaps, VkImageUsageFlags usage_flags,
+                           const common::Image& image,
                            const ImageSampler::Config& sampler_config)
-    : TextureImage{std::move(context), generate_mipmaps, sampler_config,
+    : TextureImage{std::move(context), generate_mipmaps,
+                   usage_flags, sampler_config,
                    CreateTextureBufferInfo(image, {image.data})} {}
 
 VkDescriptorImageInfo TextureImage::GetDescriptorInfo() const {
@@ -511,7 +511,8 @@ VkDescriptorImageInfo TextureImage::GetDescriptorInfo() const {
 }
 
 TextureImage::TextureBuffer::TextureBuffer(
-    SharedBasicContext context, bool generate_mipmaps, const Info& info)
+    SharedBasicContext context, bool generate_mipmaps,
+    VkImageUsageFlags usage_flags, const Info& info)
     : ImageBuffer{std::move(FATAL_IF_NULL(context))} {
   const VkExtent3D image_extent = info.GetExtent3D();
   const auto layer_count = CONTAINER_SIZE(info.datas);
@@ -523,7 +524,7 @@ TextureImage::TextureBuffer::TextureBuffer(
   image_config.layer_count = CONTAINER_SIZE(info.datas);
 
   // Generate mipmap extents if requested.
-  vector<VkExtent2D> mipmap_extents;
+  std::vector<VkExtent2D> mipmap_extents;
   if (generate_mipmaps) {
     mipmap_extents = GenerateMipmapExtents(image_extent);
     mip_levels_ = image_config.mip_levels = mipmap_extents.size() + 1;
@@ -574,19 +575,19 @@ TextureImage::TextureBuffer::TextureBuffer(
 
 SharedTexture::RefCountedTexture SharedTexture::GetTexture(
     SharedBasicContext context, const SourcePath& source_path,
-    const ImageSampler::Config& sampler_config) {
+    VkImageUsageFlags usage_flags, const ImageSampler::Config& sampler_config) {
   FATAL_IF_NULL(context);
   context->RegisterAutoReleasePool<SharedTexture::RefCountedTexture>("texture");
 
   using SingleImage = std::unique_ptr<common::Image>;
-  using CubemapImage = array<SingleImage, common::kCubemapImageCount>;
+  using CubemapImage = std::array<SingleImage, common::kCubemapImageCount>;
   using SourceImage = absl::variant<SingleImage, CubemapImage>;
 
   bool generate_mipmaps;
   const std::string* identifier;
   SourceImage source_image;
   const common::Image* sample_image;
-  vector<const void*> datas;
+  std::vector<const void*> datas;
 
   if (absl::holds_alternative<SingleTexPath>(source_path)) {
     generate_mipmaps = true;
@@ -613,16 +614,16 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
   }
 
   return RefCountedTexture::Get(
-      *identifier, std::move(context), generate_mipmaps, sampler_config,
-      CreateTextureBufferInfo(*sample_image, std::move(datas)));
+      *identifier, std::move(context), generate_mipmaps, usage_flags,
+      sampler_config, CreateTextureBufferInfo(*sample_image, std::move(datas)));
 }
 
 OffscreenImage::OffscreenImage(
     SharedBasicContext context,
-    const VkExtent2D& extent, int channel, VkImageUsageFlags usage,
+    const VkExtent2D& extent, int channel, VkImageUsageFlags usage_flags,
     const ImageSampler::Config& sampler_config)
     : Image{std::move(context), extent, FindColorImageFormat(channel)},
-      buffer_{context_, extent_, format_, usage},
+      buffer_{context_, extent_, format_, usage_flags},
       sampler_{context_, kSingleMipLevel, sampler_config} {
   SetImageView(CreateImageView(*context_, buffer_.image(), format_,
                                VK_IMAGE_ASPECT_COLOR_BIT,
@@ -639,10 +640,10 @@ VkDescriptorImageInfo OffscreenImage::GetDescriptorInfo() const {
 
 OffscreenImage::OffscreenBuffer::OffscreenBuffer(
     SharedBasicContext context,
-    const VkExtent2D& extent, VkFormat format, VkImageUsageFlags usage)
+    const VkExtent2D& extent, VkFormat format, VkImageUsageFlags usage_flags)
     : ImageBuffer{std::move(context)} {
   SetImage(CreateImage(*context_, ImageConfig{}, nullflag, format,
-                       ExpandDimension(extent), usage));
+                       ExpandDimension(extent), usage_flags));
   SetDeviceMemory(CreateImageMemory(
       *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 }

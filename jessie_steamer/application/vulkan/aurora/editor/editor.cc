@@ -20,9 +20,6 @@ namespace {
 
 using namespace wrapper::vulkan;
 
-using std::array;
-using std::vector;
-
 enum SubpassIndex {
   kModelSubpassIndex = 0,
   kAuroraPathSubpassIndex,
@@ -76,10 +73,10 @@ glm::vec3 GetLocation(float latitude, float longitude) {
 }
 
 // Distributes buttons evenly within range [0.0, 1.0].
-vector<float> GetButtonCenters(int num_buttons) {
+std::vector<float> GetButtonCenters(int num_buttons) {
   ASSERT_TRUE(num_buttons > 0, "num_buttons must be greater than 0");
   const float button_extent = 1.0f / static_cast<float>(num_buttons);
-  vector<float> button_centers(num_buttons);
+  std::vector<float> button_centers(num_buttons);
   button_centers[0] = button_extent / 2.0f;
   for (int i = 1; i < num_buttons; ++i) {
     button_centers[i] = button_centers[i - 1] + button_extent;
@@ -150,8 +147,8 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
   const float original_aspect_ratio = window_context_.original_aspect_ratio();
 
   // Buttons and paths share color and alpha values.
-  using ButtonColors = array<glm::vec3, button::kNumStates>;
-  const array<ButtonColors, kNumButtons> button_and_path_colors{
+  using ButtonColors = std::array<glm::vec3, button::kNumStates>;
+  const std::array<ButtonColors, kNumButtons> button_and_path_colors{
       ButtonColors{MakeColor(241, 196,  15), MakeColor(243, 156,  18)},
       ButtonColors{MakeColor(230, 126,  34), MakeColor(211,  84,   0)},
       ButtonColors{MakeColor(231,  76,  60), MakeColor(192,  57,  43)},
@@ -160,7 +157,8 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
       ButtonColors{MakeColor(155,  89, 182), MakeColor(142,  68, 173)},
       ButtonColors{MakeColor( 46, 204, 113), MakeColor( 39, 174,  96)},
   };
-  constexpr array<float, button::kNumStates> kButtonAndPathAlphas{1.0f, 0.5f};
+  constexpr std::array<float, button::kNumStates>
+      kButtonAndPathAlphas{1.0f, 0.5f};
 
   /* Earth and skybox */
   celestial_ = absl::make_unique<Celestial>(
@@ -173,12 +171,12 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
                     /*angle=*/glm::radians(90.0f)});
 
   /* Aurora path */
-  constexpr array<float, kNumAuroraPaths> kLatitudes{55.0f, 65.0f, 75.0f};
+  constexpr std::array<float, kNumAuroraPaths> kLatitudes{55.0f, 65.0f, 75.0f};
   constexpr int kNumControlPointsPerSpline = 8;
   constexpr int kLongitudeStep = 360 / kNumControlPointsPerSpline;
   auto generate_control_points = [&kLatitudes](int path_index) {
     const float latitude = kLatitudes.at(path_index);
-    vector<glm::vec3> control_points(kNumControlPointsPerSpline);
+    std::vector<glm::vec3> control_points(kNumControlPointsPerSpline);
     for (int i = 0; i < control_points.size(); ++i) {
       const auto longitude = static_cast<float>(kLongitudeStep * i - 180);
       control_points[i] = GetLocation(latitude, longitude);
@@ -206,7 +204,7 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
     constexpr float kButtonHeight = 0.08f;
     const glm::vec3 text_color{1.0f};
 
-    const array<std::string, kNumButtons> button_texts{
+    const std::array<std::string, kNumButtons> button_texts{
         "Path 1", "Path 2", "Path 3", "Viewpoint",
         "Editing", "Daylight", "Aurora",
     };
@@ -223,7 +221,7 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
             {button_centers_x[button_index], button_center_y},
         };
       };
-      array<ButtonInfo, kNumTopRowButtons> button_infos{};
+      std::array<ButtonInfo, kNumTopRowButtons> button_infos{};
       for (int i = 0; i < kNumTopRowButtons; ++i) {
         button_infos[i] = get_button_info(i);
       }
@@ -246,7 +244,7 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
             {button_centers_x[relative_index], button_center_y},
         };
       };
-      array<ButtonInfo, kNumBottomRowButtons> button_infos{};
+      std::array<ButtonInfo, kNumBottomRowButtons> button_infos{};
       for (int i = 0; i < kNumBottomRowButtons; ++i) {
         button_infos[i] = get_button_info(i);
       }

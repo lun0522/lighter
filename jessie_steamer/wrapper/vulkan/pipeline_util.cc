@@ -20,8 +20,6 @@ using common::Vertex2D;
 using common::Vertex3DPosOnly;
 using common::Vertex3DWithColor;
 using common::Vertex3DWithTex;
-using std::vector;
-
 using VertexAttribute = VertexBuffer::Attribute;
 
 } /* namespace */
@@ -110,7 +108,7 @@ VkVertexInputBindingDescription GetBindingDescription(uint32_t stride,
 }
 
 template <>
-vector<VertexAttribute> GetVertexAttribute<Vertex2D>() {
+std::vector<VertexAttribute> GetVertexAttribute<Vertex2D>() {
   return {
       VertexAttribute{
           /*offset=*/static_cast<uint32_t>(offsetof(Vertex2D, pos)),
@@ -124,7 +122,7 @@ vector<VertexAttribute> GetVertexAttribute<Vertex2D>() {
 }
 
 template <>
-vector<VertexAttribute> GetVertexAttribute<Vertex3DPosOnly>() {
+std::vector<VertexAttribute> GetVertexAttribute<Vertex3DPosOnly>() {
   return {
       VertexAttribute{
           /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DWithColor, pos)),
@@ -134,7 +132,7 @@ vector<VertexAttribute> GetVertexAttribute<Vertex3DPosOnly>() {
 }
 
 template <>
-vector<VertexAttribute> GetVertexAttribute<Vertex3DWithColor>() {
+std::vector<VertexAttribute> GetVertexAttribute<Vertex3DWithColor>() {
   return {
       VertexAttribute{
           /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DWithColor, pos)),
@@ -148,7 +146,7 @@ vector<VertexAttribute> GetVertexAttribute<Vertex3DWithColor>() {
 }
 
 template <>
-vector<VertexAttribute> GetVertexAttribute<Vertex3DWithTex>() {
+std::vector<VertexAttribute> GetVertexAttribute<Vertex3DWithTex>() {
   return {
       VertexAttribute{
           /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DWithTex, pos)),

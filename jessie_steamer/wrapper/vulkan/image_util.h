@@ -15,6 +15,7 @@
 
 #include "jessie_steamer/common/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
@@ -56,6 +57,10 @@ struct UsageInfo {
   explicit UsageInfo(std::string&& image_name)
       : image_name{std::move(image_name)} {}
 
+  // Returns all usages at all stages, including initial and final usages.
+  // Note that this can contain duplicates.
+  std::vector<Usage> GetAllUsages() const;
+
   // Modifiers.
   UsageInfo& SetInitialUsage(Usage usage) {
     initial_usage = usage;
@@ -70,33 +75,34 @@ struct UsageInfo {
     return *this;
   }
 
-  // Returns a VkImageUsageFlags that contains all usages. Note that if all
-  // usages are Usage::kDontCare, an error will be thrown since there
-  // will be not such flag.
-  VkImageUsageFlags GetImageUsageFlags() const;
-
   const std::string image_name;
   Usage initial_usage = Usage::kDontCare;
   Usage final_usage = Usage::kDontCare;
   std::vector<UsageAtStage> usage_at_stages;
 };
 
-} /* namespace image */
+// Returns a VkImageUsageFlags that contains all usages. Note that if all usages
+// are Usage::kDontCare, an error will be thrown since there will be no
+// corresponding flags.
+VkImageUsageFlags GetImageUsageFlags(absl::Span<const Usage> usages);
+inline VkImageUsageFlags GetImageUsageFlags(const UsageInfo& usage_info) {
+  return GetImageUsageFlags(usage_info.GetAllUsages());
+}
 
 // This class is used for tracking usages of images, and inserting memory
 // barriers for transitioning image layouts when necessary.
 // TODO: We should extend this to build high-level description of image usage,
 // and also build render pass with this.
-class ImageLayoutManager {
+class LayoutManager {
  public:
   // Maps each image to the corresponding usage info.
   using UsageInfoMap = absl::flat_hash_map<const VkImage*, image::UsageInfo>;
 
-  ImageLayoutManager(int num_stages, const UsageInfoMap& usage_info_map);
+  LayoutManager(int num_stages, const UsageInfoMap& usage_info_map);
 
   // This class is neither copyable nor movable.
-  ImageLayoutManager(const ImageLayoutManager&) = delete;
-  ImageLayoutManager& operator=(const ImageLayoutManager&) = delete;
+  LayoutManager(const LayoutManager&) = delete;
+  LayoutManager& operator=(const LayoutManager&) = delete;
 
   // Returns the layout of 'image' at 'stage'.
   VkImageLayout GetLayoutAtStage(const VkImage& image, int stage) const;
@@ -122,13 +128,13 @@ class ImageLayoutManager {
   // This class analyzes the given UsageInfo of an image, and builds a usage
   // history with which we can query the usage in previous/current/next stage
   // of any specific stage.
-  class ImageUsageHistory {
+  class UsageHistory {
    public:
-    ImageUsageHistory(int num_stages, const image::UsageInfo& usage_info);
+    UsageHistory(int num_stages, const image::UsageInfo& usage_info);
 
     // This class is neither copyable nor movable.
-    ImageUsageHistory(const ImageUsageHistory&) = delete;
-    ImageUsageHistory& operator=(const ImageUsageHistory&) = delete;
+    UsageHistory(const UsageHistory&) = delete;
+    UsageHistory& operator=(const UsageHistory&) = delete;
 
     // Returns whether the usage of image is changed at the beginning of
     // 'stage'.
@@ -195,10 +201,11 @@ class ImageLayoutManager {
   const int num_stages_;
 
   // Maps each image to the corresponding usage history.
-  absl::flat_hash_map<const VkImage*, std::unique_ptr<ImageUsageHistory>>
+  absl::flat_hash_map<const VkImage*, std::unique_ptr<UsageHistory>>
       image_usage_history_map_;
 };
 
+} /* namespace image */
 } /* namespace vulkan */
 } /* namespace wrapper */
 } /* namespace jessie_steamer */

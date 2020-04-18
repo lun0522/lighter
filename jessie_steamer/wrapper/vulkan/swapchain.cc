@@ -18,11 +18,9 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::vector;
-
 // Returns the surface format to use.
 VkSurfaceFormatKHR ChooseSurfaceFormat(
-    const vector<VkSurfaceFormatKHR>& available) {
+    const std::vector<VkSurfaceFormatKHR>& available) {
   constexpr VkSurfaceFormatKHR best_format{
     VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
 
@@ -43,7 +41,8 @@ VkSurfaceFormatKHR ChooseSurfaceFormat(
 }
 
 // Returns the present mode to use.
-VkPresentModeKHR ChoosePresentMode(const vector<VkPresentModeKHR>& available) {
+VkPresentModeKHR ChoosePresentMode(
+    const std::vector<VkPresentModeKHR>& available) {
   // FIFO mode is guaranteed to be available, but not properly supported by
   // some drivers. we will prefer MAILBOX and IMMEDIATE mode over it.
   VkPresentModeKHR best_mode = VK_PRESENT_MODE_FIFO_KHR;
@@ -190,10 +189,10 @@ Swapchain::Swapchain(
   }
 }
 
-const vector<const char*>& Swapchain::GetRequiredExtensions() {
-  static const vector<const char*>* required_extensions = nullptr;
+const std::vector<const char*>& Swapchain::GetRequiredExtensions() {
+  static const std::vector<const char*>* required_extensions = nullptr;
   if (required_extensions == nullptr) {
-    required_extensions = new vector<const char*>{
+    required_extensions = new std::vector<const char*>{
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     };
   }

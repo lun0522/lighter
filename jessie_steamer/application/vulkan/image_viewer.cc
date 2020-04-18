@@ -90,21 +90,23 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
     kNumProcessingStages,
   };
 
-  const common::Image image_from_file{file_path};
-  const TextureImage original_image(context(), /*generate_mipmaps=*/false,
-                                    image_from_file, ImageSampler::Config{});
   auto original_image_usage = image::UsageInfo{"Original"}
       .SetInitialUsage(image::Usage::kSampledInFragmentShader)
       .AddUsage(kComputingStage, image::Usage::kLinearReadInComputeShader);
+  const common::Image image_from_file{file_path};
+  const TextureImage original_image(
+      context(), /*generate_mipmaps=*/false,
+      image::GetImageUsageFlags(original_image_usage),
+      image_from_file, ImageSampler::Config{});
 
   auto processed_image_usage = image::UsageInfo{"Processed"}
       .AddUsage(kComputingStage, image::Usage::kLinearReadInComputeShader)
       .SetFinalUsage(image::Usage::kSampledInFragmentShader);
   image_ = absl::make_unique<OffscreenImage>(
       context(), original_image.extent(), image_from_file.channel,
-      processed_image_usage.GetImageUsageFlags(), ImageSampler::Config{});
+      image::GetImageUsageFlags(processed_image_usage), ImageSampler::Config{});
 
-  const ImageLayoutManager layout_manager{
+  const image::LayoutManager layout_manager{
       kNumProcessingStages, /*usage_info_map=*/{
           {&original_image.image(), std::move(original_image_usage)},
           {&image_->image(), std::move(processed_image_usage)},

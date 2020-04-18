@@ -16,9 +16,6 @@ namespace jessie_steamer {
 namespace common {
 namespace {
 
-using std::string;
-using std::vector;
-
 // Translates the resource type we defined to its counterpart in Assimp.
 aiTextureType TextureTypeToAssimpType(ModelLoader::TextureType type) {
   using TextureType = ModelLoader::TextureType;
@@ -36,7 +33,8 @@ aiTextureType TextureTypeToAssimpType(ModelLoader::TextureType type) {
 
 } /* namespace */
 
-ModelLoader::ModelLoader(const string& model_path, const string& texture_dir) {
+ModelLoader::ModelLoader(const std::string& model_path,
+                         const std::string& texture_dir) {
   constexpr unsigned int flags = aiProcess_Triangulate
                                      | aiProcess_GenNormals
                                      | aiProcess_PreTransformVertices
@@ -52,7 +50,7 @@ ModelLoader::ModelLoader(const string& model_path, const string& texture_dir) {
   ProcessNode(texture_dir, scene->mRootNode, scene);
 }
 
-void ModelLoader::ProcessNode(const string& directory,
+void ModelLoader::ProcessNode(const std::string& directory,
                               const aiNode* node,
                               const aiScene* scene) {
   mesh_datas_.reserve(mesh_datas_.size() + node->mNumMeshes);
@@ -65,12 +63,12 @@ void ModelLoader::ProcessNode(const string& directory,
   }
 }
 
-ModelLoader::MeshData ModelLoader::LoadMesh(const string& directory,
+ModelLoader::MeshData ModelLoader::LoadMesh(const std::string& directory,
                                             const aiMesh* mesh,
                                             const aiScene* scene) const {
   // Load vertices. Assimp allows a vertex to have multiple sets of texture
   // coordinates. We will simply use the first set.
-  vector<Vertex3DWithTex> vertices;
+  std::vector<Vertex3DWithTex> vertices;
   vertices.reserve(mesh->mNumVertices);
   constexpr int kTexCoordSetIndex = 0;
   const aiVector3D* tex_coord_set = mesh->mTextureCoords[kTexCoordSetIndex];
@@ -89,7 +87,7 @@ ModelLoader::MeshData ModelLoader::LoadMesh(const string& directory,
   }
 
   // Load indices.
-  vector<uint32_t> indices;
+  std::vector<uint32_t> indices;
   for (int i = 0; i < mesh->mNumFaces; ++i) {
     const aiFace& face = mesh->mFaces[i];
     indices.insert(indices.end(), face.mIndices,
@@ -97,7 +95,7 @@ ModelLoader::MeshData ModelLoader::LoadMesh(const string& directory,
   }
 
   // Load textures.
-  vector<TextureInfo> textures;
+  std::vector<TextureInfo> textures;
   if (scene->HasMaterials()) {
     const aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
     LoadTextures(directory, material, TextureType::kDiffuse, &textures);
@@ -108,10 +106,10 @@ ModelLoader::MeshData ModelLoader::LoadMesh(const string& directory,
   return MeshData{std::move(vertices), std::move(indices), std::move(textures)};
 }
 
-void ModelLoader::LoadTextures(const string& directory,
+void ModelLoader::LoadTextures(const std::string& directory,
                                const aiMaterial* material,
                                TextureType texture_type,
-                               vector<TextureInfo>* texture_infos) const {
+                               std::vector<TextureInfo>* texture_infos) const {
   const aiTextureType ai_type = TextureTypeToAssimpType(texture_type);
   const int num_textures = material->GetTextureCount(ai_type);
   texture_infos->reserve(texture_infos->size() + num_textures);

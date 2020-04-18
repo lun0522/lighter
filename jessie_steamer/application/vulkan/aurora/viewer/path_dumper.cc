@@ -25,7 +25,7 @@ using namespace wrapper::vulkan;
 
 enum ProcessingStage {
   kRenderPathsStage,
-  kComputeDistanceFieldStage,
+  kGenerateDistanceFieldStage,
   kNumProcessingStages,
 };
 
@@ -90,89 +90,45 @@ PathDumper::PathDumper(
   const ImageSampler::Config sampler_config{
       VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
 
-  auto first_image_usage = image::UsageInfo{"First"}
+  auto ping_image_usage = image::UsageInfo{"Ping"}
       .SetInitialUsage(image::Usage::kSampledInFragmentShader)
-      .AddUsage(kComputeDistanceFieldStage,
+      .AddUsage(kGenerateDistanceFieldStage,
                 image::Usage::kLinearReadWriteInComputeShader)
       .SetFinalUsage(image::Usage::kSampledInFragmentShader);
-  paths_images_[0] = absl::make_unique<OffscreenImage>(
+  images_[kPingImageIndex] = absl::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::kBwImageChannel,
-      first_image_usage.GetImageUsageFlags(), sampler_config);
+      image::GetImageUsageFlags(ping_image_usage), sampler_config);
 
-  auto second_image_usage = image::UsageInfo{"Second"}
-      .SetInitialUsage(image::Usage::kDontCare)
-      .AddUsage(kComputeDistanceFieldStage,
+  auto pong_image_usage = image::UsageInfo{"Pong"}
+      .AddUsage(kGenerateDistanceFieldStage,
                 image::Usage::kLinearReadWriteInComputeShader)
       .SetFinalUsage(image::Usage::kSampledInFragmentShader);
-  paths_images_[1] = absl::make_unique<OffscreenImage>(
+  images_[kPongImageIndex] = absl::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::kBwImageChannel,
-      second_image_usage.GetImageUsageFlags(), sampler_config);
+      image::GetImageUsageFlags(pong_image_usage), sampler_config);
 
-  image_layout_manager_ = absl::make_unique<ImageLayoutManager>(
-      kNumProcessingStages, ImageLayoutManager::UsageInfoMap{
-          {&paths_images_[0]->image(), std::move(first_image_usage)},
-          {&paths_images_[1]->image(), std::move(second_image_usage)},
+  image_layout_manager_ = absl::make_unique<image::LayoutManager>(
+      kNumProcessingStages, image::LayoutManager::UsageInfoMap{
+          {&images_[kPingImageIndex]->image(), std::move(ping_image_usage)},
+          {&images_[kPongImageIndex]->image(), std::move(pong_image_usage)},
       });
 
   /* Render pass */
   path_renderer_ = absl::make_unique<PathRenderer>(
-      context_, *paths_images_[0], std::move(aurora_paths_vertex_buffers));
+      context_, *images_[kPingImageIndex],
+      std::move(aurora_paths_vertex_buffers));
+
+  /* Computer shader */
+  distance_field_generator_ = absl::make_unique<DistanceFieldGenerator>(
+      context_, images_, *image_layout_manager_);
 }
 
 void PathDumper::DumpAuroraPaths(const glm::vec3& viewpoint_position) {
-  enum UniformBindingPoint {
-    kOriginalImageBindingPoint = 0,
-    kOutputImageBindingPoint,
-  };
-
   camera_->UpdateDirection(viewpoint_position);
   path_renderer_->UpdateData(*camera_);
 
-  StaticDescriptor descriptor{
-      context_, /*infos=*/std::vector<Descriptor::Info>{
-          Descriptor::Info{
-              VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-              VK_SHADER_STAGE_COMPUTE_BIT,
-              /*bindings=*/{
-                  Descriptor::Info::Binding{
-                      kOriginalImageBindingPoint,
-                      /*array_length=*/1,
-                  }},
-          },
-          Descriptor::Info{
-              VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-              VK_SHADER_STAGE_COMPUTE_BIT,
-              /*bindings=*/{
-                  Descriptor::Info::Binding{
-                      kOutputImageBindingPoint,
-                      /*array_length=*/1,
-                  }},
-          },
-      }
-  };
-  // TODO
-  auto original_image_descriptor_info = paths_images_[0]->GetDescriptorInfo();
-  original_image_descriptor_info.imageLayout =
-      image_layout_manager_->GetLayoutAtStage(paths_images_[0]->image(),
-                                              kComputeDistanceFieldStage);
-  auto output_image_descriptor_info = paths_images_[1]->GetDescriptorInfo();
-  output_image_descriptor_info.imageLayout =
-      image_layout_manager_->GetLayoutAtStage(paths_images_[1]->image(),
-                                              kComputeDistanceFieldStage);
-  descriptor.UpdateImageInfos(
-      VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-      /*image_info_map=*/
-      {{kOriginalImageBindingPoint, {original_image_descriptor_info}},
-       {kOutputImageBindingPoint, {output_image_descriptor_info}}});
-
-  const auto pipeline = ComputePipelineBuilder{context_}
-      .SetPipelineName("Bold path")
-      .SetPipelineLayout({descriptor.layout()}, /*push_constant_ranges=*/{})
-      .SetShader(common::file::GetVkShaderPath("aurora/bold_path.comp"))
-      .Build();
-
   const OneTimeCommand command{context_, &context_->queues().graphics_queue()};
-  command.Run([&](const VkCommandBuffer& command_buffer) {
+  command.Run([this](const VkCommandBuffer& command_buffer) {
     image_layout_manager_->InsertMemoryBarrierBeforeStage(
         command_buffer, context_->queues().graphics_queue().family_index,
         kRenderPathsStage);
@@ -180,19 +136,10 @@ void PathDumper::DumpAuroraPaths(const glm::vec3& viewpoint_position) {
 
     image_layout_manager_->InsertMemoryBarrierBeforeStage(
         command_buffer, context_->queues().compute_queue().family_index,
-        kComputeDistanceFieldStage);
+        kGenerateDistanceFieldStage);
 
-    const auto& image_extent = paths_images_[0]->extent();
-    const auto group_count_x = util::GetWorkGroupCount(image_extent.width,
-                                                       kWorkGroupSizeX);
-    const auto group_count_y = util::GetWorkGroupCount(image_extent.height,
-                                                       kWorkGroupSizeY);
-
-    pipeline->Bind(command_buffer);
-    descriptor.Bind(command_buffer, pipeline->layout(),
-                    pipeline->binding_point());
-    vkCmdDispatch(command_buffer, group_count_x, group_count_y,
-                  /*groupCountZ=*/1);
+    distance_field_generator_->Generate(command_buffer, images_,
+                                        *image_layout_manager_);
 
     image_layout_manager_->InsertMemoryBarrierAfterFinalStage(
         command_buffer, context_->queues().compute_queue().family_index);
@@ -271,6 +218,93 @@ void PathDumper::PathRenderer::Draw(const VkCommandBuffer& command_buffer) {
                          /*target_offset=*/0, VK_SHADER_STAGE_VERTEX_BIT);
   render_pass_->Run(command_buffer, /*framebuffer_index=*/0,
                     absl::MakeSpan(&render_op_, 1));
+}
+
+PathDumper::DistanceFieldGenerator::DistanceFieldGenerator(
+    const SharedBasicContext& context,
+    const std::array<std::unique_ptr<OffscreenImage>, kNumImages>& images,
+    const image::LayoutManager& image_layout_manager) {
+  enum UniformBindingPoint {
+    kOriginalImageBindingPoint = 0,
+    kOutputImageBindingPoint,
+  };
+
+  /* Descriptor */
+  std::vector<Descriptor::Info> descriptor_infos;
+  descriptor_infos.reserve(kNumImages);
+  for (auto binding_point : {kOriginalImageBindingPoint,
+                             kOutputImageBindingPoint}) {
+    descriptor_infos.emplace_back(Descriptor::Info{
+        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        VK_SHADER_STAGE_COMPUTE_BIT,
+        /*bindings=*/{{binding_point, /*array_length=*/1}},
+    });
+  }
+  for (auto& descriptor : descriptors_) {
+    descriptor = absl::make_unique<StaticDescriptor>(context, descriptor_infos);
+  }
+
+  // TODO
+  auto ping_image_descriptor_info =
+      images[kPingImageIndex]->GetDescriptorInfo();
+  ping_image_descriptor_info.imageLayout =
+      image_layout_manager.GetLayoutAtStage(
+          images[kPingImageIndex]->image(), kGenerateDistanceFieldStage);
+  auto pong_image_descriptor_info =
+      images[kPongImageIndex]->GetDescriptorInfo();
+  pong_image_descriptor_info.imageLayout =
+      image_layout_manager.GetLayoutAtStage(
+          images[kPongImageIndex]->image(), kGenerateDistanceFieldStage);
+  descriptors_[kPingImageIndex]->UpdateImageInfos(
+      VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+      /*image_info_map=*/{
+          {kOriginalImageBindingPoint, {ping_image_descriptor_info}},
+          {kOutputImageBindingPoint, {pong_image_descriptor_info}}});
+  descriptors_[kPongImageIndex]->UpdateImageInfos(
+      VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+      /*image_info_map=*/{
+          {kOriginalImageBindingPoint, {pong_image_descriptor_info}},
+          {kOutputImageBindingPoint, {ping_image_descriptor_info}}});
+
+  /* Pipeline */
+  bold_path_pipeline_ = ComputePipelineBuilder{context}
+      .SetPipelineName("Bold path")
+      .SetPipelineLayout({descriptors_[kPingImageIndex]->layout()},
+                         /*push_constant_ranges=*/{})
+      .SetShader(common::file::GetVkShaderPath("aurora/bold_path.comp"))
+      .Build();
+
+  distance_field_pipeline_ = ComputePipelineBuilder{context}
+      .SetPipelineName("Generate distance field")
+      .SetPipelineLayout({descriptors_[kPingImageIndex]->layout()},
+                         /*push_constant_ranges=*/{})
+      .SetShader(common::file::GetVkShaderPath("aurora/distance_field.comp"))
+      .Build();
+}
+
+void PathDumper::DistanceFieldGenerator::Generate(
+    const VkCommandBuffer& command_buffer,
+    const std::array<std::unique_ptr<OffscreenImage>, kNumImages>& images,
+    const image::LayoutManager& image_layout_manager) {
+  const auto& image_extent = images[kPingImageIndex]->extent();
+  const auto group_count_x = util::GetWorkGroupCount(image_extent.width,
+                                                     kWorkGroupSizeX);
+  const auto group_count_y = util::GetWorkGroupCount(image_extent.height,
+                                                     kWorkGroupSizeY);
+
+  bold_path_pipeline_->Bind(command_buffer);
+  descriptors_[kPingImageIndex]->Bind(
+      command_buffer, bold_path_pipeline_->layout(),
+      bold_path_pipeline_->binding_point());
+  vkCmdDispatch(command_buffer, group_count_x, group_count_y,
+                /*groupCountZ=*/1);
+
+  distance_field_pipeline_->Bind(command_buffer);
+  descriptors_[kPongImageIndex]->Bind(
+      command_buffer, distance_field_pipeline_->layout(),
+      distance_field_pipeline_->binding_point());
+  vkCmdDispatch(command_buffer, group_count_x, group_count_y,
+                /*groupCountZ=*/1);
 }
 
 } /* namespace aurora */

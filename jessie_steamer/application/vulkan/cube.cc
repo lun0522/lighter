@@ -19,8 +19,6 @@ namespace {
 
 using namespace wrapper::vulkan;
 
-using std::vector;
-
 enum SubpassIndex {
   kModelSubpassIndex = 0,
   kTextSubpassIndex,
@@ -120,10 +118,10 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
   constexpr int kFontHeight = 100;
   static_text_ = absl::make_unique<StaticText>(
       context(), kNumFramesInFlight, original_aspect_ratio,
-      vector<std::string>{"FPS: "}, kFont, kFontHeight);
+      std::vector<std::string>{"FPS: "}, kFont, kFontHeight);
   dynamic_text_ = absl::make_unique<DynamicText>(
       context(), kNumFramesInFlight, original_aspect_ratio,
-      vector<std::string>{"01234567890"}, kFont, kFontHeight);
+      std::vector<std::string>{"01234567890"}, kFont, kFontHeight);
 }
 
 void CubeApp::Recreate() {
@@ -198,7 +196,7 @@ void CubeApp::MainLoop() {
     dynamic_text_->AddText(std::to_string(timer_.frame_rate()), kTextHeight,
                            boundary.y, kTextBaseY, Text::Align::kLeft);
 
-    const vector<RenderPass::RenderOp> render_ops{
+    const std::vector<RenderPass::RenderOp> render_ops{
         [this](const VkCommandBuffer& command_buffer) {
           cube_model_->Draw(command_buffer, current_frame_,
                             /*instance_count=*/1);

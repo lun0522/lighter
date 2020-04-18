@@ -16,7 +16,6 @@ namespace vulkan {
 namespace {
 
 using common::util::SetElementWithResizing;
-using std::vector;
 
 using ColorOps = RenderPassBuilder::Attachment::ColorOps;
 using DepthStencilOps = RenderPassBuilder::Attachment::DepthStencilOps;
@@ -70,9 +69,10 @@ VkAttachmentDescription CreateAttachmentDescription(
 }
 
 // Creates subpass description given 'subpass_attachments'.
-vector<VkSubpassDescription> CreateSubpassDescriptions(
-    const vector<RenderPassBuilder::SubpassAttachments>& subpass_attachments) {
-  vector<VkSubpassDescription> descriptions;
+std::vector<VkSubpassDescription> CreateSubpassDescriptions(
+    const std::vector<RenderPassBuilder::SubpassAttachments>&
+        subpass_attachments) {
+  std::vector<VkSubpassDescription> descriptions;
   descriptions.reserve(subpass_attachments.size());
   for (const auto& attachments : subpass_attachments) {
     descriptions.emplace_back(VkSubpassDescription{
@@ -98,9 +98,10 @@ vector<VkSubpassDescription> CreateSubpassDescriptions(
 }
 
 // Returns the number of color attachments in each subpass.
-vector<int> GetNumberColorAttachmentsInSubpasses(
-    const vector<RenderPassBuilder::SubpassAttachments>& subpass_attachments) {
-  vector<int> num_color_attachments;
+std::vector<int> GetNumberColorAttachmentsInSubpasses(
+    const std::vector<RenderPassBuilder::SubpassAttachments>&
+        subpass_attachments) {
+  std::vector<int> num_color_attachments;
   num_color_attachments.reserve(subpass_attachments.size());
   for (const auto& attachments : subpass_attachments) {
     num_color_attachments.emplace_back(attachments.color_refs.size());
@@ -123,12 +124,12 @@ VkSubpassDependency CreateSubpassDependency(
 }
 
 // Creates framebuffers.
-vector<VkFramebuffer> CreateFramebuffers(
+std::vector<VkFramebuffer> CreateFramebuffers(
     const BasicContext& context,
     const VkRenderPass& render_pass,
-    const vector<RenderPassBuilder::GetImage>& get_images,
+    const std::vector<RenderPassBuilder::GetImage>& get_images,
     int num_framebuffers, const VkExtent2D& framebuffer_size) {
-  vector<VkImageView> image_views(get_images.size());
+  std::vector<VkImageView> image_views(get_images.size());
   VkFramebufferCreateInfo framebuffer_info{
       VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -141,7 +142,7 @@ vector<VkFramebuffer> CreateFramebuffers(
       kSingleImageLayer,
   };
 
-  vector<VkFramebuffer> framebuffers(num_framebuffers);
+  std::vector<VkFramebuffer> framebuffers(num_framebuffers);
   for (int i = 0; i < framebuffers.size(); ++i) {
     for (int image_index = 0; image_index < get_images.size(); ++image_index) {
       image_views[image_index] =
@@ -156,10 +157,11 @@ vector<VkFramebuffer> CreateFramebuffers(
 
 } /* namespace */
 
-vector<VkAttachmentReference> RenderPassBuilder::CreateMultisamplingReferences(
+std::vector<VkAttachmentReference>
+RenderPassBuilder::CreateMultisamplingReferences(
     int num_color_refs, absl::Span<const MultisamplingPair> pairs) {
   ASSERT_NON_EMPTY(pairs, "No multisampling pairs provided");
-  vector<VkAttachmentReference> references(
+  std::vector<VkAttachmentReference> references(
       num_color_refs,
       VkAttachmentReference{VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED}
   );

@@ -8,9 +8,9 @@
 #include "jessie_steamer/wrapper/vulkan/model.h"
 
 #include "jessie_steamer/common/file.h"
-#include "jessie_steamer/wrapper/vulkan/util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
+#include "jessie_steamer/wrapper/vulkan/image_util.h"
 
 namespace jessie_steamer {
 namespace wrapper {
@@ -18,8 +18,6 @@ namespace vulkan {
 namespace {
 
 using common::Vertex3DWithTex;
-using std::vector;
-
 using VertexInfo = PerVertexBuffer::NoShareIndicesDataInfo;
 
 constexpr uint32_t kPerVertexBufferBindingPoint = 0;
@@ -32,6 +30,7 @@ std::unique_ptr<SamplableImage> CreateTexture(
   if (absl::holds_alternative<SharedTexture::SourcePath>(source)) {
     return absl::make_unique<SharedTexture>(
         context, absl::get<SharedTexture::SourcePath>(source),
+        image::GetImageUsageFlags({image::Usage::kSampledInFragmentShader}),
         ImageSampler::Config{});
   } else if (absl::holds_alternative<OffscreenImagePtr>(source)) {
     return absl::make_unique<UnownedOffscreenTexture>(
@@ -92,9 +91,9 @@ void CreateTextureInfo(const ModelBuilder::BindingPointMap& binding_map,
 
 // Creates push constant ranges given 'push_constant_infos', assuming that
 // PushConstant::size_per_frame() bytes will be sent in each frame.
-vector<VkPushConstantRange> CreatePushConstantRanges(
+std::vector<VkPushConstantRange> CreatePushConstantRanges(
     const ModelBuilder::PushConstantInfos& push_constant_infos) {
-  vector<VkPushConstantRange> ranges;
+  std::vector<VkPushConstantRange> ranges;
   ranges.reserve(push_constant_infos.infos.size());
   for (const auto& info : push_constant_infos.infos) {
     ranges.emplace_back(VkPushConstantRange{
@@ -110,7 +109,7 @@ vector<VkPushConstantRange> CreatePushConstantRanges(
 // assuming per-vertex data is of type Vertex3DWithTex.
 void SetPipelineVertexInput(
     const PerVertexBuffer& per_vertex_buffer,
-    const vector<const PerInstanceBuffer*>& per_instance_buffers,
+    const std::vector<const PerInstanceBuffer*>& per_instance_buffers,
     GraphicsPipelineBuilder* pipeline_builder) {
   uint32_t attribute_start_location = 0;
 
@@ -169,7 +168,7 @@ void ModelBuilder::SingleMeshResource::LoadMesh(ModelBuilder* builder) const {
 void ModelBuilder::MultiMeshResource::LoadMesh(ModelBuilder* builder) const {
   // Load indices and vertices.
   const common::ModelLoader loader{model_path_, texture_dir_};
-  vector<VertexInfo::PerMeshInfo> per_mesh_infos;
+  std::vector<VertexInfo::PerMeshInfo> per_mesh_infos;
   per_mesh_infos.reserve(loader.mesh_datas().size());
   for (const auto& mesh_data : loader.mesh_datas()) {
     per_mesh_infos.emplace_back(VertexInfo::PerMeshInfo{
@@ -182,6 +181,8 @@ void ModelBuilder::MultiMeshResource::LoadMesh(ModelBuilder* builder) const {
       pipeline::GetVertexAttribute<Vertex3DWithTex>());
 
   // Load textures.
+  const auto image_usage_flags =
+      image::GetImageUsageFlags({image::Usage::kSampledInFragmentShader});
   auto& mesh_textures = builder->mesh_textures_;
   mesh_textures.reserve(loader.mesh_datas().size());
   for (const auto& mesh_data : loader.mesh_datas()) {
@@ -190,7 +191,8 @@ void ModelBuilder::MultiMeshResource::LoadMesh(ModelBuilder* builder) const {
       const auto type_index = static_cast<int>(texture.texture_type);
       mesh_textures.back()[type_index].emplace_back(
           absl::make_unique<SharedTexture>(
-              builder->context_, texture.path, ImageSampler::Config{}));
+              builder->context_, texture.path, image_usage_flags,
+              ImageSampler::Config{}));
     }
   }
 }
@@ -230,7 +232,7 @@ ModelBuilder& ModelBuilder::AddPerInstanceBuffer(
 
 ModelBuilder& ModelBuilder::AddUniformBinding(
     VkShaderStageFlags shader_stage,
-    vector<Descriptor::Info::Binding>&& bindings) {
+    std::vector<Descriptor::Info::Binding>&& bindings) {
   uniform_descriptor_infos_.emplace_back(Descriptor::Info{
       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
       shader_stage,
@@ -277,12 +279,12 @@ ModelBuilder& ModelBuilder::SetShader(VkShaderStageFlagBits shader_stage,
   return *this;
 }
 
-vector<ModelBuilder::DescriptorsPerFrame>
+std::vector<ModelBuilder::DescriptorsPerFrame>
 ModelBuilder::CreateDescriptors() const {
   // For different frames, we get data from different parts of uniform buffers.
   // For different meshes, we bind different textures.
   // Hence, we need a 2D array: descriptors[num_frames][num_meshes].
-  vector<DescriptorsPerFrame> descriptors(num_frames_in_flight_);
+  std::vector<DescriptorsPerFrame> descriptors(num_frames_in_flight_);
   auto descriptor_infos = uniform_descriptor_infos_;
   // The last element will store the descriptor info of textures.
   descriptor_infos.resize(descriptor_infos.size() + 1);
@@ -318,7 +320,7 @@ std::unique_ptr<Model> ModelBuilder::Build() {
       {descriptors[0][0]->layout()},
       push_constant_infos_.has_value()
           ? CreatePushConstantRanges(push_constant_infos_.value())
-          : vector<VkPushConstantRange>{});
+          : std::vector<VkPushConstantRange>{});
   SetPipelineVertexInput(*vertex_buffer_, per_instance_buffers_,
                          pipeline_builder_.get());
 
@@ -342,7 +344,7 @@ void Model::Update(bool is_object_opaque, const VkExtent2D& frame_size,
       .SetViewport(pipeline::GetViewport(frame_size, viewport_aspect_ratio_))
       .SetRenderPass(*render_pass, subpass_index)
       .SetColorBlend(
-          vector<VkPipelineColorBlendAttachmentState>(
+          std::vector<VkPipelineColorBlendAttachmentState>(
               render_pass.num_color_attachments(subpass_index),
               pipeline::GetColorAlphaBlendState(
                   /*enable_blend=*/!is_object_opaque)))

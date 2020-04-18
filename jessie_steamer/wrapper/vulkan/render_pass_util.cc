@@ -16,7 +16,6 @@ namespace wrapper {
 namespace vulkan {
 namespace {
 
-using std::vector;
 using Attachment = RenderPassBuilder::Attachment;
 using MultisamplingPair = RenderPassBuilder::MultisamplingPair;
 using SubpassAttachments = RenderPassBuilder::SubpassAttachments;
@@ -32,7 +31,7 @@ VkImageLayout GetColorAttachmentFinalLayout(
       return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     case Usage::kSampledAsTexture:
       return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    case Usage::kAccessedByHost:
+    case Usage::kAccessedLinearly:
       return VK_IMAGE_LAYOUT_GENERAL;
   }
 }
@@ -105,7 +104,7 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
   }
 
   /* Subpasses descriptions */
-  const vector<VkAttachmentReference> color_refs{
+  const std::vector<VkAttachmentReference> color_refs{
       VkAttachmentReference{
           use_multisampling ? multisample_attachment_index()
                             : color_attachment_index(),
@@ -120,14 +119,14 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
   for (int i = 0; i < num_subpasses_with_depth_attachment; ++i) {
     builder_.SetSubpass(
         subpass_index++,
-        vector<VkAttachmentReference>{color_refs},
+        std::vector<VkAttachmentReference>{color_refs},
         depth_stencil_ref
     );
   }
   for (int i = 0; i < subpass_config.num_overlay_subpasses; ++i) {
     builder_.SetSubpass(
         subpass_index++,
-        vector<VkAttachmentReference>{color_refs},
+        std::vector<VkAttachmentReference>{color_refs},
         /*depth_stencil_ref=*/absl::nullopt
     );
   }
