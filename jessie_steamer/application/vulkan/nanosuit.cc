@@ -160,7 +160,7 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
   };
 
   nanosuit_model_ = ModelBuilder{
-      context(), "nanosuit", kNumFramesInFlight, original_aspect_ratio,
+      context(), "Nanosuit", kNumFramesInFlight, original_aspect_ratio,
       ModelBuilder::MultiMeshResource{
           GetResourcePath("model/nanosuit/nanosuit.obj"),
           GetResourcePath("model/nanosuit")}}
@@ -182,7 +182,7 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
       .Build();
 
   skybox_model_ = ModelBuilder{
-      context(), "skybox", kNumFramesInFlight, original_aspect_ratio,
+      context(), "Skybox", kNumFramesInFlight, original_aspect_ratio,
       ModelBuilder::SingleMeshResource{
           GetResourcePath("model/skybox.obj"), kObjFileIndexBase,
           /*tex_source_map=*/{{TextureType::kCubemap, {skybox_path}}},

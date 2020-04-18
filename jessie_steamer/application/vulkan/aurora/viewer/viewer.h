@@ -37,9 +37,7 @@ class Viewer : public Scene {
   Viewer& operator=(const Viewer&) = delete;
 
   // Dumps aurora paths viewed from 'viewpoint_position'.
-  void UpdateAuroraPaths(const glm::vec3& viewpoint_position) {
-    path_dumper_.DumpAuroraPaths(viewpoint_position);
-  }
+  void UpdateAuroraPaths(const glm::vec3& viewpoint_position);
 
   // Overrides.
   void OnEnter() override;

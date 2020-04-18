@@ -132,6 +132,11 @@ class StaticText : public Text {
             int frame, const glm::vec3& color, float alpha) override;
 
  private:
+  // Updates the descriptor for rendering the text at 'text_index'.
+  // This should be called when 'command_buffer' is recording commands.
+  void UpdateDescriptor(const VkCommandBuffer& command_buffer,
+                        int frame, int text_index);
+
   // Renders each text (containing multiple characters) to one texture.
   TextLoader text_loader_;
 
@@ -140,13 +145,6 @@ class StaticText : public Text {
 
   // Indices of texts to draw. This can contain duplicates.
   std::vector<int> texts_to_draw_;
-
-  // Descriptor updaters indexed by frame. Each of them prepares the descriptor
-  // at the same index to render the text at 'text_index'.
-  std::vector<std::function<void(const VkCommandBuffer& command_buffer,
-                                 const VkPipelineLayout& pipeline_layout,
-                                 VkPipelineBindPoint pipeline_binding_point,
-                                 int text_index)>> push_descriptors_;
 };
 
 // This class renders all characters in 'texts' to one texture, so that when the

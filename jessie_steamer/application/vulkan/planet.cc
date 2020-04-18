@@ -183,7 +183,7 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
 
   /* Model */
   planet_model_ = ModelBuilder{
-      context(), "planet", kNumFramesInFlight, original_aspect_ratio,
+      context(), "Planet", kNumFramesInFlight, original_aspect_ratio,
       ModelBuilder::SingleMeshResource{
           GetResourcePath("model/sphere.obj"), kObjFileIndexBase,
           /*tex_source_map=*/{{
@@ -207,7 +207,7 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
 
   GenAsteroidModels();
   asteroid_model_ = ModelBuilder{
-      context(), "asteroid", kNumFramesInFlight, original_aspect_ratio,
+      context(), "Asteroid", kNumFramesInFlight, original_aspect_ratio,
       ModelBuilder::MultiMeshResource{
           GetResourcePath("model/rock/rock.obj"),
           GetResourcePath("model/rock"),
@@ -236,7 +236,7 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
   };
 
   skybox_model_ = ModelBuilder{
-      context(), "skybox", kNumFramesInFlight, original_aspect_ratio,
+      context(), "Skybox", kNumFramesInFlight, original_aspect_ratio,
       ModelBuilder::SingleMeshResource{
           GetResourcePath("model/skybox.obj"), kObjFileIndexBase,
           {{TextureType::kCubemap, {skybox_path}}},

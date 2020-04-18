@@ -6,6 +6,7 @@ cc_library(
     srcs = ["path_dumper.cc"],
     deps = [
         "//jessie_steamer/application/vulkan:common",
+        "//third_party/absl/strings:str_format",
         "//third_party/absl/types:span",
     ],
 )
@@ -18,6 +19,5 @@ cc_library(
         ":path_dumper",
         "//jessie_steamer/application/vulkan/aurora:scene",
         "//jessie_steamer/application/vulkan:common",
-        "//third_party/absl/types:span",
     ],
 )

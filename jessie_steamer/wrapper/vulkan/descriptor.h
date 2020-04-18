@@ -160,12 +160,14 @@ class DynamicDescriptor : public Descriptor {
 
  private:
   // Relates the actual data to this descriptor.
-  std::function<const DynamicDescriptor&(
+  const DynamicDescriptor& PushDescriptorSets(
       const VkCommandBuffer& command_buffer,
       const VkPipelineLayout& pipeline_layout,
       VkPipelineBindPoint pipeline_binding_point,
-      const std::vector<VkWriteDescriptorSet>& write_descriptor_sets)>
-      push_descriptor_sets_;
+      const std::vector<VkWriteDescriptorSet>& write_descriptor_sets) const;
+
+  // Function used to push descriptor sets.
+  PFN_vkCmdPushDescriptorSetKHR push_descriptor_sets_func_;
 };
 
 } /* namespace vulkan */

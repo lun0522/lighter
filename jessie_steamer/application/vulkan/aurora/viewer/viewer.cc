@@ -8,7 +8,6 @@
 #include "jessie_steamer/application/vulkan/aurora/viewer/viewer.h"
 
 #include "jessie_steamer/common/util.h"
-#include "third_party/absl/types/span.h"
 
 namespace jessie_steamer {
 namespace application {
@@ -31,13 +30,9 @@ Viewer::Viewer(
     std::vector<const PerVertexBuffer*>&& aurora_paths_vertex_buffers)
     : window_context_{*FATAL_IF_NULL(window_context)},
       path_dumper_{window_context_.basic_context(),
-                   /*paths_image_dimension=*/2000,
+                   /*paths_image_dimension=*/1024,
                    /*camera_field_of_view=*/30.0f,
                    std::move(aurora_paths_vertex_buffers)} {
-  image_viewer_ = absl::make_unique<ImageViewer>(
-      window_context_.basic_context(), path_dumper_.paths_image(),
-      /*num_channels=*/1, /*flip_y=*/true);
-
   const NaiveRenderPassBuilder::SubpassConfig subpass_config{
       /*use_opaque_subpass=*/false,
       /*num_transparent_subpasses=*/0,
@@ -48,6 +43,13 @@ Viewer::Viewer(
       /*num_framebuffers=*/window_context_.num_swapchain_images(),
       /*use_multisampling=*/false,
       NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kPresentToScreen);
+}
+
+void Viewer::UpdateAuroraPaths(const glm::vec3& viewpoint_position) {
+  path_dumper_.DumpAuroraPaths(viewpoint_position);
+  image_viewer_ = absl::make_unique<ImageViewer>(
+      window_context_.basic_context(), path_dumper_.distance_field(),
+      common::kRgbaImageChannel, /*flip_y=*/true);
 }
 
 void Viewer::OnEnter() {

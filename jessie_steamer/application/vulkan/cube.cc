@@ -94,7 +94,7 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
   // TODO: Add utils for resource paths and shader paths.
   /* Model */
   cube_model_ = ModelBuilder{
-      context(), "cube", kNumFramesInFlight, original_aspect_ratio,
+      context(), "Cube", kNumFramesInFlight, original_aspect_ratio,
       ModelBuilder::SingleMeshResource{
           common::file::GetResourcePath("model/cube.obj"), kObjFileIndexBase,
           /*tex_source_map=*/{{

@@ -189,32 +189,19 @@ const StaticDescriptor& StaticDescriptor::UpdateDescriptorSets(
 void StaticDescriptor::Bind(const VkCommandBuffer& command_buffer,
                             const VkPipelineLayout& pipeline_layout,
                             VkPipelineBindPoint pipeline_binding_point) const {
-  vkCmdBindDescriptorSets(command_buffer, pipeline_binding_point,
-                          pipeline_layout, /*firstSet=*/0,
-                          /*dePushBufferInfosscriptorSetCount=*/1, &set_,
-                          /*dynamicOffsetCount=*/0, /*pDynamicOffsets=*/nullptr);
+  vkCmdBindDescriptorSets(
+      command_buffer, pipeline_binding_point, pipeline_layout,
+      /*firstSet=*/0, /*descriptorSetCount=*/1, &set_, /*dynamicOffsetCount=*/0,
+      /*pDynamicOffsets=*/nullptr);
 }
 
 DynamicDescriptor::DynamicDescriptor(SharedBasicContext context,
                                      absl::Span<const Info> infos)
     : Descriptor{std::move(context)} {
   SetLayout(CreateDescriptorSetLayout(*context_, infos, /*is_dynamic=*/true));
-  const auto vkCmdPushDescriptorSetKHR =
+  push_descriptor_sets_func_ =
       util::LoadDeviceFunction<PFN_vkCmdPushDescriptorSetKHR>(
           *context_->device(), "vkCmdPushDescriptorSetKHR");
-  push_descriptor_sets_ =
-      [this, vkCmdPushDescriptorSetKHR](
-          const VkCommandBuffer& command_buffer,
-          const VkPipelineLayout& pipeline_layout,
-          VkPipelineBindPoint pipeline_binding_point,
-          const std::vector<VkWriteDescriptorSet>& write_descriptor_sets)
-              -> const DynamicDescriptor& {
-        vkCmdPushDescriptorSetKHR(command_buffer, pipeline_binding_point,
-                                  pipeline_layout, /*set=*/0,
-                                  CONTAINER_SIZE(write_descriptor_sets),
-                                  write_descriptor_sets.data());
-        return *this;
-      };
 }
 
 const DynamicDescriptor& DynamicDescriptor::PushBufferInfos(
@@ -223,7 +210,7 @@ const DynamicDescriptor& DynamicDescriptor::PushBufferInfos(
     VkPipelineBindPoint pipeline_binding_point,
     VkDescriptorType descriptor_type,
     const BufferInfoMap& buffer_info_map) const {
-  return push_descriptor_sets_(
+  return PushDescriptorSets(
       command_buffer, pipeline_layout, pipeline_binding_point,
       CreateWriteDescriptorSets(/*descriptor_set=*/VK_NULL_HANDLE,
                                 descriptor_type, buffer_info_map));
@@ -235,10 +222,21 @@ const DynamicDescriptor& DynamicDescriptor::PushImageInfos(
     VkPipelineBindPoint pipeline_binding_point,
     VkDescriptorType descriptor_type,
     const ImageInfoMap& image_info_map) const {
-  return push_descriptor_sets_(
+  return PushDescriptorSets(
       command_buffer, pipeline_layout, pipeline_binding_point,
       CreateWriteDescriptorSets(/*descriptor_set=*/VK_NULL_HANDLE,
                                 descriptor_type, image_info_map));
+}
+
+const DynamicDescriptor& DynamicDescriptor::PushDescriptorSets(
+    const VkCommandBuffer& command_buffer,
+    const VkPipelineLayout& pipeline_layout,
+    VkPipelineBindPoint pipeline_binding_point,
+    const std::vector<VkWriteDescriptorSet>& write_descriptor_sets) const {
+  push_descriptor_sets_func_(
+      command_buffer, pipeline_binding_point, pipeline_layout, /*set=*/0,
+      CONTAINER_SIZE(write_descriptor_sets), write_descriptor_sets.data());
+  return *this;
 }
 
 } /* namespace vulkan */

@@ -29,6 +29,7 @@ namespace aurora {
 
 class PathDumper {
  public:
+  // Note that 'paths_image_dimension' must be power of 2.
   PathDumper(wrapper::vulkan::SharedBasicContext context,
              int paths_image_dimension, float camera_field_of_view,
              std::vector<const wrapper::vulkan::PerVertexBuffer*>&&
@@ -41,7 +42,10 @@ class PathDumper {
   void DumpAuroraPaths(const glm::vec3& viewpoint_position);
 
   const wrapper::vulkan::SamplableImage& paths_image() const {
-    return *images_[distance_field_generator_->result_image_index()];
+    return *images_[kPingImageIndex];
+  }
+  const wrapper::vulkan::SamplableImage& distance_field() const {
+    return *images_[kPongImageIndex];
   }
 
  private:
@@ -84,20 +88,23 @@ class PathDumper {
     DistanceFieldGenerator(const DistanceFieldGenerator&) = delete;
     DistanceFieldGenerator& operator=(const DistanceFieldGenerator&) = delete;
 
-    void Generate(
-        const VkCommandBuffer& command_buffer,
-        const std::array<std::unique_ptr<wrapper::vulkan::OffscreenImage>,
-            kNumImages>& images,
-        const wrapper::vulkan::image::LayoutManager& image_layout_manager);
-
-    ImageIndex result_image_index() const { return result_image_index_; }
+    void Generate(const VkCommandBuffer& command_buffer);
 
    private:
-    ImageIndex result_image_index_ = kPingImageIndex;
-    std::array<std::unique_ptr<wrapper::vulkan::StaticDescriptor>, kNumImages>
-        descriptors_;
-    std::unique_ptr<wrapper::vulkan::Pipeline> bold_path_pipeline_;
-    std::unique_ptr<wrapper::vulkan::Pipeline> distance_field_pipeline_;
+    enum Direction {kPingToPong = 0, kPongToPing, kPongToPong, kNumDirections };
+
+    void UpdateDescriptor(const VkCommandBuffer& command_buffer,
+                          const wrapper::vulkan::Pipeline& pipeline,
+                          Direction direction) const;
+
+    int num_steps_ = 0;
+    std::unique_ptr<wrapper::vulkan::PushConstant> step_width_constant_;
+    wrapper::vulkan::Descriptor::ImageInfoMap image_info_maps_[kNumDirections];
+    std::unique_ptr<wrapper::vulkan::DynamicDescriptor> descriptor_;
+    VkExtent2D work_group_size_{};
+    std::unique_ptr<wrapper::vulkan::Pipeline> path_to_coord_pipeline_;
+    std::unique_ptr<wrapper::vulkan::Pipeline> jump_flooding_pipeline_;
+    std::unique_ptr<wrapper::vulkan::Pipeline> coord_to_distance_pipeline_;
   };
 
   // Pointer to context.

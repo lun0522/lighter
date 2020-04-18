@@ -7,12 +7,17 @@
 
 #include "jessie_steamer/application/vulkan/aurora/viewer/path_dumper.h"
 
+#include <algorithm>
+
 #include "jessie_steamer/common/file.h"
+#include "jessie_steamer/common/timer.h"
+#include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/align.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline_util.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass_util.h"
 #include "third_party/absl/memory/memory.h"
+#include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/span.h"
 
 namespace jessie_steamer {
@@ -26,6 +31,7 @@ using namespace wrapper::vulkan;
 enum ProcessingStage {
   kRenderPathsStage,
   kGenerateDistanceFieldStage,
+  kReRenderPathsStage,
   kNumProcessingStages,
 };
 
@@ -39,8 +45,8 @@ constexpr uint32_t kVertexBufferBindingPoint = 0;
 
 /* BEGIN: Consistent with work group size defined in shaders. */
 
-constexpr uint32_t kWorkGroupSizeX = 32;
-constexpr uint32_t kWorkGroupSizeY = 32;
+constexpr uint32_t kWorkGroupSizeX = 16;
+constexpr uint32_t kWorkGroupSizeY = 16;
 
 /* END: Consistent with work group size defined in shaders. */
 
@@ -48,6 +54,10 @@ constexpr uint32_t kWorkGroupSizeY = 32;
 
 struct Transformation {
   ALIGN_MAT4 glm::mat4 proj_view;
+};
+
+struct StepWidth {
+  ALIGN_SCALAR(int) int value;
 };
 
 /* END: Consistent with uniform blocks defined in shaders. */
@@ -68,6 +78,11 @@ PathDumper::PathDumper(
     int paths_image_dimension, float camera_field_of_view,
     std::vector<const PerVertexBuffer*>&& aurora_paths_vertex_buffers)
     : context_{std::move(FATAL_IF_NULL(context))} {
+  ASSERT_TRUE(common::util::IsPowerOf2(paths_image_dimension),
+              absl::StrFormat("'paths_image_dimension' is expected to be power "
+                              "of 2, while %d provided",
+                              paths_image_dimension));
+
   /* Camera */
   common::Camera::Config config;
   // We assume that:
@@ -94,9 +109,9 @@ PathDumper::PathDumper(
       .SetInitialUsage(image::Usage::kSampledInFragmentShader)
       .AddUsage(kGenerateDistanceFieldStage,
                 image::Usage::kLinearReadWriteInComputeShader)
-      .SetFinalUsage(image::Usage::kSampledInFragmentShader);
+      .AddUsage(kReRenderPathsStage, image::Usage::kRenderingTarget);
   images_[kPingImageIndex] = absl::make_unique<OffscreenImage>(
-      context_, paths_image_extent, common::kBwImageChannel,
+      context_, paths_image_extent, common::kRgbaImageChannel,
       image::GetImageUsageFlags(ping_image_usage), sampler_config);
 
   auto pong_image_usage = image::UsageInfo{"Pong"}
@@ -104,7 +119,7 @@ PathDumper::PathDumper(
                 image::Usage::kLinearReadWriteInComputeShader)
       .SetFinalUsage(image::Usage::kSampledInFragmentShader);
   images_[kPongImageIndex] = absl::make_unique<OffscreenImage>(
-      context_, paths_image_extent, common::kBwImageChannel,
+      context_, paths_image_extent, common::kRgbaImageChannel,
       image::GetImageUsageFlags(pong_image_usage), sampler_config);
 
   image_layout_manager_ = absl::make_unique<image::LayoutManager>(
@@ -127,23 +142,39 @@ void PathDumper::DumpAuroraPaths(const glm::vec3& viewpoint_position) {
   camera_->UpdateDirection(viewpoint_position);
   path_renderer_->UpdateData(*camera_);
 
+#ifndef NDEBUG
+  common::BasicTimer timer;
+#endif /* !NDEBUG */
+
   const OneTimeCommand command{context_, &context_->queues().graphics_queue()};
   command.Run([this](const VkCommandBuffer& command_buffer) {
+    /* Render paths */
     image_layout_manager_->InsertMemoryBarrierBeforeStage(
         command_buffer, context_->queues().graphics_queue().family_index,
         kRenderPathsStage);
     path_renderer_->Draw(command_buffer);
 
+    /* Generate distance field */
     image_layout_manager_->InsertMemoryBarrierBeforeStage(
         command_buffer, context_->queues().compute_queue().family_index,
         kGenerateDistanceFieldStage);
+    distance_field_generator_->Generate(command_buffer);
 
-    distance_field_generator_->Generate(command_buffer, images_,
-                                        *image_layout_manager_);
+    /* Re-render paths */
+    image_layout_manager_->InsertMemoryBarrierBeforeStage(
+        command_buffer, context_->queues().graphics_queue().family_index,
+        kReRenderPathsStage);
+    path_renderer_->Draw(command_buffer);
 
     image_layout_manager_->InsertMemoryBarrierAfterFinalStage(
-        command_buffer, context_->queues().compute_queue().family_index);
+        command_buffer, context_->queues().graphics_queue().family_index);
   });
+
+#ifndef NDEBUG
+  LOG_INFO << absl::StreamFormat(
+      "Elapsed time for generating distance map: %fs",
+      timer.GetElapsedTimeSinceLaunch());
+#endif /* !NDEBUG */
 }
 
 PathDumper::PathRenderer::PathRenderer(
@@ -229,6 +260,28 @@ PathDumper::DistanceFieldGenerator::DistanceFieldGenerator(
     kOutputImageBindingPoint,
   };
 
+  /* Push constant */
+  const auto& image_extent = images[kPingImageIndex]->extent();
+  const int larger_dimension = std::max(image_extent.width,
+                                        image_extent.height);
+  std::vector<int> step_widths;
+  int dimension = 1;
+  step_widths.emplace_back(dimension);
+  while (dimension < larger_dimension) {
+    dimension *= 2;
+    step_widths.emplace_back(dimension);
+  }
+  num_steps_ = step_widths.size();
+
+  step_width_constant_ = absl::make_unique<PushConstant>(
+      context, sizeof(StepWidth), num_steps_);
+  for (int i = 0; i < num_steps_; ++i) {
+    step_width_constant_->HostData<StepWidth>(/*frame=*/i)->value =
+        step_widths[i];
+  }
+  const auto push_constant_range =
+      step_width_constant_->MakePerFrameRange(VK_SHADER_STAGE_COMPUTE_BIT);
+
   /* Descriptor */
   std::vector<Descriptor::Info> descriptor_infos;
   descriptor_infos.reserve(kNumImages);
@@ -240,71 +293,88 @@ PathDumper::DistanceFieldGenerator::DistanceFieldGenerator(
         /*bindings=*/{{binding_point, /*array_length=*/1}},
     });
   }
-  for (auto& descriptor : descriptors_) {
-    descriptor = absl::make_unique<StaticDescriptor>(context, descriptor_infos);
-  }
+  descriptor_ = absl::make_unique<DynamicDescriptor>(context, descriptor_infos);
 
   // TODO
-  auto ping_image_descriptor_info =
-      images[kPingImageIndex]->GetDescriptorInfo();
-  ping_image_descriptor_info.imageLayout =
-      image_layout_manager.GetLayoutAtStage(
-          images[kPingImageIndex]->image(), kGenerateDistanceFieldStage);
-  auto pong_image_descriptor_info =
-      images[kPongImageIndex]->GetDescriptorInfo();
-  pong_image_descriptor_info.imageLayout =
-      image_layout_manager.GetLayoutAtStage(
-          images[kPongImageIndex]->image(), kGenerateDistanceFieldStage);
-  descriptors_[kPingImageIndex]->UpdateImageInfos(
-      VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-      /*image_info_map=*/{
-          {kOriginalImageBindingPoint, {ping_image_descriptor_info}},
-          {kOutputImageBindingPoint, {pong_image_descriptor_info}}});
-  descriptors_[kPongImageIndex]->UpdateImageInfos(
-      VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-      /*image_info_map=*/{
-          {kOriginalImageBindingPoint, {pong_image_descriptor_info}},
-          {kOutputImageBindingPoint, {ping_image_descriptor_info}}});
+  VkDescriptorImageInfo image_descriptor_infos[kNumImages];
+  for (int i = 0; i < kNumImages; ++i) {
+    image_descriptor_infos[i] = images[i]->GetDescriptorInfo();
+    image_descriptor_infos[i].imageLayout =
+        image_layout_manager.GetLayoutAtStage(
+            images[i]->image(), kGenerateDistanceFieldStage);
+  }
+  image_info_maps_[kPingToPong] = {
+      {kOriginalImageBindingPoint, {image_descriptor_infos[kPingImageIndex]}},
+      {kOutputImageBindingPoint, {image_descriptor_infos[kPongImageIndex]}}};
+  image_info_maps_[kPongToPing] = {
+      {kOriginalImageBindingPoint, {image_descriptor_infos[kPongImageIndex]}},
+      {kOutputImageBindingPoint, {image_descriptor_infos[kPingImageIndex]}}};
+  image_info_maps_[kPongToPong] = {
+      {kOriginalImageBindingPoint, {image_descriptor_infos[kPongImageIndex]}},
+      {kOutputImageBindingPoint, {image_descriptor_infos[kPongImageIndex]}}};
 
   /* Pipeline */
-  bold_path_pipeline_ = ComputePipelineBuilder{context}
+  path_to_coord_pipeline_ = ComputePipelineBuilder{context}
       .SetPipelineName("Bold path")
-      .SetPipelineLayout({descriptors_[kPingImageIndex]->layout()},
-                         /*push_constant_ranges=*/{})
-      .SetShader(common::file::GetVkShaderPath("aurora/bold_path.comp"))
+      .SetPipelineLayout({descriptor_->layout()}, /*push_constant_ranges=*/{})
+      .SetShader(common::file::GetVkShaderPath("aurora/path_to_coord.comp"))
       .Build();
 
-  distance_field_pipeline_ = ComputePipelineBuilder{context}
+  jump_flooding_pipeline_ = ComputePipelineBuilder{context}
       .SetPipelineName("Generate distance field")
-      .SetPipelineLayout({descriptors_[kPingImageIndex]->layout()},
-                         /*push_constant_ranges=*/{})
-      .SetShader(common::file::GetVkShaderPath("aurora/distance_field.comp"))
+      .SetPipelineLayout({descriptor_->layout()}, {push_constant_range})
+      .SetShader(common::file::GetVkShaderPath("aurora/jump_flooding.comp"))
       .Build();
+
+  coord_to_distance_pipeline_ = ComputePipelineBuilder{context}
+      .SetPipelineName("Coordinate to distance")
+      .SetPipelineLayout({descriptor_->layout()}, /*push_constant_ranges=*/{})
+      .SetShader(common::file::GetVkShaderPath("aurora/coord_to_distance.comp"))
+      .Build();
+
+  /* Compute shader */
+  work_group_size_.width = util::GetWorkGroupCount(image_extent.width,
+                                                   kWorkGroupSizeX);
+  work_group_size_.height = util::GetWorkGroupCount(image_extent.height,
+                                                    kWorkGroupSizeY);
 }
 
 void PathDumper::DistanceFieldGenerator::Generate(
+    const VkCommandBuffer& command_buffer) {
+  Direction direction = kPingToPong;
+  path_to_coord_pipeline_->Bind(command_buffer);
+  UpdateDescriptor(command_buffer, *path_to_coord_pipeline_, direction);
+  vkCmdDispatch(command_buffer, work_group_size_.width, work_group_size_.height,
+                /*groupCountZ=*/1);
+
+  for (int i = 0; i < num_steps_; ++i) {
+    direction = direction == kPingToPong ? kPongToPing : kPingToPong;
+    jump_flooding_pipeline_->Bind(command_buffer);
+    UpdateDescriptor(command_buffer, *jump_flooding_pipeline_, direction);
+    step_width_constant_->Flush(
+        command_buffer, jump_flooding_pipeline_->layout(), /*frame=*/i,
+        /*target_offset=*/0, VK_SHADER_STAGE_COMPUTE_BIT);
+    vkCmdDispatch(command_buffer, work_group_size_.width,
+                  work_group_size_.height, /*groupCountZ=*/1);
+  }
+
+  // Note that the final result has to be stored in the pong image, so
+  // 'direction' may need to be changed.
+  coord_to_distance_pipeline_->Bind(command_buffer);
+  if (direction == kPongToPing) {
+    direction = kPongToPong;
+  }
+  UpdateDescriptor(command_buffer, *coord_to_distance_pipeline_, direction);
+  vkCmdDispatch(command_buffer, work_group_size_.width, work_group_size_.height,
+                /*groupCountZ=*/1);
+}
+
+void PathDumper::DistanceFieldGenerator::UpdateDescriptor(
     const VkCommandBuffer& command_buffer,
-    const std::array<std::unique_ptr<OffscreenImage>, kNumImages>& images,
-    const image::LayoutManager& image_layout_manager) {
-  const auto& image_extent = images[kPingImageIndex]->extent();
-  const auto group_count_x = util::GetWorkGroupCount(image_extent.width,
-                                                     kWorkGroupSizeX);
-  const auto group_count_y = util::GetWorkGroupCount(image_extent.height,
-                                                     kWorkGroupSizeY);
-
-  bold_path_pipeline_->Bind(command_buffer);
-  descriptors_[kPingImageIndex]->Bind(
-      command_buffer, bold_path_pipeline_->layout(),
-      bold_path_pipeline_->binding_point());
-  vkCmdDispatch(command_buffer, group_count_x, group_count_y,
-                /*groupCountZ=*/1);
-
-  distance_field_pipeline_->Bind(command_buffer);
-  descriptors_[kPongImageIndex]->Bind(
-      command_buffer, distance_field_pipeline_->layout(),
-      distance_field_pipeline_->binding_point());
-  vkCmdDispatch(command_buffer, group_count_x, group_count_y,
-                /*groupCountZ=*/1);
+    const Pipeline& pipeline, Direction direction) const {
+  descriptor_->PushImageInfos(
+      command_buffer, pipeline.layout(), pipeline.binding_point(),
+      VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, image_info_maps_[direction]);
 }
 
 } /* namespace aurora */

@@ -74,7 +74,7 @@ VkFormat FindImageFormatWithFeature(const BasicContext& context,
 // Returns the image format to use for a depth stencil image.
 VkFormat FindDepthStencilImageFormat(const BasicContext& context) {
   return FindImageFormatWithFeature(
-      context, {VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT_S8_UINT},
+      context, {VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 

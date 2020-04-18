@@ -151,38 +151,12 @@ StaticText::StaticText(const SharedBasicContext& context,
                        float viewport_aspect_ratio,
                        absl::Span<const std::string> texts,
                        Font font, int font_height)
-    : Text{context, "static text", num_frames_in_flight, viewport_aspect_ratio},
+    : Text{context, "Static text", num_frames_in_flight, viewport_aspect_ratio},
       text_loader_{context, texts, font, font_height} {
   descriptors_.reserve(num_frames_in_flight);
-  push_descriptors_.reserve(num_frames_in_flight);
-
-  const auto& descriptor_infos = GetDescriptorInfos();
   for (int frame = 0; frame < num_frames_in_flight; ++frame) {
     descriptors_.emplace_back(
-        absl::make_unique<DynamicDescriptor>(context, descriptor_infos));
-    push_descriptors_.emplace_back(
-        [this, frame](const VkCommandBuffer& command_buffer,
-                      const VkPipelineLayout& pipeline_layout,
-                      VkPipelineBindPoint pipeline_binding_point,
-                      int text_index) {
-          descriptors_[frame]->PushBufferInfos(
-              command_buffer, pipeline_layout, pipeline_binding_point,
-              VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-              /*buffer_info_map=*/{{
-                  kUniformBufferBindingPoint,
-                  {GetUniformBufferDescriptorInfo(frame)},
-              }}
-          );
-          descriptors_[frame]->PushImageInfos(
-              command_buffer, pipeline_layout, pipeline_binding_point,
-              VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-              /*image_info_map=*/{{
-                  kTextureBindingPoint,
-                  {text_loader_.texture_info(text_index).image
-                       ->GetDescriptorInfo()},
-              }}
-          );
-        });
+        absl::make_unique<DynamicDescriptor>(context, GetDescriptorInfos()));
   }
   SetPipelineLayout(descriptors_[0]->layout());
 }
@@ -215,12 +189,31 @@ void StaticText::Draw(const VkCommandBuffer& command_buffer,
                               num_texts, texts_to_draw_.size()));
   pipeline().Bind(command_buffer);
   for (int i = 0; i < num_texts; ++i) {
-    push_descriptors_[frame](command_buffer, pipeline().layout(),
-                             pipeline().binding_point(), texts_to_draw_[i]);
+    UpdateDescriptor(command_buffer, frame, texts_to_draw_[i]);
     vertex_buffer().Draw(command_buffer, kVertexBufferBindingPoint,
                          /*mesh_index=*/i, /*instance_count=*/1);
   }
   texts_to_draw_.clear();
+}
+
+void StaticText::UpdateDescriptor(const VkCommandBuffer& command_buffer,
+                                  int frame, int text_index) {
+  descriptors_[frame]->PushBufferInfos(
+      command_buffer, pipeline().layout(), pipeline().binding_point(),
+      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      /*buffer_info_map=*/{{
+          kUniformBufferBindingPoint,
+          {GetUniformBufferDescriptorInfo(frame)},
+      }}
+  );
+  descriptors_[frame]->PushImageInfos(
+      command_buffer, pipeline().layout(), pipeline().binding_point(),
+      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      /*image_info_map=*/{{
+          kTextureBindingPoint,
+          {text_loader_.texture_info(text_index).image->GetDescriptorInfo()},
+      }}
+  );
 }
 
 DynamicText::DynamicText(const SharedBasicContext& context,
@@ -228,17 +221,15 @@ DynamicText::DynamicText(const SharedBasicContext& context,
                          float viewport_aspect_ratio,
                          absl::Span<const std::string> texts,
                          Font font, int font_height)
-    : Text{context, "dynamic text", num_frames_in_flight,
+    : Text{context, "Dynamic text", num_frames_in_flight,
            viewport_aspect_ratio},
       char_loader_{context, texts, font, font_height} {
-  const auto& descriptor_infos = GetDescriptorInfos();
   const Descriptor::ImageInfoMap image_info_map{{
       kTextureBindingPoint, {char_loader_.atlas_image()->GetDescriptorInfo()}}};
-
   descriptors_.reserve(num_frames_in_flight);
   for (int frame = 0; frame < num_frames_in_flight; ++frame) {
     descriptors_.emplace_back(
-        absl::make_unique<StaticDescriptor>(context, descriptor_infos));
+        absl::make_unique<StaticDescriptor>(context, GetDescriptorInfos()));
     descriptors_[frame]->UpdateBufferInfos(
         VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         /*buffer_info_map=*/{{

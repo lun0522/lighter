@@ -172,6 +172,14 @@ ExtentType FindLargestExtent(const ExtentType& original_extent,
   return effective_extent;
 }
 
+// Returns whether
+inline bool IsPowerOf2(unsigned int x) {
+  if (x <= 0) {
+    return false;
+  }
+  return (x & (x - 1)) == 0;
+}
+
 // Helper class to enable using an enum class as the key of a hash table:
 //   absl::flat_hash_map<KeyType, ValueType, EnumClassHash>;
 struct EnumClassHash {

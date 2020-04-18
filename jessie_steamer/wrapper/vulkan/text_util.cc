@@ -194,7 +194,7 @@ CharLoader::CharLoader(const SharedBasicContext& context,
                                            render_pass_builder.get());
 
   auto pipeline_builder =
-      CreatePipelineBuilder(context, "char loader", *vertex_buffer,
+      CreatePipelineBuilder(context, "Char loader", *vertex_buffer,
                             descriptor->layout(), /*enable_color_blend=*/false);
   const auto pipeline = BuildPipeline(*char_atlas_image_, **render_pass,
                                       pipeline_builder.get());
@@ -340,7 +340,7 @@ TextLoader::TextLoader(const SharedBasicContext& context,
   // Advance can be negative, and thus bounding boxes of characters may have
   // overlap, hence we need to enable color blending.
   auto pipeline_builder =
-      CreatePipelineBuilder(context, "text loader", vertex_buffer,
+      CreatePipelineBuilder(context, "Text loader", vertex_buffer,
                             descriptor->layout(), /*enable_color_blend=*/true);
 
   const CharLoader char_loader{context, texts, font, font_height};

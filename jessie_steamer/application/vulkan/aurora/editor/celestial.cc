@@ -53,7 +53,7 @@ Celestial::Celestial(const SharedBasicContext& context,
       context, sizeof(SkyboxTrans), num_frames_in_flight);
 
   earth_model_ = ModelBuilder{
-      context, "earth", num_frames_in_flight, viewport_aspect_ratio_,
+      context, "Earth", num_frames_in_flight, viewport_aspect_ratio_,
       ModelBuilder::SingleMeshResource{
           GetResourcePath("model/sphere.obj"), kObjFileIndexBase,
           /*tex_source_map=*/{{
@@ -88,7 +88,7 @@ Celestial::Celestial(const SharedBasicContext& context,
   };
 
   skybox_model_ = ModelBuilder{
-      context, "skybox", num_frames_in_flight, viewport_aspect_ratio_,
+      context, "Skybox", num_frames_in_flight, viewport_aspect_ratio_,
       ModelBuilder::SingleMeshResource{
           GetResourcePath("model/skybox.obj"), kObjFileIndexBase,
           {{TextureType::kCubemap, {skybox_path}}},
