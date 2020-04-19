@@ -121,6 +121,29 @@ Image::~Image() {
   std::free(const_cast<void*>(data));
 }
 
+std::array<Vertex2DPosOnly, 6> Vertex2DPosOnly::GetFullScreenSquadVertices(
+    bool flip_y) {
+  if (flip_y) {
+    return {
+        Vertex2DPosOnly{/*pos=*/{-1.0f, -1.0f}},
+        Vertex2DPosOnly{/*pos=*/{ 1.0f, -1.0f}},
+        Vertex2DPosOnly{/*pos=*/{ 1.0f,  1.0f}},
+        Vertex2DPosOnly{/*pos=*/{-1.0f, -1.0f}},
+        Vertex2DPosOnly{/*pos=*/{ 1.0f,  1.0f}},
+        Vertex2DPosOnly{/*pos=*/{-1.0f,  1.0f}},
+    };
+  } else {
+    return {
+        Vertex2DPosOnly{/*pos=*/{-1.0f, -1.0f}},
+        Vertex2DPosOnly{/*pos=*/{ 1.0f, -1.0f}},
+        Vertex2DPosOnly{/*pos=*/{ 1.0f,  1.0f}},
+        Vertex2DPosOnly{/*pos=*/{-1.0f, -1.0f}},
+        Vertex2DPosOnly{/*pos=*/{ 1.0f,  1.0f}},
+        Vertex2DPosOnly{/*pos=*/{-1.0f,  1.0f}},
+    };
+  }
+}
+
 std::array<Vertex2D, 6> Vertex2D::GetFullScreenSquadVertices(bool flip_y) {
   if (flip_y) {
     return {

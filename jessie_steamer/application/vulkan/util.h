@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <type_traits>
 
+#include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/file.h"
 #include "jessie_steamer/common/timer.h"
 #include "jessie_steamer/common/util.h"

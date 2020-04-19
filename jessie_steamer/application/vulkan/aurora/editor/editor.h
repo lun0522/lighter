@@ -16,7 +16,6 @@
 #include "jessie_steamer/application/vulkan/aurora/editor/path.h"
 #include "jessie_steamer/application/vulkan/aurora/scene.h"
 #include "jessie_steamer/common/camera.h"
-#include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/common/rotation.h"
 #include "jessie_steamer/common/window.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"

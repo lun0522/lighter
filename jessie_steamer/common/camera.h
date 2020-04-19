@@ -38,7 +38,10 @@ class Camera {
   virtual ~Camera() = default;
 
   // Moves the position of camera by 'offset' and updates the view matrix.
-  void UpdatePosition(const glm::vec3& offset);
+  void UpdatePositionByOffset(const glm::vec3& offset);
+
+  // Moves the camera to 'position' and updates the view matrix.
+  void UpdatePosition(const glm::vec3& position);
 
   // Updates the front and right vector, and view matrix. 'front' does not need
   // to be normalized.

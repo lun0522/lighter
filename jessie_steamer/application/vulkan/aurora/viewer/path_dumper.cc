@@ -9,12 +9,9 @@
 
 #include <algorithm>
 
-#include "jessie_steamer/common/file.h"
 #include "jessie_steamer/common/timer.h"
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/command.h"
-#include "jessie_steamer/wrapper/vulkan/pipeline_util.h"
-#include "jessie_steamer/wrapper/vulkan/render_pass_util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 
@@ -41,41 +38,16 @@ enum ProcessingStage {
   kNumProcessingStages,
 };
 
-// Returns the axis of earth model in object space.
-const glm::vec3& GetEarthModelAxis() {
-  static const glm::vec3* earth_model_axis = nullptr;
-  if (earth_model_axis == nullptr) {
-    earth_model_axis = new glm::vec3{0.0f, 1.0f, 0.0f};
-  }
-  return *earth_model_axis;
-}
-
 } /* namespace */
 
 PathDumper::PathDumper(
-    SharedBasicContext context,
-    int paths_image_dimension, float camera_field_of_view,
+    SharedBasicContext context, int paths_image_dimension,
     std::vector<const PerVertexBuffer*>&& aurora_paths_vertex_buffers)
     : context_{std::move(FATAL_IF_NULL(context))} {
   ASSERT_TRUE(common::util::IsPowerOf2(paths_image_dimension),
               absl::StrFormat("'paths_image_dimension' is expected to be power "
                               "of 2, while %d provided",
                               paths_image_dimension));
-
-  /* Camera */
-  common::Camera::Config config;
-  // We assume that:
-  // (1) Aurora paths points are on a unit sphere.
-  // (2) The camera is located at the center of sphere.
-  // The 'look_at' point doesn't matter at this moment. It will be updated to
-  // user viewpoint.
-  config.far = 2.0f;
-  config.up = GetEarthModelAxis();
-  config.position = glm::vec3{0.0f};
-  config.look_at = glm::vec3{1.0f};
-  const common::PerspectiveCamera::PersConfig pers_config{
-      camera_field_of_view, /*fov_aspect_ratio=*/1.0f};
-  camera_ = absl::make_unique<common::PerspectiveCamera>(config, pers_config);
 
   /* Image and layout manager */
   const VkExtent2D paths_image_extent{
@@ -110,7 +82,7 @@ PathDumper::PathDumper(
            std::move(distance_field_image_usage)},
       });
 
-  /* Graphics and compute */
+  /* Graphics and compute pipelines */
   path_renderer_ = absl::make_unique<PathRenderer2D>(
       context_, /*intermediate_image=*/*distance_field_image_,
       /*output_image=*/*paths_image_, MultisampleImage::Mode::kBestEffect,
@@ -121,27 +93,26 @@ PathDumper::PathDumper(
       /*output_image=*/*distance_field_image_);
 }
 
-void PathDumper::DumpAuroraPaths(const glm::vec3& viewpoint_position) {
-  camera_->UpdateDirection(viewpoint_position);
-
+void PathDumper::DumpAuroraPaths(const common::Camera& camera) {
 #ifndef NDEBUG
   common::BasicTimer timer;
 #endif /* !NDEBUG */
 
+  // TODO: Compute queue and graphics queue might be different queues.
   const OneTimeCommand command{context_, &context_->queues().graphics_queue()};
-  command.Run([this](const VkCommandBuffer& command_buffer) {
-    /* Render and bold paths */
+  command.Run([this, &camera](const VkCommandBuffer& command_buffer) {
+    // Render and bold paths.
     image_layout_manager_->InsertMemoryBarrierBeforeStage(
         command_buffer, context_->queues().graphics_queue().family_index,
         kRenderPathsStage);
-    path_renderer_->RenderPaths(command_buffer, *camera_);
+    path_renderer_->RenderPaths(command_buffer, camera);
 
     image_layout_manager_->InsertMemoryBarrierBeforeStage(
         command_buffer, context_->queues().graphics_queue().family_index,
         kBoldPathsStage);
     path_renderer_->BoldPaths(command_buffer);
 
-    /* Generate distance field */
+    // Generate distance field.
     image_layout_manager_->InsertMemoryBarrierBeforeStage(
         command_buffer, context_->queues().compute_queue().family_index,
         kGenerateDistanceFieldStage);
@@ -152,9 +123,8 @@ void PathDumper::DumpAuroraPaths(const glm::vec3& viewpoint_position) {
   });
 
 #ifndef NDEBUG
-  LOG_INFO << absl::StreamFormat(
-      "Elapsed time for generating distance map: %fs",
-      timer.GetElapsedTimeSinceLaunch());
+  LOG_INFO << absl::StreamFormat("Elapsed time for dumping aurora paths: %fs",
+                                 timer.GetElapsedTimeSinceLaunch());
 #endif /* !NDEBUG */
 }
 

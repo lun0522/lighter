@@ -13,18 +13,44 @@
 #include "jessie_steamer/application/vulkan/aurora/scene.h"
 #include "jessie_steamer/application/vulkan/aurora/viewer/path_dumper.h"
 #include "jessie_steamer/application/vulkan/util.h"
-#include "jessie_steamer/wrapper/vulkan/basic_context.h"
-#include "jessie_steamer/wrapper/vulkan/buffer.h"
-#include "jessie_steamer/wrapper/vulkan/window_context.h"
-#include "third_party/glm/glm.hpp"
-#include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
 namespace application {
 namespace vulkan {
 namespace aurora {
 
-// TODO: Separate renderer class.
+class ViewerRenderer {
+ public:
+  ViewerRenderer(const wrapper::vulkan::SharedBasicContext& context,
+                 int num_frames_in_flight,
+                 const wrapper::vulkan::SamplableImage& aurora_paths_image,
+                 const wrapper::vulkan::SamplableImage& distance_field_image);
+
+  // This class is neither copyable nor movable.
+  ViewerRenderer(const ViewerRenderer&) = delete;
+  ViewerRenderer& operator=(const ViewerRenderer&) = delete;
+
+  // Updates internal states and rebuilds the graphics pipeline.
+  void UpdateFramebuffer(const VkExtent2D& frame_size,
+                         const wrapper::vulkan::RenderPass& render_pass,
+                         uint32_t subpass_index);
+
+  // Updates per-frame data.
+  void UpdateData(int frame, const common::Camera& camera);
+
+  // Renders aurora paths.
+  // This should be called when 'command_buffer' is recording commands.
+  void Draw(const VkCommandBuffer& command_buffer, int frame) const;
+
+ private:
+  std::unique_ptr<wrapper::vulkan::UniformBuffer> camera_uniform_;
+  std::unique_ptr<wrapper::vulkan::SharedTexture> aurora_deposition_image_;
+  std::vector<std::unique_ptr<wrapper::vulkan::StaticDescriptor>> descriptors_;
+  std::unique_ptr<wrapper::vulkan::PerVertexBuffer> vertex_buffer_;
+  std::unique_ptr<wrapper::vulkan::GraphicsPipelineBuilder> pipeline_builder_;
+  std::unique_ptr<wrapper::vulkan::Pipeline> pipeline_;
+};
+
 class Viewer : public Scene {
  public:
   Viewer(wrapper::vulkan::WindowContext* window_context,
@@ -43,7 +69,7 @@ class Viewer : public Scene {
   void OnEnter() override;
   void OnExit() override;
   void Recreate() override;
-  void UpdateData(int frame) override {}
+  void UpdateData(int frame) override;
   void Draw(const VkCommandBuffer& command_buffer,
             uint32_t framebuffer_index, int current_frame) override;
   bool ShouldTransitionScene() const override { return did_press_right_; }
@@ -54,8 +80,8 @@ class Viewer : public Scene {
 
   bool did_press_right_ = false;
   PathDumper path_dumper_;
-  std::unique_ptr<ImageViewer> image_viewer_;
-  std::unique_ptr<wrapper::vulkan::PerFrameCommand> command_;
+  ViewerRenderer viewer_renderer_;
+  std::unique_ptr<common::Camera> camera_;
   std::unique_ptr<wrapper::vulkan::NaiveRenderPassBuilder> render_pass_builder_;
   std::unique_ptr<wrapper::vulkan::RenderPass> render_pass_;
 };

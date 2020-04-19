@@ -95,6 +95,18 @@ struct Image {
   const void* data;
 };
 
+// 2D vertex data, including only position.
+struct Vertex2DPosOnly {
+  explicit Vertex2DPosOnly(const glm::vec2& pos) : pos{pos} {}
+
+  // Returns vertices in normalized device coordinate for rendering a
+  // full-screen squad.
+  static std::array<Vertex2DPosOnly, 6> GetFullScreenSquadVertices(bool flip_y);
+
+  // Vertex data.
+  glm::vec2 pos;
+};
+
 // 2D vertex data, consisting of position and texture coordinates.
 struct Vertex2D {
   Vertex2D(const glm::vec2& pos, const glm::vec2& tex_coord)

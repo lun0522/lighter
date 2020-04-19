@@ -29,8 +29,13 @@ Camera::Camera(const Config& config)
   UpdateDirection(config.look_at - pos_);
 }
 
-void Camera::UpdatePosition(const glm::vec3& offset) {
+void Camera::UpdatePositionByOffset(const glm::vec3& offset) {
   pos_ += offset;
+  UpdateView();
+}
+
+void Camera::UpdatePosition(const glm::vec3& position) {
+  pos_ = position;
   UpdateView();
 }
 
@@ -151,16 +156,16 @@ void UserControlledCamera::DidPressKey(ControlKey key, float elapsed_time) {
   const float distance = elapsed_time * move_speed_;
   switch (key) {
     case ControlKey::kUp:
-      camera_->UpdatePosition(/*offset=*/+camera_->front() * distance);
+      camera_->UpdatePositionByOffset(/*offset=*/+camera_->front() * distance);
       break;
     case ControlKey::kDown:
-      camera_->UpdatePosition(/*offset=*/-camera_->front() * distance);
+      camera_->UpdatePositionByOffset(/*offset=*/-camera_->front() * distance);
       break;
     case ControlKey::kLeft:
-      camera_->UpdatePosition(/*offset=*/-camera_->right() * distance);
+      camera_->UpdatePositionByOffset(/*offset=*/-camera_->right() * distance);
       break;
     case ControlKey::kRight:
-      camera_->UpdatePosition(/*offset=*/+camera_->right() * distance);
+      camera_->UpdatePositionByOffset(/*offset=*/+camera_->right() * distance);
       break;
   }
   UpdateDirectionIfNeeded();

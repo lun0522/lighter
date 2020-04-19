@@ -8,7 +8,6 @@
 #ifndef JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_VIEWER_PATH_DUMPER_H
 #define JESSIE_STEAMER_APPLICATION_VULKAN_AURORA_VIEWER_PATH_DUMPER_H
 
-#include <array>
 #include <memory>
 #include <vector>
 
@@ -17,11 +16,8 @@
 #include "jessie_steamer/common/camera.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
-#include "jessie_steamer/wrapper/vulkan/descriptor.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/image_util.h"
-#include "jessie_steamer/wrapper/vulkan/pipeline.h"
-#include "jessie_steamer/wrapper/vulkan/render_pass.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
@@ -30,11 +26,12 @@ namespace application {
 namespace vulkan {
 namespace aurora {
 
+// This class is used to dump aurora paths and generate distance field.
 class PathDumper {
  public:
   // Note that 'paths_image_dimension' must be power of 2.
   PathDumper(wrapper::vulkan::SharedBasicContext context,
-             int paths_image_dimension, float camera_field_of_view,
+             int paths_image_dimension,
              std::vector<const wrapper::vulkan::PerVertexBuffer*>&&
                  aurora_paths_vertex_buffers);
 
@@ -42,10 +39,12 @@ class PathDumper {
   PathDumper(const PathDumper&) = delete;
   PathDumper& operator=(const PathDumper&) = delete;
 
-  void DumpAuroraPaths(const glm::vec3& viewpoint_position);
+  // Dumps aurora paths and generates distance field. We only care about aurora
+  // paths that are visible from the view of 'camera'.
+  void DumpAuroraPaths(const common::Camera& camera);
 
   // Accessors.
-  const wrapper::vulkan::SamplableImage& paths_image() const {
+  const wrapper::vulkan::SamplableImage& aurora_paths_image() const {
     return *paths_image_;
   }
   const wrapper::vulkan::SamplableImage& distance_field_image() const {
@@ -56,11 +55,17 @@ class PathDumper {
   // Pointer to context.
   const wrapper::vulkan::SharedBasicContext context_;
 
-  std::unique_ptr<common::Camera> camera_;
+  // Generated images.
   std::unique_ptr<wrapper::vulkan::OffscreenImage> paths_image_;
   std::unique_ptr<wrapper::vulkan::OffscreenImage> distance_field_image_;
+
+  // Manages layouts of images.
   std::unique_ptr<wrapper::vulkan::image::LayoutManager> image_layout_manager_;
+
+  // Dumps and bolds aurora paths.
   std::unique_ptr<PathRenderer2D> path_renderer_;
+
+  // Generates distance field.
   std::unique_ptr<DistanceFieldGenerator> distance_field_generator_;
 };
 

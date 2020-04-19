@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "jessie_steamer/application/vulkan/util.h"
-#include "jessie_steamer/common/camera.h"
 
 namespace jessie_steamer {
 namespace application {

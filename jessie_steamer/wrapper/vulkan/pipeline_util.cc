@@ -16,6 +16,7 @@ namespace vulkan {
 namespace pipeline {
 namespace {
 
+using common::Vertex2DPosOnly;
 using common::Vertex2D;
 using common::Vertex3DPosOnly;
 using common::Vertex3DWithColor;
@@ -104,6 +105,16 @@ VkVertexInputBindingDescription GetBindingDescription(uint32_t stride,
       /*binding=*/0,  // To be updated.
       stride,
       instancing ? VK_VERTEX_INPUT_RATE_INSTANCE : VK_VERTEX_INPUT_RATE_VERTEX,
+  };
+}
+
+template <>
+std::vector<VertexAttribute> GetVertexAttribute<Vertex2DPosOnly>() {
+  return {
+      VertexAttribute{
+          /*offset=*/static_cast<uint32_t>(offsetof(Vertex2DPosOnly, pos)),
+          VK_FORMAT_R32G32_SFLOAT,
+      },
   };
 }
 
