@@ -1,0 +1,24 @@
+#version 460 core
+
+#define SAMPLING_RADIUS 2
+
+layout(binding = 0, rgba8) uniform readonly image2D original_image;
+
+layout(binding = 1, r8) uniform writeonly image2D output_image;
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+void main() {
+  const ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+  if (any(greaterThanEqual(coord, imageSize(original_image)))) {
+    return;
+  }
+
+  float output_color = 0.0;
+  for (int y = -SAMPLING_RADIUS; y <= SAMPLING_RADIUS; ++y) {
+    for (int x = -SAMPLING_RADIUS; x <= SAMPLING_RADIUS; ++x) {
+      output_color += imageLoad(original_image, coord + ivec2(x, y)).r;
+    }
+  }
+  imageStore(output_image, coord, vec4(output_color, 0.0, 0.0, 0.0));
+}

@@ -48,7 +48,7 @@ Viewer::Viewer(
 void Viewer::UpdateAuroraPaths(const glm::vec3& viewpoint_position) {
   path_dumper_.DumpAuroraPaths(viewpoint_position);
   image_viewer_ = absl::make_unique<ImageViewer>(
-      window_context_.basic_context(), path_dumper_.distance_field(),
+      window_context_.basic_context(), path_dumper_.distance_field_image(),
       common::kRgbaImageChannel, /*flip_y=*/true);
 }
 

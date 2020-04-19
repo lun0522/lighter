@@ -298,6 +298,11 @@ class SharedTexture : public SamplableImage {
 class OffscreenImage : public Image, public SamplableImage {
  public:
   OffscreenImage(SharedBasicContext context,
+                 const VkExtent2D& extent, VkFormat format,
+                 VkImageUsageFlags usage_flags,
+                 const ImageSampler::Config& sampler_config);
+
+  OffscreenImage(SharedBasicContext context,
                  const VkExtent2D& extent, int channel,
                  VkImageUsageFlags usage_flags,
                  const ImageSampler::Config& sampler_config);

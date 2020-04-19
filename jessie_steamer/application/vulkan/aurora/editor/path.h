@@ -34,14 +34,14 @@ namespace aurora {
 // This class is used for rendering splines and control points to represent
 // aurora paths, and the viewpoint of user on the earth model.
 // It should not handle any logic that can be shared with other graphics APIs.
-class PathRenderer {
+class PathRenderer3D {
  public:
-  PathRenderer(const wrapper::vulkan::SharedBasicContext& context,
-               int num_frames_in_flight, int num_paths);
+  PathRenderer3D(const wrapper::vulkan::SharedBasicContext& context,
+                 int num_frames_in_flight, int num_paths);
 
   // This class is neither copyable nor movable.
-  PathRenderer(const PathRenderer&) = delete;
-  PathRenderer& operator=(const PathRenderer&) = delete;
+  PathRenderer3D(const PathRenderer3D&) = delete;
+  PathRenderer3D& operator=(const PathRenderer3D&) = delete;
 
   // Updates the vertex data of aurora path at 'path_index'.
   void UpdatePath(int path_index,
@@ -234,7 +234,7 @@ class AuroraPath {
   std::vector<glm::vec4> color_alphas_to_render_;
 
   // Renderer of aurora paths and viewpoint of user.
-  PathRenderer path_renderer_;
+  PathRenderer3D path_renderer_;
 
   // Editors of aurora paths.
   std::vector<std::unique_ptr<common::SplineEditor>> spline_editors_;

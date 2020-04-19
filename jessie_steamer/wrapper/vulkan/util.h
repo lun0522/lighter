@@ -133,10 +133,17 @@ absl::optional<std::string> FindUnsupported(
   return absl::nullopt;
 }
 
-// Return the work group size for one dimension used for compute shader.
-inline uint32_t GetWorkGroupCount(int total_size, uint32_t work_group_size) {
+// Return the number of work groups in one dimension used for compute shader.
+inline uint32_t GetWorkGroupCount(int total_size, int work_group_size) {
   return static_cast<uint32_t>(std::ceil(
       static_cast<float>(total_size) / work_group_size));
+}
+
+// Return the number of work groups used for compute shader.
+inline VkExtent2D GetWorkGroupCount(const VkExtent2D& total_size,
+                                    const VkExtent2D& work_group_size) {
+  return {GetWorkGroupCount(total_size.width, work_group_size.width),
+          GetWorkGroupCount(total_size.height, work_group_size.height)};
 }
 
 // Returns the aspect ratio of the 2D 'extent'.

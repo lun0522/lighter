@@ -12,7 +12,10 @@
 #include <memory>
 #include <vector>
 
+#include "jessie_steamer/application/vulkan/aurora/viewer/distance_field.h"
+#include "jessie_steamer/application/vulkan/aurora/viewer/path_renderer.h"
 #include "jessie_steamer/common/camera.h"
+#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
 #include "jessie_steamer/wrapper/vulkan/image.h"
@@ -41,80 +44,23 @@ class PathDumper {
 
   void DumpAuroraPaths(const glm::vec3& viewpoint_position);
 
+  // Accessors.
   const wrapper::vulkan::SamplableImage& paths_image() const {
-    return *images_[kPingImageIndex];
+    return *paths_image_;
   }
-  const wrapper::vulkan::SamplableImage& distance_field() const {
-    return *images_[kPongImageIndex];
+  const wrapper::vulkan::SamplableImage& distance_field_image() const {
+    return *distance_field_image_;
   }
 
  private:
-  enum ImageIndex { kPingImageIndex = 0, kPongImageIndex, kNumImages };
-
-  class PathRenderer {
-   public:
-    PathRenderer(const wrapper::vulkan::SharedBasicContext& context,
-                 const wrapper::vulkan::Image& paths_image,
-                 std::vector<const wrapper::vulkan::PerVertexBuffer*>&&
-                     aurora_paths_vertex_buffers);
-
-    // This class is neither copyable nor movable.
-    PathRenderer(const PathRenderer&) = delete;
-    PathRenderer& operator=(const PathRenderer&) = delete;
-
-    void UpdateData(const common::Camera& camera);
-
-    void Draw(const VkCommandBuffer& command_buffer);
-
-   private:
-    const std::vector<const wrapper::vulkan::PerVertexBuffer*>
-        aurora_paths_vertex_buffers_;
-    std::unique_ptr<wrapper::vulkan::Image> multisample_image_;
-    std::unique_ptr<wrapper::vulkan::PushConstant> trans_constant_;
-    std::unique_ptr<wrapper::vulkan::RenderPass> render_pass_;
-    wrapper::vulkan::RenderPass::RenderOp render_op_;
-    std::unique_ptr<wrapper::vulkan::Pipeline> pipeline_;
-  };
-
-  class DistanceFieldGenerator {
-   public:
-    DistanceFieldGenerator(
-        const wrapper::vulkan::SharedBasicContext& context,
-        const std::array<std::unique_ptr<wrapper::vulkan::OffscreenImage>,
-                         kNumImages>& images,
-        const wrapper::vulkan::image::LayoutManager& image_layout_manager);
-
-    // This class is neither copyable nor movable.
-    DistanceFieldGenerator(const DistanceFieldGenerator&) = delete;
-    DistanceFieldGenerator& operator=(const DistanceFieldGenerator&) = delete;
-
-    void Generate(const VkCommandBuffer& command_buffer);
-
-   private:
-    enum Direction {kPingToPong = 0, kPongToPing, kPongToPong, kNumDirections };
-
-    void UpdateDescriptor(const VkCommandBuffer& command_buffer,
-                          const wrapper::vulkan::Pipeline& pipeline,
-                          Direction direction) const;
-
-    int num_steps_ = 0;
-    std::unique_ptr<wrapper::vulkan::PushConstant> step_width_constant_;
-    wrapper::vulkan::Descriptor::ImageInfoMap image_info_maps_[kNumDirections];
-    std::unique_ptr<wrapper::vulkan::DynamicDescriptor> descriptor_;
-    VkExtent2D work_group_size_{};
-    std::unique_ptr<wrapper::vulkan::Pipeline> path_to_coord_pipeline_;
-    std::unique_ptr<wrapper::vulkan::Pipeline> jump_flooding_pipeline_;
-    std::unique_ptr<wrapper::vulkan::Pipeline> coord_to_distance_pipeline_;
-  };
-
   // Pointer to context.
   const wrapper::vulkan::SharedBasicContext context_;
 
   std::unique_ptr<common::Camera> camera_;
-  std::array<std::unique_ptr<wrapper::vulkan::OffscreenImage>, kNumImages>
-      images_;
+  std::unique_ptr<wrapper::vulkan::OffscreenImage> paths_image_;
+  std::unique_ptr<wrapper::vulkan::OffscreenImage> distance_field_image_;
   std::unique_ptr<wrapper::vulkan::image::LayoutManager> image_layout_manager_;
-  std::unique_ptr<PathRenderer> path_renderer_;
+  std::unique_ptr<PathRenderer2D> path_renderer_;
   std::unique_ptr<DistanceFieldGenerator> distance_field_generator_;
 };
 

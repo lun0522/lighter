@@ -618,17 +618,24 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
       sampler_config, CreateTextureBufferInfo(*sample_image, std::move(datas)));
 }
 
-OffscreenImage::OffscreenImage(
-    SharedBasicContext context,
-    const VkExtent2D& extent, int channel, VkImageUsageFlags usage_flags,
-    const ImageSampler::Config& sampler_config)
-    : Image{std::move(context), extent, FindColorImageFormat(channel)},
+OffscreenImage::OffscreenImage(SharedBasicContext context,
+                               const VkExtent2D& extent, VkFormat format,
+                               VkImageUsageFlags usage_flags,
+                               const ImageSampler::Config& sampler_config)
+    : Image{std::move(context), extent, format},
       buffer_{context_, extent_, format_, usage_flags},
       sampler_{context_, kSingleMipLevel, sampler_config} {
   SetImageView(CreateImageView(*context_, buffer_.image(), format_,
                                VK_IMAGE_ASPECT_COLOR_BIT,
                                kSingleMipLevel, kSingleImageLayer));
 }
+
+OffscreenImage::OffscreenImage(SharedBasicContext context,
+                               const VkExtent2D& extent, int channel,
+                               VkImageUsageFlags usage_flags,
+                               const ImageSampler::Config& sampler_config)
+    : OffscreenImage{context, extent, FindColorImageFormat(channel),
+                     usage_flags, sampler_config} {}
 
 VkDescriptorImageInfo OffscreenImage::GetDescriptorInfo() const {
   return VkDescriptorImageInfo{

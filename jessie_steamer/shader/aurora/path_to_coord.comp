@@ -1,8 +1,6 @@
 #version 460 core
 
-#define SAMPLING_RADIUS 2
-
-layout(binding = 0, rgba8) uniform readonly image2D original_image;
+layout(binding = 0, r8) uniform readonly image2D original_image;
 
 layout(binding = 1, rgba8) uniform writeonly image2D output_image;
 
@@ -15,14 +13,10 @@ void main() {
     return;
   }
 
-  for (int y = -SAMPLING_RADIUS; y <= SAMPLING_RADIUS; ++y) {
-    for (int x = -SAMPLING_RADIUS; x <= SAMPLING_RADIUS; ++x) {
-      if (imageLoad(original_image, coord + ivec2(x, y)).r > 0.0) {
-        imageStore(output_image, coord,
-                   vec4(vec2(coord) / vec2(image_size), 0.0, 0.0));
-        return;
-      }
-    }
+  if (imageLoad(original_image, coord).r > 0.0) {
+    imageStore(output_image, coord,
+               vec4(vec2(coord) / vec2(image_size), 0.0, 0.0));
+  } else {
+    imageStore(output_image, coord, vec4(0.0));
   }
-  imageStore(output_image, coord, vec4(0.0));
 }

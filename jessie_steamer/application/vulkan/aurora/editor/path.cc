@@ -81,8 +81,8 @@ inline glm::vec3 TransformPoint(const glm::mat4& transform,
 
 } /* namespace */
 
-PathRenderer::PathRenderer(const SharedBasicContext& context,
-                           int num_frames_in_flight, int num_paths)
+PathRenderer3D::PathRenderer3D(const SharedBasicContext& context,
+                               int num_frames_in_flight, int num_paths)
     : num_paths_{num_paths}, num_control_points_per_path_(num_paths_),
       control_pipeline_builder_{context}, spline_pipeline_builder_{context},
       viewpoint_pipeline_builder_{context} {
@@ -191,9 +191,9 @@ PathRenderer::PathRenderer(const SharedBasicContext& context,
                  GetVkShaderPath("aurora/draw_path.frag"));
 }
 
-void PathRenderer::UpdatePath(int path_index,
-                              absl::Span<const glm::vec3> control_points,
-                              absl::Span<const glm::vec3> spline_points) {
+void PathRenderer3D::UpdatePath(int path_index,
+                                absl::Span<const glm::vec3> control_points,
+                                absl::Span<const glm::vec3> spline_points) {
   num_control_points_per_path_[path_index] = control_points.size();
   paths_vertex_buffers_[path_index].control_points_buffer->CopyHostData(
       control_points);
@@ -205,7 +205,7 @@ void PathRenderer::UpdatePath(int path_index,
       });
 }
 
-void PathRenderer::UpdateFramebuffer(
+void PathRenderer3D::UpdateFramebuffer(
     VkSampleCountFlagBits sample_count,
     const RenderPass& render_pass, uint32_t subpass_index,
     const GraphicsPipelineBuilder::ViewportInfo& viewport) {
@@ -229,8 +229,8 @@ void PathRenderer::UpdateFramebuffer(
       .Build();
 }
 
-void PathRenderer::UpdatePerFrameData(int frame, float control_point_scale,
-                                      const glm::mat4& proj_view_model) {
+void PathRenderer3D::UpdatePerFrameData(int frame, float control_point_scale,
+                                        const glm::mat4& proj_view_model) {
   // 'color_alpha' will be updated by DrawControlPoints().
   auto& control_render_info =
       *control_render_constant_->HostData<ControlRenderInfo>(frame);
@@ -246,7 +246,7 @@ void PathRenderer::UpdatePerFrameData(int frame, float control_point_scale,
       = proj_view_model;
 }
 
-void PathRenderer::DrawControlPoints(
+void PathRenderer3D::DrawControlPoints(
     const VkCommandBuffer& command_buffer, int frame,
     int path_index, const glm::vec4& color_alpha) {
   control_render_constant_->HostData<ControlRenderInfo>(frame)->color_alpha =
@@ -265,7 +265,7 @@ void PathRenderer::DrawControlPoints(
       /*mesh_index=*/0, num_control_points_per_path_[path_index]);
 }
 
-void PathRenderer::DrawSplines(
+void PathRenderer3D::DrawSplines(
     const VkCommandBuffer& command_buffer, int frame,
     absl::Span<const glm::vec4> color_alphas) {
   ASSERT_TRUE(color_alphas.size() == num_paths_,
@@ -289,7 +289,7 @@ void PathRenderer::DrawSplines(
   }
 }
 
-void PathRenderer::DrawViewpoint(
+void PathRenderer3D::DrawViewpoint(
     const VkCommandBuffer& command_buffer, int frame,
     const glm::vec3& center, const glm::vec4& color_alpha) {
   const float scale =
@@ -308,7 +308,8 @@ void PathRenderer::DrawViewpoint(
       /*mesh_index=*/0, /*instance_count=*/1);
 }
 
-std::vector<const PerVertexBuffer*> PathRenderer::GetPathVertexBuffers() const {
+std::vector<const PerVertexBuffer*>
+PathRenderer3D::GetPathVertexBuffers() const {
   std::vector<const PerVertexBuffer*> buffers;
   buffers.reserve(num_paths_);
   for (const auto& buffer : paths_vertex_buffers_) {
