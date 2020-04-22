@@ -14,9 +14,10 @@
 
 layout(location = 0) in vec3 frag_dir;
 
-layout(location = 0) out vec4 fragColor;
+layout(location = 0) out vec4 frag_color;
 
 layout(binding = 0) uniform Camera {
+  mat4 aurora_proj_view;
   vec4 pos;
   vec4 up;
   vec4 front;
@@ -35,12 +36,10 @@ layout(binding = 3) uniform sampler2D distanceField; // distance from curtains (
 
 const float km = 1.0 / 6378.1; // convert kilometers to render units (planet radii)
 const float miss_t = 100.0; // t value for a miss
-const float min_t = 0.000001; // minimum acceptable t value
 const float dt = 2.0 * km; // sampling rate for aurora: fine sampling gets *SLOW*
 const float auroraScale = dt / (40.0 * km); // scale factor: samples at dt -> screen color
 const float airSampleStep = 0.01;
 const vec3 airColor = 0.002 * vec3(0.4, 0.5, 0.7);
-const vec3 origin = vec3(0.0, -1.0, 0.0);
 
 /* A 3D ray shooting through space */
 struct ray {
@@ -93,12 +92,10 @@ vec3 tone_map(vec3 color) {
 }
 
 /* Convert a 3D location to a 2D aurora map index (polar stereographic) */
-vec2 down_to_map(vec3 worldPos) {
-  vec3 direction = worldPos - origin;
-  float t = (1.0 - origin.y) / direction.y;
-  vec2 samplePos = origin.xz + direction.xz * t;
-  samplePos = (samplePos + 2.0) / 4.0;
-  return samplePos;
+vec2 down_to_map(vec3 pos_world) {
+  const vec4 projected = camera.aurora_proj_view * vec4(pos_world, 1.0);
+  // Perform perspective division, and map values from range [-1, 1] to [0, 1].
+  return (projected.xy / projected.w + 1.0) / 2.0;
 }
 
 /* Sample the aurora's color at this 3D point */
@@ -117,14 +114,14 @@ vec3 sample_aurora(ray r, span s) {
 
   /* Sum up aurora light along ray span */
   vec3 sum = vec3(0.0);
-  vec3 loc = ray_at(r, s.l); /* start point along ray */
   float t = s.l;
   while (t < s.h) {
     vec3 loc = ray_at(r, t);
     sum += sample_aurora(loc); // real curtains
-    float dist = (0.99 - texture(distanceField, down_to_map(loc)).r) * 0.2;
-    if (dist < dt) dist = dt;
-    t += dist;
+    // TODO: Distance field is not used.
+//    float dist = texture(distanceField, down_to_map(loc)).r * 0.2;
+//    if (dist < dt) dist = dt;
+    t += dt;
   }
 
   return sum * auroraScale; // full curtain
@@ -133,20 +130,17 @@ vec3 sample_aurora(ray r, span s) {
 void main() {
   // Compute intersection with planet itself
   const vec3 normal = normalize(vec3(camera.pos));
-//  bool isGround = false;
-  if (dot(frag_dir, normal) <= 0) {
-    return;
-    // to create reflection effect on the planet surface
-    // reverse the y coordinate of camera direction
-//    isGround = true;
-//    float x = dot(cameraDir, originX);
-//    float y = dot(cameraDir, originY);
-//    float z = dot(cameraDir, originZ);
-//    cameraDir = x * originX + (-y) * originY + z * originZ;
+  vec3 normalized_dir = normalize(frag_dir);
+  bool is_gound = false;
+  const float projection = dot(normalized_dir, normal);
+  if (projection < 0) {
+    // Create reflection effect.
+    is_gound = true;
+    normalized_dir += -2 * projection * normal;
   }
 
   // Start with a camera ray
-  ray r = ray(vec3(camera.pos), frag_dir);
+  ray r = ray(vec3(camera.pos), normalized_dir);
 
   // All our geometry
   span auroraL = span_sphere(sphere(vec3(0.0), 85.0 * km + 1.0), r);
@@ -168,6 +162,10 @@ void main() {
   //  vec3 background = vec3(texture(skybox, cameraDir));
   vec3 background = vec3(0.0);
   float bgStrength = 1.0 - length(foreground);
-  fragColor = vec4(foreground + bgStrength * background, 1.0);
-//  if (isGround) fragColor *= 0.5; // assume reflectance 0.5
+  frag_color = vec4(foreground + bgStrength * background, 1.0);
+
+  // assume reflectance 0.3
+  if (is_gound) {
+    frag_color *= 0.3;
+  }
 }

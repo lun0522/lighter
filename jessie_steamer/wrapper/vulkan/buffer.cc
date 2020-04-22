@@ -384,6 +384,16 @@ void UniformBuffer::Flush(int chunk_index) const {
       {{data_ + src_offset, chunk_data_size_, /*offset=*/0}});
 }
 
+void UniformBuffer::Flush(int chunk_index, VkDeviceSize data_size,
+                          VkDeviceSize offset) const {
+  ValidateChunkIndex(chunk_index);
+  const VkDeviceSize src_offset = chunk_data_size_ * chunk_index + offset;
+  const VkDeviceSize dst_offset = chunk_memory_size_ * chunk_index + offset;
+  CopyHostToBuffer(
+      *context_, dst_offset, data_size, device_memory(),
+      {{data_ + src_offset, data_size, /*offset=*/0}});
+}
+
 VkDescriptorBufferInfo UniformBuffer::GetDescriptorInfo(
     int chunk_index) const {
   ValidateChunkIndex(chunk_index);

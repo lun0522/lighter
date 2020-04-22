@@ -91,11 +91,9 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
       /*field_of_view=*/45.0f, original_aspect_ratio};
   auto pers_camera =
       absl::make_unique<common::PerspectiveCamera>(config, pers_config);
-
-  common::UserControlledCamera::ControlConfig control_config;
-  control_config.lock_center = config.look_at;
+  // TODO: Add lock center mode.
   camera_ = absl::make_unique<common::UserControlledCamera>(
-      control_config, std::move(pers_camera));
+      common::UserControlledCamera::ControlConfig{}, std::move(pers_camera));
 
   /* Window */
   (*mutable_window_context()->mutable_window())
@@ -242,8 +240,8 @@ void NanosuitApp::UpdateData(int frame) {
   model = glm::scale(model, glm::vec3{0.5f});
 
   const common::Camera& camera = camera_->camera();
-  const glm::mat4& view = camera.view();
-  const glm::mat4& proj = camera.projection();
+  const glm::mat4 view = camera.GetViewMatrix();
+  const glm::mat4 proj = camera.GetProjectionMatrix();
   const glm::mat4 view_model = view * model;
 
   *nanosuit_vert_uniform_->HostData<NanosuitVertTrans>(frame) = {

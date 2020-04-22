@@ -95,8 +95,8 @@ absl::optional<Rotation> Compute<RotationManager::RotationState>(
     if (state.first_click_pos != normalized_click_pos.value()) {
       state.rotation.angle = glm::angle(state.first_click_pos,
                                         normalized_click_pos.value());
-      state.rotation.axis = glm::cross(state.first_click_pos,
-                                       normalized_click_pos.value());
+      state.rotation.axis = glm::normalize(
+          glm::cross(state.first_click_pos, normalized_click_pos.value()));
       return state.rotation;
     } else {
       state.rotation.angle = 0.0f;
@@ -129,7 +129,8 @@ Sphere::Ray Sphere::GetClickingRay(const Camera& camera,
                                    const glm::vec2& click_ndc) const {
   // All computation will be done in the object space.
   const glm::mat4 world_to_object = glm::inverse(model_matrix_);
-  const glm::mat4 world_to_ndc = camera.projection() * camera.view();
+  const glm::mat4 world_to_ndc = camera.GetProjectionMatrix() *
+                                 camera.GetViewMatrix();
   const glm::mat4 ndc_to_world = glm::inverse(world_to_ndc);
   const glm::mat4 ndc_to_object = world_to_object * ndc_to_world;
 

@@ -161,7 +161,7 @@ PathRenderer2D::PathRenderer2D(
 void PathRenderer2D::RenderPaths(const VkCommandBuffer& command_buffer,
                                  const common::Camera& camera) {
   trans_constant_->HostData<Transformation>(/*frame=*/0)->proj_view =
-      camera.projection() * camera.view();
+      camera.GetProjectionMatrix() * camera.GetViewMatrix();
   render_paths_pipeline_->Bind(command_buffer);
   trans_constant_->Flush(command_buffer, render_paths_pipeline_->layout(),
                          /*frame=*/0, /*target_offset=*/0,

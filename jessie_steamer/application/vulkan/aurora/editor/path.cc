@@ -364,7 +364,8 @@ void AuroraPath::UpdatePerFrameData(
     const absl::optional<ClickInfo>& click_info) {
   const float radius_object_space = camera.view_width() * control_point_radius_;
   const float control_point_scale = radius_object_space / model_radius;
-  const glm::mat4 proj_view_model = camera.projection() * camera.view() * model;
+  const glm::mat4 proj_view_model = camera.GetProjectionMatrix() *
+                                    camera.GetViewMatrix() * model;
   path_renderer_.UpdatePerFrameData(frame, control_point_scale,
                                     proj_view_model);
   selected_control_point_ = ProcessClick(radius_object_space, proj_view_model,

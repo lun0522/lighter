@@ -25,7 +25,7 @@ using namespace wrapper::vulkan;
 
 // To save device memory, we reuse images in this way:
 //   - Render paths: [output] distance_field_image
-//   - Bold paths: [input]  distance_field_image
+//   - Bold paths: [input] distance_field_image
 //                 [output] paths_image
 //   - Generate distance field: [input] paths_image
 //                              [output] distance_field_image

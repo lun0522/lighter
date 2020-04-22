@@ -11,12 +11,12 @@
 #include <fstream>
 
 #include "jessie_steamer/common/util.h"
-#define STB_IMAGE_IMPLEMENTATION
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/strings/str_split.h"
 #include "third_party/absl/strings/string_view.h"
+#define STB_IMAGE_IMPLEMENTATION
 #include "third_party/stb/stb_image.h"
 
 ABSL_FLAG(std::string, resource_folder, "external/resource",
@@ -121,27 +121,15 @@ Image::~Image() {
   std::free(const_cast<void*>(data));
 }
 
-std::array<Vertex2DPosOnly, 6> Vertex2DPosOnly::GetFullScreenSquadVertices(
-    bool flip_y) {
-  if (flip_y) {
-    return {
-        Vertex2DPosOnly{/*pos=*/{-1.0f, -1.0f}},
-        Vertex2DPosOnly{/*pos=*/{ 1.0f, -1.0f}},
-        Vertex2DPosOnly{/*pos=*/{ 1.0f,  1.0f}},
-        Vertex2DPosOnly{/*pos=*/{-1.0f, -1.0f}},
-        Vertex2DPosOnly{/*pos=*/{ 1.0f,  1.0f}},
-        Vertex2DPosOnly{/*pos=*/{-1.0f,  1.0f}},
-    };
-  } else {
-    return {
-        Vertex2DPosOnly{/*pos=*/{-1.0f, -1.0f}},
-        Vertex2DPosOnly{/*pos=*/{ 1.0f, -1.0f}},
-        Vertex2DPosOnly{/*pos=*/{ 1.0f,  1.0f}},
-        Vertex2DPosOnly{/*pos=*/{-1.0f, -1.0f}},
-        Vertex2DPosOnly{/*pos=*/{ 1.0f,  1.0f}},
-        Vertex2DPosOnly{/*pos=*/{-1.0f,  1.0f}},
-    };
-  }
+std::array<Vertex2DPosOnly, 6> Vertex2DPosOnly::GetFullScreenSquadVertices() {
+  return {
+      Vertex2DPosOnly{/*pos=*/{-1.0f, -1.0f}},
+      Vertex2DPosOnly{/*pos=*/{ 1.0f, -1.0f}},
+      Vertex2DPosOnly{/*pos=*/{ 1.0f,  1.0f}},
+      Vertex2DPosOnly{/*pos=*/{-1.0f, -1.0f}},
+      Vertex2DPosOnly{/*pos=*/{ 1.0f,  1.0f}},
+      Vertex2DPosOnly{/*pos=*/{-1.0f,  1.0f}},
+  };
 }
 
 std::array<Vertex2D, 6> Vertex2D::GetFullScreenSquadVertices(bool flip_y) {

@@ -30,7 +30,7 @@ compile_shader() {
 if [ ! -e ${COMPILER_BIN} ]; then
   echo "$(DATE "${DATE_FORMAT}") Downloading shader compiler..."
   COMPRESSED="/tmp/glslang.zip"
-  wget -O ${COMPRESSED} ${COMPILER_ADDR}
+  curl -L -o ${COMPRESSED} ${COMPILER_ADDR}
   unzip -p ${COMPRESSED} bin/glslangValidator > ${COMPILER_BIN}
   chmod 700 ${COMPILER_BIN}
   rm ${COMPRESSED}

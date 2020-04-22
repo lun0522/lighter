@@ -37,6 +37,7 @@ class AuroraApp : public Application {
 
   bool should_quit_ = false;
   int current_frame_ = 0;
+  int frame_rate_ = 0;
   Scene last_scene_ = Scene::kNone;
   Scene current_scene_ = Scene::kEditor;
   common::FrameTimer timer_;
@@ -75,6 +76,7 @@ void AuroraApp::TransitionSceneIfNeeded() {
   if (!GetCurrentScene().ShouldTransitionScene()) {
     return;
   }
+  GetCurrentScene().OnExit();
   switch (current_scene_) {
     case Scene::kNone:
       FATAL("Unexpected branch");
@@ -93,6 +95,10 @@ void AuroraApp::TransitionSceneIfNeeded() {
 void AuroraApp::MainLoop() {
   while (!should_quit_ && mutable_window_context()->CheckEvents()) {
     timer_.Tick();
+    if (timer_.frame_rate() != frame_rate_) {
+      frame_rate_ = timer_.frame_rate();
+      LOG_INFO << "Frame rate: " << frame_rate_;
+    }
 
     auto& scene = GetCurrentScene();
     if (HasTransitionedScene()) {

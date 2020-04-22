@@ -339,10 +339,11 @@ void PlanetApp::UpdateData(int frame) {
   model = glm::rotate(model, elapsed_time * glm::radians(5.0f),
                       glm::vec3{0.0f, 1.0f, 0.0f});
   const common::Camera& camera = camera_->camera();
+  const glm::mat4 proj = camera.GetProjectionMatrix();
   *planet_constant_->HostData<PlanetTrans>(frame) =
-      {model, camera.projection() * camera.view()};
+      {model, proj * camera.GetViewMatrix()};
   skybox_constant_->HostData<SkyboxTrans>(frame)->proj_view_model =
-      camera.projection() * camera.GetSkyboxViewMatrix();
+      proj * camera.GetSkyboxViewMatrix();
 }
 
 void PlanetApp::MainLoop() {

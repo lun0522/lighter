@@ -496,6 +496,8 @@ class UniformBuffer : public DataBuffer {
 
   // Flushes the data from host to device.
   void Flush(int chunk_index) const;
+  void Flush(int chunk_index, VkDeviceSize data_size,
+             VkDeviceSize offset) const;
 
   // Returns the description of the data chunk at 'chunk_index'.
   VkDescriptorBufferInfo GetDescriptorInfo(int chunk_index) const;

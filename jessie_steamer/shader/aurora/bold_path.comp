@@ -20,5 +20,6 @@ void main() {
       output_color += imageLoad(original_image, coord + ivec2(x, y)).r;
     }
   }
+  output_color /= (SAMPLING_RADIUS * SAMPLING_RADIUS);
   imageStore(output_image, coord, vec4(output_color, 0.0, 0.0, 0.0));
 }

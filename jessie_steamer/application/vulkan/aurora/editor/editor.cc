@@ -396,15 +396,15 @@ void Editor::UpdateData(int frame) {
       state_manager_.IsSelected(kDaylightButtonIndex)
           ? Celestial::kEarthDayTextureIndex
           : Celestial::kEarthNightTextureIndex;
-  const glm::mat4 earth_transform_matrix = general_camera.projection() *
-                                           general_camera.view() *
-                                           earth_.model_matrix();
+  const glm::mat4 earth_transform_matrix =
+      general_camera.GetProjectionMatrix() * general_camera.GetViewMatrix() *
+      earth_.model_matrix();
   celestial_->UpdateEarthData(frame, earth_texture_index,
                               earth_transform_matrix);
 
   const auto& skybox_camera = skybox_camera_->camera();
   const glm::mat4 skybox_transform_matrix =
-      skybox_camera.projection() *
+      skybox_camera.GetProjectionMatrix() *
       skybox_camera.GetSkyboxViewMatrix() *
       earth_.GetSkyboxModelMatrix(/*scale=*/1.5f);
   celestial_->UpdateSkyboxData(frame, skybox_transform_matrix);

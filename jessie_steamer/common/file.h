@@ -101,7 +101,7 @@ struct Vertex2DPosOnly {
 
   // Returns vertices in normalized device coordinate for rendering a
   // full-screen squad.
-  static std::array<Vertex2DPosOnly, 6> GetFullScreenSquadVertices(bool flip_y);
+  static std::array<Vertex2DPosOnly, 6> GetFullScreenSquadVertices();
 
   // Vertex data.
   glm::vec2 pos;

@@ -8,9 +8,9 @@
 #ifndef JESSIE_STEAMER_COMMON_CAMERA_H
 #define JESSIE_STEAMER_COMMON_CAMERA_H
 
+#include <functional>
 #include <memory>
 
-#include "third_party/absl/types/optional.h"
 #ifdef USE_VULKAN
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #endif /* USE_VULKAN */
@@ -19,7 +19,7 @@
 namespace jessie_steamer {
 namespace common {
 
-// A camera model. Subclasses should override the projection() method.
+// A camera model. Subclasses must override GetProjectionMatrix().
 class Camera {
  public:
   // Configurations used to initialize a camera.
@@ -37,53 +37,63 @@ class Camera {
 
   virtual ~Camera() = default;
 
-  // Moves the position of camera by 'offset' and updates the view matrix.
-  void UpdatePositionByOffset(const glm::vec3& offset);
+  // Moves the position of camera by 'offset'.
+  Camera& UpdatePositionByOffset(const glm::vec3& offset);
 
-  // Moves the camera to 'position' and updates the view matrix.
-  void UpdatePosition(const glm::vec3& position);
+  // Moves the camera to 'position'.
+  Camera& SetPosition(const glm::vec3& position);
 
-  // Updates the front and right vector, and view matrix. 'front' does not need
-  // to be normalized.
-  void UpdateDirection(const glm::vec3& front);
+  // Updates the up vector. 'up' does not need to be normalized.
+  Camera& SetUp(const glm::vec3& up);
+
+  // Updates front and right vectors. 'front' does not need to be normalized.
+  Camera& SetFront(const glm::vec3& front);
+
+  // Updates right and front vectors. 'right' does not need to be normalized.
+  Camera& SetRight(const glm::vec3& right);
+
+  // Returns the view matrix.
+  glm::mat4 GetViewMatrix() const;
 
   // Returns a view matrix that can be used for rendering skybox.
-  glm::mat4 GetSkyboxViewMatrix() const;
+  glm::mat4 GetSkyboxViewMatrix() const {
+    return glm::mat4{glm::mat3{GetViewMatrix()}};
+  }
+
+  // Returns the projection matrix.
+  virtual glm::mat4 GetProjectionMatrix() const = 0;
 
   // Accessors.
   const glm::vec3& position() const { return pos_; }
+  const glm::vec3& up() const { return up_; }
   const glm::vec3& front() const { return front_; }
   const glm::vec3& right() const { return right_; }
-  const glm::mat4& view() const { return view_; }
-  virtual const glm::mat4& projection() const = 0;
 
  protected:
-  explicit Camera(const Config& config);
+  explicit Camera(const Config& config)
+      : near_{config.near}, far_{config.far},
+        pos_{config.position}, up_{glm::normalize(config.up)} {
+    SetFront(config.look_at - pos_);
+  }
 
-  // Distance of the near plane.
+  // Distance to the near plane.
   const float near_;
 
-  // Distance of the far plane.
+  // Distance to the far plane.
   const float far_;
 
-  // Up vector.
-  const glm::vec3 up_;
-
  private:
-  // Updates the view matrix.
-  void UpdateView();
-
   // Position.
   glm::vec3 pos_;
+
+  // Up vector.
+  glm::vec3 up_;
 
   // Front vector.
   glm::vec3 front_;
 
   // Right vector.
   glm::vec3 right_;
-
-  // View matrix.
-  glm::mat4 view_;
 };
 
 // A perspective camera model.
@@ -93,96 +103,105 @@ class PerspectiveCamera : public Camera {
   // measured in degrees.
   struct PersConfig {
     float field_of_view;
-    float fov_aspect_ratio;
+    float aspect_ratio;
   };
 
   PerspectiveCamera(const Camera::Config& config,
-                    const PersConfig& pers_config);
+                    const PersConfig& pers_config)
+      : Camera{config}, aspect_ratio_{pers_config.aspect_ratio},
+        fov_{pers_config.field_of_view} {}
 
   // This class is neither copyable nor movable.
   PerspectiveCamera(const PerspectiveCamera&) = delete;
   PerspectiveCamera& operator=(const PerspectiveCamera&) = delete;
 
-  // Updates the field of view and projection matrix.
-  void UpdateFieldOfView(float fov);
+  // Updates the field of view.
+  PerspectiveCamera& SetFieldOfView(float fov);
+
+  // Overrides.
+  glm::mat4 GetProjectionMatrix() const override;
 
   // Accessors.
   float field_of_view() const { return fov_; }
-  const glm::mat4& projection() const override { return proj_; }
 
  private:
-  // Updates the projection matrix.
-  void UpdateProjection();
+  // Aspect ratio of field of view.
+  const float aspect_ratio_;
 
   // Field of view.
   float fov_;
-
-  // Aspect ratio of field of view.
-  const float fov_aspect_ratio_;
-
-  // Projection matrix.
-  glm::mat4 proj_;
 };
 
 // An orthographic camera model.
 class OrthographicCamera : public Camera {
  public:
+  // Configurations used to control orthographic projection.
   struct OrthoConfig {
     float view_width;
     float aspect_ratio;
   };
 
+  // Returns a OrthoConfig for rendering a fullscreen squad.
+  static OrthoConfig GetFullscreenConfig() {
+    return {/*view_width=*/2.0f, /*aspect_ratio=*/1.0f};
+  }
+
   OrthographicCamera(const Camera::Config& config,
-                     const OrthoConfig& ortho_config);
+                     const OrthoConfig& ortho_config)
+      : Camera{config}, aspect_ratio_{ortho_config.aspect_ratio},
+        view_width_{ortho_config.view_width} {}
 
   // This class is neither copyable nor movable.
   OrthographicCamera(const OrthographicCamera&) = delete;
   OrthographicCamera& operator=(const OrthographicCamera&) = delete;
 
-  // Updates the width of view and projection matrix, while keeping the aspect
-  // ratio unchanged.
-  void UpdateViewWidth(float view_width);
+  // Updates the width of view, while keeping the aspect ratio unchanged.
+  OrthographicCamera& SetViewWidth(float view_width);
+
+  // Overrides.
+  glm::mat4 GetProjectionMatrix() const override;
 
   // Accessors.
   float view_width() const { return view_width_; }
-  const glm::mat4& projection() const override { return proj_; }
 
  private:
-  // Updates the projection matrix.
-  void UpdateProjection();
-
   // Aspect ratio of view.
   const float aspect_ratio_;
 
   // Width of view.
   float view_width_;
-
-  // Projection matrix.
-  glm::mat4 proj_;
 };
 
 // A camera model with cursor, scroll and keyboard control.
-// Users are responsible to call SetActivity() to activate the camera, and call
+// The camera is not active after construction. The user should call
+// SetActivity() to activate/deactivate it. The user should also call
 // SetCursorPos() after a window is created and whenever it is resized.
 class UserControlledCamera {
  public:
-  // Users may use these keys to control the camera.
+  // The user may use these keys to control the camera.
   enum class ControlKey { kUp, kDown, kLeft, kRight };
 
-  // Configurations used to initialize the control. If 'lock_center' has value,
-  // the camera will always face it, and will not respond to cursor movements.
+  // Configurations used to initialize the control.
   struct ControlConfig {
     float move_speed = 10.0f;
     float turn_speed = 0.001f;
-    absl::optional<glm::vec3> lock_center;
   };
 
   UserControlledCamera(const ControlConfig& control_config,
-                       std::unique_ptr<Camera>&& camera);
+                       std::unique_ptr<Camera>&& camera)
+      : move_speed_{control_config.move_speed},
+        turn_speed_{control_config.turn_speed},
+        camera_{std::move(camera)} {
+    Reset();
+  }
 
   // This class is neither copyable nor movable.
   UserControlledCamera(const UserControlledCamera&) = delete;
   UserControlledCamera& operator=(const UserControlledCamera&) = delete;
+
+  // Directly modifies states of the underlying camera object. Internal states
+  // of this class will be reset after the modification.
+  void SetInternalStates(const std::function<void(Camera*)>& operation);
 
   // Sets the cursor position. If the user care about the mouse movement, this
   // should be called after the window is created or resized.
@@ -191,7 +210,6 @@ class UserControlledCamera {
   // Informs the camera that the cursor has been moved to position ('x', 'y').
   // The camera will point to a different direction according to it, while
   // the degree turned depends on 'turn_speed_'.
-  // If the camera is in the lock center mode, it would not respond to this.
   void DidMoveCursor(double x, double y);
 
   // Informs the camera that the scroll input has changed by 'delta', bound by
@@ -213,8 +231,15 @@ class UserControlledCamera {
   const Camera& camera() const { return *camera_; }
 
  private:
-  // Updates camera direction if center is not locked.
-  void UpdateDirectionIfNeeded();
+  // Resets reference vectors and angles, and turns to the coordinate system
+  // built with the current camera up and front vectors.
+  void Reset();
+
+  // Moving speed of camera (forward/backward/left/right).
+  const float move_speed_;
+
+  // Turning speed of camera (pitch/yaw).
+  const float turn_speed_;
 
   // Whether the camera responds to user inputs.
   bool is_active_ = false;
@@ -225,14 +250,10 @@ class UserControlledCamera {
   // Current position of cursor in the screen coordinate.
   glm::dvec2 cursor_pos_;
 
-  // Movement speed of camera (forward/backward/left/right).
-  const float move_speed_;
-
-  // Turning speed of camera (pitch/yaw).
-  const float turn_speed_;
-
-  // If has value, the camera will always face the center.
-  const absl::optional<glm::vec3> lock_center_;
+  // These reference vectors and the camera up vector form a coordinate system,
+  // and we calculate pitch and yaw angles based on it.
+  glm::vec3 ref_front_;
+  glm::vec3 ref_left_;
 
   // Pitch in radians.
   float pitch_;
