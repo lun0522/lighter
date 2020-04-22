@@ -1,11 +1,11 @@
 /*
+ This shader is modified from Dr. Orion Sky Lawlor's implementation.
+ Lawlor, Orion & Genetti, Jon. (2011). Interactive Volume Rendering Aurora on
+ the GPU. Journal of WSCG. 19. 25-32.
+
  Original header:
  GLSL fragment shader: raytracer with planetary atmosphere.
  Dr. Orion Sky Lawlor, olawlor@acm.org, 2010-09-04 (Public Domain)
- */
-
-/*
- This shader is modified from Dr. Orion Sky Lawlor's implementation.
  */
 
 #version 460 core
@@ -24,14 +24,10 @@ layout(binding = 0) uniform Camera {
   vec4 right;
 } camera;
 
-//uniform vec3 originX;
-//uniform vec3 originY;
-//uniform vec3 originZ;
-
 layout(binding = 1) uniform sampler2D auroraDeposition; // deposition function
 layout(binding = 2) uniform sampler2D auroraTexture; // actual curtains and color
-layout(binding = 3) uniform sampler2D distanceField; // distance from curtains (0==far away, 1==close)
-//uniform sampler2D airTransTable;
+layout(binding = 3) uniform sampler2D distanceField; // distance from curtains (1==far away, 0==close)
+layout(binding = 4) uniform sampler2D airTransTable;
 //uniform samplerCube skybox;
 
 const float km = 1.0 / 6378.1; // convert kilometers to render units (planet radii)
@@ -78,12 +74,12 @@ vec3 deposition_function(float height) {
 }
 
 /* Return air transmit value at this angle (should pass in cos value of the angle) */
-//float air_transmit(float cosVal) {
-//  int numStep = int(round(1.0 / airSampleStep)) + 1;
-//  float stepSize = 1.0 / numStep;
-//  float xOffset = (1.0 - stepSize) * cosVal + stepSize / 2.0;
-//  return texture(airTransTable, vec2(xOffset, 0.5)).r * 255.0 / 200.0;
-//}
+float air_transmit(float cosVal) {
+  int numStep = int(round(1.0 / airSampleStep)) + 1;
+  float stepSize = 1.0 / numStep;
+  float xOffset = (1.0 - stepSize) * cosVal + stepSize / 2.0;
+  return texture(airTransTable, vec2(xOffset, 0.5)).r * 255.0 / 200.0;
+}
 
 // Apply nonlinear tone mapping to final summed output color
 vec3 tone_map(vec3 color) {
@@ -147,9 +143,7 @@ void main() {
   span auroraH = span_sphere(sphere(vec3(0.0), 300.0 * km + 1.0), r);
 
   // Atmosphere
-//  float airTransmit = air_transmit(dot(cameraDir, normal));
-//  float airInscatter = 1.0 - airTransmit; // fraction added by atmosphere
-  float airTransmit = 0.9;
+  float airTransmit = air_transmit(projection);
   float airInscatter = 1.0 - airTransmit; // fraction added by atmosphere
 
   // typical planet-hitting ray
@@ -164,8 +158,8 @@ void main() {
   float bgStrength = 1.0 - length(foreground);
   frag_color = vec4(foreground + bgStrength * background, 1.0);
 
-  // assume reflectance 0.3
+  // assume reflectance 0.5
   if (is_gound) {
-    frag_color *= 0.3;
+    frag_color *= 0.5;
   }
 }

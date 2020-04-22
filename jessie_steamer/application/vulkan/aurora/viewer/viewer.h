@@ -22,7 +22,7 @@ namespace aurora {
 class ViewerRenderer {
  public:
   ViewerRenderer(const wrapper::vulkan::WindowContext* window_context,
-                 int num_frames_in_flight,
+                 int num_frames_in_flight, float air_transmit_sample_step,
                  const wrapper::vulkan::SamplableImage& aurora_paths_image,
                  const wrapper::vulkan::SamplableImage& distance_field_image);
 
@@ -37,7 +37,8 @@ class ViewerRenderer {
   void UpdateDumpPathsCamera(const common::Camera& camera);
 
   // Updates camera parameters used for viewing aurora.
-  void UpdateViewAuroraCamera(int frame, const common::Camera& camera);
+  void UpdateViewAuroraCamera(int frame, const common::Camera& camera,
+                              float view_aurora_camera_fovy);
 
   // Renders aurora paths.
   // This should be called when 'command_buffer' is recording commands.
@@ -48,6 +49,7 @@ class ViewerRenderer {
   const wrapper::vulkan::WindowContext& window_context_;
   std::unique_ptr<wrapper::vulkan::UniformBuffer> camera_uniform_;
   std::unique_ptr<wrapper::vulkan::SharedTexture> aurora_deposition_image_;
+  std::unique_ptr<wrapper::vulkan::TextureImage> air_transmit_table_image_;
   std::vector<std::unique_ptr<wrapper::vulkan::StaticDescriptor>> descriptors_;
   std::unique_ptr<wrapper::vulkan::PerVertexBuffer> vertex_buffer_;
   std::unique_ptr<wrapper::vulkan::GraphicsPipelineBuilder> pipeline_builder_;
@@ -76,7 +78,7 @@ class Viewer : public Scene {
   void Recreate() override;
   void UpdateData(int frame) override {
     viewer_renderer_.UpdateViewAuroraCamera(
-        frame, view_aurora_camera_->camera());
+        frame, view_aurora_camera_->camera(), view_aurora_camera_fovy_);
   }
   void Draw(const VkCommandBuffer& command_buffer,
             uint32_t framebuffer_index, int current_frame) override {
@@ -107,6 +109,13 @@ class Viewer : public Scene {
   // of this camera when the user viewpoint changes, and when the user gives
   // inputs to move the camera.
   std::unique_ptr<common::UserControlledCamera> view_aurora_camera_;
+
+  // Field of view measured in degrees. Since we are always rendering a
+  // fullscreen squad for ray tracing, we cannot use a traditional perspective
+  // camera, but track FOV by ourselves, set camera parameters according to it
+  // and send them to shaders.
+  // TODO: Extend camera to support this.
+  float view_aurora_camera_fovy_ = 45.0f;
 };
 
 } /* namespace aurora */

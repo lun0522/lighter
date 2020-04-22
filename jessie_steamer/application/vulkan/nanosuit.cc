@@ -88,7 +88,7 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
   config.position = glm::vec3{0.0f, 4.0f, -12.0f};
   config.look_at = glm::vec3{0.0f, 4.0f, 0.0f};
   const common::PerspectiveCamera::PersConfig pers_config{
-      /*field_of_view=*/45.0f, original_aspect_ratio};
+      /*field_of_view_y=*/45.0f, original_aspect_ratio};
   auto pers_camera =
       absl::make_unique<common::PerspectiveCamera>(config, pers_config);
   // TODO: Add lock center mode.

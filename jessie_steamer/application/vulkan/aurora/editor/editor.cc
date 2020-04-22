@@ -261,7 +261,7 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
   const common::UserControlledCamera::ControlConfig camera_control_config{};
 
   const common::PerspectiveCamera::PersConfig pers_config{
-      /*field_of_view=*/45.0f, original_aspect_ratio};
+      /*field_of_view_y=*/45.0f, original_aspect_ratio};
   skybox_camera_ = absl::make_unique<common::UserControlledCamera>(
       camera_control_config,
       absl::make_unique<common::PerspectiveCamera>(config, pers_config));

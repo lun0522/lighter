@@ -7,7 +7,7 @@
 
 #include "jessie_steamer/application/vulkan/aurora/viewer/viewer.h"
 
-#include "jessie_steamer/common/util.h"
+#include "jessie_steamer/application/vulkan/aurora/viewer/air_transmit_table.h"
 
 namespace jessie_steamer {
 namespace application {
@@ -28,6 +28,7 @@ enum UniformBindingPoint {
   kAuroraDepositionImageBindingPoint,
   kAuroraPathsImageBindingPoint,
   kDistanceFieldImageBindingPoint,
+  kAirTransmitTableImageBindingPoint,
 };
 
 constexpr uint32_t kVertexBufferBindingPoint = 0;
@@ -57,6 +58,7 @@ const glm::vec3& GetEarthModelAxis() {
 
 ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
                                int num_frames_in_flight,
+                               float air_transmit_sample_step,
                                const SamplableImage& aurora_paths_image,
                                const SamplableImage& distance_field_image)
     : window_context_{*FATAL_IF_NULL(window_context)} {
@@ -68,11 +70,19 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
       context, sizeof(CameraParameter), num_frames_in_flight);
 
   /* Image */
+  const ImageSampler::Config sampler_config{
+      VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
   aurora_deposition_image_ = absl::make_unique<SharedTexture>(
       context, common::file::GetResourcePath("texture/aurora.jpg"),
       image::GetImageUsageFlags({image::Usage::kSampledInFragmentShader}),
-      ImageSampler::Config{VK_FILTER_LINEAR,
-                           VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE});
+      sampler_config);
+
+  const auto air_transmit_table =
+      GenerateAirTransmitTable(air_transmit_sample_step);
+  air_transmit_table_image_ = absl::make_unique<TextureImage>(
+      context, /*generate_mipmaps=*/false,
+      image::GetImageUsageFlags({image::Usage::kSampledInFragmentShader}),
+      *air_transmit_table, sampler_config);
 
   /* Descriptor */
   const Descriptor::ImageInfoMap image_info_map{
@@ -82,6 +92,8 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
           {aurora_paths_image.GetDescriptorInfo()}},
       {kDistanceFieldImageBindingPoint,
           {distance_field_image.GetDescriptorInfo()}},
+      {kAirTransmitTableImageBindingPoint,
+          {air_transmit_table_image_->GetDescriptorInfo()}}
   };
 
   descriptors_.reserve(num_frames_in_flight);
@@ -121,6 +133,15 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
                 /*bindings=*/{
                     Descriptor::Info::Binding{
                         kDistanceFieldImageBindingPoint,
+                        /*array_length=*/1,
+                    }},
+            },
+            Descriptor::Info{
+                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                VK_SHADER_STAGE_FRAGMENT_BIT,
+                /*bindings=*/{
+                    Descriptor::Info::Binding{
+                        kAirTransmitTableImageBindingPoint,
                         /*array_length=*/1,
                     }},
             },
@@ -204,23 +225,17 @@ void ViewerRenderer::UpdateDumpPathsCamera(const common::Camera& camera) {
 }
 
 void ViewerRenderer::UpdateViewAuroraCamera(
-    int frame, const common::Camera& camera) {
+    int frame, const common::Camera& camera, float view_aurora_camera_fovy) {
+  const glm::vec3 up_dir =
+      glm::normalize(glm::cross(camera.right(), camera.front()));
+  const float tan_fovy = glm::tan(glm::radians(view_aurora_camera_fovy));
   auto& camera_parameter = *camera_uniform_->HostData<CameraParameter>(frame);
   camera_parameter.pos = glm::vec4{camera.position(), 0.0f};
-  camera_parameter.up = glm::vec4{glm::normalize(glm::cross(camera.right(),
-                                                            camera.front())),
-                                  0.0f};
+  camera_parameter.up = glm::vec4{up_dir * tan_fovy, 0.0f};
   camera_parameter.front = glm::vec4{camera.front(), 0.0f};
-  camera_parameter.right = glm::vec4{camera.right(), 0.0f};
-
-  // Adjust 'up' or 'right' so that one of them will have length 1, while the
-  // other one has length less than 1 because of the aspect ratio of screen.
-  const float aspect_ratio = window_context_.original_aspect_ratio();
-  if (aspect_ratio > 1.0f) {
-    camera_parameter.up /= aspect_ratio;
-  } else {
-    camera_parameter.right * aspect_ratio;
-  }
+  camera_parameter.right = glm::vec4{camera.right() * tan_fovy *
+                                     window_context_.original_aspect_ratio(),
+                                     0.0f};
 
   const auto already_flushed_size = sizeof(CameraParameter::aurora_proj_view);
   camera_uniform_->Flush(
@@ -249,6 +264,7 @@ Viewer::Viewer(
                    /*paths_image_dimension=*/1024,
                    std::move(aurora_paths_vertex_buffers)},
       viewer_renderer_{window_context, num_frames_in_flight,
+                       /*air_transmit_sample_step=*/0.01f,
                        path_dumper_.aurora_paths_image(),
                        path_dumper_.distance_field_image()} {
   common::Camera::Config config;
@@ -262,7 +278,7 @@ Viewer::Viewer(
   // details of aurora paths, but it should not be too small, in case that the
   // marching ray goes out of the resulting texture.
   const common::PerspectiveCamera::PersConfig pers_config{
-      /*field_of_view=*/40.0f, /*aspect_ratio=*/1.0f};
+      /*field_of_view_y=*/40.0f, /*aspect_ratio=*/1.0f};
   dump_paths_camera_ =
       absl::make_unique<common::PerspectiveCamera>(config, pers_config);
 
@@ -297,6 +313,11 @@ void Viewer::OnEnter() {
       .SetCursorHidden(true)
       .RegisterMoveCursorCallback([this](double x_pos, double y_pos) {
         view_aurora_camera_->DidMoveCursor(x_pos, y_pos);
+      })
+      .RegisterScrollCallback([this](double x_pos, double y_pos) {
+        view_aurora_camera_fovy_ =
+            glm::clamp(view_aurora_camera_fovy_ + static_cast<float>(y_pos),
+                       15.0f, 60.0f);
       })
       .RegisterMouseButtonCallback([this](bool is_left, bool is_press) {
         did_press_right_ = !is_left && is_press;

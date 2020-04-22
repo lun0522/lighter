@@ -45,13 +45,13 @@ glm::mat4 Camera::GetViewMatrix() const {
   return glm::lookAt(pos_, pos_ + front_, up_);
 }
 
-PerspectiveCamera& PerspectiveCamera::SetFieldOfView(float fov) {
-  fov_ = fov;
+PerspectiveCamera& PerspectiveCamera::SetFieldOfViewY(float fovy) {
+  fovy_ = fovy;
   return *this;
 }
 
 glm::mat4 PerspectiveCamera::GetProjectionMatrix() const {
-  return glm::perspective(glm::radians(fov_), aspect_ratio_, near_, far_);
+  return glm::perspective(glm::radians(fovy_), aspect_ratio_, near_, far_);
 }
 
 OrthographicCamera& OrthographicCamera::SetViewWidth(float view_width) {
@@ -95,10 +95,10 @@ bool UserControlledCamera::DidScroll(
   }
 
   if (auto* pers_camera = dynamic_cast<PerspectiveCamera*>(camera_.get())) {
-    const float new_fov =
-        glm::clamp(pers_camera->field_of_view() + delta, min_val, max_val);
-    if (new_fov != pers_camera->field_of_view()) {
-      pers_camera->SetFieldOfView(new_fov);
+    const float new_fovy =
+        glm::clamp(pers_camera->field_of_view_y() + delta, min_val, max_val);
+    if (new_fovy != pers_camera->field_of_view_y()) {
+      pers_camera->SetFieldOfViewY(new_fovy);
       return true;
     }
     return false;

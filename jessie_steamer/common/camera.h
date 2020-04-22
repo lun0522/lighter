@@ -102,34 +102,34 @@ class PerspectiveCamera : public Camera {
   // Configurations used to control perspective projection. 'field_of_view' is
   // measured in degrees.
   struct PersConfig {
-    float field_of_view;
+    float field_of_view_y;
     float aspect_ratio;
   };
 
   PerspectiveCamera(const Camera::Config& config,
                     const PersConfig& pers_config)
       : Camera{config}, aspect_ratio_{pers_config.aspect_ratio},
-        fov_{pers_config.field_of_view} {}
+        fovy_{pers_config.field_of_view_y} {}
 
   // This class is neither copyable nor movable.
   PerspectiveCamera(const PerspectiveCamera&) = delete;
   PerspectiveCamera& operator=(const PerspectiveCamera&) = delete;
 
-  // Updates the field of view.
-  PerspectiveCamera& SetFieldOfView(float fov);
+  // Updates the field of view in Y-axis.
+  PerspectiveCamera& SetFieldOfViewY(float fovy);
 
   // Overrides.
   glm::mat4 GetProjectionMatrix() const override;
 
   // Accessors.
-  float field_of_view() const { return fov_; }
+  float field_of_view_y() const { return fovy_; }
 
  private:
   // Aspect ratio of field of view.
   const float aspect_ratio_;
 
-  // Field of view.
-  float fov_;
+  // Field of view in Y-axis.
+  float fovy_;
 };
 
 // An orthographic camera model.
