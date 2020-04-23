@@ -7,6 +7,8 @@
 
 #include "jessie_steamer/application/vulkan/aurora/viewer/air_transmit_table.h"
 
+#include <limits>
+
 #include "jessie_steamer/common/util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/types/optional.h"
@@ -182,19 +184,20 @@ float GetAtmosphereThickness(const Ray& ray, const SpanT& span) {
 std::unique_ptr<common::Image> GenerateAirTransmitTable(float sample_step) {
   constexpr int kImageHeight = 1;
   const int image_width = glm::floor(1.0f / sample_step);
-  auto* image_data = new char[image_width * kImageHeight];
+  auto* image_data = new unsigned char[image_width * kImageHeight];
 
   for (int i = 0; i < image_width; ++i) {
-    const float angle = asin(sample_step * static_cast<float>(i));
+    const float angle = glm::acos(sample_step * static_cast<float>(i));
     const Ray ray{/*start=*/{0.0f, 0.0f, 1.0f},
-                  /*direction=*/{glm::cos(angle), 0.0f, glm::sin(angle)}};
+                  /*direction=*/{glm::sin(angle), 0.0f, glm::cos(angle)}};
     const Sphere air_layer{/*center=*/glm::vec3{0.0f},
                            /*radius=*/kAirMaxHeight / kEarthRadius + 1.0f};
     const auto air_span = GetSpanSphere(ray, air_layer);
     ASSERT_HAS_VALUE(air_span, "'air_span' is supposed to have value");
     const float air_mass =
         GetAtmosphereThickness(ray, SpanT{/*low=*/0.0f, air_span.value().high});
-    const float air_transmit = glm::exp(-air_mass) * 200.0f;
+    const float air_transmit = glm::exp(-air_mass) *
+                               std::numeric_limits<unsigned char>::max();
     image_data[i] = glm::round(air_transmit);
   }
 

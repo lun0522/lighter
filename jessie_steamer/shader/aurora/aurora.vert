@@ -4,9 +4,7 @@ layout(location = 0) in vec2 in_pos;
 
 layout(location = 0) out vec3 frag_dir;
 
-layout(binding = 0) uniform Camera {
-  mat4 aurora_proj_view;
-  vec4 pos;
+layout(push_constant) uniform Camera {
   vec4 up;
   vec4 front;
   vec4 right;

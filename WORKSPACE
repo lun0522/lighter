@@ -7,8 +7,8 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 git_repository(
     name = "lib-absl",
     remote = "https://github.com/abseil/abseil-cpp.git",
-    commit = "df3ea785d8c30a9503321a3d35ee7d35808f190d",
-    shallow_since = "1583355457 -0500",
+    commit = "c51510d1d87ebce8615ae1752fd5aca912f6cf4c",
+    shallow_since = "1587584588 -0400",
 )
 
 # NOTE: If this changes, remember to update the dynamic library.
@@ -68,6 +68,6 @@ http_archive(
 git_repository(
     name = "resource",
     remote = "https://github.com/lun0522/resource.git",
-    commit = "252f7234490a7bf59b0ed0f1cbe31aaefaa6ac07",
-    shallow_since = "1585413351 -0700",
+    commit = "5436e1e4f1462f1b4184614329b0ce507c6a7ba2",
+    shallow_since = "1587606630 -0700",
 )

@@ -29,6 +29,8 @@ enum UniformBindingPoint {
   kAuroraPathsImageBindingPoint,
   kDistanceFieldImageBindingPoint,
   kAirTransmitTableImageBindingPoint,
+  kUniverseSkyboxImageBindingPoint,
+  kNumUniformBindingPoints,
 };
 
 constexpr uint32_t kVertexBufferBindingPoint = 0;
@@ -36,11 +38,14 @@ constexpr uint32_t kVertexBufferBindingPoint = 0;
 /* BEGIN: Consistent with uniform blocks defined in shaders. */
 
 struct CameraParameter {
-  ALIGN_MAT4 glm::mat4 aurora_proj_view;
-  ALIGN_VEC4 glm::vec4 pos;
   ALIGN_VEC4 glm::vec4 up;
   ALIGN_VEC4 glm::vec4 front;
   ALIGN_VEC4 glm::vec4 right;
+};
+
+struct RenderInfo {
+  ALIGN_VEC4 glm::vec4 camera_pos;
+  ALIGN_MAT4 glm::mat4 aurora_proj_view;
 };
 
 /* END: Consistent with uniform blocks defined in shaders. */
@@ -65,24 +70,37 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
   using common::Vertex2DPosOnly;
   const auto& context = window_context_.basic_context();
 
-  /* Uniform buffer */
-  camera_uniform_ = absl::make_unique<UniformBuffer>(
+  /* Uniform buffer and push constant */
+  camera_constant_ = absl::make_unique<PushConstant>(
       context, sizeof(CameraParameter), num_frames_in_flight);
+  render_info_uniform_ = absl::make_unique<UniformBuffer>(
+      context, sizeof(RenderInfo), num_frames_in_flight);
 
   /* Image */
+  const auto image_usage_flags = image::GetImageUsageFlags(
+      {image::Usage::kSampledInFragmentShader});
   const ImageSampler::Config sampler_config{
       VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
   aurora_deposition_image_ = absl::make_unique<SharedTexture>(
-      context, common::file::GetResourcePath("texture/aurora.jpg"),
-      image::GetImageUsageFlags({image::Usage::kSampledInFragmentShader}),
-      sampler_config);
+      context, common::file::GetResourcePath("texture/aurora_deposition.jpg"),
+      image_usage_flags, sampler_config);
 
   const auto air_transmit_table =
       GenerateAirTransmitTable(air_transmit_sample_step);
   air_transmit_table_image_ = absl::make_unique<TextureImage>(
-      context, /*generate_mipmaps=*/false,
-      image::GetImageUsageFlags({image::Usage::kSampledInFragmentShader}),
+      context, /*generate_mipmaps=*/false, image_usage_flags,
       *air_transmit_table, sampler_config);
+
+  const SharedTexture::CubemapPath skybox_path{
+      /*directory=*/common::file::GetResourcePath("texture/universe"),
+      /*files=*/{
+          "PositiveX.jpg", "NegativeX.jpg",
+          "PositiveY.jpg", "NegativeY.jpg",
+          "PositiveZ.jpg", "NegativeZ.jpg",
+      },
+  };
+  universe_skybox_image_ = absl::make_unique<SharedTexture>(
+      context, skybox_path, image_usage_flags, ImageSampler::Config{});
 
   /* Descriptor */
   const Descriptor::ImageInfoMap image_info_map{
@@ -93,66 +111,45 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
       {kDistanceFieldImageBindingPoint,
           {distance_field_image.GetDescriptorInfo()}},
       {kAirTransmitTableImageBindingPoint,
-          {air_transmit_table_image_->GetDescriptorInfo()}}
+          {air_transmit_table_image_->GetDescriptorInfo()}},
+      {kUniverseSkyboxImageBindingPoint,
+          {universe_skybox_image_->GetDescriptorInfo()}}
   };
+
+  std::vector<Descriptor::Info> uniform_descriptor_infos;
+  uniform_descriptor_infos.reserve(kNumUniformBindingPoints);
+  uniform_descriptor_infos.emplace_back(Descriptor::Info{
+      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      VK_SHADER_STAGE_FRAGMENT_BIT,
+      /*bindings=*/{
+          Descriptor::Info::Binding{
+              kCameraUniformBindingPoint,
+              /*array_length=*/1,
+          }},
+  });
+  for (int i = kCameraUniformBindingPoint + 1; i < kNumUniformBindingPoints;
+       ++i) {
+    uniform_descriptor_infos.emplace_back(Descriptor::Info{
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        VK_SHADER_STAGE_FRAGMENT_BIT,
+        /*bindings=*/{
+            Descriptor::Info::Binding{
+                /*binding_point=*/static_cast<uint32_t>(i),
+                /*array_length=*/1,
+            }},
+    });
+  }
 
   descriptors_.reserve(num_frames_in_flight);
   for (int frame = 0; frame < num_frames_in_flight; ++frame) {
     descriptors_.emplace_back(absl::make_unique<StaticDescriptor>(
-        context, /*infos=*/std::vector<Descriptor::Info>{
-            Descriptor::Info{
-                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                /*bindings=*/{
-                    Descriptor::Info::Binding{
-                        kCameraUniformBindingPoint,
-                        /*array_length=*/1,
-                    }},
-            },
-            Descriptor::Info{
-                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                VK_SHADER_STAGE_FRAGMENT_BIT,
-                /*bindings=*/{
-                    Descriptor::Info::Binding{
-                        kAuroraDepositionImageBindingPoint,
-                        /*array_length=*/1,
-                    }},
-            },
-            Descriptor::Info{
-                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                VK_SHADER_STAGE_FRAGMENT_BIT,
-                /*bindings=*/{
-                    Descriptor::Info::Binding{
-                        kAuroraPathsImageBindingPoint,
-                        /*array_length=*/1,
-                    }},
-            },
-            Descriptor::Info{
-                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                VK_SHADER_STAGE_FRAGMENT_BIT,
-                /*bindings=*/{
-                    Descriptor::Info::Binding{
-                        kDistanceFieldImageBindingPoint,
-                        /*array_length=*/1,
-                    }},
-            },
-            Descriptor::Info{
-                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                VK_SHADER_STAGE_FRAGMENT_BIT,
-                /*bindings=*/{
-                    Descriptor::Info::Binding{
-                        kAirTransmitTableImageBindingPoint,
-                        /*array_length=*/1,
-                    }},
-            },
-        }));
-
+        context, uniform_descriptor_infos));
     (*descriptors_[frame])
         .UpdateBufferInfos(
             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             /*buffer_info_map=*/{
                 {kCameraUniformBindingPoint,
-                    {camera_uniform_->GetDescriptorInfo(frame)}}})
+                    {render_info_uniform_->GetDescriptorInfo(frame)}}})
         .UpdateImageInfos(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                           image_info_map);
   }
@@ -175,7 +172,8 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
           pipeline::GetPerVertexBindingDescription<Vertex2DPosOnly>(),
           vertex_buffer_->GetAttributes(/*start_location=*/0))
       .SetPipelineLayout({descriptors_[0]->layout()},
-                         /*push_constant_ranges=*/{})
+                         {camera_constant_->MakePerFrameRange(
+                             VK_SHADER_STAGE_VERTEX_BIT)})
       .SetColorBlend(
           {pipeline::GetColorAlphaBlendState(/*enable_blend=*/false)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
@@ -216,31 +214,29 @@ void ViewerRenderer::UpdateDumpPathsCamera(const common::Camera& camera) {
   const glm::mat4 proj_view = camera.GetProjectionMatrix() *
                               camera.GetViewMatrix();
   for (int frame = 0; frame < descriptors_.size(); ++frame) {
-    camera_uniform_->HostData<CameraParameter>(frame)->aurora_proj_view =
+    render_info_uniform_->HostData<RenderInfo>(frame)->aurora_proj_view =
         proj_view;
-    camera_uniform_->Flush(
-        frame, /*data_size=*/sizeof(CameraParameter::aurora_proj_view),
-        /*offset=*/0);
+    render_info_uniform_->Flush(frame, sizeof(RenderInfo::aurora_proj_view),
+                                offsetof(RenderInfo, aurora_proj_view));
   }
 }
 
 void ViewerRenderer::UpdateViewAuroraCamera(
     int frame, const common::Camera& camera, float view_aurora_camera_fovy) {
+  render_info_uniform_->HostData<RenderInfo>(frame)->camera_pos =
+      glm::vec4{camera.position(), 0.0f};
+  render_info_uniform_->Flush(frame, sizeof(RenderInfo::camera_pos),
+                              offsetof(RenderInfo, camera_pos));
+
   const glm::vec3 up_dir =
       glm::normalize(glm::cross(camera.right(), camera.front()));
   const float tan_fovy = glm::tan(glm::radians(view_aurora_camera_fovy));
-  auto& camera_parameter = *camera_uniform_->HostData<CameraParameter>(frame);
-  camera_parameter.pos = glm::vec4{camera.position(), 0.0f};
+  auto& camera_parameter = *camera_constant_->HostData<CameraParameter>(frame);
   camera_parameter.up = glm::vec4{up_dir * tan_fovy, 0.0f};
   camera_parameter.front = glm::vec4{camera.front(), 0.0f};
   camera_parameter.right = glm::vec4{camera.right() * tan_fovy *
                                      window_context_.original_aspect_ratio(),
                                      0.0f};
-
-  const auto already_flushed_size = sizeof(CameraParameter::aurora_proj_view);
-  camera_uniform_->Flush(
-      frame, /*data_size=*/sizeof(CameraParameter) - already_flushed_size,
-      /*offset=*/already_flushed_size);
 }
 
 void ViewerRenderer::Draw(const VkCommandBuffer& command_buffer,
@@ -250,6 +246,9 @@ void ViewerRenderer::Draw(const VkCommandBuffer& command_buffer,
         pipeline_->Bind(command_buffer);
         descriptors_[current_frame]->Bind(command_buffer, pipeline_->layout(),
                                           pipeline_->binding_point());
+        camera_constant_->Flush(command_buffer, pipeline_->layout(),
+                                current_frame, /*target_offset=*/0,
+                                VK_SHADER_STAGE_VERTEX_BIT);
         vertex_buffer_->Draw(command_buffer, kVertexBufferBindingPoint,
                              /*mesh_index=*/0, /*instance_count=*/1);
       },

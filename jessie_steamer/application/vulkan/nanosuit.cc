@@ -126,7 +126,7 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
   /* Command buffer */
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
-  /* Uniform buffer and push constants */
+  /* Uniform buffer and push constant */
   nanosuit_vert_uniform_ = absl::make_unique<UniformBuffer>(
       context(), sizeof(NanosuitVertTrans), kNumFramesInFlight);
   nanosuit_frag_constant_ = absl::make_unique<PushConstant>(

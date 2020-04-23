@@ -160,7 +160,7 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
   /* Command buffer */
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
-  /* Uniform buffer and push constants */
+  /* Uniform buffer and push constant */
   light_uniform_ = absl::make_unique<UniformBuffer>(
       context(), sizeof(Light), kNumFramesInFlight);
   planet_constant_ = absl::make_unique<PushConstant>(

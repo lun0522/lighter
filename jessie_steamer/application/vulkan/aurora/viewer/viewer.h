@@ -47,9 +47,11 @@ class ViewerRenderer {
 
  private:
   const wrapper::vulkan::WindowContext& window_context_;
-  std::unique_ptr<wrapper::vulkan::UniformBuffer> camera_uniform_;
+  std::unique_ptr<wrapper::vulkan::PushConstant> camera_constant_;
+  std::unique_ptr<wrapper::vulkan::UniformBuffer> render_info_uniform_;
   std::unique_ptr<wrapper::vulkan::SharedTexture> aurora_deposition_image_;
   std::unique_ptr<wrapper::vulkan::TextureImage> air_transmit_table_image_;
+  std::unique_ptr<wrapper::vulkan::SharedTexture> universe_skybox_image_;
   std::vector<std::unique_ptr<wrapper::vulkan::StaticDescriptor>> descriptors_;
   std::unique_ptr<wrapper::vulkan::PerVertexBuffer> vertex_buffer_;
   std::unique_ptr<wrapper::vulkan::GraphicsPipelineBuilder> pipeline_builder_;

@@ -16,19 +16,16 @@ layout(location = 0) in vec3 frag_dir;
 
 layout(location = 0) out vec4 frag_color;
 
-layout(binding = 0) uniform Camera {
+layout(binding = 0) uniform RenderInfo {
+  vec4 camera_pos;
   mat4 aurora_proj_view;
-  vec4 pos;
-  vec4 up;
-  vec4 front;
-  vec4 right;
-} camera;
+} render_info;
 
 layout(binding = 1) uniform sampler2D auroraDeposition; // deposition function
 layout(binding = 2) uniform sampler2D auroraTexture; // actual curtains and color
 layout(binding = 3) uniform sampler2D distanceField; // distance from curtains (1==far away, 0==close)
 layout(binding = 4) uniform sampler2D airTransTable;
-//uniform samplerCube skybox;
+layout(binding = 5) uniform samplerCube skybox;
 
 const float km = 1.0 / 6378.1; // convert kilometers to render units (planet radii)
 const float miss_t = 100.0; // t value for a miss
@@ -70,7 +67,7 @@ span span_sphere(sphere s, ray r) {
 vec3 deposition_function(float height) {
   height -= 1.0; /* convert to altitude (subtract off planet's radius) */
   float maxHeight = 300.0 * km;
-  return vec3(texture(auroraDeposition, vec2(0.8, height / maxHeight)));
+  return vec3(texture(auroraDeposition, vec2(0.4, height / maxHeight)));
 }
 
 /* Return air transmit value at this angle (should pass in cos value of the angle) */
@@ -78,18 +75,12 @@ float air_transmit(float cosVal) {
   int numStep = int(round(1.0 / airSampleStep)) + 1;
   float stepSize = 1.0 / numStep;
   float xOffset = (1.0 - stepSize) * cosVal + stepSize / 2.0;
-  return texture(airTransTable, vec2(xOffset, 0.5)).r * 255.0 / 200.0;
-}
-
-// Apply nonlinear tone mapping to final summed output color
-vec3 tone_map(vec3 color) {
-  float len = length(color);
-  return color * pow(len, 1.0 / 2.2 - 1.0); /* convert to sRGB: scale by len^(1/2.2)/len */
+  return texture(airTransTable, vec2(xOffset, 0.5)).r;
 }
 
 /* Convert a 3D location to a 2D aurora map index (polar stereographic) */
 vec2 down_to_map(vec3 pos_world) {
-  const vec4 projected = camera.aurora_proj_view * vec4(pos_world, 1.0);
+  const vec4 projected = render_info.aurora_proj_view * vec4(pos_world, 1.0);
   // Perform perspective division, and map values from range [-1, 1] to [0, 1].
   return (projected.xy / projected.w + 1.0) / 2.0;
 }
@@ -125,7 +116,7 @@ vec3 sample_aurora(ray r, span s) {
 
 void main() {
   // Compute intersection with planet itself
-  const vec3 normal = normalize(vec3(camera.pos));
+  const vec3 normal = normalize(vec3(render_info.camera_pos));
   vec3 normalized_dir = normalize(frag_dir);
   bool is_gound = false;
   const float projection = dot(normalized_dir, normal);
@@ -136,7 +127,7 @@ void main() {
   }
 
   // Start with a camera ray
-  ray r = ray(vec3(camera.pos), normalized_dir);
+  ray r = ray(vec3(render_info.camera_pos), normalized_dir);
 
   // All our geometry
   span auroraL = span_sphere(sphere(vec3(0.0), 85.0 * km + 1.0), r);
@@ -149,12 +140,9 @@ void main() {
   // typical planet-hitting ray
   vec3 aurora = sample_aurora(r, span(auroraL.h, auroraH.h));
 
-  vec3 total = airTransmit * aurora + airInscatter * airColor;
-
-  // Must delay tone mapping until the very end, so we can sum pre and post atmosphere parts...
-  vec3 foreground = tone_map(total);
-  //  vec3 background = vec3(texture(skybox, cameraDir));
-  vec3 background = vec3(0.0);
+  // No need to convert to sRGB since hardware can perform it automatically.
+  vec3 foreground = airTransmit * aurora + airInscatter * airColor;
+  vec3 background = vec3(texture(skybox, normalized_dir));
   float bgStrength = 1.0 - length(foreground);
   frag_color = vec4(foreground + bgStrength * background, 1.0);
 
