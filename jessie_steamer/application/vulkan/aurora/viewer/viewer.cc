@@ -316,7 +316,7 @@ void Viewer::OnEnter() {
       .RegisterScrollCallback([this](double x_pos, double y_pos) {
         view_aurora_camera_fovy_ =
             glm::clamp(view_aurora_camera_fovy_ + static_cast<float>(y_pos),
-                       15.0f, 60.0f);
+                       15.0f, 45.0f);
       })
       .RegisterMouseButtonCallback([this](bool is_left, bool is_press) {
         did_press_right_ = !is_left && is_press;

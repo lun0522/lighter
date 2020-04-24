@@ -4,10 +4,7 @@ cc_library(
     name = "air_transmit_table",
     srcs = ["air_transmit_table.cc"],
     hdrs = ["air_transmit_table.h"],
-    deps = [
-        "//jessie_steamer/application/vulkan:common",
-        "//third_party/absl/types:optional",
-    ],
+    deps = ["//jessie_steamer/application/vulkan:common"],
 )
 
 cc_library(

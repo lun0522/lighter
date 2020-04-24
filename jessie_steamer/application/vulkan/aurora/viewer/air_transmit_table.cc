@@ -11,7 +11,6 @@
 
 #include "jessie_steamer/common/util.h"
 #include "third_party/absl/memory/memory.h"
-#include "third_party/absl/types/optional.h"
 
 namespace jessie_steamer {
 namespace application {
@@ -41,18 +40,15 @@ struct Sphere {
 };
 
 // Returns the span of t values at intersection region of 'ray' and 'sphere'.
-// If no intersection, returns absl::nullptr.
-absl::optional<SpanT> GetSpanSphere(const Ray& ray, const Sphere& sphere) {
+SpanT GetSpanSphere(const Ray& ray, const Sphere& sphere) {
   const glm::vec3 sphere_to_ray = ray.start - sphere.center;
   const float b = 2.0f * glm::dot(sphere_to_ray, ray.direction);
   const float c = glm::dot(sphere_to_ray, sphere_to_ray) -
                   sphere.radius * sphere.radius;
   const float det = b * b - 4.0f * c;
-  if (det < 0.0) {
-    return absl::nullopt;
-  }
+  ASSERT_TRUE(det > 0.0f, "we shoot a ray from inside of the sphere");
   const float sd = glm::sqrt(det);
-  return SpanT{/*low=*/(-b - sd) * 0.5f, /*high=*/(-b + sd) * 0.5f};
+  return {/*low=*/(-b - sd) * 0.5f, /*high=*/(-b + sd) * 0.5f};
 }
 
 /* BEGIN: Atmosphere integral approximation. */
@@ -148,7 +144,7 @@ float GetAtmosphereThickness(const Ray& ray, const SpanT& span) {
     // xl and xr have opposite signs -- use erf normally.
     erf_del = GetWinErf(sqrt_kC * xr) - GetWinErf(sqrt_kC * xl);
   } else {
-    //xL and xR have same sign -- flip to positive half and use erfc.
+    //xl and xr have same sign -- flip to positive half and use erfc.
     if (xl < 0.0f) {
       xl = -xl;
       xr = -xr;
@@ -182,27 +178,26 @@ float GetAtmosphereThickness(const Ray& ray, const SpanT& span) {
 } /* namespace */
 
 std::unique_ptr<common::Image> GenerateAirTransmitTable(float sample_step) {
-  constexpr int kImageHeight = 1;
-  const int image_width = glm::floor(1.0f / sample_step);
-  auto* image_data = new unsigned char[image_width * kImageHeight];
+  constexpr int kImageWidth = 1;
+  const int image_height = glm::floor(1.0f / sample_step);
+  auto* image_data = new unsigned char[kImageWidth * image_height];
 
-  for (int i = 0; i < image_width; ++i) {
+  for (int i = 0; i < image_height; ++i) {
     const float angle = glm::acos(sample_step * static_cast<float>(i));
     const Ray ray{/*start=*/{0.0f, 0.0f, 1.0f},
                   /*direction=*/{glm::sin(angle), 0.0f, glm::cos(angle)}};
     const Sphere air_layer{/*center=*/glm::vec3{0.0f},
                            /*radius=*/kAirMaxHeight / kEarthRadius + 1.0f};
-    const auto air_span = GetSpanSphere(ray, air_layer);
-    ASSERT_HAS_VALUE(air_span, "'air_span' is supposed to have value");
+    const SpanT air_span = GetSpanSphere(ray, air_layer);
     const float air_mass =
-        GetAtmosphereThickness(ray, SpanT{/*low=*/0.0f, air_span.value().high});
+        GetAtmosphereThickness(ray, SpanT{/*low=*/0.0f, air_span.high});
     const float air_transmit = glm::exp(-air_mass) *
                                std::numeric_limits<unsigned char>::max();
     image_data[i] = glm::round(air_transmit);
   }
 
   auto table = absl::make_unique<common::Image>(
-      image_width, kImageHeight, common::kBwImageChannel, image_data,
+      kImageWidth, image_height, common::kBwImageChannel, image_data,
       /*flip_y=*/false);
   delete[] image_data;
   return table;

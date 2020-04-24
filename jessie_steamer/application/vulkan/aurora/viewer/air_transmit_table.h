@@ -24,8 +24,8 @@ namespace aurora {
 
 // Generates an air transmit table texture. Such a texture enables us to look up
 // how much aurora light can penetrate the air and get to our eyes in shaders.
-// The size of the returned image will be [floor(1.0 / 'sample_step'), 1].
-// The X coordinate, after scaled to range [0.0, 1.0], represents the cosine
+// The size of the returned image will be [1, floor(1.0 / 'sample_step')].
+// The Y coordinate, after scaled to range [0.0, 1.0], represents the cosine
 // value of the angle between view ray and up vector.
 std::unique_ptr<common::Image> GenerateAirTransmitTable(float sample_step);
 
