@@ -1,8 +1,28 @@
+package(default_visibility = ["//visibility:private"])
+
 licenses(["notice"])
+
+objc_library(
+    name = "apple_frameworks",
+    sdk_frameworks = [
+        "Cocoa",
+        "IOKit",
+    ],
+)
 
 cc_library(
     name = "glfw",
-    hdrs = ["glfw3.h"],
-    include_prefix = "third_party/glfw",
-    visibility = ["//visibility:public"],
+    hdrs = glob(["**/*.h"]),
+    strip_include_prefix = "include",
+    include_prefix = "third_party",
+    deps = [
+        ":apple_frameworks",
+        ":libglfw",
+    ],
+    visibility = ["//visibility:public"]
+)
+
+cc_import(
+    name = "libglfw",
+    static_library = "libglfw.a",
 )

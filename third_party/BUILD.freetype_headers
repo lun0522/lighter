@@ -1,0 +1,10 @@
+licenses(["notice"])
+
+cc_library(
+    name = "freetype_headers",
+    textual_hdrs = glob(["**/*.h"]),
+    includes = ["."],
+    hdrs = glob(["**/*.h"]),
+    include_prefix = "third_party/freetype",
+    visibility = ["//visibility:public"],
+)

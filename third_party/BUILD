@@ -14,16 +14,13 @@ cc_library(
     name = "freetype",
     deps = [
         "@lib-freetype//:freetype",
-        "@resource//framework/osx:freetype",
+        "@lib-freetype-headers//:freetype_headers",
     ],
 )
 
 cc_library(
     name = "glfw",
-    deps = [
-        "@lib-glfw//:glfw",
-        "@resource//framework/osx:glfw",
-    ],
+    deps = ["@lib-glfw//:glfw"],
 )
 
 cc_library(

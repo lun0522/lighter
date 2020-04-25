@@ -4,6 +4,7 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@//:git_repository.bzl", "assimp_repository")
+load("@//:git_repository.bzl", "freetype_repository")
 
 git_repository(
     name = "lib-absl",
@@ -23,22 +24,22 @@ assimp_repository(
     build_file = "//:third_party/BUILD.assimp_headers",
 )
 
-# NOTE: If this changes, remember to update the dynamic library.
-http_archive(
+freetype_repository(
     name = "lib-freetype",
-    url = "https://download.savannah.gnu.org/releases/freetype/freetype-2.10.1.tar.gz",
-    sha256 = "3a60d391fd579440561bf0e7f31af2222bc610ad6ce4d9d7bd2165bca8669110",
-    strip_prefix = "freetype-2.10.1/include",
     build_file = "//:third_party/BUILD.freetype",
 )
 
-# NOTE: If this changes, remember to update the dynamic library.
+freetype_repository(
+    name = "lib-freetype-headers",
+    strip_prefix = "include",
+    build_file = "//:third_party/BUILD.freetype_headers",
+)
+
 new_git_repository(
     name = "lib-glfw",
-    remote = "https://github.com/glfw/glfw.git",
-    commit = "0a49ef0a00baa3ab520ddc452f0e3b1e099c5589",
-    shallow_since = "1579473811 +0100",
-    strip_prefix = "include/GLFW",
+    remote = "https://github.com/lun0522/lib-glfw.git",
+    commit = "e4ddcfb6db1053774ec97a740d1193d02a5195a2",
+    shallow_since = "1587843888 -0700",
     build_file = "//:third_party/BUILD.glfw",
 )
 
@@ -70,6 +71,6 @@ http_archive(
 git_repository(
     name = "resource",
     remote = "https://github.com/lun0522/resource.git",
-    commit = "5436e1e4f1462f1b4184614329b0ce507c6a7ba2",
-    shallow_since = "1587606630 -0700",
+    commit = "876c45864672c9fdfcf3c69816f9bfe37ccfd6d9",
+    shallow_since = "1587848201 -0700",
 )
