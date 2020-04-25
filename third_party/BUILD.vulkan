@@ -4,7 +4,7 @@ licenses(["notice"])
 
 cc_library(
     name = "vulkan",
-    srcs = ["lib/libvulkan.dylib"],
+    srcs = ["lib/libvulkan.1.dylib"],
     hdrs = glob(["include/vulkan/*.h"]),
     strip_include_prefix = "include/vulkan",
     include_prefix = "third_party/vulkan",
@@ -15,7 +15,7 @@ cc_library(
         ],
         "//conditions:default": glob(
             ["share/**/*", "lib/**/*"],
-            exclude = ["lib/libvulkan.dylib"],
+            exclude = ["lib/libvulkan.1.dylib"],
         ),
     }),
 )

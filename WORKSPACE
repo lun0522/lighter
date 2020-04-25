@@ -3,6 +3,7 @@ workspace(name = "jessie_steamer")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load("@//:git_repository.bzl", "assimp_repository")
 
 git_repository(
     name = "lib-absl",
@@ -11,14 +12,15 @@ git_repository(
     shallow_since = "1587584588 -0400",
 )
 
-# NOTE: If this changes, remember to update the dynamic library.
-new_git_repository(
+assimp_repository(
     name = "lib-assimp",
-    remote = "https://github.com/assimp/assimp.git",
-    commit = "8f0c6b04b2257a520aaab38421b2e090204b69df",
-    shallow_since = "1578830200 +0100",
-    strip_prefix = "include",
     build_file = "//:third_party/BUILD.assimp",
+)
+
+assimp_repository(
+    name = "lib-assimp-headers",
+    strip_prefix = "include",
+    build_file = "//:third_party/BUILD.assimp_headers",
 )
 
 # NOTE: If this changes, remember to update the dynamic library.

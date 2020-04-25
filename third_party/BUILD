@@ -6,7 +6,7 @@ cc_library(
     name = "assimp",
     deps = [
         "@lib-assimp//:assimp",
-        "@resource//framework/osx:assimp",
+        "@lib-assimp-headers//:assimp_headers",
     ],
 )
 

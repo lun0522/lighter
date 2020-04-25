@@ -1,29 +1,40 @@
-load("@//third_party:expand_template.bzl", "expand_template")
+package(default_visibility = ["//visibility:private"])
 
 licenses(["notice"])
 
 cc_library(
     name = "assimp",
-    textual_hdrs = glob([
-        "**/*.h",
-        "**/*.hpp",
-        "**/*.inl",
-    ]) + [
-        ":config_tmpl",
+    deps = [
+        ":libassimp",
+        ":libIrrXML",
+        ":libzlib",
     ],
-    includes = ["."],
-    hdrs = glob([
-        "**/*.h",
-        "**/*.hpp",
-        "**/*.inl",
-    ]),
-    include_prefix = "third_party",
     visibility = ["//visibility:public"],
 )
 
-expand_template(
-    name = "config_tmpl",
-    out = "assimp/config.h",
-    substitutions = {"#cmakedefine": "// #undef"},
-    template = "assimp/config.h.in",
+cc_import(
+    name = "libassimp",
+    static_library = "libassimp.a",
+)
+
+cc_import(
+    name = "libIrrXML",
+    static_library = "libIrrXML.a",
+)
+
+cc_import(
+    name = "libzlib",
+    static_library = "libzlib.a",
+)
+
+genrule(
+    name = "unzip",
+    srcs = ["lib.zip"],
+    outs = [
+        "libassimp.a",
+        "libIrrXML.a",
+        "libzlib.a",
+    ],
+    cmd = "unzip -j -d $(RULEDIR) $<",
+    output_to_bindir = True,
 )
