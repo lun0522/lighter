@@ -38,9 +38,9 @@ const float km = 1.0 / earth_radius;
 const float aurora_min_height = 85.0 * km;
 const float aurora_max_height = 300.0 * km;
 // Sampling rate for aurora. Fine sampling takes longer time.
-const float dt = 2.0 * km;
+const float min_dt = 2.0 * km;
 // Scaling factor for sampled aurora color.
-const float aurora_scale = dt / (40.0 * km);
+const float aurora_scale = min_dt / (40.0 * km);
 // t value for a miss ray.
 const float miss_t = 100.0;
 const vec3 air_color = 0.002 * vec3(0.4, 0.5, 0.7);
@@ -104,11 +104,9 @@ vec3 SampleAurora(Ray ray, SpanT span) {
   while (t < span.high) {
     const vec3 sample_point = ray.start + ray.direction * t;
     sum += SampleAurora(sample_point);
-    t += dt;
-    // TODO: Distance field is not used.
-//    const float dist = 0.2 * texture(distance_field_sampler,
-//                                     ProjectToPlane(sample_point)).r;
-//    t += max(dist, dt);
+    const float dist = 0.5 * texture(distance_field_sampler,
+                                     ProjectToPlane(sample_point)).r;
+    t += max(dist, min_dt);
   }
   return sum * aurora_scale;
 }

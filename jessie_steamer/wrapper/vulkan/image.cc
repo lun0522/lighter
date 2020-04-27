@@ -634,7 +634,11 @@ OffscreenImage::OffscreenImage(SharedBasicContext context,
                                const VkExtent2D& extent, int channel,
                                VkImageUsageFlags usage_flags,
                                const ImageSampler::Config& sampler_config)
-    : OffscreenImage{context, extent, FindColorImageFormat(channel),
+    : OffscreenImage{context, extent,
+                     // TODO: Pass in image::Usage instead.
+                     (usage_flags & VK_IMAGE_USAGE_STORAGE_BIT)
+                         ? VK_FORMAT_R16G16B16A16_SFLOAT
+                         : FindColorImageFormat(channel),
                      usage_flags, sampler_config} {}
 
 VkDescriptorImageInfo OffscreenImage::GetDescriptorInfo() const {

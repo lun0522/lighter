@@ -8,8 +8,6 @@ COMPILER_ADDR="https://github.com/KhronosGroup/glslang/releases/download/master-
 COMPILER_BIN="/tmp/glslangValidator"
 BASE_DIR=$(dirname "$0")
 SHADERS_DIR="${BASE_DIR}/jessie_steamer/shader"
-COMPILED_GL_DIR="${SHADERS_DIR}/opengl"
-COMPILED_VK_DIR="${SHADERS_DIR}/vulkan"
 OUTPUT_FILE_EXT=".spv"
 DATE_FORMAT="+%F %T"
 
@@ -41,8 +39,8 @@ echo "$(DATE "${DATE_FORMAT}") Compiling shaders..."
 cd "${SHADERS_DIR}"
 for suffix in "*.vert" "*.frag" "*.comp"; do
   find . -type f -name "${suffix}" | while read -r file; do
-    compile_shader "${file}" -DTARGET_OPENGL "${COMPILED_GL_DIR}"
-    compile_shader "${file}" -DTARGET_VULKAN "${COMPILED_VK_DIR}"
+    compile_shader "${file}" -DTARGET_OPENGL "opengl"
+    compile_shader "${file}" -DTARGET_VULKAN "vulkan"
   done
 done
 echo "$(DATE "${DATE_FORMAT}") Done!"

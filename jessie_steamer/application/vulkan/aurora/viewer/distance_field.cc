@@ -65,10 +65,9 @@ DistanceFieldGenerator::DistanceFieldGenerator(
                                           image_extent.height);
   std::vector<int> step_widths;
   int dimension = 1;
-  step_widths.emplace_back(dimension);
   while (dimension < greatest_dimension) {
-    dimension *= 2;
     step_widths.emplace_back(dimension);
+    dimension *= 2;
   }
   num_steps_ = step_widths.size();
 
