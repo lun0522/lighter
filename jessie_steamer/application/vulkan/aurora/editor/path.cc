@@ -67,7 +67,7 @@ std::vector<common::Vertex3DPosOnly> ExtractPos(
   std::vector<common::Vertex3DPosOnly> vertices_pos;
   vertices_pos.reserve(vertices.size());
   for (const auto& vertex : vertices) {
-    vertices_pos.emplace_back(vertex.pos);
+    vertices_pos.push_back({vertex.pos});
   }
   return vertices_pos;
 }
@@ -109,7 +109,7 @@ PathRenderer3D::PathRenderer3D(const SharedBasicContext& context,
 
   paths_vertex_buffers_.reserve(num_paths_);
   for (int path = 0; path < num_paths_; ++path) {
-    paths_vertex_buffers_.emplace_back(PathVertexBuffers{
+    paths_vertex_buffers_.push_back(PathVertexBuffers{
         absl::make_unique<DynamicPerInstanceBuffer>(
             context, sizeof(Vertex3DPosOnly), /*max_num_instances=*/1,
             pipeline::GetVertexAttribute<Vertex3DPosOnly>()),
@@ -313,7 +313,7 @@ PathRenderer3D::GetPathVertexBuffers() const {
   std::vector<const PerVertexBuffer*> buffers;
   buffers.reserve(num_paths_);
   for (const auto& buffer : paths_vertex_buffers_) {
-    buffers.emplace_back(buffer.spline_points_buffer.get());
+    buffers.push_back(buffer.spline_points_buffer.get());
   }
   return buffers;
 }
@@ -335,13 +335,13 @@ AuroraPath::AuroraPath(const SharedBasicContext& context,
   path_color_alphas_.reserve(num_paths_);
   spline_editors_.reserve(num_paths_);
   for (int path = 0; path < num_paths_; ++path) {
-    path_color_alphas_.emplace_back(std::array<glm::vec4, button::kNumStates>{
+    path_color_alphas_.push_back(std::array<glm::vec4, button::kNumStates>{
         glm::vec4{info.path_colors[path][button::kSelectedState],
                   info.path_alphas[button::kSelectedState]},
         glm::vec4{info.path_colors[path][button::kUnselectedState],
                   info.path_alphas[button::kUnselectedState]},
     });
-    spline_editors_.emplace_back(absl::make_unique<common::SplineEditor>(
+    spline_editors_.push_back(absl::make_unique<common::SplineEditor>(
         common::CatmullRomSpline::kMinNumControlPoints,
         info.max_num_control_points, info.generate_control_points(path),
         common::CatmullRomSpline::GetOnSphereSpline(

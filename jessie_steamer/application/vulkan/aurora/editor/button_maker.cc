@@ -61,11 +61,11 @@ std::unique_ptr<OffscreenImage> CreateTargetImage(
 std::unique_ptr<StaticPerInstanceBuffer> CreatePerInstanceBuffer(
     const SharedBasicContext& context,
     absl::Span<const make_button::ButtonInfo> button_infos) {
-  std::vector<ButtonMaker::RenderInfo> render_infos;
+  std::vector<make_button::RenderInfo> render_infos;
   render_infos.reserve(button_infos.size() * button::kNumStates);
   for (const auto& info : button_infos) {
-    render_infos.emplace_back(info.render_info[button::kSelectedState]);
-    render_infos.emplace_back(info.render_info[button::kUnselectedState]);
+    render_infos.push_back({info.render_info[button::kSelectedState]});
+    render_infos.push_back({info.render_info[button::kUnselectedState]});
   }
   return absl::make_unique<StaticPerInstanceBuffer>(
       context, render_infos, ButtonMaker::RenderInfo::GetAttributes());
@@ -119,7 +119,7 @@ std::unique_ptr<DynamicText> CreateTextRenderer(
   std::vector<std::string> texts;
   texts.reserve(button_infos.size());
   for (const auto& info : button_infos) {
-    texts.emplace_back(info.text);
+    texts.push_back(info.text);
   }
 
   auto text_renderer = absl::make_unique<DynamicText>(

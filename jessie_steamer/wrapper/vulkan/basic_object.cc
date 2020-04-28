@@ -190,7 +190,7 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
 std::vector<uint32_t> QueueFamilyIndices::GetUniqueFamilyIndices() const {
   std::vector<uint32_t> queue_family_indices{graphics, compute, transfer};
   if (present.has_value()) {
-    queue_family_indices.emplace_back(present.value());
+    queue_family_indices.push_back(present.value());
   }
   common::util::RemoveDuplicate(&queue_family_indices);
   return queue_family_indices;
@@ -213,7 +213,7 @@ Instance::Instance(const BasicContext* context,
   }
 #ifndef NDEBUG
   // Request support for debug reports.
-  instance_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+  instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif /* !NDEBUG */
 
   // Make sure we have support for relevant extensions and layers.
@@ -336,7 +336,7 @@ Device::Device(const BasicContext* context,
   // 'priority' is always required even if there is only one queue.
   constexpr float kPriority = 1.0f;
   for (uint32_t family_index : context_->GetUniqueFamilyIndices()) {
-    queue_infos.emplace_back(VkDeviceQueueCreateInfo{
+    queue_infos.push_back(VkDeviceQueueCreateInfo{
         VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
         /*pNext=*/nullptr,
         /*flags=*/nullflag,

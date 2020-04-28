@@ -97,8 +97,6 @@ struct Image {
 
 // 2D vertex data, including only position.
 struct Vertex2DPosOnly {
-  explicit Vertex2DPosOnly(const glm::vec2& pos) : pos{pos} {}
-
   // Returns vertices in normalized device coordinate for rendering a
   // full-screen squad.
   static std::array<Vertex2DPosOnly, 6> GetFullScreenSquadVertices();
@@ -109,9 +107,6 @@ struct Vertex2DPosOnly {
 
 // 2D vertex data, consisting of position and texture coordinates.
 struct Vertex2D {
-  Vertex2D(const glm::vec2& pos, const glm::vec2& tex_coord)
-      : pos{pos}, tex_coord{tex_coord} {}
-
   // Returns vertices in normalized device coordinate for rendering a
   // full-screen squad.
   static std::array<Vertex2D, 6> GetFullScreenSquadVertices(bool flip_y);
@@ -123,17 +118,12 @@ struct Vertex2D {
 
 // 3D vertex data, including only position.
 struct Vertex3DPosOnly {
-  explicit Vertex3DPosOnly(const glm::vec3& pos) : pos{pos} {}
-
   // Vertex data.
   glm::vec3 pos;
 };
 
 // 3D vertex data, consisting of position and color.
 struct Vertex3DWithColor {
-  Vertex3DWithColor(const glm::vec3& pos, const glm::vec3& color)
-      : pos{pos}, color{color} {}
-
   // Vertex data.
   glm::vec3 pos;
   glm::vec3 color;
@@ -141,11 +131,6 @@ struct Vertex3DWithColor {
 
 // 3D vertex data, consisting of position, normal and texture coordinates.
 struct Vertex3DWithTex {
-  Vertex3DWithTex(const glm::vec3& pos,
-                  const glm::vec3& norm,
-                  const glm::vec2& tex_coord)
-      : pos{pos}, norm{norm}, tex_coord{tex_coord} {}
-
   // Vertex data.
   glm::vec3 pos;
   glm::vec3 norm;

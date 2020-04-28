@@ -41,7 +41,7 @@ struct Asteroid {
     attributes.reserve(6);
     uint32_t offset = offsetof(Asteroid, model);
     for (int i = 0; i < 4; ++i) {
-      attributes.emplace_back(
+      attributes.push_back(
           VertexBuffer::Attribute{offset, VK_FORMAT_R32G32B32A32_SFLOAT});
       offset += sizeof(glm::vec4);
     }
@@ -314,7 +314,7 @@ void PlanetApp::GenAsteroidModels() {
                                     axis_gen(rand_gen)});
       model = glm::scale(model, glm::vec3{scale_gen(rand_gen) * 0.02f});
 
-      asteroids.emplace_back(Asteroid{
+      asteroids.push_back(Asteroid{
           /*theta=*/glm::radians(angle_gen(rand_gen)),
           /*radius=*/radii[ring] + radius_gen(rand_gen),
           model,

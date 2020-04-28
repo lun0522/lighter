@@ -75,7 +75,7 @@ std::vector<VkSubpassDescription> CreateSubpassDescriptions(
   std::vector<VkSubpassDescription> descriptions;
   descriptions.reserve(subpass_attachments.size());
   for (const auto& attachments : subpass_attachments) {
-    descriptions.emplace_back(VkSubpassDescription{
+    descriptions.push_back(VkSubpassDescription{
         /*flags=*/nullflag,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         /*inputAttachmentCount=*/0,
@@ -104,7 +104,7 @@ std::vector<int> GetNumberColorAttachmentsInSubpasses(
   std::vector<int> num_color_attachments;
   num_color_attachments.reserve(subpass_attachments.size());
   for (const auto& attachments : subpass_attachments) {
-    num_color_attachments.emplace_back(attachments.color_refs.size());
+    num_color_attachments.push_back(attachments.color_refs.size());
   }
   return num_color_attachments;
 }
@@ -233,7 +233,7 @@ RenderPassBuilder& RenderPassBuilder::SetMultisampling(
 
 RenderPassBuilder& RenderPassBuilder::AddSubpassDependency(
     const SubpassDependency& dependency) {
-  subpass_dependencies_.emplace_back(CreateSubpassDependency(dependency));
+  subpass_dependencies_.push_back(CreateSubpassDependency(dependency));
   return *this;
 }
 

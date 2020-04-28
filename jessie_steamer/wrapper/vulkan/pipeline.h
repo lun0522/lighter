@@ -133,13 +133,11 @@ class GraphicsPipelineBuilder : public PipelineBuilder {
   // Sets a name for the pipeline. This is for debugging purpose.
   GraphicsPipelineBuilder& SetPipelineName(std::string&& name);
 
-  // By default, depth testing and stencil testing are disabled, front face
-  // direction is counter-clockwise, the rasterizer only takes one sample, and
-  // primitive topology is triangle list.
+  // By default, depth testing and stencil testing are disabled, the rasterizer
+  // only takes one sample, and primitive topology is triangle list.
   GraphicsPipelineBuilder& SetDepthTestEnabled(bool enable_test,
                                                bool enable_write);
   GraphicsPipelineBuilder& SetStencilTestEnable(bool enable_test);
-  GraphicsPipelineBuilder& SetFrontFaceDirection(bool counter_clockwise);
   GraphicsPipelineBuilder& SetMultisampling(VkSampleCountFlagBits sample_count);
   GraphicsPipelineBuilder& SetPrimitiveTopology(VkPrimitiveTopology topology);
 
@@ -161,8 +159,14 @@ class GraphicsPipelineBuilder : public PipelineBuilder {
       std::vector<VkDescriptorSetLayout>&& descriptor_layouts,
       std::vector<VkPushConstantRange>&& push_constant_ranges);
 
-  // Sets the viewport and scissor.
-  GraphicsPipelineBuilder& SetViewport(ViewportInfo&& info);
+  // Sets the viewport, scissor and front face direction. For compatibility, we
+  // are using the coordinate system of OpenGL, so if 'flip_y' is true, point
+  // (0, 0) will be located at the upper left corner, which is appropriate for
+  // presenting to the screen, and we will use counter-clockwise as the front
+  // face direction. The user can choose whether or not to do the flipping for
+  // offscreen rendering.
+  GraphicsPipelineBuilder& SetViewport(const ViewportInfo& info,
+                                       bool flip_y = true);
 
   // Specifies that this pipeline will be used in the subpass of 'render_pass'
   // with 'subpass_index'.

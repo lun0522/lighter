@@ -178,7 +178,7 @@ Swapchain::Swapchain(
   );
   swapchain_images_.reserve(images.size());
   for (const auto& image : images) {
-    swapchain_images_.emplace_back(absl::make_unique<SwapchainImage>(
+    swapchain_images_.push_back(absl::make_unique<SwapchainImage>(
         context_, image, image_extent_, surface_format.format));
   }
 

@@ -83,7 +83,7 @@ std::vector<ShaderStage> CreateShaderStages(
   shader_stages.reserve(shader_file_path_map.size());
   for (const auto& pair : shader_file_path_map) {
     const auto& file_path = pair.second;
-    shader_stages.emplace_back(ShaderStage{
+    shader_stages.push_back(ShaderStage{
         /*stage=*/pair.first,
         ShaderModule::RefCountedShaderModule::Get(
             /*identifier=*/file_path, context, file_path),
@@ -101,7 +101,7 @@ std::vector<VkPipelineShaderStageCreateInfo> CreateShaderStageInfos(
   std::vector<VkPipelineShaderStageCreateInfo> shader_stage_infos;
   shader_stage_infos.reserve(shader_stages.size());
   for (const auto& stage : shader_stages) {
-    shader_stage_infos.emplace_back(VkPipelineShaderStageCreateInfo{
+    shader_stage_infos.push_back(VkPipelineShaderStageCreateInfo{
         VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         /*pNext=*/nullptr,
         /*flags=*/nullflag,
@@ -256,14 +256,6 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetStencilTestEnable(
   return *this;
 }
 
-GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetFrontFaceDirection(
-    bool counter_clockwise) {
-  rasterization_info_.frontFace = counter_clockwise
-                                      ? VK_FRONT_FACE_COUNTER_CLOCKWISE
-                                      : VK_FRONT_FACE_CLOCKWISE;
-  return *this;
-}
-
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetMultisampling(
     VkSampleCountFlagBits sample_count) {
   multisampling_info_.rasterizationSamples = sample_count;
@@ -284,7 +276,7 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::AddVertexInput(
   for (auto& description : attribute_descriptions) {
     description.binding = binding_point;
   }
-  binding_descriptions_.emplace_back(std::move(binding_description));
+  binding_descriptions_.push_back(std::move(binding_description));
   common::util::VectorAppend(&attribute_descriptions_, &attribute_descriptions);
   return *this;
 }
@@ -297,13 +289,17 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetPipelineLayout(
 }
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetViewport(
-    ViewportInfo&& info) {
-  // Flip the viewport as suggested by:
-  // https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport
-  VkViewport& viewport = info.viewport;
-  viewport.y += viewport.height;
-  viewport.height *= -1;
+    const ViewportInfo& info, bool flip_y) {
   viewport_info_.emplace(info);
+  if (flip_y) {
+    // Flip the viewport as suggested by:
+    // https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport
+    VkViewport& viewport = viewport_info_.value().viewport;
+    viewport.y += viewport.height;
+    viewport.height *= -1;
+  }
+  rasterization_info_.frontFace = flip_y ? VK_FRONT_FACE_COUNTER_CLOCKWISE
+                                         : VK_FRONT_FACE_CLOCKWISE;
   return *this;
 }
 

@@ -118,7 +118,7 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
 
   std::vector<Descriptor::Info> uniform_descriptor_infos;
   uniform_descriptor_infos.reserve(kNumUniformBindingPoints);
-  uniform_descriptor_infos.emplace_back(Descriptor::Info{
+  uniform_descriptor_infos.push_back(Descriptor::Info{
       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
       VK_SHADER_STAGE_FRAGMENT_BIT,
       /*bindings=*/{
@@ -129,7 +129,7 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
   });
   for (int i = kCameraUniformBindingPoint + 1; i < kNumUniformBindingPoints;
        ++i) {
-    uniform_descriptor_infos.emplace_back(Descriptor::Info{
+    uniform_descriptor_infos.push_back(Descriptor::Info{
         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         VK_SHADER_STAGE_FRAGMENT_BIT,
         /*bindings=*/{
@@ -142,7 +142,7 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
 
   descriptors_.reserve(num_frames_in_flight);
   for (int frame = 0; frame < num_frames_in_flight; ++frame) {
-    descriptors_.emplace_back(absl::make_unique<StaticDescriptor>(
+    descriptors_.push_back(absl::make_unique<StaticDescriptor>(
         context, uniform_descriptor_infos));
     (*descriptors_[frame])
         .UpdateBufferInfos(
@@ -300,8 +300,7 @@ void Viewer::UpdateAuroraPaths(const glm::vec3& viewpoint_position) {
       [&viewpoint_position](common::Camera* camera) {
         camera->SetPosition(viewpoint_position);
         camera->SetUp(viewpoint_position);
-        // TODO: Should not need negation.
-        camera->SetRight(-glm::cross(GetEarthModelAxis(), camera->up()));
+        camera->SetRight(glm::cross(GetEarthModelAxis(), camera->up()));
       });
 }
 

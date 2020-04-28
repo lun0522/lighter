@@ -118,7 +118,7 @@ std::vector<VkVertexInputAttributeDescription> VertexBuffer::GetAttributes(
   std::vector<VkVertexInputAttributeDescription> descriptions;
   descriptions.reserve(attributes_.size());
   for (const auto& attribute : attributes_) {
-    descriptions.emplace_back(VkVertexInputAttributeDescription{
+    descriptions.push_back(VkVertexInputAttributeDescription{
         start_location++,
         /*binding=*/0,  // To be updated.
         attribute.format,
@@ -192,11 +192,11 @@ Buffer::CopyInfos PerVertexBuffer::NoIndicesDataInfo::CreateCopyInfos(
 
   VkDeviceSize offset = 0;
   for (const auto vertices : per_mesh_vertices_) {
-    mesh_infos.emplace_back(MeshDataInfosNoIndices::Info{
+    mesh_infos.push_back(MeshDataInfosNoIndices::Info{
         static_cast<uint32_t>(vertices.num_units_per_mesh),
         offset,
     });
-    copy_infos.emplace_back(Buffer::CopyInfo{
+    copy_infos.push_back(Buffer::CopyInfo{
         vertices.data,
         vertices.size_per_mesh,
         offset,
@@ -220,7 +220,7 @@ Buffer::CopyInfos PerVertexBuffer::ShareIndicesDataInfo::CreateCopyInfos(
       kIndicesOffset + shared_indices_.size_per_mesh;
   VkDeviceSize vertices_offset = initial_vertices_offset;
   for (int i = 0; i < num_meshes_; ++i) {
-    mesh_infos.emplace_back(MeshDataInfosWithIndices::Info{
+    mesh_infos.push_back(MeshDataInfosWithIndices::Info{
         static_cast<uint32_t>(shared_indices_.num_units_per_mesh),
         kIndicesOffset,
         vertices_offset,
@@ -260,17 +260,17 @@ Buffer::CopyInfos PerVertexBuffer::NoShareIndicesDataInfo::CreateCopyInfos(
     const size_t indices_data_size = mesh_info.indices.size_per_mesh;
     const size_t vertices_data_size = mesh_info.vertices.size_per_mesh;
     const VkDeviceSize vertices_offset = indices_offset + indices_data_size;
-    mesh_infos.emplace_back(MeshDataInfosWithIndices::Info{
+    mesh_infos.push_back(MeshDataInfosWithIndices::Info{
         static_cast<uint32_t>(mesh_info.indices.num_units_per_mesh),
         indices_offset,
         vertices_offset,
     });
-    copy_infos.emplace_back(Buffer::CopyInfo{
+    copy_infos.push_back(Buffer::CopyInfo{
         mesh_info.indices.data,
         indices_data_size,
         indices_offset,
     });
-    copy_infos.emplace_back(Buffer::CopyInfo{
+    copy_infos.push_back(Buffer::CopyInfo{
         mesh_info.vertices.data,
         vertices_data_size,
         vertices_offset,

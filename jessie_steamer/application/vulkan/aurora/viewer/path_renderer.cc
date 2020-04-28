@@ -112,7 +112,7 @@ PathRenderer2D::PathRenderer2D(
   std::vector<Descriptor::Info> descriptor_infos;
   for (auto binding_point : {kOriginalImageBindingPoint,
                              kOutputImageBindingPoint}) {
-    descriptor_infos.emplace_back(Descriptor::Info{
+    descriptor_infos.push_back(Descriptor::Info{
         VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
         VK_SHADER_STAGE_COMPUTE_BIT,
         /*bindings=*/{{binding_point, /*array_length=*/1}},
@@ -140,7 +140,8 @@ PathRenderer2D::PathRenderer2D(
       .SetPipelineLayout(/*descriptor_layouts=*/{},
                          {trans_constant_->MakePerFrameRange(
                              VK_SHADER_STAGE_VERTEX_BIT)})
-      .SetViewport(pipeline::GetFullFrameViewport(image_extent))
+      .SetViewport(pipeline::GetFullFrameViewport(image_extent),
+                   /*flip_y=*/false)
       .SetRenderPass(**render_pass_, kDumpPathsSubpassIndex)
       .SetColorBlend(
           {pipeline::GetColorAlphaBlendState(/*enable_blend=*/false)})

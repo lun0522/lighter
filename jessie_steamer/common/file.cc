@@ -177,21 +177,23 @@ ObjFile::ObjFile(const std::string& path, int index_base) {
             // Position.
             const auto nums = SplitText(GetSuffix(line, non_space + 2), ' ',
                                         /*num_segments=*/3);
-            positions.emplace_back(stof(nums[0]), stof(nums[1]), stof(nums[2]));
+            positions.push_back(
+                glm::vec3{stof(nums[0]), stof(nums[1]), stof(nums[2])});
             break;
           }
           case 'n': {
             // Normal.
             const auto nums = SplitText(GetSuffix(line, non_space + 3), ' ',
                                         /*num_segments=*/3);
-            normals.emplace_back(stof(nums[0]), stof(nums[1]), stof(nums[2]));
+            normals.push_back(
+                glm::vec3{stof(nums[0]), stof(nums[1]), stof(nums[2])});
             break;
           }
           case 't': {
             // Texture coordinates.
             const auto nums = SplitText(GetSuffix(line, non_space + 3), ' ',
                                         /*num_segments=*/2);
-            tex_coords.emplace_back(stof(nums[0]), stof(nums[1]));
+            tex_coords.push_back(glm::vec2{stof(nums[0]), stof(nums[1])});
             break;
           }
           default:
@@ -206,16 +208,16 @@ ObjFile::ObjFile(const std::string& path, int index_base) {
                                          /*num_segments=*/3)) {
           const auto found = loaded_vertices.find(seg);
           if (found != loaded_vertices.end()) {
-            indices.emplace_back(found->second);
+            indices.push_back(found->second);
           } else {
-            indices.emplace_back(vertices.size());
-            loaded_vertices.emplace(seg, vertices.size());
+            indices.push_back(vertices.size());
+            loaded_vertices[seg] = vertices.size();
             const auto idxs = SplitText(seg, '/', /*num_segments=*/3);
-            vertices.emplace_back(
+            vertices.push_back(Vertex3DWithTex{
                 positions.at(stoi(idxs[0]) - index_base),
                 normals.at(stoi(idxs[2]) - index_base),
-                tex_coords.at(stoi(idxs[1]) - index_base)
-            );
+                tex_coords.at(stoi(idxs[1]) - index_base),
+            });
           }
         }
         break;

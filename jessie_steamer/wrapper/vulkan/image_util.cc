@@ -164,7 +164,7 @@ std::vector<Usage> UsageInfo::GetAllUsages() const {
   std::vector<Usage> usages{initial_usage, final_usage};
   usages.reserve(usages.size() + usage_at_stages.size());
   for (const auto& usage_at_stage : usage_at_stages) {
-    usages.emplace_back(usage_at_stage.usage);
+    usages.push_back(usage_at_stage.usage);
   }
   return usages;
 }
@@ -221,7 +221,7 @@ LayoutManager::UsageHistory::UsageHistory(
         continue;
       }
     }
-    usage_change_points_.emplace_back(next_usage);
+    usage_change_points_.push_back(next_usage);
   }
 
   // Shift stages by 1, so that all stages are non-negative, and the usage at

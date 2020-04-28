@@ -59,11 +59,11 @@ class RefCountedObject {
   static RefCountedObject Get(const std::string& identifier, Args&&... args) {
     auto found = ref_count_map().find(identifier);
     if (found == ref_count_map().end()) {
-      const auto inserted = ref_count_map().emplace(
+      const auto inserted = ref_count_map().insert({
           identifier, typename ObjectPool::ObjectWithCounter{
               absl::make_unique<ObjectType>(std::forward<Args>(args)...),
               /*ref_count=*/0,
-          });
+          }});
       found = inserted.first;
     }
 #ifndef NDEBUG

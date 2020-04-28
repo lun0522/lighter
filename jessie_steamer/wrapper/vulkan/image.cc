@@ -596,7 +596,7 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
     auto& image = source_image.emplace<SingleImage>(
         absl::make_unique<common::Image>(single_tex_path));
     sample_image = image.get();
-    datas.emplace_back(image->data);
+    datas.push_back(image->data);
   } else if (absl::holds_alternative<CubemapPath>(source_path)) {
     generate_mipmaps = false;
     const auto& cubemap_path = absl::get<CubemapPath>(source_path);

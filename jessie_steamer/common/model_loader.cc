@@ -56,7 +56,7 @@ void ModelLoader::ProcessNode(const std::string& directory,
   mesh_datas_.reserve(mesh_datas_.size() + node->mNumMeshes);
   for (int i = 0; i < node->mNumMeshes; ++i) {
     const aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-    mesh_datas_.emplace_back(LoadMesh(directory, mesh, scene));
+    mesh_datas_.push_back(LoadMesh(directory, mesh, scene));
   }
   for (int i = 0; i < node->mNumChildren; ++i) {
     ProcessNode(directory, node->mChildren[i], scene);
@@ -83,7 +83,7 @@ ModelLoader::MeshData ModelLoader::LoadMesh(const std::string& directory,
     if (tex_coord_set != nullptr) {
       tex_coord = {tex_coord_set[i].x, tex_coord_set[i].y};
     }
-    vertices.emplace_back(position, normal, tex_coord);
+    vertices.push_back({position, normal, tex_coord});
   }
 
   // Load indices.
@@ -116,7 +116,7 @@ void ModelLoader::LoadTextures(const std::string& directory,
   for (unsigned int i = 0; i < num_textures; ++i) {
     aiString path;
     material->GetTexture(ai_type, i, &path);
-    texture_infos->emplace_back(TextureInfo{
+    texture_infos->push_back(TextureInfo{
         absl::StrFormat("%s/%s", directory, path.C_Str()), texture_type});
   }
 }

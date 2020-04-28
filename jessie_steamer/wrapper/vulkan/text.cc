@@ -155,7 +155,7 @@ StaticText::StaticText(const SharedBasicContext& context,
       text_loader_{context, texts, font, font_height} {
   descriptors_.reserve(num_frames_in_flight);
   for (int frame = 0; frame < num_frames_in_flight; ++frame) {
-    descriptors_.emplace_back(
+    descriptors_.push_back(
         absl::make_unique<DynamicDescriptor>(context, GetDescriptorInfos()));
   }
   SetPipelineLayout(descriptors_[0]->layout());
@@ -163,7 +163,7 @@ StaticText::StaticText(const SharedBasicContext& context,
 
 glm::vec2 StaticText::AddText(int text_index, float height, float base_x,
                               float base_y, Align align) {
-  texts_to_draw_.emplace_back(text_index);
+  texts_to_draw_.push_back(text_index);
   const auto& texture_info = text_loader_.texture_info(text_index);
   // If 'height' is negative, we should avoid to negate X-axis of ratio.
   const glm::vec2 ratio = SetXPositive(
@@ -228,7 +228,7 @@ DynamicText::DynamicText(const SharedBasicContext& context,
       kTextureBindingPoint, {char_loader_.atlas_image()->GetDescriptorInfo()}}};
   descriptors_.reserve(num_frames_in_flight);
   for (int frame = 0; frame < num_frames_in_flight; ++frame) {
-    descriptors_.emplace_back(
+    descriptors_.push_back(
         absl::make_unique<StaticDescriptor>(context, GetDescriptorInfos()));
     descriptors_[frame]->UpdateBufferInfos(
         VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -261,8 +261,7 @@ glm::vec2 DynamicText::AddText(const std::string& text, float height,
   const float initial_offset_x = GetOffsetX(base_x, align,
                                             total_width_in_tex_coord * ratio.x);
   const float final_offset_x = text::LoadCharsVertexData(
-      text, char_loader_, ratio, initial_offset_x, base_y, /*flip_y=*/false,
-      mutable_vertices());
+      text, char_loader_, ratio, initial_offset_x, base_y, mutable_vertices());
 
   return glm::vec2{initial_offset_x, final_offset_x};
 }

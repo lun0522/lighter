@@ -33,7 +33,7 @@ VkDescriptorPool CreateDescriptorPool(
   std::vector<VkDescriptorPoolSize> pool_sizes;
   pool_sizes.reserve(pool_size_map.size());
   for (const auto& pair : pool_size_map) {
-    pool_sizes.emplace_back(VkDescriptorPoolSize{
+    pool_sizes.push_back(VkDescriptorPoolSize{
         /*type=*/pair.first,
         /*descriptorCount=*/pair.second,
     });
@@ -70,7 +70,7 @@ VkDescriptorSetLayout CreateDescriptorSetLayout(
   layout_bindings.reserve(total_bindings);
   for (const auto& info : descriptor_infos) {
     for (int i = 0; i < info.bindings.size(); ++i) {
-      layout_bindings.emplace_back(VkDescriptorSetLayoutBinding{
+      layout_bindings.push_back(VkDescriptorSetLayoutBinding{
           info.bindings[i].binding_point,
           info.descriptor_type,
           info.bindings[i].array_length,
@@ -135,7 +135,7 @@ std::vector<VkWriteDescriptorSet> CreateWriteDescriptorSets(
   write_desc_sets.reserve(info_map.size());
   for (const auto& pair : info_map) {
     const auto& info = pair.second;
-    write_desc_sets.emplace_back(VkWriteDescriptorSet{
+    write_desc_sets.push_back(VkWriteDescriptorSet{
         VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         /*pNext=*/nullptr,
         descriptor_set,

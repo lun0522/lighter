@@ -110,7 +110,7 @@ absl::optional<std::string> FindUnsupported(
     const std::function<const char*(const AttribType&)>& get_name) {
   absl::flat_hash_set<std::string> available{attribs.size()};
   for (const auto& atr : attribs) {
-    available.emplace(get_name(atr));
+    available.insert(get_name(atr));
   }
 
   LOG_INFO << "Available:";

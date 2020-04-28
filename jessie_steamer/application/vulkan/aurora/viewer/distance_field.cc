@@ -66,7 +66,7 @@ DistanceFieldGenerator::DistanceFieldGenerator(
   std::vector<int> step_widths;
   int dimension = 1;
   while (dimension < greatest_dimension) {
-    step_widths.emplace_back(dimension);
+    step_widths.push_back(dimension);
     dimension *= 2;
   }
   num_steps_ = step_widths.size();
@@ -96,7 +96,7 @@ DistanceFieldGenerator::DistanceFieldGenerator(
   std::vector<Descriptor::Info> descriptor_infos;
   for (auto binding_point : {kOriginalImageBindingPoint,
                              kOutputImageBindingPoint}) {
-    descriptor_infos.emplace_back(Descriptor::Info{
+    descriptor_infos.push_back(Descriptor::Info{
         VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
         VK_SHADER_STAGE_COMPUTE_BIT,
         /*bindings=*/{{binding_point, /*array_length=*/1}},

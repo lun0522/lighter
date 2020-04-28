@@ -97,8 +97,7 @@ std::unique_ptr<RenderPass> BuildRenderPass(
   return (*render_pass_builder)->Build();
 }
 
-// Returns a pipeline builder, assuming the per-vertex data is of type Vertex2D,
-// and the front face direction is clockwise, since we will flip Y coordinates.
+// Returns a pipeline builder, assuming the per-vertex data is of type Vertex2D.
 std::unique_ptr<GraphicsPipelineBuilder> CreatePipelineBuilder(
     const SharedBasicContext& context,
     std::string&& pipeline_name,
@@ -114,7 +113,6 @@ std::unique_ptr<GraphicsPipelineBuilder> CreatePipelineBuilder(
                       vertex_buffer.GetAttributes(/*start_location=*/0))
       .SetPipelineLayout({descriptor_layout}, /*push_constant_ranges=*/{})
       .SetColorBlend({pipeline::GetColorBlendState(enable_color_blend)})
-      .SetFrontFaceDirection(/*counter_clockwise=*/false)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
                  common::file::GetVkShaderPath("text/char.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -128,7 +126,8 @@ std::unique_ptr<Pipeline> BuildPipeline(
     const Image& target_image, const VkRenderPass& render_pass,
     GraphicsPipelineBuilder* pipeline_builder) {
   return (*pipeline_builder)
-      .SetViewport(pipeline::GetFullFrameViewport(target_image.extent()))
+      .SetViewport(pipeline::GetFullFrameViewport(target_image.extent()),
+                   /*flip_y=*/false)
       .SetRenderPass(render_pass, kTextSubpassIndex)
       .Build();
 }
@@ -145,13 +144,6 @@ const ImageSampler::Config& GetTextSamplerConfig() {
   return *config;
 }
 
-// Flips Y coordinates of each vertex in NDC.
-inline void FlipYCoord(std::vector<Vertex2D>* vertices) {
-  for (auto& vertex : *vertices) {
-    vertex.pos.y *= -1;
-  }
-}
-
 // Returns pos in NDC given 2D coordinate in range [0.0, 1.0].
 inline glm::vec2 NormalizePos(const glm::vec2& coordinate) {
   return coordinate * 2.0f - 1.0f;
@@ -164,7 +156,8 @@ CharLoader::CharLoader(const SharedBasicContext& context,
                        Font font, int font_height) {
   CharImageMap char_image_map;
   {
-    const common::CharLib char_lib{texts, GetFontPath(font), font_height};
+    const common::CharLib char_lib{
+        texts, GetFontPath(font), font_height, /*flip_y=*/true};
     const int interval_between_chars = GetIntervalBetweenChars(char_lib);
     char_atlas_image_ = absl::make_unique<OffscreenImage>(
         context, GetCharAtlasImageExtent(char_lib, interval_between_chars),
@@ -182,7 +175,7 @@ CharLoader::CharLoader(const SharedBasicContext& context,
   std::vector<char> char_merge_order;
   char_merge_order.reserve(char_texture_info_map_.size());
   for (const auto& pair : char_texture_info_map_) {
-    char_merge_order.emplace_back(pair.first);
+    char_merge_order.push_back(pair.first);
   }
 
   const auto vertex_buffer = CreateVertexBuffer(context, char_merge_order);
@@ -277,16 +270,14 @@ void CharLoader::CreateCharTextures(
     const glm::vec2 size =
         glm::vec2{char_info.image->width, char_info.image->height} * ratio;
     const glm::vec2 bearing = glm::vec2{char_info.bearing} * ratio;
-    char_texture_info_map->emplace(
-        character,
-        CharTextureInfo{size, bearing, offset_x, advance_x}
-    );
-    char_image_map->emplace(
+    char_texture_info_map->insert({
+        character, CharTextureInfo{size, bearing, offset_x, advance_x}});
+    char_image_map->insert({
         character,
         absl::make_unique<TextureImage>(
             context, /*generate_mipmaps=*/false, image_usage_flags,
-            *char_info.image, GetTextSamplerConfig())
-    );
+            *char_info.image, GetTextSamplerConfig()),
+    });
     offset_x += size.x + normalized_interval;
   }
 }
@@ -306,9 +297,6 @@ std::unique_ptr<StaticPerVertexBuffer> CharLoader::CreateVertexBuffer(
         /*tex_coord_increment=*/glm::vec2{1.0f},
         &vertices);
   }
-  // The resulting image should be flipped, so that when we use it later, we
-  // don't have to flip Y coordinates again.
-  FlipYCoord(&vertices);
 
   return absl::make_unique<StaticPerVertexBuffer>(
       context, PerVertexBuffer::ShareIndicesDataInfo{
@@ -346,7 +334,7 @@ TextLoader::TextLoader(const SharedBasicContext& context,
   const CharLoader char_loader{context, texts, font, font_height};
   text_texture_infos_.reserve(texts.size());
   for (const auto& text : texts) {
-    text_texture_infos_.emplace_back(
+    text_texture_infos_.push_back(
         CreateTextTexture(context, text, font_height, char_loader,
                           descriptor.get(), render_pass_builder.get(),
                           pipeline_builder.get(), &vertex_buffer));
@@ -393,11 +381,9 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
           image::Usage::kSampledInFragmentShader}),
       GetTextSamplerConfig());
 
-  // The resulting image should be flipped, so that when we use it later, we
-  // don't have to flip Y coordinates again.
   std::vector<Vertex2D> vertices;
   text::LoadCharsVertexData(text, char_loader, ratio, /*initial_offset_x=*/0.0f,
-                            base_y, /*flip_y=*/true, &vertices);
+                            base_y, &vertices);
   vertex_buffer->CopyHostData(PerVertexBuffer::ShareIndicesDataInfo{
       /*num_meshes=*/static_cast<int>(text.length()),
       /*per_mesh_vertices=*/
@@ -460,33 +446,27 @@ void AppendCharPosAndTexCoord(const glm::vec2& pos_bottom_left,
   const glm::vec2 tex_coord_top_right = tex_coord_bottom_left +
                                         tex_coord_increment;
   vertices->reserve(vertices->size() + kNumVerticesPerRect);
-  vertices->emplace_back(Vertex2D{
+  vertices->push_back(Vertex2D{
       NormalizePos(pos_bottom_left),
       tex_coord_bottom_left,
   });
-  vertices->emplace_back(Vertex2D{
+  vertices->push_back(Vertex2D{
       NormalizePos({pos_top_right.x, pos_bottom_left.y}),
       {tex_coord_top_right.x, tex_coord_bottom_left.y},
   });
-  vertices->emplace_back(Vertex2D{
+  vertices->push_back(Vertex2D{
       NormalizePos(pos_top_right),
       tex_coord_top_right,
   });
-  vertices->emplace_back(Vertex2D{
+  vertices->push_back(Vertex2D{
       NormalizePos({pos_bottom_left.x, pos_top_right.y}),
       {tex_coord_bottom_left.x, tex_coord_top_right.y},
   });
-  // If the height of character is negative, we reverse the vertices order so
-  // that the faces they form don't get culled.
-  if (pos_increment.y < 0) {
-    std::reverse(vertices->end() - kNumVerticesPerRect, vertices->end());
-  }
 }
 
 float LoadCharsVertexData(const std::string& text,
-                          const CharLoader& char_loader,
-                          const glm::vec2& ratio, float initial_offset_x,
-                          float base_y, bool flip_y,
+                          const CharLoader& char_loader, const glm::vec2& ratio,
+                          float initial_offset_x, float base_y,
                           std::vector<Vertex2D>* vertices) {
   float offset_x = initial_offset_x;
   vertices->reserve(
@@ -509,10 +489,6 @@ float LoadCharsVertexData(const std::string& text,
         vertices);
     offset_x += texture_info.advance_x * ratio.x;
   }
-  if (flip_y) {
-    FlipYCoord(vertices);
-  }
-
   return offset_x;
 }
 

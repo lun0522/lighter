@@ -53,9 +53,6 @@ struct ButtonInfo {
 class ButtonMaker {
  public:
   struct RenderInfo : public make_button::RenderInfo {
-    explicit RenderInfo(const make_button::RenderInfo& info)
-        : make_button::RenderInfo{info} {}
-
     // Returns vertex input attributes.
     static std::vector<wrapper::vulkan::VertexBuffer::Attribute>
     GetAttributes() {

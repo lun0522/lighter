@@ -172,7 +172,7 @@ Button::Button(const SharedBasicContext& context,
   button_infos.reserve(num_buttons);
   for (int button = 0; button < num_buttons; ++button) {
     const int index_base = button * button::kNumStates;
-    button_infos.emplace_back(make_button::ButtonInfo{
+    button_infos.push_back(make_button::ButtonInfo{
         buttons_info.button_infos[button].text,
         {render_infos[index_base], render_infos[index_base + 1]},
         {text_pos[index_base].base_y, text_pos[index_base + 1].base_y},
@@ -200,7 +200,7 @@ std::vector<make_button::RenderInfo> Button::CreateMakeButtonRenderInfos(
   render_infos.reserve(num_buttons * button::kNumStates);
   for (const auto& info : buttons_info.button_infos) {
     for (int state = 0; state < button::kNumStates; ++state) {
-      render_infos.emplace_back(make_button::RenderInfo{
+      render_infos.push_back(make_button::RenderInfo{
           info.colors[state],
           /*center=*/glm::vec2{0.0f, offset_y_ndc},
       });
@@ -238,7 +238,7 @@ std::vector<Button::TextPos> Button::CreateMakeButtonTextPos(
   for (int button = 0; button < num_buttons; ++button) {
     for (int state = 0; state < button::kNumStates; ++state) {
       const float base_y = offset_y + buttons_info.base_y * button_height;
-      text_pos.emplace_back(TextPos{base_y, text_height});
+      text_pos.push_back(TextPos{base_y, text_height});
       offset_y += button_height;
     }
   }
@@ -258,7 +258,7 @@ Button::DrawButtonRenderInfos Button::ExtractDrawButtonRenderInfos(
   render_infos.reserve(num_buttons);
   for (const auto& info : buttons_info.button_infos) {
     const auto& pos_center_ndc = info.center * 2.0f - 1.0f;
-    render_infos.emplace_back(
+    render_infos.push_back(
         std::array<draw_button::RenderInfo, button::kNumStates>{
             draw_button::RenderInfo{
                 buttons_info.button_alphas[button::kSelectedState],
@@ -313,11 +313,11 @@ void Button::Draw(const VkCommandBuffer& command_buffer,
       case State::kHidden:
         break;
       case State::kSelected:
-        buttons_to_render_.emplace_back(
+        buttons_to_render_.push_back(
             all_buttons_[button][button::kSelectedState]);
         break;
       case State::kUnselected:
-        buttons_to_render_.emplace_back(
+        buttons_to_render_.push_back(
             all_buttons_[button][button::kUnselectedState]);
         break;
     }

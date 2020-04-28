@@ -74,7 +74,7 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   // executed once the graphics device becomes idle. This is used for resources
   // that can be released only when the graphics device is no longer using it.
   void AddReleaseExpiredResourceOp(ReleaseExpiredResourceOp&& op) {
-    release_expired_rsrc_ops_.emplace_back(std::move(op));
+    release_expired_rsrc_ops_.push_back(std::move(op));
   }
 
   // Registers a type of auto release pool. This should be called if the
@@ -87,7 +87,7 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
     static bool first_time = true;
     if (first_time) {
       first_time = false;
-      check_no_active_auto_release_pool_ops_.emplace_back([pool_name]() {
+      check_no_active_auto_release_pool_ops_.push_back([pool_name]() {
         if (RefCountedObjectType::has_active_auto_release_pool()) {
           FATAL(absl::StrFormat("Number of '%s' auto release pool is non-zero",
                                 pool_name));

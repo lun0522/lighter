@@ -184,7 +184,7 @@ inline size_t GetVertexDataSize(int num_rects) {
          sizeof(common::Vertex2D) * kNumVerticesPerRect * num_rects;
 }
 
-// Appends pos and tex_coord to 'vertices' in CCW order.
+// Appends pos and tex_coord to 'vertices'.
 // All numbers should be in range [0.0, 1.0]. Pos will be normalized internally.
 void AppendCharPosAndTexCoord(const glm::vec2& pos_bottom_left,
                               const glm::vec2& pos_increment,
@@ -195,9 +195,8 @@ void AppendCharPosAndTexCoord(const glm::vec2& pos_bottom_left,
 // Appends the vertex data of characters in 'text' to the end of 'vertices',
 // and returns the right boundary of rendered text (i.e. final X offset).
 float LoadCharsVertexData(const std::string& text,
-                          const CharLoader& char_loader,
-                          const glm::vec2& ratio, float initial_offset_x,
-                          float base_y, bool flip_y,
+                          const CharLoader& char_loader, const glm::vec2& ratio,
+                          float initial_offset_x, float base_y,
                           std::vector<common::Vertex2D>* vertices);
 
 } /* namespace text */

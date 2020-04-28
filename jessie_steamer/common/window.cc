@@ -106,7 +106,7 @@ Window& Window::RegisterPressKeyCallback(
   if (callback == nullptr) {
     press_key_callbacks_.erase(glfw_key);
   } else {
-    press_key_callbacks_.emplace(glfw_key, std::move(callback));
+    press_key_callbacks_[glfw_key] = std::move(callback);
   }
   return *this;
 }

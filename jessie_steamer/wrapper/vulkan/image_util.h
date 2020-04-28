@@ -71,7 +71,7 @@ struct UsageInfo {
     return *this;
   }
   UsageInfo& AddUsage(int stage, Usage usage) {
-    usage_at_stages.emplace_back(UsageAtStage{usage, stage});
+    usage_at_stages.push_back(UsageAtStage{usage, stage});
     return *this;
   }
 

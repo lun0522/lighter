@@ -33,7 +33,7 @@ void BezierSpline::Tessellate(const glm::vec3& p0,
   if (++recursion_depth == max_recursion_depth_ ||
       glm::distance(p0, p3) < kMinDistBetweenPoints ||
       is_smooth_(p0, p1, p2, p3)) {
-    mutable_splines()->emplace_back(p0);
+    mutable_splines()->push_back(p0);
     return;
   }
 
@@ -121,7 +121,7 @@ void CatmullRomSpline::BuildSpline(absl::Span<const glm::vec3> control_points) {
                control_points[(i + 3) % num_control_points]);
   }
   // Close the spline.
-  mutable_splines()->emplace_back(spline_points()[0]);
+  mutable_splines()->push_back(spline_points()[0]);
 }
 
 SplineEditor::SplineEditor(int min_num_control_points,
