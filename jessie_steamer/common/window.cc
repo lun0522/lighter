@@ -8,6 +8,7 @@
 #include "jessie_steamer/common/window.h"
 
 #include "jessie_steamer/common/util.h"
+#include "third_party/absl/strings/str_format.h"
 #include "third_party/glfw/glfw3.h"
 
 namespace jessie_steamer {
@@ -45,7 +46,9 @@ void GlfwResizeWindowCallback(GLFWwindow* window, int width, int height) {
   GetWindow(window).DidResizeWindow();
 }
 void GlfwMoveCursorCallback(GLFWwindow* window, double x_pos, double y_pos) {
-  GetWindow(window).DidMoveCursor(x_pos, y_pos);
+  const auto& retina_ratio = GetWindow(window).retina_ratio_;
+  GetWindow(window).DidMoveCursor(x_pos * retina_ratio.x,
+                                  y_pos * retina_ratio.y);
 }
 void GlfwScrollCallback(GLFWwindow* window, double x_pos, double y_pos) {
   GetWindow(window).DidScroll(x_pos, y_pos);
@@ -106,22 +109,35 @@ Window& Window::RegisterPressKeyCallback(
   if (callback == nullptr) {
     press_key_callbacks_.erase(glfw_key);
   } else {
+    ASSERT_FALSE(press_key_callbacks_.contains(glfw_key),
+                 absl::StrFormat("Must unregister press key callback for %d"
+                                 "before registering a new one",
+                                 static_cast<int>(key)));
     press_key_callbacks_[glfw_key] = std::move(callback);
   }
   return *this;
 }
 
 Window& Window::RegisterMoveCursorCallback(MoveCursorCallback&& callback) {
+  if (callback != nullptr && move_cursor_callback_ != nullptr) {
+    FATAL("Must unregister move cursor callback before registering a new one");
+  }
   move_cursor_callback_ = std::move(callback);
   return *this;
 }
 
 Window& Window::RegisterScrollCallback(ScrollCallback&& callback) {
+  if (callback != nullptr && scroll_callback_ != nullptr) {
+    FATAL("Must unregister scroll callback before registering a new one");
+  }
   scroll_callback_ = std::move(callback);
   return *this;
 }
 
 Window& Window::RegisterMouseButtonCallback(MouseButtonCallback&& callback) {
+  if (callback != nullptr && mouse_button_callback_ != nullptr) {
+    FATAL("Must unregister scroll callback before registering a new one");
+  }
   mouse_button_callback_ = std::move(callback);
   return *this;
 }

@@ -68,22 +68,29 @@ class Window {
   // Sets whether the cursor should be hidden.
   Window& SetCursorHidden(bool hidden);
 
-  // Registers a callback that will be invoked when the 'key' is pressed.
-  // 'callback' can be nullptr, which invalidates the callback previously
-  // registered for 'key'.
+  // Registers 'callback' that will be invoked when 'key' is pressed.
+  // If 'callback' is nullptr, this will unregister the previous callback.
+  // Note that if 'callback' is not nullptr, the previous callback, if exists,
+  // must have been unregistered.
   Window& RegisterPressKeyCallback(KeyMap key, PressKeyCallback&& callback);
 
-  // Registers a callback that will be invoked when the cursor is moved.
-  // 'callback' can be nullptr, which invalidates callbacks registered before.
+  // Registers 'callback' that will be invoked when the cursor is moved.
+  // If 'callback' is nullptr, this will unregister the previous callback.
+  // Note that if 'callback' is not nullptr, the previous callback, if exists,
+  // must have been unregistered.
   Window& RegisterMoveCursorCallback(MoveCursorCallback&& callback);
 
-  // Registers a callback that will be invoked when the user scrolls.
-  // 'callback' can be nullptr, which invalidates callbacks registered before.
+  // Registers 'callback' that will be invoked when the user scrolls.
+  // If 'callback' is nullptr, this will unregister the previous callback.
+  // Note that if 'callback' is not nullptr, the previous callback, if exists,
+  // must have been unregistered.
   Window& RegisterScrollCallback(ScrollCallback&& callback);
 
-  // Registers a callback that will be invoked when the mouse button is pressed
-  // or released. 'callback' can be nullptr, which invalidates callbacks
-  // registered before.
+  // Registers 'callback' that will be invoked when the mouse button is pressed
+  // or released.
+  // If 'callback' is nullptr, this will unregister the previous callback.
+  // Note that if 'callback' is not nullptr, the previous callback, if exists,
+  // must have been unregistered.
   Window& RegisterMouseButtonCallback(MouseButtonCallback&& callback);
 
   // Processes user inputs to the window. Callbacks will be invoked if

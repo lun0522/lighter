@@ -31,11 +31,12 @@ class AuroraApp : public Application {
   // Returns the current scene.
   aurora::Scene& GetCurrentScene();
 
+  // Checks the current scene and transitions scene if needed.
   void TransitionSceneIfNeeded();
 
+  // Returns whether the scene has been transitioned after the last frame.
   bool HasTransitionedScene() const { return current_scene_ != last_scene_; }
 
-  bool should_quit_ = false;
   int current_frame_ = 0;
   int frame_rate_ = 0;
   Scene last_scene_ = Scene::kNone;
@@ -50,8 +51,6 @@ class AuroraApp : public Application {
 
 AuroraApp::AuroraApp(const WindowContext::Config& window_config)
     : Application{"Aurora Sketcher", window_config} {
-  mutable_window_context()->mutable_window()->RegisterPressKeyCallback(
-      common::Window::KeyMap::kEscape, [this]() { should_quit_ = true; });
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
   editor_ = absl::make_unique<aurora::Editor>(mutable_window_context(),
                                               kNumFramesInFlight);
@@ -93,7 +92,7 @@ void AuroraApp::TransitionSceneIfNeeded() {
 }
 
 void AuroraApp::MainLoop() {
-  while (!should_quit_ && mutable_window_context()->CheckEvents()) {
+  while (mutable_window_context()->CheckEvents()) {
     timer_.Tick();
     if (timer_.frame_rate() != frame_rate_) {
       frame_rate_ = timer_.frame_rate();

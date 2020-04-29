@@ -253,7 +253,6 @@ Button::DrawButtonRenderInfos Button::ExtractDrawButtonRenderInfos(
   constexpr float kTexCenterOffsetX = kUvDim / 2.0f;
   float tex_center_offset_y = button_tex_height / 2.0f;
 
-  // Flip Y for texture centers.
   DrawButtonRenderInfos render_infos;
   render_infos.reserve(num_buttons);
   for (const auto& info : buttons_info.button_infos) {
@@ -263,12 +262,12 @@ Button::DrawButtonRenderInfos Button::ExtractDrawButtonRenderInfos(
             draw_button::RenderInfo{
                 buttons_info.button_alphas[button::kSelectedState],
                 pos_center_ndc,
-                glm::vec2{kTexCenterOffsetX, kUvDim - tex_center_offset_y}},
+                glm::vec2{kTexCenterOffsetX, tex_center_offset_y}},
             draw_button::RenderInfo{
                 buttons_info.button_alphas[button::kUnselectedState],
                 pos_center_ndc,
                 glm::vec2{kTexCenterOffsetX,
-                          kUvDim - (tex_center_offset_y + button_tex_height)}},
+                          tex_center_offset_y + button_tex_height}},
         });
     tex_center_offset_y += 2 * button_tex_height;
   }
@@ -281,9 +280,8 @@ button::VerticesInfo Button::CreateDrawButtonVerticesInfo(
   const int num_buttons = buttons_info.button_infos.size();
   const float button_tex_height =
       kUvDim / static_cast<float>(num_buttons * button::kNumStates);
-  const auto size_uv = glm::vec2{kUvDim, -button_tex_height} * button_uv_scale;
+  const auto size_uv = glm::vec2{kUvDim, button_tex_height} * button_uv_scale;
 
-  // Flip Y for texture coordinates.
   button::VerticesInfo vertices_info{};
   SetVerticesPositions(button_size_ndc, &vertices_info);
   SetVerticesTexCoords(/*center_uv*/glm::vec2{0.0f}, size_uv, &vertices_info);

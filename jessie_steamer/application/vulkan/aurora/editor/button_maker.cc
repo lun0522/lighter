@@ -127,7 +127,7 @@ std::unique_ptr<DynamicText> CreateTextRenderer(
       util::GetAspectRatio(target_image.extent()), texts, font, font_height);
   text_renderer->Update(
       target_image.extent(), target_image.sample_count(),
-      render_pass, kTextSubpassIndex);
+      render_pass, kTextSubpassIndex, /*flip_y=*/false);
 
   constexpr float kTextBaseX = kUvDim / 2.0f;
   for (const auto& info : button_infos) {
@@ -182,7 +182,8 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
       .SetPipelineLayout(
           {descriptor->layout()},
           {push_constant->MakePerFrameRange(VK_SHADER_STAGE_VERTEX_BIT)})
-      .SetViewport(pipeline::GetFullFrameViewport(buttons_image->extent()))
+      .SetViewport(pipeline::GetFullFrameViewport(buttons_image->extent()),
+                   /*flip_y=*/false)
       .SetRenderPass(**render_pass, kBackgroundSubpassIndex)
       .SetColorBlend(
           {pipeline::GetColorAlphaBlendState(/*enable_blend=*/false)})

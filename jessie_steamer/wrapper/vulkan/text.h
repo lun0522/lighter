@@ -47,8 +47,12 @@ class Text {
 
   // Rebuilds the graphics pipeline.
   // For simplicity, the render area will be the same to 'frame_size'.
+  // If 'flip_y' is true, point (0, 0) will be located at the upper left corner,
+  // which is appropriate for presenting to the screen. The user can choose
+  // whether or not to do the flipping for offscreen rendering.
   void Update(const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
-              const RenderPass& render_pass, uint32_t subpass_index);
+              const RenderPass& render_pass, uint32_t subpass_index,
+              bool flip_y);
 
   // Renders all texts tht have been added.
   // This should be called when 'command_buffer' is recording commands.

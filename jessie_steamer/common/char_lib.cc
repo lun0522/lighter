@@ -30,7 +30,7 @@ CharLib::CharLib(absl::Span<const std::string> texts,
 
       ASSERT_FALSE(FT_Load_Char(face, character, FT_LOAD_RENDER),
                    "Failed to load glyph");
-      char_info_map_[character] = CharInfo{
+      char_info_map_.insert({character, CharInfo{
           /*bearing=*/{
               face->glyph->bitmap_left,
               face->glyph->bitmap_top,
@@ -47,7 +47,7 @@ CharLib::CharLib(absl::Span<const std::string> texts,
               /*raw_data=*/face->glyph->bitmap.buffer,
               flip_y
           ),
-      };
+      }});
     }
   }
 

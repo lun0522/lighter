@@ -184,7 +184,7 @@ class UserControlledCamera {
   // Configurations used to initialize the control.
   struct ControlConfig {
     float move_speed = 10.0f;
-    float turn_speed = 0.001f;
+    float turn_speed = 0.0005f;
   };
 
   UserControlledCamera(const ControlConfig& control_config,

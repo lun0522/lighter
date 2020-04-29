@@ -12,13 +12,22 @@
 
 #include "jessie_steamer/application/vulkan/aurora/scene.h"
 #include "jessie_steamer/application/vulkan/aurora/viewer/path_dumper.h"
-#include "jessie_steamer/application/vulkan/util.h"
+#include "jessie_steamer/wrapper/vulkan/buffer.h"
+#include "jessie_steamer/wrapper/vulkan/descriptor.h"
+#include "jessie_steamer/wrapper/vulkan/image.h"
+#include "jessie_steamer/wrapper/vulkan/pipeline.h"
+#include "jessie_steamer/wrapper/vulkan/render_pass.h"
+#include "jessie_steamer/wrapper/vulkan/render_pass_util.h"
+#include "jessie_steamer/wrapper/vulkan/window_context.h"
+#include "third_party/glm/glm.hpp"
+#include "third_party/vulkan/vulkan.h"
 
 namespace jessie_steamer {
 namespace application {
 namespace vulkan {
 namespace aurora {
 
+// This class is used for rendering the aurora viewer scene using Vulkan APIs.
 class ViewerRenderer {
  public:
   ViewerRenderer(const wrapper::vulkan::WindowContext* window_context,
@@ -46,6 +55,7 @@ class ViewerRenderer {
             uint32_t framebuffer_index, int current_frame) const;
 
  private:
+  // Objects used for rendering.
   const wrapper::vulkan::WindowContext& window_context_;
   std::unique_ptr<wrapper::vulkan::PushConstant> camera_constant_;
   std::unique_ptr<wrapper::vulkan::UniformBuffer> render_info_uniform_;
@@ -60,6 +70,17 @@ class ViewerRenderer {
   std::unique_ptr<wrapper::vulkan::RenderPass> render_pass_;
 };
 
+// This class is used to manage and render the aurora viewer scene. The method
+// of rendering aurora is modified from this paper:
+// Lawlor, Orion & Genetti, Jon. (2011). Interactive Volume Rendering Aurora on
+// the GPU. Journal of WSCG. 19. 25-32.
+// Every time when aurora paths change, the user should call
+// UpdateAuroraPaths(), and this class will perform following steps:
+// (1) Render aurora path splines seen from the specified user viewpoint.
+// (2) Bold those splines (note that we cannot specify line width on some
+//     hardware when rendering those splines, so we need to add this pass).
+// (3) Generate distance field.
+// (4) Use ray tracing to render aurora paths.
 class Viewer : public Scene {
  public:
   Viewer(wrapper::vulkan::WindowContext* window_context,
@@ -86,13 +107,14 @@ class Viewer : public Scene {
             uint32_t framebuffer_index, int current_frame) override {
     viewer_renderer_.Draw(command_buffer, framebuffer_index, current_frame);
   }
-  bool ShouldTransitionScene() const override { return did_press_right_; }
+  bool ShouldTransitionScene() const override { return should_quit_; }
 
  private:
   // On-screen rendering context.
   wrapper::vulkan::WindowContext& window_context_;
 
-  bool did_press_right_ = false;
+  // Whether we should quit this scene.
+  bool should_quit_ = false;
 
   // Dumps aurora paths and generates distance field.
   PathDumper path_dumper_;

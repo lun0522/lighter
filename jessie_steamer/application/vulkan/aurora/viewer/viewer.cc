@@ -8,6 +8,9 @@
 #include "jessie_steamer/application/vulkan/aurora/viewer/viewer.h"
 
 #include "jessie_steamer/application/vulkan/aurora/viewer/air_transmit_table.h"
+#include "jessie_steamer/wrapper/vulkan/align.h"
+#include "jessie_steamer/wrapper/vulkan/image_util.h"
+#include "jessie_steamer/wrapper/vulkan/pipeline_util.h"
 
 namespace jessie_steamer {
 namespace application {
@@ -305,8 +308,7 @@ void Viewer::UpdateAuroraPaths(const glm::vec3& viewpoint_position) {
 }
 
 void Viewer::OnEnter() {
-  // TODO: Find a better way to exit viewer.
-  did_press_right_ = false;
+  should_quit_ = false;
   (*window_context_.mutable_window())
       .SetCursorHidden(true)
       .RegisterMoveCursorCallback([this](double x_pos, double y_pos) {
@@ -317,16 +319,16 @@ void Viewer::OnEnter() {
             glm::clamp(view_aurora_camera_fovy_ + static_cast<float>(y_pos),
                        15.0f, 45.0f);
       })
-      .RegisterMouseButtonCallback([this](bool is_left, bool is_press) {
-        did_press_right_ = !is_left && is_press;
-      });
+      .RegisterPressKeyCallback(common::Window::KeyMap::kEscape,
+                                [this]() { should_quit_ = true; });
 }
 
 void Viewer::OnExit() {
   (*window_context_.mutable_window())
       .SetCursorHidden(false)
       .RegisterMoveCursorCallback(nullptr)
-      .RegisterMouseButtonCallback(nullptr);
+      .RegisterScrollCallback(nullptr)
+      .RegisterPressKeyCallback(common::Window::KeyMap::kEscape, nullptr);
 }
 
 void Viewer::Recreate() {

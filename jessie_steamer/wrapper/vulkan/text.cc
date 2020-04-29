@@ -107,10 +107,12 @@ Text::Text(const SharedBasicContext& context,
 
 void Text::Update(const VkExtent2D& frame_size,
                   VkSampleCountFlagBits sample_count,
-                  const RenderPass& render_pass, uint32_t subpass_index) {
+                  const RenderPass& render_pass, uint32_t subpass_index,
+                  bool flip_y) {
   pipeline_ = pipeline_builder_
       .SetMultisampling(sample_count)
-      .SetViewport(pipeline::GetViewport(frame_size, viewport_aspect_ratio_))
+      .SetViewport(
+          pipeline::GetViewport(frame_size, viewport_aspect_ratio_), flip_y)
       .SetRenderPass(*render_pass, subpass_index)
       .SetColorBlend(
           std::vector<VkPipelineColorBlendAttachmentState>(

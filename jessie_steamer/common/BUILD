@@ -120,6 +120,7 @@ cc_library(
     deps = [
         ":util",
         "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/strings:str_format",
         "//third_party:glm",
         "//third_party:glfw",
     ] + select({

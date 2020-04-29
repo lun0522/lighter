@@ -159,9 +159,9 @@ void CubeApp::Recreate() {
   cube_model_->Update(/*is_object_opaque=*/true, frame_size, sample_count,
                       *render_pass_, kModelSubpassIndex);
   static_text_->Update(frame_size, sample_count,
-                       *render_pass_, kTextSubpassIndex);
+                       *render_pass_, kTextSubpassIndex, /*flip_y=*/true);
   dynamic_text_->Update(frame_size, sample_count,
-                        *render_pass_, kTextSubpassIndex);
+                        *render_pass_, kTextSubpassIndex, /*flip_y=*/true);
 }
 
 void CubeApp::UpdateData(int frame) {
