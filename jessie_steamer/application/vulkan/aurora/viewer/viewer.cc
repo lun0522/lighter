@@ -80,19 +80,18 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
       context, sizeof(RenderInfo), num_frames_in_flight);
 
   /* Image */
-  const auto image_usage_flags = image::GetImageUsageFlags(
-      {image::Usage::kSampledInFragmentShader});
+  const auto image_usages = {image::Usage::kSampledInFragmentShader};
   const ImageSampler::Config sampler_config{
       VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
   aurora_deposition_image_ = absl::make_unique<SharedTexture>(
       context, common::file::GetResourcePath("texture/aurora_deposition.jpg"),
-      image_usage_flags, sampler_config);
+      image_usages, sampler_config);
 
   const auto air_transmit_table =
       GenerateAirTransmitTable(air_transmit_sample_step);
   air_transmit_table_image_ = absl::make_unique<TextureImage>(
-      context, /*generate_mipmaps=*/false, image_usage_flags,
-      *air_transmit_table, sampler_config);
+      context, /*generate_mipmaps=*/false, *air_transmit_table, image_usages,
+      sampler_config);
 
   const SharedTexture::CubemapPath skybox_path{
       /*directory=*/common::file::GetResourcePath("texture/universe"),
@@ -103,20 +102,20 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
       },
   };
   universe_skybox_image_ = absl::make_unique<SharedTexture>(
-      context, skybox_path, image_usage_flags, ImageSampler::Config{});
+      context, skybox_path, image_usages, ImageSampler::Config{});
 
   /* Descriptor */
   const Descriptor::ImageInfoMap image_info_map{
       {kAuroraDepositionImageBindingPoint,
-          {aurora_deposition_image_->GetDescriptorInfo()}},
+          {aurora_deposition_image_->GetDescriptorInfoForSampling()}},
       {kAuroraPathsImageBindingPoint,
-          {aurora_paths_image.GetDescriptorInfo()}},
+          {aurora_paths_image.GetDescriptorInfoForSampling()}},
       {kDistanceFieldImageBindingPoint,
-          {distance_field_image.GetDescriptorInfo()}},
+          {distance_field_image.GetDescriptorInfoForSampling()}},
       {kAirTransmitTableImageBindingPoint,
-          {air_transmit_table_image_->GetDescriptorInfo()}},
+          {air_transmit_table_image_->GetDescriptorInfoForSampling()}},
       {kUniverseSkyboxImageBindingPoint,
-          {universe_skybox_image_->GetDescriptorInfo()}}
+          {universe_skybox_image_->GetDescriptorInfoForSampling()}}
   };
 
   std::vector<Descriptor::Info> uniform_descriptor_infos;

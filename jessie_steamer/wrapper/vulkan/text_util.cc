@@ -159,13 +159,11 @@ CharLoader::CharLoader(const SharedBasicContext& context,
     const common::CharLib char_lib{
         texts, GetFontPath(font), font_height, /*flip_y=*/true};
     const int interval_between_chars = GetIntervalBetweenChars(char_lib);
+    const auto image_usages = {image::Usage::kRenderingTarget,
+                               image::Usage::kSampledInFragmentShader};
     char_atlas_image_ = absl::make_unique<OffscreenImage>(
         context, GetCharAtlasImageExtent(char_lib, interval_between_chars),
-        common::kBwImageChannel,
-        image::GetImageUsageFlags({
-            image::Usage::kRenderingTarget,
-            image::Usage::kSampledInFragmentShader}),
-        GetTextSamplerConfig());
+        common::kBwImageChannel, image_usages, GetTextSamplerConfig());
     space_advance_x_ = GetSpaceAdvanceX(char_lib, *char_atlas_image_);
     CreateCharTextures(context, char_lib, interval_between_chars,
                        *char_atlas_image_, &char_image_map,
@@ -203,7 +201,7 @@ CharLoader::CharLoader(const SharedBasicContext& context,
               VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
               /*image_info_map=*/{{
                   kImageBindingPoint,
-                  {char_image->GetDescriptorInfo()}},
+                  {char_image->GetDescriptorInfoForSampling()}},
               });
           vertex_buffer->Draw(command_buffer, kVertexBufferBindingPoint,
                               /*mesh_index=*/i, /*instance_count=*/1);
@@ -255,8 +253,7 @@ void CharLoader::CreateCharTextures(
   const glm::vec2 ratio = 1.0f / util::ExtentToVec(target_image.extent());
   const float normalized_interval =
       static_cast<float>(interval_between_chars) * ratio.x;
-  const auto image_usage_flags =
-      image::GetImageUsageFlags({image::Usage::kSampledInFragmentShader});
+  const auto image_usages = {image::Usage::kSampledInFragmentShader};
 
   float offset_x = 0.0f;
   for (const auto& pair : char_lib.char_info_map()) {
@@ -274,9 +271,9 @@ void CharLoader::CreateCharTextures(
         character, CharTextureInfo{size, bearing, offset_x, advance_x}});
     char_image_map->insert({
         character,
-        absl::make_unique<TextureImage>(
-            context, /*generate_mipmaps=*/false, image_usage_flags,
-            *char_info.image, GetTextSamplerConfig()),
+        absl::make_unique<TextureImage>(context, /*generate_mipmaps=*/false,
+                                        *char_info.image, image_usages,
+                                        GetTextSamplerConfig()),
     });
     offset_x += size.x + normalized_interval;
   }
@@ -374,11 +371,10 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
       static_cast<uint32_t>(font_height),
   };
   const float base_y = highest_base_y;
+  const auto image_usages = {image::Usage::kRenderingTarget,
+                             image::Usage::kSampledInFragmentShader};
   auto text_image = absl::make_unique<OffscreenImage>(
-      context, text_image_extent, common::kBwImageChannel,
-      image::GetImageUsageFlags({
-          image::Usage::kRenderingTarget,
-          image::Usage::kSampledInFragmentShader}),
+      context, text_image_extent, common::kBwImageChannel, image_usages,
       GetTextSamplerConfig());
 
   std::vector<Vertex2D> vertices;
@@ -396,7 +392,7 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
       /*image_info_map=*/{
           {kImageBindingPoint,
-           {char_loader.atlas_image()->GetDescriptorInfo()}},
+           {char_loader.atlas_image()->GetDescriptorInfoForSampling()}},
   });
   const auto render_pass = BuildRenderPass(*text_image, render_pass_builder);
   const auto pipeline = BuildPipeline(*text_image, **render_pass,

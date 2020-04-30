@@ -63,7 +63,7 @@ PathDumper::PathDumper(
       .SetFinalUsage(image::Usage::kSampledInFragmentShader);
   paths_image_ = absl::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::kBwImageChannel,
-      image::GetImageUsageFlags(paths_image_usage), sampler_config);
+      paths_image_usage.GetAllUsages(), sampler_config);
 
   auto distance_field_image_usage = image::UsageInfo{"Distance field"}
       .SetInitialUsage(image::Usage::kSampledInFragmentShader)
@@ -73,7 +73,7 @@ PathDumper::PathDumper(
       .SetFinalUsage(image::Usage::kSampledInFragmentShader);
   distance_field_image_ = absl::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::kRgbaImageChannel,
-      image::GetImageUsageFlags(distance_field_image_usage), sampler_config);
+      distance_field_image_usage.GetAllUsages(), sampler_config);
 
   image_layout_manager_ = absl::make_unique<image::LayoutManager>(
       kNumProcessingStages, image::LayoutManager::UsageInfoMap{

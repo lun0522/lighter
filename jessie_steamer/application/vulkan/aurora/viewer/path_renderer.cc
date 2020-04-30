@@ -102,13 +102,6 @@ PathRenderer2D::PathRenderer2D(
   };
 
   /* Descriptor */
-  // TODO
-  auto intermediate_image_descriptor_info =
-      intermediate_image.GetDescriptorInfo();
-  intermediate_image_descriptor_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-  auto output_image_descriptor_info = output_image.GetDescriptorInfo();
-  output_image_descriptor_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-
   std::vector<Descriptor::Info> descriptor_infos;
   for (auto binding_point : {kOriginalImageBindingPoint,
                              kOutputImageBindingPoint}) {
@@ -124,8 +117,10 @@ PathRenderer2D::PathRenderer2D(
   bold_paths_descriptor_->UpdateImageInfos(
       VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
       /*image_info_map=*/{
-          {kOriginalImageBindingPoint, {intermediate_image_descriptor_info}},
-          {kOutputImageBindingPoint, {output_image_descriptor_info}},
+          {kOriginalImageBindingPoint,
+           {intermediate_image.GetDescriptorInfoForLinearAccess()}},
+          {kOutputImageBindingPoint,
+           {output_image.GetDescriptorInfoForLinearAccess()}},
       });
 
   /* Pipeline */

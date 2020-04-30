@@ -85,9 +85,6 @@ struct UsageInfo {
 // are Usage::kDontCare, an error will be thrown since there will be no
 // corresponding flags.
 VkImageUsageFlags GetImageUsageFlags(absl::Span<const Usage> usages);
-inline VkImageUsageFlags GetImageUsageFlags(const UsageInfo& usage_info) {
-  return GetImageUsageFlags(usage_info.GetAllUsages());
-}
 
 // This class is used for tracking usages of images, and inserting memory
 // barriers for transitioning image layouts when necessary.

@@ -49,12 +49,11 @@ std::unique_ptr<OffscreenImage> CreateTargetImage(
       static_cast<uint32_t>(background_image_extent.height *
                             num_buttons * button::kNumStates),
   };
+  const auto image_usages = {image::Usage::kRenderingTarget,
+                             image::Usage::kSampledInFragmentShader};
   return absl::make_unique<OffscreenImage>(
       context, buttons_image_extent, common::kRgbaImageChannel,
-      image::GetImageUsageFlags({
-          image::Usage::kRenderingTarget,
-          image::Usage::kSampledInFragmentShader}),
-      ImageSampler::Config{});
+      image_usages, ImageSampler::Config{});
 }
 
 // Creates per-instance vertex buffer storing RenderInfo.
@@ -149,10 +148,10 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
     absl::Span<const make_button::ButtonInfo> button_infos) {
   ASSERT_TRUE(button_background.channel == common::kBwImageChannel,
               "Expecting a single-channel button background image");
+  const auto image_usages = {image::Usage::kSampledInFragmentShader};
   const auto background_image = absl::make_unique<TextureImage>(
-      context, /*generate_mipmaps=*/false,
-      image::GetImageUsageFlags({image::Usage::kSampledInFragmentShader}),
-      button_background, ImageSampler::Config{});
+      context, /*generate_mipmaps=*/false, button_background, image_usages,
+      ImageSampler::Config{});
 
   const int num_buttons = button_infos.size();
   auto buttons_image = CreateTargetImage(context, num_buttons,
@@ -166,7 +165,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
   *push_constant->HostData<button::VerticesInfo>(/*frame=*/0) = vertices_info;
 
   const auto descriptor = CreateDescriptor(
-      context, background_image->GetDescriptorInfo());
+      context, background_image->GetDescriptorInfoForSampling());
 
   const auto render_pass = CreateRenderPass(context, *buttons_image);
 

@@ -41,7 +41,8 @@ ImageViewer::ImageViewer(const SharedBasicContext& context,
           }});
   descriptor_->UpdateImageInfos(
       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-      /*image_info_map=*/{{kImageBindingPoint, {image.GetDescriptorInfo()}}});
+      /*image_info_map=*/
+      {{kImageBindingPoint, {image.GetDescriptorInfoForSampling()}}});
 
   /* Vertex buffer */
   const auto vertex_data = Vertex2D::GetFullScreenSquadVertices(flip_y);

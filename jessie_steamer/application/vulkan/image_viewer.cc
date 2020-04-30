@@ -95,16 +95,15 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
       .AddUsage(kComputingStage, image::Usage::kLinearReadInComputeShader);
   const common::Image image_from_file{file_path};
   const TextureImage original_image(
-      context(), /*generate_mipmaps=*/false,
-      image::GetImageUsageFlags(original_image_usage),
-      image_from_file, ImageSampler::Config{});
+      context(), /*generate_mipmaps=*/false, image_from_file,
+      original_image_usage.GetAllUsages(), ImageSampler::Config{});
 
   auto processed_image_usage = image::UsageInfo{"Processed"}
       .AddUsage(kComputingStage, image::Usage::kLinearReadInComputeShader)
       .SetFinalUsage(image::Usage::kSampledInFragmentShader);
   image_ = absl::make_unique<OffscreenImage>(
       context(), original_image.extent(), image_from_file.channel,
-      image::GetImageUsageFlags(processed_image_usage), ImageSampler::Config{});
+      processed_image_usage.GetAllUsages(), ImageSampler::Config{});
 
   const image::LayoutManager layout_manager{
       kNumProcessingStages, /*usage_info_map=*/{
@@ -134,13 +133,10 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
           },
       }
   };
-  // TODO
-  auto original_image_descriptor_info = original_image.GetDescriptorInfo();
-  original_image_descriptor_info.imageLayout =
-      layout_manager.GetLayoutAtStage(original_image.image(), kComputingStage);
-  auto output_image_descriptor_info = image_->GetDescriptorInfo();
-  output_image_descriptor_info.imageLayout =
-      layout_manager.GetLayoutAtStage(image_->image(), kComputingStage);
+  const auto original_image_descriptor_info = original_image.GetDescriptorInfo(
+      layout_manager.GetLayoutAtStage(original_image.image(), kComputingStage));
+  const auto output_image_descriptor_info = image_->GetDescriptorInfo(
+      layout_manager.GetLayoutAtStage(image_->image(), kComputingStage));
   descriptor.UpdateImageInfos(
       VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
       /*image_info_map=*/

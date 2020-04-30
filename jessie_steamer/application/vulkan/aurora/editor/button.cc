@@ -99,7 +99,8 @@ std::unique_ptr<StaticDescriptor> ButtonRenderer::CreateDescriptor(
   descriptor->UpdateImageInfos(
       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
       /*image_info_map=*/{
-          {kImageBindingPoint, {buttons_image_->GetDescriptorInfo()}},
+          {kImageBindingPoint,
+           {buttons_image_->GetDescriptorInfoForSampling()}},
       });
   return descriptor;
 }

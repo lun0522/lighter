@@ -213,7 +213,8 @@ void StaticText::UpdateDescriptor(const VkCommandBuffer& command_buffer,
       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
       /*image_info_map=*/{{
           kTextureBindingPoint,
-          {text_loader_.texture_info(text_index).image->GetDescriptorInfo()},
+          {text_loader_.texture_info(text_index).image
+               ->GetDescriptorInfoForSampling()},
       }}
   );
 }
@@ -227,7 +228,8 @@ DynamicText::DynamicText(const SharedBasicContext& context,
            viewport_aspect_ratio},
       char_loader_{context, texts, font, font_height} {
   const Descriptor::ImageInfoMap image_info_map{{
-      kTextureBindingPoint, {char_loader_.atlas_image()->GetDescriptorInfo()}}};
+      kTextureBindingPoint,
+      {char_loader_.atlas_image()->GetDescriptorInfoForSampling()}}};
   descriptors_.reserve(num_frames_in_flight);
   for (int frame = 0; frame < num_frames_in_flight; ++frame) {
     descriptors_.push_back(

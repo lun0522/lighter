@@ -86,7 +86,7 @@ DistanceFieldGenerator::DistanceFieldGenerator(
                 image::Usage::kLinearReadWriteInComputeShader);
   pong_image_ = absl::make_unique<OffscreenImage>(
       context, image_extent, output_image.format(),
-      image::GetImageUsageFlags(pong_image_usage), ImageSampler::Config{});
+      pong_image_usage.GetAllUsages(), ImageSampler::Config{});
   const image::LayoutManager layout_manager{
       kNumProcessingStages, /*usage_info_map=*/{
           {&pong_image_->image(), std::move(pong_image_usage)},
@@ -104,15 +104,14 @@ DistanceFieldGenerator::DistanceFieldGenerator(
   }
   descriptor_ = absl::make_unique<DynamicDescriptor>(context, descriptor_infos);
 
-  // TODO
   const auto image_layout = layout_manager.GetLayoutAtStage(
       pong_image_->image(), kGenerateDistanceFieldStage);
-  auto input_image_descriptor_info = input_image.GetDescriptorInfo();
-  input_image_descriptor_info.imageLayout = image_layout;
-  auto ping_image_descriptor_info = output_image.GetDescriptorInfo();
-  ping_image_descriptor_info.imageLayout = image_layout;
-  auto pong_image_descriptor_info = pong_image_->GetDescriptorInfo();
-  pong_image_descriptor_info.imageLayout = image_layout;
+  const auto input_image_descriptor_info =
+      input_image.GetDescriptorInfo(image_layout);
+  const auto ping_image_descriptor_info =
+      output_image.GetDescriptorInfo(image_layout);
+  const auto pong_image_descriptor_info =
+      pong_image_->GetDescriptorInfo(image_layout);
 
   image_info_maps_[kInputToPing] = {
       {kOriginalImageBindingPoint, {input_image_descriptor_info}},

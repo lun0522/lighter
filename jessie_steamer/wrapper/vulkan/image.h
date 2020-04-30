@@ -16,8 +16,10 @@
 #include "jessie_steamer/common/util.h"
 #include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
+#include "jessie_steamer/wrapper/vulkan/image_util.h"
 #include "jessie_steamer/wrapper/vulkan/util.h"
 #include "third_party/absl/types/optional.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/absl/types/variant.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -163,7 +165,14 @@ class SamplableImage {
 
   // Returns an instance of VkDescriptorImageInfo with which we can update
   // descriptor sets.
-  virtual VkDescriptorImageInfo GetDescriptorInfo() const = 0;
+  virtual VkDescriptorImageInfo GetDescriptorInfo(
+      VkImageLayout layout) const = 0;
+  VkDescriptorImageInfo GetDescriptorInfoForSampling() const {
+    return GetDescriptorInfo(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  }
+  VkDescriptorImageInfo GetDescriptorInfoForLinearAccess() const {
+    return GetDescriptorInfo(VK_IMAGE_LAYOUT_GENERAL);
+  }
 };
 
 // This class copies a texture image on the host to device via a staging buffer,
@@ -188,18 +197,18 @@ class TextureImage : public Image, public SamplableImage {
     uint32_t width;
     uint32_t height;
     uint32_t channel;
+    absl::Span<const image::Usage> usages;
   };
 
   TextureImage(SharedBasicContext context,
                bool generate_mipmaps,
-               VkImageUsageFlags usage_flags,
                const ImageSampler::Config& sampler_config,
                const Info& info);
 
   TextureImage(SharedBasicContext context,
                bool generate_mipmaps,
-               VkImageUsageFlags usage_flags,
                const common::Image& image,
+               absl::Span<const image::Usage> usages,
                const ImageSampler::Config& sampler_config);
 
   // This class is neither copyable nor movable.
@@ -208,16 +217,16 @@ class TextureImage : public Image, public SamplableImage {
 
   // Overrides.
   const VkImage& image() const override { return buffer_.image(); }
-  VkDescriptorImageInfo GetDescriptorInfo() const override;
+  VkDescriptorImageInfo GetDescriptorInfo(VkImageLayout layout) const override {
+    return {*sampler_, image_view(), layout};
+  }
 
  private:
   // Texture image buffer on the device.
   class TextureBuffer : public ImageBuffer {
    public:
     TextureBuffer(SharedBasicContext context,
-                  bool generate_mipmaps,
-                  VkImageUsageFlags usage_flags,
-                  const Info& info);
+                  bool generate_mipmaps, const Info& info);
 
     // This class is neither copyable nor movable.
     TextureBuffer(const TextureBuffer&) = delete;
@@ -259,9 +268,9 @@ class SharedTexture : public SamplableImage {
 
   SharedTexture(SharedBasicContext context,
                 const SourcePath& source_path,
-                VkImageUsageFlags usage_flags,
+                absl::Span<const image::Usage> usages,
                 const ImageSampler::Config& sampler_config)
-      : texture_{GetTexture(std::move(context), source_path, usage_flags,
+      : texture_{GetTexture(std::move(context), source_path, usages,
                             sampler_config)} {}
 
   // This class is only movable.
@@ -269,8 +278,8 @@ class SharedTexture : public SamplableImage {
   SharedTexture& operator=(SharedTexture&&) = default;
 
   // Overrides.
-  VkDescriptorImageInfo GetDescriptorInfo() const override {
-    return texture_->GetDescriptorInfo();
+  VkDescriptorImageInfo GetDescriptorInfo(VkImageLayout layout) const override {
+    return texture_->GetDescriptorInfo(layout);
   }
 
   // Overloads.
@@ -286,7 +295,7 @@ class SharedTexture : public SamplableImage {
   static RefCountedTexture GetTexture(
       SharedBasicContext context,
       const SourcePath& source_path,
-      VkImageUsageFlags usage_flags,
+      absl::Span<const image::Usage> usages,
       const ImageSampler::Config& sampler_config);
 
   // Reference counted texture image.
@@ -299,12 +308,12 @@ class OffscreenImage : public Image, public SamplableImage {
  public:
   OffscreenImage(SharedBasicContext context,
                  const VkExtent2D& extent, VkFormat format,
-                 VkImageUsageFlags usage_flags,
+                 absl::Span<const image::Usage> usages,
                  const ImageSampler::Config& sampler_config);
 
   OffscreenImage(SharedBasicContext context,
                  const VkExtent2D& extent, int channel,
-                 VkImageUsageFlags usage_flags,
+                 absl::Span<const image::Usage> usages,
                  const ImageSampler::Config& sampler_config);
 
   // This class is neither copyable nor movable.
@@ -313,14 +322,17 @@ class OffscreenImage : public Image, public SamplableImage {
 
   // Overrides.
   const VkImage& image() const override { return buffer_.image(); }
-  VkDescriptorImageInfo GetDescriptorInfo() const override;
+  VkDescriptorImageInfo GetDescriptorInfo(VkImageLayout layout) const override {
+    return {*sampler_, image_view(), layout};
+  }
 
  private:
   // Offscreen image buffer on the device.
   class OffscreenBuffer : public ImageBuffer {
    public:
-    OffscreenBuffer(SharedBasicContext context, const VkExtent2D& extent,
-                    VkFormat format, VkImageUsageFlags usage_flags);
+    OffscreenBuffer(SharedBasicContext context,
+                    const VkExtent2D& extent, VkFormat format,
+                    absl::Span<const image::Usage> usages);
 
     // This class is neither copyable nor movable.
     OffscreenBuffer(const OffscreenBuffer&) = delete;
@@ -349,8 +361,8 @@ class UnownedOffscreenTexture : public SamplableImage {
   UnownedOffscreenTexture(UnownedOffscreenTexture&) = default;
 
   // Overrides.
-  VkDescriptorImageInfo GetDescriptorInfo() const override {
-    return texture_->GetDescriptorInfo();
+  VkDescriptorImageInfo GetDescriptorInfo(VkImageLayout layout) const override {
+    return texture_->GetDescriptorInfo(layout);
   }
 
   // Overloads.

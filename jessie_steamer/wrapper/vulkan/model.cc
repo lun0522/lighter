@@ -28,10 +28,10 @@ std::unique_ptr<SamplableImage> CreateTexture(
     const SharedBasicContext& context,
     const ModelBuilder::TextureSource& source) {
   if (absl::holds_alternative<SharedTexture::SourcePath>(source)) {
+    const auto image_usages = {image::Usage::kSampledInFragmentShader};
     return absl::make_unique<SharedTexture>(
         context, absl::get<SharedTexture::SourcePath>(source),
-        image::GetImageUsageFlags({image::Usage::kSampledInFragmentShader}),
-        ImageSampler::Config{});
+        image_usages, ImageSampler::Config{});
   } else if (absl::holds_alternative<OffscreenImagePtr>(source)) {
     return absl::make_unique<UnownedOffscreenTexture>(
         absl::get<OffscreenImagePtr>(source));
@@ -80,10 +80,10 @@ void CreateTextureInfo(const ModelBuilder::BindingPointMap& binding_map,
       auto& descriptor_infos = (*image_info_map)[binding_point];
       descriptor_infos.reserve(num_textures);
       for (const auto& texture : mesh_textures[type_index]) {
-        descriptor_infos.push_back(texture->GetDescriptorInfo());
+        descriptor_infos.push_back(texture->GetDescriptorInfoForSampling());
       }
       for (const auto& texture : shared_textures[type_index]) {
-        descriptor_infos.push_back(texture->GetDescriptorInfo());
+        descriptor_infos.push_back(texture->GetDescriptorInfoForSampling());
       }
     }
   }
@@ -181,8 +181,7 @@ void ModelBuilder::MultiMeshResource::LoadMesh(ModelBuilder* builder) const {
       pipeline::GetVertexAttribute<Vertex3DWithTex>());
 
   // Load textures.
-  const auto image_usage_flags =
-      image::GetImageUsageFlags({image::Usage::kSampledInFragmentShader});
+  const auto image_usages = {image::Usage::kSampledInFragmentShader};
   auto& mesh_textures = builder->mesh_textures_;
   mesh_textures.reserve(loader.mesh_datas().size());
   for (const auto& mesh_data : loader.mesh_datas()) {
@@ -191,7 +190,7 @@ void ModelBuilder::MultiMeshResource::LoadMesh(ModelBuilder* builder) const {
       const auto type_index = static_cast<int>(texture.texture_type);
       mesh_textures.back()[type_index].push_back(
           absl::make_unique<SharedTexture>(
-              builder->context_, texture.path, image_usage_flags,
+              builder->context_, texture.path, image_usages,
               ImageSampler::Config{}));
     }
   }
