@@ -85,7 +85,7 @@ class RenderPassBuilder {
       //   - VK_PIPELINE_STAGE_VERTEX/FRAGMENT_SHADER_BIT: if we only want to
       //       read (sample) the attachment.
       // This should always be non-zero.
-      VkPipelineStageFlags stage_mask;
+      VkPipelineStageFlags stage_flags;
 
       // Which memory access of the next subpass should wait for which access
       // of the previous subpass. Frequently used options:
@@ -99,7 +99,7 @@ class RenderPassBuilder {
       // the attachment should be in the READ_ONLY layout), and the next will
       // write to it (should be in the ATTACHMENT layout), we can put a 0 here,
       // and the transition of layouts will insert a memory barrier implicitly.
-      VkAccessFlags access_mask;
+      VkAccessFlags access_flags;
     };
 
     SubpassInfo prev_subpass, next_subpass;

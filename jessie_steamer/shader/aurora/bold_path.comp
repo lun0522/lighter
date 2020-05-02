@@ -2,7 +2,7 @@
 
 #define SAMPLING_RADIUS 2
 
-layout(binding = 0, rgba8) uniform readonly image2D original_image;
+layout(binding = 0, rgba16f) uniform readonly image2D original_image;
 
 layout(binding = 1, r8) uniform writeonly image2D output_image;
 

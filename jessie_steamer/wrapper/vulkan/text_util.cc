@@ -159,8 +159,8 @@ CharLoader::CharLoader(const SharedBasicContext& context,
     const common::CharLib char_lib{
         texts, GetFontPath(font), font_height, /*flip_y=*/true};
     const int interval_between_chars = GetIntervalBetweenChars(char_lib);
-    const auto image_usages = {image::Usage::kRenderingTarget,
-                               image::Usage::kSampledInFragmentShader};
+    const auto image_usages = {image::Usage::GetRenderTargetUsage(),
+                               image::Usage::GetSampledInFragmentShaderUsage()};
     char_atlas_image_ = absl::make_unique<OffscreenImage>(
         context, GetCharAtlasImageExtent(char_lib, interval_between_chars),
         common::kBwImageChannel, image_usages, GetTextSamplerConfig());
@@ -253,7 +253,7 @@ void CharLoader::CreateCharTextures(
   const glm::vec2 ratio = 1.0f / util::ExtentToVec(target_image.extent());
   const float normalized_interval =
       static_cast<float>(interval_between_chars) * ratio.x;
-  const auto image_usages = {image::Usage::kSampledInFragmentShader};
+  const auto image_usages = {image::Usage::GetSampledInFragmentShaderUsage()};
 
   float offset_x = 0.0f;
   for (const auto& pair : char_lib.char_info_map()) {
@@ -371,8 +371,8 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
       static_cast<uint32_t>(font_height),
   };
   const float base_y = highest_base_y;
-  const auto image_usages = {image::Usage::kRenderingTarget,
-                             image::Usage::kSampledInFragmentShader};
+  const auto image_usages = {image::Usage::GetRenderTargetUsage(),
+                             image::Usage::GetSampledInFragmentShaderUsage()};
   auto text_image = absl::make_unique<OffscreenImage>(
       context, text_image_extent, common::kBwImageChannel, image_usages,
       GetTextSamplerConfig());

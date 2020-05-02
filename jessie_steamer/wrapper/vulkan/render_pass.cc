@@ -115,10 +115,10 @@ VkSubpassDependency CreateSubpassDependency(
   return VkSubpassDependency{
       dependency.prev_subpass.index,
       dependency.next_subpass.index,
-      dependency.prev_subpass.stage_mask,
-      dependency.next_subpass.stage_mask,
-      dependency.prev_subpass.access_mask,
-      dependency.next_subpass.access_mask,
+      dependency.prev_subpass.stage_flags,
+      dependency.next_subpass.stage_flags,
+      dependency.prev_subpass.access_flags,
+      dependency.next_subpass.access_flags,
       /*dependencyFlags=*/nullflag,
   };
 }

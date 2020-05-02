@@ -1,8 +1,8 @@
 #version 460 core
 
-layout(binding = 0, rgba8) uniform readonly image2D original_image;
+layout(binding = 0, rgba16f) uniform readonly image2D original_image;
 
-layout(binding = 1, rgba8) uniform writeonly image2D output_image;
+layout(binding = 1, rgba16f) uniform writeonly image2D output_image;
 
 #if defined(TARGET_OPENGL)
 layout(binding = 2) uniform StepWidth {

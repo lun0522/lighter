@@ -80,7 +80,7 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
       context, sizeof(RenderInfo), num_frames_in_flight);
 
   /* Image */
-  const auto image_usages = {image::Usage::kSampledInFragmentShader};
+  const auto image_usages = {image::Usage::GetSampledInFragmentShaderUsage()};
   const ImageSampler::Config sampler_config{
       VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
   aurora_deposition_image_ = absl::make_unique<SharedTexture>(

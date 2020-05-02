@@ -37,8 +37,9 @@ class DistanceFieldGenerator {
   DistanceFieldGenerator& operator=(const DistanceFieldGenerator&) = delete;
 
   // Generates the distance field. Note that before calling this, the user is
-  // responsible for transitioning the layouts of 'input_image' and
-  // 'output_image' so that they can be linearly accessed in compute shaders.
+  // responsible for transitioning the layouts of 'input_image' so that it can
+  // be linearly read in compute shaders, and the layouts of 'output_image' so
+  // that it can be linearly read/write in compute shaders.
   // This should be called when 'command_buffer' is recording commands.
   void Generate(const VkCommandBuffer& command_buffer);
 

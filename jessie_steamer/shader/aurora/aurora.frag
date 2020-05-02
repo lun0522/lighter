@@ -133,15 +133,15 @@ void main() {
 
   // We need to take atmosphere (i.e. thinkness of air) into consideration.
   const float air_transmit = texture(air_transmit_sampler,
-                                     vec2(0.5, cos_angle)).r;
+                                     vec2(0.5, abs(cos_angle))).r;
   const vec3 foreground = air_transmit * aurora_color +
                           (1.0 - air_transmit) * air_color;
   const vec3 background = texture(universe_skybox_sampler, normalized_dir).rgb;
   // No need to convert to sRGB since hardware will perform it automatically.
   frag_color = vec4(foreground + (1.0 - length(foreground)) * background, 1.0);
 
-  // Assume reflectance is 0.5.
+  // Assume reflectance is 0.3.
   if (cos_angle < 0.0) {
-    frag_color.rgb *= 0.5;
+    frag_color.rgb *= 0.3;
   }
 }

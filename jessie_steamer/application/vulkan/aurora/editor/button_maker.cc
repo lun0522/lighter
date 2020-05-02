@@ -49,8 +49,8 @@ std::unique_ptr<OffscreenImage> CreateTargetImage(
       static_cast<uint32_t>(background_image_extent.height *
                             num_buttons * button::kNumStates),
   };
-  const auto image_usages = {image::Usage::kRenderingTarget,
-                             image::Usage::kSampledInFragmentShader};
+  const auto image_usages = {image::Usage::GetRenderTargetUsage(),
+                             image::Usage::GetSampledInFragmentShaderUsage()};
   return absl::make_unique<OffscreenImage>(
       context, buttons_image_extent, common::kRgbaImageChannel,
       image_usages, ImageSampler::Config{});
@@ -148,7 +148,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
     absl::Span<const make_button::ButtonInfo> button_infos) {
   ASSERT_TRUE(button_background.channel == common::kBwImageChannel,
               "Expecting a single-channel button background image");
-  const auto image_usages = {image::Usage::kSampledInFragmentShader};
+  const auto image_usages = {image::Usage::GetSampledInFragmentShaderUsage()};
   const auto background_image = absl::make_unique<TextureImage>(
       context, /*generate_mipmaps=*/false, button_background, image_usages,
       ImageSampler::Config{});

@@ -46,11 +46,10 @@ VkFormat FindColorImageFormat(
     int channel, absl::Span<const image::Usage> usages) {
   switch (channel) {
     case common::kBwImageChannel:
+      // TODO: VK_FORMAT_R8_UNORM may not be supported to be linearly accessed.
       return VK_FORMAT_R8_UNORM;
     case common::kRgbaImageChannel:
-      // TODO
-      if (std::count(usages.begin(), usages.end(),
-                     image::Usage::kLinearReadWriteInComputeShader) > 0) {
+      if (image::UseHighPrecision(usages)) {
         return VK_FORMAT_R16G16B16A16_SFLOAT;
       } else {
         return VK_FORMAT_R8G8B8A8_UNORM;
@@ -64,7 +63,7 @@ VkFormat FindColorImageFormat(
 // Returns image format with specified 'features', and throws a runtime
 // exception if not found.
 VkFormat FindImageFormatWithFeature(const BasicContext& context,
-                                    const std::vector<VkFormat>& candidates,
+                                    absl::Span<const VkFormat> candidates,
                                     VkFormatFeatureFlags features) {
   for (auto format : candidates) {
     VkFormatProperties properties;

@@ -55,22 +55,28 @@ PathDumper::PathDumper(
       static_cast<uint32_t>(paths_image_dimension)};
   const ImageSampler::Config sampler_config{
       VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
+  const auto linear_read_only_usage =
+      image::Usage::GetLinearAccessInComputeShaderUsage(
+          image::Usage::AccessType::kReadOnly);
 
   auto paths_image_usage = image::UsageInfo{"Aurora paths"}
-      .AddUsage(kBoldPathsStage, image::Usage::kLinearWriteInComputeShader)
-      .AddUsage(kGenerateDistanceFieldStage,
-                image::Usage::kLinearReadInComputeShader)
-      .SetFinalUsage(image::Usage::kSampledInFragmentShader);
+      .AddUsage(kBoldPathsStage,
+                image::Usage::GetLinearAccessInComputeShaderUsage(
+                    image::Usage::AccessType::kWriteOnly))
+      .AddUsage(kGenerateDistanceFieldStage, linear_read_only_usage)
+      .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
   paths_image_ = absl::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::kBwImageChannel,
       paths_image_usage.GetAllUsages(), sampler_config);
 
   auto distance_field_image_usage = image::UsageInfo{"Distance field"}
-      .SetInitialUsage(image::Usage::kSampledInFragmentShader)
-      .AddUsage(kBoldPathsStage, image::Usage::kLinearReadInComputeShader)
+      .SetInitialUsage(image::Usage::GetSampledInFragmentShaderUsage())
+      .AddUsage(kBoldPathsStage, linear_read_only_usage)
       .AddUsage(kGenerateDistanceFieldStage,
-                image::Usage::kLinearReadWriteInComputeShader)
-      .SetFinalUsage(image::Usage::kSampledInFragmentShader);
+                image::Usage::GetLinearAccessInComputeShaderUsage(
+                    image::Usage::AccessType::kReadWrite,
+                    /*use_high_precision=*/true))
+      .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
   distance_field_image_ = absl::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::kRgbaImageChannel,
       distance_field_image_usage.GetAllUsages(), sampler_config);
