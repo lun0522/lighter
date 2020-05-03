@@ -35,12 +35,6 @@ Camera& Camera::SetFront(const glm::vec3& front) {
   return *this;
 }
 
-Camera& Camera:: SetRight(const glm::vec3& right) {
-  right_ = glm::normalize(right);
-  front_ = glm::normalize(glm::cross(up_, right_));
-  return *this;
-}
-
 glm::mat4 Camera::GetViewMatrix() const {
   return glm::lookAt(pos_, pos_ + front_, up_);
 }
@@ -48,6 +42,17 @@ glm::mat4 Camera::GetViewMatrix() const {
 PerspectiveCamera& PerspectiveCamera::SetFieldOfViewY(float fovy) {
   fovy_ = fovy;
   return *this;
+}
+
+PerspectiveCamera::RayTracingParams
+PerspectiveCamera::GetRayTracingParams() const {
+  const glm::vec3 up_dir = glm::normalize(glm::cross(right(), front()));
+  const float tan_fovy = glm::tan(glm::radians(fovy_));
+  return RayTracingParams{
+      /*up=*/up_dir * tan_fovy,
+      /*front=*/front(),
+      /*right=*/right() * tan_fovy * aspect_ratio_,
+  };
 }
 
 glm::mat4 PerspectiveCamera::GetProjectionMatrix() const {
@@ -69,7 +74,7 @@ glm::mat4 OrthographicCamera::GetProjectionMatrix() const {
 void UserControlledCamera::SetInternalStates(
     const std::function<void(Camera*)>& operation) {
   operation(camera_.get());
-  Reset();
+  ResetAngles();
 }
 
 void UserControlledCamera::DidMoveCursor(double x, double y) {
@@ -77,8 +82,10 @@ void UserControlledCamera::DidMoveCursor(double x, double y) {
     return;
   }
 
-  const auto offset_x = static_cast<float>((x - cursor_pos_.x) * turn_speed_);
-  const auto offset_y = static_cast<float>((y - cursor_pos_.y) * turn_speed_);
+  const auto offset_x = static_cast<float>((x - cursor_pos_.x) *
+                        control_config_.turn_speed);
+  const auto offset_y = static_cast<float>((y - cursor_pos_.y) *
+                        control_config_.turn_speed);
   cursor_pos_ = glm::dvec2{x, y};
   pitch_ = glm::clamp(pitch_ - offset_y, glm::radians(-89.9f),
                       glm::radians(89.9f));
@@ -94,11 +101,12 @@ bool UserControlledCamera::DidScroll(
     return false;
   }
 
-  if (auto* pers_camera = dynamic_cast<PerspectiveCamera*>(camera_.get())) {
-    const float new_fovy =
-        glm::clamp(pers_camera->field_of_view_y() + delta, min_val, max_val);
-    if (new_fovy != pers_camera->field_of_view_y()) {
-      pers_camera->SetFieldOfViewY(new_fovy);
+  if (auto* perspective_camera =
+          dynamic_cast<PerspectiveCamera*>(camera_.get())) {
+    const float new_fovy = glm::clamp(
+        perspective_camera->field_of_view_y() + delta, min_val, max_val);
+    if (new_fovy != perspective_camera->field_of_view_y()) {
+      perspective_camera->SetFieldOfViewY(new_fovy);
       return true;
     }
     return false;
@@ -122,24 +130,67 @@ void UserControlledCamera::DidPressKey(ControlKey key, float elapsed_time) {
     return;
   }
 
-  const float distance = elapsed_time * move_speed_;
-  switch (key) {
-    case ControlKey::kUp:
-      camera_->UpdatePositionByOffset(/*offset=*/+camera_->front() * distance);
-      break;
-    case ControlKey::kDown:
-      camera_->UpdatePositionByOffset(/*offset=*/-camera_->front() * distance);
-      break;
-    case ControlKey::kLeft:
-      camera_->UpdatePositionByOffset(/*offset=*/-camera_->right() * distance);
-      break;
-    case ControlKey::kRight:
-      camera_->UpdatePositionByOffset(/*offset=*/+camera_->right() * distance);
-      break;
+  if (control_config_.lock_center.has_value()) {
+    const glm::vec3& front = camera_->front();
+    const glm::vec3& center = control_config_.lock_center.value();
+    const glm::vec3 pos_to_center = center - camera_->position();
+    const glm::vec3 normalized_pos_to_center = glm::normalize(pos_to_center);
+
+    float angle_sign;
+    glm::vec3 rotation_axis;
+    switch (key) {
+      case ControlKey::kUp:
+      case ControlKey::kDown: {
+        if (1.0f - glm::abs(glm::dot(normalized_pos_to_center, front)) < 1E-5) {
+          return;
+        }
+        angle_sign = key == ControlKey::kUp ? 1.0f : -1.0f;
+        rotation_axis = glm::normalize(glm::cross(front, pos_to_center));
+        break;
+      }
+
+      case ControlKey::kLeft:
+      case ControlKey::kRight: {
+        const glm::vec3& right = camera_->right();
+        if (1.0f - glm::abs(glm::dot(normalized_pos_to_center, right)) < 1E-5) {
+          return;
+        }
+        angle_sign = key == ControlKey::kRight ? 1.0f : -1.0f;
+        rotation_axis = glm::normalize(glm::cross(right, pos_to_center));
+        break;
+      }
+    }
+
+    const float angle = elapsed_time * control_config_.move_speed * angle_sign;
+    const glm::mat4 rotation =
+        glm::rotate(glm::mat4{1.0f}, angle, rotation_axis);
+    const glm::vec3 new_pos_to_center =
+        rotation * glm::vec4{pos_to_center, 0.0f};
+    const glm::vec3 new_front = rotation * glm::vec4{front, 0.0f};
+    camera_->SetPosition(center - new_pos_to_center);
+    camera_->SetFront(new_front);
+    ResetAngles();
+
+  } else {
+    const float distance = elapsed_time * control_config_.move_speed;
+    switch (key) {
+      case ControlKey::kUp:
+        camera_->UpdatePositionByOffset(+camera_->front() * distance);
+        break;
+      case ControlKey::kDown:
+        camera_->UpdatePositionByOffset(-camera_->front() * distance);
+        break;
+      case ControlKey::kLeft:
+        camera_->UpdatePositionByOffset(-camera_->right() * distance);
+        break;
+      case ControlKey::kRight:
+        camera_->UpdatePositionByOffset(+camera_->right() * distance);
+        break;
+    }
   }
 }
 
-void UserControlledCamera::Reset() {
+void UserControlledCamera::ResetAngles() {
   ref_front_ = camera_->front();
   ref_left_ = -camera_->right();
   pitch_ = yaw_ = 0.0f;

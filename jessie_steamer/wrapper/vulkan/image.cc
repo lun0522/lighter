@@ -40,14 +40,57 @@ struct ImageConfig {
   VkImageLayout initial_layout;
 };
 
+// Returns the first image format among 'candidates' that has the specified
+// 'features'. If not found, returns absl::nullopt.
+absl::optional<VkFormat> FindImageFormatWithFeature(
+    const BasicContext& context,
+    absl::Span<const VkFormat> candidates,
+    VkFormatFeatureFlags features) {
+  for (auto format : candidates) {
+    VkFormatProperties properties;
+    vkGetPhysicalDeviceFormatProperties(*context.physical_device(),
+                                        format, &properties);
+    if ((properties.optimalTilingFeatures & features) == features) {
+      return format;
+    }
+  }
+  return absl::nullopt;
+}
+
 // Returns the image format to use for a color image given number of 'channel'.
 // Only 1 or 4 channels are supported.
 VkFormat FindColorImageFormat(
+    const BasicContext& context,
     int channel, absl::Span<const image::Usage> usages) {
   switch (channel) {
-    case common::kBwImageChannel:
-      // TODO: VK_FORMAT_R8_UNORM may not be supported to be linearly accessed.
-      return VK_FORMAT_R8_UNORM;
+    case common::kBwImageChannel: {
+      // VK_FORMAT_R8_UNORM and VK_FORMAT_R16_SFLOAT have mandatory support for
+      // sampling, but may not support linear access. We may switch to 4-channel
+      // formats since they have mandatory support for both.
+      VkFormat best_format;
+      VkFormat alternative_format;
+      if (image::UseHighPrecision(usages)) {
+        best_format = VK_FORMAT_R16_SFLOAT;
+        alternative_format = VK_FORMAT_R16G16B16A16_SFLOAT;
+      } else {
+        best_format = VK_FORMAT_R8_UNORM;
+        alternative_format = VK_FORMAT_R8G8B8A8_UNORM;
+      }
+      if (!image::IsLinearAccessed(usages)) {
+        return best_format;
+      }
+      if (FindImageFormatWithFeature(
+              context, {best_format},
+              VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT).has_value()) {
+        return best_format;
+      } else {
+#ifndef NDEBUG
+        LOG_INFO << "The single channel image format does not support linear "
+                    "access, use the 4-channel format instead";
+#endif /* !NDEBUG */
+        return alternative_format;
+      }
+    }
     case common::kRgbaImageChannel:
       if (image::UseHighPrecision(usages)) {
         return VK_FORMAT_R16G16B16A16_SFLOAT;
@@ -60,27 +103,14 @@ VkFormat FindColorImageFormat(
   }
 }
 
-// Returns image format with specified 'features', and throws a runtime
-// exception if not found.
-VkFormat FindImageFormatWithFeature(const BasicContext& context,
-                                    absl::Span<const VkFormat> candidates,
-                                    VkFormatFeatureFlags features) {
-  for (auto format : candidates) {
-    VkFormatProperties properties;
-    vkGetPhysicalDeviceFormatProperties(*context.physical_device(),
-                                        format, &properties);
-    if ((properties.optimalTilingFeatures & features) == features) {
-      return format;
-    }
-  }
-  FATAL("Failed to find suitable image format");
-}
-
-// Returns the image format to use for a depth stencil image.
+// Returns the image format to use for a depth stencil image. If not found, a
+// runtime exception will be thrown.
 VkFormat FindDepthStencilImageFormat(const BasicContext& context) {
-  return FindImageFormatWithFeature(
+  const auto format = FindImageFormatWithFeature(
       context, {VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+  ASSERT_HAS_VALUE(format, "Failed to find depth stencil image format");
+  return format.value();
 }
 
 // Returns the maximum number of samples per pixel indicated by 'sample_counts'.
@@ -102,12 +132,13 @@ VkSampleCountFlagBits GetMaxSampleCount(VkSampleCountFlags sample_counts) {
 // properties as the given 'sample_image'. The size of 'image_datas' can only be
 // either 1 or 6 (for cubemaps)
 TextureImage::Info CreateTextureBufferInfo(
+    const BasicContext& context,
     const common::Image& sample_image,
     absl::Span<const image::Usage> usages,
     std::vector<const void*>&& image_datas) {
   return TextureImage::Info{
       std::move(image_datas),
-      FindColorImageFormat(sample_image.channel, usages),
+      FindColorImageFormat(context, sample_image.channel, usages),
       static_cast<uint32_t>(sample_image.width),
       static_cast<uint32_t>(sample_image.height),
       static_cast<uint32_t>(sample_image.channel),
@@ -501,13 +532,14 @@ TextureImage::TextureImage(SharedBasicContext context,
                                /*layer_count=*/CONTAINER_SIZE(info.datas)));
 }
 
-TextureImage::TextureImage(SharedBasicContext context,
+TextureImage::TextureImage(const SharedBasicContext& context,
                            bool generate_mipmaps,
                            const common::Image& image,
                            absl::Span<const image::Usage> usages,
                            const ImageSampler::Config& sampler_config)
-    : TextureImage{std::move(context), generate_mipmaps, sampler_config,
-                   CreateTextureBufferInfo(image, usages, {image.data})} {}
+    : TextureImage{context, generate_mipmaps, sampler_config,
+                   CreateTextureBufferInfo(*FATAL_IF_NULL(context), image,
+                                           usages, {image.data})} {}
 
 TextureImage::TextureBuffer::TextureBuffer(
     SharedBasicContext context, bool generate_mipmaps, const Info& info)
@@ -570,7 +602,7 @@ TextureImage::TextureBuffer::TextureBuffer(
 }
 
 SharedTexture::RefCountedTexture SharedTexture::GetTexture(
-    SharedBasicContext context,
+    const SharedBasicContext& context,
     const SourcePath& source_path,
     absl::Span<const image::Usage> usages,
     const ImageSampler::Config& sampler_config) {
@@ -612,8 +644,9 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
   }
 
   return RefCountedTexture::Get(
-      *identifier, std::move(context), generate_mipmaps, sampler_config,
-      CreateTextureBufferInfo(*sample_image, usages, std::move(datas)));
+      *identifier, context, generate_mipmaps, sampler_config,
+      CreateTextureBufferInfo(*context, *sample_image, usages,
+                              std::move(datas)));
 }
 
 OffscreenImage::OffscreenImage(SharedBasicContext context,
@@ -628,12 +661,13 @@ OffscreenImage::OffscreenImage(SharedBasicContext context,
                                kSingleMipLevel, kSingleImageLayer));
 }
 
-OffscreenImage::OffscreenImage(SharedBasicContext context,
+OffscreenImage::OffscreenImage(const SharedBasicContext& context,
                                const VkExtent2D& extent, int channel,
                                absl::Span<const image::Usage> usages,
                                const ImageSampler::Config& sampler_config)
-    : OffscreenImage{std::move(context), extent,
-                     FindColorImageFormat(channel, usages),
+    : OffscreenImage{context, extent,
+                     FindColorImageFormat(*FATAL_IF_NULL(context),
+                                          channel, usages),
                      usages, sampler_config} {}
 
 OffscreenImage::OffscreenBuffer::OffscreenBuffer(

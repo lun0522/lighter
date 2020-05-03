@@ -111,11 +111,15 @@ class Window {
   static const std::vector<const char*>& GetRequiredExtensions();
 #endif /* USE_VULKAN */
 
-  // Returns the frame size of window. Note that this is different from the
-  // window size on retina displays.
+  // Returns the size of window.
+  glm::ivec2 GetWindowSize() const;
+
+  // Returns the framebuffer size of window. Note that this is different from
+  // the window size on retina displays.
   glm::ivec2 GetFrameSize() const;
 
-  // Returns the position of cursor.
+  // Returns the position of cursor. Note that when handling user inputs, we
+  // should use this with GetWindowSize() rather than GetFrameSize().
   glm::dvec2 GetCursorPos() const;
 
   // Returns the position of cursor in the normalized screen coordinate.
@@ -141,11 +145,6 @@ class Window {
   void DidScroll(double x_pos, double y_pos);
   void DidClickMouse(bool is_left, bool is_press);
 
-  // Updates 'retina_ratio_'. On retina displays, the framebuffer size will be
-  // greater than the window size. This should be called after the window is
-  // created, and whenever it is recreated.
-  void UpdateRetinaRatio();
-
   // The aspect ratio of 'screen_size' passed to the constructor.
   const float original_aspect_ratio_;
 
@@ -154,10 +153,6 @@ class Window {
 
   // Pointer to the backing GLFWwindow.
   GLFWwindow* window_ = nullptr;
-
-  // Ratio between the screen frame size and window size. This is used to
-  // calibrate the cursor position reported by the window manager.
-  glm::ivec2 retina_ratio_;
 
   // Invoked when the cursor is moved.
   MoveCursorCallback move_cursor_callback_;

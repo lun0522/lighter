@@ -14,6 +14,7 @@
 #ifdef USE_VULKAN
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #endif /* USE_VULKAN */
+#include "third_party/absl/types/optional.h"
 #include "third_party/glm/glm.hpp"
 
 namespace jessie_steamer {
@@ -48,9 +49,6 @@ class Camera {
 
   // Updates front and right vectors. 'front' does not need to be normalized.
   Camera& SetFront(const glm::vec3& front);
-
-  // Updates right and front vectors. 'right' does not need to be normalized.
-  Camera& SetRight(const glm::vec3& right);
 
   // Returns the view matrix.
   glm::mat4 GetViewMatrix() const;
@@ -101,15 +99,25 @@ class PerspectiveCamera : public Camera {
  public:
   // Configurations used to control perspective projection. 'field_of_view' is
   // measured in degrees.
-  struct PersConfig {
+  struct FrustumConfig {
     float field_of_view_y;
     float aspect_ratio;
   };
 
+  // Used for computing the direction of a view ray when doing ray tracing. If
+  // the coordinate of a pixel is (x, y), where both x and y are in range
+  // [-1, 1], it will be used to trace the ray shooting from the camera position
+  // in the direction: 'right' * x + 'up' * y + 'front'.
+  struct RayTracingParams {
+    glm::vec3 up;
+    glm::vec3 front;
+    glm::vec3 right;
+  };
+
   PerspectiveCamera(const Camera::Config& config,
-                    const PersConfig& pers_config)
-      : Camera{config}, aspect_ratio_{pers_config.aspect_ratio},
-        fovy_{pers_config.field_of_view_y} {}
+                    const FrustumConfig& frustum_config)
+      : Camera{config}, aspect_ratio_{frustum_config.aspect_ratio},
+        fovy_{frustum_config.field_of_view_y} {}
 
   // This class is neither copyable nor movable.
   PerspectiveCamera(const PerspectiveCamera&) = delete;
@@ -117,6 +125,9 @@ class PerspectiveCamera : public Camera {
 
   // Updates the field of view in Y-axis.
   PerspectiveCamera& SetFieldOfViewY(float fovy);
+
+  // Returns parameters used for ray tracing.
+  RayTracingParams GetRayTracingParams() const;
 
   // Overrides.
   glm::mat4 GetProjectionMatrix() const override;
@@ -183,16 +194,26 @@ class UserControlledCamera {
 
   // Configurations used to initialize the control.
   struct ControlConfig {
+    // If the user keeps pressing the key for 1 second, the position of camera
+    // will change by 'move_speed'. If 'lock_center' has value, it will be
+    // measured by radians.
     float move_speed = 10.0f;
+
+    // If the user moves the cursor by 1 pixel, the direction of camera will
+    // change by 'turn_speed' measured in radians.
     float turn_speed = 0.0005f;
+
+    // When the user presses on keys, if this has value, the camera will move
+    // with no constraints. Otherwise, the camera will move on the surface of a
+    // sphere, whose center is 'lock_center', and radius is the distance between
+    // the initial position of camera and the 'lock_center' point.
+    absl::optional<glm::vec3> lock_center;
   };
 
   UserControlledCamera(const ControlConfig& control_config,
                        std::unique_ptr<Camera>&& camera)
-      : move_speed_{control_config.move_speed},
-        turn_speed_{control_config.turn_speed},
-        camera_{std::move(camera)} {
-    Reset();
+      : control_config_{control_config}, camera_{std::move(camera)} {
+    ResetAngles();
   }
 
   // This class is neither copyable nor movable.
@@ -233,13 +254,10 @@ class UserControlledCamera {
  private:
   // Resets reference vectors and angles, and turns to the coordinate system
   // built with the current camera up and front vectors.
-  void Reset();
+  void ResetAngles();
 
-  // Moving speed of camera (forward/backward/left/right).
-  const float move_speed_;
-
-  // Turning speed of camera (pitch/yaw).
-  const float turn_speed_;
+  // Controls the way the camera moves and turns.
+  const ControlConfig control_config_;
 
   // Whether the camera responds to user inputs.
   bool is_active_ = false;

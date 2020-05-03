@@ -46,8 +46,8 @@ class ViewerRenderer {
   void UpdateDumpPathsCamera(const common::Camera& camera);
 
   // Updates camera parameters used for viewing aurora.
-  void UpdateViewAuroraCamera(int frame, const common::Camera& camera,
-                              float view_aurora_camera_fovy);
+  void UpdateViewAuroraCamera(
+      int frame, const common::PerspectiveCamera& camera);
 
   // Renders aurora paths.
   // This should be called when 'command_buffer' is recording commands.
@@ -101,7 +101,8 @@ class Viewer : public Scene {
   void Recreate() override;
   void UpdateData(int frame) override {
     viewer_renderer_.UpdateViewAuroraCamera(
-        frame, view_aurora_camera_->camera(), view_aurora_camera_fovy_);
+        frame, dynamic_cast<const common::PerspectiveCamera&>(
+            view_aurora_camera_->camera()));
   }
   void Draw(const VkCommandBuffer& command_buffer,
             uint32_t framebuffer_index, int current_frame) override {
@@ -131,15 +132,8 @@ class Viewer : public Scene {
 
   // Camera used for viewing aurora. We would change both position and direction
   // of this camera when the user viewpoint changes, and when the user gives
-  // inputs to move the camera.
+  // inputs to change the direction.
   std::unique_ptr<common::UserControlledCamera> view_aurora_camera_;
-
-  // Field of view measured in degrees. Since we are always rendering a
-  // fullscreen squad for ray tracing, we cannot use a traditional perspective
-  // camera, but track FOV by ourselves, set camera parameters according to it
-  // and send them to shaders.
-  // TODO: Extend camera to support this.
-  float view_aurora_camera_fovy_ = 45.0f;
 };
 
 } /* namespace aurora */

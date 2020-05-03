@@ -153,6 +153,9 @@ struct UsageInfo {
   std::vector<UsageAtStage> usage_at_stages;
 };
 
+// Returns true if any of 'usages' is UsageType::kLinearAccess.
+bool IsLinearAccessed(absl::Span<const Usage> usages);
+
 // Returns true if any of 'usages' is in high precision.
 bool UseHighPrecision(absl::Span<const Usage> usages);
 

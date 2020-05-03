@@ -205,7 +205,7 @@ class TextureImage : public Image, public SamplableImage {
                const ImageSampler::Config& sampler_config,
                const Info& info);
 
-  TextureImage(SharedBasicContext context,
+  TextureImage(const SharedBasicContext& context,
                bool generate_mipmaps,
                const common::Image& image,
                absl::Span<const image::Usage> usages,
@@ -266,12 +266,11 @@ class SharedTexture : public SamplableImage {
   };
   using SourcePath = absl::variant<SingleTexPath, CubemapPath>;
 
-  SharedTexture(SharedBasicContext context,
+  SharedTexture(const SharedBasicContext& context,
                 const SourcePath& source_path,
                 absl::Span<const image::Usage> usages,
                 const ImageSampler::Config& sampler_config)
-      : texture_{GetTexture(std::move(context), source_path, usages,
-                            sampler_config)} {}
+      : texture_{GetTexture(context, source_path, usages, sampler_config)} {}
 
   // This class is only movable.
   SharedTexture(SharedTexture&&) = default;
@@ -293,7 +292,7 @@ class SharedTexture : public SamplableImage {
   // no other holder, it will be loaded from the file. Otherwise, this returns
   // a reference to an existing resource on the device.
   static RefCountedTexture GetTexture(
-      SharedBasicContext context,
+      const SharedBasicContext& context,
       const SourcePath& source_path,
       absl::Span<const image::Usage> usages,
       const ImageSampler::Config& sampler_config);
@@ -311,7 +310,7 @@ class OffscreenImage : public Image, public SamplableImage {
                  absl::Span<const image::Usage> usages,
                  const ImageSampler::Config& sampler_config);
 
-  OffscreenImage(SharedBasicContext context,
+  OffscreenImage(const SharedBasicContext& context,
                  const VkExtent2D& extent, int channel,
                  absl::Span<const image::Usage> usages,
                  const ImageSampler::Config& sampler_config);

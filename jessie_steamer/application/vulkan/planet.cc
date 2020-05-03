@@ -123,11 +123,11 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
   common::Camera::Config config;
   config.position = glm::vec3{1.6f, -5.1f, -5.9f};
   config.look_at = glm::vec3{-2.4f, -0.8f, 0.0f};
-  const common::PerspectiveCamera::PersConfig pers_config{
+  const common::PerspectiveCamera::FrustumConfig frustum_config{
       /*field_of_view_y=*/45.0f, original_aspect_ratio};
   camera_ = absl::make_unique<common::UserControlledCamera>(
       common::UserControlledCamera::ControlConfig{},
-      absl::make_unique<common::PerspectiveCamera>(config, pers_config));
+      absl::make_unique<common::PerspectiveCamera>(config, frustum_config));
 
   /* Window */
   (*mutable_window_context()->mutable_window())

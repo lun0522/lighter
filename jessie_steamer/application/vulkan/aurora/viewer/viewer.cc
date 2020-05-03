@@ -224,21 +224,17 @@ void ViewerRenderer::UpdateDumpPathsCamera(const common::Camera& camera) {
 }
 
 void ViewerRenderer::UpdateViewAuroraCamera(
-    int frame, const common::Camera& camera, float view_aurora_camera_fovy) {
+    int frame, const common::PerspectiveCamera& camera) {
   render_info_uniform_->HostData<RenderInfo>(frame)->camera_pos =
       glm::vec4{camera.position(), 0.0f};
   render_info_uniform_->Flush(frame, sizeof(RenderInfo::camera_pos),
                               offsetof(RenderInfo, camera_pos));
 
-  const glm::vec3 up_dir =
-      glm::normalize(glm::cross(camera.right(), camera.front()));
-  const float tan_fovy = glm::tan(glm::radians(view_aurora_camera_fovy));
+  const auto ray_tracing_params = camera.GetRayTracingParams();
   auto& camera_parameter = *camera_constant_->HostData<CameraParameter>(frame);
-  camera_parameter.up = glm::vec4{up_dir * tan_fovy, 0.0f};
-  camera_parameter.front = glm::vec4{camera.front(), 0.0f};
-  camera_parameter.right = glm::vec4{camera.right() * tan_fovy *
-                                     window_context_.original_aspect_ratio(),
-                                     0.0f};
+  camera_parameter.up = glm::vec4{ray_tracing_params.up, 0.0f};
+  camera_parameter.front = glm::vec4{ray_tracing_params.front, 0.0f};
+  camera_parameter.right = glm::vec4{ray_tracing_params.right, 0.0f};
 }
 
 void ViewerRenderer::Draw(const VkCommandBuffer& command_buffer,
@@ -278,18 +274,20 @@ Viewer::Viewer(
   // Field of view should be as small as possible so that we can focus on more
   // details of aurora paths, but it should not be too small, in case that the
   // marching ray goes out of the resulting texture.
-  const common::PerspectiveCamera::PersConfig pers_config{
-      /*field_of_view_y=*/40.0f, /*aspect_ratio=*/1.0f};
-  dump_paths_camera_ =
-      absl::make_unique<common::PerspectiveCamera>(config, pers_config);
+  dump_paths_camera_ = absl::make_unique<common::PerspectiveCamera>(
+      config, common::PerspectiveCamera::FrustumConfig{
+          /*field_of_view_y=*/40.0f, /*aspect_ratio=*/1.0f,
+      });
 
-  // Since we are using a fullscreen squad to do ray-tracing, we can simply use
-  // an orthographic camera. 'position' and 'look_at' don't matter at this
-  // moment. They will be set according to the user viewpoint.
-  auto ortho_camera = absl::make_unique<common::OrthographicCamera>(
-      config, common::OrthographicCamera::GetFullscreenConfig());
+  // 'position' and 'look_at' don't matter at this moment. They will be set
+  // according to the user viewpoint.
+  auto perspective_camera = absl::make_unique<common::PerspectiveCamera>(
+      config, common::PerspectiveCamera::FrustumConfig{
+          /*field_of_view_y=*/45.0f, window_context_.original_aspect_ratio(),
+      });
   view_aurora_camera_ = absl::make_unique<common::UserControlledCamera>(
-      common::UserControlledCamera::ControlConfig{}, std::move(ortho_camera));
+      common::UserControlledCamera::ControlConfig{},
+      std::move(perspective_camera));
   view_aurora_camera_->SetActivity(true);
 }
 
@@ -302,7 +300,8 @@ void Viewer::UpdateAuroraPaths(const glm::vec3& viewpoint_position) {
       [&viewpoint_position](common::Camera* camera) {
         camera->SetPosition(viewpoint_position);
         camera->SetUp(viewpoint_position);
-        camera->SetRight(glm::cross(GetEarthModelAxis(), camera->up()));
+        const glm::vec3 right = glm::cross(GetEarthModelAxis(), camera->up());
+        camera->SetFront(glm::normalize(glm::cross(camera->up(), right)));
       });
 }
 
@@ -314,9 +313,7 @@ void Viewer::OnEnter() {
         view_aurora_camera_->DidMoveCursor(x_pos, y_pos);
       })
       .RegisterScrollCallback([this](double x_pos, double y_pos) {
-        view_aurora_camera_fovy_ =
-            glm::clamp(view_aurora_camera_fovy_ + static_cast<float>(y_pos),
-                       15.0f, 45.0f);
+        view_aurora_camera_->DidScroll(y_pos, 15.0f, 45.0f);
       })
       .RegisterPressKeyCallback(common::Window::KeyMap::kEscape,
                                 [this]() { should_quit_ = true; });

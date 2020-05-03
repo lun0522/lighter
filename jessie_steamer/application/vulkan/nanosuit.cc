@@ -87,13 +87,17 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
   common::Camera::Config config;
   config.position = glm::vec3{0.0f, 4.0f, -12.0f};
   config.look_at = glm::vec3{0.0f, 4.0f, 0.0f};
-  const common::PerspectiveCamera::PersConfig pers_config{
+
+  common::UserControlledCamera::ControlConfig control_config;
+  control_config.move_speed = 1.0f;
+  control_config.lock_center = config.look_at;
+
+  const common::PerspectiveCamera::FrustumConfig frustum_config{
       /*field_of_view_y=*/45.0f, original_aspect_ratio};
-  auto pers_camera =
-      absl::make_unique<common::PerspectiveCamera>(config, pers_config);
-  // TODO: Add lock center mode.
+
   camera_ = absl::make_unique<common::UserControlledCamera>(
-      common::UserControlledCamera::ControlConfig{}, std::move(pers_camera));
+      control_config,
+      absl::make_unique<common::PerspectiveCamera>(config, frustum_config));
 
   /* Window */
   (*mutable_window_context()->mutable_window())

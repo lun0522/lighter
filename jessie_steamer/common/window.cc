@@ -46,9 +46,7 @@ void GlfwResizeWindowCallback(GLFWwindow* window, int width, int height) {
   GetWindow(window).DidResizeWindow();
 }
 void GlfwMoveCursorCallback(GLFWwindow* window, double x_pos, double y_pos) {
-  const auto& retina_ratio = GetWindow(window).retina_ratio_;
-  GetWindow(window).DidMoveCursor(x_pos * retina_ratio.x,
-                                  y_pos * retina_ratio.y);
+  GetWindow(window).DidMoveCursor(x_pos, y_pos);
 }
 void GlfwScrollCallback(GLFWwindow* window, double x_pos, double y_pos) {
   GetWindow(window).DidScroll(x_pos, y_pos);
@@ -83,8 +81,6 @@ Window::Window(const std::string& name, const glm::ivec2& screen_size)
   glfwSetCursorPosCallback(window_, window_callback::GlfwMoveCursorCallback);
   glfwSetScrollCallback(window_, window_callback::GlfwScrollCallback);
   glfwSetMouseButtonCallback(window_, window_callback::GlfwMouseButtonCallback);
-
-  UpdateRetinaRatio();
 }
 
 #ifdef USE_VULKAN
@@ -152,14 +148,13 @@ void Window::ProcessUserInputs() const {
 }
 
 glm::ivec2 Window::Recreate() {
-  glm::ivec2 extent{};
-  while (extent.x == 0 || extent.y == 0) {
+  glm::ivec2 frame_size{};
+  while (frame_size.x == 0 || frame_size.y == 0) {
     glfwWaitEvents();
-    extent = GetFrameSize();
+    frame_size = GetFrameSize();
   }
-  UpdateRetinaRatio();
   is_resized_ = false;
-  return extent;
+  return frame_size;
 }
 
 bool Window::ShouldQuit() const {
@@ -180,24 +175,29 @@ const std::vector<const char*>& Window::GetRequiredExtensions() {
 }
 #endif /* USE_VULKAN */
 
+glm::ivec2 Window::GetWindowSize() const {
+  glm::ivec2 window_size;
+  glfwGetWindowSize(window_, &window_size.x, &window_size.y);
+  return window_size;
+}
+
 glm::ivec2 Window::GetFrameSize() const {
-  glm::ivec2 extent;
-  glfwGetFramebufferSize(window_, &extent.x, &extent.y);
-  return extent;
+  glm::ivec2 frame_size;
+  glfwGetFramebufferSize(window_, &frame_size.x, &frame_size.y);
+  return frame_size;
 }
 
 glm::dvec2 Window::GetCursorPos() const {
   glm::dvec2 pos;
   glfwGetCursorPos(window_, &pos.x, &pos.y);
-  pos *= retina_ratio_;
   return pos;
 }
 
 glm::dvec2 Window::GetNormalizedCursorPos() const {
-  const glm::ivec2 frame_size = GetFrameSize();
+  const glm::ivec2 window_size = GetWindowSize();
   const glm::dvec2 cursor_pos = GetCursorPos();
-  glm::dvec2 normalized_cursor_pos{cursor_pos.x / frame_size.x,
-                                   cursor_pos.y / frame_size.y};
+  glm::dvec2 normalized_cursor_pos{cursor_pos.x / window_size.x,
+                                   cursor_pos.y / window_size.y};
   normalized_cursor_pos = normalized_cursor_pos * 2.0 - 1.0;
   normalized_cursor_pos.y *= -1.0;
   return normalized_cursor_pos;
@@ -223,13 +223,6 @@ void Window::DidClickMouse(bool is_left, bool is_press) {
   if (mouse_button_callback_) {
     mouse_button_callback_(is_left, is_press);
   }
-}
-
-void Window::UpdateRetinaRatio() {
-  glm::ivec2 window_size;
-  glfwGetWindowSize(window_, &window_size.x, &window_size.y);
-  retina_ratio_ = GetFrameSize() / window_size;
-  ASSERT_TRUE(retina_ratio_.x > 0 && retina_ratio_.y > 0, "Unexpected ratio");
 }
 
 Window::~Window() {

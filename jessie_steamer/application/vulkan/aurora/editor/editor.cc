@@ -260,11 +260,11 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
   config.position = glm::vec3{0.0f, 0.0f, 3.0f};
   const common::UserControlledCamera::ControlConfig camera_control_config{};
 
-  const common::PerspectiveCamera::PersConfig pers_config{
+  const common::PerspectiveCamera::FrustumConfig frustum_config{
       /*field_of_view_y=*/45.0f, original_aspect_ratio};
   skybox_camera_ = absl::make_unique<common::UserControlledCamera>(
       camera_control_config,
-      absl::make_unique<common::PerspectiveCamera>(config, pers_config));
+      absl::make_unique<common::PerspectiveCamera>(config, frustum_config));
   skybox_camera_->SetActivity(true);
 
   const common::OrthographicCamera::OrthoConfig ortho_config{

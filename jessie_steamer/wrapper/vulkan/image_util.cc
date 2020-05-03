@@ -210,10 +210,16 @@ std::vector<Usage> UsageInfo::GetAllUsages() const {
   return usages;
 }
 
+bool IsLinearAccessed(absl::Span<const Usage> usages) {
+  return std::any_of(usages.begin(), usages.end(), [](const Usage& usage) {
+    return usage.usage_type == UsageType::kLinearAccess;
+  });
+}
+
 bool UseHighPrecision(absl::Span<const Usage> usages) {
-  return std::any_of(
-      usages.begin(), usages.end(),
-      [](const Usage& usage) { return usage.use_high_precision; });
+  return std::any_of(usages.begin(), usages.end(), [](const Usage& usage) {
+    return usage.use_high_precision;
+  });
 }
 
 VkImageUsageFlags GetImageUsageFlags(absl::Span<const Usage> usages) {
