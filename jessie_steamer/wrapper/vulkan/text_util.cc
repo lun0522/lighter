@@ -60,7 +60,7 @@ int GetIntervalBetweenChars(const common::CharLib& char_lib) {
 std::vector<Descriptor::Info> CreateDescriptorInfos() {
   return {
       Descriptor::Info{
-          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          Image::GetDescriptorTypeForSampling(),
           VK_SHADER_STAGE_FRAGMENT_BIT,
           /*bindings=*/{
               Descriptor::Info::Binding{
@@ -198,7 +198,7 @@ CharLoader::CharLoader(const SharedBasicContext& context,
               char_image_map.find(char_merge_order[i])->second;
           descriptor->PushImageInfos(
               command_buffer, pipeline->layout(), pipeline->binding_point(),
-              VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+              Image::GetDescriptorTypeForSampling(),
               /*image_info_map=*/{{
                   kImageBindingPoint,
                   {char_image->GetDescriptorInfoForSampling()}},
@@ -389,7 +389,7 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
   });
 
   descriptor->UpdateImageInfos(
-      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      Image::GetDescriptorTypeForSampling(),
       /*image_info_map=*/{
           {kImageBindingPoint,
            {char_loader.atlas_image()->GetDescriptorInfoForSampling()}},

@@ -31,7 +31,7 @@ ImageViewer::ImageViewer(const SharedBasicContext& context,
   descriptor_ = absl::make_unique<StaticDescriptor>(
       context, /*infos=*/std::vector<Descriptor::Info>{
           Descriptor::Info{
-              VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+              Image::GetDescriptorTypeForSampling(),
               VK_SHADER_STAGE_FRAGMENT_BIT,
               /*bindings=*/{
                   Descriptor::Info::Binding{
@@ -40,7 +40,7 @@ ImageViewer::ImageViewer(const SharedBasicContext& context,
                   }},
           }});
   descriptor_->UpdateImageInfos(
-      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      Image::GetDescriptorTypeForSampling(),
       /*image_info_map=*/
       {{kImageBindingPoint, {image.GetDescriptorInfoForSampling()}}});
 

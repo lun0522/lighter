@@ -18,6 +18,7 @@ namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
+// TODO: Make it a subclass of RenderPass.
 // This render pass at least contains one color attachment. If any opaque or
 // transparent subpass is used, a depth attachment will also be added.
 // If multisampling is used (by passing a non-optional 'multisampling_mode' to
@@ -28,6 +29,7 @@ namespace vulkan {
 class NaiveRenderPassBuilder {
  public:
   // The usage of color attachment at the end of this render pass.
+  // TODO: This should be inferred from image usage.
   enum class ColorAttachmentFinalUsage {
     kPresentToScreen, kSampledAsTexture, kAccessedLinearly,
   };
@@ -68,19 +70,19 @@ class NaiveRenderPassBuilder {
 
   // Accessors.
   RenderPassBuilder* mutable_builder() { return &builder_; }
-  uint32_t color_attachment_index() const { return color_attachment_index_; }
+  int color_attachment_index() const { return 0; }
   bool has_depth_attachment() const {
     return depth_attachment_index_.has_value();
   }
   // The user is responsible for checking if the depth attachment is used.
-  uint32_t depth_attachment_index() const {
+  int depth_attachment_index() const {
     return depth_attachment_index_.value();
   }
   bool has_multisample_attachment() const {
     return multisample_attachment_index_.has_value();
   }
   // The user is responsible for checking if the multisample attachment is used.
-  uint32_t multisample_attachment_index() const {
+  int multisample_attachment_index() const {
     return multisample_attachment_index_.value();
   }
 
@@ -88,14 +90,40 @@ class NaiveRenderPassBuilder {
   // Builder of render pass.
   RenderPassBuilder builder_;
 
-  // The first attachment is always a color attachment.
-  const uint32_t color_attachment_index_ = 0;
-
   // Index of optional depth attachment.
-  absl::optional<uint32_t> depth_attachment_index_;
+  absl::optional<int> depth_attachment_index_;
 
   // Index of optional multisample attachment.
-  absl::optional<uint32_t> multisample_attachment_index_;
+  absl::optional<int> multisample_attachment_index_;
+};
+
+// This render pass is used for the geometry pass of deferred shading. We assume
+// that one depth attachment and several color attachments will be used. There
+// is only one subpass in this render pass. The user can use
+// NaiveRenderPassBuilder for the lighting pass.
+class DeferredShadingRenderPassBuilder {
+ public:
+  DeferredShadingRenderPassBuilder(SharedBasicContext context,
+                                   int num_framebuffers,
+                                   int num_color_attachments);
+
+  // This class is neither copyable nor movable.
+  DeferredShadingRenderPassBuilder(
+      const DeferredShadingRenderPassBuilder&) = delete;
+  DeferredShadingRenderPassBuilder& operator=(
+      const DeferredShadingRenderPassBuilder&) = delete;
+
+  // Overloads.
+  const RenderPassBuilder* operator->() const { return &builder_; }
+
+  // Accessors.
+  RenderPassBuilder* mutable_builder() { return &builder_; }
+  int depth_attachment_index() const { return 0; }
+  int color_attachments_index_base() const { return 1; }
+
+ private:
+  // Builder of render pass.
+  RenderPassBuilder builder_;
 };
 
 } /* namespace vulkan */

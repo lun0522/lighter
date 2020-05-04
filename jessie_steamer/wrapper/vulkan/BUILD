@@ -5,7 +5,7 @@ load("//:settings.bzl", "compilation_mode")
 compilation_mode()
 
 cc_library(
-    name = "on_screen",
+    name = "onscreen",
     deps = [
         ":align",
         ":buffer",

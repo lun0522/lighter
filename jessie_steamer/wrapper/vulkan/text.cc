@@ -54,7 +54,7 @@ const std::vector<Descriptor::Info>& GetDescriptorInfos() {
   if (descriptor_infos == nullptr) {
     descriptor_infos = new std::vector<Descriptor::Info>{
         Descriptor::Info{
-            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            UniformBuffer::GetDescriptorType(),
             VK_SHADER_STAGE_FRAGMENT_BIT,
             /*bindings=*/{
                 Descriptor::Info::Binding{
@@ -64,7 +64,7 @@ const std::vector<Descriptor::Info>& GetDescriptorInfos() {
             },
         },
         Descriptor::Info{
-            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            Image::GetDescriptorTypeForSampling(),
             VK_SHADER_STAGE_FRAGMENT_BIT,
             /*bindings=*/{
                 Descriptor::Info::Binding{
@@ -202,7 +202,7 @@ void StaticText::UpdateDescriptor(const VkCommandBuffer& command_buffer,
                                   int frame, int text_index) {
   descriptors_[frame]->PushBufferInfos(
       command_buffer, pipeline().layout(), pipeline().binding_point(),
-      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      UniformBuffer::GetDescriptorType(),
       /*buffer_info_map=*/{{
           kUniformBufferBindingPoint,
           {GetUniformBufferDescriptorInfo(frame)},
@@ -210,7 +210,7 @@ void StaticText::UpdateDescriptor(const VkCommandBuffer& command_buffer,
   );
   descriptors_[frame]->PushImageInfos(
       command_buffer, pipeline().layout(), pipeline().binding_point(),
-      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      Image::GetDescriptorTypeForSampling(),
       /*image_info_map=*/{{
           kTextureBindingPoint,
           {text_loader_.texture_info(text_index).image
@@ -235,13 +235,13 @@ DynamicText::DynamicText(const SharedBasicContext& context,
     descriptors_.push_back(
         absl::make_unique<StaticDescriptor>(context, GetDescriptorInfos()));
     descriptors_[frame]->UpdateBufferInfos(
-        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        UniformBuffer::GetDescriptorType(),
         /*buffer_info_map=*/{{
             kUniformBufferBindingPoint,
             {GetUniformBufferDescriptorInfo(frame)},
         }});
     descriptors_[frame]->UpdateImageInfos(
-        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, image_info_map);
+        Image::GetDescriptorTypeForSampling(), image_info_map);
   }
   SetPipelineLayout(descriptors_[0]->layout());
 }

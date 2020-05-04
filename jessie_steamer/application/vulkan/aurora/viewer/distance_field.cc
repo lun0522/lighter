@@ -99,7 +99,7 @@ DistanceFieldGenerator::DistanceFieldGenerator(
   for (auto binding_point : {kOriginalImageBindingPoint,
                              kOutputImageBindingPoint}) {
     descriptor_infos.push_back(Descriptor::Info{
-        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        Image::GetDescriptorTypeForLinearAccess(),
         VK_SHADER_STAGE_COMPUTE_BIT,
         /*bindings=*/{{binding_point, /*array_length=*/1}},
     });
@@ -174,7 +174,7 @@ void DistanceFieldGenerator::Dispatch(
   pipeline.Bind(command_buffer);
   descriptor_->PushImageInfos(
       command_buffer, pipeline.layout(), pipeline.binding_point(),
-      VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, image_info_maps_[direction]);
+      Image::GetDescriptorTypeForLinearAccess(), image_info_maps_[direction]);
   vkCmdDispatch(command_buffer, work_group_count_.width,
                 work_group_count_.height, /*groupCountZ=*/1);
 }

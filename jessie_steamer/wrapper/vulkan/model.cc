@@ -49,7 +49,7 @@ void CreateTextureInfo(const ModelBuilder::BindingPointMap& binding_map,
                        Descriptor::Info* descriptor_info,
                        Descriptor::ImageInfoMap* image_info_map) {
   *descriptor_info = Descriptor::Info{
-      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      Image::GetDescriptorTypeForSampling(),
       VK_SHADER_STAGE_FRAGMENT_BIT,
       /*bindings=*/{},  // To be updated.
   };
@@ -233,7 +233,7 @@ ModelBuilder& ModelBuilder::AddUniformBinding(
     VkShaderStageFlags shader_stage,
     std::vector<Descriptor::Info::Binding>&& bindings) {
   uniform_descriptor_infos_.push_back(Descriptor::Info{
-      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      UniformBuffer::GetDescriptorType(),
       shader_stage,
       std::move(bindings),
   });
@@ -298,11 +298,10 @@ ModelBuilder::CreateDescriptors() const {
 
       descriptors[frame].push_back(
           absl::make_unique<StaticDescriptor>(context_, descriptor_infos));
-      // TODO: Derive descriptor type.
       descriptors[frame].back()->UpdateBufferInfos(
-          VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uniform_buffer_info_maps_[frame]);
+          UniformBuffer::GetDescriptorType(), uniform_buffer_info_maps_[frame]);
       descriptors[frame].back()->UpdateImageInfos(
-          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, image_info_map);
+          Image::GetDescriptorTypeForSampling(), image_info_map);
     }
   }
   return descriptors;

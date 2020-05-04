@@ -83,45 +83,71 @@ class OneTimeCommand : public Command {
 };
 
 // This classes creates a command that will be executed in every frame.
-// It assumes that the user is doing on-screen rendering, and handles the
+// It assumes that the user is doing onscreen rendering, and handles the
 // synchronization internally.
 class PerFrameCommand : public Command {
  public:
-  // Specifies which operations should be performed. Since the swapchain holds
-  // several images, 'framebuffer_index' will be the index of the swapchain
-  // image used in this recording.
-  using OnRecord = std::function<void(const VkCommandBuffer& command_buffer,
-                                      uint32_t framebuffer_index)>;
-
   // The user may want to do multiple buffering. 'current_frame' refers to which
   // "buffer" are we rendering to.
   using UpdateData = std::function<void (int current_frame)>;
 
+  // Specifies which operations should be performed in the offscreen pass.
+  using OffscreenOp =
+      std::function<void(const VkCommandBuffer& command_buffer)>;
+
+  // Specifies which operations should be performed in the onscreen pass. Since
+  // the swapchain holds several images, 'framebuffer_index' will be the index
+  // of the swapchain image used in this recording.
+  using OnscreenOp = std::function<void(const VkCommandBuffer& command_buffer,
+                                        uint32_t framebuffer_index)>;
+
   // Our rendering is 'num_frames_in_flight'-buffered.
-  PerFrameCommand(const SharedBasicContext& context, int num_frames_in_flight);
+  PerFrameCommand(const SharedBasicContext& context, int num_frames_in_flight,
+                  bool has_offscreen_pass = false);
 
   // This class is neither copyable nor movable.
-  PerFrameCommand(const Command&) = delete;
-  PerFrameCommand& operator=(const Command&) = delete;
+  PerFrameCommand(const PerFrameCommand&) = delete;
+  PerFrameCommand& operator=(const PerFrameCommand&) = delete;
 
   // Records operations for a new frame and submits to the graphics queue,
-  // without waiting for completion. The return value can be:
+  // without waiting for completion. If 'has_offscreen_pass' passed to the
+  // constructor is false, 'offscreen_op' will be ignored.
+  // The return value can be:
   //   - absl::nullopt, if the swapchain can be kept using, or
   //   - otherwise, if the swapchain need to be rebuilt.
   // If any unexpected error occurs, a runtime exception will be thrown.
   absl::optional<VkResult> Run(int current_frame,
                                const VkSwapchainKHR& swapchain,
                                const UpdateData& update_data,
-                               const OnRecord& on_record);
+                               const OnscreenOp& onscreen_op,
+                               const OffscreenOp& offscreen_op = nullptr);
 
  private:
+  // Holds objects used for the offscreen pass.
+  struct OffscreenObjects {
+    OffscreenObjects(const SharedBasicContext& context,
+                     int num_frames_in_flight,
+                     std::vector<VkCommandBuffer>&& command_buffers)
+        : command_buffers{std::move(command_buffers)},
+          semaphores{context, num_frames_in_flight} {}
+
+    // Opaque command buffer objects.
+    std::vector<VkCommandBuffer> command_buffers;
+
+    // Used for synchronization. See comments in Run() for details.
+    Semaphores semaphores;
+  };
+
   // Opaque command buffer objects.
   std::vector<VkCommandBuffer> command_buffers_;
 
-  // These are used for synchronization. See comments in Run() for details.
-  Semaphores image_available_semas_;
+  // Used for synchronization. See comments in Run() for details.
+  Semaphores present_finished_semas_;
   Semaphores render_finished_semas_;
   Fences in_flight_fences_;
+
+  // Used for the offscreen pass.
+  absl::optional<OffscreenObjects> offscreen_objects_;
 };
 
 } /* namespace vulkan */

@@ -77,7 +77,7 @@ std::unique_ptr<StaticDescriptor> CreateDescriptor(
   auto descriptor = absl::make_unique<StaticDescriptor>(
       context, /*infos=*/std::vector<Descriptor::Info>{
           Descriptor::Info{
-              VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+              Image::GetDescriptorTypeForSampling(),
               VK_SHADER_STAGE_FRAGMENT_BIT,
               /*bindings=*/{
                   Descriptor::Info::Binding{
@@ -86,7 +86,7 @@ std::unique_ptr<StaticDescriptor> CreateDescriptor(
                   }},
           }});
   descriptor->UpdateImageInfos(
-      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      Image::GetDescriptorTypeForSampling(),
       /*image_info_map=*/{{kImageBindingPoint, {image_info}}});
   return descriptor;
 }

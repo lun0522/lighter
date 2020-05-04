@@ -68,7 +68,7 @@ class Application {
   }
 
  private:
-  // On-screen rendering context.
+  // Onscreen rendering context.
   wrapper::vulkan::WindowContext window_context_;
 };
 

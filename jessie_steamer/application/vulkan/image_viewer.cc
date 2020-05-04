@@ -118,7 +118,7 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
   StaticDescriptor descriptor{
       context(), /*infos=*/std::vector<Descriptor::Info>{
           Descriptor::Info{
-              VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+              Image::GetDescriptorTypeForLinearAccess(),
               VK_SHADER_STAGE_COMPUTE_BIT,
               /*bindings=*/{
                   Descriptor::Info::Binding{
@@ -127,7 +127,7 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
                   }},
           },
           Descriptor::Info{
-              VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+              Image::GetDescriptorTypeForLinearAccess(),
               VK_SHADER_STAGE_COMPUTE_BIT,
               /*bindings=*/{
                   Descriptor::Info::Binding{
@@ -142,7 +142,7 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
   const auto output_image_descriptor_info = image_->GetDescriptorInfo(
       layout_manager.GetLayoutAtStage(image_->image(), kComputingStage));
   descriptor.UpdateImageInfos(
-      VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+      Image::GetDescriptorTypeForLinearAccess(),
       /*image_info_map=*/
       {{kOriginalImageBindingPoint, {original_image_descriptor_info}},
        {kOutputImageBindingPoint, {output_image_descriptor_info}}});

@@ -188,7 +188,7 @@ class Editor : public Scene {
     return editor_renderer_.render_pass();
   }
 
-  // On-screen rendering context.
+  // Onscreen rendering context.
   wrapper::vulkan::WindowContext& window_context_;
 
   // Flags used for mouse button callbacks.

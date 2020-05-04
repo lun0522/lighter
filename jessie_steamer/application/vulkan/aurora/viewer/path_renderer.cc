@@ -106,7 +106,7 @@ PathRenderer2D::PathRenderer2D(
   for (auto binding_point : {kOriginalImageBindingPoint,
                              kOutputImageBindingPoint}) {
     descriptor_infos.push_back(Descriptor::Info{
-        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        Image::GetDescriptorTypeForLinearAccess(),
         VK_SHADER_STAGE_COMPUTE_BIT,
         /*bindings=*/{{binding_point, /*array_length=*/1}},
     });
@@ -115,7 +115,7 @@ PathRenderer2D::PathRenderer2D(
   bold_paths_descriptor_ = absl::make_unique<StaticDescriptor>(
       context, descriptor_infos);
   bold_paths_descriptor_->UpdateImageInfos(
-      VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+      Image::GetDescriptorTypeForLinearAccess(),
       /*image_info_map=*/{
           {kOriginalImageBindingPoint,
            {intermediate_image.GetDescriptorInfoForLinearAccess()}},

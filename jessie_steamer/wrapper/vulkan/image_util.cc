@@ -318,7 +318,7 @@ LayoutManager::LayoutManager(int num_stages, const UsageInfoMap& usage_info_map)
 }
 
 VkImageLayout LayoutManager::GetLayoutAtStage(const VkImage& image,
-                                                   int stage) const {
+                                              int stage) const {
   const auto iter = image_usage_history_map_.find(&image);
   ASSERT_FALSE(iter == image_usage_history_map_.end(),
                "This manager does not have info about the image");

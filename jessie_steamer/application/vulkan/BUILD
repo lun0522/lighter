@@ -10,7 +10,7 @@ cc_library(
         "//jessie_steamer/common:file",
         "//jessie_steamer/common:timer",
         "//jessie_steamer/common:util",
-        "//jessie_steamer/wrapper/vulkan:on_screen",
+        "//jessie_steamer/wrapper/vulkan:onscreen",
         "//third_party/absl/flags:flag",
         "//third_party/absl/memory",
         "//third_party/absl/types:span",

@@ -111,7 +111,7 @@ class Viewer : public Scene {
   bool ShouldTransitionScene() const override { return should_quit_; }
 
  private:
-  // On-screen rendering context.
+  // Onscreen rendering context.
   wrapper::vulkan::WindowContext& window_context_;
 
   // Whether we should quit this scene.

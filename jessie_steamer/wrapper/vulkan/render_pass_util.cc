@@ -51,13 +51,13 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
 
   const bool use_depth_attachment = (num_subpasses_with_depth_attachment > 0);
   if (use_depth_attachment) {
-    depth_attachment_index_ = color_attachment_index_ + 1;
+    depth_attachment_index_ = color_attachment_index() + 1;
   }
 
   if (use_multisampling) {
     multisample_attachment_index_ =
         1 + (use_depth_attachment ? depth_attachment_index_.value()
-                                  : color_attachment_index_);
+                                  : color_attachment_index());
   }
 
   /* Framebuffers and attachments */
@@ -82,9 +82,6 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
                 /*load_stencil_op=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,
                 /*store_stencil_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
             },
-            // We don't care about the content previously stored in the depth
-            // stencil buffer, so even if it has been transitioned to the
-            // optimal layout, we still use UNDEFINED as the initial layout.
             /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
             /*final_layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
         }
@@ -106,8 +103,9 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
   /* Subpasses descriptions */
   const std::vector<VkAttachmentReference> color_refs{
       VkAttachmentReference{
-          use_multisampling ? multisample_attachment_index()
-                            : color_attachment_index(),
+          static_cast<uint32_t>(
+              use_multisampling ? multisample_attachment_index()
+                                : color_attachment_index()),
           VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
       },
   };
@@ -132,23 +130,37 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
   }
 
   /* Subpass dependencies */
+  builder_.AddSubpassDependency(SubpassDependency{
+      /*prev_subpass=*/SubpassInfo{
+          kExternalSubpassIndex,
+          VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+          VK_ACCESS_MEMORY_READ_BIT,
+      },
+      /*next_subpass=*/SubpassInfo{
+          /*index=*/0,
+          VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+          VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
+              | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+      },
+      /*dependency_flags=*/nullflag,
+  });
   for (uint32_t index = 0; index < num_subpasses; ++index) {
     const uint32_t prev_subpass_index =
         (index > 0) ? (index - 1) : kExternalSubpassIndex;
-    builder_
-        .AddSubpassDependency(SubpassDependency{
-            /*prev_subpass=*/SubpassInfo{
-                prev_subpass_index,
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            },
-            /*next_subpass=*/SubpassInfo{
-                index,
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
-                    | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            },
-        });
+    builder_.AddSubpassDependency(SubpassDependency{
+        /*prev_subpass=*/SubpassInfo{
+            prev_subpass_index,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        },
+        /*next_subpass=*/SubpassInfo{
+            index,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
+                | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        },
+        /*dependency_flags=*/nullflag,
+    });
   }
 
   /* Multisampling */
@@ -160,12 +172,76 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
             /*pairs=*/{
                 MultisamplingPair{
                     /*multisample_reference=*/0,
-                    /*target_attachment=*/color_attachment_index(),
+                    /*target_attachment=*/
+                    static_cast<uint32_t>(color_attachment_index()),
                 },
             }
         )
     );
   }
+}
+
+DeferredShadingRenderPassBuilder::DeferredShadingRenderPassBuilder(
+    SharedBasicContext context, int num_framebuffers, int num_color_attachments)
+    : builder_{std::move(context)} {
+  /* Framebuffers and attachments */
+  builder_
+      .SetNumFramebuffers(num_framebuffers)
+      .SetAttachment(
+          depth_attachment_index(), Attachment{
+              /*attachment_ops=*/Attachment::DepthStencilOps{
+                  /*load_depth_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+                  /*store_depth_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                  /*load_stencil_op=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                  /*store_stencil_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
+              },
+              /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
+              /*final_layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+          }
+      );
+  for (int i = 0; i < num_color_attachments; ++i) {
+    builder_.SetAttachment(
+        color_attachments_index_base() + i, Attachment{
+            /*attachment_ops=*/Attachment::ColorOps{
+                /*load_color_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+                /*store_color_op=*/VK_ATTACHMENT_STORE_OP_STORE,
+            },
+            /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
+            /*final_layout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        }
+    );
+  }
+
+  /* Subpasses descriptions */
+  std::vector<VkAttachmentReference> color_refs;
+  color_refs.reserve(num_color_attachments);
+  for (int i = 0; i < num_color_attachments; ++i) {
+    color_refs.push_back(VkAttachmentReference{
+        static_cast<uint32_t>(color_attachments_index_base() + i),
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+    });
+  }
+  const VkAttachmentReference depth_stencil_ref{
+      static_cast<uint32_t>(depth_attachment_index()),
+      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+  };
+  builder_.SetSubpass(/*index=*/0, std::move(color_refs), depth_stencil_ref);
+
+  /* Subpass dependencies */
+  builder_.AddSubpassDependency(SubpassDependency{
+      /*prev_subpass=*/SubpassInfo{
+          kExternalSubpassIndex,
+          VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+          VK_ACCESS_MEMORY_READ_BIT,
+      },
+      /*next_subpass=*/SubpassInfo{
+          /*index=*/0,
+          VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+          VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
+              | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+      },
+      VK_DEPENDENCY_BY_REGION_BIT,
+  });
 }
 
 } /* namespace vulkan */

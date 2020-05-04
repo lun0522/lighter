@@ -113,7 +113,7 @@ field of view, screen size, position and direction, and nothing more. It does
 not care about where the control signal comes from. **UserControlledCamera** is
 the one that we should use in applications. It can respond to inputs from
 cursor, scroll and keyboard. These two classes are not merged into one because
-in the future we may support more off-screen rendering features, in which case
+in the future we may support more offscreen rendering features, in which case
 the control signal may come from a log file or some other sources, not just
 directly from the user.
 
@@ -268,7 +268,7 @@ window:
 - **Surface**
 - **Swapchain**
 
-We also created a Bazel target `//jessie_steamer/wrapper/vulkan:on_screen` which
+We also created a Bazel target `//jessie_steamer/wrapper/vulkan:onscreen` which
 exposes only the files needed for onscreen rendering, so applications only need
 to depend on this target and hold one instance of **WindowContext**.
 
@@ -689,7 +689,7 @@ properly, the context will be destructed at last, and we should see the log
 
 The cube model is loaded by our lightweight .obj file loader. The statue image
 on the cube proves we can load images from files. The text that shows the frame
-rate proves the off-screen rendering pipeline is working. Since text rendering
+rate proves the offscreen rendering pipeline is working. Since text rendering
 requires loading the same shaders several times, if the reference counting and
 auto release pool work well, in the debug compilation mode, we should see some
 logs saying cache hits for shaders.

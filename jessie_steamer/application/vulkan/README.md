@@ -64,7 +64,7 @@ by calling `context()` within any subclass of `Application`.
 
 ### 1.1 Command buffer
 
-`PerFrameCommand` is a set of command buffers dedicated for on-screen rendering.
+`PerFrameCommand` is a set of command buffers dedicated for onscreen rendering.
 Semaphores and fences are handled internally so we don't need to worry about the
 synchronization. We only need to inform it that we want to do double-buffering:
 

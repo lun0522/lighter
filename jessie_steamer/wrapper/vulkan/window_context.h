@@ -27,7 +27,7 @@ namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
-// Members of this class are required for on-screen rendering.
+// Members of this class are required for onscreen rendering.
 class WindowContext {
  public:
   // Configurations used to initialize the window context.

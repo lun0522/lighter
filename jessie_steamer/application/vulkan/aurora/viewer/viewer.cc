@@ -121,7 +121,7 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
   std::vector<Descriptor::Info> uniform_descriptor_infos;
   uniform_descriptor_infos.reserve(kNumUniformBindingPoints);
   uniform_descriptor_infos.push_back(Descriptor::Info{
-      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      UniformBuffer::GetDescriptorType(),
       VK_SHADER_STAGE_FRAGMENT_BIT,
       /*bindings=*/{
           Descriptor::Info::Binding{
@@ -132,7 +132,7 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
   for (int i = kCameraUniformBindingPoint + 1; i < kNumUniformBindingPoints;
        ++i) {
     uniform_descriptor_infos.push_back(Descriptor::Info{
-        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        Image::GetDescriptorTypeForSampling(),
         VK_SHADER_STAGE_FRAGMENT_BIT,
         /*bindings=*/{
             Descriptor::Info::Binding{
@@ -148,11 +148,11 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
         context, uniform_descriptor_infos));
     (*descriptors_[frame])
         .UpdateBufferInfos(
-            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            UniformBuffer::GetDescriptorType(),
             /*buffer_info_map=*/{
                 {kCameraUniformBindingPoint,
                     {render_info_uniform_->GetDescriptorInfo(frame)}}})
-        .UpdateImageInfos(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .UpdateImageInfos(Image::GetDescriptorTypeForSampling(),
                           image_info_map);
   }
 

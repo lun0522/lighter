@@ -487,6 +487,11 @@ class UniformBuffer : public DataBuffer {
 
   ~UniformBuffer() override { delete data_; }
 
+  // Returns descriptor types used for updating descriptor sets.
+  static VkDescriptorType GetDescriptorType() {
+    return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  }
+
   // Returns a pointer to the data on the host, casted to 'DataType'.
   template <typename DataType>
   DataType* HostData(int chunk_index) const {

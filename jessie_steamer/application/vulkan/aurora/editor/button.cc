@@ -72,7 +72,7 @@ std::unique_ptr<StaticDescriptor> ButtonRenderer::CreateDescriptor(
   auto descriptor = absl::make_unique<StaticDescriptor>(
       context, /*infos=*/std::vector<Descriptor::Info>{
           Descriptor::Info{
-              VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+              UniformBuffer::GetDescriptorType(),
               VK_SHADER_STAGE_VERTEX_BIT,
               /*bindings=*/{
                   Descriptor::Info::Binding{
@@ -82,7 +82,7 @@ std::unique_ptr<StaticDescriptor> ButtonRenderer::CreateDescriptor(
               },
           },
           Descriptor::Info{
-              VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+              Image::GetDescriptorTypeForSampling(),
               VK_SHADER_STAGE_FRAGMENT_BIT,
               /*bindings=*/{
                   Descriptor::Info::Binding{
@@ -91,13 +91,13 @@ std::unique_ptr<StaticDescriptor> ButtonRenderer::CreateDescriptor(
                   }},
           }});
   descriptor->UpdateBufferInfos(
-      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      UniformBuffer::GetDescriptorType(),
       /*buffer_info_map=*/{
           {kVerticesInfoBindingPoint,
            {vertices_uniform_->GetDescriptorInfo(/*chunk_index=*/0)},
       }});
   descriptor->UpdateImageInfos(
-      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      Image::GetDescriptorTypeForSampling(),
       /*image_info_map=*/{
           {kImageBindingPoint,
            {buttons_image_->GetDescriptorInfoForSampling()}},

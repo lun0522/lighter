@@ -91,6 +91,14 @@ class Image {
                        *context_->allocator());
   }
 
+  // Returns descriptor types used for updating descriptor sets.
+  static VkDescriptorType GetDescriptorTypeForSampling() {
+    return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  }
+  static VkDescriptorType GetDescriptorTypeForLinearAccess() {
+    return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+  }
+
   // Accessors.
   virtual const VkImage& image() const = 0;
   const VkImageView& image_view() const { return image_view_; }

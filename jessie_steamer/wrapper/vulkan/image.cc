@@ -67,8 +67,7 @@ VkFormat FindColorImageFormat(
       // VK_FORMAT_R8_UNORM and VK_FORMAT_R16_SFLOAT have mandatory support for
       // sampling, but may not support linear access. We may switch to 4-channel
       // formats since they have mandatory support for both.
-      VkFormat best_format;
-      VkFormat alternative_format;
+      VkFormat best_format, alternative_format;
       if (image::UseHighPrecision(usages)) {
         best_format = VK_FORMAT_R16_SFLOAT;
         alternative_format = VK_FORMAT_R16G16B16A16_SFLOAT;

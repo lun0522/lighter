@@ -103,6 +103,7 @@ class RenderPassBuilder {
     };
 
     SubpassInfo prev_subpass, next_subpass;
+    VkDependencyFlags dependency_flags;
   };
 
   // Specifies which attachment will be resolved to the target attachment.
@@ -140,7 +141,7 @@ class RenderPassBuilder {
   // stencil attachments used for this subpass.
   RenderPassBuilder& SetSubpass(
       int index, std::vector<VkAttachmentReference>&& color_refs,
-      absl::optional<VkAttachmentReference>&& depth_stencil_ref);
+      const absl::optional<VkAttachmentReference>& depth_stencil_ref);
 
   // Sets multisampling relationships for the subpass at 'subpass_index'.
   // The user must have called SetSubpass() for this subpass.

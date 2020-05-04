@@ -119,7 +119,7 @@ VkSubpassDependency CreateSubpassDependency(
       dependency.next_subpass.stage_flags,
       dependency.prev_subpass.access_flags,
       dependency.next_subpass.access_flags,
-      /*dependencyFlags=*/nullflag,
+      dependency.dependency_flags,
   };
 }
 
@@ -203,11 +203,11 @@ RenderPassBuilder& RenderPassBuilder::UpdateAttachmentImage(
 
 RenderPassBuilder& RenderPassBuilder::SetSubpass(
     int index, std::vector<VkAttachmentReference>&& color_refs,
-    absl::optional<VkAttachmentReference>&& depth_stencil_ref) {
+    const absl::optional<VkAttachmentReference>& depth_stencil_ref) {
   SubpassAttachments attachments{
       std::move(color_refs),
       /*multisampling_refs=*/absl::nullopt,  // To be updated.
-      std::move(depth_stencil_ref),
+      depth_stencil_ref,
   };
   SetElementWithResizing(std::move(attachments), index, &subpass_attachments_);
   return *this;
