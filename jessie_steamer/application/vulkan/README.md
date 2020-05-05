@@ -209,19 +209,19 @@ with the image that it should render to (note that if multisampling is used, it
 should render to a multisample image), and build a new `RenderPass`:
 
 ```cpp
-render_pass_builder_->mutable_builder()->UpdateAttachmentImage(
+render_pass_builder_->UpdateAttachmentImage(
     render_pass_builder_->color_attachment_index(),
     [this](int framebuffer_index) -> const Image& {
       return window_context_.swapchain_image(framebuffer_index);
     });
 if (render_pass_builder_->has_multisample_attachment()) {
-  render_pass_builder_->mutable_builder()->UpdateAttachmentImage(
+  render_pass_builder_->UpdateAttachmentImage(
       render_pass_builder_->multisample_attachment_index(),
       [this](int framebuffer_index) -> const Image& {
         return window_context_.multisample_image();
       });
 }
-render_pass_ = (*render_pass_builder_)->Build();
+render_pass_ = render_pass_builder_->Build();
 ```
 
 Similarly, some pipeline states may also change in those cases, and we also need

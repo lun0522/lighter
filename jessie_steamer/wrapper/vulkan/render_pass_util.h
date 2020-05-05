@@ -18,7 +18,6 @@ namespace jessie_steamer {
 namespace wrapper {
 namespace vulkan {
 
-// TODO: Make it a subclass of RenderPass.
 // This render pass at least contains one color attachment. If any opaque or
 // transparent subpass is used, a depth attachment will also be added.
 // If multisampling is used (by passing a non-optional 'multisampling_mode' to
@@ -26,7 +25,7 @@ namespace vulkan {
 // configured to resolve to the color attachment.
 // Each subpass will wait for the previous subpass finish writing to the color
 // attachment. See comments of SubpassConfig for details about subpasses.
-class NaiveRenderPassBuilder {
+class NaiveRenderPassBuilder : public RenderPassBuilder {
  public:
   // The usage of color attachment at the end of this render pass.
   // TODO: This should be inferred from image usage.
@@ -65,11 +64,7 @@ class NaiveRenderPassBuilder {
   NaiveRenderPassBuilder(const NaiveRenderPassBuilder&) = delete;
   NaiveRenderPassBuilder& operator=(const NaiveRenderPassBuilder&) = delete;
 
-  // Overloads.
-  const RenderPassBuilder* operator->() const { return &builder_; }
-
   // Accessors.
-  RenderPassBuilder* mutable_builder() { return &builder_; }
   int color_attachment_index() const { return 0; }
   bool has_depth_attachment() const {
     return depth_attachment_index_.has_value();
@@ -87,9 +82,6 @@ class NaiveRenderPassBuilder {
   }
 
  private:
-  // Builder of render pass.
-  RenderPassBuilder builder_;
-
   // Index of optional depth attachment.
   absl::optional<int> depth_attachment_index_;
 
@@ -101,7 +93,7 @@ class NaiveRenderPassBuilder {
 // that one depth attachment and several color attachments will be used. There
 // is only one subpass in this render pass. The user can use
 // NaiveRenderPassBuilder for the lighting pass.
-class DeferredShadingRenderPassBuilder {
+class DeferredShadingRenderPassBuilder : public RenderPassBuilder {
  public:
   DeferredShadingRenderPassBuilder(SharedBasicContext context,
                                    int num_framebuffers,
@@ -113,17 +105,9 @@ class DeferredShadingRenderPassBuilder {
   DeferredShadingRenderPassBuilder& operator=(
       const DeferredShadingRenderPassBuilder&) = delete;
 
-  // Overloads.
-  const RenderPassBuilder* operator->() const { return &builder_; }
-
   // Accessors.
-  RenderPassBuilder* mutable_builder() { return &builder_; }
   int depth_attachment_index() const { return 0; }
   int color_attachments_index_base() const { return 1; }
-
- private:
-  // Builder of render pass.
-  RenderPassBuilder builder_;
 };
 
 } /* namespace vulkan */

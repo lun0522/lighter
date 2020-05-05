@@ -89,12 +89,12 @@ std::unique_ptr<NaiveRenderPassBuilder> CreateRenderPassBuilder(
 // Returns a render pass that renders to 'target_image'.
 std::unique_ptr<RenderPass> BuildRenderPass(
     const Image& target_image, NaiveRenderPassBuilder* render_pass_builder) {
-  render_pass_builder->mutable_builder()->UpdateAttachmentImage(
+  render_pass_builder->UpdateAttachmentImage(
       render_pass_builder->color_attachment_index(),
       [&target_image](int framebuffer_index) -> const Image& {
           return target_image;
       });
-  return (*render_pass_builder)->Build();
+  return render_pass_builder->Build();
 }
 
 // Returns a pipeline builder, assuming the per-vertex data is of type Vertex2D.

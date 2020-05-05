@@ -105,7 +105,7 @@ void EditorRenderer::Recreate() {
       window_context_.basic_context(), window_context_.frame_size(),
       window_context_.multisampling_mode());
 
-  (*render_pass_builder_->mutable_builder())
+  (*render_pass_builder_)
       .UpdateAttachmentImage(
           render_pass_builder_->color_attachment_index(),
           [this](int framebuffer_index) -> const Image& {
@@ -117,14 +117,14 @@ void EditorRenderer::Recreate() {
             return *depth_stencil_image_;
           });
   if (render_pass_builder_->has_multisample_attachment()) {
-    render_pass_builder_->mutable_builder()->UpdateAttachmentImage(
+    render_pass_builder_->UpdateAttachmentImage(
         render_pass_builder_->multisample_attachment_index(),
         [this](int framebuffer_index) -> const Image& {
           return window_context_.multisample_image();
         });
   }
 
-  render_pass_ = (*render_pass_builder_)->Build();
+  render_pass_ = render_pass_builder_->Build();
 }
 
 void EditorRenderer::Draw(

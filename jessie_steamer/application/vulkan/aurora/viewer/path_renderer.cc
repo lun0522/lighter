@@ -84,7 +84,7 @@ PathRenderer2D::PathRenderer2D(
       /*use_multisampling=*/true,
       NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kSampledAsTexture,
   };
-  (*render_pass_builder.mutable_builder())
+  render_pass_builder
       .UpdateAttachmentImage(
           render_pass_builder.color_attachment_index(),
           [&intermediate_image](int) -> const Image& {
@@ -93,7 +93,7 @@ PathRenderer2D::PathRenderer2D(
       .UpdateAttachmentImage(
           render_pass_builder.multisample_attachment_index(),
           [this](int) -> const Image& { return *multisample_image_; });
-  render_pass_ = render_pass_builder->Build();
+  render_pass_ = render_pass_builder.Build();
   render_op_ = [this](const VkCommandBuffer& command_buffer) {
     for (const auto* buffer : aurora_paths_vertex_buffers_) {
       buffer->Draw(command_buffer, kVertexBufferBindingPoint,

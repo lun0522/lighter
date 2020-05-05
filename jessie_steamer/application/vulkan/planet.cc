@@ -258,7 +258,7 @@ void PlanetApp::Recreate() {
       context(), frame_size, window_context().multisampling_mode());
 
   /* Render pass */
-  (*render_pass_builder_->mutable_builder())
+  (*render_pass_builder_)
       .UpdateAttachmentImage(
           render_pass_builder_->color_attachment_index(),
           [this](int framebuffer_index) -> const Image& {
@@ -270,13 +270,13 @@ void PlanetApp::Recreate() {
             return *depth_stencil_image_;
           });
   if (render_pass_builder_->has_multisample_attachment()) {
-    render_pass_builder_->mutable_builder()->UpdateAttachmentImage(
+    render_pass_builder_->UpdateAttachmentImage(
         render_pass_builder_->multisample_attachment_index(),
         [this](int framebuffer_index) -> const Image& {
           return window_context().multisample_image();
         });
   }
-  render_pass_ = (*render_pass_builder_)->Build();
+  render_pass_ = render_pass_builder_->Build();
 
   /* Model */
   constexpr bool kIsObjectOpaque = true;

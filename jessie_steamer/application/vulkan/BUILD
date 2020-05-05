@@ -49,3 +49,9 @@ cc_binary(
     srcs = ["triangle.cc"],
     deps = [":common"],
 )
+
+cc_binary(
+    name = "troop",
+    srcs = ["troop.cc"],
+    deps = [":common"],
+)

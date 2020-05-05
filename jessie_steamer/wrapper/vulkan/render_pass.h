@@ -126,6 +126,8 @@ class RenderPassBuilder {
   RenderPassBuilder(const RenderPassBuilder&) = delete;
   RenderPassBuilder& operator=(const RenderPassBuilder&) = delete;
 
+  ~RenderPassBuilder() = default;
+
   // Sets the number of framebuffers.
   RenderPassBuilder& SetNumFramebuffers(int count);
 

@@ -42,7 +42,7 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
     SharedBasicContext context, const SubpassConfig& subpass_config,
     int num_framebuffers, bool use_multisampling,
     ColorAttachmentFinalUsage color_attachment_final_usage)
-    : builder_{std::move(context)} {
+    : RenderPassBuilder{std::move(context)} {
   const int num_subpasses_with_depth_attachment =
       (subpass_config.use_opaque_subpass ? 1 : 0) +
       subpass_config.num_transparent_subpasses;
@@ -61,20 +61,19 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
   }
 
   /* Framebuffers and attachments */
-  builder_
-      .SetNumFramebuffers(num_framebuffers)
-      .SetAttachment(
-          color_attachment_index(), Attachment{
-              /*attachment_ops=*/Attachment::ColorOps{
-                  /*load_color_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-                  /*store_color_op=*/VK_ATTACHMENT_STORE_OP_STORE,
-              },
-              /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
-              GetColorAttachmentFinalLayout(color_attachment_final_usage),
-          }
-      );
+  SetNumFramebuffers(num_framebuffers);
+  SetAttachment(
+      color_attachment_index(), Attachment{
+          /*attachment_ops=*/Attachment::ColorOps{
+              /*load_color_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+              /*store_color_op=*/VK_ATTACHMENT_STORE_OP_STORE,
+          },
+          /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
+          GetColorAttachmentFinalLayout(color_attachment_final_usage),
+      }
+  );
   if (use_depth_attachment) {
-    builder_.SetAttachment(
+    SetAttachment(
         depth_attachment_index(), Attachment{
             /*attachment_ops=*/Attachment::DepthStencilOps{
                 /*load_depth_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -88,7 +87,7 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
     );
   }
   if (use_multisampling) {
-    builder_.SetAttachment(
+    SetAttachment(
         multisample_attachment_index(), Attachment{
             /*attachment_ops=*/Attachment::ColorOps{
                 /*load_color_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -115,22 +114,18 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
   };
   int subpass_index = 0;
   for (int i = 0; i < num_subpasses_with_depth_attachment; ++i) {
-    builder_.SetSubpass(
-        subpass_index++,
-        std::vector<VkAttachmentReference>{color_refs},
-        depth_stencil_ref
-    );
+    SetSubpass(subpass_index++,
+               std::vector<VkAttachmentReference>{color_refs},
+               depth_stencil_ref);
   }
   for (int i = 0; i < subpass_config.num_overlay_subpasses; ++i) {
-    builder_.SetSubpass(
-        subpass_index++,
-        std::vector<VkAttachmentReference>{color_refs},
-        /*depth_stencil_ref=*/absl::nullopt
-    );
+    SetSubpass(subpass_index++,
+               std::vector<VkAttachmentReference>{color_refs},
+               /*depth_stencil_ref=*/absl::nullopt);
   }
 
   /* Subpass dependencies */
-  builder_.AddSubpassDependency(SubpassDependency{
+  AddSubpassDependency(SubpassDependency{
       /*prev_subpass=*/SubpassInfo{
           kExternalSubpassIndex,
           VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
@@ -147,7 +142,7 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
   for (uint32_t index = 0; index < num_subpasses; ++index) {
     const uint32_t prev_subpass_index =
         (index > 0) ? (index - 1) : kExternalSubpassIndex;
-    builder_.AddSubpassDependency(SubpassDependency{
+    AddSubpassDependency(SubpassDependency{
         /*prev_subpass=*/SubpassInfo{
             prev_subpass_index,
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -165,7 +160,7 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
 
   /* Multisampling */
   if (use_multisampling) {
-    builder_.SetMultisampling(
+    SetMultisampling(
         /*subpass_index=*/num_subpasses - 1,
         RenderPassBuilder::CreateMultisamplingReferences(
             /*num_color_refs=*/1,
@@ -183,24 +178,23 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
 
 DeferredShadingRenderPassBuilder::DeferredShadingRenderPassBuilder(
     SharedBasicContext context, int num_framebuffers, int num_color_attachments)
-    : builder_{std::move(context)} {
+    : RenderPassBuilder{std::move(context)} {
   /* Framebuffers and attachments */
-  builder_
-      .SetNumFramebuffers(num_framebuffers)
-      .SetAttachment(
-          depth_attachment_index(), Attachment{
-              /*attachment_ops=*/Attachment::DepthStencilOps{
-                  /*load_depth_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-                  /*store_depth_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                  /*load_stencil_op=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                  /*store_stencil_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
-              },
-              /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
-              /*final_layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-          }
-      );
+  SetNumFramebuffers(num_framebuffers);
+  SetAttachment(
+      depth_attachment_index(), Attachment{
+          /*attachment_ops=*/Attachment::DepthStencilOps{
+              /*load_depth_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+              /*store_depth_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
+              /*load_stencil_op=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+              /*store_stencil_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
+          },
+          /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
+          /*final_layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+      }
+  );
   for (int i = 0; i < num_color_attachments; ++i) {
-    builder_.SetAttachment(
+    SetAttachment(
         color_attachments_index_base() + i, Attachment{
             /*attachment_ops=*/Attachment::ColorOps{
                 /*load_color_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -225,10 +219,10 @@ DeferredShadingRenderPassBuilder::DeferredShadingRenderPassBuilder(
       static_cast<uint32_t>(depth_attachment_index()),
       VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
   };
-  builder_.SetSubpass(/*index=*/0, std::move(color_refs), depth_stencil_ref);
+  SetSubpass(/*index=*/0, std::move(color_refs), depth_stencil_ref);
 
   /* Subpass dependencies */
-  builder_.AddSubpassDependency(SubpassDependency{
+  AddSubpassDependency(SubpassDependency{
       /*prev_subpass=*/SubpassInfo{
           kExternalSubpassIndex,
           VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,

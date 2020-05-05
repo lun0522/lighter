@@ -104,10 +104,10 @@ std::unique_ptr<RenderPass> CreateRenderPass(
       /*use_multisampling=*/false,
       NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kSampledAsTexture,
   };
-  render_pass_builder.mutable_builder()->UpdateAttachmentImage(
+  render_pass_builder.UpdateAttachmentImage(
       render_pass_builder.color_attachment_index(),
       [&target_image](int) -> const Image& { return target_image; });
-  return render_pass_builder->Build();
+  return render_pass_builder.Build();
 }
 
 // Creates a text renderer for rendering texts on buttons.

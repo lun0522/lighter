@@ -179,12 +179,12 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
 }
 
 void ImageViewerApp::Recreate() {
-  render_pass_builder_->mutable_builder()->UpdateAttachmentImage(
+  render_pass_builder_->UpdateAttachmentImage(
       render_pass_builder_->color_attachment_index(),
       [this](int framebuffer_index) -> const Image& {
         return window_context().swapchain_image(framebuffer_index);
       });
-  render_pass_ = (*render_pass_builder_)->Build();
+  render_pass_ = render_pass_builder_->Build();
   image_viewer_->UpdateFramebuffer(window_context().frame_size(), *render_pass_,
                                    kViewImageSubpassIndex);
 }

@@ -121,19 +121,19 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
 
 void TriangleApp::Recreate() {
   /* Render pass */
-  render_pass_builder_->mutable_builder()->UpdateAttachmentImage(
+  render_pass_builder_->UpdateAttachmentImage(
       render_pass_builder_->color_attachment_index(),
       [this](int framebuffer_index) -> const Image& {
         return window_context().swapchain_image(framebuffer_index);
       });
   if (render_pass_builder_->has_multisample_attachment()) {
-    render_pass_builder_->mutable_builder()->UpdateAttachmentImage(
+    render_pass_builder_->UpdateAttachmentImage(
         render_pass_builder_->multisample_attachment_index(),
         [this](int framebuffer_index) -> const Image& {
           return window_context().multisample_image();
         });
   }
-  render_pass_ = (*render_pass_builder_)->Build();
+  render_pass_ = render_pass_builder_->Build();
 
   /* Pipeline */
   (*pipeline_builder_)

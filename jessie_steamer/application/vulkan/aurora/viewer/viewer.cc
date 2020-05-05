@@ -197,12 +197,12 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
 }
 
 void ViewerRenderer::Recreate() {
-  render_pass_builder_->mutable_builder()->UpdateAttachmentImage(
+  render_pass_builder_->UpdateAttachmentImage(
       render_pass_builder_->color_attachment_index(),
       [this](int framebuffer_index) -> const Image& {
         return window_context_.swapchain_image(framebuffer_index);
       });
-  render_pass_ = (*render_pass_builder_)->Build();
+  render_pass_ = render_pass_builder_->Build();
 
   (*pipeline_builder_)
       .SetViewport(pipeline::GetViewport(
