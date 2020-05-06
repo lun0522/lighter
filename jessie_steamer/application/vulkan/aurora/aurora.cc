@@ -24,6 +24,10 @@ class AuroraApp : public Application {
  public:
   explicit AuroraApp(const WindowContext::Config& config);
 
+  // This class is neither copyable nor movable.
+  AuroraApp(const AuroraApp&) = delete;
+  AuroraApp& operator=(const AuroraApp&) = delete;
+
   // Overrides.
   void MainLoop() override;
 

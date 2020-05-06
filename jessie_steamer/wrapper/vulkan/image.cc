@@ -90,12 +90,14 @@ VkFormat FindColorImageFormat(
         return alternative_format;
       }
     }
+
     case common::kRgbaImageChannel:
       if (image::UseHighPrecision(usages)) {
         return VK_FORMAT_R16G16B16A16_SFLOAT;
       } else {
         return VK_FORMAT_R8G8B8A8_UNORM;
       }
+
     default:
       FATAL(absl::StrFormat(
           "Number of channels can only be 1 or 4, while %d provided", channel));

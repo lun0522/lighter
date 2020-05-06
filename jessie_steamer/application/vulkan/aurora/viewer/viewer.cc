@@ -71,7 +71,7 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
                                const SamplableImage& distance_field_image)
     : window_context_{*FATAL_IF_NULL(window_context)} {
   using common::Vertex2DPosOnly;
-  const auto& context = window_context_.basic_context();
+  const auto context = window_context_.basic_context();
 
   /* Uniform buffer and push constant */
   camera_constant_ = absl::make_unique<PushConstant>(

@@ -39,6 +39,10 @@ class TriangleApp : public Application {
  public:
   explicit TriangleApp(const WindowContext::Config& config);
 
+  // This class is neither copyable nor movable.
+  TriangleApp(const TriangleApp&) = delete;
+  TriangleApp& operator=(const TriangleApp&) = delete;
+
   // Overrides.
   void MainLoop() override;
 

@@ -40,6 +40,10 @@ class ImageViewerApp : public Application {
  public:
   explicit ImageViewerApp(const WindowContext::Config& config);
 
+  // This class is neither copyable nor movable.
+  ImageViewerApp(const ImageViewerApp&) = delete;
+  ImageViewerApp& operator=(const ImageViewerApp&) = delete;
+
   // Overrides.
   void MainLoop() override;
 

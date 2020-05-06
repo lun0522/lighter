@@ -318,6 +318,7 @@ class OffscreenImage : public Image, public SamplableImage {
                  absl::Span<const image::Usage> usages,
                  const ImageSampler::Config& sampler_config);
 
+  // Only 1 or 4 channels are supported.
   OffscreenImage(const SharedBasicContext& context,
                  const VkExtent2D& extent, int channel,
                  absl::Span<const image::Usage> usages,

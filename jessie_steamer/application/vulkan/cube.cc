@@ -41,6 +41,10 @@ class CubeApp : public Application {
  public:
   explicit CubeApp(const WindowContext::Config& config);
 
+  // This class is neither copyable nor movable.
+  CubeApp(const CubeApp&) = delete;
+  CubeApp& operator=(const CubeApp&) = delete;
+
   // Overrides.
   void MainLoop() override;
 

@@ -73,8 +73,9 @@ struct Usage {
   }
 
   // Convenience function to return Usage for images used as render targets.
-  static Usage GetRenderTargetUsage() {
-    return Usage{UsageType::kRenderTarget};
+  static Usage GetRenderTargetUsage(bool use_high_precision = false) {
+    return Usage{UsageType::kRenderTarget, AccessType::kDontCare,
+                 AccessLocation::kDontCare, use_high_precision};
   }
 
   // Convenience function to return Usage for images linearly accessed in

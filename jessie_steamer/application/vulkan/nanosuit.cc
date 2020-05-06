@@ -46,6 +46,10 @@ class NanosuitApp : public Application {
  public:
   explicit NanosuitApp(const WindowContext::Config& config);
 
+  // This class is neither copyable nor movable.
+  NanosuitApp(const NanosuitApp&) = delete;
+  NanosuitApp& operator=(const NanosuitApp&) = delete;
+
   // Overrides.
   void MainLoop() override;
 

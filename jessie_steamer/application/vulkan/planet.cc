@@ -76,6 +76,10 @@ class PlanetApp : public Application {
  public:
   explicit PlanetApp(const WindowContext::Config& config);
 
+  // This class is neither copyable nor movable.
+  PlanetApp(const PlanetApp&) = delete;
+  PlanetApp& operator=(const PlanetApp&) = delete;
+
   // Overrides.
   void MainLoop() override;
 
