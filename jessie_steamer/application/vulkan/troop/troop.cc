@@ -17,7 +17,6 @@ namespace vulkan {
 namespace {
 
 using namespace wrapper::vulkan;
-using GeometryPass = troop::GeometryPass;
 
 enum ProcessingStage {
   kGeometryStage,
@@ -49,15 +48,12 @@ class TroopApp : public Application {
   common::FrameTimer timer_;
   std::unique_ptr<common::UserControlledCamera> camera_;
   std::unique_ptr<PerFrameCommand> command_;
-  std::unique_ptr<DeferredShadingRenderPassBuilder>
-      geometry_render_pass_builder_;
-  // TODO: Move following objects to GeometryPass?
-  std::unique_ptr<RenderPass> geometry_render_pass_;
-  std::unique_ptr<GeometryPass> geometry_pass_;
+  std::unique_ptr<troop::GeometryPass> geometry_pass_;
+  std::unique_ptr<troop::LightingPass> lighting_pass_;
   std::unique_ptr<wrapper::vulkan::Image> depth_stencil_image_;
-  std::unique_ptr<wrapper::vulkan::Image> position_image_;
-  std::unique_ptr<wrapper::vulkan::Image> normal_image_;
-  std::unique_ptr<wrapper::vulkan::Image> diffuse_specular_image_;
+  std::unique_ptr<wrapper::vulkan::OffscreenImage> position_image_;
+  std::unique_ptr<wrapper::vulkan::OffscreenImage> normal_image_;
+  std::unique_ptr<wrapper::vulkan::OffscreenImage> diffuse_specular_image_;
 };
 
 } /* namespace */
@@ -67,15 +63,13 @@ TroopApp::TroopApp(const WindowContext::Config& window_config)
   using WindowKey = common::Window::KeyMap;
   using ControlKey = common::UserControlledCamera::ControlKey;
 
-  const float original_aspect_ratio = window_context().original_aspect_ratio();
-
   /* Camera */
   common::Camera::Config config;
   config.position = glm::vec3{8.5f, 5.5f, 5.0f};
   config.look_at = glm::vec3{8.0f, 5.0f, 4.25f};
 
   const common::PerspectiveCamera::FrustumConfig frustum_config{
-      /*field_of_view_y=*/45.0f, original_aspect_ratio};
+      /*field_of_view_y=*/45.0f, window_context().original_aspect_ratio()};
 
   camera_ = absl::make_unique<common::UserControlledCamera>(
       common::UserControlledCamera::ControlConfig{},
@@ -113,16 +107,12 @@ TroopApp::TroopApp(const WindowContext::Config& window_config)
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
   /* Render pass */
-  geometry_render_pass_builder_ =
-      absl::make_unique<DeferredShadingRenderPassBuilder>(
-      context(), /*num_framebuffers=*/window_context().num_swapchain_images(),
-      GeometryPass::kNumColorAttachments);
-
-  /* Pipeline */
-  geometry_pass_ = absl::make_unique<GeometryPass>(
-      context(), kNumFramesInFlight, original_aspect_ratio, /*model_scale=*/0.2,
+  geometry_pass_ = absl::make_unique<troop::GeometryPass>(
+      window_context(), kNumFramesInFlight, /*model_scale=*/0.2,
       /*num_soldiers=*/glm::ivec2{5, 10},
       /*interval_between_soldiers=*/glm::vec2{8.0f, -5.0f});
+  lighting_pass_ = absl::make_unique<troop::LightingPass>(
+      &window_context(), kNumFramesInFlight);
 }
 
 void TroopApp::Recreate() {
@@ -131,13 +121,13 @@ void TroopApp::Recreate() {
 
   /* Image */
   const VkExtent2D& frame_size = window_context().frame_size();
-  depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
-      context(), frame_size, /*mode=*/absl::nullopt);
+  depth_stencil_image_ =
+      absl::make_unique<DepthStencilImage>(context(), frame_size);
 
   struct imageInfo {
     std::string name;
     bool high_precision;
-    std::unique_ptr<Image>* image;
+    std::unique_ptr<OffscreenImage>* image;
   };
   imageInfo image_infos[]{
       {"Position", /*high_precision=*/true, &position_image_},
@@ -148,9 +138,12 @@ void TroopApp::Recreate() {
   const ImageSampler::Config sampler_config{VK_FILTER_NEAREST};
   for (auto& info : image_infos) {
     image::UsageInfo usage_info{std::move(info.name)};
+    auto geometry_stage_usage = image::Usage::GetRenderTargetUsage();
+    if (info.high_precision) {
+      geometry_stage_usage.set_use_high_precision();
+    }
     usage_info
-        .AddUsage(kGeometryStage,
-                  image::Usage::GetRenderTargetUsage(info.high_precision))
+        .AddUsage(kGeometryStage, geometry_stage_usage)
         .AddUsage(kLightingStage,
                   image::Usage::GetSampledInFragmentShaderUsage());
     *info.image = absl::make_unique<OffscreenImage>(
@@ -159,39 +152,15 @@ void TroopApp::Recreate() {
   }
 
   /* Render pass */
-  const int color_attachments_index_base =
-      geometry_render_pass_builder_->color_attachments_index_base();
-  (*geometry_render_pass_builder_)
-      .UpdateAttachmentImage(
-          geometry_render_pass_builder_->depth_attachment_index(),
-          [this](int framebuffer_index) -> const Image& {
-            return *depth_stencil_image_;
-          })
-      .UpdateAttachmentImage(
-          color_attachments_index_base + GeometryPass::kPositionImageIndex,
-          [this](int framebuffer_index) -> const Image& {
-            return *position_image_;
-          })
-      .UpdateAttachmentImage(
-          color_attachments_index_base + GeometryPass::kNormalImageIndex,
-          [this](int framebuffer_index) -> const Image& {
-            return *normal_image_;
-          })
-      .UpdateAttachmentImage(
-          color_attachments_index_base +
-              GeometryPass::kDiffuseSpecularImageIndex,
-          [this](int framebuffer_index) -> const Image& {
-            return *diffuse_specular_image_;
-          });
-  geometry_render_pass_ = geometry_render_pass_builder_->Build();
-
-  /* Pipeline */
-  geometry_pass_->UpdateFramebuffer(frame_size, *geometry_render_pass_,
-                                    /*subpass_index=*/0);
+  geometry_pass_->UpdateFramebuffer(*depth_stencil_image_, *position_image_,
+                                    *normal_image_, *diffuse_specular_image_);
+  lighting_pass_->UpdateFramebuffer(*depth_stencil_image_, *position_image_,
+                                    *normal_image_, *diffuse_specular_image_);
 }
 
 void TroopApp::UpdateData(int frame) {
   geometry_pass_->UpdatePerFrameData(frame, camera_->camera());
+  lighting_pass_->UpdatePerFrameData(frame, camera_->camera());
 }
 
 void TroopApp::MainLoop() {
@@ -205,12 +174,10 @@ void TroopApp::MainLoop() {
         current_frame_, window_context().swapchain(), update_data,
         [this](const VkCommandBuffer& command_buffer,
                uint32_t framebuffer_index) {
-          geometry_render_pass_->Run(
-              command_buffer, framebuffer_index, /*render_ops=*/{
-                  [this](const VkCommandBuffer& command_buffer) {
-                    geometry_pass_->Draw(command_buffer, current_frame_);
-                  },
-              });
+          geometry_pass_->Draw(command_buffer, framebuffer_index,
+                               current_frame_);
+          lighting_pass_->Draw(command_buffer, framebuffer_index,
+                               current_frame_);
         });
 
     if (draw_result.has_value() || window_context().ShouldRecreate()) {

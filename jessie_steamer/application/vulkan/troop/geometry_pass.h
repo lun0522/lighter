@@ -11,10 +11,12 @@
 #include <memory>
 
 #include "jessie_steamer/common/camera.h"
-#include "jessie_steamer/wrapper/vulkan/basic_context.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
+#include "jessie_steamer/wrapper/vulkan/image.h"
 #include "jessie_steamer/wrapper/vulkan/model.h"
 #include "jessie_steamer/wrapper/vulkan/render_pass.h"
+#include "jessie_steamer/wrapper/vulkan/render_pass_util.h"
+#include "jessie_steamer/wrapper/vulkan/window_context.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
@@ -23,19 +25,12 @@ namespace application {
 namespace vulkan {
 namespace troop {
 
-// This class is used to handle the graphics pipeline for the geometry pass of
+// This class is used to handle the render pass for the geometry pass of
 // deferred rendering.
 class GeometryPass {
  public:
-  enum ColorAttachmentIndex {
-    kPositionImageIndex = 0,
-    kNormalImageIndex,
-    kDiffuseSpecularImageIndex,
-    kNumColorAttachments,
-  };
-
-  GeometryPass(const wrapper::vulkan::SharedBasicContext& context,
-               int num_frames_in_flight, float viewport_aspect_ratio,
+  GeometryPass(const wrapper::vulkan::WindowContext& window_context,
+               int num_frames_in_flight,
                float model_scale, const glm::ivec2& num_soldiers,
                const glm::vec2& interval_between_soldiers);
 
@@ -44,16 +39,18 @@ class GeometryPass {
   GeometryPass& operator=(const GeometryPass&) = delete;
 
   // Updates internal states and rebuilds the graphics pipeline.
-  void UpdateFramebuffer(const VkExtent2D& frame_size,
-                         const wrapper::vulkan::RenderPass& render_pass,
-                         uint32_t subpass_index);
+  void UpdateFramebuffer(const wrapper::vulkan::Image& depth_stencil_image,
+                         const wrapper::vulkan::Image& position_image,
+                         const wrapper::vulkan::Image& normal_image,
+                         const wrapper::vulkan::Image& diffuse_specular_image);
 
   // Updates per-frame data.
   void UpdatePerFrameData(int frame, const common::Camera& camera);
 
   // Runs the geometry pass.
   // This should be called when 'command_buffer' is recording commands.
-  void Draw(const VkCommandBuffer& command_buffer, int frame) const;
+  void Draw(const VkCommandBuffer& command_buffer,
+            uint32_t framebuffer_index, int current_frame) const;
 
  private:
   // Number of soldiers to render.
@@ -63,6 +60,9 @@ class GeometryPass {
   std::unique_ptr<wrapper::vulkan::StaticPerInstanceBuffer> center_data_;
   std::unique_ptr<wrapper::vulkan::UniformBuffer> trans_uniform_;
   std::unique_ptr<wrapper::vulkan::Model> nanosuit_model_;
+  std::unique_ptr<wrapper::vulkan::DeferredShadingRenderPassBuilder>
+      render_pass_builder_;
+  std::unique_ptr<wrapper::vulkan::RenderPass> render_pass_;
 };
 
 } /* namespace troop */

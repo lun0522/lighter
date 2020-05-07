@@ -84,8 +84,7 @@ ImageViewerApp::ImageViewerApp(const WindowContext::Config& window_config)
   render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
       context(), subpass_config,
       /*num_framebuffers=*/window_context().num_swapchain_images(),
-      /*use_multisampling=*/false,
-      NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kPresentToScreen);
+      /*use_multisampling=*/false);
 }
 
 void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {

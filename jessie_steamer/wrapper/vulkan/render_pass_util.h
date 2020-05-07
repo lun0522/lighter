@@ -58,7 +58,9 @@ class NaiveRenderPassBuilder : public RenderPassBuilder {
   NaiveRenderPassBuilder(
       SharedBasicContext context, const SubpassConfig& subpass_config,
       int num_framebuffers, bool use_multisampling,
-      ColorAttachmentFinalUsage color_attachment_final_usage);
+      ColorAttachmentFinalUsage color_attachment_final_usage =
+          ColorAttachmentFinalUsage::kPresentToScreen,
+      bool preserve_depth_attachment_content = false);
 
   // This class is neither copyable nor movable.
   NaiveRenderPassBuilder(const NaiveRenderPassBuilder&) = delete;

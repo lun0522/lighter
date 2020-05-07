@@ -84,8 +84,8 @@ DistanceFieldGenerator::DistanceFieldGenerator(
   auto pong_image_usage = image::UsageInfo{"Pong"}
       .AddUsage(kGenerateDistanceFieldStage,
                 image::Usage::GetLinearAccessInComputeShaderUsage(
-                    image::Usage::AccessType::kReadWrite,
-                    /*use_high_precision=*/true));
+                    image::Usage::AccessType::kReadWrite)
+                    .set_use_high_precision());
   pong_image_ = absl::make_unique<OffscreenImage>(
       context, image_extent, output_image.format(),
       pong_image_usage.GetAllUsages(), ImageSampler::Config{});

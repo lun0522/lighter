@@ -73,17 +73,15 @@ struct Usage {
   }
 
   // Convenience function to return Usage for images used as render targets.
-  static Usage GetRenderTargetUsage(bool use_high_precision = false) {
-    return Usage{UsageType::kRenderTarget, AccessType::kDontCare,
-                 AccessLocation::kDontCare, use_high_precision};
+  static Usage GetRenderTargetUsage() {
+    return Usage{UsageType::kRenderTarget};
   }
 
   // Convenience function to return Usage for images linearly accessed in
   // compute shaders.
-  static Usage GetLinearAccessInComputeShaderUsage(
-      AccessType access_type, bool use_high_precision = false) {
+  static Usage GetLinearAccessInComputeShaderUsage(AccessType access_type) {
     return Usage{UsageType::kLinearAccess, access_type,
-                 AccessLocation::kComputeShader, use_high_precision};
+                 AccessLocation::kComputeShader};
   }
 
   // In most cases we only need 8-bit integers for each image channel.
@@ -104,6 +102,12 @@ struct Usage {
            access_type == other.access_type &&
            access_location == other.access_location &&
            use_high_precision == other.use_high_precision;
+  }
+
+  // Modifiers.
+  Usage& set_use_high_precision() {
+    use_high_precision = true;
+    return *this;
   }
 
   UsageType usage_type;

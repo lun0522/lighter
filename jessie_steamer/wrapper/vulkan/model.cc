@@ -334,12 +334,14 @@ std::unique_ptr<Model> ModelBuilder::Build() {
 
 void Model::Update(bool is_object_opaque, const VkExtent2D& frame_size,
                    VkSampleCountFlagBits sample_count,
-                   const RenderPass& render_pass, uint32_t subpass_index) {
+                   const RenderPass& render_pass, uint32_t subpass_index,
+                   bool flip_viewport_y) {
   pipeline_ = (*pipeline_builder_)
       .SetDepthTestEnabled(/*enable_test=*/true,
                            /*enable_write=*/is_object_opaque)
       .SetMultisampling(sample_count)
-      .SetViewport(pipeline::GetViewport(frame_size, viewport_aspect_ratio_))
+      .SetViewport(pipeline::GetViewport(frame_size, viewport_aspect_ratio_),
+                   flip_viewport_y)
       .SetRenderPass(*render_pass, subpass_index)
       .SetColorBlend(
           std::vector<VkPipelineColorBlendAttachmentState>(

@@ -151,8 +151,7 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
   render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
       context(), subpass_config,
       /*num_framebuffers=*/window_context().num_swapchain_images(),
-      window_context().use_multisampling(),
-      NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kPresentToScreen);
+      window_context().use_multisampling());
 
   /* Model */
   const SharedTexture::CubemapPath skybox_path{

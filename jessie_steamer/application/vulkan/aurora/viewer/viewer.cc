@@ -192,8 +192,7 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
   render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
       window_context_.basic_context(), subpass_config,
       /*num_framebuffers=*/window_context_.num_swapchain_images(),
-      /*use_multisampling=*/false,
-      NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kPresentToScreen);
+      /*use_multisampling=*/false);
 }
 
 void ViewerRenderer::Recreate() {

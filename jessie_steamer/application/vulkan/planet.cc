@@ -88,7 +88,7 @@ class PlanetApp : public Application {
   void Recreate();
 
   // Populates 'num_asteroids_' and 'per_asteroid_data_'.
-  void GenAsteroidModels();
+  void GenerateAsteroidModels();
 
   // Updates per-frame data.
   void UpdateData(int frame);
@@ -181,8 +181,7 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
   render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
       context(), subpass_config,
       /*num_framebuffers=*/window_context().num_swapchain_images(),
-      window_context().use_multisampling(),
-      NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kPresentToScreen);
+      window_context().use_multisampling());
 
   /* Model */
   planet_model_ = ModelBuilder{
@@ -208,7 +207,7 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
                  GetVkShaderPath("planet/planet.frag"))
       .Build();
 
-  GenAsteroidModels();
+  GenerateAsteroidModels();
   asteroid_model_ = ModelBuilder{
       context(), "Asteroid", kNumFramesInFlight, original_aspect_ratio,
       ModelBuilder::MultiMeshResource{
@@ -293,7 +292,7 @@ void PlanetApp::Recreate() {
                         *render_pass_, kModelSubpassIndex);
 }
 
-void PlanetApp::GenAsteroidModels() {
+void PlanetApp::GenerateAsteroidModels() {
   const std::array<int, kNumAsteroidRings> num_asteroid = {300, 500, 700};
   const std::array<float, kNumAsteroidRings> radii = {6.0f, 12.0f,  18.0f};
 

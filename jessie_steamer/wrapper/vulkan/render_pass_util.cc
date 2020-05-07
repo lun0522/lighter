@@ -41,7 +41,8 @@ VkImageLayout GetColorAttachmentFinalLayout(
 NaiveRenderPassBuilder::NaiveRenderPassBuilder(
     SharedBasicContext context, const SubpassConfig& subpass_config,
     int num_framebuffers, bool use_multisampling,
-    ColorAttachmentFinalUsage color_attachment_final_usage)
+    ColorAttachmentFinalUsage color_attachment_final_usage,
+    bool preserve_depth_attachment_content)
     : RenderPassBuilder{std::move(context)} {
   const int num_subpasses_with_depth_attachment =
       (subpass_config.use_opaque_subpass ? 1 : 0) +
@@ -73,15 +74,21 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
       }
   );
   if (use_depth_attachment) {
+    VkAttachmentLoadOp load_depth_op = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    VkImageLayout initial_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+    if (preserve_depth_attachment_content) {
+      load_depth_op = VK_ATTACHMENT_LOAD_OP_LOAD;
+      initial_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    }
     SetAttachment(
         depth_attachment_index(), Attachment{
             /*attachment_ops=*/Attachment::DepthStencilOps{
-                /*load_depth_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+                load_depth_op,
                 /*store_depth_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
                 /*load_stencil_op=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,
                 /*store_stencil_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
             },
-            /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
+            initial_layout,
             /*final_layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
         }
     );

@@ -74,8 +74,8 @@ PathDumper::PathDumper(
       .AddUsage(kBoldPathsStage, linear_read_only_usage)
       .AddUsage(kGenerateDistanceFieldStage,
                 image::Usage::GetLinearAccessInComputeShaderUsage(
-                    image::Usage::AccessType::kReadWrite,
-                    /*use_high_precision=*/true))
+                    image::Usage::AccessType::kReadWrite)
+                    .set_use_high_precision())
       .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
   distance_field_image_ = absl::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::kRgbaImageChannel,

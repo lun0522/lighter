@@ -30,6 +30,13 @@ enum UniformBindingPoint {
   kReflectionTextureBindingPoint,
 };
 
+enum ColorAttachmentIndex {
+  kPositionImageIndex = 0,
+  kNormalImageIndex,
+  kDiffuseSpecularImageIndex,
+  kNumColorAttachments,
+};
+
 /* BEGIN: Consistent with uniform blocks defined in shaders. */
 
 struct Transformation {
@@ -42,13 +49,13 @@ struct Transformation {
 
 } /* namespace */
 
-GeometryPass::GeometryPass(const SharedBasicContext& context,
+GeometryPass::GeometryPass(const WindowContext& window_context,
                            int num_frames_in_flight,
-                           float viewport_aspect_ratio,
                            float model_scale, const glm::ivec2& num_soldiers,
                            const glm::vec2& interval_between_soldiers)
     : num_soldiers_{num_soldiers.x * num_soldiers.y} {
   using TextureType = ModelBuilder::TextureType;
+  const auto context = window_context.basic_context();
 
   /* Vertex buffer */
   std::vector<glm::vec3> centers;
@@ -81,7 +88,8 @@ GeometryPass::GeometryPass(const SharedBasicContext& context,
 
   /* Model */
   nanosuit_model_ = ModelBuilder{
-      context, "Nanosuit", num_frames_in_flight, viewport_aspect_ratio,
+      context, "Geometry pass", num_frames_in_flight,
+      window_context.original_aspect_ratio(),
       ModelBuilder::MultiMeshResource{
           common::file::GetResourcePath("model/nanosuit/nanosuit.obj"),
           common::file::GetResourcePath("model/nanosuit")}}
@@ -101,13 +109,48 @@ GeometryPass::GeometryPass(const SharedBasicContext& context,
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
                  common::file::GetVkShaderPath("troop/geometry_pass.frag"))
       .Build();
+
+  /* Render pass */
+  render_pass_builder_ = absl::make_unique<DeferredShadingRenderPassBuilder>(
+      context, /*num_framebuffers=*/window_context.num_swapchain_images(),
+      kNumColorAttachments);
 }
 
-void GeometryPass::UpdateFramebuffer(const VkExtent2D& frame_size,
-                                     const RenderPass& render_pass,
-                                     uint32_t subpass_index) {
-  nanosuit_model_->Update(/*is_object_opaque=*/true, frame_size,
-                          kSingleSample, render_pass, subpass_index);
+void GeometryPass::UpdateFramebuffer(const Image& depth_stencil_image,
+                                     const Image& position_image,
+                                     const Image& normal_image,
+                                     const Image& diffuse_specular_image) {
+  /* Render pass */
+  const int color_attachments_index_base =
+      render_pass_builder_->color_attachments_index_base();
+  (*render_pass_builder_)
+      .UpdateAttachmentImage(
+          render_pass_builder_->depth_attachment_index(),
+          [&depth_stencil_image](int framebuffer_index) -> const Image& {
+            return depth_stencil_image;
+          })
+      .UpdateAttachmentImage(
+          color_attachments_index_base + kPositionImageIndex,
+          [&position_image](int framebuffer_index) -> const Image& {
+            return position_image;
+          })
+      .UpdateAttachmentImage(
+          color_attachments_index_base + kNormalImageIndex,
+          [&normal_image](int framebuffer_index) -> const Image& {
+            return normal_image;
+          })
+      .UpdateAttachmentImage(
+          color_attachments_index_base + kDiffuseSpecularImageIndex,
+          [&diffuse_specular_image](int framebuffer_index) -> const Image& {
+            return diffuse_specular_image;
+          });
+  render_pass_ = render_pass_builder_->Build();
+
+  /* Model */
+  nanosuit_model_->Update(/*is_object_opaque=*/true,
+                          depth_stencil_image.extent(), kSingleSample,
+                          *render_pass_, /*subpass_index=*/0,
+                          /*flip_viewport_y=*/false);
 }
 
 void GeometryPass::UpdatePerFrameData(int frame, const common::Camera& camera) {
@@ -118,9 +161,13 @@ void GeometryPass::UpdatePerFrameData(int frame, const common::Camera& camera) {
 }
 
 void GeometryPass::Draw(const VkCommandBuffer& command_buffer,
-                        int frame) const {
-  nanosuit_model_->Draw(command_buffer, frame,
-                        /*instance_count=*/num_soldiers_);
+                        uint32_t framebuffer_index, int current_frame) const {
+  render_pass_->Run(command_buffer, framebuffer_index, /*render_ops=*/{
+          [this, current_frame](const VkCommandBuffer& command_buffer) {
+            nanosuit_model_->Draw(command_buffer, current_frame,
+                                  /*instance_count=*/num_soldiers_);
+          },
+      });
 }
 
 } /* namespace troop */
