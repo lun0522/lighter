@@ -66,7 +66,7 @@ TroopApp::TroopApp(const WindowContext::Config& window_config)
   /* Camera */
   common::Camera::Config config;
   config.position = glm::vec3{8.5f, 5.5f, 5.0f};
-  config.look_at = glm::vec3{8.0f, 5.0f, 4.25f};
+  config.look_at = glm::vec3{8.0f, 5.0f, 4.22f};
 
   const common::PerspectiveCamera::FrustumConfig frustum_config{
       /*field_of_view_y=*/45.0f, window_context().original_aspect_ratio()};
@@ -110,7 +110,7 @@ TroopApp::TroopApp(const WindowContext::Config& window_config)
   geometry_pass_ = absl::make_unique<troop::GeometryPass>(
       window_context(), kNumFramesInFlight, /*model_scale=*/0.2,
       /*num_soldiers=*/glm::ivec2{5, 10},
-      /*interval_between_soldiers=*/glm::vec2{8.0f, -5.0f});
+      /*interval_between_soldiers=*/glm::vec2{1.7f, -1.0f});
   lighting_pass_ = absl::make_unique<troop::LightingPass>(
       &window_context(), kNumFramesInFlight);
 }

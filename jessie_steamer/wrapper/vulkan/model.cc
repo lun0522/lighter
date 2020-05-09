@@ -246,7 +246,7 @@ ModelBuilder& ModelBuilder::AddUniformBuffer(
     // Uniform buffer may have only one chunk if we want the data to keep
     // constant throughout all frames.
     const int uniform_data_chunk_index =
-        uniform_buffer.num_chunks() == 1 ? 0 : frame;
+        uniform_buffer.HasSingleChunk() ? 0 : frame;
     uniform_buffer_info_maps_[frame][binding_point].push_back(
         uniform_buffer.GetDescriptorInfo(uniform_data_chunk_index));
   }

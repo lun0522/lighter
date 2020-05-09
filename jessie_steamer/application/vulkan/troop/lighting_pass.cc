@@ -8,6 +8,8 @@
 #include "jessie_steamer/application/vulkan/troop/lighting_pass.h"
 
 #include <array>
+#include <algorithm>
+#include <cstring>
 #include <random>
 
 #include "jessie_steamer/common/file.h"
@@ -32,11 +34,15 @@ enum SubpassIndex {
 };
 
 enum UniformBindingPoint {
-  kRenderInfoUniformBufferBindingPoint = 0,
+  kLightsUniformBufferBindingPoint = 0,
+  kRenderInfoUniformBufferBindingPoint,
   kPositionTextureBindingPoint,
   kNormalTextureBindingPoint,
   kDiffuseSpecularTextureBindingPoint,
   kNumUniforms,
+  kNumUniformBuffers = kPositionTextureBindingPoint -
+                       kLightsUniformBufferBindingPoint,
+  kNumTextures = kNumUniforms - kPositionTextureBindingPoint,
 };
 
 constexpr uint32_t kVertexBufferBindingPoint = 0;
@@ -44,9 +50,12 @@ constexpr int kNumLights = 32;
 
 /* BEGIN: Consistent with uniform blocks defined in shaders. */
 
+struct Lights {
+  ALIGN_VEC4 glm::vec4 colors[kNumLights];
+};
+
 struct RenderInfo {
   ALIGN_VEC4 glm::vec4 light_centers[kNumLights];
-  ALIGN_VEC4 glm::vec4 light_colors[kNumLights];
   ALIGN_VEC4 glm::vec4 camera_pos;
 };
 
@@ -61,51 +70,67 @@ LightingPass::LightingPass(const WindowContext* window_context,
   const auto context = window_context_.basic_context();
 
   /* Uniform buffer */
+  lights_uniform_ = absl::make_unique<UniformBuffer>(
+      context, sizeof(Lights), /*num_chunks=*/1);
   render_info_uniform_ = absl::make_unique<UniformBuffer>(
       context, sizeof(RenderInfo), num_frames_in_flight);
-  // TODO
+
   std::random_device device;
   std::mt19937 rand_gen{device()};
-  std::uniform_real_distribution<float> center_x{0.0f, 32.0f};
-  std::uniform_real_distribution<float> center_z{-40.0f, 0.0f};
   std::uniform_real_distribution<float> color{0.5f, 1.0f};
-  auto& render_info = *render_info_uniform_->HostData<RenderInfo>(0);
-  for (int i = 0; i < kNumLights; ++i) {
-    render_info.light_centers[i].x = center_x(rand_gen);
-    render_info.light_centers[i].y = 0.0f;
-    render_info.light_centers[i].z = center_z(rand_gen);
-    render_info.light_colors[i].x = color(rand_gen);
-    render_info.light_colors[i].y = color(rand_gen);
-    render_info.light_colors[i].z = color(rand_gen);
-  }
-  for (int frame = 1; frame < num_frames_in_flight; ++frame) {
-    *render_info_uniform_->HostData<RenderInfo>(frame) =
-        *render_info_uniform_->HostData<RenderInfo>(0);
-  }
+  std::uniform_real_distribution<float> center_x{0.0f, 6.8f};
+  std::uniform_real_distribution<float> center_z{0.0f, 9.0f};
+
+  auto& light_colors =
+      lights_uniform_->HostData<Lights>(/*chunk_index=*/0)->colors;
+  std::generate(
+      light_colors, light_colors + kNumLights,
+      [&rand_gen, &color]() -> glm::vec4 {
+        return {color(rand_gen), color(rand_gen), color(rand_gen), 0.0f};
+      });
+  lights_uniform_->Flush(/*chunk_index=*/0);
+
+  original_light_centers_.resize(kNumLights);
+  std::generate(
+      original_light_centers_.begin(), original_light_centers_.end(),
+      [&rand_gen, &center_x, &center_z]() -> glm::vec4 {
+        return {center_x(rand_gen), 3.5f, center_z(rand_gen), 0.0f};
+      });
 
   /* Descriptor */
-  std::array<Descriptor::Info, kNumUniforms> descriptor_infos;
-  descriptor_infos[kRenderInfoUniformBufferBindingPoint] = Descriptor::Info{
-      UniformBuffer::GetDescriptorType(),
-      VK_SHADER_STAGE_FRAGMENT_BIT,
-      /*bindings=*/{
-          Descriptor::Info::Binding{
-              kRenderInfoUniformBufferBindingPoint,
-              /*array_length=*/1,
-          }},
-  };
+  std::vector<Descriptor::Info::Binding> uniform_buffer_bindings;
+  uniform_buffer_bindings.reserve(kNumUniformBuffers);
+  for (uint32_t i = kLightsUniformBufferBindingPoint;
+       i <= kRenderInfoUniformBufferBindingPoint; ++i) {
+    uniform_buffer_bindings.push_back(Descriptor::Info::Binding{
+        /*binding_point=*/i,
+        /*array_length=*/1,
+    });
+  }
+
+  std::vector<Descriptor::Info::Binding> texture_bindings;
+  texture_bindings.reserve(kNumTextures);
   for (uint32_t i = kPositionTextureBindingPoint;
        i <= kDiffuseSpecularTextureBindingPoint; ++i) {
-    descriptor_infos[i] = Descriptor::Info{
-        Image::GetDescriptorTypeForSampling(),
-        VK_SHADER_STAGE_FRAGMENT_BIT,
-        /*bindings=*/{
-            Descriptor::Info::Binding{
-                /*binding_point=*/i,
-                /*array_length=*/1,
-            }},
-    };
+    texture_bindings.push_back(Descriptor::Info::Binding{
+        /*binding_point=*/i,
+        /*array_length=*/1,
+    });
   }
+
+  const std::array<Descriptor::Info, 2> descriptor_infos{
+      Descriptor::Info{
+          UniformBuffer::GetDescriptorType(),
+          VK_SHADER_STAGE_FRAGMENT_BIT,
+          uniform_buffer_bindings,
+      },
+      Descriptor::Info{
+          Image::GetDescriptorTypeForSampling(),
+          VK_SHADER_STAGE_FRAGMENT_BIT,
+          texture_bindings,
+      },
+  };
+
   descriptors_.resize(num_frames_in_flight);
   for (int frame = 0; frame < num_frames_in_flight; ++frame) {
     descriptors_[frame] =
@@ -113,6 +138,8 @@ LightingPass::LightingPass(const WindowContext* window_context,
     descriptors_[frame]->UpdateBufferInfos(
         UniformBuffer::GetDescriptorType(),
         /*buffer_info_map=*/{
+            {kLightsUniformBufferBindingPoint,
+                {lights_uniform_->GetDescriptorInfo(/*chunk_index=*/0)}},
             {kRenderInfoUniformBufferBindingPoint,
                 {render_info_uniform_->GetDescriptorInfo(frame)}},
         });
@@ -199,8 +226,20 @@ void LightingPass::UpdateFramebuffer(
 }
 
 void LightingPass::UpdatePerFrameData(int frame, const common::Camera& camera) {
-  render_info_uniform_->HostData<RenderInfo>(frame)->camera_pos =
-      glm::vec4{camera.position(), 0.0f};
+  auto& render_info = *render_info_uniform_->HostData<RenderInfo>(frame);
+  render_info.camera_pos = glm::vec4{camera.position(), 0.0f};
+  // TODO
+  const glm::vec2 pos_increment = glm::vec2{0.0f, 3.0f} *
+                                  timer_.GetElapsedTimeSinceLaunch();
+  const glm::vec2 bound = glm::vec2{6.8f, 9.0f};
+  auto& centers = render_info.light_centers;
+  for (int light = 0; light < kNumLights; ++light) {
+    centers[light].x =
+        glm::mod(original_light_centers_[light].x + pos_increment.x, bound.x);
+    centers[light].y = original_light_centers_[light].y;
+    centers[light].z =
+        -glm::mod(original_light_centers_[light].z + pos_increment.y, bound.y);
+  }
   render_info_uniform_->Flush(frame);
 }
 

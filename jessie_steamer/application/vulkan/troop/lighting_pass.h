@@ -12,6 +12,7 @@
 #include <memory>
 
 #include "jessie_steamer/common/camera.h"
+#include "jessie_steamer/common/timer.h"
 #include "jessie_steamer/wrapper/vulkan/buffer.h"
 #include "jessie_steamer/wrapper/vulkan/descriptor.h"
 #include "jessie_steamer/wrapper/vulkan/pipeline.h"
@@ -52,8 +53,13 @@ class LightingPass {
             uint32_t framebuffer_index, int current_frame) const;
 
  private:
+  // TODO
+  std::vector<glm::vec3> original_light_centers_;
+
   // Objects used for rendering.
   const wrapper::vulkan::WindowContext& window_context_;
+  common::BasicTimer timer_;
+  std::unique_ptr<wrapper::vulkan::UniformBuffer> lights_uniform_;
   std::unique_ptr<wrapper::vulkan::UniformBuffer> render_info_uniform_;
   std::vector<std::unique_ptr<wrapper::vulkan::StaticDescriptor>> descriptors_;
   std::unique_ptr<wrapper::vulkan::PerVertexBuffer> squad_vertex_buffer_;

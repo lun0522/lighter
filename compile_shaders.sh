@@ -37,7 +37,7 @@ fi
 # Compile shaders.
 echo "$(DATE "${DATE_FORMAT}") Compiling shaders..."
 cd "${SHADERS_DIR}"
-for suffix in "*.vert" "*.frag" "*.comp"; do
+for suffix in "*lighting_pass.frag"; do
   find . -type f -name "${suffix}" | while read -r file; do
     compile_shader "${file}" -DTARGET_OPENGL "opengl"
     compile_shader "${file}" -DTARGET_VULKAN "vulkan"

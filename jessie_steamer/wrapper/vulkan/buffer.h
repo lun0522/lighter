@@ -487,10 +487,8 @@ class UniformBuffer : public DataBuffer {
 
   ~UniformBuffer() override { delete data_; }
 
-  // Returns descriptor types used for updating descriptor sets.
-  static VkDescriptorType GetDescriptorType() {
-    return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  }
+  // Returns true if there is only one chunk of data.
+  bool HasSingleChunk() const { return num_chunks_ == 1; }
 
   // Returns a pointer to the data on the host, casted to 'DataType'.
   template <typename DataType>
@@ -504,11 +502,13 @@ class UniformBuffer : public DataBuffer {
   void Flush(int chunk_index, VkDeviceSize data_size,
              VkDeviceSize offset) const;
 
+  // Returns descriptor types used for updating descriptor sets.
+  static VkDescriptorType GetDescriptorType() {
+    return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  }
+
   // Returns the description of the data chunk at 'chunk_index'.
   VkDescriptorBufferInfo GetDescriptorInfo(int chunk_index) const;
-
-  // Accessors.
-  int num_chunks() const { return num_chunks_; }
 
  private:
   // Validates whether 'chunk_index' has exceeded 'num_chunks_'.
@@ -548,6 +548,9 @@ class PushConstant {
   PushConstant& operator=(const PushConstant&) = delete;
 
   ~PushConstant() { delete[] data_; }
+
+  // Returns true if there is only one frame in flight.
+  bool HasSingleFrame() const { return num_frames_ == 1; }
 
   // Returns a pointer to the data on the host, casted to 'DataType'.
   template <typename DataType>

@@ -16,9 +16,8 @@ layout(location = 1) out vec3 norm;
 layout(location = 2) out vec2 tex_coord;
 
 void main() {
-  const vec4 pos_world = trans.model * vec4(in_center + in_pos, 1.0);
-  pos = pos_world.xyz;
+  pos = (trans.model * vec4(in_pos, 1.0)).xyz + in_center;
   norm = mat3(trans.model_inv_trs) * in_norm;
   tex_coord = in_tex_coord;
-  gl_Position = trans.proj_view * pos_world;
+  gl_Position = trans.proj_view * vec4(pos, 1.0);
 }
