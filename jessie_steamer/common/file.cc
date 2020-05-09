@@ -242,5 +242,14 @@ ObjFile::ObjFile(const std::string& path, int index_base) {
   }
 }
 
+ObjFilePosOnly::ObjFilePosOnly(const std::string& path, int index_base) {
+  ObjFile file(path, index_base);
+  indices = std::move(file.indices);
+  vertices.reserve(file.vertices.size());
+  for (const auto& vertex : file.vertices) {
+    vertices.push_back({vertex.pos});
+  }
+}
+
 } /* namespace common */
 } /* namespace jessie_steamer */

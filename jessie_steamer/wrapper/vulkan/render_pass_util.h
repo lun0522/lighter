@@ -19,7 +19,7 @@ namespace wrapper {
 namespace vulkan {
 
 // This render pass at least contains one color attachment. If any opaque or
-// transparent subpass is used, a depth attachment will also be added.
+// transparent subpass is used, a depth stencil attachment will also be added.
 // If multisampling is used (by passing a non-optional 'multisampling_mode' to
 // the constructor), a multisample attachment will be added as well, and
 // configured to resolve to the color attachment.
@@ -39,13 +39,14 @@ class NaiveRenderPassBuilder : public RenderPassBuilder {
   // It will be resolved to the color attachment in the last subpass.
   struct SubpassConfig {
     // If true, the first subpass will use the color attachment and the depth
-    // attachment. The depth attachment should be set to writable in the
-    // pipeline, so that all opaque objects can be rendered in one subpass.
+    // stencil attachment. The depth stencil attachment should be set to
+    // writable in the pipeline, so that all opaque objects can be rendered in
+    // one subpass.
     bool use_opaque_subpass;
 
-    // These subpasses will use the color attachment and the depth attachment,
-    // but the depth attachment should not be writable. They are used for
-    // rendering transparent objects.
+    // These subpasses will use the color attachment and the depth stencil
+    // attachment, but the depth stencil attachment should not be writable. They
+    // are used for rendering transparent objects.
     int num_transparent_subpasses;
 
     // These subpasses will only use the color attachment. One of use cases is
@@ -60,7 +61,7 @@ class NaiveRenderPassBuilder : public RenderPassBuilder {
       int num_framebuffers, bool use_multisampling,
       ColorAttachmentFinalUsage color_attachment_final_usage =
           ColorAttachmentFinalUsage::kPresentToScreen,
-      bool preserve_depth_attachment_content = false);
+      bool preserve_depth_stencil_attachment_content = false);
 
   // This class is neither copyable nor movable.
   NaiveRenderPassBuilder(const NaiveRenderPassBuilder&) = delete;
@@ -68,12 +69,13 @@ class NaiveRenderPassBuilder : public RenderPassBuilder {
 
   // Accessors.
   int color_attachment_index() const { return 0; }
-  bool has_depth_attachment() const {
-    return depth_attachment_index_.has_value();
+  bool has_depth_stencil_attachment() const {
+    return depth_stencil_attachment_index_.has_value();
   }
-  // The user is responsible for checking if the depth attachment is used.
-  int depth_attachment_index() const {
-    return depth_attachment_index_.value();
+  // The user is responsible for checking whether the depth stencil attachment
+  // is used.
+  int depth_stencil_attachment_index() const {
+    return depth_stencil_attachment_index_.value();
   }
   bool has_multisample_attachment() const {
     return multisample_attachment_index_.has_value();
@@ -84,16 +86,16 @@ class NaiveRenderPassBuilder : public RenderPassBuilder {
   }
 
  private:
-  // Index of optional depth attachment.
-  absl::optional<int> depth_attachment_index_;
+  // Index of optional depth stencil attachment.
+  absl::optional<int> depth_stencil_attachment_index_;
 
   // Index of optional multisample attachment.
   absl::optional<int> multisample_attachment_index_;
 };
 
 // This render pass is used for the geometry pass of deferred shading. We assume
-// that one depth attachment and several color attachments will be used. There
-// is only one subpass in this render pass. The user can use
+// that one depth stencil attachment and several color attachments will be used.
+// There is only one subpass in this render pass. The user can use
 // NaiveRenderPassBuilder for the lighting pass.
 class DeferredShadingRenderPassBuilder : public RenderPassBuilder {
  public:
@@ -108,7 +110,7 @@ class DeferredShadingRenderPassBuilder : public RenderPassBuilder {
       const DeferredShadingRenderPassBuilder&) = delete;
 
   // Accessors.
-  int depth_attachment_index() const { return 0; }
+  int depth_stencil_attachment_index() const { return 0; }
   int color_attachments_index_base() const { return 1; }
 };
 

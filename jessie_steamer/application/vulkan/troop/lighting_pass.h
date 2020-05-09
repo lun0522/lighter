@@ -30,8 +30,18 @@ namespace troop {
 // deferred rendering.
 class LightingPass {
  public:
+  // Centers of lights will be randomly generated within bounds, and moves by
+  // the specified increments. Increments are measured in the change of world
+  // coordinates per second.
+  struct LightCenterConfig {
+    glm::vec2 bound_x;
+    glm::vec2 bound_y;
+    glm::vec2 bound_z;
+    glm::vec3 increments;
+  };
+
   LightingPass(const wrapper::vulkan::WindowContext* window_context,
-               int num_frames_in_flight);
+               int num_frames_in_flight, const LightCenterConfig& config);
 
   // This class is neither copyable nor movable.
   LightingPass(const LightingPass&) = delete;
@@ -45,7 +55,8 @@ class LightingPass {
       const wrapper::vulkan::OffscreenImage& diffuse_specular_image);
 
   // Updates per-frame data.
-  void UpdatePerFrameData(int frame, const common::Camera& camera);
+  void UpdatePerFrameData(int frame, const common::Camera& camera,
+                          float light_model_scale);
 
   // Runs the lighting pass.
   // This should be called when 'command_buffer' is recording commands.
@@ -53,15 +64,26 @@ class LightingPass {
             uint32_t framebuffer_index, int current_frame) const;
 
  private:
-  // TODO
-  std::vector<glm::vec3> original_light_centers_;
+  // Configures how do we generate 'original_light_centers_' and how do centers
+  // change over time.
+  const LightCenterConfig light_center_config_;
+
+  // Original centers of lights.
+  const std::vector<glm::vec3> original_light_centers_;
+
+  // Used to get the elapsed time.
+  const common::BasicTimer timer_;
 
   // Objects used for rendering.
   const wrapper::vulkan::WindowContext& window_context_;
-  common::BasicTimer timer_;
-  std::unique_ptr<wrapper::vulkan::UniformBuffer> lights_uniform_;
+  std::unique_ptr<wrapper::vulkan::UniformBuffer> lights_colors_uniform_;
   std::unique_ptr<wrapper::vulkan::UniformBuffer> render_info_uniform_;
-  std::vector<std::unique_ptr<wrapper::vulkan::StaticDescriptor>> descriptors_;
+  std::unique_ptr<wrapper::vulkan::PushConstant> lights_trans_constant_;
+  std::vector<std::unique_ptr<wrapper::vulkan::StaticDescriptor>>
+      lights_descriptors_;
+  std::vector<std::unique_ptr<wrapper::vulkan::StaticDescriptor>>
+      soldiers_descriptors_;
+  std::unique_ptr<wrapper::vulkan::PerVertexBuffer> cube_vertex_buffer_;
   std::unique_ptr<wrapper::vulkan::PerVertexBuffer> squad_vertex_buffer_;
   std::unique_ptr<wrapper::vulkan::GraphicsPipelineBuilder>
       lights_pipeline_builder_;

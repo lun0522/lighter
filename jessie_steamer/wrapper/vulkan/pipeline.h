@@ -64,6 +64,7 @@ class ShaderModule {
 
 // This is the base class of all pipeline builder classes. The user should use
 // it through derived classes.
+// TODO: Use VkPipelineCache.
 class PipelineBuilder {
  public:
   // This class is neither copyable nor movable.
@@ -135,11 +136,16 @@ class GraphicsPipelineBuilder : public PipelineBuilder {
 
   // By default, depth testing and stencil testing are disabled, the rasterizer
   // only takes one sample, and primitive topology is triangle list.
-  GraphicsPipelineBuilder& SetDepthTestEnabled(bool enable_test,
-                                               bool enable_write);
-  GraphicsPipelineBuilder& SetStencilTestEnable(bool enable_test);
+  GraphicsPipelineBuilder& SetDepthTestEnable(bool enable_test,
+                                              bool enable_write);
+  GraphicsPipelineBuilder& SetStencilTestEnable(bool enable);
   GraphicsPipelineBuilder& SetMultisampling(VkSampleCountFlagBits sample_count);
   GraphicsPipelineBuilder& SetPrimitiveTopology(VkPrimitiveTopology topology);
+
+  // Sets stencil op states for front-facing and/or back-facing polygons.
+  // Note that this is orthogonal to SetStencilTestEnable().
+  GraphicsPipelineBuilder& SetStencilOpState(const VkStencilOpState& op_state,
+                                             VkStencilFaceFlags face);
 
   // Adds descriptions for the vertex data bound to 'binding_point'.
   // The user does not need to set the 'binding' field of 'binding_description'

@@ -61,17 +61,6 @@ struct ViewpointRenderInfo {
 
 /* END: Consistent with uniform blocks defined in shaders. */
 
-// Extracts the position data from a list of Vertex3DWithTex.
-std::vector<common::Vertex3DPosOnly> ExtractPos(
-    const std::vector<common::Vertex3DWithTex>& vertices) {
-  std::vector<common::Vertex3DPosOnly> vertices_pos;
-  vertices_pos.reserve(vertices.size());
-  for (const auto& vertex : vertices) {
-    vertices_pos.push_back({vertex.pos});
-  }
-  return vertices_pos;
-}
-
 // Applies 'transform' to a 3D 'point'.
 inline glm::vec3 TransformPoint(const glm::mat4& transform,
                                 const glm::vec3& point) {
@@ -93,14 +82,13 @@ PathRenderer3D::PathRenderer3D(const SharedBasicContext& context,
   ShaderModule::AutoReleaseShaderPool shader_pool;
 
   /* Vertex buffer */
-  const common::ObjFile sphere_file{
+  const common::ObjFilePosOnly sphere_file{
       common::file::GetResourcePath("model/small_sphere.obj"),
       /*index_base=*/1};
-  const auto sphere_vertices = ExtractPos(sphere_file.vertices);
   PerVertexBuffer::NoShareIndicesDataInfo sphere_vertices_info{
       /*per_mesh_infos=*/{{
           PerVertexBuffer::VertexDataInfo{sphere_file.indices},
-          PerVertexBuffer::VertexDataInfo{sphere_vertices},
+          PerVertexBuffer::VertexDataInfo{sphere_file.vertices},
       }},
   };
   sphere_vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
@@ -133,7 +121,7 @@ PathRenderer3D::PathRenderer3D(const SharedBasicContext& context,
   /* Pipeline */
   control_pipeline_builder_
       .SetPipelineName("Aurora path control")
-      .SetDepthTestEnabled(/*enable_test=*/true, /*enable_write=*/false)
+      .SetDepthTestEnable(/*enable_test=*/true, /*enable_write=*/false)
       .AddVertexInput(
           static_cast<uint32_t>(ControlVertexBufferBindingPoint::kCenter),
           pipeline::GetPerInstanceBindingDescription<Vertex3DPosOnly>(),
@@ -154,7 +142,7 @@ PathRenderer3D::PathRenderer3D(const SharedBasicContext& context,
 
   spline_pipeline_builder_
       .SetPipelineName("Aurora path spline")
-      .SetDepthTestEnabled(/*enable_test=*/true, /*enable_write=*/false)
+      .SetDepthTestEnable(/*enable_test=*/true, /*enable_write=*/false)
       .SetPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_LINE_STRIP)
       .AddVertexInput(
           static_cast<uint32_t>(SplineVertexBufferBindingPoint::kPos),
@@ -176,7 +164,7 @@ PathRenderer3D::PathRenderer3D(const SharedBasicContext& context,
 
   viewpoint_pipeline_builder_
       .SetPipelineName("User viewpoint")
-      .SetDepthTestEnabled(/*enable_test=*/true, /*enable_write=*/false)
+      .SetDepthTestEnable(/*enable_test=*/true, /*enable_write=*/false)
       .AddVertexInput(
           kViewpointVertexBufferBindingPoint,
           pipeline::GetPerVertexBindingDescription<Vertex3DPosOnly>(),

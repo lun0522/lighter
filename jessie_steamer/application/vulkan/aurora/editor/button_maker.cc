@@ -79,11 +79,7 @@ std::unique_ptr<StaticDescriptor> CreateDescriptor(
           Descriptor::Info{
               Image::GetDescriptorTypeForSampling(),
               VK_SHADER_STAGE_FRAGMENT_BIT,
-              /*bindings=*/{
-                  Descriptor::Info::Binding{
-                      kImageBindingPoint,
-                      /*array_length=*/1,
-                  }},
+              /*bindings=*/{{kImageBindingPoint, /*array_length=*/1}},
           }});
   descriptor->UpdateImageInfos(
       Image::GetDescriptorTypeForSampling(),

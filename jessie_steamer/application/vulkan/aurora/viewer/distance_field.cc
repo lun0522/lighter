@@ -95,16 +95,17 @@ DistanceFieldGenerator::DistanceFieldGenerator(
       }};
 
   /* Descriptor */
-  std::vector<Descriptor::Info> descriptor_infos;
-  for (auto binding_point : {kOriginalImageBindingPoint,
-                             kOutputImageBindingPoint}) {
-    descriptor_infos.push_back(Descriptor::Info{
-        Image::GetDescriptorTypeForLinearAccess(),
-        VK_SHADER_STAGE_COMPUTE_BIT,
-        /*bindings=*/{{binding_point, /*array_length=*/1}},
-    });
-  }
-  descriptor_ = absl::make_unique<DynamicDescriptor>(context, descriptor_infos);
+  descriptor_ = absl::make_unique<DynamicDescriptor>(
+      context, std::vector<Descriptor::Info>{
+          Descriptor::Info{
+              Image::GetDescriptorTypeForLinearAccess(),
+              VK_SHADER_STAGE_COMPUTE_BIT,
+              /*bindings=*/{
+                  {kOriginalImageBindingPoint, /*array_length=*/1},
+                  {kOutputImageBindingPoint, /*array_length=*/1},
+              },
+          },
+      });
 
   const auto image_layout = layout_manager.GetLayoutAtStage(
       pong_image_->image(), kGenerateDistanceFieldStage);

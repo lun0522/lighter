@@ -268,7 +268,7 @@ void PlanetApp::Recreate() {
             return window_context().swapchain_image(framebuffer_index);
           })
       .UpdateAttachmentImage(
-          render_pass_builder_->depth_attachment_index(),
+          render_pass_builder_->depth_stencil_attachment_index(),
           [this](int framebuffer_index) -> const Image& {
             return *depth_stencil_image_;
           });

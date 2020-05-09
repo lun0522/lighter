@@ -25,6 +25,31 @@ using VertexAttribute = VertexBuffer::Attribute;
 
 } /* namespace */
 
+VkStencilOpState GetStencilReadOpState(VkCompareOp compare_op,
+                                       uint32_t reference) {
+  return VkStencilOpState{
+      /*failOp=*/VK_STENCIL_OP_KEEP,
+      /*passOp=*/VK_STENCIL_OP_KEEP,
+      /*depthFailOp=*/VK_STENCIL_OP_KEEP,
+      compare_op,
+      /*compareMask=*/0xFF,
+      /*writeMask=*/0xFF,
+      reference,
+  };
+}
+
+VkStencilOpState GetStencilWriteOpState(uint32_t reference) {
+  return VkStencilOpState{
+      /*failOp=*/VK_STENCIL_OP_KEEP,
+      /*passOp=*/VK_STENCIL_OP_REPLACE,
+      /*depthFailOp=*/VK_STENCIL_OP_KEEP,
+      /*compareOp=*/VK_COMPARE_OP_ALWAYS,
+      /*compareMask=*/0xFF,
+      /*writeMask=*/0xFF,
+      reference,
+  };
+}
+
 GraphicsPipelineBuilder::ViewportInfo GetFullFrameViewport(
     const VkExtent2D& frame_size) {
   return GraphicsPipelineBuilder::ViewportInfo{

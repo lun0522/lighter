@@ -29,7 +29,7 @@ ImageViewer::ImageViewer(const SharedBasicContext& context,
 
   /* Descriptor */
   descriptor_ = absl::make_unique<StaticDescriptor>(
-      context, /*infos=*/std::vector<Descriptor::Info>{
+      context, std::vector<Descriptor::Info>{
           Descriptor::Info{
               Image::GetDescriptorTypeForSampling(),
               VK_SHADER_STAGE_FRAGMENT_BIT,

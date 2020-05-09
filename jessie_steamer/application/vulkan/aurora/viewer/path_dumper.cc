@@ -101,7 +101,7 @@ PathDumper::PathDumper(
 
 void PathDumper::DumpAuroraPaths(const common::Camera& camera) {
 #ifndef NDEBUG
-  common::BasicTimer timer;
+  const common::BasicTimer timer;
 #endif /* !NDEBUG */
 
   // TODO: Compute queue and graphics queue might be different queues.

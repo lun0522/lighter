@@ -102,18 +102,17 @@ PathRenderer2D::PathRenderer2D(
   };
 
   /* Descriptor */
-  std::vector<Descriptor::Info> descriptor_infos;
-  for (auto binding_point : {kOriginalImageBindingPoint,
-                             kOutputImageBindingPoint}) {
-    descriptor_infos.push_back(Descriptor::Info{
-        Image::GetDescriptorTypeForLinearAccess(),
-        VK_SHADER_STAGE_COMPUTE_BIT,
-        /*bindings=*/{{binding_point, /*array_length=*/1}},
-    });
-  }
-
   bold_paths_descriptor_ = absl::make_unique<StaticDescriptor>(
-      context, descriptor_infos);
+      context, std::vector<Descriptor::Info>{
+          Descriptor::Info{
+              Image::GetDescriptorTypeForLinearAccess(),
+              VK_SHADER_STAGE_COMPUTE_BIT,
+              /*bindings=*/{
+                  {kOriginalImageBindingPoint, /*array_length=*/1},
+                  {kOutputImageBindingPoint, /*array_length=*/1},
+              },
+          },
+      });
   bold_paths_descriptor_->UpdateImageInfos(
       Image::GetDescriptorTypeForLinearAccess(),
       /*image_info_map=*/{

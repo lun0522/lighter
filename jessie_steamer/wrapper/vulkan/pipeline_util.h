@@ -20,7 +20,19 @@ namespace wrapper {
 namespace vulkan {
 namespace pipeline {
 
-/* Color blend */
+/** Stencil test **/
+
+// Returns a read-only stencil op state. The value stored in stencil buffer will
+// be compared with 'reference' value using 'compare_op' to determine whether
+// the stencil test passes.
+VkStencilOpState GetStencilReadOpState(VkCompareOp compare_op,
+                                       uint32_t reference);
+
+// Returns a write-only stencil op state. The stencil test will always pass, and
+// write 'reference' value to the stencil attachment.
+VkStencilOpState GetStencilWriteOpState(uint32_t reference);
+
+/** Viewport **/
 
 // Returns a viewport transform targeting the full frame of 'frame_size'.
 GraphicsPipelineBuilder::ViewportInfo GetFullFrameViewport(
@@ -30,6 +42,8 @@ GraphicsPipelineBuilder::ViewportInfo GetFullFrameViewport(
 // unchanged, and fills the frame as much as possible.
 GraphicsPipelineBuilder::ViewportInfo GetViewport(const VkExtent2D& frame_size,
                                                   float aspect_ratio);
+
+/** Color blend **/
 
 // Returns the blend state that simply adds up source and destination colors.
 // This is used for single channel images that do not have alpha channels.
@@ -41,7 +55,7 @@ VkPipelineColorBlendAttachmentState GetColorBlendState(bool enable_blend);
 // Where: C - color, A - alpha, s - source, d - destination.
 VkPipelineColorBlendAttachmentState GetColorAlphaBlendState(bool enable_blend);
 
-/* Vertex input binding */
+/** Vertex input binding **/
 
 // Returns how to interpret the vertex data. Note that the 'binding' field of
 // the returned value will not be set, since it will be assigned in pipeline.
@@ -62,7 +76,7 @@ inline VkVertexInputBindingDescription GetPerInstanceBindingDescription() {
   return GetBindingDescription(sizeof(DataType), /*instancing=*/true);
 }
 
-/* Vertex input attribute */
+/** Vertex input attribute **/
 
 // Convenient function to return a list of VertexBuffer::Attribute, assuming
 // each vertex will get data of DataType. For now this is only implemented for

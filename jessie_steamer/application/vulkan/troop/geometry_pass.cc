@@ -125,7 +125,7 @@ void GeometryPass::UpdateFramebuffer(const Image& depth_stencil_image,
       render_pass_builder_->color_attachments_index_base();
   (*render_pass_builder_)
       .UpdateAttachmentImage(
-          render_pass_builder_->depth_attachment_index(),
+          render_pass_builder_->depth_stencil_attachment_index(),
           [&depth_stencil_image](int framebuffer_index) -> const Image& {
             return depth_stencil_image;
           })
@@ -149,8 +149,7 @@ void GeometryPass::UpdateFramebuffer(const Image& depth_stencil_image,
   /* Model */
   nanosuit_model_->Update(/*is_object_opaque=*/true,
                           depth_stencil_image.extent(), kSingleSample,
-                          *render_pass_, /*subpass_index=*/0,
-                          /*flip_viewport_y=*/false);
+                          *render_pass_, /*subpass_index=*/0);
 }
 
 void GeometryPass::UpdatePerFrameData(int frame, const common::Camera& camera) {

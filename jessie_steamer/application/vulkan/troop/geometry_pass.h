@@ -26,7 +26,9 @@ namespace vulkan {
 namespace troop {
 
 // This class is used to handle the render pass for the geometry pass of
-// deferred rendering.
+// deferred rendering. Note that since the depth stencil image will be reused
+// in the lighting pass which does onscreen rendering, we flip the viewport in
+// this pass.
 class GeometryPass {
  public:
   GeometryPass(const wrapper::vulkan::WindowContext& window_context,

@@ -7,6 +7,8 @@
 
 #include "jessie_steamer/application/vulkan/aurora/viewer/viewer.h"
 
+#include <array>
+
 #include "jessie_steamer/application/vulkan/aurora/viewer/air_transmit_table.h"
 #include "jessie_steamer/wrapper/vulkan/align.h"
 #include "jessie_steamer/wrapper/vulkan/image_util.h"
@@ -34,6 +36,7 @@ enum UniformBindingPoint {
   kAirTransmitTableImageBindingPoint,
   kUniverseSkyboxImageBindingPoint,
   kNumUniformBindingPoints,
+  kNumImages = kNumUniformBindingPoints - kAuroraDepositionImageBindingPoint,
 };
 
 constexpr uint32_t kVertexBufferBindingPoint = 0;
@@ -105,6 +108,28 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
       context, skybox_path, image_usages, ImageSampler::Config{});
 
   /* Descriptor */
+  std::vector<Descriptor::Info::Binding> image_bindings;
+  image_bindings.reserve(kNumImages);
+  for (int i = kAuroraDepositionImageBindingPoint;
+       i <= kUniverseSkyboxImageBindingPoint; ++i) {
+    image_bindings.push_back(Descriptor::Info::Binding{
+        /*binding_point=*/static_cast<uint32_t>(i),
+        /*array_length=*/1,
+    });
+  }
+  const std::array<Descriptor::Info, 2> descriptor_infos{
+      Descriptor::Info{
+          UniformBuffer::GetDescriptorType(),
+          VK_SHADER_STAGE_FRAGMENT_BIT,
+          /*bindings=*/{{kCameraUniformBindingPoint, /*array_length=*/1}},
+      },
+      Descriptor::Info{
+          Image::GetDescriptorTypeForSampling(),
+          VK_SHADER_STAGE_FRAGMENT_BIT,
+          image_bindings,
+      },
+  };
+
   const Descriptor::ImageInfoMap image_info_map{
       {kAuroraDepositionImageBindingPoint,
           {aurora_deposition_image_->GetDescriptorInfoForSampling()}},
@@ -118,34 +143,10 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
           {universe_skybox_image_->GetDescriptorInfoForSampling()}}
   };
 
-  std::vector<Descriptor::Info> uniform_descriptor_infos;
-  uniform_descriptor_infos.reserve(kNumUniformBindingPoints);
-  uniform_descriptor_infos.push_back(Descriptor::Info{
-      UniformBuffer::GetDescriptorType(),
-      VK_SHADER_STAGE_FRAGMENT_BIT,
-      /*bindings=*/{
-          Descriptor::Info::Binding{
-              kCameraUniformBindingPoint,
-              /*array_length=*/1,
-          }},
-  });
-  for (int i = kCameraUniformBindingPoint + 1; i < kNumUniformBindingPoints;
-       ++i) {
-    uniform_descriptor_infos.push_back(Descriptor::Info{
-        Image::GetDescriptorTypeForSampling(),
-        VK_SHADER_STAGE_FRAGMENT_BIT,
-        /*bindings=*/{
-            Descriptor::Info::Binding{
-                /*binding_point=*/static_cast<uint32_t>(i),
-                /*array_length=*/1,
-            }},
-    });
-  }
-
   descriptors_.reserve(num_frames_in_flight);
   for (int frame = 0; frame < num_frames_in_flight; ++frame) {
-    descriptors_.push_back(absl::make_unique<StaticDescriptor>(
-        context, uniform_descriptor_infos));
+    descriptors_.push_back(
+        absl::make_unique<StaticDescriptor>(context, descriptor_infos));
     (*descriptors_[frame])
         .UpdateBufferInfos(
             UniformBuffer::GetDescriptorType(),

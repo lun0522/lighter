@@ -111,8 +111,13 @@ TroopApp::TroopApp(const WindowContext::Config& window_config)
       window_context(), kNumFramesInFlight, /*model_scale=*/0.2,
       /*num_soldiers=*/glm::ivec2{5, 10},
       /*interval_between_soldiers=*/glm::vec2{1.7f, -1.0f});
+
   lighting_pass_ = absl::make_unique<troop::LightingPass>(
-      &window_context(), kNumFramesInFlight);
+      &window_context(), kNumFramesInFlight,
+      troop::LightingPass::LightCenterConfig{
+          /*bound_x=*/{-3.0f, 9.8f}, /*bound_y=*/{3.2f, 4.2f},
+          /*bound_z=*/{-12.0f, 3.0f}, /*increments=*/{0.0f, 0.0f, 2.0f},
+      });
 }
 
 void TroopApp::Recreate() {
@@ -160,7 +165,8 @@ void TroopApp::Recreate() {
 
 void TroopApp::UpdateData(int frame) {
   geometry_pass_->UpdatePerFrameData(frame, camera_->camera());
-  lighting_pass_->UpdatePerFrameData(frame, camera_->camera());
+  lighting_pass_->UpdatePerFrameData(frame, camera_->camera(),
+                                     /*light_model_scale=*/0.1f);
 }
 
 void TroopApp::MainLoop() {

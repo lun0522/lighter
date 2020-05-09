@@ -243,7 +243,7 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetPipelineName(
   return *this;
 }
 
-GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetDepthTestEnabled(
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetDepthTestEnable(
     bool enable_test, bool enable_write) {
   depth_stencil_info_.depthTestEnable = util::ToVkBool(enable_test);
   depth_stencil_info_.depthWriteEnable = util::ToVkBool(enable_write);
@@ -251,8 +251,8 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetDepthTestEnabled(
 }
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetStencilTestEnable(
-    bool enable_test) {
-  depth_stencil_info_.stencilTestEnable = util::ToVkBool(enable_test);
+    bool enable) {
+  depth_stencil_info_.stencilTestEnable = util::ToVkBool(enable);
   return *this;
 }
 
@@ -265,6 +265,17 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetMultisampling(
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetPrimitiveTopology(
     VkPrimitiveTopology topology) {
   input_assembly_info_.topology = topology;
+  return *this;
+}
+
+GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetStencilOpState(
+    const VkStencilOpState& op_state, VkStencilFaceFlags face) {
+  if (face | VK_STENCIL_FACE_FRONT_BIT) {
+    depth_stencil_info_.front = op_state;
+  }
+  if (face | VK_STENCIL_FACE_BACK_BIT) {
+    depth_stencil_info_.back = op_state;
+  }
   return *this;
 }
 

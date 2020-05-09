@@ -150,6 +150,19 @@ struct ObjFile {
   std::vector<Vertex3DWithTex> vertices;
 };
 
+// Loads Wavefront .obj file but only preserves vertex positions.
+struct ObjFilePosOnly {
+  ObjFilePosOnly(const std::string& path, int index_base);
+
+  // This class is neither copyable nor movable.
+  ObjFilePosOnly(const ObjFilePosOnly&) = delete;
+  ObjFilePosOnly& operator=(const ObjFilePosOnly&) = delete;
+
+  // Vertex data, populated with data loaded from the file.
+  std::vector<uint32_t> indices;
+  std::vector<Vertex3DPosOnly> vertices;
+};
+
 } /* namespace common */
 } /* namespace jessie_steamer */
 
