@@ -1,4 +1,4 @@
-Jessie Steamer
+Lighter
 ---
 
 A low-level graphics engine.
@@ -7,7 +7,7 @@ Table of Contents
 ---
 
    * [0. Introduction](#0-introduction)
-   * [1. Common modules (jessie_steamer/common/)](#1-common-modules-jessie_steamercommon)
+   * [1. Common modules (lighter/common/)](#1-common-modules-lightercommon)
       * [1.1 Camera (camera)](#11-camera-camera)
       * [1.2 Character library (char_lib)](#12-character-library-char_lib)
       * [1.3 File utils (file)](#13-file-utils-file)
@@ -15,8 +15,8 @@ Table of Contents
       * [1.5 Reference counting (ref_count)](#15-reference-counting-ref_count)
       * [1.6 Timer (timer)](#16-timer-timer)
       * [1.7 Window manager (window)](#17-window-manager-window)
-   * [2. OpenGL wrappers (jessie_steamer/wrapper/opengl/)](#2-opengl-wrappers-jessie_steamerwrapperopengl)
-   * [3. Vulkan wrappers (jessie_steamer/wrapper/vulkan/)](#3-vulkan-wrappers-jessie_steamerwrappervulkan)
+   * [2. OpenGL wrappers (lighter/wrapper/opengl/)](#2-opengl-wrappers-lighterwrapperopengl)
+   * [3. Vulkan wrappers (lighter/wrapper/vulkan/)](#3-vulkan-wrappers-lighterwrappervulkan)
       * [3.1 Contexts (basic_context, basic_object, validation and window_context)](#31-contexts-basic_context-basic_object-validation-and-window_context)
       * [3.2 Low-level wrappers](#32-low-level-wrappers)
          * [3.2.1 Buffer (buffer)](#321-buffer-buffer)
@@ -39,7 +39,7 @@ Table of Contents
          * [3.3.2 Text renderer (text and text_util)](#332-text-renderer-text-and-text_util)
             * [3.3.2.1 CharLoader and TextLoader](#3321-charloader-and-textloader)
             * [3.3.2.2 StaticText and DynamicText](#3322-statictext-and-dynamictext)
-   * [4. Applications (jessie_steamer/application/)](#4-applications-jessie_steamerapplication)
+   * [4. Applications (lighter/application/)](#4-applications-lighterapplication)
       * [4.1 Triangle scene (triangle)](#41-triangle-scene-triangle)
       * [4.2 Cube scene (cube)](#42-cube-scene-cube)
       * [4.3 Nanosuit scene (nanosuit)](#43-nanosuit-scene-nanosuit)
@@ -58,12 +58,12 @@ run on MacOS. We will add support for Linux later. The code follows
 only uses the features of C++11 (enhanced by [Abseil library](https://abseil.io)).
 
 Before running any application, shaders should be compiled by executing
-[compile_shaders.sh](https://github.com/lun0522/jessie-steamer/blob/master/compile_shaders.sh)
+[compile_shaders.sh](https://github.com/lun0522/lighter/blob/master/compile_shaders.sh)
 (no command line arguments needed). To run applications, since we use the
 [Bazel build system](https://bazel.build), this is how we run from command line:
 
 ```bash
-bazel run -c opt --copt=-DUSE_VULKAN //jessie_steamer/application/vulkan:triangle
+bazel run -c opt --copt=-DUSE_VULKAN //lighter/application/vulkan:triangle
 ```
 
 The compilation mode is specified with the `-c` flag. See details on [Bazel website](https://docs.bazel.build/versions/master/command-line-reference.html#flag--compilation_mode).
@@ -72,8 +72,8 @@ also just build it with Bazel and directly launch the executable, which is more
 useful for debugging with external tools:
 
 ```bash
-bazel build -c dbg --copt=-DUSE_VULKAN //jessie_steamer/application/vulkan:triangle
-bazel-bin/jessie_steamer/application/vulkan/triangle --resource_folder=<path to resource folder> --shader_folder=<path to shader folder> --vulkan_folder=<path to Vulkan SDK folder>
+bazel build -c dbg --copt=-DUSE_VULKAN //lighter/application/vulkan:triangle
+bazel-bin/lighter/application/vulkan/triangle --resource_folder=<path to resource folder> --shader_folder=<path to shader folder> --vulkan_folder=<path to Vulkan SDK folder>
 ```
 
 Here is the meaning of each flag (note that these are **not** required if you 
@@ -82,7 +82,7 @@ directly use `bazel run`):
 - *resource_folder*: Since resource files are stored in a separate
 [resource repo](https://github.com/lun0522/resource), it must have been
 downloaded, and the path to it should be specified with this flag.
-- *shader_folder*: The local address of [this folder](https://github.com/lun0522/jessie-steamer/tree/master/jessie_steamer/shader)
+- *shader_folder*: The local address of [this folder](https://github.com/lun0522/lighter/tree/master/lighter/shader)
 should be specified with this flag.
 - *vulkan_folder*: The [Vulkan SDK](https://vulkan.lunarg.com) must have been 
 downloaded, and the path to the platform specific folder should be specified
@@ -92,12 +92,12 @@ with this flag. For MacOS, this would be
 This README introduces the modules we created, and the decisions we made when we
 design them. The usage of classes and util functions is put right before the
 declaration in header files. You can start with a
-[Vulkan "Hello Triangle" example](https://github.com/lun0522/jessie-steamer/tree/master/jessie_steamer/application/vulkan),
-and then take a look at other applications under the jessie_steamer/application
+[Vulkan "Hello Triangle" example](https://github.com/lun0522/lighter/tree/master/lighter/application/vulkan),
+and then take a look at other applications under the lighter/application
 folder, which are good examples of how to use other features such as rendering
 models, skybox and text.
 
-# 1. Common modules (jessie_steamer/common/)
+# 1. Common modules (lighter/common/)
 
 These modules are shared by OpenGL and Vulkan wrappers. Most of the code is
 independent of graphics APIs. For those exceptions, we have added preprocessors
@@ -181,11 +181,11 @@ the window is resized or closed in the main loop. For Vulkan applications, it is
 also responsible for providing the names of required extensions and help create
 **VkSurfaceKHR**.
 
-# 2. OpenGL wrappers (jessie_steamer/wrapper/opengl/)
+# 2. OpenGL wrappers (lighter/wrapper/opengl/)
 
 Not implemented yet.
 
-# 3. Vulkan wrappers (jessie_steamer/wrapper/vulkan/)
+# 3. Vulkan wrappers (lighter/wrapper/vulkan/)
 
 We don't aim to implement OpenGL APIs on the top of Vulkan APIs, but we will try
 to create different levels of wrappers to enable the user to take advantage of
@@ -215,7 +215,7 @@ project got bigger:
 
 1. It was convenient to pass a context to a function so that it can fetch
 everything it needs, but this made it harder to know which part of the context
-was actually used. For example, in the past when we [built a pipeline](https://github.com/lun0522/jessie-steamer/blob/1f307a02b25e5f7957b173b96f244ead6cbae53a/jessie_steamer/wrapper/vulkan/pipeline.cc#L47)
+was actually used. For example, in the past when we [built a pipeline](https://github.com/lun0522/lighter/blob/1f307a02b25e5f7957b173b96f244ead6cbae53a/lighter/wrapper/vulkan/pipeline.cc#L47)
 we passed in the entire context but only touched **Device**,
 **HostMemoryAllocator** and **Swapchain**. Among them, **Swapchain** was
 actually used only once. It makes more sense to only keep those frequently used
@@ -268,7 +268,7 @@ window:
 - **Surface**
 - **Swapchain**
 
-We also created a Bazel target `//jessie_steamer/wrapper/vulkan:onscreen` which
+We also created a Bazel target `//lighter/wrapper/vulkan:onscreen` which
 exposes only the files needed for onscreen rendering, so applications only need
 to depend on this target and hold one instance of **WindowContext**.
 
@@ -517,7 +517,7 @@ rendering techniques, such as deferred rendering.
 constructed with multisampling enabled, it will also hold a multisample color
 image. This class is managed by **WindowContext**, hence the user would not need
 to directly interact with it. See more details in how we designed the
-[window context](https://github.com/lun0522/jessie-steamer#31-contexts-basic_context-basic_object-validation-and-window_context).
+[window context](https://github.com/lun0522/lighter#31-contexts-basic_context-basic_object-validation-and-window_context).
 
 ### 3.2.8 Synchronization (synchronization)
 
@@ -669,7 +669,7 @@ now, we only support the horizontal layout and alignment. More support will be
 added in the future. With these two classes, the user would not need to directly
 use **CharLoader** and **TextLoader** for simple scenes.
 
-# 4. Applications (jessie_steamer/application/)
+# 4. Applications (lighter/application/)
 
 ## 4.1 Triangle scene (triangle)
 
@@ -678,7 +678,7 @@ use **CharLoader** and **TextLoader** for simple scenes.
 This is the most basic scene, where we don't have any mesh or texture, but one
 blinking triangle. This proves all the basic functionality for onscreen
 rendering (vertex buffer, push constant, command buffer, swapchain, render pass
-and graphics pipeline) and alpha blending are working. We have a [breakdown of the code](https://github.com/lun0522/jessie-steamer/tree/master/jessie_steamer/application/vulkan)
+and graphics pipeline) and alpha blending are working. We have a [breakdown of the code](https://github.com/lun0522/lighter/tree/master/lighter/application/vulkan)
 to illustrate the usage of them. If all resources on the device are destroyed
 properly, the context will be destructed at last, and we should see the log
 "Context destructed properly" in the debug compilation mode.
@@ -734,7 +734,3 @@ This scene is mainly built for testing instanced drawing and the performance.
 - Class inheritance graphs are generated with [Doxygen](http://www.doxygen.nl)
 and [Graphviz](http://www.graphviz.org)
 - Fonts, frameworks, 3D models and textures in a separate [resource repo](https://github.com/lun0522/resource)
-
----
-
-2018.08 - 2019.06 You were here.

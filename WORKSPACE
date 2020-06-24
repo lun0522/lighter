@@ -1,4 +1,4 @@
-workspace(name = "jessie_steamer")
+workspace(name = "lighter")
 
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")

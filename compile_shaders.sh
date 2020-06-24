@@ -7,7 +7,7 @@ set -e
 COMPILER_ADDR="https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-osx-Release.zip"
 COMPILER_BIN="/tmp/glslangValidator"
 BASE_DIR=$(dirname "$0")
-SHADERS_DIR="${BASE_DIR}/jessie_steamer/shader"
+SHADERS_DIR="${BASE_DIR}/lighter/shader"
 OUTPUT_FILE_EXT=".spv"
 DATE_FORMAT="+%F %T"
 
