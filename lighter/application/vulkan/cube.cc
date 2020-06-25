@@ -10,14 +10,14 @@
 #include <vector>
 
 #include "lighter/application/vulkan/util.h"
-#include "lighter/wrapper/vulkan/text.h"
+#include "lighter/renderer/vulkan/extension/text.h"
 
 namespace lighter {
 namespace application {
 namespace vulkan {
 namespace {
 
-using namespace wrapper::vulkan;
+using namespace renderer::vulkan;
 
 enum SubpassIndex {
   kModelSubpassIndex = 0,

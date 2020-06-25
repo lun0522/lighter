@@ -15,18 +15,18 @@
 #include "lighter/common/file.h"
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
-#include "lighter/wrapper/vulkan/align.h"
-#include "lighter/wrapper/vulkan/basic_context.h"
-#include "lighter/wrapper/vulkan/buffer.h"
-#include "lighter/wrapper/vulkan/command.h"
-#include "lighter/wrapper/vulkan/image.h"
-#include "lighter/wrapper/vulkan/image_util.h"
-#include "lighter/wrapper/vulkan/model.h"
-#include "lighter/wrapper/vulkan/pipeline.h"
-#include "lighter/wrapper/vulkan/pipeline_util.h"
-#include "lighter/wrapper/vulkan/render_pass.h"
-#include "lighter/wrapper/vulkan/render_pass_util.h"
-#include "lighter/wrapper/vulkan/window_context.h"
+#include "lighter/renderer/vulkan/extension/align.h"
+#include "lighter/renderer/vulkan/extension/model.h"
+#include "lighter/renderer/vulkan/wrapper/basic_context.h"
+#include "lighter/renderer/vulkan/wrapper/buffer.h"
+#include "lighter/renderer/vulkan/wrapper/command.h"
+#include "lighter/renderer/vulkan/wrapper/image.h"
+#include "lighter/renderer/vulkan/wrapper/image_util.h"
+#include "lighter/renderer/vulkan/wrapper/pipeline.h"
+#include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
+#include "lighter/renderer/vulkan/wrapper/render_pass.h"
+#include "lighter/renderer/vulkan/wrapper/render_pass_util.h"
+#include "lighter/renderer/vulkan/wrapper/window_context.h"
 #include "third_party/absl/flags/flag.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/types/span.h"
@@ -58,19 +58,19 @@ class Application {
 
  protected:
   // Accessors.
-  const wrapper::vulkan::WindowContext& window_context() {
+  const renderer::vulkan::WindowContext& window_context() {
     return window_context_;
   }
-  wrapper::vulkan::WindowContext* mutable_window_context() {
+  renderer::vulkan::WindowContext* mutable_window_context() {
     return &window_context_;
   }
-  wrapper::vulkan::SharedBasicContext context() const {
+  renderer::vulkan::SharedBasicContext context() const {
     return window_context_.basic_context();
   }
 
  private:
   // Onscreen rendering context.
-  wrapper::vulkan::WindowContext window_context_;
+  renderer::vulkan::WindowContext window_context_;
 };
 
 // Parses command line arguments, sets necessary environment variables,
@@ -123,8 +123,8 @@ int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
 // used for debugging.
 class ImageViewer {
  public:
-  ImageViewer(const wrapper::vulkan::SharedBasicContext& context,
-              const wrapper::vulkan::SamplableImage& image,
+  ImageViewer(const renderer::vulkan::SharedBasicContext& context,
+              const renderer::vulkan::SamplableImage& image,
               int num_channels, bool flip_y);
 
   // This class is neither copyable nor movable.
@@ -133,7 +133,7 @@ class ImageViewer {
 
   // Updates internal states and rebuilds the graphics pipeline.
   void UpdateFramebuffer(const VkExtent2D& frame_size,
-                         const wrapper::vulkan::RenderPass& render_pass,
+                         const renderer::vulkan::RenderPass& render_pass,
                          uint32_t subpass_index);
 
   // Renders the image.
@@ -142,10 +142,10 @@ class ImageViewer {
 
  private:
   // Objects used for rendering.
-  std::unique_ptr<wrapper::vulkan::StaticDescriptor> descriptor_;
-  std::unique_ptr<wrapper::vulkan::PerVertexBuffer> vertex_buffer_;
-  std::unique_ptr<wrapper::vulkan::GraphicsPipelineBuilder> pipeline_builder_;
-  std::unique_ptr<wrapper::vulkan::Pipeline> pipeline_;
+  std::unique_ptr<renderer::vulkan::StaticDescriptor> descriptor_;
+  std::unique_ptr<renderer::vulkan::PerVertexBuffer> vertex_buffer_;
+  std::unique_ptr<renderer::vulkan::GraphicsPipelineBuilder> pipeline_builder_;
+  std::unique_ptr<renderer::vulkan::Pipeline> pipeline_;
 };
 
 } /* namespace vulkan */

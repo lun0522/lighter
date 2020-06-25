@@ -10,10 +10,10 @@
 #include <algorithm>
 
 #include "lighter/common/file.h"
-#include "lighter/wrapper/vulkan/pipeline.h"
-#include "lighter/wrapper/vulkan/pipeline_util.h"
-#include "lighter/wrapper/vulkan/render_pass.h"
-#include "lighter/wrapper/vulkan/util.h"
+#include "lighter/renderer/vulkan/wrapper/pipeline.h"
+#include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
+#include "lighter/renderer/vulkan/wrapper/render_pass.h"
+#include "lighter/renderer/vulkan/wrapper/util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 
@@ -23,7 +23,7 @@ namespace vulkan {
 namespace aurora {
 namespace {
 
-using namespace wrapper::vulkan;
+using namespace renderer::vulkan;
 
 enum UniformBindingPoint {
   kVerticesInfoBindingPoint = 0,

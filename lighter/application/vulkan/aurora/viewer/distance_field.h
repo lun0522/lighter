@@ -10,10 +10,10 @@
 
 #include <memory>
 
-#include "lighter/wrapper/vulkan/basic_context.h"
-#include "lighter/wrapper/vulkan/descriptor.h"
-#include "lighter/wrapper/vulkan/image.h"
-#include "lighter/wrapper/vulkan/pipeline.h"
+#include "lighter/renderer/vulkan/wrapper/basic_context.h"
+#include "lighter/renderer/vulkan/wrapper/descriptor.h"
+#include "lighter/renderer/vulkan/wrapper/image.h"
+#include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
@@ -28,9 +28,9 @@ class DistanceFieldGenerator {
  public:
   // 'input_image' and 'output_image' must have the same size. The generated
   // distance field will be written to 'output_image'.
-  DistanceFieldGenerator(const wrapper::vulkan::SharedBasicContext& context,
-                         const wrapper::vulkan::OffscreenImage& input_image,
-                         const wrapper::vulkan::OffscreenImage& output_image);
+  DistanceFieldGenerator(const renderer::vulkan::SharedBasicContext& context,
+                         const renderer::vulkan::OffscreenImage& input_image,
+                         const renderer::vulkan::OffscreenImage& output_image);
 
   // This class is neither copyable nor movable.
   DistanceFieldGenerator(const DistanceFieldGenerator&) = delete;
@@ -55,7 +55,7 @@ class DistanceFieldGenerator {
 
   // Invokes the compute shader.
   void Dispatch(const VkCommandBuffer& command_buffer,
-                const wrapper::vulkan::Pipeline& pipeline,
+                const renderer::vulkan::Pipeline& pipeline,
                 Direction direction) const;
 
   // Number of work groups for invoking compute shaders.
@@ -65,13 +65,13 @@ class DistanceFieldGenerator {
   int num_steps_ = 0;
 
   // Objects used for compute shaders.
-  std::unique_ptr<wrapper::vulkan::PushConstant> step_width_constant_;
-  std::unique_ptr<wrapper::vulkan::OffscreenImage> pong_image_;
-  wrapper::vulkan::Descriptor::ImageInfoMap image_info_maps_[kNumDirections];
-  std::unique_ptr<wrapper::vulkan::DynamicDescriptor> descriptor_;
-  std::unique_ptr<wrapper::vulkan::Pipeline> path_to_coord_pipeline_;
-  std::unique_ptr<wrapper::vulkan::Pipeline> jump_flooding_pipeline_;
-  std::unique_ptr<wrapper::vulkan::Pipeline> coord_to_dist_pipeline_;
+  std::unique_ptr<renderer::vulkan::PushConstant> step_width_constant_;
+  std::unique_ptr<renderer::vulkan::OffscreenImage> pong_image_;
+  renderer::vulkan::Descriptor::ImageInfoMap image_info_maps_[kNumDirections];
+  std::unique_ptr<renderer::vulkan::DynamicDescriptor> descriptor_;
+  std::unique_ptr<renderer::vulkan::Pipeline> path_to_coord_pipeline_;
+  std::unique_ptr<renderer::vulkan::Pipeline> jump_flooding_pipeline_;
+  std::unique_ptr<renderer::vulkan::Pipeline> coord_to_dist_pipeline_;
 };
 
 } /* namespace aurora */

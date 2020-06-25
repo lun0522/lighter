@@ -8,7 +8,7 @@
 #include "lighter/application/vulkan/aurora/editor/celestial.h"
 
 #include "lighter/common/util.h"
-#include "lighter/wrapper/vulkan/align.h"
+#include "lighter/renderer/vulkan/extension/align.h"
 #include "third_party/absl/memory/memory.h"
 
 namespace lighter {
@@ -17,7 +17,7 @@ namespace vulkan {
 namespace aurora {
 namespace {
 
-using namespace wrapper::vulkan;
+using namespace renderer::vulkan;
 
 /* BEGIN: Consistent with uniform blocks defined in shaders. */
 

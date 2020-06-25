@@ -16,9 +16,9 @@
 #include "lighter/application/vulkan/aurora/editor/button_maker.h"
 #include "lighter/application/vulkan/aurora/editor/button_util.h"
 #include "lighter/common/util.h"
-#include "lighter/wrapper/vulkan/basic_context.h"
-#include "lighter/wrapper/vulkan/buffer.h"
-#include "lighter/wrapper/vulkan/image.h"
+#include "lighter/renderer/vulkan/wrapper/basic_context.h"
+#include "lighter/renderer/vulkan/wrapper/buffer.h"
+#include "lighter/renderer/vulkan/wrapper/image.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
@@ -49,9 +49,9 @@ struct RenderInfo {
 class ButtonRenderer {
  public:
   ButtonRenderer(
-      const wrapper::vulkan::SharedBasicContext& context,
+      const renderer::vulkan::SharedBasicContext& context,
       int num_buttons, const button::VerticesInfo& vertices_info,
-      std::unique_ptr<wrapper::vulkan::OffscreenImage>&& buttons_image);
+      std::unique_ptr<renderer::vulkan::OffscreenImage>&& buttons_image);
 
   // This class is neither copyable nor movable.
   ButtonRenderer(const ButtonRenderer&) = delete;
@@ -60,8 +60,8 @@ class ButtonRenderer {
   // Updates internal states and rebuilds the graphics pipeline.
   void UpdateFramebuffer(
       VkSampleCountFlagBits sample_count,
-      const wrapper::vulkan::RenderPass& render_pass, uint32_t subpass_index,
-      const wrapper::vulkan::GraphicsPipelineBuilder::ViewportInfo& viewport);
+      const renderer::vulkan::RenderPass& render_pass, uint32_t subpass_index,
+      const renderer::vulkan::GraphicsPipelineBuilder::ViewportInfo& viewport);
 
   // Renders buttons. The number of buttons rendered depends on the length of
   // 'buttons_to_render'.
@@ -72,7 +72,7 @@ class ButtonRenderer {
  private:
   struct RenderInfo : public draw_button::RenderInfo {
     // Returns vertex input attributes.
-    static std::vector<wrapper::vulkan::VertexBuffer::Attribute>
+    static std::vector<renderer::vulkan::VertexBuffer::Attribute>
     GetAttributes() {
       return {
           {offsetof(RenderInfo, alpha), VK_FORMAT_R32_SFLOAT},
@@ -83,19 +83,19 @@ class ButtonRenderer {
   };
 
   // Creates a descriptor for 'vertices_uniform_' and 'buttons_image_'.
-  std::unique_ptr<wrapper::vulkan::StaticDescriptor> CreateDescriptor(
-      const wrapper::vulkan::SharedBasicContext& context) const;
+  std::unique_ptr<renderer::vulkan::StaticDescriptor> CreateDescriptor(
+      const renderer::vulkan::SharedBasicContext& context) const;
 
   // Texture that contains all buttons in all states.
-  const std::unique_ptr<wrapper::vulkan::OffscreenImage> buttons_image_;
+  const std::unique_ptr<renderer::vulkan::OffscreenImage> buttons_image_;
 
   // Objects used for rendering.
-  std::unique_ptr<wrapper::vulkan::DynamicPerInstanceBuffer>
+  std::unique_ptr<renderer::vulkan::DynamicPerInstanceBuffer>
       per_instance_buffer_;
-  std::unique_ptr<wrapper::vulkan::UniformBuffer> vertices_uniform_;
-  std::unique_ptr<wrapper::vulkan::StaticDescriptor> descriptor_;
-  wrapper::vulkan::GraphicsPipelineBuilder pipeline_builder_;
-  std::unique_ptr<wrapper::vulkan::Pipeline> pipeline_;
+  std::unique_ptr<renderer::vulkan::UniformBuffer> vertices_uniform_;
+  std::unique_ptr<renderer::vulkan::StaticDescriptor> descriptor_;
+  renderer::vulkan::GraphicsPipelineBuilder pipeline_builder_;
+  std::unique_ptr<renderer::vulkan::Pipeline> pipeline_;
 };
 
 // This class is used to render multiple buttons with one render call.
@@ -123,7 +123,7 @@ class Button {
 
     // 'base_y' and 'top_y' are in range [0.0, 1.0]. They control where do we
     // render text within each button.
-    wrapper::vulkan::Text::Font font;
+    renderer::vulkan::Text::Font font;
     int font_height;
     float base_y;
     float top_y;
@@ -138,7 +138,7 @@ class Button {
 
   // When the frame is resized, the aspect ratio of viewport will always be
   // 'viewport_aspect_ratio'.
-  Button(const wrapper::vulkan::SharedBasicContext& context,
+  Button(const renderer::vulkan::SharedBasicContext& context,
          float viewport_aspect_ratio, const ButtonsInfo& buttons_info);
 
   // This class is neither copyable nor movable.
@@ -149,7 +149,7 @@ class Button {
   // For simplicity, the render area will be the same to 'frame_size'.
   void UpdateFramebuffer(const VkExtent2D& frame_size,
                          VkSampleCountFlagBits sample_count,
-                         const wrapper::vulkan::RenderPass& render_pass,
+                         const renderer::vulkan::RenderPass& render_pass,
                          uint32_t subpass_index);
 
   // Renders all buttons. Buttons in 'State::kHidden' will not be rendered.

@@ -18,7 +18,7 @@ namespace vulkan {
 namespace aurora {
 namespace {
 
-using namespace wrapper::vulkan;
+using namespace renderer::vulkan;
 
 enum SubpassIndex {
   kModelSubpassIndex = 0,
@@ -128,7 +128,7 @@ void EditorRenderer::Recreate() {
 
 void EditorRenderer::Draw(
     const VkCommandBuffer& command_buffer, int framebuffer_index,
-    absl::Span<const wrapper::vulkan::RenderPass::RenderOp> render_ops) {
+    absl::Span<const renderer::vulkan::RenderPass::RenderOp> render_ops) {
   render_pass_->Run(command_buffer, framebuffer_index, render_ops);
 }
 

@@ -8,7 +8,7 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_AURORA_EDITOR_BUTTON_UTIL_H
 #define LIGHTER_APPLICATION_VULKAN_AURORA_EDITOR_BUTTON_UTIL_H
 
-#include "lighter/wrapper/vulkan/align.h"
+#include "lighter/renderer/vulkan/extension/align.h"
 #include "third_party/glm/glm.hpp"
 
 namespace lighter {

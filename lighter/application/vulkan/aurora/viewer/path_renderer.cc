@@ -7,10 +7,10 @@
 
 #include "lighter/application/vulkan/aurora/viewer/path_renderer.h"
 
-#include "lighter/wrapper/vulkan/align.h"
-#include "lighter/wrapper/vulkan/pipeline_util.h"
-#include "lighter/wrapper/vulkan/render_pass_util.h"
-#include "lighter/wrapper/vulkan/util.h"
+#include "lighter/renderer/vulkan/extension/align.h"
+#include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
+#include "lighter/renderer/vulkan/wrapper/render_pass_util.h"
+#include "lighter/renderer/vulkan/wrapper/util.h"
 #include "third_party/glm/glm.hpp"
 
 namespace lighter {
@@ -19,7 +19,7 @@ namespace vulkan {
 namespace aurora {
 namespace {
 
-using namespace wrapper::vulkan;
+using namespace renderer::vulkan;
 
 enum SubpassIndex {
   kDumpPathsSubpassIndex = 0,

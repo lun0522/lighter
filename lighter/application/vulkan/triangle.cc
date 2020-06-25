@@ -16,7 +16,7 @@ namespace application {
 namespace vulkan {
 namespace {
 
-using namespace wrapper::vulkan;
+using namespace renderer::vulkan;
 
 enum SubpassIndex {
   kTriangleSubpassIndex = 0,

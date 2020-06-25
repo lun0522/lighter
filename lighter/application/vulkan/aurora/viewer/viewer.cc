@@ -10,9 +10,9 @@
 #include <array>
 
 #include "lighter/application/vulkan/aurora/viewer/air_transmit_table.h"
-#include "lighter/wrapper/vulkan/align.h"
-#include "lighter/wrapper/vulkan/image_util.h"
-#include "lighter/wrapper/vulkan/pipeline_util.h"
+#include "lighter/renderer/vulkan/extension/align.h"
+#include "lighter/renderer/vulkan/wrapper/image_util.h"
+#include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 
 namespace lighter {
 namespace application {
@@ -20,7 +20,7 @@ namespace vulkan {
 namespace aurora {
 namespace {
 
-using namespace wrapper::vulkan;
+using namespace renderer::vulkan;
 
 enum SubpassIndex {
   kViewImageSubpassIndex = 0,

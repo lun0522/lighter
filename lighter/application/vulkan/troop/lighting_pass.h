@@ -13,12 +13,12 @@
 
 #include "lighter/common/camera.h"
 #include "lighter/common/timer.h"
-#include "lighter/wrapper/vulkan/buffer.h"
-#include "lighter/wrapper/vulkan/descriptor.h"
-#include "lighter/wrapper/vulkan/pipeline.h"
-#include "lighter/wrapper/vulkan/render_pass.h"
-#include "lighter/wrapper/vulkan/render_pass_util.h"
-#include "lighter/wrapper/vulkan/window_context.h"
+#include "lighter/renderer/vulkan/wrapper/buffer.h"
+#include "lighter/renderer/vulkan/wrapper/descriptor.h"
+#include "lighter/renderer/vulkan/wrapper/pipeline.h"
+#include "lighter/renderer/vulkan/wrapper/render_pass.h"
+#include "lighter/renderer/vulkan/wrapper/render_pass_util.h"
+#include "lighter/renderer/vulkan/wrapper/window_context.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
@@ -40,7 +40,7 @@ class LightingPass {
     glm::vec3 increments;
   };
 
-  LightingPass(const wrapper::vulkan::WindowContext* window_context,
+  LightingPass(const renderer::vulkan::WindowContext* window_context,
                int num_frames_in_flight, const LightCenterConfig& config);
 
   // This class is neither copyable nor movable.
@@ -49,10 +49,10 @@ class LightingPass {
 
   // Updates internal states and rebuilds the graphics pipeline.
   void UpdateFramebuffer(
-      const wrapper::vulkan::Image& depth_stencil_image,
-      const wrapper::vulkan::OffscreenImage& position_image,
-      const wrapper::vulkan::OffscreenImage& normal_image,
-      const wrapper::vulkan::OffscreenImage& diffuse_specular_image);
+      const renderer::vulkan::Image& depth_stencil_image,
+      const renderer::vulkan::OffscreenImage& position_image,
+      const renderer::vulkan::OffscreenImage& normal_image,
+      const renderer::vulkan::OffscreenImage& diffuse_specular_image);
 
   // Updates per-frame data.
   void UpdatePerFrameData(int frame, const common::Camera& camera,
@@ -75,24 +75,25 @@ class LightingPass {
   const common::BasicTimer timer_;
 
   // Objects used for rendering.
-  const wrapper::vulkan::WindowContext& window_context_;
-  std::unique_ptr<wrapper::vulkan::UniformBuffer> lights_colors_uniform_;
-  std::unique_ptr<wrapper::vulkan::UniformBuffer> render_info_uniform_;
-  std::unique_ptr<wrapper::vulkan::PushConstant> lights_trans_constant_;
-  std::vector<std::unique_ptr<wrapper::vulkan::StaticDescriptor>>
+  const renderer::vulkan::WindowContext& window_context_;
+  std::unique_ptr<renderer::vulkan::UniformBuffer> lights_colors_uniform_;
+  std::unique_ptr<renderer::vulkan::UniformBuffer> render_info_uniform_;
+  std::unique_ptr<renderer::vulkan::PushConstant> lights_trans_constant_;
+  std::vector<std::unique_ptr<renderer::vulkan::StaticDescriptor>>
       lights_descriptors_;
-  std::vector<std::unique_ptr<wrapper::vulkan::StaticDescriptor>>
+  std::vector<std::unique_ptr<renderer::vulkan::StaticDescriptor>>
       soldiers_descriptors_;
-  std::unique_ptr<wrapper::vulkan::PerVertexBuffer> cube_vertex_buffer_;
-  std::unique_ptr<wrapper::vulkan::PerVertexBuffer> squad_vertex_buffer_;
-  std::unique_ptr<wrapper::vulkan::GraphicsPipelineBuilder>
+  std::unique_ptr<renderer::vulkan::PerVertexBuffer> cube_vertex_buffer_;
+  std::unique_ptr<renderer::vulkan::PerVertexBuffer> squad_vertex_buffer_;
+  std::unique_ptr<renderer::vulkan::GraphicsPipelineBuilder>
       lights_pipeline_builder_;
-  std::unique_ptr<wrapper::vulkan::Pipeline> lights_pipeline_;
-  std::unique_ptr<wrapper::vulkan::GraphicsPipelineBuilder>
+  std::unique_ptr<renderer::vulkan::Pipeline> lights_pipeline_;
+  std::unique_ptr<renderer::vulkan::GraphicsPipelineBuilder>
       soldiers_pipeline_builder_;
-  std::unique_ptr<wrapper::vulkan::Pipeline> soldiers_pipeline_;
-  std::unique_ptr<wrapper::vulkan::NaiveRenderPassBuilder> render_pass_builder_;
-  std::unique_ptr<wrapper::vulkan::RenderPass> render_pass_;
+  std::unique_ptr<renderer::vulkan::Pipeline> soldiers_pipeline_;
+  std::unique_ptr<renderer::vulkan::NaiveRenderPassBuilder>
+      render_pass_builder_;
+  std::unique_ptr<renderer::vulkan::RenderPass> render_pass_;
 };
 
 } /* namespace troop */

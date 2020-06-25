@@ -15,7 +15,7 @@ namespace application {
 namespace vulkan {
 namespace {
 
-using namespace wrapper::vulkan;
+using namespace renderer::vulkan;
 
 constexpr uint32_t kVertexBufferBindingPoint = 0;
 constexpr uint32_t kImageBindingPoint = 0;

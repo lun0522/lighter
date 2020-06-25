@@ -10,7 +10,7 @@ cc_library(
         "//lighter/common:file",
         "//lighter/common:timer",
         "//lighter/common:util",
-        "//lighter/wrapper/vulkan:onscreen",
+        "//lighter/renderer/vulkan/extension:onscreen",
         "//third_party/absl/flags:flag",
         "//third_party/absl/memory",
         "//third_party/absl/types:span",

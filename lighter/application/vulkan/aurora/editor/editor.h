@@ -18,8 +18,8 @@
 #include "lighter/common/camera.h"
 #include "lighter/common/rotation.h"
 #include "lighter/common/window.h"
-#include "lighter/wrapper/vulkan/buffer.h"
-#include "lighter/wrapper/vulkan/window_context.h"
+#include "lighter/renderer/vulkan/wrapper/buffer.h"
+#include "lighter/renderer/vulkan/wrapper/window_context.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
@@ -34,7 +34,8 @@ namespace aurora {
 // This class is used for rendering the aurora path editor using Vulkan APIs.
 class EditorRenderer {
  public:
-  explicit EditorRenderer(const wrapper::vulkan::WindowContext* window_context);
+  explicit EditorRenderer(
+      const renderer::vulkan::WindowContext* window_context);
 
   // This class is neither copyable nor movable.
   EditorRenderer(const EditorRenderer&) = delete;
@@ -45,20 +46,22 @@ class EditorRenderer {
 
   // Renders the aurora path editor using 'render_ops'.
   // This should be called when 'command_buffer' is recording commands.
-  void Draw(const VkCommandBuffer& command_buffer, int framebuffer_index,
-            absl::Span<const wrapper::vulkan::RenderPass::RenderOp> render_ops);
+  void Draw(
+      const VkCommandBuffer& command_buffer, int framebuffer_index,
+      absl::Span<const renderer::vulkan::RenderPass::RenderOp> render_ops);
 
   // Accessors.
-  const wrapper::vulkan::RenderPass& render_pass() const {
+  const renderer::vulkan::RenderPass& render_pass() const {
     return *render_pass_;
   }
 
  private:
   // Objects used for rendering.
-  const wrapper::vulkan::WindowContext& window_context_;
-  std::unique_ptr<wrapper::vulkan::NaiveRenderPassBuilder> render_pass_builder_;
-  std::unique_ptr<wrapper::vulkan::RenderPass> render_pass_;
-  std::unique_ptr<wrapper::vulkan::Image> depth_stencil_image_;
+  const renderer::vulkan::WindowContext& window_context_;
+  std::unique_ptr<renderer::vulkan::NaiveRenderPassBuilder>
+      render_pass_builder_;
+  std::unique_ptr<renderer::vulkan::RenderPass> render_pass_;
+  std::unique_ptr<renderer::vulkan::Image> depth_stencil_image_;
 };
 
 // This class is used to manage and render the aurora path editor scene.
@@ -69,7 +72,7 @@ class EditorRenderer {
 // Celestial class, need not worry about it.
 class Editor : public Scene {
  public:
-  Editor(wrapper::vulkan::WindowContext* window_context,
+  Editor(renderer::vulkan::WindowContext* window_context,
          int num_frames_in_flight);
 
   // This class is neither copyable nor movable.
@@ -77,7 +80,7 @@ class Editor : public Scene {
   Editor& operator=(const Editor&) = delete;
 
   // Returns vertex buffers storing splines points that represent aurora paths.
-  std::vector<const wrapper::vulkan::PerVertexBuffer*>
+  std::vector<const renderer::vulkan::PerVertexBuffer*>
   GetAuroraPathVertexBuffers() const {
     return aurora_path_->GetPathVertexBuffers();
   }
@@ -184,12 +187,12 @@ class Editor : public Scene {
   void RotateCelestials(const common::rotation::Rotation& rotation);
 
   // Accessors.
-  const wrapper::vulkan::RenderPass& render_pass() const {
+  const renderer::vulkan::RenderPass& render_pass() const {
     return editor_renderer_.render_pass();
   }
 
   // Onscreen rendering context.
-  wrapper::vulkan::WindowContext& window_context_;
+  renderer::vulkan::WindowContext& window_context_;
 
   // Flags used for mouse button callbacks.
   bool did_press_left_ = false;

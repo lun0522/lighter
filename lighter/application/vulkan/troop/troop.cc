@@ -16,7 +16,7 @@ namespace application {
 namespace vulkan {
 namespace {
 
-using namespace wrapper::vulkan;
+using namespace renderer::vulkan;
 
 enum ProcessingStage {
   kGeometryStage,
@@ -50,10 +50,10 @@ class TroopApp : public Application {
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<troop::GeometryPass> geometry_pass_;
   std::unique_ptr<troop::LightingPass> lighting_pass_;
-  std::unique_ptr<wrapper::vulkan::Image> depth_stencil_image_;
-  std::unique_ptr<wrapper::vulkan::OffscreenImage> position_image_;
-  std::unique_ptr<wrapper::vulkan::OffscreenImage> normal_image_;
-  std::unique_ptr<wrapper::vulkan::OffscreenImage> diffuse_specular_image_;
+  std::unique_ptr<renderer::vulkan::Image> depth_stencil_image_;
+  std::unique_ptr<renderer::vulkan::OffscreenImage> position_image_;
+  std::unique_ptr<renderer::vulkan::OffscreenImage> normal_image_;
+  std::unique_ptr<renderer::vulkan::OffscreenImage> diffuse_specular_image_;
 };
 
 } /* namespace */

@@ -10,9 +10,9 @@
 #include <algorithm>
 
 #include "lighter/common/util.h"
-#include "lighter/wrapper/vulkan/align.h"
-#include "lighter/wrapper/vulkan/image_util.h"
-#include "lighter/wrapper/vulkan/util.h"
+#include "lighter/renderer/vulkan/extension/align.h"
+#include "lighter/renderer/vulkan/wrapper/image_util.h"
+#include "lighter/renderer/vulkan/wrapper/util.h"
 #include "third_party/absl/memory/memory.h"
 
 namespace lighter {
@@ -21,7 +21,7 @@ namespace vulkan {
 namespace aurora {
 namespace {
 
-using namespace wrapper::vulkan;
+using namespace renderer::vulkan;
 
 enum ImageBindingPoint {
   kOriginalImageBindingPoint = 0,

@@ -16,7 +16,7 @@ Table of Contents
       * [1.6 Timer (timer)](#16-timer-timer)
       * [1.7 Window manager (window)](#17-window-manager-window)
    * [2. OpenGL wrappers (lighter/wrapper/opengl/)](#2-opengl-wrappers-lighterwrapperopengl)
-   * [3. Vulkan wrappers (lighter/wrapper/vulkan/)](#3-vulkan-wrappers-lighterwrappervulkan)
+   * [3. Vulkan wrappers (lighter/renderer/vulkan/)](#3-vulkan-wrappers-lighterwrappervulkan)
       * [3.1 Contexts (basic_context, basic_object, validation and window_context)](#31-contexts-basic_context-basic_object-validation-and-window_context)
       * [3.2 Low-level wrappers](#32-low-level-wrappers)
          * [3.2.1 Buffer (buffer)](#321-buffer-buffer)
@@ -185,7 +185,7 @@ also responsible for providing the names of required extensions and help create
 
 Not implemented yet.
 
-# 3. Vulkan wrappers (lighter/wrapper/vulkan/)
+# 3. Vulkan wrappers (lighter/renderer/vulkan/)
 
 We don't aim to implement OpenGL APIs on the top of Vulkan APIs, but we will try
 to create different levels of wrappers to enable the user to take advantage of
@@ -215,7 +215,7 @@ project got bigger:
 
 1. It was convenient to pass a context to a function so that it can fetch
 everything it needs, but this made it harder to know which part of the context
-was actually used. For example, in the past when we [built a pipeline](https://github.com/lun0522/lighter/blob/1f307a02b25e5f7957b173b96f244ead6cbae53a/lighter/wrapper/vulkan/pipeline.cc#L47)
+was actually used. For example, in the past when we [built a pipeline](https://github.com/lun0522/lighter/blob/1f307a02b25e5f7957b173b96f244ead6cbae53a/lighter/renderer/vulkan/pipeline.cc#L47)
 we passed in the entire context but only touched **Device**,
 **HostMemoryAllocator** and **Swapchain**. Among them, **Swapchain** was
 actually used only once. It makes more sense to only keep those frequently used

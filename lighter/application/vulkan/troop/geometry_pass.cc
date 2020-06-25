@@ -10,8 +10,8 @@
 #include <vector>
 
 #include "lighter/common/file.h"
-#include "lighter/wrapper/vulkan/align.h"
-#include "lighter/wrapper/vulkan/pipeline_util.h"
+#include "lighter/renderer/vulkan/extension/align.h"
+#include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/glm/gtc/matrix_transform.hpp"
 
@@ -21,7 +21,7 @@ namespace vulkan {
 namespace troop {
 namespace {
 
-using namespace wrapper::vulkan;
+using namespace renderer::vulkan;
 
 enum UniformBindingPoint {
   kUniformBufferBindingPoint = 0,

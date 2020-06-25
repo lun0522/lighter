@@ -12,13 +12,13 @@
 
 #include "lighter/application/vulkan/aurora/scene.h"
 #include "lighter/application/vulkan/aurora/viewer/path_dumper.h"
-#include "lighter/wrapper/vulkan/buffer.h"
-#include "lighter/wrapper/vulkan/descriptor.h"
-#include "lighter/wrapper/vulkan/image.h"
-#include "lighter/wrapper/vulkan/pipeline.h"
-#include "lighter/wrapper/vulkan/render_pass.h"
-#include "lighter/wrapper/vulkan/render_pass_util.h"
-#include "lighter/wrapper/vulkan/window_context.h"
+#include "lighter/renderer/vulkan/wrapper/buffer.h"
+#include "lighter/renderer/vulkan/wrapper/descriptor.h"
+#include "lighter/renderer/vulkan/wrapper/image.h"
+#include "lighter/renderer/vulkan/wrapper/pipeline.h"
+#include "lighter/renderer/vulkan/wrapper/render_pass.h"
+#include "lighter/renderer/vulkan/wrapper/render_pass_util.h"
+#include "lighter/renderer/vulkan/wrapper/window_context.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
@@ -30,10 +30,10 @@ namespace aurora {
 // This class is used for rendering the aurora viewer scene using Vulkan APIs.
 class ViewerRenderer {
  public:
-  ViewerRenderer(const wrapper::vulkan::WindowContext* window_context,
+  ViewerRenderer(const renderer::vulkan::WindowContext* window_context,
                  int num_frames_in_flight, float air_transmit_sample_step,
-                 const wrapper::vulkan::SamplableImage& aurora_paths_image,
-                 const wrapper::vulkan::SamplableImage& distance_field_image);
+                 const renderer::vulkan::SamplableImage& aurora_paths_image,
+                 const renderer::vulkan::SamplableImage& distance_field_image);
 
   // This class is neither copyable nor movable.
   ViewerRenderer(const ViewerRenderer&) = delete;
@@ -56,18 +56,19 @@ class ViewerRenderer {
 
  private:
   // Objects used for rendering.
-  const wrapper::vulkan::WindowContext& window_context_;
-  std::unique_ptr<wrapper::vulkan::PushConstant> camera_constant_;
-  std::unique_ptr<wrapper::vulkan::UniformBuffer> render_info_uniform_;
-  std::unique_ptr<wrapper::vulkan::SharedTexture> aurora_deposition_image_;
-  std::unique_ptr<wrapper::vulkan::TextureImage> air_transmit_table_image_;
-  std::unique_ptr<wrapper::vulkan::SharedTexture> universe_skybox_image_;
-  std::vector<std::unique_ptr<wrapper::vulkan::StaticDescriptor>> descriptors_;
-  std::unique_ptr<wrapper::vulkan::PerVertexBuffer> vertex_buffer_;
-  std::unique_ptr<wrapper::vulkan::GraphicsPipelineBuilder> pipeline_builder_;
-  std::unique_ptr<wrapper::vulkan::Pipeline> pipeline_;
-  std::unique_ptr<wrapper::vulkan::NaiveRenderPassBuilder> render_pass_builder_;
-  std::unique_ptr<wrapper::vulkan::RenderPass> render_pass_;
+  const renderer::vulkan::WindowContext& window_context_;
+  std::unique_ptr<renderer::vulkan::PushConstant> camera_constant_;
+  std::unique_ptr<renderer::vulkan::UniformBuffer> render_info_uniform_;
+  std::unique_ptr<renderer::vulkan::SharedTexture> aurora_deposition_image_;
+  std::unique_ptr<renderer::vulkan::TextureImage> air_transmit_table_image_;
+  std::unique_ptr<renderer::vulkan::SharedTexture> universe_skybox_image_;
+  std::vector<std::unique_ptr<renderer::vulkan::StaticDescriptor>> descriptors_;
+  std::unique_ptr<renderer::vulkan::PerVertexBuffer> vertex_buffer_;
+  std::unique_ptr<renderer::vulkan::GraphicsPipelineBuilder> pipeline_builder_;
+  std::unique_ptr<renderer::vulkan::Pipeline> pipeline_;
+  std::unique_ptr<renderer::vulkan::NaiveRenderPassBuilder>
+      render_pass_builder_;
+  std::unique_ptr<renderer::vulkan::RenderPass> render_pass_;
 };
 
 // This class is used to manage and render the aurora viewer scene. The method
@@ -83,9 +84,9 @@ class ViewerRenderer {
 // (4) Use ray tracing to render aurora paths.
 class Viewer : public Scene {
  public:
-  Viewer(wrapper::vulkan::WindowContext* window_context,
+  Viewer(renderer::vulkan::WindowContext* window_context,
          int num_frames_in_flight,
-         std::vector<const wrapper::vulkan::PerVertexBuffer*>&&
+         std::vector<const renderer::vulkan::PerVertexBuffer*>&&
              aurora_paths_vertex_buffers);
 
   // This class is neither copyable nor movable.
@@ -112,7 +113,7 @@ class Viewer : public Scene {
 
  private:
   // Onscreen rendering context.
-  wrapper::vulkan::WindowContext& window_context_;
+  renderer::vulkan::WindowContext& window_context_;
 
   // Whether we should quit this scene.
   bool should_quit_ = false;

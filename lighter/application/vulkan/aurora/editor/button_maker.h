@@ -14,10 +14,10 @@
 
 #include "lighter/application/vulkan/aurora/editor/button_util.h"
 #include "lighter/common/file.h"
-#include "lighter/wrapper/vulkan/basic_context.h"
-#include "lighter/wrapper/vulkan/buffer.h"
-#include "lighter/wrapper/vulkan/image.h"
-#include "lighter/wrapper/vulkan/text.h"
+#include "lighter/renderer/vulkan/extension/text.h"
+#include "lighter/renderer/vulkan/wrapper/basic_context.h"
+#include "lighter/renderer/vulkan/wrapper/buffer.h"
+#include "lighter/renderer/vulkan/wrapper/image.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
@@ -54,7 +54,7 @@ class ButtonMaker {
  public:
   struct RenderInfo : public make_button::RenderInfo {
     // Returns vertex input attributes.
-    static std::vector<wrapper::vulkan::VertexBuffer::Attribute>
+    static std::vector<renderer::vulkan::VertexBuffer::Attribute>
     GetAttributes() {
       return {{offsetof(RenderInfo, color), VK_FORMAT_R32G32B32_SFLOAT},
               {offsetof(RenderInfo, center), VK_FORMAT_R32G32_SFLOAT}};
@@ -76,9 +76,9 @@ class ButtonMaker {
   //   |--------------------|
   //
   // Also note that buttons are opaque on this texture.
-  static std::unique_ptr<wrapper::vulkan::OffscreenImage> CreateButtonsImage(
-      const wrapper::vulkan::SharedBasicContext& context,
-      wrapper::vulkan::Text::Font font, int font_height,
+  static std::unique_ptr<renderer::vulkan::OffscreenImage> CreateButtonsImage(
+      const renderer::vulkan::SharedBasicContext& context,
+      renderer::vulkan::Text::Font font, int font_height,
       const glm::vec3& text_color, const common::Image& button_background,
       const button::VerticesInfo& vertices_info,
       absl::Span<const make_button::ButtonInfo> button_infos);

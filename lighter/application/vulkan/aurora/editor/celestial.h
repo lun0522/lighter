@@ -8,10 +8,10 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_AURORA_EDITOR_CELESTIAL_H
 #define LIGHTER_APPLICATION_VULKAN_AURORA_EDITOR_CELESTIAL_H
 
-#include "lighter/wrapper/vulkan/basic_context.h"
-#include "lighter/wrapper/vulkan/buffer.h"
-#include "lighter/wrapper/vulkan/model.h"
-#include "lighter/wrapper/vulkan/render_pass.h"
+#include "lighter/renderer/vulkan/extension/model.h"
+#include "lighter/renderer/vulkan/wrapper/basic_context.h"
+#include "lighter/renderer/vulkan/wrapper/buffer.h"
+#include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
@@ -32,7 +32,7 @@ class Celestial {
 
   // When the frame is resized, the aspect ratio of viewport will always be
   // 'viewport_aspect_ratio'.
-  Celestial(const wrapper::vulkan::SharedBasicContext& context,
+  Celestial(const renderer::vulkan::SharedBasicContext& context,
             float viewport_aspect_ratio, int num_frames_in_flight);
 
   // This class is neither copyable nor movable.
@@ -43,7 +43,7 @@ class Celestial {
   // For simplicity, the render area will be the same to 'frame_size'.
   void UpdateFramebuffer(
       const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
-      const wrapper::vulkan::RenderPass& render_pass, uint32_t subpass_index);
+      const renderer::vulkan::RenderPass& render_pass, uint32_t subpass_index);
 
   // Updates per-frame data for earth.
   void UpdateEarthData(int frame, EarthTextureIndex texture_index,
@@ -62,11 +62,11 @@ class Celestial {
   const float viewport_aspect_ratio_;
 
   // Objects used for rendering.
-  std::unique_ptr<wrapper::vulkan::UniformBuffer> earth_uniform_;
-  std::unique_ptr<wrapper::vulkan::PushConstant> earth_constant_;
-  std::unique_ptr<wrapper::vulkan::PushConstant> skybox_constant_;
-  std::unique_ptr<wrapper::vulkan::Model> earth_model_;
-  std::unique_ptr<wrapper::vulkan::Model> skybox_model_;
+  std::unique_ptr<renderer::vulkan::UniformBuffer> earth_uniform_;
+  std::unique_ptr<renderer::vulkan::PushConstant> earth_constant_;
+  std::unique_ptr<renderer::vulkan::PushConstant> skybox_constant_;
+  std::unique_ptr<renderer::vulkan::Model> earth_model_;
+  std::unique_ptr<renderer::vulkan::Model> skybox_model_;
 };
 
 } /* namespace aurora */

@@ -11,7 +11,7 @@
 
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
-#include "lighter/wrapper/vulkan/command.h"
+#include "lighter/renderer/vulkan/wrapper/command.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 
@@ -21,7 +21,7 @@ namespace vulkan {
 namespace aurora {
 namespace {
 
-using namespace wrapper::vulkan;
+using namespace renderer::vulkan;
 
 // To save device memory, we reuse images in this way:
 //   - Render paths: [output] distance_field_image

@@ -8,12 +8,12 @@
 #include "lighter/application/vulkan/aurora/editor/button_maker.h"
 
 #include "lighter/common/util.h"
-#include "lighter/wrapper/vulkan/command.h"
-#include "lighter/wrapper/vulkan/descriptor.h"
-#include "lighter/wrapper/vulkan/image_util.h"
-#include "lighter/wrapper/vulkan/pipeline.h"
-#include "lighter/wrapper/vulkan/pipeline_util.h"
-#include "lighter/wrapper/vulkan/render_pass.h"
+#include "lighter/renderer/vulkan/wrapper/command.h"
+#include "lighter/renderer/vulkan/wrapper/descriptor.h"
+#include "lighter/renderer/vulkan/wrapper/image_util.h"
+#include "lighter/renderer/vulkan/wrapper/pipeline.h"
+#include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
+#include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "third_party/absl/memory/memory.h"
 
 namespace lighter {
@@ -22,7 +22,7 @@ namespace vulkan {
 namespace aurora {
 namespace {
 
-using namespace wrapper::vulkan;
+using namespace renderer::vulkan;
 
 enum SubpassIndex {
   kBackgroundSubpassIndex = 0,

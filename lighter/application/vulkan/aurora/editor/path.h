@@ -16,11 +16,11 @@
 #include "lighter/application/vulkan/aurora/editor/button_util.h"
 #include "lighter/common/camera.h"
 #include "lighter/common/spline.h"
-#include "lighter/wrapper/vulkan/basic_context.h"
-#include "lighter/wrapper/vulkan/buffer.h"
-#include "lighter/wrapper/vulkan/descriptor.h"
-#include "lighter/wrapper/vulkan/pipeline.h"
-#include "lighter/wrapper/vulkan/render_pass.h"
+#include "lighter/renderer/vulkan/wrapper/basic_context.h"
+#include "lighter/renderer/vulkan/wrapper/buffer.h"
+#include "lighter/renderer/vulkan/wrapper/descriptor.h"
+#include "lighter/renderer/vulkan/wrapper/pipeline.h"
+#include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
@@ -36,7 +36,7 @@ namespace aurora {
 // It should not handle any logic that can be shared with other graphics APIs.
 class PathRenderer3D {
  public:
-  PathRenderer3D(const wrapper::vulkan::SharedBasicContext& context,
+  PathRenderer3D(const renderer::vulkan::SharedBasicContext& context,
                  int num_frames_in_flight, int num_paths);
 
   // This class is neither copyable nor movable.
@@ -51,8 +51,8 @@ class PathRenderer3D {
   // Updates internal states and rebuilds the graphics pipeline.
   void UpdateFramebuffer(
       VkSampleCountFlagBits sample_count,
-      const wrapper::vulkan::RenderPass& render_pass, uint32_t subpass_index,
-      const wrapper::vulkan::GraphicsPipelineBuilder::ViewportInfo& viewport);
+      const renderer::vulkan::RenderPass& render_pass, uint32_t subpass_index,
+      const renderer::vulkan::GraphicsPipelineBuilder::ViewportInfo& viewport);
 
   // Updates per-frame data. This should be called before calling DrawSplines()
   // and DrawControlPoints().
@@ -76,15 +76,15 @@ class PathRenderer3D {
                      const glm::vec3& center, const glm::vec4& color_alpha);
 
   // Returns pointers to spline vertex buffers.
-  std::vector<const wrapper::vulkan::PerVertexBuffer*>
+  std::vector<const renderer::vulkan::PerVertexBuffer*>
   GetPathVertexBuffers() const;
 
  private:
   // Vertex buffers for a single aurora path.
   struct PathVertexBuffers {
-    std::unique_ptr<wrapper::vulkan::DynamicPerInstanceBuffer>
+    std::unique_ptr<renderer::vulkan::DynamicPerInstanceBuffer>
         control_points_buffer;
-    std::unique_ptr<wrapper::vulkan::DynamicPerVertexBuffer>
+    std::unique_ptr<renderer::vulkan::DynamicPerVertexBuffer>
         spline_points_buffer;
   };
 
@@ -95,19 +95,20 @@ class PathRenderer3D {
   std::vector<int> num_control_points_per_path_;
 
   // Objects used for rendering.
-  std::unique_ptr<wrapper::vulkan::StaticPerVertexBuffer> sphere_vertex_buffer_;
+  std::unique_ptr<renderer::vulkan::StaticPerVertexBuffer>
+      sphere_vertex_buffer_;
   std::vector<PathVertexBuffers> paths_vertex_buffers_;
-  std::unique_ptr<wrapper::vulkan::DynamicPerInstanceBuffer>
+  std::unique_ptr<renderer::vulkan::DynamicPerInstanceBuffer>
       color_alpha_vertex_buffer_;
-  std::unique_ptr<wrapper::vulkan::PushConstant> control_render_constant_;
-  std::unique_ptr<wrapper::vulkan::PushConstant> spline_trans_constant_;
-  std::unique_ptr<wrapper::vulkan::PushConstant> viewpoint_render_constant_;
-  wrapper::vulkan::GraphicsPipelineBuilder control_pipeline_builder_;
-  std::unique_ptr<wrapper::vulkan::Pipeline> control_pipeline_;
-  wrapper::vulkan::GraphicsPipelineBuilder spline_pipeline_builder_;
-  std::unique_ptr<wrapper::vulkan::Pipeline> spline_pipeline_;
-  wrapper::vulkan::GraphicsPipelineBuilder viewpoint_pipeline_builder_;
-  std::unique_ptr<wrapper::vulkan::Pipeline> viewpoint_pipeline_;
+  std::unique_ptr<renderer::vulkan::PushConstant> control_render_constant_;
+  std::unique_ptr<renderer::vulkan::PushConstant> spline_trans_constant_;
+  std::unique_ptr<renderer::vulkan::PushConstant> viewpoint_render_constant_;
+  renderer::vulkan::GraphicsPipelineBuilder control_pipeline_builder_;
+  std::unique_ptr<renderer::vulkan::Pipeline> control_pipeline_;
+  renderer::vulkan::GraphicsPipelineBuilder spline_pipeline_builder_;
+  std::unique_ptr<renderer::vulkan::Pipeline> spline_pipeline_;
+  renderer::vulkan::GraphicsPipelineBuilder viewpoint_pipeline_builder_;
+  std::unique_ptr<renderer::vulkan::Pipeline> viewpoint_pipeline_;
 };
 
 // This class is used to render aurora paths and the user viewpoint, and handle
@@ -144,7 +145,7 @@ class AuroraPath {
 
   // When the frame is resized, the aspect ratio of viewport will always be
   // 'viewport_aspect_ratio'.
-  AuroraPath(const wrapper::vulkan::SharedBasicContext& context,
+  AuroraPath(const renderer::vulkan::SharedBasicContext& context,
              int num_frames_in_flight, float viewport_aspect_ratio,
              const Info& info);
 
@@ -156,7 +157,7 @@ class AuroraPath {
   // For simplicity, the render area will be the same to 'frame_size'.
   void UpdateFramebuffer(
       const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
-      const wrapper::vulkan::RenderPass& render_pass, uint32_t subpass_index);
+      const renderer::vulkan::RenderPass& render_pass, uint32_t subpass_index);
 
   // Updates per-frame data. Note that all control points and spline points are
   // on a unit sphere, hence the 'model' matrix will determine the height of
@@ -171,7 +172,7 @@ class AuroraPath {
             absl::optional<int> selected_path_index);
 
   // Returns pointers to spline vertex buffers.
-  std::vector<const wrapper::vulkan::PerVertexBuffer*>
+  std::vector<const renderer::vulkan::PerVertexBuffer*>
   GetPathVertexBuffers() const {
     return path_renderer_.GetPathVertexBuffers();
   }

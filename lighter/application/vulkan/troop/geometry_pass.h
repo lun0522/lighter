@@ -11,12 +11,12 @@
 #include <memory>
 
 #include "lighter/common/camera.h"
-#include "lighter/wrapper/vulkan/buffer.h"
-#include "lighter/wrapper/vulkan/image.h"
-#include "lighter/wrapper/vulkan/model.h"
-#include "lighter/wrapper/vulkan/render_pass.h"
-#include "lighter/wrapper/vulkan/render_pass_util.h"
-#include "lighter/wrapper/vulkan/window_context.h"
+#include "lighter/renderer/vulkan/extension/model.h"
+#include "lighter/renderer/vulkan/wrapper/buffer.h"
+#include "lighter/renderer/vulkan/wrapper/image.h"
+#include "lighter/renderer/vulkan/wrapper/render_pass.h"
+#include "lighter/renderer/vulkan/wrapper/render_pass_util.h"
+#include "lighter/renderer/vulkan/wrapper/window_context.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
@@ -31,7 +31,7 @@ namespace troop {
 // this pass.
 class GeometryPass {
  public:
-  GeometryPass(const wrapper::vulkan::WindowContext& window_context,
+  GeometryPass(const renderer::vulkan::WindowContext& window_context,
                int num_frames_in_flight,
                float model_scale, const glm::ivec2& num_soldiers,
                const glm::vec2& interval_between_soldiers);
@@ -41,10 +41,10 @@ class GeometryPass {
   GeometryPass& operator=(const GeometryPass&) = delete;
 
   // Updates internal states and rebuilds the graphics pipeline.
-  void UpdateFramebuffer(const wrapper::vulkan::Image& depth_stencil_image,
-                         const wrapper::vulkan::Image& position_image,
-                         const wrapper::vulkan::Image& normal_image,
-                         const wrapper::vulkan::Image& diffuse_specular_image);
+  void UpdateFramebuffer(const renderer::vulkan::Image& depth_stencil_image,
+                         const renderer::vulkan::Image& position_image,
+                         const renderer::vulkan::Image& normal_image,
+                         const renderer::vulkan::Image& diffuse_specular_image);
 
   // Updates per-frame data.
   void UpdatePerFrameData(int frame, const common::Camera& camera);
@@ -59,12 +59,12 @@ class GeometryPass {
   const int num_soldiers_;
 
   // Objects used for rendering.
-  std::unique_ptr<wrapper::vulkan::StaticPerInstanceBuffer> center_data_;
-  std::unique_ptr<wrapper::vulkan::UniformBuffer> trans_uniform_;
-  std::unique_ptr<wrapper::vulkan::Model> nanosuit_model_;
-  std::unique_ptr<wrapper::vulkan::DeferredShadingRenderPassBuilder>
+  std::unique_ptr<renderer::vulkan::StaticPerInstanceBuffer> center_data_;
+  std::unique_ptr<renderer::vulkan::UniformBuffer> trans_uniform_;
+  std::unique_ptr<renderer::vulkan::Model> nanosuit_model_;
+  std::unique_ptr<renderer::vulkan::DeferredShadingRenderPassBuilder>
       render_pass_builder_;
-  std::unique_ptr<wrapper::vulkan::RenderPass> render_pass_;
+  std::unique_ptr<renderer::vulkan::RenderPass> render_pass_;
 };
 
 } /* namespace troop */

@@ -14,10 +14,10 @@
 #include "lighter/application/vulkan/aurora/viewer/distance_field.h"
 #include "lighter/application/vulkan/aurora/viewer/path_renderer.h"
 #include "lighter/common/camera.h"
-#include "lighter/wrapper/vulkan/basic_context.h"
-#include "lighter/wrapper/vulkan/buffer.h"
-#include "lighter/wrapper/vulkan/image.h"
-#include "lighter/wrapper/vulkan/image_util.h"
+#include "lighter/renderer/vulkan/wrapper/basic_context.h"
+#include "lighter/renderer/vulkan/wrapper/buffer.h"
+#include "lighter/renderer/vulkan/wrapper/image.h"
+#include "lighter/renderer/vulkan/wrapper/image_util.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
@@ -30,9 +30,9 @@ namespace aurora {
 class PathDumper {
  public:
   // Note that 'paths_image_dimension' must be power of 2.
-  PathDumper(wrapper::vulkan::SharedBasicContext context,
+  PathDumper(renderer::vulkan::SharedBasicContext context,
              int paths_image_dimension,
-             std::vector<const wrapper::vulkan::PerVertexBuffer*>&&
+             std::vector<const renderer::vulkan::PerVertexBuffer*>&&
                  aurora_paths_vertex_buffers);
 
   // This class is neither copyable nor movable.
@@ -44,23 +44,23 @@ class PathDumper {
   void DumpAuroraPaths(const common::Camera& camera);
 
   // Accessors.
-  const wrapper::vulkan::SamplableImage& aurora_paths_image() const {
+  const renderer::vulkan::SamplableImage& aurora_paths_image() const {
     return *paths_image_;
   }
-  const wrapper::vulkan::SamplableImage& distance_field_image() const {
+  const renderer::vulkan::SamplableImage& distance_field_image() const {
     return *distance_field_image_;
   }
 
  private:
   // Pointer to context.
-  const wrapper::vulkan::SharedBasicContext context_;
+  const renderer::vulkan::SharedBasicContext context_;
 
   // Generated images.
-  std::unique_ptr<wrapper::vulkan::OffscreenImage> paths_image_;
-  std::unique_ptr<wrapper::vulkan::OffscreenImage> distance_field_image_;
+  std::unique_ptr<renderer::vulkan::OffscreenImage> paths_image_;
+  std::unique_ptr<renderer::vulkan::OffscreenImage> distance_field_image_;
 
   // Manages layouts of images.
-  std::unique_ptr<wrapper::vulkan::image::LayoutManager> image_layout_manager_;
+  std::unique_ptr<renderer::vulkan::image::LayoutManager> image_layout_manager_;
 
   // Dumps and bolds aurora paths.
   std::unique_ptr<PathRenderer2D> path_renderer_;

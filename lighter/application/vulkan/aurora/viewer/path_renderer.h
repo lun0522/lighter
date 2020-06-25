@@ -12,12 +12,12 @@
 #include <vector>
 
 #include "lighter/common/camera.h"
-#include "lighter/wrapper/vulkan/basic_context.h"
-#include "lighter/wrapper/vulkan/buffer.h"
-#include "lighter/wrapper/vulkan/descriptor.h"
-#include "lighter/wrapper/vulkan/image.h"
-#include "lighter/wrapper/vulkan/pipeline.h"
-#include "lighter/wrapper/vulkan/render_pass.h"
+#include "lighter/renderer/vulkan/wrapper/basic_context.h"
+#include "lighter/renderer/vulkan/wrapper/buffer.h"
+#include "lighter/renderer/vulkan/wrapper/descriptor.h"
+#include "lighter/renderer/vulkan/wrapper/image.h"
+#include "lighter/renderer/vulkan/wrapper/pipeline.h"
+#include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
@@ -32,11 +32,11 @@ class PathRenderer2D {
  public:
   // The user should provide 'intermediate_image' that has the same size as
   // 'output_image', so that we can use it to bold rendered aurora paths.
-  PathRenderer2D(const wrapper::vulkan::SharedBasicContext& context,
-                 const wrapper::vulkan::OffscreenImage& intermediate_image,
-                 const wrapper::vulkan::OffscreenImage& output_image,
-                 wrapper::vulkan::MultisampleImage::Mode multisampling_mode,
-                 std::vector<const wrapper::vulkan::PerVertexBuffer*>&&
+  PathRenderer2D(const renderer::vulkan::SharedBasicContext& context,
+                 const renderer::vulkan::OffscreenImage& intermediate_image,
+                 const renderer::vulkan::OffscreenImage& output_image,
+                 renderer::vulkan::MultisampleImage::Mode multisampling_mode,
+                 std::vector<const renderer::vulkan::PerVertexBuffer*>&&
                      aurora_paths_vertex_buffers);
 
   // This class is neither copyable nor movable.
@@ -59,15 +59,15 @@ class PathRenderer2D {
   const VkExtent2D work_group_count_;
 
   // Objects used for graphics and compute pipelines.
-  const std::vector<const wrapper::vulkan::PerVertexBuffer*>
+  const std::vector<const renderer::vulkan::PerVertexBuffer*>
       aurora_paths_vertex_buffers_;
-  std::unique_ptr<wrapper::vulkan::Image> multisample_image_;
-  std::unique_ptr<wrapper::vulkan::PushConstant> trans_constant_;
-  std::unique_ptr<wrapper::vulkan::RenderPass> render_pass_;
-  wrapper::vulkan::RenderPass::RenderOp render_op_;
-  std::unique_ptr<wrapper::vulkan::StaticDescriptor> bold_paths_descriptor_;
-  std::unique_ptr<wrapper::vulkan::Pipeline> render_paths_pipeline_;
-  std::unique_ptr<wrapper::vulkan::Pipeline> bold_paths_pipeline_;
+  std::unique_ptr<renderer::vulkan::Image> multisample_image_;
+  std::unique_ptr<renderer::vulkan::PushConstant> trans_constant_;
+  std::unique_ptr<renderer::vulkan::RenderPass> render_pass_;
+  renderer::vulkan::RenderPass::RenderOp render_op_;
+  std::unique_ptr<renderer::vulkan::StaticDescriptor> bold_paths_descriptor_;
+  std::unique_ptr<renderer::vulkan::Pipeline> render_paths_pipeline_;
+  std::unique_ptr<renderer::vulkan::Pipeline> bold_paths_pipeline_;
 };
 
 } /* namespace aurora */
