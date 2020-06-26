@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VULKAN_BASIC_OBJECT_H
-#define LIGHTER_RENDERER_VULKAN_BASIC_OBJECT_H
+#ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_BASIC_OBJECT_H
+#define LIGHTER_RENDERER_VULKAN_WRAPPER_BASIC_OBJECT_H
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
@@ -209,4 +209,4 @@ class Queues {
 } /* namespace renderer */
 } /* namespace lighter */
 
-#endif /* LIGHTER_RENDERER_VULKAN_BASIC_OBJECT_H */
+#endif /* LIGHTER_RENDERER_VULKAN_WRAPPER_BASIC_OBJECT_H */

@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VULKAN_RENDER_PASS_H
-#define LIGHTER_RENDERER_VULKAN_RENDER_PASS_H
+#ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_RENDER_PASS_H
+#define LIGHTER_RENDERER_VULKAN_WRAPPER_RENDER_PASS_H
 
 #include <functional>
 #include <memory>
@@ -266,4 +266,4 @@ class RenderPass {
 } /* namespace renderer */
 } /* namespace lighter */
 
-#endif /* LIGHTER_RENDERER_VULKAN_RENDER_PASS_H */
+#endif /* LIGHTER_RENDERER_VULKAN_WRAPPER_RENDER_PASS_H */

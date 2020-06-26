@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VULKAN_WINDOW_CONTEXT_H
-#define LIGHTER_RENDERER_VULKAN_WINDOW_CONTEXT_H
+#ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_WINDOW_CONTEXT_H
+#define LIGHTER_RENDERER_VULKAN_WRAPPER_WINDOW_CONTEXT_H
 
 #include <memory>
 #include <string>
@@ -169,4 +169,4 @@ class WindowContext {
 } /* namespace renderer */
 } /* namespace lighter */
 
-#endif /* LIGHTER_RENDERER_VULKAN_WINDOW_CONTEXT_H */
+#endif /* LIGHTER_RENDERER_VULKAN_WRAPPER_WINDOW_CONTEXT_H */

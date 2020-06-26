@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VULKAN_SWAPCHAIN_H
-#define LIGHTER_RENDERER_VULKAN_SWAPCHAIN_H
+#ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_SWAPCHAIN_H
+#define LIGHTER_RENDERER_VULKAN_WRAPPER_SWAPCHAIN_H
 
 #include <memory>
 #include <vector>
@@ -115,4 +115,4 @@ class Swapchain {
 } /* namespace renderer */
 } /* namespace lighter */
 
-#endif /* LIGHTER_RENDERER_VULKAN_SWAPCHAIN_H */
+#endif /* LIGHTER_RENDERER_VULKAN_WRAPPER_SWAPCHAIN_H */

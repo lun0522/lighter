@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VULKAN_TEXT_H
-#define LIGHTER_RENDERER_VULKAN_TEXT_H
+#ifndef LIGHTER_RENDERER_VULKAN_EXTENSION_TEXT_H
+#define LIGHTER_RENDERER_VULKAN_EXTENSION_TEXT_H
 
 #include <functional>
 #include <memory>
@@ -193,4 +193,4 @@ class DynamicText : public Text {
 } /* namespace renderer */
 } /* namespace lighter */
 
-#endif /* LIGHTER_RENDERER_VULKAN_TEXT_H */
+#endif /* LIGHTER_RENDERER_VULKAN_EXTENSION_TEXT_H */

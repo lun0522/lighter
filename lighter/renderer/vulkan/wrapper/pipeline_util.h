@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VULKAN_PIPELINE_UTIL_H
-#define LIGHTER_RENDERER_VULKAN_PIPELINE_UTIL_H
+#ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_PIPELINE_UTIL_H
+#define LIGHTER_RENDERER_VULKAN_WRAPPER_PIPELINE_UTIL_H
 
 #include <vector>
 
@@ -90,4 +90,4 @@ std::vector<VertexBuffer::Attribute> GetVertexAttribute();
 } /* namespace renderer */
 } /* namespace lighter */
 
-#endif /* LIGHTER_RENDERER_VULKAN_PIPELINE_UTIL_H */
+#endif /* LIGHTER_RENDERER_VULKAN_WRAPPER_PIPELINE_UTIL_H */

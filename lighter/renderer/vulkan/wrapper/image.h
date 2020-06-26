@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VULKAN_IMAGE_H
-#define LIGHTER_RENDERER_VULKAN_IMAGE_H
+#ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_H
+#define LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_H
 
 #include <array>
 #include <memory>
@@ -101,6 +101,7 @@ class Image {
 
   // Accessors.
   virtual const VkImage& image() const = 0;
+  virtual image::Usage initial_usage() const { return image::Usage{}; }
   const VkImageView& image_view() const { return image_view_; }
   const VkExtent2D& extent() const { return extent_; }
   VkFormat format() const { return format_; }
@@ -225,6 +226,9 @@ class TextureImage : public Image, public SamplableImage {
 
   // Overrides.
   const VkImage& image() const override { return buffer_.image(); }
+  image::Usage initial_usage() const override {
+    return image::Usage{image::Usage::UsageType::kSample};
+  }
   VkDescriptorImageInfo GetDescriptorInfo(VkImageLayout layout) const override {
     return {*sampler_, image_view(), layout};
   }
@@ -509,4 +513,4 @@ class MultisampleImage : public Image {
 } /* namespace renderer */
 } /* namespace lighter */
 
-#endif /* LIGHTER_RENDERER_VULKAN_IMAGE_H */
+#endif /* LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_H */

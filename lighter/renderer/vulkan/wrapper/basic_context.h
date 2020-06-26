@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VULKAN_BASIC_CONTEXT_H
-#define LIGHTER_RENDERER_VULKAN_BASIC_CONTEXT_H
+#ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_BASIC_CONTEXT_H
+#define LIGHTER_RENDERER_VULKAN_WRAPPER_BASIC_CONTEXT_H
 
 #include <functional>
 #include <memory>
@@ -181,4 +181,4 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
 } /* namespace renderer */
 } /* namespace lighter */
 
-#endif /* LIGHTER_RENDERER_VULKAN_BASIC_CONTEXT_H */
+#endif /* LIGHTER_RENDERER_VULKAN_WRAPPER_BASIC_CONTEXT_H */

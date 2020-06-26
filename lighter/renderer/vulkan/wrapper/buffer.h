@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VULKAN_BUFFER_H
-#define LIGHTER_RENDERER_VULKAN_BUFFER_H
+#ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_BUFFER_H
+#define LIGHTER_RENDERER_VULKAN_WRAPPER_BUFFER_H
 
 #include <vector>
 
@@ -593,4 +593,4 @@ class PushConstant {
 } /* namespace renderer */
 } /* namespace lighter */
 
-#endif /* LIGHTER_RENDERER_VULKAN_BUFFER_H */
+#endif /* LIGHTER_RENDERER_VULKAN_WRAPPER_BUFFER_H */

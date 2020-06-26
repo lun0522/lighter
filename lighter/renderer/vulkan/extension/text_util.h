@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VULKAN_TEXT_UTIL_H
-#define LIGHTER_RENDERER_VULKAN_TEXT_UTIL_H
+#ifndef LIGHTER_RENDERER_VULKAN_EXTENSION_TEXT_UTIL_H
+#define LIGHTER_RENDERER_VULKAN_EXTENSION_TEXT_UTIL_H
 
 #include <array>
 #include <memory>
@@ -204,4 +204,4 @@ float LoadCharsVertexData(const std::string& text,
 } /* namespace renderer */
 } /* namespace lighter */
 
-#endif /* LIGHTER_RENDERER_VULKAN_TEXT_UTIL_H */
+#endif /* LIGHTER_RENDERER_VULKAN_EXTENSION_TEXT_UTIL_H */

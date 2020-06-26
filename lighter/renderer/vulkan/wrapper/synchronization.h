@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VULKAN_SYNCHRONIZATION_H
-#define LIGHTER_RENDERER_VULKAN_SYNCHRONIZATION_H
+#ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_SYNCHRONIZATION_H
+#define LIGHTER_RENDERER_VULKAN_WRAPPER_SYNCHRONIZATION_H
 
 #include <vector>
 
@@ -66,4 +66,4 @@ class Fences {
 } /* namespace renderer */
 } /* namespace lighter */
 
-#endif /* LIGHTER_RENDERER_VULKAN_SYNCHRONIZATION_H */
+#endif /* LIGHTER_RENDERER_VULKAN_WRAPPER_SYNCHRONIZATION_H */

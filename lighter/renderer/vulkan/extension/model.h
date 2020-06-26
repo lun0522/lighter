@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VULKAN_MODEL_H
-#define LIGHTER_RENDERER_VULKAN_MODEL_H
+#ifndef LIGHTER_RENDERER_VULKAN_EXTENSION_MODEL_H
+#define LIGHTER_RENDERER_VULKAN_EXTENSION_MODEL_H
 
 #include <array>
 #include <functional>
@@ -328,4 +328,4 @@ class Model {
 } /* namespace renderer */
 } /* namespace lighter */
 
-#endif /* LIGHTER_RENDERER_VULKAN_MODEL_H */
+#endif /* LIGHTER_RENDERER_VULKAN_EXTENSION_MODEL_H */

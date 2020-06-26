@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VULKAN_IMAGE_UTIL_H
-#define LIGHTER_RENDERER_VULKAN_IMAGE_UTIL_H
+#ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_UTIL_H
+#define LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_UTIL_H
 
 #include <iterator>
 #include <limits>
@@ -284,4 +284,4 @@ class LayoutManager {
 } /* namespace renderer */
 } /* namespace lighter */
 
-#endif /* LIGHTER_RENDERER_VULKAN_IMAGE_UTIL_H */
+#endif /* LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_UTIL_H */

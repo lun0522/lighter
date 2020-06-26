@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VULKAN_COMMAND_H
-#define LIGHTER_RENDERER_VULKAN_COMMAND_H
+#ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_COMMAND_H
+#define LIGHTER_RENDERER_VULKAN_WRAPPER_COMMAND_H
 
 #include <functional>
 #include <vector>
@@ -154,4 +154,4 @@ class PerFrameCommand : public Command {
 } /* namespace renderer */
 } /* namespace lighter */
 
-#endif /* LIGHTER_RENDERER_VULKAN_COMMAND_H */
+#endif /* LIGHTER_RENDERER_VULKAN_WRAPPER_COMMAND_H */

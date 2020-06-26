@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VULKAN_PIPELINE_H
-#define LIGHTER_RENDERER_VULKAN_PIPELINE_H
+#ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_PIPELINE_H
+#define LIGHTER_RENDERER_VULKAN_WRAPPER_PIPELINE_H
 
 #include <memory>
 #include <string>
@@ -329,4 +329,4 @@ class Pipeline {
 } /* namespace renderer */
 } /* namespace lighter */
 
-#endif /* LIGHTER_RENDERER_VULKAN_PIPELINE_H */
+#endif /* LIGHTER_RENDERER_VULKAN_WRAPPER_PIPELINE_H */

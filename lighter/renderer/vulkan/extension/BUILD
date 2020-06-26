@@ -9,7 +9,15 @@ cc_library(
     deps = [
         ":align",
         ":model",
+        ":offscreen_wrappers",
         ":text",
+    ],
+    data = ["@resource//:resource"],
+)
+
+cc_library(
+    name = "offscreen_wrappers",
+    deps = [
         "//lighter/renderer/vulkan/wrapper:basics",
         "//lighter/renderer/vulkan/wrapper:buffer",
         "//lighter/renderer/vulkan/wrapper:command",
@@ -18,8 +26,8 @@ cc_library(
         "//lighter/renderer/vulkan/wrapper:pipeline",
         "//lighter/renderer/vulkan/wrapper:render_pass",
         "//lighter/renderer/vulkan/wrapper:synchronization",
+        "//lighter/renderer/vulkan/wrapper:util",
     ],
-    data = ["@resource//:resource"],
 )
 
 cc_library(
@@ -36,19 +44,26 @@ cc_library(
 )
 
 cc_library(
+    name = "image_manager",
+    hdrs = ["image_manager.h"],
+    srcs = ["image_manager.cc"],
+    deps = [
+        "//lighter/common:util",
+        "//lighter/renderer/vulkan/wrapper:image",
+        "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:span",
+    ],
+)
+
+cc_library(
     name = "model",
     hdrs = ["model.h"],
     srcs = ["model.cc"],
     deps = [
+        ":offscreen_wrappers",
         "//lighter/common:file",
         "//lighter/common:model_loader",
         "//lighter/common:util",
-        "//lighter/renderer/vulkan/wrapper:basics",
-        "//lighter/renderer/vulkan/wrapper:buffer",
-        "//lighter/renderer/vulkan/wrapper:descriptor",
-        "//lighter/renderer/vulkan/wrapper:image",
-        "//lighter/renderer/vulkan/wrapper:pipeline",
-        "//lighter/renderer/vulkan/wrapper:render_pass",
         "//third_party/absl/container:flat_hash_map",
         "//third_party/absl/memory",
         "//third_party/absl/strings:str_format",
@@ -70,17 +85,10 @@ cc_library(
     ],
     deps = [
         ":align",
+        ":offscreen_wrappers",
         "//lighter/common:char_lib",
         "//lighter/common:file",
         "//lighter/common:util",
-        "//lighter/renderer/vulkan/wrapper:basics",
-        "//lighter/renderer/vulkan/wrapper:buffer",
-        "//lighter/renderer/vulkan/wrapper:command",
-        "//lighter/renderer/vulkan/wrapper:descriptor",
-        "//lighter/renderer/vulkan/wrapper:image",
-        "//lighter/renderer/vulkan/wrapper:pipeline",
-        "//lighter/renderer/vulkan/wrapper:render_pass",
-        "//lighter/renderer/vulkan/wrapper:util",
         "//third_party/absl/container:flat_hash_map",
         "//third_party/absl/memory",
         "//third_party/absl/strings:str_format",

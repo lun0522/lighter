@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VULKAN_UTIL_H
-#define LIGHTER_RENDERER_VULKAN_UTIL_H
+#ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_UTIL_H
+#define LIGHTER_RENDERER_VULKAN_WRAPPER_UTIL_H
 
 #include <cmath>
 #include <functional>
@@ -186,4 +186,4 @@ constexpr int kMaxPushConstantSize = 128;
 } /* namespace renderer */
 } /* namespace lighter */
 
-#endif /* LIGHTER_RENDERER_VULKAN_UTIL_H */
+#endif /* LIGHTER_RENDERER_VULKAN_WRAPPER_UTIL_H */
