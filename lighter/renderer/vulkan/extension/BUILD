@@ -44,14 +44,15 @@ cc_library(
 )
 
 cc_library(
-    name = "image_manager",
-    hdrs = ["image_manager.h"],
-    srcs = ["image_manager.cc"],
+    name = "compute_process",
+    hdrs = ["compute_process.h"],
+    srcs = ["compute_process.cc"],
     deps = [
         "//lighter/common:util",
         "//lighter/renderer/vulkan/wrapper:image",
         "//third_party/absl/strings:str_format",
         "//third_party/absl/types:span",
+        "//third_party:vulkan",
     ],
 )
 

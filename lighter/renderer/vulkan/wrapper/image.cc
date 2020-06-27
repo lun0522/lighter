@@ -528,9 +528,10 @@ TextureImage::TextureImage(SharedBasicContext context,
     : Image{std::move(FATAL_IF_NULL(context)), info.GetExtent2D(), info.format},
       buffer_{context_, generate_mipmaps, info},
       sampler_{context_, buffer_.mip_levels(), sampler_config} {
-  SetImageView(CreateImageView(*context_, buffer_.image(), format_,
-                               VK_IMAGE_ASPECT_COLOR_BIT, buffer_.mip_levels(),
-                               /*layer_count=*/CONTAINER_SIZE(info.datas)));
+  set_image_view(CreateImageView(
+      *context_, buffer_.image(), format_, VK_IMAGE_ASPECT_COLOR_BIT,
+      buffer_.mip_levels(), /*layer_count=*/CONTAINER_SIZE(info.datas)));
+  set_usage(image::Usage{image::Usage::UsageType::kSample});
 }
 
 TextureImage::TextureImage(const SharedBasicContext& context,
@@ -573,9 +574,9 @@ TextureImage::TextureBuffer::TextureBuffer(
     usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
   }
 
-  SetImage(CreateImage(*context_, image_config, create_flags, info.format,
-                       image_extent, usage_flags));
-  SetDeviceMemory(CreateImageMemory(
+  set_image(CreateImage(*context_, image_config, create_flags, info.format,
+                        image_extent, usage_flags));
+  set_device_memory(CreateImageMemory(
       *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 
   // Copy data from host to image buffer via staging buffer.
@@ -657,9 +658,9 @@ OffscreenImage::OffscreenImage(SharedBasicContext context,
     : Image{std::move(FATAL_IF_NULL(context)), extent, format},
       buffer_{context_, extent_, format_, usages},
       sampler_{context_, kSingleMipLevel, sampler_config} {
-  SetImageView(CreateImageView(*context_, buffer_.image(), format_,
-                               VK_IMAGE_ASPECT_COLOR_BIT,
-                               kSingleMipLevel, kSingleImageLayer));
+  set_image_view(CreateImageView(*context_, buffer_.image(), format_,
+                                 VK_IMAGE_ASPECT_COLOR_BIT,
+                                 kSingleMipLevel, kSingleImageLayer));
 }
 
 OffscreenImage::OffscreenImage(const SharedBasicContext& context,
@@ -676,10 +677,10 @@ OffscreenImage::OffscreenBuffer::OffscreenBuffer(
     const VkExtent2D& extent, VkFormat format,
     absl::Span<const image::Usage> usages)
     : ImageBuffer{std::move(context)} {
-  SetImage(CreateImage(*context_, ImageConfig{}, nullflag, format,
-                       ExpandDimension(extent),
-                       image::GetImageUsageFlags(usages)));
-  SetDeviceMemory(CreateImageMemory(
+  set_image(CreateImage(*context_, ImageConfig{}, nullflag, format,
+                        ExpandDimension(extent),
+                        image::GetImageUsageFlags(usages)));
+  set_device_memory(CreateImageMemory(
       *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 }
 
@@ -687,19 +688,19 @@ DepthStencilImage::DepthStencilImage(const SharedBasicContext& context,
                                      const VkExtent2D& extent)
     : Image{context, extent, FindDepthStencilImageFormat(*context)},
       buffer_{context_, extent_, format_} {
-  SetImageView(CreateImageView(*context_, buffer_.image(), format_,
-                               VK_IMAGE_ASPECT_DEPTH_BIT
-                                   | VK_IMAGE_ASPECT_STENCIL_BIT,
-                               kSingleMipLevel, kSingleImageLayer));
+  set_image_view(CreateImageView(*context_, buffer_.image(), format_,
+                                 VK_IMAGE_ASPECT_DEPTH_BIT
+                                     | VK_IMAGE_ASPECT_STENCIL_BIT,
+                                 kSingleMipLevel, kSingleImageLayer));
 }
 
 DepthStencilImage::DepthStencilBuffer::DepthStencilBuffer(
     SharedBasicContext context, const VkExtent2D& extent, VkFormat format)
     : ImageBuffer{std::move(context)} {
-  SetImage(CreateImage(*context_, ImageConfig{}, nullflag, format,
-                       ExpandDimension(extent),
-                       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT));
-  SetDeviceMemory(CreateImageMemory(
+  set_image(CreateImage(*context_, ImageConfig{}, nullflag, format,
+                        ExpandDimension(extent),
+                        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT));
+  set_device_memory(CreateImageMemory(
       *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 }
 
@@ -707,9 +708,9 @@ SwapchainImage::SwapchainImage(SharedBasicContext context,
                                const VkImage& image,
                                const VkExtent2D& extent, VkFormat format)
     : Image{std::move(context), extent, format}, image_{image} {
-  SetImageView(CreateImageView(*context_, image_, format_,
-                               VK_IMAGE_ASPECT_COLOR_BIT,
-                               kSingleMipLevel, kSingleImageLayer));
+  set_image_view(CreateImageView(*context_, image_, format_,
+                                 VK_IMAGE_ASPECT_COLOR_BIT,
+                                 kSingleMipLevel, kSingleImageLayer));
 }
 
 std::unique_ptr<Image> MultisampleImage::CreateColorMultisampleImage(
@@ -756,7 +757,7 @@ MultisampleImage::MultisampleImage(
       image_aspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
       break;
   }
-  SetImageView(CreateImageView(
+  set_image_view(CreateImageView(
       *context_, buffer_.image(), format_,
       image_aspect, kSingleMipLevel, kSingleImageLayer));
 }
@@ -795,9 +796,9 @@ MultisampleImage::MultisampleBuffer::MultisampleBuffer(
   }
   ImageConfig image_config;
   image_config.sample_count = sample_count;
-  SetImage(CreateImage(*context_, image_config, nullflag, format,
-                       ExpandDimension(extent), image_usage));
-  SetDeviceMemory(CreateImageMemory(
+  set_image(CreateImage(*context_, image_config, nullflag, format,
+                        ExpandDimension(extent), image_usage));
+  set_device_memory(CreateImageMemory(
       *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 }
 

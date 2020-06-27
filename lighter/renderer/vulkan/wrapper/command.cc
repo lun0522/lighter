@@ -103,7 +103,7 @@ OneTimeCommand::OneTimeCommand(SharedBasicContext context,
     : Command{std::move(context)}, queue_{FATAL_IF_NULL(queue)} {
   const auto command_pool = CreateCommandPool(*context_, *queue_,
                                               /*is_transient=*/true);
-  SetCommandPool(command_pool);
+  set_command_pool(command_pool);
   command_buffer_ =
       AllocateCommandBuffers(*context_, command_pool, /*count=*/1)[0];
 }
@@ -137,7 +137,7 @@ PerFrameCommand::PerFrameCommand(const SharedBasicContext& context,
                         /*is_signaled=*/true} {
   const auto command_pool = CreateCommandPool(
       *context_, context_->queues().graphics_queue(), /*is_transient=*/false);
-  SetCommandPool(command_pool);
+  set_command_pool(command_pool);
   command_buffers_ = AllocateCommandBuffers(
       *context_, command_pool, static_cast<uint32_t>(num_frames_in_flight));
 

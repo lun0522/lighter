@@ -97,6 +97,21 @@ struct Usage {
   // Throws a runtime exception if this usage is invalid.
   void Validate() const;
 
+  // Returns VkAccessFlags used for inserting image memory barriers.
+  VkAccessFlags GetAccessFlags() const;
+
+  // Returns VkPipelineStageFlags used for inserting image memory barriers.
+  VkPipelineStageFlags GetPipelineStageFlags() const;
+
+  // Returns which VkImageLayout should be used for this usage.
+  VkImageLayout GetImageLayout() const;
+
+  // Returns VkImageUsageFlagBits for this usage. Note that this must not be
+  // called if 'usage_type' is UsageType::kDontCare, since it doesn't have
+  // corresponding flag bits.
+  VkImageUsageFlagBits GetImageUsageFlagBits() const;
+
+  // Overrides.
   bool operator==(const Usage& other) const {
     return usage_type == other.usage_type &&
            access_type == other.access_type &&

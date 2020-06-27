@@ -62,7 +62,7 @@ class Buffer {
   }
 
   // Modifiers.
-  void SetDeviceMemory(const VkDeviceMemory& device_memory) {
+  void set_device_memory(const VkDeviceMemory& device_memory) {
     device_memory_ = device_memory;
   }
 
@@ -96,9 +96,7 @@ class DataBuffer : public Buffer {
   using Buffer::Buffer;
 
   // Modifiers.
-  void SetBuffer(const VkBuffer& buffer) {
-    buffer_ = buffer;
-  }
+  void set_buffer(const VkBuffer& buffer) { buffer_ = buffer; }
 
   // Accessors.
   const VkBuffer& buffer() const { return buffer_; }

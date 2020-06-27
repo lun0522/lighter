@@ -96,10 +96,11 @@ StagingBuffer::StagingBuffer(SharedBasicContext context,
                              const CopyInfos& copy_infos)
     : DataBuffer{std::move(FATAL_IF_NULL(context))},
       data_size_{copy_infos.total_size} {
-  SetBuffer(CreateBuffer(*context_, data_size_,
-                         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                         context_->queues().GetTransferQueueUsage()));
-  SetDeviceMemory(CreateBufferMemory(*context_, buffer(), kHostVisibleMemory));
+  set_buffer(CreateBuffer(*context_, data_size_,
+                          VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                          context_->queues().GetTransferQueueUsage()));
+  set_device_memory(CreateBufferMemory(
+      *context_, buffer(), kHostVisibleMemory));
   CopyHostToBuffer(*context_, /*map_offset=*/0, /*map_size=*/data_size_,
                    device_memory(), copy_infos.copy_infos);
 }
@@ -148,9 +149,9 @@ void VertexBuffer::CreateBufferAndMemory(VkDeviceSize total_size,
   if (has_index_data) {
     buffer_usages |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
   }
-  SetBuffer(CreateBuffer(*context_, total_size, buffer_usages,
-                         context_->queues().GetGraphicsQueueUsage()));
-  SetDeviceMemory(CreateBufferMemory(*context_, buffer(), memory_properties));
+  set_buffer(CreateBuffer(*context_, total_size, buffer_usages,
+                          context_->queues().GetGraphicsQueueUsage()));
+  set_device_memory(CreateBufferMemory(*context_, buffer(), memory_properties));
 }
 
 DynamicBuffer::DynamicBuffer(size_t initial_size, bool has_index_data,
@@ -369,10 +370,11 @@ UniformBuffer::UniformBuffer(SharedBasicContext context,
       (chunk_data_size_ + alignment - 1) / alignment * alignment;
 
   data_ = new char[chunk_data_size_ * num_chunks];
-  SetBuffer(CreateBuffer(*context_, chunk_memory_size_ * num_chunks,
-                         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                         context_->queues().GetGraphicsQueueUsage()));
-  SetDeviceMemory(CreateBufferMemory(*context_, buffer(), kHostVisibleMemory));
+  set_buffer(CreateBuffer(*context_, chunk_memory_size_ * num_chunks,
+                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                          context_->queues().GetGraphicsQueueUsage()));
+  set_device_memory(CreateBufferMemory(
+      *context_, buffer(), kHostVisibleMemory));
 }
 
 void UniformBuffer::Flush(int chunk_index) const {

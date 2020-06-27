@@ -69,7 +69,7 @@ class ImageBuffer : public Buffer {
   using Buffer::Buffer;
 
   // Modifiers.
-  void SetImage(const VkImage& image) { image_ = image; }
+  void set_image(const VkImage& image) { image_ = image; }
 
  private:
   // Opaque image object.
@@ -99,9 +99,15 @@ class Image {
     return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
   }
 
+  // Overloads.
+  const VkImage& operator*() const { return image(); }
+
+  // Modifiers.
+  void set_usage(const image::Usage& usage) { image_usage_ = usage; }
+
   // Accessors.
   virtual const VkImage& image() const = 0;
-  virtual image::Usage initial_usage() const { return image::Usage{}; }
+  const image::Usage& image_usage() const { return image_usage_; }
   const VkImageView& image_view() const { return image_view_; }
   const VkExtent2D& extent() const { return extent_; }
   VkFormat format() const { return format_; }
@@ -115,7 +121,9 @@ class Image {
         extent_{extent}, format_{format} {}
 
   // Modifiers.
-  void SetImageView(const VkImageView& image_view) { image_view_ = image_view; }
+  void set_image_view(const VkImageView& image_view) {
+    image_view_ = image_view;
+  }
 
   // Pointer to context.
   const SharedBasicContext context_;
@@ -129,6 +137,9 @@ class Image {
  private:
   // Opaque image view object.
   VkImageView image_view_;
+
+  // Tracks image usage.
+  image::Usage image_usage_{};
 };
 
 // VkSampler configures how do we sample from an image resource on the device.
@@ -226,9 +237,6 @@ class TextureImage : public Image, public SamplableImage {
 
   // Overrides.
   const VkImage& image() const override { return buffer_.image(); }
-  image::Usage initial_usage() const override {
-    return image::Usage{image::Usage::UsageType::kSample};
-  }
   VkDescriptorImageInfo GetDescriptorInfo(VkImageLayout layout) const override {
     return {*sampler_, image_view(), layout};
   }

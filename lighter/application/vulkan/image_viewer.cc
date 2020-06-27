@@ -131,7 +131,7 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
       }
   };
   const auto original_image_descriptor_info = original_image.GetDescriptorInfo(
-      layout_manager.GetLayoutAtStage(original_image.image(), kComputingStage));
+      layout_manager.GetLayoutAtStage(*original_image, kComputingStage));
   const auto output_image_descriptor_info = image_->GetDescriptorInfo(
       layout_manager.GetLayoutAtStage(image_->image(), kComputingStage));
   descriptor.UpdateImageInfos(

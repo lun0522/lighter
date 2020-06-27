@@ -54,128 +54,6 @@ VkAccessFlags GetReadWriteFlags(AccessType access_type,
   return access_flags;
 }
 
-// Returns VkAccessFlags used for inserting image memory barriers.
-VkAccessFlags GetAccessFlags(const image::Usage& usage) {
-  switch (usage.usage_type) {
-    case UsageType::kDontCare:
-      return kNullAccessFlag;
-
-    case UsageType::kRenderTarget:
-      return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    case UsageType::kPresentation:
-      FATAL("Should be handled by render pass");
-
-    case UsageType::kLinearAccess:
-    case UsageType::kSample:
-      return usage.access_location == AccessLocation::kHost
-                 ? GetReadWriteFlags(usage.access_type,
-                                     VK_ACCESS_HOST_READ_BIT,
-                                     VK_ACCESS_HOST_WRITE_BIT)
-                 : GetReadWriteFlags(usage.access_type,
-                                     VK_ACCESS_SHADER_READ_BIT,
-                                     VK_ACCESS_SHADER_WRITE_BIT);
-
-    case UsageType::kTransfer:
-      return GetReadWriteFlags(usage.access_type,
-                               VK_ACCESS_TRANSFER_READ_BIT,
-                               VK_ACCESS_TRANSFER_WRITE_BIT);
-  }
-}
-
-// Returns VkPipelineStageFlags used for inserting image memory barriers.
-VkPipelineStageFlags GetPipelineStageFlags(const image::Usage& usage) {
-  switch (usage.usage_type) {
-    case UsageType::kDontCare:
-      return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-
-    case UsageType::kRenderTarget:
-      return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-
-    case UsageType::kPresentation:
-      FATAL("Should be handled by render pass");
-
-    case UsageType::kLinearAccess:
-    case UsageType::kSample:
-      switch (usage.access_location) {
-        case AccessLocation::kDontCare:
-          FATAL("Access location not specified");
-        case AccessLocation::kHost:
-          return VK_PIPELINE_STAGE_HOST_BIT;
-        case AccessLocation::kFragmentShader:
-          return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        case AccessLocation::kComputeShader:
-          return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-      }
-
-    case UsageType::kTransfer:
-      return VK_PIPELINE_STAGE_TRANSFER_BIT;
-  }
-}
-
-// Returns which image layout should be used for 'usage'.
-VkImageLayout GetImageLayout(const image::Usage& usage) {
-  switch (usage.usage_type) {
-    case UsageType::kDontCare:
-      return VK_IMAGE_LAYOUT_UNDEFINED;
-
-    case UsageType::kRenderTarget:
-      return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    case UsageType::kPresentation:
-      return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    case UsageType::kLinearAccess:
-      return VK_IMAGE_LAYOUT_GENERAL;
-
-    case UsageType::kSample:
-      return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-    case UsageType::kTransfer:
-      switch (usage.access_type) {
-        case AccessType::kDontCare:
-          FATAL("Access type not specified");
-        case AccessType::kReadOnly:
-          return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        case AccessType::kWriteOnly:
-          return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        case AccessType::kReadWrite:
-          FATAL("Access type must not be kReadWrite for UsageType::kTransfer");
-      }
-  }
-}
-
-// Returns VkImageUsageFlagBits corresponding to 'usage_type'. Note that this
-// must not be called with UsageType::kDontCare since it doesn't have flag bits.
-VkImageUsageFlagBits GetImageUsageFlagBits(const image::Usage& usage) {
-  switch (usage.usage_type) {
-    case UsageType::kDontCare:
-      FATAL("No usage flag bits if don't care about usage");
-
-    case UsageType::kRenderTarget:
-    case UsageType::kPresentation:
-      return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-    case UsageType::kLinearAccess:
-      return VK_IMAGE_USAGE_STORAGE_BIT;
-
-    case UsageType::kSample:
-      return VK_IMAGE_USAGE_SAMPLED_BIT;
-
-    case UsageType::kTransfer:
-      switch (usage.access_type) {
-        case AccessType::kDontCare:
-          FATAL("Access type not specified");
-        case AccessType::kReadOnly:
-          return VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-        case AccessType::kWriteOnly:
-          return VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-        case AccessType::kReadWrite:
-          FATAL("Access type must not be kReadWrite for UsageType::kTransfer");
-      }
-  }
-}
-
 } /* namespace */
 
 namespace image {
@@ -198,6 +76,132 @@ void Usage::Validate() const {
                  "Must specify access type for UsageType::kTransfer");
     ASSERT_FALSE(access_type == AccessType::kReadWrite,
                  "Cannot use AccessType::kReadWrite for UsageType::kTransfer");
+  }
+}
+
+VkAccessFlags Usage::GetAccessFlags() const {
+  switch (usage_type) {
+    case UsageType::kDontCare:
+      return kNullAccessFlag;
+
+    case UsageType::kRenderTarget:
+      return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    case UsageType::kPresentation:
+      FATAL("Should be handled by render pass");
+
+    case UsageType::kLinearAccess:
+    case UsageType::kSample:
+      return access_location == AccessLocation::kHost
+                 ? GetReadWriteFlags(access_type,
+                                     VK_ACCESS_HOST_READ_BIT,
+                                     VK_ACCESS_HOST_WRITE_BIT)
+                 : GetReadWriteFlags(access_type,
+                                     VK_ACCESS_SHADER_READ_BIT,
+                                     VK_ACCESS_SHADER_WRITE_BIT);
+
+    case UsageType::kTransfer:
+      return GetReadWriteFlags(access_type,
+                               VK_ACCESS_TRANSFER_READ_BIT,
+                               VK_ACCESS_TRANSFER_WRITE_BIT);
+  }
+}
+
+VkPipelineStageFlags Usage::GetPipelineStageFlags() const {
+  switch (usage_type) {
+    case UsageType::kDontCare:
+      return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+
+    case UsageType::kRenderTarget:
+      return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+    case UsageType::kPresentation:
+      FATAL("Should be handled by render pass");
+
+    case UsageType::kLinearAccess:
+    case UsageType::kSample:
+      switch (access_location) {
+        case AccessLocation::kDontCare:
+          FATAL("Access location not specified");
+
+        case AccessLocation::kHost:
+          return VK_PIPELINE_STAGE_HOST_BIT;
+
+        case AccessLocation::kFragmentShader:
+          return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+        case AccessLocation::kComputeShader:
+          return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+      }
+
+    case UsageType::kTransfer:
+      return VK_PIPELINE_STAGE_TRANSFER_BIT;
+  }
+}
+
+VkImageLayout Usage::GetImageLayout() const {
+  switch (usage_type) {
+    case UsageType::kDontCare:
+      return VK_IMAGE_LAYOUT_UNDEFINED;
+
+    case UsageType::kRenderTarget:
+      return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    case UsageType::kPresentation:
+      return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    case UsageType::kLinearAccess:
+      return VK_IMAGE_LAYOUT_GENERAL;
+
+    case UsageType::kSample:
+      return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    case UsageType::kTransfer:
+      switch (access_type) {
+        case AccessType::kDontCare:
+          FATAL("Access type not specified");
+
+        case AccessType::kReadOnly:
+          return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+
+        case AccessType::kWriteOnly:
+          return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+
+        case AccessType::kReadWrite:
+          FATAL("Access type must not be kReadWrite for UsageType::kTransfer");
+      }
+  }
+}
+
+VkImageUsageFlagBits Usage::GetImageUsageFlagBits() const {
+  switch (usage_type) {
+    case UsageType::kDontCare:
+      FATAL("No usage flag bits if don't care about usage");
+
+    case UsageType::kRenderTarget:
+    case UsageType::kPresentation:
+      return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    case UsageType::kLinearAccess:
+      return VK_IMAGE_USAGE_STORAGE_BIT;
+
+    case UsageType::kSample:
+      return VK_IMAGE_USAGE_SAMPLED_BIT;
+
+    case UsageType::kTransfer:
+      switch (access_type) {
+        case AccessType::kDontCare:
+          FATAL("Access type not specified");
+
+        case AccessType::kReadOnly:
+          return VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+        case AccessType::kWriteOnly:
+          return VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+        case AccessType::kReadWrite:
+          FATAL("Access type must not be kReadWrite for UsageType::kTransfer");
+      }
   }
 }
 
@@ -226,7 +230,7 @@ VkImageUsageFlags GetImageUsageFlags(absl::Span<const Usage> usages) {
   auto flags = nullflag;
   for (const auto& usage : usages) {
     if (usage.usage_type != UsageType::kDontCare) {
-      flags |= GetImageUsageFlagBits(usage);
+      flags |= usage.GetImageUsageFlagBits();
     }
   }
   return static_cast<VkImageUsageFlags>(flags);
@@ -322,7 +326,7 @@ VkImageLayout LayoutManager::GetLayoutAtStage(const VkImage& image,
   const auto iter = image_usage_history_map_.find(&image);
   ASSERT_FALSE(iter == image_usage_history_map_.end(),
                "This manager does not have info about the image");
-  return GetImageLayout(iter->second->GetUsageAtCurrentStage(stage));
+  return iter->second->GetUsageAtCurrentStage(stage).GetImageLayout();
 }
 
 void LayoutManager::InsertMemoryBarrierBeforeStage(
@@ -370,10 +374,10 @@ void LayoutManager::InsertMemoryBarrier(
   const VkImageMemoryBarrier barrier{
       VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
       /*pNext=*/nullptr,
-      /*srcAccessMask=*/GetAccessFlags(prev_usage),
-      /*dstAccessMask=*/GetAccessFlags(curr_usage),
-      /*oldLayout=*/GetImageLayout(prev_usage),
-      /*newLayout=*/GetImageLayout(curr_usage),
+      /*srcAccessMask=*/prev_usage.GetAccessFlags(),
+      /*dstAccessMask=*/curr_usage.GetAccessFlags(),
+      /*oldLayout=*/prev_usage.GetImageLayout(),
+      /*newLayout=*/curr_usage.GetImageLayout(),
       /*srcQueueFamilyIndex=*/queue_family_index,
       /*dstQueueFamilyIndex=*/queue_family_index,
       image,
@@ -388,8 +392,8 @@ void LayoutManager::InsertMemoryBarrier(
 
   vkCmdPipelineBarrier(
       command_buffer,
-      /*srcStageMask=*/GetPipelineStageFlags(prev_usage),
-      /*dstStageMask=*/GetPipelineStageFlags(curr_usage),
+      /*srcStageMask=*/prev_usage.GetPipelineStageFlags(),
+      /*dstStageMask=*/curr_usage.GetPipelineStageFlags(),
       /*dependencyFlags=*/0,
       /*memoryBarrierCount=*/0,
       /*pMemoryBarriers=*/nullptr,

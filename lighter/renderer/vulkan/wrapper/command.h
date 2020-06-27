@@ -46,7 +46,7 @@ class Command {
       : context_{std::move(FATAL_IF_NULL(context))} {}
 
   // Modifiers.
-  void SetCommandPool(const VkCommandPool& command_pool) {
+  void set_command_pool(const VkCommandPool& command_pool) {
     command_pool_ = command_pool;
   }
 
