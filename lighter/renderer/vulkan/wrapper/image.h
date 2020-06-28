@@ -293,8 +293,8 @@ class SharedTexture : public SamplableImage {
       : texture_{GetTexture(context, source_path, usages, sampler_config)} {}
 
   // This class is only movable.
-  SharedTexture(SharedTexture&&) = default;
-  SharedTexture& operator=(SharedTexture&&) = default;
+  SharedTexture(SharedTexture&&) noexcept = default;
+  SharedTexture& operator=(SharedTexture&&) noexcept = default;
 
   // Overrides.
   VkDescriptorImageInfo GetDescriptorInfo(VkImageLayout layout) const override {
@@ -377,7 +377,7 @@ class UnownedOffscreenTexture : public SamplableImage {
       : texture_{FATAL_IF_NULL(texture)} {}
 
   // This class provides copy constructor and move constructor.
-  UnownedOffscreenTexture(UnownedOffscreenTexture&&) = default;
+  UnownedOffscreenTexture(UnownedOffscreenTexture&&) noexcept = default;
   UnownedOffscreenTexture(UnownedOffscreenTexture&) = default;
 
   // Overrides.

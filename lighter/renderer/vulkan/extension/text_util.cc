@@ -235,10 +235,10 @@ VkExtent2D CharLoader::GetCharAtlasImageExtent(
 
 absl::optional<float> CharLoader::GetSpaceAdvanceX(
     const common::CharLib& char_lib, const Image& target_image) const {
-  const auto found = char_lib.char_info_map().find(' ');
+  const auto iter = char_lib.char_info_map().find(' ');
   absl::optional<float> space_advance;
-  if (found != char_lib.char_info_map().end()) {
-    space_advance = static_cast<float>(found->second.advance.x) /
+  if (iter != char_lib.char_info_map().end()) {
+    space_advance = static_cast<float>(iter->second.advance.x) /
                     target_image.extent().width;
   }
   return space_advance;

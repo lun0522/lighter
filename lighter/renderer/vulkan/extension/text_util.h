@@ -81,10 +81,10 @@ class CharLoader {
     return char_texture_info_map_;
   }
   const CharTextureInfo& char_texture_info(char character) const {
-    const auto found = char_texture_info_map_.find(character);
-    ASSERT_FALSE(found == char_texture_info_map_.end(),
+    const auto iter = char_texture_info_map_.find(character);
+    ASSERT_FALSE(iter == char_texture_info_map_.end(),
                  absl::StrFormat("'%c' was not loaded", character));
-    return found->second;
+    return iter->second;
   }
 
  private:

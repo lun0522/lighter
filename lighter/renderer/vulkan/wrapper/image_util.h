@@ -115,8 +115,7 @@ struct Usage {
   bool operator==(const Usage& other) const {
     return usage_type == other.usage_type &&
            access_type == other.access_type &&
-           access_location == other.access_location &&
-           use_high_precision == other.use_high_precision;
+           access_location == other.access_location;
   }
 
   // Modifiers.

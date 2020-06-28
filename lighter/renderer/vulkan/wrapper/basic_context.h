@@ -53,7 +53,8 @@ struct WindowSupport {
 class BasicContext : public std::enable_shared_from_this<BasicContext> {
  public:
   // Specifies how to release an expired resource.
-  using ReleaseExpiredResourceOp = std::function<void(const BasicContext&)>;
+  using ReleaseExpiredResourceOp =
+      std::function<void(const BasicContext& context)>;
 
   // Returns a new instance of BasicContext.
   template <typename... Args>

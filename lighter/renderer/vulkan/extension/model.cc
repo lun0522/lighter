@@ -64,11 +64,11 @@ void CreateTextureInfo(const ModelBuilder::BindingPointMap& binding_map,
                              shared_textures[type_index].size();
 
     if (num_textures != 0) {
-      const auto found = binding_map.find(texture_type);
-      ASSERT_TRUE(found != binding_map.end(),
+      const auto iter = binding_map.find(texture_type);
+      ASSERT_TRUE(iter != binding_map.end(),
                   absl::StrFormat("Binding point of texture type %d is not set",
                                   type_index));
-      const auto binding_point = found->second;
+      const auto binding_point = iter->second;
 
       // Populate 'descriptor_info' with declarations of resources.
       texture_bindings.push_back(Descriptor::Info::Binding{

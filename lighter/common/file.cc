@@ -206,9 +206,9 @@ ObjFile::ObjFile(const std::string& path, int index_base) {
         // Face.
         for (const auto& seg : SplitText(GetSuffix(line, non_space + 2), ' ',
                                          /*num_segments=*/3)) {
-          const auto found = loaded_vertices.find(seg);
-          if (found != loaded_vertices.end()) {
-            indices.push_back(found->second);
+          const auto iter = loaded_vertices.find(seg);
+          if (iter != loaded_vertices.end()) {
+            indices.push_back(iter->second);
           } else {
             indices.push_back(vertices.size());
             loaded_vertices[seg] = vertices.size();

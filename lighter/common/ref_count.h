@@ -57,21 +57,21 @@ class RefCountedObject {
   // construct a new object.
   template <typename... Args>
   static RefCountedObject Get(const std::string& identifier, Args&&... args) {
-    auto found = ref_count_map().find(identifier);
-    if (found == ref_count_map().end()) {
+    auto iter = ref_count_map().find(identifier);
+    if (iter == ref_count_map().end()) {
       const auto inserted = ref_count_map().insert({
           identifier, typename ObjectPool::ObjectWithCounter{
               absl::make_unique<ObjectType>(std::forward<Args>(args)...),
               /*ref_count=*/0,
           }});
-      found = inserted.first;
+      iter = inserted.first;
     }
 #ifndef NDEBUG
     else {
       LOG_INFO << "Cache hit: " << identifier;
     }
 #endif  /* !NDEBUG */
-    auto& ref_counted_object = found->second;
+    auto& ref_counted_object = iter->second;
     ++ref_counted_object.ref_count;
     return RefCountedObject{identifier, ref_counted_object.object.get()};
   }
@@ -95,10 +95,10 @@ class RefCountedObject {
     if (identifier_.empty()) {
       return;
     }
-    const auto found = ref_count_map().find(identifier_);
-    if (--found->second.ref_count == 0 &&
+    const auto iter = ref_count_map().find(identifier_);
+    if (--iter->second.ref_count == 0 &&
         object_pool_.num_active_auto_release_pools == 0) {
-      ref_count_map().erase(found);
+      ref_count_map().erase(iter);
     }
   }
 

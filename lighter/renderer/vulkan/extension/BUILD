@@ -44,16 +44,25 @@ cc_library(
 )
 
 cc_library(
-    name = "compute_process",
-    hdrs = ["compute_process.h"],
-    srcs = ["compute_process.cc"],
+    name = "compute_pass",
+    hdrs = ["compute_pass.h"],
+    srcs = ["compute_pass.cc"],
     deps = [
         "//lighter/common:util",
         "//lighter/renderer/vulkan/wrapper:image",
+        "//third_party/absl/container:flat_hash_map",
         "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:optional",
         "//third_party/absl/types:span",
         "//third_party:vulkan",
     ],
+)
+
+cc_library(
+    name = "graphics_pass",
+    hdrs = ["graphics_pass.h"],
+    srcs = ["graphics_pass.cc"],
+    deps = [],
 )
 
 cc_library(

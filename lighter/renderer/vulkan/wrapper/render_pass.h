@@ -197,7 +197,7 @@ class RenderPassBuilder {
 class RenderPass {
  public:
   // Specifies rendering operations to perform in one subpass.
-  using RenderOp = std::function<void(const VkCommandBuffer&)>;
+  using RenderOp = std::function<void(const VkCommandBuffer& command_buffer)>;
 
   // This class is neither copyable nor movable.
   RenderPass(const RenderPass&) = delete;

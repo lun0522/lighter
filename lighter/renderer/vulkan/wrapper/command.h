@@ -89,7 +89,7 @@ class PerFrameCommand : public Command {
  public:
   // The user may want to do multiple buffering. 'current_frame' refers to which
   // "buffer" are we rendering to.
-  using UpdateData = std::function<void (int current_frame)>;
+  using UpdateData = std::function<void(int current_frame)>;
 
   // Specifies which operations should be performed in the offscreen pass.
   using OffscreenOp =
