@@ -531,7 +531,7 @@ TextureImage::TextureImage(SharedBasicContext context,
   set_image_view(CreateImageView(
       *context_, buffer_.image(), format_, VK_IMAGE_ASPECT_COLOR_BIT,
       buffer_.mip_levels(), /*layer_count=*/CONTAINER_SIZE(info.datas)));
-  set_usage(image::Usage{image::Usage::UsageType::kSample});
+  set_usage(image::Usage::GetSampledInFragmentShaderUsage());
 }
 
 TextureImage::TextureImage(const SharedBasicContext& context,
@@ -569,6 +569,7 @@ TextureImage::TextureBuffer::TextureBuffer(
   }
 
   auto usage_flags = image::GetImageUsageFlags(info.usages);
+  usage_flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
   usage_flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
   if (generate_mipmaps) {
     usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;

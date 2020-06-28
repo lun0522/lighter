@@ -193,7 +193,7 @@ RenderPassBuilder& RenderPassBuilder::SetAttachment(
 
 RenderPassBuilder& RenderPassBuilder::UpdateAttachmentImage(
     int index, GetImage&& get_image) {
-  ASSERT_NON_NULL(get_image, "get_image cannot be nullptr");
+  ASSERT_NON_NULL(get_image, "'get_image' cannot be nullptr");
   const Image& sample_image = get_image(/*framebuffer_index=*/0);
   attachment_descriptions_[index].format = sample_image.format();
   attachment_descriptions_[index].samples = sample_image.sample_count();

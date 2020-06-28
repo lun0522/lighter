@@ -19,10 +19,6 @@ namespace vulkan {
 ImageUsageHistory& ImageUsageHistory::AddUsage(
     int stage, const image::Usage& usage) {
   ASSERT_TRUE(
-      stage >= 0 && stage < num_stages_,
-      absl::StrFormat("Stage (%d) out of range [0, %d) for image %s",
-                      stage, num_stages_, image_name_));
-  ASSERT_TRUE(
       usage_at_stage_map_.find(stage) == usage_at_stage_map_.end(),
       absl::StrFormat("Already specified usage for image %s at stage %d",
                       image_name_, stage));
@@ -38,19 +34,51 @@ ImageUsageHistory& ImageUsageHistory::SetFinalUsage(const image::Usage& usage) {
   return *this;
 }
 
-ComputePass::ComputePass(int num_stages, absl::Span<ImageInfo> image_infos)
-    : num_stages_{num_stages} {
-  for (const auto& info : image_infos) {
-    auto pair = image_usage_history_map_.insert(
-        {info.image, ImageUsageHistory{std::string{info.name}, num_stages_}});
-    pair.first->second.AddUsage(/*stage=*/-1, info.image->image_usage());
+std::vector<image::Usage> ImageUsageHistory::GetAllUsages() const {
+  const int num_usages = static_cast<int>(usage_at_stage_map_.size()) +
+                         (final_usage_.has_value() ? 1 : 0);
+  std::vector<image::Usage> usages;
+  usages.reserve(num_usages);
+  for (const auto& pair : usage_at_stage_map_) {
+    usages.push_back(pair.second);
+  }
+  if (final_usage_.has_value()) {
+    usages.push_back(final_usage_.value());
+  }
+  return usages;
+}
+
+void ImageUsageHistory::ValidateStages(int upper_bound) const {
+  for (const auto& pair : usage_at_stage_map_) {
+    const int stage = pair.first;
+    ASSERT_TRUE(
+        stage >= 0 && stage < upper_bound,
+        absl::StrFormat("Stage (%d) out of range [0, %d) for image %s",
+                        stage, upper_bound, image_name_));
   }
 }
 
-ImageUsageHistory& ComputePass::GetImageUsageHistory(const Image& image) {
-  auto iter = image_usage_history_map_.find(&image);
-  ASSERT_FALSE(iter == image_usage_history_map_.end(), "Unrecognized image");
+const image::Usage& ImageUsageHistory::GetUsage(int stage) const {
+  const auto iter = usage_at_stage_map_.find(stage);
+  ASSERT_FALSE(iter == usage_at_stage_map_.end(),
+               absl::StrFormat("Usage not specified for image %s",
+                               image_name_));
   return iter->second;
+}
+
+ComputePass& ComputePass::AddImage(Image* image, ImageUsageHistory&& history) {
+  ASSERT_NON_NULL(image, "'image' cannot be nullptr");
+  history.ValidateStages(num_stages_);
+  history.AddUsage(/*stage=*/-1, image->image_usage());
+  image_usage_history_map_.emplace(image, std::move(history));
+  return *this;
+}
+
+VkImageLayout ComputePass::GetImageLayoutAtStage(const Image& image,
+                                                 int stage) const {
+  const auto iter = image_usage_history_map_.find(&image);
+  ASSERT_FALSE(iter == image_usage_history_map_.end(), "Unrecognized image");
+  return iter->second.GetUsage(stage).GetImageLayout();
 }
 
 void ComputePass::Run(const VkCommandBuffer& command_buffer,
@@ -81,6 +109,7 @@ void ComputePass::Run(const VkCommandBuffer& command_buffer,
                                      pair.second.image_name_, stage);
 #endif /* !NDEBUG */
     }
+    compute_ops[stage]();
   }
 
   // For each image, inform Image class the last known usage, and transition the

@@ -8,6 +8,8 @@ cc_library(
     name = "offscreen",
     deps = [
         ":align",
+        ":compute_pass",
+        ":graphics_pass",
         ":model",
         ":offscreen_wrappers",
         ":text",

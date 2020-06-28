@@ -420,7 +420,7 @@ class DepthStencilImage : public Image {
   };
 
   // Image buffer.
-  DepthStencilBuffer buffer_;
+  const DepthStencilBuffer buffer_;
 };
 
 // This class references to an existing swapchain image. The user is responsible
@@ -514,7 +514,7 @@ class MultisampleImage : public Image {
   const VkSampleCountFlagBits sample_count_;
 
   // Image buffer.
-  MultisampleBuffer buffer_;
+  const MultisampleBuffer buffer_;
 };
 
 } /* namespace vulkan */

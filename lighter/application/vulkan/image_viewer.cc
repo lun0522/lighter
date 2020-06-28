@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "lighter/application/vulkan/util.h"
+#include "lighter/renderer/vulkan/extension/compute_pass.h"
 
 namespace lighter {
 namespace application {
@@ -88,35 +89,35 @@ ImageViewerApp::ImageViewerApp(const WindowContext::Config& window_config)
 }
 
 void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
-  enum ProcessingStage {
+  enum ComputeStage {
     kComputingStage,
-    kNumProcessingStages,
+    kNumComputeStages,
   };
 
-  auto original_image_usage = image::UsageInfo{"Original"}
-      .SetInitialUsage(image::Usage::GetSampledInFragmentShaderUsage())
-      .AddUsage(kComputingStage,
-                image::Usage::GetLinearAccessInComputeShaderUsage(
-                    image::Usage::AccessType::kReadOnly));
+  ImageUsageHistory original_image_usage_history{"Original"};
+  original_image_usage_history.AddUsage(
+      kComputingStage,
+      image::Usage::GetLinearAccessInComputeShaderUsage(
+          image::Usage::AccessType::kReadOnly));
   const common::Image image_from_file{file_path};
-  const TextureImage original_image(
+  TextureImage original_image(
       context(), /*generate_mipmaps=*/false, image_from_file,
-      original_image_usage.GetAllUsages(), ImageSampler::Config{});
+      original_image_usage_history.GetAllUsages(), ImageSampler::Config{});
 
-  auto processed_image_usage = image::UsageInfo{"Processed"}
+  ImageUsageHistory processed_image_usage_history{"Processed"};
+  processed_image_usage_history
       .AddUsage(kComputingStage,
                 image::Usage::GetLinearAccessInComputeShaderUsage(
                     image::Usage::AccessType::kWriteOnly))
       .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
   image_ = absl::make_unique<OffscreenImage>(
       context(), original_image.extent(), image_from_file.channel,
-      processed_image_usage.GetAllUsages(), ImageSampler::Config{});
+      processed_image_usage_history.GetAllUsages(), ImageSampler::Config{});
 
-  const image::LayoutManager layout_manager{
-      kNumProcessingStages, /*usage_info_map=*/{
-          {&original_image.image(), std::move(original_image_usage)},
-          {&image_->image(), std::move(processed_image_usage)},
-      }};
+  ComputePass compute_pass{kNumComputeStages};
+  compute_pass
+      .AddImage(&original_image, std::move(original_image_usage_history))
+      .AddImage(image_.get(), std::move(processed_image_usage_history));
 
   StaticDescriptor descriptor{
       context(), /*infos=*/{
@@ -131,9 +132,9 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
       }
   };
   const auto original_image_descriptor_info = original_image.GetDescriptorInfo(
-      layout_manager.GetLayoutAtStage(*original_image, kComputingStage));
+      compute_pass.GetImageLayoutAtStage(original_image, kComputingStage));
   const auto output_image_descriptor_info = image_->GetDescriptorInfo(
-      layout_manager.GetLayoutAtStage(image_->image(), kComputingStage));
+      compute_pass.GetImageLayoutAtStage(*image_, kComputingStage));
   descriptor.UpdateImageInfos(
       Image::GetDescriptorTypeForLinearAccess(),
       /*image_info_map=*/
@@ -149,22 +150,20 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
 
   const OneTimeCommand command{context(), &context()->queues().compute_queue()};
   command.Run([&](const VkCommandBuffer& command_buffer) {
-    layout_manager.InsertMemoryBarrierBeforeStage(
+    const ComputePass::ComputeOp compute_op = [&]() {
+      pipeline->Bind(command_buffer);
+      descriptor.Bind(command_buffer, pipeline->layout(),
+                      pipeline->binding_point());
+      const auto group_count_x = util::GetWorkGroupCount(image_from_file.width,
+                                                         kWorkGroupSizeX);
+      const auto group_count_y = util::GetWorkGroupCount(image_from_file.height,
+                                                         kWorkGroupSizeY);
+      vkCmdDispatch(command_buffer, group_count_x, group_count_y,
+                    /*groupCountZ=*/1);
+    };
+    compute_pass.Run(
         command_buffer, context()->queues().compute_queue().family_index,
-        kComputingStage);
-
-    pipeline->Bind(command_buffer);
-    descriptor.Bind(command_buffer, pipeline->layout(),
-                    pipeline->binding_point());
-    const auto group_count_x = util::GetWorkGroupCount(image_from_file.width,
-                                                       kWorkGroupSizeX);
-    const auto group_count_y = util::GetWorkGroupCount(image_from_file.height,
-                                                       kWorkGroupSizeY);
-    vkCmdDispatch(command_buffer, group_count_x, group_count_y,
-                  /*groupCountZ=*/1);
-
-    layout_manager.InsertMemoryBarrierAfterFinalStage(
-        command_buffer, context()->queues().compute_queue().family_index);
+        absl::MakeSpan(&compute_op, 1));
   });
 
   image_viewer_ = absl::make_unique<ImageViewer>(

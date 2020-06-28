@@ -28,11 +28,6 @@ enum ImageBindingPoint {
   kOutputImageBindingPoint,
 };
 
-enum ProcessingStage {
-  kGenerateDistanceFieldStage,
-  kNumProcessingStages,
-};
-
 /* BEGIN: Consistent with work group size defined in shaders. */
 
 constexpr uint32_t kWorkGroupSizeX = 16;
@@ -81,18 +76,12 @@ DistanceFieldGenerator::DistanceFieldGenerator(
       step_width_constant_->MakePerFrameRange(VK_SHADER_STAGE_COMPUTE_BIT);
 
   /* Image */
-  auto pong_image_usage = image::UsageInfo{"Pong"}
-      .AddUsage(kGenerateDistanceFieldStage,
-                image::Usage::GetLinearAccessInComputeShaderUsage(
-                    image::Usage::AccessType::kReadWrite)
-                    .set_use_high_precision());
+  auto image_usage = image::Usage::GetLinearAccessInComputeShaderUsage(
+      image::Usage::AccessType::kReadWrite);
+  image_usage.set_use_high_precision();
   pong_image_ = absl::make_unique<OffscreenImage>(
       context, image_extent, output_image.format(),
-      pong_image_usage.GetAllUsages(), ImageSampler::Config{});
-  const image::LayoutManager layout_manager{
-      kNumProcessingStages, /*usage_info_map=*/{
-          {&pong_image_->image(), std::move(pong_image_usage)},
-      }};
+      absl::MakeSpan(&image_usage, 1), ImageSampler::Config{});
 
   /* Descriptor */
   descriptor_ = absl::make_unique<DynamicDescriptor>(
@@ -107,8 +96,7 @@ DistanceFieldGenerator::DistanceFieldGenerator(
           },
       });
 
-  const auto image_layout = layout_manager.GetLayoutAtStage(
-      pong_image_->image(), kGenerateDistanceFieldStage);
+  const VkImageLayout image_layout = image_usage.GetImageLayout();
   const auto input_image_descriptor_info =
       input_image.GetDescriptorInfo(image_layout);
   const auto ping_image_descriptor_info =
