@@ -8,11 +8,9 @@
 #include "lighter/renderer/vulkan/wrapper/image_util.h"
 
 #include <algorithm>
-#include <queue>
 
+#include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include "third_party/absl/memory/memory.h"
-#include "third_party/absl/strings/str_format.h"
 
 namespace lighter {
 namespace renderer {
@@ -21,21 +19,6 @@ namespace {
 
 using UsageType = image::Usage::UsageType;
 using AccessType = image::Usage::AccessType;
-using AccessLocation = image::Usage::AccessLocation;
-
-// A comparator used to build a priority queue of ImageAtStage objects, ordered
-// by the stage in ascending order.
-struct ImageAtStageComparator {
-  bool operator()(const image::UsageAtStage& lhs,
-                  const image::UsageAtStage& rhs) {
-    return lhs.stage > rhs.stage;
-  }
-};
-
-// Min heap of ImageAtStage objects ordered by the stage.
-using ImageUsageAtStageQueue = std::priority_queue<
-    image::UsageAtStage, std::vector<image::UsageAtStage>,
-    ImageAtStageComparator>;
 
 // Converts 'access_type' to VkAccessFlags, depending on whether it contains
 // read and/or write.
@@ -205,15 +188,6 @@ VkImageUsageFlagBits Usage::GetImageUsageFlagBits() const {
   }
 }
 
-std::vector<Usage> UsageInfo::GetAllUsages() const {
-  std::vector<Usage> usages{initial_usage, final_usage};
-  usages.reserve(usages.size() + usage_at_stages.size());
-  for (const auto& usage_at_stage : usage_at_stages) {
-    usages.push_back(usage_at_stage.usage);
-  }
-  return usages;
-}
-
 bool IsLinearAccessed(absl::Span<const Usage> usages) {
   return std::any_of(usages.begin(), usages.end(), [](const Usage& usage) {
     return usage.usage_type == UsageType::kLinearAccess;
@@ -234,173 +208,6 @@ VkImageUsageFlags GetImageUsageFlags(absl::Span<const Usage> usages) {
     }
   }
   return static_cast<VkImageUsageFlags>(flags);
-}
-
-LayoutManager::UsageHistory::UsageHistory(
-    int num_stages, const image::UsageInfo& usage_info)
-    : num_stages_{num_stages}, image_name_{usage_info.image_name} {
-  // Validate usages.
-  for (const auto& usage : usage_info.usage_at_stages) {
-    usage.usage.Validate();
-    ValidateStage(usage.stage);
-  }
-
-  // Put usages in a min heap, ordered by the stage. The initial usage is put at
-  // stage -1 temporarily. We will shift all stages by 1 later.
-  // If the user does not specify a final usage, we won't need to transition the
-  // image layout, so we don't need to push it into the heap.
-  ImageUsageAtStageQueue usage_queue{usage_info.usage_at_stages.begin(),
-                                     usage_info.usage_at_stages.end()};
-  usage_queue.push({usage_info.initial_usage, /*stage=*/-1});
-  // TODO: We may need to insert memory barriers even if usages keep unchanged.
-  if (usage_info.final_usage.usage_type != UsageType::kDontCare) {
-    usage_queue.push({usage_info.final_usage, /*stage=*/num_stages_});
-  }
-
-  // Pop usages out of the heap and populate 'usage_change_points_'. If the next
-  // usage is the same to the previous one, we won't need to transition the
-  // image layout, so we don't need to store it anymore. Note that we don't
-  // allow the user to specify different usages for one stage.
-  while (!usage_queue.empty()) {
-    const auto next_usage = usage_queue.top();
-    usage_queue.pop();
-    if (!usage_change_points_.empty()) {
-      const auto& last_change_point = usage_change_points_.back();
-      if (next_usage.usage == last_change_point.usage) {
-        continue;
-      }
-      if (next_usage.stage == last_change_point.stage) {
-        ASSERT_TRUE(next_usage.usage == last_change_point.usage,
-                    absl::StrFormat("Conflicted image usages specified for %s "
-                                    "at stage %d",
-                                    image_name_, next_usage.stage));
-        continue;
-      }
-    }
-    usage_change_points_.push_back(next_usage);
-  }
-
-  // Shift stages by 1, so that all stages are non-negative, and the usage at
-  // index 0 represents the initial usage.
-  for (auto& change_point : usage_change_points_) {
-    ++change_point.stage;
-  }
-  ASSERT_TRUE(usage_change_points_[0].usage == usage_info.initial_usage &&
-                  usage_change_points_[0].stage == 0,
-              "The first change point must be the initial usage");
-
-  // Populate 'usage_at_stages_'. Each element should be an iterator referencing
-  // to the usage change point that defines the usage at the current stage.
-  usage_at_stages_.resize(num_stages_ + 2, usage_change_points_.end());
-  for (auto iter = usage_change_points_.begin();
-       iter != usage_change_points_.end(); ++iter) {
-    usage_at_stages_[iter->stage] = iter;
-  }
-  auto change_point_iter = usage_change_points_.end();
-  for (auto& usage : usage_at_stages_) {
-    if (usage == usage_change_points_.end()) {
-      usage = change_point_iter;
-    } else {
-      change_point_iter = usage;
-    }
-  }
-}
-
-void LayoutManager::UsageHistory::ValidateStage(int stage) const {
-  ASSERT_TRUE(
-      stage >= 0 && stage < num_stages_,
-      absl::StrFormat("Stage must be in range [0, %d], while %d provided",
-                      num_stages_ - 1, stage));
-}
-
-LayoutManager::LayoutManager(int num_stages, const UsageInfoMap& usage_info_map)
-    : num_stages_{num_stages} {
-  for (const auto& pair : usage_info_map) {
-    image_usage_history_map_[pair.first] =
-        absl::make_unique<UsageHistory>(num_stages_, pair.second);
-  }
-}
-
-VkImageLayout LayoutManager::GetLayoutAtStage(const VkImage& image,
-                                              int stage) const {
-  const auto iter = image_usage_history_map_.find(&image);
-  ASSERT_FALSE(iter == image_usage_history_map_.end(),
-               "This manager does not have info about the image");
-  return iter->second->GetUsageAtCurrentStage(stage).GetImageLayout();
-}
-
-void LayoutManager::InsertMemoryBarrierBeforeStage(
-    const VkCommandBuffer& command_buffer,
-    uint32_t queue_family_index, int stage) const {
-  for (const auto& pair : image_usage_history_map_) {
-    const auto& usage_history = pair.second;
-    if (!usage_history->IsUsageChanged(stage)) {
-      continue;
-    }
-    InsertMemoryBarrier(command_buffer, queue_family_index, *pair.first,
-                        usage_history->GetUsageAtPreviousStage(stage),
-                        usage_history->GetUsageAtCurrentStage(stage));
-#ifndef NDEBUG
-    LOG_INFO << absl::StreamFormat("Inserted memory barrier for image '%s' "
-                                   "before stage %d",
-                                   pair.second->image_name(), stage);
-#endif /* !NDEBUG */
-  }
-}
-
-void LayoutManager::InsertMemoryBarrierAfterFinalStage(
-    const VkCommandBuffer& command_buffer, uint32_t queue_family_index) const {
-  const int last_stage = num_stages_ - 1;
-  for (const auto& pair : image_usage_history_map_) {
-    const auto& usage_history = pair.second;
-    if (!usage_history->IsUsageChangedAfterFinalStage()) {
-      continue;
-    }
-    InsertMemoryBarrier(command_buffer, queue_family_index, *pair.first,
-                        usage_history->GetUsageAtCurrentStage(last_stage),
-                        usage_history->GetUsageAtNextStage(last_stage));
-#ifndef NDEBUG
-    LOG_INFO << absl::StreamFormat("Inserted memory barrier for image '%s' "
-                                   "after final stage",
-                                   pair.second->image_name());
-#endif /* !NDEBUG */
-  }
-}
-
-void LayoutManager::InsertMemoryBarrier(
-    const VkCommandBuffer& command_buffer, uint32_t queue_family_index,
-    const VkImage& image, image::Usage prev_usage,
-    image::Usage curr_usage) const {
-  const VkImageMemoryBarrier barrier{
-      VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-      /*pNext=*/nullptr,
-      /*srcAccessMask=*/prev_usage.GetAccessFlags(),
-      /*dstAccessMask=*/curr_usage.GetAccessFlags(),
-      /*oldLayout=*/prev_usage.GetImageLayout(),
-      /*newLayout=*/curr_usage.GetImageLayout(),
-      /*srcQueueFamilyIndex=*/queue_family_index,
-      /*dstQueueFamilyIndex=*/queue_family_index,
-      image,
-      VkImageSubresourceRange{
-          VK_IMAGE_ASPECT_COLOR_BIT,
-          /*baseMipLevel=*/0,
-          /*levelCount=*/1,
-          /*baseArrayLayer=*/0,
-          /*layerCount=*/1,
-      },
-  };
-
-  vkCmdPipelineBarrier(
-      command_buffer,
-      /*srcStageMask=*/prev_usage.GetPipelineStageFlags(),
-      /*dstStageMask=*/curr_usage.GetPipelineStageFlags(),
-      /*dependencyFlags=*/0,
-      /*memoryBarrierCount=*/0,
-      /*pMemoryBarriers=*/nullptr,
-      /*bufferMemoryBarrierCount=*/0,
-      /*pBufferMemoryBarriers=*/nullptr,
-      /*imageMemoryBarrierCount=*/1,
-      &barrier);
 }
 
 } /* namespace image */

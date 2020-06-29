@@ -14,6 +14,7 @@
 #include "lighter/application/vulkan/aurora/viewer/distance_field.h"
 #include "lighter/application/vulkan/aurora/viewer/path_renderer.h"
 #include "lighter/common/camera.h"
+#include "lighter/renderer//vulkan/extension/compute_pass.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
@@ -59,8 +60,8 @@ class PathDumper {
   std::unique_ptr<renderer::vulkan::OffscreenImage> paths_image_;
   std::unique_ptr<renderer::vulkan::OffscreenImage> distance_field_image_;
 
-  // Manages layouts of images.
-  std::unique_ptr<renderer::vulkan::image::LayoutManager> image_layout_manager_;
+  // Manages transitions for image layouts.
+  std::unique_ptr<renderer::vulkan::ComputePass> compute_pass_;
 
   // Dumps and bolds aurora paths.
   std::unique_ptr<PathRenderer2D> path_renderer_;

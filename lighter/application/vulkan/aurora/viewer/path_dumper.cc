@@ -8,6 +8,7 @@
 #include "lighter/application/vulkan/aurora/viewer/path_dumper.h"
 
 #include <algorithm>
+#include <array>
 
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
@@ -31,11 +32,11 @@ using namespace renderer::vulkan;
 //                              [output] distance_field_image
 // Note that 'paths_image_' has one channel, while 'distance_field_image_' has
 // four channels.
-enum ProcessingStage {
+enum ComputeStage {
   kRenderPathsStage,
   kBoldPathsStage,
   kGenerateDistanceFieldStage,
-  kNumProcessingStages,
+  kNumComputeStages,
 };
 
 } /* namespace */
@@ -59,7 +60,8 @@ PathDumper::PathDumper(
       image::Usage::GetLinearAccessInComputeShaderUsage(
           image::Usage::AccessType::kReadOnly);
 
-  auto paths_image_usage = image::UsageInfo{"Aurora paths"}
+  ImageUsageHistory paths_image_usage_history{"Aurora paths"};
+  paths_image_usage_history
       .AddUsage(kBoldPathsStage,
                 image::Usage::GetLinearAccessInComputeShaderUsage(
                     image::Usage::AccessType::kWriteOnly))
@@ -67,10 +69,10 @@ PathDumper::PathDumper(
       .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
   paths_image_ = absl::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::kBwImageChannel,
-      paths_image_usage.GetAllUsages(), sampler_config);
+      paths_image_usage_history.GetAllUsages(), sampler_config);
 
-  auto distance_field_image_usage = image::UsageInfo{"Distance field"}
-      .SetInitialUsage(image::Usage::GetSampledInFragmentShaderUsage())
+  ImageUsageHistory distance_field_image_usage_history{"Distance field"};
+  distance_field_image_usage_history
       .AddUsage(kBoldPathsStage, linear_read_only_usage)
       .AddUsage(kGenerateDistanceFieldStage,
                 image::Usage::GetLinearAccessInComputeShaderUsage(
@@ -79,14 +81,13 @@ PathDumper::PathDumper(
       .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
   distance_field_image_ = absl::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::kRgbaImageChannel,
-      distance_field_image_usage.GetAllUsages(), sampler_config);
+      distance_field_image_usage_history.GetAllUsages(), sampler_config);
 
-  image_layout_manager_ = absl::make_unique<image::LayoutManager>(
-      kNumProcessingStages, image::LayoutManager::UsageInfoMap{
-          {&paths_image_->image(), std::move(paths_image_usage)},
-          {&distance_field_image_->image(),
-           std::move(distance_field_image_usage)},
-      });
+  compute_pass_ = absl::make_unique<ComputePass>(kNumComputeStages);
+  (*compute_pass_)
+      .AddImage(paths_image_.get(), std::move(paths_image_usage_history))
+      .AddImage(distance_field_image_.get(),
+                std::move(distance_field_image_usage_history));
 
   /* Graphics and compute pipelines */
   path_renderer_ = absl::make_unique<PathRenderer2D>(
@@ -107,25 +108,20 @@ void PathDumper::DumpAuroraPaths(const common::Camera& camera) {
   // TODO: Compute queue and graphics queue might be different queues.
   const OneTimeCommand command{context_, &context_->queues().graphics_queue()};
   command.Run([this, &camera](const VkCommandBuffer& command_buffer) {
-    // Render and bold paths.
-    image_layout_manager_->InsertMemoryBarrierBeforeStage(
-        command_buffer, context_->queues().graphics_queue().family_index,
-        kRenderPathsStage);
-    path_renderer_->RenderPaths(command_buffer, camera);
-
-    image_layout_manager_->InsertMemoryBarrierBeforeStage(
-        command_buffer, context_->queues().graphics_queue().family_index,
-        kBoldPathsStage);
-    path_renderer_->BoldPaths(command_buffer);
-
-    // Generate distance field.
-    image_layout_manager_->InsertMemoryBarrierBeforeStage(
+    const std::array<ComputePass::ComputeOp, kNumComputeStages> compute_ops{
+        [this, &command_buffer, &camera]() {
+          path_renderer_->RenderPaths(command_buffer, camera);
+        },
+        [this, &command_buffer]() {
+          path_renderer_->BoldPaths(command_buffer);
+        },
+        [this, &command_buffer]() {
+          distance_field_generator_->Generate(command_buffer);
+        },
+    };
+    compute_pass_->Run(
         command_buffer, context_->queues().compute_queue().family_index,
-        kGenerateDistanceFieldStage);
-    distance_field_generator_->Generate(command_buffer);
-
-    image_layout_manager_->InsertMemoryBarrierAfterFinalStage(
-        command_buffer, context_->queues().graphics_queue().family_index);
+        compute_ops);
   });
 
 #ifndef NDEBUG

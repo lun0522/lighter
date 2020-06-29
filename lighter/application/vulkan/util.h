@@ -16,6 +16,8 @@
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/extension/align.h"
+#include "lighter/renderer/vulkan/extension/compute_pass.h"
+#include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/model.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"

@@ -18,7 +18,7 @@ namespace {
 
 using namespace renderer::vulkan;
 
-enum ProcessingStage {
+enum ComputeStage {
   kGeometryStage,
   kLightingStage,
 };
@@ -142,18 +142,18 @@ void TroopApp::Recreate() {
 
   const ImageSampler::Config sampler_config{VK_FILTER_NEAREST};
   for (auto& info : image_infos) {
-    image::UsageInfo usage_info{std::move(info.name)};
+    ImageUsageHistory usage_history{std::move(info.name)};
     auto geometry_stage_usage = image::Usage::GetRenderTargetUsage();
     if (info.high_precision) {
       geometry_stage_usage.set_use_high_precision();
     }
-    usage_info
+    usage_history
         .AddUsage(kGeometryStage, geometry_stage_usage)
         .AddUsage(kLightingStage,
                   image::Usage::GetSampledInFragmentShaderUsage());
     *info.image = absl::make_unique<OffscreenImage>(
         context(), frame_size, common::kRgbaImageChannel,
-        usage_info.GetAllUsages(), sampler_config);
+        usage_history.GetAllUsages(), sampler_config);
   }
 
   /* Render pass */

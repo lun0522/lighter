@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "lighter/application/vulkan/util.h"
-#include "lighter/renderer/vulkan/extension/compute_pass.h"
 
 namespace lighter {
 namespace application {
