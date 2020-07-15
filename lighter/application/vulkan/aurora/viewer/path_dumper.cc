@@ -33,7 +33,6 @@ using namespace renderer::vulkan;
 // Note that 'paths_image_' has one channel, while 'distance_field_image_' has
 // four channels.
 enum ComputeStage {
-  kRenderPathsStage,
   kBoldPathsStage,
   kGenerateDistanceFieldStage,
   kNumComputeStages,
@@ -60,7 +59,7 @@ PathDumper::PathDumper(
       image::Usage::GetLinearAccessInComputeShaderUsage(
           image::Usage::AccessType::kReadOnly);
 
-  ImageUsageHistory paths_image_usage_history{"Aurora paths"};
+  ImageComputeUsageHistory paths_image_usage_history{"Aurora paths"};
   paths_image_usage_history
       .AddUsage(kBoldPathsStage,
                 image::Usage::GetLinearAccessInComputeShaderUsage(
@@ -71,7 +70,7 @@ PathDumper::PathDumper(
       context_, paths_image_extent, common::kBwImageChannel,
       paths_image_usage_history.GetAllUsages(), sampler_config);
 
-  ImageUsageHistory distance_field_image_usage_history{"Distance field"};
+  ImageComputeUsageHistory distance_field_image_usage_history{"Distance field"};
   distance_field_image_usage_history
       .AddUsage(kBoldPathsStage, linear_read_only_usage)
       .AddUsage(kGenerateDistanceFieldStage,
@@ -79,9 +78,17 @@ PathDumper::PathDumper(
                     image::Usage::AccessType::kReadWrite)
                     .set_use_high_precision())
       .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
+
+  // TODO
+  const auto sampled_usage = image::Usage::GetSampledInFragmentShaderUsage();
+  auto distance_field_image_usages =
+      distance_field_image_usage_history.GetAllUsages();
+  distance_field_image_usages.push_back(sampled_usage);
+
   distance_field_image_ = absl::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::kRgbaImageChannel,
-      distance_field_image_usage_history.GetAllUsages(), sampler_config);
+      distance_field_image_usages, sampler_config);
+  distance_field_image_->set_usage(sampled_usage);
 
   compute_pass_ = absl::make_unique<ComputePass>(kNumComputeStages);
   (*compute_pass_)
@@ -109,9 +116,6 @@ void PathDumper::DumpAuroraPaths(const common::Camera& camera) {
   const OneTimeCommand command{context_, &context_->queues().graphics_queue()};
   command.Run([this, &camera](const VkCommandBuffer& command_buffer) {
     const std::array<ComputePass::ComputeOp, kNumComputeStages> compute_ops{
-        [this, &command_buffer, &camera]() {
-          path_renderer_->RenderPaths(command_buffer, camera);
-        },
         [this, &command_buffer]() {
           path_renderer_->BoldPaths(command_buffer);
         },
@@ -119,6 +123,7 @@ void PathDumper::DumpAuroraPaths(const common::Camera& camera) {
           distance_field_generator_->Generate(command_buffer);
         },
     };
+    path_renderer_->RenderPaths(command_buffer, camera);
     compute_pass_->Run(
         command_buffer, context_->queues().compute_queue().family_index,
         compute_ops);

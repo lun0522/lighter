@@ -93,7 +93,7 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
     kNumComputeStages,
   };
 
-  ImageUsageHistory original_image_usage_history{"Original"};
+  ImageComputeUsageHistory original_image_usage_history{"Original"};
   original_image_usage_history.AddUsage(
       kComputingStage,
       image::Usage::GetLinearAccessInComputeShaderUsage(
@@ -103,7 +103,7 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
       context(), /*generate_mipmaps=*/false, image_from_file,
       original_image_usage_history.GetAllUsages(), ImageSampler::Config{});
 
-  ImageUsageHistory processed_image_usage_history{"Processed"};
+  ImageComputeUsageHistory processed_image_usage_history{"Processed"};
   processed_image_usage_history
       .AddUsage(kComputingStage,
                 image::Usage::GetLinearAccessInComputeShaderUsage(

@@ -16,7 +16,7 @@ namespace lighter {
 namespace renderer {
 namespace vulkan {
 
-ImageUsageHistory& ImageUsageHistory::AddUsage(
+ImageComputeUsageHistory& ImageComputeUsageHistory::AddUsage(
     int stage, const image::Usage& usage) {
   ASSERT_TRUE(
       usage_at_stage_map_.find(stage) == usage_at_stage_map_.end(),
@@ -26,7 +26,8 @@ ImageUsageHistory& ImageUsageHistory::AddUsage(
   return *this;
 }
 
-ImageUsageHistory& ImageUsageHistory::SetFinalUsage(const image::Usage& usage) {
+ImageComputeUsageHistory& ImageComputeUsageHistory::SetFinalUsage(
+    const image::Usage& usage) {
   ASSERT_NO_VALUE(final_usage_,
                   absl::StrFormat("Already specified final usage for image %s",
                                   image_name_));
@@ -34,7 +35,7 @@ ImageUsageHistory& ImageUsageHistory::SetFinalUsage(const image::Usage& usage) {
   return *this;
 }
 
-std::vector<image::Usage> ImageUsageHistory::GetAllUsages() const {
+std::vector<image::Usage> ImageComputeUsageHistory::GetAllUsages() const {
   const int num_usages = static_cast<int>(usage_at_stage_map_.size()) +
                          (final_usage_.has_value() ? 1 : 0);
   std::vector<image::Usage> usages;
@@ -48,7 +49,7 @@ std::vector<image::Usage> ImageUsageHistory::GetAllUsages() const {
   return usages;
 }
 
-void ImageUsageHistory::ValidateStages(int upper_bound) const {
+void ImageComputeUsageHistory::ValidateStages(int upper_bound) const {
   for (const auto& pair : usage_at_stage_map_) {
     const int stage = pair.first;
     ASSERT_TRUE(
@@ -58,7 +59,7 @@ void ImageUsageHistory::ValidateStages(int upper_bound) const {
   }
 }
 
-const image::Usage& ImageUsageHistory::GetUsage(int stage) const {
+const image::Usage& ImageComputeUsageHistory::GetUsage(int stage) const {
   const auto iter = usage_at_stage_map_.find(stage);
   ASSERT_FALSE(iter == usage_at_stage_map_.end(),
                absl::StrFormat("Usage not specified for image %s",
@@ -66,7 +67,8 @@ const image::Usage& ImageUsageHistory::GetUsage(int stage) const {
   return iter->second;
 }
 
-ComputePass& ComputePass::AddImage(Image* image, ImageUsageHistory&& history) {
+ComputePass& ComputePass::AddImage(Image* image,
+                                   ImageComputeUsageHistory&& history) {
   ASSERT_NON_NULL(image, "'image' cannot be nullptr");
   history.ValidateStages(num_stages_);
   history.AddUsage(/*stage=*/-1, image->image_usage());
@@ -90,7 +92,7 @@ void ComputePass::Run(const VkCommandBuffer& command_buffer,
                               compute_ops.size(), num_stages_));
 
   // Run all stages and insert memory barriers. Note that even if the image
-  // usage does not change, we still need to insert a memory barrier.
+  // usage does not change, we still need to insert a memory barrier if not RAR.
   for (int stage = 0; stage < num_stages_; ++stage) {
     for (const auto& pair : image_usage_history_map_) {
       const auto& usage_at_stage_map = pair.second.usage_at_stage_map_;
@@ -101,6 +103,11 @@ void ComputePass::Run(const VkCommandBuffer& command_buffer,
 
       const image::Usage& next_usage = iter->second;
       const image::Usage& prev_usage = std::prev(iter)->second;
+      if (next_usage == prev_usage &&
+          next_usage.access_type == image::Usage::AccessType::kReadOnly) {
+        continue;
+      }
+
       InsertMemoryBarrier(command_buffer, queue_family_index, **pair.first,
                           prev_usage, next_usage);
 #ifndef NDEBUG
@@ -117,7 +124,7 @@ void ComputePass::Run(const VkCommandBuffer& command_buffer,
   // previous usage, there is no need to insert a memory barrier.
   for (auto& pair : image_usage_history_map_) {
     Image& image = *pair.first;
-    const ImageUsageHistory& history = pair.second;
+    const ImageComputeUsageHistory& history = pair.second;
     const image::Usage& prev_usage =
         history.usage_at_stage_map_.rbegin()->second;
     if (!history.final_usage_.has_value()) {

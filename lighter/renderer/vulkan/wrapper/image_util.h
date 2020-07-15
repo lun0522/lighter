@@ -22,8 +22,10 @@ struct Usage {
   enum class UsageType {
     // Don't care about the content stored in the image.
     kDontCare,
-    // Color attachment that we can render to.
+    // Color attachment.
     kRenderTarget,
+    // Depth stencil attachment.
+    kDepthStencil,
     // Present to screen.
     kPresentation,
     // Linearly accessed.

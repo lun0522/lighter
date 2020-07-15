@@ -64,7 +64,13 @@ cc_library(
     name = "graphics_pass",
     hdrs = ["graphics_pass.h"],
     srcs = ["graphics_pass.cc"],
-    deps = [],
+    deps = [
+        "//lighter/common:util",
+        "//lighter/renderer/vulkan/wrapper:image",
+        "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:optional",
+    ],
 )
 
 cc_library(

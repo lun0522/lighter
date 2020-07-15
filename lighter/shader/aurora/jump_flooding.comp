@@ -34,7 +34,7 @@ void main() {
     for (int x = -1; x <= 1; ++x) {
       const vec2 stored_coord =
           imageLoad(original_image, coord + ivec2(x, y) * step_width.value).xy;
-      if (stored_coord.x != 0.0 || stored_coord.y != 0.0) {
+      if (any(notEqual(stored_coord, vec2(0.0)))) {
         const float distance = length(image_size * stored_coord - coord);
         if (distance < best_dist) {
           best_dist = distance;

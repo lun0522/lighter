@@ -14,7 +14,7 @@ void main() {
   }
 
   const vec2 stored_coord = imageLoad(original_image, coord).xy;
-  if (stored_coord.x != 0.0 || stored_coord.y != 0.0) {
+  if (any(notEqual(stored_coord, vec2(0.0)))) {
     const float distance =
         length(stored_coord - vec2(coord) / vec2(image_size));
     imageStore(output_image, coord, vec4(distance));

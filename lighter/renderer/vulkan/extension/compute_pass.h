@@ -28,24 +28,25 @@ namespace vulkan {
 class ComputePass;
 
 // This class holds usages of an image in different stages of a compute pass.
-class ImageUsageHistory {
+class ImageComputeUsageHistory {
  public:
-  explicit ImageUsageHistory(std::string&& image_name)
+  explicit ImageComputeUsageHistory(std::string&& image_name)
       : image_name_{std::move(image_name)} {}
 
   // This class is only movable.
-  ImageUsageHistory(ImageUsageHistory&&) noexcept = default;
-  ImageUsageHistory& operator=(ImageUsageHistory&&) noexcept = default;
+  ImageComputeUsageHistory(ImageComputeUsageHistory&&) noexcept = default;
+  ImageComputeUsageHistory& operator=(ImageComputeUsageHistory&&) noexcept
+      = default;
 
   // Specifies the usage at 'stage'. Note that this can be called only once for
   // each stage, since we assume an image can have only one usage at each stage.
-  ImageUsageHistory& AddUsage(int stage, const image::Usage& usage);
+  ImageComputeUsageHistory& AddUsage(int stage, const image::Usage& usage);
 
   // Specifies the usage after this compute pass. This is optional. It should be
   // called only if the user wants to transition the image layout to prepare for
   // later operations. Also note that this can be called only once, since an
   // image can only have one final usage.
-  ImageUsageHistory& SetFinalUsage(const image::Usage& usage);
+  ImageComputeUsageHistory& SetFinalUsage(const image::Usage& usage);
 
   // Returns all usages at all stages, including the final usage if specified.
   // Note that this may contain duplicates.
@@ -88,7 +89,7 @@ class ComputePass {
 
   // Adds an image that is used in this compute pass, along with its usage
   // history. The current usage of 'image' will be used as the initial usage.
-  ComputePass& AddImage(Image* image, ImageUsageHistory&& history);
+  ComputePass& AddImage(Image* image, ImageComputeUsageHistory&& history);
 
   // Returns the layout of 'image' at 'stage'. The usage at this stage must have
   // been specified in the usage history.
@@ -115,7 +116,8 @@ class ComputePass {
   const int num_stages_;
 
   // Maps each image to its usage history.
-  absl::flat_hash_map<Image*, ImageUsageHistory> image_usage_history_map_;
+  absl::flat_hash_map<Image*, ImageComputeUsageHistory>
+      image_usage_history_map_;
 };
 
 } /* namespace vulkan */

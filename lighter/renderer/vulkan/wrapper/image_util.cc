@@ -68,10 +68,17 @@ VkAccessFlags Usage::GetAccessFlags() const {
       return kNullAccessFlag;
 
     case UsageType::kRenderTarget:
-      return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+      return GetReadWriteFlags(access_type,
+                               VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
+                               VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+
+    case UsageType::kDepthStencil:
+      return GetReadWriteFlags(access_type,
+                               VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+                               VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
     case UsageType::kPresentation:
-      FATAL("Should be handled by render pass");
+      FATAL("No corresponding access flags for UsageType::kPresentation");
 
     case UsageType::kLinearAccess:
     case UsageType::kSample:
@@ -96,10 +103,12 @@ VkPipelineStageFlags Usage::GetPipelineStageFlags() const {
       return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
     case UsageType::kRenderTarget:
+    case UsageType::kDepthStencil:
       return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
     case UsageType::kPresentation:
-      FATAL("Should be handled by render pass");
+      FATAL("No corresponding pipeline stage flags for "
+            "UsageType::kPresentation");
 
     case UsageType::kLinearAccess:
     case UsageType::kSample:
@@ -130,6 +139,9 @@ VkImageLayout Usage::GetImageLayout() const {
     case UsageType::kRenderTarget:
       return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+    case UsageType::kDepthStencil:
+      return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
     case UsageType::kPresentation:
       return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
@@ -159,11 +171,14 @@ VkImageLayout Usage::GetImageLayout() const {
 VkImageUsageFlagBits Usage::GetImageUsageFlagBits() const {
   switch (usage_type) {
     case UsageType::kDontCare:
-      FATAL("No usage flag bits if don't care about usage");
+      FATAL("No corresponding image usage flag bits for UsageType::kDontCare");
 
     case UsageType::kRenderTarget:
     case UsageType::kPresentation:
       return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    case UsageType::kDepthStencil:
+      return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
     case UsageType::kLinearAccess:
       return VK_IMAGE_USAGE_STORAGE_BIT;
