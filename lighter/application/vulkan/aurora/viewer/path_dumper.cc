@@ -59,7 +59,7 @@ PathDumper::PathDumper(
       image::Usage::GetLinearAccessInComputeShaderUsage(
           image::Usage::AccessType::kReadOnly);
 
-  ImageComputeUsageHistory paths_image_usage_history{"Aurora paths"};
+  image::UsageHistory paths_image_usage_history{"Aurora paths"};
   paths_image_usage_history
       .AddUsage(kBoldPathsStage,
                 image::Usage::GetLinearAccessInComputeShaderUsage(
@@ -70,7 +70,7 @@ PathDumper::PathDumper(
       context_, paths_image_extent, common::kBwImageChannel,
       paths_image_usage_history.GetAllUsages(), sampler_config);
 
-  ImageComputeUsageHistory distance_field_image_usage_history{"Distance field"};
+  image::UsageHistory distance_field_image_usage_history{"Distance field"};
   distance_field_image_usage_history
       .AddUsage(kBoldPathsStage, linear_read_only_usage)
       .AddUsage(kGenerateDistanceFieldStage,

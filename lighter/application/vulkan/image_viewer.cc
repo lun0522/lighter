@@ -93,7 +93,7 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
     kNumComputeStages,
   };
 
-  ImageComputeUsageHistory original_image_usage_history{"Original"};
+  image::UsageHistory original_image_usage_history{"Original"};
   original_image_usage_history.AddUsage(
       kComputingStage,
       image::Usage::GetLinearAccessInComputeShaderUsage(
@@ -103,7 +103,7 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
       context(), /*generate_mipmaps=*/false, image_from_file,
       original_image_usage_history.GetAllUsages(), ImageSampler::Config{});
 
-  ImageComputeUsageHistory processed_image_usage_history{"Processed"};
+  image::UsageHistory processed_image_usage_history{"Processed"};
   processed_image_usage_history
       .AddUsage(kComputingStage,
                 image::Usage::GetLinearAccessInComputeShaderUsage(
@@ -131,9 +131,9 @@ void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
       }
   };
   const auto original_image_descriptor_info = original_image.GetDescriptorInfo(
-      compute_pass.GetImageLayoutAtStage(original_image, kComputingStage));
+      compute_pass.GetImageLayoutAtSubpass(original_image, kComputingStage));
   const auto output_image_descriptor_info = image_->GetDescriptorInfo(
-      compute_pass.GetImageLayoutAtStage(*image_, kComputingStage));
+      compute_pass.GetImageLayoutAtSubpass(*image_, kComputingStage));
   descriptor.UpdateImageInfos(
       Image::GetDescriptorTypeForLinearAccess(),
       /*image_info_map=*/

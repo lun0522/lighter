@@ -10,94 +10,28 @@
 #include <iterator>
 
 #include "lighter/common/util.h"
+#include "lighter/renderer/vulkan/wrapper/image.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace lighter {
 namespace renderer {
 namespace vulkan {
 
-ImageComputeUsageHistory& ImageComputeUsageHistory::AddUsage(
-    int stage, const image::Usage& usage) {
-  ASSERT_TRUE(
-      usage_at_stage_map_.find(stage) == usage_at_stage_map_.end(),
-      absl::StrFormat("Already specified usage for image %s at stage %d",
-                      image_name_, stage));
-  usage_at_stage_map_.insert({stage, usage});
-  return *this;
-}
-
-ImageComputeUsageHistory& ImageComputeUsageHistory::SetFinalUsage(
-    const image::Usage& usage) {
-  ASSERT_NO_VALUE(final_usage_,
-                  absl::StrFormat("Already specified final usage for image %s",
-                                  image_name_));
-  final_usage_ = usage;
-  return *this;
-}
-
-std::vector<image::Usage> ImageComputeUsageHistory::GetAllUsages() const {
-  const int num_usages = static_cast<int>(usage_at_stage_map_.size()) +
-                         (final_usage_.has_value() ? 1 : 0);
-  std::vector<image::Usage> usages;
-  usages.reserve(num_usages);
-  for (const auto& pair : usage_at_stage_map_) {
-    usages.push_back(pair.second);
-  }
-  if (final_usage_.has_value()) {
-    usages.push_back(final_usage_.value());
-  }
-  return usages;
-}
-
-void ImageComputeUsageHistory::ValidateStages(int upper_bound) const {
-  for (const auto& pair : usage_at_stage_map_) {
-    const int stage = pair.first;
-    ASSERT_TRUE(
-        stage >= 0 && stage < upper_bound,
-        absl::StrFormat("Stage (%d) out of range [0, %d) for image %s",
-                        stage, upper_bound, image_name_));
-  }
-}
-
-const image::Usage& ImageComputeUsageHistory::GetUsage(int stage) const {
-  const auto iter = usage_at_stage_map_.find(stage);
-  ASSERT_FALSE(iter == usage_at_stage_map_.end(),
-               absl::StrFormat("Usage not specified for image %s",
-                               image_name_));
-  return iter->second;
-}
-
-ComputePass& ComputePass::AddImage(Image* image,
-                                   ImageComputeUsageHistory&& history) {
-  ASSERT_NON_NULL(image, "'image' cannot be nullptr");
-  history.ValidateStages(num_stages_);
-  history.AddUsage(/*stage=*/-1, image->image_usage());
-  image_usage_history_map_.emplace(image, std::move(history));
-  return *this;
-}
-
-VkImageLayout ComputePass::GetImageLayoutAtStage(const Image& image,
-                                                 int stage) const {
-  const auto iter = image_usage_history_map_.find(&image);
-  ASSERT_FALSE(iter == image_usage_history_map_.end(), "Unrecognized image");
-  return iter->second.GetUsage(stage).GetImageLayout();
-}
-
 void ComputePass::Run(const VkCommandBuffer& command_buffer,
                       uint32_t queue_family_index,
                       absl::Span<const ComputeOp> compute_ops) const {
-  ASSERT_TRUE(compute_ops.size() == num_stages_,
+  ASSERT_TRUE(compute_ops.size() == num_subpasses_,
               absl::StrFormat("Size of 'compute_ops' (%d) mismatches with the "
-                              "number of stages (%d)",
-                              compute_ops.size(), num_stages_));
+                              "number of subpasses (%d)",
+                              compute_ops.size(), num_subpasses_));
 
-  // Run all stages and insert memory barriers. Note that even if the image
+  // Run all subpasses and insert memory barriers. Note that even if the image
   // usage does not change, we still need to insert a memory barrier if not RAR.
-  for (int stage = 0; stage < num_stages_; ++stage) {
-    for (const auto& pair : image_usage_history_map_) {
-      const auto& usage_at_stage_map = pair.second.usage_at_stage_map_;
-      const auto iter = usage_at_stage_map.find(stage);
-      if (iter == usage_at_stage_map.end()) {
+  for (int subpass = 0; subpass < num_subpasses_; ++subpass) {
+    for (const auto& pair : image_usage_history_map()) {
+      const auto& usage_at_subpass_map = pair.second.usage_at_subpass_map();
+      const auto iter = usage_at_subpass_map.find(subpass);
+      if (iter == usage_at_subpass_map.end()) {
         continue;
       }
 
@@ -112,27 +46,27 @@ void ComputePass::Run(const VkCommandBuffer& command_buffer,
                           prev_usage, next_usage);
 #ifndef NDEBUG
       LOG_INFO << absl::StreamFormat("Inserted memory barrier for image '%s' "
-                                     "before stage %d",
-                                     pair.second.image_name_, stage);
+                                     "before subpass %d",
+                                     pair.second.image_name(), subpass);
 #endif /* !NDEBUG */
     }
-    compute_ops[stage]();
+    compute_ops[subpass]();
   }
 
   // For each image, inform Image class the last known usage, and transition the
   // layout if necessary. Note that if the final usage is the same as the
   // previous usage, there is no need to insert a memory barrier.
-  for (auto& pair : image_usage_history_map_) {
+  for (const auto& pair : image_usage_history_map()) {
     Image& image = *pair.first;
-    const ImageComputeUsageHistory& history = pair.second;
+    const image::UsageHistory& history = pair.second;
     const image::Usage& prev_usage =
-        history.usage_at_stage_map_.rbegin()->second;
-    if (!history.final_usage_.has_value()) {
+        history.usage_at_subpass_map().rbegin()->second;
+    if (!history.final_usage().has_value()) {
       image.set_usage(prev_usage);
       continue;
     }
 
-    const image::Usage& final_usage = history.final_usage_.value();
+    const image::Usage& final_usage = history.final_usage().value();
     image.set_usage(final_usage);
     if (final_usage == prev_usage) {
       continue;
@@ -142,8 +76,8 @@ void ComputePass::Run(const VkCommandBuffer& command_buffer,
                         prev_usage, final_usage);
 #ifndef NDEBUG
     LOG_INFO << absl::StreamFormat("Inserted memory barrier for image '%s' "
-                                   "after final stage",
-                                   pair.second.image_name_);
+                                   "after compute pass",
+                                   pair.second.image_name());
 #endif /* !NDEBUG */
   }
 }

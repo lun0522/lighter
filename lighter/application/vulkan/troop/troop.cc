@@ -142,7 +142,7 @@ void TroopApp::Recreate() {
 
   const ImageSampler::Config sampler_config{VK_FILTER_NEAREST};
   for (auto& info : image_infos) {
-    ImageComputeUsageHistory usage_history{std::move(info.name)};
+    image::UsageHistory usage_history{std::move(info.name)};
     auto geometry_stage_usage = image::Usage::GetRenderTargetUsage();
     if (info.high_precision) {
       geometry_stage_usage.set_use_high_precision();
