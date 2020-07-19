@@ -74,19 +74,39 @@ void UsageHistory::ValidateSubpasses(int upper_bound) const {
 
 } /* namespace image */
 
+constexpr int BasePass::kVirtualInitialSubpassIndex;
+
 BasePass& BasePass::AddImage(Image* image, image::UsageHistory&& history) {
   ASSERT_NON_NULL(image, "'image' cannot be nullptr");
   history.ValidateSubpasses(num_subpasses_);
-  history.AddUsage(/*subpass=*/-1, image->image_usage());
+  history.AddUsage(kVirtualInitialSubpassIndex, image->image_usage());
   image_usage_history_map_.emplace(image, std::move(history));
   return *this;
 }
 
+VkImageLayout BasePass::GetImageLayoutBeforePass(const Image& image) const {
+  const auto& usage_at_subpass_map =
+      GetUsageHistory(image).usage_at_subpass_map();
+  return usage_at_subpass_map.at(kVirtualInitialSubpassIndex).GetImageLayout();
+}
+
+VkImageLayout BasePass::GetImageLayoutAfterPass(const Image& image) const {
+  const image::UsageHistory& history = GetUsageHistory(image);
+  const image::Usage& last_usage =
+      history.final_usage().value_or(
+          history.usage_at_subpass_map().rbegin()->second);
+  return last_usage.GetImageLayout();
+}
+
 VkImageLayout BasePass::GetImageLayoutAtSubpass(const Image& image,
                                                 int subpass) const {
+  return GetUsageHistory(image).GetUsage(subpass).GetImageLayout();
+}
+
+const image::UsageHistory& BasePass::GetUsageHistory(const Image& image) const {
   const auto iter = image_usage_history_map_.find(&image);
   ASSERT_FALSE(iter == image_usage_history_map_.end(), "Unrecognized image");
-  return iter->second.GetUsage(subpass).GetImageLayout();
+  return iter->second;
 }
 
 } /* namespace vulkan */

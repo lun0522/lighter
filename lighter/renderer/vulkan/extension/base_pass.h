@@ -82,6 +82,9 @@ class UsageHistory {
 // The base class of compute pass and graphics pass.
 class BasePass {
  public:
+  // Maps each image to its usage history.
+  using ImageUsageHistoryMap = absl::flat_hash_map<Image*, image::UsageHistory>;
+
   explicit BasePass(int num_subpasses) : num_subpasses_{num_subpasses} {}
 
   // This class is neither copyable nor movable.
@@ -94,21 +97,35 @@ class BasePass {
   // The current usage of 'image' will be used as the initial usage.
   BasePass& AddImage(Image* image, image::UsageHistory&& history);
 
+  // Returns the layout of 'image' before this pass.
+  VkImageLayout GetImageLayoutBeforePass(const Image& image) const;
+
+  // Returns the layout of 'image' after this pass.
+  VkImageLayout GetImageLayoutAfterPass(const Image& image) const;
+
   // Returns the layout of 'image' at 'subpass'. The usage at this subpass must
   // have been specified in the usage history.
   VkImageLayout GetImageLayoutAtSubpass(const Image& image, int subpass) const;
 
  protected:
+  // Images are in their initial layouts at this virtual subpass.
+  static constexpr int kVirtualInitialSubpassIndex = -1;
+
   // Accessors.
-  const absl::flat_hash_map<Image*, image::UsageHistory>&
-  image_usage_history_map() const { return image_usage_history_map_; }
+  const ImageUsageHistoryMap& image_usage_history_map() const {
+    return image_usage_history_map_;
+  }
 
   // Number of subpasses.
   const int num_subpasses_;
 
  private:
-  // Maps each image to its usage history.
-  absl::flat_hash_map<Image*, image::UsageHistory> image_usage_history_map_;
+  // Returns the usage history of 'image'. 'image' must have been added via
+  // AddImage().
+  const image::UsageHistory& GetUsageHistory(const Image& image) const;
+
+  // Maps images used in this pass to their respective usage history.
+  ImageUsageHistoryMap image_usage_history_map_;
 };
 
 } /* namespace vulkan */

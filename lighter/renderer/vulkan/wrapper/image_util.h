@@ -8,6 +8,7 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_UTIL_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_UTIL_H
 
+#include "lighter/common/util.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -17,7 +18,8 @@ namespace vulkan {
 namespace image {
 
 // Describes how we are using an image.
-struct Usage {
+class Usage {
+ public:
   // Usage types of images that we can handle.
   enum class UsageType {
     // Don't care about the content stored in the image.
@@ -61,35 +63,33 @@ struct Usage {
   // Convenience function to return Usage for images sampled as textures in
   // fragment shaders.
   static Usage GetSampledInFragmentShaderUsage() {
-    return Usage{UsageType::kSample,
-                 /*access_type=*/AccessType::kDontCare,
+    return Usage{UsageType::kSample, AccessType::kReadOnly,
                  AccessLocation::kFragmentShader};
   }
 
   // Convenience function to return Usage for images used as render targets.
   static Usage GetRenderTargetUsage() {
-    return Usage{UsageType::kRenderTarget};
+    return Usage{UsageType::kRenderTarget, AccessType::kWriteOnly,
+                 AccessLocation::kFragmentShader};
+  }
+
+  // Convenience function to return Usage for images to be presented to screen.
+  static Usage GetPresentationUsage() {
+    return Usage{UsageType::kPresentation, AccessType::kReadOnly,
+                 AccessLocation::kDontCare};
   }
 
   // Convenience function to return Usage for images linearly accessed in
   // compute shaders.
   static Usage GetLinearAccessInComputeShaderUsage(AccessType access_type) {
+    ASSERT_FALSE(access_type == AccessType::kDontCare,
+                 "Must specify access type");
     return Usage{UsageType::kLinearAccess, access_type,
                  AccessLocation::kComputeShader};
   }
 
-  // In most cases we only need 8-bit integers for each image channel.
-  // If 'use_high_precision' is true, we would use 16-bit floats instead.
-  explicit Usage(UsageType usage_type = UsageType::kDontCare,
-                 AccessType access_type = AccessType::kDontCare,
-                 AccessLocation access_location = AccessLocation::kDontCare,
-                 bool use_high_precision = false)
-      : usage_type{usage_type}, access_type{access_type},
-        access_location{access_location},
-        use_high_precision{use_high_precision} {}
-
-  // Throws a runtime exception if this usage is invalid.
-  void Validate() const;
+  explicit Usage() : Usage{UsageType::kDontCare, AccessType::kDontCare,
+                           AccessLocation::kDontCare} {}
 
   // Returns VkAccessFlags used for inserting image memory barriers.
   VkAccessFlags GetAccessFlags() const;
@@ -105,23 +105,40 @@ struct Usage {
   // corresponding flag bits.
   VkImageUsageFlagBits GetImageUsageFlagBits() const;
 
-  // Overrides.
-  bool operator==(const Usage& other) const {
-    return usage_type == other.usage_type &&
-           access_type == other.access_type &&
-           access_location == other.access_location;
-  }
-
-  // Modifiers.
+  // In most cases we only need 8-bit integers for each image channel.
+  // If this is called, we would use 16-bit floats instead.
   Usage& set_use_high_precision() {
-    use_high_precision = true;
+    use_high_precision_ = true;
     return *this;
   }
 
-  UsageType usage_type;
-  AccessType access_type;
-  AccessLocation access_location;
-  bool use_high_precision;
+  // Overrides.
+  bool operator==(const Usage& other) const {
+    return usage_type_ == other.usage_type_ &&
+           access_type_ == other.access_type_ &&
+           access_location_ == other.access_location_;
+  }
+
+  // Accessors.
+  UsageType usage_type() const { return usage_type_; }
+  AccessType access_type() const { return access_type_; }
+  AccessLocation access_location() const { return access_location_; }
+  bool use_high_precision() const { return use_high_precision_; }
+
+ private:
+  // We make this constructor private so that the user can only construct the
+  // default usage or use static methods to construct usages that are guaranteed
+  // to be valid.
+  Usage(UsageType usage_type,
+        AccessType access_type,
+        AccessLocation access_location)
+      : usage_type_{usage_type}, access_type_{access_type},
+        access_location_{access_location}, use_high_precision_{false} {}
+
+  UsageType usage_type_;
+  AccessType access_type_;
+  AccessLocation access_location_;
+  bool use_high_precision_;
 };
 
 // Returns true if any of 'usages' is UsageType::kLinearAccess.

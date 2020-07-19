@@ -38,7 +38,7 @@ void ComputePass::Run(const VkCommandBuffer& command_buffer,
       const image::Usage& next_usage = iter->second;
       const image::Usage& prev_usage = std::prev(iter)->second;
       if (next_usage == prev_usage &&
-          next_usage.access_type == image::Usage::AccessType::kReadOnly) {
+          next_usage.access_type() == image::Usage::AccessType::kReadOnly) {
         continue;
       }
 

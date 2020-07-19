@@ -64,6 +64,11 @@ cc_library(
     srcs = ["graphics_pass.cc"],
     deps = [
         ":base_pass",
+        "//lighter/common:util",
+        "//lighter/renderer/vulkan/wrapper:image",
+        "//lighter/renderer/vulkan/wrapper:render_pass",
+        "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/strings:str_format",
     ],
 )
 

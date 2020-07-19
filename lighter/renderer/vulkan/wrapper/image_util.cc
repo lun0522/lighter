@@ -9,7 +9,6 @@
 
 #include <algorithm>
 
-#include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
 
 namespace lighter {
@@ -41,39 +40,18 @@ VkAccessFlags GetReadWriteFlags(AccessType access_type,
 
 namespace image {
 
-void Usage::Validate() const {
-  if (usage_type == UsageType::kLinearAccess) {
-    ASSERT_FALSE(access_type == AccessType::kDontCare,
-                 "Must specify access type for UsageType::kLinearAccess");
-    ASSERT_FALSE(access_location == AccessLocation::kDontCare,
-                 "Must specify access location for UsageType::kLinearAccess");
-  }
-  if (usage_type == UsageType::kSample) {
-    ASSERT_FALSE(access_location == AccessLocation::kDontCare,
-                 "Must specify access location for UsageType::kSample");
-    ASSERT_FALSE(access_location == AccessLocation::kHost,
-                 "Cannot use AccessLocation::kHost for UsageType::kSample");
-  }
-  if (usage_type == UsageType::kTransfer) {
-    ASSERT_FALSE(access_type == AccessType::kDontCare,
-                 "Must specify access type for UsageType::kTransfer");
-    ASSERT_FALSE(access_type == AccessType::kReadWrite,
-                 "Cannot use AccessType::kReadWrite for UsageType::kTransfer");
-  }
-}
-
 VkAccessFlags Usage::GetAccessFlags() const {
-  switch (usage_type) {
+  switch (usage_type_) {
     case UsageType::kDontCare:
       return kNullAccessFlag;
 
     case UsageType::kRenderTarget:
-      return GetReadWriteFlags(access_type,
+      return GetReadWriteFlags(access_type_,
                                VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
                                VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 
     case UsageType::kDepthStencil:
-      return GetReadWriteFlags(access_type,
+      return GetReadWriteFlags(access_type_,
                                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
                                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
@@ -82,23 +60,23 @@ VkAccessFlags Usage::GetAccessFlags() const {
 
     case UsageType::kLinearAccess:
     case UsageType::kSample:
-      return access_location == AccessLocation::kHost
-                 ? GetReadWriteFlags(access_type,
+      return access_location_ == AccessLocation::kHost
+                 ? GetReadWriteFlags(access_type_,
                                      VK_ACCESS_HOST_READ_BIT,
                                      VK_ACCESS_HOST_WRITE_BIT)
-                 : GetReadWriteFlags(access_type,
+                 : GetReadWriteFlags(access_type_,
                                      VK_ACCESS_SHADER_READ_BIT,
                                      VK_ACCESS_SHADER_WRITE_BIT);
 
     case UsageType::kTransfer:
-      return GetReadWriteFlags(access_type,
+      return GetReadWriteFlags(access_type_,
                                VK_ACCESS_TRANSFER_READ_BIT,
                                VK_ACCESS_TRANSFER_WRITE_BIT);
   }
 }
 
 VkPipelineStageFlags Usage::GetPipelineStageFlags() const {
-  switch (usage_type) {
+  switch (usage_type_) {
     case UsageType::kDontCare:
       return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
@@ -112,7 +90,7 @@ VkPipelineStageFlags Usage::GetPipelineStageFlags() const {
 
     case UsageType::kLinearAccess:
     case UsageType::kSample:
-      switch (access_location) {
+      switch (access_location_) {
         case AccessLocation::kDontCare:
           FATAL("Access location not specified");
 
@@ -132,7 +110,7 @@ VkPipelineStageFlags Usage::GetPipelineStageFlags() const {
 }
 
 VkImageLayout Usage::GetImageLayout() const {
-  switch (usage_type) {
+  switch (usage_type_) {
     case UsageType::kDontCare:
       return VK_IMAGE_LAYOUT_UNDEFINED;
 
@@ -152,7 +130,7 @@ VkImageLayout Usage::GetImageLayout() const {
       return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     case UsageType::kTransfer:
-      switch (access_type) {
+      switch (access_type_) {
         case AccessType::kDontCare:
           FATAL("Access type not specified");
 
@@ -169,7 +147,7 @@ VkImageLayout Usage::GetImageLayout() const {
 }
 
 VkImageUsageFlagBits Usage::GetImageUsageFlagBits() const {
-  switch (usage_type) {
+  switch (usage_type_) {
     case UsageType::kDontCare:
       FATAL("No corresponding image usage flag bits for UsageType::kDontCare");
 
@@ -187,7 +165,7 @@ VkImageUsageFlagBits Usage::GetImageUsageFlagBits() const {
       return VK_IMAGE_USAGE_SAMPLED_BIT;
 
     case UsageType::kTransfer:
-      switch (access_type) {
+      switch (access_type_) {
         case AccessType::kDontCare:
           FATAL("Access type not specified");
 
@@ -205,20 +183,20 @@ VkImageUsageFlagBits Usage::GetImageUsageFlagBits() const {
 
 bool IsLinearAccessed(absl::Span<const Usage> usages) {
   return std::any_of(usages.begin(), usages.end(), [](const Usage& usage) {
-    return usage.usage_type == UsageType::kLinearAccess;
+    return usage.usage_type() == UsageType::kLinearAccess;
   });
 }
 
 bool UseHighPrecision(absl::Span<const Usage> usages) {
   return std::any_of(usages.begin(), usages.end(), [](const Usage& usage) {
-    return usage.use_high_precision;
+    return usage.use_high_precision();
   });
 }
 
 VkImageUsageFlags GetImageUsageFlags(absl::Span<const Usage> usages) {
   auto flags = nullflag;
   for (const auto& usage : usages) {
-    if (usage.usage_type != UsageType::kDontCare) {
+    if (usage.usage_type() != UsageType::kDontCare) {
       flags |= usage.GetImageUsageFlagBits();
     }
   }

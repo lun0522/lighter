@@ -139,7 +139,7 @@ class Image {
   VkImageView image_view_;
 
   // Tracks image usage.
-  image::Usage image_usage_{};
+  image::Usage image_usage_;
 };
 
 // VkSampler configures how do we sample from an image resource on the device.
