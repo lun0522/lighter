@@ -8,7 +8,9 @@
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 
 #include <string>
+#include <vector>
 
+#include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace lighter {
@@ -17,16 +19,6 @@ namespace vulkan {
 namespace {
 
 using ImageUsageType = image::Usage::UsageType;
-
-GraphicsPass::AttachmentIndexMap BuildAttachmentIndexMap(
-    const BasePass::ImageUsageHistoryMap& image_usage_history_map) {
-  GraphicsPass::AttachmentIndexMap attachment_index_map;
-  int index = 0;
-  for (const auto& pair : image_usage_history_map) {
-    attachment_index_map.insert({pair.first, index++});
-  }
-  return attachment_index_map;
-}
 
 ImageUsageType GetImageUsageTypeForAllSubpasses(
     const image::UsageHistory& history) {
@@ -60,33 +52,38 @@ ImageUsageType GetImageUsageTypeForAllSubpasses(
 
 } /* namespace */
 
-std::unique_ptr<GraphicsPass> GraphicsPassBuilder::Build() const {
-  return std::unique_ptr<GraphicsPass>{new GraphicsPass(*this)};
+std::unique_ptr<GraphicsPass> GraphicsPassBuilder::Build() {
+  render_pass_builder_ = absl::make_unique<RenderPassBuilder>(context_);
+  RebuildAttachmentIndexMap();
+  SetAttachments();
+  SetSubpasses();
+  SetSubpassDependencies();
+  std::unique_ptr<RenderPass> render_pass = render_pass_builder_->Build();
+  render_pass_builder_.reset();
+
+  return std::unique_ptr<GraphicsPass>{
+      new GraphicsPass(std::move(render_pass),
+                       std::move(attachment_index_map_))};
 }
 
-GraphicsPass::GraphicsPass(const GraphicsPassBuilder& graphics_pass_builder)
-    : attachment_index_map_{BuildAttachmentIndexMap(
-          graphics_pass_builder.image_usage_history_map())} {
-  RenderPassBuilder render_pass_builder{graphics_pass_builder.context_};
-  SetAttachments(graphics_pass_builder, &render_pass_builder);
-  render_pass_ = render_pass_builder.Build();
+void GraphicsPassBuilder::RebuildAttachmentIndexMap() {
+  attachment_index_map_.clear();
+  int index = 0;
+  for (const auto& pair : image_usage_history_map()) {
+    attachment_index_map_.insert({pair.first, index++});
+  }
 }
 
-void GraphicsPass::SetAttachments(
-    const GraphicsPassBuilder& graphics_pass_builder,
-    RenderPassBuilder* render_pass_builder) {
-  render_pass_builder->SetNumFramebuffers(
-      graphics_pass_builder.image_usage_history_map().size());
+void GraphicsPassBuilder::SetAttachments() {
+  render_pass_builder_->SetNumFramebuffers(image_usage_history_map().size());
 
-  for (const auto& pair : graphics_pass_builder.image_usage_history_map()) {
+  for (const auto& pair : image_usage_history_map()) {
     const Image& image = *pair.first;
     const image::UsageHistory& history = pair.second;
 
     RenderPassBuilder::Attachment attachment;
-    attachment.initial_layout =
-        graphics_pass_builder.GetImageLayoutBeforePass(image);
-    attachment.final_layout =
-        graphics_pass_builder.GetImageLayoutAfterPass(image);
+    attachment.initial_layout = GetImageLayoutBeforePass(image);
+    attachment.final_layout = GetImageLayoutAfterPass(image);
 
     switch (GetImageUsageTypeForAllSubpasses(history)) {
       case ImageUsageType::kDontCare:
@@ -114,9 +111,54 @@ void GraphicsPass::SetAttachments(
         FATAL("Unreachable");
     }
 
-    render_pass_builder->SetAttachment(attachment_index_map_.at(&image),
-                                       attachment);
+    render_pass_builder_->SetAttachment(attachment_index_map_[&image],
+                                        attachment);
   }
+}
+
+void GraphicsPassBuilder::SetSubpasses() {
+  for (int subpass = 0; subpass < num_subpasses_; ++subpass) {
+    std::vector<VkAttachmentReference> color_refs;
+    VkAttachmentReference depth_stencil_ref{
+        VK_ATTACHMENT_UNUSED,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+    };
+
+    for (const auto& pair : image_usage_history_map()) {
+      const image::Usage* usage = pair.second.GetUsage(subpass);
+      if (usage == nullptr) {
+        continue;
+      }
+
+      const VkAttachmentReference attachment_ref{
+          static_cast<uint32_t>(attachment_index_map_[pair.first]),
+          usage->GetImageLayout(),
+      };
+      switch (usage->usage_type()) {
+        case ImageUsageType::kRenderTarget:
+          color_refs.push_back(attachment_ref);
+          break;
+
+        case ImageUsageType::kDepthStencil:
+          ASSERT_TRUE(depth_stencil_ref.attachment == VK_ATTACHMENT_UNUSED,
+                      absl::StrFormat("Multiple depth stencil attachment "
+                                      "specified for subpass %d",
+                                      subpass));
+          depth_stencil_ref = attachment_ref;
+          break;
+
+        default:
+          FATAL("Unreachable");
+      }
+    }
+
+    render_pass_builder_->SetSubpass(subpass, std::move(color_refs),
+                                     depth_stencil_ref);
+  }
+}
+
+void GraphicsPassBuilder::SetSubpassDependencies() {
+
 }
 
 } /* namespace vulkan */

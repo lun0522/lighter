@@ -68,6 +68,7 @@ cc_library(
         "//lighter/renderer/vulkan/wrapper:image",
         "//lighter/renderer/vulkan/wrapper:render_pass",
         "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/memory",
         "//third_party/absl/strings:str_format",
     ],
 )

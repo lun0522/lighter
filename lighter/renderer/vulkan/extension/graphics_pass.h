@@ -26,6 +26,8 @@ class GraphicsPass;
 
 class GraphicsPassBuilder : public BasePass {
  public:
+  using AttachmentIndexMap = absl::flat_hash_map<const Image*, int>;
+
   GraphicsPassBuilder(SharedBasicContext context, int num_subpasses)
       : BasePass{num_subpasses}, context_{std::move(FATAL_IF_NULL(context))} {}
 
@@ -33,34 +35,46 @@ class GraphicsPassBuilder : public BasePass {
   GraphicsPassBuilder(const GraphicsPassBuilder&) = delete;
   GraphicsPassBuilder& operator=(const GraphicsPassBuilder&) = delete;
 
-  std::unique_ptr<GraphicsPass> Build() const;
+  std::unique_ptr<GraphicsPass> Build();
 
  private:
   friend class GraphicsPass;
 
+  void RebuildAttachmentIndexMap();
+
+  void SetAttachments();
+
+  void SetSubpasses();
+
+  void SetSubpassDependencies();
+
   // Pointer to context.
   const SharedBasicContext context_;
+
+  AttachmentIndexMap attachment_index_map_;
+
+  std::unique_ptr<RenderPassBuilder> render_pass_builder_;
 };
 
 class GraphicsPass {
  public:
-  using AttachmentIndexMap = absl::flat_hash_map<const Image*, int>;
-
   // This class is neither copyable nor movable.
   GraphicsPass(const GraphicsPass&) = delete;
   GraphicsPass& operator=(const GraphicsPass&) = delete;
 
  private:
-  friend std::unique_ptr<GraphicsPass> GraphicsPassBuilder::Build() const;
+  using AttachmentIndexMap = GraphicsPassBuilder::AttachmentIndexMap;
 
-  GraphicsPass(const GraphicsPassBuilder& graphics_pass_builder);
+  friend std::unique_ptr<GraphicsPass> GraphicsPassBuilder::Build();
 
-  void SetAttachments(const GraphicsPassBuilder& graphics_pass_builder,
-                      RenderPassBuilder* render_pass_builder);
-
-  const AttachmentIndexMap attachment_index_map_;
+  GraphicsPass(std::unique_ptr<RenderPass>&& render_pass,
+               AttachmentIndexMap&& attachment_index_map)
+      : render_pass_{std::move(render_pass)},
+        attachment_index_map_{std::move(attachment_index_map)} {}
 
   std::unique_ptr<RenderPass> render_pass_;
+
+  const AttachmentIndexMap attachment_index_map_;
 };
 
 } /* namespace vulkan */

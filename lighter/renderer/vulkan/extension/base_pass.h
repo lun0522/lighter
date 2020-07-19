@@ -47,16 +47,13 @@ class UsageHistory {
   // for later operations.
   UsageHistory& SetFinalUsage(const Usage& usage);
 
-  // Returns the image usage at 'subpass'. The usage must have been specified
-  // via AddUsage().
-  const Usage& GetUsage(int subpass) const;
+  // Returns a pointer to image usage at 'subpass', or nullptr if the usage has
+  // not been specified via AddUsage().
+  const Usage* GetUsage(int subpass) const;
 
   // Returns all usages at all subpasses, including the final usage if
   // specified. Note that this may contain duplicates.
   std::vector<Usage> GetAllUsages() const;
-
-  // Checks whether all subpasses specified are in range [0, 'upper_bound').
-  void ValidateSubpasses(int upper_bound) const;
 
   // Accessors.
   const std::string& image_name() const { return image_name_; }
@@ -108,8 +105,9 @@ class BasePass {
   VkImageLayout GetImageLayoutAtSubpass(const Image& image, int subpass) const;
 
  protected:
-  // Images are in their initial layouts at this virtual subpass.
-  static constexpr int kVirtualInitialSubpassIndex = -1;
+  // Images are in their initial/final layouts at the virtual subpasses.
+  int virtual_initial_subpass_index() const { return -1; }
+  int virtual_final_subpass_index() const { return num_subpasses_; }
 
   // Accessors.
   const ImageUsageHistoryMap& image_usage_history_map() const {
@@ -123,6 +121,9 @@ class BasePass {
   // Returns the usage history of 'image'. 'image' must have been added via
   // AddImage().
   const image::UsageHistory& GetUsageHistory(const Image& image) const;
+
+  // Checks whether 'subpass' is in range [0, 'num_subpasses_').
+  void ValidateSubpass(int subpass, const std::string& image_name) const;
 
   // Maps images used in this pass to their respective usage history.
   ImageUsageHistoryMap image_usage_history_map_;

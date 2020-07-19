@@ -8,6 +8,7 @@
 #include "lighter/renderer/vulkan/extension/compute_pass.h"
 
 #include <iterator>
+#include <string>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
@@ -27,7 +28,9 @@ void ComputePass::Run(const VkCommandBuffer& command_buffer,
 
   // Run all subpasses and insert memory barriers. Note that even if the image
   // usage does not change, we still need to insert a memory barrier if not RAR.
-  for (int subpass = 0; subpass < num_subpasses_; ++subpass) {
+  ASSERT_TRUE(virtual_final_subpass_index() == num_subpasses_,
+              "Assumption of the following loop is broken");
+  for (int subpass = 0; subpass <= num_subpasses_; ++subpass) {
     for (const auto& pair : image_usage_history_map()) {
       const auto& usage_at_subpass_map = pair.second.usage_at_subpass_map();
       const auto iter = usage_at_subpass_map.find(subpass);
@@ -45,40 +48,24 @@ void ComputePass::Run(const VkCommandBuffer& command_buffer,
       InsertMemoryBarrier(command_buffer, queue_family_index, **pair.first,
                           prev_usage, next_usage);
 #ifndef NDEBUG
-      LOG_INFO << absl::StreamFormat("Inserted memory barrier for image '%s' "
-                                     "before subpass %d",
-                                     pair.second.image_name(), subpass);
+      const std::string log_suffix =
+          subpass == virtual_final_subpass_index()
+              ? "after compute pass"
+              : absl::StrFormat("before subpass %d", subpass);
+      LOG_INFO << absl::StreamFormat("Inserted memory barrier for image '%s' ",
+                                     pair.second.image_name())
+               << log_suffix;
 #endif /* !NDEBUG */
     }
-    compute_ops[subpass]();
+
+    if (subpass < num_subpasses_) {
+      compute_ops[subpass]();
+    }
   }
 
-  // For each image, inform Image class the last known usage, and transition the
-  // layout if necessary. Note that if the final usage is the same as the
-  // previous usage, there is no need to insert a memory barrier.
+  // Set the final usage through Image class for each image.
   for (const auto& pair : image_usage_history_map()) {
-    Image& image = *pair.first;
-    const image::UsageHistory& history = pair.second;
-    const image::Usage& prev_usage =
-        history.usage_at_subpass_map().rbegin()->second;
-    if (!history.final_usage().has_value()) {
-      image.set_usage(prev_usage);
-      continue;
-    }
-
-    const image::Usage& final_usage = history.final_usage().value();
-    image.set_usage(final_usage);
-    if (final_usage == prev_usage) {
-      continue;
-    }
-
-    InsertMemoryBarrier(command_buffer, queue_family_index, **pair.first,
-                        prev_usage, final_usage);
-#ifndef NDEBUG
-    LOG_INFO << absl::StreamFormat("Inserted memory barrier for image '%s' "
-                                   "after compute pass",
-                                   pair.second.image_name());
-#endif /* !NDEBUG */
+    pair.first->set_usage(pair.second.usage_at_subpass_map().rbegin()->second);
   }
 }
 
