@@ -12,6 +12,7 @@
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
+#include "lighter/renderer/vulkan/wrapper/image_util.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace lighter {
@@ -103,6 +104,21 @@ void ComputePass::InsertMemoryBarrier(
       /*pBufferMemoryBarriers=*/nullptr,
       /*imageMemoryBarrierCount=*/1,
       &barrier);
+}
+
+void ComputePass::ValidateImageUsageHistory(
+    const image::UsageHistory& history) const {
+  using ImageUsageType = image::Usage::UsageType;
+  for (const auto& pair : history.usage_at_subpass_map()) {
+    const ImageUsageType usage_type = pair.second.usage_type();
+    ASSERT_TRUE(usage_type == ImageUsageType::kLinearAccess
+                    || usage_type == ImageUsageType::kSample
+                    || usage_type == ImageUsageType::kTransfer,
+                absl::StrFormat("Usage type (%d) is neither kLinearAccess, "
+                                "kSample nor kTransfer for image '%s' at "
+                                "subpass %d",
+                                usage_type, history.image_name(), pair.first));
+  }
 }
 
 } /* namespace vulkan */

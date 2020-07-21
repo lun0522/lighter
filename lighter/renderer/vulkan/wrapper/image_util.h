@@ -39,9 +39,7 @@ class Usage {
     kTransfer,
   };
 
-  // For UsageType::kLinearAccess, this must not be kDontCare.
-  // For UsageType::kTransfer, this must be either kReadOnly or kWriteOnly.
-  // For other usage types, this will be ignored.
+  // Whether to read and/or write.
   enum class AccessType {
     kDontCare,
     kReadOnly,
@@ -49,15 +47,15 @@ class Usage {
     kReadWrite,
   };
 
-  // For UsageType::kLinearAccess, this must not be kDontCare.
-  // For UsageType::kSample, this must be either kFragmentShader or
-  // kComputeShader.
-  // For other usage types, this will be ignored.
+  // Where to access the image. Note that kOther is different from kDontCare.
+  // For example, depth stencil attachments are actually not written in fragment
+  // shader. It has its own pipeline stages.
   enum class AccessLocation {
     kDontCare,
     kHost,
     kFragmentShader,
     kComputeShader,
+    kOther,
   };
 
   // Convenience function to return Usage for images sampled as textures in
@@ -70,13 +68,20 @@ class Usage {
   // Convenience function to return Usage for images used as render targets.
   static Usage GetRenderTargetUsage() {
     return Usage{UsageType::kRenderTarget, AccessType::kWriteOnly,
-                 AccessLocation::kFragmentShader};
+                 AccessLocation::kOther};
+  }
+
+  // Convenience function to return Usage for images used as depth stencil
+  // attachment.
+  static Usage GetDepthStencilUsage() {
+    return Usage{UsageType::kDepthStencil, AccessType::kReadWrite,
+                 AccessLocation::kOther};
   }
 
   // Convenience function to return Usage for images to be presented to screen.
   static Usage GetPresentationUsage() {
     return Usage{UsageType::kPresentation, AccessType::kReadOnly,
-                 AccessLocation::kDontCare};
+                 AccessLocation::kOther};
   }
 
   // Convenience function to return Usage for images linearly accessed in

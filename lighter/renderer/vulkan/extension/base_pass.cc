@@ -18,8 +18,9 @@ namespace image {
 UsageHistory& UsageHistory::AddUsage(int subpass, const Usage& usage) {
   const auto did_insert = usage_at_subpass_map_.insert({subpass, usage}).second;
   if (!did_insert) {
-    FATAL(absl::StrFormat("Already specified usage for image %s at subpass %d",
-                          image_name_, subpass));
+    FATAL(absl::StrFormat(
+        "Already specified usage for image '%s' at subpass %d",
+        image_name_, subpass));
   }
   return *this;
 }
@@ -33,9 +34,10 @@ UsageHistory& UsageHistory::AddUsage(int subpass_start, int subpass_end,
 }
 
 UsageHistory& UsageHistory::SetFinalUsage(const Usage& usage) {
-  ASSERT_NO_VALUE(final_usage_,
-                  absl::StrFormat("Already specified final usage for image %s",
-                                  image_name_));
+  ASSERT_NO_VALUE(
+      final_usage_,
+      absl::StrFormat("Already specified final usage for image '%s'",
+                      image_name_));
   final_usage_ = usage;
   return *this;
 }
@@ -66,6 +68,7 @@ BasePass& BasePass::AddImage(Image* image, image::UsageHistory&& history) {
   for (const auto& pair : history.usage_at_subpass_map()) {
     ValidateSubpass(/*subpass=*/pair.first, history.image_name());
   }
+  ValidateImageUsageHistory(history);
 
   history.AddUsage(virtual_initial_subpass_index(), image->image_usage());
   if (history.final_usage().has_value()) {
@@ -95,7 +98,7 @@ VkImageLayout BasePass::GetImageLayoutAtSubpass(const Image& image,
   const image::Usage* usage = history.GetUsage(subpass);
   ASSERT_NON_NULL(
       usage,
-      absl::StrFormat("Usage not specified for image %s at subpass %d",
+      absl::StrFormat("Usage not specified for image '%s' at subpass %d",
                       history.image_name(), subpass));
   return usage->GetImageLayout();
 }
@@ -110,7 +113,7 @@ void BasePass::ValidateSubpass(int subpass,
                                const std::string& image_name) const {
   ASSERT_TRUE(
       subpass >= 0 && subpass < num_subpasses_,
-      absl::StrFormat("Subpass (%d) out of range [0, %d) for image %s",
+      absl::StrFormat("Subpass (%d) out of range [0, %d) for image '%s'",
                       subpass, num_subpasses_, image_name));
 }
 

@@ -81,8 +81,11 @@ VkPipelineStageFlags Usage::GetPipelineStageFlags() const {
       return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
     case UsageType::kRenderTarget:
-    case UsageType::kDepthStencil:
       return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+    case UsageType::kDepthStencil:
+      return VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT
+                 | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
 
     case UsageType::kPresentation:
       FATAL("No corresponding pipeline stage flags for "
@@ -92,7 +95,8 @@ VkPipelineStageFlags Usage::GetPipelineStageFlags() const {
     case UsageType::kSample:
       switch (access_location_) {
         case AccessLocation::kDontCare:
-          FATAL("Access location not specified");
+          FATAL("Access location must be specified for "
+                "UsageType::kLinearAccess and UsageType::kSample");
 
         case AccessLocation::kHost:
           return VK_PIPELINE_STAGE_HOST_BIT;
@@ -102,6 +106,10 @@ VkPipelineStageFlags Usage::GetPipelineStageFlags() const {
 
         case AccessLocation::kComputeShader:
           return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+        case AccessLocation::kOther:
+          FATAL("Access location must not be kOther for"
+                "UsageType::kLinearAccess and UsageType::kSample");
       }
 
     case UsageType::kTransfer:
@@ -132,7 +140,7 @@ VkImageLayout Usage::GetImageLayout() const {
     case UsageType::kTransfer:
       switch (access_type_) {
         case AccessType::kDontCare:
-          FATAL("Access type not specified");
+          FATAL("Access type not specified for UsageType::kTransfer");
 
         case AccessType::kReadOnly:
           return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
@@ -167,7 +175,7 @@ VkImageUsageFlagBits Usage::GetImageUsageFlagBits() const {
     case UsageType::kTransfer:
       switch (access_type_) {
         case AccessType::kDontCare:
-          FATAL("Access type not specified");
+          FATAL("Access type not specified for UsageType::kTransfer");
 
         case AccessType::kReadOnly:
           return VK_IMAGE_USAGE_TRANSFER_SRC_BIT;

@@ -105,6 +105,12 @@ class BasePass {
   VkImageLayout GetImageLayoutAtSubpass(const Image& image, int subpass) const;
 
  protected:
+  // Checks whether image usages recorded in 'history' can be handled by this
+  // pass. Note that initial and final usages has not been added to 'history'
+  // when this is called, since they are not really a part of the pass.
+  virtual void ValidateImageUsageHistory(
+      const image::UsageHistory& history) const = 0;
+
   // Images are in their initial/final layouts at the virtual subpasses.
   int virtual_initial_subpass_index() const { return -1; }
   int virtual_final_subpass_index() const { return num_subpasses_; }

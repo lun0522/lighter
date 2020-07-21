@@ -20,37 +20,40 @@ namespace {
 
 using ImageUsageType = image::Usage::UsageType;
 
-ImageUsageType GetImageUsageTypeForAllSubpasses(
-    const image::UsageHistory& history) {
-  ImageUsageType prev_usage_type = ImageUsageType::kDontCare;
-  for (const auto& pair : history.usage_at_subpass_map()) {
-    const ImageUsageType usage_type = pair.second.usage_type();
-    switch (usage_type) {
-      case ImageUsageType::kDontCare:
-        continue;
+} /* namespace */
 
-      case ImageUsageType::kRenderTarget:
-      case ImageUsageType::kDepthStencil:
-        if (prev_usage_type == ImageUsageType::kDontCare) {
-          prev_usage_type = usage_type;
-        } else if (prev_usage_type != usage_type) {
-          FATAL(absl::StrFormat(
-              "Inconsistent usage type specified for image %s (previous %d, "
-              "current %d)",
-              history.image_name(), prev_usage_type, usage_type));
-        }
-        break;
-
-      default:
-        FATAL(absl::StrFormat("Usage type (%d) is neither kRenderTarget nor "
-                              "kDepthStencil for image %s",
-                              pair.second.usage_type(), history.image_name()));
-    }
-  }
-  return prev_usage_type;
+GraphicsPassBuilder::GraphicsPassBuilder(
+    SharedBasicContext context, int num_subpasses)
+    : BasePass{num_subpasses}, context_{std::move(FATAL_IF_NULL(context))} {
+  multisampling_at_subpass_maps_.resize(num_subpasses_);
 }
 
-} /* namespace */
+GraphicsPassBuilder& GraphicsPassBuilder::AddMultisampleResolving(
+    const Image& src_image, const Image& dst_image, int subpass) {
+  const auto src_iter = image_usage_history_map().find(&src_image);
+  ASSERT_FALSE(src_iter == image_usage_history_map().end(),
+               "Usage history not specified for source image");
+  ASSERT_FALSE(src_image.sample_count() == VK_SAMPLE_COUNT_1_BIT,
+               absl::StrFormat("Source image '%s' is not multisample image",
+                               src_iter->second.image_name()));
+
+  const auto dst_iter = image_usage_history_map().find(&dst_image);
+  ASSERT_FALSE(dst_iter == image_usage_history_map().end(),
+               "Usage history not specified for destination image");
+  ASSERT_TRUE(
+      dst_image.sample_count() == VK_SAMPLE_COUNT_1_BIT,
+      absl::StrFormat("Destination image '%s' must not be multisample image",
+                      dst_iter->second.image_name()));
+
+  MultisamplingMap& multisampling_map = multisampling_at_subpass_maps_[subpass];
+  const bool did_insert =
+      multisampling_map.insert({&src_image, &dst_image}).second;
+  ASSERT_TRUE(did_insert,
+              absl::StrFormat("Already specified multisample resolving for "
+                              "image '%s' at subpass %d",
+                              src_iter->second.image_name(), subpass));
+  return *this;
+}
 
 std::unique_ptr<GraphicsPass> GraphicsPassBuilder::Build() {
   render_pass_builder_ = absl::make_unique<RenderPassBuilder>(context_);
@@ -79,17 +82,12 @@ void GraphicsPassBuilder::SetAttachments() {
 
   for (const auto& pair : image_usage_history_map()) {
     const Image& image = *pair.first;
-    const image::UsageHistory& history = pair.second;
 
     RenderPassBuilder::Attachment attachment;
     attachment.initial_layout = GetImageLayoutBeforePass(image);
     attachment.final_layout = GetImageLayoutAfterPass(image);
 
-    switch (GetImageUsageTypeForAllSubpasses(history)) {
-      case ImageUsageType::kDontCare:
-        FATAL(absl::StrFormat("Image %s is not used in subpasses",
-                              history.image_name()));
-
+    switch (GetImageUsageTypeForAllSubpasses(pair.second)) {
       case ImageUsageType::kRenderTarget:
         attachment.attachment_ops = RenderPassBuilder::Attachment::ColorOps{
             /*load_color_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -118,6 +116,12 @@ void GraphicsPassBuilder::SetAttachments() {
 
 void GraphicsPassBuilder::SetSubpasses() {
   for (int subpass = 0; subpass < num_subpasses_; ++subpass) {
+    const MultisamplingMap& multisampling_map =
+        multisampling_at_subpass_maps_[subpass];
+
+    std::vector<RenderPassBuilder::MultisamplingPair> multisampling_pairs;
+    multisampling_pairs.reserve(multisampling_map.size());
+
     std::vector<VkAttachmentReference> color_refs;
     VkAttachmentReference depth_stencil_ref{
         VK_ATTACHMENT_UNUSED,
@@ -134,10 +138,21 @@ void GraphicsPassBuilder::SetSubpasses() {
           static_cast<uint32_t>(attachment_index_map_[pair.first]),
           usage->GetImageLayout(),
       };
+
       switch (usage->usage_type()) {
-        case ImageUsageType::kRenderTarget:
+        case ImageUsageType::kRenderTarget: {
+          const auto iter = multisampling_map.find(pair.first);
+          if (iter != multisampling_map.end()) {
+            const auto multisample_reference =
+                static_cast<int>(color_refs.size());
+            const auto target_attachment =
+                static_cast<uint32_t>(attachment_index_map_[iter->second]);
+            multisampling_pairs.push_back(
+                {multisample_reference, target_attachment});
+          }
           color_refs.push_back(attachment_ref);
           break;
+        }
 
         case ImageUsageType::kDepthStencil:
           ASSERT_TRUE(depth_stencil_ref.attachment == VK_ATTACHMENT_UNUSED,
@@ -159,6 +174,41 @@ void GraphicsPassBuilder::SetSubpasses() {
 
 void GraphicsPassBuilder::SetSubpassDependencies() {
 
+}
+
+ImageUsageType GraphicsPassBuilder::GetImageUsageTypeForAllSubpasses(
+    const image::UsageHistory& history) const {
+  ImageUsageType prev_usage_type = ImageUsageType::kDontCare;
+  for (const auto& pair : history.usage_at_subpass_map()) {
+    const int subpass = pair.first;
+    if (subpass == virtual_initial_subpass_index() ||
+        subpass == virtual_final_subpass_index()) {
+      continue;
+    }
+
+    const ImageUsageType usage_type = pair.second.usage_type();
+    if (prev_usage_type == ImageUsageType::kDontCare) {
+      prev_usage_type = usage_type;
+    } else if (usage_type != prev_usage_type) {
+      FATAL(absl::StrFormat(
+          "Inconsistent usage type specified for image '%s' (previous %d, "
+          "current %d)",
+          history.image_name(), prev_usage_type, usage_type));
+    }
+  }
+  return prev_usage_type;
+}
+
+void GraphicsPassBuilder::ValidateImageUsageHistory(
+    const image::UsageHistory& history) const {
+  for (const auto& pair : history.usage_at_subpass_map()) {
+    const ImageUsageType usage_type = pair.second.usage_type();
+    ASSERT_TRUE(usage_type == ImageUsageType::kRenderTarget
+                    || usage_type == ImageUsageType::kDepthStencil,
+                absl::StrFormat("Usage type (%d) is neither kRenderTarget nor "
+                                "kDepthStencil for image '%s' at subpass %d",
+                                usage_type, history.image_name(), pair.first));
+  }
 }
 
 } /* namespace vulkan */

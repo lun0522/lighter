@@ -26,18 +26,22 @@ class GraphicsPass;
 
 class GraphicsPassBuilder : public BasePass {
  public:
-  using AttachmentIndexMap = absl::flat_hash_map<const Image*, int>;
-
-  GraphicsPassBuilder(SharedBasicContext context, int num_subpasses)
-      : BasePass{num_subpasses}, context_{std::move(FATAL_IF_NULL(context))} {}
+  GraphicsPassBuilder(SharedBasicContext context, int num_subpasses);
 
   // This class is neither copyable nor movable.
   GraphicsPassBuilder(const GraphicsPassBuilder&) = delete;
   GraphicsPassBuilder& operator=(const GraphicsPassBuilder&) = delete;
 
+  GraphicsPassBuilder& AddMultisampleResolving(
+      const Image& src_image, const Image& dst_image, int subpass);
+
   std::unique_ptr<GraphicsPass> Build();
 
  private:
+  using AttachmentIndexMap = absl::flat_hash_map<const Image*, int>;
+
+  using MultisamplingMap = absl::flat_hash_map<const Image*, const Image*>;
+
   friend class GraphicsPass;
 
   void RebuildAttachmentIndexMap();
@@ -48,10 +52,19 @@ class GraphicsPassBuilder : public BasePass {
 
   void SetSubpassDependencies();
 
+  image::Usage::UsageType GetImageUsageTypeForAllSubpasses(
+      const image::UsageHistory& history) const;
+
+  // Overrides.
+  void ValidateImageUsageHistory(const image::UsageHistory& history) const
+      override;
+
   // Pointer to context.
   const SharedBasicContext context_;
 
   AttachmentIndexMap attachment_index_map_;
+
+  std::vector<MultisamplingMap> multisampling_at_subpass_maps_;
 
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
 };
@@ -72,7 +85,7 @@ class GraphicsPass {
       : render_pass_{std::move(render_pass)},
         attachment_index_map_{std::move(attachment_index_map)} {}
 
-  std::unique_ptr<RenderPass> render_pass_;
+  const std::unique_ptr<RenderPass> render_pass_;
 
   const AttachmentIndexMap attachment_index_map_;
 };

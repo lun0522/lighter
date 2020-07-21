@@ -50,6 +50,10 @@ class ComputePass : public BasePass {
                            uint32_t queue_family_index, const VkImage& image,
                            image::Usage prev_usage,
                            image::Usage next_usage) const;
+
+  // Overrides.
+  void ValidateImageUsageHistory(
+      const image::UsageHistory& history) const override;
 };
 
 } /* namespace vulkan */
