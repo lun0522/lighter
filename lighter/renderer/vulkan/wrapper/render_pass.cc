@@ -217,7 +217,8 @@ RenderPassBuilder& RenderPassBuilder::SetMultisampling(
     int subpass_index,
     std::vector<VkAttachmentReference>&& multisampling_refs) {
   ASSERT_TRUE(subpass_index < subpass_attachments_.size(),
-              absl::StrFormat("Subpass at index %d is not set", subpass_index));
+              absl::StrFormat("Attachments not set for subpass %d",
+                              subpass_index));
   const int num_color_attachments =
       subpass_attachments_[subpass_index].color_refs.size();
   ASSERT_TRUE(multisampling_refs.size() == num_color_attachments,

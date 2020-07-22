@@ -102,6 +102,7 @@ class RenderPassBuilder {
       VkAccessFlags access_flags;
     };
 
+    // TODO: Rename to src/dst subpass.
     SubpassInfo prev_subpass, next_subpass;
     VkDependencyFlags dependency_flags;
   };

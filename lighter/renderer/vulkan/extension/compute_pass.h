@@ -48,8 +48,8 @@ class ComputePass : public BasePass {
   // queue with 'queue_family_index'.
   void InsertMemoryBarrier(const VkCommandBuffer& command_buffer,
                            uint32_t queue_family_index, const VkImage& image,
-                           image::Usage prev_usage,
-                           image::Usage next_usage) const;
+                           const image::Usage& prev_usage,
+                           const image::Usage& curr_usage) const;
 
   // Overrides.
   void ValidateImageUsageHistory(

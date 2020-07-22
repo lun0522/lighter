@@ -155,6 +155,11 @@ bool UseHighPrecision(absl::Span<const Usage> usages);
 // Returns VkImageUsageFlags that contains all usages.
 VkImageUsageFlags GetImageUsageFlags(absl::Span<const Usage> usages);
 
+// Returns whether we need to explicitly synchronize image memory access when
+// the image usage changes, which means to insert memory barriers in compute
+// pass, or add subpass dependencies in graphics pass.
+bool NeedSynchronization(const Usage& prev_usage, const Usage& curr_usage);
+
 } /* namespace image */
 } /* namespace vulkan */
 } /* namespace renderer */

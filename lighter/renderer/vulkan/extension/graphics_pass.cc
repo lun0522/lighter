@@ -7,6 +7,7 @@
 
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -129,7 +130,7 @@ void GraphicsPassBuilder::SetSubpasses() {
     };
 
     for (const auto& pair : image_usage_history_map()) {
-      const image::Usage* usage = pair.second.GetUsage(subpass);
+      const image::Usage* usage = GetImageUsage(pair.second, subpass);
       if (usage == nullptr) {
         continue;
       }
@@ -167,13 +168,82 @@ void GraphicsPassBuilder::SetSubpasses() {
       }
     }
 
+    render_pass_builder_->SetMultisampling(
+        subpass,
+        RenderPassBuilder::CreateMultisamplingReferences(
+            color_refs.size(), multisampling_pairs));
     render_pass_builder_->SetSubpass(subpass, std::move(color_refs),
                                      depth_stencil_ref);
   }
 }
 
 void GraphicsPassBuilder::SetSubpassDependencies() {
+  using Dependency = RenderPassBuilder::SubpassDependency;
 
+  ASSERT_TRUE(virtual_final_subpass_index() == num_subpasses_,
+              "Assumption of the following loop is broken");
+  for (int subpass = 0; subpass <= num_subpasses_; ++subpass) {
+    // Maps the source subpass index to the dependency between source subpass
+    // and current subpass. We use an ordered map to make debugging easier.
+    std::map<int, Dependency> dependency_map;
+
+    for (const auto& pair : image_usage_history_map()) {
+      const auto usages_info =
+          GetImageUsagesIfNeedSynchronization(/*history=*/pair.second, subpass);
+      if (!usages_info.has_value()) {
+        continue;
+      }
+      const image::Usage& prev_usage = usages_info.value().prev_usage;
+      const image::Usage& curr_usage = usages_info.value().curr_usage;
+
+      int src_subpass = usages_info.value().prev_usage_subpass;
+      if (src_subpass == virtual_initial_subpass_index()) {
+        src_subpass = kExternalSubpassIndex;
+      }
+
+      auto iter = dependency_map.find(src_subpass);
+      if (iter == dependency_map.end()) {
+        int dst_subpass = subpass;
+        if (dst_subpass == virtual_final_subpass_index()) {
+          dst_subpass = kExternalSubpassIndex;
+        }
+
+        Dependency default_dependency{
+            /*prev_subpass=*/Dependency::SubpassInfo{
+                static_cast<uint32_t>(src_subpass),
+                /*stage_flags=*/nullflag,
+                /*access_flags=*/nullflag,
+            },
+            /*next_subpass=*/Dependency::SubpassInfo{
+                static_cast<uint32_t>(dst_subpass),
+                /*stage_flags=*/nullflag,
+                /*access_flags=*/nullflag,
+            },
+            /*dependency_flags=*/nullflag,
+        };
+
+        auto res = dependency_map.insert({src_subpass,
+                                          std::move(default_dependency)});
+        iter = res.first;
+      }
+
+      {
+        auto& src_subpass_info = iter->second.prev_subpass;
+        src_subpass_info.stage_flags |= prev_usage.GetPipelineStageFlags();
+        src_subpass_info.access_flags |= prev_usage.GetAccessFlags();
+      }
+
+      {
+        auto& dst_subpass_info = iter->second.next_subpass;
+        dst_subpass_info.stage_flags |= curr_usage.GetPipelineStageFlags();
+        dst_subpass_info.access_flags |= curr_usage.GetAccessFlags();
+      }
+    }
+
+    for (const auto& pair : dependency_map) {
+      render_pass_builder_->AddSubpassDependency(pair.second);
+    }
+  }
 }
 
 ImageUsageType GraphicsPassBuilder::GetImageUsageTypeForAllSubpasses(

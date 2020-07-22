@@ -211,6 +211,14 @@ VkImageUsageFlags GetImageUsageFlags(absl::Span<const Usage> usages) {
   return static_cast<VkImageUsageFlags>(flags);
 }
 
+bool NeedSynchronization(const Usage& prev_usage, const Usage& curr_usage) {
+  if (curr_usage == prev_usage &&
+      curr_usage.access_type() == AccessType::kReadOnly) {
+    return false;
+  }
+  return true;
+}
+
 } /* namespace image */
 } /* namespace vulkan */
 } /* namespace renderer */

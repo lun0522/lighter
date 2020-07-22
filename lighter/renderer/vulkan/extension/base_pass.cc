@@ -7,7 +7,6 @@
 
 #include "lighter/renderer/vulkan/extension/base_pass.h"
 
-#include "lighter/common/util.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace lighter {
@@ -42,11 +41,6 @@ UsageHistory& UsageHistory::SetFinalUsage(const Usage& usage) {
   return *this;
 }
 
-const Usage* UsageHistory::GetUsage(int subpass) const {
-  const auto iter = usage_at_subpass_map_.find(subpass);
-  return iter == usage_at_subpass_map_.end() ? nullptr : &iter->second;
-}
-
 std::vector<Usage> UsageHistory::GetAllUsages() const {
   const int num_usages = static_cast<int>(usage_at_subpass_map_.size()) +
                          (final_usage_.has_value() ? 1 : 0);
@@ -66,7 +60,8 @@ std::vector<Usage> UsageHistory::GetAllUsages() const {
 BasePass& BasePass::AddImage(Image* image, image::UsageHistory&& history) {
   ASSERT_NON_NULL(image, "'image' cannot be nullptr");
   for (const auto& pair : history.usage_at_subpass_map()) {
-    ValidateSubpass(/*subpass=*/pair.first, history.image_name());
+    ValidateSubpass(/*subpass=*/pair.first, history.image_name(),
+                    /*include_virtual_subpasses=*/false);
   }
   ValidateImageUsageHistory(history);
 
@@ -94,13 +89,43 @@ VkImageLayout BasePass::GetImageLayoutAfterPass(const Image& image) const {
 VkImageLayout BasePass::GetImageLayoutAtSubpass(const Image& image,
                                                 int subpass) const {
   const image::UsageHistory& history = GetUsageHistory(image);
-  ValidateSubpass(subpass, history.image_name());
-  const image::Usage* usage = history.GetUsage(subpass);
+  ValidateSubpass(subpass, history.image_name(),
+                  /*include_virtual_subpasses=*/false);
+  const image::Usage* usage = GetImageUsage(history, subpass);
   ASSERT_NON_NULL(
       usage,
       absl::StrFormat("Usage not specified for image '%s' at subpass %d",
                       history.image_name(), subpass));
   return usage->GetImageLayout();
+}
+
+const image::Usage* BasePass::GetImageUsage(const image::UsageHistory& history,
+                                            int subpass) const {
+  ValidateSubpass(subpass, history.image_name(),
+                  /*include_virtual_subpasses=*/true);
+  const auto iter = history.usage_at_subpass_map().find(subpass);
+  return iter == history.usage_at_subpass_map().end() ? nullptr : &iter->second;
+}
+
+absl::optional<BasePass::ImageUsagesInfo>
+BasePass::GetImageUsagesIfNeedSynchronization(
+    const image::UsageHistory& history, int subpass) const {
+  ValidateSubpass(subpass, history.image_name(),
+                  /*include_virtual_subpasses=*/true);
+  const auto curr_usage_iter = history.usage_at_subpass_map().find(subpass);
+  if (curr_usage_iter == history.usage_at_subpass_map().end()) {
+    return absl::nullopt;
+  }
+  const auto prev_usage_iter = std::prev(curr_usage_iter);
+
+  const image::Usage& prev_usage = prev_usage_iter->second;
+  const image::Usage& curr_usage = curr_usage_iter->second;
+  if (!image::NeedSynchronization(prev_usage, curr_usage)) {
+    return absl::nullopt;
+  }
+
+  const int prev_usage_subpass = prev_usage_iter->first;
+  return ImageUsagesInfo{prev_usage_subpass, &prev_usage, &curr_usage};
 }
 
 const image::UsageHistory& BasePass::GetUsageHistory(const Image& image) const {
@@ -110,11 +135,21 @@ const image::UsageHistory& BasePass::GetUsageHistory(const Image& image) const {
 }
 
 void BasePass::ValidateSubpass(int subpass,
-                               const std::string& image_name) const {
-  ASSERT_TRUE(
-      subpass >= 0 && subpass < num_subpasses_,
-      absl::StrFormat("Subpass (%d) out of range [0, %d) for image '%s'",
-                      subpass, num_subpasses_, image_name));
+                               const std::string& image_name,
+                               bool include_virtual_subpasses) const {
+  if (include_virtual_subpasses) {
+    ASSERT_TRUE(
+        subpass >= virtual_initial_subpass_index()
+        && subpass <= virtual_final_subpass_index(),
+        absl::StrFormat("Subpass (%d) out of range [%d, %d] for image '%s'",
+                        subpass, virtual_initial_subpass_index(),
+                        virtual_final_subpass_index(), image_name));
+  } else {
+    ASSERT_TRUE(
+        subpass >= 0 && subpass < num_subpasses_,
+        absl::StrFormat("Subpass (%d) out of range [0, %d) for image '%s'",
+                        subpass, num_subpasses_, image_name));
+  }
 }
 
 } /* namespace vulkan */

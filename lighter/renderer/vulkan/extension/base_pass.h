@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/image_util.h"
 #include "third_party/absl/container/flat_hash_map.h"
@@ -46,10 +47,6 @@ class UsageHistory {
   // only if the user wants to explicitly transition the image layout to prepare
   // for later operations.
   UsageHistory& SetFinalUsage(const Usage& usage);
-
-  // Returns a pointer to image usage at 'subpass', or nullptr if the usage has
-  // not been specified via AddUsage().
-  const Usage* GetUsage(int subpass) const;
 
   // Returns all usages at all subpasses, including the final usage if
   // specified. Note that this may contain duplicates.
@@ -101,15 +98,39 @@ class BasePass {
   VkImageLayout GetImageLayoutAfterPass(const Image& image) const;
 
   // Returns the layout of 'image' at 'subpass'. The usage at this subpass must
-  // have been specified in the usage history.
+  // have been specified via AddUsage() in the usage history.
   VkImageLayout GetImageLayoutAtSubpass(const Image& image, int subpass) const;
 
  protected:
+  // Holds the previous and current image usage.
+  struct ImageUsagesInfo {
+    ImageUsagesInfo(int prev_usage_subpass,
+                    const image::Usage* prev_usage,
+                    const image::Usage* curr_usage)
+        : prev_usage_subpass{prev_usage_subpass},
+          prev_usage{*FATAL_IF_NULL(prev_usage)},
+          curr_usage{*FATAL_IF_NULL(curr_usage)} {}
+
+    const int prev_usage_subpass;
+    const image::Usage& prev_usage;
+    const image::Usage& curr_usage;
+  };
+
   // Checks whether image usages recorded in 'history' can be handled by this
   // pass. Note that initial and final usages has not been added to 'history'
   // when this is called, since they are not really a part of the pass.
   virtual void ValidateImageUsageHistory(
       const image::UsageHistory& history) const = 0;
+
+  // Returns a pointer to image usage at 'subpass', or nullptr if the usage has
+  // not been specified for that subpass.
+  const image::Usage* GetImageUsage(const image::UsageHistory& history,
+                                    int subpass) const;
+
+  // Returns previous and current image usages info if the image is used at
+  // 'subpass' and synchronization on image memory access is needed,
+  absl::optional<ImageUsagesInfo> GetImageUsagesIfNeedSynchronization(
+      const image::UsageHistory& history, int subpass) const;
 
   // Images are in their initial/final layouts at the virtual subpasses.
   int virtual_initial_subpass_index() const { return -1; }
@@ -128,8 +149,12 @@ class BasePass {
   // AddImage().
   const image::UsageHistory& GetUsageHistory(const Image& image) const;
 
-  // Checks whether 'subpass' is in range [0, 'num_subpasses_').
-  void ValidateSubpass(int subpass, const std::string& image_name) const;
+  // Checks whether 'subpass' is in range:
+  //   - [0, 'num_subpasses_'), if 'include_virtual_subpasses' is false.
+  //   - [virtual_initial_subpass_index(), virtual_final_subpass_index()], if
+  //     'include_virtual_subpasses' is true.
+  void ValidateSubpass(int subpass, const std::string& image_name,
+                       bool include_virtual_subpasses) const;
 
   // Maps images used in this pass to their respective usage history.
   ImageUsageHistoryMap image_usage_history_map_;

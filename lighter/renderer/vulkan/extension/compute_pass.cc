@@ -11,7 +11,6 @@
 #include <string>
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/image_util.h"
 #include "third_party/absl/strings/str_format.h"
 
@@ -33,21 +32,15 @@ void ComputePass::Run(const VkCommandBuffer& command_buffer,
               "Assumption of the following loop is broken");
   for (int subpass = 0; subpass <= num_subpasses_; ++subpass) {
     for (const auto& pair : image_usage_history_map()) {
-      const auto& usage_at_subpass_map = pair.second.usage_at_subpass_map();
-      const auto iter = usage_at_subpass_map.find(subpass);
-      if (iter == usage_at_subpass_map.end()) {
-        continue;
-      }
-
-      const image::Usage& next_usage = iter->second;
-      const image::Usage& prev_usage = std::prev(iter)->second;
-      if (next_usage == prev_usage &&
-          next_usage.access_type() == image::Usage::AccessType::kReadOnly) {
+      const auto usages_info =
+          GetImageUsagesIfNeedSynchronization(/*history=*/pair.second, subpass);
+      if (!usages_info.has_value()) {
         continue;
       }
 
       InsertMemoryBarrier(command_buffer, queue_family_index, **pair.first,
-                          prev_usage, next_usage);
+                          usages_info.value().prev_usage,
+                          usages_info.value().curr_usage);
 #ifndef NDEBUG
       const std::string log_suffix =
           subpass == virtual_final_subpass_index()
@@ -72,15 +65,15 @@ void ComputePass::Run(const VkCommandBuffer& command_buffer,
 
 void ComputePass::InsertMemoryBarrier(
     const VkCommandBuffer& command_buffer, uint32_t queue_family_index,
-    const VkImage& image, image::Usage prev_usage,
-    image::Usage next_usage) const {
+    const VkImage& image, const image::Usage& prev_usage,
+    const image::Usage& curr_usage) const {
   const VkImageMemoryBarrier barrier{
       VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
       /*pNext=*/nullptr,
       /*srcAccessMask=*/prev_usage.GetAccessFlags(),
-      /*dstAccessMask=*/next_usage.GetAccessFlags(),
+      /*dstAccessMask=*/curr_usage.GetAccessFlags(),
       /*oldLayout=*/prev_usage.GetImageLayout(),
-      /*newLayout=*/next_usage.GetImageLayout(),
+      /*newLayout=*/curr_usage.GetImageLayout(),
       /*srcQueueFamilyIndex=*/queue_family_index,
       /*dstQueueFamilyIndex=*/queue_family_index,
       image,
@@ -96,7 +89,7 @@ void ComputePass::InsertMemoryBarrier(
   vkCmdPipelineBarrier(
       command_buffer,
       /*srcStageMask=*/prev_usage.GetPipelineStageFlags(),
-      /*dstStageMask=*/next_usage.GetPipelineStageFlags(),
+      /*dstStageMask=*/curr_usage.GetPipelineStageFlags(),
       /*dependencyFlags=*/0,
       /*memoryBarrierCount=*/0,
       /*pMemoryBarriers=*/nullptr,
