@@ -266,11 +266,11 @@ class Model {
             int frame, uint32_t instance_count) const;
 
  private:
+  friend std::unique_ptr<Model> ModelBuilder::Build();
+
   using DescriptorsPerFrame = ModelBuilder::DescriptorsPerFrame;
   using PushConstantInfos = ModelBuilder::PushConstantInfos;
   using TexturesPerMesh = ModelBuilder::TexturesPerMesh;
-
-  friend std::unique_ptr<Model> ModelBuilder::Build();
 
   Model(SharedBasicContext context,
         float viewport_aspect_ratio,

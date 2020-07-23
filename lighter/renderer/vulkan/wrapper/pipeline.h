@@ -73,7 +73,7 @@ class PipelineBuilder {
 
   virtual ~PipelineBuilder() = default;
 
-  // Builds a VkPipeline object. This can be called multiple times.
+  // Builds a pipeline. This can be called multiple times.
   virtual std::unique_ptr<Pipeline> Build() const = 0;
 
  protected:

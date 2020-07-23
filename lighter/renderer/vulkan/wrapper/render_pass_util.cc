@@ -136,12 +136,12 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
 
   /* Subpass dependencies */
   AddSubpassDependency(SubpassDependency{
-      /*prev_subpass=*/SubpassInfo{
+      /*src_subpass=*/SubpassInfo{
           kExternalSubpassIndex,
           VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
           VK_ACCESS_MEMORY_READ_BIT,
       },
-      /*next_subpass=*/SubpassInfo{
+      /*dst_subpass=*/SubpassInfo{
           /*index=*/0,
           VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
           VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
@@ -150,15 +150,15 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
       /*dependency_flags=*/nullflag,
   });
   for (uint32_t index = 0; index < num_subpasses; ++index) {
-    const uint32_t prev_subpass_index =
+    const uint32_t src_subpass_index =
         (index > 0) ? (index - 1) : kExternalSubpassIndex;
     AddSubpassDependency(SubpassDependency{
-        /*prev_subpass=*/SubpassInfo{
-            prev_subpass_index,
+        /*src_subpass=*/SubpassInfo{
+            src_subpass_index,
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
             VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
         },
-        /*next_subpass=*/SubpassInfo{
+        /*dst_subpass=*/SubpassInfo{
             index,
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
             VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
@@ -233,12 +233,12 @@ DeferredShadingRenderPassBuilder::DeferredShadingRenderPassBuilder(
 
   /* Subpass dependencies */
   AddSubpassDependency(SubpassDependency{
-      /*prev_subpass=*/SubpassInfo{
+      /*src_subpass=*/SubpassInfo{
           kExternalSubpassIndex,
           VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
           VK_ACCESS_MEMORY_READ_BIT,
       },
-      /*next_subpass=*/SubpassInfo{
+      /*dst_subpass=*/SubpassInfo{
           /*index=*/0,
           VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
           VK_ACCESS_COLOR_ATTACHMENT_READ_BIT

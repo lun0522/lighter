@@ -57,7 +57,7 @@ std::vector<Usage> UsageHistory::GetAllUsages() const {
 
 } /* namespace image */
 
-BasePass& BasePass::AddImage(Image* image, image::UsageHistory&& history) {
+void BasePass::AddImageAndHistory(Image* image, image::UsageHistory&& history) {
   ASSERT_NON_NULL(image, "'image' cannot be nullptr");
   for (const auto& pair : history.usage_at_subpass_map()) {
     ValidateSubpass(/*subpass=*/pair.first, history.image_name(),
@@ -71,7 +71,6 @@ BasePass& BasePass::AddImage(Image* image, image::UsageHistory&& history) {
                      history.final_usage().value());
   }
   image_usage_history_map_.emplace(image, std::move(history));
-  return *this;
 }
 
 VkImageLayout BasePass::GetImageLayoutBeforePass(const Image& image) const {
@@ -97,6 +96,12 @@ VkImageLayout BasePass::GetImageLayoutAtSubpass(const Image& image,
       absl::StrFormat("Usage not specified for image '%s' at subpass %d",
                       history.image_name(), subpass));
   return usage->GetImageLayout();
+}
+
+const image::UsageHistory& BasePass::GetUsageHistory(const Image& image) const {
+  const auto iter = image_usage_history_map_.find(&image);
+  ASSERT_FALSE(iter == image_usage_history_map_.end(), "Unrecognized image");
+  return iter->second;
 }
 
 const image::Usage* BasePass::GetImageUsage(const image::UsageHistory& history,
@@ -126,12 +131,6 @@ BasePass::GetImageUsagesIfNeedSynchronization(
 
   const int prev_usage_subpass = prev_usage_iter->first;
   return ImageUsagesInfo{prev_usage_subpass, &prev_usage, &curr_usage};
-}
-
-const image::UsageHistory& BasePass::GetUsageHistory(const Image& image) const {
-  const auto iter = image_usage_history_map_.find(&image);
-  ASSERT_FALSE(iter == image_usage_history_map_.end(), "Unrecognized image");
-  return iter->second;
 }
 
 void BasePass::ValidateSubpass(int subpass,

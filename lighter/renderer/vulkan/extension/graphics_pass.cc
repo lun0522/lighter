@@ -21,15 +21,31 @@ namespace {
 
 using ImageUsageType = image::Usage::UsageType;
 
+// Specifies the image usage at the subpass described by 'subpass_info', so that
+// it will be considered when setting up the subpass dependency.
+void IncludeUsageInSubpassDependency(
+    const image::Usage& image_usage,
+    RenderPassBuilder::SubpassDependency::SubpassInfo* subpass_info) {
+  subpass_info->stage_flags |= image_usage.GetPipelineStageFlags();
+  subpass_info->access_flags |= image_usage.GetAccessFlags();
+}
+
 } /* namespace */
 
-GraphicsPassBuilder::GraphicsPassBuilder(
-    SharedBasicContext context, int num_subpasses)
+GraphicsPass::GraphicsPass(SharedBasicContext context, int num_subpasses)
     : BasePass{num_subpasses}, context_{std::move(FATAL_IF_NULL(context))} {
   multisampling_at_subpass_maps_.resize(num_subpasses_);
 }
 
-GraphicsPassBuilder& GraphicsPassBuilder::AddMultisampleResolving(
+int GraphicsPass::AddImage(Image* image, image::UsageHistory&& history) {
+  BasePass::AddImageAndHistory(image, std::move(history));
+  const auto attachment_index =
+      static_cast<int>(image_usage_history_map().size()) - 1;
+  attachment_index_map_.insert({image, attachment_index});
+  return attachment_index;
+}
+
+GraphicsPass& GraphicsPass::AddMultisampleResolving(
     const Image& src_image, const Image& dst_image, int subpass) {
   const auto src_iter = image_usage_history_map().find(&src_image);
   ASSERT_FALSE(src_iter == image_usage_history_map().end(),
@@ -56,29 +72,15 @@ GraphicsPassBuilder& GraphicsPassBuilder::AddMultisampleResolving(
   return *this;
 }
 
-std::unique_ptr<GraphicsPass> GraphicsPassBuilder::Build() {
+std::unique_ptr<RenderPassBuilder> GraphicsPass::CreateRenderPassBuilder() {
   render_pass_builder_ = absl::make_unique<RenderPassBuilder>(context_);
-  RebuildAttachmentIndexMap();
   SetAttachments();
   SetSubpasses();
   SetSubpassDependencies();
-  std::unique_ptr<RenderPass> render_pass = render_pass_builder_->Build();
-  render_pass_builder_.reset();
-
-  return std::unique_ptr<GraphicsPass>{
-      new GraphicsPass(std::move(render_pass),
-                       std::move(attachment_index_map_))};
+  return std::move(render_pass_builder_);
 }
 
-void GraphicsPassBuilder::RebuildAttachmentIndexMap() {
-  attachment_index_map_.clear();
-  int index = 0;
-  for (const auto& pair : image_usage_history_map()) {
-    attachment_index_map_.insert({pair.first, index++});
-  }
-}
-
-void GraphicsPassBuilder::SetAttachments() {
+void GraphicsPass::SetAttachments() {
   render_pass_builder_->SetNumFramebuffers(image_usage_history_map().size());
 
   for (const auto& pair : image_usage_history_map()) {
@@ -115,12 +117,14 @@ void GraphicsPassBuilder::SetAttachments() {
   }
 }
 
-void GraphicsPassBuilder::SetSubpasses() {
+void GraphicsPass::SetSubpasses() {
+  using MultisamplingPair = RenderPassBuilder::MultisamplingPair;
+
   for (int subpass = 0; subpass < num_subpasses_; ++subpass) {
     const MultisamplingMap& multisampling_map =
         multisampling_at_subpass_maps_[subpass];
 
-    std::vector<RenderPassBuilder::MultisamplingPair> multisampling_pairs;
+    std::vector<MultisamplingPair> multisampling_pairs;
     multisampling_pairs.reserve(multisampling_map.size());
 
     std::vector<VkAttachmentReference> color_refs;
@@ -134,22 +138,31 @@ void GraphicsPassBuilder::SetSubpasses() {
       if (usage == nullptr) {
         continue;
       }
+      const Image& image = *pair.first;
 
       const VkAttachmentReference attachment_ref{
-          static_cast<uint32_t>(attachment_index_map_[pair.first]),
+          static_cast<uint32_t>(attachment_index_map_[&image]),
           usage->GetImageLayout(),
       };
 
       switch (usage->usage_type()) {
         case ImageUsageType::kRenderTarget: {
-          const auto iter = multisampling_map.find(pair.first);
+          const auto iter = multisampling_map.find(&image);
           if (iter != multisampling_map.end()) {
-            const auto multisample_reference =
-                static_cast<int>(color_refs.size());
-            const auto target_attachment =
-                static_cast<uint32_t>(attachment_index_map_[iter->second]);
-            multisampling_pairs.push_back(
-                {multisample_reference, target_attachment});
+            const Image& target = *iter->second;
+            multisampling_pairs.push_back(MultisamplingPair{
+                /*multisample_reference=*/static_cast<int>(color_refs.size()),
+                /*target_attachment=*/
+                static_cast<uint32_t>(attachment_index_map_[&target]),
+            });
+
+#ifndef NDEBUG
+            LOG_INFO << absl::StreamFormat("Image '%s' resolves to '%s' at "
+                                           "subpass %d",
+                                           GetUsageHistory(image).image_name(),
+                                           GetUsageHistory(target).image_name(),
+                                           subpass);
+#endif  /* !NDEBUG */
           }
           color_refs.push_back(attachment_ref);
           break;
@@ -177,15 +190,15 @@ void GraphicsPassBuilder::SetSubpasses() {
   }
 }
 
-void GraphicsPassBuilder::SetSubpassDependencies() {
-  using Dependency = RenderPassBuilder::SubpassDependency;
+void GraphicsPass::SetSubpassDependencies() {
+  using SubpassDependency = RenderPassBuilder::SubpassDependency;
 
   ASSERT_TRUE(virtual_final_subpass_index() == num_subpasses_,
               "Assumption of the following loop is broken");
   for (int subpass = 0; subpass <= num_subpasses_; ++subpass) {
     // Maps the source subpass index to the dependency between source subpass
     // and current subpass. We use an ordered map to make debugging easier.
-    std::map<int, Dependency> dependency_map;
+    std::map<int, SubpassDependency> dependency_map;
 
     for (const auto& pair : image_usage_history_map()) {
       const auto usages_info =
@@ -195,49 +208,41 @@ void GraphicsPassBuilder::SetSubpassDependencies() {
       }
       const image::Usage& prev_usage = usages_info.value().prev_usage;
       const image::Usage& curr_usage = usages_info.value().curr_usage;
-
-      int src_subpass = usages_info.value().prev_usage_subpass;
-      if (src_subpass == virtual_initial_subpass_index()) {
-        src_subpass = kExternalSubpassIndex;
-      }
+      const int src_subpass = usages_info.value().prev_usage_subpass;
 
       auto iter = dependency_map.find(src_subpass);
       if (iter == dependency_map.end()) {
-        int dst_subpass = subpass;
-        if (dst_subpass == virtual_final_subpass_index()) {
-          dst_subpass = kExternalSubpassIndex;
-        }
-
-        Dependency default_dependency{
-            /*prev_subpass=*/Dependency::SubpassInfo{
-                static_cast<uint32_t>(src_subpass),
+        const SubpassDependency default_dependency{
+            /*src_subpass=*/SubpassDependency::SubpassInfo{
+                RegulateSubpassIndex(src_subpass),
                 /*stage_flags=*/nullflag,
                 /*access_flags=*/nullflag,
             },
-            /*next_subpass=*/Dependency::SubpassInfo{
-                static_cast<uint32_t>(dst_subpass),
+            /*dst_subpass=*/SubpassDependency::SubpassInfo{
+                RegulateSubpassIndex(subpass),
                 /*stage_flags=*/nullflag,
                 /*access_flags=*/nullflag,
             },
             /*dependency_flags=*/nullflag,
         };
-
-        auto res = dependency_map.insert({src_subpass,
-                                          std::move(default_dependency)});
-        iter = res.first;
+        iter = dependency_map.insert({src_subpass, default_dependency}).first;
       }
 
-      {
-        auto& src_subpass_info = iter->second.prev_subpass;
-        src_subpass_info.stage_flags |= prev_usage.GetPipelineStageFlags();
-        src_subpass_info.access_flags |= prev_usage.GetAccessFlags();
-      }
+      IncludeUsageInSubpassDependency(prev_usage, &iter->second.src_subpass);
+      IncludeUsageInSubpassDependency(curr_usage, &iter->second.dst_subpass);
 
-      {
-        auto& dst_subpass_info = iter->second.next_subpass;
-        dst_subpass_info.stage_flags |= curr_usage.GetPipelineStageFlags();
-        dst_subpass_info.access_flags |= curr_usage.GetAccessFlags();
-      }
+#ifndef NDEBUG
+      const std::string src_subpass_name =
+          IsVirtualSubpass(src_subpass)
+              ? "previous pass"
+              : absl::StrFormat("subpass %d", src_subpass);
+      const std::string dst_subpass_name =
+          IsVirtualSubpass(subpass)
+              ? "next pass"
+              : absl::StrFormat("subpass %d", subpass);
+      LOG_INFO << absl::StreamFormat("Added dependency from %s to %s",
+                                     src_subpass_name, dst_subpass_name);
+#endif  /* !NDEBUG */
     }
 
     for (const auto& pair : dependency_map) {
@@ -246,13 +251,11 @@ void GraphicsPassBuilder::SetSubpassDependencies() {
   }
 }
 
-ImageUsageType GraphicsPassBuilder::GetImageUsageTypeForAllSubpasses(
+ImageUsageType GraphicsPass::GetImageUsageTypeForAllSubpasses(
     const image::UsageHistory& history) const {
   ImageUsageType prev_usage_type = ImageUsageType::kDontCare;
   for (const auto& pair : history.usage_at_subpass_map()) {
-    const int subpass = pair.first;
-    if (subpass == virtual_initial_subpass_index() ||
-        subpass == virtual_final_subpass_index()) {
+    if (IsVirtualSubpass(pair.first)) {
       continue;
     }
 
@@ -269,7 +272,7 @@ ImageUsageType GraphicsPassBuilder::GetImageUsageTypeForAllSubpasses(
   return prev_usage_type;
 }
 
-void GraphicsPassBuilder::ValidateImageUsageHistory(
+void GraphicsPass::ValidateImageUsageHistory(
     const image::UsageHistory& history) const {
   for (const auto& pair : history.usage_at_subpass_map()) {
     const ImageUsageType usage_type = pair.second.usage_type();

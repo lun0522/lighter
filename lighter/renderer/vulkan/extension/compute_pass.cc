@@ -18,6 +18,12 @@ namespace lighter {
 namespace renderer {
 namespace vulkan {
 
+ComputePass& ComputePass::AddImage(Image* image,
+                                   image::UsageHistory&& history) {
+  BasePass::AddImageAndHistory(image, std::move(history));
+  return *this;
+}
+
 void ComputePass::Run(const VkCommandBuffer& command_buffer,
                       uint32_t queue_family_index,
                       absl::Span<const ComputeOp> compute_ops) const {

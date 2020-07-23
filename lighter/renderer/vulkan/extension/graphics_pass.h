@@ -21,39 +21,65 @@ namespace lighter {
 namespace renderer {
 namespace vulkan {
 
-// Forward declarations.
-class GraphicsPass;
-
-class GraphicsPassBuilder : public BasePass {
+// This class is used to analyze usages of attachment images involved in a
+// render pass, and create a render pass builder based on the analysis results.
+// The internal states are preserved when it creates the render pass builder, so
+// it can be reused later.
+class GraphicsPass : public BasePass {
  public:
-  GraphicsPassBuilder(SharedBasicContext context, int num_subpasses);
+  GraphicsPass(SharedBasicContext context, int num_subpasses);
 
   // This class is neither copyable nor movable.
-  GraphicsPassBuilder(const GraphicsPassBuilder&) = delete;
-  GraphicsPassBuilder& operator=(const GraphicsPassBuilder&) = delete;
+  GraphicsPass(const GraphicsPass&) = delete;
+  GraphicsPass& operator=(const GraphicsPass&) = delete;
 
-  GraphicsPassBuilder& AddMultisampleResolving(
+  // Adds an image that is used in this graphics pass, along with its usage
+  // history, and returns its index within the VkAttachmentDescription array,
+  // which is used when calling RenderPassBuilder::UpdateAttachmentImage().
+  // The current usage of 'image' will be used as the initial usage.
+  int AddImage(Image* image, image::UsageHistory&& history);
+
+  // Specifies that the multisample 'src_image' will get resolved to the single
+  // sample 'dst_image' at 'subpass'.
+  GraphicsPass& AddMultisampleResolving(
       const Image& src_image, const Image& dst_image, int subpass);
 
-  std::unique_ptr<GraphicsPass> Build();
+  // Creates a render pass builder. This can be called multiple times.
+  std::unique_ptr<RenderPassBuilder> CreateRenderPassBuilder();
 
  private:
+  // Maps each attachment image to its index within the VkAttachmentDescription
+  // array.
   using AttachmentIndexMap = absl::flat_hash_map<const Image*, int>;
 
+  // Maps each multisample image to the single sample image that it will resolve
+  // to. We should have such a map for each subpass.
   using MultisamplingMap = absl::flat_hash_map<const Image*, const Image*>;
 
-  friend class GraphicsPass;
-
-  void RebuildAttachmentIndexMap();
-
+  // Following functions populate 'render_pass_builder_'.
   void SetAttachments();
-
   void SetSubpasses();
-
   void SetSubpassDependencies();
 
+  // Returns the usage type of an image. We assume that each image should either
+  // always be a color attachment, or always be a depth stencil attachment
+  // throughout all subpasses.
   image::Usage::UsageType GetImageUsageTypeForAllSubpasses(
       const image::UsageHistory& history) const;
+
+  // Returns whether 'subpass' is a virtual subpass.
+  bool IsVirtualSubpass(int subpass) const {
+    return subpass == virtual_initial_subpass_index() ||
+           subpass == virtual_final_subpass_index();
+  }
+
+  // Returns kExternalSubpassIndex if 'subpass' is a virtual subpass. Otherwise,
+  // returns the casted input subpass.
+  uint32_t RegulateSubpassIndex(int subpass) const {
+    return IsVirtualSubpass(subpass)
+               ? kExternalSubpassIndex
+               : static_cast<uint32_t>(subpass);
+  }
 
   // Overrides.
   void ValidateImageUsageHistory(const image::UsageHistory& history) const
@@ -62,32 +88,16 @@ class GraphicsPassBuilder : public BasePass {
   // Pointer to context.
   const SharedBasicContext context_;
 
+  // Maps attachment images to their indices within the VkAttachmentDescription
+  // array.
   AttachmentIndexMap attachment_index_map_;
 
+  // Each element maps multisample images to single sample images that they will
+  // resolve to. Elements are indexed by subpass.
   std::vector<MultisamplingMap> multisampling_at_subpass_maps_;
 
+  // Builder of RenderPass.
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;
-};
-
-class GraphicsPass {
- public:
-  // This class is neither copyable nor movable.
-  GraphicsPass(const GraphicsPass&) = delete;
-  GraphicsPass& operator=(const GraphicsPass&) = delete;
-
- private:
-  using AttachmentIndexMap = GraphicsPassBuilder::AttachmentIndexMap;
-
-  friend std::unique_ptr<GraphicsPass> GraphicsPassBuilder::Build();
-
-  GraphicsPass(std::unique_ptr<RenderPass>&& render_pass,
-               AttachmentIndexMap&& attachment_index_map)
-      : render_pass_{std::move(render_pass)},
-        attachment_index_map_{std::move(attachment_index_map)} {}
-
-  const std::unique_ptr<RenderPass> render_pass_;
-
-  const AttachmentIndexMap attachment_index_map_;
 };
 
 } /* namespace vulkan */

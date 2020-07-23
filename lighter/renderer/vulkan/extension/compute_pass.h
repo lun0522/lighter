@@ -34,6 +34,10 @@ class ComputePass : public BasePass {
   ComputePass(const ComputePass&) = delete;
   ComputePass& operator=(const ComputePass&) = delete;
 
+  // Adds an image that is used in this compute pass, along with its usage
+  // history. The current usage of 'image' will be used as the initial usage.
+  ComputePass& AddImage(Image* image, image::UsageHistory&& history);
+
   // Runs 'compute_ops' and inserts memory barriers internally for transitioning
   // image layouts using the queue with 'queue_family_index'. It will also set
   // the final usage through Image class for each image.

@@ -113,12 +113,12 @@ std::vector<int> GetNumberColorAttachmentsInSubpasses(
 VkSubpassDependency CreateSubpassDependency(
     const RenderPassBuilder::SubpassDependency& dependency) {
   return VkSubpassDependency{
-      dependency.prev_subpass.index,
-      dependency.next_subpass.index,
-      dependency.prev_subpass.stage_flags,
-      dependency.next_subpass.stage_flags,
-      dependency.prev_subpass.access_flags,
-      dependency.next_subpass.access_flags,
+      dependency.src_subpass.index,
+      dependency.dst_subpass.index,
+      dependency.src_subpass.stage_flags,
+      dependency.dst_subpass.stage_flags,
+      dependency.src_subpass.access_flags,
+      dependency.dst_subpass.access_flags,
       dependency.dependency_flags,
   };
 }

@@ -72,8 +72,8 @@ class RenderPassBuilder {
   struct SubpassDependency {
     struct SubpassInfo {
       // Index of the subpass. We may use 'kExternalSubpassIndex' to refer to
-      // the subpass before (if used as 'prev_subpass.index') or after
-      // (if 'next_subpass.index') this render pass.
+      // the subpass before (if used as 'src_subpass.index') or after
+      // (if 'dst_subpass.index') this render pass.
       uint32_t index;
 
       // Which pipeline stage of the next subpass should wait for which stage
@@ -102,8 +102,7 @@ class RenderPassBuilder {
       VkAccessFlags access_flags;
     };
 
-    // TODO: Rename to src/dst subpass.
-    SubpassInfo prev_subpass, next_subpass;
+    SubpassInfo src_subpass, dst_subpass;
     VkDependencyFlags dependency_flags;
   };
 
@@ -155,7 +154,7 @@ class RenderPassBuilder {
   // Creates a dependency relationship.
   RenderPassBuilder& AddSubpassDependency(const SubpassDependency& dependency);
 
-  // Returns a render pass. This keeps internal states of the builder unchanged.
+  // Builds a render pass. This keeps internal states of the builder unchanged.
   // For simplicity, the size of framebuffers will be the same to the first
   // color attachment.
   std::unique_ptr<RenderPass> Build() const;

@@ -87,10 +87,6 @@ class BasePass {
 
   virtual ~BasePass() = default;
 
-  // Adds an image that is used in this pass, along with its usage history.
-  // The current usage of 'image' will be used as the initial usage.
-  BasePass& AddImage(Image* image, image::UsageHistory&& history);
-
   // Returns the layout of 'image' before this pass.
   VkImageLayout GetImageLayoutBeforePass(const Image& image) const;
 
@@ -116,11 +112,19 @@ class BasePass {
     const image::Usage& curr_usage;
   };
 
+  // Adds an image that is used in this pass, along with its usage history.
+  // The current usage of 'image' will be used as the initial usage.
+  void AddImageAndHistory(Image* image, image::UsageHistory&& history);
+
   // Checks whether image usages recorded in 'history' can be handled by this
   // pass. Note that initial and final usages has not been added to 'history'
   // when this is called, since they are not really a part of the pass.
   virtual void ValidateImageUsageHistory(
       const image::UsageHistory& history) const = 0;
+
+  // Returns the usage history of 'image'. 'image' must have been added via
+  // AddImage().
+  const image::UsageHistory& GetUsageHistory(const Image& image) const;
 
   // Returns a pointer to image usage at 'subpass', or nullptr if the usage has
   // not been specified for that subpass.
@@ -145,10 +149,6 @@ class BasePass {
   const int num_subpasses_;
 
  private:
-  // Returns the usage history of 'image'. 'image' must have been added via
-  // AddImage().
-  const image::UsageHistory& GetUsageHistory(const Image& image) const;
-
   // Checks whether 'subpass' is in range:
   //   - [0, 'num_subpasses_'), if 'include_virtual_subpasses' is false.
   //   - [virtual_initial_subpass_index(), virtual_final_subpass_index()], if
