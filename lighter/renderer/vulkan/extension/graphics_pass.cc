@@ -72,8 +72,10 @@ GraphicsPass& GraphicsPass::AddMultisampleResolving(
   return *this;
 }
 
-std::unique_ptr<RenderPassBuilder> GraphicsPass::CreateRenderPassBuilder() {
+std::unique_ptr<RenderPassBuilder> GraphicsPass::CreateRenderPassBuilder(
+    int num_framebuffers) {
   render_pass_builder_ = absl::make_unique<RenderPassBuilder>(context_);
+  render_pass_builder_->SetNumFramebuffers(num_framebuffers);
   SetAttachments();
   SetSubpasses();
   SetSubpassDependencies();
@@ -81,8 +83,6 @@ std::unique_ptr<RenderPassBuilder> GraphicsPass::CreateRenderPassBuilder() {
 }
 
 void GraphicsPass::SetAttachments() {
-  render_pass_builder_->SetNumFramebuffers(image_usage_history_map().size());
-
   for (const auto& pair : image_usage_history_map()) {
     const Image& image = *pair.first;
 
@@ -91,6 +91,8 @@ void GraphicsPass::SetAttachments() {
     attachment.final_layout = GetImageLayoutAfterPass(image);
 
     switch (GetImageUsageTypeForAllSubpasses(pair.second)) {
+      // TODO: kDontCare is possible for images as multisample resolving target.
+      case ImageUsageType::kDontCare:
       case ImageUsageType::kRenderTarget:
         attachment.attachment_ops = RenderPassBuilder::Attachment::ColorOps{
             /*load_color_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -181,12 +183,13 @@ void GraphicsPass::SetSubpasses() {
       }
     }
 
+    const int num_color_refs = color_refs.size();
+    render_pass_builder_->SetSubpass(subpass, std::move(color_refs),
+                                     depth_stencil_ref);
     render_pass_builder_->SetMultisampling(
         subpass,
         RenderPassBuilder::CreateMultisamplingReferences(
-            color_refs.size(), multisampling_pairs));
-    render_pass_builder_->SetSubpass(subpass, std::move(color_refs),
-                                     depth_stencil_ref);
+            num_color_refs, multisampling_pairs));
   }
 }
 
@@ -237,9 +240,8 @@ void GraphicsPass::SetSubpassDependencies() {
               ? "previous pass"
               : absl::StrFormat("subpass %d", src_subpass);
       const std::string dst_subpass_name =
-          IsVirtualSubpass(subpass)
-              ? "next pass"
-              : absl::StrFormat("subpass %d", subpass);
+          IsVirtualSubpass(subpass) ? "next pass"
+                                    : absl::StrFormat("subpass %d", subpass);
       LOG_INFO << absl::StreamFormat("Added dependency from %s to %s",
                                      src_subpass_name, dst_subpass_name);
 #endif  /* !NDEBUG */

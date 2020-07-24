@@ -160,7 +160,6 @@ std::vector<VkFramebuffer> CreateFramebuffers(
 std::vector<VkAttachmentReference>
 RenderPassBuilder::CreateMultisamplingReferences(
     int num_color_refs, absl::Span<const MultisamplingPair> pairs) {
-  ASSERT_NON_EMPTY(pairs, "No multisampling pairs provided");
   std::vector<VkAttachmentReference> references(
       num_color_refs,
       VkAttachmentReference{VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED}

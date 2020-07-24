@@ -536,9 +536,8 @@ bool AuroraPath::InsertControlPoint(
     const float next_point_distance =
         glm::distance(control_points[next_point_index], click_object_space);
     const int insert_at_index =
-        prev_point_distance < next_point_distance
-            ? closest_control_point->index
-            : next_point_index;
+        prev_point_distance < next_point_distance ? closest_control_point->index
+                                                  : next_point_index;
     return editor.InsertControlPoint(insert_at_index, click_object_space);
   }
   return false;

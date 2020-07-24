@@ -109,9 +109,10 @@ absl::optional<int> FindIndexOfFirst(
     absl::Span<const ContentType> container,
     const std::function<bool(const ContentType&)>& predicate) {
   const auto first_itr = find_if(container.begin(), container.end(), predicate);
-  return first_itr == container.end()
-      ? absl::nullopt
-      : absl::make_optional<int>(std::distance(container.begin(), first_itr));
+  if (first_itr == container.end()) {
+    return absl::nullopt;
+  }
+  return std::distance(container.begin(), first_itr);
 }
 
 // Moves 'element' to the specified 'index' of 'container'. 'container' will be

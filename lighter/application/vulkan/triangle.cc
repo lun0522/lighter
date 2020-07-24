@@ -19,13 +19,17 @@ namespace {
 using namespace renderer::vulkan;
 
 enum SubpassIndex {
-  kTriangleSubpassIndex = 0,
+  kRenderSubpassIndex = 0,
   kNumSubpasses,
-  kNumOverlaySubpasses = kNumSubpasses - kTriangleSubpassIndex,
 };
 
 constexpr int kNumFramesInFlight = 2;
 constexpr uint32_t kVertexBufferBindingPoint = 0;
+
+struct AttachmentIndex {
+  int swapchain_image = -1;
+  int multisample_image = -1;
+};
 
 /* BEGIN: Consistent with uniform blocks defined in shaders. */
 
@@ -55,10 +59,11 @@ class TriangleApp : public Application {
 
   int current_frame_ = 0;
   common::FrameTimer timer_;
+  AttachmentIndex attachment_index_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PerVertexBuffer> vertex_buffer_;
   std::unique_ptr<PushConstant> alpha_constant_;
-  std::unique_ptr<NaiveRenderPassBuilder> render_pass_builder_;
+  std::unique_ptr<RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<RenderPass> render_pass_;
   std::unique_ptr<GraphicsPipelineBuilder> pipeline_builder_;
   std::unique_ptr<Pipeline> pipeline_;
@@ -94,15 +99,45 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
                                                    kNumFramesInFlight);
 
   /* Render pass */
-  const NaiveRenderPassBuilder::SubpassConfig subpass_config{
-      /*use_opaque_subpass=*/false,
-      /*num_transparent_subpasses=*/0,
-      kNumOverlaySubpasses,
-  };
-  render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
-      context(), subpass_config,
-      /*num_framebuffers=*/window_context().num_swapchain_images(),
-      window_context().use_multisampling());
+  // TODO: How to set layout for all swapchain images?
+  GraphicsPass graphics_pass{context(), kNumSubpasses};
+  if (window_context().use_multisampling()) {
+    image::UsageHistory swapchain_image_usage_history{"Swapchain"};
+    swapchain_image_usage_history.SetFinalUsage(
+        image::Usage::GetPresentationUsage());
+
+    Image* sample_swapchain_image =
+        mutable_window_context()->mutable_swapchain_image(/*index=*/0);
+    attachment_index_.swapchain_image =
+        graphics_pass.AddImage(sample_swapchain_image,
+                               std::move(swapchain_image_usage_history));
+
+    image::UsageHistory multisample_image_usage_history{"Multisample"};
+    multisample_image_usage_history.AddUsage(
+        kRenderSubpassIndex, image::Usage::GetRenderTargetUsage());
+
+    Image* multisample_image =
+        mutable_window_context()->mutable_multisample_image();
+    attachment_index_.multisample_image =
+        graphics_pass.AddImage(multisample_image,
+                               std::move(multisample_image_usage_history));
+
+    graphics_pass.AddMultisampleResolving(
+        *multisample_image, *sample_swapchain_image, kRenderSubpassIndex);
+  } else {
+    image::UsageHistory swapchain_image_usage_history{"Swapchain"};
+    swapchain_image_usage_history
+        .AddUsage(kRenderSubpassIndex, image::Usage::GetRenderTargetUsage())
+        .SetFinalUsage(image::Usage::GetPresentationUsage());
+
+    Image* sample_swapchain_image =
+        mutable_window_context()->mutable_swapchain_image(/*index=*/0);
+    attachment_index_.swapchain_image =
+        graphics_pass.AddImage(sample_swapchain_image,
+                               std::move(swapchain_image_usage_history));
+  }
+  render_pass_builder_ = graphics_pass.CreateRenderPassBuilder(
+      /*num_framebuffers=*/window_context().num_swapchain_images());
 
   /* Pipeline */
   pipeline_builder_ = absl::make_unique<GraphicsPipelineBuilder>(context());
@@ -125,13 +160,13 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
 void TriangleApp::Recreate() {
   /* Render pass */
   render_pass_builder_->UpdateAttachmentImage(
-      render_pass_builder_->color_attachment_index(),
+      attachment_index_.swapchain_image,
       [this](int framebuffer_index) -> const Image& {
         return window_context().swapchain_image(framebuffer_index);
       });
-  if (render_pass_builder_->has_multisample_attachment()) {
+  if (window_context().use_multisampling()) {
     render_pass_builder_->UpdateAttachmentImage(
-        render_pass_builder_->multisample_attachment_index(),
+        attachment_index_.multisample_image,
         [this](int framebuffer_index) -> const Image& {
           return window_context().multisample_image();
         });
@@ -143,7 +178,7 @@ void TriangleApp::Recreate() {
       .SetMultisampling(window_context().sample_count())
       .SetViewport(
           pipeline::GetFullFrameViewport(window_context().frame_size()))
-      .SetRenderPass(**render_pass_, kTriangleSubpassIndex);
+      .SetRenderPass(**render_pass_, kRenderSubpassIndex);
   pipeline_ = pipeline_builder_->Build();
 }
 

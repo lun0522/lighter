@@ -44,8 +44,11 @@ class GraphicsPass : public BasePass {
   GraphicsPass& AddMultisampleResolving(
       const Image& src_image, const Image& dst_image, int subpass);
 
-  // Creates a render pass builder. This can be called multiple times.
-  std::unique_ptr<RenderPassBuilder> CreateRenderPassBuilder();
+  // Creates a render pass builder. This can be called multiple times. Note that
+  // the user still need to call RenderPassBuilder::UpdateAttachmentImage() for
+  // all images included in this graphics pass.
+  std::unique_ptr<RenderPassBuilder> CreateRenderPassBuilder(
+      int num_framebuffers);
 
  private:
   // Maps each attachment image to its index within the VkAttachmentDescription
@@ -76,9 +79,8 @@ class GraphicsPass : public BasePass {
   // Returns kExternalSubpassIndex if 'subpass' is a virtual subpass. Otherwise,
   // returns the casted input subpass.
   uint32_t RegulateSubpassIndex(int subpass) const {
-    return IsVirtualSubpass(subpass)
-               ? kExternalSubpassIndex
-               : static_cast<uint32_t>(subpass);
+    return IsVirtualSubpass(subpass) ? kExternalSubpassIndex
+                                     : static_cast<uint32_t>(subpass);
   }
 
   // Overrides.

@@ -212,10 +212,18 @@ VkImageUsageFlags GetImageUsageFlags(absl::Span<const Usage> usages) {
 }
 
 bool NeedSynchronization(const Usage& prev_usage, const Usage& curr_usage) {
+  // RAR.
   if (curr_usage == prev_usage &&
       curr_usage.access_type() == AccessType::kReadOnly) {
     return false;
   }
+
+  // Should be handled by fences.
+  if (prev_usage.usage_type() == UsageType::kPresentation ||
+      curr_usage.usage_type() == UsageType::kPresentation) {
+    return false;
+  }
+
   return true;
 }
 
