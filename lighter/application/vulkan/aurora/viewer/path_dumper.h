@@ -18,7 +18,7 @@
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
-#include "lighter/renderer/vulkan/wrapper/image_util.h"
+#include "lighter/renderer/vulkan/wrapper/image_usage.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 

@@ -11,6 +11,7 @@
 #include <functional>
 
 #include "lighter/renderer/vulkan/extension/base_pass.h"
+#include "lighter/renderer/vulkan/extension/image_util.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
 

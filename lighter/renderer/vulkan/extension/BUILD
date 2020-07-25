@@ -10,6 +10,7 @@ cc_library(
         ":align",
         ":compute_pass",
         ":graphics_pass",
+        ":image_util",
         ":model",
         ":offscreen_wrappers",
         ":text",
@@ -35,6 +36,7 @@ cc_library(
     hdrs = ["base_pass.h"],
     srcs = ["base_pass.cc"],
     deps = [
+        ":image_util",
         "//lighter/common:util",
         "//lighter/renderer/vulkan/wrapper:image",
         "//third_party/absl/strings:str_format",
@@ -50,6 +52,7 @@ cc_library(
     srcs = ["compute_pass.cc"],
     deps = [
         ":base_pass",
+        ":image_util",
         "//lighter/common:util",
         "//lighter/renderer/vulkan/wrapper:image",
         "//third_party/absl/strings:str_format",
@@ -64,12 +67,25 @@ cc_library(
     srcs = ["graphics_pass.cc"],
     deps = [
         ":base_pass",
+        ":image_util",
         "//lighter/common:util",
         "//lighter/renderer/vulkan/wrapper:image",
         "//lighter/renderer/vulkan/wrapper:render_pass",
         "//third_party/absl/container:flat_hash_map",
         "//third_party/absl/memory",
         "//third_party/absl/strings:str_format",
+    ],
+)
+
+cc_library(
+    name = "image_util",
+    hdrs = ["image_util.h"],
+    srcs = ["image_util.cc"],
+    deps = [
+        "//lighter/common:util",
+        "//lighter/renderer/vulkan/wrapper:image",
+        "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:optional",
     ],
 )
 

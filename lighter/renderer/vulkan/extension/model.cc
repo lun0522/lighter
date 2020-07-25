@@ -10,7 +10,7 @@
 #include "lighter/common/file.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
-#include "lighter/renderer/vulkan/wrapper/image_util.h"
+#include "lighter/renderer/vulkan/wrapper/image_usage.h"
 
 namespace lighter {
 namespace renderer {

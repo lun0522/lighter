@@ -12,8 +12,9 @@
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/extension/base_pass.h"
+#include "lighter/renderer/vulkan/extension/image_util.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
-#include "lighter/renderer/vulkan/wrapper/image_util.h"
+#include "lighter/renderer/vulkan/wrapper/image_usage.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "third_party/absl/container/flat_hash_map.h"
 
@@ -66,7 +67,7 @@ class GraphicsPass : public BasePass {
 
   // Returns the usage type of an image. We assume that each image should either
   // always be a color attachment, or always be a depth stencil attachment
-  // throughout all subpasses. Note that kMultisampleResolveTarget is treated as
+  // throughout all subpasses. Note that kMultisampleResolve is treated as
   // kRenderTarget. Hence, the return value can only be either kRenderTarget or
   // kDepthStencil.
   image::Usage::UsageType GetImageUsageTypeForAllSubpasses(

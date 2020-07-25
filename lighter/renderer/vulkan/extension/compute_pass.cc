@@ -11,7 +11,7 @@
 #include <string>
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/vulkan/wrapper/image_util.h"
+#include "lighter/renderer/vulkan/wrapper/image_usage.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace lighter {

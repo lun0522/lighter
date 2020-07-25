@@ -1,11 +1,11 @@
 //
-//  image_util.cc
+//  image_usage.cc
 //
 //  Created by Pujun Lun on 4/9/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "lighter/renderer/vulkan/wrapper/image_util.h"
+#include "lighter/renderer/vulkan/wrapper/image_usage.h"
 
 #include <algorithm>
 
@@ -55,10 +55,10 @@ VkAccessFlags Usage::GetAccessFlags() const {
                                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
                                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
-    case UsageType::kMultisampleResolveTarget:
+    case UsageType::kMultisampleResolve:
       ASSERT_TRUE(access_type_ == AccessType::kWriteOnly,
                   "Access type must be kWriteOnly for "
-                  "UsageType::kMultisampleResolveTarget");
+                  "UsageType::kMultisampleResolve");
       return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
     case UsageType::kPresentation:
@@ -87,7 +87,7 @@ VkPipelineStageFlags Usage::GetPipelineStageFlags() const {
       return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
     case UsageType::kRenderTarget:
-    case UsageType::kMultisampleResolveTarget:
+    case UsageType::kMultisampleResolve:
     case UsageType::kPresentation:
       return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
@@ -127,7 +127,7 @@ VkImageLayout Usage::GetImageLayout() const {
       return VK_IMAGE_LAYOUT_UNDEFINED;
 
     case UsageType::kRenderTarget:
-    case UsageType::kMultisampleResolveTarget:
+    case UsageType::kMultisampleResolve:
       return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     case UsageType::kDepthStencil:
@@ -165,7 +165,7 @@ VkImageUsageFlagBits Usage::GetImageUsageFlagBits() const {
       FATAL("No corresponding image usage flag bits for UsageType::kDontCare");
 
     case UsageType::kRenderTarget:
-    case UsageType::kMultisampleResolveTarget:
+    case UsageType::kMultisampleResolve:
     case UsageType::kPresentation:
       return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 

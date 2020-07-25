@@ -79,11 +79,11 @@ cc_library(
     name = "image",
     hdrs = [
         "image.h",
-        "image_util.h",
+        "image_usage.h",
     ],
     srcs = [
         "image.cc",
-        "image_util.cc",
+        "image_usage.cc",
     ],
     deps = [
         ":basics",

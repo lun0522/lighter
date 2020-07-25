@@ -10,7 +10,7 @@
 #include <algorithm>
 
 #include "lighter/renderer/vulkan/wrapper/command.h"
-#include "lighter/renderer/vulkan/wrapper/image_util.h"
+#include "lighter/renderer/vulkan/wrapper/image_usage.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "third_party/absl/memory/memory.h"

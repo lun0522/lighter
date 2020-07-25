@@ -1,12 +1,12 @@
 //
-//  image_util.h
+//  image_usage.h
 //
 //  Created by Pujun Lun on 4/9/19.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_UTIL_H
-#define LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_UTIL_H
+#ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_USAGE_H
+#define LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_USAGE_H
 
 #include "lighter/common/util.h"
 #include "third_party/absl/types/span.h"
@@ -28,8 +28,8 @@ class Usage {
     kRenderTarget,
     // Depth stencil attachment.
     kDepthStencil,
-    // A multisample image resolves to this image.
-    kMultisampleResolveTarget,
+    // A multisample image resolves to a single sample image.
+    kMultisampleResolve,
     // Presented to screen.
     kPresentation,
     // Linearly accessed.
@@ -83,7 +83,7 @@ class Usage {
   // Convenience function to return Usage for images that we resolve multisample
   // images to.
   static Usage GetMultisampleResolveTargetUsage() {
-    return Usage{UsageType::kMultisampleResolveTarget, AccessType::kWriteOnly,
+    return Usage{UsageType::kMultisampleResolve, AccessType::kWriteOnly,
                  AccessLocation::kOther};
   }
 
@@ -174,4 +174,4 @@ bool NeedSynchronization(const Usage& prev_usage, const Usage& curr_usage);
 } /* namespace renderer */
 } /* namespace lighter */
 
-#endif /* LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_UTIL_H */
+#endif /* LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_USAGE_H */

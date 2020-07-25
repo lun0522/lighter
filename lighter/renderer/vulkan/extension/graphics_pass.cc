@@ -65,9 +65,9 @@ GraphicsPass& GraphicsPass::AddMultisampleResolving(
   const image::UsageHistory& dst_history = dst_iter->second;
   ASSERT_TRUE(
       CheckImageUsageType(dst_history, subpass,
-                          ImageUsageType::kMultisampleResolveTarget),
+                          ImageUsageType::kMultisampleResolve),
       absl::StrFormat("Usage type of destination image '%s' at subpass %d must "
-                      "be kMultisampleResolveTarget",
+                      "be kMultisampleResolve",
                       dst_history.image_name(), subpass));
 
   // Check sample count of both images.
@@ -194,7 +194,7 @@ void GraphicsPass::SetSubpasses() {
           depth_stencil_ref = attachment_ref;
           break;
 
-        case ImageUsageType::kMultisampleResolveTarget:
+        case ImageUsageType::kMultisampleResolve:
           break;
 
         default:
@@ -283,7 +283,7 @@ ImageUsageType GraphicsPass::GetImageUsageTypeForAllSubpasses(
     }
 
     ImageUsageType usage_type = pair.second.usage_type();
-    if (usage_type == ImageUsageType::kMultisampleResolveTarget) {
+    if (usage_type == ImageUsageType::kMultisampleResolve) {
       usage_type = ImageUsageType::kRenderTarget;
     }
 
@@ -320,10 +320,10 @@ void GraphicsPass::ValidateImageUsageHistory(
     const ImageUsageType usage_type = pair.second.usage_type();
     ASSERT_TRUE(usage_type == ImageUsageType::kRenderTarget
                     || usage_type == ImageUsageType::kDepthStencil
-                    || usage_type == ImageUsageType::kMultisampleResolveTarget,
+                    || usage_type == ImageUsageType::kMultisampleResolve,
                 absl::StrFormat("Usage type of image '%s' at subpass %d must "
                                 "be one of kRenderTarget, kDepthStencil or "
-                                "kMultisampleResolveTarget, while %d provided",
+                                "kMultisampleResolve, while %d provided",
                                 history.image_name(), pair.first, usage_type));
   }
 }

@@ -11,7 +11,7 @@
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/extension/align.h"
-#include "lighter/renderer/vulkan/wrapper/image_util.h"
+#include "lighter/renderer/vulkan/wrapper/image_usage.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
 #include "third_party/absl/memory/memory.h"
 
