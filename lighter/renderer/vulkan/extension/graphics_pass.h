@@ -66,9 +66,15 @@ class GraphicsPass : public BasePass {
 
   // Returns the usage type of an image. We assume that each image should either
   // always be a color attachment, or always be a depth stencil attachment
-  // throughout all subpasses.
+  // throughout all subpasses. Note that kMultisampleResolveTarget is treated as
+  // kRenderTarget. Hence, the return value can only be either kRenderTarget or
+  // kDepthStencil.
   image::Usage::UsageType GetImageUsageTypeForAllSubpasses(
       const image::UsageHistory& history) const;
+
+  // Returns true if the image usage at 'subpass' is of 'usage_type'.
+  bool CheckImageUsageType(const image::UsageHistory& history, int subpass,
+                           image::Usage::UsageType usage_type) const;
 
   // Returns whether 'subpass' is a virtual subpass.
   bool IsVirtualSubpass(int subpass) const {

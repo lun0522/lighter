@@ -103,8 +103,10 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   GraphicsPass graphics_pass{context(), kNumSubpasses};
   if (window_context().use_multisampling()) {
     image::UsageHistory swapchain_image_usage_history{"Swapchain"};
-    swapchain_image_usage_history.SetFinalUsage(
-        image::Usage::GetPresentationUsage());
+    swapchain_image_usage_history
+        .AddUsage(kRenderSubpassIndex,
+                  image::Usage::GetMultisampleResolveTargetUsage())
+        .SetFinalUsage(image::Usage::GetPresentationUsage());
 
     Image* sample_swapchain_image =
         mutable_window_context()->mutable_swapchain_image(/*index=*/0);

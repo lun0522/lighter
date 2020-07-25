@@ -28,7 +28,9 @@ class Usage {
     kRenderTarget,
     // Depth stencil attachment.
     kDepthStencil,
-    // Present to screen.
+    // A multisample image resolves to this image.
+    kMultisampleResolveTarget,
+    // Presented to screen.
     kPresentation,
     // Linearly accessed.
     kLinearAccess,
@@ -67,7 +69,7 @@ class Usage {
 
   // Convenience function to return Usage for images used as render targets.
   static Usage GetRenderTargetUsage() {
-    return Usage{UsageType::kRenderTarget, AccessType::kWriteOnly,
+    return Usage{UsageType::kRenderTarget, AccessType::kReadWrite,
                  AccessLocation::kOther};
   }
 
@@ -75,6 +77,13 @@ class Usage {
   // attachment.
   static Usage GetDepthStencilUsage() {
     return Usage{UsageType::kDepthStencil, AccessType::kReadWrite,
+                 AccessLocation::kOther};
+  }
+
+  // Convenience function to return Usage for images that we resolve multisample
+  // images to.
+  static Usage GetMultisampleResolveTargetUsage() {
+    return Usage{UsageType::kMultisampleResolveTarget, AccessType::kWriteOnly,
                  AccessLocation::kOther};
   }
 

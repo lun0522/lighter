@@ -55,8 +55,14 @@ VkAccessFlags Usage::GetAccessFlags() const {
                                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
                                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
+    case UsageType::kMultisampleResolveTarget:
+      ASSERT_TRUE(access_type_ == AccessType::kWriteOnly,
+                  "Access type must be kWriteOnly for "
+                  "UsageType::kMultisampleResolveTarget");
+      return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
     case UsageType::kPresentation:
-      FATAL("No corresponding access flags for UsageType::kPresentation");
+      return 0;
 
     case UsageType::kLinearAccess:
     case UsageType::kSample:
@@ -81,15 +87,13 @@ VkPipelineStageFlags Usage::GetPipelineStageFlags() const {
       return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
     case UsageType::kRenderTarget:
+    case UsageType::kMultisampleResolveTarget:
+    case UsageType::kPresentation:
       return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
     case UsageType::kDepthStencil:
       return VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT
                  | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-
-    case UsageType::kPresentation:
-      FATAL("No corresponding pipeline stage flags for "
-            "UsageType::kPresentation");
 
     case UsageType::kLinearAccess:
     case UsageType::kSample:
@@ -123,6 +127,7 @@ VkImageLayout Usage::GetImageLayout() const {
       return VK_IMAGE_LAYOUT_UNDEFINED;
 
     case UsageType::kRenderTarget:
+    case UsageType::kMultisampleResolveTarget:
       return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     case UsageType::kDepthStencil:
@@ -160,6 +165,7 @@ VkImageUsageFlagBits Usage::GetImageUsageFlagBits() const {
       FATAL("No corresponding image usage flag bits for UsageType::kDontCare");
 
     case UsageType::kRenderTarget:
+    case UsageType::kMultisampleResolveTarget:
     case UsageType::kPresentation:
       return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
@@ -217,13 +223,6 @@ bool NeedSynchronization(const Usage& prev_usage, const Usage& curr_usage) {
       curr_usage.access_type() == AccessType::kReadOnly) {
     return false;
   }
-
-  // Should be handled by fences.
-  if (prev_usage.usage_type() == UsageType::kPresentation ||
-      curr_usage.usage_type() == UsageType::kPresentation) {
-    return false;
-  }
-
   return true;
 }
 
