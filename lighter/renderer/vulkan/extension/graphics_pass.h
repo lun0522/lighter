@@ -34,6 +34,7 @@ class GraphicsPass : public BasePass {
   GraphicsPass(const GraphicsPass&) = delete;
   GraphicsPass& operator=(const GraphicsPass&) = delete;
 
+  // TODO: User specify index? Do not generate index for depth stencil.
   // Adds an image that is used in this graphics pass, and returns its index
   // within the VkAttachmentDescription array, which is used when calling
   // RenderPassBuilder::UpdateAttachmentImage().

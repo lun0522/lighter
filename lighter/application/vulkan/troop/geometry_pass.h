@@ -11,11 +11,11 @@
 #include <memory>
 
 #include "lighter/common/camera.h"
+#include "lighter/renderer/vulkan/extension/attachment_info.h"
 #include "lighter/renderer/vulkan/extension/model.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include "lighter/renderer/vulkan/wrapper/render_pass_util.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
@@ -31,7 +31,7 @@ namespace troop {
 // this pass.
 class GeometryPass {
  public:
-  GeometryPass(const renderer::vulkan::WindowContext& window_context,
+  GeometryPass(const renderer::vulkan::WindowContext* window_context,
                int num_frames_in_flight,
                float model_scale, const glm::ivec2& num_soldiers,
                const glm::vec2& interval_between_soldiers);
@@ -59,11 +59,16 @@ class GeometryPass {
   const int num_soldiers_;
 
   // Objects used for rendering.
+  const renderer::vulkan::WindowContext& window_context_;
+  renderer::vulkan::AttachmentInfo depth_stencil_image_info{"Depth stencil"};
+  renderer::vulkan::AttachmentInfo position_image_info{"Position"};
+  renderer::vulkan::AttachmentInfo normal_image_info{"Normal"};
+  renderer::vulkan::AttachmentInfo
+      diffuse_specular_image_info{"Diffuse specular"};
   std::unique_ptr<renderer::vulkan::StaticPerInstanceBuffer> center_data_;
   std::unique_ptr<renderer::vulkan::UniformBuffer> trans_uniform_;
   std::unique_ptr<renderer::vulkan::Model> nanosuit_model_;
-  std::unique_ptr<renderer::vulkan::DeferredShadingRenderPassBuilder>
-      render_pass_builder_;
+  std::unique_ptr<renderer::vulkan::RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<renderer::vulkan::RenderPass> render_pass_;
 };
 

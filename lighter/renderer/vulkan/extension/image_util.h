@@ -62,6 +62,11 @@ class UsageHistory {
   explicit UsageHistory(const Usage& initial_usage)
       : initial_usage_{initial_usage} {}
 
+  // This constructor should be used only if the image has not been constructed
+  // yet. In that case, the user should add all usages throughout the entire
+  // lifetime of the image to this history.
+  explicit UsageHistory() = default;
+
   // This class is only movable.
   UsageHistory(UsageHistory&&) noexcept = default;
   UsageHistory& operator=(UsageHistory&&) noexcept = default;

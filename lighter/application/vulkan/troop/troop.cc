@@ -18,11 +18,6 @@ namespace {
 
 using namespace renderer::vulkan;
 
-enum ComputeStage {
-  kGeometryStage,
-  kLightingStage,
-};
-
 constexpr int kNumFramesInFlight = 2;
 
 class TroopApp : public Application {
@@ -108,7 +103,7 @@ TroopApp::TroopApp(const WindowContext::Config& window_config)
 
   /* Render pass */
   geometry_pass_ = absl::make_unique<troop::GeometryPass>(
-      window_context(), kNumFramesInFlight, /*model_scale=*/0.2,
+      &window_context(), kNumFramesInFlight, /*model_scale=*/0.2,
       /*num_soldiers=*/glm::ivec2{5, 10},
       /*interval_between_soldiers=*/glm::vec2{1.7f, -1.0f});
 
@@ -121,6 +116,11 @@ TroopApp::TroopApp(const WindowContext::Config& window_config)
 }
 
 void TroopApp::Recreate() {
+  enum RenderStage {
+    kGeometryStage = 0,
+    kLightingStage,
+  };
+
   /* Camera */
   camera_->SetCursorPos(window_context().window().GetCursorPos());
 
@@ -130,19 +130,18 @@ void TroopApp::Recreate() {
       absl::make_unique<DepthStencilImage>(context(), frame_size);
 
   struct imageInfo {
-    std::string name;
-    bool high_precision;
     std::unique_ptr<OffscreenImage>* image;
+    bool high_precision;
   };
   imageInfo image_infos[]{
-      {"Position", /*high_precision=*/true, &position_image_},
-      {"Normal", /*high_precision=*/true, &normal_image_},
-      {"Diffuse specular", /*high_precision=*/false, &diffuse_specular_image_},
+      {&position_image_, /*high_precision=*/true},
+      {&normal_image_, /*high_precision=*/true},
+      {&diffuse_specular_image_, /*high_precision=*/false},
   };
 
   const ImageSampler::Config sampler_config{VK_FILTER_NEAREST};
   for (auto& info : image_infos) {
-    image::UsageHistory usage_history{std::move(info.name)};
+    image::UsageHistory usage_history;
     auto geometry_stage_usage = image::Usage::GetRenderTargetUsage();
     if (info.high_precision) {
       geometry_stage_usage.set_use_high_precision();

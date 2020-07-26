@@ -7,10 +7,14 @@
 
 #include "lighter/application/vulkan/troop/geometry_pass.h"
 
+#include <utility>
 #include <vector>
 
 #include "lighter/common/file.h"
+#include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/extension/align.h"
+#include "lighter/renderer/vulkan/extension/graphics_pass.h"
+#include "lighter/renderer/vulkan/extension/image_util.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/glm/gtc/matrix_transform.hpp"
@@ -23,18 +27,16 @@ namespace {
 
 using namespace renderer::vulkan;
 
+enum SubpassIndex {
+  kRenderSubpassIndex = 0,
+  kNumSubpasses,
+};
+
 enum UniformBindingPoint {
   kUniformBufferBindingPoint = 0,
   kDiffuseTextureBindingPoint,
   kSpecularTextureBindingPoint,
   kReflectionTextureBindingPoint,
-};
-
-enum ColorAttachmentIndex {
-  kPositionImageIndex = 0,
-  kNormalImageIndex,
-  kDiffuseSpecularImageIndex,
-  kNumColorAttachments,
 };
 
 /* BEGIN: Consistent with uniform blocks defined in shaders. */
@@ -49,13 +51,14 @@ struct Transformation {
 
 } /* namespace */
 
-GeometryPass::GeometryPass(const WindowContext& window_context,
+GeometryPass::GeometryPass(const WindowContext* window_context,
                            int num_frames_in_flight,
                            float model_scale, const glm::ivec2& num_soldiers,
                            const glm::vec2& interval_between_soldiers)
-    : num_soldiers_{num_soldiers.x * num_soldiers.y} {
+    : num_soldiers_{num_soldiers.x * num_soldiers.y},
+      window_context_{*FATAL_IF_NULL(window_context)} {
   using TextureType = ModelBuilder::TextureType;
-  const auto context = window_context.basic_context();
+  const auto context = window_context_.basic_context();
 
   /* Vertex buffer */
   std::vector<glm::vec3> centers;
@@ -89,7 +92,7 @@ GeometryPass::GeometryPass(const WindowContext& window_context,
   /* Model */
   nanosuit_model_ = ModelBuilder{
       context, "Geometry pass", num_frames_in_flight,
-      window_context.original_aspect_ratio(),
+      window_context_.original_aspect_ratio(),
       ModelBuilder::MultiMeshResource{
           common::file::GetResourcePath("model/nanosuit/nanosuit.obj"),
           common::file::GetResourcePath("model/nanosuit")}}
@@ -109,11 +112,6 @@ GeometryPass::GeometryPass(const WindowContext& window_context,
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
                  common::file::GetVkShaderPath("troop/geometry_pass.frag"))
       .Build();
-
-  /* Render pass */
-  render_pass_builder_ = absl::make_unique<DeferredShadingRenderPassBuilder>(
-      context, /*num_framebuffers=*/window_context.num_swapchain_images(),
-      kNumColorAttachments);
 }
 
 void GeometryPass::UpdateFramebuffer(const Image& depth_stencil_image,
@@ -121,35 +119,51 @@ void GeometryPass::UpdateFramebuffer(const Image& depth_stencil_image,
                                      const Image& normal_image,
                                      const Image& diffuse_specular_image) {
   /* Render pass */
-  const int color_attachments_index_base =
-      render_pass_builder_->color_attachments_index_base();
-  (*render_pass_builder_)
-      .UpdateAttachmentImage(
-          render_pass_builder_->depth_stencil_attachment_index(),
-          [&depth_stencil_image](int framebuffer_index) -> const Image& {
-            return depth_stencil_image;
-          })
-      .UpdateAttachmentImage(
-          color_attachments_index_base + kPositionImageIndex,
-          [&position_image](int framebuffer_index) -> const Image& {
-            return position_image;
-          })
-      .UpdateAttachmentImage(
-          color_attachments_index_base + kNormalImageIndex,
-          [&normal_image](int framebuffer_index) -> const Image& {
-            return normal_image;
-          })
-      .UpdateAttachmentImage(
-          color_attachments_index_base + kDiffuseSpecularImageIndex,
-          [&diffuse_specular_image](int framebuffer_index) -> const Image& {
-            return diffuse_specular_image;
+  const std::pair<const Image*, AttachmentInfo*> attachments_to_update[]{
+      {&depth_stencil_image, &depth_stencil_image_info},
+      {&position_image, &position_image_info},
+      {&normal_image, &normal_image_info},
+      {&diffuse_specular_image, &diffuse_specular_image_info},
+  };
+
+  if (render_pass_builder_ == nullptr) {
+    image::UsageTracker image_usage_tracker;
+    for (const auto& pair : attachments_to_update) {
+      pair.second->AddToTracker(image_usage_tracker, *pair.first);
+    }
+
+    GraphicsPass graphics_pass{window_context_.basic_context(), kNumSubpasses};
+    attachments_to_update[0].second->AddToGraphicsPass(
+        graphics_pass, image_usage_tracker,
+        /*populate_history=*/[](image::UsageHistory& history) {
+          history.AddUsage(kRenderSubpassIndex,
+                           image::Usage::GetDepthStencilUsage());
+        });
+    for (int i = 1; i < 4; ++i) {
+      attachments_to_update[i].second->AddToGraphicsPass(
+          graphics_pass, image_usage_tracker,
+          /*populate_history=*/[](image::UsageHistory& history) {
+            history
+                .AddUsage(kRenderSubpassIndex,
+                          image::Usage::GetRenderTargetUsage())
+                .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
           });
+    }
+    render_pass_builder_ = graphics_pass.CreateRenderPassBuilder(
+        /*num_framebuffers=*/window_context_.num_swapchain_images());
+  }
+
+  for (const auto& pair : attachments_to_update) {
+    render_pass_builder_->UpdateAttachmentImage(
+        pair.second->index(),
+        [&pair](int framebuffer_index) -> const Image& { return *pair.first; });
+  }
   render_pass_ = render_pass_builder_->Build();
 
   /* Model */
   nanosuit_model_->Update(/*is_object_opaque=*/true,
                           depth_stencil_image.extent(), kSingleSample,
-                          *render_pass_, /*subpass_index=*/0);
+                          *render_pass_, kRenderSubpassIndex);
 }
 
 void GeometryPass::UpdatePerFrameData(int frame, const common::Camera& camera) {

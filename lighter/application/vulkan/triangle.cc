@@ -34,11 +34,6 @@ struct Alpha {
 
 /* END: Consistent with uniform blocks defined in shaders. */
 
-struct Attachments {
-  AttachmentInfo swapchain_image{"Swapchain"};
-  AttachmentInfo multisample_image{"Multisample"};
-};
-
 class TriangleApp : public Application {
  public:
   explicit TriangleApp(const WindowContext::Config& config);
@@ -59,8 +54,8 @@ class TriangleApp : public Application {
 
   int current_frame_ = 0;
   common::FrameTimer timer_;
-  Attachments attachments_;
-  image::UsageTracker image_usage_tracker_;
+  AttachmentInfo swapchain_image_info_{"Swapchain"};
+  AttachmentInfo multisample_image_info_{"Multisample"};
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PerVertexBuffer> vertex_buffer_;
   std::unique_ptr<PushConstant> alpha_constant_;
@@ -100,17 +95,18 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
                                                    kNumFramesInFlight);
 
   /* Image usage tracker */
-  attachments_.swapchain_image.AddToTracker(
-      image_usage_tracker_, window_context().swapchain_image(/*index=*/0));
+  image::UsageTracker image_usage_tracker;
+  swapchain_image_info_.AddToTracker(
+      image_usage_tracker, window_context().swapchain_image(/*index=*/0));
   if (window_context().use_multisampling()) {
-    attachments_.multisample_image.AddToTracker(
-        image_usage_tracker_, window_context().multisample_image());
+    multisample_image_info_.AddToTracker(
+        image_usage_tracker, window_context().multisample_image());
   }
 
   /* Render pass */
   GraphicsPass graphics_pass{context(), kNumSubpasses};
-  attachments_.swapchain_image.AddToGraphicsPass(
-      graphics_pass, image_usage_tracker_,
+  swapchain_image_info_.AddToGraphicsPass(
+      graphics_pass, image_usage_tracker,
       /*populate_history=*/[this](image::UsageHistory& history) {
         history
             .AddUsage(kRenderSubpassIndex,
@@ -119,14 +115,14 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
             .SetFinalUsage(image::Usage::GetPresentationUsage());
       });
   if (window_context().use_multisampling()) {
-    attachments_.multisample_image
+    multisample_image_info_
         .AddToGraphicsPass(
-            graphics_pass, image_usage_tracker_,
+            graphics_pass, image_usage_tracker,
             /*populate_history=*/[](image::UsageHistory& history) {
               history.AddUsage(kRenderSubpassIndex,
                                image::Usage::GetRenderTargetUsage());
             })
-        .ResolveToAttachment(graphics_pass, attachments_.swapchain_image,
+        .ResolveToAttachment(graphics_pass, swapchain_image_info_,
                              kRenderSubpassIndex);
   }
   render_pass_builder_ = graphics_pass.CreateRenderPassBuilder(
@@ -153,13 +149,13 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
 void TriangleApp::Recreate() {
   /* Render pass */
   render_pass_builder_->UpdateAttachmentImage(
-      attachments_.swapchain_image.index(),
+      swapchain_image_info_.index(),
       [this](int framebuffer_index) -> const Image& {
         return window_context().swapchain_image(framebuffer_index);
       });
   if (window_context().use_multisampling()) {
     render_pass_builder_->UpdateAttachmentImage(
-        attachments_.multisample_image.index(),
+        multisample_image_info_.index(),
         [this](int framebuffer_index) -> const Image& {
           return window_context().multisample_image();
         });

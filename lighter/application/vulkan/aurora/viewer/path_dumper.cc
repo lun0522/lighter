@@ -33,7 +33,7 @@ using namespace renderer::vulkan;
 // Note that 'paths_image_' has one channel, while 'distance_field_image_' has
 // four channels.
 enum ComputeStage {
-  kBoldPathsStage,
+  kBoldPathsStage = 0,
   kGenerateDistanceFieldStage,
   kNumComputeStages,
 };

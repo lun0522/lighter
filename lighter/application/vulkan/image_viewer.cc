@@ -89,7 +89,7 @@ ImageViewerApp::ImageViewerApp(const WindowContext::Config& window_config)
 
 void ImageViewerApp::ProcessImageFromFile(const std::string& file_path) {
   enum ComputeStage {
-    kComputingStage,
+    kComputingStage = 0,
     kNumComputeStages,
   };
 

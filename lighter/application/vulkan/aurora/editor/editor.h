@@ -103,7 +103,7 @@ class Editor : public Scene {
 
  private:
   enum ButtonIndex {
-    kPath1ButtonIndex,
+    kPath1ButtonIndex = 0,
     kPath2ButtonIndex,
     kPath3ButtonIndex,
     kViewpointButtonIndex,
