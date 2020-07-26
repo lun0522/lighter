@@ -9,11 +9,11 @@
 #define LIGHTER_RENDERER_VULKAN_EXTENSION_GRAPHICS_PASS_H
 
 #include <memory>
+#include <string>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/extension/base_pass.h"
 #include "lighter/renderer/vulkan/extension/image_util.h"
-#include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/image_usage.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "third_party/absl/container/flat_hash_map.h"
@@ -34,16 +34,16 @@ class GraphicsPass : public BasePass {
   GraphicsPass(const GraphicsPass&) = delete;
   GraphicsPass& operator=(const GraphicsPass&) = delete;
 
-  // Adds an image that is used in this graphics pass, along with its usage
-  // history, and returns its index within the VkAttachmentDescription array,
-  // which is used when calling RenderPassBuilder::UpdateAttachmentImage().
-  // The current usage of 'image' will be used as the initial usage.
-  int AddImage(Image* image, image::UsageHistory&& history);
+  // Adds an image that is used in this graphics pass, and returns its index
+  // within the VkAttachmentDescription array, which is used when calling
+  // RenderPassBuilder::UpdateAttachmentImage().
+  int AddImage(std::string&& image_name, image::UsageHistory&& history);
 
-  // Specifies that the multisample 'src_image' will get resolved to the single
-  // sample 'dst_image' at 'subpass'.
-  GraphicsPass& AddMultisampleResolving(
-      const Image& src_image, const Image& dst_image, int subpass);
+  // Specifies that the multisample source image will get resolved to the single
+  // sample destination image at 'subpass'.
+  GraphicsPass& AddMultisampleResolving(const std::string& src_image_name,
+                                        const std::string& dst_image_name,
+                                        int subpass);
 
   // Creates a render pass builder. This can be called multiple times. Note that
   // the user still need to call RenderPassBuilder::UpdateAttachmentImage() for
@@ -54,11 +54,11 @@ class GraphicsPass : public BasePass {
  private:
   // Maps each attachment image to its index within the VkAttachmentDescription
   // array.
-  using AttachmentIndexMap = absl::flat_hash_map<const Image*, int>;
+  using AttachmentIndexMap = absl::flat_hash_map<std::string, int>;
 
   // Maps each multisample image to the single sample image that it will resolve
   // to. We should have such a map for each subpass.
-  using MultisamplingMap = absl::flat_hash_map<const Image*, const Image*>;
+  using MultisamplingMap = absl::flat_hash_map<std::string, std::string>;
 
   // Following functions populate 'render_pass_builder_'.
   void SetAttachments();
@@ -71,7 +71,7 @@ class GraphicsPass : public BasePass {
   // kRenderTarget. Hence, the return value can only be either kRenderTarget or
   // kDepthStencil.
   image::Usage::UsageType GetImageUsageTypeForAllSubpasses(
-      const image::UsageHistory& history) const;
+      const std::string& image_name, const image::UsageHistory& history) const;
 
   // Returns true if the image usage at 'subpass' is of 'usage_type'.
   bool CheckImageUsageType(const image::UsageHistory& history, int subpass,
@@ -91,8 +91,9 @@ class GraphicsPass : public BasePass {
   }
 
   // Overrides.
-  void ValidateImageUsageHistory(const image::UsageHistory& history) const
-      override;
+  void ValidateImageUsageHistory(
+      const std::string& image_name,
+      const image::UsageHistory& history) const override;
 
   // Pointer to context.
   const SharedBasicContext context_;

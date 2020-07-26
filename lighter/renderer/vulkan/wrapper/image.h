@@ -99,15 +99,15 @@ class Image {
     return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
   }
 
+  // Returns the image usage right after it is constructed. The user is
+  // responsible for tracking usage changes afterwards.
+  virtual image::Usage GetInitialUsage() const { return image::Usage{}; }
+
   // Overloads.
   const VkImage& operator*() const { return image(); }
 
-  // Modifiers.
-  void set_usage(const image::Usage& usage) { image_usage_ = usage; }
-
   // Accessors.
   virtual const VkImage& image() const = 0;
-  const image::Usage& image_usage() const { return image_usage_; }
   const VkImageView& image_view() const { return image_view_; }
   const VkExtent2D& extent() const { return extent_; }
   VkFormat format() const { return format_; }
@@ -137,9 +137,6 @@ class Image {
  private:
   // Opaque image view object.
   VkImageView image_view_;
-
-  // Tracks image usage.
-  image::Usage image_usage_;
 };
 
 // VkSampler configures how do we sample from an image resource on the device.
@@ -239,6 +236,9 @@ class TextureImage : public Image, public SamplableImage {
   const VkImage& image() const override { return buffer_.image(); }
   VkDescriptorImageInfo GetDescriptorInfo(VkImageLayout layout) const override {
     return {*sampler_, image_view(), layout};
+  }
+  image::Usage GetInitialUsage() const override {
+    return image::Usage::GetSampledInFragmentShaderUsage();
   }
 
  private:

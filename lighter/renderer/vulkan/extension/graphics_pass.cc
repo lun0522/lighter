@@ -8,7 +8,6 @@
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 
 #include <map>
-#include <string>
 #include <vector>
 
 #include "third_party/absl/memory/memory.h"
@@ -37,18 +36,20 @@ GraphicsPass::GraphicsPass(SharedBasicContext context, int num_subpasses)
   multisampling_at_subpass_maps_.resize(num_subpasses_);
 }
 
-int GraphicsPass::AddImage(Image* image, image::UsageHistory&& history) {
-  BasePass::AddImageAndHistory(image, std::move(history));
+int GraphicsPass::AddImage(std::string&& image_name,
+                           image::UsageHistory&& history) {
+  BasePass::AddUsageHistory(std::string{image_name}, std::move(history));
   const auto attachment_index =
       static_cast<int>(image_usage_history_map().size()) - 1;
-  attachment_index_map_.insert({image, attachment_index});
+  attachment_index_map_.insert({std::move(image_name), attachment_index});
   return attachment_index;
 }
 
 GraphicsPass& GraphicsPass::AddMultisampleResolving(
-    const Image& src_image, const Image& dst_image, int subpass) {
+    const std::string& src_image_name, const std::string& dst_image_name,
+    int subpass) {
   // Check that source image history exists and its usage is expected.
-  const auto src_iter = image_usage_history_map().find(&src_image);
+  const auto src_iter = image_usage_history_map().find(src_image_name);
   ASSERT_FALSE(src_iter == image_usage_history_map().end(),
                "Usage history not specified for source image");
   const image::UsageHistory& src_history = src_iter->second;
@@ -56,10 +57,10 @@ GraphicsPass& GraphicsPass::AddMultisampleResolving(
       CheckImageUsageType(src_history, subpass, ImageUsageType::kRenderTarget),
       absl::StrFormat("Usage type of source image '%s' at subpass %d must be"
                       "kRenderTarget",
-                      src_history.image_name(), subpass));
+                      src_image_name, subpass));
 
   // Check that destination image history exists and its usage is expected.
-  const auto dst_iter = image_usage_history_map().find(&dst_image);
+  const auto dst_iter = image_usage_history_map().find(dst_image_name);
   ASSERT_FALSE(dst_iter == image_usage_history_map().end(),
                "Usage history not specified for destination image");
   const image::UsageHistory& dst_history = dst_iter->second;
@@ -68,25 +69,16 @@ GraphicsPass& GraphicsPass::AddMultisampleResolving(
                           ImageUsageType::kMultisampleResolve),
       absl::StrFormat("Usage type of destination image '%s' at subpass %d must "
                       "be kMultisampleResolve",
-                      dst_history.image_name(), subpass));
-
-  // Check sample count of both images.
-  ASSERT_FALSE(src_image.sample_count() == VK_SAMPLE_COUNT_1_BIT,
-               absl::StrFormat("Source image '%s' is not multisample image",
-                               src_history.image_name()));
-  ASSERT_TRUE(
-      dst_image.sample_count() == VK_SAMPLE_COUNT_1_BIT,
-      absl::StrFormat("Destination image '%s' must not be multisample image",
-                      dst_history.image_name()));
+                      dst_image_name, subpass));
 
   // Create multisampling pair.
   MultisamplingMap& multisampling_map = multisampling_at_subpass_maps_[subpass];
   const bool did_insert =
-      multisampling_map.insert({&src_image, &dst_image}).second;
+      multisampling_map.insert({src_image_name, dst_image_name}).second;
   ASSERT_TRUE(did_insert,
               absl::StrFormat("Already specified multisample resolving for "
                               "image '%s' at subpass %d",
-                              src_history.image_name(), subpass));
+                              src_image_name, subpass));
   return *this;
 }
 
@@ -102,13 +94,12 @@ std::unique_ptr<RenderPassBuilder> GraphicsPass::CreateRenderPassBuilder(
 
 void GraphicsPass::SetAttachments() {
   for (const auto& pair : image_usage_history_map()) {
-    const Image& image = *pair.first;
-
+    const std::string& image_name = pair.first;
     RenderPassBuilder::Attachment attachment;
-    attachment.initial_layout = GetImageLayoutBeforePass(image);
-    attachment.final_layout = GetImageLayoutAfterPass(image);
+    attachment.initial_layout = GetImageLayoutBeforePass(image_name);
+    attachment.final_layout = GetImageLayoutAfterPass(image_name);
 
-    switch (GetImageUsageTypeForAllSubpasses(pair.second)) {
+    switch (GetImageUsageTypeForAllSubpasses(image_name, pair.second)) {
       case ImageUsageType::kRenderTarget:
         attachment.attachment_ops = RenderPassBuilder::Attachment::ColorOps{
             /*load_color_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -130,7 +121,7 @@ void GraphicsPass::SetAttachments() {
         FATAL("Unreachable");
     }
 
-    render_pass_builder_->SetAttachment(attachment_index_map_[&image],
+    render_pass_builder_->SetAttachment(attachment_index_map_[image_name],
                                         attachment);
   }
 }
@@ -152,34 +143,32 @@ void GraphicsPass::SetSubpasses() {
     };
 
     for (const auto& pair : image_usage_history_map()) {
-      const image::Usage* usage = GetImageUsage(pair.second, subpass);
+      const std::string& image_name = pair.first;
+      const image::Usage* usage = GetImageUsage(image_name, subpass);
       if (usage == nullptr) {
         continue;
       }
-      const Image& image = *pair.first;
 
       const VkAttachmentReference attachment_ref{
-          static_cast<uint32_t>(attachment_index_map_[&image]),
+          static_cast<uint32_t>(attachment_index_map_[image_name]),
           usage->GetImageLayout(),
       };
 
       switch (usage->usage_type()) {
         case ImageUsageType::kRenderTarget: {
-          const auto iter = multisampling_map.find(&image);
+          const auto iter = multisampling_map.find(image_name);
           if (iter != multisampling_map.end()) {
-            const Image& target = *iter->second;
+            const std::string& target = iter->second;
             multisampling_pairs.push_back(MultisamplingPair{
                 /*multisample_reference=*/static_cast<int>(color_refs.size()),
                 /*target_attachment=*/
-                static_cast<uint32_t>(attachment_index_map_[&target]),
+                static_cast<uint32_t>(attachment_index_map_[target]),
             });
 
 #ifndef NDEBUG
             LOG_INFO << absl::StreamFormat("Image '%s' resolves to '%s' at "
                                            "subpass %d",
-                                           GetUsageHistory(image).image_name(),
-                                           GetUsageHistory(target).image_name(),
-                                           subpass);
+                                           image_name, target, subpass);
 #endif  /* !NDEBUG */
           }
           color_refs.push_back(attachment_ref);
@@ -224,7 +213,7 @@ void GraphicsPass::SetSubpassDependencies() {
 
     for (const auto& pair : image_usage_history_map()) {
       const auto usages_info =
-          GetImageUsagesIfNeedSynchronization(/*history=*/pair.second, subpass);
+          GetImageUsagesIfNeedSynchronization(pair.first, subpass);
       if (!usages_info.has_value()) {
         continue;
       }
@@ -275,6 +264,7 @@ void GraphicsPass::SetSubpassDependencies() {
 }
 
 ImageUsageType GraphicsPass::GetImageUsageTypeForAllSubpasses(
+    const std::string& image_name,
     const image::UsageHistory& history) const {
   ImageUsageType prev_usage_type = ImageUsageType::kDontCare;
   for (const auto& pair : history.usage_at_subpass_map()) {
@@ -293,14 +283,14 @@ ImageUsageType GraphicsPass::GetImageUsageTypeForAllSubpasses(
       FATAL(absl::StrFormat(
           "Inconsistent usage type specified for image '%s' (previous %d, "
           "current %d)",
-          history.image_name(), prev_usage_type, usage_type));
+          image_name, prev_usage_type, usage_type));
     }
   }
 
   if (prev_usage_type == ImageUsageType::kDontCare) {
     FATAL(absl::StrFormat("Image '%s' has no usage specified (excluding "
                           "initial and final usage)",
-                           history.image_name()));
+                          image_name));
   }
 
   return prev_usage_type;
@@ -315,6 +305,7 @@ bool GraphicsPass::CheckImageUsageType(
 }
 
 void GraphicsPass::ValidateImageUsageHistory(
+    const std::string& image_name,
     const image::UsageHistory& history) const {
   for (const auto& pair : history.usage_at_subpass_map()) {
     const ImageUsageType usage_type = pair.second.usage_type();
@@ -324,7 +315,7 @@ void GraphicsPass::ValidateImageUsageHistory(
                 absl::StrFormat("Usage type of image '%s' at subpass %d must "
                                 "be one of kRenderTarget, kDepthStencil or "
                                 "kMultisampleResolve, while %d provided",
-                                history.image_name(), pair.first, usage_type));
+                                image_name, pair.first, usage_type));
   }
 }
 

@@ -15,12 +15,35 @@ namespace renderer {
 namespace vulkan {
 namespace image {
 
+UsageTracker& UsageTracker::TrackImage(std::string&& image_name,
+                                       const Usage& initial_usage) {
+  ASSERT_FALSE(image_usage_map_.contains(image_name),
+               absl::StrFormat("Already tracking image with name '%s'",
+                               image_name));
+  image_usage_map_.insert({std::move(image_name), initial_usage});
+  return *this;
+}
+
+const Usage& UsageTracker::GetUsage(const std::string& image_name) const {
+  const auto iter = image_usage_map_.find(image_name);
+  ASSERT_FALSE(iter == image_usage_map_.end(),
+               absl::StrFormat("Unrecognized image '%s'", image_name));
+  return iter->second;
+}
+
+UsageTracker& UsageTracker::UpdateUsage(const std::string& image_name,
+                                        const Usage& usage) {
+  auto iter = image_usage_map_.find(image_name);
+  ASSERT_FALSE(iter == image_usage_map_.end(),
+               absl::StrFormat("Unrecognized image '%s'", image_name));
+  iter->second = usage;
+  return *this;
+}
+
 UsageHistory& UsageHistory::AddUsage(int subpass, const Usage& usage) {
   const auto did_insert = usage_at_subpass_map_.insert({subpass, usage}).second;
   if (!did_insert) {
-    FATAL(absl::StrFormat(
-        "Already specified usage for image '%s' at subpass %d",
-        image_name_, subpass));
+    FATAL(absl::StrFormat("Already specified usage for subpass %d", subpass));
   }
   return *this;
 }
@@ -34,10 +57,7 @@ UsageHistory& UsageHistory::AddUsage(int subpass_start, int subpass_end,
 }
 
 UsageHistory& UsageHistory::SetFinalUsage(const Usage& usage) {
-  ASSERT_NO_VALUE(
-      final_usage_,
-      absl::StrFormat("Already specified final usage for image '%s'",
-                      image_name_));
+  ASSERT_NO_VALUE(final_usage_, "Already specified final usage");
   final_usage_ = usage;
   return *this;
 }

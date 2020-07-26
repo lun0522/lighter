@@ -531,7 +531,6 @@ TextureImage::TextureImage(SharedBasicContext context,
   set_image_view(CreateImageView(
       *context_, buffer_.image(), format_, VK_IMAGE_ASPECT_COLOR_BIT,
       buffer_.mip_levels(), /*layer_count=*/CONTAINER_SIZE(info.datas)));
-  set_usage(image::Usage::GetSampledInFragmentShaderUsage());
 }
 
 TextureImage::TextureImage(const SharedBasicContext& context,

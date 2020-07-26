@@ -85,7 +85,6 @@ class Swapchain {
   const VkExtent2D& image_extent() const { return image_extent_; }
   int num_images() const { return swapchain_images_.size(); }
   const Image& image(int index) const { return *swapchain_images_.at(index); }
-  Image* mutable_image(int index) { return swapchain_images_.at(index).get(); }
   bool use_multisampling() const { return multisample_image_ != nullptr; }
   VkSampleCountFlagBits sample_count() const {
     return use_multisampling() ? multisample_image_->sample_count()
@@ -93,7 +92,6 @@ class Swapchain {
   }
   // The user is responsible for checking if multisampling is used.
   const Image& multisample_image() const { return *multisample_image_; }
-  Image* mutable_multisample_image() { return multisample_image_.get(); }
 
  private:
   // Pointer to context.

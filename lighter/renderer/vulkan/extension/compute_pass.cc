@@ -18,9 +18,9 @@ namespace lighter {
 namespace renderer {
 namespace vulkan {
 
-ComputePass& ComputePass::AddImage(Image* image,
+ComputePass& ComputePass::AddImage(std::string&& image_name,
                                    image::UsageHistory&& history) {
-  BasePass::AddImageAndHistory(image, std::move(history));
+  BasePass::AddUsageHistory(std::move(image_name), std::move(history));
   return *this;
 }
 
@@ -38,22 +38,24 @@ void ComputePass::Run(const VkCommandBuffer& command_buffer,
               "Assumption of the following loop is broken");
   for (int subpass = 0; subpass <= num_subpasses_; ++subpass) {
     for (const auto& pair : image_usage_history_map()) {
+      const std::string& image_name = pair.first;
       const auto usages_info =
-          GetImageUsagesIfNeedSynchronization(/*history=*/pair.second, subpass);
+          GetImageUsagesIfNeedSynchronization(image_name, subpass);
       if (!usages_info.has_value()) {
         continue;
       }
 
-      InsertMemoryBarrier(command_buffer, queue_family_index, **pair.first,
-                          usages_info.value().prev_usage,
-                          usages_info.value().curr_usage);
+      // TODO: How to get image?
+//      InsertMemoryBarrier(command_buffer, queue_family_index, **pair.first,
+//                          usages_info.value().prev_usage,
+//                          usages_info.value().curr_usage);
 #ifndef NDEBUG
       const std::string log_suffix =
           subpass == virtual_final_subpass_index()
               ? "after compute pass"
               : absl::StrFormat("before subpass %d", subpass);
       LOG_INFO << absl::StreamFormat("Inserted memory barrier for image '%s' ",
-                                     pair.second.image_name())
+                                     image_name)
                << log_suffix;
 #endif /* !NDEBUG */
     }
@@ -61,11 +63,6 @@ void ComputePass::Run(const VkCommandBuffer& command_buffer,
     if (subpass < num_subpasses_) {
       compute_ops[subpass]();
     }
-  }
-
-  // Set the final usage through Image class for each image.
-  for (const auto& pair : image_usage_history_map()) {
-    pair.first->set_usage(pair.second.usage_at_subpass_map().rbegin()->second);
   }
 }
 
@@ -106,6 +103,7 @@ void ComputePass::InsertMemoryBarrier(
 }
 
 void ComputePass::ValidateImageUsageHistory(
+    const std::string& image_name,
     const image::UsageHistory& history) const {
   using ImageUsageType = image::Usage::UsageType;
   for (const auto& pair : history.usage_at_subpass_map()) {
@@ -116,7 +114,7 @@ void ComputePass::ValidateImageUsageHistory(
                 absl::StrFormat("Usage type (%d) is neither kLinearAccess, "
                                 "kSample nor kTransfer for image '%s' at "
                                 "subpass %d",
-                                usage_type, history.image_name(), pair.first));
+                                usage_type, image_name, pair.first));
   }
 }
 

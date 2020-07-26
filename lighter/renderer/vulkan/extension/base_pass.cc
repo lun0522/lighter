@@ -13,66 +13,90 @@ namespace lighter {
 namespace renderer {
 namespace vulkan {
 
-void BasePass::AddImageAndHistory(Image* image, image::UsageHistory&& history) {
-  ASSERT_NON_NULL(image, "'image' cannot be nullptr");
+void BasePass::AddUsageHistory(std::string&& image_name,
+                               image::UsageHistory&& history) {
   for (const auto& pair : history.usage_at_subpass_map()) {
-    ValidateSubpass(/*subpass=*/pair.first, history.image_name(),
+    ValidateSubpass(/*subpass=*/pair.first, image_name,
                     /*include_virtual_subpasses=*/false);
   }
-  ValidateImageUsageHistory(history);
+  ValidateImageUsageHistory(image_name, history);
 
-  history.AddUsage(virtual_initial_subpass_index(), image->image_usage());
+  history.AddUsage(virtual_initial_subpass_index(), history.initial_usage());
   if (history.final_usage().has_value()) {
     history.AddUsage(virtual_final_subpass_index(),
                      history.final_usage().value());
   }
-  image_usage_history_map_.emplace(image, std::move(history));
+  image_usage_history_map_.emplace(std::move(image_name), std::move(history));
 }
 
-VkImageLayout BasePass::GetImageLayoutBeforePass(const Image& image) const {
+VkImageLayout BasePass::GetImageLayoutBeforePass(
+    const std::string& image_name) const {
   const auto& first_usage =
-      GetUsageHistory(image).usage_at_subpass_map().begin()->second;
+      GetUsageHistory(image_name).usage_at_subpass_map().begin()->second;
   return first_usage.GetImageLayout();
 }
 
-VkImageLayout BasePass::GetImageLayoutAfterPass(const Image& image) const {
+VkImageLayout BasePass::GetImageLayoutAfterPass(
+    const std::string& image_name) const {
   const auto& last_usage =
-      GetUsageHistory(image).usage_at_subpass_map().rbegin()->second;
+      GetUsageHistory(image_name).usage_at_subpass_map().rbegin()->second;
   return last_usage.GetImageLayout();
 }
 
-VkImageLayout BasePass::GetImageLayoutAtSubpass(const Image& image,
+VkImageLayout BasePass::GetImageLayoutAtSubpass(const std::string& image_name,
                                                 int subpass) const {
-  const image::UsageHistory& history = GetUsageHistory(image);
-  ValidateSubpass(subpass, history.image_name(),
-                  /*include_virtual_subpasses=*/false);
-  const image::Usage* usage = GetImageUsage(history, subpass);
+  ValidateSubpass(subpass, image_name, /*include_virtual_subpasses=*/false);
+  const image::Usage* usage = GetImageUsage(image_name, subpass);
   ASSERT_NON_NULL(
       usage,
       absl::StrFormat("Usage not specified for image '%s' at subpass %d",
-                      history.image_name(), subpass));
+                      image_name, subpass));
   return usage->GetImageLayout();
 }
 
-const image::UsageHistory& BasePass::GetUsageHistory(const Image& image) const {
-  const auto iter = image_usage_history_map_.find(&image);
-  ASSERT_FALSE(iter == image_usage_history_map_.end(), "Unrecognized image");
+void BasePass::UpdateImageUsages(image::UsageTracker* usage_tracker) const {
+  for (const auto& pair : image_usage_history_map_) {
+    const std::string& image_name = pair.first;
+    if (!usage_tracker->IsImageTracked(image_name)) {
+#ifndef NDEBUG
+      LOG_INFO << absl::StreamFormat("Skipping image '%s' since its usage is "
+                                     "not tracked by the given tracker",
+                                     image_name);
+#endif /* !NDEBUG */
+      continue;
+    }
+
+    const image::Usage& last_usage =
+        pair.second.usage_at_subpass_map().rbegin()->second;
+    usage_tracker->UpdateUsage(image_name, last_usage);
+#ifndef NDEBUG
+    LOG_INFO << absl::StreamFormat("Updated tracked usage for image '%s'",
+                                   image_name);
+#endif /* !NDEBUG */
+  }
+}
+
+const image::UsageHistory& BasePass::GetUsageHistory(
+    const std::string& image_name) const {
+  const auto iter = image_usage_history_map_.find(image_name);
+  ASSERT_FALSE(iter == image_usage_history_map_.end(),
+               absl::StrFormat("Unrecognized image '%s'", image_name));
   return iter->second;
 }
 
-const image::Usage* BasePass::GetImageUsage(const image::UsageHistory& history,
+const image::Usage* BasePass::GetImageUsage(const std::string& image_name,
                                             int subpass) const {
-  ValidateSubpass(subpass, history.image_name(),
-                  /*include_virtual_subpasses=*/true);
+  ValidateSubpass(subpass, image_name, /*include_virtual_subpasses=*/true);
+  const image::UsageHistory& history = GetUsageHistory(image_name);
   const auto iter = history.usage_at_subpass_map().find(subpass);
   return iter == history.usage_at_subpass_map().end() ? nullptr : &iter->second;
 }
 
 absl::optional<BasePass::ImageUsagesInfo>
 BasePass::GetImageUsagesIfNeedSynchronization(
-    const image::UsageHistory& history, int subpass) const {
-  ValidateSubpass(subpass, history.image_name(),
-                  /*include_virtual_subpasses=*/true);
+    const std::string& image_name, int subpass) const {
+  ValidateSubpass(subpass, image_name, /*include_virtual_subpasses=*/true);
+  const image::UsageHistory& history = GetUsageHistory(image_name);
   const auto curr_usage_iter = history.usage_at_subpass_map().find(subpass);
   if (curr_usage_iter == history.usage_at_subpass_map().end()) {
     return absl::nullopt;

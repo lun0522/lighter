@@ -24,7 +24,7 @@ class Usage {
   enum class UsageType {
     // Don't care about the content stored in the image.
     kDontCare,
-    // Color attachment.
+    // Color attachment that is rendered to.
     kRenderTarget,
     // Depth stencil attachment.
     kDepthStencil,
@@ -85,6 +85,14 @@ class Usage {
   static Usage GetMultisampleResolveTargetUsage() {
     return Usage{UsageType::kMultisampleResolve, AccessType::kWriteOnly,
                  AccessLocation::kOther};
+  }
+
+  // Convenience function to return Usage for single sample images that are used
+  // as color attachments. If 'use_multisampling', we will resolve multisample
+  // images to such images. Otherwise, we will directly render to such images.
+  static Usage GetSingleSampleColorAttachmentUsage(bool use_multisampling) {
+    return use_multisampling ? GetMultisampleResolveTargetUsage()
+                             : GetRenderTargetUsage();
   }
 
   // Convenience function to return Usage for images to be presented to screen.

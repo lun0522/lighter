@@ -124,9 +124,6 @@ class WindowContext {
   const Image& swapchain_image(int index) const {
     return swapchain_->image(index);
   }
-  Image* mutable_swapchain_image(int index) {
-    return swapchain_->mutable_image(index);
-  }
   bool use_multisampling() const { return swapchain_->use_multisampling(); }
   VkSampleCountFlagBits sample_count() const {
     return swapchain_->sample_count();
@@ -137,9 +134,6 @@ class WindowContext {
   // The user is responsible for checking if multisampling is used.
   const Image& multisample_image() const {
     return swapchain_->multisample_image();
-  }
-  Image* mutable_multisample_image() {
-    return swapchain_->mutable_multisample_image();
   }
 
  private:

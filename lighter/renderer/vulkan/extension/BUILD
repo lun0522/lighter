@@ -84,8 +84,10 @@ cc_library(
     deps = [
         "//lighter/common:util",
         "//lighter/renderer/vulkan/wrapper:image",
+        "//third_party/absl/container:flat_hash_map",
         "//third_party/absl/strings:str_format",
         "//third_party/absl/types:optional",
+        "//third_party/absl/types:span",
     ],
 )
 

@@ -60,6 +60,7 @@ class TriangleApp : public Application {
   int current_frame_ = 0;
   common::FrameTimer timer_;
   AttachmentIndex attachment_index_;
+  image::UsageTracker image_usage_tracker_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PerVertexBuffer> vertex_buffer_;
   std::unique_ptr<PushConstant> alpha_constant_;
@@ -98,48 +99,45 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   alpha_constant_ = absl::make_unique<PushConstant>(context(), sizeof(Alpha),
                                                    kNumFramesInFlight);
 
-  /* Render pass */
-  // TODO: How to set layout for all swapchain images?
-  GraphicsPass graphics_pass{context(), kNumSubpasses};
+  /* Image usage tracker */
+  image_usage_tracker_.TrackImage(
+      "Swapchain",
+      window_context().swapchain_image(/*index=*/0).GetInitialUsage());
   if (window_context().use_multisampling()) {
-    image::UsageHistory swapchain_image_usage_history{"Swapchain"};
-    swapchain_image_usage_history
-        .AddUsage(kRenderSubpassIndex,
-                  image::Usage::GetMultisampleResolveTargetUsage())
-        .SetFinalUsage(image::Usage::GetPresentationUsage());
+    image_usage_tracker_.TrackImage(
+        "Multisample", window_context().multisample_image().GetInitialUsage());
+  }
 
-    Image* sample_swapchain_image =
-        mutable_window_context()->mutable_swapchain_image(/*index=*/0);
-    attachment_index_.swapchain_image =
-        graphics_pass.AddImage(sample_swapchain_image,
-                               std::move(swapchain_image_usage_history));
+  /* Render pass */
+  GraphicsPass graphics_pass{context(), kNumSubpasses};
 
-    image::UsageHistory multisample_image_usage_history{"Multisample"};
+  image::UsageHistory swapchain_image_usage_history{
+      image_usage_tracker_.GetUsage("Swapchain")};
+  swapchain_image_usage_history
+      .AddUsage(kRenderSubpassIndex,
+                image::Usage::GetSingleSampleColorAttachmentUsage(
+                    window_context().use_multisampling()))
+      .SetFinalUsage(image::Usage::GetPresentationUsage());
+  attachment_index_.swapchain_image =
+      graphics_pass.AddImage("Swapchain",
+                             std::move(swapchain_image_usage_history));
+
+  if (window_context().use_multisampling()) {
+    image::UsageHistory multisample_image_usage_history{
+        image_usage_tracker_.GetUsage("Multisample")};
     multisample_image_usage_history.AddUsage(
         kRenderSubpassIndex, image::Usage::GetRenderTargetUsage());
-
-    Image* multisample_image =
-        mutable_window_context()->mutable_multisample_image();
     attachment_index_.multisample_image =
-        graphics_pass.AddImage(multisample_image,
+        graphics_pass.AddImage("Multisample",
                                std::move(multisample_image_usage_history));
 
-    graphics_pass.AddMultisampleResolving(
-        *multisample_image, *sample_swapchain_image, kRenderSubpassIndex);
-  } else {
-    image::UsageHistory swapchain_image_usage_history{"Swapchain"};
-    swapchain_image_usage_history
-        .AddUsage(kRenderSubpassIndex, image::Usage::GetRenderTargetUsage())
-        .SetFinalUsage(image::Usage::GetPresentationUsage());
-
-    Image* sample_swapchain_image =
-        mutable_window_context()->mutable_swapchain_image(/*index=*/0);
-    attachment_index_.swapchain_image =
-        graphics_pass.AddImage(sample_swapchain_image,
-                               std::move(swapchain_image_usage_history));
+    graphics_pass.AddMultisampleResolving("Multisample", "Swapchain",
+                                          kRenderSubpassIndex);
   }
+
   render_pass_builder_ = graphics_pass.CreateRenderPassBuilder(
       /*num_framebuffers=*/window_context().num_swapchain_images());
+  graphics_pass.UpdateImageUsages(&image_usage_tracker_);
 
   /* Pipeline */
   pipeline_builder_ = absl::make_unique<GraphicsPipelineBuilder>(context());

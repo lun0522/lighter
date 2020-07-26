@@ -12,7 +12,6 @@
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/extension/image_util.h"
-#include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/image_usage.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/optional.h"
@@ -25,8 +24,9 @@ namespace vulkan {
 // The base class of compute pass and graphics pass.
 class BasePass {
  public:
-  // Maps each image to its usage history.
-  using ImageUsageHistoryMap = absl::flat_hash_map<Image*, image::UsageHistory>;
+  // Maps image name to usage history.
+  using ImageUsageHistoryMap = absl::flat_hash_map<std::string,
+                                                   image::UsageHistory>;
 
   explicit BasePass(int num_subpasses) : num_subpasses_{num_subpasses} {}
 
@@ -36,15 +36,21 @@ class BasePass {
 
   virtual ~BasePass() = default;
 
-  // Returns the layout of 'image' before this pass.
-  VkImageLayout GetImageLayoutBeforePass(const Image& image) const;
+  // Returns the layout of image before this pass.
+  VkImageLayout GetImageLayoutBeforePass(const std::string& image_name) const;
 
-  // Returns the layout of 'image' after this pass.
-  VkImageLayout GetImageLayoutAfterPass(const Image& image) const;
+  // Returns the layout of image after this pass.
+  VkImageLayout GetImageLayoutAfterPass(const std::string& image_name) const;
 
-  // Returns the layout of 'image' at 'subpass'. The usage at this subpass must
+  // Returns the layout of image at 'subpass'. The usage at this subpass must
   // have been specified via AddUsage() in the usage history.
-  VkImageLayout GetImageLayoutAtSubpass(const Image& image, int subpass) const;
+  VkImageLayout GetImageLayoutAtSubpass(const std::string& image_name,
+                                        int subpass) const;
+
+  // Updates usages of images to their last usages in this pass. This will have
+  // effect only if an image is used in this pass, and if its usage is tracked
+  // by 'usage_tracker'.
+  void UpdateImageUsages(image::UsageTracker* usage_tracker) const;
 
  protected:
   // Holds the previous and current image usage.
@@ -61,29 +67,29 @@ class BasePass {
     const image::Usage& curr_usage;
   };
 
-  // Adds an image that is used in this pass, along with its usage history.
-  // The current usage of 'image' will be used as the initial usage.
-  void AddImageAndHistory(Image* image, image::UsageHistory&& history);
+  // Adds an image that is used in this pass.
+  void AddUsageHistory(std::string&& image_name, image::UsageHistory&& history);
 
   // Checks whether image usages recorded in 'history' can be handled by this
   // pass. Note that initial and final usages has not been added to 'history'
   // when this is called, since they are not really a part of the pass.
   virtual void ValidateImageUsageHistory(
+      const std::string& image_name,
       const image::UsageHistory& history) const = 0;
 
-  // Returns the usage history of 'image'. 'image' must have been added via
-  // AddImage().
-  const image::UsageHistory& GetUsageHistory(const Image& image) const;
+  // Returns the usage history of image.
+  const image::UsageHistory& GetUsageHistory(
+      const std::string& image_name) const;
 
   // Returns a pointer to image usage at 'subpass', or nullptr if the usage has
   // not been specified for that subpass.
-  const image::Usage* GetImageUsage(const image::UsageHistory& history,
+  const image::Usage* GetImageUsage(const std::string& image_name,
                                     int subpass) const;
 
   // Returns previous and current image usages info if the image is used at
   // 'subpass' and synchronization on image memory access is needed,
   absl::optional<ImageUsagesInfo> GetImageUsagesIfNeedSynchronization(
-      const image::UsageHistory& history, int subpass) const;
+      const std::string& image_name, int subpass) const;
 
   // Images are in their initial/final layouts at the virtual subpasses.
   int virtual_initial_subpass_index() const { return -1; }
