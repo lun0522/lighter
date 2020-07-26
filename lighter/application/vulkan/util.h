@@ -9,6 +9,7 @@
 #define LIGHTER_APPLICATION_VULKAN_UTIL_H
 
 #include <cstdlib>
+#include <functional>
 #include <type_traits>
 
 #include "lighter/common/camera.h"
@@ -32,6 +33,7 @@
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
 #include "third_party/absl/flags/flag.h"
 #include "third_party/absl/memory/memory.h"
+#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/glm/gtc/matrix_transform.hpp"
@@ -149,6 +151,61 @@ class ImageViewer {
   std::unique_ptr<renderer::vulkan::PerVertexBuffer> vertex_buffer_;
   std::unique_ptr<renderer::vulkan::GraphicsPipelineBuilder> pipeline_builder_;
   std::unique_ptr<renderer::vulkan::Pipeline> pipeline_;
+};
+
+// TODO: Move this class to another file?
+// Holds identifiers of an attachment image and provides util functions for
+// interacting with image::UsageTracker and GraphicsPass.
+class AttachmentInfo {
+ public:
+  explicit AttachmentInfo(std::string&& name) : name_{std::move(name)} {}
+
+  // This class provides copy constructor and move constructor.
+  AttachmentInfo(AttachmentInfo&&) noexcept = default;
+  AttachmentInfo(AttachmentInfo&) = default;
+
+  // Makes 'image_usage_tracker' track the usage of this image.
+  AttachmentInfo& AddToTracker(
+      renderer::vulkan::image::UsageTracker& image_usage_tracker,
+      const renderer::vulkan::Image& sample_image) {
+    image_usage_tracker.TrackImage(name_, sample_image);
+    return *this;
+  }
+
+  // Performs following steps:
+  // (1) Retrieve the initial usage from 'image_usage_tracker' and use it to
+  //     construct a usage history.
+  // (2) Call 'populate_history' to populate subpasses of the history.
+  // (3) Add the history to 'graphics_pass' and records the attachment index.
+  // (4) Update 'image_usage_tracker' to track the last usage of this image in
+  //     'graphics_pass'.
+  AttachmentInfo& AddToGraphicsPass(
+      renderer::vulkan::GraphicsPass& graphics_pass,
+      renderer::vulkan::image::UsageTracker& image_usage_tracker,
+      const std::function<void(renderer::vulkan::image::UsageHistory&)>&
+          populate_history);
+
+  // Informs 'graphics_pass' that this attachment will resolve to
+  // 'target_attachment' at 'subpass'.
+  AttachmentInfo& ResolveToAttachment(
+      renderer::vulkan::GraphicsPass& graphics_pass,
+      const AttachmentInfo& target_attachment, int subpass) {
+    graphics_pass.AddMultisampleResolving(name_, target_attachment.name_,
+                                          subpass);
+    return *this;
+  }
+
+  // Accessors.
+  int index() const { return index_.value(); }
+
+ private:
+  // Image name. This is used to identify an image in classes like ComputePass,
+  // GraphicsPass and image::UsageTracker.
+  std::string name_;
+
+  // Attachment index. This is used to identify an image within a
+  // VkAttachmentDescription array when constructing render passes.
+  absl::optional<int> index_;
 };
 
 } /* namespace vulkan */

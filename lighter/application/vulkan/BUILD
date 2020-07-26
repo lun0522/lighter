@@ -13,6 +13,7 @@ cc_library(
         "//lighter/renderer/vulkan/extension:onscreen",
         "//third_party/absl/flags:flag",
         "//third_party/absl/memory",
+        "//third_party/absl/types:optional",
         "//third_party/absl/types:span",
         "//third_party:glm",
         "//third_party:vulkan",

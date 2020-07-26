@@ -54,26 +54,17 @@ VkImageLayout BasePass::GetImageLayoutAtSubpass(const std::string& image_name,
   return usage->GetImageLayout();
 }
 
-void BasePass::UpdateImageUsages(image::UsageTracker* usage_tracker) const {
-  for (const auto& pair : image_usage_history_map_) {
-    const std::string& image_name = pair.first;
-    if (!usage_tracker->IsImageTracked(image_name)) {
-#ifndef NDEBUG
-      LOG_INFO << absl::StreamFormat("Skipping image '%s' since its usage is "
-                                     "not tracked by the given tracker",
-                                     image_name);
-#endif /* !NDEBUG */
-      continue;
-    }
+void BasePass::UpdateTrackedImageUsage(
+    const std::string& image_name,
+    image::UsageTracker& usage_tracker) const {
+  const auto& last_usage =
+      GetUsageHistory(image_name).usage_at_subpass_map().rbegin()->second;
+  usage_tracker.UpdateUsage(image_name, last_usage);
 
-    const image::Usage& last_usage =
-        pair.second.usage_at_subpass_map().rbegin()->second;
-    usage_tracker->UpdateUsage(image_name, last_usage);
 #ifndef NDEBUG
-    LOG_INFO << absl::StreamFormat("Updated tracked usage for image '%s'",
-                                   image_name);
+  LOG_INFO << absl::StreamFormat("Updated tracked usage for image '%s'",
+                                 image_name);
 #endif /* !NDEBUG */
-  }
 }
 
 const image::UsageHistory& BasePass::GetUsageHistory(

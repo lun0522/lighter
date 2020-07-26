@@ -89,6 +89,16 @@ void ImageViewer::Draw(const VkCommandBuffer& command_buffer) const {
                        /*mesh_index=*/0, /*instance_count=*/1);
 }
 
+AttachmentInfo& AttachmentInfo::AddToGraphicsPass(
+    GraphicsPass& graphics_pass, image::UsageTracker& image_usage_tracker,
+    const std::function<void(image::UsageHistory&)>& populate_history) {
+  image::UsageHistory history{image_usage_tracker.GetUsage(name_)};
+  populate_history(history);
+  index_ = graphics_pass.AddImage(name_, std::move(history));
+  graphics_pass.UpdateTrackedImageUsage(name_, image_usage_tracker);
+  return *this;
+}
+
 } /* namespace vulkan */
 } /* namespace application */
 } /* namespace lighter */

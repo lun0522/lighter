@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/image_usage.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
@@ -33,6 +34,14 @@ class UsageTracker {
 
   UsageTracker& TrackImage(std::string&& image_name,
                            const Usage& initial_usage);
+  UsageTracker& TrackImage(std::string&& image_name,
+                           const Image& sample_image) {
+    return TrackImage(std::move(image_name), sample_image.GetInitialUsage());
+  }
+  UsageTracker& TrackImage(const std::string& image_name,
+                           const Image& sample_image) {
+    return TrackImage(std::string{image_name}, sample_image);
+  }
 
   bool IsImageTracked(const std::string& image_name) const {
     return image_usage_map_.contains(image_name);
@@ -42,6 +51,7 @@ class UsageTracker {
 
   UsageTracker& UpdateUsage(const std::string& image_name, const Usage& usage);
 
+ private:
   absl::flat_hash_map<std::string, Usage> image_usage_map_;
 };
 

@@ -47,10 +47,10 @@ class BasePass {
   VkImageLayout GetImageLayoutAtSubpass(const std::string& image_name,
                                         int subpass) const;
 
-  // Updates usages of images to their last usages in this pass. This will have
-  // effect only if an image is used in this pass, and if its usage is tracked
-  // by 'usage_tracker'.
-  void UpdateImageUsages(image::UsageTracker* usage_tracker) const;
+  // Updates the image usage tracked by 'usage_tracker' to the last usage of
+  // that image in this pass.
+  void UpdateTrackedImageUsage(const std::string& image_name,
+                               image::UsageTracker& usage_tracker) const;
 
  protected:
   // Holds the previous and current image usage.

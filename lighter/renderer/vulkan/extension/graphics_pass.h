@@ -38,6 +38,9 @@ class GraphicsPass : public BasePass {
   // within the VkAttachmentDescription array, which is used when calling
   // RenderPassBuilder::UpdateAttachmentImage().
   int AddImage(std::string&& image_name, image::UsageHistory&& history);
+  int AddImage(const std::string& image_name, image::UsageHistory&& history) {
+    return AddImage(std::string{image_name}, std::move(history));
+  }
 
   // Specifies that the multisample source image will get resolved to the single
   // sample destination image at 'subpass'.
