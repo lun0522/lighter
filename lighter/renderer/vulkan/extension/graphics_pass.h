@@ -8,6 +8,7 @@
 #ifndef LIGHTER_RENDERER_VULKAN_EXTENSION_GRAPHICS_PASS_H
 #define LIGHTER_RENDERER_VULKAN_EXTENSION_GRAPHICS_PASS_H
 
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -28,19 +29,28 @@ namespace vulkan {
 // it can be reused later.
 class GraphicsPass : public BasePass {
  public:
+  // Returns the location attribute value of a color attachment at 'subpass'.
+  using GetLocation = std::function<int(int subpass)>;
+
   GraphicsPass(SharedBasicContext context, int num_subpasses);
 
   // This class is neither copyable nor movable.
   GraphicsPass(const GraphicsPass&) = delete;
   GraphicsPass& operator=(const GraphicsPass&) = delete;
 
-  // TODO: User specify index? Do not generate index for depth stencil.
   // Adds an image that is used in this graphics pass, and returns its index
   // within the VkAttachmentDescription array, which is used when calling
   // RenderPassBuilder::UpdateAttachmentImage().
-  int AddImage(std::string&& image_name, image::UsageHistory&& history);
-  int AddImage(const std::string& image_name, image::UsageHistory&& history) {
-    return AddImage(std::string{image_name}, std::move(history));
+  int AddColorAttachment(const std::string& image_name,
+                         GetLocation&& get_location,
+                         image::UsageHistory&& history) {
+    color_attachment_location_getter_map_.insert(
+        {image_name, std::move(get_location)});
+    return AddAttachment(image_name, std::move(history));
+  }
+  int AddDepthStencilAttachment(const std::string& image_name,
+                                image::UsageHistory&& history) {
+    return AddAttachment(image_name, std::move(history));
   }
 
   // Specifies that the multisample source image will get resolved to the single
@@ -56,13 +66,14 @@ class GraphicsPass : public BasePass {
       int num_framebuffers);
 
  private:
-  // Maps each attachment image to its index within the VkAttachmentDescription
-  // array.
-  using AttachmentIndexMap = absl::flat_hash_map<std::string, int>;
-
   // Maps each multisample image to the single sample image that it will resolve
   // to. We should have such a map for each subpass.
   using MultisamplingMap = absl::flat_hash_map<std::string, std::string>;
+
+  // Adds an image that is used in this graphics pass, and returns its index
+  // within the VkAttachmentDescription array.
+  int AddAttachment(const std::string& image_name,
+                    image::UsageHistory&& history);
 
   // Following functions populate 'render_pass_builder_'.
   void SetAttachments();
@@ -104,7 +115,11 @@ class GraphicsPass : public BasePass {
 
   // Maps attachment images to their indices within the VkAttachmentDescription
   // array.
-  AttachmentIndexMap attachment_index_map_;
+  absl::flat_hash_map<std::string, int> attachment_index_map_;
+
+  // Maps color attachments to their location attribute value getters.
+  absl::flat_hash_map<std::string, GetLocation>
+      color_attachment_location_getter_map_;
 
   // Each element maps multisample images to single sample images that they will
   // resolve to. Elements are indexed by subpass.

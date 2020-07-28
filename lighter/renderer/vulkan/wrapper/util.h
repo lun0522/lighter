@@ -33,7 +33,7 @@ namespace renderer {
 namespace vulkan {
 namespace util {
 
-// This class is used to extract unique queues from a list of queues that may
+// This class is used to extract unique queues from a vector of queues that may
 // contain duplicates. Since we may use one device queue for different purposes,
 // such as graphics and presentation, we need to know how many unique queues are
 // actually used. If there is only one unique queue, resources will not be

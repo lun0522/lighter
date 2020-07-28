@@ -116,7 +116,7 @@ VkDescriptorSet AllocateDescriptorSet(const BasicContext& context,
   return set;
 }
 
-// Creates a list of VkWriteDescriptorSet for updating descriptor sets.
+// Creates a vector of VkWriteDescriptorSet for updating descriptor sets.
 // 'info_map' maps each binding point to resources bound to it. The resource
 // InfoType must be either VkDescriptorBufferInfo, VkDescriptorImageInfo or
 // VkBufferView.

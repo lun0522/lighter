@@ -179,7 +179,7 @@ class Button {
     float height;
   };
 
-  // Returns a list of make_button::RenderInfo for all buttons in all states.
+  // Returns a vector of make_button::RenderInfo for all buttons in all states.
   std::vector<make_button::RenderInfo> CreateMakeButtonRenderInfos(
       const ButtonsInfo& buttons_info) const;
 
@@ -188,7 +188,7 @@ class Button {
   button::VerticesInfo CreateMakeButtonVerticesInfo(
       int num_buttons, const glm::vec2& button_scale) const;
 
-  // Returns a list of TextPos to describe where to put each text when
+  // Returns a vector of TextPos to describe where to put each text when
   // generating the buttons image.
   std::vector<TextPos> CreateMakeButtonTextPos(
       const ButtonsInfo& buttons_info) const;

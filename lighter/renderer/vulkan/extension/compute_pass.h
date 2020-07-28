@@ -38,10 +38,6 @@ class ComputePass : public BasePass {
   // Adds an image that is used in this compute pass.
   ComputePass& AddImage(std::string&& image_name,
                         image::UsageHistory&& history);
-  ComputePass& AddImage(const std::string& image_name,
-                        image::UsageHistory&& history) {
-    return AddImage(std::string{image_name}, std::move(history));
-  }
 
   // Runs 'compute_ops' and inserts memory barriers internally for transitioning
   // image layouts using the queue with 'queue_family_index'.

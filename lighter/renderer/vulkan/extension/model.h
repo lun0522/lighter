@@ -47,7 +47,7 @@ class ModelBuilder {
 
   using TextureType = common::ModelLoader::TextureType;
 
-  // Each mesh can have any type of textures, and a list of samplable images
+  // Each mesh can have any type of textures, and a vector of samplable images
   // of each type. This array is indexed by the texture type.
   // The order of textures within in each TexturesPerMesh is assumed to be the
   // same to the order in shaders.

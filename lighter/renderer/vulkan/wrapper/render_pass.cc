@@ -7,6 +7,9 @@
 
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 
+#include <algorithm>
+#include <limits>
+
 #include "lighter/renderer/vulkan/wrapper/util.h"
 #include "third_party/absl/strings/str_format.h"
 
@@ -82,8 +85,8 @@ std::vector<VkSubpassDescription> CreateSubpassDescriptions(
         /*pInputAttachments=*/nullptr,
         CONTAINER_SIZE(attachments.color_refs),
         attachments.color_refs.data(),
-        attachments.multisampling_refs.has_value()
-            ? attachments.multisampling_refs->data()
+        attachments.multisampling_refs.empty()
+            ? attachments.multisampling_refs.data()
             : nullptr,
         // A render pass can only use one depth stencil attachment, so we do not
         // need to pass a count.
@@ -158,18 +161,40 @@ std::vector<VkFramebuffer> CreateFramebuffers(
 } /* namespace */
 
 std::vector<VkAttachmentReference>
+RenderPassBuilder::CreateColorAttachmentReferences(
+    absl::Span<const ColorAttachmentInfo> infos) {
+  if (infos.empty()) {
+    return {};
+  }
+
+  int max_location = std::numeric_limits<int>::min();
+  for (const auto& info : infos) {
+    max_location = std::max(max_location, info.location);
+  }
+
+  std::vector<VkAttachmentReference> references(
+      max_location + 1,
+      VkAttachmentReference{VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED});
+  for (const auto& info : infos) {
+    references[info.location] = VkAttachmentReference{
+        static_cast<uint32_t>(info.description_index),
+        info.image_layout,
+    };
+  }
+  return references;
+}
+
+std::vector<VkAttachmentReference>
 RenderPassBuilder::CreateMultisamplingReferences(
-    int num_color_refs, absl::Span<const MultisamplingPair> pairs) {
+    int num_color_refs, absl::Span<const MultisampleResolveInfo> infos) {
   std::vector<VkAttachmentReference> references(
       num_color_refs,
-      VkAttachmentReference{VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED}
-  );
-  for (const auto& pair : pairs) {
-    references[pair.multisample_reference] =
-        VkAttachmentReference{
-            pair.target_attachment,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        };
+      VkAttachmentReference{VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED});
+  for (const auto& info : infos) {
+    references[info.source_location] = VkAttachmentReference{
+        static_cast<uint32_t>(info.target_description_index),
+        info.target_image_layout,
+    };
   }
   return references;
 }
@@ -202,32 +227,22 @@ RenderPassBuilder& RenderPassBuilder::UpdateAttachmentImage(
 
 RenderPassBuilder& RenderPassBuilder::SetSubpass(
     int index, std::vector<VkAttachmentReference>&& color_refs,
+    std::vector<VkAttachmentReference>&& multisampling_refs,
     const absl::optional<VkAttachmentReference>& depth_stencil_ref) {
+  if (!multisampling_refs.empty()) {
+    ASSERT_TRUE(multisampling_refs.size() == color_refs.size(),
+                absl::StrFormat("Number of multisampling attachment (%d) must "
+                                "match the number of color attachments (%d) at "
+                                "subpass %d",
+                                multisampling_refs.size(), color_refs.size(),
+                                index));
+  }
   SubpassAttachments attachments{
       std::move(color_refs),
-      /*multisampling_refs=*/absl::nullopt,  // To be updated.
+      std::move(multisampling_refs),
       depth_stencil_ref,
   };
   SetElementWithResizing(std::move(attachments), index, &subpass_attachments_);
-  return *this;
-}
-
-RenderPassBuilder& RenderPassBuilder::SetMultisampling(
-    int subpass_index,
-    std::vector<VkAttachmentReference>&& multisampling_refs) {
-  ASSERT_TRUE(subpass_index < subpass_attachments_.size(),
-              absl::StrFormat("Attachments not set for subpass %d",
-                              subpass_index));
-  const int num_color_attachments =
-      subpass_attachments_[subpass_index].color_refs.size();
-  ASSERT_TRUE(multisampling_refs.size() == num_color_attachments,
-              absl::StrFormat("Number of multisampling attachment (%d) must be "
-                              "equal to the number of color attachments (%d) "
-                              "for subpass %d",
-                              multisampling_refs.size(), num_color_attachments,
-                              subpass_index));
-  subpass_attachments_[subpass_index].multisampling_refs =
-      std::move(multisampling_refs);
   return *this;
 }
 

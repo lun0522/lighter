@@ -78,7 +78,7 @@ inline VkVertexInputBindingDescription GetPerInstanceBindingDescription() {
 
 /** Vertex input attribute **/
 
-// Convenient function to return a list of VertexBuffer::Attribute, assuming
+// Convenient function to return a vector of VertexBuffer::Attribute, assuming
 // each vertex will get data of DataType. For now this is only implemented for
 // Vertex2DPosOnly, Vertex2D, Vertex3DPosOnly, Vertex3DWithColor and
 // Vertex3DWithTex.

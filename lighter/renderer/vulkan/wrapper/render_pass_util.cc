@@ -17,8 +17,6 @@ namespace vulkan {
 namespace {
 
 using Attachment = RenderPassBuilder::Attachment;
-using MultisamplingPair = RenderPassBuilder::MultisamplingPair;
-using SubpassAttachments = RenderPassBuilder::SubpassAttachments;
 using SubpassDependency = RenderPassBuilder::SubpassDependency;
 using SubpassInfo = SubpassDependency::SubpassInfo;
 
@@ -117,21 +115,53 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
           VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
       },
   };
+  const std::vector<VkAttachmentReference> multisampling_ref =
+      RenderPassBuilder::CreateMultisamplingReferences(
+          /*num_color_refs=*/1,
+          /*infos=*/{
+              MultisampleResolveInfo{
+                  /*source_location=*/0,
+                  /*target_description_index=*/color_attachment_index(),
+                  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+              },
+          }
+      );
   const VkAttachmentReference depth_stencil_ref{
       use_depth_stencil_attachment ? depth_stencil_attachment_index()
                                    : VK_ATTACHMENT_UNUSED,
       VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
   };
+  const auto get_multisampling_refs =
+      [num_subpasses, this](int subpass) -> std::vector<VkAttachmentReference> {
+        if (subpass != num_subpasses - 1) {
+          return {};
+        }
+        return RenderPassBuilder::CreateMultisamplingReferences(
+            /*num_color_refs=*/1,
+            /*infos=*/{
+                MultisampleResolveInfo{
+                    /*source_location=*/0,
+                    /*target_description_index=*/color_attachment_index(),
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                },
+           }
+        );
+      };
+
   int subpass_index = 0;
   for (int i = 0; i < num_subpasses_with_depth_stencil_attachment; ++i) {
-    SetSubpass(subpass_index++,
+    SetSubpass(subpass_index,
                std::vector<VkAttachmentReference>{color_refs},
+               get_multisampling_refs(subpass_index),
                depth_stencil_ref);
+    ++subpass_index;
   }
   for (int i = 0; i < subpass_config.num_overlay_subpasses; ++i) {
-    SetSubpass(subpass_index++,
+    SetSubpass(subpass_index,
+               get_multisampling_refs(subpass_index),
                std::vector<VkAttachmentReference>{color_refs},
                /*depth_stencil_ref=*/absl::nullopt);
+    ++subpass_index;
   }
 
   /* Subpass dependencies */
@@ -166,23 +196,6 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
         },
         /*dependency_flags=*/nullflag,
     });
-  }
-
-  /* Multisampling */
-  if (use_multisampling) {
-    SetMultisampling(
-        /*subpass_index=*/num_subpasses - 1,
-        RenderPassBuilder::CreateMultisamplingReferences(
-            /*num_color_refs=*/1,
-            /*pairs=*/{
-                MultisamplingPair{
-                    /*multisample_reference=*/0,
-                    /*target_attachment=*/
-                    static_cast<uint32_t>(color_attachment_index()),
-                },
-            }
-        )
-    );
   }
 }
 
@@ -229,7 +242,8 @@ DeferredShadingRenderPassBuilder::DeferredShadingRenderPassBuilder(
       static_cast<uint32_t>(depth_stencil_attachment_index()),
       VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
   };
-  SetSubpass(/*index=*/0, std::move(color_refs), depth_stencil_ref);
+  SetSubpass(/*index=*/0, std::move(color_refs), /*multisampling_refs=*/{},
+             depth_stencil_ref);
 
   /* Subpass dependencies */
   AddSubpassDependency(SubpassDependency{

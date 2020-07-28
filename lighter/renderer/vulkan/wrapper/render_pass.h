@@ -63,7 +63,7 @@ class RenderPassBuilder {
   // attachment in 'color_refs' that has the same index.
   struct SubpassAttachments {
     std::vector<VkAttachmentReference> color_refs;
-    absl::optional<std::vector<VkAttachmentReference>> multisampling_refs;
+    std::vector<VkAttachmentReference> multisampling_refs;
     absl::optional<VkAttachmentReference> depth_stencil_ref;
   };
 
@@ -106,18 +106,42 @@ class RenderPassBuilder {
     VkDependencyFlags dependency_flags;
   };
 
-  // Specifies which attachment will be resolved to the target attachment.
-  // Note that 'multisample_reference' is the index of VkAttachmentReference,
-  // while 'target_attachment' is the index of VkAttachmentDescription.
-  struct MultisamplingPair {
-    int multisample_reference;
-    uint32_t target_attachment;
+  // Holds info of a color attachment.
+  struct ColorAttachmentInfo {
+    // Location attribute value of this color attachment in the shader.
+    int location;
+
+    // Index of this attachment in the VkAttachmentDescription array, which is
+    // set via SetAttachment().
+    int description_index;
+
+    // Layout of this attachment.
+    VkImageLayout image_layout;
   };
 
-  // Creates a list of VkAttachmentReference to describe the multisampling
-  // relationships. The length of the list will be equal to 'num_color_refs'.
+  // Specifies that a color attachment will resolve to another color attachment.
+  struct MultisampleResolveInfo {
+    // Location attribute value of the source multisample image in the shader.
+    int source_location;
+
+    // Index of the target single sample image in the VkAttachmentDescription
+    // array, which is set via SetAttachment().
+    int target_description_index;
+
+    // Layout of the target single sample image.
+    VkImageLayout target_image_layout;
+  };
+
+  // Creates a vector of VkAttachmentReference to describe color attachments
+  // that will be used in a subpass. The length of the vector will be equal to
+  // the maximum location of all these attachments +1.
+  static std::vector<VkAttachmentReference> CreateColorAttachmentReferences(
+      absl::Span<const ColorAttachmentInfo> infos);
+
+  // Creates a vector of VkAttachmentReference to describe the multisampling
+  // relationships. The length of the vector will be equal to 'num_color_refs'.
   static std::vector<VkAttachmentReference> CreateMultisamplingReferences(
-      int num_color_refs, absl::Span<const MultisamplingPair> pairs);
+      int num_color_refs, absl::Span<const MultisampleResolveInfo> infos);
 
   explicit RenderPassBuilder(SharedBasicContext context)
       : context_{std::move(FATAL_IF_NULL(context))} {}
@@ -139,17 +163,18 @@ class RenderPassBuilder {
   // The user is responsible for keeping 'get_image' valid until Build().
   RenderPassBuilder& UpdateAttachmentImage(int index, GetImage&& get_image);
 
-  // Sets the subpass at 'index' with color attachments and optional depth
-  // stencil attachments used for this subpass.
+  // Sets the subpass at 'index'. Note that:
+  // (1) For each element in 'color_refs', its index must match its location
+  //     attribute value in the shader. The user can use the helper function
+  //     CreateColorAttachmentReferences() to create such a vector.
+  // (2) If 'multisampling_refs' is not empty, its length must be match the
+  //     length of 'color_refs', and each element will resolve to the color
+  //     attachment at the same index. The user can use the helper function
+  //     CreateMultisamplingReferences() to create such a vector.
   RenderPassBuilder& SetSubpass(
       int index, std::vector<VkAttachmentReference>&& color_refs,
+      std::vector<VkAttachmentReference>&& multisampling_refs,
       const absl::optional<VkAttachmentReference>& depth_stencil_ref);
-
-  // Sets multisampling relationships for the subpass at 'subpass_index'.
-  // The user must have called SetSubpass() for this subpass.
-  RenderPassBuilder& SetMultisampling(
-      int subpass_index,
-      std::vector<VkAttachmentReference>&& multisampling_refs);
 
   // Creates a dependency relationship.
   RenderPassBuilder& AddSubpassDependency(const SubpassDependency& dependency);

@@ -7,6 +7,7 @@
 
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 
+#include <algorithm>
 #include <map>
 #include <vector>
 
@@ -36,12 +37,12 @@ GraphicsPass::GraphicsPass(SharedBasicContext context, int num_subpasses)
   multisampling_at_subpass_maps_.resize(num_subpasses_);
 }
 
-int GraphicsPass::AddImage(std::string&& image_name,
-                           image::UsageHistory&& history) {
+int GraphicsPass::AddAttachment(const std::string& image_name,
+                                image::UsageHistory&& history) {
   BasePass::AddUsageHistory(std::string{image_name}, std::move(history));
   const auto attachment_index =
       static_cast<int>(image_usage_history_map().size()) - 1;
-  attachment_index_map_.insert({std::move(image_name), attachment_index});
+  attachment_index_map_.insert({image_name, attachment_index});
   return attachment_index;
 }
 
@@ -127,16 +128,17 @@ void GraphicsPass::SetAttachments() {
 }
 
 void GraphicsPass::SetSubpasses() {
-  using MultisamplingPair = RenderPassBuilder::MultisamplingPair;
+  using ColorAttachmentInfo = RenderPassBuilder::ColorAttachmentInfo;
+  using MultisampleResolveInfo = RenderPassBuilder::MultisampleResolveInfo;
 
   for (int subpass = 0; subpass < num_subpasses_; ++subpass) {
     const MultisamplingMap& multisampling_map =
         multisampling_at_subpass_maps_[subpass];
 
-    std::vector<MultisamplingPair> multisampling_pairs;
-    multisampling_pairs.reserve(multisampling_map.size());
+    std::vector<MultisampleResolveInfo> multisample_resolve_infos;
+    multisample_resolve_infos.reserve(multisampling_map.size());
 
-    std::vector<VkAttachmentReference> color_refs;
+    std::vector<ColorAttachmentInfo> color_attachment_infos;
     VkAttachmentReference depth_stencil_ref{
         VK_ATTACHMENT_UNUSED,
         VK_IMAGE_LAYOUT_UNDEFINED,
@@ -156,13 +158,26 @@ void GraphicsPass::SetSubpasses() {
 
       switch (usage->usage_type()) {
         case ImageUsageType::kRenderTarget: {
+          const int location =
+              color_attachment_location_getter_map_[image_name](subpass);
+#ifndef NDEBUG
+          LOG_INFO << absl::StreamFormat("Bind image '%s' to location %d at "
+                                         "subpass %d",
+                                         image_name, location, subpass);
+#endif  /* !NDEBUG */
+
           const auto iter = multisampling_map.find(image_name);
           if (iter != multisampling_map.end()) {
             const std::string& target = iter->second;
-            multisampling_pairs.push_back(MultisamplingPair{
-                /*multisample_reference=*/static_cast<int>(color_refs.size()),
-                /*target_attachment=*/
-                static_cast<uint32_t>(attachment_index_map_[target]),
+            const int target_description_index = attachment_index_map_[target];
+            const image::Usage* target_usage = GetImageUsage(target, subpass);
+            ASSERT_NON_NULL(
+                target_usage,
+                absl::StrFormat("Target image '%s' is not used at subpass %d",
+                                target, subpass));
+            multisample_resolve_infos.push_back(MultisampleResolveInfo{
+                location, target_description_index,
+                target_usage->GetImageLayout(),
             });
 
 #ifndef NDEBUG
@@ -171,7 +186,13 @@ void GraphicsPass::SetSubpasses() {
                                            image_name, target, subpass);
 #endif  /* !NDEBUG */
           }
-          color_refs.push_back(attachment_ref);
+
+          color_attachment_infos.push_back(ColorAttachmentInfo{
+              location,
+              /*description_index=*/static_cast<int>(attachment_ref.attachment),
+              attachment_ref.layout,
+          });
+
           break;
         }
 
@@ -191,13 +212,13 @@ void GraphicsPass::SetSubpasses() {
       }
     }
 
-    const int num_color_refs = color_refs.size();
+    auto color_refs = RenderPassBuilder::CreateColorAttachmentReferences(
+        color_attachment_infos);
+    auto multisampling_refs = RenderPassBuilder::CreateMultisamplingReferences(
+        color_refs.size(), multisample_resolve_infos);
     render_pass_builder_->SetSubpass(subpass, std::move(color_refs),
+                                     std::move(multisampling_refs),
                                      depth_stencil_ref);
-    render_pass_builder_->SetMultisampling(
-        subpass,
-        RenderPassBuilder::CreateMultisamplingReferences(
-            num_color_refs, multisampling_pairs));
   }
 }
 
