@@ -104,9 +104,10 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   }
 
   /* Render pass */
+  const auto get_location = [](int subpass) { return 0; };
   GraphicsPass graphics_pass{context(), kNumSubpasses};
   swapchain_image_info_.AddToGraphicsPass(
-      graphics_pass, image_usage_tracker,
+      graphics_pass, image_usage_tracker, get_location,
       /*populate_history=*/[this](image::UsageHistory& history) {
         history
             .AddUsage(kRenderSubpassIndex,
@@ -117,7 +118,7 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   if (window_context().use_multisampling()) {
     multisample_image_info_
         .AddToGraphicsPass(
-            graphics_pass, image_usage_tracker,
+            graphics_pass, image_usage_tracker, get_location,
             /*populate_history=*/[](image::UsageHistory& history) {
               history.AddUsage(kRenderSubpassIndex,
                                image::Usage::GetRenderTargetUsage());

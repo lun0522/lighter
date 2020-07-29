@@ -132,8 +132,9 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
       VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
   };
   const auto get_multisampling_refs =
-      [num_subpasses, this](int subpass) -> std::vector<VkAttachmentReference> {
-        if (subpass != num_subpasses - 1) {
+      [use_multisampling, num_subpasses, this](int subpass)
+          -> std::vector<VkAttachmentReference> {
+        if (!use_multisampling || subpass != num_subpasses - 1) {
           return {};
         }
         return RenderPassBuilder::CreateMultisamplingReferences(

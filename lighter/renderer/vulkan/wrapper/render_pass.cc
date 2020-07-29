@@ -86,8 +86,8 @@ std::vector<VkSubpassDescription> CreateSubpassDescriptions(
         CONTAINER_SIZE(attachments.color_refs),
         attachments.color_refs.data(),
         attachments.multisampling_refs.empty()
-            ? attachments.multisampling_refs.data()
-            : nullptr,
+            ? nullptr
+            : attachments.multisampling_refs.data(),
         // A render pass can only use one depth stencil attachment, so we do not
         // need to pass a count.
         attachments.depth_stencil_ref.has_value()

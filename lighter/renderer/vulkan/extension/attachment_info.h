@@ -39,19 +39,16 @@ class AttachmentInfo {
 
   // Adds an attachment to 'graphics_pass', and updates 'image_usage_tracker'
   // with the usage of this attachment after 'graphics_pass'. Note that
-  // 'get_location' should not be nullptr only if the attachment is a depth
-  // stencil attachment.
+  // 'get_location' should not be nullptr if the image is used as render target
+  // at any subpass.
   AttachmentInfo& AddToGraphicsPass(
       GraphicsPass& graphics_pass, image::UsageTracker& image_usage_tracker,
       GraphicsPass::GetLocation&& get_location,
       const std::function<void(image::UsageHistory&)>& populate_history) {
     image::UsageHistory history{image_usage_tracker.GetUsage(name_)};
     populate_history(history);
-    index_ =
-        get_location == nullptr
-            ? graphics_pass.AddDepthStencilAttachment(name_, std::move(history))
-            : graphics_pass.AddColorAttachment(name_, std::move(get_location),
-                                               std::move(history));
+    index_ = graphics_pass.AddAttachment(name_, std::move(get_location),
+                                         std::move(history));
     graphics_pass.UpdateTrackedImageUsage(name_, image_usage_tracker);
     return *this;
   }

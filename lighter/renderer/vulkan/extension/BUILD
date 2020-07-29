@@ -86,6 +86,7 @@ cc_library(
         "//third_party/absl/container:flat_hash_map",
         "//third_party/absl/memory",
         "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:optional",
     ],
 )
 

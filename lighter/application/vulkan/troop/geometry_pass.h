@@ -17,6 +17,7 @@
 #include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
@@ -55,16 +56,26 @@ class GeometryPass {
             uint32_t framebuffer_index, int current_frame) const;
 
  private:
+  // Used to create and update the render pass builder.
+  struct Attachment {
+    const renderer::vulkan::Image* image;
+    renderer::vulkan::AttachmentInfo* attachment_info;
+    int location;
+  };
+
+  // Populates 'render_pass_builder_'.
+  void CreateRenderPassBuilder(absl::Span<const Attachment> attachments);
+
   // Number of soldiers to render.
   const int num_soldiers_;
 
   // Objects used for rendering.
   const renderer::vulkan::WindowContext& window_context_;
-  renderer::vulkan::AttachmentInfo depth_stencil_image_info{"Depth stencil"};
-  renderer::vulkan::AttachmentInfo position_image_info{"Position"};
-  renderer::vulkan::AttachmentInfo normal_image_info{"Normal"};
+  renderer::vulkan::AttachmentInfo depth_stencil_image_info_{"Depth stencil"};
+  renderer::vulkan::AttachmentInfo position_image_info_{"Position"};
+  renderer::vulkan::AttachmentInfo normal_image_info_{"Normal"};
   renderer::vulkan::AttachmentInfo
-      diffuse_specular_image_info{"Diffuse specular"};
+      diffuse_specular_image_info_{"Diffuse specular"};
   std::unique_ptr<renderer::vulkan::StaticPerInstanceBuffer> center_data_;
   std::unique_ptr<renderer::vulkan::UniformBuffer> trans_uniform_;
   std::unique_ptr<renderer::vulkan::Model> nanosuit_model_;

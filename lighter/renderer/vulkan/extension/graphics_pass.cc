@@ -38,7 +38,20 @@ GraphicsPass::GraphicsPass(SharedBasicContext context, int num_subpasses)
 }
 
 int GraphicsPass::AddAttachment(const std::string& image_name,
+                                GetLocation&& get_location,
                                 image::UsageHistory&& history) {
+  const absl::optional<int> subpass_requiring_location_getter =
+      GetFirstSubpassRequiringLocationGetter(history);
+  if (subpass_requiring_location_getter.has_value()) {
+    ASSERT_NON_NULL(
+        get_location,
+        absl::StrFormat("Image '%s' is used as render target at subpass %d, "
+                        "'get_location' must not be nullptr",
+                        image_name, subpass_requiring_location_getter.value()));
+    color_attachment_location_getter_map_.insert(
+        {image_name, std::move(get_location)});
+  }
+
   BasePass::AddUsageHistory(std::string{image_name}, std::move(history));
   const auto attachment_index =
       static_cast<int>(image_usage_history_map().size()) - 1;
@@ -282,6 +295,20 @@ void GraphicsPass::SetSubpassDependencies() {
 #endif  /* !NDEBUG */
     }
   }
+}
+
+absl::optional<int> GraphicsPass::GetFirstSubpassRequiringLocationGetter(
+    const image::UsageHistory& history) const {
+  for (const auto& pair : history.usage_at_subpass_map()) {
+    const int subpass = pair.first;
+    if (IsVirtualSubpass(subpass)) {
+      continue;
+    }
+    if (pair.second.usage_type() == ImageUsageType::kRenderTarget) {
+      return subpass;
+    }
+  }
+  return absl::nullopt;
 }
 
 ImageUsageType GraphicsPass::GetImageUsageTypeForAllSubpasses(

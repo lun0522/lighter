@@ -18,6 +18,7 @@
 #include "lighter/renderer/vulkan/wrapper/image_usage.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/types/optional.h"
 
 namespace lighter {
 namespace renderer {
@@ -40,18 +41,11 @@ class GraphicsPass : public BasePass {
 
   // Adds an image that is used in this graphics pass, and returns its index
   // within the VkAttachmentDescription array, which is used when calling
-  // RenderPassBuilder::UpdateAttachmentImage().
-  int AddColorAttachment(const std::string& image_name,
-                         GetLocation&& get_location,
-                         image::UsageHistory&& history) {
-    color_attachment_location_getter_map_.insert(
-        {image_name, std::move(get_location)});
-    return AddAttachment(image_name, std::move(history));
-  }
-  int AddDepthStencilAttachment(const std::string& image_name,
-                                image::UsageHistory&& history) {
-    return AddAttachment(image_name, std::move(history));
-  }
+  // RenderPassBuilder::UpdateAttachmentImage(). Note that if the image is used
+  // as render target at any subpass, 'get_location' must not be nullptr.
+  int AddAttachment(const std::string& image_name,
+                    GetLocation&& get_location,
+                    image::UsageHistory&& history);
 
   // Specifies that the multisample source image will get resolved to the single
   // sample destination image at 'subpass'.
@@ -70,15 +64,17 @@ class GraphicsPass : public BasePass {
   // to. We should have such a map for each subpass.
   using MultisamplingMap = absl::flat_hash_map<std::string, std::string>;
 
-  // Adds an image that is used in this graphics pass, and returns its index
-  // within the VkAttachmentDescription array.
-  int AddAttachment(const std::string& image_name,
-                    image::UsageHistory&& history);
-
   // Following functions populate 'render_pass_builder_'.
   void SetAttachments();
   void SetSubpasses();
   void SetSubpassDependencies();
+
+  // Returns the first subpass where the image is used as render target, in
+  // which case we need to query the location attribute value using the location
+  // getter provided by the user. If there is no such subpass, returns
+  // absl::nullopt instead.
+  absl::optional<int> GetFirstSubpassRequiringLocationGetter(
+      const image::UsageHistory& history) const;
 
   // Returns the usage type of an image. We assume that each image should either
   // always be a color attachment, or always be a depth stencil attachment

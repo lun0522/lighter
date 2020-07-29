@@ -39,10 +39,10 @@ enum UniformBindingPoint {
 };
 
 enum ColorAttachmentIndex {
+  kAttachmentNonApplicable = -1,
   kPositionAttachmentIndex = 0,
   kNormalAttachmentIndex,
   kDiffuseSpecularAttachmentIndex,
-  kNumColorAttachments,
 };
 
 /* BEGIN: Consistent with uniform blocks defined in shaders. */
@@ -125,52 +125,18 @@ void GeometryPass::UpdateFramebuffer(const Image& depth_stencil_image,
                                      const Image& normal_image,
                                      const Image& diffuse_specular_image) {
   /* Render pass */
-  struct Attachment {
-    const Image* image;
-    AttachmentInfo* attachment_info;
-    int location;
-  };
   const Attachment attachments_to_update[]{
-      {&depth_stencil_image, &depth_stencil_image_info, -1},
-      {&position_image, &position_image_info, kPositionAttachmentIndex},
-      {&normal_image, &normal_image_info, kNormalAttachmentIndex},
-      {&diffuse_specular_image, &diffuse_specular_image_info,
+      {&depth_stencil_image, &depth_stencil_image_info_,
+       kAttachmentNonApplicable},
+      {&position_image, &position_image_info_, kPositionAttachmentIndex},
+      {&normal_image, &normal_image_info_, kNormalAttachmentIndex},
+      {&diffuse_specular_image, &diffuse_specular_image_info_,
        kDiffuseSpecularAttachmentIndex},
   };
 
   if (render_pass_builder_ == nullptr) {
-    image::UsageTracker image_usage_tracker;
-    for (const auto& attachment : attachments_to_update) {
-      attachment.attachment_info->AddToTracker(image_usage_tracker,
-                                               *attachment.image);
-    }
-
-    GraphicsPass graphics_pass{window_context_.basic_context(), kNumSubpasses};
-    attachments_to_update[0].attachment_info->AddToGraphicsPass(
-        graphics_pass, image_usage_tracker, /*get_location=*/nullptr,
-        /*populate_history=*/[](image::UsageHistory& history) {
-          history.AddUsage(kRenderSubpassIndex,
-                           image::Usage::GetDepthStencilUsage());
-        });
-    for (auto& attachment : attachments_to_update) {
-      if (attachment.location < 0) {
-        continue;
-      }
-      const int location = attachment.location;
-      attachment.attachment_info->AddToGraphicsPass(
-          graphics_pass, image_usage_tracker,
-          /*get_location=*/[location](int subpass) { return location; },
-          /*populate_history=*/[](image::UsageHistory& history) {
-            history
-                .AddUsage(kRenderSubpassIndex,
-                          image::Usage::GetRenderTargetUsage())
-                .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
-          });
-    }
-    render_pass_builder_ = graphics_pass.CreateRenderPassBuilder(
-        /*num_framebuffers=*/window_context_.num_swapchain_images());
+    CreateRenderPassBuilder(attachments_to_update);
   }
-
   for (const auto& attachment : attachments_to_update) {
     render_pass_builder_->UpdateAttachmentImage(
         attachment.attachment_info->index(),
@@ -201,6 +167,41 @@ void GeometryPass::Draw(const VkCommandBuffer& command_buffer,
                                   /*instance_count=*/num_soldiers_);
           },
       });
+}
+
+void GeometryPass::CreateRenderPassBuilder(
+    absl::Span<const Attachment> attachments) {
+  image::UsageTracker image_usage_tracker;
+  for (const auto& attachment : attachments) {
+    attachment.attachment_info->AddToTracker(image_usage_tracker,
+                                             *attachment.image);
+  }
+
+  GraphicsPass graphics_pass{window_context_.basic_context(), kNumSubpasses};
+  for (const auto& attachment : attachments) {
+    if (attachment.location == kAttachmentNonApplicable) {
+      attachment.attachment_info->AddToGraphicsPass(
+          graphics_pass, image_usage_tracker, /*get_location=*/nullptr,
+          /*populate_history=*/[](image::UsageHistory& history) {
+            history.AddUsage(kRenderSubpassIndex,
+                             image::Usage::GetDepthStencilUsage());
+          });
+    } else {
+      const int location = attachment.location;
+      attachment.attachment_info->AddToGraphicsPass(
+          graphics_pass, image_usage_tracker,
+          /*get_location=*/[location](int subpass) { return location; },
+          /*populate_history=*/[](image::UsageHistory& history) {
+            history
+                .AddUsage(kRenderSubpassIndex,
+                          image::Usage::GetRenderTargetUsage())
+                .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
+          });
+    }
+  }
+
+  render_pass_builder_ = graphics_pass.CreateRenderPassBuilder(
+      /*num_framebuffers=*/window_context_.num_swapchain_images());
 }
 
 } /* namespace troop */
