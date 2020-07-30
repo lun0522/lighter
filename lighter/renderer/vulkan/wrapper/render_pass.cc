@@ -20,16 +20,17 @@ namespace {
 
 using common::util::SetElementWithResizing;
 
-using ColorOps = RenderPassBuilder::Attachment::ColorOps;
-using DepthStencilOps = RenderPassBuilder::Attachment::DepthStencilOps;
+using ColorLoadStoreOps = RenderPassBuilder::Attachment::ColorLoadStoreOps;
+using DepthStencilLoadStoreOps =
+    RenderPassBuilder::Attachment::DepthStencilLoadStoreOps;
 
 // Creates clear value for 'attachment'.
 VkClearValue CreateClearColor(const RenderPassBuilder::Attachment& attachment) {
   VkClearValue clear_value{};
-  if (absl::holds_alternative<ColorOps>(attachment.attachment_ops)) {
+  if (absl::holds_alternative<ColorLoadStoreOps>(attachment.load_store_ops)) {
     clear_value.color = {{0, 0, 0, 0}};
-  } else if (absl::holds_alternative<DepthStencilOps>(
-      attachment.attachment_ops)) {
+  } else if (absl::holds_alternative<DepthStencilLoadStoreOps>(
+      attachment.load_store_ops)) {
     clear_value.depthStencil = {/*depth=*/1.0f, /*stencil=*/0};
   } else {
     FATAL("Unrecognized variant type");
@@ -53,18 +54,19 @@ VkAttachmentDescription CreateAttachmentDescription(
       attachment.initial_layout,
       attachment.final_layout,
   };
-  if (absl::holds_alternative<ColorOps>(attachment.attachment_ops)) {
-    const auto& color_ops = absl::get<ColorOps>(attachment.attachment_ops);
-    description.loadOp = color_ops.load_color_op;
-    description.storeOp = color_ops.store_color_op;
-  } else if (absl::holds_alternative<DepthStencilOps>(
-      attachment.attachment_ops)) {
+  if (absl::holds_alternative<ColorLoadStoreOps>(attachment.load_store_ops)) {
+    const auto& color_ops =
+        absl::get<ColorLoadStoreOps>(attachment.load_store_ops);
+    description.loadOp = color_ops.color_load_op;
+    description.storeOp = color_ops.color_store_op;
+  } else if (absl::holds_alternative<DepthStencilLoadStoreOps>(
+      attachment.load_store_ops)) {
     const auto& depth_stencil_ops =
-        absl::get<DepthStencilOps>(attachment.attachment_ops);
-    description.loadOp = depth_stencil_ops.load_depth_op;
-    description.storeOp = depth_stencil_ops.store_depth_op;
-    description.stencilLoadOp = depth_stencil_ops.load_stencil_op;
-    description.stencilStoreOp = depth_stencil_ops.store_stencil_op;
+        absl::get<DepthStencilLoadStoreOps>(attachment.load_store_ops);
+    description.loadOp = depth_stencil_ops.depth_load_op;
+    description.storeOp = depth_stencil_ops.depth_store_op;
+    description.stencilLoadOp = depth_stencil_ops.stencil_load_op;
+    description.stencilStoreOp = depth_stencil_ops.stencil_store_op;
   } else {
     FATAL("Unrecognized variant type");
   }

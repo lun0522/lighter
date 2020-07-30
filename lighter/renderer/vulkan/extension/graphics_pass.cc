@@ -13,6 +13,7 @@
 
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
+#include "third_party/absl/types/variant.h"
 
 namespace lighter {
 namespace renderer {
@@ -37,9 +38,10 @@ GraphicsPass::GraphicsPass(SharedBasicContext context, int num_subpasses)
   multisampling_at_subpass_maps_.resize(num_subpasses_);
 }
 
-int GraphicsPass::AddAttachment(const std::string& image_name,
-                                GetLocation&& get_location,
-                                image::UsageHistory&& history) {
+int GraphicsPass::AddAttachment(
+    const std::string& image_name,
+    GetLocation&& get_location, image::UsageHistory&& history,
+    const absl::optional<AttachmentLoadStoreOps>& load_store_ops) {
   const absl::optional<int> subpass_requiring_location_getter =
       GetFirstSubpassRequiringLocationGetter(history);
   if (subpass_requiring_location_getter.has_value()) {
@@ -50,6 +52,46 @@ int GraphicsPass::AddAttachment(const std::string& image_name,
                         image_name, subpass_requiring_location_getter.value()));
     color_attachment_location_getter_map_.insert(
         {image_name, std::move(get_location)});
+  }
+
+  switch (GetImageUsageTypeForAllSubpasses(image_name, history)) {
+    case ImageUsageType::kRenderTarget:
+      if (load_store_ops.has_value()) {
+        using ColorLoadStoreOps =
+            RenderPassBuilder::Attachment::ColorLoadStoreOps;
+        ASSERT_TRUE(
+            absl::holds_alternative<ColorLoadStoreOps>(load_store_ops.value()),
+            absl::StrFormat("Image '%s' is used as color attachment, but depth "
+                            "stencil attachment load store ops are provided",
+                            image_name));
+        attachment_load_store_ops_map_.insert(
+            {image_name, load_store_ops.value()});
+      } else {
+        attachment_load_store_ops_map_.insert(
+            {image_name, GetDefaultColorLoadStoreOps()});
+      }
+      break;
+
+    case ImageUsageType::kDepthStencil:
+      if (load_store_ops.has_value()) {
+        using DepthStencilLoadStoreOps =
+            RenderPassBuilder::Attachment::DepthStencilLoadStoreOps;
+        ASSERT_TRUE(
+            absl::holds_alternative<DepthStencilLoadStoreOps>(
+                load_store_ops.value()),
+            absl::StrFormat("Image '%s' is used as depth stencil attachment, "
+                            "but color attachment load store ops are provided",
+                            image_name));
+        attachment_load_store_ops_map_.insert(
+            {image_name, load_store_ops.value()});
+      } else {
+        attachment_load_store_ops_map_.insert(
+            {image_name, GetDefaultDepthStencilLoadStoreOps()});
+      }
+      break;
+
+    default:
+      FATAL("Unreachable");
   }
 
   BasePass::AddUsageHistory(std::string{image_name}, std::move(history));
@@ -109,34 +151,13 @@ std::unique_ptr<RenderPassBuilder> GraphicsPass::CreateRenderPassBuilder(
 void GraphicsPass::SetAttachments() {
   for (const auto& pair : image_usage_history_map()) {
     const std::string& image_name = pair.first;
-    RenderPassBuilder::Attachment attachment;
-    attachment.initial_layout = GetImageLayoutBeforePass(image_name);
-    attachment.final_layout = GetImageLayoutAfterPass(image_name);
-
-    switch (GetImageUsageTypeForAllSubpasses(image_name, pair.second)) {
-      case ImageUsageType::kRenderTarget:
-        attachment.attachment_ops = RenderPassBuilder::Attachment::ColorOps{
-            /*load_color_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-            /*store_color_op=*/VK_ATTACHMENT_STORE_OP_STORE,
-        };
-        break;
-
-      case ImageUsageType::kDepthStencil:
-        attachment.attachment_ops =
-            RenderPassBuilder::Attachment::DepthStencilOps{
-                /*load_depth_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-                /*store_depth_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                /*load_stencil_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-                /*store_stencil_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            };
-        break;
-
-      default:
-        FATAL("Unreachable");
-    }
-
-    render_pass_builder_->SetAttachment(attachment_index_map_[image_name],
-                                        attachment);
+    render_pass_builder_->SetAttachment(
+        attachment_index_map_[image_name],
+        RenderPassBuilder::Attachment{
+            attachment_load_store_ops_map_[image_name],
+            GetImageLayoutBeforePass(image_name),
+            GetImageLayoutAfterPass(image_name),
+        });
   }
 }
 

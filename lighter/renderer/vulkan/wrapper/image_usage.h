@@ -75,9 +75,10 @@ class Usage {
 
   // Convenience function to return Usage for images used as depth stencil
   // attachment.
-  static Usage GetDepthStencilUsage() {
-    return Usage{UsageType::kDepthStencil, AccessType::kReadWrite,
-                 AccessLocation::kOther};
+  static Usage GetDepthStencilUsage(AccessType access_type) {
+    ASSERT_FALSE(access_type == AccessType::kDontCare,
+                 "Must specify access type");
+    return Usage{UsageType::kDepthStencil, access_type, AccessLocation::kOther};
   }
 
   // Convenience function to return Usage for images that we resolve multisample

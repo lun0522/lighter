@@ -87,6 +87,7 @@ cc_library(
         "//third_party/absl/memory",
         "//third_party/absl/strings:str_format",
         "//third_party/absl/types:optional",
+        "//third_party/absl/types:variant",
     ],
 )
 

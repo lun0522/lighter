@@ -65,9 +65,9 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
   SetNumFramebuffers(num_framebuffers);
   SetAttachment(
       color_attachment_index(), Attachment{
-          /*attachment_ops=*/Attachment::ColorOps{
-              /*load_color_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-              /*store_color_op=*/VK_ATTACHMENT_STORE_OP_STORE,
+          /*load_store_ops=*/Attachment::ColorLoadStoreOps{
+              /*color_load_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+              /*color_store_op=*/VK_ATTACHMENT_STORE_OP_STORE,
           },
           /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
           GetColorAttachmentFinalLayout(color_attachment_final_usage),
@@ -82,11 +82,11 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
     }
     SetAttachment(
         depth_stencil_attachment_index(), Attachment{
-            /*attachment_ops=*/Attachment::DepthStencilOps{
-                /*load_depth_op=*/load_op,
-                /*store_depth_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                /*load_stencil_op=*/load_op,
-                /*store_stencil_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            /*load_store_ops=*/Attachment::DepthStencilLoadStoreOps{
+                /*depth_load_op=*/load_op,
+                /*depth_store_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                /*stencil_load_op=*/load_op,
+                /*stencil_store_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
             },
             initial_layout,
             /*final_layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
@@ -96,9 +96,9 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
   if (use_multisampling) {
     SetAttachment(
         multisample_attachment_index(), Attachment{
-            /*attachment_ops=*/Attachment::ColorOps{
-                /*load_color_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-                /*store_color_op=*/VK_ATTACHMENT_STORE_OP_STORE,
+            /*load_store_ops=*/Attachment::ColorLoadStoreOps{
+                /*color_load_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+                /*color_store_op=*/VK_ATTACHMENT_STORE_OP_STORE,
             },
             /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
             /*final_layout=*/VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -207,11 +207,11 @@ DeferredShadingRenderPassBuilder::DeferredShadingRenderPassBuilder(
   SetNumFramebuffers(num_framebuffers);
   SetAttachment(
       depth_stencil_attachment_index(), Attachment{
-          /*attachment_ops=*/Attachment::DepthStencilOps{
-              /*load_depth_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-              /*store_depth_op=*/VK_ATTACHMENT_STORE_OP_STORE,
-              /*load_stencil_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-              /*store_stencil_op=*/VK_ATTACHMENT_STORE_OP_STORE,
+          /*load_store_ops=*/Attachment::DepthStencilLoadStoreOps{
+              /*depth_load_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+              /*depth_store_op=*/VK_ATTACHMENT_STORE_OP_STORE,
+              /*stencil_load_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+              /*stencil_store_op=*/VK_ATTACHMENT_STORE_OP_STORE,
           },
           /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
           /*final_layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
@@ -220,9 +220,9 @@ DeferredShadingRenderPassBuilder::DeferredShadingRenderPassBuilder(
   for (int i = 0; i < num_color_attachments; ++i) {
     SetAttachment(
         color_attachments_index_base() + i, Attachment{
-            /*attachment_ops=*/Attachment::ColorOps{
-                /*load_color_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-                /*store_color_op=*/VK_ATTACHMENT_STORE_OP_STORE,
+            /*load_store_ops=*/Attachment::ColorLoadStoreOps{
+                /*color_load_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+                /*color_store_op=*/VK_ATTACHMENT_STORE_OP_STORE,
             },
             /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
             /*final_layout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,

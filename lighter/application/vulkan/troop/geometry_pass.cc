@@ -179,13 +179,21 @@ void GeometryPass::CreateRenderPassBuilder(
 
   GraphicsPass graphics_pass{window_context_.basic_context(), kNumSubpasses};
   for (const auto& attachment : attachments) {
+    // TODO: Image usage tracker should be held by upper level. Infer when to
+    // preserve attachment content?
+    auto depth_stencil_load_store_ops =
+        GraphicsPass::GetDefaultDepthStencilLoadStoreOps();
+    depth_stencil_load_store_ops.depth_store_op = VK_ATTACHMENT_STORE_OP_STORE;
+
     if (attachment.location == kAttachmentNonApplicable) {
       attachment.attachment_info->AddToGraphicsPass(
           graphics_pass, image_usage_tracker, /*get_location=*/nullptr,
           /*populate_history=*/[](image::UsageHistory& history) {
             history.AddUsage(kRenderSubpassIndex,
-                             image::Usage::GetDepthStencilUsage());
-          });
+                             image::Usage::GetDepthStencilUsage(
+                                 image::Usage::AccessType::kReadWrite));
+          },
+          depth_stencil_load_store_ops);
     } else {
       const int location = attachment.location;
       attachment.attachment_info->AddToGraphicsPass(

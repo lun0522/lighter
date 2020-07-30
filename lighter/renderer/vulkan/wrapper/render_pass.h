@@ -40,19 +40,22 @@ class RenderPassBuilder {
   // and the initial and final image layout. The image layout in each subpass
   // will be specified when we describe a subpass.
   struct Attachment {
-    struct ColorOps {
-      VkAttachmentLoadOp load_color_op;
-      VkAttachmentStoreOp store_color_op;
+    struct ColorLoadStoreOps {
+      VkAttachmentLoadOp color_load_op;
+      VkAttachmentStoreOp color_store_op;
     };
 
-    struct DepthStencilOps {
-      VkAttachmentLoadOp load_depth_op;
-      VkAttachmentStoreOp store_depth_op;
-      VkAttachmentLoadOp load_stencil_op;
-      VkAttachmentStoreOp store_stencil_op;
+    struct DepthStencilLoadStoreOps {
+      VkAttachmentLoadOp depth_load_op;
+      VkAttachmentStoreOp depth_store_op;
+      VkAttachmentLoadOp stencil_load_op;
+      VkAttachmentStoreOp stencil_store_op;
     };
 
-    absl::variant<ColorOps, DepthStencilOps> attachment_ops;
+    using LoadStoreOps = absl::variant<ColorLoadStoreOps,
+                                       DepthStencilLoadStoreOps>;
+
+    LoadStoreOps load_store_ops;
     VkImageLayout initial_layout;
     VkImageLayout final_layout;
   };

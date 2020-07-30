@@ -39,16 +39,19 @@ class AttachmentInfo {
 
   // Adds an attachment to 'graphics_pass', and updates 'image_usage_tracker'
   // with the usage of this attachment after 'graphics_pass'. Note that
+  // 'image_usage_tracker' must have tracked the usage of this image, and
   // 'get_location' should not be nullptr if the image is used as render target
   // at any subpass.
   AttachmentInfo& AddToGraphicsPass(
       GraphicsPass& graphics_pass, image::UsageTracker& image_usage_tracker,
       GraphicsPass::GetLocation&& get_location,
-      const std::function<void(image::UsageHistory&)>& populate_history) {
+      const std::function<void(image::UsageHistory&)>& populate_history,
+      const absl::optional<GraphicsPass::AttachmentLoadStoreOps>&
+          load_store_ops = absl::nullopt) {
     image::UsageHistory history{image_usage_tracker.GetUsage(name_)};
     populate_history(history);
     index_ = graphics_pass.AddAttachment(name_, std::move(get_location),
-                                         std::move(history));
+                                         std::move(history), load_store_ops);
     graphics_pass.UpdateTrackedImageUsage(name_, image_usage_tracker);
     return *this;
   }

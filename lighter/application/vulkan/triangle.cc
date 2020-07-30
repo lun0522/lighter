@@ -94,7 +94,7 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   alpha_constant_ = absl::make_unique<PushConstant>(context(), sizeof(Alpha),
                                                    kNumFramesInFlight);
 
-  /* Image usage tracker */
+  /* Render pass */
   image::UsageTracker image_usage_tracker;
   swapchain_image_info_.AddToTracker(
       image_usage_tracker, window_context().swapchain_image(/*index=*/0));
@@ -103,7 +103,6 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
         image_usage_tracker, window_context().multisample_image());
   }
 
-  /* Render pass */
   const auto get_location = [](int subpass) { return 0; };
   GraphicsPass graphics_pass{context(), kNumSubpasses};
   swapchain_image_info_.AddToGraphicsPass(
@@ -126,6 +125,7 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
         .ResolveToAttachment(graphics_pass, swapchain_image_info_,
                              kRenderSubpassIndex);
   }
+
   render_pass_builder_ = graphics_pass.CreateRenderPassBuilder(
       /*num_framebuffers=*/window_context().num_swapchain_images());
 

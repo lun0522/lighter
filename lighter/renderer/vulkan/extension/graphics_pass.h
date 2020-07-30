@@ -30,6 +30,8 @@ namespace vulkan {
 // it can be reused later.
 class GraphicsPass : public BasePass {
  public:
+  using AttachmentLoadStoreOps = RenderPassBuilder::Attachment::LoadStoreOps;
+
   // Returns the location attribute value of a color attachment at 'subpass'.
   using GetLocation = std::function<int(int subpass)>;
 
@@ -39,13 +41,36 @@ class GraphicsPass : public BasePass {
   GraphicsPass(const GraphicsPass&) = delete;
   GraphicsPass& operator=(const GraphicsPass&) = delete;
 
+  // Following functions return default load store ops. By default, the content
+  // of the attachment will be cleared at the beginning of this graphics pass,
+  // and will not be preserved after this graphics pass.
+  static RenderPassBuilder::Attachment::ColorLoadStoreOps
+  GetDefaultColorLoadStoreOps() {
+    return {
+        /*color_load_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+        /*color_store_op=*/VK_ATTACHMENT_STORE_OP_STORE,
+    };
+  }
+  static RenderPassBuilder::Attachment::DepthStencilLoadStoreOps
+  GetDefaultDepthStencilLoadStoreOps() {
+    return {
+        /*depth_load_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+        /*depth_store_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        /*stencil_load_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
+        /*stencil_store_op=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,
+    };
+  }
+
   // Adds an image that is used in this graphics pass, and returns its index
   // within the VkAttachmentDescription array, which is used when calling
   // RenderPassBuilder::UpdateAttachmentImage(). Note that if the image is used
   // as render target at any subpass, 'get_location' must not be nullptr.
-  int AddAttachment(const std::string& image_name,
-                    GetLocation&& get_location,
-                    image::UsageHistory&& history);
+  // If 'load_store_ops' is not specified, default load store ops will be used.
+  int AddAttachment(
+      const std::string& image_name,
+      GetLocation&& get_location, image::UsageHistory&& history,
+      const absl::optional<AttachmentLoadStoreOps>& load_store_ops =
+          absl::nullopt);
 
   // Specifies that the multisample source image will get resolved to the single
   // sample destination image at 'subpass'.
@@ -109,6 +134,7 @@ class GraphicsPass : public BasePass {
   // Pointer to context.
   const SharedBasicContext context_;
 
+  // TODO: Use one map for all.
   // Maps attachment images to their indices within the VkAttachmentDescription
   // array.
   absl::flat_hash_map<std::string, int> attachment_index_map_;
@@ -116,6 +142,10 @@ class GraphicsPass : public BasePass {
   // Maps color attachments to their location attribute value getters.
   absl::flat_hash_map<std::string, GetLocation>
       color_attachment_location_getter_map_;
+
+  // Maps attachment images to their load store ops.
+  absl::flat_hash_map<std::string, AttachmentLoadStoreOps>
+      attachment_load_store_ops_map_;
 
   // Each element maps multisample images to single sample images that they will
   // resolve to. Elements are indexed by subpass.

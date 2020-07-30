@@ -14,6 +14,7 @@
 
 #include "lighter/common/file.h"
 #include "lighter/renderer/vulkan/extension/align.h"
+#include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/glm/glm.hpp"
@@ -31,7 +32,6 @@ enum SubpassIndex {
   kLightsSubpassIndex = 0,
   kSoldiersSubpassIndex,
   kNumSubpasses,
-  kNumTransparentSubpasses = kNumSubpasses - kSoldiersSubpassIndex,
 };
 
 enum UniformBindingPoint {
@@ -285,19 +285,6 @@ LightingPass::LightingPass(const WindowContext* window_context,
                  common::file::GetVkShaderPath("troop/lighting_pass.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
                  common::file::GetVkShaderPath("troop/lighting_pass.frag"));
-
-  /* Render pass */
-  const NaiveRenderPassBuilder::SubpassConfig subpass_config{
-      /*use_opaque_subpass=*/true,
-      kNumTransparentSubpasses,
-      /*num_overlay_subpasses=*/0,
-  };
-  render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
-      context, subpass_config,
-      /*num_framebuffers=*/window_context_.num_swapchain_images(),
-      /*use_multisampling=*/false,
-      NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kPresentToScreen,
-      /*preserve_depth_stencil_attachment_content=*/true);
 }
 
 void LightingPass::UpdateFramebuffer(
@@ -320,14 +307,18 @@ void LightingPass::UpdateFramebuffer(
   }
 
   /* Render pass */
+  if (render_pass_builder_ == nullptr) {
+    CreateRenderPassBuilder(depth_stencil_image);
+  }
+
   (*render_pass_builder_)
       .UpdateAttachmentImage(
-          render_pass_builder_->color_attachment_index(),
+          swapchain_image_info_.index(),
           [this](int framebuffer_index) -> const Image& {
             return window_context_.swapchain_image(framebuffer_index);
           })
       .UpdateAttachmentImage(
-          render_pass_builder_->depth_stencil_attachment_index(),
+          depth_stencil_image_info_.index(),
           [&depth_stencil_image](int framebuffer_index) -> const Image& {
             return depth_stencil_image;
           });
@@ -389,6 +380,44 @@ void LightingPass::Draw(const VkCommandBuffer& command_buffer,
                                    /*mesh_index=*/0, /*instance_count=*/1);
       },
   });
+}
+
+void LightingPass::CreateRenderPassBuilder(const Image& depth_stencil_image) {
+  image::UsageTracker image_usage_tracker;
+  swapchain_image_info_.AddToTracker(
+      image_usage_tracker, window_context_.swapchain_image(/*index=*/0));
+  depth_stencil_image_info_.AddToTracker(image_usage_tracker,
+                                         depth_stencil_image);
+
+  auto depth_stencil_load_store_ops =
+      GraphicsPass::GetDefaultDepthStencilLoadStoreOps();
+  depth_stencil_load_store_ops.depth_load_op = VK_ATTACHMENT_LOAD_OP_LOAD;
+
+  GraphicsPass graphics_pass{window_context_.basic_context(), kNumSubpasses};
+  swapchain_image_info_.AddToGraphicsPass(
+      graphics_pass, image_usage_tracker,
+      /*get_location=*/[](int subpass) { return 0; },
+      /*populate_history=*/[](image::UsageHistory& history) {
+        history
+            .AddUsage(kLightsSubpassIndex, kSoldiersSubpassIndex,
+                      image::Usage::GetRenderTargetUsage())
+            .SetFinalUsage(image::Usage::GetPresentationUsage());
+      });
+  depth_stencil_image_info_.AddToGraphicsPass(
+      graphics_pass, image_usage_tracker, /*get_location=*/nullptr,
+      /*populate_history=*/[](image::UsageHistory& history) {
+        history
+            .AddUsage(kLightsSubpassIndex,
+                      image::Usage::GetDepthStencilUsage(
+                          image::Usage::AccessType::kReadWrite))
+            .AddUsage(kSoldiersSubpassIndex,
+                      image::Usage::GetDepthStencilUsage(
+                          image::Usage::AccessType::kReadOnly));
+      },
+      depth_stencil_load_store_ops);
+
+  render_pass_builder_ = graphics_pass.CreateRenderPassBuilder(
+      /*num_framebuffers=*/window_context_.num_swapchain_images());
 }
 
 } /* namespace troop */

@@ -13,11 +13,11 @@
 
 #include "lighter/common/camera.h"
 #include "lighter/common/timer.h"
+#include "lighter/renderer/vulkan/extension/attachment_info.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/descriptor.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include "lighter/renderer/vulkan/wrapper/render_pass_util.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -64,6 +64,10 @@ class LightingPass {
             uint32_t framebuffer_index, int current_frame) const;
 
  private:
+  // Populates 'render_pass_builder_'.
+  void CreateRenderPassBuilder(
+      const renderer::vulkan::Image& depth_stencil_image);
+
   // Configures how do we generate 'original_light_centers_' and how do centers
   // change over time.
   const LightCenterConfig light_center_config_;
@@ -76,6 +80,8 @@ class LightingPass {
 
   // Objects used for rendering.
   const renderer::vulkan::WindowContext& window_context_;
+  renderer::vulkan::AttachmentInfo swapchain_image_info_{"Swapchain"};
+  renderer::vulkan::AttachmentInfo depth_stencil_image_info_{"Depth stencil"};
   std::unique_ptr<renderer::vulkan::UniformBuffer> lights_colors_uniform_;
   std::unique_ptr<renderer::vulkan::UniformBuffer> render_info_uniform_;
   std::unique_ptr<renderer::vulkan::PushConstant> lights_trans_constant_;
@@ -91,8 +97,7 @@ class LightingPass {
   std::unique_ptr<renderer::vulkan::GraphicsPipelineBuilder>
       soldiers_pipeline_builder_;
   std::unique_ptr<renderer::vulkan::Pipeline> soldiers_pipeline_;
-  std::unique_ptr<renderer::vulkan::NaiveRenderPassBuilder>
-      render_pass_builder_;
+  std::unique_ptr<renderer::vulkan::RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<renderer::vulkan::RenderPass> render_pass_;
 };
 

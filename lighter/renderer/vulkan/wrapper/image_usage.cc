@@ -51,6 +51,9 @@ VkAccessFlags Usage::GetAccessFlags() const {
                                VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 
     case UsageType::kDepthStencil:
+      ASSERT_FALSE(access_type_ == AccessType::kDontCare,
+                   "Access type must be specified for "
+                   "UsageType::kDepthStencil");
       return GetReadWriteFlags(access_type_,
                                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
                                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
