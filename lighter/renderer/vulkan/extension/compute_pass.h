@@ -55,10 +55,10 @@ class ComputePass : public BasePass {
                            const image::Usage& prev_usage,
                            const image::Usage& curr_usage) const;
 
-  // Overrides.
-  void ValidateImageUsageHistory(
-      const std::string& image_name,
-      const image::UsageHistory& history) const override;
+  // Checks whether image usages recorded in 'history' (excluding initial and
+  // final usages) can be handled by this compute pass.
+  void ValidateUsageHistory(const std::string& image_name,
+                            const image::UsageHistory& history) const;
 };
 
 } /* namespace vulkan */

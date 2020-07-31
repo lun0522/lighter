@@ -50,8 +50,8 @@ class AttachmentInfo {
           load_store_ops = absl::nullopt) {
     image::UsageHistory history{image_usage_tracker.GetUsage(name_)};
     populate_history(history);
-    index_ = graphics_pass.AddAttachment(name_, std::move(get_location),
-                                         std::move(history), load_store_ops);
+    index_ = graphics_pass.AddAttachment(
+        name_, std::move(history), std::move(get_location), load_store_ops);
     graphics_pass.UpdateTrackedImageUsage(name_, image_usage_tracker);
     return *this;
   }

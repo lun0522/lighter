@@ -67,15 +67,9 @@ class BasePass {
     const image::Usage& curr_usage;
   };
 
-  // Adds an image that is used in this pass.
+  // Adds an image that is used in this pass. This checks whether subpasses
+  // stored in the history are out of range.
   void AddUsageHistory(std::string&& image_name, image::UsageHistory&& history);
-
-  // Checks whether image usages recorded in 'history' can be handled by this
-  // pass. Note that initial and final usages has not been added to 'history'
-  // when this is called, since they are not really a part of the pass.
-  virtual void ValidateImageUsageHistory(
-      const std::string& image_name,
-      const image::UsageHistory& history) const = 0;
 
   // Returns the usage history of image.
   const image::UsageHistory& GetUsageHistory(
@@ -91,6 +85,13 @@ class BasePass {
   absl::optional<ImageUsagesInfo> GetImageUsagesIfNeedSynchronization(
       const std::string& image_name, int subpass) const;
 
+  // Checks whether 'subpass' is in range:
+  //   - [0, 'num_subpasses_'), if 'include_virtual_subpasses' is false.
+  //   - [virtual_initial_subpass_index(), virtual_final_subpass_index()], if
+  //     'include_virtual_subpasses' is true.
+  void ValidateSubpass(int subpass, const std::string& image_name,
+                       bool include_virtual_subpasses) const;
+
   // Images are in their initial/final layouts at the virtual subpasses.
   int virtual_initial_subpass_index() const { return -1; }
   int virtual_final_subpass_index() const { return num_subpasses_; }
@@ -104,13 +105,6 @@ class BasePass {
   const int num_subpasses_;
 
  private:
-  // Checks whether 'subpass' is in range:
-  //   - [0, 'num_subpasses_'), if 'include_virtual_subpasses' is false.
-  //   - [virtual_initial_subpass_index(), virtual_final_subpass_index()], if
-  //     'include_virtual_subpasses' is true.
-  void ValidateSubpass(int subpass, const std::string& image_name,
-                       bool include_virtual_subpasses) const;
-
   // Maps images used in this pass to their respective usage history.
   ImageUsageHistoryMap image_usage_history_map_;
 };

@@ -20,6 +20,7 @@ namespace vulkan {
 
 ComputePass& ComputePass::AddImage(std::string&& image_name,
                                    image::UsageHistory&& history) {
+  ValidateUsageHistory(image_name, history);
   BasePass::AddUsageHistory(std::move(image_name), std::move(history));
   return *this;
 }
@@ -102,9 +103,8 @@ void ComputePass::InsertMemoryBarrier(
       &barrier);
 }
 
-void ComputePass::ValidateImageUsageHistory(
-    const std::string& image_name,
-    const image::UsageHistory& history) const {
+void ComputePass::ValidateUsageHistory(
+    const std::string& image_name, const image::UsageHistory& history) const {
   using ImageUsageType = image::Usage::UsageType;
   for (const auto& pair : history.usage_at_subpass_map()) {
     const ImageUsageType usage_type = pair.second.usage_type();

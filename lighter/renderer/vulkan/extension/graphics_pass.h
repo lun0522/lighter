@@ -35,7 +35,8 @@ class GraphicsPass : public BasePass {
   // Returns the location attribute value of a color attachment at 'subpass'.
   using GetLocation = std::function<int(int subpass)>;
 
-  GraphicsPass(SharedBasicContext context, int num_subpasses);
+  GraphicsPass(SharedBasicContext context, int num_subpasses)
+      : BasePass{num_subpasses}, context_{std::move(FATAL_IF_NULL(context))} {}
 
   // This class is neither copyable nor movable.
   GraphicsPass(const GraphicsPass&) = delete;
@@ -68,7 +69,7 @@ class GraphicsPass : public BasePass {
   // If 'load_store_ops' is not specified, default load store ops will be used.
   int AddAttachment(
       const std::string& image_name,
-      GetLocation&& get_location, image::UsageHistory&& history,
+      image::UsageHistory&& history, GetLocation&& get_location,
       const absl::optional<AttachmentLoadStoreOps>& load_store_ops =
           absl::nullopt);
 
@@ -85,9 +86,20 @@ class GraphicsPass : public BasePass {
       int num_framebuffers);
 
  private:
-  // Maps each multisample image to the single sample image that it will resolve
-  // to. We should have such a map for each subpass.
-  using MultisamplingMap = absl::flat_hash_map<std::string, std::string>;
+  // Used to set attachments used in subpasses.
+  struct AttachmentInfo {
+    // Index within the VkAttachmentDescription array.
+    int index;
+
+    // Location attribute value getter.
+    GetLocation get_location;
+
+    // Attachment load store ops.
+    AttachmentLoadStoreOps load_store_ops;
+
+    // Maps subpasses to images that will be resolved to at those subpasses.
+    absl::flat_hash_map<int, std::string> multisampling_resolve_target_map;
+  };
 
   // Following functions populate 'render_pass_builder_'.
   void SetAttachments();
@@ -100,6 +112,11 @@ class GraphicsPass : public BasePass {
   // absl::nullopt instead.
   absl::optional<int> GetFirstSubpassRequiringLocationGetter(
       const image::UsageHistory& history) const;
+
+  AttachmentLoadStoreOps GetAttachmentLoadStoreOps(
+      const std::string& image_name, const image::UsageHistory& history,
+      const absl::optional<AttachmentLoadStoreOps>&
+          user_specified_load_store_ops) const;
 
   // Returns the usage type of an image. We assume that each image should either
   // always be a color attachment, or always be a depth stencil attachment
@@ -126,30 +143,16 @@ class GraphicsPass : public BasePass {
                                      : static_cast<uint32_t>(subpass);
   }
 
-  // Overrides.
-  void ValidateImageUsageHistory(
-      const std::string& image_name,
-      const image::UsageHistory& history) const override;
+  // Checks whether image usages recorded in 'history' (excluding initial and
+  // final usages) can be handled by this graphics pass.
+  void ValidateUsageHistory(const std::string& image_name,
+                            const image::UsageHistory& history) const;
 
   // Pointer to context.
   const SharedBasicContext context_;
 
-  // TODO: Use one map for all.
-  // Maps attachment images to their indices within the VkAttachmentDescription
-  // array.
-  absl::flat_hash_map<std::string, int> attachment_index_map_;
-
-  // Maps color attachments to their location attribute value getters.
-  absl::flat_hash_map<std::string, GetLocation>
-      color_attachment_location_getter_map_;
-
-  // Maps attachment images to their load store ops.
-  absl::flat_hash_map<std::string, AttachmentLoadStoreOps>
-      attachment_load_store_ops_map_;
-
-  // Each element maps multisample images to single sample images that they will
-  // resolve to. Elements are indexed by subpass.
-  std::vector<MultisamplingMap> multisampling_at_subpass_maps_;
+  // Maps attachment images to associated infos.
+  absl::flat_hash_map<std::string, AttachmentInfo> attachment_info_map_;
 
   // Builder of RenderPass.
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;

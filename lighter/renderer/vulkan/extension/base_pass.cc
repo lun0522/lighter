@@ -19,7 +19,6 @@ void BasePass::AddUsageHistory(std::string&& image_name,
     ValidateSubpass(/*subpass=*/pair.first, image_name,
                     /*include_virtual_subpasses=*/false);
   }
-  ValidateImageUsageHistory(image_name, history);
 
   history.AddUsage(virtual_initial_subpass_index(), history.initial_usage());
   if (history.final_usage().has_value()) {
