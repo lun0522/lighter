@@ -176,47 +176,23 @@ void CubeApp::CreateRenderPassBuilder() {
         image_usage_tracker, window_context().multisample_image());
   }
 
-  const auto get_location = [](int subpass) { return 0; };
-  GraphicsPass graphics_pass{context(), kNumSubpasses};
-  depth_stencil_image_info_.AddToGraphicsPass(
-      graphics_pass, image_usage_tracker, /*get_location=*/nullptr,
-      /*populate_history=*/[](image::UsageHistory& history) {
-        history.AddUsage(kTextSubpassIndex, kModelSubpassIndex,
-                         image::Usage::GetDepthStencilUsage(
-                             image::Usage::AccessType::kReadWrite));
-      });
-
-  if (window_context().use_multisampling()) {
-    swapchain_image_info_.AddToGraphicsPass(
-        graphics_pass, image_usage_tracker, /*get_location=*/nullptr,
-        /*populate_history=*/[](image::UsageHistory& history) {
-          history
-              .AddUsage(kTextSubpassIndex,
-                        image::Usage::GetMultisampleResolveTargetUsage())
-              .SetFinalUsage(image::Usage::GetPresentationUsage());
-        });
-    multisample_image_info_
-        .AddToGraphicsPass(
-            graphics_pass, image_usage_tracker, get_location,
-            /*populate_history=*/[](image::UsageHistory& history) {
-              history.AddUsage(kModelSubpassIndex, kTextSubpassIndex,
-                               image::Usage::GetRenderTargetUsage());
-            })
-        .ResolveToAttachment(graphics_pass, swapchain_image_info_,
-                             kTextSubpassIndex);
-  } else {
-    swapchain_image_info_.AddToGraphicsPass(
-        graphics_pass, image_usage_tracker, get_location,
-        /*populate_history=*/[](image::UsageHistory& history) {
-          history
-              .AddUsage(kModelSubpassIndex, kTextSubpassIndex,
-                        image::Usage::GetRenderTargetUsage())
-              .SetFinalUsage(image::Usage::GetPresentationUsage());
-        });
-  }
-
-  render_pass_builder_ = graphics_pass.CreateRenderPassBuilder(
-      /*num_framebuffers=*/window_context().num_swapchain_images());
+  const NaiveRenderPass::SubpassConfig subpass_config{
+      kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
+      /*first_overlay_subpass=*/kTextSubpassIndex,
+  };
+  const auto color_attachment_config =
+      NaiveRenderPass::AttachmentConfig{&swapchain_image_info_}
+          .set_final_usage(image::Usage::GetPresentationUsage());
+  const NaiveRenderPass::AttachmentConfig multisampling_attachment_config{
+      &multisample_image_info_};
+  const NaiveRenderPass::AttachmentConfig depth_stencil_attachment_config{
+      &depth_stencil_image_info_};
+  render_pass_builder_ = NaiveRenderPass::CreateBuilder(
+      context(), /*num_framebuffers=*/window_context().num_swapchain_images(),
+      subpass_config, color_attachment_config,
+      window_context().use_multisampling() ?
+          &multisampling_attachment_config : nullptr,
+      &depth_stencil_attachment_config, image_usage_tracker);
 }
 
 void CubeApp::UpdateData(int frame) {

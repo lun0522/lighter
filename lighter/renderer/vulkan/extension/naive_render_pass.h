@@ -10,7 +10,9 @@
 
 #include <memory>
 
+#include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/extension/attachment_info.h"
+#include "lighter/renderer/vulkan/extension/image_util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "third_party/absl/types/optional.h"
@@ -19,6 +21,7 @@ namespace lighter {
 namespace renderer {
 namespace vulkan {
 
+// TODO
 class NaiveRenderPass {
  public:
   class SubpassConfig {
@@ -31,9 +34,12 @@ class NaiveRenderPass {
     SubpassConfig(SubpassConfig&&) noexcept = default;
     SubpassConfig(SubpassConfig&) = default;
 
+    int num_subpasses_using_depth_stencil() const {
+      return num_opaque_subpass_ + num_transparent_subpasses_;
+    }
+
     int num_subpasses() const {
-      return num_opaque_subpass_ + num_transparent_subpasses_ +
-             num_overlay_subpasses_;
+      return num_subpasses_using_depth_stencil() + num_overlay_subpasses_;
     }
 
    private:
@@ -52,9 +58,33 @@ class NaiveRenderPass {
     int num_overlay_subpasses_ = 0;
   };
 
+  struct AttachmentConfig {
+    explicit AttachmentConfig(AttachmentInfo* attachment_info)
+        : attachment_info{*FATAL_IF_NULL(attachment_info)} {}
+
+    AttachmentConfig& set_load_store_ops(
+        const GraphicsPass::AttachmentLoadStoreOps& ops) {
+      load_store_ops = ops;
+      return *this;
+    }
+
+    AttachmentConfig& set_final_usage(const image::Usage& usage) {
+      final_usage = usage;
+      return *this;
+    }
+
+    AttachmentInfo& attachment_info;
+    absl::optional<GraphicsPass::AttachmentLoadStoreOps> load_store_ops;
+    absl::optional<image::Usage> final_usage;
+  };
+
   static std::unique_ptr<RenderPassBuilder> CreateBuilder(
       SharedBasicContext context, int num_framebuffers,
-      const SubpassConfig& subpass_config);
+      const SubpassConfig& subpass_config,
+      const AttachmentConfig& color_attachment_config,
+      const AttachmentConfig* multisampling_attachment_config,
+      const AttachmentConfig* depth_stencil_attachment_config,
+      image::UsageTracker& image_usage_tracker);
 };
 
 } /* namespace vulkan */

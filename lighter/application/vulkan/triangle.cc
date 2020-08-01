@@ -103,31 +103,21 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
         image_usage_tracker, window_context().multisample_image());
   }
 
-  const auto get_location = [](int subpass) { return 0; };
-  GraphicsPass graphics_pass{context(), kNumSubpasses};
-  swapchain_image_info_.AddToGraphicsPass(
-      graphics_pass, image_usage_tracker, get_location,
-      /*populate_history=*/[this](image::UsageHistory& history) {
-        history
-            .AddUsage(kRenderSubpassIndex,
-                      image::Usage::GetSingleSampleColorAttachmentUsage(
-                          window_context().use_multisampling()))
-            .SetFinalUsage(image::Usage::GetPresentationUsage());
-      });
-  if (window_context().use_multisampling()) {
-    multisample_image_info_
-        .AddToGraphicsPass(
-            graphics_pass, image_usage_tracker, get_location,
-            /*populate_history=*/[](image::UsageHistory& history) {
-              history.AddUsage(kRenderSubpassIndex,
-                               image::Usage::GetRenderTargetUsage());
-            })
-        .ResolveToAttachment(graphics_pass, swapchain_image_info_,
-                             kRenderSubpassIndex);
-  }
-
-  render_pass_builder_ = graphics_pass.CreateRenderPassBuilder(
-      /*num_framebuffers=*/window_context().num_swapchain_images());
+  const NaiveRenderPass::SubpassConfig subpass_config{
+      kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
+      /*first_overlay_subpass=*/kRenderSubpassIndex,
+  };
+  const auto color_attachment_config =
+      NaiveRenderPass::AttachmentConfig{&swapchain_image_info_}
+          .set_final_usage(image::Usage::GetPresentationUsage());
+  const NaiveRenderPass::AttachmentConfig multisampling_attachment_config{
+      &multisample_image_info_};
+  render_pass_builder_ = NaiveRenderPass::CreateBuilder(
+      context(), /*num_framebuffers=*/window_context().num_swapchain_images(),
+      subpass_config, color_attachment_config,
+      window_context().use_multisampling() ?
+          &multisampling_attachment_config : nullptr,
+      /*depth_stencil_attachment_config=*/nullptr, image_usage_tracker);
 
   /* Pipeline */
   pipeline_builder_ = absl::make_unique<GraphicsPipelineBuilder>(context());

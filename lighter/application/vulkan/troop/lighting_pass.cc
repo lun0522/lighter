@@ -15,6 +15,7 @@
 #include "lighter/common/file.h"
 #include "lighter/renderer/vulkan/extension/align.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
+#include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/glm/glm.hpp"
@@ -389,35 +390,28 @@ void LightingPass::CreateRenderPassBuilder(const Image& depth_stencil_image) {
   depth_stencil_image_info_.AddToTracker(image_usage_tracker,
                                          depth_stencil_image);
 
+  const NaiveRenderPass::SubpassConfig subpass_config{
+      kNumSubpasses, /*first_transparent_subpass=*/kSoldiersSubpassIndex,
+      /*first_overlay_subpass=*/absl::nullopt,
+  };
+
+  const auto color_attachment_config =
+      NaiveRenderPass::AttachmentConfig{&swapchain_image_info_}
+          .set_final_usage(image::Usage::GetPresentationUsage());
+
   auto depth_stencil_load_store_ops =
       GraphicsPass::GetDefaultDepthStencilLoadStoreOps();
   depth_stencil_load_store_ops.depth_load_op = VK_ATTACHMENT_LOAD_OP_LOAD;
+  const auto depth_stencil_attachment_config =
+      NaiveRenderPass::AttachmentConfig{&depth_stencil_image_info_}
+          .set_load_store_ops(depth_stencil_load_store_ops);
 
-  GraphicsPass graphics_pass{window_context_.basic_context(), kNumSubpasses};
-  swapchain_image_info_.AddToGraphicsPass(
-      graphics_pass, image_usage_tracker,
-      /*get_location=*/[](int subpass) { return 0; },
-      /*populate_history=*/[](image::UsageHistory& history) {
-        history
-            .AddUsage(kLightsSubpassIndex, kSoldiersSubpassIndex,
-                      image::Usage::GetRenderTargetUsage())
-            .SetFinalUsage(image::Usage::GetPresentationUsage());
-      });
-  depth_stencil_image_info_.AddToGraphicsPass(
-      graphics_pass, image_usage_tracker, /*get_location=*/nullptr,
-      /*populate_history=*/[](image::UsageHistory& history) {
-        history
-            .AddUsage(kLightsSubpassIndex,
-                      image::Usage::GetDepthStencilUsage(
-                          image::Usage::AccessType::kReadWrite))
-            .AddUsage(kSoldiersSubpassIndex,
-                      image::Usage::GetDepthStencilUsage(
-                          image::Usage::AccessType::kReadOnly));
-      },
-      depth_stencil_load_store_ops);
-
-  render_pass_builder_ = graphics_pass.CreateRenderPassBuilder(
-      /*num_framebuffers=*/window_context_.num_swapchain_images());
+  render_pass_builder_ = NaiveRenderPass::CreateBuilder(
+      window_context_.basic_context(),
+      /*num_framebuffers=*/window_context_.num_swapchain_images(),
+      subpass_config, color_attachment_config,
+      /*multisampling_attachment_config=*/nullptr,
+      &depth_stencil_attachment_config, image_usage_tracker);
 }
 
 } /* namespace troop */

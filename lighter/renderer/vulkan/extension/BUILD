@@ -39,7 +39,9 @@ cc_library(
     deps = [
         ":graphics_pass",
         ":image_util",
+        "//lighter/common:util",
         "//lighter/renderer/vulkan/wrapper:image",
+        "//third_party/absl/strings:str_format",
         "//third_party/absl/types:optional",
     ],
 )
@@ -131,6 +133,7 @@ cc_library(
     deps = [
         ":attachment_info",
         ":graphics_pass",
+        ":image_util",
         "//lighter/common:util",
         "//lighter/renderer/vulkan/wrapper:basics",
         "//lighter/renderer/vulkan/wrapper:render_pass",

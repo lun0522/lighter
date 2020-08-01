@@ -73,6 +73,13 @@ class Usage {
                  AccessLocation::kOther};
   }
 
+  // Convenience function to return Usage for images that we resolve multisample
+  // images to.
+  static Usage GetMultisampleResolveTargetUsage() {
+    return Usage{UsageType::kMultisampleResolve, AccessType::kWriteOnly,
+                 AccessLocation::kOther};
+  }
+
   // Convenience function to return Usage for images used as depth stencil
   // attachment.
   static Usage GetDepthStencilUsage(AccessType access_type) {
@@ -81,13 +88,7 @@ class Usage {
     return Usage{UsageType::kDepthStencil, access_type, AccessLocation::kOther};
   }
 
-  // Convenience function to return Usage for images that we resolve multisample
-  // images to.
-  static Usage GetMultisampleResolveTargetUsage() {
-    return Usage{UsageType::kMultisampleResolve, AccessType::kWriteOnly,
-                 AccessLocation::kOther};
-  }
-
+  // TODO: Deprecate this.
   // Convenience function to return Usage for single sample images that are used
   // as color attachments. If 'use_multisampling', we will resolve multisample
   // images to such images. Otherwise, we will directly render to such images.

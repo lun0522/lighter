@@ -159,8 +159,8 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
   }
   for (int i = 0; i < subpass_config.num_overlay_subpasses; ++i) {
     SetSubpass(subpass_index,
-               get_multisampling_refs(subpass_index),
                std::vector<VkAttachmentReference>{color_refs},
+               get_multisampling_refs(subpass_index),
                /*depth_stencil_ref=*/absl::nullopt);
     ++subpass_index;
   }
@@ -198,69 +198,6 @@ NaiveRenderPassBuilder::NaiveRenderPassBuilder(
         /*dependency_flags=*/nullflag,
     });
   }
-}
-
-DeferredShadingRenderPassBuilder::DeferredShadingRenderPassBuilder(
-    SharedBasicContext context, int num_framebuffers, int num_color_attachments)
-    : RenderPassBuilder{std::move(context)} {
-  /* Framebuffers and attachments */
-  SetNumFramebuffers(num_framebuffers);
-  SetAttachment(
-      depth_stencil_attachment_index(), Attachment{
-          /*load_store_ops=*/Attachment::DepthStencilLoadStoreOps{
-              /*depth_load_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-              /*depth_store_op=*/VK_ATTACHMENT_STORE_OP_STORE,
-              /*stencil_load_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-              /*stencil_store_op=*/VK_ATTACHMENT_STORE_OP_STORE,
-          },
-          /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
-          /*final_layout=*/VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-      }
-  );
-  for (int i = 0; i < num_color_attachments; ++i) {
-    SetAttachment(
-        color_attachments_index_base() + i, Attachment{
-            /*load_store_ops=*/Attachment::ColorLoadStoreOps{
-                /*color_load_op=*/VK_ATTACHMENT_LOAD_OP_CLEAR,
-                /*color_store_op=*/VK_ATTACHMENT_STORE_OP_STORE,
-            },
-            /*initial_layout=*/VK_IMAGE_LAYOUT_UNDEFINED,
-            /*final_layout=*/VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        }
-    );
-  }
-
-  /* Subpasses descriptions */
-  std::vector<VkAttachmentReference> color_refs;
-  color_refs.reserve(num_color_attachments);
-  for (int i = 0; i < num_color_attachments; ++i) {
-    color_refs.push_back(VkAttachmentReference{
-        static_cast<uint32_t>(color_attachments_index_base() + i),
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-    });
-  }
-  const VkAttachmentReference depth_stencil_ref{
-      static_cast<uint32_t>(depth_stencil_attachment_index()),
-      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-  };
-  SetSubpass(/*index=*/0, std::move(color_refs), /*multisampling_refs=*/{},
-             depth_stencil_ref);
-
-  /* Subpass dependencies */
-  AddSubpassDependency(SubpassDependency{
-      /*src_subpass=*/SubpassInfo{
-          kExternalSubpassIndex,
-          VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-          VK_ACCESS_MEMORY_READ_BIT,
-      },
-      /*dst_subpass=*/SubpassInfo{
-          /*index=*/0,
-          VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-          VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
-              | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-      },
-      VK_DEPENDENCY_BY_REGION_BIT,
-  });
 }
 
 } /* namespace vulkan */

@@ -216,6 +216,8 @@ void GraphicsPass::SetSubpasses() {
   }
 }
 
+// TODO: If we have dependency from 1->0 and 2->1, then no dependency from 2->0
+// should be needed.
 void GraphicsPass::SetSubpassDependencies() {
   using SubpassDependency = RenderPassBuilder::SubpassDependency;
 

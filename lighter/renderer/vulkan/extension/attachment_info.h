@@ -11,9 +11,11 @@
 #include <functional>
 #include <string>
 
+#include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/image_util.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
+#include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/optional.h"
 
 namespace lighter {
@@ -48,6 +50,10 @@ class AttachmentInfo {
       const std::function<void(image::UsageHistory&)>& populate_history,
       const absl::optional<GraphicsPass::AttachmentLoadStoreOps>&
           load_store_ops = absl::nullopt) {
+    ASSERT_TRUE(image_usage_tracker.IsImageTracked(name_),
+                absl::StrFormat("Image '%s' has not been tracked by image "
+                                "usage tracker yet",
+                                name_));
     image::UsageHistory history{image_usage_tracker.GetUsage(name_)};
     populate_history(history);
     index_ = graphics_pass.AddAttachment(
@@ -57,7 +63,8 @@ class AttachmentInfo {
   }
 
   // Informs 'graphics_pass' that this attachment will resolve to
-  // 'target_attachment' at 'subpass'.
+  // 'target_attachment' at 'subpass'. Both this attachment and
+  // 'target_attachment' must have been added to 'graphics_pass'.
   AttachmentInfo& ResolveToAttachment(GraphicsPass& graphics_pass,
                                       const AttachmentInfo& target_attachment,
                                       int subpass) {

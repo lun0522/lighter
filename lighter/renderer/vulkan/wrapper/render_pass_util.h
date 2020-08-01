@@ -93,27 +93,6 @@ class NaiveRenderPassBuilder : public RenderPassBuilder {
   absl::optional<int> multisample_attachment_index_;
 };
 
-// This render pass is used for the geometry pass of deferred shading. We assume
-// that one depth stencil attachment and several color attachments will be used.
-// There is only one subpass in this render pass. The user can use
-// NaiveRenderPassBuilder for the lighting pass.
-class DeferredShadingRenderPassBuilder : public RenderPassBuilder {
- public:
-  DeferredShadingRenderPassBuilder(SharedBasicContext context,
-                                   int num_framebuffers,
-                                   int num_color_attachments);
-
-  // This class is neither copyable nor movable.
-  DeferredShadingRenderPassBuilder(
-      const DeferredShadingRenderPassBuilder&) = delete;
-  DeferredShadingRenderPassBuilder& operator=(
-      const DeferredShadingRenderPassBuilder&) = delete;
-
-  // Accessors.
-  int depth_stencil_attachment_index() const { return 0; }
-  int color_attachments_index_base() const { return 1; }
-};
-
 } /* namespace vulkan */
 } /* namespace renderer */
 } /* namespace lighter */
