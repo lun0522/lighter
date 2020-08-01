@@ -13,6 +13,7 @@ cc_library(
         ":graphics_pass",
         ":image_util",
         ":model",
+        ":naive_render_pass",
         ":offscreen_wrappers",
         ":text",
     ],
@@ -120,6 +121,22 @@ cc_library(
         "//third_party/absl/types:optional",
         "//third_party/absl/types:variant",
         "//third_party:vulkan",
+    ],
+)
+
+cc_library(
+    name = "naive_render_pass",
+    hdrs = ["naive_render_pass.h"],
+    srcs = ["naive_render_pass.cc"],
+    deps = [
+        ":attachment_info",
+        ":graphics_pass",
+        "//lighter/common:util",
+        "//lighter/renderer/vulkan/wrapper:basics",
+        "//lighter/renderer/vulkan/wrapper:render_pass",
+        "//third_party/absl/strings",
+        "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:optional",
     ],
 )
 

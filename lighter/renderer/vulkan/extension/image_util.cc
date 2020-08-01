@@ -50,6 +50,9 @@ UsageHistory& UsageHistory::AddUsage(int subpass, const Usage& usage) {
 
 UsageHistory& UsageHistory::AddUsage(int subpass_start, int subpass_end,
                                      const Usage& usage) {
+  ASSERT_TRUE(subpass_start <= subpass_end,
+              absl::StrFormat("Invalid range [%d, %d]",
+                              subpass_start, subpass_end));
   for (int subpass = subpass_start; subpass <= subpass_end; ++subpass) {
     AddUsage(subpass, usage);
   }

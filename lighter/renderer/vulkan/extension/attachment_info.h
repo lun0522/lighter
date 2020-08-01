@@ -79,8 +79,8 @@ class AttachmentInfo {
   absl::optional<int> index_;
 };
 
-} /* namespace image */
 } /* namespace vulkan */
 } /* namespace renderer */
+} /* namespace lighter */
 
 #endif /* LIGHTER_RENDERER_VULKAN_EXTENSION_ATTACHMENT_INFO_H */
