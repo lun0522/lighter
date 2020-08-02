@@ -24,6 +24,11 @@ cc_library(
 )
 
 cc_library(
+    name = "gtest_main",
+    deps = ["@lib-googletest//:gtest_main"],
+)
+
+cc_library(
     name = "glm",
     deps = ["@lib-glm//:glm"],
 )

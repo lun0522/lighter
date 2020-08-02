@@ -1,7 +1,7 @@
 //
 //  image_usage.h
 //
-//  Created by Pujun Lun on 4/9/19.
+//  Created by Pujun Lun on 4/9/20.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
@@ -86,15 +86,6 @@ class Usage {
     ASSERT_FALSE(access_type == AccessType::kDontCare,
                  "Must specify access type");
     return Usage{UsageType::kDepthStencil, access_type, AccessLocation::kOther};
-  }
-
-  // TODO: Deprecate this.
-  // Convenience function to return Usage for single sample images that are used
-  // as color attachments. If 'use_multisampling', we will resolve multisample
-  // images to such images. Otherwise, we will directly render to such images.
-  static Usage GetSingleSampleColorAttachmentUsage(bool use_multisampling) {
-    return use_multisampling ? GetMultisampleResolveTargetUsage()
-                             : GetRenderTargetUsage();
   }
 
   // Convenience function to return Usage for images to be presented to screen.

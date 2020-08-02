@@ -172,8 +172,8 @@ void CubeApp::CreateRenderPassBuilder() {
   depth_stencil_image_info_.AddToTracker(image_usage_tracker,
                                          *depth_stencil_image_);
   if (window_context().use_multisampling()) {
-    multisample_image_info_.AddToTracker(
-        image_usage_tracker, window_context().multisample_image());
+    multisample_image_info_.AddToTracker(image_usage_tracker,
+                                         window_context().multisample_image());
   }
 
   const NaiveRenderPass::SubpassConfig subpass_config{

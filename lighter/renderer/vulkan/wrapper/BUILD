@@ -102,6 +102,16 @@ cc_library(
     ]
 )
 
+cc_test(
+    name = "image_usage_test",
+    srcs = ["image_usage_test.cc"],
+    deps = [
+        ":image",
+        "//third_party:gtest_main",
+        "//third_party:vulkan",
+    ],
+)
+
 cc_library(
     name = "pipeline",
     hdrs = [

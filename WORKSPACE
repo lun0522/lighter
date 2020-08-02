@@ -1,62 +1,67 @@
 workspace(name = "lighter")
 
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-load("@//:git_repository.bzl", "assimp_repository")
-load("@//:git_repository.bzl", "freetype_repository")
+load("@//:git_archives.bzl", "assimp_archive")
+load("@//:git_archives.bzl", "freetype_archive")
 
-git_repository(
+http_archive(
     name = "lib-absl",
-    remote = "https://github.com/abseil/abseil-cpp.git",
-    commit = "c51510d1d87ebce8615ae1752fd5aca912f6cf4c",
-    shallow_since = "1587584588 -0400",
+    urls = ["https://github.com/abseil/abseil-cpp/archive/20200225.2.zip"],
+    strip_prefix = "abseil-cpp-20200225.2",
+    sha256 = "f342aac71a62861ac784cadb8127d5a42c6c61ab1cd07f00aef05f2cc4988c42",
 )
 
-assimp_repository(
+assimp_archive(
     name = "lib-assimp",
     build_file = "//:third_party/BUILD.assimp",
 )
 
-assimp_repository(
+assimp_archive(
     name = "lib-assimp-headers",
     strip_prefix = "include",
     build_file = "//:third_party/BUILD.assimp_headers",
 )
 
-freetype_repository(
+freetype_archive(
     name = "lib-freetype",
     build_file = "//:third_party/BUILD.freetype",
 )
 
-freetype_repository(
+freetype_archive(
     name = "lib-freetype-headers",
     strip_prefix = "include",
     build_file = "//:third_party/BUILD.freetype_headers",
 )
 
-new_git_repository(
+http_archive(
     name = "lib-glfw",
-    remote = "https://github.com/lun0522/lib-glfw.git",
-    commit = "e4ddcfb6db1053774ec97a740d1193d02a5195a2",
-    shallow_since = "1587843888 -0700",
+    urls = ["https://github.com/lun0522/lib-glfw/archive/3.3.2.zip"],
+    strip_prefix = "lib-glfw-3.3.2",
+    sha256 = "db9fd85b17e0b3545fe092451076963795636f00bde33c892f888ab17224849f",
     build_file = "//:third_party/BUILD.glfw",
 )
 
-new_git_repository(
+http_archive(
     name = "lib-glm",
-    remote = "https://github.com/g-truc/glm.git",
-    commit = "13724cfae64a8b5313d1cabc9a963d2c9dbeda12",
-    shallow_since = "1578255577 +0100",
-    strip_prefix = "glm",
+    urls = ["https://github.com/g-truc/glm/archive/0.9.9.8.zip"],
+    strip_prefix = "glm-0.9.9.8/glm",
+    sha256 = "4605259c22feadf35388c027f07b345ad3aa3b12631a5a316347f7566c6f1839",
     build_file = "//:third_party/BUILD.glm",
+)
+
+http_archive(
+  name = "lib-googletest",
+  urls = ["https://github.com/google/googletest/archive/release-1.10.0.zip"],
+  strip_prefix = "googletest-release-1.10.0",
+  sha256 = "94c634d499558a76fa649edb13721dce6e98fb1e7018dfaeba3cd7a083945e91",
 )
 
 new_git_repository(
     name = "lib-stb",
     remote = "https://github.com/nothings/stb.git",
-    commit = "052dce117ed989848a950308bd99eef55525dfb1",
-    shallow_since = "1566060782 -0700",
+    commit = "b42009b3b9d4ca35bc703f5310eedc74f584be58",
+    shallow_since = "1594640766 -0700",
     build_file = "//:third_party/BUILD.stb",
 )
 
@@ -68,9 +73,9 @@ http_archive(
     build_file = "//:third_party/BUILD.vulkan",
 )
 
-git_repository(
-    name = "resource",
-    remote = "https://github.com/lun0522/resource.git",
-    commit = "876c45864672c9fdfcf3c69816f9bfe37ccfd6d9",
-    shallow_since = "1587848201 -0700",
+http_archive(
+  name = "resource",
+  urls = ["https://github.com/lun0522/resource/archive/1.0.0.zip"],
+  strip_prefix = "resource-1.0.0",
+  sha256 = "f1f3ef3d9cda4e9a74171719c3e26aef9b6eeae0b16a9a4f6f3addc1ba2bc131",
 )
