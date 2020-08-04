@@ -9,10 +9,10 @@
 
 #include <algorithm>
 
+#include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/command.h"
 #include "lighter/renderer/vulkan/wrapper/image_usage.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
-#include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "third_party/absl/memory/memory.h"
 
 namespace lighter {
@@ -25,7 +25,6 @@ using common::Vertex2D;
 enum SubpassIndex {
   kTextSubpassIndex = 0,
   kNumSubpasses,
-  kNumOverlaySubpasses = kNumSubpasses - kTextSubpassIndex,
 };
 
 constexpr int kImageBindingPoint = 0;
@@ -73,24 +72,30 @@ std::vector<Descriptor::Info> CreateDescriptorInfos() {
 }
 
 // Returns a render pass builder for rendering characters.
-std::unique_ptr<NaiveRenderPassBuilder> CreateRenderPassBuilder(
+std::unique_ptr<RenderPassBuilder> CreateRenderPassBuilder(
     const SharedBasicContext& context) {
-  const NaiveRenderPassBuilder::SubpassConfig subpass_config{
-      /*use_opaque_subpass=*/false,
-      /*num_transparent_subpasses=*/0,
-      kNumOverlaySubpasses,
+  AttachmentInfo attachment_info{"Text internal"};
+  image::UsageTracker image_usage_tracker;
+  attachment_info.AddToTracker(image_usage_tracker, image::Usage{});
+
+  const NaiveRenderPass::SubpassConfig subpass_config{
+      kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
+      /*first_overlay_subpass=*/kTextSubpassIndex,
   };
-  return absl::make_unique<NaiveRenderPassBuilder>(
-      context, subpass_config, /*num_framebuffers=*/1,
-      /*use_multisampling=*/false,
-      NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kSampledAsTexture);
+  const auto attachment_config =
+      NaiveRenderPass::AttachmentConfig{&attachment_info}
+          .set_final_usage(image::Usage::GetSampledInFragmentShaderUsage());
+  return NaiveRenderPass::CreateBuilder(
+      context, /*num_framebuffers=*/1, subpass_config, attachment_config,
+      /*multisampling_attachment_config=*/nullptr,
+      /*depth_stencil_attachment_config=*/nullptr, image_usage_tracker);
 }
 
 // Returns a render pass that renders to 'target_image'.
 std::unique_ptr<RenderPass> BuildRenderPass(
-    const Image& target_image, NaiveRenderPassBuilder* render_pass_builder) {
+    const Image& target_image, RenderPassBuilder* render_pass_builder) {
   render_pass_builder->UpdateAttachmentImage(
-      render_pass_builder->color_attachment_index(),
+      /*index=*/0,
       [&target_image](int framebuffer_index) -> const Image& {
           return target_image;
       });
@@ -343,7 +348,7 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
     const std::string& text, int font_height,
     const CharLoader& char_loader,
     StaticDescriptor* descriptor,
-    NaiveRenderPassBuilder* render_pass_builder,
+    RenderPassBuilder* render_pass_builder,
     GraphicsPipelineBuilder* pipeline_builder,
     DynamicPerVertexBuffer* vertex_buffer) const {
   float total_advance_x = 0.0f;

@@ -42,7 +42,7 @@ struct SkyboxTrans {
 
 /* END: Consistent with uniform blocks defined in shaders. */
 
-class NanosuitApp : public Application {
+class NanosuitApp : public SimpleApp {
  public:
   explicit NanosuitApp(const WindowContext::Config& config);
 
@@ -68,9 +68,6 @@ class NanosuitApp : public Application {
   std::unique_ptr<UniformBuffer> nanosuit_vert_uniform_;
   std::unique_ptr<PushConstant> nanosuit_frag_constant_;
   std::unique_ptr<PushConstant> skybox_constant_;
-  std::unique_ptr<NaiveRenderPassBuilder> render_pass_builder_;
-  std::unique_ptr<RenderPass> render_pass_;
-  std::unique_ptr<Image> depth_stencil_image_;
   std::unique_ptr<Model> nanosuit_model_;
   std::unique_ptr<Model> skybox_model_;
 };
@@ -78,7 +75,7 @@ class NanosuitApp : public Application {
 } /* namespace */
 
 NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
-    : Application{"Nanosuit", window_config} {
+    : SimpleApp{"Nanosuit", window_config} {
   using common::file::GetResourcePath;
   using common::file::GetVkShaderPath;
   using WindowKey = common::Window::KeyMap;
@@ -142,17 +139,6 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
   skybox_constant_ = absl::make_unique<PushConstant>(
       context(), sizeof(SkyboxTrans), kNumFramesInFlight);
 
-  /* Render pass */
-  const NaiveRenderPassBuilder::SubpassConfig subpass_config{
-      /*use_opaque_subpass=*/true,
-      /*num_transparent_subpasses=*/0,
-      /*num_overlay_subpasses=*/0,
-  };
-  render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
-      context(), subpass_config,
-      /*num_framebuffers=*/window_context().num_swapchain_images(),
-      window_context().use_multisampling());
-
   /* Model */
   const SharedTexture::CubemapPath skybox_path{
       /*directory=*/GetResourcePath("texture/tidepool"),
@@ -203,39 +189,19 @@ void NanosuitApp::Recreate() {
   /* Camera */
   camera_->SetCursorPos(window_context().window().GetCursorPos());
 
-  /* Depth image */
-  const VkExtent2D& frame_size = window_context().frame_size();
-  depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
-      context(), frame_size, window_context().multisampling_mode());
-
   /* Render pass */
-  (*render_pass_builder_)
-      .UpdateAttachmentImage(
-          render_pass_builder_->color_attachment_index(),
-          [this](int framebuffer_index) -> const Image& {
-            return window_context().swapchain_image(framebuffer_index);
-          })
-      .UpdateAttachmentImage(
-          render_pass_builder_->depth_stencil_attachment_index(),
-          [this](int framebuffer_index) -> const Image& {
-            return *depth_stencil_image_;
-          });
-  if (render_pass_builder_->has_multisample_attachment()) {
-    render_pass_builder_->UpdateAttachmentImage(
-        render_pass_builder_->multisample_attachment_index(),
-        [this](int framebuffer_index) -> const Image& {
-          return window_context().multisample_image();
-        });
-  }
-  render_pass_ = render_pass_builder_->Build();
+  RecreateRenderPass(NaiveRenderPass::SubpassConfig{
+      kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
+      /*first_overlay_subpass=*/absl::nullopt});
 
   /* Model */
   constexpr bool kIsObjectOpaque = true;
+  const VkExtent2D& frame_size = window_context().frame_size();
   const VkSampleCountFlagBits sample_count = window_context().sample_count();
   nanosuit_model_->Update(kIsObjectOpaque, frame_size, sample_count,
-                          *render_pass_, kModelSubpassIndex);
+                          render_pass(), kModelSubpassIndex);
   skybox_model_->Update(kIsObjectOpaque, frame_size, sample_count,
-                        *render_pass_, kModelSubpassIndex);
+                        render_pass(), kModelSubpassIndex);
 }
 
 void NanosuitApp::UpdateData(int frame) {
@@ -275,7 +241,7 @@ void NanosuitApp::MainLoop() {
         current_frame_, window_context().swapchain(), update_data,
         [this](const VkCommandBuffer& command_buffer,
                uint32_t framebuffer_index) {
-          render_pass_->Run(command_buffer, framebuffer_index, /*render_ops=*/{
+          render_pass().Run(command_buffer, framebuffer_index, /*render_ops=*/{
               [this](const VkCommandBuffer& command_buffer) {
                 nanosuit_model_->Draw(command_buffer, current_frame_,
                                       /*instance_count=*/1);

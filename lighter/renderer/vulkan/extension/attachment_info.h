@@ -34,6 +34,11 @@ class AttachmentInfo {
 
   // Makes 'image_usage_tracker' track the usage of this image.
   AttachmentInfo& AddToTracker(image::UsageTracker& image_usage_tracker,
+                               const image::Usage& initial_usage) {
+    image_usage_tracker.TrackImage(name_, initial_usage);
+    return *this;
+  }
+  AttachmentInfo& AddToTracker(image::UsageTracker& image_usage_tracker,
                                const Image& sample_image) {
     image_usage_tracker.TrackImage(name_, sample_image);
     return *this;

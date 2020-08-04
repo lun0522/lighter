@@ -21,7 +21,7 @@
 #include "lighter/renderer/vulkan/wrapper/descriptor.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
-#include "lighter/renderer/vulkan/wrapper/render_pass_util.h"
+#include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
@@ -161,7 +161,7 @@ class TextLoader {
       const std::string& text, int font_height,
       const CharLoader& char_loader,
       StaticDescriptor* descriptor,
-      NaiveRenderPassBuilder* render_pass_builder,
+      RenderPassBuilder* render_pass_builder,
       GraphicsPipelineBuilder* pipeline_builder,
       DynamicPerVertexBuffer* vertex_buffer) const;
 

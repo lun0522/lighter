@@ -42,6 +42,10 @@ class NaiveRenderPass {
       return num_subpasses_using_depth_stencil() + num_overlay_subpasses_;
     }
 
+    bool use_depth_stencil() const {
+      return num_subpasses_using_depth_stencil() > 0;
+    }
+
    private:
     friend class NaiveRenderPass;
 

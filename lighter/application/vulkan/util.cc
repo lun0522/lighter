@@ -22,6 +22,77 @@ constexpr uint32_t kImageBindingPoint = 0;
 
 } /* namespace */
 
+void SimpleApp::RecreateRenderPass(
+    const NaiveRenderPass::SubpassConfig& subpass_config) {
+  /* Depth stencil image */
+  if (subpass_config.use_depth_stencil()) {
+    depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
+        context(), window_context().frame_size(),
+        window_context().multisampling_mode());
+#ifndef NDEBUG
+    LOG_INFO << "Depth stencil image created";
+#endif /* !NDEBUG */
+  }
+
+  if (render_pass_builder_ == nullptr) {
+    CreateRenderPassBuilder(subpass_config);
+  }
+
+  render_pass_builder_->UpdateAttachmentImage(
+      swapchain_image_info_.index(),
+      [this](int framebuffer_index) -> const Image& {
+        return window_context().swapchain_image(framebuffer_index);
+      });
+  if (depth_stencil_image_ != nullptr) {
+    render_pass_builder_->UpdateAttachmentImage(
+        depth_stencil_image_info_.index(),
+        [this](int framebuffer_index) -> const Image& {
+          return *depth_stencil_image_;
+        });
+  }
+  if (window_context().use_multisampling()) {
+    render_pass_builder_->UpdateAttachmentImage(
+        multisample_image_info_.index(),
+        [this](int framebuffer_index) -> const Image& {
+          return window_context().multisample_image();
+        });
+  }
+  render_pass_ = render_pass_builder_->Build();
+}
+
+void SimpleApp::CreateRenderPassBuilder(
+    const NaiveRenderPass::SubpassConfig& subpass_config) {
+  /* Image usage tracker */
+  const bool use_depth_stencil = depth_stencil_image_ != nullptr;
+  const bool use_multisampling = window_context().use_multisampling();
+  image::UsageTracker image_usage_tracker;
+  swapchain_image_info_.AddToTracker(
+      image_usage_tracker, window_context().swapchain_image(/*index=*/0));
+  if (use_depth_stencil) {
+    depth_stencil_image_info_.AddToTracker(image_usage_tracker,
+                                           *depth_stencil_image_);
+  }
+  if (use_multisampling) {
+    multisample_image_info_.AddToTracker(image_usage_tracker,
+                                         window_context().multisample_image());
+  }
+
+  /* Render pass builder */
+  const auto color_attachment_config =
+      NaiveRenderPass::AttachmentConfig{&swapchain_image_info_}
+          .set_final_usage(image::Usage::GetPresentationUsage());
+  const NaiveRenderPass::AttachmentConfig multisampling_attachment_config{
+      &multisample_image_info_};
+  const NaiveRenderPass::AttachmentConfig depth_stencil_attachment_config{
+      &depth_stencil_image_info_};
+  render_pass_builder_ = NaiveRenderPass::CreateBuilder(
+      context(), /*num_framebuffers=*/window_context().num_swapchain_images(),
+      subpass_config, color_attachment_config,
+      use_multisampling ? &multisampling_attachment_config : nullptr,
+      use_depth_stencil ? &depth_stencil_attachment_config : nullptr,
+      image_usage_tracker);
+}
+
 ImageViewer::ImageViewer(const SharedBasicContext& context,
                          const SamplableImage& image,
                          int num_channels, bool flip_y) {

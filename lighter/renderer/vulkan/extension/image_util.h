@@ -34,6 +34,11 @@ class UsageTracker {
 
   UsageTracker& TrackImage(std::string&& image_name,
                            const Usage& initial_usage);
+  UsageTracker& TrackImage(const std::string& image_name,
+                           const Usage& initial_usage) {
+    return TrackImage(std::string{image_name}, initial_usage);
+  }
+
   UsageTracker& TrackImage(std::string&& image_name,
                            const Image& sample_image) {
     return TrackImage(std::move(image_name), sample_image.GetInitialUsage());

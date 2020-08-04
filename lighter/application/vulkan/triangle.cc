@@ -34,7 +34,7 @@ struct Alpha {
 
 /* END: Consistent with uniform blocks defined in shaders. */
 
-class TriangleApp : public Application {
+class TriangleApp : public SimpleApp {
  public:
   explicit TriangleApp(const WindowContext::Config& config);
 
@@ -54,13 +54,9 @@ class TriangleApp : public Application {
 
   int current_frame_ = 0;
   common::FrameTimer timer_;
-  AttachmentInfo swapchain_image_info_{"Swapchain"};
-  AttachmentInfo multisample_image_info_{"Multisample"};
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PerVertexBuffer> vertex_buffer_;
   std::unique_ptr<PushConstant> alpha_constant_;
-  std::unique_ptr<RenderPassBuilder> render_pass_builder_;
-  std::unique_ptr<RenderPass> render_pass_;
   std::unique_ptr<GraphicsPipelineBuilder> pipeline_builder_;
   std::unique_ptr<Pipeline> pipeline_;
 };
@@ -68,7 +64,7 @@ class TriangleApp : public Application {
 } /* namespace */
 
 TriangleApp::TriangleApp(const WindowContext::Config& window_config)
-    : Application{"Hello Triangle", window_config} {
+    : SimpleApp{"Hello Triangle", window_config} {
   using common::Vertex3DWithColor;
 
   /* Command buffer */
@@ -94,31 +90,6 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   alpha_constant_ = absl::make_unique<PushConstant>(context(), sizeof(Alpha),
                                                    kNumFramesInFlight);
 
-  /* Render pass */
-  image::UsageTracker image_usage_tracker;
-  swapchain_image_info_.AddToTracker(
-      image_usage_tracker, window_context().swapchain_image(/*index=*/0));
-  if (window_context().use_multisampling()) {
-    multisample_image_info_.AddToTracker(
-        image_usage_tracker, window_context().multisample_image());
-  }
-
-  const NaiveRenderPass::SubpassConfig subpass_config{
-      kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
-      /*first_overlay_subpass=*/kRenderSubpassIndex,
-  };
-  const auto color_attachment_config =
-      NaiveRenderPass::AttachmentConfig{&swapchain_image_info_}
-          .set_final_usage(image::Usage::GetPresentationUsage());
-  const NaiveRenderPass::AttachmentConfig multisampling_attachment_config{
-      &multisample_image_info_};
-  render_pass_builder_ = NaiveRenderPass::CreateBuilder(
-      context(), /*num_framebuffers=*/window_context().num_swapchain_images(),
-      subpass_config, color_attachment_config,
-      window_context().use_multisampling() ?
-          &multisampling_attachment_config : nullptr,
-      /*depth_stencil_attachment_config=*/nullptr, image_usage_tracker);
-
   /* Pipeline */
   pipeline_builder_ = absl::make_unique<GraphicsPipelineBuilder>(context());
   (*pipeline_builder_)
@@ -139,26 +110,16 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
 
 void TriangleApp::Recreate() {
   /* Render pass */
-  render_pass_builder_->UpdateAttachmentImage(
-      swapchain_image_info_.index(),
-      [this](int framebuffer_index) -> const Image& {
-        return window_context().swapchain_image(framebuffer_index);
-      });
-  if (window_context().use_multisampling()) {
-    render_pass_builder_->UpdateAttachmentImage(
-        multisample_image_info_.index(),
-        [this](int framebuffer_index) -> const Image& {
-          return window_context().multisample_image();
-        });
-  }
-  render_pass_ = render_pass_builder_->Build();
+  RecreateRenderPass(NaiveRenderPass::SubpassConfig{
+      kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
+      /*first_overlay_subpass=*/kRenderSubpassIndex});
 
   /* Pipeline */
   (*pipeline_builder_)
       .SetMultisampling(window_context().sample_count())
       .SetViewport(
           pipeline::GetFullFrameViewport(window_context().frame_size()))
-      .SetRenderPass(**render_pass_, kRenderSubpassIndex);
+      .SetRenderPass(*render_pass(), kRenderSubpassIndex);
   pipeline_ = pipeline_builder_->Build();
 }
 
@@ -179,7 +140,7 @@ void TriangleApp::MainLoop() {
         current_frame_, window_context().swapchain(), update_data,
         [this](const VkCommandBuffer& command_buffer,
                uint32_t framebuffer_index) {
-          render_pass_->Run(command_buffer, framebuffer_index, /*render_ops=*/{
+          render_pass().Run(command_buffer, framebuffer_index, /*render_ops=*/{
               [this](const VkCommandBuffer& command_buffer) {
                 pipeline_->Bind(command_buffer);
                 alpha_constant_->Flush(command_buffer, pipeline_->layout(),

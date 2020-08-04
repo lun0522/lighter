@@ -36,7 +36,7 @@ struct Transformation {
 
 /* END: Consistent with uniform blocks defined in shaders. */
 
-class CubeApp : public Application {
+class CubeApp : public SimpleApp {
  public:
   explicit CubeApp(const WindowContext::Config& config);
 
@@ -51,22 +51,13 @@ class CubeApp : public Application {
   // Recreates the swapchain and associated resources.
   void Recreate();
 
-  // Populates 'render_pass_builder_',
-  void CreateRenderPassBuilder();
-
   // Updates per-frame data.
   void UpdateData(int frame);
 
   int current_frame_ = 0;
   common::FrameTimer timer_;
-  AttachmentInfo swapchain_image_info_{"Swapchain"};
-  AttachmentInfo multisample_image_info_{"Multisample"};
-  AttachmentInfo depth_stencil_image_info_{"Depth stencil"};
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PushConstant> trans_constant_;
-  std::unique_ptr<RenderPassBuilder> render_pass_builder_;
-  std::unique_ptr<RenderPass> render_pass_;
-  std::unique_ptr<Image> depth_stencil_image_;
   std::unique_ptr<Model> cube_model_;
   std::unique_ptr<StaticText> static_text_;
   std::unique_ptr<DynamicText> dynamic_text_;
@@ -75,7 +66,7 @@ class CubeApp : public Application {
 } /* namespace */
 
 CubeApp::CubeApp(const WindowContext::Config& window_config)
-    : Application{"Cube", window_config} {
+    : SimpleApp{"Cube", window_config} {
   // Prevent shaders from being auto released.
   ModelBuilder::AutoReleaseShaderPool shader_pool;
 
@@ -125,74 +116,20 @@ void CubeApp::Recreate() {
   // Prevent shaders from being auto released.
   ModelBuilder::AutoReleaseShaderPool shader_pool;
 
-  /* Depth image */
-  const VkExtent2D& frame_size = window_context().frame_size();
-  depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
-      context(), frame_size, window_context().multisampling_mode());
-
   /* Render pass */
-  if (render_pass_builder_ == nullptr) {
-    CreateRenderPassBuilder();
-  }
-
-  (*render_pass_builder_)
-      .UpdateAttachmentImage(
-          swapchain_image_info_.index(),
-          [this](int framebuffer_index) -> const Image& {
-            return window_context().swapchain_image(framebuffer_index);
-          })
-      .UpdateAttachmentImage(
-          depth_stencil_image_info_.index(),
-          [this](int framebuffer_index) -> const Image& {
-            return *depth_stencil_image_;
-          });
-  if (window_context().use_multisampling()) {
-    render_pass_builder_->UpdateAttachmentImage(
-        multisample_image_info_.index(),
-        [this](int framebuffer_index) -> const Image& {
-          return window_context().multisample_image();
-        });
-  }
-  render_pass_ = render_pass_builder_->Build();
+  RecreateRenderPass(NaiveRenderPass::SubpassConfig{
+      kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
+      /*first_overlay_subpass=*/kTextSubpassIndex});
 
   /* Model and text */
+  const VkExtent2D& frame_size = window_context().frame_size();
   const VkSampleCountFlagBits sample_count = window_context().sample_count();
   cube_model_->Update(/*is_object_opaque=*/true, frame_size, sample_count,
-                      *render_pass_, kModelSubpassIndex);
+                      render_pass(), kModelSubpassIndex);
   static_text_->Update(frame_size, sample_count,
-                       *render_pass_, kTextSubpassIndex, /*flip_y=*/true);
+                       render_pass(), kTextSubpassIndex, /*flip_y=*/true);
   dynamic_text_->Update(frame_size, sample_count,
-                        *render_pass_, kTextSubpassIndex, /*flip_y=*/true);
-}
-
-void CubeApp::CreateRenderPassBuilder() {
-  image::UsageTracker image_usage_tracker;
-  swapchain_image_info_.AddToTracker(
-      image_usage_tracker, window_context().swapchain_image(/*index=*/0));
-  depth_stencil_image_info_.AddToTracker(image_usage_tracker,
-                                         *depth_stencil_image_);
-  if (window_context().use_multisampling()) {
-    multisample_image_info_.AddToTracker(image_usage_tracker,
-                                         window_context().multisample_image());
-  }
-
-  const NaiveRenderPass::SubpassConfig subpass_config{
-      kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
-      /*first_overlay_subpass=*/kTextSubpassIndex,
-  };
-  const auto color_attachment_config =
-      NaiveRenderPass::AttachmentConfig{&swapchain_image_info_}
-          .set_final_usage(image::Usage::GetPresentationUsage());
-  const NaiveRenderPass::AttachmentConfig multisampling_attachment_config{
-      &multisample_image_info_};
-  const NaiveRenderPass::AttachmentConfig depth_stencil_attachment_config{
-      &depth_stencil_image_info_};
-  render_pass_builder_ = NaiveRenderPass::CreateBuilder(
-      context(), /*num_framebuffers=*/window_context().num_swapchain_images(),
-      subpass_config, color_attachment_config,
-      window_context().use_multisampling() ?
-          &multisampling_attachment_config : nullptr,
-      &depth_stencil_attachment_config, image_usage_tracker);
+                        render_pass(), kTextSubpassIndex, /*flip_y=*/true);
 }
 
 void CubeApp::UpdateData(int frame) {
@@ -243,7 +180,7 @@ void CubeApp::MainLoop() {
         current_frame_, window_context().swapchain(), update_data,
         [this, &render_ops](const VkCommandBuffer& command_buffer,
                             uint32_t framebuffer_index) {
-          render_pass_->Run(command_buffer, framebuffer_index, render_ops);
+          render_pass().Run(command_buffer, framebuffer_index, render_ops);
         });
 
     if (draw_result.has_value() || window_context().ShouldRecreate()) {

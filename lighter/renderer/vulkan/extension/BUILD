@@ -170,6 +170,7 @@ cc_library(
     ],
     deps = [
         ":align",
+        ":naive_render_pass",
         ":offscreen_wrappers",
         "//lighter/common:char_lib",
         "//lighter/common:file",

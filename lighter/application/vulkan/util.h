@@ -9,6 +9,7 @@
 #define LIGHTER_APPLICATION_VULKAN_UTIL_H
 
 #include <cstdlib>
+#include <memory>
 #include <type_traits>
 
 #include "lighter/common/camera.h"
@@ -76,6 +77,50 @@ class Application {
  private:
   // Onscreen rendering context.
   renderer::vulkan::WindowContext window_context_;
+};
+
+// This is the base class of simple applications. It assumes that we are
+// rendering to only one color attachment, which is backed by the swapchain
+// image. Whether multisampling is used depends on whether it is turned on for
+// WindowContext. If the user passes in subpass configs that specifies the depth
+// stencil attachment is used in any subpass, this class will also create a
+// depth stencil image internally.
+class SimpleApp : public Application {
+ public:
+  // Inherits constructor.
+  using Application::Application;
+
+  // This class is neither copyable nor movable.
+  SimpleApp(const SimpleApp&) = delete;
+  SimpleApp& operator=(const SimpleApp&) = delete;
+
+ protected:
+  // Recreates 'render_pass_'. If the depth stencil attachment is used in any
+  // subpass, this will also recreate 'depth_stencil_image_' with the current
+  // window framebuffer size. If this is called the first time, it will also
+  // create 'render_pass_builder_' according to 'subpass_config'.
+  // This should be called once after the window is created, and whenever the
+  // window is resized.
+  void RecreateRenderPass(
+      const renderer::vulkan::NaiveRenderPass::SubpassConfig& subpass_config);
+
+  // Accessors.
+  const renderer::vulkan::RenderPass& render_pass() const {
+    return *render_pass_;
+  }
+
+ private:
+  // Populates 'render_pass_builder_'.
+  void CreateRenderPassBuilder(
+      const renderer::vulkan::NaiveRenderPass::SubpassConfig& subpass_config);
+
+  // Objects used for rendering.
+  renderer::vulkan::AttachmentInfo swapchain_image_info_{"Swapchain"};
+  renderer::vulkan::AttachmentInfo multisample_image_info_{"Multisample"};
+  renderer::vulkan::AttachmentInfo depth_stencil_image_info_{"Depth stencil"};
+  std::unique_ptr<renderer::vulkan::Image> depth_stencil_image_;
+  std::unique_ptr<renderer::vulkan::RenderPassBuilder> render_pass_builder_;
+  std::unique_ptr<renderer::vulkan::RenderPass> render_pass_;
 };
 
 // Parses command line arguments, sets necessary environment variables,
