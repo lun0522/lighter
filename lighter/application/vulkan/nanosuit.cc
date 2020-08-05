@@ -16,11 +16,6 @@ namespace {
 
 using namespace renderer::vulkan;
 
-enum SubpassIndex {
-  kModelSubpassIndex = 0,
-  kNumSubpasses,
-};
-
 constexpr int kNumFramesInFlight = 2;
 constexpr int kObjFileIndexBase = 1;
 
@@ -186,6 +181,11 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
 }
 
 void NanosuitApp::Recreate() {
+  enum SubpassIndex {
+    kModelSubpassIndex = 0,
+    kNumSubpasses,
+  };
+
   /* Camera */
   camera_->SetCursorPos(window_context().window().GetCursorPos());
 

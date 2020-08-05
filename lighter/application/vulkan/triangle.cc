@@ -18,11 +18,6 @@ namespace {
 
 using namespace renderer::vulkan;
 
-enum SubpassIndex {
-  kRenderSubpassIndex = 0,
-  kNumSubpasses,
-};
-
 constexpr int kNumFramesInFlight = 2;
 constexpr uint32_t kVertexBufferBindingPoint = 0;
 
@@ -109,6 +104,11 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
 }
 
 void TriangleApp::Recreate() {
+  enum SubpassIndex {
+    kRenderSubpassIndex = 0,
+    kNumSubpasses,
+  };
+
   /* Render pass */
   RecreateRenderPass(NaiveRenderPass::SubpassConfig{
       kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,

@@ -19,12 +19,6 @@ namespace {
 
 using namespace renderer::vulkan;
 
-enum SubpassIndex {
-  kModelSubpassIndex = 0,
-  kTextSubpassIndex,
-  kNumSubpasses,
-};
-
 constexpr int kNumFramesInFlight = 2;
 constexpr int kObjFileIndexBase = 1;
 
@@ -113,6 +107,12 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
 }
 
 void CubeApp::Recreate() {
+  enum SubpassIndex {
+    kModelSubpassIndex = 0,
+    kTextSubpassIndex,
+    kNumSubpasses,
+  };
+
   // Prevent shaders from being auto released.
   ModelBuilder::AutoReleaseShaderPool shader_pool;
 

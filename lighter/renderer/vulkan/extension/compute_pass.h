@@ -9,9 +9,12 @@
 #define LIGHTER_RENDERER_VULKAN_EXTENSION_COMPUTE_PASS_H
 
 #include <functional>
+#include <string>
 
 #include "lighter/renderer/vulkan/extension/base_pass.h"
 #include "lighter/renderer/vulkan/extension/image_util.h"
+#include "lighter/renderer/vulkan/wrapper/image.h"
+#include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -38,13 +41,19 @@ class ComputePass : public BasePass {
   // Adds an image that is used in this compute pass.
   ComputePass& AddImage(std::string&& image_name,
                         image::UsageHistory&& history);
+  ComputePass& AddImage(const std::string& image_name,
+                        image::UsageHistory&& history) {
+    return AddImage(std::string{image_name}, std::move(history));
+  }
 
   // Runs 'compute_ops' and inserts memory barriers internally for transitioning
   // image layouts using the queue with 'queue_family_index'.
+  // 'image_map' should include all images used in this compute pass.
   // The size of 'compute_ops' must be equal to the number of subpasses.
   // This should be called when 'command_buffer' is recording commands.
   // TODO: Handle queue transfer
   void Run(const VkCommandBuffer& command_buffer, uint32_t queue_family_index,
+           const absl::flat_hash_map<std::string, const Image*>& image_map,
            absl::Span<const ComputeOp> compute_ops) const;
 
  private:

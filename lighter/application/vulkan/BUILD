@@ -26,8 +26,9 @@ cc_binary(
     deps = [":common"],
 )
 
-cc_binary(
+cc_library(
     name = "image_viewer",
+    hdrs = ["image_viewer.h"],
     srcs = ["image_viewer.cc"],
     deps = [":common"],
 )
@@ -42,6 +43,15 @@ cc_binary(
     name = "planet",
     srcs = ["planet.cc"],
     deps = [":common"],
+)
+
+cc_binary(
+    name = "post_effect",
+    srcs = ["post_effect.cc"],
+    deps = [
+        ":common",
+        ":image_viewer",
+    ],
 )
 
 cc_binary(

@@ -25,9 +25,10 @@ ComputePass& ComputePass::AddImage(std::string&& image_name,
   return *this;
 }
 
-void ComputePass::Run(const VkCommandBuffer& command_buffer,
-                      uint32_t queue_family_index,
-                      absl::Span<const ComputeOp> compute_ops) const {
+void ComputePass::Run(
+    const VkCommandBuffer& command_buffer, uint32_t queue_family_index,
+    const absl::flat_hash_map<std::string, const Image*>& image_map,
+    absl::Span<const ComputeOp> compute_ops) const {
   ASSERT_TRUE(compute_ops.size() == num_subpasses_,
               absl::StrFormat("Size of 'compute_ops' (%d) mismatches with the "
                               "number of subpasses (%d)",
@@ -46,10 +47,14 @@ void ComputePass::Run(const VkCommandBuffer& command_buffer,
         continue;
       }
 
-      // TODO: How to get image?
-//      InsertMemoryBarrier(command_buffer, queue_family_index, **pair.first,
-//                          usages_info.value().prev_usage,
-//                          usages_info.value().curr_usage);
+      const auto iter = image_map.find(image_name);
+      ASSERT_FALSE(iter == image_map.end(),
+                   absl::StrFormat("Image '%s' not provided in image map",
+                                   image_name));
+      InsertMemoryBarrier(command_buffer, queue_family_index, **iter->second,
+                          usages_info.value().prev_usage,
+                          usages_info.value().curr_usage);
+
 #ifndef NDEBUG
       const std::string log_suffix =
           subpass == virtual_final_subpass_index()
