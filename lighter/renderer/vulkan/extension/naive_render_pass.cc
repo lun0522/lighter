@@ -26,11 +26,13 @@ void CheckSubpassIndexInRange(int subpass, int num_subpasses,
                               name, subpass, num_subpasses));
 }
 
+#ifndef NDEBUG
 void PrintSubpassCountIfNonZero(int count, absl::string_view name) {
   if (count > 0) {
     LOG_INFO << absl::StreamFormat("Number of %s subpasses: %d", name, count);
   }
 }
+#endif  /* !NDEBUG */
 
 } /* namespace */
 

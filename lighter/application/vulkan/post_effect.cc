@@ -31,7 +31,7 @@ constexpr uint32_t kWorkGroupSizeY = 32;
 
 constexpr int kNumFramesInFlight = 2;
 
-class PostEffectApp : public SimpleApp {
+class PostEffectApp : public Application {
  public:
   explicit PostEffectApp(const WindowContext::Config& config);
 
@@ -49,7 +49,13 @@ class PostEffectApp : public SimpleApp {
   // Recreates the swapchain and associated resources.
   void Recreate();
 
+  // Accessors.
+  const RenderPass& render_pass() const {
+    return render_pass_manager_.render_pass();
+  }
+
   int current_frame_ = 0;
+  NaiveRenderPassManager render_pass_manager_;
   std::unique_ptr<OffscreenImage> processed_image_;
   std::unique_ptr<ImageViewer> image_viewer_;
   std::unique_ptr<PerFrameCommand> command_;
@@ -58,7 +64,8 @@ class PostEffectApp : public SimpleApp {
 } /* namespace */
 
 PostEffectApp::PostEffectApp(const WindowContext::Config& window_config)
-    : SimpleApp{"Post effect", window_config} {
+    : Application{"Post effect", window_config},
+      render_pass_manager_{&window_context()} {
   // No need to do multisampling.
   ASSERT_FALSE(window_context().use_multisampling(), "Not needed");
 
@@ -165,7 +172,7 @@ void PostEffectApp::Recreate() {
     kNumGraphicsSubpasses,
   };
 
-  RecreateRenderPass(NaiveRenderPass::SubpassConfig{
+  render_pass_manager_.RecreateRenderPass(NaiveRenderPass::SubpassConfig{
       kNumGraphicsSubpasses, /*first_transparent_subpass=*/absl::nullopt,
       /*first_overlay_subpass=*/kViewImageSubpassIndex});
 

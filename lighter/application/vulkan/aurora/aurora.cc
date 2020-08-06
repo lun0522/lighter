@@ -66,7 +66,7 @@ AuroraApp::AuroraApp(const WindowContext::Config& window_config)
 aurora::Scene& AuroraApp::GetCurrentScene() {
   switch (current_scene_) {
     case Scene::kNone:
-      FATAL("Unexpected branch");
+      FATAL("Unreachable");
     case Scene::kEditor:
       return *editor_;
     case Scene::kViewer:
@@ -82,7 +82,7 @@ void AuroraApp::TransitionSceneIfNeeded() {
   GetCurrentScene().OnExit();
   switch (current_scene_) {
     case Scene::kNone:
-      FATAL("Unexpected branch");
+      FATAL("Unreachable");
     case Scene::kEditor: {
       viewer_->UpdateAuroraPaths(editor_->viewpoint_position());
       current_scene_ = Scene::kViewer;

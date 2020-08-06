@@ -29,7 +29,7 @@ struct Alpha {
 
 /* END: Consistent with uniform blocks defined in shaders. */
 
-class TriangleApp : public SimpleApp {
+class TriangleApp : public Application {
  public:
   explicit TriangleApp(const WindowContext::Config& config);
 
@@ -47,8 +47,14 @@ class TriangleApp : public SimpleApp {
   // Updates per-frame data.
   void UpdateData(int frame);
 
+  // Accessors.
+  const RenderPass& render_pass() const {
+    return render_pass_manager_.render_pass();
+  }
+
   int current_frame_ = 0;
   common::FrameTimer timer_;
+  NaiveRenderPassManager render_pass_manager_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PerVertexBuffer> vertex_buffer_;
   std::unique_ptr<PushConstant> alpha_constant_;
@@ -59,7 +65,8 @@ class TriangleApp : public SimpleApp {
 } /* namespace */
 
 TriangleApp::TriangleApp(const WindowContext::Config& window_config)
-    : SimpleApp{"Hello Triangle", window_config} {
+    : Application{"Hello Triangle", window_config},
+      render_pass_manager_{&window_context()} {
   using common::Vertex3DWithColor;
 
   /* Command buffer */
@@ -110,7 +117,7 @@ void TriangleApp::Recreate() {
   };
 
   /* Render pass */
-  RecreateRenderPass(NaiveRenderPass::SubpassConfig{
+  render_pass_manager_.RecreateRenderPass(NaiveRenderPass::SubpassConfig{
       kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
       /*first_overlay_subpass=*/kRenderSubpassIndex});
 

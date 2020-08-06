@@ -15,6 +15,7 @@
 #include "lighter/application/vulkan/aurora/editor/celestial.h"
 #include "lighter/application/vulkan/aurora/editor/path.h"
 #include "lighter/application/vulkan/aurora/scene.h"
+#include "lighter/application/vulkan/util.h"
 #include "lighter/common/camera.h"
 #include "lighter/common/rotation.h"
 #include "lighter/common/window.h"
@@ -30,39 +31,6 @@ namespace lighter {
 namespace application {
 namespace vulkan {
 namespace aurora {
-
-// This class is used for rendering the aurora path editor using Vulkan APIs.
-class EditorRenderer {
- public:
-  explicit EditorRenderer(
-      const renderer::vulkan::WindowContext* window_context);
-
-  // This class is neither copyable nor movable.
-  EditorRenderer(const EditorRenderer&) = delete;
-  EditorRenderer& operator=(const EditorRenderer&) = delete;
-
-  // Recreates the swapchain and associated resources.
-  void Recreate();
-
-  // Renders the aurora path editor using 'render_ops'.
-  // This should be called when 'command_buffer' is recording commands.
-  void Draw(
-      const VkCommandBuffer& command_buffer, int framebuffer_index,
-      absl::Span<const renderer::vulkan::RenderPass::RenderOp> render_ops);
-
-  // Accessors.
-  const renderer::vulkan::RenderPass& render_pass() const {
-    return *render_pass_;
-  }
-
- private:
-  // Objects used for rendering.
-  const renderer::vulkan::WindowContext& window_context_;
-  std::unique_ptr<renderer::vulkan::NaiveRenderPassBuilder>
-      render_pass_builder_;
-  std::unique_ptr<renderer::vulkan::RenderPass> render_pass_;
-  std::unique_ptr<renderer::vulkan::Image> depth_stencil_image_;
-};
 
 // This class is used to manage and render the aurora path editor scene.
 // Note that to make it easier to handle user interactions with objects in
@@ -188,7 +156,7 @@ class Editor : public Scene {
 
   // Accessors.
   const renderer::vulkan::RenderPass& render_pass() const {
-    return editor_renderer_.render_pass();
+    return render_pass_manager_.render_pass();
   }
 
   // Onscreen rendering context.
@@ -198,8 +166,8 @@ class Editor : public Scene {
   bool did_press_left_ = false;
   bool did_release_right_ = false;
 
-  // Renderer of the editor scene.
-  EditorRenderer editor_renderer_;
+  // Manages render pass.
+  NaiveRenderPassManager render_pass_manager_;
 
   // Sphere models used to handle user interaction with the earth model and
   // virtual aurora layer in the scene.

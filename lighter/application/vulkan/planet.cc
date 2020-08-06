@@ -67,7 +67,7 @@ struct SkyboxTrans {
 
 /* END: Consistent with uniform blocks defined in shaders. */
 
-class PlanetApp : public SimpleApp {
+class PlanetApp : public Application {
  public:
   explicit PlanetApp(const WindowContext::Config& config);
 
@@ -88,10 +88,16 @@ class PlanetApp : public SimpleApp {
   // Updates per-frame data.
   void UpdateData(int frame);
 
+  // Accessors.
+  const RenderPass& render_pass() const {
+    return render_pass_manager_.render_pass();
+  }
+
   bool should_quit_ = false;
   int current_frame_ = 0;
   int num_asteroids_ = -1;
   common::FrameTimer timer_;
+  NaiveRenderPassManager render_pass_manager_;
   std::unique_ptr<common::UserControlledCamera> camera_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<StaticPerInstanceBuffer> per_asteroid_data_;
@@ -106,7 +112,8 @@ class PlanetApp : public SimpleApp {
 } /* namespace */
 
 PlanetApp::PlanetApp(const WindowContext::Config& window_config)
-    : SimpleApp{"Planet", window_config} {
+    : Application{"Planet", window_config},
+      render_pass_manager_{&window_context()} {
   using common::file::GetResourcePath;
   using common::file::GetVkShaderPath;
   using WindowKey = common::Window::KeyMap;
@@ -242,7 +249,7 @@ void PlanetApp::Recreate() {
   camera_->SetCursorPos(window_context().window().GetCursorPos());
 
   /* Render pass */
-  RecreateRenderPass(NaiveRenderPass::SubpassConfig{
+  render_pass_manager_.RecreateRenderPass(NaiveRenderPass::SubpassConfig{
       kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
       /*first_overlay_subpass=*/absl::nullopt});
 

@@ -8,6 +8,8 @@
 #include "lighter/application/vulkan/aurora/editor/button_maker.h"
 
 #include "lighter/common/util.h"
+#include "lighter/renderer/vulkan/extension/image_util.h"
+#include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/wrapper/command.h"
 #include "lighter/renderer/vulkan/wrapper/descriptor.h"
 #include "lighter/renderer/vulkan/wrapper/image_usage.h"
@@ -28,7 +30,6 @@ enum SubpassIndex {
   kBackgroundSubpassIndex = 0,
   kTextSubpassIndex,
   kNumSubpasses,
-  kNumOverlaySubpasses = kNumSubpasses - kBackgroundSubpassIndex,
 };
 
 enum UniformBindingPoint {
@@ -90,20 +91,22 @@ std::unique_ptr<StaticDescriptor> CreateDescriptor(
 // Creates a render pass for rendering to 'target_image'.
 std::unique_ptr<RenderPass> CreateRenderPass(
     const SharedBasicContext& context, const OffscreenImage& target_image) {
-  const NaiveRenderPassBuilder::SubpassConfig subpass_config{
-      /*use_opaque_subpass=*/false,
-      /*num_transparent_subpasses=*/0,
-      kNumOverlaySubpasses,
-  };
-  NaiveRenderPassBuilder render_pass_builder{
-      context, subpass_config, /*num_framebuffers=*/1,
-      /*use_multisampling=*/false,
-      NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kSampledAsTexture,
-  };
-  render_pass_builder.UpdateAttachmentImage(
-      render_pass_builder.color_attachment_index(),
+  image::UsageHistory usage_history{target_image.GetInitialUsage()};
+  usage_history
+      .AddUsage(kBackgroundSubpassIndex, kTextSubpassIndex,
+                image::Usage::GetRenderTargetUsage())
+      .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
+
+  GraphicsPass graphics_pass{context, kNumSubpasses};
+  graphics_pass.AddAttachment("Button", std::move(usage_history),
+                              /*get_location=*/[](int subpass) { return 0; });
+
+  auto render_pass_builder =
+      graphics_pass.CreateRenderPassBuilder(/*num_framebuffers=*/1);
+  render_pass_builder->UpdateAttachmentImage(
+      /*index=*/0,
       [&target_image](int) -> const Image& { return target_image; });
-  return render_pass_builder.Build();
+  return render_pass_builder->Build();
 }
 
 // Creates a text renderer for rendering texts on buttons.

@@ -30,7 +30,7 @@ struct Transformation {
 
 /* END: Consistent with uniform blocks defined in shaders. */
 
-class CubeApp : public SimpleApp {
+class CubeApp : public Application {
  public:
   explicit CubeApp(const WindowContext::Config& config);
 
@@ -48,8 +48,14 @@ class CubeApp : public SimpleApp {
   // Updates per-frame data.
   void UpdateData(int frame);
 
+  // Accessors.
+  const RenderPass& render_pass() const {
+    return render_pass_manager_.render_pass();
+  }
+
   int current_frame_ = 0;
   common::FrameTimer timer_;
+  NaiveRenderPassManager render_pass_manager_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PushConstant> trans_constant_;
   std::unique_ptr<Model> cube_model_;
@@ -60,7 +66,8 @@ class CubeApp : public SimpleApp {
 } /* namespace */
 
 CubeApp::CubeApp(const WindowContext::Config& window_config)
-    : SimpleApp{"Cube", window_config} {
+    : Application{"Cube", window_config},
+      render_pass_manager_{&window_context()} {
   // Prevent shaders from being auto released.
   ModelBuilder::AutoReleaseShaderPool shader_pool;
 
@@ -117,7 +124,7 @@ void CubeApp::Recreate() {
   ModelBuilder::AutoReleaseShaderPool shader_pool;
 
   /* Render pass */
-  RecreateRenderPass(NaiveRenderPass::SubpassConfig{
+  render_pass_manager_.RecreateRenderPass(NaiveRenderPass::SubpassConfig{
       kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
       /*first_overlay_subpass=*/kTextSubpassIndex});
 

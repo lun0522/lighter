@@ -20,15 +20,6 @@ namespace {
 
 using namespace renderer::vulkan;
 
-enum SubpassIndex {
-  kModelSubpassIndex = 0,
-  kAuroraPathSubpassIndex,
-  kButtonSubpassIndex,
-  kNumSubpasses,
-  kNumTransparentSubpasses = kButtonSubpassIndex - kAuroraPathSubpassIndex,
-  kNumOverlaySubpasses = kNumSubpasses - kButtonSubpassIndex,
-};
-
 constexpr float kInertialRotationDuration = 1.5f;
 
 // The height of aurora layer is assumed to be at around 100km above the ground.
@@ -86,55 +77,9 @@ std::vector<float> GetButtonCenters(int num_buttons) {
 
 } /* namespace */
 
-EditorRenderer::EditorRenderer(const WindowContext* window_context)
-    : window_context_{*FATAL_IF_NULL(window_context)} {
-  const NaiveRenderPassBuilder::SubpassConfig subpass_config{
-      /*use_opaque_subpass=*/true,
-      kNumTransparentSubpasses,
-      kNumOverlaySubpasses,
-  };
-  render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
-      window_context_.basic_context(), subpass_config,
-      /*num_framebuffers=*/window_context_.num_swapchain_images(),
-      window_context_.use_multisampling());
-}
-
-void EditorRenderer::Recreate() {
-  depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
-      window_context_.basic_context(), window_context_.frame_size(),
-      window_context_.multisampling_mode());
-
-  (*render_pass_builder_)
-      .UpdateAttachmentImage(
-          render_pass_builder_->color_attachment_index(),
-          [this](int framebuffer_index) -> const Image& {
-            return window_context_.swapchain_image(framebuffer_index);
-          })
-      .UpdateAttachmentImage(
-          render_pass_builder_->depth_stencil_attachment_index(),
-          [this](int framebuffer_index) -> const Image& {
-            return *depth_stencil_image_;
-          });
-  if (render_pass_builder_->has_multisample_attachment()) {
-    render_pass_builder_->UpdateAttachmentImage(
-        render_pass_builder_->multisample_attachment_index(),
-        [this](int framebuffer_index) -> const Image& {
-          return window_context_.multisample_image();
-        });
-  }
-
-  render_pass_ = render_pass_builder_->Build();
-}
-
-void EditorRenderer::Draw(
-    const VkCommandBuffer& command_buffer, int framebuffer_index,
-    absl::Span<const renderer::vulkan::RenderPass::RenderOp> render_ops) {
-  render_pass_->Run(command_buffer, framebuffer_index, render_ops);
-}
-
 Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
     : window_context_{*FATAL_IF_NULL(window_context)},
-      editor_renderer_{FATAL_IF_NULL(window_context)},
+      render_pass_manager_{&window_context_},
       earth_{GetEarthModelCenter(), kEarthModelRadius,
              kInertialRotationDuration},
       aurora_layer_{GetEarthModelCenter(), kAuroraLayerModelRadius,
@@ -303,10 +248,19 @@ void Editor::OnExit() {
 }
 
 void Editor::Recreate() {
+  enum SubpassIndex {
+    kModelSubpassIndex = 0,
+    kAuroraPathSubpassIndex,
+    kButtonSubpassIndex,
+    kNumSubpasses,
+  };
+
   // Prevent shaders from being auto released.
   ShaderModule::AutoReleaseShaderPool shader_pool;
 
-  editor_renderer_.Recreate();
+  render_pass_manager_.RecreateRenderPass(NaiveRenderPass::SubpassConfig{
+      kNumSubpasses, /*first_transparent_subpass=*/kAuroraPathSubpassIndex,
+      /*first_overlay_subpass=*/kButtonSubpassIndex});
 
   general_camera_->SetCursorPos(window_context_.window().GetCursorPos());
   skybox_camera_->SetCursorPos(window_context_.window().GetCursorPos());
@@ -418,7 +372,7 @@ void Editor::UpdateData(int frame) {
 
 void Editor::Draw(const VkCommandBuffer& command_buffer,
                   uint32_t framebuffer_index, int current_frame) {
-  editor_renderer_.Draw(command_buffer, framebuffer_index, /*render_ops=*/{
+  render_pass().Run(command_buffer, framebuffer_index, /*render_ops=*/{
       [this, current_frame](const VkCommandBuffer& command_buffer) {
         celestial_->Draw(command_buffer, current_frame);
       },

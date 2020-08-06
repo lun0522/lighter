@@ -79,22 +79,22 @@ class Application {
   renderer::vulkan::WindowContext window_context_;
 };
 
-// This is the base class of simple applications. It assumes that we are
-// rendering to only one color attachment, which is backed by the swapchain
+// This class builds a render pass with NaiveRenderPass internally. It assumes
+// the color attachment that we are rendering to is backed by the swapchain
 // image. Whether multisampling is used depends on whether it is turned on for
-// WindowContext. If the user passes in subpass configs that specifies the depth
-// stencil attachment is used in any subpass, this class will also create a
-// depth stencil image internally.
-class SimpleApp : public Application {
+// 'window_context'. If the subpass config passed in by the user indicates that
+// the depth stencil attachment is used in any subpass, this class will also
+// create a depth stencil image internally.
+class NaiveRenderPassManager {
  public:
-  // Inherits constructor.
-  using Application::Application;
+  explicit NaiveRenderPassManager(
+      const renderer::vulkan::WindowContext* window_context)
+      : window_context_{*FATAL_IF_NULL(window_context)} {}
 
   // This class is neither copyable nor movable.
-  SimpleApp(const SimpleApp&) = delete;
-  SimpleApp& operator=(const SimpleApp&) = delete;
+  NaiveRenderPassManager(const NaiveRenderPassManager&) = delete;
+  NaiveRenderPassManager& operator=(const NaiveRenderPassManager&) = delete;
 
- protected:
   // Recreates 'render_pass_'. If the depth stencil attachment is used in any
   // subpass, this will also recreate 'depth_stencil_image_' with the current
   // window framebuffer size. If this is called the first time, it will also
@@ -115,6 +115,7 @@ class SimpleApp : public Application {
       const renderer::vulkan::NaiveRenderPass::SubpassConfig& subpass_config);
 
   // Objects used for rendering.
+  const renderer::vulkan::WindowContext& window_context_;
   renderer::vulkan::AttachmentInfo swapchain_image_info_{"Swapchain"};
   renderer::vulkan::AttachmentInfo multisample_image_info_{"Multisample"};
   renderer::vulkan::AttachmentInfo depth_stencil_image_info_{"Depth stencil"};

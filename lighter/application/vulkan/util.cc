@@ -19,13 +19,13 @@ using namespace renderer::vulkan;
 
 } /* namespace */
 
-void SimpleApp::RecreateRenderPass(
+void NaiveRenderPassManager::RecreateRenderPass(
     const NaiveRenderPass::SubpassConfig& subpass_config) {
   /* Depth stencil image */
   if (subpass_config.use_depth_stencil()) {
     depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
-        context(), window_context().frame_size(),
-        window_context().multisampling_mode());
+        window_context_.basic_context(), window_context_.frame_size(),
+        window_context_.multisampling_mode());
 #ifndef NDEBUG
     LOG_INFO << "Depth stencil image created";
 #endif /* !NDEBUG */
@@ -38,7 +38,7 @@ void SimpleApp::RecreateRenderPass(
   render_pass_builder_->UpdateAttachmentImage(
       swapchain_image_info_.index(),
       [this](int framebuffer_index) -> const Image& {
-        return window_context().swapchain_image(framebuffer_index);
+        return window_context_.swapchain_image(framebuffer_index);
       });
   if (depth_stencil_image_ != nullptr) {
     render_pass_builder_->UpdateAttachmentImage(
@@ -47,31 +47,31 @@ void SimpleApp::RecreateRenderPass(
           return *depth_stencil_image_;
         });
   }
-  if (window_context().use_multisampling()) {
+  if (window_context_.use_multisampling()) {
     render_pass_builder_->UpdateAttachmentImage(
         multisample_image_info_.index(),
         [this](int framebuffer_index) -> const Image& {
-          return window_context().multisample_image();
+          return window_context_.multisample_image();
         });
   }
   render_pass_ = render_pass_builder_->Build();
 }
 
-void SimpleApp::CreateRenderPassBuilder(
+void NaiveRenderPassManager::CreateRenderPassBuilder(
     const NaiveRenderPass::SubpassConfig& subpass_config) {
   /* Image usage tracker */
   const bool use_depth_stencil = depth_stencil_image_ != nullptr;
-  const bool use_multisampling = window_context().use_multisampling();
+  const bool use_multisampling = window_context_.use_multisampling();
   image::UsageTracker image_usage_tracker;
   swapchain_image_info_.AddToTracker(
-      image_usage_tracker, window_context().swapchain_image(/*index=*/0));
+      image_usage_tracker, window_context_.swapchain_image(/*index=*/0));
   if (use_depth_stencil) {
     depth_stencil_image_info_.AddToTracker(image_usage_tracker,
                                            *depth_stencil_image_);
   }
   if (use_multisampling) {
     multisample_image_info_.AddToTracker(image_usage_tracker,
-                                         window_context().multisample_image());
+                                         window_context_.multisample_image());
   }
 
   /* Render pass builder */
@@ -83,7 +83,8 @@ void SimpleApp::CreateRenderPassBuilder(
   const NaiveRenderPass::AttachmentConfig depth_stencil_attachment_config{
       &depth_stencil_image_info_};
   render_pass_builder_ = NaiveRenderPass::CreateBuilder(
-      context(), /*num_framebuffers=*/window_context().num_swapchain_images(),
+      window_context_.basic_context(),
+      /*num_framebuffers=*/window_context_.num_swapchain_images(),
       subpass_config, color_attachment_config,
       use_multisampling ? &multisampling_attachment_config : nullptr,
       use_depth_stencil ? &depth_stencil_attachment_config : nullptr,

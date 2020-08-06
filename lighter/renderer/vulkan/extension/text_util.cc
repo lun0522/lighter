@@ -9,7 +9,8 @@
 
 #include <algorithm>
 
-#include "lighter/renderer/vulkan/extension/naive_render_pass.h"
+#include "lighter/renderer/vulkan/extension/image_util.h"
+#include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/wrapper/command.h"
 #include "lighter/renderer/vulkan/wrapper/image_usage.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
@@ -74,21 +75,15 @@ std::vector<Descriptor::Info> CreateDescriptorInfos() {
 // Returns a render pass builder for rendering characters.
 std::unique_ptr<RenderPassBuilder> CreateRenderPassBuilder(
     const SharedBasicContext& context) {
-  AttachmentInfo attachment_info{"Text internal"};
-  image::UsageTracker image_usage_tracker;
-  attachment_info.AddToTracker(image_usage_tracker, image::Usage{});
+  image::UsageHistory usage_history{image::Usage{}};
+  usage_history
+      .AddUsage(kTextSubpassIndex, image::Usage::GetRenderTargetUsage())
+      .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
 
-  const NaiveRenderPass::SubpassConfig subpass_config{
-      kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
-      /*first_overlay_subpass=*/kTextSubpassIndex,
-  };
-  const auto attachment_config =
-      NaiveRenderPass::AttachmentConfig{&attachment_info}
-          .set_final_usage(image::Usage::GetSampledInFragmentShaderUsage());
-  return NaiveRenderPass::CreateBuilder(
-      context, /*num_framebuffers=*/1, subpass_config, attachment_config,
-      /*multisampling_attachment_config=*/nullptr,
-      /*depth_stencil_attachment_config=*/nullptr, image_usage_tracker);
+  GraphicsPass graphics_pass{context, kNumSubpasses};
+  graphics_pass.AddAttachment("Chars", std::move(usage_history),
+                              /*get_location=*/[](int subpass) { return 0; });
+  return graphics_pass.CreateRenderPassBuilder(/*num_framebuffers=*/1);
 }
 
 // Returns a render pass that renders to 'target_image'.

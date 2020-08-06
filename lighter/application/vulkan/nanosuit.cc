@@ -37,7 +37,7 @@ struct SkyboxTrans {
 
 /* END: Consistent with uniform blocks defined in shaders. */
 
-class NanosuitApp : public SimpleApp {
+class NanosuitApp : public Application {
  public:
   explicit NanosuitApp(const WindowContext::Config& config);
 
@@ -55,9 +55,15 @@ class NanosuitApp : public SimpleApp {
   // Updates per-frame data.
   void UpdateData(int frame);
 
+  // Accessors.
+  const RenderPass& render_pass() const {
+    return render_pass_manager_.render_pass();
+  }
+
   bool should_quit_ = false;
   int current_frame_ = 0;
   common::FrameTimer timer_;
+  NaiveRenderPassManager render_pass_manager_;
   std::unique_ptr<common::UserControlledCamera> camera_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<UniformBuffer> nanosuit_vert_uniform_;
@@ -70,7 +76,8 @@ class NanosuitApp : public SimpleApp {
 } /* namespace */
 
 NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
-    : SimpleApp{"Nanosuit", window_config} {
+    : Application{"Nanosuit", window_config},
+      render_pass_manager_{&window_context()} {
   using common::file::GetResourcePath;
   using common::file::GetVkShaderPath;
   using WindowKey = common::Window::KeyMap;
@@ -190,7 +197,7 @@ void NanosuitApp::Recreate() {
   camera_->SetCursorPos(window_context().window().GetCursorPos());
 
   /* Render pass */
-  RecreateRenderPass(NaiveRenderPass::SubpassConfig{
+  render_pass_manager_.RecreateRenderPass(NaiveRenderPass::SubpassConfig{
       kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
       /*first_overlay_subpass=*/absl::nullopt});
 
