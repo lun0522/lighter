@@ -19,10 +19,9 @@ using namespace renderer::vulkan;
 
 } /* namespace */
 
-void NaiveRenderPassManager::RecreateRenderPass(
-    const NaiveRenderPass::SubpassConfig& subpass_config) {
+void OnScreenRenderPassManager::RecreateRenderPass() {
   /* Depth stencil image */
-  if (subpass_config.use_depth_stencil()) {
+  if (subpass_config_.use_depth_stencil()) {
     depth_stencil_image_ = MultisampleImage::CreateDepthStencilImage(
         window_context_.basic_context(), window_context_.frame_size(),
         window_context_.multisampling_mode());
@@ -32,7 +31,7 @@ void NaiveRenderPassManager::RecreateRenderPass(
   }
 
   if (render_pass_builder_ == nullptr) {
-    CreateRenderPassBuilder(subpass_config);
+    CreateRenderPassBuilder();
   }
 
   render_pass_builder_->UpdateAttachmentImage(
@@ -57,8 +56,7 @@ void NaiveRenderPassManager::RecreateRenderPass(
   render_pass_ = render_pass_builder_->Build();
 }
 
-void NaiveRenderPassManager::CreateRenderPassBuilder(
-    const NaiveRenderPass::SubpassConfig& subpass_config) {
+void OnScreenRenderPassManager::CreateRenderPassBuilder() {
   /* Image usage tracker */
   const bool use_depth_stencil = depth_stencil_image_ != nullptr;
   const bool use_multisampling = window_context_.use_multisampling();
@@ -85,7 +83,7 @@ void NaiveRenderPassManager::CreateRenderPassBuilder(
   render_pass_builder_ = NaiveRenderPass::CreateBuilder(
       window_context_.basic_context(),
       /*num_framebuffers=*/window_context_.num_swapchain_images(),
-      subpass_config, color_attachment_config,
+      subpass_config_, color_attachment_config,
       use_multisampling ? &multisampling_attachment_config : nullptr,
       use_depth_stencil ? &depth_stencil_attachment_config : nullptr,
       image_usage_tracker);

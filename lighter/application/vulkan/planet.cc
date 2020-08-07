@@ -19,6 +19,11 @@ namespace {
 
 using namespace renderer::vulkan;
 
+enum SubpassIndex {
+  kModelSubpassIndex = 0,
+  kNumSubpasses,
+};
+
 constexpr int kNumAsteroidRings = 3;
 constexpr int kNumFramesInFlight = 2;
 constexpr int kObjFileIndexBase = 1;
@@ -90,14 +95,14 @@ class PlanetApp : public Application {
 
   // Accessors.
   const RenderPass& render_pass() const {
-    return render_pass_manager_.render_pass();
+    return render_pass_manager_->render_pass();
   }
 
   bool should_quit_ = false;
   int current_frame_ = 0;
   int num_asteroids_ = -1;
   common::FrameTimer timer_;
-  NaiveRenderPassManager render_pass_manager_;
+  std::unique_ptr<OnScreenRenderPassManager> render_pass_manager_;
   std::unique_ptr<common::UserControlledCamera> camera_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<StaticPerInstanceBuffer> per_asteroid_data_;
@@ -112,8 +117,7 @@ class PlanetApp : public Application {
 } /* namespace */
 
 PlanetApp::PlanetApp(const WindowContext::Config& window_config)
-    : Application{"Planet", window_config},
-      render_pass_manager_{&window_context()} {
+    : Application{"Planet", window_config} {
   using common::file::GetResourcePath;
   using common::file::GetVkShaderPath;
   using WindowKey = common::Window::KeyMap;
@@ -121,6 +125,13 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
   using TextureType = ModelBuilder::TextureType;
 
   const float original_aspect_ratio = window_context().original_aspect_ratio();
+
+  /* Render pass */
+  render_pass_manager_ = absl::make_unique<OnScreenRenderPassManager>(
+      &window_context(),
+      NaiveRenderPass::SubpassConfig{
+          kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
+          /*first_overlay_subpass=*/absl::nullopt});
 
   /* Camera */
   common::Camera::Config config;
@@ -240,18 +251,11 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
 }
 
 void PlanetApp::Recreate() {
-  enum SubpassIndex {
-    kModelSubpassIndex = 0,
-    kNumSubpasses,
-  };
-
   /* Camera */
   camera_->SetCursorPos(window_context().window().GetCursorPos());
 
   /* Render pass */
-  render_pass_manager_.RecreateRenderPass(NaiveRenderPass::SubpassConfig{
-      kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
-      /*first_overlay_subpass=*/absl::nullopt});
+  render_pass_manager_->RecreateRenderPass();
 
   /* Model */
   constexpr bool kIsObjectOpaque = true;

@@ -20,6 +20,13 @@ namespace {
 
 using namespace renderer::vulkan;
 
+enum SubpassIndex {
+  kModelSubpassIndex = 0,
+  kAuroraPathSubpassIndex,
+  kButtonSubpassIndex,
+  kNumSubpasses,
+};
+
 constexpr float kInertialRotationDuration = 1.5f;
 
 // The height of aurora layer is assumed to be at around 100km above the ground.
@@ -79,7 +86,6 @@ std::vector<float> GetButtonCenters(int num_buttons) {
 
 Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
     : window_context_{*FATAL_IF_NULL(window_context)},
-      render_pass_manager_{&window_context_},
       earth_{GetEarthModelCenter(), kEarthModelRadius,
              kInertialRotationDuration},
       aurora_layer_{GetEarthModelCenter(), kAuroraLayerModelRadius,
@@ -103,6 +109,13 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
   };
   constexpr std::array<float, button::kNumStates>
       kButtonAndPathAlphas{1.0f, 0.5f};
+
+  /* Render pass */
+  render_pass_manager_ = absl::make_unique<OnScreenRenderPassManager>(
+      &window_context_,
+      NaiveRenderPass::SubpassConfig{
+          kNumSubpasses, /*first_transparent_subpass=*/kAuroraPathSubpassIndex,
+          /*first_overlay_subpass=*/kButtonSubpassIndex});
 
   /* Earth and skybox */
   celestial_ = absl::make_unique<Celestial>(
@@ -248,19 +261,10 @@ void Editor::OnExit() {
 }
 
 void Editor::Recreate() {
-  enum SubpassIndex {
-    kModelSubpassIndex = 0,
-    kAuroraPathSubpassIndex,
-    kButtonSubpassIndex,
-    kNumSubpasses,
-  };
-
   // Prevent shaders from being auto released.
   ShaderModule::AutoReleaseShaderPool shader_pool;
 
-  render_pass_manager_.RecreateRenderPass(NaiveRenderPass::SubpassConfig{
-      kNumSubpasses, /*first_transparent_subpass=*/kAuroraPathSubpassIndex,
-      /*first_overlay_subpass=*/kButtonSubpassIndex});
+  render_pass_manager_->RecreateRenderPass();
 
   general_camera_->SetCursorPos(window_context_.window().GetCursorPos());
   skybox_camera_->SetCursorPos(window_context_.window().GetCursorPos());

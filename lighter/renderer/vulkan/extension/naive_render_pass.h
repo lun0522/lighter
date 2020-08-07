@@ -32,7 +32,7 @@ class NaiveRenderPass {
 
     // This class provides copy constructor and move constructor.
     SubpassConfig(SubpassConfig&&) noexcept = default;
-    SubpassConfig(SubpassConfig&) = default;
+    SubpassConfig(const SubpassConfig&) = default;
 
     int num_subpasses_using_depth_stencil() const {
       return num_opaque_subpass_ + num_transparent_subpasses_;

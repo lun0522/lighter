@@ -156,7 +156,7 @@ class Editor : public Scene {
 
   // Accessors.
   const renderer::vulkan::RenderPass& render_pass() const {
-    return render_pass_manager_.render_pass();
+    return render_pass_manager_->render_pass();
   }
 
   // Onscreen rendering context.
@@ -167,7 +167,7 @@ class Editor : public Scene {
   bool did_release_right_ = false;
 
   // Manages render pass.
-  NaiveRenderPassManager render_pass_manager_;
+  std::unique_ptr<OnScreenRenderPassManager> render_pass_manager_;
 
   // Sphere models used to handle user interaction with the earth model and
   // virtual aurora layer in the scene.

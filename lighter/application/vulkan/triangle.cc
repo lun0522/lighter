@@ -18,6 +18,11 @@ namespace {
 
 using namespace renderer::vulkan;
 
+enum SubpassIndex {
+  kRenderSubpassIndex = 0,
+  kNumSubpasses,
+};
+
 constexpr int kNumFramesInFlight = 2;
 constexpr uint32_t kVertexBufferBindingPoint = 0;
 
@@ -49,12 +54,12 @@ class TriangleApp : public Application {
 
   // Accessors.
   const RenderPass& render_pass() const {
-    return render_pass_manager_.render_pass();
+    return render_pass_manager_->render_pass();
   }
 
   int current_frame_ = 0;
   common::FrameTimer timer_;
-  NaiveRenderPassManager render_pass_manager_;
+  std::unique_ptr<OnScreenRenderPassManager> render_pass_manager_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PerVertexBuffer> vertex_buffer_;
   std::unique_ptr<PushConstant> alpha_constant_;
@@ -65,9 +70,15 @@ class TriangleApp : public Application {
 } /* namespace */
 
 TriangleApp::TriangleApp(const WindowContext::Config& window_config)
-    : Application{"Hello Triangle", window_config},
-      render_pass_manager_{&window_context()} {
+    : Application{"Hello Triangle", window_config} {
   using common::Vertex3DWithColor;
+
+  /* Render pass */
+  render_pass_manager_ = absl::make_unique<OnScreenRenderPassManager>(
+      &window_context(),
+      NaiveRenderPass::SubpassConfig{
+          kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
+          /*first_overlay_subpass=*/kRenderSubpassIndex});
 
   /* Command buffer */
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
@@ -111,15 +122,8 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
 }
 
 void TriangleApp::Recreate() {
-  enum SubpassIndex {
-    kRenderSubpassIndex = 0,
-    kNumSubpasses,
-  };
-
   /* Render pass */
-  render_pass_manager_.RecreateRenderPass(NaiveRenderPass::SubpassConfig{
-      kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
-      /*first_overlay_subpass=*/kRenderSubpassIndex});
+  render_pass_manager_->RecreateRenderPass();
 
   /* Pipeline */
   (*pipeline_builder_)

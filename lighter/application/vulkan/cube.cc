@@ -19,6 +19,12 @@ namespace {
 
 using namespace renderer::vulkan;
 
+enum SubpassIndex {
+  kModelSubpassIndex = 0,
+  kTextSubpassIndex,
+  kNumSubpasses,
+};
+
 constexpr int kNumFramesInFlight = 2;
 constexpr int kObjFileIndexBase = 1;
 
@@ -50,12 +56,12 @@ class CubeApp : public Application {
 
   // Accessors.
   const RenderPass& render_pass() const {
-    return render_pass_manager_.render_pass();
+    return render_pass_manager_->render_pass();
   }
 
   int current_frame_ = 0;
   common::FrameTimer timer_;
-  NaiveRenderPassManager render_pass_manager_;
+  std::unique_ptr<OnScreenRenderPassManager> render_pass_manager_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PushConstant> trans_constant_;
   std::unique_ptr<Model> cube_model_;
@@ -66,12 +72,18 @@ class CubeApp : public Application {
 } /* namespace */
 
 CubeApp::CubeApp(const WindowContext::Config& window_config)
-    : Application{"Cube", window_config},
-      render_pass_manager_{&window_context()} {
+    : Application{"Cube", window_config} {
   // Prevent shaders from being auto released.
   ModelBuilder::AutoReleaseShaderPool shader_pool;
 
   const float original_aspect_ratio = window_context().original_aspect_ratio();
+
+  /* Render pass */
+  render_pass_manager_ = absl::make_unique<OnScreenRenderPassManager>(
+      &window_context(),
+      NaiveRenderPass::SubpassConfig{
+          kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
+          /*first_overlay_subpass=*/kTextSubpassIndex});
 
   /* Command buffer */
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
@@ -114,19 +126,12 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
 }
 
 void CubeApp::Recreate() {
-  enum SubpassIndex {
-    kModelSubpassIndex = 0,
-    kTextSubpassIndex,
-    kNumSubpasses,
-  };
 
   // Prevent shaders from being auto released.
   ModelBuilder::AutoReleaseShaderPool shader_pool;
 
   /* Render pass */
-  render_pass_manager_.RecreateRenderPass(NaiveRenderPass::SubpassConfig{
-      kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
-      /*first_overlay_subpass=*/kTextSubpassIndex});
+  render_pass_manager_->RecreateRenderPass();
 
   /* Model and text */
   const VkExtent2D& frame_size = window_context().frame_size();

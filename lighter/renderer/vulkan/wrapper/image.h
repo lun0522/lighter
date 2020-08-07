@@ -378,7 +378,7 @@ class UnownedOffscreenTexture : public SamplableImage {
 
   // This class provides copy constructor and move constructor.
   UnownedOffscreenTexture(UnownedOffscreenTexture&&) noexcept = default;
-  UnownedOffscreenTexture(UnownedOffscreenTexture&) = default;
+  UnownedOffscreenTexture(const UnownedOffscreenTexture&) = default;
 
   // Overrides.
   VkDescriptorImageInfo GetDescriptorInfo(VkImageLayout layout) const override {

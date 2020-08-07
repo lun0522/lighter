@@ -17,6 +17,16 @@ namespace {
 
 using namespace renderer::vulkan;
 
+enum ComputeSubpassIndex {
+  kPostEffectSubpassIndex = 0,
+  kNumComputeSubpasses,
+};
+
+enum GraphicsSubpassIndex {
+  kViewImageSubpassIndex = 0,
+  kNumGraphicsSubpasses,
+};
+
 enum UniformBindingPoint {
   kOriginalImageBindingPoint = 0,
   kProcessedImageBindingPoint,
@@ -51,11 +61,11 @@ class PostEffectApp : public Application {
 
   // Accessors.
   const RenderPass& render_pass() const {
-    return render_pass_manager_.render_pass();
+    return render_pass_manager_->render_pass();
   }
 
   int current_frame_ = 0;
-  NaiveRenderPassManager render_pass_manager_;
+  std::unique_ptr<OnScreenRenderPassManager> render_pass_manager_;
   std::unique_ptr<OffscreenImage> processed_image_;
   std::unique_ptr<ImageViewer> image_viewer_;
   std::unique_ptr<PerFrameCommand> command_;
@@ -64,10 +74,16 @@ class PostEffectApp : public Application {
 } /* namespace */
 
 PostEffectApp::PostEffectApp(const WindowContext::Config& window_config)
-    : Application{"Post effect", window_config},
-      render_pass_manager_{&window_context()} {
+    : Application{"Post effect", window_config} {
   // No need to do multisampling.
   ASSERT_FALSE(window_context().use_multisampling(), "Not needed");
+
+  /* Render pass */
+  render_pass_manager_ = absl::make_unique<OnScreenRenderPassManager>(
+      &window_context(),
+      NaiveRenderPass::SubpassConfig{
+          kNumGraphicsSubpasses, /*first_transparent_subpass=*/absl::nullopt,
+          /*first_overlay_subpass=*/kViewImageSubpassIndex});
 
   /* Image and viewer */
   ProcessImageFromFile(common::file::GetResourcePath("texture/statue.jpg"));
@@ -77,11 +93,6 @@ PostEffectApp::PostEffectApp(const WindowContext::Config& window_config)
 }
 
 void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
-  enum ComputeSubpassIndex {
-    kPostEffectSubpassIndex = 0,
-    kNumComputeSubpasses,
-  };
-
   image::UsageHistory original_image_usage_history{};
   original_image_usage_history.AddUsage(
       kPostEffectSubpassIndex,
@@ -167,15 +178,7 @@ void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
 }
 
 void PostEffectApp::Recreate() {
-  enum GraphicsSubpassIndex {
-    kViewImageSubpassIndex = 0,
-    kNumGraphicsSubpasses,
-  };
-
-  render_pass_manager_.RecreateRenderPass(NaiveRenderPass::SubpassConfig{
-      kNumGraphicsSubpasses, /*first_transparent_subpass=*/absl::nullopt,
-      /*first_overlay_subpass=*/kViewImageSubpassIndex});
-
+  render_pass_manager_->RecreateRenderPass();
   image_viewer_->UpdateFramebuffer(window_context().frame_size(), render_pass(),
                                    kViewImageSubpassIndex);
 }

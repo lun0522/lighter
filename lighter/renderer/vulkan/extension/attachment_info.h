@@ -30,7 +30,7 @@ class AttachmentInfo {
 
   // This class provides copy constructor and move constructor.
   AttachmentInfo(AttachmentInfo&&) noexcept = default;
-  AttachmentInfo(AttachmentInfo&) = default;
+  AttachmentInfo(const AttachmentInfo&) = default;
 
   // Makes 'image_usage_tracker' track the usage of this image.
   AttachmentInfo& AddToTracker(image::UsageTracker& image_usage_tracker,

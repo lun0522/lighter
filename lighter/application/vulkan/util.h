@@ -79,30 +79,32 @@ class Application {
   renderer::vulkan::WindowContext window_context_;
 };
 
-// This class builds a render pass with NaiveRenderPass internally. It assumes
-// the color attachment that we are rendering to is backed by the swapchain
-// image. Whether multisampling is used depends on whether it is turned on for
+// This class maintains a render pass internally. It assumes the color
+// attachment that we are rendering to is backed by the swapchain image. Whether
+// multisampling is used depends on whether it is turned on for
 // 'window_context'. If the subpass config passed in by the user indicates that
 // the depth stencil attachment is used in any subpass, this class will also
 // create a depth stencil image internally.
-class NaiveRenderPassManager {
+class OnScreenRenderPassManager {
  public:
-  explicit NaiveRenderPassManager(
-      const renderer::vulkan::WindowContext* window_context)
-      : window_context_{*FATAL_IF_NULL(window_context)} {}
+  explicit OnScreenRenderPassManager(
+      const renderer::vulkan::WindowContext* window_context,
+      const renderer::vulkan::NaiveRenderPass::SubpassConfig& subpass_config)
+      : window_context_{*FATAL_IF_NULL(window_context)},
+        subpass_config_{subpass_config} {}
 
   // This class is neither copyable nor movable.
-  NaiveRenderPassManager(const NaiveRenderPassManager&) = delete;
-  NaiveRenderPassManager& operator=(const NaiveRenderPassManager&) = delete;
+  OnScreenRenderPassManager(const OnScreenRenderPassManager&) = delete;
+  OnScreenRenderPassManager& operator=(
+      const OnScreenRenderPassManager&) = delete;
 
   // Recreates 'render_pass_'. If the depth stencil attachment is used in any
   // subpass, this will also recreate 'depth_stencil_image_' with the current
   // window framebuffer size. If this is called the first time, it will also
-  // create 'render_pass_builder_' according to 'subpass_config'.
+  // create 'render_pass_builder_' according to 'subpass_config_'.
   // This should be called once after the window is created, and whenever the
   // window is resized.
-  void RecreateRenderPass(
-      const renderer::vulkan::NaiveRenderPass::SubpassConfig& subpass_config);
+  void RecreateRenderPass();
 
   // Accessors.
   const renderer::vulkan::RenderPass& render_pass() const {
@@ -111,11 +113,11 @@ class NaiveRenderPassManager {
 
  private:
   // Populates 'render_pass_builder_'.
-  void CreateRenderPassBuilder(
-      const renderer::vulkan::NaiveRenderPass::SubpassConfig& subpass_config);
+  void CreateRenderPassBuilder();
 
   // Objects used for rendering.
   const renderer::vulkan::WindowContext& window_context_;
+  const renderer::vulkan::NaiveRenderPass::SubpassConfig subpass_config_;
   renderer::vulkan::AttachmentInfo swapchain_image_info_{"Swapchain"};
   renderer::vulkan::AttachmentInfo multisample_image_info_{"Multisample"};
   renderer::vulkan::AttachmentInfo depth_stencil_image_info_{"Depth stencil"};

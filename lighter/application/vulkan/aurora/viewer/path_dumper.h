@@ -9,6 +9,7 @@
 #define LIGHTER_APPLICATION_VULKAN_AURORA_VIEWER_PATH_DUMPER_H
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "lighter/application/vulkan/aurora/viewer/distance_field.h"
@@ -57,6 +58,8 @@ class PathDumper {
   const renderer::vulkan::SharedBasicContext context_;
 
   // Generated images.
+  static const std::string paths_image_name_;
+  static const std::string distance_field_image_name_;
   std::unique_ptr<renderer::vulkan::OffscreenImage> paths_image_;
   std::unique_ptr<renderer::vulkan::OffscreenImage> distance_field_image_;
 

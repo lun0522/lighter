@@ -40,6 +40,9 @@ enum ComputeStage {
 
 } /* namespace */
 
+const std::string PathDumper::paths_image_name_ = "Aurora paths";
+const std::string PathDumper::distance_field_image_name_ = "Distance field";
+
 PathDumper::PathDumper(
     SharedBasicContext context, int paths_image_dimension,
     std::vector<const PerVertexBuffer*>&& aurora_paths_vertex_buffers)
@@ -49,54 +52,52 @@ PathDumper::PathDumper(
                               "of 2, while %d provided",
                               paths_image_dimension));
 
-  /* Image and layout manager */
+  /* Image */
   const VkExtent2D paths_image_extent{
       static_cast<uint32_t>(paths_image_dimension),
       static_cast<uint32_t>(paths_image_dimension)};
   const ImageSampler::Config sampler_config{
       VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
-  const auto linear_read_only_usage =
-      image::Usage::GetLinearAccessInComputeShaderUsage(
-          image::Usage::AccessType::kReadOnly);
 
-  image::UsageHistory paths_image_usage_history{"Aurora paths"};
+  image::UsageHistory paths_image_usage_history{};
   paths_image_usage_history
       .AddUsage(kBoldPathsStage,
                 image::Usage::GetLinearAccessInComputeShaderUsage(
                     image::Usage::AccessType::kWriteOnly))
-      .AddUsage(kGenerateDistanceFieldStage, linear_read_only_usage)
+      .AddUsage(kGenerateDistanceFieldStage,
+                image::Usage::GetLinearAccessInComputeShaderUsage(
+                    image::Usage::AccessType::kReadOnly))
       .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
   paths_image_ = absl::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::kBwImageChannel,
       paths_image_usage_history.GetAllUsages(), sampler_config);
 
-  image::UsageHistory distance_field_image_usage_history{"Distance field"};
+  image::UsageHistory distance_field_image_usage_history{};
   distance_field_image_usage_history
-      .AddUsage(kBoldPathsStage, linear_read_only_usage)
+      .AddUsage(kBoldPathsStage,
+                image::Usage::GetLinearAccessInComputeShaderUsage(
+                    image::Usage::AccessType::kReadOnly))
       .AddUsage(kGenerateDistanceFieldStage,
                 image::Usage::GetLinearAccessInComputeShaderUsage(
                     image::Usage::AccessType::kReadWrite)
                     .set_use_high_precision())
       .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
 
-  // TODO
-  const auto sampled_usage = image::Usage::GetSampledInFragmentShaderUsage();
   auto distance_field_image_usages =
       distance_field_image_usage_history.GetAllUsages();
-  distance_field_image_usages.push_back(sampled_usage);
-
+  distance_field_image_usages.push_back(
+      distance_field_image_usage_history.final_usage().value());
   distance_field_image_ = absl::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::kRgbaImageChannel,
       distance_field_image_usages, sampler_config);
-  distance_field_image_->set_usage(sampled_usage);
-
-  compute_pass_ = absl::make_unique<ComputePass>(kNumComputeStages);
-  (*compute_pass_)
-      .AddImage(paths_image_.get(), std::move(paths_image_usage_history))
-      .AddImage(distance_field_image_.get(),
-                std::move(distance_field_image_usage_history));
 
   /* Graphics and compute pipelines */
+  compute_pass_ = absl::make_unique<ComputePass>(kNumComputeStages);
+  (*compute_pass_)
+      .AddImage(paths_image_name_, std::move(paths_image_usage_history))
+      .AddImage(distance_field_image_name_,
+                std::move(distance_field_image_usage_history));
+
   path_renderer_ = absl::make_unique<PathRenderer2D>(
       context_, /*intermediate_image=*/*distance_field_image_,
       /*output_image=*/*paths_image_, MultisampleImage::Mode::kBestEffect,
@@ -126,6 +127,10 @@ void PathDumper::DumpAuroraPaths(const common::Camera& camera) {
     path_renderer_->RenderPaths(command_buffer, camera);
     compute_pass_->Run(
         command_buffer, context_->queues().compute_queue().family_index,
+        /*image_map=*/{
+            {paths_image_name_, paths_image_.get()},
+            {distance_field_image_name_, distance_field_image_.get()},
+        },
         compute_ops);
   });
 
