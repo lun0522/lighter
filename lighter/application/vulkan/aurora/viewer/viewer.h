@@ -17,7 +17,6 @@
 #include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include "lighter/renderer/vulkan/wrapper/render_pass_util.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
@@ -66,8 +65,7 @@ class ViewerRenderer {
   std::unique_ptr<renderer::vulkan::PerVertexBuffer> vertex_buffer_;
   std::unique_ptr<renderer::vulkan::GraphicsPipelineBuilder> pipeline_builder_;
   std::unique_ptr<renderer::vulkan::Pipeline> pipeline_;
-  std::unique_ptr<renderer::vulkan::NaiveRenderPassBuilder>
-      render_pass_builder_;
+  std::unique_ptr<renderer::vulkan::RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<renderer::vulkan::RenderPass> render_pass_;
 };
 

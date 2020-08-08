@@ -66,10 +66,11 @@ UsageHistory& UsageHistory::SetFinalUsage(const Usage& usage) {
 }
 
 std::vector<Usage> UsageHistory::GetAllUsages() const {
-  const int num_usages = static_cast<int>(usage_at_subpass_map_.size()) +
+  const int num_usages = 1 + static_cast<int>(usage_at_subpass_map_.size()) +
                          (final_usage_.has_value() ? 1 : 0);
   std::vector<Usage> usages;
   usages.reserve(num_usages);
+  usages.push_back(initial_usage_);
   for (const auto& pair : usage_at_subpass_map_) {
     usages.push_back(pair.second);
   }

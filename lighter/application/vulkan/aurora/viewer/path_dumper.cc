@@ -59,6 +59,8 @@ PathDumper::PathDumper(
   const ImageSampler::Config sampler_config{
       VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
 
+  // TODO: We still need a high level description, especially when image layouts
+  // change across files.
   image::UsageHistory paths_image_usage_history{};
   paths_image_usage_history
       .AddUsage(kBoldPathsStage,
@@ -72,7 +74,8 @@ PathDumper::PathDumper(
       context_, paths_image_extent, common::kBwImageChannel,
       paths_image_usage_history.GetAllUsages(), sampler_config);
 
-  image::UsageHistory distance_field_image_usage_history{};
+  image::UsageHistory distance_field_image_usage_history{
+      /*initial_usage=*/image::Usage::GetMultisampleResolveTargetUsage()};
   distance_field_image_usage_history
       .AddUsage(kBoldPathsStage,
                 image::Usage::GetLinearAccessInComputeShaderUsage(
@@ -82,14 +85,9 @@ PathDumper::PathDumper(
                     image::Usage::AccessType::kReadWrite)
                     .set_use_high_precision())
       .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
-
-  auto distance_field_image_usages =
-      distance_field_image_usage_history.GetAllUsages();
-  distance_field_image_usages.push_back(
-      distance_field_image_usage_history.final_usage().value());
   distance_field_image_ = absl::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::kRgbaImageChannel,
-      distance_field_image_usages, sampler_config);
+      distance_field_image_usage_history.GetAllUsages(), sampler_config);
 
   /* Graphics and compute pipelines */
   compute_pass_ = absl::make_unique<ComputePass>(kNumComputeStages);

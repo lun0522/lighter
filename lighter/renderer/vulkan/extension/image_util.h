@@ -89,8 +89,8 @@ class UsageHistory {
   // for later operations.
   UsageHistory& SetFinalUsage(const Usage& usage);
 
-  // Returns all usages at all subpasses, including the final usage if
-  // specified. Note that this may contain duplicates.
+  // Returns all usages at all subpasses, including the initial and final usages
+  // if specified. Note that this may contain duplicates.
   std::vector<Usage> GetAllUsages() const;
 
   // Accessors.

@@ -11,6 +11,8 @@
 
 #include "lighter/application/vulkan/aurora/viewer/air_transmit_table.h"
 #include "lighter/renderer/vulkan/extension/align.h"
+#include "lighter/renderer/vulkan/extension/graphics_pass.h"
+#include "lighter/renderer/vulkan/extension/image_util.h"
 #include "lighter/renderer/vulkan/wrapper/image_usage.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 
@@ -25,7 +27,6 @@ using namespace renderer::vulkan;
 enum SubpassIndex {
   kViewImageSubpassIndex = 0,
   kNumSubpasses,
-  kNumOverlaySubpasses = kNumSubpasses - kViewImageSubpassIndex,
 };
 
 enum UniformBindingPoint {
@@ -185,20 +186,23 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
                  common::file::GetVkShaderPath("aurora/aurora.frag"));
 
   /* Render pass */
-  const NaiveRenderPassBuilder::SubpassConfig subpass_config{
-      /*use_opaque_subpass=*/false,
-      /*num_transparent_subpasses=*/0,
-      kNumOverlaySubpasses,
-  };
-  render_pass_builder_ = absl::make_unique<NaiveRenderPassBuilder>(
-      window_context_.basic_context(), subpass_config,
-      /*num_framebuffers=*/window_context_.num_swapchain_images(),
-      /*use_multisampling=*/false);
+  image::UsageHistory usage_history{
+    window_context_.swapchain_image(/*index=*/0).GetInitialUsage()};
+  usage_history
+      .AddUsage(kViewImageSubpassIndex,
+                image::Usage::GetRenderTargetUsage())
+      .SetFinalUsage(image::Usage::GetPresentationUsage());
+
+  GraphicsPass graphics_pass{context, kNumSubpasses};
+  graphics_pass.AddAttachment("Swapchain", std::move(usage_history),
+                              /*get_location=*/[](int subpass) { return 0; });
+  render_pass_builder_ = graphics_pass.CreateRenderPassBuilder(
+      /*num_framebuffers=*/window_context_.num_swapchain_images());
 }
 
 void ViewerRenderer::Recreate() {
   render_pass_builder_->UpdateAttachmentImage(
-      render_pass_builder_->color_attachment_index(),
+      /*index=*/0,
       [this](int framebuffer_index) -> const Image& {
         return window_context_.swapchain_image(framebuffer_index);
       });

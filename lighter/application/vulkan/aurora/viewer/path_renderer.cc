@@ -8,8 +8,10 @@
 #include "lighter/application/vulkan/aurora/viewer/path_renderer.h"
 
 #include "lighter/renderer/vulkan/extension/align.h"
+#include "lighter/renderer/vulkan/extension/attachment_info.h"
+#include "lighter/renderer/vulkan/extension/image_util.h"
+#include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
-#include "lighter/renderer/vulkan/wrapper/render_pass_util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
 #include "third_party/glm/glm.hpp"
 
@@ -24,7 +26,6 @@ using namespace renderer::vulkan;
 enum SubpassIndex {
   kDumpPathsSubpassIndex = 0,
   kNumSubpasses,
-  kNumOverlaySubpasses = kNumSubpasses - kDumpPathsSubpassIndex,
 };
 
 enum ImageBindingPoint {
@@ -74,26 +75,34 @@ PathRenderer2D::PathRenderer2D(
       context, sizeof(Transformation), /*num_frames_in_flight=*/1);
 
   /* Render pass */
-  const NaiveRenderPassBuilder::SubpassConfig subpass_config{
-      /*use_opaque_subpass=*/false,
-      /*num_transparent_subpasses=*/0,
-      kNumOverlaySubpasses,
-  };
-  NaiveRenderPassBuilder render_pass_builder{
-      context, subpass_config, /*num_framebuffers=*/1,
-      /*use_multisampling=*/true,
-      NaiveRenderPassBuilder::ColorAttachmentFinalUsage::kSampledAsTexture,
-  };
-  render_pass_builder
+  image::UsageTracker image_usage_tracker;
+  AttachmentInfo intermediate_image_info{"Path single sample"};
+  AttachmentInfo multisample_image_info{"Path multisample"};
+  intermediate_image_info.AddToTracker(image_usage_tracker, intermediate_image);
+  multisample_image_info.AddToTracker(image_usage_tracker, *multisample_image_);
+
+  const NaiveRenderPass::AttachmentConfig intermediate_attachment_config{
+      &intermediate_image_info};
+  const NaiveRenderPass::AttachmentConfig multisampling_attachment_config{
+      &multisample_image_info};
+  auto render_pass_builder = NaiveRenderPass::CreateBuilder(
+      context, /*num_framebuffers=*/1,
+      NaiveRenderPass::SubpassConfig{
+          kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
+          /*first_overlay_subpass=*/kDumpPathsSubpassIndex},
+      intermediate_attachment_config, &multisampling_attachment_config,
+      /*depth_stencil_attachment_config=*/nullptr, image_usage_tracker);
+
+  render_pass_ = (*render_pass_builder)
+      .UpdateAttachmentImage(intermediate_image_info.index(),
+                             [&intermediate_image](int) -> const Image& {
+                               return intermediate_image;
+                             })
       .UpdateAttachmentImage(
-          render_pass_builder.color_attachment_index(),
-          [&intermediate_image](int) -> const Image& {
-            return intermediate_image;
-          })
-      .UpdateAttachmentImage(
-          render_pass_builder.multisample_attachment_index(),
-          [this](int) -> const Image& { return *multisample_image_; });
-  render_pass_ = render_pass_builder.Build();
+          multisample_image_info.index(),
+          [this](int) -> const Image& { return *multisample_image_; })
+      .Build();
+
   render_op_ = [this](const VkCommandBuffer& command_buffer) {
     for (const auto* buffer : aurora_paths_vertex_buffers_) {
       buffer->Draw(command_buffer, kVertexBufferBindingPoint,

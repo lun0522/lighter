@@ -31,7 +31,6 @@
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include "lighter/renderer/vulkan/wrapper/render_pass_util.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
 #include "third_party/absl/flags/flag.h"
 #include "third_party/absl/memory/memory.h"
