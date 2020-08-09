@@ -11,9 +11,9 @@
 #include <vector>
 #include <memory>
 
+#include "lighter/application/vulkan/util.h"
 #include "lighter/common/camera.h"
 #include "lighter/common/timer.h"
-#include "lighter/renderer/vulkan/extension/attachment_info.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/descriptor.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
@@ -80,8 +80,8 @@ class LightingPass {
 
   // Objects used for rendering.
   const renderer::vulkan::WindowContext& window_context_;
-  renderer::vulkan::AttachmentInfo swapchain_image_info_{"Swapchain"};
-  renderer::vulkan::AttachmentInfo depth_stencil_image_info_{"Depth stencil"};
+  AttachmentInfo swapchain_image_info_{"Swapchain"};
+  AttachmentInfo depth_stencil_image_info_{"Depth stencil"};
   std::unique_ptr<renderer::vulkan::UniformBuffer> lights_colors_uniform_;
   std::unique_ptr<renderer::vulkan::UniformBuffer> render_info_uniform_;
   std::unique_ptr<renderer::vulkan::PushConstant> lights_trans_constant_;

@@ -7,11 +7,9 @@
 
 #include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 
-#include <string>
+#include <functional>
 
-#include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/strings/string_view.h"
 
 namespace lighter {
 namespace renderer {
@@ -33,6 +31,24 @@ void PrintSubpassCountIfNonZero(int count, absl::string_view name) {
   }
 }
 #endif  /* !NDEBUG */
+
+void AddAttachmentToGraphicsPass(
+    const NaiveRenderPass::AttachmentConfig& attachment_config,
+    GraphicsPass& graphics_pass, image::UsageTracker& image_usage_tracker,
+    GraphicsPass::GetLocation&& get_location,
+    const std::function<void(image::UsageHistory&)>& populate_history) {
+  const std::string& image_name = attachment_config.image_name;
+  image::UsageHistory history{image_usage_tracker.GetUsage(image_name)};
+  populate_history(history);
+  if (attachment_config.final_usage.has_value()) {
+    history.SetFinalUsage(attachment_config.final_usage.value());
+  }
+
+  attachment_config.attachment_index = graphics_pass.AddAttachment(
+      image_name, std::move(history), std::move(get_location),
+      attachment_config.load_store_ops);
+  graphics_pass.UpdateTrackedImageUsage(image_name, image_usage_tracker);
+}
 
 } /* namespace */
 
@@ -101,8 +117,8 @@ std::unique_ptr<RenderPassBuilder> NaiveRenderPass::CreateBuilder(
 
   GraphicsPass graphics_pass{std::move(context), num_subpasses};
 
-  color_attachment_config.attachment_info.AddToGraphicsPass(
-      graphics_pass, image_usage_tracker, get_location,
+  AddAttachmentToGraphicsPass(
+      color_attachment_config, graphics_pass, image_usage_tracker, get_location,
       /*populate_history=*/[&](image::UsageHistory& history) {
         if (use_multisampling) {
           history.AddUsage(last_subpass,
@@ -111,36 +127,24 @@ std::unique_ptr<RenderPassBuilder> NaiveRenderPass::CreateBuilder(
           history.AddUsage(first_subpass, last_subpass,
                            image::Usage::GetRenderTargetUsage());
         }
-
-        if (color_attachment_config.final_usage.has_value()) {
-          history.SetFinalUsage(color_attachment_config.final_usage.value());
-        }
-      },
-      color_attachment_config.load_store_ops);
+      });
 
   if (use_multisampling) {
-    const AttachmentInfo& resolve_target =
-        color_attachment_config.attachment_info;
-    multisampling_attachment_config->attachment_info
-        .AddToGraphicsPass(
-            graphics_pass, image_usage_tracker, get_location,
-            /*populate_history=*/[&](image::UsageHistory& history) {
-              history.AddUsage(first_subpass, last_subpass,
-                               image::Usage::GetRenderTargetUsage());
-
-              if (multisampling_attachment_config->final_usage.has_value()) {
-                history.SetFinalUsage(
-                    multisampling_attachment_config->final_usage.value());
-              }
-            },
-            multisampling_attachment_config->load_store_ops)
-        .ResolveToAttachment(graphics_pass, resolve_target, last_subpass);
+    AddAttachmentToGraphicsPass(
+        *multisampling_attachment_config, graphics_pass, image_usage_tracker,
+        get_location, /*populate_history=*/[&](image::UsageHistory& history) {
+          history.AddUsage(first_subpass, last_subpass,
+                           image::Usage::GetRenderTargetUsage());
+        });
+    graphics_pass.AddMultisampleResolving(
+        multisampling_attachment_config->image_name,
+        color_attachment_config.image_name, last_subpass);
   }
 
   if (use_depth_stencil) {
-    depth_stencil_attachment_config->attachment_info.AddToGraphicsPass(
-        graphics_pass, image_usage_tracker, get_location,
-        /*populate_history=*/[&](image::UsageHistory& history) {
+    AddAttachmentToGraphicsPass(
+        *depth_stencil_attachment_config, graphics_pass, image_usage_tracker,
+        get_location, /*populate_history=*/[&](image::UsageHistory& history) {
           if (subpass_config.num_opaque_subpass_ > 0) {
             const int last_opaque_subpass =
                 subpass_config.num_opaque_subpass_ - 1;
@@ -160,13 +164,7 @@ std::unique_ptr<RenderPassBuilder> NaiveRenderPass::CreateBuilder(
                              image::Usage::GetDepthStencilUsage(
                                  image::Usage::AccessType::kReadOnly));
           }
-
-          if (depth_stencil_attachment_config->final_usage.has_value()) {
-            history.SetFinalUsage(
-                depth_stencil_attachment_config->final_usage.value());
-          }
-        },
-        depth_stencil_attachment_config->load_store_ops);
+        });
   }
 
   return graphics_pass.CreateRenderPassBuilder(num_framebuffers);

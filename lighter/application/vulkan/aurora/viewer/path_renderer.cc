@@ -7,8 +7,8 @@
 
 #include "lighter/application/vulkan/aurora/viewer/path_renderer.h"
 
+#include "lighter/application/vulkan/util.h"
 #include "lighter/renderer/vulkan/extension/align.h"
-#include "lighter/renderer/vulkan/extension/attachment_info.h"
 #include "lighter/renderer/vulkan/extension/image_util.h"
 #include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
@@ -81,10 +81,10 @@ PathRenderer2D::PathRenderer2D(
   intermediate_image_info.AddToTracker(image_usage_tracker, intermediate_image);
   multisample_image_info.AddToTracker(image_usage_tracker, *multisample_image_);
 
-  const NaiveRenderPass::AttachmentConfig intermediate_attachment_config{
-      &intermediate_image_info};
-  const NaiveRenderPass::AttachmentConfig multisampling_attachment_config{
-      &multisample_image_info};
+  const auto intermediate_attachment_config =
+      intermediate_image_info.MakeAttachmentConfig();
+  const auto multisampling_attachment_config =
+      multisample_image_info.MakeAttachmentConfig();
   auto render_pass_builder = NaiveRenderPass::CreateBuilder(
       context, /*num_framebuffers=*/1,
       NaiveRenderPass::SubpassConfig{

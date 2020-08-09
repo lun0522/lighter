@@ -396,14 +396,14 @@ void LightingPass::CreateRenderPassBuilder(const Image& depth_stencil_image) {
   };
 
   const auto color_attachment_config =
-      NaiveRenderPass::AttachmentConfig{&swapchain_image_info_}
+      swapchain_image_info_.MakeAttachmentConfig()
           .set_final_usage(image::Usage::GetPresentationUsage());
 
   auto depth_stencil_load_store_ops =
       GraphicsPass::GetDefaultDepthStencilLoadStoreOps();
   depth_stencil_load_store_ops.depth_load_op = VK_ATTACHMENT_LOAD_OP_LOAD;
   const auto depth_stencil_attachment_config =
-      NaiveRenderPass::AttachmentConfig{&depth_stencil_image_info_}
+      depth_stencil_image_info_.MakeAttachmentConfig()
           .set_load_store_ops(depth_stencil_load_store_ops);
 
   render_pass_builder_ = NaiveRenderPass::CreateBuilder(

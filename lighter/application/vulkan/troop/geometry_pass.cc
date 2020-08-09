@@ -10,9 +10,7 @@
 #include <vector>
 
 #include "lighter/common/file.h"
-#include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/extension/align.h"
-#include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/image_util.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "third_party/absl/memory/memory.h"
@@ -126,11 +124,14 @@ void GeometryPass::UpdateFramebuffer(const Image& depth_stencil_image,
                                      const Image& diffuse_specular_image) {
   /* Render pass */
   const Attachment attachments_to_update[]{
-      {&depth_stencil_image, &depth_stencil_image_info_,
+      {"Depth stencil", &depth_stencil_image, &depth_stencil_attachment_index_,
        kAttachmentNonApplicable},
-      {&position_image, &position_image_info_, kPositionAttachmentIndex},
-      {&normal_image, &normal_image_info_, kNormalAttachmentIndex},
-      {&diffuse_specular_image, &diffuse_specular_image_info_,
+      {"Position", &position_image, &position_color_attachment_index_,
+       kPositionAttachmentIndex},
+      {"Normal", &normal_image, &normal_color_attachment_index_,
+       kNormalAttachmentIndex},
+      {"Diffuse specular", &diffuse_specular_image,
+       &diffuse_specular_color_attachment_index_,
        kDiffuseSpecularAttachmentIndex},
   };
 
@@ -139,10 +140,8 @@ void GeometryPass::UpdateFramebuffer(const Image& depth_stencil_image,
   }
   for (const auto& attachment : attachments_to_update) {
     render_pass_builder_->UpdateAttachmentImage(
-        attachment.attachment_info->index(),
-        [&attachment](int framebuffer_index) -> const Image& {
-          return *attachment.image;
-        });
+        attachment.attachment_index.value(),
+        [&attachment](int) -> const Image& { return attachment.image; });
   }
   render_pass_ = render_pass_builder_->Build();
 
@@ -171,40 +170,29 @@ void GeometryPass::Draw(const VkCommandBuffer& command_buffer,
 
 void GeometryPass::CreateRenderPassBuilder(
     absl::Span<const Attachment> attachments) {
-  image::UsageTracker image_usage_tracker;
-  for (const auto& attachment : attachments) {
-    attachment.attachment_info->AddToTracker(image_usage_tracker,
-                                             *attachment.image);
-  }
+  // TODO: Image usage tracker should be held by upper level. Infer when to
+  // preserve attachment content?
+  auto depth_stencil_load_store_ops =
+      GraphicsPass::GetDefaultDepthStencilLoadStoreOps();
+  depth_stencil_load_store_ops.depth_store_op = VK_ATTACHMENT_STORE_OP_STORE;
 
   GraphicsPass graphics_pass{window_context_.basic_context(), kNumSubpasses};
   for (const auto& attachment : attachments) {
-    // TODO: Image usage tracker should be held by upper level. Infer when to
-    // preserve attachment content?
-    auto depth_stencil_load_store_ops =
-        GraphicsPass::GetDefaultDepthStencilLoadStoreOps();
-    depth_stencil_load_store_ops.depth_store_op = VK_ATTACHMENT_STORE_OP_STORE;
-
+    image::UsageHistory history{attachment.image.GetInitialUsage()};
     if (attachment.location == kAttachmentNonApplicable) {
-      attachment.attachment_info->AddToGraphicsPass(
-          graphics_pass, image_usage_tracker, /*get_location=*/nullptr,
-          /*populate_history=*/[](image::UsageHistory& history) {
-            history.AddUsage(kRenderSubpassIndex,
-                             image::Usage::GetDepthStencilUsage(
-                                 image::Usage::AccessType::kReadWrite));
-          },
+      history.AddUsage(kRenderSubpassIndex,
+                       image::Usage::GetDepthStencilUsage(
+                           image::Usage::AccessType::kReadWrite));
+      attachment.attachment_index = graphics_pass.AddAttachment(
+          attachment.image_name, std::move(history), /*get_location=*/nullptr,
           depth_stencil_load_store_ops);
     } else {
-      const int location = attachment.location;
-      attachment.attachment_info->AddToGraphicsPass(
-          graphics_pass, image_usage_tracker,
-          /*get_location=*/[location](int subpass) { return location; },
-          /*populate_history=*/[](image::UsageHistory& history) {
-            history
-                .AddUsage(kRenderSubpassIndex,
-                          image::Usage::GetRenderTargetUsage())
-                .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
-          });
+      history
+          .AddUsage(kRenderSubpassIndex, image::Usage::GetRenderTargetUsage())
+          .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
+      attachment.attachment_index = graphics_pass.AddAttachment(
+          attachment.image_name, std::move(history),
+          attachment.MakeLocationGetter());
     }
   }
 

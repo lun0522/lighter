@@ -9,14 +9,18 @@
 #define LIGHTER_APPLICATION_VULKAN_TROOP_GEOMETRY_PASS_H
 
 #include <memory>
+#include <string>
 
 #include "lighter/common/camera.h"
-#include "lighter/renderer/vulkan/extension/attachment_info.h"
+#include "lighter/common/util.h"
+#include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/model.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
+#include "third_party/absl/strings/string_view.h"
+#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
@@ -58,8 +62,22 @@ class GeometryPass {
  private:
   // Used to create and update the render pass builder.
   struct Attachment {
-    const renderer::vulkan::Image* image;
-    renderer::vulkan::AttachmentInfo* attachment_info;
+    Attachment(absl::string_view image_name,
+               const renderer::vulkan::Image* image,
+               absl::optional<int>* attachment_index, int location)
+        : image_name{image_name}, image{*FATAL_IF_NULL(image)},
+          attachment_index{*FATAL_IF_NULL(attachment_index)},
+          location{location} {}
+
+    // Creates a function for graphics pass to get 'location'.
+    renderer::vulkan::GraphicsPass::GetLocation MakeLocationGetter() const {
+      const int attachment_location = location;
+      return [attachment_location](int) { return attachment_location; };
+    }
+
+    const std::string image_name;
+    const renderer::vulkan::Image& image;
+    absl::optional<int>& attachment_index;
     int location;
   };
 
@@ -71,11 +89,10 @@ class GeometryPass {
 
   // Objects used for rendering.
   const renderer::vulkan::WindowContext& window_context_;
-  renderer::vulkan::AttachmentInfo depth_stencil_image_info_{"Depth stencil"};
-  renderer::vulkan::AttachmentInfo position_image_info_{"Position"};
-  renderer::vulkan::AttachmentInfo normal_image_info_{"Normal"};
-  renderer::vulkan::AttachmentInfo
-      diffuse_specular_image_info_{"Diffuse specular"};
+  absl::optional<int> depth_stencil_attachment_index_;
+  absl::optional<int> position_color_attachment_index_;
+  absl::optional<int> normal_color_attachment_index_;
+  absl::optional<int> diffuse_specular_color_attachment_index_;
   std::unique_ptr<renderer::vulkan::StaticPerInstanceBuffer> center_data_;
   std::unique_ptr<renderer::vulkan::UniformBuffer> trans_uniform_;
   std::unique_ptr<renderer::vulkan::Model> nanosuit_model_;

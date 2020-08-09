@@ -74,12 +74,12 @@ void OnScreenRenderPassManager::CreateRenderPassBuilder() {
 
   /* Render pass builder */
   const auto color_attachment_config =
-      NaiveRenderPass::AttachmentConfig{&swapchain_image_info_}
+      swapchain_image_info_.MakeAttachmentConfig()
           .set_final_usage(image::Usage::GetPresentationUsage());
-  const NaiveRenderPass::AttachmentConfig multisampling_attachment_config{
-      &multisample_image_info_};
-  const NaiveRenderPass::AttachmentConfig depth_stencil_attachment_config{
-      &depth_stencil_image_info_};
+  const auto multisampling_attachment_config =
+      multisample_image_info_.MakeAttachmentConfig();
+  const auto depth_stencil_attachment_config =
+      depth_stencil_image_info_.MakeAttachmentConfig();
   render_pass_builder_ = NaiveRenderPass::CreateBuilder(
       window_context_.basic_context(),
       /*num_framebuffers=*/window_context_.num_swapchain_images(),

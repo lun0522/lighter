@@ -17,7 +17,6 @@
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/extension/align.h"
-#include "lighter/renderer/vulkan/extension/attachment_info.h"
 #include "lighter/renderer/vulkan/extension/compute_pass.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/image_util.h"
@@ -34,6 +33,8 @@
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
 #include "third_party/absl/flags/flag.h"
 #include "third_party/absl/memory/memory.h"
+#include "third_party/absl/strings/string_view.h"
+#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/glm/gtc/matrix_transform.hpp"
@@ -78,6 +79,41 @@ class Application {
   renderer::vulkan::WindowContext window_context_;
 };
 
+// Holds identifiers of an attachment image.
+class AttachmentInfo {
+ public:
+  explicit AttachmentInfo(absl::string_view image_name)
+      : image_name_{image_name} {}
+
+  // Makes 'image_usage_tracker' track the usage of this image. The initial
+  // usage of 'sample_image' is used as the current usage.
+  void AddToTracker(renderer::vulkan::image::UsageTracker& image_usage_tracker,
+                    const renderer::vulkan::Image& sample_image) {
+    image_usage_tracker.TrackImage(image_name_, sample_image);
+  }
+
+  // Creates an AttachmentConfig to be used in NaiveRenderPass.
+  renderer::vulkan::NaiveRenderPass::AttachmentConfig MakeAttachmentConfig() {
+    return {image_name_, &attachment_index_};
+  }
+
+  // Accessors.
+  int index() const {
+    ASSERT_HAS_VALUE(attachment_index_,
+                     "Attachment has not been added to graphics pass");
+    return attachment_index_.value();
+  }
+
+ private:
+  // Image name. This is used to identify an image in GraphicsPass and
+  // image::UsageTracker.
+  const std::string image_name_;
+
+  // Attachment index. This is used to identify an image within a
+  // VkAttachmentDescription array when constructing render passes.
+  absl::optional<int> attachment_index_;
+};
+
 // This class maintains a render pass internally. It assumes the color
 // attachment that we are rendering to is backed by the swapchain image. Whether
 // multisampling is used depends on whether it is turned on for
@@ -117,9 +153,9 @@ class OnScreenRenderPassManager {
   // Objects used for rendering.
   const renderer::vulkan::WindowContext& window_context_;
   const renderer::vulkan::NaiveRenderPass::SubpassConfig subpass_config_;
-  renderer::vulkan::AttachmentInfo swapchain_image_info_{"Swapchain"};
-  renderer::vulkan::AttachmentInfo multisample_image_info_{"Multisample"};
-  renderer::vulkan::AttachmentInfo depth_stencil_image_info_{"Depth stencil"};
+  AttachmentInfo swapchain_image_info_{"Swapchain"};
+  AttachmentInfo multisample_image_info_{"Multisample"};
+  AttachmentInfo depth_stencil_image_info_{"Depth stencil"};
   std::unique_ptr<renderer::vulkan::Image> depth_stencil_image_;
   std::unique_ptr<renderer::vulkan::RenderPassBuilder> render_pass_builder_;
   std::unique_ptr<renderer::vulkan::RenderPass> render_pass_;

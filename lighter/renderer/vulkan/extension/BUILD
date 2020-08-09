@@ -8,7 +8,6 @@ cc_library(
     name = "offscreen",
     deps = [
         ":align",
-        ":attachment_info",
         ":compute_pass",
         ":graphics_pass",
         ":image_util",
@@ -31,19 +30,6 @@ cc_library(
 cc_library(
     name = "align",
     hdrs = ["align.h"],
-)
-
-cc_library(
-    name = "attachment_info",
-    hdrs = ["attachment_info.h"],
-    deps = [
-        ":graphics_pass",
-        ":image_util",
-        "//lighter/common:util",
-        "//lighter/renderer/vulkan/wrapper:image",
-        "//third_party/absl/strings:str_format",
-        "//third_party/absl/types:optional",
-    ],
 )
 
 cc_library(
@@ -132,7 +118,6 @@ cc_library(
     hdrs = ["naive_render_pass.h"],
     srcs = ["naive_render_pass.cc"],
     deps = [
-        ":attachment_info",
         ":graphics_pass",
         ":image_util",
         "//lighter/common:util",

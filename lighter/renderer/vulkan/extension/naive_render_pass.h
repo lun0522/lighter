@@ -9,12 +9,14 @@
 #define LIGHTER_RENDERER_VULKAN_EXTENSION_NAIVE_RENDER_PASS_H
 
 #include <memory>
+#include <string>
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/vulkan/extension/attachment_info.h"
+#include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/image_util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
+#include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/optional.h"
 
 namespace lighter {
@@ -63,8 +65,10 @@ class NaiveRenderPass {
   };
 
   struct AttachmentConfig {
-    explicit AttachmentConfig(AttachmentInfo* attachment_info)
-        : attachment_info{*FATAL_IF_NULL(attachment_info)} {}
+    AttachmentConfig(absl::string_view image_name,
+                     absl::optional<int>* attachment_index)
+        : image_name{image_name},
+          attachment_index{*FATAL_IF_NULL(attachment_index)} {}
 
     AttachmentConfig& set_load_store_ops(
         const GraphicsPass::AttachmentLoadStoreOps& ops) {
@@ -77,7 +81,8 @@ class NaiveRenderPass {
       return *this;
     }
 
-    AttachmentInfo& attachment_info;
+    std::string image_name;
+    absl::optional<int>& attachment_index;
     absl::optional<GraphicsPass::AttachmentLoadStoreOps> load_store_ops;
     absl::optional<image::Usage> final_usage;
   };

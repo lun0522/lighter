@@ -100,7 +100,7 @@ class PlanetApp : public Application {
 
   bool should_quit_ = false;
   int current_frame_ = 0;
-  int num_asteroids_ = -1;
+  absl::optional<int> num_asteroids_;
   common::FrameTimer timer_;
   std::unique_ptr<OnScreenRenderPassManager> render_pass_manager_;
   std::unique_ptr<common::UserControlledCamera> camera_;
@@ -284,7 +284,7 @@ void PlanetApp::GenerateAsteroidModels() {
   num_asteroids_ = static_cast<int>(std::accumulate(
       num_asteroid.begin(), num_asteroid.end(), 0));
   std::vector<Asteroid> asteroids;
-  asteroids.reserve(num_asteroids_);
+  asteroids.reserve(num_asteroids_.value());
 
   for (int ring = 0; ring < kNumAsteroidRings; ++ring) {
     for (int i = 0; i < num_asteroid[ring]; ++i) {
@@ -338,7 +338,7 @@ void PlanetApp::MainLoop() {
           planet_model_->Draw(command_buffer, current_frame_,
                               /*instance_count=*/1);
           asteroid_model_->Draw(command_buffer, current_frame_,
-                                static_cast<uint32_t>(num_asteroids_));
+                                static_cast<uint32_t>(num_asteroids_.value()));
           skybox_model_->Draw(command_buffer, current_frame_,
                               /*instance_count=*/1);
         },
