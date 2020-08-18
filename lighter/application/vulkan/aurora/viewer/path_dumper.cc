@@ -32,10 +32,10 @@ using namespace renderer::vulkan;
 //                              [output] distance_field_image
 // Note that 'paths_image_' has one channel, while 'distance_field_image_' has
 // four channels.
-enum ComputeStage {
-  kBoldPathsStage = 0,
-  kGenerateDistanceFieldStage,
-  kNumComputeStages,
+enum SubpassIndex {
+  kBoldPathsSubpassIndex = 0,
+  kGenerateDistanceFieldSubpassIndex,
+  kNumSubpasses,
 };
 
 } /* namespace */
@@ -63,10 +63,10 @@ PathDumper::PathDumper(
   // change across files.
   image::UsageHistory paths_image_usage_history{};
   paths_image_usage_history
-      .AddUsage(kBoldPathsStage,
+      .AddUsage(kBoldPathsSubpassIndex,
                 image::Usage::GetLinearAccessInComputeShaderUsage(
                     image::Usage::AccessType::kWriteOnly))
-      .AddUsage(kGenerateDistanceFieldStage,
+      .AddUsage(kGenerateDistanceFieldSubpassIndex,
                 image::Usage::GetLinearAccessInComputeShaderUsage(
                     image::Usage::AccessType::kReadOnly))
       .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
@@ -77,10 +77,10 @@ PathDumper::PathDumper(
   image::UsageHistory distance_field_image_usage_history{
       /*initial_usage=*/image::Usage::GetMultisampleResolveTargetUsage()};
   distance_field_image_usage_history
-      .AddUsage(kBoldPathsStage,
+      .AddUsage(kBoldPathsSubpassIndex,
                 image::Usage::GetLinearAccessInComputeShaderUsage(
                     image::Usage::AccessType::kReadOnly))
-      .AddUsage(kGenerateDistanceFieldStage,
+      .AddUsage(kGenerateDistanceFieldSubpassIndex,
                 image::Usage::GetLinearAccessInComputeShaderUsage(
                     image::Usage::AccessType::kReadWrite)
                     .set_use_high_precision())
@@ -90,7 +90,7 @@ PathDumper::PathDumper(
       distance_field_image_usage_history.GetAllUsages(), sampler_config);
 
   /* Graphics and compute pipelines */
-  compute_pass_ = absl::make_unique<ComputePass>(kNumComputeStages);
+  compute_pass_ = absl::make_unique<ComputePass>(kNumSubpasses);
   (*compute_pass_)
       .AddImage(paths_image_name_, std::move(paths_image_usage_history))
       .AddImage(distance_field_image_name_,
@@ -114,7 +114,7 @@ void PathDumper::DumpAuroraPaths(const common::Camera& camera) {
   // TODO: Compute queue and graphics queue might be different queues.
   const OneTimeCommand command{context_, &context_->queues().graphics_queue()};
   command.Run([this, &camera](const VkCommandBuffer& command_buffer) {
-    const std::array<ComputePass::ComputeOp, kNumComputeStages> compute_ops{
+    const std::array<ComputePass::ComputeOp, kNumSubpasses> compute_ops{
         [this, &command_buffer]() {
           path_renderer_->BoldPaths(command_buffer);
         },

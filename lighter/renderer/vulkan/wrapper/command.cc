@@ -88,9 +88,11 @@ absl::optional<VkResult> CheckResult(VkResult result) {
   switch (result) {
     case VK_ERROR_OUT_OF_DATE_KHR:
       return result;
+
     case VK_SUCCESS:
     case VK_SUBOPTIMAL_KHR:
       return absl::nullopt;
+
     default:
       FATAL(absl::StrFormat("Errno: %d", result));
   }
@@ -128,8 +130,7 @@ void OneTimeCommand::Run(const OnRecord& on_record) const {
 }
 
 PerFrameCommand::PerFrameCommand(const SharedBasicContext& context,
-                                 int num_frames_in_flight,
-                                 bool has_offscreen_pass)
+                                 int num_frames_in_flight)
     : Command{context},
       present_finished_semas_{context, num_frames_in_flight},
       render_finished_semas_{context, num_frames_in_flight},
@@ -140,33 +141,23 @@ PerFrameCommand::PerFrameCommand(const SharedBasicContext& context,
   set_command_pool(command_pool);
   command_buffers_ = AllocateCommandBuffers(
       *context_, command_pool, static_cast<uint32_t>(num_frames_in_flight));
-
-  if (has_offscreen_pass) {
-    offscreen_objects_.emplace(
-        context_, num_frames_in_flight,
-        AllocateCommandBuffers(*context, command_pool,
-                               static_cast<uint32_t>(num_frames_in_flight)));
-  }
 }
 
 absl::optional<VkResult> PerFrameCommand::Run(int current_frame,
                                               const VkSwapchainKHR& swapchain,
                                               const UpdateData& update_data,
-                                              const OnscreenOp& onscreen_op,
-                                              const OffscreenOp& offscreen_op) {
+                                              const OnRecord& on_record) {
   // Each "action" may firstly "wait on" a semaphore, then perform the action
   // itself, and finally "signal" another semaphore:
-  //   |-----------------------------------------------------------------------------------------|
-  //   |  Action  |   Acquire image  | Offscreen commands |  Onscreen commands |  Present image  |
-  //   |-----------------------------------------------------------------------------------------|
-  //   |  Wait on |         -        |  Present finished  | Offscreen finished | Render finished |
-  //   |-----------------------------------------------------------------------------------------|
-  //   |  Signal  | Present finished | Offscreen finished |   Render finished  |        -        |
-  //   |-----------------------------------------------------------------------------------------|
-  //              ^                                                            ^
-  //        Wait for fence                                                Signal fence
-  // If we don't have the offscreen pass, "onscreen commands" will wait on
-  // "present finished" instead.
+  //   |------------------------------------------------------------------|
+  //   |  Action  |   Acquire image  |  Submit commands |  Present image  |
+  //   |------------------------------------------------------------------|
+  //   |  Wait on |        -         | Present finished | Render finished |
+  //   |------------------------------------------------------------------|
+  //   |  Signal  | Present finished |  Render finished |        -        |
+  //   |------------------------------------------------------------------|
+  //              ^                                     ^
+  //        Wait for fence                         Signal fence
 
   // Fences are initialized to the signaled state, hence waiting for them at the
   // beginning is fine.
@@ -190,66 +181,39 @@ absl::optional<VkResult> PerFrameCommand::Run(int current_frame,
   }
 
   // Record operations.
-  const bool has_offscreen_pass = offscreen_objects_.has_value();
-  constexpr VkCommandBufferUsageFlags kUsageFlags =
-      VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-  if (has_offscreen_pass) {
-    RecordCommands(offscreen_objects_.value().command_buffers[current_frame],
-                   kUsageFlags, offscreen_op);
-  }
   RecordCommands(
-      command_buffers_[current_frame], kUsageFlags,
-      [&onscreen_op, image_index](const VkCommandBuffer& command_buffer) {
-        onscreen_op(command_buffer, image_index);
+      command_buffers_[current_frame],
+      VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+      [&on_record, image_index](const VkCommandBuffer& command_buffer) {
+        on_record(command_buffer, image_index);
       });
 
   // We can start the pipeline without waiting, until we need to write to the
   // swapchain image, since that image may still being presented on the screen.
   constexpr VkPipelineStageFlags kWaitStage =
       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  static const auto get_submit_info =
-      [kWaitStage](const VkCommandBuffer* command_buffer,
-                   const VkSemaphore* wait_semaphore,
-                   const VkSemaphore* signal_semaphore) {
-        return VkSubmitInfo{
-            VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            /*pNext=*/nullptr,
-            /*waitSemaphoreCount=*/1,
-            wait_semaphore,
-            &kWaitStage,
-            /*commandBufferCount=*/1,
-            command_buffer,
-            /*signalSemaphoreCount=*/1,
-            signal_semaphore,
-        };
-      };
-
-  std::vector<VkSubmitInfo> submit_infos;
-  if (has_offscreen_pass) {
-    const auto& offscreen_objects = offscreen_objects_.value();
-    submit_infos.push_back(get_submit_info(
-        &offscreen_objects.command_buffers[current_frame],
-        /*wait_semaphore=*/&present_finished_semas_[current_frame],
-        /*signal_semaphore=*/&offscreen_objects.semaphores[current_frame]));
-    submit_infos.push_back(get_submit_info(
-        &command_buffers_[current_frame],
-        /*wait_semaphore=*/&offscreen_objects.semaphores[current_frame],
-        /*signal_semaphore=*/&render_finished_semas_[current_frame]));
-  } else {
-    submit_infos.push_back(get_submit_info(
-        &command_buffers_[current_frame],
-        /*wait_semaphore=*/&present_finished_semas_[current_frame],
-        /*signal_semaphore=*/&render_finished_semas_[current_frame]));
-  }
+  const VkSubmitInfo submit_info{
+      VK_STRUCTURE_TYPE_SUBMIT_INFO,
+      /*pNext=*/nullptr,
+      /*waitSemaphoreCount=*/1,
+      /*pWaitSemaphores=*/&present_finished_semas_[current_frame],
+      // One semaphore waits for one stage, hence there is no need to pass
+      // the count of stages.
+      &kWaitStage,
+      /*commandBufferCount=*/1,
+      &command_buffers_[current_frame],
+      /*signalSemaphoreCount=*/1,
+      /*pSignalSemaphores=*/&render_finished_semas_[current_frame],
+  };
 
   // Reset the fence to the unsignaled state. Note that we don't need to do this
   // for semaphores.
   vkResetFences(device, /*fenceCount=*/1, &in_flight_fences_[current_frame]);
-  ASSERT_SUCCESS(vkQueueSubmit(context_->queues().graphics_queue().queue,
-                               CONTAINER_SIZE(submit_infos),
-                               submit_infos.data(),
-                               in_flight_fences_[current_frame]),
-                 "Failed to submit command buffer");
+  ASSERT_SUCCESS(
+      vkQueueSubmit(context_->queues().graphics_queue().queue,
+                    /*submitCount=*/1, &submit_info,
+                    in_flight_fences_[current_frame]),
+      "Failed to submit command buffer");
 
   // Present the swapchain image to screen.
   const VkPresentInfoKHR present_info{

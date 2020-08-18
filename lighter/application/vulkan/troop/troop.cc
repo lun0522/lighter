@@ -116,9 +116,9 @@ TroopApp::TroopApp(const WindowContext::Config& window_config)
 }
 
 void TroopApp::Recreate() {
-  enum RenderStage {
-    kGeometryStage = 0,
-    kLightingStage,
+  enum SubpassIndex {
+    kGeometrySubpassIndex = 0,
+    kLightingSubpassIndex,
   };
 
   /* Camera */
@@ -147,8 +147,8 @@ void TroopApp::Recreate() {
       geometry_stage_usage.set_use_high_precision();
     }
     usage_history
-        .AddUsage(kGeometryStage, geometry_stage_usage)
-        .AddUsage(kLightingStage,
+        .AddUsage(kGeometrySubpassIndex, geometry_stage_usage)
+        .AddUsage(kLightingSubpassIndex,
                   image::Usage::GetSampledInFragmentShaderUsage());
     *info.image = absl::make_unique<OffscreenImage>(
         context(), frame_size, common::kRgbaImageChannel,
