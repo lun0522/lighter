@@ -23,7 +23,8 @@ namespace renderer {
 namespace vulkan {
 namespace image {
 
-// TODO
+// This class tracks usages of multiple images. Each image should have a unique
+// name as identifier.
 class UsageTracker {
  public:
   UsageTracker() = default;
@@ -32,13 +33,16 @@ class UsageTracker {
   UsageTracker(const UsageTracker&) = delete;
   UsageTracker& operator=(const UsageTracker&) = delete;
 
+  // Makes this tracker track the usage of image.
   UsageTracker& TrackImage(std::string&& image_name,
-                           const Usage& initial_usage);
+                           const Usage& current_usage);
   UsageTracker& TrackImage(const std::string& image_name,
-                           const Usage& initial_usage) {
-    return TrackImage(std::string{image_name}, initial_usage);
+                           const Usage& current_usage) {
+    return TrackImage(std::string{image_name}, current_usage);
   }
 
+  // Makes this tracker track the usage of image, assuming its initial usage is
+  // its current usage.
   UsageTracker& TrackImage(std::string&& image_name,
                            const Image& sample_image) {
     return TrackImage(std::move(image_name), sample_image.GetInitialUsage());
@@ -48,15 +52,19 @@ class UsageTracker {
     return TrackImage(std::string{image_name}, sample_image);
   }
 
+  // Returns true if the usage of image is being tracked.
   bool IsImageTracked(const std::string& image_name) const {
     return image_usage_map_.contains(image_name);
   }
 
+  // Returns the current usage of image.
   const Usage& GetUsage(const std::string& image_name) const;
 
+  // Updates the current usage of image.
   UsageTracker& UpdateUsage(const std::string& image_name, const Usage& usage);
 
  private:
+  // Maps the image name to the current usage of that image.
   absl::flat_hash_map<std::string, Usage> image_usage_map_;
 };
 

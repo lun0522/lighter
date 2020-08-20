@@ -16,6 +16,7 @@ namespace renderer {
 namespace vulkan {
 namespace {
 
+// Checks that 'subpass' is within range [0, 'num_subpasses').
 void CheckSubpassIndexInRange(int subpass, int num_subpasses,
                               absl::string_view name) {
   ASSERT_TRUE(0 <= subpass && subpass < num_subpasses,
@@ -25,6 +26,7 @@ void CheckSubpassIndexInRange(int subpass, int num_subpasses,
 }
 
 #ifndef NDEBUG
+// Logs subpass 'count' if it is greater than 0.
 void PrintSubpassCountIfNonZero(int count, absl::string_view name) {
   if (count > 0) {
     LOG_INFO << absl::StreamFormat("Number of %s subpasses: %d", name, count);
@@ -32,12 +34,18 @@ void PrintSubpassCountIfNonZero(int count, absl::string_view name) {
 }
 #endif  /* !NDEBUG */
 
+// Adds an attachment to 'graphics_pass' and records the attachment index. The
+// usage of attachment image must have been tracked by 'image_usage_tracker'.
 void AddAttachmentToGraphicsPass(
     const NaiveRenderPass::AttachmentConfig& attachment_config,
     GraphicsPass& graphics_pass, image::UsageTracker& image_usage_tracker,
     GraphicsPass::GetLocation&& get_location,
     const std::function<void(image::UsageHistory&)>& populate_history) {
   const std::string& image_name = attachment_config.image_name;
+  ASSERT_TRUE(image_usage_tracker.IsImageTracked(image_name),
+              absl::StrFormat("Usage of attachment %s is not tracked",
+                              image_name));
+
   image::UsageHistory history{image_usage_tracker.GetUsage(image_name)};
   populate_history(history);
   if (attachment_config.final_usage.has_value()) {

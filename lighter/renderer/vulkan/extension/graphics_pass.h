@@ -44,7 +44,8 @@ class GraphicsPass : public BasePass {
 
   // Following functions return default load store ops. By default, the content
   // of the attachment will be cleared at the beginning of this graphics pass,
-  // and will not be preserved after this graphics pass.
+  // and only the content of color attachment will be preserved after this
+  // graphics pass.
   static RenderPassBuilder::Attachment::ColorLoadStoreOps
   GetDefaultColorLoadStoreOps() {
     return {
@@ -113,6 +114,10 @@ class GraphicsPass : public BasePass {
   absl::optional<int> GetFirstSubpassRequiringLocationGetter(
       const image::UsageHistory& history) const;
 
+  // Returns the load store ops that should be used for the attachment. If the
+  // user did not specified those ops, the default ops will be returned.
+  // Otherwise, this will check whether the user specified ops agree with
+  // 'history' internally.
   AttachmentLoadStoreOps GetAttachmentLoadStoreOps(
       const std::string& image_name, const image::UsageHistory& history,
       const absl::optional<AttachmentLoadStoreOps>&

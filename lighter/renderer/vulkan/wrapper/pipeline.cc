@@ -135,6 +135,22 @@ ShaderModule::ShaderModule(SharedBasicContext context,
                  "Failed to create shader module");
 }
 
+PipelineBuilder::PipelineBuilder(SharedBasicContext context,
+                                 absl::optional<int> max_cache_size)
+    : context_{std::move(FATAL_IF_NULL(context))} {
+  const VkPipelineCacheCreateInfo cache_info{
+      VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/nullflag,
+      /*initialDataSize=*/static_cast<size_t>(max_cache_size.value_or(0)),
+      /*pInitialData=*/nullptr,
+  };
+  ASSERT_SUCCESS(
+      vkCreatePipelineCache(*context_->device(), &cache_info,
+                            *context_->allocator(), &pipeline_cache_),
+      "Failed to create pipeline cache");
+}
+
 void PipelineBuilder::SetLayout(
     std::vector<VkDescriptorSetLayout>&& descriptor_layouts,
     std::vector<VkPushConstantRange>&& push_constant_ranges) {
@@ -168,8 +184,9 @@ void PipelineBuilder::SetLayout(
   });
 }
 
-GraphicsPipelineBuilder::GraphicsPipelineBuilder(SharedBasicContext context)
-    : PipelineBuilder{std::move(FATAL_IF_NULL(context))} {
+GraphicsPipelineBuilder::GraphicsPipelineBuilder(
+    SharedBasicContext context, absl::optional<int> max_cache_size)
+    : PipelineBuilder{std::move(FATAL_IF_NULL(context)), max_cache_size} {
   input_assembly_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
       /*pNext=*/nullptr,

@@ -16,11 +16,11 @@ namespace vulkan {
 namespace image {
 
 UsageTracker& UsageTracker::TrackImage(std::string&& image_name,
-                                       const Usage& initial_usage) {
+                                       const Usage& current_usage) {
   ASSERT_FALSE(image_usage_map_.contains(image_name),
                absl::StrFormat("Already tracking image with name '%s'",
                                image_name));
-  image_usage_map_.insert({std::move(image_name), initial_usage});
+  image_usage_map_.insert({std::move(image_name), current_usage});
   return *this;
 }
 

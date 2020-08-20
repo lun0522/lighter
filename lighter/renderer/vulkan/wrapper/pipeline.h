@@ -64,21 +64,23 @@ class ShaderModule {
 
 // This is the base class of all pipeline builder classes. The user should use
 // it through derived classes.
-// TODO: Use VkPipelineCache.
 class PipelineBuilder {
  public:
   // This class is neither copyable nor movable.
   PipelineBuilder(const PipelineBuilder&) = delete;
   PipelineBuilder& operator=(const PipelineBuilder&) = delete;
 
-  virtual ~PipelineBuilder() = default;
+  virtual ~PipelineBuilder() {
+    vkDestroyPipelineCache(*context_->device(), pipeline_cache_,
+                           *context_->allocator());
+  }
 
   // Builds a pipeline. This can be called multiple times.
   virtual std::unique_ptr<Pipeline> Build() const = 0;
 
  protected:
-  explicit PipelineBuilder(SharedBasicContext context)
-      : context_{std::move(FATAL_IF_NULL(context))} {}
+  PipelineBuilder(SharedBasicContext context,
+                  absl::optional<int> max_cache_size);
 
   // Sets the name for the pipeline.
   void SetName(std::string&& name) { name_ = std::move(name); }
@@ -100,6 +102,9 @@ class PipelineBuilder {
  private:
   // Pointer to context.
   const SharedBasicContext context_;
+
+  // Opaque pipeline cache object.
+  VkPipelineCache pipeline_cache_;
 
   // Name of the pipeline (used for debugging).
   std::string name_;
@@ -125,7 +130,9 @@ class GraphicsPipelineBuilder : public PipelineBuilder {
 
   // Internal states will be filled with default settings, unless they are of
   // absl::optional or std::vector types.
-  explicit GraphicsPipelineBuilder(SharedBasicContext context);
+  explicit GraphicsPipelineBuilder(
+      SharedBasicContext context,
+      absl::optional<int> max_cache_size = absl::nullopt);
 
   // This class is neither copyable nor movable.
   GraphicsPipelineBuilder(const GraphicsPipelineBuilder&) = delete;
@@ -239,8 +246,10 @@ class GraphicsPipelineBuilder : public PipelineBuilder {
 // can be changed by the user. See class comments of ShaderModule.
 class ComputePipelineBuilder : public PipelineBuilder {
  public:
-  explicit ComputePipelineBuilder(SharedBasicContext context)
-      : PipelineBuilder{std::move(FATAL_IF_NULL(context))} {}
+  explicit ComputePipelineBuilder(
+      SharedBasicContext context,
+      absl::optional<int> max_cache_size = absl::nullopt)
+      : PipelineBuilder{std::move(FATAL_IF_NULL(context)), max_cache_size} {}
 
   // This class is neither copyable nor movable.
   ComputePipelineBuilder(const ComputePipelineBuilder&) = delete;
