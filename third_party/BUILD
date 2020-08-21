@@ -19,6 +19,11 @@ cc_library(
 )
 
 cc_library(
+    name = "glad",
+    deps = ["@lib-glad//:glad"],
+)
+
+cc_library(
     name = "glfw",
     deps = ["@lib-glfw//:glfw"],
 )
