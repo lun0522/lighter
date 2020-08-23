@@ -12,11 +12,12 @@
 #include <memory>
 #include <type_traits>
 
+#include "lighter/application/util.h"
 #include "lighter/common/camera.h"
 #include "lighter/common/file.h"
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
-#include "lighter/renderer/vulkan/extension/align.h"
+#include "lighter/renderer/align.h"
 #include "lighter/renderer/vulkan/extension/compute_pass.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/image_util.h"
@@ -51,18 +52,20 @@ namespace vulkan {
 // overwrite MainLoop() to render custom scenes.
 class Application {
  public:
-  template <typename... Args>
-  explicit Application(Args&&... args)
-      : window_context_{std::forward<Args>(args)...} {}
-
   // This class is neither copyable nor movable.
   Application(const Application&) = delete;
   Application& operator=(const Application&) = delete;
+
+  ~Application() = default;
 
   // Main loop of the application.
   virtual void MainLoop() = 0;
 
  protected:
+  template <typename... Args>
+  explicit Application(Args&&... args)
+      : window_context_{std::forward<Args>(args)...} {}
+
   // Accessors.
   const renderer::vulkan::WindowContext& window_context() {
     return window_context_;

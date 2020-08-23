@@ -2,11 +2,11 @@
 
 #define NUM_LIGHTS 32
 
-layout(binding = 0) uniform Lights {
+layout(std140, binding = 0) uniform Lights {
   vec4 colors[NUM_LIGHTS];
 } lights;
 
-layout(binding = 1) uniform RenderInfo {
+layout(std140, binding = 1) uniform RenderInfo {
   vec4 light_centers[NUM_LIGHTS];
   vec4 camera_pos;
 } render_info;

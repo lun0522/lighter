@@ -13,7 +13,7 @@
 #include <random>
 
 #include "lighter/common/file.h"
-#include "lighter/renderer/vulkan/extension/align.h"
+#include "lighter/renderer/align.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"

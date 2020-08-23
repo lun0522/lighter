@@ -36,9 +36,9 @@ freetype_archive(
 
 http_archive(
     name = "lib-glad",
-    urls = ["https://github.com/lun0522/lib-glad/archive/4.6.zip"],
-    strip_prefix = "lib-glad-4.6",
-    sha256 = "ea06f12d89e394bb7ab398b29b6f0983b178ac859468967ee107c357aa302901",
+    urls = ["https://github.com/lun0522/lib-glad/archive/4.1.zip"],
+    strip_prefix = "lib-glad-4.1",
+    sha256 = "9909c0fb6232e215a78414bb6c72c6de49adbc09c6607a93b9cd2d9a5ccd6774",
     build_file = "//:third_party/BUILD.glad",
 )
 

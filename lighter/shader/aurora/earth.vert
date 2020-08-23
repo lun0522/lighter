@@ -1,6 +1,6 @@
 #version 460 core
 
-layout(binding = 0) uniform Transformation {
+layout(std140, binding = 0) uniform Transformation {
   mat4 proj_view_model;
 } trans;
 

@@ -1,12 +1,12 @@
 #version 460 core
 
 #if defined(TARGET_OPENGL)
-layout(binding = 1) uniform TextureIndex {
+layout(std140, binding = 1) uniform TextureIndex {
   int value;
 } texture_index;
 
 #elif defined(TARGET_VULKAN)
-layout(push_constant) uniform TextureIndex {
+layout(std140, push_constant) uniform TextureIndex {
   int value;
 } texture_index;
 

@@ -93,6 +93,11 @@ class Window {
   // must have been unregistered.
   Window& RegisterMouseButtonCallback(MouseButtonCallback&& callback);
 
+#ifdef USE_OPENGL
+  // Swaps front and back framebuffers. This is not used for Vulkan.
+  void SwapFramebuffers() const;
+#endif /* USE_OPENGL */
+
   // Processes user inputs to the window. Callbacks will be invoked if
   // conditions are satisfied.
   void ProcessUserInputs() const;

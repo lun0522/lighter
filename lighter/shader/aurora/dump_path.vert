@@ -1,12 +1,12 @@
 #version 460 core
 
 #if defined(TARGET_OPENGL)
-layout(binding = 0) uniform Transformation {
+layout(std140, binding = 0) uniform Transformation {
   mat4 proj_view;
 } trans;
 
 #elif defined(TARGET_VULKAN)
-layout(push_constant) uniform Transformation {
+layout(std140, push_constant) uniform Transformation {
   mat4 proj_view;
 } trans;
 

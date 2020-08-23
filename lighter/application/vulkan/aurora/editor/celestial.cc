@@ -8,7 +8,7 @@
 #include "lighter/application/vulkan/aurora/editor/celestial.h"
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/vulkan/extension/align.h"
+#include "lighter/renderer/align.h"
 #include "third_party/absl/memory/memory.h"
 
 namespace lighter {

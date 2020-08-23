@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "lighter/common/file.h"
-#include "lighter/renderer/vulkan/extension/align.h"
+#include "lighter/renderer/align.h"
 #include "lighter/renderer/vulkan/extension/image_util.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "third_party/absl/memory/memory.h"

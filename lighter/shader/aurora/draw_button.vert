@@ -2,7 +2,7 @@
 
 #define NUM_VERTICES_PER_BUTTON 6
 
-layout(binding = 0) uniform VerticesInfo {
+layout(std140, binding = 0) uniform VerticesInfo {
   vec4 pos_tex_coords[NUM_VERTICES_PER_BUTTON];
 } vertices_info;
 

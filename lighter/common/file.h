@@ -31,11 +31,20 @@ inline std::string GetResourcePath(const std::string& relative_path) {
   return absl::StrCat(absl::GetFlag(FLAGS_resource_folder), "/", relative_path);
 }
 
+#ifdef USE_OPENGL
 // Returns the full path to the compiled shader to use with OpenGL.
+// Note that since MacOS only supports OpenGL 4.1, while loading SPIR-V shader
+// binaries requires OpenGL 4.6, this will return the path to raw shader file
+// in MacOS.
 inline std::string GetGlShaderPath(const std::string& relative_path) {
-  return absl::StrCat(absl::GetFlag(FLAGS_shader_folder), "/opengl/",
-                      relative_path, ".spv");
+  #ifdef __APPLE__
+    return absl::StrCat(absl::GetFlag(FLAGS_shader_folder), "/", relative_path);
+  #else /* !__APPLE__ */
+    return absl::StrCat(absl::GetFlag(FLAGS_shader_folder), "/opengl/",
+                        relative_path, ".spv");
+  #endif /* __APPLE__ */
 }
+#endif /* USE_OPENGL */
 
 #ifdef USE_VULKAN
 // Returns the full path to the compiled shader to use with Vulkan.

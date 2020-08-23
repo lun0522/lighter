@@ -1,3 +1,5 @@
+#version 460 core
+
 /*
  This shader is modified from Dr. Orion Sky Lawlor's implementation.
  Lawlor, Orion & Genetti, Jon. (2011). Interactive Volume Rendering Aurora on
@@ -8,15 +10,13 @@
  Dr. Orion Sky Lawlor, olawlor@acm.org, 2010-09-04 (Public Domain)
  */
 
-#version 460 core
-
 #define M_PI 3.1415926535897932384626433832795
 
 layout(location = 0) in vec3 frag_dir;
 
 layout(location = 0) out vec4 frag_color;
 
-layout(binding = 0) uniform RenderInfo {
+layout(std140, binding = 0) uniform RenderInfo {
   vec4 camera_pos;
   mat4 aurora_proj_view;
 } render_info;

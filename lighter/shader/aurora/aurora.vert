@@ -4,7 +4,7 @@ layout(location = 0) in vec2 in_pos;
 
 layout(location = 0) out vec3 frag_dir;
 
-layout(push_constant) uniform Camera {
+layout(std140, push_constant) uniform Camera {
   vec4 up;
   vec4 front;
   vec4 right;

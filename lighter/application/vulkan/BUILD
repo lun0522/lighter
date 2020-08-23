@@ -6,10 +6,12 @@ cc_library(
     srcs = ["util.cc"],
     deps = [
         "//lighter/application:resource",
+        "//lighter/application:util",
         "//lighter/common:camera",
         "//lighter/common:file",
         "//lighter/common:timer",
         "//lighter/common:util",
+        "//lighter/renderer:align",
         "//lighter/renderer/vulkan/extension:onscreen",
         "//third_party/absl/flags:flag",
         "//third_party/absl/memory",

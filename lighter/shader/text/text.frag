@@ -1,6 +1,6 @@
 #version 460 core
 
-layout(binding = 0) uniform TextRenderInfo {
+layout(std140, binding = 0) uniform TextRenderInfo {
   vec4 color_alpha;
 } text_render_info;
 

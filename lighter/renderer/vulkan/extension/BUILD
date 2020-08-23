@@ -7,7 +7,6 @@ compilation_mode()
 cc_library(
     name = "offscreen",
     deps = [
-        ":align",
         ":compute_pass",
         ":graphics_pass",
         ":image_util",
@@ -25,11 +24,6 @@ cc_library(
         ":offscreen",
         "//lighter/renderer/vulkan/wrapper:window",
     ],
-)
-
-cc_library(
-    name = "align",
-    hdrs = ["align.h"],
 )
 
 cc_library(
@@ -155,12 +149,12 @@ cc_library(
         "text_util.cc",
     ],
     deps = [
-        ":align",
         ":naive_render_pass",
         ":offscreen_wrappers",
         "//lighter/common:char_lib",
         "//lighter/common:file",
         "//lighter/common:util",
+        "//lighter/renderer:align",
         "//third_party/absl/container:flat_hash_map",
         "//third_party/absl/memory",
         "//third_party/absl/strings:str_format",

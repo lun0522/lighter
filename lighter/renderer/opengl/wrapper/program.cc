@@ -10,32 +10,106 @@
 #include <vector>
 
 #include "lighter/common/file.h"
+#include "lighter/common/util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
+#include "third_party/absl/strings/string_view.h"
+#include "third_party/absl/types/optional.h"
 
 namespace lighter {
 namespace renderer {
 namespace opengl {
+namespace {
+
+using ParameterGetter = void (*)(GLuint, GLenum, GLint*);
+
+using InfoLogGetter = void (*)(GLuint, GLsizei, GLsizei*, GLchar*);
+
+absl::optional<std::vector<char>> CheckStatus(GLuint source, GLenum target,
+                                              ParameterGetter parameter_getter,
+                                              InfoLogGetter info_log_getter) {
+  GLint success;
+  parameter_getter(source, target, &success);
+  if (success == GL_TRUE) {
+    return absl::nullopt;
+  }
+
+  GLint info_log_length;
+  parameter_getter(source, GL_INFO_LOG_LENGTH, &info_log_length);
+
+  std::vector<char> info_log(info_log_length);
+  info_log_getter(source, info_log_length, /*length=*/nullptr, info_log.data());
+  return info_log;
+}
+
+} /* namespace */
 
 Shader::Shader(GLenum shader_type, const std::string& file_path)
-    : shader_{glCreateShader(shader_type)} {
+    : shader_type_{shader_type}, shader_{glCreateShader(shader_type)} {
   const auto raw_data = absl::make_unique<common::RawData>(file_path);
+#ifdef __APPLE__
+  const std::string expected_header = "#version 460 core\n";
+  const absl::string_view original_header{raw_data->data,
+                                          expected_header.length()};
+  ASSERT_TRUE(original_header == expected_header,
+              absl::StrFormat("Header of shader %s is expected to be %s, while "
+                              "%s provided",
+                              file_path, expected_header, original_header));
+
+  constexpr int kNumShaderSources = 2;
+  const std::string modified_header = "#version 410 core\n"
+                                      "#define TARGET_OPENGL 1\n";
+  const GLchar* shader_sources[kNumShaderSources]{
+      modified_header.data(), raw_data->data + original_header.length()};
+  const GLint source_lengths[kNumShaderSources]{
+      static_cast<GLint>(modified_header.length()),
+      static_cast<GLint>(raw_data->size - original_header.length())};
+  glShaderSource(shader_, kNumShaderSources, shader_sources, source_lengths);
+  glCompileShader(shader_);
+#else /* !__APPLE__ */
   glShaderBinary(/*count=*/1, &shader_, GL_SHADER_BINARY_FORMAT_SPIR_V,
                  raw_data->data, raw_data->size);
   glSpecializeShader(shader_, "main", /*numSpecializationConstants=*/0,
                      /*pConstantIndex=*/nullptr, /*pConstantValue=*/nullptr);
+#endif /* __APPLE__ */
 
-  GLint success;
-  glGetShaderiv(shader_, GL_COMPILE_STATUS, &success);
-  if (success == GL_FALSE) {
-    GLint info_log_length;
-    glGetShaderiv(shader_, GL_INFO_LOG_LENGTH, &info_log_length);
-
-    std::vector<char> info_log(info_log_length);
-    glGetShaderInfoLog(shader_, info_log_length, /*length=*/nullptr,
-                       info_log.data());
+  if (const auto error = CheckStatus(shader_, GL_COMPILE_STATUS, glGetShaderiv,
+                                     glGetShaderInfoLog)) {
     FATAL(absl::StrFormat("Failed to compile shader loaded from %s: %s",
-                          file_path, info_log.data()));
+                          file_path, error.value().data()));
+  }
+}
+
+Program::Program(const absl::flat_hash_map<GLenum, std::string>&
+                     shader_type_to_file_path_map)
+    : program_{glCreateProgram()} {
+  // Prevent shaders from being auto released.
+  Shader::AutoReleaseShaderPool shader_pool;
+
+  std::vector<GLuint> shaders;
+  shaders.reserve(shader_type_to_file_path_map.size());
+
+  for (const auto& pair : shader_type_to_file_path_map) {
+    const GLenum shader_type = pair.first;
+    const std::string& file_path = pair.second;
+    const auto shader = Shader::RefCountedShader::Get(
+        /*identifier=*/file_path, shader_type, file_path);
+    ASSERT_TRUE(shader->shader_type() == shader_type,
+                absl::StrFormat("Previous shader type specified for %s was %d, "
+                                "but now type %d instead",
+                                file_path, shader->shader_type(), shader_type));
+
+    glAttachShader(program_, **shader);
+    shaders.push_back(**shader);
+  }
+
+  glLinkProgram(program_);
+  if (const auto error = CheckStatus(program_, GL_LINK_STATUS, glGetProgramiv,
+                                     glGetProgramInfoLog)) {
+    FATAL(absl::StrFormat("Failed to link program: %s", error.value().data()));
+  }
+  for (const GLuint shader : shaders) {
+    glDetachShader(program_, shader);
   }
 }
 

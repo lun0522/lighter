@@ -8,7 +8,7 @@
 #include "lighter/application/vulkan/aurora/viewer/path_renderer.h"
 
 #include "lighter/application/vulkan/util.h"
-#include "lighter/renderer/vulkan/extension/align.h"
+#include "lighter/renderer/align.h"
 #include "lighter/renderer/vulkan/extension/image_util.h"
 #include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"

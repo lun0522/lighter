@@ -36,6 +36,11 @@ int WindowKeyToGlfwKey(Window::KeyMap key) {
 
 namespace window_callback {
 
+// Prints errors reported by GLFW.
+void GlfwErrorCallback(int error, const char* description) {
+  FATAL(absl::StrFormat("GLFW error %d: %s", error, description));
+}
+
 // We pass a pointer to the Window instance with 'glfwSetWindowUserPointer'
 // and retrieve it with 'glfwGetWindowUserPointer', so that we can relay
 // function calls to the holder of callbacks.
@@ -62,19 +67,40 @@ void GlfwMouseButtonCallback(
 Window::Window(const std::string& name, const glm::ivec2& screen_size)
     : original_aspect_ratio_{
           static_cast<float>(screen_size.x) / screen_size.y} {
-  glfwInit();
-  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+  glfwSetErrorCallback(window_callback::GlfwErrorCallback);
+  ASSERT_TRUE(glfwInit() == GLFW_TRUE, "Failed to init GLFW");
+
+#ifdef USE_OPENGL
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+  #ifdef __APPLE__
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+    LOG_INFO << "Since MacOS only supports OpenGL 4.1, shaders will be "
+                "compiled with #version 410 core";
+  #else /* !__APPLE__ */
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+  #endif /* __APPLE__ */
+#endif /* USE_OPENGL */
+
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #ifdef __APPLE__
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-#endif
+#endif /* __APPLE__ */
+
+#ifdef USE_VULKAN
   ASSERT_TRUE(glfwVulkanSupported() == GLFW_TRUE, "Vulkan is not supported");
+  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+#endif /* USE_VULKAN */
 
   window_ = glfwCreateWindow(screen_size.x, screen_size.y, name.c_str(),
                              /*monitor=*/nullptr, /*share=*/nullptr);
-  ASSERT_NON_NULL(window_, "Failed to create window");
+  if (window_ == nullptr) {
+    glfwTerminate();
+    FATAL("Failed to create window");
+  }
 
+#ifdef USE_OPENGL
   glfwMakeContextCurrent(window_);
+#endif /* USE_OPENGL */
   glfwSetWindowUserPointer(window_, this);
   glfwSetFramebufferSizeCallback(
       window_, window_callback::GlfwResizeWindowCallback);
@@ -137,6 +163,12 @@ Window& Window::RegisterMouseButtonCallback(MouseButtonCallback&& callback) {
   mouse_button_callback_ = std::move(callback);
   return *this;
 }
+
+#ifdef USE_OPENGL
+void Window::SwapFramebuffers() const {
+  glfwSwapBuffers(window_);
+}
+#endif /* USE_OPENGL */
 
 void Window::ProcessUserInputs() const {
   glfwPollEvents();

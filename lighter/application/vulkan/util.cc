@@ -7,9 +7,6 @@
 
 #include "lighter/application/vulkan/util.h"
 
-ABSL_FLAG(bool, performance_mode, false,
-          "Ignore VSync and present images to the screen as fast as possible");
-
 namespace lighter {
 namespace application {
 namespace vulkan {

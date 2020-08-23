@@ -1,12 +1,13 @@
 #version 460 core
 
 #if defined(TARGET_OPENGL)
-layout(binding = 0) uniform Alpha {
+// TODO: Add binding = 0 back.
+layout(std140) uniform Alpha {
   float value;
 } alpha;
 
 #elif defined(TARGET_VULKAN)
-layout(push_constant) uniform Alpha {
+layout(std140, push_constant) uniform Alpha {
   float value;
 } alpha;
 

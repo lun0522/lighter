@@ -1,12 +1,12 @@
 #version 460 core
 
 #if defined(TARGET_OPENGL)
-layout(binding = 1) uniform TransFrag {
+layout(std140, binding = 1) uniform TransFrag {
   mat4 view_inv;
 } trans_frag;
 
 #elif defined(TARGET_VULKAN)
-layout(push_constant) uniform TransFrag {
+layout(std140, push_constant) uniform TransFrag {
   mat4 view_inv;
 } trans_frag;
 

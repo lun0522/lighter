@@ -4,13 +4,13 @@
 
 #if defined(TARGET_OPENGL)
 
-layout(binding = 0) uniform VerticesInfo {
+layout(std140, binding = 0) uniform VerticesInfo {
   vec4 pos_tex_coords[NUM_VERTICES_PER_BUTTON];
 } vertices_info;
 
 #elif defined(TARGET_VULKAN)
 
-layout(push_constant) uniform VerticesInfo {
+layout(std140, push_constant) uniform VerticesInfo {
   vec4 pos_tex_coords[NUM_VERTICES_PER_BUTTON];
 } vertices_info;
 

@@ -10,7 +10,7 @@
 #include <array>
 
 #include "lighter/application/vulkan/aurora/viewer/air_transmit_table.h"
-#include "lighter/renderer/vulkan/extension/align.h"
+#include "lighter/renderer/align.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/image_util.h"
 #include "lighter/renderer/vulkan/wrapper/image_usage.h"

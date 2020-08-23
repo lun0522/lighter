@@ -1,6 +1,6 @@
 #version 460 core
 
-layout(binding = 0) uniform TransVert {
+layout(std140, binding = 0) uniform TransVert {
   mat4 view_model;
   mat4 proj_view_model;
   mat4 view_model_inv_trs;

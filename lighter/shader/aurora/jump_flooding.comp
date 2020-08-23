@@ -5,12 +5,12 @@ layout(binding = 0, rgba16f) uniform readonly image2D original_image;
 layout(binding = 1, rgba16f) uniform writeonly image2D output_image;
 
 #if defined(TARGET_OPENGL)
-layout(binding = 2) uniform StepWidth {
+layout(std140, binding = 2) uniform StepWidth {
   int value;
 } step_width;
 
 #elif defined(TARGET_VULKAN)
-layout(push_constant) uniform StepWidth {
+layout(std140, push_constant) uniform StepWidth {
   int value;
 } step_width;
 

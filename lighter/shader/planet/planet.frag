@@ -1,6 +1,6 @@
 #version 460 core
 
-layout(binding = 1) uniform Light {
+layout(std140, binding = 1) uniform Light {
   vec4 direction_time;
 } light;
 
