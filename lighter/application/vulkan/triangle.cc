@@ -59,12 +59,12 @@ class TriangleApp : public Application {
 
   int current_frame_ = 0;
   common::FrameTimer timer_;
-  std::unique_ptr<OnScreenRenderPassManager> render_pass_manager_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PerVertexBuffer> vertex_buffer_;
   std::unique_ptr<PushConstant> alpha_constant_;
   std::unique_ptr<GraphicsPipelineBuilder> pipeline_builder_;
   std::unique_ptr<Pipeline> pipeline_;
+  std::unique_ptr<OnScreenRenderPassManager> render_pass_manager_;
 };
 
 } /* namespace */
@@ -72,13 +72,6 @@ class TriangleApp : public Application {
 TriangleApp::TriangleApp(const WindowContext::Config& window_config)
     : Application{"Hello Triangle", window_config} {
   using common::Vertex3DWithColor;
-
-  /* Render pass */
-  render_pass_manager_ = absl::make_unique<OnScreenRenderPassManager>(
-      &window_context(),
-      NaiveRenderPass::SubpassConfig{
-          kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
-          /*first_overlay_subpass=*/kRenderSubpassIndex});
 
   /* Command buffer */
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
@@ -101,7 +94,7 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
 
   /* Push constant */
   alpha_constant_ = absl::make_unique<PushConstant>(context(), sizeof(Alpha),
-                                                   kNumFramesInFlight);
+                                                    kNumFramesInFlight);
 
   /* Pipeline */
   pipeline_builder_ = absl::make_unique<GraphicsPipelineBuilder>(context());
@@ -119,6 +112,13 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
                  common::file::GetVkShaderPath("triangle/triangle.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
                  common::file::GetVkShaderPath("triangle/triangle.frag"));
+
+  /* Render pass */
+  render_pass_manager_ = absl::make_unique<OnScreenRenderPassManager>(
+      &window_context(),
+      NaiveRenderPass::SubpassConfig{
+          kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
+          /*first_overlay_subpass=*/kRenderSubpassIndex});
 }
 
 void TriangleApp::Recreate() {
@@ -135,9 +135,8 @@ void TriangleApp::Recreate() {
 }
 
 void TriangleApp::UpdateData(int frame) {
-  const float elapsed_time = timer_.GetElapsedTimeSinceLaunch();
   alpha_constant_->HostData<Alpha>(frame)->value =
-      glm::abs(glm::sin(elapsed_time));
+      glm::abs(glm::sin(timer_.GetElapsedTimeSinceLaunch()));
 }
 
 void TriangleApp::MainLoop() {

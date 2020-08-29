@@ -25,6 +25,8 @@ using ParameterGetter = void (*)(GLuint, GLenum, GLint*);
 
 using InfoLogGetter = void (*)(GLuint, GLsizei, GLsizei*, GLchar*);
 
+// Checks status using 'parameter_getter'. If there is any error, returns the
+// error fetched with 'info_log_getter'. Otherwise, returns absl::nullopt.
 absl::optional<std::vector<char>> CheckStatus(GLuint source, GLenum target,
                                               ParameterGetter parameter_getter,
                                               InfoLogGetter info_log_getter) {
@@ -58,7 +60,8 @@ Shader::Shader(GLenum shader_type, const std::string& file_path)
 
   constexpr int kNumShaderSources = 2;
   const std::string modified_header = "#version 410 core\n"
-                                      "#define TARGET_OPENGL 1\n";
+                                      "#define TARGET_OPENGL 1\n"
+                                      "#define TARGET_APPLE 1\n";
   const GLchar* shader_sources[kNumShaderSources]{
       modified_header.data(), raw_data->data + original_header.length()};
   const GLint source_lengths[kNumShaderSources]{
@@ -111,6 +114,13 @@ Program::Program(const absl::flat_hash_map<GLenum, std::string>&
   for (const GLuint shader : shaders) {
     glDetachShader(program_, shader);
   }
+}
+
+void Program::BindUniformBuffer(const std::string& uniform_block_name,
+                                GLuint binding_point) const {
+  const GLint uniform_block_index =
+      glGetUniformBlockIndex(program_, uniform_block_name.data());
+  glUniformBlockBinding(program_, uniform_block_index, binding_point);
 }
 
 } /* namespace opengl */

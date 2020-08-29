@@ -90,7 +90,7 @@ with this flag. For MacOS, this would be
 `vulkansdk-macos-<version number>/macOS`.
 
 This README introduces the modules we created, and the decisions we made when we
-design them. The usage of classes and util functions is put right before the
+designed them. The usage of classes and util functions is put right before the
 declaration in header files. You can start with a
 [Vulkan "Hello Triangle" example](https://github.com/lun0522/lighter/tree/master/lighter/application/vulkan),
 and then take a look at other applications under the lighter/application

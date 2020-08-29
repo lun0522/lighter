@@ -89,7 +89,6 @@ TriangleApp::TriangleApp()
   glBufferData(GL_UNIFORM_BUFFER, sizeof(Alpha), /*data=*/nullptr,
                GL_DYNAMIC_DRAW);
 
-  // TODO
   program_->BindUniformBuffer("alpha", kUniformBufferBindingPoint);
   glBindBufferBase(GL_UNIFORM_BUFFER, kUniformBufferBindingPoint,
                    uniform_buffer_);

@@ -61,12 +61,12 @@ class CubeApp : public Application {
 
   int current_frame_ = 0;
   common::FrameTimer timer_;
-  std::unique_ptr<OnScreenRenderPassManager> render_pass_manager_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<PushConstant> trans_constant_;
   std::unique_ptr<Model> cube_model_;
   std::unique_ptr<StaticText> static_text_;
   std::unique_ptr<DynamicText> dynamic_text_;
+  std::unique_ptr<OnScreenRenderPassManager> render_pass_manager_;
 };
 
 } /* namespace */
@@ -78,13 +78,6 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
 
   const float original_aspect_ratio = window_context().original_aspect_ratio();
 
-  /* Render pass */
-  render_pass_manager_ = absl::make_unique<OnScreenRenderPassManager>(
-      &window_context(),
-      NaiveRenderPass::SubpassConfig{
-          kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
-          /*first_overlay_subpass=*/kTextSubpassIndex});
-
   /* Command buffer */
   command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
@@ -92,7 +85,6 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
   trans_constant_ = absl::make_unique<PushConstant>(
       context(), sizeof(Transformation), kNumFramesInFlight);
 
-  // TODO: Add utils for resource paths and shader paths.
   /* Model */
   cube_model_ = ModelBuilder{
       context(), "Cube", kNumFramesInFlight, original_aspect_ratio,
@@ -123,6 +115,13 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
   dynamic_text_ = absl::make_unique<DynamicText>(
       context(), kNumFramesInFlight, original_aspect_ratio,
       std::vector<std::string>{"01234567890"}, kFont, kFontHeight);
+
+  /* Render pass */
+  render_pass_manager_ = absl::make_unique<OnScreenRenderPassManager>(
+      &window_context(),
+      NaiveRenderPass::SubpassConfig{
+          kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
+          /*first_overlay_subpass=*/kTextSubpassIndex});
 }
 
 void CubeApp::Recreate() {

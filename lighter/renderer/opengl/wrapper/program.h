@@ -18,11 +18,18 @@ namespace lighter {
 namespace renderer {
 namespace opengl {
 
-// TODO
+// This class loads a shader from 'file_path', compiles it and holds the
+// resulting shader handle. Shaders can be released after the program is linked
+// in order to save the host memory. The user can avoid this happening by
+// instantiating an AutoReleaseShaderPool.
 class Shader {
  public:
+  // Reference counted shaders.
   using RefCountedShader = common::RefCountedObject<Shader>;
 
+  // An instance of this will preserve all shaders created within its
+  // surrounding scope, and release them once all AutoReleaseShaderPool objects
+  // go out of scope.
   using AutoReleaseShaderPool = RefCountedShader::AutoReleasePool;
 
   Shader(GLenum shader_type, const std::string& file_path);
@@ -40,11 +47,14 @@ class Shader {
   GLenum shader_type() const { return shader_type_; }
 
  private:
+  // Type of shader.
   const GLenum shader_type_;
 
+  // Shader handle.
   const GLuint shader_;
 };
 
+// This class creates a program handle, and links shaders to it.
 class Program {
  public:
   explicit Program(const absl::flat_hash_map<GLenum, std::string>&
@@ -56,17 +66,15 @@ class Program {
 
   ~Program() { glDeleteProgram(program_); }
 
+  // Binds the uniform buffer block to 'binding_point'.
+  void BindUniformBuffer(const std::string& uniform_block_name,
+                         GLuint binding_point) const;
+
+  // Binds this program.
   void Use() const { glUseProgram(program_); }
 
-  // TODO
-  void BindUniformBuffer(const std::string& uniform_block_name,
-                         GLuint binding_point) const {
-    const GLint uniform_block_index =
-        glGetUniformBlockIndex(program_, uniform_block_name.data());
-    glUniformBlockBinding(program_, uniform_block_index, binding_point);
-  }
-
  private:
+  // Program handle.
   const GLuint program_;
 };
 

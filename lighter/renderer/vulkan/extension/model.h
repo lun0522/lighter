@@ -254,7 +254,6 @@ class Model {
   // If 'flip_viewport_y' is true, point (0, 0) will be located at the upper
   // left corner, which is appropriate for presenting to the screen. The user
   // can choose whether or not to do the flipping for offscreen rendering.
-  // TODO: Pass VkRendrPass instead.
   void Update(bool is_object_opaque,
               const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
               const RenderPass& render_pass, uint32_t subpass_index,

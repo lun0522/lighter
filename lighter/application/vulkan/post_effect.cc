@@ -65,10 +65,10 @@ class PostEffectApp : public Application {
   }
 
   int current_frame_ = 0;
-  std::unique_ptr<OnScreenRenderPassManager> render_pass_manager_;
   std::unique_ptr<OffscreenImage> processed_image_;
   std::unique_ptr<ImageViewer> image_viewer_;
   std::unique_ptr<PerFrameCommand> command_;
+  std::unique_ptr<OnScreenRenderPassManager> render_pass_manager_;
 };
 
 } /* namespace */
@@ -78,18 +78,18 @@ PostEffectApp::PostEffectApp(const WindowContext::Config& window_config)
   // No need to do multisampling.
   ASSERT_FALSE(window_context().use_multisampling(), "Not needed");
 
+  /* Image and viewer */
+  ProcessImageFromFile(common::file::GetResourcePath("texture/statue.jpg"));
+
+  /* Command buffer */
+  command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
+
   /* Render pass */
   render_pass_manager_ = absl::make_unique<OnScreenRenderPassManager>(
       &window_context(),
       NaiveRenderPass::SubpassConfig{
           kNumGraphicsSubpasses, /*first_transparent_subpass=*/absl::nullopt,
           /*first_overlay_subpass=*/kViewImageSubpassIndex});
-
-  /* Image and viewer */
-  ProcessImageFromFile(common::file::GetResourcePath("texture/statue.jpg"));
-
-  /* Command buffer */
-  command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 }
 
 void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {

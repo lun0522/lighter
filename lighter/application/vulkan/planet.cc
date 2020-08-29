@@ -102,7 +102,6 @@ class PlanetApp : public Application {
   int current_frame_ = 0;
   absl::optional<int> num_asteroids_;
   common::FrameTimer timer_;
-  std::unique_ptr<OnScreenRenderPassManager> render_pass_manager_;
   std::unique_ptr<common::UserControlledCamera> camera_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<StaticPerInstanceBuffer> per_asteroid_data_;
@@ -112,6 +111,7 @@ class PlanetApp : public Application {
   std::unique_ptr<Model> planet_model_;
   std::unique_ptr<Model> asteroid_model_;
   std::unique_ptr<Model> skybox_model_;
+  std::unique_ptr<OnScreenRenderPassManager> render_pass_manager_;
 };
 
 } /* namespace */
@@ -125,13 +125,6 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
   using TextureType = ModelBuilder::TextureType;
 
   const float original_aspect_ratio = window_context().original_aspect_ratio();
-
-  /* Render pass */
-  render_pass_manager_ = absl::make_unique<OnScreenRenderPassManager>(
-      &window_context(),
-      NaiveRenderPass::SubpassConfig{
-          kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
-          /*first_overlay_subpass=*/absl::nullopt});
 
   /* Camera */
   common::Camera::Config config;
@@ -248,6 +241,13 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("skybox.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("skybox.frag"))
       .Build();
+
+  /* Render pass */
+  render_pass_manager_ = absl::make_unique<OnScreenRenderPassManager>(
+      &window_context(),
+      NaiveRenderPass::SubpassConfig{
+          kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
+          /*first_overlay_subpass=*/absl::nullopt});
 }
 
 void PlanetApp::Recreate() {
