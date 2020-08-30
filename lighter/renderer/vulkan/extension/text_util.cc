@@ -9,7 +9,7 @@
 
 #include <algorithm>
 
-#include "lighter/renderer/vulkan/extension/image_util.h"
+#include "lighter/renderer/vulkan/extension/image_usage_util.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/wrapper/command.h"
 #include "lighter/renderer/vulkan/wrapper/image_usage.h"

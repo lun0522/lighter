@@ -20,7 +20,7 @@
 #include "lighter/renderer/align.h"
 #include "lighter/renderer/vulkan/extension/compute_pass.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
-#include "lighter/renderer/vulkan/extension/image_util.h"
+#include "lighter/renderer/vulkan/extension/image_usage_util.h"
 #include "lighter/renderer/vulkan/extension/model.h"
 #include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"

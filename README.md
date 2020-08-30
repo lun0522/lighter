@@ -13,37 +13,48 @@ Table of Contents
       * [1.3 File utils (file)](#13-file-utils-file)
       * [1.4 Model loader (model_loader)](#14-model-loader-model_loader)
       * [1.5 Reference counting (ref_count)](#15-reference-counting-ref_count)
-      * [1.6 Timer (timer)](#16-timer-timer)
-      * [1.7 Window manager (window)](#17-window-manager-window)
-   * [2. OpenGL wrappers (lighter/wrapper/opengl/)](#2-opengl-wrappers-lighterwrapperopengl)
-   * [3. Vulkan wrappers (lighter/renderer/vulkan/)](#3-vulkan-wrappers-lighterwrappervulkan)
+      * [1.6 Rotation manager (rotation)](#16-rotation-manager-rotation)
+      * [1.7 Spline editor (spline)](#17-spline-editor-spline)
+      * [1.8 Timer (timer)](#18-timer-timer)
+      * [1.9 Window manager (window)](#19-window-manager-window)
+   * [2. OpenGL backend (lighter/renderer/opengl/)](#2-opengl-backend-lighterrendereropengl)
+   * [3. Vulkan backend (lighter/renderer/vulkan/)](#3-vulkan-backend-lighterrenderervulkan)
       * [3.1 Contexts (basic_context, basic_object, validation and window_context)](#31-contexts-basic_context-basic_object-validation-and-window_context)
-      * [3.2 Low-level wrappers](#32-low-level-wrappers)
+      * [3.2 Wrappers](#32-wrappers)
          * [3.2.1 Buffer (buffer)](#321-buffer-buffer)
-            * [3.2.1.1 UniformBuffer and PushConstant](#3211-uniformbuffer-and-pushconstant)
-            * [3.2.1.2 StaticPerVertexBuffer and DynamicPerVertexBuffer](#3212-staticpervertexbuffer-and-dynamicpervertexbuffer)
-            * [3.2.1.3 PerInstanceBuffer](#3213-perinstancebuffer)
-            * [3.2.1.4 TextureBuffer, OffscreenBuffer, DepthStencilBuffer and MultisampleBuffer](#3214-texturebuffer-offscreenbuffer-depthstencilbuffer-and-multisamplebuffer)
-         * [3.2.2 Command (command)](#322-command-command)
+            * [3.2.1.1 Staging buffer](#3211-staging-buffer)
+            * [3.2.1.2 UniformBuffer and PushConstant](#3212-uniformbuffer-and-pushconstant)
+            * [3.2.1.3 VertexBuffer](#3213-vertexbuffer)
+         * [3.2.2 Image (image and image_usage)](#322-image-image-and-image_usage)
          * [3.2.3 Descriptor (descriptor)](#323-descriptor-descriptor)
-         * [3.2.4 Image (image)](#324-image-image)
-         * [3.2.5 Pipeline (pipeline and pipeline_util)](#325-pipeline-pipeline-and-pipeline_util)
-         * [3.2.6 Render pass (render_pass and render_pass_util)](#326-render-pass-render_pass-and-render_pass_util)
-         * [3.2.7 Swapchain (swapchain)](#327-swapchain-swapchain)
-         * [3.2.8 Synchronization (synchronization)](#328-synchronization-synchronization)
-      * [3.3 High-level wrappers](#33-high-level-wrappers)
-         * [3.3.1 Model renderer (model)](#331-model-renderer-model)
-            * [3.3.1.1 Load vertex data, textures and shaders](#3311-load-vertex-data-textures-and-shaders)
-            * [3.3.1.2 Bind per-instance vertex buffers, uniform buffers and push constants](#3312-bind-per-instance-vertex-buffers-uniform-buffers-and-push-constants)
-            * [3.3.1.3 Build and update the model](#3313-build-and-update-the-model)
-         * [3.3.2 Text renderer (text and text_util)](#332-text-renderer-text-and-text_util)
-            * [3.3.2.1 CharLoader and TextLoader](#3321-charloader-and-textloader)
-            * [3.3.2.2 StaticText and DynamicText](#3322-statictext-and-dynamictext)
+         * [3.2.4 Pipeline (pipeline and pipeline_util)](#324-pipeline-pipeline-and-pipeline_util)
+         * [3.2.5 Render pass (render_pass)](#325-render-pass-render_pass)
+         * [3.2.6 Swapchain (swapchain)](#326-swapchain-swapchain)
+         * [3.2.7 Synchronization (synchronization)](#327-synchronization-synchronization)
+         * [3.2.8 Command (command)](#328-command-command)
+      * [3.3 Extensions](#33-extensions)
+         * [3.3.1 Image usage utils (image_usage_util)](#331-image-usage-utils-image_usage_util)
+         * [3.3.2 High level pass (base_pass, graphics_pass and compute_pass)](#332-high-level-pass-base_pass-graphics_pass-and-compute_pass)
+            * [3.3.2.1 Graphics pass](#3321-graphics-pass)
+            * [3.3.2.2 Compute pass](#3322-compute-pass)
+         * [3.3.3 Naive render pass](#333-naive-render-pass)
+         * [3.3.4 Model renderer (model)](#334-model-renderer-model)
+            * [3.3.4.1 Load vertex data, textures and shaders](#3341-load-vertex-data-textures-and-shaders)
+            * [3.3.4.2 Bind per-instance vertex buffers, uniform buffers and push constants](#3342-bind-per-instance-vertex-buffers-uniform-buffers-and-push-constants)
+            * [3.3.4.3 Build and update the model](#3343-build-and-update-the-model)
+         * [3.3.5 Text renderer (text and text_util)](#335-text-renderer-text-and-text_util)
+            * [3.3.5.1 CharLoader and TextLoader](#3351-charloader-and-textloader)
+            * [3.3.5.2 StaticText and DynamicText](#3352-statictext-and-dynamictext)
    * [4. Applications (lighter/application/)](#4-applications-lighterapplication)
       * [4.1 Triangle scene (triangle)](#41-triangle-scene-triangle)
       * [4.2 Cube scene (cube)](#42-cube-scene-cube)
       * [4.3 Nanosuit scene (nanosuit)](#43-nanosuit-scene-nanosuit)
       * [4.4 Planet and asteroids scene (planet)](#44-planet-and-asteroids-scene-planet)
+      * [4.5 Troop scene (troop)](#45-troop-scene-troop)
+      * [4.6 Post effect scene (post_effect)](#46-post-effect-scene-post_effect)
+      * [4.7 Aurora sketcher](#47-aurora-sketcher)
+         * [4.7.1 Editor (aurora/editor/)](#471-editor-auroraeditor)
+         * [4.7.2 Viewer (aurora/viewer/)](#472-viewer-auroraviewer)
    * [5. Acknowledgements](#5-acknowledgements)
       * [5.1 Tutorials](#51-tutorials)
       * [5.2 Dependencies](#52-dependencies)
@@ -106,16 +117,16 @@ anything related to it.
 
 ## 1.1 Camera (camera)
 
-![](https://docs.google.com/uc?id=1W05t3I4SXnW6lEGaR5nh-si7s4sy46Ji)
+![](https://docs.google.com/uc?id=1r543NwYDuXDHqI6TQ6eGpXCbuO-gX8Ya)
 
-**Camera** models a perspective camera. It exposes methods for updating the
-field of view, screen size, position and direction, and nothing more. It does
-not care about where the control signal comes from. **UserControlledCamera** is
-the one that we should use in applications. It can respond to inputs from
-cursor, scroll and keyboard. These two classes are not merged into one because
-in the future we may support more offscreen rendering features, in which case
-the control signal may come from a log file or some other sources, not just
-directly from the user.
+We model orthographic cameras and perspective cameras. They don't care about
+where the control signal comes from.
+
+- For onscreen applications where we have user interactions, we should create a
+**Camera** and pass it to **UserControlledCamera**, which can respond to inputs
+from cursor, scroll and keyboard.
+- For offscreen rendering, the control signal may come from other sources
+instead, such as a log file. We don't have such a demo for now.
 
 ## 1.2 Character library (char_lib)
 
@@ -143,12 +154,12 @@ Smart pointers are good enough for managing resources on the host side in this
 project, but we still need something else to manage resources on the device,
 especially if they are loaded from files. For example, we might have loaded some
 textures for rendering a skybox, and later we might want to use the same
-textures to compute reflections when rendering other objects. To avoid loading
-textures again in order to save disk I/O, one option is to have a shared pointer
-to reference to the textures, and pass the pointer around. We think this is not
-very convenient, and we may not know which textures we have already loaded,
-especially when some textures are loaded by the model loader and we never type
-in the file path by ourselves.
+textures to compute reflections when rendering other objects. To avoid
+repeatedly loading the same textures from disk to CPU and then to GPU, one
+option is to have a shared pointer to reference to the textures, and pass the
+pointer around. We think this is not very convenient, and we may not know which
+textures we have already loaded, especially when some textures are loaded by the
+model loader and we never type in the file path by ourselves.
 
 Another option is to put the pointer in a hashmap, and create an identifier of
 it. We can use the file path as the identifier in this case, so that we won't
@@ -158,22 +169,52 @@ do the same thing for other resources, such as shader files. All reference
 counted objects of the same class will be put in one hashmap, and will be erased
 from it if the reference count drops to zero.
 
-Shader files are a bit different, since after we construct a graphics pipeline,
-we can already destroy them. Even if the next pipeline to build may use the same
-shaders, their reference counts may have already dropped to zero before that.
-Hence, we introduced the auto release pool to prevent any resource from being
-destroyed before it goes out of scope. The user may create an instance of it to
-preserve loaded shader files, then construct all models and pipelines. When the
-instance goes out of scope, shader files will be released if unused anymore.
-This is similar to using `std::lock_guard`.
+Shader files are a bit different, since after we construct a pipeline in Vulkan,
+or a program in OpenGL, we can already destroy them. Even if the next pipeline
+or program to build may use the same shaders, their reference counts may have
+already dropped to zero before that. Hence, we introduced the auto release pool
+to prevent any resource from being destroyed before it goes out of scope. The
+user may create an instance of it to preserve loaded shader files, then
+construct all models and pipelines. When the instance goes out of scope, shader
+files will be released if unused anymore. This is similar to using
+`std::lock_guard`.
 
-## 1.6 Timer (timer)
+## 1.6 Rotation manager (rotation)
 
-**Timer** is mainly used to compute the frame rate, which is updated every
-second. The user may also query how long has it been since the timer is
-launched.
+**RotationManager** class is used to compute how much an object should rotate
+following user inputs. **Sphere** uses this manager to handle user interactions
+with a sphere, which can have arbitrary center and radius.
 
-## 1.7 Window manager (window)
+The window manager only tells us at each frame, whether the user is clicking on
+the screen, and the location of the click. It does not tell us whether that is a
+single tap or a long press. Hence, **Rotation** analyzes those clicks across
+frames and make reactions, so that:
+
+- For a single tap, no rotation happens.
+- For a long press, the object exactly follows the cursor. For example, if we
+press on the north pole of an earth model and move our finger, the north pole
+will always be under the finger as long as we keep pressing.
+- After a long press ends, the object will not stop rotation immediately, but
+turn to the inertial rotation state, and slow down gradually.
+
+## 1.7 Spline editor (spline)
+
+![](https://docs.google.com/uc?id=1h8YQZsz9oaYMsfKG5GPtfoEGu4C37GBx)
+
+Splines are represented as a series of points on the spline. We implemented the
+algorithm to turn Bézier spline control points into spline points. Other spline
+classes, such as **CatmullRomSpline**, do not need to implement this conversion,
+but convert their control points to Bézier spline control points, and reuse the
+algorithm.
+
+## 1.8 Timer (timer)
+
+![](https://docs.google.com/uc?id=1s-b3fE_-qdEVqM0OOQnckBSATrAojFHs)
+
+**BasicTimer** mainly tracks how much time has elapsed. **FrameTimer** extends
+it to track the frame rate, updated every second.
+
+## 1.9 Window manager (window)
 
 **Window** is backed by [GLFW library](https://www.glfw.org). The user can
 register callbacks for cursor, scroll and keyboard inputs, and check whether
@@ -181,17 +222,22 @@ the window is resized or closed in the main loop. For Vulkan applications, it is
 also responsible for providing the names of required extensions and help create
 **VkSurfaceKHR**.
 
-# 2. OpenGL wrappers (lighter/wrapper/opengl/)
+# 2. OpenGL backend (lighter/renderer/opengl/)
 
-Not implemented yet.
+For now, we only have a minimal example of using OpenGL in this project. This is
+expected to be extended in the future.
 
-# 3. Vulkan wrappers (lighter/renderer/vulkan/)
+# 3. Vulkan backend (lighter/renderer/vulkan/)
 
-We don't aim to implement OpenGL APIs on the top of Vulkan APIs, but we will try
-to create different levels of wrappers to enable the user to take advantage of
-Vulkan to meet different needs. The user may simply use the high-level wrappers
-to render simple models and texts, which should not be much harder than using
-OpenGL APIs (hope so), or directly use low-level wrappers for flexibility.
+We don't aim to implement OpenGL APIs on the top of Vulkan APIs, but we do try
+to create different levels of abstractions to make life easier. Classes are
+grouped into two categories:
+
+- Wrappers, which provide C++ object oriented interfaces for Vulkan objects.
+- Extensions, which provide high level abstractions, built on the top of
+wrappers. Our ultimate goal is to have a layer above various graphics APIs, so
+that we just need to provide high level descriptions about what we are trying to
+do, and it will lower descriptions to calls to these extensions.
 
 ## 3.1 Contexts (basic_context, basic_object, validation and window_context)
 
@@ -204,7 +250,7 @@ style is not good for building reusable infrastructures. We need to have
 hierarchies, inheritances, interfaces and so on, hence we need to make different
 design decisions.
 
-The first decision we had to make is how to provide a context. Many Vulkan
+The first decision we had to make was about providing a context. Many Vulkan
 functions need access to **VkInstance**, **VkDevice** and many other Vulkan
 objects. A lot of them are shared when we render different targets, which makes
 them the "context". The original design of this project was to have a wrapper
@@ -255,22 +301,21 @@ The final choice is to create a basic context with minimal number of members:
 - **Device**
 - **Queues**
 
-They are truly shared throughout the entire graphics program. Since these
-members are not defined in the same file as the context, we still need to use
-forward declarations, but we no longer need to do the same for other wrappers
-like **Swapchain** and **Pipeline**. When wrappers need to interact with each
-other, we would pass the original Vulkan objects as much as we can, so that
-wrappers don't need to depend on each other. For onscreen rendering, we created
-a window context, which holds a basic context and other members related to the
-window:
+They are truly shared throughout the entire program. Since these members are not
+defined in the same file as the context, we still need to use forward
+declarations, but we no longer need to do the same for other wrappers like
+**Swapchain** and **Pipeline**. When wrappers need to interact with each other,
+we would pass the original Vulkan objects as much as we can, so that wrappers
+don't need to depend on each other. For onscreen rendering, we created a window
+context, which holds a basic context and other members related to the window:
 
 - **Window**
 - **Surface**
 - **Swapchain**
 
-We also created a Bazel target `//lighter/wrapper/vulkan:onscreen` which
-exposes only the files needed for onscreen rendering, so applications only need
-to depend on this target and hold one instance of **WindowContext**.
+We also created a Bazel target `//lighter/renderer/vulkan/extension:onscreen`
+which exposes only the files needed for onscreen rendering, so applications only
+need to depend on this target and hold one instance of **WindowContext**.
 
 Another decision we made was to create and destroy Vulkan objects in a more RAII
 way. The tutorial does not wrap Vulkan objects that much. Each of those objects
@@ -280,7 +325,7 @@ that some of these orders are not necessary. For example, render passes and
 pipelines are independent, and they can be created/destroyed in arbitrary order.
 Hence, we extracted objects that should be dealt with carefully, and put them in
 **BasicContext** and **WindowContext**, where we rely on the declaration order
-(which also determines destruction order in nature) to make sure they are
+(which also determines the destruction order in nature) to make sure they are
 created/destroyed properly. Other wrapper objects that are not in the contexts
 can be created/destroyed in arbitrary order, so the user need not worry about it
 at all.
@@ -309,10 +354,6 @@ user only need to call `WindowContext::Recreate()`.
 just need to update a part of the information and rebuild the pipeline. Since
 **Pipeline** is usually managed by higher level wrappers (**Model** and
 **Text**), the user only need to call `Model::Update()` and `Text::Update()`.
-- For now, the user need to manage **RenderPass** and **DepthStencilImage**
-directly, hence the user need to update and rebuild **RenderPass** with
-**RenderPassBuilder**, and create a new **DepthStencilImage** with the updated
-window size. We might find a better way to wrap them.
 
 **Surface** is a bit different. Since it is owned by **WindowContext** but
 initialized by **BasicContext**, it has an `Init()` method that need to be
@@ -320,16 +361,22 @@ called after construction, and we need to use an extra boolean to track whether
 it has been initialized. The good thing is, this is handled by
 **WindowContext**, so the user would not need to worry about it.
 
-## 3.2 Low-level wrappers
+## 3.2 Wrappers
 
 ### 3.2.1 Buffer (buffer)
 
-![](https://docs.google.com/uc?id=1uVO1xYuN5EX2tBtQ-Yxb44eFEsVMRW7g)
+![](https://docs.google.com/uc?id=1uavjqOdzvLh2vD7SLB67eQWT2qySG6lA)
 
 (**PushConstant** is not shown in the inheritance graph, since it does not own
 an underlying buffer object.)
 
-#### 3.2.1.1 UniformBuffer and PushConstant
+#### 3.2.1.1 Staging buffer
+
+Staging buffer is used to transfer data from the host to buffers that are only
+visible to the device. It is meant to be used when constructing other types of
+buffers. The user may not directly use it.
+
+#### 3.2.1.2 UniformBuffer and PushConstant
 
 Both of them are used to pass uniform data. When constructed, both of them will
 allocate memory on both host and device. Before rendering a frame, the user
@@ -341,56 +388,56 @@ to be compatible of all devices, we only allow **PushConstant** to have at most
 graphics pipeline using multiple instances of **PushConstant**, we also check
 the total size in **Pipeline** to make sure it is still no more than 128 bytes.
 
-#### 3.2.1.2 StaticPerVertexBuffer and DynamicPerVertexBuffer
+#### 3.2.1.3 VertexBuffer
 
-**StaticPerVertexBuffer** is more commonly use, which stores vertex data that
-does not change once constructed.
+**StaticPerVertexBuffer** and **StaticPerInstanceBuffer** are more commonly use,
+which store vertex data that does not change once constructed.
 
-**DynamicPerVertexBuffer** provides a buffer to which we can send different data
-of different size before each render call. The buffer tracks the current size of
-itself. If we try to send data whose size is larger than the current buffer
-size, it will create a new buffer internally. Otherwise, it reuses the old
-buffer. For example, when we want to display the frame rate per-second, we need
-to render one rectangle for each digit, but the digits and the number of digits
-may always change, so we can take advantage of this buffer.
+**DynamicPerVertexBuffer** and **DynamicPerInstanceBuffer** provide buffers to
+which we can send different data of different size before each render call. The
+buffer tracks the current size of itself. If we try to send data whose size is
+larger than the current buffer size, it will create a new buffer internally.
+Otherwise, it reuses the old buffer.
 
-These two buffers are usually managed by high-level wrappers (*i.e.*
-model renderer and text renderer), and the user may not need to directly
-instantiate them.
+Dynamic vertex buffers are usually managed by extension classes, such as model
+renderer and text renderer). For example, when we want to display the frame rate
+per-second, we need to render one rectangle for each digit, but the digits and
+the number of digits may always change, so we can take advantage of this buffer.
+The user may not need to directly use these buffers.
 
-#### 3.2.1.3 PerInstanceBuffer
+### 3.2.2 Image (image and image_usage)
 
-This buffer simply copies one monolithic chunk of data from the host, and can be
-bound to the specified binding point. The user may need to directly instantiate
-this type of vertex buffer.
+![](https://docs.google.com/uc?id=1Wten70a7BXa0jwJuvR60z6SGcNfGcb0z)
 
-#### 3.2.1.4 TextureBuffer, OffscreenBuffer, DepthStencilBuffer and MultisampleBuffer
+**Image** provides all information we need to set up an attachment in the render
+pass. The interface **SamplableImage** is inherited by images that might be
+sampled in shaders. The following classes hold image buffers internally:
 
-These buffers manage device image memory. Among them, **TextureBuffer** is the
-only one that copies data from the host at construction, since it stores texture
-images loaded from files. Other buffers are used as rendering targets.
+- **OffscreenImage** creates an image that can be used as the offscreen
+rendering target or a storage image.
+- **TextureImage** copies an image from the host memory to the device memory.
+- **DepthStencilImage** creates an image that can be used as single-sample depth
+stencil attachment.
+- **MultisampleImage** can be created as a color attachment or depth stencil
+attachment.
 
-These buffers are usually managed by the **Image** classes, and the user may not
-need to directly instantiate them.
+There are another three special types of images:
 
-### 3.2.2 Command (command)
+- **SwapchainImage** wraps an image retrieved from the swapchain.
+- **SharedTexture** retrieves a **TextureImage** from the reference counted
+resource pool. Only if there is no such image alive, it will create a new image.
+- **UnownedOffscreenTexture** takes in a const pointer to an offscreen image.
+It does not own the image, hence the user is responsible for keeping the
+existence of the image.
 
-![](https://docs.google.com/uc?id=1UlOc-ts3a55EmIPSYheY_h2jsrw6lQrl)
-
-- **OneTimeCommand** is used for commands that will be executed only once. For
-example, we only need to transfer data to the static vertex buffer once. The
-user can specify which device queue to use.
-- **PerFrameCommand** is used for commands that will be executed every frame.
-This is used for onscreen rendering, and it handles the synchronization
-internally, so that the user won't need to use semaphores and fences directly.
-
-Both of them are meant to be used directly by the user. We will add more command
-classes for offscreen rendering and other use cases, and always shield the
-complexity of synchronization from the user.
+We also have classes to analyze the usage of images, and determine which
+**VkAccessFlags**, **VkPipelineStageFlags**, and **VkImageLayout** should be
+used when building render passes or inserting memory barriers. This will be
+introduced in image extension classes.
 
 ### 3.2.3 Descriptor (descriptor)
 
-![](https://docs.google.com/uc?id=18xYBBhYkBQmSu_3TA8AeK8cW-pevtPXn)
+![](https://docs.google.com/uc?id=1rS8pAF8W6Vsd4AS08rIrBRVdZ8INtqnr)
 
 - **StaticDescriptor** is meant for descriptors that are only updated once
 during the command buffer recording. It is supported on all hardware.
@@ -398,8 +445,8 @@ during the command buffer recording. It is supported on all hardware.
 during the command buffer recording. It requires the extension
 *VK_KHR_push_descriptor*, hence it may not be available on all hardware.
 
-They are usually managed by high-level wrappers (*i.e.* model renderer and text
-renderer). The user would still need to inform the model renderer of the
+They are usually managed by extension classes, such as model renderer and text
+renderer. The user would still need to inform the model renderer of the
 resources declared in the customized shaders. For high-level wrappers, we choose
 which kind of **Descriptor** to use based on the lifetime and update frequency
 of the descriptor. For example:
@@ -413,55 +460,17 @@ Besides, we only need to create this large texture once, so the lifetime of this
 descriptor is very short. Hence, we use **DynamicDescriptor** to bind the
 character textures one at a time.
 
-### 3.2.4 Image (image)
+### 3.2.4 Pipeline (pipeline and pipeline_util)
 
-![](https://docs.google.com/uc?id=1v3dHjXWTJbwLQKYgqk67zHxHcUAuxWqr)
+![](https://docs.google.com/uc?id=1bDVu0Dg5Up1H-qGhjxNOfEx191Fhtbv-)
 
-**Image** is the base class of all other image classes. It provides accessors
-to the image view, extent, format and sample count (which will be greater than 1
-when multisampling is used). These information should be enough for setting an
-image as an attachment in the render pass. All of its subclasses can be directly
-used by the user, except for **SwapchainImage**, which is managed by
-**Swapchain**:
+For both graphics pipeline and compute pipeline, we provide a builder class
+respectively. If any pipeline state is changed, the user is expected to discard
+the old pipeline, but reuse the builder to update those changed states, and then
+rebuild the pipeline. For example, after the window is resized, the user may
+need to create a new pipeline with updated render pass and viewport.
 
-- **SwapchainImage** wraps an image retrieved from the swapchain.
-- **OffscreenImage** creates an image that can be used as offscreen rendering
-target.
-- **TextureImage** copies an image from the host memory to the device memory.
-- **DepthStencilImage** creates an image that can be used as single-sample depth
-stencil attachment.
-- **MultisampleImage** exposes two convenient constructors to the user. One of
-them creates a multisample image that can be used as color attachment, while
-another one creates a multisample image for depth stencil.
-
-If we want to do multisampling for color images, we would need to create a
-**MultisampleImage**, and then resolve to either **OffscreenImage** or
-**SwapchainImage**. If we want to do multisampling for depth stencil images, we
-don't need to resolve the multisample image. To make life easier,
-**MultisampleImage** provides another convenient constructor that takes in an
-optional multisampling mode. If this mode is `absl::nullopt`, it will return a
-single-sample image, otherwise, it will return a multisample image. The user
-would use the same code to use the depth stencil image in either case.
-
-![](https://docs.google.com/uc?id=1Q4wvHWjwxGHfFvaUvIhQgmZ-ykuehdZQ)
-
-**SamplableImage** is the interface for images that are associated with
-samplers. We may want to sample from either **OffscreenImage** or
-**TextureImage**, hence we created two classes to wrap them and implement the
-interface:
-
-- **SharedTexture** takes in the source path of a single image or a cubemap, and
-stores a reference to the corresponding image resource on the device. To avoid
-loading the same image from the disk twice, the resource on the device is
-reference counted.
-- **UnownedOffscreenTexture** takes in a const pointer to an offscreen texture.
-It does not own the texture, hence the user is responsible for keeping the
-existence of the texture.
-
-### 3.2.5 Pipeline (pipeline and pipeline_util)
-
-We provide a builder class to create instances of **Pipeline**. Through
-**PipelineBuilder** the user may set up:
+Through **GraphicsPipelineBuilder** the user may set up:
 
 - depth and stencil testing
 - front face direction
@@ -474,20 +483,16 @@ We provide a builder class to create instances of **Pipeline**. Through
 - color blending
 - shaders used in the pipeline
 
-We also provide helper functions in *pipeline_util* for setting the viewport,
+We provide helper functions in *pipeline_util* for setting up the viewport,
 color blending and vertex input bindings and attributes.
 
-If any state is changed, the user can reuse the builder, update the states and
-rebuild the pipeline. For example, after the window is resized, the user may
-need to create a new pipeline with updated render pass and viewport. Since
-shaders are referenced counted, it is up to the user to decide whether or not
-to release shaders after the pipeline is built.
+**ComputePipelineBuilder** can be used to set up:
 
-Setting up such a pipeline can be tiring. This is usually managed by high-level
-wrappers (*i.e.* model renderer and text renderer), hence the user would not
-directly interact with it.
+- descriptor set layouts
+- push constant ranges
+- shaders used in the pipeline
 
-### 3.2.6 Render pass (render_pass and render_pass_util)
+### 3.2.5 Render pass (render_pass)
 
 We provide a builder class to create instances of **RenderPass**. Through
 **RenderPassBuilder**, the user may set:
@@ -497,21 +502,13 @@ We provide a builder class to create instances of **RenderPass**. Through
 - multisampling relationships
 - subpasses and dependencies between them
 
-When used to build **RenderPass**, the internal states of the builder would not
-be changed, hence later the user may update the builder and create another
-**RenderPass** with similar settings, which is useful, for example, when the
-window is resized and we need to recreate the render pass with swapchain images
-of the updated size.
+When used to build **RenderPass**, the internal states of the builder would be
+preserved, hence later if any state is changed, the user can discard the old
+**RenderPass**, update the builder and rebuild a new one. For example, when the
+window is resized, we will render to a different set of swapchain images, and
+the render pass would need to be rebuilt.
 
-Since setting up a render pass requires a bit of understanding of Vulkan
-concepts, such as the image layout, pipeline stage and memory access mask, and
-most of them are very similar when rendering simple scenes, we aim to provide
-utils to create render pass builders with commonly used settings in
-*render_pass_util*. For now, we only have a naive one for rendering simple
-objects and text. More of them will be added for more complex scenes and
-rendering techniques, such as deferred rendering.
-
-### 3.2.7 Swapchain (swapchain)
+### 3.2.6 Swapchain (swapchain)
 
 **Swapchain** holds wrappers of images retrieved from the swapchain. If
 constructed with multisampling enabled, it will also hold a multisample color
@@ -519,22 +516,47 @@ image. This class is managed by **WindowContext**, hence the user would not need
 to directly interact with it. See more details in how we designed the
 [window context](https://github.com/lun0522/lighter#31-contexts-basic_context-basic_object-validation-and-window_context).
 
-### 3.2.8 Synchronization (synchronization)
+### 3.2.7 Synchronization (synchronization)
 
 **Semaphores** are used for GPU->GPU sync, while **Fences** are used for
 GPU->CPU sync. **PerFrameCommand** uses them to coordinate command buffer
 recordings and submissions. The user would not need to directly use them for
 rendering simple scenes.
 
-## 3.3 High-level wrappers
+### 3.2.8 Command (command)
 
-### 3.3.1 Model renderer (model)
+![](https://docs.google.com/uc?id=1KWG8cXKi86yj45POchTLWRe69uK1am9f)
+
+- **OneTimeCommand** is used for commands that will be executed only once. For
+example, we only need to transfer data to the static vertex buffer once. The
+user can specify which device queue to use.
+- **PerFrameCommand** is used for commands that will be executed every frame.
+This is used for onscreen rendering, and it handles the synchronization
+internally, so that the user won't need to use semaphores and fences directly.
+
+Both of them are meant to be used directly by the user. We will add more command
+classes for offscreen rendering and other use cases, and always shield the
+complexity of synchronization from the user.
+
+## 3.3 Extensions
+
+### 3.3.1 Image usage utils (image_usage_util)
+
+### 3.3.2 High level pass (base_pass, graphics_pass and compute_pass)
+
+#### 3.3.2.1 Graphics pass
+
+#### 3.3.2.2 Compute pass
+
+### 3.3.3 Naive render pass
+
+### 3.3.4 Model renderer (model)
 
 **Model** is built to shield a great deal of low-level details from the user, so
 that a few lines of code should be enough to display a model on the screen. We
 will illustrate how to use **ModelBuilder** and **Model**.
 
-#### 3.3.1.1 Load vertex data, textures and shaders
+#### 3.3.4.1 Load vertex data, textures and shaders
 
 The user need to specify how to load the model vertex data and textures when
 constructing **ModelBuilder**.
@@ -564,7 +586,7 @@ can use **ModelBuilder::AutoReleaseShaderPool** (which is an alias of
 released. Especially when rendering texts, the same shaders are expected to be
 used for multiple times, and the auto release pool will be of great help.
 
-#### 3.3.1.2 Bind per-instance vertex buffers, uniform buffers and push constants
+#### 3.3.4.2 Bind per-instance vertex buffers, uniform buffers and push constants
 
 All these information are optional. If any resources are used, the user is
 responsible for keeping the existence of those resources, since **ModelBuilder**
@@ -583,7 +605,7 @@ entire pipeline, there is no binding point or array length to specify. We will
 need to specify at which shader stages they will be used, and which instances of
 **PushConstant** will provide the data (targeting different offsets).
 
-#### 3.3.1.3 Build and update the model
+#### 3.3.4.3 Build and update the model
 
 After all the information above are set, the user can build a new instance of
 **Model**. After that, all internal states of the **ModelBuilder** instance will
@@ -597,9 +619,9 @@ opaque object transparent, or the other way around, **Model** should also be
 updated. As a future optimization, we may make color blend a part of dynamic
 states to avoid rebuilding the entire pipeline for changing transparency.
 
-### 3.3.2 Text renderer (text and text_util)
+### 3.3.5 Text renderer (text and text_util)
 
-#### 3.3.2.1 CharLoader and TextLoader
+#### 3.3.5.1 CharLoader and TextLoader
 
 **common::CharLib** loads textures of each single character. If we want to use
 those textures, here are some options we have:
@@ -651,9 +673,9 @@ pass, etc.
 
 In the future, we may support rendering texts with signed distance fields.
 
-#### 3.3.2.2 StaticText and DynamicText
+#### 3.3.5.2 StaticText and DynamicText
 
-![](https://docs.google.com/uc?id=10MEvDtUZsmKL8oskpESNn4ENzs7F1MXZ)
+![](https://docs.google.com/uc?id=1MM_9CuUaxBL8wPPsdW0se9-XkvsxBXKc)
 
 **StaticText** is backed by **TextLoader**. The user should pass in a list of
 static texts that will be rendered later to its constructor. **DynamicText**
@@ -709,6 +731,24 @@ used to compute the reflection on the glasses of nanosuit model.
 
 This scene is mainly built for testing instanced drawing and the performance.
 
+## 4.5 Troop scene (troop)
+
+![](https://docs.google.com/uc?id=1RrNKchGwcwSoYg7FiosBCE8_HkzMMjTW)
+
+## 4.6 Post effect scene (post_effect)
+
+![](https://docs.google.com/uc?id=1Bod00_1qByL7MT3XEa5yRdya_9wg5DQT)
+
+## 4.7 Aurora sketcher
+
+### 4.7.1 Editor (aurora/editor/)
+
+![](https://docs.google.com/uc?id=1DY6eP0vVAMPrrEKBaj_cpkzrUS9Sw_fz)
+
+### 4.7.2 Viewer (aurora/viewer/)
+
+![](https://docs.google.com/uc?id=1zQcfdJs-mSSy_fCu81MLTd6FRoDJY8n-)
+
 # 5. Acknowledgements
 
 ## 5.1 Tutorials
@@ -723,8 +763,10 @@ This scene is mainly built for testing instanced drawing and the performance.
 - [Assimp library](http://www.assimp.org)
 - [Bazel build system](https://bazel.build)
 - [FreeType library](https://www.freetype.org)
+- [GLAD library](https://github.com/Dav1dde/glad)
 - [GLFW library](https://www.glfw.org)
 - [GLM library](https://glm.g-truc.net)
+- [Google Test library](https://github.com/google/googletest)
 - [STB library](https://github.com/nothings/stb)
 - [Vulkan SDK](https://vulkan.lunarg.com)
 

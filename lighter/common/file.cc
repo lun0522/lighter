@@ -227,18 +227,15 @@ ObjFile::ObjFile(const std::string& path, int index_base) {
     }
   };
 
+  std::string line;
   int line_num = 1;
-  for (std::string line; getline(file, line); ++line_num) {
-    try {
+  try {
+    for (; std::getline(file, line); ++line_num) {
       parse_line(line);
-    } catch (const std::out_of_range& e) {
-      FATAL(absl::StrFormat("Out of range at line %d: %s", line_num, line));
-    } catch (const std::invalid_argument& e) {
-      FATAL(absl::StrFormat("Invalid argument at line %d: %s", line_num, line));
-    } catch (const std::exception& e) {
-      FATAL(absl::StrFormat("Failed to parse line %d: %s\n%s",
-                            line_num, line, e.what()));
     }
+  } catch (const std::exception& e) {
+    FATAL(absl::StrFormat("Failed to parse line %d: %s\n%s",
+                          line_num, line, e.what()));
   }
 }
 

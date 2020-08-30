@@ -1,12 +1,12 @@
 //
-//  image_util.h
+//  image_usage_util.h
 //
 //  Created by Pujun Lun on 7/25/20.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VULKAN_EXTENSION_IMAGE_UTIL_H
-#define LIGHTER_RENDERER_VULKAN_EXTENSION_IMAGE_UTIL_H
+#ifndef LIGHTER_RENDERER_VULKAN_EXTENSION_IMAGE_USAGE_UTIL_H
+#define LIGHTER_RENDERER_VULKAN_EXTENSION_IMAGE_USAGE_UTIL_H
 
 #include <map>
 #include <string>
@@ -125,4 +125,4 @@ class UsageHistory {
 } /* namespace renderer */
 } /* namespace lighter */
 
-#endif /* LIGHTER_RENDERER_VULKAN_EXTENSION_IMAGE_UTIL_H */
+#endif /* LIGHTER_RENDERER_VULKAN_EXTENSION_IMAGE_USAGE_UTIL_H */

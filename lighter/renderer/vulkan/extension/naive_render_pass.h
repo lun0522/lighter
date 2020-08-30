@@ -13,7 +13,7 @@
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
-#include "lighter/renderer/vulkan/extension/image_util.h"
+#include "lighter/renderer/vulkan/extension/image_usage_util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "third_party/absl/strings/string_view.h"

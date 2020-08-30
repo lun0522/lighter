@@ -1,11 +1,11 @@
 //
-//  image_util.cc
+//  image_usage_util.cc
 //
 //  Created by Pujun Lun on 7/25/20.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "lighter/renderer/vulkan/extension/image_util.h"
+#include "lighter/renderer/vulkan/extension/image_usage_util.h"
 
 #include "lighter/common/util.h"
 #include "third_party/absl/strings/str_format.h"

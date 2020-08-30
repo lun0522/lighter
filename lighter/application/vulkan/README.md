@@ -9,19 +9,20 @@ Table of Contents
      * [1.1 Command buffer](#11-command-buffer)
      * [1.2 Vertex buffer](#12-vertex-buffer)
      * [1.3 Push constant](#13-push-constant)
-     * [1.4 Render pass](#14-render-pass)
-     * [1.5 Graphics pipeline](#15-graphics-pipeline)
+     * [1.4 Graphics pipeline](#14-graphics-pipeline)
+     * [1.5 Render pass](#15-render-pass)
   * [2. Recreate swapchain - TriangleApp::Recreate()](#2-recreate-swapchain---triangleapprecreate)
   * [3. Update per-frame data - TriangleApp::UpdateData()](#3-update-per-frame-data---triangleappupdatedata)
   * [4. Main loop - TriangleApp::MainLoop()](#4-main-loop---triangleappmainloop)
   * [5. Appendix - Shader code](#5-appendix---shader-code)
-     * [5.1 Vertex shader (pure_color.vert)](#51-vertex-shader-pure_colorvert)
-     * [5.2 Fragment shader (pure_color.frag)](#52-fragment-shader-pure_colorfrag)
+     * [5.1 Vertex shader (triangle.vert)](#51-vertex-shader-trianglevert)
+     * [5.2 Fragment shader (triangle.frag)](#52-fragment-shader-trianglefrag)
 
 ## 0. Introduction
 
-This is a breakdown of the code of [triangle scene](https://github.com/lun0522/lighter/blob/master/lighter/application/vulkan/triangle.cc),
-which renders a triangle that fades in and out with less than 200 lines of code:
+This is a breakdown of the [code](https://github.com/lun0522/lighter/blob/master/lighter/application/vulkan/triangle.cc)
+of triangle scene, which renders a triangle that fades in and out with less than
+200 lines of code:
 
 ![](https://docs.google.com/uc?id=1zhkhNUTzphiqWez6X0y_RKN7WouT7SCE)
 
@@ -242,7 +243,6 @@ start rendering a new frame:
 Recreate();
 while (mutable_window_context()->CheckEvents()) {
   timer_.Tick();
-......
 ```
 
 Note that if the user closes the window,

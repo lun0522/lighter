@@ -11,7 +11,7 @@
 #include <string>
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/vulkan/extension/image_util.h"
+#include "lighter/renderer/vulkan/extension/image_usage_util.h"
 #include "lighter/renderer/vulkan/wrapper/image_usage.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/optional.h"

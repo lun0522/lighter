@@ -8,7 +8,7 @@
 #include "lighter/application/vulkan/aurora/editor/button_maker.h"
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/vulkan/extension/image_util.h"
+#include "lighter/renderer/vulkan/extension/image_usage_util.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/wrapper/command.h"
 #include "lighter/renderer/vulkan/wrapper/descriptor.h"

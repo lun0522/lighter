@@ -12,7 +12,7 @@
 #include <string>
 
 #include "lighter/renderer/vulkan/extension/base_pass.h"
-#include "lighter/renderer/vulkan/extension/image_util.h"
+#include "lighter/renderer/vulkan/extension/image_usage_util.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/span.h"

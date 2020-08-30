@@ -9,7 +9,7 @@ cc_library(
     deps = [
         ":compute_pass",
         ":graphics_pass",
-        ":image_util",
+        ":image_usage_util",
         ":model",
         ":naive_render_pass",
         ":offscreen_wrappers",
@@ -31,7 +31,7 @@ cc_library(
     hdrs = ["base_pass.h"],
     srcs = ["base_pass.cc"],
     deps = [
-        ":image_util",
+        ":image_usage_util",
         "//lighter/common:util",
         "//lighter/renderer/vulkan/wrapper:image",
         "//third_party/absl/strings:str_format",
@@ -47,7 +47,7 @@ cc_library(
     srcs = ["compute_pass.cc"],
     deps = [
         ":base_pass",
-        ":image_util",
+        ":image_usage_util",
         "//lighter/common:util",
         "//lighter/renderer/vulkan/wrapper:image",
         "//third_party/absl/container:flat_hash_map",
@@ -63,7 +63,7 @@ cc_library(
     srcs = ["graphics_pass.cc"],
     deps = [
         ":base_pass",
-        ":image_util",
+        ":image_usage_util",
         "//lighter/common:util",
         "//lighter/renderer/vulkan/wrapper:image",
         "//lighter/renderer/vulkan/wrapper:render_pass",
@@ -76,9 +76,9 @@ cc_library(
 )
 
 cc_library(
-    name = "image_util",
-    hdrs = ["image_util.h"],
-    srcs = ["image_util.cc"],
+    name = "image_usage_util",
+    hdrs = ["image_usage_util.h"],
+    srcs = ["image_usage_util.cc"],
     deps = [
         "//lighter/common:util",
         "//lighter/renderer/vulkan/wrapper:image",
@@ -113,7 +113,7 @@ cc_library(
     srcs = ["naive_render_pass.cc"],
     deps = [
         ":graphics_pass",
-        ":image_util",
+        ":image_usage_util",
         "//lighter/common:util",
         "//lighter/renderer/vulkan/wrapper:basics",
         "//lighter/renderer/vulkan/wrapper:render_pass",

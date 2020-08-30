@@ -11,7 +11,7 @@
 
 #include "lighter/common/file.h"
 #include "lighter/renderer/align.h"
-#include "lighter/renderer/vulkan/extension/image_util.h"
+#include "lighter/renderer/vulkan/extension/image_usage_util.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/glm/gtc/matrix_transform.hpp"
