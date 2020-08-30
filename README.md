@@ -22,9 +22,9 @@ Table of Contents
       * [3.1 Contexts (basic_context, basic_object, validation and window_context)](#31-contexts-basic_context-basic_object-validation-and-window_context)
       * [3.2 Wrappers](#32-wrappers)
          * [3.2.1 Buffer (buffer)](#321-buffer-buffer)
-            * [3.2.1.1 Staging buffer](#3211-staging-buffer)
-            * [3.2.1.2 UniformBuffer and PushConstant](#3212-uniformbuffer-and-pushconstant)
-            * [3.2.1.3 VertexBuffer](#3213-vertexbuffer)
+            * [3.2.1.1 StagingBuffer](#3211-stagingbuffer)
+            * [3.2.1.2 VertexBuffer](#3212-vertexbuffer)
+            * [3.2.1.3 UniformBuffer and PushConstant](#3213-uniformbuffer-and-pushconstant)
          * [3.2.2 Image (image and image_usage)](#322-image-image-and-image_usage)
          * [3.2.3 Descriptor (descriptor)](#323-descriptor-descriptor)
          * [3.2.4 Pipeline (pipeline and pipeline_util)](#324-pipeline-pipeline-and-pipeline_util)
@@ -35,9 +35,7 @@ Table of Contents
       * [3.3 Extensions](#33-extensions)
          * [3.3.1 Image usage utils (image_usage_util)](#331-image-usage-utils-image_usage_util)
          * [3.3.2 High level pass (base_pass, graphics_pass and compute_pass)](#332-high-level-pass-base_pass-graphics_pass-and-compute_pass)
-            * [3.3.2.1 Graphics pass](#3321-graphics-pass)
-            * [3.3.2.2 Compute pass](#3322-compute-pass)
-         * [3.3.3 Naive render pass](#333-naive-render-pass)
+         * [3.3.3 Naive render pass (naive_render_pass)](#333-naive-render-pass-naive_render_pass)
          * [3.3.4 Model renderer (model)](#334-model-renderer-model)
             * [3.3.4.1 Load vertex data, textures and shaders](#3341-load-vertex-data-textures-and-shaders)
             * [3.3.4.2 Bind per-instance vertex buffers, uniform buffers and push constants](#3342-bind-per-instance-vertex-buffers-uniform-buffers-and-push-constants)
@@ -370,25 +368,13 @@ it has been initialized. The good thing is, this is handled by
 (**PushConstant** is not shown in the inheritance graph, since it does not own
 an underlying buffer object.)
 
-#### 3.2.1.1 Staging buffer
+#### 3.2.1.1 StagingBuffer
 
 Staging buffer is used to transfer data from the host to buffers that are only
 visible to the device. It is meant to be used when constructing other types of
 buffers. The user may not directly use it.
 
-#### 3.2.1.2 UniformBuffer and PushConstant
-
-Both of them are used to pass uniform data. When constructed, both of them will
-allocate memory on both host and device. Before rendering a frame, the user
-should acquire a pointer to the host data, populate it and flush to the device.
-
-According to the [Vulkan specification](https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap36.html#limits-minmax),
-to be compatible of all devices, we only allow **PushConstant** to have at most
-128 bytes for each frame. Besides, since it is possible to push constant to one
-graphics pipeline using multiple instances of **PushConstant**, we also check
-the total size in **Pipeline** to make sure it is still no more than 128 bytes.
-
-#### 3.2.1.3 VertexBuffer
+#### 3.2.1.2 VertexBuffer
 
 **StaticPerVertexBuffer** and **StaticPerInstanceBuffer** are more commonly use,
 which store vertex data that does not change once constructed.
@@ -404,6 +390,18 @@ renderer and text renderer). For example, when we want to display the frame rate
 per-second, we need to render one rectangle for each digit, but the digits and
 the number of digits may always change, so we can take advantage of this buffer.
 The user may not need to directly use these buffers.
+
+#### 3.2.1.3 UniformBuffer and PushConstant
+
+Both of them are used to pass uniform data. When constructed, both of them will
+allocate memory on both host and device. Before rendering a frame, the user
+should acquire a pointer to the host data, populate it and flush to the device.
+
+According to the [Vulkan specification](https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap36.html#limits-minmax),
+to be compatible of all devices, we only allow **PushConstant** to have at most
+128 bytes for each frame. Besides, since it is possible to push constant to one
+graphics pipeline using multiple instances of **PushConstant**, we also check
+the total size in **Pipeline** to make sure it is still no more than 128 bytes.
 
 ### 3.2.2 Image (image and image_usage)
 
@@ -430,10 +428,15 @@ resource pool. Only if there is no such image alive, it will create a new image.
 It does not own the image, hence the user is responsible for keeping the
 existence of the image.
 
-We also have classes to analyze the usage of images, and determine which
-**VkAccessFlags**, **VkPipelineStageFlags**, and **VkImageLayout** should be
-used when building render passes or inserting memory barriers. This will be
-introduced in image extension classes.
+**image::Usage** describes the usage from three perspectives:
+
+- Usage type (render target, depth stencil, presentation, etc)
+- Access type (read-only, write-only, or both)
+- Access location (host, compute shader, fragment shader, etc)
+
+This is used to determine which **VkImageUsageFlags** should be used when
+creating the image. It is also used to build high level passes, which will be
+introduced later.
 
 ### 3.2.3 Descriptor (descriptor)
 
@@ -472,35 +475,35 @@ need to create a new pipeline with updated render pass and viewport.
 
 Through **GraphicsPipelineBuilder** the user may set up:
 
-- depth and stencil testing
-- front face direction
-- multisampling
-- vertex input bindings and attributes
-- descriptor set layouts
-- push constant ranges
-- viewport and scissor
-- render pass and subpass
-- color blending
-- shaders used in the pipeline
+- Depth and stencil testing
+- Front face direction
+- Multisampling
+- Vertex input bindings and attributes
+- Descriptor set layouts
+- Push constant ranges
+- Viewport and scissor
+- Render pass and subpass
+- Color blending
+- Shaders used in the pipeline
 
 We provide helper functions in *pipeline_util* for setting up the viewport,
 color blending and vertex input bindings and attributes.
 
 **ComputePipelineBuilder** can be used to set up:
 
-- descriptor set layouts
-- push constant ranges
-- shaders used in the pipeline
+- Descriptor set layouts
+- Push constant ranges
+- Shaders used in the pipeline
 
 ### 3.2.5 Render pass (render_pass)
 
 We provide a builder class to create instances of **RenderPass**. Through
 **RenderPassBuilder**, the user may set:
 
-- number of framebuffers
-- attachments and associated images
-- multisampling relationships
-- subpasses and dependencies between them
+- Number of framebuffers
+- Attachments and associated images
+- Multisampling relationships
+- Subpasses and dependencies between them
 
 When used to build **RenderPass**, the internal states of the builder would be
 preserved, hence later if any state is changed, the user can discard the old
@@ -542,13 +545,72 @@ complexity of synchronization from the user.
 
 ### 3.3.1 Image usage utils (image_usage_util)
 
+- **image::UsageTracker** tracks the current usage of multiple images. We pass a
+tracker to a high level pass, so that the pass builder can look up the usages
+prior to that pass, and update the usages once that pass ends.
+- **image::UsageHistory** specifies the image usage before and after a high
+level pass, and the usage at each subpass during that pass. See introduction to
+high level passes for why do we need this history.
+
 ### 3.3.2 High level pass (base_pass, graphics_pass and compute_pass)
 
-#### 3.3.2.1 Graphics pass
+Vulkan requires the application to specify which image layout transitions need
+to be performed, and how to synchronize accesses to the backing memory. Back to
+the time when we only had graphics applications, building a render pass was
+already difficult, so we created [**NaiveRenderPassBuilder**](https://github.com/lun0522/lighter/blob/574edecf5641c6a1fba2755b6c11c0ce0cdeb9ee/lighter/renderer/vulkan/wrapper/render_pass_util.h#L28)
+to make life easier. It was not elegant to extend that class. For example:
 
-#### 3.3.2.2 Compute pass
+- Sometimes we want the color attachment to have a different layout after the
+render pass, so we added the enum **ColorAttachmentFinalUsage** to guide this
+transition. Suppose that one day we want to transition the layout of depth
+stencil attachment, we would have to change the interface again.
+- By default, we don't care about the content stored in depth stencil attachment
+prior to this render pass. When we want to preserve the previous content, we
+have to pass a boolean to tell this builder. Suppose that we don't want to use
+the default settings for other attachments, we would have to change the
+interface as well.
 
-### 3.3.3 Naive render pass
+When we were creating a scene that used deferred shading, the naive builder
+couldn't handle it, so we had to introduce
+[**DeferredShadingRenderPassBuilder**](https://github.com/lun0522/lighter/blob/574edecf5641c6a1fba2755b6c11c0ce0cdeb9ee/lighter/renderer/vulkan/wrapper/render_pass_util.h#L100),
+which was repeating some code of **NaiveRenderPassBuilder**, and was hard to
+extend as well.
+
+When we were adding applications that used compute shaders, things got even more
+complicated, since we no longer have common patterns. If we don't have high
+level abstractions, users would need to insert memory barriers with Vulkan flags
+by themselves.
+
+So, eventually we built **image::Usage**, which is used to infer
+**VkImageUsageFlag**, **VkAccessFlags**, **VkPipelineStageFlags** and
+**VkImageLayout**. High level passes are then built on the top of it. The basic
+idea is the user would use **image::UsageHistory** to specify the usage of each
+image at each subpass, which is then used to construct high level passes:
+
+- **GraphicsPass** is equivalent to a render pass, and each subpass of it
+corresponds to a subpass of the render pass. It finally creates a render pass
+builder, and sets attachments, subpasses and subpass dependencies internally, so
+that the user only needs to update this builder with actual attachment images.
+- **ComputePass** is a sequence of compute shader invocations, where we may need
+to insert memory barriers for image layout transitions in between.
+
+### 3.3.3 Naive render pass (naive_render_pass)
+
+Most of render passes used in our applications have a common pattern. They
+usually contain three kinds of subpasses:
+
+1. Subpasses for rendering opaque objects. The depth stencil attachment should
+be both readable and writable.
+2. Subpasses for rendering transparent objects. The depth stencil attachment
+should be read-only.
+3. Subpasses for rendering overlays, such as text. The depth stencil attachment
+is not used.
+
+We built a new **NaiveRenderPass** on the top of **GraphicsPass**. The user only
+needs to specifies how many subpasses of each kind are used (may be zero). This
+class will create **image::UsageHistory** for color, depth stencil and
+multisample attachments internally, and use **GraphicsPass** to create the
+render pass builder. This helped simplify the application code a lot.
 
 ### 3.3.4 Model renderer (model)
 
@@ -699,8 +761,8 @@ use **CharLoader** and **TextLoader** for simple scenes.
 
 This is the most basic scene, where we don't have any mesh or texture, but one
 blinking triangle. This proves all the basic functionality for onscreen
-rendering (vertex buffer, push constant, command buffer, swapchain, render pass
-and graphics pipeline) and alpha blending are working. We have a [breakdown of the code](https://github.com/lun0522/lighter/tree/master/lighter/application/vulkan)
+rendering (vertex buffer, push constant, swapchain, command buffer, graphics
+pipeline and render pass) and alpha blending are working. We have a [breakdown of the code](https://github.com/lun0522/lighter/tree/master/lighter/application/vulkan)
 to illustrate the usage of them. If all resources on the device are destroyed
 properly, the context will be destructed at last, and we should see the log
 "Context destructed properly" in the debug compilation mode.
@@ -710,8 +772,9 @@ properly, the context will be destructed at last, and we should see the log
 ![](https://docs.google.com/uc?id=1UipW6M6x5uLKSOJdTOPNus86CFaicl-i)
 
 The cube model is loaded by our lightweight .obj file loader. The statue image
-on the cube proves we can load images from files. The text that shows the frame
-rate proves the offscreen rendering pipeline is working. Since text rendering
+on the cube proves we can load images from files, and we properly associate it
+with an image sampler and set up descriptors. The text showing the frame rate
+proves the offscreen rendering pipeline is working. Since text rendering
 requires loading the same shaders several times, if the reference counting and
 auto release pool work well, in the debug compilation mode, we should see some
 logs saying cache hits for shaders.
@@ -721,9 +784,10 @@ logs saying cache hits for shaders.
 ![](https://docs.google.com/uc?id=14GFRdlf1qYqZem45e5YKLbjrL5ni84LP)
 
 The nanosuit model is loaded with [Assimp library](http://www.assimp.org). The
-user can use keyboard to control the camera. This scene also tests the skybox
-loading and reference counting for textures, since the skybox texture is also
-used to compute the reflection on the glasses of nanosuit model.
+user can use keyboard to control the camera. This scene uses uniform buffer. It
+also tests the skybox loading and reference counting for textures, since the
+skybox texture is also used to compute the reflection on the glasses of nanosuit
+model.
 
 ## 4.4 Planet and asteroids scene (planet)
 
@@ -735,19 +799,76 @@ This scene is mainly built for testing instanced drawing and the performance.
 
 ![](https://docs.google.com/uc?id=1RrNKchGwcwSoYg7FiosBCE8_HkzMMjTW)
 
+This scene uses deferred shading. In the geometry pass, we have to store the
+position, normal and albedo of each fragment to different images. Besides, we
+are also using a depth stencil image. We just specified the usage history of
+each image, and our engine is able to lower it to a render pass.
+
 ## 4.6 Post effect scene (post_effect)
 
 ![](https://docs.google.com/uc?id=1Bod00_1qByL7MT3XEa5yRdya_9wg5DQT)
 
+In this scene, we are adding a simple effect to a texture image using a compute
+shader. It proves the basic functionality of compute pipeline is working.
+
 ## 4.7 Aurora sketcher
+
+This is re-implementing my previous project ![AuroraSketcher](https://github.com/lun0522/AuroraSketcher).
+The way of rendering aurora came from:
+
+> Lawlor, Orion & Genetti, Jon. (2011). Interactive Volume Rendering Aurora on the
+GPU. Journal of WSCG. 19. 25-32.
+
+In the original paper, the aurora path was generated offline, and the camera was
+in the space. In this application, we want to enable users to design the aurora
+path, and view the generated aurora from any point on the surface of the earth.
 
 ### 4.7.1 Editor (aurora/editor/)
 
 ![](https://docs.google.com/uc?id=1DY6eP0vVAMPrrEKBaj_cpkzrUS9Sw_fz)
 
+In the editor scene, the user can interact with the 3D earth model:
+
+- Zoom in/out, by scrolling up/down.
+- Rotate the earth, by dragging any point of the earth. After the dragging ends,
+the earth will be in inertial rotation state and slow down gradually.
+- Turn on/off daylight to make it easier to find a location, by clicking on the
+**DAYLIGHT** button.
+
+By clicking on the **EDITING** button, we can enter/exit the edit mode. In the
+edit mode, the earth won't interact with the user (but the user can still zoom
+in/out). Besides, four buttons will show on the top of the frame, where the
+first three are used to select which aurora path to edit. Each path is
+represented as a spline. The user may:
+
+- Add a control point, by right clicking on any point on the earth where there
+isn't a control point yet.
+- Remove a control point, by right clicking on an existing control point.
+- Move a control points, by dragging an existing control point.
+
+The last button on the top, **VIEWPOINT**, controls from which location do we
+view the generated aurora. Note that only one of these four buttons can be
+selected at the same time.
+
+After the design is done, the user can click on the **AURORA** button, and the
+application will enter the viewer scene to show the generated aurora. We can
+come back to the editor scene at any time, and the design won't be lost.
+
 ### 4.7.2 Viewer (aurora/viewer/)
 
 ![](https://docs.google.com/uc?id=1zQcfdJs-mSSy_fCu81MLTd6FRoDJY8n-)
+
+In this scene, the user can move the cursor to change the direction of camera.
+This scene appears not so complex, but under the scene these are happening:
+
+1. Render aurora paths that can be seen from the user specified viewpoint to a
+2D image as line strips.
+2. Use a compute shader to make those paths wider, since we cannot make line
+width greater than 1 on may hardware when we render them.
+3. Use several compute shaders to generate the distance field using jump
+flooding algorithm.
+4. Render aurora paths using ray marching, accelerated by using the distance
+field.
 
 # 5. Acknowledgements
 
@@ -772,7 +893,7 @@ This scene is mainly built for testing instanced drawing and the performance.
 
 ## 5.3 Resources
 
-- The table of contents of each README is generated with [github-markdown-toc](https://github.com/ekalinin/github-markdown-toc)
+- The table of contents of each README is generated with [github-markdown-toc](https://github.com/ekalinin/github-markdown-toc).
 - Class inheritance graphs are generated with [Doxygen](http://www.doxygen.nl)
-and [Graphviz](http://www.graphviz.org)
-- Fonts, frameworks, 3D models and textures in a separate [resource repo](https://github.com/lun0522/resource)
+and [Graphviz](http://www.graphviz.org).
+- Fonts, frameworks, 3D models and textures in a separate [resource repo](https://github.com/lun0522/resource).
