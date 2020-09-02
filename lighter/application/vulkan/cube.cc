@@ -125,7 +125,6 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
 }
 
 void CubeApp::Recreate() {
-
   // Prevent shaders from being auto released.
   ModelBuilder::AutoReleaseShaderPool shader_pool;
 
