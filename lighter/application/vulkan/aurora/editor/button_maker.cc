@@ -68,7 +68,8 @@ std::unique_ptr<StaticPerInstanceBuffer> CreatePerInstanceBuffer(
     render_infos.push_back({info.render_info[button::kUnselectedState]});
   }
   return absl::make_unique<StaticPerInstanceBuffer>(
-      context, render_infos, ButtonMaker::RenderInfo::GetAttributes());
+      context, render_infos,
+      pipeline::GetVertexAttributes<make_button::RenderInfo>());
 }
 
 // Returns a descriptor with an image bound to it.
@@ -140,6 +141,19 @@ std::unique_ptr<DynamicText> CreateTextRenderer(
 
 } /* namespace */
 
+namespace make_button {
+
+std::vector<common::VertexAttribute> RenderInfo::GetVertexAttributes() {
+  std::vector<common::VertexAttribute> attributes;
+  common::file::AppendVertexAttributes<glm::vec3>(
+      attributes, offsetof(RenderInfo, color));
+  common::file::AppendVertexAttributes<glm::vec2>(
+      attributes, offsetof(RenderInfo, center));
+  return attributes;
+}
+
+} /* namespace make_button */
+
 std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
     const SharedBasicContext& context, Text::Font font, int font_height,
     const glm::vec3& text_color, const common::Image& button_background,
@@ -175,7 +189,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
       .SetPipelineName("Button background")
       .AddVertexInput(
           kPerInstanceBufferBindingPoint,
-          pipeline::GetPerInstanceBindingDescription<RenderInfo>(),
+          pipeline::GetPerInstanceBindingDescription<make_button::RenderInfo>(),
           per_instance_buffer->GetAttributes(/*start_location=*/0))
       .SetPipelineLayout(
           {descriptor->layout()},

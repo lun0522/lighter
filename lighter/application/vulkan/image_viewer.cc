@@ -47,7 +47,7 @@ ImageViewer::ImageViewer(const SharedBasicContext& context,
       /*per_mesh_vertices=*/{{PerVertexBuffer::VertexDataInfo{vertex_data}}}
   };
   vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
-      context, vertex_data_info, pipeline::GetVertexAttribute<Vertex2D>());
+      context, vertex_data_info, pipeline::GetVertexAttributes<Vertex2D>());
 
   /* Pipeline */
   const auto frag_shader_relative_path =

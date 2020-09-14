@@ -149,7 +149,7 @@ void ModelBuilder::SingleMeshResource::LoadMesh(ModelBuilder* builder) const {
   };
   builder->vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
       builder->context_, std::move(vertex_info),
-      pipeline::GetVertexAttribute<Vertex3DWithTex>());
+      pipeline::GetVertexAttributes<Vertex3DWithTex>());
 
   // Load textures.
   auto& mesh_textures = builder->mesh_textures_;
@@ -178,7 +178,7 @@ void ModelBuilder::MultiMeshResource::LoadMesh(ModelBuilder* builder) const {
   }
   builder->vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
       builder->context_, VertexInfo{std::move(per_mesh_infos)},
-      pipeline::GetVertexAttribute<Vertex3DWithTex>());
+      pipeline::GetVertexAttributes<Vertex3DWithTex>());
 
   // Load textures.
   const auto image_usages = {image::Usage::GetSampledInFragmentShaderUsage()};

@@ -11,7 +11,7 @@ cc_library(
         "//lighter/common:file",
         "//lighter/common:timer",
         "//lighter/common:util",
-        "//lighter/renderer:align",
+        "//lighter/renderer/common:align",
         "//lighter/renderer/vulkan/extension:onscreen",
         "//third_party/absl/flags:flag",
         "//third_party/absl/memory",

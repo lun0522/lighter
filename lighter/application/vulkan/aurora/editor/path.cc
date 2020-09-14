@@ -8,7 +8,7 @@
 #include "lighter/application/vulkan/aurora/editor/path.h"
 
 #include "lighter/common/file.h"
-#include "lighter/renderer/align.h"
+#include "lighter/renderer/common/align.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
@@ -32,8 +32,8 @@ constexpr uint32_t kViewpointVertexBufferBindingPoint = 0;
 
 struct ColorAlpha {
   // Returns vertex input attributes.
-  static std::vector<VertexBuffer::Attribute> GetAttributes() {
-    return {{offsetof(ColorAlpha, value), VK_FORMAT_R32G32B32A32_SFLOAT}};
+  static std::vector<common::VertexAttribute> GetVertexAttributes() {
+    return common::file::CreateVertexAttributes<glm::vec4>();
   }
 
   glm::vec4 value;
@@ -93,22 +93,23 @@ PathRenderer3D::PathRenderer3D(const SharedBasicContext& context,
   };
   sphere_vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
       context, std::move(sphere_vertices_info),
-      pipeline::GetVertexAttribute<Vertex3DPosOnly>());
+      pipeline::GetVertexAttributes<Vertex3DPosOnly>());
 
   paths_vertex_buffers_.reserve(num_paths_);
   for (int path = 0; path < num_paths_; ++path) {
     paths_vertex_buffers_.push_back(PathVertexBuffers{
         absl::make_unique<DynamicPerInstanceBuffer>(
             context, sizeof(Vertex3DPosOnly), /*max_num_instances=*/1,
-            pipeline::GetVertexAttribute<Vertex3DPosOnly>()),
+            pipeline::GetVertexAttributes<Vertex3DPosOnly>()),
         absl::make_unique<DynamicPerVertexBuffer>(
             context, /*initial_size=*/1,
-            pipeline::GetVertexAttribute<Vertex3DPosOnly>()),
+            pipeline::GetVertexAttributes<Vertex3DPosOnly>()),
     });
   }
 
   color_alpha_vertex_buffer_ = absl::make_unique<DynamicPerInstanceBuffer>(
-      context, sizeof(ColorAlpha), num_paths_, ColorAlpha::GetAttributes());
+      context, sizeof(ColorAlpha), num_paths_,
+      pipeline::GetVertexAttributes<ColorAlpha>());
 
   /* Push constant */
   control_render_constant_ = absl::make_unique<PushConstant>(

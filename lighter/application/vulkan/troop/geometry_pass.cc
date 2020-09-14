@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "lighter/common/file.h"
-#include "lighter/renderer/align.h"
+#include "lighter/renderer/common/align.h"
 #include "lighter/renderer/vulkan/extension/image_usage_util.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "third_party/absl/memory/memory.h"
@@ -77,7 +77,7 @@ GeometryPass::GeometryPass(const WindowContext* window_context,
   }
   center_data_ = absl::make_unique<StaticPerInstanceBuffer>(
       context, centers,
-      pipeline::GetVertexAttribute<common::Vertex3DPosOnly>());
+      pipeline::GetVertexAttributes<common::Vertex3DPosOnly>());
 
   /* Uniform buffer */
   trans_uniform_ = absl::make_unique<UniformBuffer>(

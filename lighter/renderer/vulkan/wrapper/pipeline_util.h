@@ -10,9 +10,11 @@
 
 #include <vector>
 
+#include "lighter/common/file.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
@@ -62,14 +64,14 @@ VkPipelineColorBlendAttachmentState GetColorAlphaBlendState(bool enable_blend);
 VkVertexInputBindingDescription GetBindingDescription(uint32_t stride,
                                                       bool instancing);
 
-// Convenient function to return VkVertexInputBindingDescription, assuming
+// Convenience function to return VkVertexInputBindingDescription, assuming
 // each vertex will get data of DataType, which is updated per-vertex.
 template <typename DataType>
 inline VkVertexInputBindingDescription GetPerVertexBindingDescription() {
   return GetBindingDescription(sizeof(DataType), /*instancing=*/false);
 }
 
-// Convenient function to return VkVertexInputBindingDescription, assuming
+// Convenience function to return VkVertexInputBindingDescription, assuming
 // each vertex will get data of DataType, which is updated per-instance.
 template <typename DataType>
 inline VkVertexInputBindingDescription GetPerInstanceBindingDescription() {
@@ -78,12 +80,16 @@ inline VkVertexInputBindingDescription GetPerInstanceBindingDescription() {
 
 /** Vertex input attribute **/
 
-// Convenient function to return a vector of VertexBuffer::Attribute, assuming
-// each vertex will get data of DataType. For now this is only implemented for
-// Vertex2DPosOnly, Vertex2D, Vertex3DPosOnly, Vertex3DWithColor and
-// Vertex3DWithTex.
+// Converts common::VertexAttribute to VertexBuffer::Attribute.
+std::vector<VertexBuffer::Attribute> ConvertVertexAttributes(
+    absl::Span<const common::VertexAttribute> attributes);
+
+// Convenience function to return a vector of VertexBuffer::Attribute, assuming
+// the class of DataType provides a static GetVertexAttributes() method.
 template <typename DataType>
-std::vector<VertexBuffer::Attribute> GetVertexAttribute();
+std::vector<VertexBuffer::Attribute> GetVertexAttributes() {
+  return ConvertVertexAttributes(DataType::GetVertexAttributes());
+}
 
 } /* namespace pipeline */
 } /* namespace vulkan */

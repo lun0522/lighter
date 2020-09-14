@@ -10,7 +10,7 @@
 #include <array>
 
 #include "lighter/application/vulkan/aurora/viewer/air_transmit_table.h"
-#include "lighter/renderer/align.h"
+#include "lighter/renderer/common/align.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/image_usage_util.h"
 #include "lighter/renderer/vulkan/wrapper/image_usage.h"
@@ -165,7 +165,7 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
   };
   vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
       context, vertex_data_info,
-      pipeline::GetVertexAttribute<Vertex2DPosOnly>());
+      pipeline::GetVertexAttributes<Vertex2DPosOnly>());
 
   /* Pipeline */
   pipeline_builder_ = absl::make_unique<GraphicsPipelineBuilder>(context);

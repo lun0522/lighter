@@ -15,6 +15,7 @@
 
 #include "lighter/application/vulkan/aurora/editor/button_maker.h"
 #include "lighter/application/vulkan/aurora/editor/button_util.h"
+#include "lighter/common/file.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
@@ -34,6 +35,9 @@ namespace draw_button {
 /* BEGIN: Consistent with vertex input attributes defined in shaders. */
 
 struct RenderInfo {
+  // Returns vertex input attributes.
+  static std::vector<common::VertexAttribute> GetVertexAttributes();
+
   float alpha;
   glm::vec2 pos_center_ndc;
   glm::vec2 tex_coord_center;
@@ -70,18 +74,6 @@ class ButtonRenderer {
             absl::Span<const draw_button::RenderInfo> buttons_to_render);
 
  private:
-  struct RenderInfo : public draw_button::RenderInfo {
-    // Returns vertex input attributes.
-    static std::vector<renderer::vulkan::VertexBuffer::Attribute>
-    GetAttributes() {
-      return {
-          {offsetof(RenderInfo, alpha), VK_FORMAT_R32_SFLOAT},
-          {offsetof(RenderInfo, pos_center_ndc), VK_FORMAT_R32G32_SFLOAT},
-          {offsetof(RenderInfo, tex_coord_center), VK_FORMAT_R32G32_SFLOAT},
-      };
-    }
-  };
-
   // Creates a descriptor for 'vertices_uniform_' and 'buttons_image_'.
   std::unique_ptr<renderer::vulkan::StaticDescriptor> CreateDescriptor(
       const renderer::vulkan::SharedBasicContext& context) const;

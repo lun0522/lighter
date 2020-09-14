@@ -13,7 +13,7 @@
 #include <random>
 
 #include "lighter/common/file.h"
-#include "lighter/renderer/align.h"
+#include "lighter/renderer/common/align.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
@@ -228,7 +228,7 @@ LightingPass::LightingPass(const WindowContext* window_context,
   };
   cube_vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
       context, std::move(cube_vertex_data_info),
-      pipeline::GetVertexAttribute<Vertex3DPosOnly>());
+      pipeline::GetVertexAttributes<Vertex3DPosOnly>());
 
   // Since we did flip the viewport in the geometry pass (because the depth
   // stencil image is reused in this pass), we need to flip Y coordinate here.
@@ -240,7 +240,7 @@ LightingPass::LightingPass(const WindowContext* window_context,
   };
   squad_vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
       context, std::move(squad_vertex_data_info),
-      pipeline::GetVertexAttribute<Vertex2D>());
+      pipeline::GetVertexAttributes<Vertex2D>());
 
   /* Pipeline */
   constexpr uint32_t kStencilReference = 0xFF;

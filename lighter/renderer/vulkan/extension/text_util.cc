@@ -303,7 +303,7 @@ std::unique_ptr<StaticPerVertexBuffer> CharLoader::CreateVertexBuffer(
           /*shared_indices=*/
           {PerVertexBuffer::VertexDataInfo{text::GetIndicesPerRect()}},
       },
-      pipeline::GetVertexAttribute<Vertex2D>()
+      pipeline::GetVertexAttributes<Vertex2D>()
   );
 }
 
@@ -317,7 +317,7 @@ TextLoader::TextLoader(const SharedBasicContext& context,
       });
   DynamicPerVertexBuffer vertex_buffer{
       context, text::GetVertexDataSize(longest_text->length()),
-      pipeline::GetVertexAttribute<Vertex2D>()};
+      pipeline::GetVertexAttributes<Vertex2D>()};
 
   auto descriptor = absl::make_unique<StaticDescriptor>(
       context, CreateDescriptorInfos());

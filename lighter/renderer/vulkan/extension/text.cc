@@ -10,7 +10,7 @@
 #include <cmath>
 #include <algorithm>
 
-#include "lighter/renderer/align.h"
+#include "lighter/renderer/common/align.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
 #include "third_party/absl/memory/memory.h"
@@ -91,7 +91,7 @@ Text::Text(const SharedBasicContext& context,
            float viewport_aspect_ratio)
     : viewport_aspect_ratio_{viewport_aspect_ratio},
       vertex_buffer_{context, text::GetVertexDataSize(/*num_rects=*/1),
-                     pipeline::GetVertexAttribute<Vertex2D>()},
+                     pipeline::GetVertexAttributes<Vertex2D>()},
       uniform_buffer_{context, sizeof(TextRenderInfo), num_frames_in_flight},
       pipeline_builder_{context} {
   pipeline_builder_

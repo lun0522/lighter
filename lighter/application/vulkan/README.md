@@ -109,7 +109,7 @@ We can use the util function `pipeline::GetVertexAttribute()` for this purpose:
 ```cpp
 vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
     context(), vertex_data_info,
-    pipeline::GetVertexAttribute<Vertex3DWithColor>());
+    pipeline::GetVertexAttributes<Vertex3DWithColor>());
 ```
 
 ### 1.3 Push constant

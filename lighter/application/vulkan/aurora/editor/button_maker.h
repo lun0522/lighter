@@ -31,6 +31,9 @@ namespace make_button {
 /* BEGIN: Consistent with vertex input attributes defined in shaders. */
 
 struct RenderInfo {
+  // Returns vertex input attributes.
+  static std::vector<common::VertexAttribute> GetVertexAttributes();
+
   glm::vec3 color;
   glm::vec2 center;
 };
@@ -52,15 +55,6 @@ struct ButtonInfo {
 // render call.
 class ButtonMaker {
  public:
-  struct RenderInfo : public make_button::RenderInfo {
-    // Returns vertex input attributes.
-    static std::vector<renderer::vulkan::VertexBuffer::Attribute>
-    GetAttributes() {
-      return {{offsetof(RenderInfo, color), VK_FORMAT_R32G32B32_SFLOAT},
-              {offsetof(RenderInfo, center), VK_FORMAT_R32G32_SFLOAT}};
-    }
-  };
-
   // Returns a texture that contains all buttons in all states. Layout:
   //
   //   |--------------------|

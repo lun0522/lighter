@@ -90,7 +90,7 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   };
   vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
       context(), vertex_data_info,
-      pipeline::GetVertexAttribute<Vertex3DWithColor>());
+      pipeline::GetVertexAttributes<Vertex3DWithColor>());
 
   /* Push constant */
   alpha_constant_ = absl::make_unique<PushConstant>(context(), sizeof(Alpha),

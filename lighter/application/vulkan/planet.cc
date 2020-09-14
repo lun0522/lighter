@@ -32,19 +32,14 @@ constexpr int kObjFileIndexBase = 1;
 
 struct Asteroid {
   // Returns vertex input attributes.
-  static std::vector<VertexBuffer::Attribute> GetAttributes() {
-    std::vector<VertexBuffer::Attribute> attributes{
-        {offsetof(Asteroid, theta), VK_FORMAT_R32_SFLOAT},
-        {offsetof(Asteroid, radius), VK_FORMAT_R32_SFLOAT},
-    };
-    // mat4 will be bound as 4 vec4.
-    attributes.reserve(6);
-    uint32_t offset = offsetof(Asteroid, model);
-    for (int i = 0; i < 4; ++i) {
-      attributes.push_back(
-          VertexBuffer::Attribute{offset, VK_FORMAT_R32G32B32A32_SFLOAT});
-      offset += sizeof(glm::vec4);
-    }
+  static std::vector<common::VertexAttribute> GetVertexAttributes() {
+    std::vector<common::VertexAttribute> attributes;
+    common::file::AppendVertexAttributes<glm::vec1>(
+        attributes, offsetof(Asteroid, theta));
+    common::file::AppendVertexAttributes<glm::vec1>(
+        attributes, offsetof(Asteroid, radius));
+    common::file::AppendVertexAttributes<glm::mat4>(
+        attributes, offsetof(Asteroid, model));
     return attributes;
   }
 
@@ -303,7 +298,7 @@ void PlanetApp::GenerateAsteroidModels() {
   }
 
   per_asteroid_data_ = absl::make_unique<StaticPerInstanceBuffer>(
-      context(), asteroids, Asteroid::GetAttributes());
+      context(), asteroids, pipeline::GetVertexAttributes<Asteroid>());
 }
 
 void PlanetApp::UpdateData(int frame) {

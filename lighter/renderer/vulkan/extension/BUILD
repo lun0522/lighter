@@ -154,7 +154,7 @@ cc_library(
         "//lighter/common:char_lib",
         "//lighter/common:file",
         "//lighter/common:util",
-        "//lighter/renderer:align",
+        "//lighter/renderer/common:align",
         "//third_party/absl/container:flat_hash_map",
         "//third_party/absl/memory",
         "//third_party/absl/strings:str_format",

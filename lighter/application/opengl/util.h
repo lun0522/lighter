@@ -15,7 +15,7 @@
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
 #include "lighter/common/window.h"
-#include "lighter/renderer/align.h"
+#include "lighter/renderer/common/align.h"
 #include "lighter/renderer/opengl/wrapper/program.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/flags/flag.h"

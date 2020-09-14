@@ -7,8 +7,11 @@
 
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 
-#include "lighter/common/file.h"
+#include <algorithm>
+#include <iterator>
+
 #include "lighter/common/util.h"
+#include "third_party/absl/strings/str_format.h"
 
 namespace lighter {
 namespace renderer {
@@ -16,12 +19,26 @@ namespace vulkan {
 namespace pipeline {
 namespace {
 
-using common::Vertex2DPosOnly;
-using common::Vertex2D;
-using common::Vertex3DPosOnly;
-using common::Vertex3DWithColor;
-using common::Vertex3DWithTex;
-using VertexAttribute = VertexBuffer::Attribute;
+// Returns the format to use for 'attribute'.
+VkFormat ChooseFormat(common::VertexAttribute attribute) {
+  if (attribute.data_type != common::VertexAttribute::DataType::kFloat) {
+    FATAL("Can only handle float");
+  }
+
+  switch (attribute.length) {
+    case 1:
+      return VK_FORMAT_R32_SFLOAT;
+    case 2:
+      return VK_FORMAT_R32G32_SFLOAT;
+    case 3:
+      return VK_FORMAT_R32G32B32_SFLOAT;
+    case 4:
+      return VK_FORMAT_R32G32B32A32_SFLOAT;
+    default:
+      FATAL(absl::StrFormat("Length must be in range [1, 4], while %d provided",
+                            attribute.length));
+  }
+}
 
 } /* namespace */
 
@@ -133,71 +150,16 @@ VkVertexInputBindingDescription GetBindingDescription(uint32_t stride,
   };
 }
 
-template <>
-std::vector<VertexAttribute> GetVertexAttribute<Vertex2DPosOnly>() {
-  return {
-      VertexAttribute{
-          /*offset=*/static_cast<uint32_t>(offsetof(Vertex2DPosOnly, pos)),
-          VK_FORMAT_R32G32_SFLOAT,
-      },
-  };
-}
-
-template <>
-std::vector<VertexAttribute> GetVertexAttribute<Vertex2D>() {
-  return {
-      VertexAttribute{
-          /*offset=*/static_cast<uint32_t>(offsetof(Vertex2D, pos)),
-          VK_FORMAT_R32G32_SFLOAT,
-      },
-      VertexAttribute{
-          /*offset=*/static_cast<uint32_t>(offsetof(Vertex2D, tex_coord)),
-          VK_FORMAT_R32G32_SFLOAT,
-      },
-  };
-}
-
-template <>
-std::vector<VertexAttribute> GetVertexAttribute<Vertex3DPosOnly>() {
-  return {
-      VertexAttribute{
-          /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DWithColor, pos)),
-          VK_FORMAT_R32G32B32_SFLOAT,
-      },
-  };
-}
-
-template <>
-std::vector<VertexAttribute> GetVertexAttribute<Vertex3DWithColor>() {
-  return {
-      VertexAttribute{
-          /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DWithColor, pos)),
-          VK_FORMAT_R32G32B32_SFLOAT,
-      },
-      VertexAttribute{
-          /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DWithColor, color)),
-          VK_FORMAT_R32G32B32_SFLOAT,
-      },
-  };
-}
-
-template <>
-std::vector<VertexAttribute> GetVertexAttribute<Vertex3DWithTex>() {
-  return {
-      VertexAttribute{
-          /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DWithTex, pos)),
-          VK_FORMAT_R32G32B32_SFLOAT,
-      },
-      VertexAttribute{
-          /*offset=*/static_cast<uint32_t>(offsetof(Vertex3DWithTex, norm)),
-          VK_FORMAT_R32G32B32_SFLOAT,
-      },
-      VertexAttribute{
-          /*offset=*/
-          static_cast<uint32_t>(offsetof(Vertex3DWithTex, tex_coord)),
-          VK_FORMAT_R32G32_SFLOAT,
-      },
-  };
+std::vector<VertexBuffer::Attribute> ConvertVertexAttributes(
+    absl::Span<const common::VertexAttribute> attributes) {
+  std::vector<VertexBuffer::Attribute> converted;
+  converted.reserve(attributes.size());
+  std::transform(
+      attributes.begin(), attributes.end(), std::back_inserter(converted),
+      [](common::VertexAttribute attrib) -> VertexBuffer::Attribute {
+        return {static_cast<uint32_t>(attrib.offset), ChooseFormat(attrib)};
+      });
+  return converted;
 }
 
 } /* namespace pipeline */

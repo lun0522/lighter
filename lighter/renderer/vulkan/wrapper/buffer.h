@@ -459,7 +459,7 @@ class DynamicPerInstanceBuffer : public PerInstanceBuffer,
   // not large enough to hold the new data, it will be recreated internally.
   void CopyHostData(const void* data, uint32_t num_instances);
 
-  // Convenient method to copy all elements of 'container' to the device.
+  // Convenience method to copy all elements of 'container' to the device.
   template <typename Container>
   void CopyHostData(const Container& container) {
     CopyHostData(container.data(), CONTAINER_SIZE(container));

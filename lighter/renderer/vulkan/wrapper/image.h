@@ -467,7 +467,7 @@ class MultisampleImage : public Image {
       SharedBasicContext context,
       const VkExtent2D& extent, Mode mode);
 
-  // Convenient function for creating a depth stencil image. Whether the image
+  // Convenience function for creating a depth stencil image. Whether the image
   // is a multisample image depends on whether 'mode' has value.
   // Since we don't need to resolve multisampling depth stencil images, we can
   // directly use whatever image returned by this function.

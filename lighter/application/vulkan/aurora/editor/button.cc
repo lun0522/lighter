@@ -9,7 +9,6 @@
 
 #include <algorithm>
 
-#include "lighter/common/file.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
@@ -36,15 +35,30 @@ constexpr uint32_t kPerInstanceBufferBindingPoint = 0;
 
 } /* namespace */
 
+namespace draw_button {
+
+std::vector<common::VertexAttribute> RenderInfo::GetVertexAttributes() {
+  std::vector<common::VertexAttribute> attributes;
+  common::file::AppendVertexAttributes<glm::vec1>(
+      attributes, offsetof(RenderInfo, alpha));
+  common::file::AppendVertexAttributes<glm::vec2>(
+      attributes, offsetof(RenderInfo, pos_center_ndc));
+  common::file::AppendVertexAttributes<glm::vec2>(
+      attributes, offsetof(RenderInfo, tex_coord_center));
+  return attributes;
+}
+
+} /* namespace draw_button */
+
 ButtonRenderer::ButtonRenderer(
     const SharedBasicContext& context,
     int num_buttons, const button::VerticesInfo& vertices_info,
     std::unique_ptr<OffscreenImage>&& buttons_image)
     : buttons_image_{std::move(buttons_image)}, pipeline_builder_{context} {
   per_instance_buffer_ = absl::make_unique<DynamicPerInstanceBuffer>(
-      context, sizeof(RenderInfo),
+      context, sizeof(draw_button::RenderInfo),
       /*max_num_instances=*/num_buttons * button::kNumStates,
-      RenderInfo::GetAttributes());
+      pipeline::GetVertexAttributes<draw_button::RenderInfo>());
 
   vertices_uniform_ = absl::make_unique<UniformBuffer>(
       context, sizeof(button::VerticesInfo), /*num_frames_in_flight=*/1);
@@ -58,7 +72,7 @@ ButtonRenderer::ButtonRenderer(
       .SetPipelineName("Draw button")
       .AddVertexInput(
           kPerInstanceBufferBindingPoint,
-          pipeline::GetPerInstanceBindingDescription<RenderInfo>(),
+          pipeline::GetPerInstanceBindingDescription<draw_button::RenderInfo>(),
           per_instance_buffer_->GetAttributes(/*start_location=*/0))
       .SetPipelineLayout({descriptor_->layout()}, /*push_constant_ranges=*/{})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
