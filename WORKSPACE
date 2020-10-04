@@ -14,6 +14,7 @@ http_archive(
 
 assimp_archive(
     name = "lib-assimp",
+    strip_prefix = "lib",
     build_file = "//:third_party/BUILD.assimp",
 )
 
@@ -25,6 +26,7 @@ assimp_archive(
 
 freetype_archive(
     name = "lib-freetype",
+    strip_prefix = "lib/osx",
     build_file = "//:third_party/BUILD.freetype",
 )
 

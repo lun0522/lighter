@@ -29,7 +29,7 @@ cc_import(
 
 genrule(
     name = "unzip",
-    srcs = ["lib.zip"],
+    srcs = ["osx.zip"],
     outs = [
         "libassimp.a",
         "libIrrXML.a",
