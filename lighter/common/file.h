@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "third_party/absl/flags/declare.h"
 #include "third_party/absl/flags/flag.h"
 #include "third_party/absl/strings/str_cat.h"
 #include "third_party/glm/glm.hpp"

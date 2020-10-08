@@ -32,6 +32,7 @@
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
+#include "third_party/absl/flags/declare.h"
 #include "third_party/absl/flags/flag.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/string_view.h"
@@ -184,6 +185,8 @@ int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
 
   // Set up the path to find Vulkan SDK.
   using common::file::GetVulkanSdkPath;
+
+#if defined(__APPLE__)
   setenv("VK_ICD_FILENAMES",
          GetVulkanSdkPath("share/vulkan/icd.d/MoltenVK_icd.json").c_str(),
          /*overwrite=*/1);
@@ -192,6 +195,16 @@ int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
          GetVulkanSdkPath("share/vulkan/explicit_layer.d").c_str(),
          /*overwrite=*/1);
 #endif /* !NDEBUG */
+
+#elif defined(__linux__)
+#ifndef NDEBUG
+  // TODO: Cannot find libVkLayer_khronos_validation.so yet.
+  setenv("VK_LAYER_PATH",
+         GetVulkanSdkPath("etc/vulkan/explicit_layer.d").c_str(),
+         /*overwrite=*/1);
+  setenv("LD_LIBRARY_PATH", GetVulkanSdkPath("lib").c_str(), /*overwrite=*/1);
+#endif /* !NDEBUG */
+#endif /* __APPLE__ || __linux__ */
 
   // We don't catch exceptions in the debug mode, so that if there is anything
   // wrong, the debugger would stay at the point where the application breaks.

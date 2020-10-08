@@ -23,9 +23,18 @@ ABSL_FLAG(std::string, resource_folder, "external/resource",
           "Path to the resource folder");
 ABSL_FLAG(std::string, shader_folder, "lighter/shader",
           "Path to the shader folder");
+
 #ifdef USE_VULKAN
-ABSL_FLAG(std::string, vulkan_folder, "external/lib-vulkan/",
+#if defined(__APPLE__)
+#define VULKAN_FOLDER "external/lib-vulkan-osx"
+#elif defined(__linux__)
+#define VULKAN_FOLDER "external/lib-vulkan-linux"
+#endif /* __APPLE__ || __linux__ */
+
+ABSL_FLAG(std::string, vulkan_folder, VULKAN_FOLDER,
           "Path to the Vulkan SDK folder");
+
+#undef VULKAN_FOLDER
 #endif /* USE_VULKAN */
 
 namespace lighter {

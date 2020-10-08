@@ -2,20 +2,20 @@ package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 
-cc_library(
+load("@//third_party:select_platform.bzl", "select_platform")
+
+select_platform(
     name = "assimp",
-    deps = [
-        "@lib-assimp//:assimp",
-        "@lib-assimp-headers//:assimp_headers",
-    ],
+    headers_target = "@lib-assimp-headers//:assimp_headers",
+    linux_taregt = "@lib-assimp-ubuntu//:assimp",
+    osx_target = "@lib-assimp-osx//:assimp",
 )
 
-cc_library(
+select_platform(
     name = "freetype",
-    deps = [
-        "@lib-freetype//:freetype",
-        "@lib-freetype-headers//:freetype_headers",
-    ],
+    headers_target = "@lib-freetype-headers//:freetype_headers",
+    linux_taregt = "@lib-freetype-ubuntu//:freetype",
+    osx_target = "@lib-freetype-osx//:freetype",
 )
 
 cc_library(
@@ -23,9 +23,11 @@ cc_library(
     deps = ["@lib-glad//:glad"],
 )
 
-cc_library(
+select_platform(
     name = "glfw",
-    deps = ["@lib-glfw//:glfw"],
+    headers_target = "@lib-glfw-headers//:glfw_headers",
+    linux_taregt = "@lib-glfw-ubuntu//:glfw",
+    osx_target = "@lib-glfw-osx//:glfw",
 )
 
 cc_library(
@@ -43,7 +45,8 @@ cc_library(
     deps = ["@lib-stb//:stb"],
 )
 
-cc_library(
+select_platform(
     name = "vulkan",
-    deps = ["@lib-vulkan//:vulkan"],
+    linux_taregt = "@lib-vulkan-linux//:vulkan",
+    osx_target = "@lib-vulkan-osx//:vulkan",
 )

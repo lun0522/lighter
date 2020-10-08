@@ -1,0 +1,17 @@
+licenses(["notice"])
+
+cc_library(
+    name = "glfw",
+    linkopts = [
+        "-ldl",
+        "-lX11",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [":libglfw"],
+)
+
+cc_import(
+    name = "libglfw",
+    static_library = "libglfw.a",
+    visibility = ["//visibility:private"],
+)

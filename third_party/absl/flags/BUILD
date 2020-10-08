@@ -4,7 +4,10 @@ load("//third_party/absl:generate_dependency.bzl", "absl_library")
 
 absl_library(
     name = "flag",
-    hdrs = ["@lib-absl//absl/flags:flag.h"],
+    hdrs = [
+        "@lib-absl//absl/flags:declare.h",
+        "@lib-absl//absl/flags:flag.h",
+    ],
     deps = ["@lib-absl//absl/flags:flag"],
 )
 

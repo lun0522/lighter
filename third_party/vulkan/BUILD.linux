@@ -1,0 +1,17 @@
+licenses(["notice"])
+
+cc_library(
+    name = "vulkan",
+    srcs = ["lib/libvulkan.so.1"],
+    hdrs = glob(["include/vulkan/*.h"]),
+    data = glob(
+        [
+            "etc/**/*",
+            "lib/**/*",
+        ],
+        exclude = ["lib/libvulkan.so.1"],
+    ),
+    include_prefix = "third_party/vulkan",
+    strip_include_prefix = "include/vulkan",
+    visibility = ["//visibility:public"],
+)

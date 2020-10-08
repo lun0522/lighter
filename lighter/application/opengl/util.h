@@ -18,6 +18,7 @@
 #include "lighter/renderer/common/align.h"
 #include "lighter/renderer/opengl/wrapper/program.h"
 #include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/flags/declare.h"
 #include "third_party/absl/flags/flag.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/glad/glad.h"

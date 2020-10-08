@@ -8,6 +8,7 @@
 #ifndef LIGHTER_APPLICATION_UTIL_H
 #define LIGHTER_APPLICATION_UTIL_H
 
+#include "third_party/absl/flags/declare.h"
 #include "third_party/absl/flags/flag.h"
 
 ABSL_DECLARE_FLAG(bool, performance_mode);
