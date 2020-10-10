@@ -71,20 +71,11 @@ Window::Window(const std::string& name, const glm::ivec2& screen_size)
   ASSERT_TRUE(glfwInit() == GLFW_TRUE, "Failed to init GLFW");
 
 #ifdef USE_OPENGL
+  // TODO: Switch to OpenGL 4.6.
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-  #ifdef __APPLE__
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-    LOG_INFO << "Since MacOS only supports OpenGL 4.1, shaders will be "
-                "compiled with #version 410 core";
-  #else /* !__APPLE__ */
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-  #endif /* __APPLE__ */
-#endif /* USE_OPENGL */
-
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-#ifdef __APPLE__
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-#endif /* __APPLE__ */
+#endif /* USE_OPENGL */
 
 #ifdef USE_VULKAN
   ASSERT_TRUE(glfwVulkanSupported() == GLFW_TRUE, "Vulkan is not supported");

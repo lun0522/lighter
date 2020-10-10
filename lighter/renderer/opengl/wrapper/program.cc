@@ -49,32 +49,11 @@ absl::optional<std::vector<char>> CheckStatus(GLuint source, GLenum target,
 Shader::Shader(GLenum shader_type, const std::string& file_path)
     : shader_type_{shader_type}, shader_{glCreateShader(shader_type)} {
   const auto raw_data = absl::make_unique<common::RawData>(file_path);
-#ifdef __APPLE__
-  const std::string expected_header = "#version 460 core\n";
-  const absl::string_view original_header{raw_data->data,
-                                          expected_header.length()};
-  ASSERT_TRUE(original_header == expected_header,
-              absl::StrFormat("Header of shader %s is expected to be %s, while "
-                              "%s provided",
-                              file_path, expected_header, original_header));
-
-  constexpr int kNumShaderSources = 2;
-  const std::string modified_header = "#version 410 core\n"
-                                      "#define TARGET_OPENGL 1\n"
-                                      "#define TARGET_APPLE 1\n";
-  const GLchar* shader_sources[kNumShaderSources]{
-      modified_header.data(), raw_data->data + original_header.length()};
-  const GLint source_lengths[kNumShaderSources]{
-      static_cast<GLint>(modified_header.length()),
-      static_cast<GLint>(raw_data->size - original_header.length())};
-  glShaderSource(shader_, kNumShaderSources, shader_sources, source_lengths);
-  glCompileShader(shader_);
-#else /* !__APPLE__ */
-  glShaderBinary(/*count=*/1, &shader_, GL_SHADER_BINARY_FORMAT_SPIR_V,
+  // TODO: Remove "ARB" after switching to OpenGL 4.6.
+  glShaderBinary(/*count=*/1, &shader_, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB,
                  raw_data->data, raw_data->size);
-  glSpecializeShader(shader_, "main", /*numSpecializationConstants=*/0,
-                     /*pConstantIndex=*/nullptr, /*pConstantValue=*/nullptr);
-#endif /* __APPLE__ */
+  glSpecializeShaderARB(shader_, "main", /*numSpecializationConstants=*/0,
+                        /*pConstantIndex=*/nullptr, /*pConstantValue=*/nullptr);
 
   if (const auto error = CheckStatus(shader_, GL_COMPILE_STATUS, glGetShaderiv,
                                      glGetShaderInfoLog)) {

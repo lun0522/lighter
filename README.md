@@ -66,12 +66,15 @@ run on MacOS. We will add support for Linux later. The code follows
 [Google C++ style guide](https://google.github.io/styleguide/cppguide.html) and
 only uses the features of C++11 (enhanced by [Abseil library](https://abseil.io)).
 
-Before running any application, shaders should be compiled by executing
-[compile_shaders.sh](https://github.com/lun0522/lighter/blob/master/compile_shaders.sh)
-(no command line arguments needed). To run applications, since we use the
-[Bazel build system](https://bazel.build), this is how we run from command line:
+To run applications, following these steps:
+
+1. Compile shaders by executing [compile_shaders.sh](https://github.com/lun0522/lighter/blob/master/compile_shaders.sh)
+(no command line arguments needed).
+2. Install [Bazel build system](https://bazel.build) following the [official guide](https://docs.bazel.build/versions/master/install.html).
+3. Run from command line:
 
 ```bash
+sudo apt install mesa-common-dev  # Only needed for Linux
 bazel run -c opt --copt=-DUSE_VULKAN //lighter/application/vulkan:triangle
 ```
 

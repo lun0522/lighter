@@ -1,12 +1,7 @@
 #version 460 core
 
 #if defined(TARGET_OPENGL)
-
-#ifdef TARGET_APPLE
-layout(std140) uniform Alpha {
-#else
 layout(std140, binding = 0) uniform Alpha {
-#endif
   float value;
 } alpha;
 

@@ -4,7 +4,7 @@ def assimp_archive(name, build_file, strip_prefix):
     http_archive(
         name = name,
         urls = ["https://github.com/lun0522/lib-assimp/archive/5.0.1.zip"],
-        sha256 = "5ac7ce805a5267fd0dad473e349576185fb7a159e999a39aa5f3a75120e2efe8",
+        sha256 = "fd87551986157698c1f30b3c11a08250926dd52b02dca17846e25f2b3c955594",
         strip_prefix = "lib-assimp-5.0.1/" + strip_prefix,
         build_file = build_file,
     )
