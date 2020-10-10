@@ -198,12 +198,11 @@ int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
 
 #elif defined(__linux__)
 #ifndef NDEBUG
-  // TODO: Cannot find libVkLayer_khronos_validation.so yet.
   setenv("VK_LAYER_PATH",
          GetVulkanSdkPath("etc/vulkan/explicit_layer.d").c_str(),
          /*overwrite=*/1);
-  setenv("LD_LIBRARY_PATH", GetVulkanSdkPath("lib").c_str(), /*overwrite=*/1);
 #endif /* !NDEBUG */
+
 #endif /* __APPLE__ || __linux__ */
 
   // We don't catch exceptions in the debug mode, so that if there is anything

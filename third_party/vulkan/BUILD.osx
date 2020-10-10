@@ -1,5 +1,10 @@
 licenses(["notice"])
 
+config_setting(
+    name = "optimal_build",
+    values = {"compilation_mode": "opt"},
+)
+
 cc_library(
     name = "vulkan",
     srcs = ["lib/libvulkan.1.dylib"],
@@ -20,9 +25,4 @@ cc_library(
     include_prefix = "third_party/vulkan",
     strip_include_prefix = "include/vulkan",
     visibility = ["//visibility:public"],
-)
-
-config_setting(
-    name = "optimal_build",
-    values = {"compilation_mode": "opt"},
 )
