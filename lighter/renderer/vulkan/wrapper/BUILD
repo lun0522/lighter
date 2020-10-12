@@ -79,11 +79,11 @@ cc_library(
     name = "image",
     hdrs = [
         "image.h",
-        "image_usage.h",
+        "image_util.h",
     ],
     srcs = [
         "image.cc",
-        "image_usage.cc",
+        "image_util.cc",
     ],
     deps = [
         ":basics",
@@ -93,6 +93,7 @@ cc_library(
         "//lighter/common:file",
         "//lighter/common:ref_count",
         "//lighter/common:util",
+        "//lighter/renderer:image_usage",
         "//third_party/absl/memory",
         "//third_party/absl/strings:str_format",
         "//third_party/absl/types:optional",
@@ -103,8 +104,8 @@ cc_library(
 )
 
 cc_test(
-    name = "image_usage_test",
-    srcs = ["image_usage_test.cc"],
+    name = "image_util_test",
+    srcs = ["image_util_test.cc"],
     deps = [
         ":image",
         "//third_party:gtest_main",

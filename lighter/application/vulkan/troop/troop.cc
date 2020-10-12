@@ -16,6 +16,7 @@ namespace application {
 namespace vulkan {
 namespace {
 
+using namespace renderer;
 using namespace renderer::vulkan;
 
 constexpr int kNumFramesInFlight = 2;
@@ -141,15 +142,15 @@ void TroopApp::Recreate() {
 
   const ImageSampler::Config sampler_config{VK_FILTER_NEAREST};
   for (auto& info : image_infos) {
-    image::UsageHistory usage_history;
-    auto geometry_stage_usage = image::Usage::GetRenderTargetUsage();
+    ImageUsageHistory usage_history;
+    auto geometry_stage_usage = ImageUsage::GetRenderTargetUsage();
     if (info.high_precision) {
       geometry_stage_usage.set_use_high_precision();
     }
     usage_history
         .AddUsage(kGeometrySubpassIndex, geometry_stage_usage)
         .AddUsage(kLightingSubpassIndex,
-                  image::Usage::GetSampledInFragmentShaderUsage());
+                  ImageUsage::GetSampledInFragmentShaderUsage());
     *info.image = absl::make_unique<OffscreenImage>(
         context(), frame_size, common::kRgbaImageChannel,
         usage_history.GetAllUsages(), sampler_config);

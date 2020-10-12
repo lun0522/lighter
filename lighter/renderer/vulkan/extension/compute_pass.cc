@@ -11,7 +11,7 @@
 #include <string>
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/vulkan/wrapper/image_usage.h"
+#include "lighter/renderer/vulkan/wrapper/image_util.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace lighter {
@@ -19,7 +19,7 @@ namespace renderer {
 namespace vulkan {
 
 ComputePass& ComputePass::AddImage(std::string&& image_name,
-                                   image::UsageHistory&& history) {
+                                   ImageUsageHistory&& history) {
   ValidateUsageHistory(image_name, history);
   BasePass::AddUsageHistory(std::move(image_name), std::move(history));
   return *this;
@@ -74,15 +74,15 @@ void ComputePass::Run(
 
 void ComputePass::InsertMemoryBarrier(
     const VkCommandBuffer& command_buffer, uint32_t queue_family_index,
-    const VkImage& image, const image::Usage& prev_usage,
-    const image::Usage& curr_usage) const {
+    const VkImage& image, const ImageUsage& prev_usage,
+    const ImageUsage& curr_usage) const {
   const VkImageMemoryBarrier barrier{
       VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
       /*pNext=*/nullptr,
-      /*srcAccessMask=*/prev_usage.GetAccessFlags(),
-      /*dstAccessMask=*/curr_usage.GetAccessFlags(),
-      /*oldLayout=*/prev_usage.GetImageLayout(),
-      /*newLayout=*/curr_usage.GetImageLayout(),
+      /*srcAccessMask=*/image::GetAccessFlags(prev_usage),
+      /*dstAccessMask=*/image::GetAccessFlags(curr_usage),
+      /*oldLayout=*/image::GetImageLayout(prev_usage),
+      /*newLayout=*/image::GetImageLayout(curr_usage),
       /*srcQueueFamilyIndex=*/queue_family_index,
       /*dstQueueFamilyIndex=*/queue_family_index,
       image,
@@ -97,8 +97,8 @@ void ComputePass::InsertMemoryBarrier(
 
   vkCmdPipelineBarrier(
       command_buffer,
-      /*srcStageMask=*/prev_usage.GetPipelineStageFlags(),
-      /*dstStageMask=*/curr_usage.GetPipelineStageFlags(),
+      /*srcStageMask=*/image::GetPipelineStageFlags(prev_usage),
+      /*dstStageMask=*/image::GetPipelineStageFlags(curr_usage),
       /*dependencyFlags=*/0,
       /*memoryBarrierCount=*/0,
       /*pMemoryBarriers=*/nullptr,
@@ -109,8 +109,8 @@ void ComputePass::InsertMemoryBarrier(
 }
 
 void ComputePass::ValidateUsageHistory(
-    const std::string& image_name, const image::UsageHistory& history) const {
-  using ImageUsageType = image::Usage::UsageType;
+    const std::string& image_name, const ImageUsageHistory& history) const {
+  using ImageUsageType = ImageUsage::UsageType;
   for (const auto& pair : history.usage_at_subpass_map()) {
     const ImageUsageType usage_type = pair.second.usage_type();
     ASSERT_TRUE(usage_type == ImageUsageType::kLinearAccess

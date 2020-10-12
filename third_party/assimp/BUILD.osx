@@ -7,7 +7,7 @@ cc_library(
     deps = [
         ":libassimp",
         ":libIrrXML",
-        ":libzlib",
+        ":libz",
     ],
     visibility = ["//visibility:public"],
 )
@@ -23,8 +23,8 @@ cc_import(
 )
 
 cc_import(
-    name = "libzlib",
-    static_library = "libzlib.a",
+    name = "libz",
+    static_library = "libz.a",
 )
 
 genrule(
@@ -33,7 +33,7 @@ genrule(
     outs = [
         "libassimp.a",
         "libIrrXML.a",
-        "libzlib.a",
+        "libz.a",
     ],
     cmd = "unzip -j -d $(RULEDIR) $<",
     output_to_bindir = True,

@@ -14,9 +14,9 @@
 #include "lighter/common/file.h"
 #include "lighter/common/ref_count.h"
 #include "lighter/common/util.h"
+#include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
-#include "lighter/renderer/vulkan/wrapper/image_usage.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
@@ -101,7 +101,7 @@ class Image {
 
   // Returns the image usage right after it is constructed. The user is
   // responsible for tracking usage changes afterwards.
-  virtual image::Usage GetInitialUsage() const { return image::Usage{}; }
+  virtual ImageUsage GetInitialUsage() const { return ImageUsage{}; }
 
   // Overloads.
   const VkImage& operator*() const { return image(); }
@@ -214,7 +214,7 @@ class TextureImage : public Image, public SamplableImage {
     uint32_t width;
     uint32_t height;
     uint32_t channel;
-    absl::Span<const image::Usage> usages;
+    absl::Span<const ImageUsage> usages;
   };
 
   TextureImage(SharedBasicContext context,
@@ -225,7 +225,7 @@ class TextureImage : public Image, public SamplableImage {
   TextureImage(const SharedBasicContext& context,
                bool generate_mipmaps,
                const common::Image& image,
-               absl::Span<const image::Usage> usages,
+               absl::Span<const ImageUsage> usages,
                const ImageSampler::Config& sampler_config);
 
   // This class is neither copyable nor movable.
@@ -237,8 +237,8 @@ class TextureImage : public Image, public SamplableImage {
   VkDescriptorImageInfo GetDescriptorInfo(VkImageLayout layout) const override {
     return {*sampler_, image_view(), layout};
   }
-  image::Usage GetInitialUsage() const override {
-    return image::Usage::GetSampledInFragmentShaderUsage();
+  ImageUsage GetInitialUsage() const override {
+    return ImageUsage::GetSampledInFragmentShaderUsage();
   }
 
  private:
@@ -288,7 +288,7 @@ class SharedTexture : public SamplableImage {
 
   SharedTexture(const SharedBasicContext& context,
                 const SourcePath& source_path,
-                absl::Span<const image::Usage> usages,
+                absl::Span<const ImageUsage> usages,
                 const ImageSampler::Config& sampler_config)
       : texture_{GetTexture(context, source_path, usages, sampler_config)} {}
 
@@ -314,7 +314,7 @@ class SharedTexture : public SamplableImage {
   static RefCountedTexture GetTexture(
       const SharedBasicContext& context,
       const SourcePath& source_path,
-      absl::Span<const image::Usage> usages,
+      absl::Span<const ImageUsage> usages,
       const ImageSampler::Config& sampler_config);
 
   // Reference counted texture image.
@@ -327,13 +327,13 @@ class OffscreenImage : public Image, public SamplableImage {
  public:
   OffscreenImage(SharedBasicContext context,
                  const VkExtent2D& extent, VkFormat format,
-                 absl::Span<const image::Usage> usages,
+                 absl::Span<const ImageUsage> usages,
                  const ImageSampler::Config& sampler_config);
 
   // Only 1 or 4 channels are supported.
   OffscreenImage(const SharedBasicContext& context,
                  const VkExtent2D& extent, int channel,
-                 absl::Span<const image::Usage> usages,
+                 absl::Span<const ImageUsage> usages,
                  const ImageSampler::Config& sampler_config);
 
   // This class is neither copyable nor movable.
@@ -352,7 +352,7 @@ class OffscreenImage : public Image, public SamplableImage {
    public:
     OffscreenBuffer(SharedBasicContext context,
                     const VkExtent2D& extent, VkFormat format,
-                    absl::Span<const image::Usage> usages);
+                    absl::Span<const ImageUsage> usages);
 
     // This class is neither copyable nor movable.
     OffscreenBuffer(const OffscreenBuffer&) = delete;

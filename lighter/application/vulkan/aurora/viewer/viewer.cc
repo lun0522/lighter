@@ -10,10 +10,9 @@
 #include <array>
 
 #include "lighter/application/vulkan/aurora/viewer/air_transmit_table.h"
-#include "lighter/renderer/common/align.h"
+#include "lighter/renderer/align.h"
+#include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
-#include "lighter/renderer/vulkan/extension/image_usage_util.h"
-#include "lighter/renderer/vulkan/wrapper/image_usage.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 
 namespace lighter {
@@ -22,6 +21,7 @@ namespace vulkan {
 namespace aurora {
 namespace {
 
+using namespace renderer;
 using namespace renderer::vulkan;
 
 enum SubpassIndex {
@@ -84,7 +84,7 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
       context, sizeof(RenderInfo), num_frames_in_flight);
 
   /* Image */
-  const auto image_usages = {image::Usage::GetSampledInFragmentShaderUsage()};
+  const auto image_usages = {ImageUsage::GetSampledInFragmentShaderUsage()};
   const ImageSampler::Config sampler_config{
       VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
   aurora_deposition_image_ = absl::make_unique<SharedTexture>(
@@ -186,12 +186,12 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
                  common::file::GetVkShaderPath("aurora/aurora.frag"));
 
   /* Render pass */
-  image::UsageHistory usage_history{
+  ImageUsageHistory usage_history{
     window_context_.swapchain_image(/*index=*/0).GetInitialUsage()};
   usage_history
       .AddUsage(kViewImageSubpassIndex,
-                image::Usage::GetRenderTargetUsage())
-      .SetFinalUsage(image::Usage::GetPresentationUsage());
+                ImageUsage::GetRenderTargetUsage())
+      .SetFinalUsage(ImageUsage::GetPresentationUsage());
 
   GraphicsPass graphics_pass{context, kNumSubpasses};
   graphics_pass.AddAttachment("Swapchain", std::move(usage_history),

@@ -13,7 +13,7 @@
 #include <random>
 
 #include "lighter/common/file.h"
-#include "lighter/renderer/common/align.h"
+#include "lighter/renderer/align.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
@@ -27,6 +27,7 @@ namespace vulkan {
 namespace troop {
 namespace {
 
+using namespace renderer;
 using namespace renderer::vulkan;
 
 enum SubpassIndex {
@@ -384,7 +385,7 @@ void LightingPass::Draw(const VkCommandBuffer& command_buffer,
 }
 
 void LightingPass::CreateRenderPassBuilder(const Image& depth_stencil_image) {
-  image::UsageTracker image_usage_tracker;
+  ImageUsageTracker image_usage_tracker;
   swapchain_image_info_.AddToTracker(
       image_usage_tracker, window_context_.swapchain_image(/*index=*/0));
   depth_stencil_image_info_.AddToTracker(image_usage_tracker,
@@ -397,7 +398,7 @@ void LightingPass::CreateRenderPassBuilder(const Image& depth_stencil_image) {
 
   const auto color_attachment_config =
       swapchain_image_info_.MakeAttachmentConfig()
-          .set_final_usage(image::Usage::GetPresentationUsage());
+          .set_final_usage(ImageUsage::GetPresentationUsage());
 
   auto depth_stencil_load_store_ops =
       GraphicsPass::GetDefaultDepthStencilLoadStoreOps();

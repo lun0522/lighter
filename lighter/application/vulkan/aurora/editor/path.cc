@@ -8,7 +8,7 @@
 #include "lighter/application/vulkan/aurora/editor/path.h"
 
 #include "lighter/common/file.h"
-#include "lighter/renderer/common/align.h"
+#include "lighter/renderer/align.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"

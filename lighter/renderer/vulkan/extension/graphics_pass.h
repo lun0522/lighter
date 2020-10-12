@@ -13,9 +13,8 @@
 #include <string>
 
 #include "lighter/common/util.h"
+#include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vulkan/extension/base_pass.h"
-#include "lighter/renderer/vulkan/extension/image_usage_util.h"
-#include "lighter/renderer/vulkan/wrapper/image_usage.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/optional.h"
@@ -70,7 +69,7 @@ class GraphicsPass : public BasePass {
   // If 'load_store_ops' is not specified, default load store ops will be used.
   int AddAttachment(
       const std::string& image_name,
-      image::UsageHistory&& history, GetLocation&& get_location,
+      ImageUsageHistory&& history, GetLocation&& get_location,
       const absl::optional<AttachmentLoadStoreOps>& load_store_ops =
           absl::nullopt);
 
@@ -112,14 +111,14 @@ class GraphicsPass : public BasePass {
   // getter provided by the user. If there is no such subpass, returns
   // absl::nullopt instead.
   absl::optional<int> GetFirstSubpassRequiringLocationGetter(
-      const image::UsageHistory& history) const;
+      const ImageUsageHistory& history) const;
 
   // Returns the load store ops that should be used for the attachment. If the
   // user did not specified those ops, the default ops will be returned.
   // Otherwise, this will check whether the user specified ops agree with
   // 'history' internally.
   AttachmentLoadStoreOps GetAttachmentLoadStoreOps(
-      const std::string& image_name, const image::UsageHistory& history,
+      const std::string& image_name, const ImageUsageHistory& history,
       const absl::optional<AttachmentLoadStoreOps>&
           user_specified_load_store_ops) const;
 
@@ -128,12 +127,12 @@ class GraphicsPass : public BasePass {
   // throughout all subpasses. Note that kMultisampleResolve is treated as
   // kRenderTarget. Hence, the return value can only be either kRenderTarget or
   // kDepthStencil.
-  image::Usage::UsageType GetImageUsageTypeForAllSubpasses(
-      const std::string& image_name, const image::UsageHistory& history) const;
+  ImageUsage::UsageType GetImageUsageTypeForAllSubpasses(
+      const std::string& image_name, const ImageUsageHistory& history) const;
 
   // Returns true if the image usage at 'subpass' is of 'usage_type'.
-  bool CheckImageUsageType(const image::UsageHistory& history, int subpass,
-                           image::Usage::UsageType usage_type) const;
+  bool CheckImageUsageType(const ImageUsageHistory& history, int subpass,
+                           ImageUsage::UsageType usage_type) const;
 
   // Returns whether 'subpass' is a virtual subpass.
   bool IsVirtualSubpass(int subpass) const {
@@ -151,7 +150,7 @@ class GraphicsPass : public BasePass {
   // Checks whether image usages recorded in 'history' (excluding initial and
   // final usages) can be handled by this graphics pass.
   void ValidateUsageHistory(const std::string& image_name,
-                            const image::UsageHistory& history) const;
+                            const ImageUsageHistory& history) const;
 
   // Pointer to context.
   const SharedBasicContext context_;

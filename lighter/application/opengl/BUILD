@@ -10,7 +10,7 @@ cc_library(
         "//lighter/common:window",
         "//lighter/application:resource",
         "//lighter/application:util",
-        "//lighter/renderer/common:align",
+        "//lighter/renderer:align",
         "//lighter/renderer/opengl/wrapper:program",
         "//third_party/absl/container:flat_hash_map",
         "//third_party/absl/flags:flag",

@@ -10,8 +10,9 @@
 #include <algorithm>
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/common/align.h"
-#include "lighter/renderer/vulkan/wrapper/image_usage.h"
+#include "lighter/renderer/align.h"
+#include "lighter/renderer/image_usage.h"
+#include "lighter/renderer/vulkan/wrapper/image_util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
 #include "third_party/absl/memory/memory.h"
 
@@ -21,6 +22,7 @@ namespace vulkan {
 namespace aurora {
 namespace {
 
+using namespace renderer;
 using namespace renderer::vulkan;
 
 enum ImageBindingPoint {
@@ -76,8 +78,8 @@ DistanceFieldGenerator::DistanceFieldGenerator(
       step_width_constant_->MakePerFrameRange(VK_SHADER_STAGE_COMPUTE_BIT);
 
   /* Image */
-  auto image_usage = image::Usage::GetLinearAccessInComputeShaderUsage(
-      image::Usage::AccessType::kReadWrite);
+  auto image_usage = ImageUsage::GetLinearAccessInComputeShaderUsage(
+      ImageUsage::AccessType::kReadWrite);
   image_usage.set_use_high_precision();
   pong_image_ = absl::make_unique<OffscreenImage>(
       context, image_extent, output_image.format(),
@@ -96,7 +98,7 @@ DistanceFieldGenerator::DistanceFieldGenerator(
           },
       });
 
-  const VkImageLayout image_layout = image_usage.GetImageLayout();
+  const VkImageLayout image_layout = image::GetImageLayout(image_usage);
   const auto input_image_descriptor_info =
       input_image.GetDescriptorInfo(image_layout);
   const auto ping_image_descriptor_info =

@@ -8,11 +8,10 @@
 #include "lighter/application/vulkan/aurora/editor/button_maker.h"
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/vulkan/extension/image_usage_util.h"
+#include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/wrapper/command.h"
 #include "lighter/renderer/vulkan/wrapper/descriptor.h"
-#include "lighter/renderer/vulkan/wrapper/image_usage.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
@@ -24,6 +23,7 @@ namespace vulkan {
 namespace aurora {
 namespace {
 
+using namespace renderer;
 using namespace renderer::vulkan;
 
 enum SubpassIndex {
@@ -50,8 +50,8 @@ std::unique_ptr<OffscreenImage> CreateTargetImage(
       static_cast<uint32_t>(background_image_extent.height *
                             num_buttons * button::kNumStates),
   };
-  const auto image_usages = {image::Usage::GetRenderTargetUsage(),
-                             image::Usage::GetSampledInFragmentShaderUsage()};
+  const auto image_usages = {ImageUsage::GetRenderTargetUsage(),
+                             ImageUsage::GetSampledInFragmentShaderUsage()};
   return absl::make_unique<OffscreenImage>(
       context, buttons_image_extent, common::kRgbaImageChannel,
       image_usages, ImageSampler::Config{});
@@ -92,11 +92,11 @@ std::unique_ptr<StaticDescriptor> CreateDescriptor(
 // Creates a render pass for rendering to 'target_image'.
 std::unique_ptr<RenderPass> CreateRenderPass(
     const SharedBasicContext& context, const OffscreenImage& target_image) {
-  image::UsageHistory usage_history{target_image.GetInitialUsage()};
+  ImageUsageHistory usage_history{target_image.GetInitialUsage()};
   usage_history
       .AddUsage(kBackgroundSubpassIndex, kTextSubpassIndex,
-                image::Usage::GetRenderTargetUsage())
-      .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
+                ImageUsage::GetRenderTargetUsage())
+      .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
 
   GraphicsPass graphics_pass{context, kNumSubpasses};
   graphics_pass.AddAttachment("Button", std::move(usage_history),
@@ -161,7 +161,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
     absl::Span<const make_button::ButtonInfo> button_infos) {
   ASSERT_TRUE(button_background.channel == common::kBwImageChannel,
               "Expecting a single-channel button background image");
-  const auto image_usages = {image::Usage::GetSampledInFragmentShaderUsage()};
+  const auto image_usages = {ImageUsage::GetSampledInFragmentShaderUsage()};
   const auto background_image = absl::make_unique<TextureImage>(
       context, /*generate_mipmaps=*/false, button_background, image_usages,
       ImageSampler::Config{});

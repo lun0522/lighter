@@ -287,10 +287,10 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetPrimitiveTopology(
 
 GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetStencilOpState(
     const VkStencilOpState& op_state, VkStencilFaceFlags face) {
-  if (face | VK_STENCIL_FACE_FRONT_BIT) {
+  if (face & VK_STENCIL_FACE_FRONT_BIT) {
     depth_stencil_info_.front = op_state;
   }
-  if (face | VK_STENCIL_FACE_BACK_BIT) {
+  if (face & VK_STENCIL_FACE_BACK_BIT) {
     depth_stencil_info_.back = op_state;
   }
   return *this;

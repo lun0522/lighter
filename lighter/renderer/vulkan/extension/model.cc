@@ -8,9 +8,9 @@
 #include "lighter/renderer/vulkan/extension/model.h"
 
 #include "lighter/common/file.h"
+#include "lighter/renderer/image_usage.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
-#include "lighter/renderer/vulkan/wrapper/image_usage.h"
 
 namespace lighter {
 namespace renderer {
@@ -28,7 +28,7 @@ std::unique_ptr<SamplableImage> CreateTexture(
     const SharedBasicContext& context,
     const ModelBuilder::TextureSource& source) {
   if (absl::holds_alternative<SharedTexture::SourcePath>(source)) {
-    const auto image_usages = {image::Usage::GetSampledInFragmentShaderUsage()};
+    const auto image_usages = {ImageUsage::GetSampledInFragmentShaderUsage()};
     return absl::make_unique<SharedTexture>(
         context, absl::get<SharedTexture::SourcePath>(source),
         image_usages, ImageSampler::Config{});
@@ -181,7 +181,7 @@ void ModelBuilder::MultiMeshResource::LoadMesh(ModelBuilder* builder) const {
       pipeline::GetVertexAttributes<Vertex3DWithTex>());
 
   // Load textures.
-  const auto image_usages = {image::Usage::GetSampledInFragmentShaderUsage()};
+  const auto image_usages = {ImageUsage::GetSampledInFragmentShaderUsage()};
   auto& mesh_textures = builder->mesh_textures_;
   mesh_textures.reserve(loader.mesh_datas().size());
   for (const auto& mesh_data : loader.mesh_datas()) {

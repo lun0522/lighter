@@ -12,8 +12,8 @@
 #include <string>
 
 #include "lighter/common/util.h"
+#include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
-#include "lighter/renderer/vulkan/extension/image_usage_util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "third_party/absl/strings/string_view.h"
@@ -95,7 +95,7 @@ class NaiveRenderPass {
     // Sets the usage of image after this render pass. This should be called
     // only if the user wants to explicitly transition the image layout to
     // prepare for operations after this render pass.
-    AttachmentConfig& set_final_usage(const image::Usage& usage) {
+    AttachmentConfig& set_final_usage(const ImageUsage& usage) {
       final_usage = usage;
       return *this;
     }
@@ -103,7 +103,7 @@ class NaiveRenderPass {
     std::string image_name;
     absl::optional<int>& attachment_index;
     absl::optional<GraphicsPass::AttachmentLoadStoreOps> load_store_ops;
-    absl::optional<image::Usage> final_usage;
+    absl::optional<ImageUsage> final_usage;
   };
 
   // Creates a RenderPassBuilder. If multisampling attachment is used, it will
@@ -115,7 +115,7 @@ class NaiveRenderPass {
       const AttachmentConfig& color_attachment_config,
       const AttachmentConfig* multisampling_attachment_config,
       const AttachmentConfig* depth_stencil_attachment_config,
-      image::UsageTracker& image_usage_tracker);
+      ImageUsageTracker& image_usage_tracker);
 };
 
 } /* namespace vulkan */

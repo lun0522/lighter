@@ -7,6 +7,7 @@
 
 #include "lighter/renderer/vulkan/extension/base_pass.h"
 
+#include "lighter/renderer/vulkan/wrapper/image_util.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace lighter {
@@ -14,7 +15,7 @@ namespace renderer {
 namespace vulkan {
 
 void BasePass::AddUsageHistory(std::string&& image_name,
-                               image::UsageHistory&& history) {
+                               ImageUsageHistory&& history) {
   for (const auto& pair : history.usage_at_subpass_map()) {
     ValidateSubpass(/*subpass=*/pair.first, image_name,
                     /*include_virtual_subpasses=*/false);
@@ -32,30 +33,30 @@ VkImageLayout BasePass::GetImageLayoutBeforePass(
     const std::string& image_name) const {
   const auto& first_usage =
       GetUsageHistory(image_name).usage_at_subpass_map().begin()->second;
-  return first_usage.GetImageLayout();
+  return image::GetImageLayout(first_usage);
 }
 
 VkImageLayout BasePass::GetImageLayoutAfterPass(
     const std::string& image_name) const {
   const auto& last_usage =
       GetUsageHistory(image_name).usage_at_subpass_map().rbegin()->second;
-  return last_usage.GetImageLayout();
+  return image::GetImageLayout(last_usage);
 }
 
 VkImageLayout BasePass::GetImageLayoutAtSubpass(const std::string& image_name,
                                                 int subpass) const {
   ValidateSubpass(subpass, image_name, /*include_virtual_subpasses=*/false);
-  const image::Usage* usage = GetImageUsage(image_name, subpass);
+  const ImageUsage* usage = GetImageUsage(image_name, subpass);
   ASSERT_NON_NULL(
       usage,
       absl::StrFormat("Usage not specified for image '%s' at subpass %d",
                       image_name, subpass));
-  return usage->GetImageLayout();
+  return image::GetImageLayout(*usage);
 }
 
 void BasePass::UpdateTrackedImageUsage(
     const std::string& image_name,
-    image::UsageTracker& usage_tracker) const {
+    ImageUsageTracker& usage_tracker) const {
   const auto& last_usage =
       GetUsageHistory(image_name).usage_at_subpass_map().rbegin()->second;
   usage_tracker.UpdateUsage(image_name, last_usage);
@@ -66,7 +67,7 @@ void BasePass::UpdateTrackedImageUsage(
 #endif /* !NDEBUG */
 }
 
-const image::UsageHistory& BasePass::GetUsageHistory(
+const ImageUsageHistory& BasePass::GetUsageHistory(
     const std::string& image_name) const {
   const auto iter = image_usage_history_map_.find(image_name);
   ASSERT_FALSE(iter == image_usage_history_map_.end(),
@@ -74,10 +75,10 @@ const image::UsageHistory& BasePass::GetUsageHistory(
   return iter->second;
 }
 
-const image::Usage* BasePass::GetImageUsage(const std::string& image_name,
-                                            int subpass) const {
+const ImageUsage* BasePass::GetImageUsage(const std::string& image_name,
+                                          int subpass) const {
   ValidateSubpass(subpass, image_name, /*include_virtual_subpasses=*/true);
-  const image::UsageHistory& history = GetUsageHistory(image_name);
+  const ImageUsageHistory& history = GetUsageHistory(image_name);
   const auto iter = history.usage_at_subpass_map().find(subpass);
   return iter == history.usage_at_subpass_map().end() ? nullptr : &iter->second;
 }
@@ -86,15 +87,15 @@ absl::optional<BasePass::ImageUsagesInfo>
 BasePass::GetImageUsagesIfNeedSynchronization(
     const std::string& image_name, int subpass) const {
   ValidateSubpass(subpass, image_name, /*include_virtual_subpasses=*/true);
-  const image::UsageHistory& history = GetUsageHistory(image_name);
+  const ImageUsageHistory& history = GetUsageHistory(image_name);
   const auto curr_usage_iter = history.usage_at_subpass_map().find(subpass);
   if (curr_usage_iter == history.usage_at_subpass_map().end()) {
     return absl::nullopt;
   }
   const auto prev_usage_iter = std::prev(curr_usage_iter);
 
-  const image::Usage& prev_usage = prev_usage_iter->second;
-  const image::Usage& curr_usage = curr_usage_iter->second;
+  const ImageUsage& prev_usage = prev_usage_iter->second;
+  const ImageUsage& curr_usage = curr_usage_iter->second;
   if (!image::NeedSynchronization(prev_usage, curr_usage)) {
     return absl::nullopt;
   }

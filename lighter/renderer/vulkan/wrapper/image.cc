@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "lighter/renderer/vulkan/wrapper/command.h"
+#include "lighter/renderer/vulkan/wrapper/image_util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 
@@ -61,21 +62,21 @@ absl::optional<VkFormat> FindImageFormatWithFeature(
 // Only 1 or 4 channels are supported.
 VkFormat FindColorImageFormat(
     const BasicContext& context,
-    int channel, absl::Span<const image::Usage> usages) {
+    int channel, absl::Span<const ImageUsage> usages) {
   switch (channel) {
     case common::kBwImageChannel: {
       // VK_FORMAT_R8_UNORM and VK_FORMAT_R16_SFLOAT have mandatory support for
       // sampling, but may not support linear access. We may switch to 4-channel
       // formats since they have mandatory support for both.
       VkFormat best_format, alternative_format;
-      if (image::UseHighPrecision(usages)) {
+      if (ImageUsage::UseHighPrecision(usages)) {
         best_format = VK_FORMAT_R16_SFLOAT;
         alternative_format = VK_FORMAT_R16G16B16A16_SFLOAT;
       } else {
         best_format = VK_FORMAT_R8_UNORM;
         alternative_format = VK_FORMAT_R8G8B8A8_UNORM;
       }
-      if (!image::IsLinearAccessed(usages)) {
+      if (!ImageUsage::IsLinearAccessed(usages)) {
         return best_format;
       }
       if (FindImageFormatWithFeature(
@@ -92,7 +93,7 @@ VkFormat FindColorImageFormat(
     }
 
     case common::kRgbaImageChannel:
-      if (image::UseHighPrecision(usages)) {
+      if (ImageUsage::UseHighPrecision(usages)) {
         return VK_FORMAT_R16G16B16A16_SFLOAT;
       } else {
         return VK_FORMAT_R8G8B8A8_UNORM;
@@ -135,7 +136,7 @@ VkSampleCountFlagBits GetMaxSampleCount(VkSampleCountFlags sample_counts) {
 TextureImage::Info CreateTextureBufferInfo(
     const BasicContext& context,
     const common::Image& sample_image,
-    absl::Span<const image::Usage> usages,
+    absl::Span<const ImageUsage> usages,
     std::vector<const void*>&& image_datas) {
   return TextureImage::Info{
       std::move(image_datas),
@@ -536,7 +537,7 @@ TextureImage::TextureImage(SharedBasicContext context,
 TextureImage::TextureImage(const SharedBasicContext& context,
                            bool generate_mipmaps,
                            const common::Image& image,
-                           absl::Span<const image::Usage> usages,
+                           absl::Span<const ImageUsage> usages,
                            const ImageSampler::Config& sampler_config)
     : TextureImage{context, generate_mipmaps, sampler_config,
                    CreateTextureBufferInfo(*FATAL_IF_NULL(context), image,
@@ -606,7 +607,7 @@ TextureImage::TextureBuffer::TextureBuffer(
 SharedTexture::RefCountedTexture SharedTexture::GetTexture(
     const SharedBasicContext& context,
     const SourcePath& source_path,
-    absl::Span<const image::Usage> usages,
+    absl::Span<const ImageUsage> usages,
     const ImageSampler::Config& sampler_config) {
   FATAL_IF_NULL(context);
   context->RegisterAutoReleasePool<SharedTexture::RefCountedTexture>("texture");
@@ -653,7 +654,7 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
 
 OffscreenImage::OffscreenImage(SharedBasicContext context,
                                const VkExtent2D& extent, VkFormat format,
-                               absl::Span<const image::Usage> usages,
+                               absl::Span<const ImageUsage> usages,
                                const ImageSampler::Config& sampler_config)
     : Image{std::move(FATAL_IF_NULL(context)), extent, format},
       buffer_{context_, extent_, format_, usages},
@@ -665,7 +666,7 @@ OffscreenImage::OffscreenImage(SharedBasicContext context,
 
 OffscreenImage::OffscreenImage(const SharedBasicContext& context,
                                const VkExtent2D& extent, int channel,
-                               absl::Span<const image::Usage> usages,
+                               absl::Span<const ImageUsage> usages,
                                const ImageSampler::Config& sampler_config)
     : OffscreenImage{context, extent,
                      FindColorImageFormat(*FATAL_IF_NULL(context),
@@ -675,7 +676,7 @@ OffscreenImage::OffscreenImage(const SharedBasicContext& context,
 OffscreenImage::OffscreenBuffer::OffscreenBuffer(
     SharedBasicContext context,
     const VkExtent2D& extent, VkFormat format,
-    absl::Span<const image::Usage> usages)
+    absl::Span<const ImageUsage> usages)
     : ImageBuffer{std::move(context)} {
   set_image(CreateImage(*context_, ImageConfig{}, nullflag, format,
                         ExpandDimension(extent),

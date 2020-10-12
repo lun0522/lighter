@@ -8,8 +8,8 @@
 #include "lighter/application/vulkan/aurora/viewer/path_renderer.h"
 
 #include "lighter/application/vulkan/util.h"
-#include "lighter/renderer/common/align.h"
-#include "lighter/renderer/vulkan/extension/image_usage_util.h"
+#include "lighter/renderer/align.h"
+#include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
@@ -21,6 +21,7 @@ namespace vulkan {
 namespace aurora {
 namespace {
 
+using namespace renderer;
 using namespace renderer::vulkan;
 
 enum SubpassIndex {
@@ -75,7 +76,7 @@ PathRenderer2D::PathRenderer2D(
       context, sizeof(Transformation), /*num_frames_in_flight=*/1);
 
   /* Render pass */
-  image::UsageTracker image_usage_tracker;
+  ImageUsageTracker image_usage_tracker;
   AttachmentInfo intermediate_image_info{"Path single sample"};
   AttachmentInfo multisample_image_info{"Path multisample"};
   intermediate_image_info.AddToTracker(image_usage_tracker, intermediate_image);

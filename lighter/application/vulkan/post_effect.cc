@@ -15,6 +15,7 @@ namespace application {
 namespace vulkan {
 namespace {
 
+using namespace renderer;
 using namespace renderer::vulkan;
 
 enum ComputeSubpassIndex {
@@ -93,22 +94,22 @@ PostEffectApp::PostEffectApp(const WindowContext::Config& window_config)
 }
 
 void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
-  image::UsageHistory original_image_usage_history{};
+  ImageUsageHistory original_image_usage_history{};
   original_image_usage_history.AddUsage(
       kPostEffectSubpassIndex,
-      image::Usage::GetLinearAccessInComputeShaderUsage(
-          image::Usage::AccessType::kReadOnly));
+      ImageUsage::GetLinearAccessInComputeShaderUsage(
+          ImageUsage::AccessType::kReadOnly));
   const common::Image image_from_file{file_path};
   TextureImage original_image(
       context(), /*generate_mipmaps=*/false, image_from_file,
       original_image_usage_history.GetAllUsages(), ImageSampler::Config{});
 
-  image::UsageHistory processed_image_usage_history{};
+  ImageUsageHistory processed_image_usage_history{};
   processed_image_usage_history
       .AddUsage(kPostEffectSubpassIndex,
-                image::Usage::GetLinearAccessInComputeShaderUsage(
-                    image::Usage::AccessType::kWriteOnly))
-      .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
+                ImageUsage::GetLinearAccessInComputeShaderUsage(
+                    ImageUsage::AccessType::kWriteOnly))
+      .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
   processed_image_ = absl::make_unique<OffscreenImage>(
       context(), original_image.extent(), image_from_file.channel,
       processed_image_usage_history.GetAllUsages(), ImageSampler::Config{});

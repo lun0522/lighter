@@ -10,8 +10,8 @@
 #include <vector>
 
 #include "lighter/common/file.h"
-#include "lighter/renderer/common/align.h"
-#include "lighter/renderer/vulkan/extension/image_usage_util.h"
+#include "lighter/renderer/align.h"
+#include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/glm/gtc/matrix_transform.hpp"
@@ -22,6 +22,7 @@ namespace vulkan {
 namespace troop {
 namespace {
 
+using namespace renderer;
 using namespace renderer::vulkan;
 
 enum SubpassIndex {
@@ -178,18 +179,18 @@ void GeometryPass::CreateRenderPassBuilder(
 
   GraphicsPass graphics_pass{window_context_.basic_context(), kNumSubpasses};
   for (const auto& attachment : attachments) {
-    image::UsageHistory history{attachment.image.GetInitialUsage()};
+    ImageUsageHistory history{attachment.image.GetInitialUsage()};
     if (attachment.location == kAttachmentNonApplicable) {
       history.AddUsage(kRenderSubpassIndex,
-                       image::Usage::GetDepthStencilUsage(
-                           image::Usage::AccessType::kReadWrite));
+                       ImageUsage::GetDepthStencilUsage(
+                           ImageUsage::AccessType::kReadWrite));
       attachment.attachment_index = graphics_pass.AddAttachment(
           attachment.image_name, std::move(history), /*get_location=*/nullptr,
           depth_stencil_load_store_ops);
     } else {
       history
-          .AddUsage(kRenderSubpassIndex, image::Usage::GetRenderTargetUsage())
-          .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
+          .AddUsage(kRenderSubpassIndex, ImageUsage::GetRenderTargetUsage())
+          .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
       attachment.attachment_index = graphics_pass.AddAttachment(
           attachment.image_name, std::move(history),
           attachment.MakeLocationGetter());

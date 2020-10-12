@@ -17,17 +17,16 @@
 #include "lighter/common/file.h"
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
-#include "lighter/renderer/common/align.h"
+#include "lighter/renderer/align.h"
+#include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vulkan/extension/compute_pass.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
-#include "lighter/renderer/vulkan/extension/image_usage_util.h"
 #include "lighter/renderer/vulkan/extension/model.h"
 #include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/command.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
-#include "lighter/renderer/vulkan/wrapper/image_usage.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
@@ -91,9 +90,9 @@ class AttachmentInfo {
 
   // Makes 'image_usage_tracker' track the usage of this image. The initial
   // usage of 'sample_image' is used as the current usage.
-  void AddToTracker(renderer::vulkan::image::UsageTracker& image_usage_tracker,
+  void AddToTracker(renderer::ImageUsageTracker& image_usage_tracker,
                     const renderer::vulkan::Image& sample_image) {
-    image_usage_tracker.TrackImage(image_name_, sample_image);
+    image_usage_tracker.TrackImage(image_name_, sample_image.GetInitialUsage());
   }
 
   // Creates an AttachmentConfig to be used in NaiveRenderPass.
@@ -110,7 +109,7 @@ class AttachmentInfo {
 
  private:
   // Image name. This is used to identify an image in GraphicsPass and
-  // image::UsageTracker.
+  // ImageUsageTracker.
   const std::string image_name_;
 
   // Attachment index. This is used to identify an image within a

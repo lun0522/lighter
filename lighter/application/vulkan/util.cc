@@ -12,6 +12,7 @@ namespace application {
 namespace vulkan {
 namespace {
 
+using namespace renderer;
 using namespace renderer::vulkan;
 
 } /* namespace */
@@ -57,7 +58,7 @@ void OnScreenRenderPassManager::CreateRenderPassBuilder() {
   /* Image usage tracker */
   const bool use_depth_stencil = depth_stencil_image_ != nullptr;
   const bool use_multisampling = window_context_.use_multisampling();
-  image::UsageTracker image_usage_tracker;
+  ImageUsageTracker image_usage_tracker;
   swapchain_image_info_.AddToTracker(
       image_usage_tracker, window_context_.swapchain_image(/*index=*/0));
   if (use_depth_stencil) {
@@ -72,7 +73,7 @@ void OnScreenRenderPassManager::CreateRenderPassBuilder() {
   /* Render pass builder */
   const auto color_attachment_config =
       swapchain_image_info_.MakeAttachmentConfig()
-          .set_final_usage(image::Usage::GetPresentationUsage());
+          .set_final_usage(ImageUsage::GetPresentationUsage());
   const auto multisampling_attachment_config =
       multisample_image_info_.MakeAttachmentConfig();
   const auto depth_stencil_attachment_config =

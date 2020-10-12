@@ -22,6 +22,7 @@ namespace vulkan {
 namespace aurora {
 namespace {
 
+using namespace renderer;
 using namespace renderer::vulkan;
 
 // To save device memory, we reuse images in this way:
@@ -61,30 +62,30 @@ PathDumper::PathDumper(
 
   // TODO: We still need a high level description, especially when image layouts
   // change across files.
-  image::UsageHistory paths_image_usage_history{};
+  ImageUsageHistory paths_image_usage_history{};
   paths_image_usage_history
       .AddUsage(kBoldPathsSubpassIndex,
-                image::Usage::GetLinearAccessInComputeShaderUsage(
-                    image::Usage::AccessType::kWriteOnly))
+                ImageUsage::GetLinearAccessInComputeShaderUsage(
+                    ImageUsage::AccessType::kWriteOnly))
       .AddUsage(kGenerateDistanceFieldSubpassIndex,
-                image::Usage::GetLinearAccessInComputeShaderUsage(
-                    image::Usage::AccessType::kReadOnly))
-      .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
+                ImageUsage::GetLinearAccessInComputeShaderUsage(
+                    ImageUsage::AccessType::kReadOnly))
+      .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
   paths_image_ = absl::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::kBwImageChannel,
       paths_image_usage_history.GetAllUsages(), sampler_config);
 
-  image::UsageHistory distance_field_image_usage_history{
-      /*initial_usage=*/image::Usage::GetMultisampleResolveTargetUsage()};
+  ImageUsageHistory distance_field_image_usage_history{
+      /*initial_usage=*/ImageUsage::GetMultisampleResolveTargetUsage()};
   distance_field_image_usage_history
       .AddUsage(kBoldPathsSubpassIndex,
-                image::Usage::GetLinearAccessInComputeShaderUsage(
-                    image::Usage::AccessType::kReadOnly))
+                ImageUsage::GetLinearAccessInComputeShaderUsage(
+                    ImageUsage::AccessType::kReadOnly))
       .AddUsage(kGenerateDistanceFieldSubpassIndex,
-                image::Usage::GetLinearAccessInComputeShaderUsage(
-                    image::Usage::AccessType::kReadWrite)
+                ImageUsage::GetLinearAccessInComputeShaderUsage(
+                    ImageUsage::AccessType::kReadWrite)
                     .set_use_high_precision())
-      .SetFinalUsage(image::Usage::GetSampledInFragmentShaderUsage());
+      .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
   distance_field_image_ = absl::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::kRgbaImageChannel,
       distance_field_image_usage_history.GetAllUsages(), sampler_config);

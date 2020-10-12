@@ -10,7 +10,7 @@
 #include <cmath>
 #include <algorithm>
 
-#include "lighter/renderer/common/align.h"
+#include "lighter/renderer/align.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
 #include "third_party/absl/memory/memory.h"

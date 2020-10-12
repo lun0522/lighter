@@ -11,8 +11,8 @@
 #include <functional>
 #include <string>
 
+#include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vulkan/extension/base_pass.h"
-#include "lighter/renderer/vulkan/extension/image_usage_util.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/span.h"
@@ -39,10 +39,9 @@ class ComputePass : public BasePass {
   ComputePass& operator=(const ComputePass&) = delete;
 
   // Adds an image that is used in this compute pass.
-  ComputePass& AddImage(std::string&& image_name,
-                        image::UsageHistory&& history);
+  ComputePass& AddImage(std::string&& image_name, ImageUsageHistory&& history);
   ComputePass& AddImage(const std::string& image_name,
-                        image::UsageHistory&& history) {
+                        ImageUsageHistory&& history) {
     return AddImage(std::string{image_name}, std::move(history));
   }
 
@@ -61,13 +60,13 @@ class ComputePass : public BasePass {
   // queue with 'queue_family_index'.
   void InsertMemoryBarrier(const VkCommandBuffer& command_buffer,
                            uint32_t queue_family_index, const VkImage& image,
-                           const image::Usage& prev_usage,
-                           const image::Usage& curr_usage) const;
+                           const ImageUsage& prev_usage,
+                           const ImageUsage& curr_usage) const;
 
   // Checks whether image usages recorded in 'history' (excluding initial and
   // final usages) can be handled by this compute pass.
   void ValidateUsageHistory(const std::string& image_name,
-                            const image::UsageHistory& history) const;
+                            const ImageUsageHistory& history) const;
 };
 
 } /* namespace vulkan */
