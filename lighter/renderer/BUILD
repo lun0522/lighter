@@ -6,6 +6,12 @@ cc_library(
 )
 
 cc_library(
+    name = "buffer",
+    hdrs = ["buffer.h"],
+    deps = [":type"],
+)
+
+cc_library(
     name = "image_usage",
     hdrs = ["image_usage.h"],
     srcs = ["image_usage.cc"],
@@ -19,10 +25,30 @@ cc_library(
 )
 
 cc_library(
+    name = "renderer",
+    hdrs = ["renderer.h"],
+    srcs = ["renderer.cc"],
+    deps = [
+        ":buffer",
+        "//lighter/common:util",
+        "//third_party/absl/types:span",
+    ],
+)
+
+cc_library(
     name = "offscreen_renderer",
     deps = [
         ":align",
         ":image_usage",
     ],
-    data = ["@resource//:resource"],
+)
+
+cc_library(
+    name = "onscreen_renderer",
+    deps = [":offscreen_renderer"],
+)
+
+cc_library(
+    name = "type",
+    hdrs = ["type.h"],
 )

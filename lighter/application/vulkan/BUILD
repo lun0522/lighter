@@ -11,7 +11,7 @@ cc_library(
         "//lighter/common:file",
         "//lighter/common:timer",
         "//lighter/common:util",
-        "//lighter/renderer:offscreen_renderer",
+        "//lighter/renderer:onscreen_renderer",
         "//lighter/renderer/vulkan/extension:onscreen",
         "//third_party/absl/flags:flag",
         "//third_party/absl/memory",
@@ -21,6 +21,7 @@ cc_library(
         "//third_party:glm",
         "//third_party:vulkan",
     ],
+    data = ["@resource//:resource"],
     visibility = ["//lighter/application/vulkan:__subpackages__"],
 )
 

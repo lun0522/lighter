@@ -335,7 +335,7 @@ class PerVertexBuffer : public VertexBuffer {
   };
 
   using MeshDataInfos = absl::variant<MeshDataInfosNoIndices,
-      MeshDataInfosWithIndices>;
+                                      MeshDataInfosWithIndices>;
 
   // Accessors.
   MeshDataInfos* mutable_mesh_data_infos() { return &mesh_data_infos_; }
