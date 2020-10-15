@@ -192,7 +192,7 @@ Buffer::CopyInfos PerVertexBuffer::NoIndicesDataInfo::CreateCopyInfos(
   copy_infos.reserve(per_mesh_vertices_.size());
 
   VkDeviceSize offset = 0;
-  for (const auto vertices : per_mesh_vertices_) {
+  for (const auto& vertices : per_mesh_vertices_) {
     mesh_infos.push_back(MeshDataInfosNoIndices::Info{
         static_cast<uint32_t>(vertices.num_units_per_mesh),
         offset,

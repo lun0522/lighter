@@ -8,7 +8,10 @@ cc_library(
 cc_library(
     name = "buffer",
     hdrs = ["buffer.h"],
-    deps = [":type"],
+    deps = [
+        ":type",
+        "//third_party/absl/types:span",
+    ],
 )
 
 cc_library(
@@ -25,17 +28,6 @@ cc_library(
 )
 
 cc_library(
-    name = "renderer",
-    hdrs = ["renderer.h"],
-    srcs = ["renderer.cc"],
-    deps = [
-        ":buffer",
-        "//lighter/common:util",
-        "//third_party/absl/types:span",
-    ],
-)
-
-cc_library(
     name = "offscreen_renderer",
     deps = [
         ":align",
@@ -46,6 +38,25 @@ cc_library(
 cc_library(
     name = "onscreen_renderer",
     deps = [":offscreen_renderer"],
+)
+
+cc_library(
+    name = "pipeline",
+    hdrs = ["pipeline.h"],
+    deps = [
+        ":buffer",
+        ":type",
+        "//third_party/absl/strings",
+    ],
+)
+
+cc_library(
+    name = "renderer",
+    hdrs = ["renderer.h"],
+    deps = [
+        ":buffer",
+        "//third_party/absl/types:span",
+    ],
 )
 
 cc_library(

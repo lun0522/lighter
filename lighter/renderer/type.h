@@ -28,12 +28,22 @@ enum class DataFormat {
   kSFloat32Vec4,
 };
 
+enum class SampleCount { k1, k2, k4, k8, k16, k32, k64 };
+
+enum class PrimitiveTopology {
+  kPointList,
+  kLineList,
+  kLineStrip,
+  kTriangleList,
+  kTriangleStrip,
+  kTriangleFan,
+};
+
 namespace shader_stage {
 
 enum ShaderStage {
   VERTEX   = 1U << 0U,
   FRAGMENT = 1U << 1U,
-  COMPUTE  = 1U << 2U,
 };
 
 } /* namespace shader_stage */
