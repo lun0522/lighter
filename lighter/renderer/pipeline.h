@@ -29,48 +29,39 @@ class Pipeline {
   virtual void Bind() const = 0;
 };
 
-class PipelineBuilder {
+class GraphicsPipelineDescriptor {
  public:
   // This class provides copy constructor and move constructor.
-  PipelineBuilder(PipelineBuilder&&) noexcept = default;
-  PipelineBuilder(const PipelineBuilder&) = default;
+  GraphicsPipelineDescriptor(GraphicsPipelineDescriptor&&) noexcept = default;
+  GraphicsPipelineDescriptor(const GraphicsPipelineDescriptor&) = default;
 
-  ~PipelineBuilder() = default;
-
-  // Builds a pipeline. Internal states are preserved, so that the builder can
-  // be modified and used to build another pipeline later.
-  virtual std::unique_ptr<Pipeline> Build() const = 0;
-};
-
-class GraphicsPipelineBuilder {
- public:
-  // This class provides copy constructor and move constructor.
-  GraphicsPipelineBuilder(GraphicsPipelineBuilder&&) noexcept = default;
-  GraphicsPipelineBuilder(const GraphicsPipelineBuilder&) = default;
+  ~GraphicsPipelineDescriptor() = default;
 
   // Sets a name for this pipeline. This is for debugging purpose.
-  virtual GraphicsPipelineBuilder& SetName(absl::string_view name) = 0;
+  virtual GraphicsPipelineDescriptor& SetName(absl::string_view name) = 0;
 
   // Sets shader for 'stage'.
-  virtual GraphicsPipelineBuilder& SetShader(shader_stage::ShaderStage stage,
-                                             absl::string_view file_path) = 0;
+  virtual GraphicsPipelineDescriptor& SetShader(
+      shader_stage::ShaderStage stage, absl::string_view file_path) = 0;
 
   // Binds input vertex data.
-  virtual GraphicsPipelineBuilder& AddVertexInput(
+  virtual GraphicsPipelineDescriptor& AddVertexInput(
       const VertexBufferView& buffer_view) = 0;
 };
 
-class ComputePipelineBuilder {
+class ComputePipelineDescriptor {
  public:
   // This class provides copy constructor and move constructor.
-  ComputePipelineBuilder(ComputePipelineBuilder&&) noexcept = default;
-  ComputePipelineBuilder(const ComputePipelineBuilder&) = default;
+  ComputePipelineDescriptor(ComputePipelineDescriptor&&) noexcept = default;
+  ComputePipelineDescriptor(const ComputePipelineDescriptor&) = default;
+
+  ~ComputePipelineDescriptor() = default;
 
   // Sets a name for this pipeline. This is for debugging purpose.
-  virtual ComputePipelineBuilder& SetName(absl::string_view name) = 0;
+  virtual ComputePipelineDescriptor& SetName(absl::string_view name) = 0;
 
   // Sets compute shader.
-  virtual ComputePipelineBuilder& SetShader(absl::string_view file_path) = 0;
+  virtual ComputePipelineDescriptor& SetShader(absl::string_view file_path) = 0;
 };
 
 } /* namespace renderer */

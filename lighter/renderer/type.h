@@ -28,6 +28,10 @@ enum class DataFormat {
   kSFloat32Vec4,
 };
 
+enum class AttachmentLoadOp { kLoad, kClear, kDontCare };
+
+enum class AttachmentStoreOp { kStore, kDontCare };
+
 enum class SampleCount { k1, k2, k4, k8, k16, k32, k64 };
 
 enum class PrimitiveTopology {

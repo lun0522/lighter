@@ -41,6 +41,20 @@ cc_library(
 )
 
 cc_library(
+    name = "pass",
+    hdrs = ["pass.h"],
+    srcs = ["pass.cc"],
+    deps = [
+        ":image_usage",
+        ":type",
+        "//lighter/common:util",
+        "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/strings",
+        "//third_party/absl/strings:str_format",
+    ],
+)
+
+cc_library(
     name = "pipeline",
     hdrs = ["pipeline.h"],
     deps = [
@@ -55,6 +69,8 @@ cc_library(
     hdrs = ["renderer.h"],
     deps = [
         ":buffer",
+        ":pass",
+        ":pipeline",
         "//third_party/absl/types:span",
     ],
 )

@@ -11,6 +11,8 @@
 #include <memory>
 
 #include "lighter/renderer/buffer.h"
+#include "lighter/renderer/pass.h"
+#include "lighter/renderer/pipeline.h"
 #include "third_party/absl/types/span.h"
 
 namespace lighter {
@@ -57,6 +59,22 @@ class Renderer {
   UniformBufferView CreateUniformBufferView(int num_chunks) const {
     return CreateUniformBufferView(sizeof(DataType), num_chunks);
   }
+
+  /* Pipeline */
+
+  virtual std::unique_ptr<Pipeline> CreateGraphicsPipeline(
+      const GraphicsPipelineDescriptor& descriptor) const = 0;
+
+  virtual std::unique_ptr<Pipeline> CreateComputePipeline(
+      const ComputePipelineDescriptor& descriptor) const = 0;
+
+  /* Pass */
+
+  virtual std::unique_ptr<GraphicsPass> CreateGraphicsPass(
+      const GraphicsPassDescriptor& descriptor) const = 0;
+
+  virtual std::unique_ptr<ComputePass> CreateComputePass(
+      const ComputePassDescriptor& descriptor) const = 0;
 };
 
 } /* namespace renderer */
