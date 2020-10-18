@@ -21,6 +21,7 @@ cc_library(
     deps = [
         "//lighter/common:util",
         "//third_party/absl/container:flat_hash_map",
+        "//third_party/absl/strings",
         "//third_party/absl/strings:str_format",
         "//third_party/absl/types:optional",
         "//third_party/absl/types:span",
@@ -31,7 +32,12 @@ cc_library(
     name = "offscreen_renderer",
     deps = [
         ":align",
+        ":buffer",
         ":image_usage",
+        ":pass",
+        ":pipeline",
+        ":renderer",
+        ":type",
     ],
 )
 

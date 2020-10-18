@@ -21,9 +21,8 @@ namespace {
 
 // Returns the format to use for 'attribute'.
 VkFormat ChooseFormat(common::VertexAttribute attribute) {
-  if (attribute.data_type != common::VertexAttribute::DataType::kFloat) {
-    FATAL("Can only handle float");
-  }
+  ASSERT_TRUE(attribute.data_type == common::VertexAttribute::DataType::kFloat,
+              "Can only handle float");
 
   switch (attribute.length) {
     case 1:

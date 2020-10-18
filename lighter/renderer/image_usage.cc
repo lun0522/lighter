@@ -15,9 +15,9 @@ namespace renderer {
 ImageUsageHistory& ImageUsageHistory::AddUsage(int subpass,
                                                const ImageUsage& usage) {
   const auto did_insert = usage_at_subpass_map_.insert({subpass, usage}).second;
-  if (!did_insert) {
-    FATAL(absl::StrFormat("Already specified usage for subpass %d", subpass));
-  }
+  ASSERT_TRUE(
+      did_insert,
+      absl::StrFormat("Already specified usage for subpass %d", subpass));
   return *this;
 }
 
@@ -30,6 +30,16 @@ ImageUsageHistory& ImageUsageHistory::AddUsage(
     AddUsage(subpass, usage);
   }
   return *this;
+}
+
+ImageUsageHistory& ImageUsageHistory::AddMultisampleResolveSource(
+    int subpass, absl::string_view source_image_name) {
+  const auto iter =
+      resolve_source_map_.insert({subpass, std::string{source_image_name}});
+  ASSERT_TRUE(iter.second,
+              absl::StrFormat("Already specified resolve source for subpass %d",
+                              subpass));
+  return AddUsage(subpass, ImageUsage::GetMultisampleResolveTargetUsage());
 }
 
 ImageUsageHistory& ImageUsageHistory::SetFinalUsage(const ImageUsage& usage) {

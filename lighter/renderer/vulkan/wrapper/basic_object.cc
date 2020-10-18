@@ -8,7 +8,6 @@
 #include "lighter/renderer/vulkan/wrapper/basic_object.h"
 
 #include <functional>
-#include <string>
 #include <vector>
 
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"

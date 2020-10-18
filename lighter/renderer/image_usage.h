@@ -15,6 +15,7 @@
 
 #include "lighter/common/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 
@@ -79,6 +80,7 @@ class ImageUsage {
 
   // Convenience function to return usage for images that we resolve multisample
   // images to.
+  // TODO: Make this private once finish migration.
   static ImageUsage GetMultisampleResolveTargetUsage() {
     return ImageUsage{UsageType::kMultisampleResolve, AccessType::kWriteOnly,
                       AccessLocation::kOther};
@@ -169,6 +171,10 @@ class ImageUsage {
 // graphics pass. We assume that an image can only have one usage at a subpass.
 class ImageUsageHistory {
  public:
+  // Maps subpass to the name of image that will resolve to this image at that
+  // subpass.
+  using MultisampleResolveSourceMap = absl::flat_hash_map<int, std::string>;
+
   explicit ImageUsageHistory(const ImageUsage& initial_usage)
       : initial_usage_{initial_usage} {}
 
@@ -189,6 +195,11 @@ class ImageUsageHistory {
   ImageUsageHistory& AddUsage(int subpass_start, int subpass_end,
                               const ImageUsage& usage);
 
+  // Specifies that the multisample image with 'source_image_name' will resolve
+  // to this image at 'subpass'.
+  ImageUsageHistory& AddMultisampleResolveSource(
+      int subpass, absl::string_view source_image_name);
+
   // Specifies the usage after this pass. This is optional. It should be called
   // only if the user wants to explicitly transition the image layout to prepare
   // for later operations.
@@ -204,6 +215,9 @@ class ImageUsageHistory {
   }
   const ImageUsage& initial_usage() const { return initial_usage_; }
   const absl::optional<ImageUsage>& final_usage() const { return final_usage_; }
+  const MultisampleResolveSourceMap& multisample_resolve_source_map() const {
+    return resolve_source_map_;
+  }
 
  private:
   // Maps subpasses where the image is used to its usage at that subpass. An
@@ -215,6 +229,9 @@ class ImageUsageHistory {
 
   // Usage of image after this pass.
   absl::optional<ImageUsage> final_usage_;
+
+  // Records which images will resolve to this image at which subpasses.
+  MultisampleResolveSourceMap resolve_source_map_;
 };
 
 // This class tracks usages of multiple images. Each image should have a unique

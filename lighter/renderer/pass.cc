@@ -19,6 +19,10 @@ void BasePassDescriptor::AddImage(absl::string_view name,
     ValidateSubpass(/*subpass=*/pair.first, name,
                     /*include_virtual_subpasses=*/false);
   }
+  for (const auto& pair : usage_history.multisample_resolve_source_map()) {
+    ValidateSubpass(/*subpass=*/pair.first, name,
+                    /*include_virtual_subpasses=*/false);
+  }
 
   usage_history.AddUsage(virtual_initial_subpass_index(),
                          usage_history.initial_usage());
