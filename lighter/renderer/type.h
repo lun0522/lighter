@@ -32,7 +32,17 @@ enum class AttachmentLoadOp { kLoad, kClear, kDontCare };
 
 enum class AttachmentStoreOp { kStore, kDontCare };
 
-enum class SampleCount { k1, k2, k4, k8, k16, k32, k64 };
+enum class FilterType { kNearest, kLinear };
+
+enum class SamplerAddressMode {
+  kRepeat,
+  kMirroredRepeat,
+  kClampToEdge,
+  kClampToBorder,
+  kMirrorClamToEdge,
+};
+
+enum class MultisamplingMode { kNone, kDecent, kBest };
 
 enum class PrimitiveTopology {
   kPointList,

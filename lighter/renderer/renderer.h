@@ -10,7 +10,10 @@
 
 #include <memory>
 
+#include "lighter/common/file.h"
 #include "lighter/renderer/buffer.h"
+#include "lighter/renderer/image.h"
+#include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/pass.h"
 #include "lighter/renderer/pipeline.h"
 #include "third_party/absl/types/span.h"
@@ -49,15 +52,18 @@ class Renderer {
   /* Buffer view */
 
   virtual VertexBufferView CreateVertexBufferView(
-      VertexBufferView::InputRate input_rate, int buffer_binding, size_t stride,
+      const DeviceBuffer& buffer, VertexBufferView::InputRate input_rate,
+      int buffer_binding, size_t stride,
       absl::Span<VertexBufferView::Attribute> attributes) const = 0;
 
-  virtual UniformBufferView CreateUniformBufferView(size_t chunk_size,
+  virtual UniformBufferView CreateUniformBufferView(const DeviceBuffer& buffer,
+                                                    size_t chunk_size,
                                                     int num_chunks) const = 0;
 
   template <typename DataType>
-  UniformBufferView CreateUniformBufferView(int num_chunks) const {
-    return CreateUniformBufferView(sizeof(DataType), num_chunks);
+  UniformBufferView CreateUniformBufferView(const DeviceBuffer& buffer,
+                                            int num_chunks) const {
+    return CreateUniformBufferView(buffer, sizeof(DataType), num_chunks);
   }
 
   /* Pipeline */
@@ -75,6 +81,36 @@ class Renderer {
 
   virtual std::unique_ptr<ComputePass> CreateComputePass(
       const ComputePassDescriptor& descriptor) const = 0;
+
+  /* Device image */
+
+  virtual std::unique_ptr<DeviceImage> CreateDeviceImage(
+      const common::Image& image, absl::Span<ImageUsage> usages) const = 0;
+
+  virtual std::unique_ptr<DeviceImage> CreateDeviceImage(
+      const common::Image& image,
+      const ImageUsageHistory& usage_history) const {
+    return CreateDeviceImage(image, usage_history.GetAllUsages());
+  }
+
+  virtual std::unique_ptr<DeviceImage> CreateDeviceImage(
+      const common::Image::Dimension& dimension,
+      MultisamplingMode multisampling_mode,
+      absl::Span<ImageUsage> usages) const = 0;
+
+  virtual std::unique_ptr<DeviceImage> CreateDeviceImage(
+      const common::Image::Dimension& dimension,
+      MultisamplingMode multisampling_mode,
+      const ImageUsageHistory& usage_history) const {
+    return CreateDeviceImage(dimension, multisampling_mode,
+                             usage_history.GetAllUsages());
+  }
+
+  /* Image view */
+
+  virtual std::unique_ptr<SampledImageView> CreateSampledImageView(
+      const DeviceImage& image,
+      const SamplerDescriptor& sampler_descriptor) const = 0;
 };
 
 } /* namespace renderer */

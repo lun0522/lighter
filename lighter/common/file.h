@@ -73,7 +73,14 @@ struct RawData {
 };
 
 // Loads image from file or memory.
+// TODO: Extend to load cubemap.
 struct Image {
+  struct Dimension {
+    int width;
+    int height;
+    int channel;
+  };
+
   // Loads image from file. The image can have either 1, 3, or 4 channels.
   // If the image has 3 channels, we will reload and assign it the 4th channel.
   explicit Image(const std::string& path);
