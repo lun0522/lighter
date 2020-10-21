@@ -137,6 +137,7 @@ cc_library(
         ":offscreen_wrappers",
         "//lighter/common:char_lib",
         "//lighter/common:file",
+        "//lighter/common:image",
         "//lighter/common:util",
         "//lighter/renderer:align",
         "//third_party/absl/container:flat_hash_map",

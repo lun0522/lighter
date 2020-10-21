@@ -51,7 +51,7 @@ ImageViewer::ImageViewer(const SharedBasicContext& context,
 
   /* Pipeline */
   const auto frag_shader_relative_path =
-      num_channels == common::kBwImageChannel
+      num_channels == common::image::kBwImageChannel
           ? "image_viewer/view_bw_image.frag"
           : "image_viewer/view_color_image.frag";
   pipeline_builder_ = absl::make_unique<GraphicsPipelineBuilder>(context);

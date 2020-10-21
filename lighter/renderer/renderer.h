@@ -54,7 +54,7 @@ class Renderer {
   virtual VertexBufferView CreateVertexBufferView(
       const DeviceBuffer& buffer, VertexBufferView::InputRate input_rate,
       int buffer_binding, size_t stride,
-      absl::Span<VertexBufferView::Attribute> attributes) const = 0;
+      absl::Span<const VertexBufferView::Attribute> attributes) const = 0;
 
   virtual UniformBufferView CreateUniformBufferView(const DeviceBuffer& buffer,
                                                     size_t chunk_size,
@@ -85,7 +85,8 @@ class Renderer {
   /* Device image */
 
   virtual std::unique_ptr<DeviceImage> CreateDeviceImage(
-      const common::Image& image, absl::Span<ImageUsage> usages) const = 0;
+      const common::Image& image,
+      absl::Span<const ImageUsage> usages) const = 0;
 
   virtual std::unique_ptr<DeviceImage> CreateDeviceImage(
       const common::Image& image,
@@ -96,7 +97,7 @@ class Renderer {
   virtual std::unique_ptr<DeviceImage> CreateDeviceImage(
       const common::Image::Dimension& dimension,
       MultisamplingMode multisampling_mode,
-      absl::Span<ImageUsage> usages) const = 0;
+      absl::Span<const ImageUsage> usages) const = 0;
 
   virtual std::unique_ptr<DeviceImage> CreateDeviceImage(
       const common::Image::Dimension& dimension,

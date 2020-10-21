@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <array>
 
+#include "lighter/common/image.h"
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/command.h"
@@ -72,7 +73,7 @@ PathDumper::PathDumper(
                     ImageUsage::AccessType::kReadOnly))
       .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
   paths_image_ = absl::make_unique<OffscreenImage>(
-      context_, paths_image_extent, common::kBwImageChannel,
+      context_, paths_image_extent, common::image::kBwImageChannel,
       paths_image_usage_history.GetAllUsages(), sampler_config);
 
   ImageUsageHistory distance_field_image_usage_history{
@@ -87,7 +88,7 @@ PathDumper::PathDumper(
                     .set_use_high_precision())
       .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
   distance_field_image_ = absl::make_unique<OffscreenImage>(
-      context_, paths_image_extent, common::kRgbaImageChannel,
+      context_, paths_image_extent, common::image::kRgbaImageChannel,
       distance_field_image_usage_history.GetAllUsages(), sampler_config);
 
   /* Graphics and compute pipelines */

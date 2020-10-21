@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <limits>
 
+#include "lighter/common/image.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
 #include "third_party/absl/memory/memory.h"
 
@@ -151,7 +152,7 @@ Swapchain::Swapchain(
       surface_format.format,
       surface_format.colorSpace,
       image_extent_,
-      kSingleImageLayer,
+      common::image::kSingleImageLayer,
       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
       queue_usage.sharing_mode(),
       queue_usage.unique_family_indices_count(),

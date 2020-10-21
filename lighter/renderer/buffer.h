@@ -46,7 +46,7 @@ class DeviceBuffer {
   ~DeviceBuffer() = default;
 
   // Copies data to device memory.
-  void CopyToDevice(absl::Span<CopyInfo> infos) const = 0;
+  virtual void CopyToDevice(absl::Span<const CopyInfo> infos) const = 0;
 };
 
 class VertexBufferView {

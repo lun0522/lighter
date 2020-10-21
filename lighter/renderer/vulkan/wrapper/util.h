@@ -170,7 +170,6 @@ uint32_t FindMemoryTypeIndex(const VkPhysicalDevice& physical_device,
 constexpr uint32_t nullflag = 0;
 
 constexpr uint32_t kSingleMipLevel = 1;
-constexpr uint32_t kSingleImageLayer = 1;
 constexpr VkSampleCountFlagBits kSingleSample = VK_SAMPLE_COUNT_1_BIT;
 
 constexpr VkAccessFlags kNullAccessFlag = 0;

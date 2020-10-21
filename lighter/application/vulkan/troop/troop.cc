@@ -152,7 +152,7 @@ void TroopApp::Recreate() {
         .AddUsage(kLightingSubpassIndex,
                   ImageUsage::GetSampledInFragmentShaderUsage());
     *info.image = absl::make_unique<OffscreenImage>(
-        context(), frame_size, common::kRgbaImageChannel,
+        context(), frame_size, common::image::kRgbaImageChannel,
         usage_history.GetAllUsages(), sampler_config);
   }
 

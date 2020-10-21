@@ -15,6 +15,7 @@
 #include "lighter/application/util.h"
 #include "lighter/common/camera.h"
 #include "lighter/common/file.h"
+#include "lighter/common/image.h"
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/align.h"

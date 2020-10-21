@@ -12,6 +12,7 @@
 #include <memory>
 
 #include "lighter/common/file.h"
+#include "lighter/common/image.h"
 #include "lighter/common/ref_count.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/image_usage.h"
@@ -209,7 +210,7 @@ class TextureImage : public Image, public SamplableImage {
     // from the host to device memory.
     Buffer::CopyInfos GetCopyInfos() const;
 
-    std::vector<const void*> datas;
+    absl::Span<const void* const> datas;
     VkFormat format;
     uint32_t width;
     uint32_t height;
@@ -282,7 +283,7 @@ class SharedTexture : public SamplableImage {
   struct CubemapPath {
     std::string directory;
     // PosX, NegX, PosY, NegY, PosZ, NegZ.
-    std::array<std::string, common::kCubemapImageCount> files;
+    std::array<std::string, common::image::kCubemapImageLayer> files;
   };
   using SourcePath = absl::variant<SingleTexPath, CubemapPath>;
 

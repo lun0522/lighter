@@ -111,7 +111,7 @@ void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
                     ImageUsage::AccessType::kWriteOnly))
       .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
   processed_image_ = absl::make_unique<OffscreenImage>(
-      context(), original_image.extent(), image_from_file.channel,
+      context(), original_image.extent(), image_from_file.channel(),
       processed_image_usage_history.GetAllUsages(), ImageSampler::Config{});
 
   const std::string original_image_name = "Original";
@@ -158,10 +158,10 @@ void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
       pipeline->Bind(command_buffer);
       descriptor.Bind(command_buffer, pipeline->layout(),
                       pipeline->binding_point());
-      const auto group_count_x = util::GetWorkGroupCount(image_from_file.width,
-                                                         kWorkGroupSizeX);
-      const auto group_count_y = util::GetWorkGroupCount(image_from_file.height,
-                                                         kWorkGroupSizeY);
+      const auto group_count_x = util::GetWorkGroupCount(
+          image_from_file.width(), kWorkGroupSizeX);
+      const auto group_count_y = util::GetWorkGroupCount(
+          image_from_file.height(), kWorkGroupSizeY);
       vkCmdDispatch(command_buffer, group_count_x, group_count_y,
                     /*groupCountZ=*/1);
     };
@@ -175,7 +175,7 @@ void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
   });
 
   image_viewer_ = absl::make_unique<ImageViewer>(
-      context(), *processed_image_, image_from_file.channel, /*flip_y=*/true);
+      context(), *processed_image_, image_from_file.channel(), /*flip_y=*/true);
 }
 
 void PostEffectApp::Recreate() {

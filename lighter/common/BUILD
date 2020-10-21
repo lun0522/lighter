@@ -21,6 +21,7 @@ cc_library(
     hdrs = ["char_lib.h"],
     deps = [
         ":file",
+        ":image",
         ":util",
         "//third_party/absl/container:flat_hash_map",
         "//third_party/absl/memory",
@@ -38,11 +39,23 @@ cc_library(
         ":util",
         "//third_party/absl/container:flat_hash_map",
         "//third_party/absl/flags:flag",
-        "//third_party/absl/memory",
         "//third_party/absl/strings",
         "//third_party/absl/strings:str_format",
         "//third_party:glm",
+    ],
+)
+
+cc_library(
+    name = "image",
+    hdrs = ["image.h"],
+    srcs = ["image.cc"],
+    deps = [
+        ":util",
+        ":file",
         "//third_party:stb",
+        "//third_party/absl/strings",
+        "//third_party/absl/strings:str_format",
+        "//third_party/absl/types:span",
     ],
 )
 

@@ -7,6 +7,7 @@
 
 #include "lighter/application/vulkan/aurora/editor/button_maker.h"
 
+#include "lighter/common/image.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
@@ -53,7 +54,7 @@ std::unique_ptr<OffscreenImage> CreateTargetImage(
   const auto image_usages = {ImageUsage::GetRenderTargetUsage(),
                              ImageUsage::GetSampledInFragmentShaderUsage()};
   return absl::make_unique<OffscreenImage>(
-      context, buttons_image_extent, common::kRgbaImageChannel,
+      context, buttons_image_extent, common::image::kRgbaImageChannel,
       image_usages, ImageSampler::Config{});
 }
 
@@ -159,7 +160,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
     const glm::vec3& text_color, const common::Image& button_background,
     const button::VerticesInfo& vertices_info,
     absl::Span<const make_button::ButtonInfo> button_infos) {
-  ASSERT_TRUE(button_background.channel == common::kBwImageChannel,
+  ASSERT_TRUE(button_background.channel() == common::image::kBwImageChannel,
               "Expecting a single-channel button background image");
   const auto image_usages = {ImageUsage::GetSampledInFragmentShaderUsage()};
   const auto background_image = absl::make_unique<TextureImage>(

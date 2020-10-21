@@ -14,6 +14,7 @@
 
 #include "third_party/absl/flags/declare.h"
 #include "third_party/absl/flags/flag.h"
+#include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/strings/str_cat.h"
 #include "third_party/glm/glm.hpp"
 
@@ -28,13 +29,13 @@ namespace common {
 namespace file {
 
 // Returns the full path to files in the resource folder.
-inline std::string GetResourcePath(const std::string& relative_path) {
+inline std::string GetResourcePath(absl::string_view relative_path) {
   return absl::StrCat(absl::GetFlag(FLAGS_resource_folder), "/", relative_path);
 }
 
 #ifdef USE_OPENGL
 // Returns the full path to the compiled shader to use with OpenGL.
-inline std::string GetGlShaderPath(const std::string& relative_path) {
+inline std::string GetGlShaderPath(absl::string_view relative_path) {
   return absl::StrCat(absl::GetFlag(FLAGS_shader_folder), "/opengl/",
                       relative_path, ".spv");
 }
@@ -42,13 +43,13 @@ inline std::string GetGlShaderPath(const std::string& relative_path) {
 
 #ifdef USE_VULKAN
 // Returns the full path to the compiled shader to use with Vulkan.
-inline std::string GetVkShaderPath(const std::string& relative_path) {
+inline std::string GetVkShaderPath(absl::string_view relative_path) {
   return absl::StrCat(absl::GetFlag(FLAGS_shader_folder), "/vulkan/",
                       relative_path, ".spv");
 }
 
 // Returns the full path to files in the Vulkan SDK folder.
-inline std::string GetVulkanSdkPath(const std::string& relative_path) {
+inline std::string GetVulkanSdkPath(absl::string_view relative_path) {
   return absl::StrCat(absl::GetFlag(FLAGS_vulkan_folder), "/", relative_path);
 }
 #endif /* USE_VULKAN */
@@ -57,7 +58,7 @@ inline std::string GetVulkanSdkPath(const std::string& relative_path) {
 
 // Reads raw data from file.
 struct RawData {
-  explicit RawData(const std::string& path);
+  explicit RawData(absl::string_view path);
 
   // This class is neither copyable nor movable.
   RawData(const RawData&) = delete;
@@ -70,39 +71,6 @@ struct RawData {
 
   // Data size.
   size_t size;
-};
-
-// Loads image from file or memory.
-// TODO: Extend to load cubemap.
-struct Image {
-  struct Dimension {
-    int width;
-    int height;
-    int channel;
-  };
-
-  // Loads image from file. The image can have either 1, 3, or 4 channels.
-  // If the image has 3 channels, we will reload and assign it the 4th channel.
-  explicit Image(const std::string& path);
-
-  // Loads image from memory. The data will be copied, hence the caller may free
-  // original data once the constructor returns.
-  // The image can have either 1 or 4 channels.
-  Image(int width, int height, int channel, const void* raw_data, bool flip_y);
-
-  // This class is neither copyable nor movable.
-  Image(const Image&) = delete;
-  Image& operator=(const Image&) = delete;
-
-  ~Image();
-
-  // Dimensions of image.
-  int width;
-  int height;
-  int channel;
-
-  // Pointer to data.
-  const void* data;
 };
 
 // Describes a vertex input attribute.
@@ -200,7 +168,7 @@ std::vector<VertexAttribute> CreateVertexAttributes() {
 
 // Loads Wavefront .obj file.
 struct ObjFile {
-  ObjFile(const std::string& path, int index_base);
+  ObjFile(absl::string_view path, int index_base);
 
   // This class is neither copyable nor movable.
   ObjFile(const ObjFile&) = delete;
@@ -213,7 +181,7 @@ struct ObjFile {
 
 // Loads Wavefront .obj file but only preserves vertex positions.
 struct ObjFilePosOnly {
-  ObjFilePosOnly(const std::string& path, int index_base);
+  ObjFilePosOnly(absl::string_view path, int index_base);
 
   // This class is neither copyable nor movable.
   ObjFilePosOnly(const ObjFilePosOnly&) = delete;

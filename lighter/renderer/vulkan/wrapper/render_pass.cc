@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <limits>
 
+#include "lighter/common/image.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
 #include "third_party/absl/strings/str_format.h"
 
@@ -144,7 +145,7 @@ std::vector<VkFramebuffer> CreateFramebuffers(
       image_views.data(),
       framebuffer_size.width,
       framebuffer_size.height,
-      kSingleImageLayer,
+      common::image::kSingleImageLayer,
   };
 
   std::vector<VkFramebuffer> framebuffers(num_framebuffers);

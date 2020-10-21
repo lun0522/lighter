@@ -7,17 +7,12 @@
 
 #include "lighter/common/file.h"
 
-#include <cstdlib>
 #include <fstream>
 
 #include "lighter/common/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/strings/str_split.h"
-#include "third_party/absl/strings/string_view.h"
-#define STB_IMAGE_IMPLEMENTATION
-#include "third_party/stb/stb_image.h"
 
 ABSL_FLAG(std::string, resource_folder, "external/resource",
           "Path to the resource folder");
@@ -42,16 +37,11 @@ namespace common {
 namespace {
 
 // Opens the file in the given 'path' and checks whether it is successful.
-std::ifstream OpenFile(const std::string& path) {
-  std::ifstream file{path};
+std::ifstream OpenFile(absl::string_view path) {
+  std::ifstream file{path.data()};
   ASSERT_FALSE(!file.is_open() || file.bad() || file.fail(),
                absl::StrCat("Failed to open file: ", path));
   return file;
-}
-
-// Returns the suffix of the given 'text', starting from index 'start_pos'.
-inline absl::string_view GetSuffix(const std::string& text, size_t start_pos) {
-  return absl::string_view{text.c_str() + start_pos, text.length() - start_pos};
 }
 
 // Splits the given 'text' by 'delimiter', while 'num_segments' is the expected
@@ -69,7 +59,7 @@ std::vector<std::string> SplitText(absl::string_view text, char delimiter,
 
 } /* namespace */
 
-RawData::RawData(const std::string& path) {
+RawData::RawData(absl::string_view path) {
   std::ifstream file = OpenFile(path);
   file.seekg(0, std::ios::end);
   size = file.tellg();
@@ -77,57 +67,6 @@ RawData::RawData(const std::string& path) {
   file.seekg(0, std::ios::beg);
   file.read(content, size);
   data = content;
-}
-
-Image::Image(const std::string& path) {
-  const auto raw_data = absl::make_unique<RawData>(path);
-  data = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(raw_data->data),
-                               static_cast<int>(raw_data->size),
-                               &width, &height, &channel, STBI_default);
-  ASSERT_NON_NULL(data, absl::StrCat("Failed to read image from ", path));
-
-  switch (channel) {
-    case common::kBwImageChannel:
-    case common::kRgbaImageChannel:
-      break;
-    case common::kRgbImageChannel: {
-      stbi_image_free(const_cast<void*>(data));
-      data = stbi_load_from_memory(
-          reinterpret_cast<const stbi_uc*>(raw_data->data),
-          static_cast<int>(raw_data->size),
-          &width, &height, &channel, STBI_rgb_alpha);
-      channel = STBI_rgb_alpha;
-      break;
-    }
-    default:
-      FATAL(absl::StrFormat("Unsupported number of channels: %d", channel));
-  }
-}
-
-Image::Image(int width, int height, int channel,
-             const void* raw_data, bool flip_y)
-    : width{width}, height{height}, channel{channel} {
-  ASSERT_TRUE(channel == common::kBwImageChannel ||
-              channel == common::kRgbaImageChannel,
-              absl::StrFormat("Unsupported number of channels: %d", channel));
-
-  const size_t total_size = width * height * channel;
-  data = std::malloc(total_size);
-  if (flip_y) {
-    const int stride = width * channel;
-    for (int row = 0; row < height; ++row) {
-      std::memcpy(
-          static_cast<char*>(const_cast<void*>(data)) + stride * row,
-          static_cast<const char*>(raw_data) + stride * (height - row - 1),
-          stride);
-    }
-  } else {
-    std::memcpy(const_cast<void*>(data), raw_data, total_size);
-  }
-}
-
-Image::~Image() {
-  std::free(const_cast<void*>(data));
 }
 
 #define APPEND_ATTRIBUTES(attributes, type, member) \
@@ -217,7 +156,7 @@ std::array<Vertex2D, 6> Vertex2D::GetFullScreenSquadVertices(bool flip_y) {
   }
 }
 
-ObjFile::ObjFile(const std::string& path, int index_base) {
+ObjFile::ObjFile(absl::string_view path, int index_base) {
   std::ifstream file = OpenFile(path);
 
   std::vector<glm::vec3> positions;
@@ -225,7 +164,7 @@ ObjFile::ObjFile(const std::string& path, int index_base) {
   std::vector<glm::vec2> tex_coords;
   absl::flat_hash_map<std::string, uint32_t> loaded_vertices;
 
-  const auto parse_line = [&](const std::string& line) {
+  const auto parse_line = [&](absl::string_view line) {
     const size_t non_space = line.find_first_not_of(' ');
     if (non_space == std::string::npos || line[0] == '#') {
       // Skip blank lines and comments.
@@ -238,7 +177,7 @@ ObjFile::ObjFile(const std::string& path, int index_base) {
         switch (line[non_space + 1]) {
           case ' ': {
             // Position.
-            const auto nums = SplitText(GetSuffix(line, non_space + 2), ' ',
+            const auto nums = SplitText(line.substr(non_space + 2), ' ',
                                         /*num_segments=*/3);
             positions.push_back(
                 glm::vec3{stof(nums[0]), stof(nums[1]), stof(nums[2])});
@@ -246,7 +185,7 @@ ObjFile::ObjFile(const std::string& path, int index_base) {
           }
           case 'n': {
             // Normal.
-            const auto nums = SplitText(GetSuffix(line, non_space + 3), ' ',
+            const auto nums = SplitText(line.substr(non_space + 3), ' ',
                                         /*num_segments=*/3);
             normals.push_back(
                 glm::vec3{stof(nums[0]), stof(nums[1]), stof(nums[2])});
@@ -254,7 +193,7 @@ ObjFile::ObjFile(const std::string& path, int index_base) {
           }
           case 't': {
             // Texture coordinates.
-            const auto nums = SplitText(GetSuffix(line, non_space + 3), ' ',
+            const auto nums = SplitText(line.substr(non_space + 3), ' ',
                                         /*num_segments=*/2);
             tex_coords.push_back(glm::vec2{stof(nums[0]), stof(nums[1])});
             break;
@@ -267,7 +206,7 @@ ObjFile::ObjFile(const std::string& path, int index_base) {
       }
       case 'f': {
         // Face.
-        for (const auto& seg : SplitText(GetSuffix(line, non_space + 2), ' ',
+        for (const auto& seg : SplitText(line.substr(non_space + 2), ' ',
                                          /*num_segments=*/3)) {
           const auto iter = loaded_vertices.find(seg);
           if (iter != loaded_vertices.end()) {
@@ -302,7 +241,7 @@ ObjFile::ObjFile(const std::string& path, int index_base) {
   }
 }
 
-ObjFilePosOnly::ObjFilePosOnly(const std::string& path, int index_base) {
+ObjFilePosOnly::ObjFilePosOnly(absl::string_view path, int index_base) {
   ObjFile file(path, index_base);
   indices = std::move(file.indices);
   vertices.reserve(file.vertices.size());

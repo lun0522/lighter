@@ -9,6 +9,7 @@ cc_library(
         "//lighter/application:util",
         "//lighter/common:camera",
         "//lighter/common:file",
+        "//lighter/common:image",
         "//lighter/common:timer",
         "//lighter/common:util",
         "//lighter/renderer:onscreen_renderer",

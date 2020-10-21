@@ -11,6 +11,7 @@
 #include <memory>
 #include <string>
 
+#include "lighter/common/image.h"
 #include "lighter/common/file.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/span.h"

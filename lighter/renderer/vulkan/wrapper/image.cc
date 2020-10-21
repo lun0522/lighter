@@ -20,6 +20,9 @@ namespace renderer {
 namespace vulkan {
 namespace {
 
+const int kSingleImageLayer = common::image::kSingleImageLayer;
+const int kCubemapImageLayer = common::image::kCubemapImageLayer;
+
 // A collection of commonly used options when we create VkImage.
 struct ImageConfig {
   explicit ImageConfig(bool need_access_to_texels = false) {
@@ -64,7 +67,7 @@ VkFormat FindColorImageFormat(
     const BasicContext& context,
     int channel, absl::Span<const ImageUsage> usages) {
   switch (channel) {
-    case common::kBwImageChannel: {
+    case common::image::kBwImageChannel: {
       // VK_FORMAT_R8_UNORM and VK_FORMAT_R16_SFLOAT have mandatory support for
       // sampling, but may not support linear access. We may switch to 4-channel
       // formats since they have mandatory support for both.
@@ -92,7 +95,7 @@ VkFormat FindColorImageFormat(
       }
     }
 
-    case common::kRgbaImageChannel:
+    case common::image::kRgbaImageChannel:
       if (ImageUsage::UseHighPrecision(usages)) {
         return VK_FORMAT_R16G16B16A16_SFLOAT;
       } else {
@@ -135,15 +138,14 @@ VkSampleCountFlagBits GetMaxSampleCount(VkSampleCountFlags sample_counts) {
 // either 1 or 6 (for cubemaps)
 TextureImage::Info CreateTextureBufferInfo(
     const BasicContext& context,
-    const common::Image& sample_image,
-    absl::Span<const ImageUsage> usages,
-    std::vector<const void*>&& image_datas) {
+    const common::Image& image,
+    absl::Span<const ImageUsage> usages) {
   return TextureImage::Info{
-      std::move(image_datas),
-      FindColorImageFormat(context, sample_image.channel, usages),
-      static_cast<uint32_t>(sample_image.width),
-      static_cast<uint32_t>(sample_image.height),
-      static_cast<uint32_t>(sample_image.channel),
+      image.data_ptrs(),
+      FindColorImageFormat(context, image.channel(), usages),
+      static_cast<uint32_t>(image.width()),
+      static_cast<uint32_t>(image.height()),
+      static_cast<uint32_t>(image.channel()),
       usages,
   };
 }
@@ -403,10 +405,10 @@ VkImageView CreateImageView(const BasicContext& context,
                             uint32_t layer_count) {
   VkImageViewType view_type;
   switch (layer_count) {
-    case common::kSingleImageCount:
+    case kSingleImageLayer:
       view_type = VK_IMAGE_VIEW_TYPE_2D;
       break;
-    case common::kCubemapImageCount:
+    case kCubemapImageLayer:
       view_type = VK_IMAGE_VIEW_TYPE_CUBE;
       break;
     default:
@@ -541,15 +543,15 @@ TextureImage::TextureImage(const SharedBasicContext& context,
                            const ImageSampler::Config& sampler_config)
     : TextureImage{context, generate_mipmaps, sampler_config,
                    CreateTextureBufferInfo(*FATAL_IF_NULL(context), image,
-                                           usages, {image.data})} {}
+                                           usages)} {}
 
 TextureImage::TextureBuffer::TextureBuffer(
     SharedBasicContext context, bool generate_mipmaps, const Info& info)
     : ImageBuffer{std::move(FATAL_IF_NULL(context))} {
   const VkExtent3D image_extent = info.GetExtent3D();
   const auto layer_count = CONTAINER_SIZE(info.datas);
-  ASSERT_TRUE(layer_count == common::kSingleImageCount ||
-                  layer_count == common::kCubemapImageCount,
+  ASSERT_TRUE(layer_count == kSingleImageLayer ||
+                  layer_count == kCubemapImageLayer,
               absl::StrFormat("Invalid number of images: %d", layer_count));
 
   ImageConfig image_config;
@@ -564,7 +566,7 @@ TextureImage::TextureBuffer::TextureBuffer(
 
   // Create image buffer.
   VkImageCreateFlags create_flags = nullflag;
-  if (layer_count == common::kCubemapImageCount) {
+  if (layer_count == kCubemapImageLayer) {
     create_flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
   }
 
@@ -612,44 +614,28 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
   FATAL_IF_NULL(context);
   context->RegisterAutoReleasePool<SharedTexture::RefCountedTexture>("texture");
 
-  using SingleImage = std::unique_ptr<common::Image>;
-  using CubemapImage = std::array<SingleImage, common::kCubemapImageCount>;
-  using SourceImage = absl::variant<SingleImage, CubemapImage>;
-
   bool generate_mipmaps;
   const std::string* identifier;
-  SourceImage source_image;
-  const common::Image* sample_image;
-  std::vector<const void*> datas;
+  std::unique_ptr<common::Image> image;
 
   if (absl::holds_alternative<SingleTexPath>(source_path)) {
     generate_mipmaps = true;
     const auto& single_tex_path = absl::get<SingleTexPath>(source_path);
     identifier = &single_tex_path;
-    auto& image = source_image.emplace<SingleImage>(
-        absl::make_unique<common::Image>(single_tex_path));
-    sample_image = image.get();
-    datas.push_back(image->data);
+    image = absl::make_unique<common::Image>(single_tex_path);
   } else if (absl::holds_alternative<CubemapPath>(source_path)) {
     generate_mipmaps = false;
     const auto& cubemap_path = absl::get<CubemapPath>(source_path);
     identifier = &cubemap_path.directory;
-    auto& images = source_image.emplace<CubemapImage>();
-    datas.resize(cubemap_path.files.size());
-    for (int i = 0; i < cubemap_path.files.size(); ++i) {
-      images[i] = absl::make_unique<common::Image>(absl::StrFormat(
-          "%s/%s", cubemap_path.directory, cubemap_path.files[i]));
-      datas[i] = images[i]->data;
-    }
-    sample_image = images[0].get();
+    image = absl::make_unique<common::Image>(
+        cubemap_path.directory, cubemap_path.files);
   } else {
     FATAL("Unrecognized variant type");
   }
 
   return RefCountedTexture::Get(
       *identifier, context, generate_mipmaps, sampler_config,
-      CreateTextureBufferInfo(*context, *sample_image, usages,
-                              std::move(datas)));
+      CreateTextureBufferInfo(*context, *image, usages));
 }
 
 OffscreenImage::OffscreenImage(SharedBasicContext context,

@@ -197,7 +197,7 @@ std::unique_ptr<common::Image> GenerateAirTransmitTable(float sample_step) {
   }
 
   auto table = absl::make_unique<common::Image>(
-      kImageWidth, image_height, common::kBwImageChannel, image_data,
+      kImageWidth, image_height, common::image::kBwImageChannel, image_data,
       /*flip_y=*/false);
   delete[] image_data;
   return table;
