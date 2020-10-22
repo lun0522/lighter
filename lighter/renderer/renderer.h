@@ -11,6 +11,7 @@
 #include <memory>
 
 #include "lighter/common/file.h"
+#include "lighter/common/image.h"
 #include "lighter/renderer/buffer.h"
 #include "lighter/renderer/image.h"
 #include "lighter/renderer/image_usage.h"
@@ -85,11 +86,11 @@ class Renderer {
   /* Device image */
 
   virtual std::unique_ptr<DeviceImage> CreateDeviceImage(
-      const common::Image& image,
+      const common::Image& image, bool generate_mipmaps,
       absl::Span<const ImageUsage> usages) const = 0;
 
   virtual std::unique_ptr<DeviceImage> CreateDeviceImage(
-      const common::Image& image,
+      const common::Image& image, bool generate_mipmaps,
       const ImageUsageHistory& usage_history) const {
     return CreateDeviceImage(image, usage_history.GetAllUsages());
   }
@@ -112,6 +113,9 @@ class Renderer {
   virtual std::unique_ptr<SampledImageView> CreateSampledImageView(
       const DeviceImage& image,
       const SamplerDescriptor& sampler_descriptor) const = 0;
+
+ protected:
+  Renderer() = default;
 };
 
 } /* namespace renderer */

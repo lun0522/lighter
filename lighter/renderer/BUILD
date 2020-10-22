@@ -20,7 +20,7 @@ cc_library(
     deps = [
         ":type",
         ":image_usage",
-        "//lighter/common:file",
+        "//lighter/common:image",
     ],
 )
 
@@ -91,6 +91,7 @@ cc_library(
         ":pass",
         ":pipeline",
         "//lighter/common:file",
+        "//lighter/common:image",
         "//third_party/absl/types:span",
     ],
 )

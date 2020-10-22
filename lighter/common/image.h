@@ -64,6 +64,7 @@ class Image {
   ~Image();
 
   // Accessors.
+  const Dimension& dimension() const { return dimension_; }
   int width() const { return dimension_.width; }
   int height() const { return dimension_.height; }
   int channel() const { return dimension_.channel; }

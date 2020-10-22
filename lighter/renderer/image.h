@@ -8,7 +8,7 @@
 #ifndef LIGHTER_RENDERER_IMAGE_H
 #define LIGHTER_RENDERER_IMAGE_H
 
-#include "lighter/common/file.h"
+#include "lighter/common/image.h"
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/type.h"
 
@@ -27,6 +27,7 @@ class DeviceImage {
   int width() const { return dimension_.width; }
   int height() const { return dimension_.height; }
   int channel() const { return dimension_.channel; }
+  int layer() const { return dimension_.layer; }
 
  protected:
   DeviceImage(const common::Image::Dimension& dimension)
@@ -48,6 +49,9 @@ class SampledImageView {
   SampledImageView(const SampledImageView&) = default;
 
   ~SampledImageView() = default;
+
+ protected:
+  SampledImageView() = default;
 };
 
 } /* namespace renderer */

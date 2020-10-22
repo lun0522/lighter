@@ -8,9 +8,9 @@ load("@//:git_archives.bzl", "glfw_archive")
 
 http_archive(
     name = "lib-absl",
-    sha256 = "81c06514af7df8a18706c2b4cd134c2bae68c9877bcc9bb258b367beb14c83a5",
-    strip_prefix = "abseil-cpp-20200923",
-    urls = ["https://github.com/abseil/abseil-cpp/archive/20200923.zip"],
+    sha256 = "306639352ec60dcbfc695405e989e1f63d0e55001582a5185b0a8caf2e8ea9ca",
+    strip_prefix = "abseil-cpp-20200923.2",
+    urls = ["https://github.com/abseil/abseil-cpp/archive/20200923.2.zip"],
 )
 
 assimp_archive(
