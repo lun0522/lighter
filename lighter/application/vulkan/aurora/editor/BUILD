@@ -8,9 +8,7 @@ cc_library(
         ":button_maker",
         ":button_util",
         "//lighter/application/vulkan:common",
-        "//third_party/absl/strings:str_format",
-        "//third_party/absl/types:optional",
-        "//third_party/absl/types:span",
+        "//third_party:absl",
     ],
 )
 
@@ -21,7 +19,7 @@ cc_library(
     deps = [
         ":button_util",
         "//lighter/application/vulkan:common",
-        "//third_party/absl/types:span",
+        "//third_party:absl",
     ],
 )
 
@@ -50,9 +48,7 @@ cc_library(
         "//lighter/application/vulkan/aurora:scene",
         "//lighter/application/vulkan:common",
         "//lighter/common:rotation",
-        "//third_party/absl/strings:str_format",
-        "//third_party/absl/types:optional",
-        "//third_party/absl/types:span",
+        "//third_party:absl",
     ],
 )
 
@@ -64,8 +60,6 @@ cc_library(
         ":button_util",
         "//lighter/application/vulkan:common",
         "//lighter/common:spline",
-        "//third_party/absl/strings:str_format",
-        "//third_party/absl/types:optional",
-        "//third_party/absl/types:span",
+        "//third_party:absl",
     ],
 )

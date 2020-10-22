@@ -14,7 +14,7 @@ cc_library(
         "//conditions:default": ["lib/libVkLayer_khronos_validation.so"],
     }),
     hdrs = glob(["include/vulkan/*.h"]),
-    data = glob(["etc/**/*"]),
+    data = glob(["etc/**"]),
     include_prefix = "third_party/vulkan",
     strip_include_prefix = "include/vulkan",
     visibility = ["//visibility:public"],

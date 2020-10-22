@@ -16,8 +16,8 @@ cc_library(
         ],
         "//conditions:default": glob(
             [
-                "share/**/*",
-                "lib/**/*",
+                "share/**",
+                "lib/**",
             ],
             exclude = ["lib/libvulkan.1.dylib"],
         ),

@@ -12,5 +12,5 @@ cc_library(
     name = "util",
     hdrs = ["util.h"],
     srcs = ["util.cc"],
-    deps = ["//third_party/absl/flags:flag"],
+    deps = ["//third_party:absl"],
 )

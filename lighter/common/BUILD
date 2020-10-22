@@ -10,7 +10,7 @@ cc_library(
     hdrs = ["camera.h"],
     deps = [
         ":util",
-        "//third_party/absl/types:optional",
+        "//third_party:absl",
         "//third_party:glm",
     ],
 )
@@ -23,9 +23,7 @@ cc_library(
         ":file",
         ":image",
         ":util",
-        "//third_party/absl/container:flat_hash_map",
-        "//third_party/absl/memory",
-        "//third_party/absl/types:span",
+        "//third_party:absl",
         "//third_party:freetype",
         "//third_party:glm",
     ],
@@ -37,10 +35,7 @@ cc_library(
     hdrs = ["file.h"],
     deps = [
         ":util",
-        "//third_party/absl/container:flat_hash_map",
-        "//third_party/absl/flags:flag",
-        "//third_party/absl/strings",
-        "//third_party/absl/strings:str_format",
+        "//third_party:absl",
         "//third_party:glm",
     ],
 )
@@ -53,9 +48,7 @@ cc_library(
         ":util",
         ":file",
         "//third_party:stb",
-        "//third_party/absl/strings",
-        "//third_party/absl/strings:str_format",
-        "//third_party/absl/types:span",
+        "//third_party:absl",
     ],
 )
 
@@ -66,7 +59,7 @@ cc_library(
     deps = [
         ":file",
         ":util",
-        "//third_party/absl/strings:str_format",
+        "//third_party:absl",
         "//third_party:assimp",
     ],
 )
@@ -76,8 +69,7 @@ cc_library(
     hdrs = ["ref_count.h"],
     deps = [
         ":util",
-        "//third_party/absl/container:flat_hash_map",
-        "//third_party/absl/memory",
+        "//third_party:absl",
     ],
 )
 
@@ -89,8 +81,7 @@ cc_library(
         ":camera",
         ":timer",
         ":util",
-        "//third_party/absl/types:optional",
-        "//third_party/absl/types:variant",
+        "//third_party:absl",
         "//third_party:glm",
     ],
 )
@@ -101,10 +92,7 @@ cc_library(
     srcs = ["spline.cc"],
     deps = [
         ":util",
-        "//third_party/absl/memory",
-        "//third_party/absl/strings:str_format",
-        "//third_party/absl/types:optional",
-        "//third_party/absl/types:span",
+        "//third_party:absl",
         "//third_party:glm",
     ],
 )
@@ -118,13 +106,7 @@ cc_library(
     name = "util",
     hdrs = ["util.h"],
     srcs = ["util.cc"],
-    deps = [
-        "//third_party/absl/base:core_headers",
-        "//third_party/absl/flags:parse",
-        "//third_party/absl/strings:str_format",
-        "//third_party/absl/types:optional",
-        "//third_party/absl/types:span",
-    ],
+    deps = ["//third_party:absl"],
 )
 
 cc_library(
@@ -133,8 +115,7 @@ cc_library(
     hdrs = ["window.h"],
     deps = [
         ":util",
-        "//third_party/absl/container:flat_hash_map",
-        "//third_party/absl/strings:str_format",
+        "//third_party:absl",
         "//third_party:glm",
         "//third_party:glfw",
     ] + select({

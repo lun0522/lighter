@@ -16,6 +16,6 @@ cc_library(
         "//lighter/common:util",
         "//lighter/renderer:onscreen_renderer",
         "//lighter/renderer/vk:renderer",
-        "//third_party/absl/memory",
+        "//third_party:absl",
     ],
 )

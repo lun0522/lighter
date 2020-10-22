@@ -33,9 +33,7 @@ cc_library(
         "//lighter/common:util",
         "//lighter/renderer:image_usage",
         "//lighter/renderer/vulkan/wrapper:image",
-        "//third_party/absl/strings:str_format",
-        "//third_party/absl/container:flat_hash_map",
-        "//third_party/absl/types:optional",
+        "//third_party:absl",
         "//third_party:vulkan",
     ],
 )
@@ -49,9 +47,7 @@ cc_library(
         "//lighter/common:util",
         "//lighter/renderer:image_usage",
         "//lighter/renderer/vulkan/wrapper:image",
-        "//third_party/absl/container:flat_hash_map",
-        "//third_party/absl/strings:str_format",
-        "//third_party/absl/types:span",
+        "//third_party:absl",
         "//third_party:vulkan",
     ],
 )
@@ -66,11 +62,7 @@ cc_library(
         "//lighter/renderer:image_usage",
         "//lighter/renderer/vulkan/wrapper:image",
         "//lighter/renderer/vulkan/wrapper:render_pass",
-        "//third_party/absl/container:flat_hash_map",
-        "//third_party/absl/memory",
-        "//third_party/absl/strings:str_format",
-        "//third_party/absl/types:optional",
-        "//third_party/absl/types:variant",
+        "//third_party:absl",
     ],
 )
 
@@ -83,11 +75,7 @@ cc_library(
         "//lighter/common:file",
         "//lighter/common:model_loader",
         "//lighter/common:util",
-        "//third_party/absl/container:flat_hash_map",
-        "//third_party/absl/memory",
-        "//third_party/absl/strings:str_format",
-        "//third_party/absl/types:optional",
-        "//third_party/absl/types:variant",
+        "//third_party:absl",
         "//third_party:vulkan",
     ],
 )
@@ -101,9 +89,7 @@ cc_library(
         "//lighter/common:util",
         "//lighter/renderer/vulkan/wrapper:basics",
         "//lighter/renderer/vulkan/wrapper:render_pass",
-        "//third_party/absl/strings",
-        "//third_party/absl/strings:str_format",
-        "//third_party/absl/types:optional",
+        "//third_party:absl",
     ],
 )
 
@@ -140,11 +126,7 @@ cc_library(
         "//lighter/common:image",
         "//lighter/common:util",
         "//lighter/renderer:align",
-        "//third_party/absl/container:flat_hash_map",
-        "//third_party/absl/memory",
-        "//third_party/absl/strings:str_format",
-        "//third_party/absl/types:optional",
-        "//third_party/absl/types:span",
+        "//third_party:absl",
         "//third_party:glm",
     ],
 )

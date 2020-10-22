@@ -22,7 +22,7 @@ cc_library(
         ":distance_field",
         ":path_renderer",
         "//lighter/application/vulkan:common",
-        "//third_party/absl/strings:str_format",
+        "//third_party:absl",
     ],
 )
 

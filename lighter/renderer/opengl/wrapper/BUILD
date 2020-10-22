@@ -12,11 +12,7 @@ cc_library(
         "//lighter/common:file",
         "//lighter/common:ref_count",
         "//lighter/common:util",
-        "//third_party/absl/container:flat_hash_map",
-        "//third_party/absl/memory",
-        "//third_party/absl/strings",
-        "//third_party/absl/strings:str_format",
-        "//third_party/absl/types:optional",
+        "//third_party:absl",
         "//third_party:glad",
     ],
 )

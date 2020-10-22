@@ -1,0 +1,8 @@
+licenses(["notice"])
+
+cc_library(
+    name = "absl_headers",
+    hdrs = glob(["**/*.h"]),
+    include_prefix = "third_party",
+    visibility = ["//visibility:public"],
+)

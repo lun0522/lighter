@@ -17,7 +17,7 @@ cc_library(
         "//lighter/renderer:image",
         "//lighter/renderer:image_usage",
         "//lighter/renderer:type",
-        "//third_party/absl/types:span",
+        "//third_party:absl",
     ],
 )
 
@@ -32,7 +32,6 @@ cc_library(
         "//lighter/renderer",
         "//lighter/renderer:image_usage",
         "//lighter/renderer:type",
-        "//third_party/absl/memory",
-        "//third_party/absl/types:span",
+        "//third_party:absl",
     ],
 )

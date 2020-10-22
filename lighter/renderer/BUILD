@@ -10,7 +10,7 @@ cc_library(
     hdrs = ["buffer.h"],
     deps = [
         ":type",
-        "//third_party/absl/types:span",
+        "//third_party:absl",
     ],
 )
 
@@ -30,11 +30,7 @@ cc_library(
     srcs = ["image_usage.cc"],
     deps = [
         "//lighter/common:util",
-        "//third_party/absl/container:flat_hash_map",
-        "//third_party/absl/strings",
-        "//third_party/absl/strings:str_format",
-        "//third_party/absl/types:optional",
-        "//third_party/absl/types:span",
+        "//third_party:absl",
     ],
 )
 
@@ -65,9 +61,7 @@ cc_library(
         ":image_usage",
         ":type",
         "//lighter/common:util",
-        "//third_party/absl/container:flat_hash_map",
-        "//third_party/absl/strings",
-        "//third_party/absl/strings:str_format",
+        "//third_party:absl",
     ],
 )
 
@@ -77,7 +71,7 @@ cc_library(
     deps = [
         ":buffer",
         ":type",
-        "//third_party/absl/strings",
+        "//third_party:absl",
     ],
 )
 
@@ -92,7 +86,7 @@ cc_library(
         ":pipeline",
         "//lighter/common:file",
         "//lighter/common:image",
-        "//third_party/absl/types:span",
+        "//third_party:absl",
     ],
 )
 

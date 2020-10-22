@@ -4,6 +4,14 @@ licenses(["notice"])
 
 load("@//third_party:select_platform.bzl", "select_platform")
 
+cc_library(
+    name = "absl",
+    deps = [
+        "@lib-absl//:absl",
+        "@lib-absl-headers//:absl_headers",
+    ],
+)
+
 select_platform(
     name = "assimp",
     headers_target = "@lib-assimp-headers//:assimp_headers",
