@@ -1,0 +1,87 @@
+//
+//  util.h
+//
+//  Created by Pujun Lun on 10/22/20.
+//  Copyright © 2019 Pujun Lun. All rights reserved.
+//
+
+#ifndef LIGHTER_RENDERER_VK_UTIL_H
+#define LIGHTER_RENDERER_VK_UTIL_H
+
+#include <functional>
+#include <string>
+#include <vector>
+
+#include "lighter/common/util.h"
+#include "third_party/absl/container/flat_hash_set.h"
+#include "third_party/absl/functional/function_ref.h"
+#include "third_party/absl/strings/str_format.h"
+#include "third_party/absl/types/optional.h"
+#include "third_party/vulkan/vulkan.h"
+
+#define CONTAINER_SIZE(container) static_cast<uint32_t>(container.size())
+
+#define ASSERT_SUCCESS(event, error)                          \
+  ASSERT_TRUE(event == VK_SUCCESS,                            \
+              absl::StrFormat("Errno %d: %s", event, error))
+
+namespace lighter {
+namespace renderer {
+namespace vk {
+namespace util {
+
+// Queries attributes using the given enumerator. This is usually used with
+// functions prefixed with 'vkGet' or 'vkEnumerate', which take in a uint32_t*
+// to store the count, and a AttribType* to store query results.
+template <typename AttribType>
+std::vector<AttribType> QueryAttribute(
+    absl::FunctionRef<void(uint32_t*, AttribType*)> enumerate) {
+  uint32_t count;
+  enumerate(&count, nullptr);
+  std::vector<AttribType> attribs{count};
+  enumerate(&count, attribs.data());
+  return attribs;
+}
+
+// Checks whether 'attribs' covers 'required' attributes. If not, returns the
+// name of the first uncovered attribute. 'get_name' should be able to return
+// the name of any attribute of AttribType.
+template <typename AttribType>
+absl::optional<std::string> FindUnsupported(
+    absl::Span<const std::string> required,
+    absl::Span<const AttribType> attribs,
+    absl::FunctionRef<const char*(const AttribType&)> get_name) {
+  absl::flat_hash_set<std::string> available{attribs.size()};
+  for (const auto& atr : attribs) {
+    available.insert(get_name(atr));
+  }
+
+  LOG_INFO << "Available:";
+  for (const auto& avl : available) {
+    LOG_INFO << "\t" << avl;
+  }
+  LOG_EMPTY_LINE;
+
+  LOG_INFO << "Required:";
+  for (const auto& req : required) {
+    LOG_INFO << "\t" << req;
+  }
+  LOG_EMPTY_LINE;
+
+  for (const auto& req : required) {
+    if (!available.contains(req)) {
+      return req;
+    }
+  }
+  return absl::nullopt;
+}
+
+} /* namespace util */
+
+constexpr uint32_t nullflag = 0;
+
+} /* namespace vk */
+} /* namespace renderer */
+} /* namespace lighter */
+
+#endif /* LIGHTER_RENDERER_VK_UTIL_H */

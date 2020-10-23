@@ -62,6 +62,27 @@ enum ShaderStage {
 
 } /* namespace shader_stage */
 
+namespace debug_message {
+
+namespace severity {
+
+enum Severity { INFO, WARNING, ERROR };
+
+} /* namespace severity */
+
+namespace type {
+
+enum Type { GENERAL, PERFORMANCE };
+
+} /* namespace type */
+
+struct Config {
+  unsigned int severity;
+  unsigned int type;
+};
+
+} /* namespace debug_message */
+
 } /* namespace renderer */
 } /* namespace lighter */
 

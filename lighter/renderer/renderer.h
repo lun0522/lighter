@@ -92,7 +92,8 @@ class Renderer {
   virtual std::unique_ptr<DeviceImage> CreateDeviceImage(
       const common::Image& image, bool generate_mipmaps,
       const ImageUsageHistory& usage_history) const {
-    return CreateDeviceImage(image, usage_history.GetAllUsages());
+    return CreateDeviceImage(image, generate_mipmaps,
+                             usage_history.GetAllUsages());
   }
 
   virtual std::unique_ptr<DeviceImage> CreateDeviceImage(

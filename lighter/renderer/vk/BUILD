@@ -2,8 +2,18 @@ package(default_visibility = ["//lighter:__subpackages__"])
 
 cc_library(
     name = "context",
-    hdrs = ["context.h"],
-    deps = [],
+    hdrs = [
+        "basic.h",
+        "context.h",
+    ],
+    srcs = ["basic.cc"],
+    deps = [
+        ":util",
+        "//lighter/common:util",
+        "//lighter/renderer:type",
+        "//third_party:absl",
+        "//third_party:vulkan",
+    ],
 )
 
 cc_library(
@@ -33,5 +43,15 @@ cc_library(
         "//lighter/renderer:image_usage",
         "//lighter/renderer:type",
         "//third_party:absl",
+    ],
+)
+
+cc_library(
+    name = "util",
+    hdrs = ["util.h"],
+    deps = [
+        "//lighter/common:util",
+        "//third_party:absl",
+        "//third_party:vulkan",
     ],
 )

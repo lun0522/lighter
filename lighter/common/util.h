@@ -139,8 +139,8 @@ void RemoveDuplicate(std::vector<ContentType>* container) {
 
 // Moves all elements of 'src' to the end of 'dst'.
 template <typename ContentType>
-void VectorAppend(std::vector<ContentType>* dst,
-                  std::vector<ContentType>* src) {
+void VectorAppend(std::vector<ContentType>& dst,
+                  std::vector<ContentType>& src) {
   dst->reserve(src->size() + dst->size());
   std::move(src->begin(), src->end(), std::back_inserter(*dst));
   src->clear();

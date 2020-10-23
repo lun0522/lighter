@@ -8,6 +8,7 @@ cc_library(
         "//absl/container:flat_hash_set",
         "//absl/flags:flag",
         "//absl/flags:parse",
+        "//absl/functional:function_ref",
         "//absl/memory",
         "//absl/strings",
         "//absl/strings:str_format",

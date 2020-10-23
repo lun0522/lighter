@@ -17,6 +17,8 @@
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/image.h"
 #include "third_party/absl/memory/memory.h"
+#include "third_party/absl/strings/string_view.h"
+#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 
 namespace lighter {
@@ -25,7 +27,10 @@ namespace vk {
 
 class Renderer : public renderer::Renderer {
  public:
-  explicit Renderer() : context_{Context::CreateContext()} {}
+  Renderer(absl::string_view application_name,
+           const absl::optional<debug_message::Config>& debug_message_config)
+    : context_{Context::CreateContext(application_name,
+                                      debug_message_config)} {}
 
   // This class is neither copyable nor movable.
   Renderer(const Renderer&) = delete;

@@ -305,7 +305,7 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::AddVertexInput(
     description.binding = binding_point;
   }
   binding_descriptions_.push_back(binding_description);
-  common::util::VectorAppend(&attribute_descriptions_, &attribute_descriptions);
+  common::util::VectorAppend(attribute_descriptions_, attribute_descriptions);
   return *this;
 }
 
