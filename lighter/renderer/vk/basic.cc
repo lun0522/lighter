@@ -12,7 +12,6 @@
 #include "lighter/common/util.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/debug_callback.h"
-#include "lighter/renderer/vk/util.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/optional.h"
 
@@ -268,15 +267,11 @@ Instance::~Instance() {
 }
 
 Surface::Surface(const Context* context, const common::Window& window)
-    : context_{*FATAL_IF_NULL(context)},
-      surface_{window.CreateSurface(*context_.instance(),
-                                    *context_.host_allocator())} {}
-
-VkSurfaceCapabilitiesKHR Surface::GetCapabilities() const {
-  VkSurfaceCapabilitiesKHR capabilities;
+    : context_{*FATAL_IF_NULL(context)} {
+  surface_ = window.CreateSurface(*context_.instance(),
+                                  *context_.host_allocator());
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-      *context_.physical_device(), surface_, &capabilities);
-  return capabilities;
+      *context_.physical_device(), surface_, &capabilities_);
 }
 
 Surface::~Surface() {
@@ -313,24 +308,21 @@ PhysicalDevice::PhysicalDevice(
   FATAL("Failed to find suitable graphics device");
 }
 
-absl::flat_hash_set<uint32_t> PhysicalDevice::GetUniqueFamilyIndices() const {
-  const auto& indices = queue_family_indices_;
-  absl::flat_hash_set<uint32_t> indices_set{indices.presents.begin(),
-                                            indices.presents.end()};
-  indices_set.insert(indices.graphics);
-  indices_set.insert(indices.compute);
-  return indices_set;
-}
-
 Device::Device(const Context* context,
                absl::Span<const char* const> swapchain_extensions)
     : context_{*FATAL_IF_NULL(context)} {
   // Specify which queues do we want to use.
-  std::vector<VkDeviceQueueCreateInfo> queue_infos;
+  const auto& queue_family_indices =
+      context_.physical_device().queue_family_indices();
+  util::QueueUsage queue_usage{queue_family_indices.presents};
+  queue_usage
+      .AddQueueFamily(queue_family_indices.graphics)
+      .AddQueueFamily(queue_family_indices.compute);
+
   // Priority is always required even if there is only one queue.
   constexpr float kPriority = 1.0f;
-  for (uint32_t family_index :
-           context_.physical_device().GetUniqueFamilyIndices()) {
+  std::vector<VkDeviceQueueCreateInfo> queue_infos;
+  for (uint32_t family_index : queue_usage.unique_family_indices_set()) {
     queue_infos.push_back(VkDeviceQueueCreateInfo{
         VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
         /*pNext=*/nullptr,
@@ -388,18 +380,18 @@ Device::~Device() {
 Queues::Queues(const Context& context) {
   // We simply use the first queue in the family with 'family_index'.
   constexpr int kQueueIndex = 0;
-  const auto set_queue = [&context](Queue& queue, uint32_t family_index) {
-    queue.family_index = family_index;
-    vkGetDeviceQueue(*context.device(), family_index, kQueueIndex,
-                     &queue.queue);
+  const auto get_queue = [&context](uint32_t family_index) {
+    VkQueue queue;
+    vkGetDeviceQueue(*context.device(), family_index, kQueueIndex, &queue);
+    return queue;
   };
 
   const auto& family_indices = context.physical_device().queue_family_indices();
-  set_queue(graphics_queue_, family_indices.graphics);
-  set_queue(compute_queue_, family_indices.compute);
-  present_queues_.resize(family_indices.presents.size());
-  for (int i = 0; i < present_queues_.size(); ++i) {
-    set_queue(present_queues_[i], family_indices.presents[i]);
+  graphics_queue_ = get_queue(family_indices.graphics);
+  graphics_queue_ = get_queue(family_indices.compute);
+  present_queues_.reserve(family_indices.presents.size());
+  for (uint32_t family_index : family_indices.presents) {
+    present_queues_.push_back(get_queue(family_index));
   }
 }
 

@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "lighter/common/window.h"
+#include "lighter/renderer/vk/util.h"
 #include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/span.h"
@@ -78,11 +79,11 @@ class Surface {
 
   ~Surface();
 
-  // Returns the capabilities of this surface.
-  VkSurfaceCapabilitiesKHR GetCapabilities() const;
-
   // Overloads.
   const VkSurfaceKHR& operator*() const { return surface_; }
+
+  // Accessors.
+  const VkSurfaceCapabilitiesKHR& capabilities() const { return capabilities_; }
 
  private:
   // Context that holds basic wrapper objects.
@@ -90,6 +91,9 @@ class Surface {
 
   // Opaque surface object.
   VkSurfaceKHR surface_;
+
+  // Capabilities of this surface.
+  VkSurfaceCapabilitiesKHR capabilities_;
 };
 
 // Wraps VkPhysicalDevice, which is the handle to physical graphics card.
@@ -113,10 +117,6 @@ struct PhysicalDevice {
 
   // Implicitly cleaned up.
   ~PhysicalDevice() = default;
-
-  // Returns unique queue family indices. Note that we might be using the same
-  // queue family for different purposes.
-  absl::flat_hash_set<uint32_t> GetUniqueFamilyIndices() const;
 
   // Overloads.
   const VkPhysicalDevice& operator*() const { return physical_device_; }
@@ -172,12 +172,6 @@ struct Device {
 // Wraps VkQueue, which is the queue associated with the logical device.
 class Queues {
  public:
-  // Holds an opaque queue object and its family index.
-  struct Queue {
-    VkQueue queue;
-    uint32_t family_index;
-  };
-
   explicit Queues(const Context& context);
 
   // This class is neither copyable nor movable.
@@ -188,21 +182,21 @@ class Queues {
   ~Queues() = default;
 
   // Accessors.
-  const Queue& graphics_queue() const { return graphics_queue_; }
-  const Queue& compute_queue() const { return compute_queue_; }
-  const Queue& present_queue(int window_index) const {
+  const VkQueue& graphics_queue() const { return graphics_queue_; }
+  const VkQueue& compute_queue() const { return compute_queue_; }
+  const VkQueue& present_queue(int window_index) const {
     return present_queues_.at(window_index);
   }
 
  private:
   // Graphics queue.
-  Queue graphics_queue_;
+  VkQueue graphics_queue_;
 
   // Compute queue.
-  Queue compute_queue_;
+  VkQueue compute_queue_;
 
   // Presentation queues. We have one such queue for each window.
-  std::vector<Queue> present_queues_;
+  std::vector<VkQueue> present_queues_;
 };
 
 } /* namespace vk */
