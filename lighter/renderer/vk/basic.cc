@@ -21,25 +21,16 @@ namespace renderer {
 namespace vk {
 namespace {
 
-// Checks support for 'required' extensions, and throws a runtime exception
-// if any of them is not supported.
-void CheckInstanceExtensionSupport(absl::Span<const std::string> required) {
-  LOG_INFO << "Checking instance extension support...";
-  LOG_EMPTY_LINE;
-
-  static const auto properties = util::QueryAttribute<VkExtensionProperties>(
-      [](uint32_t* count, VkExtensionProperties* properties) {
-        return vkEnumerateInstanceExtensionProperties(
-            /*pLayerName=*/nullptr, count, properties);
-      }
-  );
-  static const auto get_name = [](const VkExtensionProperties& property) {
-    return property.extensionName;
-  };
-  const auto unsupported = util::FindUnsupported<VkExtensionProperties>(
-      required, properties, get_name);
-  ASSERT_NO_VALUE(unsupported,
-                  absl::StrCat("Unsupported extension: ", unsupported.value()));
+// Returns instance extensions required by 'windows'.
+std::vector<const char*> GetWindowExtensions(
+    absl::Span<const common::Window* const> windows) {
+  absl::flat_hash_set<const char*> window_extensions;
+  for (const common::Window* window : windows) {
+    const auto required_extensions = window->GetRequiredExtensions();
+    window_extensions.insert(required_extensions.begin(),
+                             required_extensions.end());
+  }
+  return {window_extensions.begin(), window_extensions.end()};
 }
 
 // Checks support for 'required' layers, and throws a runtime exception if any
@@ -62,9 +53,30 @@ void CheckInstanceLayerSupport(absl::Span<const std::string> required) {
                   absl::StrCat("Unsupported layer: ", unsupported.value()));
 }
 
-// Returns whether swapchain is supported.
+// Checks support for 'required' extensions, and throws a runtime exception
+// if any of them is not supported.
+void CheckInstanceExtensionSupport(absl::Span<const std::string> required) {
+  LOG_INFO << "Checking instance extension support...";
+  LOG_EMPTY_LINE;
+
+  static const auto properties = util::QueryAttribute<VkExtensionProperties>(
+      [](uint32_t* count, VkExtensionProperties* properties) {
+        return vkEnumerateInstanceExtensionProperties(
+            /*pLayerName=*/nullptr, count, properties);
+      }
+  );
+  static const auto get_name = [](const VkExtensionProperties& property) {
+    return property.extensionName;
+  };
+  const auto unsupported = util::FindUnsupported<VkExtensionProperties>(
+      required, properties, get_name);
+  ASSERT_NO_VALUE(unsupported,
+                  absl::StrCat("Unsupported extension: ", unsupported.value()));
+}
+
+// Returns whether swapchain is supported by 'physical_device'.
 bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
-                         absl::Span<const Surface*> surfaces,
+                         absl::Span<const Surface* const> surfaces,
                          absl::Span<const char* const> swapchain_extensions) {
   LOG_INFO << "Checking window support...";
   LOG_EMPTY_LINE;
@@ -87,8 +99,8 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
   LOG_EMPTY_LINE;
 
   // Query support for device extensions.
-  const std::vector<std::string> required{
-      swapchain_extensions.begin(), swapchain_extensions.end()};
+  const std::vector<std::string> required{swapchain_extensions.begin(),
+                                          swapchain_extensions.end()};
   const auto extensions = util::QueryAttribute<VkExtensionProperties>(
       [&physical_device](uint32_t* count, VkExtensionProperties* properties) {
         return vkEnumerateDeviceExtensionProperties(
@@ -110,9 +122,9 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
 
 // Finds family indices of queues we need. If any queue is not found in the
 // given 'physical_device', returns absl::nullopt.
-absl::optional<QueueFamilyIndices> FindDeviceQueues(
+absl::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
     const VkPhysicalDevice& physical_device,
-    absl::Span<const Surface*> surfaces,
+    absl::Span<const Surface* const> surfaces,
     absl::Span<const char* const> swapchain_extensions) {
   VkPhysicalDeviceProperties properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
@@ -132,8 +144,8 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
     return absl::nullopt;
   }
 
-  // Find queue family that holds graphics queue.
-  QueueFamilyIndices candidate{};
+  // Find queue family that holds graphics queue and compute queue.
+  PhysicalDevice::QueueFamilyIndices candidate{};
   const auto families = util::QueryAttribute<VkQueueFamilyProperties>(
       [&physical_device](uint32_t* count, VkQueueFamilyProperties* properties) {
         return vkGetPhysicalDeviceQueueFamilyProperties(
@@ -167,7 +179,7 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
     candidate.compute = static_cast<uint32_t>(compute_queue_index.value());
   }
 
-  // Find queue family that holds presentation queue if use window.
+  // Find queue family that holds presentation queue if needed.
   candidate.presents.reserve(surfaces.size());
   for (const auto* surface : surfaces) {
     uint32_t index = 0;
@@ -194,64 +206,56 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
 
 } /* namespace */
 
-absl::flat_hash_set<uint32_t>
-QueueFamilyIndices::GetUniqueFamilyIndices() const {
-  absl::flat_hash_set<uint32_t> indices_set{presents.begin(), presents.end()};
-  indices_set.insert(graphics);
-  indices_set.insert(compute);
-  return indices_set;
-}
-
-Instance::Instance(const Context* context,
-                   absl::Span<const char* const> window_extensions)
+Instance::Instance(const Context* context, absl::string_view application_name,
+                   absl::Span<const common::Window* const> windows)
     : context_{*FATAL_IF_NULL(context)} {
-  std::vector<const char*> instance_extensions{
-      window_extensions.begin(), window_extensions.end()};
-  // Request support for pushing descriptors.
-  instance_extensions.push_back(
-      VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-  // Request support for debug reports.
+  // Check required instance layers.
+  std::vector<const char*> required_layers;
+  // Request support for debug reports if needed.
   if (context_.is_validation_enabled()) {
-    instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-  }
-  const std::vector<std::string> extension_names{
-      instance_extensions.begin(), instance_extensions.end()};
-  CheckInstanceExtensionSupport(extension_names);
-
-  std::vector<const char*> instance_layers;
-  // Request support for debug reports.
-  if (context_.is_validation_enabled()) {
-    instance_layers.insert(instance_layers.end(),
+    required_layers.insert(required_layers.end(),
                            DebugCallback::GetRequiredLayers().begin(),
                            DebugCallback::GetRequiredLayers().end());
   }
-  const std::vector<std::string> layer_names{instance_layers.begin(),
-                                             instance_layers.end()};
+  const std::vector<std::string> layer_names{required_layers.begin(),
+                                             required_layers.end()};
   CheckInstanceLayerSupport(layer_names);
 
-  // [optional]
+  // Check required instance extensions.
+  std::vector<const char*> required_extensions = GetWindowExtensions(windows);
+  // Request support for pushing descriptors.
+  required_extensions.push_back(
+      VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+  // Request support for debug reports if needed.
+  if (context_.is_validation_enabled()) {
+    required_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+  }
+  const std::vector<std::string> extension_names{required_extensions.begin(),
+                                                 required_extensions.end()};
+  CheckInstanceExtensionSupport(extension_names);
+
   // Might be useful for the driver to optimize for some graphics engine.
+  const std::string application_name_string{application_name};
   const VkApplicationInfo app_info{
       VK_STRUCTURE_TYPE_APPLICATION_INFO,
       /*pNext=*/nullptr,
-      /*pApplicationName=*/context_.application_name().c_str(),
+      /*pApplicationName=*/application_name_string.c_str(),
       /*applicationVersion=*/VK_MAKE_VERSION(1, 0, 0),
       /*pEngineName=*/"Lighter",
       /*engineVersion=*/VK_MAKE_VERSION(1, 0, 0),
       VK_API_VERSION_1_2,
   };
 
-  // [required]
   // Specify which global extensions and validation layers to use.
   const VkInstanceCreateInfo instance_info{
       VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
       &app_info,
-      CONTAINER_SIZE(instance_layers),
-      instance_layers.data(),
-      CONTAINER_SIZE(instance_extensions),
-      instance_extensions.data(),
+      CONTAINER_SIZE(required_layers),
+      required_layers.data(),
+      CONTAINER_SIZE(required_extensions),
+      required_extensions.data(),
   };
 
   ASSERT_SUCCESS(
@@ -281,10 +285,9 @@ Surface::~Surface() {
 }
 
 PhysicalDevice::PhysicalDevice(
-    const Context* context, absl::Span<const Surface*> surfaces,
+    const Context* context, absl::Span<const Surface* const> surfaces,
     absl::Span<const char* const> swapchain_extensions)
     : context_{*FATAL_IF_NULL(context)} {
-  // Find all physical devices.
   const auto physical_devices = util::QueryAttribute<VkPhysicalDevice>(
       [this](uint32_t* count, VkPhysicalDevice* physical_device) {
         return vkEnumeratePhysicalDevices(
@@ -292,8 +295,6 @@ PhysicalDevice::PhysicalDevice(
       }
   );
 
-  // Find a suitable device. If window support is requested, also request for
-  // the swapchain and presentation queue here.
   for (const auto& candidate : physical_devices) {
     const auto indices = FindDeviceQueues(candidate, surfaces,
                                           swapchain_extensions);
@@ -310,6 +311,96 @@ PhysicalDevice::PhysicalDevice(
     }
   }
   FATAL("Failed to find suitable graphics device");
+}
+
+absl::flat_hash_set<uint32_t> PhysicalDevice::GetUniqueFamilyIndices() const {
+  const auto& indices = queue_family_indices_;
+  absl::flat_hash_set<uint32_t> indices_set{indices.presents.begin(),
+                                            indices.presents.end()};
+  indices_set.insert(indices.graphics);
+  indices_set.insert(indices.compute);
+  return indices_set;
+}
+
+Device::Device(const Context* context,
+               absl::Span<const char* const> swapchain_extensions)
+    : context_{*FATAL_IF_NULL(context)} {
+  // Specify which queues do we want to use.
+  std::vector<VkDeviceQueueCreateInfo> queue_infos;
+  // Priority is always required even if there is only one queue.
+  constexpr float kPriority = 1.0f;
+  for (uint32_t family_index :
+           context_.physical_device().GetUniqueFamilyIndices()) {
+    queue_infos.push_back(VkDeviceQueueCreateInfo{
+        VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        /*pNext=*/nullptr,
+        /*flags=*/nullflag,
+        family_index,
+        /*queueCount=*/1,
+        &kPriority,
+    });
+  }
+
+  std::vector<const char*> enabled_layers;
+  // Enable support for debug reports if needed.
+  if (context_.is_validation_enabled()) {
+    enabled_layers.insert(enabled_layers.end(),
+                          DebugCallback::GetRequiredLayers().begin(),
+                          DebugCallback::GetRequiredLayers().end());
+  }
+
+  std::vector<const char*> enabled_extensions;
+  enabled_extensions.reserve(swapchain_extensions.size() + 2);
+  // Enable support for negative-height viewport and pushing descriptors.
+  enabled_extensions.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+  enabled_extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+  // Enable support for swapchain if needed.
+  enabled_extensions.insert(enabled_extensions.end(),
+                            swapchain_extensions.begin(),
+                            swapchain_extensions.end());
+
+  // Enable support for anisotropy filtering.
+  VkPhysicalDeviceFeatures required_features{};
+  required_features.samplerAnisotropy = VK_TRUE;
+
+  const VkDeviceCreateInfo device_info{
+      VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/nullflag,
+      CONTAINER_SIZE(queue_infos),
+      queue_infos.data(),
+      CONTAINER_SIZE(enabled_layers),
+      enabled_layers.data(),
+      CONTAINER_SIZE(enabled_extensions),
+      enabled_extensions.data(),
+      &required_features,
+  };
+
+  ASSERT_SUCCESS(vkCreateDevice(*context_.physical_device(), &device_info,
+                                *context_.host_allocator(), &device_),
+                 "Failed to create logical device");
+}
+
+Device::~Device() {
+  vkDestroyDevice(device_, *context_.host_allocator());
+}
+
+Queues::Queues(const Context& context) {
+  // We simply use the first queue in the family with 'family_index'.
+  constexpr int kQueueIndex = 0;
+  const auto set_queue = [&context](Queue& queue, uint32_t family_index) {
+    queue.family_index = family_index;
+    vkGetDeviceQueue(*context.device(), family_index, kQueueIndex,
+                     &queue.queue);
+  };
+
+  const auto& family_indices = context.physical_device().queue_family_indices();
+  set_queue(graphics_queue_, family_indices.graphics);
+  set_queue(compute_queue_, family_indices.compute);
+  present_queues_.resize(family_indices.presents.size());
+  for (int i = 0; i < present_queues_.size(); ++i) {
+    set_queue(present_queues_[i], family_indices.presents[i]);
+  }
 }
 
 } /* namespace vk */

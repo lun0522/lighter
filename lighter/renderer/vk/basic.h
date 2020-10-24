@@ -12,6 +12,7 @@
 
 #include "lighter/common/window.h"
 #include "third_party/absl/container/flat_hash_set.h"
+#include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -21,18 +22,6 @@ namespace vk {
 
 // Forward declarations.
 class Context;
-
-// Holds queue family indices for the queues we need.
-// All queues in one family share the same property.
-struct QueueFamilyIndices {
-  uint32_t graphics;
-  uint32_t compute;
-  std::vector<uint32_t> presents;
-
-  // Returns unique queue family indices. Note that we might be using the same
-  // queue family for different purposes.
-  absl::flat_hash_set<uint32_t> GetUniqueFamilyIndices() const;
-};
 
 // Wraps VkAllocationCallbacks, which is used for allocating space on the host
 // for Vulkan objects. For now this wrapper class simply does nothing.
@@ -58,8 +47,8 @@ class HostMemoryAllocator {
 // and maintain per-application states.
 class Instance {
  public:
-  Instance(const Context* context,
-           absl::Span<const char* const> window_extensions);
+  Instance(const Context* context, absl::string_view application_name,
+           absl::Span<const common::Window* const> windows);
 
   // This class is neither copyable nor movable.
   Instance(const Instance&) = delete;
@@ -106,7 +95,16 @@ class Surface {
 // Wraps VkPhysicalDevice, which is the handle to physical graphics card.
 struct PhysicalDevice {
  public:
-  PhysicalDevice(const Context* context, absl::Span<const Surface*> surfaces,
+  // Holds queue family indices for the queues we need.
+  // All queues in one family share the same property.
+  struct QueueFamilyIndices {
+    uint32_t graphics;
+    uint32_t compute;
+    std::vector<uint32_t> presents;
+  };
+
+  PhysicalDevice(const Context* context,
+                 absl::Span<const Surface* const> surfaces,
                  absl::Span<const char* const> swapchain_extensions);
 
   // This class is neither copyable nor movable.
@@ -115,6 +113,10 @@ struct PhysicalDevice {
 
   // Implicitly cleaned up.
   ~PhysicalDevice() = default;
+
+  // Returns unique queue family indices. Note that we might be using the same
+  // queue family for different purposes.
+  absl::flat_hash_set<uint32_t> GetUniqueFamilyIndices() const;
 
   // Overloads.
   const VkPhysicalDevice& operator*() const { return physical_device_; }
@@ -144,7 +146,8 @@ struct PhysicalDevice {
 // Wraps VkDevice, which interfaces with the physical device.
 struct Device {
  public:
-  explicit Device(const Context* context);
+  Device(const Context* context,
+         absl::Span<const char* const> swapchain_extensions);
 
   // This class is neither copyable nor movable.
   Device(const Device&) = delete;
@@ -175,7 +178,7 @@ class Queues {
     uint32_t family_index;
   };
 
-  Queues(const Context& context, const QueueFamilyIndices& family_indices);
+  explicit Queues(const Context& context);
 
   // This class is neither copyable nor movable.
   Queues(const Queues&) = delete;
@@ -192,10 +195,6 @@ class Queues {
   }
 
  private:
-  // Populates 'queue' with the first queue in the family with 'family_index'.
-  void SetQueue(const VkDevice& device, uint32_t family_index,
-                Queue* queue) const;
-
   // Graphics queue.
   Queue graphics_queue_;
 

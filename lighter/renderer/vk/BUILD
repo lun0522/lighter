@@ -44,12 +44,21 @@ cc_library(
     deps = [
         ":context",
         ":image",
+        ":swapchain",
         "//lighter/common:image",
+        "//lighter/common:window",
         "//lighter/renderer",
         "//lighter/renderer:image_usage",
         "//lighter/renderer:type",
         "//third_party:absl",
     ],
+)
+
+cc_library(
+    name = "swapchain",
+    hdrs = ["swapchain.h"],
+    srcs = ["swapchain.cc"],
+    deps = ["//third_party:vulkan"],
 )
 
 cc_library(

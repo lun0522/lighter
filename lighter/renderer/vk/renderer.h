@@ -11,11 +11,13 @@
 #include <memory>
 
 #include "lighter/common/image.h"
+#include "lighter/common/window.h"
 #include "lighter/renderer/renderer.h"
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/image.h"
+#include "lighter/renderer/vk/swapchain.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/optional.h"
@@ -28,9 +30,11 @@ namespace vk {
 class Renderer : public renderer::Renderer {
  public:
   Renderer(absl::string_view application_name,
-           const absl::optional<debug_message::Config>& debug_message_config)
-    : context_{Context::CreateContext(application_name,
-                                      debug_message_config)} {}
+           const absl::optional<debug_message::Config>& debug_message_config,
+           absl::Span<const common::Window* const> windows)
+      : context_{Context::CreateContext(
+            application_name, debug_message_config, windows,
+            Swapchain::GetRequiredExtensions())} {}
 
   // This class is neither copyable nor movable.
   Renderer(const Renderer&) = delete;

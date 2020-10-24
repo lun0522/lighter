@@ -77,8 +77,8 @@ enum Type { GENERAL, PERFORMANCE };
 } /* namespace type */
 
 struct Config {
-  unsigned int severity;
-  unsigned int type;
+  unsigned int message_severity;
+  unsigned int message_type;
 };
 
 } /* namespace debug_message */

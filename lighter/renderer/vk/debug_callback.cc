@@ -10,7 +10,6 @@
 #include <string>
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/strings/str_format.h"
@@ -103,16 +102,16 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
 
 } /* namespace */
 
-DebugCallback::DebugCallback(const Context* context, uint32_t message_severity,
-                             uint32_t message_type)
+DebugCallback::DebugCallback(const Context* context,
+                             const debug_message::Config& config)
     : context_{*FATAL_IF_NULL(context)} {
   // We may pass data to 'pUserData' which can be retrieved from the callback.
   const VkDebugUtilsMessengerCreateInfoEXT create_info{
       VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
-      ConvertDebugMessageSeverity(message_severity),
-      ConvertDebugMessageType(message_type),
+      ConvertDebugMessageSeverity(config.message_severity),
+      ConvertDebugMessageType(config.message_type),
       UserCallback,
       /*pUserData=*/nullptr,
   };

@@ -10,6 +10,7 @@
 
 #include <vector>
 
+#include "lighter/renderer/type.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
@@ -23,8 +24,7 @@ class Context;
 // drivers back to application.
 class DebugCallback {
  public:
-  DebugCallback(const Context* context, uint32_t message_severity,
-                uint32_t message_type);
+  DebugCallback(const Context* context, const debug_message::Config& config);
 
   // This class is neither copyable nor movable.
   DebugCallback(const DebugCallback&) = delete;
