@@ -15,7 +15,9 @@
 #include "lighter/common/util.h"
 #include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/absl/functional/function_ref.h"
+#include "third_party/absl/strings/str_cat.h"
 #include "third_party/absl/strings/str_format.h"
+#include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -29,6 +31,30 @@ namespace lighter {
 namespace renderer {
 namespace vk {
 namespace util {
+
+// Returns a function pointer to a Vulkan instance function, and throws a
+// runtime exception if it does not exist.
+template<typename FuncType>
+FuncType LoadInstanceFunction(const VkInstance& instance,
+                              absl::string_view function_name) {
+  auto func = reinterpret_cast<FuncType>(
+      vkGetInstanceProcAddr(instance, function_name.data()));
+  ASSERT_NON_NULL(
+      func, absl::StrCat("Failed to load instance function: ", function_name));
+  return func;
+}
+
+// Returns a function pointer to a Vulkan device function, and throws a runtime
+// exception if it does not exist.
+template<typename FuncType>
+FuncType LoadDeviceFunction(const VkDevice& device,
+                            absl::string_view function_name) {
+  auto func = reinterpret_cast<FuncType>(
+      vkGetDeviceProcAddr(device, function_name.data()));
+  ASSERT_NON_NULL(
+      func, absl::StrCat("Failed to load device function: ", function_name));
+  return func;
+}
 
 // Queries attributes using the given enumerator. This is usually used with
 // functions prefixed with 'vkGet' or 'vkEnumerate', which take in a uint32_t*

@@ -5,11 +5,17 @@ cc_library(
     hdrs = [
         "basic.h",
         "context.h",
+        "debug_callback.h",
     ],
-    srcs = ["basic.cc"],
+    srcs = [
+        "basic.cc",
+        "context.cc",
+        "debug_callback.cc",
+    ],
     deps = [
         ":util",
         "//lighter/common:util",
+        "//lighter/common:window",
         "//lighter/renderer:type",
         "//third_party:absl",
         "//third_party:vulkan",

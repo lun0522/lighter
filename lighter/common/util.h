@@ -108,7 +108,8 @@ template <typename ContentType>
 absl::optional<int> FindIndexOfFirst(
     absl::Span<const ContentType> container,
     const std::function<bool(const ContentType&)>& predicate) {
-  const auto first_itr = find_if(container.begin(), container.end(), predicate);
+  const auto first_itr = std::find_if(container.begin(), container.end(),
+                                      predicate);
   if (first_itr == container.end()) {
     return absl::nullopt;
   }
@@ -141,9 +142,9 @@ void RemoveDuplicate(std::vector<ContentType>* container) {
 template <typename ContentType>
 void VectorAppend(std::vector<ContentType>& dst,
                   std::vector<ContentType>& src) {
-  dst->reserve(src->size() + dst->size());
-  std::move(src->begin(), src->end(), std::back_inserter(*dst));
-  src->clear();
+  dst.reserve(src.size() + dst.size());
+  std::move(src.begin(), src.end(), std::back_inserter(dst));
+  src.clear();
 }
 
 // Erases elements in 'container' that satisfies the 'predicate'.

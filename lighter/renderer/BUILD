@@ -35,25 +35,6 @@ cc_library(
 )
 
 cc_library(
-    name = "offscreen_renderer",
-    deps = [
-        ":align",
-        ":buffer",
-        ":image",
-        ":image_usage",
-        ":pass",
-        ":pipeline",
-        ":renderer",
-        ":type",
-    ],
-)
-
-cc_library(
-    name = "onscreen_renderer",
-    deps = [":offscreen_renderer"],
-)
-
-cc_library(
     name = "pass",
     hdrs = ["pass.h"],
     srcs = ["pass.cc"],

@@ -62,7 +62,7 @@ class Window {
 #ifdef USE_VULKAN
   // Creates window surface for Vulkan applications.
   VkSurfaceKHR CreateSurface(const VkInstance& instance,
-                             const VkAllocationCallbacks* allocator);
+                             const VkAllocationCallbacks* allocator) const;
 #endif /* USE_VULKAN */
 
   // Sets whether the cursor should be hidden.

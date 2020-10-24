@@ -13,6 +13,7 @@
 
 #include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/basic.h"
+#include "lighter/renderer/vk/debug_callback.h"
 #include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/optional.h"
 
@@ -42,19 +43,22 @@ class Context : public std::enable_shared_from_this<Context> {
   const std::string& application_name() const { return application_name_; }
   bool is_validation_enabled() const { return is_validation_enabled_; }
   const HostMemoryAllocator& host_allocator() const { return host_allocator_; }
+  const Instance& instance() const { return *instance_; }
+  const PhysicalDevice& physical_device() const { return *physical_device_; }
 
  private:
-  explicit Context(
-      absl::string_view application_name,
-      const absl::optional<debug_message::Config>& debug_message_config)
-      : application_name_{application_name},
-        is_validation_enabled_{debug_message_config.has_value()} {}
+  Context(absl::string_view application_name,
+          const absl::optional<debug_message::Config>& debug_message_config);
 
   const std::string application_name_;
 
   const bool is_validation_enabled_;
 
   const HostMemoryAllocator host_allocator_;
+
+  std::unique_ptr<Instance> instance_;
+
+  std::unique_ptr<PhysicalDevice> physical_device_;
 };
 
 } /* namespace vk */

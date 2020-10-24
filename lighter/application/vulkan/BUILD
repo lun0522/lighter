@@ -12,7 +12,6 @@ cc_library(
         "//lighter/common:image",
         "//lighter/common:timer",
         "//lighter/common:util",
-        "//lighter/renderer:onscreen_renderer",
         "//lighter/renderer/vulkan/extension:onscreen",
         "//third_party:absl",
         "//third_party:glm",

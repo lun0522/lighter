@@ -10,6 +10,7 @@
 
 #include <vector>
 
+#include "lighter/common/window.h"
 #include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
@@ -77,10 +78,36 @@ class Instance {
   VkInstance instance_;
 };
 
+// Wraps VkSurfaceKHR, which interfaces with platform-specific window systems.
+class Surface {
+ public:
+  Surface(const Context* context, const common::Window& window);
+
+  // This class is neither copyable nor movable.
+  Surface(const Surface&) = delete;
+  Surface& operator=(const Surface&) = delete;
+
+  ~Surface();
+
+  // Returns the capabilities of this surface.
+  VkSurfaceCapabilitiesKHR GetCapabilities() const;
+
+  // Overloads.
+  const VkSurfaceKHR& operator*() const { return surface_; }
+
+ private:
+  // Context that holds basic wrapper objects.
+  const Context& context_;
+
+  // Opaque surface object.
+  VkSurfaceKHR surface_;
+};
+
 // Wraps VkPhysicalDevice, which is the handle to physical graphics card.
 struct PhysicalDevice {
  public:
-  explicit PhysicalDevice(const Context* context);
+  PhysicalDevice(const Context* context, absl::Span<const Surface*> surfaces,
+                 absl::Span<const char* const> swapchain_extensions);
 
   // This class is neither copyable nor movable.
   PhysicalDevice(const PhysicalDevice&) = delete;
@@ -177,30 +204,6 @@ class Queues {
 
   // Presentation queues. We have one such queue for each window.
   std::vector<Queue> present_queues_;
-};
-
-// Wraps VkDebugUtilsMessengerEXT, which relays debug messages from graphics
-// drivers back to application.
-class DebugCallback {
- public:
-  DebugCallback(const Context* context, uint32_t message_severity,
-                uint32_t message_type);
-
-  // This class is neither copyable nor movable.
-  DebugCallback(const DebugCallback&) = delete;
-  DebugCallback& operator=(const DebugCallback&) = delete;
-
-  ~DebugCallback();
-
-  // Returns the names of required layers for validation support.
-  static const std::vector<const char*>& GetRequiredLayers();
-
- private:
-  // Context that holds basic wrapper objects.
-  const Context& context_;
-
-  // Opaque callback object.
-  VkDebugUtilsMessengerEXT callback_;
 };
 
 } /* namespace vk */
