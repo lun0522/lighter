@@ -28,7 +28,7 @@ class Renderer {
   Renderer(const Renderer&) = delete;
   Renderer& operator=(const Renderer&) = delete;
 
-  ~Renderer() = default;
+  virtual ~Renderer() = default;
 
   /* Host buffer */
 
@@ -85,29 +85,18 @@ class Renderer {
 
   /* Device image */
 
-  virtual std::unique_ptr<DeviceImage> CreateDeviceImage(
-      const common::Image& image, bool generate_mipmaps,
-      absl::Span<const ImageUsage> usages) const = 0;
-
-  virtual std::unique_ptr<DeviceImage> CreateDeviceImage(
-      const common::Image& image, bool generate_mipmaps,
-      const ImageUsageHistory& usage_history) const {
-    return CreateDeviceImage(image, generate_mipmaps,
-                             usage_history.GetAllUsages());
-  }
-
-  virtual std::unique_ptr<DeviceImage> CreateDeviceImage(
+  virtual std::unique_ptr<DeviceImage> CreateColorImage(
       const common::Image::Dimension& dimension,
       MultisamplingMode multisampling_mode,
       absl::Span<const ImageUsage> usages) const = 0;
 
-  virtual std::unique_ptr<DeviceImage> CreateDeviceImage(
-      const common::Image::Dimension& dimension,
-      MultisamplingMode multisampling_mode,
-      const ImageUsageHistory& usage_history) const {
-    return CreateDeviceImage(dimension, multisampling_mode,
-                             usage_history.GetAllUsages());
-  }
+  virtual std::unique_ptr<DeviceImage> CreateColorImage(
+      const common::Image& image, bool generate_mipmaps,
+      absl::Span<const ImageUsage> usages) const = 0;
+
+  virtual std::unique_ptr<DeviceImage> CreateDepthStencilImage(
+      int width, int height, MultisamplingMode multisampling_mode,
+      absl::Span<const ImageUsage> usages) const = 0;
 
   /* Image view */
 

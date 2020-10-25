@@ -125,9 +125,7 @@ struct PhysicalDevice {
   const QueueFamilyIndices& queue_family_indices() const {
     return queue_family_indices_;
   }
-  const VkPhysicalDeviceLimits& physical_device_limits() const {
-    return physical_device_limits_;
-  }
+  const VkPhysicalDeviceLimits& limits() const { return limits_; }
 
  private:
   // Context that holds basic wrapper objects.
@@ -140,7 +138,7 @@ struct PhysicalDevice {
   QueueFamilyIndices queue_family_indices_;
 
   // Limits of the physical device.
-  VkPhysicalDeviceLimits physical_device_limits_;
+  VkPhysicalDeviceLimits limits_;
 };
 
 // Wraps VkDevice, which interfaces with the physical device.

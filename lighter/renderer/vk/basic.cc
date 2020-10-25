@@ -300,7 +300,7 @@ PhysicalDevice::PhysicalDevice(
       // Query physical device limits.
       VkPhysicalDeviceProperties properties;
       vkGetPhysicalDeviceProperties(physical_device_, &properties);
-      physical_device_limits_ = properties.limits;
+      limits_ = properties.limits;
 
       return;
     }

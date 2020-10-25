@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "lighter/common/image.h"
 #include "lighter/common/util.h"
 #include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/absl/functional/function_ref.h"
@@ -52,6 +53,12 @@ class QueueUsage {
   QueueUsage& AddQueueFamily(uint32_t family_index) {
     unique_family_indices_set_.insert(family_index);
     return *this;
+  }
+
+  // Returns a list of unique queue family indices.
+  std::vector<uint32_t> GetUniqueQueueFamilyIndices() const {
+    return {unique_family_indices_set_.begin(),
+            unique_family_indices_set_.end()};
   }
 
   // Accessors.
@@ -138,9 +145,18 @@ absl::optional<std::string> FindUnsupported(
   return absl::nullopt;
 }
 
+// Creates VkExtent2D with given dimensions.
+VkExtent2D CreateExtent(int width, int height) {
+  return VkExtent2D{static_cast<uint32_t>(width),
+                    static_cast<uint32_t>(height)};
+}
+
 } /* namespace util */
 
 constexpr uint32_t nullflag = 0;
+constexpr uint32_t kSingleMipLevel = common::image::kSingleMipLevel;
+constexpr uint32_t kSingleImageLayer = common::image::kSingleImageLayer;
+constexpr uint32_t kCubemapImageLayer = common::image::kCubemapImageLayer;
 
 } /* namespace vk */
 } /* namespace renderer */

@@ -14,6 +14,7 @@
 #include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/basic.h"
 #include "lighter/renderer/vk/context.h"
+#include "lighter/renderer/vk/image.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
@@ -70,8 +71,12 @@ class Swapchain {
   // Opaque swapchain object,
   VkSwapchainKHR swapchain_;
 
-  // Extent of each swapchain image.
-  VkExtent2D image_extent_;
+  // Wraps images retrieved from the swapchain.
+  std::vector<std::unique_ptr<DeviceImage>> swapchain_images_;
+
+  // This should have value if multisampling is requested. We only need one
+  // instance of it since we only render to one frame at any time.
+  std::unique_ptr<DeviceImage> multisample_image_;
 };
 
 } /* namespace vk */

@@ -23,7 +23,7 @@ class HostBuffer {
   HostBuffer(const HostBuffer&) = delete;
   HostBuffer& operator=(const HostBuffer&) = delete;
 
-  ~HostBuffer() = default;
+  virtual ~HostBuffer() = default;
 };
 
 class DeviceBuffer {
@@ -43,7 +43,7 @@ class DeviceBuffer {
   DeviceBuffer(const DeviceBuffer&) = delete;
   DeviceBuffer& operator=(const DeviceBuffer&) = delete;
 
-  ~DeviceBuffer() = default;
+  virtual ~DeviceBuffer() = default;
 
   // Copies data to device memory.
   virtual void CopyToDevice(absl::Span<const CopyInfo> infos) const = 0;
@@ -65,7 +65,7 @@ class VertexBufferView {
   VertexBufferView(VertexBufferView&&) noexcept = default;
   VertexBufferView(const VertexBufferView&) = default;
 
-  ~VertexBufferView() = default;
+  virtual ~VertexBufferView() = default;
 
   // Binds to this buffer.
   virtual void Bind(size_t offset) const = 0;
@@ -91,7 +91,7 @@ class UniformBufferView {
   UniformBufferView(UniformBufferView&&) noexcept = default;
   UniformBufferView(const UniformBufferView&) = default;
 
-  ~UniformBufferView() = default;
+  virtual ~UniformBufferView() = default;
 };
 
 } /* namespace renderer */

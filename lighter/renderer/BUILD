@@ -20,7 +20,6 @@ cc_library(
     deps = [
         ":type",
         ":image_usage",
-        "//lighter/common:image",
     ],
 )
 

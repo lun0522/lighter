@@ -18,10 +18,12 @@
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/image.h"
 #include "lighter/renderer/vk/swapchain.h"
+#include "lighter/renderer/vk/util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
+#include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
 namespace renderer {
@@ -42,19 +44,27 @@ class Renderer : public renderer::Renderer {
 
   /* Image */
 
-  std::unique_ptr<renderer::DeviceImage> CreateDeviceImage(
-      const common::Image& image, bool generate_mipmaps,
-      absl::Span<const ImageUsage> usages) const override {
-    return absl::make_unique<DeviceImage>(
-        context_, image, generate_mipmaps, usages);
-  }
-
-  std::unique_ptr<renderer::DeviceImage> CreateDeviceImage(
+  std::unique_ptr<renderer::DeviceImage> CreateColorImage(
       const common::Image::Dimension& dimension,
       MultisamplingMode multisampling_mode,
       absl::Span<const ImageUsage> usages) const override {
-    return absl::make_unique<DeviceImage>(
-        context_, dimension, multisampling_mode, usages);
+    return DeviceImage::CreateColorImage(context_, dimension,
+                                         multisampling_mode, usages);
+  }
+
+  std::unique_ptr<renderer::DeviceImage> CreateColorImage(
+      const common::Image& image, bool generate_mipmaps,
+      absl::Span<const ImageUsage> usages) const override {
+    return DeviceImage::CreateColorImage(context_, image, generate_mipmaps,
+                                         usages);
+  }
+
+  std::unique_ptr<renderer::DeviceImage> CreateDepthStencilImage(
+      int width, int height, MultisamplingMode multisampling_mode,
+      absl::Span<const ImageUsage> usages) const override {
+    const VkExtent2D extent = util::CreateExtent(width, height);
+    return DeviceImage::CreateDepthStencilImage(context_, extent,
+                                                multisampling_mode, usages);
   }
 
   std::unique_ptr<renderer::SampledImageView> CreateSampledImageView(

@@ -24,16 +24,34 @@ cc_library(
 
 cc_library(
     name = "image",
-    hdrs = ["image.h"],
-    srcs = ["image.cc"],
+    hdrs = [
+        "image.h",
+        "image_util.h",
+    ],
+    srcs = [
+        "image.cc",
+        "image_util.cc",
+    ],
     deps = [
         ":context",
+        ":util",
         "//lighter/common:image",
         "//lighter/common:util",
         "//lighter/renderer:image",
         "//lighter/renderer:image_usage",
         "//lighter/renderer:type",
         "//third_party:absl",
+        "//third_party:vulkan",
+    ],
+)
+
+cc_test(
+    name = "image_util_test",
+    srcs = ["image_util_test.cc"],
+    deps = [
+        ":image",
+        "//third_party:gtest_main",
+        "//third_party:vulkan",
     ],
 )
 
@@ -45,12 +63,14 @@ cc_library(
         ":context",
         ":image",
         ":swapchain",
+        ":util",
         "//lighter/common:image",
         "//lighter/common:window",
         "//lighter/renderer",
         "//lighter/renderer:image_usage",
         "//lighter/renderer:type",
         "//third_party:absl",
+        "//third_party:vulkan",
     ],
 )
 
@@ -60,6 +80,7 @@ cc_library(
     srcs = ["swapchain.cc"],
     deps = [
         ":context",
+        ":image",
         ":util",
         "//lighter/common:image",
         "//lighter/common:util",
@@ -74,6 +95,7 @@ cc_library(
     name = "util",
     hdrs = ["util.h"],
     deps = [
+        "//lighter/common:image",
         "//lighter/common:util",
         "//third_party:absl",
         "//third_party:vulkan",

@@ -25,7 +25,7 @@ class GraphicsPass {
   GraphicsPass(const GraphicsPass&) = delete;
   GraphicsPass& operator=(const GraphicsPass&) = delete;
 
-  ~GraphicsPass() = default;
+  virtual ~GraphicsPass() = default;
 };
 
 class ComputePass {
@@ -34,7 +34,7 @@ class ComputePass {
   ComputePass(const ComputePass&) = delete;
   ComputePass& operator=(const ComputePass&) = delete;
 
-  ~ComputePass() = default;
+  virtual ~ComputePass() = default;
 };
 
 class BasePassDescriptor {
@@ -43,7 +43,7 @@ class BasePassDescriptor {
   BasePassDescriptor(BasePassDescriptor&&) noexcept = default;
   BasePassDescriptor(const BasePassDescriptor&) = default;
 
-  ~BasePassDescriptor() = default;
+  virtual ~BasePassDescriptor() = default;
 
  protected:
   using ImageUsageHistoryMap = absl::flat_hash_map<std::string,

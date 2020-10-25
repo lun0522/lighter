@@ -8,7 +8,6 @@
 #ifndef LIGHTER_RENDERER_IMAGE_H
 #define LIGHTER_RENDERER_IMAGE_H
 
-#include "lighter/common/image.h"
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/type.h"
 
@@ -21,20 +20,10 @@ class DeviceImage {
   DeviceImage(const DeviceImage&) = delete;
   DeviceImage& operator=(const DeviceImage&) = delete;
 
-  ~DeviceImage() = default;
-
-  // Accessors.
-  int width() const { return dimension_.width; }
-  int height() const { return dimension_.height; }
-  int channel() const { return dimension_.channel; }
-  int layer() const { return dimension_.layer; }
+  virtual ~DeviceImage() = default;
 
  protected:
-  DeviceImage(const common::Image::Dimension& dimension)
-      : dimension_{dimension} {}
-
- private:
-  const common::Image::Dimension dimension_;
+  DeviceImage() = default;
 };
 
 struct SamplerDescriptor {
@@ -48,7 +37,7 @@ class SampledImageView {
   SampledImageView(SampledImageView&&) noexcept = default;
   SampledImageView(const SampledImageView&) = default;
 
-  ~SampledImageView() = default;
+  virtual ~SampledImageView() = default;
 
  protected:
   SampledImageView() = default;

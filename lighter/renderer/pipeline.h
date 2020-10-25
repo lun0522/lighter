@@ -23,7 +23,7 @@ class Pipeline {
   Pipeline(const Pipeline&) = delete;
   Pipeline& operator=(const Pipeline&) = delete;
 
-  ~Pipeline() = default;
+  virtual ~Pipeline() = default;
 
   // Binds to this pipeline.
   virtual void Bind() const = 0;
@@ -35,7 +35,7 @@ class GraphicsPipelineDescriptor {
   GraphicsPipelineDescriptor(GraphicsPipelineDescriptor&&) noexcept = default;
   GraphicsPipelineDescriptor(const GraphicsPipelineDescriptor&) = default;
 
-  ~GraphicsPipelineDescriptor() = default;
+  virtual ~GraphicsPipelineDescriptor() = default;
 
   // Sets a name for this pipeline. This is for debugging purpose.
   virtual GraphicsPipelineDescriptor& SetName(absl::string_view name) = 0;
@@ -55,7 +55,7 @@ class ComputePipelineDescriptor {
   ComputePipelineDescriptor(ComputePipelineDescriptor&&) noexcept = default;
   ComputePipelineDescriptor(const ComputePipelineDescriptor&) = default;
 
-  ~ComputePipelineDescriptor() = default;
+  virtual ~ComputePipelineDescriptor() = default;
 
   // Sets a name for this pipeline. This is for debugging purpose.
   virtual ComputePipelineDescriptor& SetName(absl::string_view name) = 0;

@@ -9,6 +9,7 @@
 
 #include "lighter/common/image.h"
 #include "lighter/renderer/vk/util.h"
+#include "third_party/absl/memory/memory.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 
@@ -27,8 +28,7 @@ VkExtent2D ChooseImageExtent(const WindowContext& window_context) {
     return capabilities.currentExtent;
   } else {
     const glm::ivec2 frame_size = window_context.window().GetFrameSize();
-    VkExtent2D extent{static_cast<uint32_t>(frame_size.x),
-                      static_cast<uint32_t>(frame_size.y)};
+    VkExtent2D extent = util::CreateExtent(frame_size.x, frame_size.y);
     extent.width = std::max(extent.width, capabilities.minImageExtent.width);
     extent.width = std::min(extent.width, capabilities.maxImageExtent.width);
     extent.height = std::max(extent.height, capabilities.minImageExtent.height);
@@ -69,9 +69,11 @@ VkPresentModeKHR ChoosePresentMode(
     switch (candidate) {
       case VK_PRESENT_MODE_MAILBOX_KHR:
         return candidate;
+
       case VK_PRESENT_MODE_IMMEDIATE_KHR:
         best_mode = candidate;
         break;
+
       default:
         break;
     }
@@ -97,7 +99,7 @@ Swapchain::Swapchain(SharedContext context, const WindowContext& window_context,
                      MultisamplingMode multisampling_mode)
     : context_{std::move(FATAL_IF_NULL(context))} {
   // Choose image extent.
-  image_extent_ = ChooseImageExtent(window_context);
+  const VkExtent2D image_extent = ChooseImageExtent(window_context);
 
   // Choose surface format.
   const Surface& surface = window_context.surface();
@@ -126,11 +128,10 @@ Swapchain::Swapchain(SharedContext context, const WindowContext& window_context,
       queue_family_indices.compute,
       queue_family_indices.presents.at(window_context.window_index()),
   }};
-  const std::vector<uint32_t> unique_queue_family_indices{
-      queue_usage.unique_family_indices_set().begin(),
-      queue_usage.unique_family_indices_set().end(),
-  };
+  const std::vector<uint32_t> unique_queue_family_indices =
+      queue_usage.GetUniqueQueueFamilyIndices();
 
+  // TODO: Pass in image usage and infer usage bit.
   const VkSwapchainCreateInfoKHR swapchain_info{
       VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
       /*pNext=*/nullptr,
@@ -139,9 +140,9 @@ Swapchain::Swapchain(SharedContext context, const WindowContext& window_context,
       ChooseMinImageCount(surface),
       surface_format.format,
       surface_format.colorSpace,
-      image_extent_,
-      common::image::kSingleImageLayer,
-      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,  // TODO
+      image_extent,
+      kSingleImageLayer,
+      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
       queue_usage.sharing_mode(),
       CONTAINER_SIZE(unique_queue_family_indices),
       unique_queue_family_indices.data(),
@@ -158,6 +159,27 @@ Swapchain::Swapchain(SharedContext context, const WindowContext& window_context,
   ASSERT_SUCCESS(vkCreateSwapchainKHR(*context_->device(), &swapchain_info,
                                       *context_->host_allocator(), &swapchain_),
                  "Failed to create swapchain");
+
+  // Fetch swapchain images.
+  const auto images = util::QueryAttribute<VkImage>(
+      [this](uint32_t* count, VkImage* images) {
+        vkGetSwapchainImagesKHR(*context_->device(), swapchain_, count, images);
+      }
+  );
+  swapchain_images_.reserve(images.size());
+  for (auto& image : images) {
+    swapchain_images_.push_back(
+        absl::make_unique<DeviceImage>(context_, image));
+  }
+
+  // Create a multisample image if multisampling is enabled.
+  if (multisampling_mode != MultisamplingMode::kNone) {
+    // TODO: Pass in image usage.
+    const auto usages = {ImageUsage::GetRenderTargetUsage()};
+    multisample_image_ = absl::make_unique<DeviceImage>(
+        context_, surface_format.format, image_extent, kSingleMipLevel,
+        kSingleImageLayer, multisampling_mode, usages);
+  }
 }
 
 const std::vector<const char*>& Swapchain::GetRequiredExtensions() {

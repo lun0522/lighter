@@ -18,6 +18,7 @@ namespace lighter {
 namespace common {
 namespace image {
 
+constexpr int kSingleMipLevel = 1;
 constexpr int kSingleImageLayer = 1;
 constexpr int kCubemapImageLayer = 6;
 
