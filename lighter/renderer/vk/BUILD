@@ -84,6 +84,7 @@ cc_library(
         ":util",
         "//lighter/common:image",
         "//lighter/common:util",
+        "//lighter/renderer:image_usage",
         "//lighter/renderer:type",
         "//third_party:absl",
         "//third_party:glm",

@@ -8,6 +8,8 @@
 #include "lighter/renderer/vk/swapchain.h"
 
 #include "lighter/common/image.h"
+#include "lighter/renderer/image_usage.h"
+#include "lighter/renderer/vk/image_util.h"
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/types/span.h"
@@ -19,15 +21,16 @@ namespace vk {
 namespace {
 
 // Returns the image extent to use.
-VkExtent2D ChooseImageExtent(const WindowContext& window_context) {
+VkExtent2D ChooseImageExtent(const common::Window& window,
+                             const Surface& surface) {
   // 'currentExtent' is the suggested resolution.
   // If it is UINT32_MAX, that means it is up to the swapchain to choose extent.
-  const auto& capabilities = window_context.surface().capabilities();
+  const auto& capabilities = surface.capabilities();
   if (capabilities.currentExtent.width !=
       std::numeric_limits<uint32_t>::max()) {
     return capabilities.currentExtent;
   } else {
-    const glm::ivec2 frame_size = window_context.window().GetFrameSize();
+    const glm::ivec2 frame_size = window.GetFrameSize();
     VkExtent2D extent = util::CreateExtent(frame_size.x, frame_size.y);
     extent.width = std::max(extent.width, capabilities.minImageExtent.width);
     extent.width = std::min(extent.width, capabilities.maxImageExtent.width);
@@ -95,14 +98,15 @@ uint32_t ChooseMinImageCount(const Surface& surface) {
 
 } /* namespace */
 
-Swapchain::Swapchain(SharedContext context, const WindowContext& window_context,
+Swapchain::Swapchain(SharedContext context, int window_index,
+                     const common::Window& window,
                      MultisamplingMode multisampling_mode)
     : context_{std::move(FATAL_IF_NULL(context))} {
   // Choose image extent.
-  const VkExtent2D image_extent = ChooseImageExtent(window_context);
+  const Surface& surface = context_->surface(window_index);
+  const VkExtent2D image_extent = ChooseImageExtent(window, surface);
 
   // Choose surface format.
-  const Surface& surface = window_context.surface();
   const auto surface_formats{util::QueryAttribute<VkSurfaceFormatKHR>(
       [this, &surface] (uint32_t* count, VkSurfaceFormatKHR* formats) {
         return vkGetPhysicalDeviceSurfaceFormatsKHR(
@@ -120,18 +124,24 @@ Swapchain::Swapchain(SharedContext context, const WindowContext& window_context,
   )};
   const auto present_mode = ChoosePresentMode(present_modes);
 
-  // Find out which queues access swapchain images.
+  // For swapchain images, we don't expect complicated operations, but being
+  // rendered to (or resolved to) and then presented to screen.
+  const bool use_multisampling = multisampling_mode != MultisamplingMode::kNone;
+  const std::vector<ImageUsage> swapchain_image_usages{
+      use_multisampling ? ImageUsage::GetMultisampleResolveTargetUsage()
+                        : ImageUsage::GetRenderTargetUsage(),
+      ImageUsage::GetPresentationUsage()};
+
+  // Only graphics queue and presentation queue would access swapchain images.
   const auto& queue_family_indices =
       context_->physical_device().queue_family_indices();
   const util::QueueUsage queue_usage{{
       queue_family_indices.graphics,
-      queue_family_indices.compute,
-      queue_family_indices.presents.at(window_context.window_index()),
+      queue_family_indices.presents.at(window_index),
   }};
   const std::vector<uint32_t> unique_queue_family_indices =
       queue_usage.GetUniqueQueueFamilyIndices();
 
-  // TODO: Pass in image usage and infer usage bit.
   const VkSwapchainCreateInfoKHR swapchain_info{
       VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
       /*pNext=*/nullptr,
@@ -142,7 +152,7 @@ Swapchain::Swapchain(SharedContext context, const WindowContext& window_context,
       surface_format.colorSpace,
       image_extent,
       kSingleImageLayer,
-      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+      image::GetImageUsageFlags(swapchain_image_usages),
       queue_usage.sharing_mode(),
       CONTAINER_SIZE(unique_queue_family_indices),
       unique_queue_family_indices.data(),
@@ -167,14 +177,13 @@ Swapchain::Swapchain(SharedContext context, const WindowContext& window_context,
       }
   );
   swapchain_images_.reserve(images.size());
-  for (auto& image : images) {
+  for (const auto& image : images) {
     swapchain_images_.push_back(
         absl::make_unique<DeviceImage>(context_, image));
   }
 
   // Create a multisample image if multisampling is enabled.
-  if (multisampling_mode != MultisamplingMode::kNone) {
-    // TODO: Pass in image usage.
+  if (use_multisampling) {
     const auto usages = {ImageUsage::GetRenderTargetUsage()};
     multisample_image_ = absl::make_unique<DeviceImage>(
         context_, surface_format.format, image_extent, kSingleMipLevel,

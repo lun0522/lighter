@@ -9,6 +9,7 @@
 #define LIGHTER_RENDERER_VK_RENDERER_H
 
 #include <memory>
+#include <vector>
 
 #include "lighter/common/image.h"
 #include "lighter/common/window.h"
@@ -31,16 +32,26 @@ namespace vk {
 
 class Renderer : public renderer::Renderer {
  public:
+  struct WindowConfig {
+    const common::Window* window;
+    MultisamplingMode multisampling_mode;
+  };
+
   Renderer(absl::string_view application_name,
            const absl::optional<debug_message::Config>& debug_message_config,
-           absl::Span<const common::Window* const> windows)
-      : context_{Context::CreateContext(
-            application_name, debug_message_config, windows,
-            Swapchain::GetRequiredExtensions())} {}
+           std::vector<WindowConfig>&& window_configs);
+
+  Renderer(absl::string_view application_name,
+           const absl::optional<debug_message::Config>& debug_message_config,
+           absl::Span<const WindowConfig> window_configs)
+      : Renderer{application_name, debug_message_config,
+                 {window_configs.begin(), window_configs.end()}} {}
 
   // This class is neither copyable nor movable.
   Renderer(const Renderer&) = delete;
   Renderer& operator=(const Renderer&) = delete;
+
+  void RecreateSwapchain(int window_index);
 
   /* Image */
 
@@ -74,7 +85,11 @@ class Renderer : public renderer::Renderer {
   }
 
  private:
+  const std::vector<WindowConfig> window_configs_;
+
   const SharedContext context_;
+
+  std::vector<std::unique_ptr<Swapchain>> swapchains_;
 };
 
 } /* namespace vk */
