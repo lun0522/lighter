@@ -1,7 +1,11 @@
 Lighter
 ---
 
-A low-level graphics engine.
+A low-level rendering engine.
+
+Note: The codebase is being constantly refactored, and lots of documentations
+may become stale. You may still take a look at [examples](#4-applications-lighterapplication)
+of this engine.
 
 Table of Contents
 ---

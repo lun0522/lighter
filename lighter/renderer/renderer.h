@@ -17,6 +17,7 @@
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/pass.h"
 #include "lighter/renderer/pipeline.h"
+#include "third_party/absl/memory/memory.h"
 #include "third_party/absl/types/span.h"
 
 namespace lighter {
@@ -32,7 +33,9 @@ class Renderer {
 
   /* Host buffer */
 
-  virtual std::unique_ptr<HostBuffer> CreateHostBuffer(size_t size) const = 0;
+  std::unique_ptr<HostBuffer> CreateHostBuffer(size_t size) const {
+    return absl::make_unique<HostBuffer>(size);
+  }
 
   template <typename DataType>
   std::unique_ptr<HostBuffer> CreateHostBuffer(int num_chunks) const {

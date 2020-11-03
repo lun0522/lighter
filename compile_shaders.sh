@@ -2,6 +2,7 @@
 #
 # Compile shaders for all targeted graphics APIs.
 
+# Stop if error occurs.
 set -e
 
 COMPILER_BIN="/tmp/glslangValidator"

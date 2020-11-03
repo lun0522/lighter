@@ -20,9 +20,7 @@
 
 ABSL_DECLARE_FLAG(std::string, resource_folder);
 ABSL_DECLARE_FLAG(std::string, shader_folder);
-#ifdef USE_VULKAN
 ABSL_DECLARE_FLAG(std::string, vulkan_folder);
-#endif /* USE_VULKAN */
 
 namespace lighter {
 namespace common {
@@ -33,15 +31,12 @@ inline std::string GetResourcePath(absl::string_view relative_path) {
   return absl::StrCat(absl::GetFlag(FLAGS_resource_folder), "/", relative_path);
 }
 
-#ifdef USE_OPENGL
 // Returns the full path to the compiled shader to use with OpenGL.
 inline std::string GetGlShaderPath(absl::string_view relative_path) {
   return absl::StrCat(absl::GetFlag(FLAGS_shader_folder), "/opengl/",
                       relative_path, ".spv");
 }
-#endif /* USE_OPENGL */
 
-#ifdef USE_VULKAN
 // Returns the full path to the compiled shader to use with Vulkan.
 inline std::string GetVkShaderPath(absl::string_view relative_path) {
   return absl::StrCat(absl::GetFlag(FLAGS_shader_folder), "/vulkan/",
@@ -52,7 +47,6 @@ inline std::string GetVkShaderPath(absl::string_view relative_path) {
 inline std::string GetVulkanSdkPath(absl::string_view relative_path) {
   return absl::StrCat(absl::GetFlag(FLAGS_vulkan_folder), "/", relative_path);
 }
-#endif /* USE_VULKAN */
 
 } /* namespace file */
 

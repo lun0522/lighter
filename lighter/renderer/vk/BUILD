@@ -1,6 +1,16 @@
 package(default_visibility = ["//lighter:__subpackages__"])
 
 cc_library(
+    name = "buffer",
+    hdrs = ["buffer.h"],
+    srcs = ["buffer.cc"],
+    deps = [
+        ":context",
+        "//lighter/renderer:buffer",
+    ],
+)
+
+cc_library(
     name = "context",
     hdrs = [
         "basic.h",

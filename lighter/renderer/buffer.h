@@ -19,11 +19,17 @@ namespace renderer {
 
 class HostBuffer {
  public:
+  explicit HostBuffer(size_t size) { data_ = new char[size]; }
+
   // This class is neither copyable nor movable.
   HostBuffer(const HostBuffer&) = delete;
   HostBuffer& operator=(const HostBuffer&) = delete;
 
-  virtual ~HostBuffer() = default;
+  ~HostBuffer() { delete data_; }
+
+ private:
+  // Pointer to data on the host.
+  char* data_;
 };
 
 class DeviceBuffer {
@@ -47,6 +53,9 @@ class DeviceBuffer {
 
   // Copies data to device memory.
   virtual void CopyToDevice(absl::Span<const CopyInfo> infos) const = 0;
+
+ protected:
+  DeviceBuffer() = default;
 };
 
 class VertexBufferView {
@@ -92,6 +101,9 @@ class UniformBufferView {
   UniformBufferView(const UniformBufferView&) = default;
 
   virtual ~UniformBufferView() = default;
+
+ protected:
+  UniformBufferView() = default;
 };
 
 } /* namespace renderer */
