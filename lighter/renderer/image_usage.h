@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "lighter/common/util.h"
+#include "lighter/renderer/type.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/optional.h"
@@ -44,25 +45,6 @@ class ImageUsage {
     // Used for transferring image data within the device, e.g. blitting one
     // image to another.
     kTransfer,
-  };
-
-  // Whether to read and/or write.
-  enum class AccessType {
-    kDontCare,
-    kReadOnly,
-    kWriteOnly,
-    kReadWrite,
-  };
-
-  // Where to access the image. Note that kOther is different from kDontCare.
-  // For example, depth stencil attachments are actually not written in fragment
-  // shader. It has its own pipeline stages.
-  enum class AccessLocation {
-    kDontCare,
-    kHost,
-    kFragmentShader,
-    kComputeShader,
-    kOther,
   };
 
   // Convenience function to return usage for images sampled as textures in
@@ -155,8 +137,7 @@ class ImageUsage {
   // We make this constructor private so that the user can only construct the
   // default usage or use static methods to construct usages that are guaranteed
   // to be valid.
-  ImageUsage(UsageType usage_type,
-             AccessType access_type,
+  ImageUsage(UsageType usage_type, AccessType access_type,
              AccessLocation access_location)
       : usage_type_{usage_type}, access_type_{access_type},
         access_location_{access_location}, use_high_precision_{false} {}

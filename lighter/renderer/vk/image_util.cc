@@ -8,6 +8,7 @@
 #include "lighter/renderer/vk/image_util.h"
 
 #include "lighter/common/util.h"
+#include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/util.h"
 
 namespace lighter {
@@ -17,8 +18,6 @@ namespace image {
 namespace {
 
 using UsageType = ImageUsage::UsageType;
-using AccessType = ImageUsage::AccessType;
-using AccessLocation = ImageUsage::AccessLocation;
 
 constexpr VkAccessFlags kNullAccessFlag = 0;
 
@@ -37,6 +36,43 @@ VkAccessFlags GetReadWriteFlags(AccessType access_type,
     access_flags |= write_flag;
   }
   return access_flags;
+}
+
+// Returns VkImageUsageFlagBits for 'usage'. Note that this must not be called
+// if usage type is kDontCare, since it doesn't have corresponding flag bits.
+VkImageUsageFlagBits GetImageUsageFlagBits(const ImageUsage& usage) {
+  switch (usage.usage_type()) {
+    case UsageType::kDontCare:
+      FATAL("No corresponding image usage flag bits for usage type kDontCare");
+
+    case UsageType::kRenderTarget:
+    case UsageType::kMultisampleResolve:
+    case UsageType::kPresentation:
+      return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    case UsageType::kDepthStencil:
+      return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+    case UsageType::kLinearAccess:
+      return VK_IMAGE_USAGE_STORAGE_BIT;
+
+    case UsageType::kSample:
+      return VK_IMAGE_USAGE_SAMPLED_BIT;
+
+    case UsageType::kTransfer:
+      switch (usage.access_type()) {
+        case AccessType::kDontCare:
+        case AccessType::kReadWrite:
+          FATAL("Access type must not be kDontCare or kReadWrite for usage "
+                "type kTransfer");
+
+        case AccessType::kReadOnly:
+          return VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+        case AccessType::kWriteOnly:
+          return VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+      }
+  }
 }
 
 } /* namespace */
@@ -104,9 +140,10 @@ VkPipelineStageFlags GetPipelineStageFlags(const ImageUsage& usage) {
     case UsageType::kSample:
       switch (usage.access_location()) {
         case AccessLocation::kDontCare:
+        case AccessLocation::kVertexShader:
         case AccessLocation::kOther:
-          FATAL("Access location must not be kDontCare or kOther for usage "
-                "type kLinearAccess and kSample");
+          FATAL("Access location must not be kDontCare, kVertexShader or kOther"
+                "for usage type kLinearAccess and kSample");
 
         case AccessLocation::kHost:
           return VK_PIPELINE_STAGE_HOST_BIT;
@@ -160,41 +197,6 @@ VkImageLayout GetImageLayout(const ImageUsage& usage) {
   }
 }
 
-VkImageUsageFlagBits GetImageUsageFlagBits(const ImageUsage& usage) {
-  switch (usage.usage_type()) {
-    case UsageType::kDontCare:
-      FATAL("No corresponding image usage flag bits for usage type kDontCare");
-
-    case UsageType::kRenderTarget:
-    case UsageType::kMultisampleResolve:
-    case UsageType::kPresentation:
-      return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-    case UsageType::kDepthStencil:
-      return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-    case UsageType::kLinearAccess:
-      return VK_IMAGE_USAGE_STORAGE_BIT;
-
-    case UsageType::kSample:
-      return VK_IMAGE_USAGE_SAMPLED_BIT;
-
-    case UsageType::kTransfer:
-      switch (usage.access_type()) {
-        case AccessType::kDontCare:
-        case AccessType::kReadWrite:
-          FATAL("Access type must not be kDontCare or kReadWrite for usage "
-                "type kTransfer");
-
-        case AccessType::kReadOnly:
-          return VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-
-        case AccessType::kWriteOnly:
-          return VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-      }
-  }
-}
-
 absl::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
                                              const ImageUsage& usage) {
   const auto& queue_family_indices =
@@ -214,9 +216,10 @@ absl::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
     case UsageType::kSample:
       switch (usage.access_location()) {
         case AccessLocation::kDontCare:
+        case AccessLocation::kVertexShader:
         case AccessLocation::kOther:
-          FATAL("Access location must not be kDontCare or kOther for usage "
-                "type kLinearAccess and kSample");
+          FATAL("Access location must not be kDontCare, kVertexShader or kOther"
+                "for usage type kLinearAccess and kSample");
 
         case AccessLocation::kHost:
           return absl::nullopt;

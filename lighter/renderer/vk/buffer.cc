@@ -5,7 +5,7 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "buffer.h"
+#include "lighter/renderer/vk/buffer.h"
 
 namespace lighter {
 namespace renderer {

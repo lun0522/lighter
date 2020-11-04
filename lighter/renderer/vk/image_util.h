@@ -28,10 +28,6 @@ VkPipelineStageFlags GetPipelineStageFlags(const ImageUsage& usage);
 // Returns which VkImageLayout should be used for 'usage'.
 VkImageLayout GetImageLayout(const ImageUsage& usage);
 
-// Returns VkImageUsageFlagBits for 'usage'. Note that this must not be called
-// if usage type is kDontCare, since it doesn't have corresponding flag bits.
-VkImageUsageFlagBits GetImageUsageFlagBits(const ImageUsage& usage);
-
 // Returns VkImageUsageFlags that contains all usages.
 VkImageUsageFlags GetImageUsageFlags(absl::Span<const ImageUsage> usages);
 

@@ -28,6 +28,26 @@ enum class DataFormat {
   kSFloat32Vec4,
 };
 
+// Whether to read and/or write.
+enum class AccessType {
+  kDontCare,
+  kReadOnly,
+  kWriteOnly,
+  kReadWrite,
+};
+
+// Where to access a buffer or image. Note that kOther is different from
+// kDontCare. For example, depth stencil attachments are actually not written in
+// fragment shader. It has its own pipeline stages.
+enum class AccessLocation {
+  kDontCare,
+  kHost,
+  kVertexShader,
+  kFragmentShader,
+  kComputeShader,
+  kOther,
+};
+
 enum class AttachmentLoadOp { kLoad, kClear, kDontCare };
 
 enum class AttachmentStoreOp { kStore, kDontCare };

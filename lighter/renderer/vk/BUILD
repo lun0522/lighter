@@ -2,11 +2,22 @@ package(default_visibility = ["//lighter:__subpackages__"])
 
 cc_library(
     name = "buffer",
-    hdrs = ["buffer.h"],
-    srcs = ["buffer.cc"],
+    hdrs = [
+        "buffer.h",
+        "buffer_util.h",
+    ],
+    srcs = [
+        "buffer.cc",
+        "buffer_util.cc",
+    ],
     deps = [
         ":context",
+        ":util",
         "//lighter/renderer:buffer",
+        "//lighter/renderer:buffer_usage",
+        "//lighter/renderer:type",
+        "//third_party:absl",
+        "//third_party:vulkan",
     ],
 )
 
