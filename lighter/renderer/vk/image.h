@@ -51,11 +51,17 @@ class DeviceImage : public renderer::DeviceImage {
   DeviceImage(const DeviceImage&) = delete;
   DeviceImage& operator=(const DeviceImage&) = delete;
 
+  ~DeviceImage();
+
  private:
   const SharedContext context_;
 
   // Opaque image object.
   VkImage image_;
+
+  // TODO: Hold multiple images in one block of device memory.
+  // Opaque device memory object.
+  VkDeviceMemory device_memory_;
 };
 
 class SampledImageView : public renderer::SampledImageView {

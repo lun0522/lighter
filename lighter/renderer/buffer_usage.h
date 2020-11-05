@@ -31,6 +31,16 @@ class BufferUsage {
     kTransfer,
   };
 
+  // Convenience function to return usage for buffers involved in data transfer.
+  static BufferUsage GetTransferSourceUsage() {
+    return BufferUsage{UsageType::kTransfer, AccessType::kReadOnly,
+                       AccessLocation::kOther};
+  }
+  static BufferUsage GetTransferDestinationUsage() {
+    return BufferUsage{UsageType::kTransfer, AccessType::kWriteOnly,
+                       AccessLocation::kOther};
+  }
+
   // Convenience function to return usage for vertex buffers.
   static BufferUsage GetVertexBufferUsage(bool has_index) {
     return BufferUsage{has_index ? UsageType::kVertexWithIndex
@@ -47,6 +57,10 @@ class BufferUsage {
     return BufferUsage{UsageType::kUniform, AccessType::kReadOnly,
                        access_location};
   }
+
+  explicit BufferUsage() : BufferUsage{UsageType::kDontCare,
+                                       AccessType::kDontCare,
+                                       AccessLocation::kDontCare} {}
 
   // Accessors.
   UsageType usage_type() const { return usage_type_; }

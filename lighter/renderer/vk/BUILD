@@ -13,6 +13,7 @@ cc_library(
     deps = [
         ":context",
         ":util",
+        "//lighter/common:util",
         "//lighter/renderer:buffer",
         "//lighter/renderer:buffer_usage",
         "//lighter/renderer:type",
@@ -54,6 +55,7 @@ cc_library(
         "image_util.cc",
     ],
     deps = [
+        ":buffer",
         ":context",
         ":util",
         "//lighter/common:image",

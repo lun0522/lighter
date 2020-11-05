@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <vector>
 
+#include "lighter/renderer/vk/buffer_util.h"
 #include "lighter/renderer/vk/image_util.h"
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/memory/memory.h"
@@ -133,7 +134,7 @@ VkSampleCountFlagBits ChooseSampleCount(const Context& context,
   }
 }
 
-// Creates an image that can be used by the graphics queue.
+// Creates an image.
 VkImage CreateImage(const Context& context, VkImageCreateFlags create_flags,
                     VkFormat format, const VkExtent2D& extent,
                     uint32_t mip_levels, uint32_t layer_count,
@@ -165,6 +166,23 @@ VkImage CreateImage(const Context& context, VkImageCreateFlags create_flags,
                                *context.host_allocator(), &image),
                  "Failed to create image");
   return image;
+}
+
+// Allocates device memory for 'image' with 'memory_properties'.
+VkDeviceMemory CreateImageMemory(const Context& context, const VkImage& image,
+                                 VkMemoryPropertyFlags property_flags) {
+  const VkDevice& device = *context.device();
+  VkMemoryRequirements requirements;
+  vkGetImageMemoryRequirements(device, image, &requirements);
+
+  VkDeviceMemory device_memory = buffer::CreateDeviceMemory(
+      context, requirements, property_flags);
+
+  // Bind the allocated memory with 'image'. If this memory is used for
+  // multiple images, the memory offset should be re-calculated and
+  // VkMemoryRequirements.alignment should be considered.
+  vkBindImageMemory(device, image, device_memory, /*memoryOffset=*/0);
+  return device_memory;
 }
 
 } /* namespace */
@@ -231,6 +249,13 @@ DeviceImage::DeviceImage(SharedContext context, VkFormat format,
       *context_, create_flags, format, extent, mip_levels, layer_count,
       ChooseSampleCount(*context_, multisampling_mode),
       image::GetImageUsageFlags(usages), queue_usage);
+  device_memory_ = CreateImageMemory(*context_, image_,
+                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+}
+
+DeviceImage::~DeviceImage() {
+  vkDestroyImage(*context_->device(), image_, *context_->host_allocator());
+  buffer::FreeDeviceMemory(*context_, device_memory_);
 }
 
 } /* namespace vk */

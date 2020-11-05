@@ -142,8 +142,8 @@ VkPipelineStageFlags GetPipelineStageFlags(const ImageUsage& usage) {
         case AccessLocation::kDontCare:
         case AccessLocation::kVertexShader:
         case AccessLocation::kOther:
-          FATAL("Access location must not be kDontCare, kVertexShader or kOther"
-                "for usage type kLinearAccess and kSample");
+          FATAL("Access location must not be kDontCare, kVertexShader or "
+                "kOther for usage type kLinearAccess and kSample");
 
         case AccessLocation::kHost:
           return VK_PIPELINE_STAGE_HOST_BIT;
@@ -218,8 +218,8 @@ absl::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
         case AccessLocation::kDontCare:
         case AccessLocation::kVertexShader:
         case AccessLocation::kOther:
-          FATAL("Access location must not be kDontCare, kVertexShader or kOther"
-                "for usage type kLinearAccess and kSample");
+          FATAL("Access location must not be kDontCare, kVertexShader or "
+                "kOther for usage type kLinearAccess and kSample");
 
         case AccessLocation::kHost:
           return absl::nullopt;

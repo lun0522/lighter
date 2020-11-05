@@ -8,6 +8,7 @@
 #ifndef LIGHTER_RENDERER_VK_CONTEXT_H
 #define LIGHTER_RENDERER_VK_CONTEXT_H
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -31,6 +32,9 @@ using SharedContext = std::shared_ptr<Context>;
 
 class Context : public std::enable_shared_from_this<Context> {
  public:
+  // Specifies how to release an expired resource.
+  using ReleaseExpiredResourceOp = std::function<void(const Context& context)>;
+
   static SharedContext CreateContext(
       absl::string_view application_name,
       const absl::optional<debug_message::Config>& debug_message_config,
@@ -44,6 +48,24 @@ class Context : public std::enable_shared_from_this<Context> {
   // This class is neither copyable nor movable.
   Context(const Context&) = delete;
   Context& operator=(const Context&) = delete;
+
+  // Records an operation that releases an expired resource, so that it can be
+  // executed once the device becomes idle. This is used for resources that can
+  // be released only when the device is no longer using it.
+  void AddReleaseExpiredResourceOp(ReleaseExpiredResourceOp&& op) {
+    release_expired_rsrc_ops_.push_back(std::move(op));
+  }
+
+  // Waits for the device idle, and releases expired resources.
+  // This should be called in the middle of the program when we want to destroy
+  // and recreate some resources, such as the swapchain and data buffers.
+  void WaitIdle() {
+    device_->WaitIdle();
+    for (const auto& op : release_expired_rsrc_ops_) {
+      op(*this);
+    }
+    release_expired_rsrc_ops_.clear();
+  }
 
   // Accessors.
   bool is_validation_enabled() const { return debug_callback_ != nullptr; }
@@ -82,6 +104,9 @@ class Context : public std::enable_shared_from_this<Context> {
 
   // Wrapper of VkQueue.
   std::unique_ptr<Queues> queues_;
+
+  // Ops that are delayed to be executed until the device becomes idle.
+  std::vector<ReleaseExpiredResourceOp> release_expired_rsrc_ops_;
 };
 
 } /* namespace vk */
