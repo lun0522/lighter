@@ -81,6 +81,7 @@ VkAccessFlags GetAccessFlags(const ImageUsage& usage) {
   const AccessType access_type = usage.access_type();
   switch (usage.usage_type()) {
     case UsageType::kDontCare:
+    case UsageType::kPresentation:
       return kNullAccessFlag;
 
     case UsageType::kRenderTarget:
@@ -101,9 +102,6 @@ VkAccessFlags GetAccessFlags(const ImageUsage& usage) {
                   "Access type must be kWriteOnly for usage type "
                   "kMultisampleResolve");
       return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    case UsageType::kPresentation:
-      return 0;
 
     case UsageType::kLinearAccess:
     case UsageType::kSample:

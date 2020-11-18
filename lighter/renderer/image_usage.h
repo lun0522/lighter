@@ -26,6 +26,8 @@ namespace renderer {
 // Describes how we would use an image.
 class ImageUsage {
  public:
+  // TODO: Consider VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT and
+  // VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT.
   // Usage types of images that we can handle.
   enum class UsageType {
     // Don't care about the content stored in the image.

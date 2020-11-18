@@ -17,8 +17,6 @@ namespace image {
 namespace {
 
 using UsageType = ImageUsage::UsageType;
-using AccessType = ImageUsage::AccessType;
-using AccessLocation = ImageUsage::AccessLocation;
 
 // Converts 'access_type' to VkAccessFlags, depending on whether it contains
 // read and/or write.

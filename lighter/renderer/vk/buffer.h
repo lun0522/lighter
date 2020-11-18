@@ -32,16 +32,20 @@ class DeviceBuffer : public renderer::DeviceBuffer {
   DeviceBuffer(const DeviceBuffer&) = delete;
   DeviceBuffer& operator=(const DeviceBuffer&) = delete;
 
-  ~DeviceBuffer() { DeallocateBufferAndMemory(); }
+  ~DeviceBuffer() override { DeallocateBufferAndMemory(); }
 
  private:
   struct AllocationInfo {
     AllocationInfo(const Context& context, UpdateRate update_rate,
                    absl::Span<const BufferUsage> usages);
 
+    // Returns true if the device memory is visible to host.
+    bool IsHostVisible() const {
+      return memory_property_flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+    }
+
     VkBufferUsageFlags usage_flags = nullflag;
     VkMemoryPropertyFlags memory_property_flags = nullflag;
-    VkSharingMode sharing_mode;
     std::vector<uint32_t> unique_queue_family_indices;
   };
 

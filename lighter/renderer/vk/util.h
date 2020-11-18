@@ -34,47 +34,6 @@ namespace renderer {
 namespace vk {
 namespace util {
 
-// This class is used to extract unique queue families from a list that may
-// contain duplicates. We assume that only one queue is used in each family,
-// hence if there is only one unique queue family, resources will not be shared
-// across queues.
-class QueueUsage {
- public:
-  explicit QueueUsage() = default;
-  explicit QueueUsage(absl::Span<const uint32_t> queue_family_indices)
-      : unique_family_indices_set_{queue_family_indices.begin(),
-                                   queue_family_indices.end()} {}
-
-  // This class is only movable.
-  QueueUsage(QueueUsage&&) noexcept = default;
-  QueueUsage& operator=(QueueUsage&&) noexcept = default;
-
-  // Adds one more queue family.
-  QueueUsage& AddQueueFamily(uint32_t family_index) {
-    unique_family_indices_set_.insert(family_index);
-    return *this;
-  }
-
-  // Returns a list of unique queue family indices.
-  std::vector<uint32_t> GetUniqueQueueFamilyIndices() const {
-    return {unique_family_indices_set_.begin(),
-            unique_family_indices_set_.end()};
-  }
-
-  // Accessors.
-  const absl::flat_hash_set<uint32_t>& unique_family_indices_set() const {
-    return unique_family_indices_set_;
-  }
-  VkSharingMode sharing_mode() const {
-    return unique_family_indices_set_.size() > 1 ?
-               VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
-  }
-
- private:
-  // Family indices of unique queues.
-  absl::flat_hash_set<uint32_t> unique_family_indices_set_;
-};
-
 // Returns a function pointer to a Vulkan instance function, and throws a
 // runtime exception if it does not exist.
 template<typename FuncType>
@@ -146,7 +105,7 @@ absl::optional<std::string> FindUnsupported(
 }
 
 // Creates VkExtent2D with given dimensions.
-VkExtent2D CreateExtent(int width, int height) {
+inline VkExtent2D CreateExtent(int width, int height) {
   return VkExtent2D{static_cast<uint32_t>(width),
                     static_cast<uint32_t>(height)};
 }

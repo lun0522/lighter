@@ -7,19 +7,22 @@
 
 #include "lighter/renderer/vk/buffer.h"
 
-#include <vector>
+#include <algorithm>
+#include <cstring>
 
 #include "lighter/renderer/vk/buffer_util.h"
+#include "third_party/absl/container/flat_hash_set.h"
 
 namespace lighter {
 namespace renderer {
 namespace vk {
 namespace {
 
+using CopyInfo = renderer::DeviceBuffer::CopyInfo;
+
 // Creates a buffer of 'data_size'.
 VkBuffer CreateBuffer(const Context& context, VkDeviceSize data_size,
                       VkBufferUsageFlags usage_flags,
-                      VkSharingMode sharing_mode,
                       absl::Span<const uint32_t> unique_queue_family_indices) {
   const VkBufferCreateInfo buffer_info{
       VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -27,7 +30,7 @@ VkBuffer CreateBuffer(const Context& context, VkDeviceSize data_size,
       /*flags=*/nullflag,
       data_size,
       usage_flags,
-      sharing_mode,
+      VK_SHARING_MODE_EXCLUSIVE,
       CONTAINER_SIZE(unique_queue_family_indices),
       unique_queue_family_indices.data(),
   };
@@ -39,6 +42,7 @@ VkBuffer CreateBuffer(const Context& context, VkDeviceSize data_size,
   return buffer;
 }
 
+// Destroys "buffer".
 void DestroyBuffer(const Context& context, const VkBuffer& buffer) {
   vkDestroyBuffer(*context.device(), buffer, *context.host_allocator());
 }
@@ -61,20 +65,60 @@ VkDeviceMemory CreateBufferMemory(const Context& context,
   return device_memory;
 }
 
+// Returns the total data size to be copied.
+VkDeviceSize GetTotalSize(absl::Span<const CopyInfo> infos) {
+  VkDeviceSize total_size = 0;
+  for (const auto& info : infos) {
+    total_size += info.size;
+  }
+  return total_size;
+}
+
+// Maps device memory with the given 'map_offset' and 'map_size', and copies
+// data from the host according to 'copy_infos'.
+void CopyHostToBuffer(const Context& context,
+                      const VkDeviceMemory& device_memory,
+                      VkDeviceSize map_offset, VkDeviceSize map_size,
+                      absl::Span<const CopyInfo> copy_infos) {
+  // Data transfer may not happen immediately, for example, because it is only
+  // written to cache and not yet to device. We can either flush host writes
+  // with vkFlushMappedMemoryRanges and vkInvalidateMappedMemoryRanges, or
+  // use VK_MEMORY_PROPERTY_HOST_COHERENT_BIT (a little less efficient).
+  void* dst;
+  vkMapMemory(*context.device(), device_memory, map_offset, map_size, nullflag,
+              &dst);
+  for (const auto& info : copy_infos) {
+    std::memcpy(static_cast<char*>(dst) + info.offset, info.data, info.size);
+  }
+  vkUnmapMemory(*context.device(), device_memory);
+}
+
 } /* namespace */
 
 DeviceBuffer::AllocationInfo::AllocationInfo(
     const Context& context, UpdateRate update_rate,
     absl::Span<const BufferUsage> usages) {
-  util::QueueUsage queue_usage;
+  ASSERT_NON_EMPTY(usages, "Buffer has no usage");
+
+  absl::flat_hash_set<uint32_t> queue_family_indices_set;
   for (const BufferUsage& usage : usages) {
     const auto queue_family_index = buffer::GetQueueFamilyIndex(context, usage);
     if (queue_family_index.has_value()) {
-      queue_usage.AddQueueFamily(queue_family_index.value());
+      queue_family_indices_set.insert(queue_family_index.value());
     }
   }
-  ASSERT_NON_EMPTY(queue_usage.unique_family_indices_set(),
-                   "Cannot find any queue used for this buffer");
+
+  // If the buffer is just used for data transfer, i.e. used as staging buffer,
+  // we make it accessible from both graphics queue and compute queue for
+  // simplicity.
+  if (queue_family_indices_set.empty()) {
+    const auto& queue_family_indices =
+        context.physical_device().queue_family_indices();
+    queue_family_indices_set = {
+        queue_family_indices.graphics,
+        queue_family_indices.compute,
+    };
+  }
 
   usage_flags = buffer::GetBufferUsageFlags(usages);
   switch (update_rate) {
@@ -89,8 +133,8 @@ DeviceBuffer::AllocationInfo::AllocationInfo(
       memory_property_flags |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
       break;
   }
-  sharing_mode = queue_usage.sharing_mode();
-  unique_queue_family_indices = queue_usage.GetUniqueQueueFamilyIndices();
+  unique_queue_family_indices = {queue_family_indices_set.begin(),
+                                 queue_family_indices_set.end()};
 }
 
 void DeviceBuffer::AllocateBufferAndMemory(size_t size) {
@@ -106,7 +150,6 @@ void DeviceBuffer::AllocateBufferAndMemory(size_t size) {
 
   buffer_size_ = size;
   buffer_ = CreateBuffer(*context_, buffer_size_, allocation_info_.usage_flags,
-                         allocation_info_.sharing_mode,
                          allocation_info_.unique_queue_family_indices);
   device_memory_ = CreateBufferMemory(*context_, buffer_,
                                       allocation_info_.memory_property_flags);
@@ -125,6 +168,10 @@ void DeviceBuffer::DeallocateBufferAndMemory() {
         DestroyBuffer(context, buffer);
         buffer::FreeDeviceMemory(context, device_memory);
       });
+
+  buffer_size_ = 0;
+  buffer_ = VK_NULL_HANDLE;
+  device_memory_ = VK_NULL_HANDLE;
 }
 
 } /* namespace vk */

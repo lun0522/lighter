@@ -158,7 +158,7 @@ std::unique_ptr<RenderPassBuilder> NaiveRenderPass::CreateBuilder(
                 subpass_config.num_opaque_subpass_ - 1;
             history.AddUsage(first_subpass, last_opaque_subpass,
                              ImageUsage::GetDepthStencilUsage(
-                                 ImageUsage::AccessType::kReadWrite));
+                                 AccessType::kReadWrite));
           }
 
           if (subpass_config.num_transparent_subpasses_ > 0) {
@@ -170,7 +170,7 @@ std::unique_ptr<RenderPassBuilder> NaiveRenderPass::CreateBuilder(
             history.AddUsage(first_transparent_subpass,
                              last_transparent_subpass,
                              ImageUsage::GetDepthStencilUsage(
-                                 ImageUsage::AccessType::kReadOnly));
+                                 AccessType::kReadOnly));
           }
         });
   }

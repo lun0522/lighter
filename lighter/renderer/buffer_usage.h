@@ -21,10 +21,12 @@ class BufferUsage {
   enum class UsageType {
     // Don't care about the content stored in the buffer.
     kDontCare,
-    // Vertex buffer without index data.
-    kVertexWithoutIndex,
-    // Vertex buffer with index data.
-    kVertexWithIndex,
+    // Only stores index data.
+    kIndexOnly,
+    // Only stores vertex data.
+    kVertexOnly,
+    // Stores both index and vertex data.
+    kIndexAndVertex,
     // Uniform buffer.
     kUniform,
     // Used for transferring data within the device.
@@ -42,10 +44,13 @@ class BufferUsage {
   }
 
   // Convenience function to return usage for vertex buffers.
-  static BufferUsage GetVertexBufferUsage(bool has_index) {
-    return BufferUsage{has_index ? UsageType::kVertexWithIndex
-                                 : UsageType::kVertexWithoutIndex,
-                       AccessType::kReadOnly, AccessLocation::kVertexShader};
+  static BufferUsage GetVertexBufferUsage(UsageType usage_type) {
+    ASSERT_TRUE(usage_type == UsageType::kIndexOnly
+                    || usage_type == UsageType::kVertexOnly
+                    || usage_type == UsageType::kIndexAndVertex,
+                "Unexpected usage type");
+    return BufferUsage{usage_type, AccessType::kReadOnly,
+                       AccessLocation::kVertexShader};
   }
 
   // Convenience function to return usage for uniform buffers.

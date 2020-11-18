@@ -25,12 +25,15 @@ VkBufferUsageFlags GetBufferUsageFlags(const BufferUsage& usage) {
     case UsageType::kDontCare:
       FATAL("No corresponding buffer usage flags for usage type kDontCare");
 
-    case UsageType::kVertexWithoutIndex:
+    case UsageType::kIndexOnly:
+      return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+
+    case UsageType::kVertexOnly:
       return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
-    case UsageType::kVertexWithIndex:
-      return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
-                 | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    case UsageType::kIndexAndVertex:
+      return VK_BUFFER_USAGE_INDEX_BUFFER_BIT
+                 | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
     case UsageType::kUniform:
       return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
@@ -91,8 +94,9 @@ absl::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
     case UsageType::kTransfer:
       return absl::nullopt;
 
-    case UsageType::kVertexWithoutIndex:
-    case UsageType::kVertexWithIndex:
+    case UsageType::kIndexOnly:
+    case UsageType::kVertexOnly:
+    case UsageType::kIndexAndVertex:
       return queue_family_indices.graphics;
 
     case UsageType::kUniform:

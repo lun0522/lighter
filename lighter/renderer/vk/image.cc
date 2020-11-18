@@ -13,6 +13,7 @@
 #include "lighter/renderer/vk/buffer_util.h"
 #include "lighter/renderer/vk/image_util.h"
 #include "lighter/renderer/vk/util.h"
+#include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/absl/memory/memory.h"
 
 namespace lighter {
@@ -140,9 +141,7 @@ VkImage CreateImage(const Context& context, VkImageCreateFlags create_flags,
                     uint32_t mip_levels, uint32_t layer_count,
                     VkSampleCountFlagBits sample_count,
                     VkImageUsageFlags usage_flags,
-                    const util::QueueUsage& queue_usage) {
-  const std::vector<uint32_t> unique_queue_family_indices =
-      queue_usage.GetUniqueQueueFamilyIndices();
+                    absl::Span<const uint32_t> unique_queue_family_indices) {
   const VkImageCreateInfo image_info{
       VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -155,7 +154,7 @@ VkImage CreateImage(const Context& context, VkImageCreateFlags create_flags,
       sample_count,
       VK_IMAGE_TILING_OPTIMAL,
       usage_flags,
-      queue_usage.sharing_mode(),
+      VK_SHARING_MODE_EXCLUSIVE,
       CONTAINER_SIZE(unique_queue_family_indices),
       unique_queue_family_indices.data(),
       VK_IMAGE_LAYOUT_UNDEFINED,
@@ -234,21 +233,25 @@ DeviceImage::DeviceImage(SharedContext context, VkFormat format,
                 absl::StrFormat("Unsupported layer count: %d", layer_count));
   }
 
-  util::QueueUsage queue_usage;
+  absl::flat_hash_set<uint32_t> queue_family_indices_set;
   for (const ImageUsage& usage : usages) {
     const auto queue_family_index =
         image::GetQueueFamilyIndex(*context_, usage);
     if (queue_family_index.has_value()) {
-      queue_usage.AddQueueFamily(queue_family_index.value());
+      queue_family_indices_set.insert(queue_family_index.value());
     }
   }
-  ASSERT_NON_EMPTY(queue_usage.unique_family_indices_set(),
+  ASSERT_NON_EMPTY(queue_family_indices_set,
                    "Cannot find any queue used for this image");
+  const std::vector<uint32_t> unique_queue_family_indices{
+      queue_family_indices_set.begin(),
+      queue_family_indices_set.end(),
+  };
 
   image_ = CreateImage(
       *context_, create_flags, format, extent, mip_levels, layer_count,
       ChooseSampleCount(*context_, multisampling_mode),
-      image::GetImageUsageFlags(usages), queue_usage);
+      image::GetImageUsageFlags(usages), unique_queue_family_indices);
   device_memory_ = CreateImageMemory(*context_, image_,
                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }

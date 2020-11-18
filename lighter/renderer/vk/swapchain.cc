@@ -11,6 +11,7 @@
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vk/image_util.h"
 #include "lighter/renderer/vk/util.h"
+#include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
@@ -135,12 +136,14 @@ Swapchain::Swapchain(SharedContext context, int window_index,
   // Only graphics queue and presentation queue would access swapchain images.
   const auto& queue_family_indices =
       context_->physical_device().queue_family_indices();
-  const util::QueueUsage queue_usage{{
+  const absl::flat_hash_set<uint32_t> queue_family_indices_set{
       queue_family_indices.graphics,
       queue_family_indices.presents.at(window_index),
-  }};
-  const std::vector<uint32_t> unique_queue_family_indices =
-      queue_usage.GetUniqueQueueFamilyIndices();
+  };
+  const std::vector<uint32_t> unique_queue_family_indices{
+      queue_family_indices_set.begin(),
+      queue_family_indices_set.end(),
+  };
 
   const VkSwapchainCreateInfoKHR swapchain_info{
       VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -153,7 +156,7 @@ Swapchain::Swapchain(SharedContext context, int window_index,
       image_extent,
       kSingleImageLayer,
       image::GetImageUsageFlags(swapchain_image_usages),
-      queue_usage.sharing_mode(),
+      VK_SHARING_MODE_EXCLUSIVE,
       CONTAINER_SIZE(unique_queue_family_indices),
       unique_queue_family_indices.data(),
       // May apply transformations.

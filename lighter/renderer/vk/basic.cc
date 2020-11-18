@@ -314,15 +314,15 @@ Device::Device(const Context* context,
   // Specify which queues do we want to use.
   const auto& queue_family_indices =
       context_.physical_device().queue_family_indices();
-  util::QueueUsage queue_usage{queue_family_indices.presents};
-  queue_usage
-      .AddQueueFamily(queue_family_indices.graphics)
-      .AddQueueFamily(queue_family_indices.compute);
+  const absl::flat_hash_set<uint32_t> queue_family_indices_set{
+      queue_family_indices.graphics,
+      queue_family_indices.compute,
+  };
 
   // Priority is always required even if there is only one queue.
   constexpr float kPriority = 1.0f;
   std::vector<VkDeviceQueueCreateInfo> queue_infos;
-  for (uint32_t family_index : queue_usage.unique_family_indices_set()) {
+  for (uint32_t family_index : queue_family_indices_set) {
     queue_infos.push_back(VkDeviceQueueCreateInfo{
         VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
         /*pNext=*/nullptr,

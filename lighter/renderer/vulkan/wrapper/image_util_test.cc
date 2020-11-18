@@ -19,8 +19,6 @@ namespace vulkan {
 namespace image {
 namespace {
 
-using AccessType = ImageUsage::AccessType;
-
 TEST(ImageUsageTest, LinearReadInComputeShader) {
   const ImageUsage usage =
       ImageUsage::GetLinearAccessInComputeShaderUsage(AccessType::kWriteOnly);
