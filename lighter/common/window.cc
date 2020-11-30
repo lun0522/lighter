@@ -64,7 +64,7 @@ void GlfwMouseButtonCallback(
 
 } /* namespace window_callback */
 
-Window::Window(const std::string& name, const glm::ivec2& screen_size)
+Window::Window(absl::string_view name, const glm::ivec2& screen_size)
     : original_aspect_ratio_{
           static_cast<float>(screen_size.x) / screen_size.y} {
   glfwSetErrorCallback(window_callback::GlfwErrorCallback);
@@ -82,7 +82,7 @@ Window::Window(const std::string& name, const glm::ivec2& screen_size)
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 #endif /* USE_VULKAN */
 
-  window_ = glfwCreateWindow(screen_size.x, screen_size.y, name.c_str(),
+  window_ = glfwCreateWindow(screen_size.x, screen_size.y, name.data(),
                              /*monitor=*/nullptr, /*share=*/nullptr);
   if (window_ == nullptr) {
     glfwTerminate();

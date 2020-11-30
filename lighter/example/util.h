@@ -15,22 +15,39 @@
 
 #include "lighter/common/file.h"
 #include "lighter/common/util.h"
+#include "lighter/common/window.h"
 #include "lighter/renderer/renderer.h"
+#include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/renderer.h"
 #include "third_party/absl/memory/memory.h"
+#include "third_party/absl/strings/string_view.h"
+#include "third_party/absl/types/optional.h"
+#include "third_party/glm/glm.hpp"
 
 namespace lighter {
 namespace example {
 
 enum class Backend { kOpenGL, kVulkan };
 
-std::unique_ptr<renderer::Renderer> CreateRenderer(Backend backend) {
+std::unique_ptr<renderer::Renderer> CreateRenderer(
+    Backend backend, absl::string_view application_name,
+    absl::Span<const renderer::Renderer::WindowConfig> window_configs) {
+  absl::optional<renderer::debug_message::Config> debug_message_config;
+#ifndef NDEBUG
+  using namespace renderer::debug_message;
+  debug_message_config = {
+      severity::WARNING | severity::ERROR,
+      type::GENERAL | type::PERFORMANCE,
+  };
+#endif /* !NDEBUG */
+
   switch (backend) {
     case Backend::kOpenGL:
       FATAL("Not implemented yet");
 
     case Backend::kVulkan:
-      return absl::make_unique<renderer::vk::Renderer>();
+      return absl::make_unique<renderer::vk::Renderer>(
+          application_name, debug_message_config, window_configs);
   }
 }
 
@@ -41,20 +58,20 @@ int ExampleMain(int argc, char* argv[], ExampleArgs&&... example_args) {
   using common::file::GetVulkanSdkPath;
 
 #if defined(__APPLE__)
-  std::setenv("VK_ICD_FILENAMES",
-              GetVulkanSdkPath("share/vulkan/icd.d/MoltenVK_icd.json").c_str(),
-              /*overwrite=*/1);
+  setenv("VK_ICD_FILENAMES",
+         GetVulkanSdkPath("share/vulkan/icd.d/MoltenVK_icd.json").c_str(),
+         /*overwrite=*/1);
 #ifndef NDEBUG
-  std::setenv("VK_LAYER_PATH",
-              GetVulkanSdkPath("share/vulkan/explicit_layer.d").c_str(),
-              /*overwrite=*/1);
+  setenv("VK_LAYER_PATH",
+         GetVulkanSdkPath("share/vulkan/explicit_layer.d").c_str(),
+         /*overwrite=*/1);
 #endif /* !NDEBUG */
 
 #elif defined(__linux__)
 #ifndef NDEBUG
-  std::setenv("VK_LAYER_PATH",
-              GetVulkanSdkPath("etc/vulkan/explicit_layer.d").c_str(),
-              /*overwrite=*/1);
+  setenv("VK_LAYER_PATH",
+         GetVulkanSdkPath("etc/vulkan/explicit_layer.d").c_str(),
+         /*overwrite=*/1);
 #endif /* !NDEBUG */
 
 #endif /* __APPLE__ || __linux__ */

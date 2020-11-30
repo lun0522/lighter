@@ -66,33 +66,27 @@ VkSurfaceFormatKHR ChooseSurfaceFormat(
 // Returns the present mode to use.
 VkPresentModeKHR ChoosePresentMode(
     absl::Span<const VkPresentModeKHR> available) {
-  // FIFO mode is guaranteed to be available, but not properly supported by
-  // some drivers. we will prefer MAILBOX and IMMEDIATE mode over it.
-  VkPresentModeKHR best_mode = VK_PRESENT_MODE_FIFO_KHR;
-  for (auto candidate : available) {
-    switch (candidate) {
-      case VK_PRESENT_MODE_MAILBOX_KHR:
-        return candidate;
-
-      case VK_PRESENT_MODE_IMMEDIATE_KHR:
-        best_mode = candidate;
-        break;
-
-      default:
-        break;
-    }
-  }
-  return best_mode;
+  // In FIFO mode, which is supported by all drivers, rendered images will wait
+  // in a queue to be presented, while in MAILBOX mode, there will be only one
+  // image waiting to be presented. If that image has not been presented yet and
+  // GPU has finished rendering a new image, it will be replaced by the new one,
+  // so that we always get the most recently generated frame.
+  // TODO: Use FIFO for mobile to save power.
+  constexpr auto kBestMode = VK_PRESENT_MODE_MAILBOX_KHR;
+  const auto iter = std::find(available.begin(), available.end(), kBestMode);
+  return iter == available.end() ? VK_PRESENT_MODE_FIFO_KHR : kBestMode;
 }
 
 // Returns the minimum number of images we want to have in the swapchain.
 // Note that the actual number can be higher.
 uint32_t ChooseMinImageCount(const Surface& surface) {
   const auto& capabilities = surface.capabilities();
-  uint32_t min_count = capabilities.minImageCount + 1;
+  // Prefer triple-buffering.
+  uint32_t min_count = 3;
+  min_count = std::max(min_count, capabilities.minImageCount);
   // If there is no maximum limit, 'maxImageCount' will be 0.
   if (capabilities.maxImageCount > 0) {
-    min_count = std::min(capabilities.maxImageCount, min_count);
+    min_count = std::min(min_count, capabilities.maxImageCount);
   }
   return min_count;
 }

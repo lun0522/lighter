@@ -9,10 +9,10 @@
 #define LIGHTER_COMMON_WINDOW_H
 
 #include <functional>
-#include <string>
 #include <vector>
 
 #include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/strings/string_view.h"
 #include "third_party/glm/glm.hpp"
 #ifdef USE_VULKAN
 #include "third_party/vulkan/vulkan.h"
@@ -51,7 +51,7 @@ class Window {
   // respond to the press.
   enum class KeyMap { kEscape, kUp, kDown, kLeft, kRight };
 
-  Window(const std::string& name, const glm::ivec2& screen_size);
+  Window(absl::string_view name, const glm::ivec2& screen_size);
 
   // This class is neither copyable nor movable.
   Window(const Window&) = delete;

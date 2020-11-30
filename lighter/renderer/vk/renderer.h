@@ -12,10 +12,11 @@
 #include <vector>
 
 #include "lighter/common/image.h"
-#include "lighter/common/window.h"
+#include "lighter/renderer/buffer_usage.h"
 #include "lighter/renderer/renderer.h"
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/type.h"
+#include "lighter/renderer/vk/buffer.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/image.h"
 #include "lighter/renderer/vk/swapchain.h"
@@ -32,11 +33,6 @@ namespace vk {
 
 class Renderer : public renderer::Renderer {
  public:
-  struct WindowConfig {
-    const common::Window* window;
-    MultisamplingMode multisampling_mode;
-  };
-
   Renderer(absl::string_view application_name,
            const absl::optional<debug_message::Config>& debug_message_config,
            std::vector<WindowConfig>&& window_configs);
@@ -52,6 +48,28 @@ class Renderer : public renderer::Renderer {
   Renderer& operator=(const Renderer&) = delete;
 
   void RecreateSwapchain(int window_index);
+
+  /* Buffer */
+
+  std::unique_ptr<renderer::DeviceBuffer> CreateDeviceBuffer(
+      DeviceBuffer::UpdateRate update_rate, size_t initial_size,
+      absl::Span<const BufferUsage> usages) const override {
+    return absl::make_unique<DeviceBuffer>(context_, update_rate, initial_size,
+                                           usages);
+  }
+
+  VertexBufferView CreateVertexBufferView(
+      const renderer::DeviceBuffer& buffer,
+      VertexBufferView::InputRate input_rate, int buffer_binding, size_t stride,
+      absl::Span<const VertexBufferView::Attribute> attributes) const override {
+    FATAL("Not implemented yet");
+  }
+
+  UniformBufferView CreateUniformBufferView(
+      const renderer::DeviceBuffer& buffer, size_t chunk_size,
+      int num_chunks) const override {
+    FATAL("Not implemented yet");
+  }
 
   /* Image */
 
@@ -84,9 +102,31 @@ class Renderer : public renderer::Renderer {
     return absl::make_unique<SampledImageView>(image, sampler_descriptor);
   }
 
- private:
-  const std::vector<WindowConfig> window_configs_;
+  /* Pipeline */
 
+  std::unique_ptr<Pipeline> CreateGraphicsPipeline(
+      const GraphicsPipelineDescriptor& descriptor) const override {
+    FATAL("Not implemented yet");
+  }
+
+  std::unique_ptr<Pipeline> CreateComputePipeline(
+      const ComputePipelineDescriptor& descriptor) const override {
+    FATAL("Not implemented yet");
+  }
+
+  /* Pass */
+
+  std::unique_ptr<GraphicsPass> CreateGraphicsPass(
+      const GraphicsPassDescriptor& descriptor) const override {
+    FATAL("Not implemented yet");
+  }
+
+  std::unique_ptr<ComputePass> CreateComputePass(
+      const ComputePassDescriptor& descriptor) const override {
+    FATAL("Not implemented yet");
+  }
+
+ private:
   const SharedContext context_;
 
   std::vector<std::unique_ptr<Swapchain>> swapchains_;

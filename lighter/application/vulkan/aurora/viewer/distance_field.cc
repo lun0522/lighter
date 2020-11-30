@@ -79,7 +79,7 @@ DistanceFieldGenerator::DistanceFieldGenerator(
 
   /* Image */
   auto image_usage = ImageUsage::GetLinearAccessInComputeShaderUsage(
-      ImageUsage::AccessType::kReadWrite);
+      AccessType::kReadWrite);
   image_usage.set_use_high_precision();
   pong_image_ = absl::make_unique<OffscreenImage>(
       context, image_extent, output_image.format(),

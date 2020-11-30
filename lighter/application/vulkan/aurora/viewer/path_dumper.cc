@@ -67,10 +67,10 @@ PathDumper::PathDumper(
   paths_image_usage_history
       .AddUsage(kBoldPathsSubpassIndex,
                 ImageUsage::GetLinearAccessInComputeShaderUsage(
-                    ImageUsage::AccessType::kWriteOnly))
+                    AccessType::kWriteOnly))
       .AddUsage(kGenerateDistanceFieldSubpassIndex,
                 ImageUsage::GetLinearAccessInComputeShaderUsage(
-                    ImageUsage::AccessType::kReadOnly))
+                    AccessType::kReadOnly))
       .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
   paths_image_ = absl::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::image::kBwImageChannel,
@@ -81,10 +81,10 @@ PathDumper::PathDumper(
   distance_field_image_usage_history
       .AddUsage(kBoldPathsSubpassIndex,
                 ImageUsage::GetLinearAccessInComputeShaderUsage(
-                    ImageUsage::AccessType::kReadOnly))
+                    AccessType::kReadOnly))
       .AddUsage(kGenerateDistanceFieldSubpassIndex,
                 ImageUsage::GetLinearAccessInComputeShaderUsage(
-                    ImageUsage::AccessType::kReadWrite)
+                    AccessType::kReadWrite)
                     .set_use_high_precision())
       .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
   distance_field_image_ = absl::make_unique<OffscreenImage>(

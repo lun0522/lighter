@@ -1,11 +1,9 @@
 package(default_visibility = ["//visibility:private"])
 
 cc_binary(
-    name = "traingle",
+    name = "triangle",
     srcs = ["triangle.cc"],
-    deps = [
-        ":util",
-    ],
+    deps = [":util"],
 )
 
 cc_library(
@@ -14,8 +12,9 @@ cc_library(
     deps = [
         "//lighter/common:file",
         "//lighter/common:util",
-        "//lighter/renderer:onscreen_renderer",
+        "//lighter/common:window",
         "//lighter/renderer/vk:renderer",
         "//third_party:absl",
+        "//third_party:glm",
     ],
 )

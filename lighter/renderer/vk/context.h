@@ -56,6 +56,7 @@ class Context : public std::enable_shared_from_this<Context> {
     release_expired_rsrc_ops_.push_back(std::move(op));
   }
 
+  // TODO: Avoid this.
   // Waits for the device idle, and releases expired resources.
   // This should be called in the middle of the program when we want to destroy
   // and recreate some resources, such as the swapchain and data buffers.

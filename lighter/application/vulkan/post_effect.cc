@@ -97,8 +97,7 @@ void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
   ImageUsageHistory original_image_usage_history{};
   original_image_usage_history.AddUsage(
       kPostEffectSubpassIndex,
-      ImageUsage::GetLinearAccessInComputeShaderUsage(
-          ImageUsage::AccessType::kReadOnly));
+      ImageUsage::GetLinearAccessInComputeShaderUsage(AccessType::kReadOnly));
   const common::Image image_from_file{file_path};
   TextureImage original_image(
       context(), /*generate_mipmaps=*/false, image_from_file,
@@ -108,7 +107,7 @@ void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
   processed_image_usage_history
       .AddUsage(kPostEffectSubpassIndex,
                 ImageUsage::GetLinearAccessInComputeShaderUsage(
-                    ImageUsage::AccessType::kWriteOnly))
+                    AccessType::kWriteOnly))
       .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
   processed_image_ = absl::make_unique<OffscreenImage>(
       context(), original_image.extent(), image_from_file.channel(),

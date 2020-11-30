@@ -112,8 +112,9 @@ VkPipelineStageFlags GetPipelineStageFlags(const ImageUsage& usage) {
         case AccessLocation::kComputeShader:
           return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
+        case AccessLocation::kVertexShader:
         case AccessLocation::kOther:
-          FATAL("Access location must not be kOther for"
+          FATAL("Access location must not be kVertexShader or kOther for"
                 "UsageType::kLinearAccess and UsageType::kSample");
       }
 

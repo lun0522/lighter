@@ -151,14 +151,12 @@ VkVertexInputBindingDescription GetBindingDescription(uint32_t stride,
 
 std::vector<VertexBuffer::Attribute> ConvertVertexAttributes(
     absl::Span<const common::VertexAttribute> attributes) {
-  std::vector<VertexBuffer::Attribute> converted;
-  converted.reserve(attributes.size());
-  std::transform(
-      attributes.begin(), attributes.end(), std::back_inserter(converted),
-      [](common::VertexAttribute attrib) -> VertexBuffer::Attribute {
+  return common::util::TransformToVector<common::VertexAttribute,
+                                         VertexBuffer::Attribute>(
+      attributes,
+      [](const common::VertexAttribute& attrib) -> VertexBuffer::Attribute {
         return {static_cast<uint32_t>(attrib.offset), ChooseFormat(attrib)};
       });
-  return converted;
 }
 
 } /* namespace pipeline */

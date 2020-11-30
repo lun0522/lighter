@@ -51,9 +51,6 @@ class DeviceBuffer {
 
   virtual ~DeviceBuffer() = default;
 
-  // Copies data to device memory.
-  virtual void CopyToDevice(absl::Span<const CopyInfo> infos) const = 0;
-
  protected:
   DeviceBuffer() = default;
 };
@@ -75,9 +72,6 @@ class VertexBufferView {
   VertexBufferView(const VertexBufferView&) = default;
 
   virtual ~VertexBufferView() = default;
-
-  // Binds to this buffer.
-  virtual void Bind(size_t offset) const = 0;
 
   // Accessors.
   InputRate input_rate() const { return input_rate_; }

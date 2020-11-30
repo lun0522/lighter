@@ -33,9 +33,11 @@ VkImageUsageFlags GetImageUsageFlags(absl::Span<const ImageUsage> usages);
 
 // Returns the family index of the queue that accesses the image for 'usage'.
 // Note that since this is used for creating image buffers, it will return
-// absl::nullopt for the following usage types (apart from kDontCare):
-// - kPresentation, since we don't create swapchain image buffers by ourselves.
-// - kTransfer, since the queue should be inferred from previous or next usages.
+// absl::nullopt for the following usage types:
+// - kDontCare.
+// - kPresentation and kTransfer, since the queue should be inferred from
+//   previous or next usages. Note that both graphics and compute queues can
+//   write to swapchain and do transfer.
 absl::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
                                              const ImageUsage& usage);
 

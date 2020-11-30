@@ -18,6 +18,7 @@
 
 #include "third_party/absl/base/optimization.h"
 #include "third_party/absl/flags/parse.h"
+#include "third_party/absl/functional/function_ref.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
@@ -158,6 +159,19 @@ void EraseIf(const Predicate& predicate, Container* container) {
       ++iter;
     }
   }
+}
+
+// Applies 'transform' to elements in 'container' and returns a vector of
+// resulting objects.
+template <typename SrcType, typename DstType>
+std::vector<DstType> TransformToVector(
+    absl::Span<const SrcType> container,
+    absl::FunctionRef<DstType(const SrcType&)> transform) {
+  std::vector<DstType> transformed;
+  transformed.reserve(container.size());
+  std::transform(container.begin(), container.end(),
+                 std::back_inserter(transformed), transform);
+  return transformed;
 }
 
 // Returns the largest extent that does not exceed 'original_extent', and has

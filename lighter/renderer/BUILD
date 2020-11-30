@@ -70,12 +70,16 @@ cc_library(
     hdrs = ["renderer.h"],
     deps = [
         ":buffer",
+        ":buffer_usage",
         ":image",
         ":image_usage",
         ":pass",
         ":pipeline",
+        ":type",
         "//lighter/common:file",
         "//lighter/common:image",
+        "//lighter/common:util",
+        "//lighter/common:window",
         "//third_party:absl",
     ],
 )
