@@ -58,19 +58,6 @@ class Renderer : public renderer::Renderer {
                                            usages);
   }
 
-  VertexBufferView CreateVertexBufferView(
-      const renderer::DeviceBuffer& buffer,
-      VertexBufferView::InputRate input_rate, int buffer_binding, size_t stride,
-      absl::Span<const VertexBufferView::Attribute> attributes) const override {
-    FATAL("Not implemented yet");
-  }
-
-  UniformBufferView CreateUniformBufferView(
-      const renderer::DeviceBuffer& buffer, size_t chunk_size,
-      int num_chunks) const override {
-    FATAL("Not implemented yet");
-  }
-
   /* Image */
 
   std::unique_ptr<renderer::DeviceImage> CreateColorImage(
@@ -94,12 +81,6 @@ class Renderer : public renderer::Renderer {
     const VkExtent2D extent = util::CreateExtent(width, height);
     return DeviceImage::CreateDepthStencilImage(context_, extent,
                                                 multisampling_mode, usages);
-  }
-
-  std::unique_ptr<renderer::SampledImageView> CreateSampledImageView(
-      const renderer::DeviceImage& image,
-      const SamplerDescriptor& sampler_descriptor) const override {
-    return absl::make_unique<SampledImageView>(image, sampler_descriptor);
   }
 
   /* Pipeline */

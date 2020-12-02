@@ -18,10 +18,18 @@ using namespace renderer;
 class TriangleExample {
  public:
   TriangleExample(Backend backend, const glm::ivec2& screen_size,
-                  renderer::MultisamplingMode multisampling_mode)
+                  MultisamplingMode multisampling_mode)
       : window_{"Cube", screen_size} {
     const Renderer::WindowConfig config{&window_, multisampling_mode};
     renderer_ = CreateRenderer(backend, "Cube Example", {config});
+    // TODO: Use refection API for locations.
+    vertex_buffer_view_ = {
+        VertexInputRate::kVertex,
+        /*binding_point=*/0,
+        /*stride=*/sizeof(common::Vertex3DWithColor),
+        buffer::CreateAttributesForVertex3DWithColor(/*loc_pos=*/0,
+                                                     /*loc_color=*/1),
+    };
   }
 
   // This class is neither copyable nor movable.
@@ -32,8 +40,9 @@ class TriangleExample {
 
  private:
   common::Window window_;
-
-  std::unique_ptr<renderer::Renderer> renderer_;
+  std::unique_ptr<Renderer> renderer_;
+  std::unique_ptr<DeviceBuffer> vertex_buffer_;
+  VertexBufferView vertex_buffer_view_;
 };
 
 } /* namespace example */

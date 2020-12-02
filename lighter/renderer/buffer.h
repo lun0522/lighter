@@ -55,11 +55,7 @@ class DeviceBuffer {
   DeviceBuffer() = default;
 };
 
-class VertexBufferView {
- public:
-  // Specifies the rate at which vertex attributes are pulled from the buffer.
-  enum class InputRate { kVertex, kInstance };
-
+struct VertexBufferView {
   // Vertex input attribute.
   struct Attribute {
     int location;
@@ -67,25 +63,10 @@ class VertexBufferView {
     size_t offset;
   };
 
-  // This class provides copy constructor and move constructor.
-  VertexBufferView(VertexBufferView&&) noexcept = default;
-  VertexBufferView(const VertexBufferView&) = default;
-
-  virtual ~VertexBufferView() = default;
-
-  // Accessors.
-  InputRate input_rate() const { return input_rate_; }
-  int buffer_binding() const { return buffer_binding_; }
-  size_t stride() const { return stride_; }
-
- protected:
-  VertexBufferView(InputRate input_rate, int buffer_binding, size_t stride)
-      : input_rate_{input_rate}, buffer_binding_{buffer_binding},
-        stride_{stride} {}
-
-  const InputRate input_rate_;
-  const int buffer_binding_;
-  const size_t stride_;
+  VertexInputRate input_rate;
+  int binding_point;
+  size_t stride;
+  std::vector<Attribute> attributes;
 };
 
 class UniformBufferView {

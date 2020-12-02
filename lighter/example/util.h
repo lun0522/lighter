@@ -16,6 +16,7 @@
 #include "lighter/common/file.h"
 #include "lighter/common/util.h"
 #include "lighter/common/window.h"
+#include "lighter/renderer/buffer_util.h"
 #include "lighter/renderer/renderer.h"
 #include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/renderer.h"

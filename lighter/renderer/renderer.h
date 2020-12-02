@@ -66,23 +66,6 @@ class Renderer {
                               usages);
   }
 
-  /* Buffer view */
-
-  virtual VertexBufferView CreateVertexBufferView(
-      const DeviceBuffer& buffer, VertexBufferView::InputRate input_rate,
-      int buffer_binding, size_t stride,
-      absl::Span<const VertexBufferView::Attribute> attributes) const = 0;
-
-  virtual UniformBufferView CreateUniformBufferView(const DeviceBuffer& buffer,
-                                                    size_t chunk_size,
-                                                    int num_chunks) const = 0;
-
-  template <typename DataType>
-  UniformBufferView CreateUniformBufferView(const DeviceBuffer& buffer,
-                                            int num_chunks) const {
-    return CreateUniformBufferView(buffer, sizeof(DataType), num_chunks);
-  }
-
   /* Device image */
 
   virtual std::unique_ptr<DeviceImage> CreateColorImage(
@@ -97,12 +80,6 @@ class Renderer {
   virtual std::unique_ptr<DeviceImage> CreateDepthStencilImage(
       int width, int height, MultisamplingMode multisampling_mode,
       absl::Span<const ImageUsage> usages) const = 0;
-
-  /* Image view */
-
-  virtual std::unique_ptr<SampledImageView> CreateSampledImageView(
-      const DeviceImage& image,
-      const SamplerDescriptor& sampler_descriptor) const = 0;
 
   /* Pipeline */
 

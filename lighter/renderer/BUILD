@@ -7,9 +7,14 @@ cc_library(
 
 cc_library(
     name = "buffer",
-    hdrs = ["buffer.h"],
+    hdrs = [
+        "buffer.h",
+        "buffer_util.h",
+    ],
+    srcs = ["buffer_util.cc"],
     deps = [
         ":type",
+        "//lighter/common:file",
         "//third_party:absl",
     ],
 )

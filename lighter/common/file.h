@@ -67,6 +67,7 @@ struct RawData {
   size_t size;
 };
 
+// TODO: Remove this struct and related methods.
 // Describes a vertex input attribute.
 struct VertexAttribute {
   enum class DataType { kFloat };

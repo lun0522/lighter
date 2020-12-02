@@ -46,7 +46,7 @@ class GraphicsPipelineDescriptor {
 
   // Binds input vertex data.
   virtual GraphicsPipelineDescriptor& AddVertexInput(
-      const VertexBufferView& buffer_view) = 0;
+      VertexBufferView&& buffer_view) = 0;
 };
 
 class ComputePipelineDescriptor {

@@ -28,6 +28,9 @@ enum class DataFormat {
   kSFloat32Vec4,
 };
 
+// Specifies the rate at which vertex attributes are pulled from the buffer.
+enum class VertexInputRate { kVertex, kInstance };
+
 // Whether to read and/or write.
 enum class AccessType {
   kDontCare,
