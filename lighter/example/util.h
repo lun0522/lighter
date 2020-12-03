@@ -11,12 +11,14 @@
 #include <cstdlib>
 #include <exception>
 #include <memory>
+#include <string>
 #include <utility>
 
 #include "lighter/common/file.h"
 #include "lighter/common/util.h"
 #include "lighter/common/window.h"
 #include "lighter/renderer/buffer_util.h"
+#include "lighter/renderer/pipeline_util.h"
 #include "lighter/renderer/renderer.h"
 #include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/renderer.h"
@@ -49,6 +51,16 @@ std::unique_ptr<renderer::Renderer> CreateRenderer(
     case Backend::kVulkan:
       return absl::make_unique<renderer::vk::Renderer>(
           application_name, debug_message_config, window_configs);
+  }
+}
+
+std::string GetShaderPath(Backend backend, absl::string_view relative_path) {
+  switch (backend) {
+    case Backend::kOpenGL:
+      return common::file::GetGlShaderPath(relative_path);
+
+    case Backend::kVulkan:
+      return common::file::GetVkShaderPath(relative_path);
   }
 }
 

@@ -9,10 +9,13 @@
 #define LIGHTER_RENDERER_PIPELINE_H
 
 #include <memory>
+#include <string>
 
 #include "lighter/renderer/buffer.h"
 #include "lighter/renderer/type.h"
+#include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/strings/string_view.h"
+#include "third_party/glm/glm.hpp"
 
 namespace lighter {
 namespace renderer {
@@ -24,44 +27,72 @@ class Pipeline {
   Pipeline& operator=(const Pipeline&) = delete;
 
   virtual ~Pipeline() = default;
-
-  // Binds to this pipeline.
-  virtual void Bind() const = 0;
 };
 
-class GraphicsPipelineDescriptor {
- public:
-  // This class provides copy constructor and move constructor.
-  GraphicsPipelineDescriptor(GraphicsPipelineDescriptor&&) noexcept = default;
-  GraphicsPipelineDescriptor(const GraphicsPipelineDescriptor&) = default;
+struct PipelineDescriptor {
+  virtual ~PipelineDescriptor() = default;
 
-  virtual ~GraphicsPipelineDescriptor() = default;
-
-  // Sets a name for this pipeline. This is for debugging purpose.
-  virtual GraphicsPipelineDescriptor& SetName(absl::string_view name) = 0;
-
-  // Sets shader for 'stage'.
-  virtual GraphicsPipelineDescriptor& SetShader(
-      shader_stage::ShaderStage stage, absl::string_view file_path) = 0;
-
-  // Binds input vertex data.
-  virtual GraphicsPipelineDescriptor& AddVertexInput(
-      VertexBufferView&& buffer_view) = 0;
+  // Name of pipeline.
+  std::string pipeline_name;
 };
 
-class ComputePipelineDescriptor {
+struct GraphicsPipelineDescriptor : public PipelineDescriptor {
  public:
-  // This class provides copy constructor and move constructor.
-  ComputePipelineDescriptor(ComputePipelineDescriptor&&) noexcept = default;
-  ComputePipelineDescriptor(const ComputePipelineDescriptor&) = default;
+  struct Viewport {
+    glm::vec2 origin;
+    glm::vec2 extent;
+  };
 
-  virtual ~ComputePipelineDescriptor() = default;
+  // Modifiers.
+  GraphicsPipelineDescriptor& SetName(absl::string_view name) {
+    pipeline_name = std::string{name};
+    return *this;
+  }
+  GraphicsPipelineDescriptor& SetShader(shader_stage::ShaderStage stage,
+                                        absl::string_view shader_path) {
+    shader_path_map.insert({stage, std::string{shader_path}});
+    return *this;
+  }
+  GraphicsPipelineDescriptor& AddVertexInput(VertexBufferView&& buffer_view) {
+    vertex_buffer_views.push_back(std::move(buffer_view));
+    return *this;
+  }
+  GraphicsPipelineDescriptor& EnableColorBlend() {
+    enable_color_blend = true;
+    return *this;
+  }
+  GraphicsPipelineDescriptor& SetViewport(const Viewport& viewport_info) {
+    viewport = viewport_info;
+    return *this;
+  }
 
-  // Sets a name for this pipeline. This is for debugging purpose.
-  virtual ComputePipelineDescriptor& SetName(absl::string_view name) = 0;
+  // Paths to shaders used at each stage.
+  absl::flat_hash_map<shader_stage::ShaderStage, std::string> shader_path_map;
 
-  // Sets compute shader.
-  virtual ComputePipelineDescriptor& SetShader(absl::string_view file_path) = 0;
+  // Vertex input binding and attributes.
+  std::vector<VertexBufferView> vertex_buffer_views;
+
+  // Whether to enable color blending (off by default).
+  bool enable_color_blend = false;
+
+  // Viewport info.
+  Viewport viewport;
+};
+
+class ComputePipelineDescriptor : public PipelineDescriptor {
+ public:
+  // Modifiers.
+  ComputePipelineDescriptor& SetName(absl::string_view name) {
+    pipeline_name = std::string{name};
+    return *this;
+  }
+  ComputePipelineDescriptor& SetShader(absl::string_view path) {
+    shader_path = std::string{path};
+    return *this;
+  }
+
+  // Path to compute shader.
+  std::string shader_path;
 };
 
 } /* namespace renderer */

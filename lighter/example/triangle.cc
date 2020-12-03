@@ -22,14 +22,21 @@ class TriangleExample {
       : window_{"Cube", screen_size} {
     const Renderer::WindowConfig config{&window_, multisampling_mode};
     renderer_ = CreateRenderer(backend, "Cube Example", {config});
+
     // TODO: Use refection API for locations.
-    vertex_buffer_view_ = {
-        VertexInputRate::kVertex,
-        /*binding_point=*/0,
-        /*stride=*/sizeof(common::Vertex3DWithColor),
-        buffer::CreateAttributesForVertex3DWithColor(/*loc_pos=*/0,
-                                                     /*loc_color=*/1),
-    };
+    pipeline_descriptor_
+        .SetName("Triangle")
+        .SetShader(shader_stage::VERTEX,
+                   GetShaderPath(backend, "triangle/triangle.vert"))
+        .SetShader(shader_stage::FRAGMENT,
+                   GetShaderPath(backend, "triangle/triangle.frag"))
+        .AddVertexInput({
+            VertexInputRate::kVertex,
+            /*binding_point=*/0,
+            /*stride=*/sizeof(common::Vertex3DWithColor),
+            buffer::CreateAttributesForVertex3DWithColor(/*loc_pos=*/0,
+                                                         /*loc_color=*/1)})
+        .EnableColorBlend();
   }
 
   // This class is neither copyable nor movable.
@@ -42,7 +49,7 @@ class TriangleExample {
   common::Window window_;
   std::unique_ptr<Renderer> renderer_;
   std::unique_ptr<DeviceBuffer> vertex_buffer_;
-  VertexBufferView vertex_buffer_view_;
+  GraphicsPipelineDescriptor pipeline_descriptor_;
 };
 
 } /* namespace example */

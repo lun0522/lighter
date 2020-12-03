@@ -62,11 +62,16 @@ cc_library(
 
 cc_library(
     name = "pipeline",
-    hdrs = ["pipeline.h"],
+    hdrs = [
+        "pipeline.h",
+        "pipeline_util.h",
+    ],
+    srcs = ["pipeline_util.cc"],
     deps = [
         ":buffer",
         ":type",
         "//third_party:absl",
+        "//third_party:glm",
     ],
 )
 
