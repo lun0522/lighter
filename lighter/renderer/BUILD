@@ -70,6 +70,7 @@ cc_library(
     deps = [
         ":buffer",
         ":type",
+        "//lighter/common:util",
         "//third_party:absl",
         "//third_party:glm",
     ],

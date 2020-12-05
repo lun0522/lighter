@@ -19,6 +19,7 @@
 #include "lighter/renderer/vk/buffer.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/image.h"
+#include "lighter/renderer/vk/pipeline.h"
 #include "lighter/renderer/vk/swapchain.h"
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/memory/memory.h"
@@ -85,14 +86,14 @@ class Renderer : public renderer::Renderer {
 
   /* Pipeline */
 
-  std::unique_ptr<Pipeline> CreateGraphicsPipeline(
+  std::unique_ptr<renderer::Pipeline> CreateGraphicsPipeline(
       const GraphicsPipelineDescriptor& descriptor) const override {
-    FATAL("Not implemented yet");
+    return absl::make_unique<Pipeline>(context_, descriptor);
   }
 
-  std::unique_ptr<Pipeline> CreateComputePipeline(
+  std::unique_ptr<renderer::Pipeline> CreateComputePipeline(
       const ComputePipelineDescriptor& descriptor) const override {
-    FATAL("Not implemented yet");
+    return absl::make_unique<Pipeline>(context_, descriptor);
   }
 
   /* Pass */

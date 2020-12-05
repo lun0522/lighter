@@ -89,13 +89,20 @@ namespace debug_message {
 
 namespace severity {
 
-enum Severity { INFO, WARNING, ERROR };
+enum Severity {
+  INFO    = 1U << 0U,
+  WARNING = 1U << 1U,
+  ERROR   = 1U << 2U,
+};
 
 } /* namespace severity */
 
 namespace type {
 
-enum Type { GENERAL, PERFORMANCE };
+enum Type {
+  GENERAL     = 1U << 0U,
+  PERFORMANCE = 1U << 1U,
+};
 
 } /* namespace type */
 

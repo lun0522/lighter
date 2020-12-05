@@ -79,6 +79,19 @@ cc_test(
 )
 
 cc_library(
+    name = "pipeline",
+    hdrs = ["pipeline.h"],
+    srcs = ["pipeline.cc"],
+    deps = [
+        ":context",
+        "//lighter/common:util",
+        "//lighter/renderer:pipeline",
+        "//third_party:absl",
+        "//third_party:vulkan",
+    ],
+)
+
+cc_library(
     name = "renderer",
     hdrs = ["renderer.h"],
     srcs = ["renderer.cc"],
@@ -86,6 +99,7 @@ cc_library(
         ":buffer",
         ":context",
         ":image",
+        ":pipeline",
         ":swapchain",
         ":util",
         "//lighter/common:image",

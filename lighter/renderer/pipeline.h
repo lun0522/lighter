@@ -11,6 +11,7 @@
 #include <memory>
 #include <string>
 
+#include "lighter/common/util.h"
 #include "lighter/renderer/buffer.h"
 #include "lighter/renderer/type.h"
 #include "third_party/absl/container/flat_hash_map.h"
@@ -22,11 +23,21 @@ namespace renderer {
 
 class Pipeline {
  public:
+  Pipeline(absl::string_view name) : name_{name} {}
+
   // This class is neither copyable nor movable.
   Pipeline(const Pipeline&) = delete;
   Pipeline& operator=(const Pipeline&) = delete;
 
   virtual ~Pipeline() = default;
+
+ protected:
+  // Accessors.
+  const std::string& name() const { return name_; }
+
+ private:
+  // Name of pipeline.
+  const std::string name_;
 };
 
 struct PipelineDescriptor {
@@ -50,6 +61,8 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
   }
   GraphicsPipelineDescriptor& SetShader(shader_stage::ShaderStage stage,
                                         absl::string_view shader_path) {
+    ASSERT_TRUE(common::util::IsPowerOf2(stage),
+                "Exactly one shader stage is allowed");
     shader_path_map.insert({stage, std::string{shader_path}});
     return *this;
   }
