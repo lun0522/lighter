@@ -1,0 +1,14 @@
+package(default_visibility = ["//visibility:private"])
+
+licenses(["notice"])
+
+cc_library(
+    name = "spirv_cross_lib",
+    visibility = ["//visibility:public"],
+    deps = ["libspirv-cross-core"],
+)
+
+cc_import(
+    name = "libspirv-cross-core",
+    static_library = "libspirv-cross-core.a",
+)

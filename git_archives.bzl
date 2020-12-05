@@ -26,3 +26,20 @@ def glfw_archive(name, build_file, strip_prefix):
         strip_prefix = "lib-glfw-3.3.2/" + strip_prefix,
         build_file = build_file,
     )
+
+def spirv_cross_archive(platform, url, sha256):
+    http_archive(
+        name = "lib-spirv-cross-include-" + platform,
+        urls = [url],
+        sha256 = sha256,
+        strip_prefix = "include",
+        build_file = "//:third_party/spirv_cross/BUILD.include",
+    )
+
+    http_archive(
+        name = "lib-spirv-cross-lib-" + platform,
+        urls = [url],
+        sha256 = sha256,
+        strip_prefix = "lib",
+        build_file = "//:third_party/spirv_cross/BUILD.lib",
+    )

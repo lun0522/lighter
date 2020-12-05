@@ -3,7 +3,7 @@ package(default_visibility = ["//visibility:private"])
 licenses(["notice"])
 
 cc_library(
-    name = "freetype",
+    name = "freetype_lib",
     visibility = ["//visibility:public"],
     deps = [
         ":libfreetype",

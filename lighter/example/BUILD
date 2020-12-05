@@ -16,5 +16,6 @@ cc_library(
         "//lighter/renderer/vk:renderer",
         "//third_party:absl",
         "//third_party:glm",
+        "//third_party:spirv_cross",
     ],
 )

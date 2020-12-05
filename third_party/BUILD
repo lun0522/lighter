@@ -8,22 +8,22 @@ cc_library(
     name = "absl",
     deps = [
         "@lib-absl//:absl",
-        "@lib-absl-headers//:absl_headers",
+        "@lib-absl-include//:absl_include",
     ],
 )
 
 select_platform(
     name = "assimp",
-    headers_target = "@lib-assimp-headers//:assimp_headers",
-    linux_taregt = "@lib-assimp-ubuntu//:assimp",
-    osx_target = "@lib-assimp-osx//:assimp",
+    include_target = "@lib-assimp-include//:assimp_include",
+    linux_taregt = "@lib-assimp-ubuntu//:assimp_lib",
+    osx_target = "@lib-assimp-osx//:assimp_lib",
 )
 
 select_platform(
     name = "freetype",
-    headers_target = "@lib-freetype-headers//:freetype_headers",
-    linux_taregt = "@lib-freetype-ubuntu//:freetype",
-    osx_target = "@lib-freetype-osx//:freetype",
+    include_target = "@lib-freetype-include//:freetype_include",
+    linux_taregt = "@lib-freetype-ubuntu//:freetype_lib",
+    osx_target = "@lib-freetype-osx//:freetype_lib",
 )
 
 cc_library(
@@ -33,9 +33,9 @@ cc_library(
 
 select_platform(
     name = "glfw",
-    headers_target = "@lib-glfw-headers//:glfw_headers",
-    linux_taregt = "@lib-glfw-ubuntu//:glfw",
-    osx_target = "@lib-glfw-osx//:glfw",
+    include_target = "@lib-glfw-include//:glfw_include",
+    linux_taregt = "@lib-glfw-ubuntu//:glfw_lib",
+    osx_target = "@lib-glfw-osx//:glfw_lib",
 )
 
 cc_library(
@@ -46,6 +46,20 @@ cc_library(
 cc_library(
     name = "glm",
     deps = ["@lib-glm//:glm"],
+)
+
+cc_library(
+    name = "spirv_cross",
+    deps = select({
+        "@bazel_tools//src/conditions:darwin": [
+            "@lib-spirv-cross-include-osx//:spirv_cross_include",
+            "@lib-spirv-cross-lib-osx//:spirv_cross_lib",
+        ],
+        "@bazel_tools//src/conditions:linux_x86_64": [
+            "@lib-spirv-cross-include-linux//:spirv_cross_include",
+            "@lib-spirv-cross-lib-linux//:spirv_cross_lib",
+        ],
+    }),
 )
 
 cc_library(

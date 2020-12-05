@@ -3,7 +3,7 @@ load("@//third_party:expand_template.bzl", "expand_template")
 licenses(["notice"])
 
 cc_library(
-    name = "assimp_headers",
+    name = "assimp_include",
     textual_hdrs = glob([
         "**/*.h",
         "**/*.hpp",

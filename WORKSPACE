@@ -5,6 +5,7 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@//:git_archives.bzl", "assimp_archive")
 load("@//:git_archives.bzl", "freetype_archive")
 load("@//:git_archives.bzl", "glfw_archive")
+load("@//:git_archives.bzl", "spirv_cross_archive")
 
 http_archive(
     name = "lib-absl",
@@ -15,8 +16,8 @@ http_archive(
 )
 
 http_archive(
-    name = "lib-absl-headers",
-    build_file = "//:third_party/absl/BUILD.headers",
+    name = "lib-absl-include",
+    build_file = "//:third_party/absl/BUILD.include",
     sha256 = "a68f7a8457b83e4cf0694c79e9bc4a838ac94d0a274737ebd3881c7732578464",
     strip_prefix = "lib-absl-20200923.2",
     urls = ["https://github.com/lun0522/lib-absl/archive/20200923.2.zip"],
@@ -35,8 +36,8 @@ assimp_archive(
 )
 
 assimp_archive(
-    name = "lib-assimp-headers",
-    build_file = "//:third_party/assimp/BUILD.headers",
+    name = "lib-assimp-include",
+    build_file = "//:third_party/assimp/BUILD.include",
     strip_prefix = "include",
 )
 
@@ -53,8 +54,8 @@ freetype_archive(
 )
 
 freetype_archive(
-    name = "lib-freetype-headers",
-    build_file = "//:third_party/freetype/BUILD.headers",
+    name = "lib-freetype-include",
+    build_file = "//:third_party/freetype/BUILD.include",
     strip_prefix = "include",
 )
 
@@ -67,8 +68,8 @@ http_archive(
 )
 
 glfw_archive(
-    name = "lib-glfw-headers",
-    build_file = "//:third_party/glfw/BUILD.headers",
+    name = "lib-glfw-include",
+    build_file = "//:third_party/glfw/BUILD.include",
     strip_prefix = "include",
 )
 
@@ -103,6 +104,18 @@ http_archive(
     sha256 = "94c634d499558a76fa649edb13721dce6e98fb1e7018dfaeba3cd7a083945e91",
     strip_prefix = "googletest-release-1.10.0",
     urls = ["https://github.com/google/googletest/archive/release-1.10.0.zip"],
+)
+
+spirv_cross_archive(
+    platform = "linux",
+    url = "https://github.com/KhronosGroup/SPIRV-Cross/releases/download/2020-09-17/spirv-cross-clang-trusty-64bit-8891bd3512.tar.gz",
+    sha256 = "",
+)
+
+spirv_cross_archive(
+    platform = "osx",
+    url = "https://github.com/KhronosGroup/SPIRV-Cross/releases/download/2020-09-17/spirv-cross-clang-macos-64bit-8891bd3512.tar.gz",
+    sha256 = "6c629324d82b04127b5d5d370dd6314d2fb4b4f19c4e208ec18c36ad559fde10",
 )
 
 new_git_repository(

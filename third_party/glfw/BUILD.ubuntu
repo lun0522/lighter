@@ -1,7 +1,7 @@
 licenses(["notice"])
 
 cc_library(
-    name = "glfw",
+    name = "glfw_lib",
     linkopts = [
         "-ldl",
         "-lX11",

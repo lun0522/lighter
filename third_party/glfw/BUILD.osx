@@ -11,7 +11,7 @@ objc_library(
 )
 
 cc_library(
-    name = "glfw",
+    name = "glfw_lib",
     visibility = ["//visibility:public"],
     deps = [
         ":apple_frameworks",

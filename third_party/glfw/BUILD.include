@@ -1,7 +1,7 @@
 licenses(["notice"])
 
 cc_library(
-    name = "glfw_headers",
+    name = "glfw_include",
     hdrs = glob(["**/*.h"]),
     include_prefix = "third_party",
     visibility = ["//visibility:public"],

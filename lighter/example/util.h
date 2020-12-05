@@ -26,6 +26,7 @@
 #include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/glm/glm.hpp"
+#include "third_party/spirv_cross/spirv_cross.hpp"
 
 namespace lighter {
 namespace example {
