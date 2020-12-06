@@ -12,6 +12,7 @@
 #include <functional>
 #include <iostream>
 #include <iterator>
+#include <numeric>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
@@ -103,12 +104,16 @@ class Logger {
   std::ostream& os_;
 };
 
+// Extracts value type from container.
+template <typename ContainerType>
+using ValueType = typename ContainerType::value_type;
+
 // Returns the index of the first element that satisfies 'predicate'.
 // If there is no such element, returns 'absl::nullopt'.
-template <typename ContentType>
+template <typename ValueType>
 absl::optional<int> FindIndexOfFirst(
-    absl::Span<const ContentType> container,
-    const std::function<bool(const ContentType&)>& predicate) {
+    absl::Span<const ValueType> container,
+    const std::function<bool(const ValueType&)>& predicate) {
   const auto first_itr = std::find_if(container.begin(), container.end(),
                                       predicate);
   if (first_itr == container.end()) {
@@ -119,19 +124,19 @@ absl::optional<int> FindIndexOfFirst(
 
 // Moves 'element' to the specified 'index' of 'container'. 'container' will be
 // resized if necessary.
-template <typename ContentType>
-void SetElementWithResizing(ContentType&& element, int index,
-                            std::vector<ContentType>* container) {
+template <typename ValueType>
+void SetElementWithResizing(ValueType&& element, int index,
+                            std::vector<ValueType>* container) {
   if (index >= container->size()) {
     container->resize(index + 1);
   }
-  (*container)[index] = std::forward<ContentType>(element);
+  (*container)[index] = std::forward<ValueType>(element);
 }
 
 // Removes duplicated elements from 'container' in-place, hence the size of
 // 'container' may change if there exists any duplicate.
-template <typename ContentType>
-void RemoveDuplicate(std::vector<ContentType>* container) {
+template <typename ValueType>
+void RemoveDuplicate(std::vector<ValueType>* container) {
   if (container->size() > 1) {
     std::sort(container->begin(), container->end());
     const auto new_end = std::unique(container->begin(), container->end());
@@ -140,17 +145,16 @@ void RemoveDuplicate(std::vector<ContentType>* container) {
 }
 
 // Moves all elements of 'src' to the end of 'dst'.
-template <typename ContentType>
-void VectorAppend(std::vector<ContentType>& dst,
-                  std::vector<ContentType>& src) {
+template <typename ValueType>
+void VectorAppend(std::vector<ValueType>& dst, std::vector<ValueType>& src) {
   dst.reserve(src.size() + dst.size());
   std::move(src.begin(), src.end(), std::back_inserter(dst));
   src.clear();
 }
 
 // Erases elements in 'container' that satisfies the 'predicate'.
-template <typename Container, typename Predicate>
-void EraseIf(const Predicate& predicate, Container* container) {
+template <typename ContainerType, typename PredicateType>
+void EraseIf(const PredicateType& predicate, ContainerType* container) {
   auto iter = container->begin();
   while (iter != container->end()) {
     if (predicate(*iter)) {
@@ -186,6 +190,20 @@ ExtentType FindLargestExtent(const ExtentType& original_extent,
     effective_extent.y = original_extent.x / aspect_ratio;
   }
   return effective_extent;
+}
+
+// Reduces all elements in 'container' to one value of AccumulatorType.
+template <typename AccumulatorType, typename ContainerType>
+AccumulatorType Reduce(
+    const ContainerType& container,
+    absl::FunctionRef<AccumulatorType(const ValueType<ContainerType>&)>
+        extract_value) {
+  return std::accumulate(
+      container.begin(), container.end(), AccumulatorType{},
+      [extract_value](const AccumulatorType& accumulated,
+                      const ValueType<ContainerType>& element) {
+        return accumulated + extract_value(element);
+      });
 }
 
 // Returns whether
@@ -226,11 +244,11 @@ inline const ExpectedType* GetPointerIfTypeExpectedImpl(
 // Returns a pointer of 'ExpectedType'. If elements of 'container' are of
 // 'ExpectedType', the returned pointer will point to its underlying data.
 // Otherwise, returns nullptr.
-template <typename ExpectedType, typename ContentType>
+template <typename ExpectedType, typename ValueType>
 const ExpectedType* GetPointerIfTypeExpected(
-    const std::vector<ContentType>& container) {
-  return internal::GetPointerIfTypeExpectedImpl<ExpectedType, ContentType>(
-      container.data(), std::is_same<ExpectedType, ContentType>());
+    const std::vector<ValueType>& container) {
+  return internal::GetPointerIfTypeExpectedImpl<ExpectedType, ValueType>(
+      container.data(), std::is_same<ExpectedType, ValueType>());
 }
 
 } /* namespace util */

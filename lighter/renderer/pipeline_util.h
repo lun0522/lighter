@@ -24,6 +24,10 @@ GraphicsPipelineDescriptor::Viewport GetFullFrameViewport(
 GraphicsPipelineDescriptor::Viewport GetViewport(const glm::ivec2& frame_size,
                                                  float aspect_ratio);
 
+// Returns a scissor that does not clip any part of the frame.
+GraphicsPipelineDescriptor::Scissor GetFullFrameScissor(
+    const glm::ivec2& frame_size);
+
 } /* namespace pipeline */
 } /* namespace renderer */
 } /* namespace lighter */

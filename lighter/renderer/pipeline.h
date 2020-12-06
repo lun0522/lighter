@@ -54,6 +54,11 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
     glm::vec2 extent;
   };
 
+  struct Scissor {
+    glm::ivec2 origin;
+    glm::ivec2 extent;
+  };
+
   // Modifiers.
   GraphicsPipelineDescriptor& SetName(absl::string_view name) {
     pipeline_name = std::string{name};
@@ -74,22 +79,28 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
     enable_color_blend = true;
     return *this;
   }
-  GraphicsPipelineDescriptor& SetViewport(const Viewport& viewport_info) {
+  GraphicsPipelineDescriptor& SetViewport(
+      const Viewport& viewport_info, const Scissor& scissor_info,
+      bool flip_y_axis = true) {
     viewport = viewport_info;
+    scissor = scissor_info;
+    flip_y = flip_y_axis;
+    return *this;
+  }
+  GraphicsPipelineDescriptor& SetPrimitiveTopology(PrimitiveTopology topology) {
+    primitive_topology = topology;
     return *this;
   }
 
   // Paths to shaders used at each stage.
   absl::flat_hash_map<shader_stage::ShaderStage, std::string> shader_path_map;
 
-  // Vertex input binding and attributes.
   std::vector<VertexBufferView> vertex_buffer_views;
-
-  // Whether to enable color blending (off by default).
   bool enable_color_blend = false;
-
-  // Viewport info.
   Viewport viewport;
+  Scissor scissor;
+  bool flip_y;
+  PrimitiveTopology primitive_topology = PrimitiveTopology::kTriangleList;
 };
 
 class ComputePipelineDescriptor : public PipelineDescriptor {

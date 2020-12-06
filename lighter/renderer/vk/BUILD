@@ -84,6 +84,8 @@ cc_library(
     srcs = ["pipeline.cc"],
     deps = [
         ":context",
+        ":type_mapping",
+        ":util",
         "//lighter/common:util",
         "//lighter/renderer:pipeline",
         "//third_party:absl",
@@ -108,6 +110,7 @@ cc_library(
         "//lighter/renderer:image_usage",
         "//lighter/renderer:type",
         "//third_party:absl",
+        "//third_party:glm",
         "//third_party:vulkan",
     ],
 )
@@ -131,12 +134,23 @@ cc_library(
 )
 
 cc_library(
+    name = "type_mapping",
+    hdrs = ["type_mapping.h"],
+    srcs = ["type_mapping.cc"],
+    deps = [
+        "//lighter/renderer:type",
+        "//third_party:vulkan",
+    ],
+)
+
+cc_library(
     name = "util",
     hdrs = ["util.h"],
     deps = [
         "//lighter/common:image",
         "//lighter/common:util",
         "//third_party:absl",
+        "//third_party:glm",
         "//third_party:vulkan",
     ],
 )

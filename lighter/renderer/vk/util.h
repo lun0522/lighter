@@ -21,9 +21,12 @@
 #include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
+#include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
-#define CONTAINER_SIZE(container) static_cast<uint32_t>(container.size())
+#define CAST_TO_UINT(number) static_cast<uint32_t>(number)
+
+#define CONTAINER_SIZE(container) CAST_TO_UINT((container).size())
 
 #define ASSERT_SUCCESS(event, error)                          \
   ASSERT_TRUE(event == VK_SUCCESS,                            \
@@ -106,8 +109,15 @@ absl::optional<std::string> FindUnsupported(
 
 // Creates VkExtent2D with given dimensions.
 inline VkExtent2D CreateExtent(int width, int height) {
-  return VkExtent2D{static_cast<uint32_t>(width),
-                    static_cast<uint32_t>(height)};
+  return {CAST_TO_UINT(width), CAST_TO_UINT(height)};
+}
+inline VkExtent2D CreateExtent(const glm::ivec2& dimension) {
+  return CreateExtent(dimension.x, dimension.y);
+}
+
+// Creates VkOffset2D with given dimensions.
+inline VkOffset2D CreateOffset(const glm::ivec2& dimension) {
+  return {dimension.x, dimension.y};
 }
 
 } /* namespace util */

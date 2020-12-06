@@ -12,16 +12,6 @@ namespace lighter {
 namespace renderer {
 
 enum class DataFormat {
-  kUNorm8,
-  kUNorm8Vec2,
-  kUNorm8Vec3,
-  kUNorm8Vec4,
-
-  kSFloat16,
-  kSFloat16Vec2,
-  kSFloat16Vec3,
-  kSFloat16Vec4,
-
   kSFloat32,
   kSFloat32Vec2,
   kSFloat32Vec3,

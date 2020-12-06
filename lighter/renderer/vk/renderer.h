@@ -26,6 +26,7 @@
 #include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
+#include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
@@ -77,11 +78,10 @@ class Renderer : public renderer::Renderer {
   }
 
   std::unique_ptr<renderer::DeviceImage> CreateDepthStencilImage(
-      int width, int height, MultisamplingMode multisampling_mode,
+      const glm::ivec2& extent, MultisamplingMode multisampling_mode,
       absl::Span<const ImageUsage> usages) const override {
-    const VkExtent2D extent = util::CreateExtent(width, height);
-    return DeviceImage::CreateDepthStencilImage(context_, extent,
-                                                multisampling_mode, usages);
+    return DeviceImage::CreateDepthStencilImage(
+        context_, util::CreateExtent(extent), multisampling_mode, usages);
   }
 
   /* Pipeline */

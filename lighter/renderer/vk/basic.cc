@@ -162,7 +162,7 @@ absl::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
   if (!graphics_queue_index.has_value()) {
     return absl::nullopt;
   } else {
-    candidate.graphics = static_cast<uint32_t>(graphics_queue_index.value());
+    candidate.graphics = CAST_TO_UINT(graphics_queue_index.value());
   }
 
   static const auto has_compute_support =
@@ -175,7 +175,7 @@ absl::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
   if (!compute_queue_index.has_value()) {
     return absl::nullopt;
   } else {
-    candidate.compute = static_cast<uint32_t>(compute_queue_index.value());
+    candidate.compute = CAST_TO_UINT(compute_queue_index.value());
   }
 
   // Find queue family that holds presentation queue if needed.
@@ -195,8 +195,7 @@ absl::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
     if (!present_queue_index.has_value()) {
       return absl::nullopt;
     } else {
-      candidate.presents.push_back(
-          static_cast<uint32_t>(present_queue_index.value()));
+      candidate.presents.push_back(CAST_TO_UINT(present_queue_index.value()));
     }
   }
 

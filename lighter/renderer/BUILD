@@ -92,6 +92,7 @@ cc_library(
         "//lighter/common:util",
         "//lighter/common:window",
         "//third_party:absl",
+        "//third_party:glm",
     ],
 )
 

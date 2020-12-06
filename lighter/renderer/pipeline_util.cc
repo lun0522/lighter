@@ -28,6 +28,10 @@ GraphicsPipelineDescriptor::Viewport GetViewport(const glm::ivec2& frame_size,
           /*extent=*/effective_size};
 }
 
+GraphicsPipelineDescriptor::Scissor GetFullFrameScissor(
+    const glm::ivec2& frame_size) {
+  return {/*origin=*/glm::ivec2{0}, /*extent=*/frame_size};
+}
 
 } /* namespace pipeline */
 } /* namespace renderer */

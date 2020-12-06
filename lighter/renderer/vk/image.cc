@@ -194,7 +194,7 @@ std::unique_ptr<DeviceImage> DeviceImage::CreateColorImage(
       ChooseColorImageFormat(*context, dimension.channel, usages);
   return absl::make_unique<DeviceImage>(
       std::move(context), format, ExtractExtent(dimension), kSingleMipLevel,
-      static_cast<uint32_t>(dimension.layer), multisampling_mode, usages);
+      CAST_TO_UINT(dimension.layer), multisampling_mode, usages);
 }
 
 std::unique_ptr<DeviceImage> DeviceImage::CreateColorImage(
@@ -206,7 +206,7 @@ std::unique_ptr<DeviceImage> DeviceImage::CreateColorImage(
   // TODO: Generate mipmaps and change mip_levels.
   return absl::make_unique<DeviceImage>(
       std::move(context), format, ExtractExtent(dimension), kSingleMipLevel,
-      static_cast<uint32_t>(dimension.layer), MultisamplingMode::kNone, usages);
+      CAST_TO_UINT(dimension.layer), MultisamplingMode::kNone, usages);
 }
 
 std::unique_ptr<DeviceImage> DeviceImage::CreateDepthStencilImage(

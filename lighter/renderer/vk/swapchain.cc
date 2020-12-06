@@ -31,8 +31,7 @@ VkExtent2D ChooseImageExtent(const common::Window& window,
       std::numeric_limits<uint32_t>::max()) {
     return capabilities.currentExtent;
   } else {
-    const glm::ivec2 frame_size = window.GetFrameSize();
-    VkExtent2D extent = util::CreateExtent(frame_size.x, frame_size.y);
+    VkExtent2D extent = util::CreateExtent(window.GetFrameSize());
     extent.width = std::max(extent.width, capabilities.minImageExtent.width);
     extent.width = std::min(extent.width, capabilities.maxImageExtent.width);
     extent.height = std::max(extent.height, capabilities.minImageExtent.height);

@@ -24,6 +24,7 @@
 #include "lighter/renderer/type.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/types/span.h"
+#include "third_party/glm/glm.hpp"
 
 namespace lighter {
 namespace renderer {
@@ -78,7 +79,7 @@ class Renderer {
       absl::Span<const ImageUsage> usages) const = 0;
 
   virtual std::unique_ptr<DeviceImage> CreateDepthStencilImage(
-      int width, int height, MultisamplingMode multisampling_mode,
+      const glm::ivec2& extent, MultisamplingMode multisampling_mode,
       absl::Span<const ImageUsage> usages) const = 0;
 
   /* Pipeline */
