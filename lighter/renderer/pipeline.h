@@ -49,6 +49,10 @@ struct PipelineDescriptor {
 
 struct GraphicsPipelineDescriptor : public PipelineDescriptor {
  public:
+  // Paths to shaders used at each stage.
+  using ShaderPathMap = absl::flat_hash_map<shader_stage::ShaderStage,
+                                            std::string>;
+
   struct Viewport {
     glm::vec2 origin;
     glm::vec2 extent;
@@ -92,9 +96,7 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
     return *this;
   }
 
-  // Paths to shaders used at each stage.
   absl::flat_hash_map<shader_stage::ShaderStage, std::string> shader_path_map;
-
   std::vector<VertexBufferView> vertex_buffer_views;
   bool enable_color_blend = false;
   Viewport viewport;

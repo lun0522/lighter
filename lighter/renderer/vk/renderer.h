@@ -84,18 +84,6 @@ class Renderer : public renderer::Renderer {
         context_, util::CreateExtent(extent), multisampling_mode, usages);
   }
 
-  /* Pipeline */
-
-  std::unique_ptr<renderer::Pipeline> CreateGraphicsPipeline(
-      const GraphicsPipelineDescriptor& descriptor) const override {
-    return absl::make_unique<Pipeline>(context_, descriptor);
-  }
-
-  std::unique_ptr<renderer::Pipeline> CreateComputePipeline(
-      const ComputePipelineDescriptor& descriptor) const override {
-    return absl::make_unique<Pipeline>(context_, descriptor);
-  }
-
   /* Pass */
 
   std::unique_ptr<GraphicsPass> CreateGraphicsPass(

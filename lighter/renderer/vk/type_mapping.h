@@ -22,6 +22,8 @@ VkFormat ConvertDataFormat(DataFormat format);
 
 VkPrimitiveTopology ConvertPrimitiveTopology(PrimitiveTopology topology);
 
+VkShaderStageFlagBits ConvertShaderStage(shader_stage::ShaderStage stage);
+
 } /* namespace type */
 } /* namespace vk */
 } /* namespace renderer */

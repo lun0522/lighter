@@ -322,7 +322,7 @@ Device::Device(const Context* context,
   constexpr float kPriority = 1.0f;
   std::vector<VkDeviceQueueCreateInfo> queue_infos;
   for (uint32_t family_index : queue_family_indices_set) {
-    queue_infos.push_back(VkDeviceQueueCreateInfo{
+    queue_infos.push_back({
         VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
         /*pNext=*/nullptr,
         /*flags=*/nullflag,

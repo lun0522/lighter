@@ -82,14 +82,6 @@ class Renderer {
       const glm::ivec2& extent, MultisamplingMode multisampling_mode,
       absl::Span<const ImageUsage> usages) const = 0;
 
-  /* Pipeline */
-
-  virtual std::unique_ptr<Pipeline> CreateGraphicsPipeline(
-      const GraphicsPipelineDescriptor& descriptor) const = 0;
-
-  virtual std::unique_ptr<Pipeline> CreateComputePipeline(
-      const ComputePipelineDescriptor& descriptor) const = 0;
-
   /* Pass */
 
   virtual std::unique_ptr<GraphicsPass> CreateGraphicsPass(

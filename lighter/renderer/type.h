@@ -71,6 +71,7 @@ namespace shader_stage {
 enum ShaderStage {
   VERTEX   = 1U << 0U,
   FRAGMENT = 1U << 1U,
+  COMPUTE  = 1U << 2U,
 };
 
 } /* namespace shader_stage */

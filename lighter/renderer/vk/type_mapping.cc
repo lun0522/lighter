@@ -7,6 +7,8 @@
 
 #include "lighter/renderer/vk/type_mapping.h"
 
+#include "lighter/common/util.h"
+
 namespace lighter {
 namespace renderer {
 namespace vk {
@@ -48,6 +50,20 @@ VkPrimitiveTopology ConvertPrimitiveTopology(PrimitiveTopology topology) {
       return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
     case PrimitiveTopology::kTriangleFan:
       return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+  }
+}
+
+VkShaderStageFlagBits ConvertShaderStage(shader_stage::ShaderStage stage) {
+  using ShaderStage = shader_stage::ShaderStage;
+  ASSERT_TRUE(common::util::IsPowerOf2(stage),
+              "'stage' must only contain one shader stage");
+  switch (stage) {
+    case ShaderStage::VERTEX:
+      return VK_SHADER_STAGE_VERTEX_BIT;
+    case ShaderStage::FRAGMENT:
+      return VK_SHADER_STAGE_FRAGMENT_BIT;
+    case ShaderStage::COMPUTE:
+      return VK_SHADER_STAGE_COMPUTE_BIT;
   }
 }
 

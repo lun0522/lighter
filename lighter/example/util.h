@@ -55,6 +55,8 @@ std::unique_ptr<renderer::Renderer> CreateRenderer(
   }
 }
 
+// TODO: Only write Vulkan version shader code, and modify it on-the-fly to be
+// used by OpenGL.
 std::string GetShaderPath(Backend backend, absl::string_view relative_path) {
   switch (backend) {
     case Backend::kOpenGL:

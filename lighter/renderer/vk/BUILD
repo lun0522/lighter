@@ -86,6 +86,8 @@ cc_library(
         ":context",
         ":type_mapping",
         ":util",
+        "//lighter/common:file",
+        "//lighter/common:ref_count",
         "//lighter/common:util",
         "//lighter/renderer:pipeline",
         "//third_party:absl",
@@ -138,6 +140,7 @@ cc_library(
     hdrs = ["type_mapping.h"],
     srcs = ["type_mapping.cc"],
     deps = [
+        "//lighter/common:util",
         "//lighter/renderer:type",
         "//third_party:vulkan",
     ],
