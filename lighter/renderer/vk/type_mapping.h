@@ -20,6 +20,10 @@ VkVertexInputRate ConvertVertexInputRate(VertexInputRate rate);
 
 VkFormat ConvertDataFormat(DataFormat format);
 
+VkCompareOp ConvertCompareOp(CompareOp op);
+
+VkStencilOp ConvertStencilOp(StencilOp op);
+
 VkPrimitiveTopology ConvertPrimitiveTopology(PrimitiveTopology topology);
 
 VkShaderStageFlagBits ConvertShaderStage(shader_stage::ShaderStage stage);

@@ -107,6 +107,9 @@ absl::optional<std::string> FindUnsupported(
   return absl::nullopt;
 }
 
+// Converts a bool to VkBool32.
+inline VkBool32 ToVkBool(bool value) { return value ? VK_TRUE : VK_FALSE; }
+
 // Creates VkExtent2D with given dimensions.
 inline VkExtent2D CreateExtent(int width, int height) {
   return {CAST_TO_UINT(width), CAST_TO_UINT(height)};

@@ -156,15 +156,16 @@ VkPipelineInputAssemblyStateCreateInfo CreateInputAssemblyInfo(
 }
 
 VkViewport CreateViewport(const GraphicsPipelineDescriptor& descriptor) {
+  const auto& viewport_info = descriptor.viewport_config.viewport;
   VkViewport viewport{
-      descriptor.viewport.origin.x,
-      descriptor.viewport.origin.y,
-      descriptor.viewport.extent.x,
-      descriptor.viewport.extent.y,
+      viewport_info.origin.x,
+      viewport_info.origin.y,
+      viewport_info.extent.x,
+      viewport_info.extent.y,
       /*minDepth=*/0.0f,
       /*maxDepth=*/1.0f,
   };
-  if (descriptor.flip_y) {
+  if (descriptor.viewport_config.flip_y) {
     viewport.y += viewport.height;
     viewport.height *= -1;
   }
@@ -172,8 +173,9 @@ VkViewport CreateViewport(const GraphicsPipelineDescriptor& descriptor) {
 }
 
 VkRect2D CreateScissor(const GraphicsPipelineDescriptor& descriptor) {
-  return {util::CreateOffset(descriptor.scissor.origin),
-          util::CreateExtent(descriptor.scissor.extent)};
+  const auto& scissor_info = descriptor.viewport_config.scissor;
+  return {util::CreateOffset(scissor_info.origin),
+          util::CreateExtent(scissor_info.extent)};
 }
 
 VkPipelineViewportStateCreateInfo CreateViewportInfo(const VkViewport* viewport,
@@ -202,8 +204,8 @@ VkPipelineRasterizationStateCreateInfo CreateRasterizationInfo(
       // Fill polygons with fragments.
       VK_POLYGON_MODE_FILL,
       VK_CULL_MODE_BACK_BIT,
-      descriptor.flip_y ? VK_FRONT_FACE_COUNTER_CLOCKWISE
-                        : VK_FRONT_FACE_CLOCKWISE,
+      descriptor.viewport_config.flip_y ? VK_FRONT_FACE_COUNTER_CLOCKWISE
+                                        : VK_FRONT_FACE_CLOCKWISE,
       // Whether to let the rasterizer alter depth values.
       /*depthBiasEnable=*/VK_FALSE,
       /*depthBiasConstantFactor=*/0.0f,
@@ -229,21 +231,36 @@ VkPipelineMultisampleStateCreateInfo CreateMultisampleInfo(
   };
 }
 
+VkStencilOpState CreateStencilOp(
+    const GraphicsPipelineDescriptor::StencilTestOneFace& test) {
+  return {
+      type::ConvertStencilOp(test.stencil_fail_op),
+      type::ConvertStencilOp(test.stencil_and_depth_pass_op),
+      type::ConvertStencilOp(test.stencil_pass_depth_fail_op),
+      type::ConvertCompareOp(test.compare_op),
+      CAST_TO_UINT(test.compare_mask),
+      CAST_TO_UINT(test.write_mask),
+      CAST_TO_UINT(test.reference),
+  };
+}
+
 VkPipelineDepthStencilStateCreateInfo CreateDepthStencilInfo(
     const GraphicsPipelineDescriptor& descriptor) {
-  // TODO
+  using StencilTest = GraphicsPipelineDescriptor::StencilTest;
+  const auto& depth_test = descriptor.depth_test;
+  const auto& stencil_test = descriptor.stencil_test;
   return {
       VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
-      /*depthTestEnable=*/VK_FALSE,
-      /*depthWriteEnable=*/VK_FALSE,
-      /*depthCompareOp=*/VK_COMPARE_OP_LESS_OR_EQUAL,
+      util::ToVkBool(depth_test.enable_test),
+      util::ToVkBool(depth_test.enable_write),
+      type::ConvertCompareOp(depth_test.compare_op),
       // We may only keep fragments in a specific depth range.
       /*depthBoundsTestEnable=*/VK_FALSE,
-      /*stencilTestEnable=*/VK_FALSE,
-      /*front=*/VkStencilOpState{},
-      /*back=*/VkStencilOpState{},
+      util::ToVkBool(stencil_test.enable_test),
+      CreateStencilOp(stencil_test.tests[StencilTest::kFrontFaceIndex]),
+      CreateStencilOp(stencil_test.tests[StencilTest::kBackFaceIndex]),
       /*minDepthBounds=*/0.0f,
       /*maxDepthBounds=*/1.0f,
   };

@@ -57,6 +57,23 @@ enum class SamplerAddressMode {
 
 enum class MultisamplingMode { kNone, kDecent, kBest };
 
+enum class CompareOp {
+  kNeverPass,
+  kLess,
+  kEqual,
+  kLessEqual,
+  kGreater,
+  kNotEqual,
+  kGreaterEqual,
+  kAlwaysPass,
+};
+
+enum class StencilOp {
+  kKeep,
+  kZero,
+  kReplace,
+};
+
 enum class PrimitiveTopology {
   kPointList,
   kLineList,

@@ -15,6 +15,20 @@ namespace lighter {
 namespace renderer {
 namespace pipeline {
 
+// Returns a stencil test that is never passed by any pixel, and does not write
+// anything to the stencil buffer.
+GraphicsPipelineDescriptor::StencilTestOneFace GetStencilNop();
+
+// Returns a stencil test that compares buffer value with 'reference' using
+// 'compare_op', and does not write anything to the stencil buffer.
+GraphicsPipelineDescriptor::StencilTestOneFace GetStencilRead(
+    CompareOp compare_op, unsigned int reference);
+
+// Returns a stencil test that writes 'reference' value to the stencil buffer
+// wherever a pixel passes depth test.
+GraphicsPipelineDescriptor::StencilTestOneFace GetStencilWrite(
+    unsigned int reference);
+
 // Returns a viewport transform targeting the full frame of 'frame_size'.
 GraphicsPipelineDescriptor::Viewport GetFullFrameViewport(
     const glm::ivec2& frame_size);

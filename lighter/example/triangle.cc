@@ -35,8 +35,7 @@ class TriangleExample {
             /*binding_point=*/0,
             /*stride=*/sizeof(common::Vertex3DWithColor),
             buffer::CreateAttributesForVertex3DWithColor(/*loc_pos=*/0,
-                                                         /*loc_color=*/1)})
-        .EnableColorBlend();
+                                                         /*loc_color=*/1)});
   }
 
   // This class is neither copyable nor movable.

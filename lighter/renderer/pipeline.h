@@ -53,6 +53,33 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
   using ShaderPathMap = absl::flat_hash_map<shader_stage::ShaderStage,
                                             std::string>;
 
+  struct DepthTest {
+    bool enable_test;
+    bool enable_write;
+    CompareOp compare_op;
+  };
+
+  struct StencilTestOneFace {
+    StencilOp stencil_fail_op;
+    StencilOp stencil_and_depth_pass_op;
+    StencilOp stencil_pass_depth_fail_op;
+    CompareOp compare_op;
+    unsigned int compare_mask;
+    unsigned int write_mask;
+    unsigned int reference;
+  };
+
+  struct StencilTest {
+    enum FaceIndex {
+      kFrontFaceIndex = 0,
+      kBackFaceIndex,
+      kNumFaces,
+    };
+
+    bool enable_test;
+    StencilTestOneFace tests[kNumFaces];
+  };
+
   struct Viewport {
     glm::vec2 origin;
     glm::vec2 extent;
@@ -61,6 +88,12 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
   struct Scissor {
     glm::ivec2 origin;
     glm::ivec2 extent;
+  };
+
+  struct ViewportConfig {
+    Viewport viewport;
+    Scissor scissor;
+    bool flip_y;
   };
 
   // Modifiers.
@@ -79,16 +112,28 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
     vertex_buffer_views.push_back(std::move(buffer_view));
     return *this;
   }
-  GraphicsPipelineDescriptor& EnableColorBlend() {
-    enable_color_blend = true;
+  GraphicsPipelineDescriptor& EnableDepthTestOnly(
+      CompareOp compare_op = CompareOp::kLessEqual) {
+    depth_test = {/*enable_test=*/true, /*enable_write=*/false, compare_op};
     return *this;
   }
-  GraphicsPipelineDescriptor& SetViewport(
-      const Viewport& viewport_info, const Scissor& scissor_info,
-      bool flip_y_axis = true) {
-    viewport = viewport_info;
-    scissor = scissor_info;
-    flip_y = flip_y_axis;
+  GraphicsPipelineDescriptor& EnableDepthTestAndWrite(
+      CompareOp compare_op = CompareOp::kLessEqual) {
+    depth_test = {/*enable_test=*/true, /*enable_write=*/true, compare_op};
+    return *this;
+  }
+  GraphicsPipelineDescriptor& EnableStencilTest(
+      const StencilTestOneFace& front_face_test,
+      const StencilTestOneFace& back_face_test) {
+    stencil_test.enable_test = true;
+    stencil_test.tests[StencilTest::kFrontFaceIndex] = front_face_test;
+    stencil_test.tests[StencilTest::kBackFaceIndex] = back_face_test;
+    return *this;
+  }
+  GraphicsPipelineDescriptor& SetViewport(const Viewport& viewport,
+                                          const Scissor& scissor,
+                                          bool flip_y = true) {
+    viewport_config = {viewport, scissor, flip_y};
     return *this;
   }
   GraphicsPipelineDescriptor& SetPrimitiveTopology(PrimitiveTopology topology) {
@@ -98,10 +143,9 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
 
   absl::flat_hash_map<shader_stage::ShaderStage, std::string> shader_path_map;
   std::vector<VertexBufferView> vertex_buffer_views;
-  bool enable_color_blend = false;
-  Viewport viewport;
-  Scissor scissor;
-  bool flip_y;
+  DepthTest depth_test;
+  StencilTest stencil_test;
+  ViewportConfig viewport_config;
   PrimitiveTopology primitive_topology = PrimitiveTopology::kTriangleList;
 };
 

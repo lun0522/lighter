@@ -11,6 +11,36 @@ namespace lighter {
 namespace renderer {
 namespace pipeline {
 
+GraphicsPipelineDescriptor::StencilTestOneFace GetStencilNop() {
+  return GetStencilRead(CompareOp::kNeverPass, /*reference=*/0);
+}
+
+GraphicsPipelineDescriptor::StencilTestOneFace GetStencilRead(
+    CompareOp compare_op, unsigned int reference) {
+  return {
+      /*stencil_fail_op=*/StencilOp::kKeep,
+      /*stencil_and_depth_pass_op=*/StencilOp::kKeep,
+      /*stencil_pass_depth_fail_op=*/StencilOp::kKeep,
+      compare_op,
+      /*compare_mask=*/0xFF,
+      /*write_mask=*/0,
+      reference,
+  };
+}
+
+GraphicsPipelineDescriptor::StencilTestOneFace GetStencilWrite(
+    unsigned int reference) {
+  return {
+      /*stencil_fail_op=*/StencilOp::kKeep,
+      /*stencil_and_depth_pass_op=*/StencilOp::kReplace,
+      /*stencil_pass_depth_fail_op=*/StencilOp::kKeep,
+      CompareOp::kAlwaysPass,
+      /*compare_mask=*/0,
+      /*write_mask=*/0xFF,
+      reference,
+  };
+}
+
 GraphicsPipelineDescriptor::Viewport GetFullFrameViewport(
     const glm::ivec2& frame_size) {
   return {/*origin=*/glm::vec2{0.0f}, /*extent=*/frame_size};

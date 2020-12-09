@@ -36,6 +36,38 @@ VkFormat ConvertDataFormat(DataFormat format) {
   }
 }
 
+VkCompareOp ConvertCompareOp(CompareOp op) {
+  switch (op) {
+    case CompareOp::kNeverPass:
+      return VK_COMPARE_OP_NEVER;
+    case CompareOp::kLess:
+      return VK_COMPARE_OP_LESS;
+    case CompareOp::kEqual:
+      return VK_COMPARE_OP_EQUAL;
+    case CompareOp::kLessEqual:
+      return VK_COMPARE_OP_LESS_OR_EQUAL;
+    case CompareOp::kGreater:
+      return VK_COMPARE_OP_GREATER;
+    case CompareOp::kNotEqual:
+      return VK_COMPARE_OP_NOT_EQUAL;
+    case CompareOp::kGreaterEqual:
+      return VK_COMPARE_OP_GREATER_OR_EQUAL;
+    case CompareOp::kAlwaysPass:
+      return VK_COMPARE_OP_ALWAYS;
+  }
+}
+
+VkStencilOp ConvertStencilOp(StencilOp op) {
+  switch (op) {
+    case StencilOp::kKeep:
+      return VK_STENCIL_OP_KEEP;
+    case StencilOp::kZero:
+      return VK_STENCIL_OP_ZERO;
+    case StencilOp::kReplace:
+      return VK_STENCIL_OP_REPLACE;
+  }
+}
+
 VkPrimitiveTopology ConvertPrimitiveTopology(PrimitiveTopology topology) {
   switch (topology) {
     case PrimitiveTopology::kPointList:
