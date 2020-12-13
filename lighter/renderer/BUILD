@@ -34,13 +34,13 @@ cc_library(
     deps = [
         ":type",
         ":image_usage",
+         "//third_party:absl",
     ],
 )
 
 cc_library(
     name = "image_usage",
     hdrs = ["image_usage.h"],
-    srcs = ["image_usage.cc"],
     deps = [
         ":type",
         "//lighter/common:util",
@@ -53,6 +53,7 @@ cc_library(
     hdrs = ["pass.h"],
     srcs = ["pass.cc"],
     deps = [
+        ":image",
         ":image_usage",
         ":type",
         "//lighter/common:util",

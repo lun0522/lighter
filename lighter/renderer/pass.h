@@ -9,12 +9,17 @@
 #define LIGHTER_RENDERER_PASS_H
 
 #include <functional>
+#include <map>
 #include <string>
+#include <vector>
 
+#include "lighter/common/util.h"
+#include "lighter/renderer/image.h"
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/type.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/strings/string_view.h"
+#include "third_party/absl/types/span.h"
 
 namespace lighter {
 namespace renderer {
@@ -39,6 +44,11 @@ class ComputePass {
 
 class BasePassDescriptor {
  public:
+  struct ImageAndUsage {
+    const DeviceImage& image;
+    const ImageUsage& usage;
+  };
+
   // This class provides copy constructor and move constructor.
   BasePassDescriptor(BasePassDescriptor&&) noexcept = default;
   BasePassDescriptor(const BasePassDescriptor&) = default;
@@ -46,32 +56,16 @@ class BasePassDescriptor {
   virtual ~BasePassDescriptor() = default;
 
  protected:
-  using ImageUsageHistoryMap = absl::flat_hash_map<std::string,
+  // Maps subpasses where the image is used to its usage at that subpass. An
+  // ordered map is used to look up the previous/next usage efficiently.
+  using ImageUsageHistory = std::map<int, ImageUsage>;
+
+  using ImageUsageHistoryMap = absl::flat_hash_map<const DeviceImage*,
                                                    ImageUsageHistory>;
 
-  explicit BasePassDescriptor(int num_subpasses)
-      : num_subpasses_{num_subpasses} {}
+  explicit BasePassDescriptor(absl::Span<const DeviceImage* const> images);
 
-  // Adds an image that is used in this pass. This also checks whether subpasses
-  // stored in 'usage_history' are out of range.
-  void AddImage(absl::string_view name, ImageUsageHistory&& usage_history);
-
-  // Checks whether 'subpass' is in range:
-  //   - [0, 'num_subpasses_'), if 'include_virtual_subpasses' is false.
-  //   - [virtual_initial_subpass_index(), virtual_final_subpass_index()], if
-  //     'include_virtual_subpasses' is true.
-  void ValidateSubpass(int subpass, absl::string_view image_name,
-                       bool include_virtual_subpasses) const;
-
-  // Images are in their initial/final layouts at the virtual subpasses.
-  int virtual_initial_subpass_index() const { return -1; }
-  int virtual_final_subpass_index() const { return num_subpasses_; }
-
-  // Returns whether 'subpass' is a virtual subpass.
-  bool IsVirtualSubpass(int subpass) const {
-    return subpass == virtual_initial_subpass_index() ||
-           subpass == virtual_final_subpass_index();
-  }
+  void AddSubpass(absl::Span<const ImageAndUsage> images_and_usages);
 
   // Accessors.
   int num_subpasses() const { return num_subpasses_; }
@@ -81,48 +75,68 @@ class BasePassDescriptor {
 
  private:
   // Number of subpasses.
-  const int num_subpasses_;
+  int num_subpasses_;
 
-  // Maps image name to usage history.
+  // Maps images to their usage history.
   ImageUsageHistoryMap image_usage_history_map_;
 };
 
 class GraphicsPassDescriptor : public BasePassDescriptor {
  public:
-  // Returns the location attribute value of a color attachment at 'subpass'.
-  using GetLocation = std::function<int(int subpass)>;
-
   struct LoadStoreOps {
     AttachmentLoadOp load_op;
     AttachmentStoreOp store_op;
   };
 
-  using ColorLoadStoreOps = LoadStoreOps;
+  struct ColorAttachment {
+    ColorAttachment(const DeviceImage* image, const LoadStoreOps& color_ops)
+        : image{*FATAL_IF_NULL(image)}, color_ops{color_ops} {}
 
-  struct DepthStencilLoadStoreOps {
-    LoadStoreOps depth_ops;
-    LoadStoreOps stencil_ops;
+    const DeviceImage& image;
+    const LoadStoreOps& color_ops;
   };
+
+  struct DepthStencilAttachment {
+    DepthStencilAttachment(const DeviceImage* image,
+                           const LoadStoreOps& depth_ops,
+                           const LoadStoreOps& stencil_ops)
+        : image{*FATAL_IF_NULL(image)}, depth_ops{depth_ops},
+          stencil_ops{stencil_ops} {}
+
+    const DeviceImage& image;
+    const LoadStoreOps& depth_ops;
+    const LoadStoreOps& stencil_ops;
+  };
+
+  struct MultisamplingResolve {
+    const DeviceImage& source_image;
+    const DeviceImage& target_image;
+  };
+
+  GraphicsPassDescriptor(
+      absl::Span<const ColorAttachment> color_attachments,
+      absl::Span<const DepthStencilAttachment> depth_stencil_attachments,
+      absl::Span<const DeviceImage* const> other_images);
 
   // This class provides copy constructor and move constructor.
   GraphicsPassDescriptor(GraphicsPassDescriptor&&) noexcept = default;
   GraphicsPassDescriptor(const GraphicsPassDescriptor&) = default;
 
-  // Adds attachments used in this graphics pass.
-  virtual GraphicsPassDescriptor& AddColorAttachment(
-      absl::string_view name, ImageUsageHistory&& usage_history,
-      const ColorLoadStoreOps& load_store_ops, GetLocation&& get_location) = 0;
-  virtual GraphicsPassDescriptor& AddDepthStencilAttachment(
-      absl::string_view name, ImageUsageHistory&& usage_history,
-      const DepthStencilLoadStoreOps& load_store_ops) = 0;
+  GraphicsPassDescriptor& AddSubpass(
+      absl::Span<const ImageAndUsage> images_and_usages) {
+    return AddSubpass(images_and_usages, /*resolves=*/{});
+  }
+  GraphicsPassDescriptor& AddSubpass(
+      absl::Span<const ImageAndUsage> images_and_usages,
+      absl::Span<const MultisamplingResolve> resolves);
 
- protected:
-  enum class AttachmentType{ kColor, kDepthStencil };
+ private:
+  using LoadStoreOpsMap = absl::flat_hash_map<const DeviceImage*, LoadStoreOps>;
 
-  // Checks that all usages are expected given "attachment_type".
-  void ValidateUsages(absl::string_view image_name,
-                      const ImageUsageHistory& usage_history,
-                      AttachmentType attachment_type) const;
+  LoadStoreOpsMap color_ops_map_;
+  LoadStoreOpsMap depth_ops_map_;
+  LoadStoreOpsMap stencil_ops_map_;
+  std::vector<std::vector<MultisamplingResolve>> multisampling_resolves_;
 };
 
 class ComputePassDescriptor : public BasePassDescriptor {

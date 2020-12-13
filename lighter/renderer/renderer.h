@@ -23,6 +23,7 @@
 #include "lighter/renderer/pipeline.h"
 #include "lighter/renderer/type.h"
 #include "third_party/absl/memory/memory.h"
+#include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 
@@ -70,16 +71,17 @@ class Renderer {
   /* Device image */
 
   virtual std::unique_ptr<DeviceImage> CreateColorImage(
-      const common::Image::Dimension& dimension,
-      MultisamplingMode multisampling_mode,
+      absl::string_view name, const common::Image::Dimension& dimension,
+      MultisamplingMode multisampling_mode, bool high_precision,
       absl::Span<const ImageUsage> usages) const = 0;
 
   virtual std::unique_ptr<DeviceImage> CreateColorImage(
-      const common::Image& image, bool generate_mipmaps,
+      absl::string_view name, const common::Image& image, bool generate_mipmaps,
       absl::Span<const ImageUsage> usages) const = 0;
 
   virtual std::unique_ptr<DeviceImage> CreateDepthStencilImage(
-      const glm::ivec2& extent, MultisamplingMode multisampling_mode,
+      absl::string_view name, const glm::ivec2& extent,
+      MultisamplingMode multisampling_mode,
       absl::Span<const ImageUsage> usages) const = 0;
 
   /* Pass */

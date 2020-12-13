@@ -63,25 +63,26 @@ class Renderer : public renderer::Renderer {
   /* Image */
 
   std::unique_ptr<renderer::DeviceImage> CreateColorImage(
-      const common::Image::Dimension& dimension,
-      MultisamplingMode multisampling_mode,
+      absl::string_view name, const common::Image::Dimension& dimension,
+      MultisamplingMode multisampling_mode, bool high_precision,
       absl::Span<const ImageUsage> usages) const override {
-    return DeviceImage::CreateColorImage(context_, dimension,
-                                         multisampling_mode, usages);
+    return DeviceImage::CreateColorImage(
+        context_, name, dimension, multisampling_mode, high_precision, usages);
   }
 
   std::unique_ptr<renderer::DeviceImage> CreateColorImage(
-      const common::Image& image, bool generate_mipmaps,
+      absl::string_view name, const common::Image& image, bool generate_mipmaps,
       absl::Span<const ImageUsage> usages) const override {
-    return DeviceImage::CreateColorImage(context_, image, generate_mipmaps,
-                                         usages);
+    return DeviceImage::CreateColorImage(context_, name, image,
+                                         generate_mipmaps, usages);
   }
 
   std::unique_ptr<renderer::DeviceImage> CreateDepthStencilImage(
-      const glm::ivec2& extent, MultisamplingMode multisampling_mode,
+      absl::string_view name, const glm::ivec2& extent,
+      MultisamplingMode multisampling_mode,
       absl::Span<const ImageUsage> usages) const override {
     return DeviceImage::CreateDepthStencilImage(
-        context_, util::CreateExtent(extent), multisampling_mode, usages);
+        context_, name, util::CreateExtent(extent), multisampling_mode, usages);
   }
 
   /* Pass */

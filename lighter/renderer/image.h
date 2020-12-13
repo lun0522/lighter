@@ -8,8 +8,11 @@
 #ifndef LIGHTER_RENDERER_IMAGE_H
 #define LIGHTER_RENDERER_IMAGE_H
 
+#include <string>
+
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/type.h"
+#include "third_party/absl/strings/string_view.h"
 
 namespace lighter {
 namespace renderer {
@@ -22,8 +25,14 @@ class DeviceImage {
 
   virtual ~DeviceImage() = default;
 
+  // Accessors.
+  const std::string& name() const { return name_; }
+
  protected:
-  DeviceImage() = default;
+  explicit DeviceImage(absl::string_view name) : name_{name} {}
+
+ private:
+  const std::string name_;
 };
 
 struct SamplerDescriptor {

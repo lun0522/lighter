@@ -26,6 +26,8 @@ constexpr VkAccessFlags kNullAccessFlag = 0;
 VkAccessFlags GetReadWriteFlags(AccessType access_type,
                                 VkAccessFlagBits read_flag,
                                 VkAccessFlagBits write_flag) {
+  ASSERT_FALSE(access_type == AccessType::kDontCare,
+               "Access type not specified");
   VkAccessFlags access_flags = kNullAccessFlag;
   if (access_type == AccessType::kReadOnly ||
       access_type == AccessType::kReadWrite) {
@@ -56,6 +58,9 @@ VkImageUsageFlagBits GetImageUsageFlagBits(const ImageUsage& usage) {
     case UsageType::kLinearAccess:
       return VK_IMAGE_USAGE_STORAGE_BIT;
 
+    case UsageType::kInputAttachment:
+      return VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+
     case UsageType::kSample:
       return VK_IMAGE_USAGE_SAMPLED_BIT;
 
@@ -85,23 +90,15 @@ VkAccessFlags GetAccessFlags(const ImageUsage& usage) {
       return kNullAccessFlag;
 
     case UsageType::kRenderTarget:
+    case UsageType::kMultisampleResolve:
       return GetReadWriteFlags(access_type,
                                VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
                                VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 
     case UsageType::kDepthStencil:
-      ASSERT_FALSE(access_type == AccessType::kDontCare,
-                   "Access type must not be kDontCare for usage type "
-                   "kDepthStencil");
       return GetReadWriteFlags(access_type,
                                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
                                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
-
-    case UsageType::kMultisampleResolve:
-      ASSERT_TRUE(access_type == AccessType::kWriteOnly,
-                  "Access type must be kWriteOnly for usage type "
-                  "kMultisampleResolve");
-      return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
     case UsageType::kLinearAccess:
     case UsageType::kSample:
@@ -112,6 +109,9 @@ VkAccessFlags GetAccessFlags(const ImageUsage& usage) {
                  : GetReadWriteFlags(access_type,
                                      VK_ACCESS_SHADER_READ_BIT,
                                      VK_ACCESS_SHADER_WRITE_BIT);
+
+    case UsageType::kInputAttachment:
+      return VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
 
     case UsageType::kTransfer:
       return GetReadWriteFlags(access_type,
@@ -135,6 +135,7 @@ VkPipelineStageFlags GetPipelineStageFlags(const ImageUsage& usage) {
                  | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
 
     case UsageType::kLinearAccess:
+    case UsageType::kInputAttachment:
     case UsageType::kSample:
       switch (usage.access_location()) {
         case AccessLocation::kDontCare:
@@ -176,6 +177,7 @@ VkImageLayout GetImageLayout(const ImageUsage& usage) {
     case UsageType::kLinearAccess:
       return VK_IMAGE_LAYOUT_GENERAL;
 
+    case UsageType::kInputAttachment:
     case UsageType::kSample:
       return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
@@ -211,6 +213,7 @@ absl::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
       return queue_family_indices.graphics;
 
     case UsageType::kLinearAccess:
+    case UsageType::kInputAttachment:
     case UsageType::kSample:
       switch (usage.access_location()) {
         case AccessLocation::kDontCare:

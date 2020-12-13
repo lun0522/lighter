@@ -120,10 +120,12 @@ Swapchain::Swapchain(SharedContext context, int window_index,
 
   // For swapchain images, we don't expect complicated operations, but being
   // rendered to (or resolved to) and then presented to screen.
+  // Arbitrary 'attachment_location' would work for image creation.
   const bool use_multisampling = multisampling_mode != MultisamplingMode::kNone;
   const std::vector<ImageUsage> swapchain_image_usages{
       use_multisampling ? ImageUsage::GetMultisampleResolveTargetUsage()
-                        : ImageUsage::GetRenderTargetUsage(),
+                        : ImageUsage::GetRenderTargetUsage(
+                              /*attachment_location=*/0),
       ImageUsage::GetPresentationUsage()};
 
   // Only graphics queue and presentation queue would access swapchain images.
@@ -174,16 +176,18 @@ Swapchain::Swapchain(SharedContext context, int window_index,
   );
   swapchain_images_.reserve(images.size());
   for (const auto& image : images) {
-    swapchain_images_.push_back(
-        absl::make_unique<DeviceImage>(context_, image));
+    swapchain_images_.push_back(absl::make_unique<DeviceImage>(
+        context_, "Swapchain single sample", image));
   }
 
   // Create a multisample image if multisampling is enabled.
   if (use_multisampling) {
-    const auto usages = {ImageUsage::GetRenderTargetUsage()};
+    // Arbitrary 'attachment_location' would work for image creation.
+    const auto usages =
+        {ImageUsage::GetRenderTargetUsage(/*attachment_location=*/0)};
     multisample_image_ = absl::make_unique<DeviceImage>(
-        context_, surface_format.format, image_extent, kSingleMipLevel,
-        kSingleImageLayer, multisampling_mode, usages);
+        context_, "Swapchain multisample", surface_format.format, image_extent,
+        kSingleMipLevel, kSingleImageLayer, multisampling_mode, usages);
   }
 }
 

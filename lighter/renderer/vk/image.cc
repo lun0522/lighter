@@ -43,12 +43,12 @@ absl::optional<VkFormat> FindImageFormatWithFeature(
 }
 
 VkFormat ChooseColorImageFormat(const Context& context, int channel,
+                                bool high_precision,
                                 absl::Span<const ImageUsage> usages) {
   switch (channel) {
     case common::image::kBwImageChannel: {
-      const bool use_high_precision = ImageUsage::UseHighPrecision(usages);
-      const VkFormat best_format =
-          use_high_precision ? VK_FORMAT_R16_SFLOAT : VK_FORMAT_R8_UNORM;
+      const VkFormat best_format = high_precision ? VK_FORMAT_R16_SFLOAT
+                                                  : VK_FORMAT_R8_UNORM;
       if (!ImageUsage::IsLinearAccessed(usages)) {
         return best_format;
       }
@@ -65,17 +65,14 @@ VkFormat ChooseColorImageFormat(const Context& context, int channel,
         LOG_INFO << "The single channel image format does not support linear "
                     "access, use the 4-channel format instead";
 #endif /* !NDEBUG */
-        return use_high_precision ? VK_FORMAT_R16G16B16A16_SFLOAT
-                                  : VK_FORMAT_R8G8B8A8_UNORM;
+        return high_precision ? VK_FORMAT_R16G16B16A16_SFLOAT
+                              : VK_FORMAT_R8G8B8A8_UNORM;
       }
     }
 
     case common::image::kRgbaImageChannel:
-      if (ImageUsage::UseHighPrecision(usages)) {
-        return VK_FORMAT_R16G16B16A16_SFLOAT;
-      } else {
-        return VK_FORMAT_R8G8B8A8_UNORM;
-      }
+      return high_precision ? VK_FORMAT_R16G16B16A16_SFLOAT
+                            : VK_FORMAT_R8G8B8A8_UNORM;
 
     default:
       FATAL(absl::StrFormat(
@@ -187,44 +184,46 @@ VkDeviceMemory CreateImageMemory(const Context& context, const VkImage& image,
 } /* namespace */
 
 std::unique_ptr<DeviceImage> DeviceImage::CreateColorImage(
-    SharedContext context, const common::Image::Dimension& dimension,
-    MultisamplingMode multisampling_mode,
+    SharedContext context, absl::string_view name,
+    const common::Image::Dimension& dimension,
+    MultisamplingMode multisampling_mode, bool high_precision,
     absl::Span<const ImageUsage> usages) {
-  const VkFormat format =
-      ChooseColorImageFormat(*context, dimension.channel, usages);
+  const VkFormat format = ChooseColorImageFormat(*context, dimension.channel,
+                                                 high_precision, usages);
   return absl::make_unique<DeviceImage>(
-      std::move(context), format, ExtractExtent(dimension), kSingleMipLevel,
-      CAST_TO_UINT(dimension.layer), multisampling_mode, usages);
+      std::move(context), name, format, ExtractExtent(dimension),
+      kSingleMipLevel, CAST_TO_UINT(dimension.layer), multisampling_mode,
+      usages);
 }
 
 std::unique_ptr<DeviceImage> DeviceImage::CreateColorImage(
-    SharedContext context, const common::Image& image, bool generate_mipmaps,
-    absl::Span<const ImageUsage> usages) {
+    SharedContext context, absl::string_view name, const common::Image& image,
+    bool generate_mipmaps, absl::Span<const ImageUsage> usages) {
   const auto& dimension = image.dimension();
-  const VkFormat format =
-      ChooseColorImageFormat(*context, dimension.channel, usages);
+  const VkFormat format = ChooseColorImageFormat(
+      *context, dimension.channel, /*high_precision=*/false, usages);
   // TODO: Generate mipmaps and change mip_levels.
   return absl::make_unique<DeviceImage>(
-      std::move(context), format, ExtractExtent(dimension), kSingleMipLevel,
-      CAST_TO_UINT(dimension.layer), MultisamplingMode::kNone, usages);
+      std::move(context), name, format, ExtractExtent(dimension),
+      kSingleMipLevel, CAST_TO_UINT(dimension.layer), MultisamplingMode::kNone,
+      usages);
 }
 
 std::unique_ptr<DeviceImage> DeviceImage::CreateDepthStencilImage(
-    SharedContext context, const VkExtent2D& extent,
+    SharedContext context, absl::string_view name, const VkExtent2D& extent,
     MultisamplingMode multisampling_mode,
     absl::Span<const ImageUsage> usages) {
   const VkFormat format = ChooseDepthStencilImageFormat(*context);
   return absl::make_unique<DeviceImage>(
-      std::move(context), format, extent, kSingleMipLevel, kSingleImageLayer,
-      multisampling_mode, usages);
+      std::move(context), name, format, extent, kSingleMipLevel,
+      kSingleImageLayer, multisampling_mode, usages);
 }
 
-DeviceImage::DeviceImage(SharedContext context, VkFormat format,
-                         const VkExtent2D& extent, uint32_t mip_levels,
-                         uint32_t layer_count,
-                         MultisamplingMode multisampling_mode,
-                         absl::Span<const ImageUsage> usages)
-    : context_{std::move(FATAL_IF_NULL(context))} {
+DeviceImage::DeviceImage(
+    SharedContext context, absl::string_view name, VkFormat format,
+    const VkExtent2D& extent, uint32_t mip_levels, uint32_t layer_count,
+    MultisamplingMode multisampling_mode, absl::Span<const ImageUsage> usages)
+    : renderer::DeviceImage{name}, context_{std::move(FATAL_IF_NULL(context))} {
   VkImageCreateFlags create_flags = nullflag;
   if (layer_count == kCubemapImageLayer) {
     create_flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;

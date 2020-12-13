@@ -16,6 +16,7 @@
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/context.h"
+#include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -26,26 +27,29 @@ namespace vk {
 class DeviceImage : public renderer::DeviceImage {
  public:
   static std::unique_ptr<DeviceImage> CreateColorImage(
-      SharedContext context, const common::Image::Dimension& dimension,
-      MultisamplingMode multisampling_mode,
+      SharedContext context, absl::string_view name,
+      const common::Image::Dimension& dimension,
+      MultisamplingMode multisampling_mode, bool high_precision,
       absl::Span<const ImageUsage> usages);
 
   static std::unique_ptr<DeviceImage> CreateColorImage(
-      SharedContext context, const common::Image& image, bool generate_mipmaps,
-      absl::Span<const ImageUsage> usages);
+      SharedContext context, absl::string_view name, const common::Image& image,
+      bool generate_mipmaps, absl::Span<const ImageUsage> usages);
 
   static std::unique_ptr<DeviceImage> CreateDepthStencilImage(
-      SharedContext context, const VkExtent2D& extent,
+      SharedContext context, absl::string_view name, const VkExtent2D& extent,
       MultisamplingMode multisampling_mode,
       absl::Span<const ImageUsage> usages);
 
-  DeviceImage(SharedContext context, VkFormat format, const VkExtent2D& extent,
-              uint32_t mip_levels, uint32_t layer_count,
-              MultisamplingMode multisampling_mode,
+  DeviceImage(SharedContext context, absl::string_view name,
+              VkFormat format, const VkExtent2D& extent, uint32_t mip_levels,
+              uint32_t layer_count, MultisamplingMode multisampling_mode,
               absl::Span<const ImageUsage> usages);
 
-  DeviceImage(SharedContext context, const VkImage& image)
-      : context_{std::move(FATAL_IF_NULL(context))}, image_{image} {}
+  DeviceImage(SharedContext context, absl::string_view name,
+              const VkImage& image)
+      : renderer::DeviceImage{name},
+        context_{std::move(FATAL_IF_NULL(context))}, image_{image} {}
 
   // This class is neither copyable nor movable.
   DeviceImage(const DeviceImage&) = delete;
