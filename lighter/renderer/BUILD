@@ -55,6 +55,7 @@ cc_library(
     deps = [
         ":image",
         ":image_usage",
+        ":pipeline",
         ":type",
         "//lighter/common:util",
         "//third_party:absl",
@@ -70,6 +71,7 @@ cc_library(
     srcs = ["pipeline_util.cc"],
     deps = [
         ":buffer",
+        ":image",
         ":type",
         "//lighter/common:util",
         "//third_party:absl",

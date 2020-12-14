@@ -57,6 +57,27 @@ enum class SamplerAddressMode {
 
 enum class MultisamplingMode { kNone, kDecent, kBest };
 
+enum class BlendFactor {
+  kZero,
+  kOne,
+  kSrcColor,
+  kOneMinusSrcColor,
+  kDstColor,
+  kOneMinusDstColor,
+  kSrcAlpha,
+  kOneMinusSrcAlpha,
+  kDstAlpha,
+  kOneMinusDstAlpha,
+};
+
+enum class BlendOp {
+  kAdd,
+  kSubtract,
+  kReverseSubtract,
+  kMin,
+  kMax,
+};
+
 enum class CompareOp {
   kNeverPass,
   kLess,

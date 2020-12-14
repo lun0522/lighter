@@ -12,10 +12,13 @@
 
 #include "lighter/common/ref_count.h"
 #include "lighter/common/util.h"
+#include "lighter/renderer/image.h"
+#include "lighter/renderer/pass.h"
 #include "lighter/renderer/pipeline.h"
 #include "lighter/renderer/vk/context.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/string_view.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
@@ -60,7 +63,9 @@ class ShaderModule {
 class Pipeline : public renderer::Pipeline {
  public:
   Pipeline(SharedContext context, const GraphicsPipelineDescriptor& descriptor,
-           const VkRenderPass& render_pass, int subpass_index);
+           const VkRenderPass& render_pass, int subpass_index,
+           absl::Span<const PassDescriptor::ImageAndUsage>
+               attachments_and_usages);
 
   Pipeline(SharedContext context, const ComputePipelineDescriptor& descriptor);
 

@@ -20,6 +20,10 @@ VkVertexInputRate ConvertVertexInputRate(VertexInputRate rate);
 
 VkFormat ConvertDataFormat(DataFormat format);
 
+VkBlendFactor ConvertBlendFactor(BlendFactor factor);
+
+VkBlendOp ConvertBlendOp(BlendOp op);
+
 VkCompareOp ConvertCompareOp(CompareOp op);
 
 VkStencilOp ConvertStencilOp(StencilOp op);

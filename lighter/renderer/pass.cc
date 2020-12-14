@@ -33,8 +33,7 @@ std::vector<const DeviceImage*> ExtractImages(
 
 } /* namespace */
 
-BasePassDescriptor::BasePassDescriptor(
-    absl::Span<const DeviceImage* const> images) {
+PassDescriptor::PassDescriptor(absl::Span<const DeviceImage* const> images) {
   for (const DeviceImage* image : images) {
     FATAL_IF_NULL(image);
     ASSERT_TRUE(image_usage_history_map_.find(image) ==
@@ -44,7 +43,7 @@ BasePassDescriptor::BasePassDescriptor(
   }
 }
 
-void BasePassDescriptor::AddSubpass(
+void PassDescriptor::AddSubpass(
     absl::Span<const ImageAndUsage> images_and_usages) {
   for (const ImageAndUsage& image_and_usage : images_and_usages) {
     auto iter = image_usage_history_map_.find(&image_and_usage.image);
@@ -58,22 +57,23 @@ GraphicsPassDescriptor::GraphicsPassDescriptor(
     absl::Span<const ColorAttachment> color_attachments,
     absl::Span<const DepthStencilAttachment> depth_stencil_attachments,
     absl::Span<const DeviceImage* const> other_images)
-    : BasePassDescriptor{ExtractImages(
-          color_attachments, depth_stencil_attachments, other_images)} {
+    : PassDescriptor{ExtractImages(color_attachments, depth_stencil_attachments,
+                                   other_images)} {
   for (const auto& attachment : color_attachments) {
-    color_ops_map_.insert({&attachment.image, attachment.color_ops});
+    color_ops_map_.insert({&attachment.image, attachment.load_store_ops});
   }
   for (const auto& attachment : depth_stencil_attachments) {
-    depth_ops_map_.insert({&attachment.image, attachment.depth_ops});
-    stencil_ops_map_.insert({&attachment.image, attachment.stencil_ops});
+    depth_stencil_ops_map_.insert({&attachment.image,
+                                   attachment.load_store_ops});
   }
 }
 
 GraphicsPassDescriptor& GraphicsPassDescriptor::AddSubpass(
     absl::Span<const ImageAndUsage> images_and_usages,
-    absl::Span<const MultisamplingResolve> resolves) {
-  BasePassDescriptor::AddSubpass(images_and_usages);
-  for (const auto& resolve : resolves) {
+    absl::Span<const MultisamplingResolve> multisampling_resolves,
+    absl::Span<const GraphicsPipelineDescriptor> pipeline_descriptors) {
+  PassDescriptor::AddSubpass(images_and_usages);
+  for (const auto& resolve : multisampling_resolves) {
     for (const auto* image : {&resolve.source_image, &resolve.target_image}) {
       ASSERT_FALSE(image_usage_history_map().find(image) ==
                        image_usage_history_map().end(),
@@ -81,7 +81,8 @@ GraphicsPassDescriptor& GraphicsPassDescriptor::AddSubpass(
                                    image->name()));
     }
   }
-  multisampling_resolves_.emplace_back(resolves.begin(), resolves.end());
+  multisampling_resolves_.emplace_back(multisampling_resolves.begin(),
+                                       multisampling_resolves.end());
   return *this;
 }
 

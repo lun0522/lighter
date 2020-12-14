@@ -133,7 +133,7 @@ std::unique_ptr<RenderPassBuilder> NaiveRenderPass::CreateBuilder(
                            ImageUsage::GetMultisampleResolveTargetUsage());
         } else {
           history.AddUsage(first_subpass, last_subpass,
-                           ImageUsage::GetRenderTargetUsage());
+                           ImageUsage::GetRenderTargetUsage(0));
         }
       });
 
@@ -142,7 +142,7 @@ std::unique_ptr<RenderPassBuilder> NaiveRenderPass::CreateBuilder(
         *multisampling_attachment_config, graphics_pass, image_usage_tracker,
         get_location, /*populate_history=*/[&](ImageUsageHistory& history) {
           history.AddUsage(first_subpass, last_subpass,
-                           ImageUsage::GetRenderTargetUsage());
+                           ImageUsage::GetRenderTargetUsage(0));
         });
     graphics_pass.AddMultisampleResolving(
         multisampling_attachment_config->image_name,

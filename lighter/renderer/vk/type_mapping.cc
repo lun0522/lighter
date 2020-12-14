@@ -36,6 +36,46 @@ VkFormat ConvertDataFormat(DataFormat format) {
   }
 }
 
+VkBlendFactor ConvertBlendFactor(BlendFactor factor) {
+  switch (factor) {
+    case BlendFactor::kZero:
+      return VK_BLEND_FACTOR_ZERO;
+    case BlendFactor::kOne:
+      return VK_BLEND_FACTOR_ONE;
+    case BlendFactor::kSrcColor:
+      return VK_BLEND_FACTOR_SRC_COLOR;
+    case BlendFactor::kOneMinusSrcColor:
+      return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+    case BlendFactor::kDstColor:
+      return VK_BLEND_FACTOR_DST_COLOR;
+    case BlendFactor::kOneMinusDstColor:
+      return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+    case BlendFactor::kSrcAlpha:
+      return VK_BLEND_FACTOR_SRC_ALPHA;
+    case BlendFactor::kOneMinusSrcAlpha:
+      return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    case BlendFactor::kDstAlpha:
+      return VK_BLEND_FACTOR_DST_ALPHA;
+    case BlendFactor::kOneMinusDstAlpha:
+      return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+  }
+}
+
+VkBlendOp ConvertBlendOp(BlendOp op) {
+  switch (op) {
+    case BlendOp::kAdd:
+      return VK_BLEND_OP_ADD;
+    case BlendOp::kSubtract:
+      return VK_BLEND_OP_SUBTRACT;
+    case BlendOp::kReverseSubtract:
+      return VK_BLEND_OP_REVERSE_SUBTRACT;
+    case BlendOp::kMin:
+      return VK_BLEND_OP_MIN;
+    case BlendOp::kMax:
+      return VK_BLEND_OP_MAX;
+  }
+}
+
 VkCompareOp ConvertCompareOp(CompareOp op) {
   switch (op) {
     case CompareOp::kNeverPass:

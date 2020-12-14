@@ -10,9 +10,11 @@
 #include <vector>
 
 #include "lighter/common/file.h"
+#include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vk/type_mapping.h"
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/memory/memory.h"
+#include "third_party/absl/strings/str_format.h"
 
 namespace lighter {
 namespace renderer {
@@ -267,9 +269,47 @@ VkPipelineDepthStencilStateCreateInfo CreateDepthStencilInfo(
 }
 
 std::vector<VkPipelineColorBlendAttachmentState> CreateColorBlendStates(
-    const GraphicsPipelineDescriptor& descriptor) {
-  // TODO
-  return {};
+    const GraphicsPipelineDescriptor& descriptor,
+    absl::Span<const PassDescriptor::ImageAndUsage> attachments_and_usages) {
+  const VkPipelineColorBlendAttachmentState
+      disabled_state{/*blendEnable=*/VK_FALSE};
+  std::vector<VkPipelineColorBlendAttachmentState> color_blend_states(
+      attachments_and_usages.size(), disabled_state);
+  for (int i = 0; i < attachments_and_usages.size(); ++i) {
+    // Skip images that are not render targets.
+    const DeviceImage& image = attachments_and_usages[i].image;
+    if (attachments_and_usages[i].usage.usage_type() !=
+        ImageUsage::UsageType::kRenderTarget) {
+      ASSERT_FALSE(descriptor.color_blend_map.contains(&image),
+                   absl::StrFormat("Image '%s' is not render target, hence "
+                                   "cannot have color blend state",
+                                   image.name()));
+      continue;
+    }
+
+    // Skip render targets whose color blend states are not specified.
+    const auto iter = descriptor.color_blend_map.find(&image);
+    if (iter == descriptor.color_blend_map.end()) {
+      continue;
+    }
+
+    const auto& color_blend = iter->second;
+    color_blend_states[i] = {
+        /*blendEnable=*/VK_TRUE,
+        type::ConvertBlendFactor(color_blend.src_color_blend_factor),
+        type::ConvertBlendFactor(color_blend.dst_color_blend_factor),
+        type::ConvertBlendOp(color_blend.color_blend_op),
+        type::ConvertBlendFactor(color_blend.src_alpha_blend_factor),
+        type::ConvertBlendFactor(color_blend.dst_alpha_blend_factor),
+        type::ConvertBlendOp(color_blend.alpha_blend_op),
+        /*colorWriteMask=*/
+        VK_COLOR_COMPONENT_R_BIT
+            | VK_COLOR_COMPONENT_G_BIT
+            | VK_COLOR_COMPONENT_B_BIT
+            | VK_COLOR_COMPONENT_A_BIT,
+    };
+  }
+  return color_blend_states;
 }
 
 VkPipelineColorBlendStateCreateInfo CreateColorBlendInfo(
@@ -316,7 +356,9 @@ ShaderModule::ShaderModule(SharedContext context, absl::string_view file_path)
 
 Pipeline::Pipeline(SharedContext context,
                    const GraphicsPipelineDescriptor& descriptor,
-                   const VkRenderPass& render_pass, int subpass_index)
+                   const VkRenderPass& render_pass, int subpass_index,
+                   absl::Span<const PassDescriptor::ImageAndUsage>
+                       attachments_and_usages)
     : Pipeline{std::move(context), descriptor.pipeline_name,
                VK_PIPELINE_BIND_POINT_GRAPHICS} {
   const auto shader_stages = CreateShaderStages(context_,
@@ -334,7 +376,8 @@ Pipeline::Pipeline(SharedContext context,
   const auto scissor = CreateScissor(descriptor);
   const auto viewport_info = CreateViewportInfo(&viewport, &scissor);
 
-  const auto color_blend_states = CreateColorBlendStates(descriptor);
+  const auto color_blend_states =
+      CreateColorBlendStates(descriptor, attachments_and_usages);
   const auto color_blend_info = CreateColorBlendInfo(&color_blend_states);
 
   const auto input_assembly_info = CreateInputAssemblyInfo(descriptor);

@@ -77,7 +77,7 @@ std::unique_ptr<RenderPassBuilder> CreateRenderPassBuilder(
     const SharedBasicContext& context) {
   ImageUsageHistory usage_history{ImageUsage{}};
   usage_history
-      .AddUsage(kTextSubpassIndex, ImageUsage::GetRenderTargetUsage())
+      .AddUsage(kTextSubpassIndex, ImageUsage::GetRenderTargetUsage(0))
       .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
 
   GraphicsPass graphics_pass{context, kNumSubpasses};
@@ -159,7 +159,7 @@ CharLoader::CharLoader(const SharedBasicContext& context,
     const common::CharLib char_lib{
         texts, GetFontPath(font), font_height, /*flip_y=*/true};
     const int interval_between_chars = GetIntervalBetweenChars(char_lib);
-    const auto image_usages = {ImageUsage::GetRenderTargetUsage(),
+    const auto image_usages = {ImageUsage::GetRenderTargetUsage(0),
                                ImageUsage::GetSampledInFragmentShaderUsage()};
     char_atlas_image_ = absl::make_unique<OffscreenImage>(
         context, GetCharAtlasImageExtent(char_lib, interval_between_chars),
@@ -371,7 +371,7 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
       static_cast<uint32_t>(font_height),
   };
   const float base_y = highest_base_y;
-  const auto image_usages = {ImageUsage::GetRenderTargetUsage(),
+  const auto image_usages = {ImageUsage::GetRenderTargetUsage(0),
                              ImageUsage::GetSampledInFragmentShaderUsage()};
   auto text_image = absl::make_unique<OffscreenImage>(
       context, text_image_extent, common::image::kBwImageChannel, image_usages,

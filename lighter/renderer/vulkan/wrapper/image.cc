@@ -72,7 +72,7 @@ VkFormat FindColorImageFormat(
       // sampling, but may not support linear access. We may switch to 4-channel
       // formats since they have mandatory support for both.
       VkFormat best_format, alternative_format;
-      if (ImageUsage::UseHighPrecision(usages)) {
+      if (true) {
         best_format = VK_FORMAT_R16_SFLOAT;
         alternative_format = VK_FORMAT_R16G16B16A16_SFLOAT;
       } else {
@@ -96,7 +96,7 @@ VkFormat FindColorImageFormat(
     }
 
     case common::image::kRgbaImageChannel:
-      if (ImageUsage::UseHighPrecision(usages)) {
+      if (true) {
         return VK_FORMAT_R16G16B16A16_SFLOAT;
       } else {
         return VK_FORMAT_R8G8B8A8_UNORM;

@@ -13,6 +13,7 @@
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/buffer.h"
+#include "lighter/renderer/image.h"
 #include "lighter/renderer/type.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/strings/string_view.h"
@@ -23,7 +24,7 @@ namespace renderer {
 
 class Pipeline {
  public:
-  Pipeline(absl::string_view name) : name_{name} {}
+  explicit Pipeline(absl::string_view name) : name_{name} {}
 
   // This class is neither copyable nor movable.
   Pipeline(const Pipeline&) = delete;
@@ -52,6 +53,15 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
   // Paths to shaders used at each stage.
   using ShaderPathMap = absl::flat_hash_map<shader_stage::ShaderStage,
                                             std::string>;
+
+  struct ColorBlend {
+    BlendFactor src_color_blend_factor;
+    BlendFactor dst_color_blend_factor;
+    BlendOp color_blend_op;
+    BlendFactor src_alpha_blend_factor;
+    BlendFactor dst_alpha_blend_factor;
+    BlendOp alpha_blend_op;
+  };
 
   struct DepthTest {
     bool enable_test;
@@ -112,6 +122,12 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
     vertex_buffer_views.push_back(std::move(buffer_view));
     return *this;
   }
+  GraphicsPipelineDescriptor& AddColorBlend(const DeviceImage* attachment,
+                                            const ColorBlend& color_blend) {
+    FATAL_IF_NULL(attachment);
+    color_blend_map[attachment] = color_blend;
+    return *this;
+  }
   GraphicsPipelineDescriptor& EnableDepthTestOnly(
       CompareOp compare_op = CompareOp::kLessEqual) {
     depth_test = {/*enable_test=*/true, /*enable_write=*/false, compare_op};
@@ -143,6 +159,7 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
 
   absl::flat_hash_map<shader_stage::ShaderStage, std::string> shader_path_map;
   std::vector<VertexBufferView> vertex_buffer_views;
+  absl::flat_hash_map<const DeviceImage*, ColorBlend> color_blend_map;
   DepthTest depth_test;
   StencilTest stencil_test;
   ViewportConfig viewport_config;
