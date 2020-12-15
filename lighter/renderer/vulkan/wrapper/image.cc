@@ -50,7 +50,7 @@ absl::optional<VkFormat> FindImageFormatWithFeature(
     const BasicContext& context,
     absl::Span<const VkFormat> candidates,
     VkFormatFeatureFlags features) {
-  for (auto format : candidates) {
+  for (const auto format : candidates) {
     VkFormatProperties properties;
     vkGetPhysicalDeviceFormatProperties(*context.physical_device(),
                                         format, &properties);
@@ -120,12 +120,12 @@ VkFormat FindDepthStencilImageFormat(const BasicContext& context) {
 
 // Returns the maximum number of samples per pixel indicated by 'sample_counts'.
 VkSampleCountFlagBits GetMaxSampleCount(VkSampleCountFlags sample_counts) {
-  for (auto count : {VK_SAMPLE_COUNT_64_BIT,
-                     VK_SAMPLE_COUNT_32_BIT,
-                     VK_SAMPLE_COUNT_16_BIT,
-                     VK_SAMPLE_COUNT_8_BIT,
-                     VK_SAMPLE_COUNT_4_BIT,
-                     VK_SAMPLE_COUNT_2_BIT}) {
+  for (const auto count : {VK_SAMPLE_COUNT_64_BIT,
+                           VK_SAMPLE_COUNT_32_BIT,
+                           VK_SAMPLE_COUNT_16_BIT,
+                           VK_SAMPLE_COUNT_8_BIT,
+                           VK_SAMPLE_COUNT_4_BIT,
+                           VK_SAMPLE_COUNT_2_BIT}) {
     if (sample_counts & count) {
       return count;
     }

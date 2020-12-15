@@ -253,7 +253,7 @@ glm::vec2 DynamicText::AddText(const std::string& text, float height,
       glm::vec2{char_loader_.GetAspectRatio() / viewport_aspect_ratio(), 1.0f} *
       (height / 1.0f));
   float total_width_in_tex_coord = 0.0f;
-  for (auto character : text) {
+  for (const auto character : text) {
     if (character == ' ') {
       total_width_in_tex_coord += char_loader_.space_advance();
     } else {

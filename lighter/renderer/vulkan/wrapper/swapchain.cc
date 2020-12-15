@@ -48,7 +48,7 @@ VkPresentModeKHR ChoosePresentMode(
   // some drivers. we will prefer MAILBOX and IMMEDIATE mode over it.
   VkPresentModeKHR best_mode = VK_PRESENT_MODE_FIFO_KHR;
 
-  for (auto candidate : available) {
+  for (const auto candidate : available) {
     switch (candidate) {
       case VK_PRESENT_MODE_MAILBOX_KHR:
         return candidate;

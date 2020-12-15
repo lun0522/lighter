@@ -23,7 +23,7 @@ CharLib::CharLib(absl::Span<const std::string> texts,
   FT_Set_Pixel_Sizes(face, /*pixel_width=*/0, font_height);
 
   for (const auto& text : texts) {
-    for (auto character : text) {
+    for (const auto character : text) {
       if (char_info_map_.contains(character)) {
         continue;
       }

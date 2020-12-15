@@ -21,6 +21,8 @@ namespace renderer {
 namespace vk {
 namespace {
 
+using ImageAndUsage = PassDescriptor::ImageAndUsage;
+
 // Contains a loaded shader 'module' that will be used at 'stage'.
 struct ShaderStage {
   VkShaderStageFlagBits stage;
@@ -218,19 +220,24 @@ VkPipelineRasterizationStateCreateInfo CreateRasterizationInfo(
 }
 
 VkPipelineMultisampleStateCreateInfo CreateMultisampleInfo(
-    const GraphicsPipelineDescriptor& descriptor) {
-  // TODO
-  return {
-      VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
-      /*rasterizationSamples=*/VK_SAMPLE_COUNT_1_BIT,
-      /*sampleShadingEnable=*/VK_FALSE,
-      /*minSampleShading=*/0.0f,
-      /*pSampleMask=*/nullptr,
-      /*alphaToCoverageEnable=*/VK_FALSE,
-      /*alphaToOneEnable=*/VK_FALSE,
-  };
+    absl::Span<const ImageAndUsage> attachments_and_usages) {
+  for (const auto& attachment_and_usage : attachments_and_usages) {
+    if (attachment_and_usage.usage.usage_type() ==
+        ImageUsage::UsageType::kRenderTarget) {
+      return {
+          VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+          /*pNext=*/nullptr,
+          /*flags=*/nullflag,
+          type::ConvertSampleCount(attachment_and_usage.image.sample_count()),
+          /*sampleShadingEnable=*/VK_FALSE,
+          /*minSampleShading=*/0.0f,
+          /*pSampleMask=*/nullptr,
+          /*alphaToCoverageEnable=*/VK_FALSE,
+          /*alphaToOneEnable=*/VK_FALSE,
+      };
+    }
+  }
+  FATAL("No render target found");
 }
 
 VkStencilOpState CreateStencilOp(
@@ -270,7 +277,7 @@ VkPipelineDepthStencilStateCreateInfo CreateDepthStencilInfo(
 
 std::vector<VkPipelineColorBlendAttachmentState> CreateColorBlendStates(
     const GraphicsPipelineDescriptor& descriptor,
-    absl::Span<const PassDescriptor::ImageAndUsage> attachments_and_usages) {
+    absl::Span<const ImageAndUsage> attachments_and_usages) {
   const VkPipelineColorBlendAttachmentState
       disabled_state{/*blendEnable=*/VK_FALSE};
   std::vector<VkPipelineColorBlendAttachmentState> color_blend_states(
@@ -357,8 +364,7 @@ ShaderModule::ShaderModule(SharedContext context, absl::string_view file_path)
 Pipeline::Pipeline(SharedContext context,
                    const GraphicsPipelineDescriptor& descriptor,
                    const VkRenderPass& render_pass, int subpass_index,
-                   absl::Span<const PassDescriptor::ImageAndUsage>
-                       attachments_and_usages)
+                   absl::Span<const ImageAndUsage> attachments_and_usages)
     : Pipeline{std::move(context), descriptor.pipeline_name,
                VK_PIPELINE_BIND_POINT_GRAPHICS} {
   const auto shader_stages = CreateShaderStages(context_,
@@ -382,7 +388,7 @@ Pipeline::Pipeline(SharedContext context,
 
   const auto input_assembly_info = CreateInputAssemblyInfo(descriptor);
   const auto rasterization_info = CreateRasterizationInfo(descriptor);
-  const auto multisample_info = CreateMultisampleInfo(descriptor);
+  const auto multisample_info = CreateMultisampleInfo(attachments_and_usages);
   const auto depth_stencil_info = CreateDepthStencilInfo(descriptor);
   const auto dynamic_state_info = CreateDynamicStateInfo();
 

@@ -284,7 +284,7 @@ std::unique_ptr<StaticPerVertexBuffer> CharLoader::CreateVertexBuffer(
     const std::vector<char>& char_merge_order) const {
   std::vector<Vertex2D> vertices;
   vertices.reserve(text::kNumVerticesPerRect * char_merge_order.size());
-  for (auto character : char_merge_order) {
+  for (const auto character : char_merge_order) {
     const auto& texture_info = char_texture_info_map_.find(character)->second;
     text::AppendCharPosAndTexCoord(
         /*pos_bottom_left=*/
@@ -348,7 +348,7 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
     DynamicPerVertexBuffer* vertex_buffer) const {
   float total_advance_x = 0.0f;
   float highest_base_y = 0.0f;
-  for (auto character : text) {
+  for (const auto character : text) {
     if (character == ' ') {
       total_advance_x += char_loader.space_advance();
     } else {
@@ -467,7 +467,7 @@ float LoadCharsVertexData(const std::string& text,
   float offset_x = initial_offset_x;
   vertices->reserve(
       vertices->size() + text::kNumVerticesPerRect * text.length());
-  for (auto character : text) {
+  for (const auto character : text) {
     if (character == ' ') {
       offset_x += char_loader.space_advance() * ratio.x;
       continue;

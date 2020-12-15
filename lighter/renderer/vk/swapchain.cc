@@ -14,7 +14,6 @@
 #include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/types/span.h"
-#include "third_party/glm/glm.hpp"
 
 namespace lighter {
 namespace renderer {
@@ -177,7 +176,7 @@ Swapchain::Swapchain(SharedContext context, int window_index,
   swapchain_images_.reserve(images.size());
   for (const auto& image : images) {
     swapchain_images_.push_back(absl::make_unique<DeviceImage>(
-        context_, "Swapchain single sample", image));
+        context_, "Swapchain single sample", image, SampleCount::k1));
   }
 
   // Create a multisample image if multisampling is enabled.

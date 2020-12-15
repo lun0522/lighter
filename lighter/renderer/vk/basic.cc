@@ -7,11 +7,14 @@
 
 #include "lighter/renderer/vk/basic.h"
 
+#include <algorithm>
 #include <string>
 
 #include "lighter/common/util.h"
+#include "lighter/renderer/pipeline_util.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/debug_callback.h"
+#include "lighter/renderer/vk/type_mapping.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/optional.h"
 
@@ -300,6 +303,23 @@ PhysicalDevice::PhysicalDevice(
       VkPhysicalDeviceProperties properties;
       vkGetPhysicalDeviceProperties(physical_device_, &properties);
       limits_ = properties.limits;
+
+      // Determine the sample count to use in each multisampling mode.
+      const VkSampleCountFlags supported_sample_counts = std::min({
+          limits_.framebufferColorSampleCounts,
+          limits_.framebufferDepthSampleCounts,
+          limits_.framebufferStencilSampleCounts,
+      });
+      const auto is_sample_count_supported =
+          [supported_sample_counts](SampleCount count) {
+            return supported_sample_counts & type::ConvertSampleCount(count);
+      };
+      for (const auto mode : {MultisamplingMode::kNone,
+                              MultisamplingMode::kDecent,
+                              MultisamplingMode::kBest}) {
+        sample_count_map_.insert(
+            {mode, pipeline::GetSampleCount(mode, is_sample_count_supported)});
+      }
 
       return;
     }

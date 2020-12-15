@@ -9,11 +9,28 @@
 #define LIGHTER_RENDERER_PIPELINE_UTIL_H
 
 #include "lighter/renderer/pipeline.h"
+#include "lighter/renderer/type.h"
+#include "third_party/absl/functional/function_ref.h"
 #include "third_party/glm/glm.hpp"
 
 namespace lighter {
 namespace renderer {
 namespace pipeline {
+
+// Returns the sample count to use when using 'multisampling_mode'.
+SampleCount GetSampleCount(
+    MultisamplingMode multisampling_mode,
+    absl::FunctionRef<bool(SampleCount)> is_sample_count_supported);
+
+// Returns the blend state that simply adds up source and destination colors.
+// This is used for single channel images that do not have alpha channels.
+GraphicsPipelineDescriptor::ColorBlend GetColorBlend();
+
+// Returns the blend state that gives:
+//   C = Cs * As + Cd * (1. - As)
+//   A = 1. * As + Ad * (1. - As)
+// Where: C - color, A - alpha, s - source, d - destination.
+GraphicsPipelineDescriptor::ColorBlend GetColorAlphaBlend();
 
 // Returns a stencil test that is never passed by any pixel, and does not write
 // anything to the stencil buffer.

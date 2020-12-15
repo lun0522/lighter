@@ -38,7 +38,9 @@ cc_library(
         ":util",
         "//lighter/common:util",
         "//lighter/common:window",
+        "//lighter/renderer:pipeline",
         "//lighter/renderer:type",
+        "//lighter/renderer/vk:type_mapping",
         "//third_party:absl",
         "//third_party:vulkan",
     ],
@@ -57,6 +59,7 @@ cc_library(
     deps = [
         ":buffer",
         ":context",
+        ":type_mapping",
         ":util",
         "//lighter/common:image",
         "//lighter/common:util",
@@ -133,7 +136,6 @@ cc_library(
         "//lighter/renderer:image_usage",
         "//lighter/renderer:type",
         "//third_party:absl",
-        "//third_party:glm",
         "//third_party:vulkan"
     ],
 )

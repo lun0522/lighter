@@ -11,8 +11,10 @@
 #include <vector>
 
 #include "lighter/common/window.h"
+#include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/container/flat_hash_set.h"
+#include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
@@ -126,6 +128,9 @@ struct PhysicalDevice {
     return queue_family_indices_;
   }
   const VkPhysicalDeviceLimits& limits() const { return limits_; }
+  SampleCount sample_count(MultisamplingMode mode) const {
+    return sample_count_map_.at(mode);
+  }
 
  private:
   // Context that holds basic wrapper objects.
@@ -139,6 +144,9 @@ struct PhysicalDevice {
 
   // Limits of the physical device.
   VkPhysicalDeviceLimits limits_;
+
+  // Maps multisampling modes to the sample count that should be chosen.
+  absl::flat_hash_map<MultisamplingMode, SampleCount> sample_count_map_;
 };
 
 // Wraps VkDevice, which interfaces with the physical device.

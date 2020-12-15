@@ -12,6 +12,7 @@
 
 #include "lighter/renderer/vk/buffer_util.h"
 #include "lighter/renderer/vk/image_util.h"
+#include "lighter/renderer/vk/type_mapping.h"
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/absl/memory/memory.h"
@@ -31,7 +32,7 @@ VkExtent2D ExtractExtent(const common::Image::Dimension& dimension) {
 absl::optional<VkFormat> FindImageFormatWithFeature(
     const Context& context, absl::Span<const VkFormat> candidates,
     VkFormatFeatureFlags features) {
-  for (auto format : candidates) {
+  for (const auto format : candidates) {
     VkFormatProperties properties;
     vkGetPhysicalDeviceFormatProperties(*context.physical_device(),
                                         format, &properties);
@@ -86,50 +87,6 @@ VkFormat ChooseDepthStencilImageFormat(const Context& context) {
       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
   ASSERT_HAS_VALUE(format, "Failed to find depth stencil image format");
   return format.value();
-}
-
-// Returns the maximum number of samples per pixel indicated by 'sample_counts'.
-VkSampleCountFlagBits GetMaxSampleCount(VkSampleCountFlags sample_counts) {
-  for (auto count : {VK_SAMPLE_COUNT_64_BIT,
-                     VK_SAMPLE_COUNT_32_BIT,
-                     VK_SAMPLE_COUNT_16_BIT,
-                     VK_SAMPLE_COUNT_8_BIT,
-                     VK_SAMPLE_COUNT_4_BIT,
-                     VK_SAMPLE_COUNT_2_BIT}) {
-    if (sample_counts & count) {
-      return count;
-    }
-  }
-  FATAL("Multisampling is not supported by hardware");
-}
-
-// Returns the number of samples per pixel chosen according to 'mode' and
-// physical device limits.
-VkSampleCountFlagBits ChooseSampleCount(const Context& context,
-                                        MultisamplingMode mode) {
-  if (mode == MultisamplingMode::kNone) {
-    return VK_SAMPLE_COUNT_1_BIT;
-  }
-
-  const VkPhysicalDeviceLimits& limits = context.physical_device().limits();
-  const VkSampleCountFlags sample_counts = std::min({
-      limits.framebufferColorSampleCounts,
-      limits.framebufferDepthSampleCounts,
-      limits.framebufferStencilSampleCounts,
-  });
-  const VkSampleCountFlagBits max_sample_count =
-      GetMaxSampleCount(sample_counts);
-
-  switch (mode) {
-    case MultisamplingMode::kNone:
-      FATAL("Not reachable");
-
-    case MultisamplingMode::kDecent:
-      return std::min(VK_SAMPLE_COUNT_4_BIT, max_sample_count);
-
-    case MultisamplingMode::kBest:
-      return max_sample_count;
-  }
 }
 
 // Creates an image.
@@ -223,7 +180,10 @@ DeviceImage::DeviceImage(
     SharedContext context, absl::string_view name, VkFormat format,
     const VkExtent2D& extent, uint32_t mip_levels, uint32_t layer_count,
     MultisamplingMode multisampling_mode, absl::Span<const ImageUsage> usages)
-    : renderer::DeviceImage{name}, context_{std::move(FATAL_IF_NULL(context))} {
+    : renderer::DeviceImage{
+          name, FATAL_IF_NULL(context)->physical_device().sample_count(
+                    multisampling_mode)},
+      context_{std::move(context)} {
   VkImageCreateFlags create_flags = nullflag;
   if (layer_count == kCubemapImageLayer) {
     create_flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
@@ -249,7 +209,7 @@ DeviceImage::DeviceImage(
 
   image_ = CreateImage(
       *context_, create_flags, format, extent, mip_levels, layer_count,
-      ChooseSampleCount(*context_, multisampling_mode),
+      type::ConvertSampleCount(sample_count()),
       image::GetImageUsageFlags(usages), unique_queue_family_indices);
   device_memory_ = CreateImageMemory(*context_, image_,
                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);

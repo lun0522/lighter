@@ -57,6 +57,8 @@ enum class SamplerAddressMode {
 
 enum class MultisamplingMode { kNone, kDecent, kBest };
 
+enum class SampleCount { k1, k2, k4, k8, k16, k32, k64 };
+
 enum class BlendFactor {
   kZero,
   kOne,

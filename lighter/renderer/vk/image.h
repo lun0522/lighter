@@ -47,8 +47,8 @@ class DeviceImage : public renderer::DeviceImage {
               absl::Span<const ImageUsage> usages);
 
   DeviceImage(SharedContext context, absl::string_view name,
-              const VkImage& image)
-      : renderer::DeviceImage{name},
+              const VkImage& image, SampleCount sample_count)
+      : renderer::DeviceImage{name, sample_count},
         context_{std::move(FATAL_IF_NULL(context))}, image_{image} {}
 
   // This class is neither copyable nor movable.
