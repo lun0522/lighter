@@ -13,6 +13,7 @@ cc_library(
         "//lighter/common:file",
         "//lighter/common:util",
         "//lighter/common:window",
+        "//lighter/renderer:align",
         "//lighter/renderer/vk:renderer",
         "//third_party:absl",
         "//third_party:glm",

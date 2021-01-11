@@ -37,13 +37,13 @@ class Renderer : public renderer::Renderer {
  public:
   Renderer(absl::string_view application_name,
            const absl::optional<debug_message::Config>& debug_message_config,
-           std::vector<WindowConfig>&& window_configs);
+           std::vector<const common::Window*>&& window_ptrs);
 
   Renderer(absl::string_view application_name,
            const absl::optional<debug_message::Config>& debug_message_config,
-           absl::Span<const WindowConfig> window_configs)
+           absl::Span<const common::Window* const> windows)
       : Renderer{application_name, debug_message_config,
-                 {window_configs.begin(), window_configs.end()}} {}
+                 {windows.begin(), windows.end()}} {}
 
   // This class is neither copyable nor movable.
   Renderer(const Renderer&) = delete;
@@ -62,26 +62,30 @@ class Renderer : public renderer::Renderer {
 
   /* Image */
 
+  const DeviceImage& GetSwapchainImage(int window_index) const override {
+    return swapchains_.at(window_index)->image();
+  }
+
   std::unique_ptr<renderer::DeviceImage> CreateColorImage(
       absl::string_view name, const common::Image::Dimension& dimension,
       MultisamplingMode multisampling_mode, bool high_precision,
       absl::Span<const ImageUsage> usages) const override {
-    return DeviceImage::CreateColorImage(
+    return GeneralDeviceImage::CreateColorImage(
         context_, name, dimension, multisampling_mode, high_precision, usages);
   }
 
   std::unique_ptr<renderer::DeviceImage> CreateColorImage(
       absl::string_view name, const common::Image& image, bool generate_mipmaps,
       absl::Span<const ImageUsage> usages) const override {
-    return DeviceImage::CreateColorImage(context_, name, image,
-                                         generate_mipmaps, usages);
+    return GeneralDeviceImage::CreateColorImage(context_, name, image,
+                                                generate_mipmaps, usages);
   }
 
   std::unique_ptr<renderer::DeviceImage> CreateDepthStencilImage(
       absl::string_view name, const glm::ivec2& extent,
       MultisamplingMode multisampling_mode,
       absl::Span<const ImageUsage> usages) const override {
-    return DeviceImage::CreateDepthStencilImage(
+    return GeneralDeviceImage::CreateDepthStencilImage(
         context_, name, util::CreateExtent(extent), multisampling_mode, usages);
   }
 

@@ -13,6 +13,16 @@ namespace {
 
 using namespace renderer;
 
+constexpr int kWindowIndex = 0;
+
+/* BEGIN: Consistent with uniform blocks defined in shaders. */
+
+struct Alpha {
+  ALIGN_SCALAR(float) float value;
+};
+
+/* END: Consistent with uniform blocks defined in shaders. */
+
 } /* namespace */
 
 class TriangleExample {
@@ -20,8 +30,7 @@ class TriangleExample {
   TriangleExample(Backend backend, const glm::ivec2& screen_size,
                   MultisamplingMode multisampling_mode)
       : window_{"Cube", screen_size} {
-    const Renderer::WindowConfig config{&window_, multisampling_mode};
-    renderer_ = CreateRenderer(backend, "Cube Example", {config});
+    renderer_ = CreateRenderer(backend, "Cube Example", {&window_});
 
     // TODO: Use refection API for locations.
     pipeline_descriptor_
@@ -35,7 +44,12 @@ class TriangleExample {
             /*binding_point=*/0,
             /*stride=*/sizeof(common::Vertex3DWithColor),
             buffer::CreateAttributesForVertex3DWithColor(/*loc_pos=*/0,
-                                                         /*loc_color=*/1)});
+                                                         /*loc_color=*/1)})
+        // TODO: Create helper function to make range.
+        .AddPushConstantRange({shader_stage::FRAGMENT, /*offset=*/0,
+                               sizeof(Alpha)})
+        .AddColorBlend(&renderer_->GetSwapchainImage(kWindowIndex),
+                       pipeline::GetColorAlphaBlend());
   }
 
   // This class is neither copyable nor movable.

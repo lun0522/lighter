@@ -140,43 +140,43 @@ VkDeviceMemory CreateImageMemory(const Context& context, const VkImage& image,
 
 } /* namespace */
 
-std::unique_ptr<DeviceImage> DeviceImage::CreateColorImage(
+std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateColorImage(
     SharedContext context, absl::string_view name,
     const common::Image::Dimension& dimension,
     MultisamplingMode multisampling_mode, bool high_precision,
     absl::Span<const ImageUsage> usages) {
   const VkFormat format = ChooseColorImageFormat(*context, dimension.channel,
                                                  high_precision, usages);
-  return absl::make_unique<DeviceImage>(
+  return absl::make_unique<GeneralDeviceImage>(
       std::move(context), name, format, ExtractExtent(dimension),
       kSingleMipLevel, CAST_TO_UINT(dimension.layer), multisampling_mode,
       usages);
 }
 
-std::unique_ptr<DeviceImage> DeviceImage::CreateColorImage(
+std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateColorImage(
     SharedContext context, absl::string_view name, const common::Image& image,
     bool generate_mipmaps, absl::Span<const ImageUsage> usages) {
   const auto& dimension = image.dimension();
   const VkFormat format = ChooseColorImageFormat(
       *context, dimension.channel, /*high_precision=*/false, usages);
   // TODO: Generate mipmaps and change mip_levels.
-  return absl::make_unique<DeviceImage>(
+  return absl::make_unique<GeneralDeviceImage>(
       std::move(context), name, format, ExtractExtent(dimension),
       kSingleMipLevel, CAST_TO_UINT(dimension.layer), MultisamplingMode::kNone,
       usages);
 }
 
-std::unique_ptr<DeviceImage> DeviceImage::CreateDepthStencilImage(
+std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateDepthStencilImage(
     SharedContext context, absl::string_view name, const VkExtent2D& extent,
     MultisamplingMode multisampling_mode,
     absl::Span<const ImageUsage> usages) {
   const VkFormat format = ChooseDepthStencilImageFormat(*context);
-  return absl::make_unique<DeviceImage>(
+  return absl::make_unique<GeneralDeviceImage>(
       std::move(context), name, format, extent, kSingleMipLevel,
       kSingleImageLayer, multisampling_mode, usages);
 }
 
-DeviceImage::DeviceImage(
+GeneralDeviceImage::GeneralDeviceImage(
     SharedContext context, absl::string_view name, VkFormat format,
     const VkExtent2D& extent, uint32_t mip_levels, uint32_t layer_count,
     MultisamplingMode multisampling_mode, absl::Span<const ImageUsage> usages)
@@ -215,7 +215,7 @@ DeviceImage::DeviceImage(
                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }
 
-DeviceImage::~DeviceImage() {
+GeneralDeviceImage::~GeneralDeviceImage() {
   vkDestroyImage(*context_->device(), image_, *context_->host_allocator());
   buffer::FreeDeviceMemory(*context_, device_memory_);
 }

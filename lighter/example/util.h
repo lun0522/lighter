@@ -17,6 +17,7 @@
 #include "lighter/common/file.h"
 #include "lighter/common/util.h"
 #include "lighter/common/window.h"
+#include "lighter/renderer/align.h"
 #include "lighter/renderer/buffer_util.h"
 #include "lighter/renderer/pipeline_util.h"
 #include "lighter/renderer/renderer.h"
@@ -35,7 +36,7 @@ enum class Backend { kOpenGL, kVulkan };
 
 std::unique_ptr<renderer::Renderer> CreateRenderer(
     Backend backend, absl::string_view application_name,
-    absl::Span<const renderer::Renderer::WindowConfig> window_configs) {
+    absl::Span<const common::Window* const> windows) {
   absl::optional<renderer::debug_message::Config> debug_message_config;
 #ifndef NDEBUG
   using namespace renderer::debug_message;
@@ -51,7 +52,7 @@ std::unique_ptr<renderer::Renderer> CreateRenderer(
 
     case Backend::kVulkan:
       return absl::make_unique<renderer::vk::Renderer>(
-          application_name, debug_message_config, window_configs);
+          application_name, debug_message_config, windows);
   }
 }
 

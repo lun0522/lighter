@@ -8,6 +8,7 @@
 #include "lighter/renderer/vk/type_mapping.h"
 
 #include "lighter/common/util.h"
+#include "lighter/renderer/vk/util.h"
 
 namespace lighter {
 namespace renderer {
@@ -156,6 +157,18 @@ VkShaderStageFlagBits ConvertShaderStage(shader_stage::ShaderStage stage) {
     case ShaderStage::COMPUTE:
       return VK_SHADER_STAGE_COMPUTE_BIT;
   }
+}
+
+VkShaderStageFlags ConvertShaderStages(shader_stage::ShaderStage stages) {
+  using ShaderStage = shader_stage::ShaderStage;
+  VkShaderStageFlags flags = nullflag;
+  common::util::IncludeIfTrue(stages & ShaderStage::VERTEX,
+                              flags, VK_SHADER_STAGE_VERTEX_BIT);
+  common::util::IncludeIfTrue(stages & ShaderStage::FRAGMENT,
+                              flags, VK_SHADER_STAGE_FRAGMENT_BIT);
+  common::util::IncludeIfTrue(stages & ShaderStage::COMPUTE,
+                              flags, VK_SHADER_STAGE_COMPUTE_BIT);
+  return flags;
 }
 
 } /* namespace type */

@@ -251,6 +251,14 @@ const ExpectedType* GetPointerIfTypeExpected(
       container.data(), std::is_same<ExpectedType, ValueType>());
 }
 
+// Includes 'to_include' in 'value' using operator |= if 'condition' is true.
+template <typename ValueType, typename IncludeType>
+void IncludeIfTrue(bool condition, ValueType& value, IncludeType to_include) {
+  if (condition) {
+    value |= to_include;
+  }
+}
+
 } /* namespace util */
 } /* namespace common */
 } /* namespace lighter */

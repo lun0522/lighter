@@ -24,6 +24,7 @@
 #include "lighter/renderer/type.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/string_view.h"
+#include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 
@@ -32,11 +33,6 @@ namespace renderer {
 
 class Renderer {
  public:
-  struct WindowConfig {
-    const common::Window* window;
-    MultisamplingMode multisampling_mode;
-  };
-
   // This class is neither copyable nor movable.
   Renderer(const Renderer&) = delete;
   Renderer& operator=(const Renderer&) = delete;
@@ -70,6 +66,8 @@ class Renderer {
 
   /* Device image */
 
+  virtual const DeviceImage& GetSwapchainImage(int window_index) const = 0;
+
   virtual std::unique_ptr<DeviceImage> CreateColorImage(
       absl::string_view name, const common::Image::Dimension& dimension,
       MultisamplingMode multisampling_mode, bool high_precision,
@@ -93,23 +91,18 @@ class Renderer {
       const ComputePassDescriptor& descriptor) const = 0;
 
  protected:
-  explicit Renderer(std::vector<WindowConfig>&& window_configs)
-      : window_configs_{std::move(window_configs)} {}
-
-  // Returns pointers to windows that are being rendered to.
-  std::vector<const common::Window*> GetWindows() const {
-    return common::util::TransformToVector<WindowConfig, const common::Window*>(
-        window_configs_,
-        [](const WindowConfig& config) { return config.window; });
+  explicit Renderer(std::vector<const common::Window*>&& windows)
+      : windows_{std::move(windows)} {
+    for (int i = 0; i < num_windows(); ++i) {
+      ASSERT_NON_NULL(windows_[i], absl::StrFormat("Window %d is nullptr", i));
+    }
   }
 
-  // Accessors.
-  const std::vector<WindowConfig>& window_configs() const {
-    return window_configs_;
-  }
+  const std::vector<const common::Window*>& windows() const { return windows_; }
+  int num_windows() const { return windows_.size(); }
 
  private:
-  const std::vector<WindowConfig> window_configs_;
+  std::vector<const common::Window*> windows_;
 };
 
 } /* namespace renderer */

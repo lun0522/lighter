@@ -34,6 +34,8 @@ VkPrimitiveTopology ConvertPrimitiveTopology(PrimitiveTopology topology);
 
 VkShaderStageFlagBits ConvertShaderStage(shader_stage::ShaderStage stage);
 
+VkShaderStageFlags ConvertShaderStages(shader_stage::ShaderStage stages);
+
 } /* namespace type */
 } /* namespace vk */
 } /* namespace renderer */

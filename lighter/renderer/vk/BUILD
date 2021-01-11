@@ -113,6 +113,7 @@ cc_library(
         ":swapchain",
         ":util",
         "//lighter/common:image",
+        "//lighter/common:window",
         "//lighter/renderer",
         "//lighter/renderer:buffer_usage",
         "//lighter/renderer:image_usage",
@@ -145,6 +146,7 @@ cc_library(
     hdrs = ["type_mapping.h"],
     srcs = ["type_mapping.cc"],
     deps = [
+        ":util",
         "//lighter/common:util",
         "//lighter/renderer:type",
         "//third_party:vulkan",

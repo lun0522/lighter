@@ -30,13 +30,22 @@ struct ShaderStage {
 };
 
 std::vector<VkDescriptorSetLayout> CreateDescriptorSetLayouts() {
-  // TODO
+  FATAL("Not yet implemented");
   return {};
 }
 
-std::vector<VkPushConstantRange> CreatePushConstantRanges() {
-  // TODO
-  return {};
+std::vector<VkPushConstantRange> CreatePushConstantRanges(
+    const PipelineDescriptor::UniformDescriptor& descriptor) {
+  std::vector<VkPushConstantRange> ranges;
+  ranges.reserve(descriptor.push_constant_ranges.size());
+  for (const auto& range : descriptor.push_constant_ranges) {
+    ranges.push_back({
+        type::ConvertShaderStages(range.shader_stages),
+        CAST_TO_UINT(range.offset),
+        CAST_TO_UINT(range.size),
+    });
+  }
+  return ranges;
 }
 
 VkPipelineLayoutCreateInfo CreatePipelineLayoutInfo(
@@ -61,7 +70,7 @@ std::vector<ShaderStage> CreateShaderStages(
   shader_stages.reserve(shader_path_map.size());
   for (const auto& pair : shader_path_map) {
     const auto& file_path = pair.second;
-    shader_stages.push_back(ShaderStage{
+    shader_stages.push_back({
         type::ConvertShaderStage(pair.first),
         ShaderModule::RefCountedShaderModule::Get(
             /*identifier=*/file_path, context, file_path),
@@ -221,6 +230,8 @@ VkPipelineRasterizationStateCreateInfo CreateRasterizationInfo(
 
 VkPipelineMultisampleStateCreateInfo CreateMultisampleInfo(
     absl::Span<const ImageAndUsage> attachments_and_usages) {
+  // We only look for the first render target, since we only need sample count,
+  // which must be the same to all render targets.
   for (const auto& attachment_and_usage : attachments_and_usages) {
     if (attachment_and_usage.usage.usage_type() ==
         ImageUsage::UsageType::kRenderTarget) {
@@ -366,7 +377,7 @@ Pipeline::Pipeline(SharedContext context,
                    const VkRenderPass& render_pass, int subpass_index,
                    absl::Span<const ImageAndUsage> attachments_and_usages)
     : Pipeline{std::move(context), descriptor.pipeline_name,
-               VK_PIPELINE_BIND_POINT_GRAPHICS} {
+               VK_PIPELINE_BIND_POINT_GRAPHICS, descriptor.uniform_descriptor} {
   const auto shader_stages = CreateShaderStages(context_,
                                                 descriptor.shader_path_map);
   const auto shader_stage_infos = CreateShaderStageInfos(&shader_stages);
@@ -427,7 +438,7 @@ Pipeline::Pipeline(SharedContext context,
 Pipeline::Pipeline(SharedContext context,
                    const ComputePipelineDescriptor& descriptor)
     : Pipeline{std::move(context), descriptor.pipeline_name,
-               VK_PIPELINE_BIND_POINT_COMPUTE} {
+               VK_PIPELINE_BIND_POINT_COMPUTE, descriptor.uniform_descriptor} {
   const auto shader_stages = CreateShaderStages(
       context_, {{shader_stage::COMPUTE, descriptor.shader_path}});
   const auto shader_stage_infos = CreateShaderStageInfos(&shader_stages);
@@ -452,9 +463,15 @@ Pipeline::Pipeline(SharedContext context,
       "Failed to create compute pipeline");
 }
 
-void Pipeline::CreatePipelineLayout() {
+Pipeline::Pipeline(
+    SharedContext context, absl::string_view name,
+    VkPipelineBindPoint binding_point,
+    const PipelineDescriptor::UniformDescriptor& uniform_descriptor)
+    : renderer::Pipeline{name}, context_{std::move(FATAL_IF_NULL(context))},
+      binding_point_{binding_point} {
   const auto descriptor_set_layouts = CreateDescriptorSetLayouts();
-  const auto push_constant_ranges = CreatePushConstantRanges();
+  const auto push_constant_ranges =
+      CreatePushConstantRanges(uniform_descriptor);
   const auto pipeline_layout_info = CreatePipelineLayoutInfo(
       &descriptor_set_layouts, &push_constant_ranges);
 

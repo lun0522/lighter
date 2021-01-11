@@ -17,9 +17,9 @@ std::vector<const DeviceImage*> ExtractImages(
     absl::Span<const GraphicsPassDescriptor::ColorAttachment> color_attachments,
     absl::Span<const GraphicsPassDescriptor::DepthStencilAttachment>
         depth_stencil_attachments,
-    absl::Span<const DeviceImage* const> other_images) {
-  std::vector<const DeviceImage*> images{other_images.begin(),
-                                         other_images.end()};
+    absl::Span<const DeviceImage* const> uniform_textures) {
+  std::vector<const DeviceImage*> images{uniform_textures.begin(),
+                                         uniform_textures.end()};
   images.reserve(images.size() + color_attachments.size() +
                  depth_stencil_attachments.size());
   for (const auto& attachment : color_attachments) {
@@ -56,9 +56,9 @@ void PassDescriptor::AddSubpass(
 GraphicsPassDescriptor::GraphicsPassDescriptor(
     absl::Span<const ColorAttachment> color_attachments,
     absl::Span<const DepthStencilAttachment> depth_stencil_attachments,
-    absl::Span<const DeviceImage* const> other_images)
+    absl::Span<const DeviceImage* const> uniform_textures)
     : PassDescriptor{ExtractImages(color_attachments, depth_stencil_attachments,
-                                   other_images)} {
+                                   uniform_textures)} {
   for (const auto& attachment : color_attachments) {
     color_ops_map_.insert({&attachment.image, attachment.load_store_ops});
   }

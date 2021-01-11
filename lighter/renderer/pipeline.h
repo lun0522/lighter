@@ -42,10 +42,26 @@ class Pipeline {
 };
 
 struct PipelineDescriptor {
+  struct PushConstantRange {
+    shader_stage::ShaderStage shader_stages;
+    int offset;
+    int size;
+  };
+
+  struct UniformDescriptor {
+    std::vector<PushConstantRange> push_constant_ranges;
+  };
+
   virtual ~PipelineDescriptor() = default;
+
+  void AddPushConstantRangeBase(const PushConstantRange& range) {
+    uniform_descriptor.push_constant_ranges.push_back(range);
+  }
 
   // Name of pipeline.
   std::string pipeline_name;
+
+  UniformDescriptor uniform_descriptor;
 };
 
 struct GraphicsPipelineDescriptor : public PipelineDescriptor {
@@ -120,6 +136,11 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
   }
   GraphicsPipelineDescriptor& AddVertexInput(VertexBufferView&& buffer_view) {
     vertex_buffer_views.push_back(std::move(buffer_view));
+    return *this;
+  }
+  GraphicsPipelineDescriptor& AddPushConstantRange(
+      const PushConstantRange& range) {
+    AddPushConstantRangeBase(range);
     return *this;
   }
   GraphicsPipelineDescriptor& AddColorBlend(const DeviceImage* attachment,

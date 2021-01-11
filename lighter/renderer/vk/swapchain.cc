@@ -13,6 +13,7 @@
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/absl/memory/memory.h"
+#include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/span.h"
 
 namespace lighter {
@@ -92,8 +93,7 @@ uint32_t ChooseMinImageCount(const Surface& surface) {
 } /* namespace */
 
 Swapchain::Swapchain(SharedContext context, int window_index,
-                     const common::Window& window,
-                     MultisamplingMode multisampling_mode)
+                     const common::Window& window)
     : context_{std::move(FATAL_IF_NULL(context))} {
   // Choose image extent.
   const Surface& surface = context_->surface(window_index);
@@ -120,11 +120,9 @@ Swapchain::Swapchain(SharedContext context, int window_index,
   // For swapchain images, we don't expect complicated operations, but being
   // rendered to (or resolved to) and then presented to screen.
   // Arbitrary 'attachment_location' would work for image creation.
-  const bool use_multisampling = multisampling_mode != MultisamplingMode::kNone;
   const std::vector<ImageUsage> swapchain_image_usages{
-      use_multisampling ? ImageUsage::GetMultisampleResolveTargetUsage()
-                        : ImageUsage::GetRenderTargetUsage(
-                              /*attachment_location=*/0),
+      ImageUsage::GetRenderTargetUsage(/*attachment_location=*/0),
+      ImageUsage::GetMultisampleResolveTargetUsage(),
       ImageUsage::GetPresentationUsage()};
 
   // Only graphics queue and presentation queue would access swapchain images.
@@ -168,26 +166,13 @@ Swapchain::Swapchain(SharedContext context, int window_index,
                  "Failed to create swapchain");
 
   // Fetch swapchain images.
-  const auto images = util::QueryAttribute<VkImage>(
-      [this](uint32_t* count, VkImage* images) {
-        vkGetSwapchainImagesKHR(*context_->device(), swapchain_, count, images);
-      }
-  );
-  swapchain_images_.reserve(images.size());
-  for (const auto& image : images) {
-    swapchain_images_.push_back(absl::make_unique<DeviceImage>(
-        context_, "Swapchain single sample", image, SampleCount::k1));
-  }
-
-  // Create a multisample image if multisampling is enabled.
-  if (use_multisampling) {
-    // Arbitrary 'attachment_location' would work for image creation.
-    const auto usages =
-        {ImageUsage::GetRenderTargetUsage(/*attachment_location=*/0)};
-    multisample_image_ = absl::make_unique<DeviceImage>(
-        context_, "Swapchain multisample", surface_format.format, image_extent,
-        kSingleMipLevel, kSingleImageLayer, multisampling_mode, usages);
-  }
+  image_ = absl::make_unique<SwapchainImage>(
+      absl::StrFormat("Swapchain%d", window_index),
+      util::QueryAttribute<VkImage>(
+          [this](uint32_t* count, VkImage* images) {
+            vkGetSwapchainImagesKHR(*context_->device(), swapchain_, count,
+                                    images);
+          }));
 }
 
 const std::vector<const char*>& Swapchain::GetRequiredExtensions() {

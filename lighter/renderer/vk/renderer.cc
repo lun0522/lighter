@@ -14,21 +14,21 @@ namespace vk {
 Renderer::Renderer(
     absl::string_view application_name,
     const absl::optional<debug_message::Config>& debug_message_config,
-    std::vector<WindowConfig>&& window_configs)
-    : renderer::Renderer{std::move(window_configs)},
+    std::vector<const common::Window*>&& window_ptrs)
+    : renderer::Renderer{std::move(window_ptrs)},
       context_{Context::CreateContext(application_name, debug_message_config,
-                                      GetWindows(),
+                                      windows(),
                                       Swapchain::GetRequiredExtensions())} {
-  swapchains_.resize(Renderer::window_configs().size());
-  for (int i = 0; i < Renderer::window_configs().size(); ++i) {
+  swapchains_.resize(num_windows());
+  for (int i = 0; i < num_windows(); ++i) {
     RecreateSwapchain(/*window_index=*/i);
   }
 }
 
 void Renderer::RecreateSwapchain(int window_index) {
-  const WindowConfig& config = window_configs().at(window_index);
-  swapchains_.at(window_index) = absl::make_unique<Swapchain>(
-      context_, window_index, *config.window, config.multisampling_mode);
+  const auto& window = *windows().at(window_index);
+  swapchains_[window_index] =
+      absl::make_unique<Swapchain>(context_, window_index, window);
 }
 
 } /* namespace vk */

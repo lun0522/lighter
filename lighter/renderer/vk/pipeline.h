@@ -62,11 +62,13 @@ class ShaderModule {
 
 class Pipeline : public renderer::Pipeline {
  public:
+  // Constructs a graphics pipeline.
   Pipeline(SharedContext context, const GraphicsPipelineDescriptor& descriptor,
            const VkRenderPass& render_pass, int subpass_index,
            absl::Span<const PassDescriptor::ImageAndUsage>
                attachments_and_usages);
 
+  // Constructs a compute pipeline.
   Pipeline(SharedContext context, const ComputePipelineDescriptor& descriptor);
 
   // This class is neither copyable nor movable.
@@ -81,13 +83,8 @@ class Pipeline : public renderer::Pipeline {
 
  private:
   Pipeline(SharedContext context, absl::string_view name,
-           VkPipelineBindPoint binding_point)
-      : renderer::Pipeline{name}, context_{std::move(FATAL_IF_NULL(context))},
-        binding_point_{binding_point} {
-    CreatePipelineLayout();
-  }
-
-  void CreatePipelineLayout();
+           VkPipelineBindPoint binding_point,
+           const PipelineDescriptor::UniformDescriptor& uniform_descriptor);
 
   // Pointer to context.
   const SharedContext context_;

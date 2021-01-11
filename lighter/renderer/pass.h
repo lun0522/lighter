@@ -126,7 +126,7 @@ class GraphicsPassDescriptor : public PassDescriptor {
   GraphicsPassDescriptor(
       absl::Span<const ColorAttachment> color_attachments,
       absl::Span<const DepthStencilAttachment> depth_stencil_attachments,
-      absl::Span<const DeviceImage* const> other_images);
+      absl::Span<const DeviceImage* const> uniform_textures);
 
   // This class provides copy constructor and move constructor.
   GraphicsPassDescriptor(GraphicsPassDescriptor&&) noexcept = default;
