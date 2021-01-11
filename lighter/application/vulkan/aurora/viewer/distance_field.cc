@@ -78,9 +78,8 @@ DistanceFieldGenerator::DistanceFieldGenerator(
       step_width_constant_->MakePerFrameRange(VK_SHADER_STAGE_COMPUTE_BIT);
 
   /* Image */
-  auto image_usage = ImageUsage::GetLinearAccessInComputeShaderUsage(
+  const auto image_usage = ImageUsage::GetLinearAccessInComputeShaderUsage(
       AccessType::kReadWrite);
-  image_usage.set_use_high_precision();
   pong_image_ = absl::make_unique<OffscreenImage>(
       context, image_extent, output_image.format(),
       absl::MakeSpan(&image_usage, 1), ImageSampler::Config{});

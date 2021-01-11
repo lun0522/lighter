@@ -74,7 +74,8 @@ PathDumper::PathDumper(
       .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
   paths_image_ = absl::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::image::kBwImageChannel,
-      paths_image_usage_history.GetAllUsages(), sampler_config);
+      paths_image_usage_history.GetAllUsages(), sampler_config,
+      /*use_high_precision=*/false);
 
   ImageUsageHistory distance_field_image_usage_history{
       /*initial_usage=*/ImageUsage::GetMultisampleResolveTargetUsage()};
@@ -84,12 +85,12 @@ PathDumper::PathDumper(
                     AccessType::kReadOnly))
       .AddUsage(kGenerateDistanceFieldSubpassIndex,
                 ImageUsage::GetLinearAccessInComputeShaderUsage(
-                    AccessType::kReadWrite)
-                    .set_use_high_precision())
+                    AccessType::kReadWrite))
       .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
   distance_field_image_ = absl::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::image::kRgbaImageChannel,
-      distance_field_image_usage_history.GetAllUsages(), sampler_config);
+      distance_field_image_usage_history.GetAllUsages(), sampler_config,
+      /*use_high_precision=*/true);
 
   /* Graphics and compute pipelines */
   compute_pass_ = absl::make_unique<ComputePass>(kNumSubpasses);

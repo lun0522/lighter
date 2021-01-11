@@ -190,7 +190,7 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
     window_context_.swapchain_image(/*index=*/0).GetInitialUsage()};
   usage_history
       .AddUsage(kViewImageSubpassIndex,
-                ImageUsage::GetRenderTargetUsage())
+                ImageUsage::GetRenderTargetUsage(/*attachment_location=*/0))
       .SetFinalUsage(ImageUsage::GetPresentationUsage());
 
   GraphicsPass graphics_pass{context, kNumSubpasses};

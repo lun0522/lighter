@@ -335,7 +335,8 @@ class OffscreenImage : public Image, public SamplableImage {
   OffscreenImage(const SharedBasicContext& context,
                  const VkExtent2D& extent, int channel,
                  absl::Span<const ImageUsage> usages,
-                 const ImageSampler::Config& sampler_config);
+                 const ImageSampler::Config& sampler_config,
+                 bool use_high_precision);
 
   // This class is neither copyable nor movable.
   OffscreenImage(const OffscreenImage&) = delete;

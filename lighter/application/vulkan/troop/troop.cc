@@ -141,19 +141,17 @@ void TroopApp::Recreate() {
   };
 
   const ImageSampler::Config sampler_config{VK_FILTER_NEAREST};
-  for (auto& info : image_infos) {
+  for (int i = 0; i < 3; i++) {
+    auto& info = image_infos[i];
     ImageUsageHistory usage_history;
-    auto geometry_stage_usage = ImageUsage::GetRenderTargetUsage();
-    if (info.high_precision) {
-      geometry_stage_usage.set_use_high_precision();
-    }
     usage_history
-        .AddUsage(kGeometrySubpassIndex, geometry_stage_usage)
+        .AddUsage(kGeometrySubpassIndex,
+                  ImageUsage::GetRenderTargetUsage(/*attachment_location=*/i))
         .AddUsage(kLightingSubpassIndex,
                   ImageUsage::GetSampledInFragmentShaderUsage());
     *info.image = absl::make_unique<OffscreenImage>(
         context(), frame_size, common::image::kRgbaImageChannel,
-        usage_history.GetAllUsages(), sampler_config);
+        usage_history.GetAllUsages(), sampler_config, info.high_precision);
   }
 
   /* Render pass */

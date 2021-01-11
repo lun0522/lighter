@@ -65,14 +65,15 @@ absl::optional<VkFormat> FindImageFormatWithFeature(
 // Only 1 or 4 channels are supported.
 VkFormat FindColorImageFormat(
     const BasicContext& context,
-    int channel, absl::Span<const ImageUsage> usages) {
+    int channel, absl::Span<const ImageUsage> usages,
+    bool use_high_precision = false) {
   switch (channel) {
     case common::image::kBwImageChannel: {
       // VK_FORMAT_R8_UNORM and VK_FORMAT_R16_SFLOAT have mandatory support for
       // sampling, but may not support linear access. We may switch to 4-channel
       // formats since they have mandatory support for both.
       VkFormat best_format, alternative_format;
-      if (true) {
+      if (use_high_precision) {
         best_format = VK_FORMAT_R16_SFLOAT;
         alternative_format = VK_FORMAT_R16G16B16A16_SFLOAT;
       } else {
@@ -96,7 +97,7 @@ VkFormat FindColorImageFormat(
     }
 
     case common::image::kRgbaImageChannel:
-      if (true) {
+      if (use_high_precision) {
         return VK_FORMAT_R16G16B16A16_SFLOAT;
       } else {
         return VK_FORMAT_R8G8B8A8_UNORM;
@@ -653,10 +654,11 @@ OffscreenImage::OffscreenImage(SharedBasicContext context,
 OffscreenImage::OffscreenImage(const SharedBasicContext& context,
                                const VkExtent2D& extent, int channel,
                                absl::Span<const ImageUsage> usages,
-                               const ImageSampler::Config& sampler_config)
+                               const ImageSampler::Config& sampler_config,
+                               bool use_high_precision)
     : OffscreenImage{context, extent,
                      FindColorImageFormat(*FATAL_IF_NULL(context),
-                                          channel, usages),
+                                          channel, usages, use_high_precision),
                      usages, sampler_config} {}
 
 OffscreenImage::OffscreenBuffer::OffscreenBuffer(

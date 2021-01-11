@@ -111,7 +111,8 @@ void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
       .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
   processed_image_ = absl::make_unique<OffscreenImage>(
       context(), original_image.extent(), image_from_file.channel(),
-      processed_image_usage_history.GetAllUsages(), ImageSampler::Config{});
+      processed_image_usage_history.GetAllUsages(), ImageSampler::Config{},
+      /*use_high_precision=*/false);
 
   const std::string original_image_name = "Original";
   const std::string processed_image_name = "Processed";

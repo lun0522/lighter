@@ -51,11 +51,12 @@ std::unique_ptr<OffscreenImage> CreateTargetImage(
       static_cast<uint32_t>(background_image_extent.height *
                             num_buttons * button::kNumStates),
   };
-  const auto image_usages = {ImageUsage::GetRenderTargetUsage(),
-                             ImageUsage::GetSampledInFragmentShaderUsage()};
+  const auto image_usages = {
+      ImageUsage::GetRenderTargetUsage(/*attachment_location=*/0),
+      ImageUsage::GetSampledInFragmentShaderUsage()};
   return absl::make_unique<OffscreenImage>(
       context, buttons_image_extent, common::image::kRgbaImageChannel,
-      image_usages, ImageSampler::Config{});
+      image_usages, ImageSampler::Config{}, /*use_high_precision=*/false);
 }
 
 // Creates per-instance vertex buffer storing RenderInfo.
@@ -96,7 +97,7 @@ std::unique_ptr<RenderPass> CreateRenderPass(
   ImageUsageHistory usage_history{target_image.GetInitialUsage()};
   usage_history
       .AddUsage(kBackgroundSubpassIndex, kTextSubpassIndex,
-                ImageUsage::GetRenderTargetUsage())
+                ImageUsage::GetRenderTargetUsage(/*attachment_location=*/0))
       .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
 
   GraphicsPass graphics_pass{context, kNumSubpasses};

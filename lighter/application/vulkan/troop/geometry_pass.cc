@@ -189,7 +189,8 @@ void GeometryPass::CreateRenderPassBuilder(
           depth_stencil_load_store_ops);
     } else {
       history
-          .AddUsage(kRenderSubpassIndex, ImageUsage::GetRenderTargetUsage())
+          .AddUsage(kRenderSubpassIndex,
+                    ImageUsage::GetRenderTargetUsage(/*attachment_location=*/0))
           .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
       attachment.attachment_index = graphics_pass.AddAttachment(
           attachment.image_name, std::move(history),

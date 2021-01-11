@@ -163,7 +163,8 @@ CharLoader::CharLoader(const SharedBasicContext& context,
                                ImageUsage::GetSampledInFragmentShaderUsage()};
     char_atlas_image_ = absl::make_unique<OffscreenImage>(
         context, GetCharAtlasImageExtent(char_lib, interval_between_chars),
-        common::image::kBwImageChannel, image_usages, GetTextSamplerConfig());
+        common::image::kBwImageChannel, image_usages, GetTextSamplerConfig(),
+        /*use_high_precision=*/false);
     space_advance_x_ = GetSpaceAdvanceX(char_lib, *char_atlas_image_);
     CreateCharTextures(context, char_lib, interval_between_chars,
                        *char_atlas_image_, &char_image_map,
@@ -375,7 +376,7 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
                              ImageUsage::GetSampledInFragmentShaderUsage()};
   auto text_image = absl::make_unique<OffscreenImage>(
       context, text_image_extent, common::image::kBwImageChannel, image_usages,
-      GetTextSamplerConfig());
+      GetTextSamplerConfig(), /*use_high_precision=*/false);
 
   std::vector<Vertex2D> vertices;
   text::LoadCharsVertexData(text, char_loader, ratio, /*initial_offset_x=*/0.0f,
