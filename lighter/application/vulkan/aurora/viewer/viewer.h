@@ -8,6 +8,7 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_AURORA_VIEWER_VIEWER_H
 #define LIGHTER_APPLICATION_VULKAN_AURORA_VIEWER_VIEWER_H
 
+#include <memory>
 #include <vector>
 
 #include "lighter/application/vulkan/aurora/scene.h"

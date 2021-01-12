@@ -7,23 +7,22 @@
 
 #include "lighter/example/util.h"
 
-namespace lighter {
-namespace example {
+namespace lighter::example {
 namespace {
 
 using namespace renderer;
 
 constexpr int kWindowIndex = 0;
 
-/* BEGIN: Consistent with uniform blocks defined in shaders. */
+// BEGIN: Consistent with uniform blocks defined in shaders.
 
 struct Alpha {
   ALIGN_SCALAR(float) float value;
 };
 
-/* END: Consistent with uniform blocks defined in shaders. */
+// END: Consistent with uniform blocks defined in shaders.
 
-} /* namespace */
+}  // namespace
 
 class TriangleExample {
  public:
@@ -65,8 +64,7 @@ class TriangleExample {
   GraphicsPipelineDescriptor pipeline_descriptor_;
 };
 
-} /* namespace example */
-} /* namespace lighter */
+}  // namespace lighter::example
 
 int main(int argc, char* argv[]) {
   using namespace lighter::example;

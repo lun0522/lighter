@@ -9,15 +9,15 @@
 #define LIGHTER_RENDERER_VULKAN_EXTENSION_NAIVE_RENDER_PASS_H
 
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include "third_party/absl/strings/string_view.h"
-#include "third_party/absl/types/optional.h"
 
 namespace lighter {
 namespace renderer {
@@ -41,8 +41,8 @@ class NaiveRenderPass {
   class SubpassConfig {
    public:
     SubpassConfig(int num_subpasses,
-                  absl::optional<int> first_transparent_subpass,
-                  absl::optional<int> first_overlay_subpass);
+                  std::optional<int> first_transparent_subpass,
+                  std::optional<int> first_overlay_subpass);
 
     // This class provides copy constructor and move constructor.
     SubpassConfig(SubpassConfig&&) noexcept = default;
@@ -77,8 +77,8 @@ class NaiveRenderPass {
   // Stores the attachment info. 'attachment_index' will be populated after
   // NaiveRenderPass::CreateBuilder() is called.
   struct AttachmentConfig {
-    AttachmentConfig(absl::string_view image_name,
-                     absl::optional<int>* attachment_index)
+    AttachmentConfig(std::string_view image_name,
+                     std::optional<int>* attachment_index)
         : image_name{image_name},
           attachment_index{*FATAL_IF_NULL(attachment_index)} {}
 
@@ -101,9 +101,9 @@ class NaiveRenderPass {
     }
 
     std::string image_name;
-    absl::optional<int>& attachment_index;
-    absl::optional<GraphicsPass::AttachmentLoadStoreOps> load_store_ops;
-    absl::optional<ImageUsage> final_usage;
+    std::optional<int>& attachment_index;
+    std::optional<GraphicsPass::AttachmentLoadStoreOps> load_store_ops;
+    std::optional<ImageUsage> final_usage;
   };
 
   // Creates a RenderPassBuilder. If multisampling attachment is used, it will

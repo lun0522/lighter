@@ -15,9 +15,7 @@
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/types/span.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
+namespace lighter::renderer::vk {
 
 class DeviceBuffer : public renderer::DeviceBuffer {
  public:
@@ -67,8 +65,6 @@ class DeviceBuffer : public renderer::DeviceBuffer {
   VkDeviceMemory device_memory_;
 };
 
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter
 
-#endif /* LIGHTER_RENDERER_VK_BUFFER_H */
+#endif  // LIGHTER_RENDERER_VK_BUFFER_H

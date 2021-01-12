@@ -17,7 +17,6 @@
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
-#include "third_party/absl/memory/memory.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/glm/gtc/matrix_transform.hpp"
 
@@ -133,11 +132,11 @@ LightingPass::LightingPass(const WindowContext* window_context,
   const auto context = window_context_.basic_context();
 
   /* Uniform buffer and push constant */
-  lights_colors_uniform_ = absl::make_unique<UniformBuffer>(
+  lights_colors_uniform_ = std::make_unique<UniformBuffer>(
       context, sizeof(Lights), /*num_chunks=*/1);
-  render_info_uniform_ = absl::make_unique<UniformBuffer>(
+  render_info_uniform_ = std::make_unique<UniformBuffer>(
       context, sizeof(RenderInfo), num_frames_in_flight);
-  lights_trans_constant_ = absl::make_unique<PushConstant>(
+  lights_trans_constant_ = std::make_unique<PushConstant>(
       context, sizeof(Transformation), num_frames_in_flight);
 
   std::random_device device;
@@ -207,13 +206,13 @@ LightingPass::LightingPass(const WindowContext* window_context,
             {render_info_uniform_->GetDescriptorInfo(frame)}},
     };
 
-    lights_descriptors_[frame] = absl::make_unique<StaticDescriptor>(
+    lights_descriptors_[frame] = std::make_unique<StaticDescriptor>(
         context, absl::MakeSpan(&lights_descriptor_info, 1));
     lights_descriptors_[frame]->UpdateBufferInfos(
         UniformBuffer::GetDescriptorType(), buffer_info_map);
 
     soldiers_descriptors_[frame] =
-        absl::make_unique<StaticDescriptor>(context, soldiers_descriptor_infos);
+        std::make_unique<StaticDescriptor>(context, soldiers_descriptor_infos);
     soldiers_descriptors_[frame]->UpdateBufferInfos(
         UniformBuffer::GetDescriptorType(), buffer_info_map);
   }
@@ -227,7 +226,7 @@ LightingPass::LightingPass(const WindowContext* window_context,
           PerVertexBuffer::VertexDataInfo{cube_file.vertices},
       }},
   };
-  cube_vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
+  cube_vertex_buffer_ = std::make_unique<StaticPerVertexBuffer>(
       context, std::move(cube_vertex_data_info),
       pipeline::GetVertexAttributes<Vertex3DPosOnly>());
 
@@ -239,14 +238,14 @@ LightingPass::LightingPass(const WindowContext* window_context,
       /*per_mesh_vertices=*/
       {{PerVertexBuffer::VertexDataInfo{squad_vertex_data}}}
   };
-  squad_vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
+  squad_vertex_buffer_ = std::make_unique<StaticPerVertexBuffer>(
       context, std::move(squad_vertex_data_info),
       pipeline::GetVertexAttributes<Vertex2D>());
 
   /* Pipeline */
   constexpr uint32_t kStencilReference = 0xFF;
   lights_pipeline_builder_ =
-      absl::make_unique<GraphicsPipelineBuilder>(context);
+      std::make_unique<GraphicsPipelineBuilder>(context);
   (*lights_pipeline_builder_)
       .SetPipelineName("Lights")
       .SetDepthTestEnable(/*enable_test=*/true, /*enable_write=*/true)
@@ -268,7 +267,7 @@ LightingPass::LightingPass(const WindowContext* window_context,
                  common::file::GetVkShaderPath("troop/light_cube.frag"));
 
   soldiers_pipeline_builder_ =
-      absl::make_unique<GraphicsPipelineBuilder>(context);
+      std::make_unique<GraphicsPipelineBuilder>(context);
   (*soldiers_pipeline_builder_)
       .SetPipelineName("Soldiers")
       .SetStencilTestEnable(true)
@@ -393,7 +392,7 @@ void LightingPass::CreateRenderPassBuilder(const Image& depth_stencil_image) {
 
   const NaiveRenderPass::SubpassConfig subpass_config{
       kNumSubpasses, /*first_transparent_subpass=*/kSoldiersSubpassIndex,
-      /*first_overlay_subpass=*/absl::nullopt,
+      /*first_overlay_subpass=*/std::nullopt,
   };
 
   const auto color_attachment_config =

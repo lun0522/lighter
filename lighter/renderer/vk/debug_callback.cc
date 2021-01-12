@@ -15,9 +15,7 @@
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/strings/str_join.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
+namespace lighter::renderer::vk {
 namespace {
 
 // Converts debug_message::severity::Severity to Vulkan native flags.
@@ -100,7 +98,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
   return VK_FALSE;
 }
 
-} /* namespace */
+}  // namespace
 
 DebugCallback::DebugCallback(const Context* context,
                              const debug_message::Config& config)
@@ -140,6 +138,4 @@ DebugCallback::~DebugCallback() {
                                   *context_.host_allocator());
 }
 
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter

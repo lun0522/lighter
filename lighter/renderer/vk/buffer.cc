@@ -13,9 +13,7 @@
 #include "lighter/renderer/vk/buffer_util.h"
 #include "third_party/absl/container/flat_hash_set.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
+namespace lighter::renderer::vk {
 namespace {
 
 using CopyInfo = renderer::DeviceBuffer::CopyInfo;
@@ -93,7 +91,7 @@ void CopyHostToBuffer(const Context& context,
   vkUnmapMemory(*context.device(), device_memory);
 }
 
-} /* namespace */
+}  // namespace
 
 DeviceBuffer::AllocationInfo::AllocationInfo(
     const Context& context, UpdateRate update_rate,
@@ -174,6 +172,4 @@ void DeviceBuffer::DeallocateBufferAndMemory() {
   device_memory_ = VK_NULL_HANDLE;
 }
 
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter

@@ -11,8 +11,7 @@
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/glfw/glfw3.h"
 
-namespace lighter {
-namespace common {
+namespace lighter::common {
 namespace {
 
 // Translates the key we defined to its counterpart in GLFW.
@@ -32,7 +31,7 @@ int WindowKeyToGlfwKey(Window::KeyMap key) {
   }
 }
 
-} /* namespace */
+}  // namespace
 
 namespace window_callback {
 
@@ -62,9 +61,9 @@ void GlfwMouseButtonCallback(
                                   /*is_press=*/action == GLFW_PRESS);
 }
 
-} /* namespace window_callback */
+}  // namespace window_callback
 
-Window::Window(absl::string_view name, const glm::ivec2& screen_size)
+Window::Window(std::string_view name, const glm::ivec2& screen_size)
     : original_aspect_ratio_{
           static_cast<float>(screen_size.x) / screen_size.y} {
   glfwSetErrorCallback(window_callback::GlfwErrorCallback);
@@ -75,12 +74,12 @@ Window::Window(absl::string_view name, const glm::ivec2& screen_size)
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-#endif /* USE_OPENGL */
+#endif  // USE_OPENGL
 
 #ifdef USE_VULKAN
   ASSERT_TRUE(glfwVulkanSupported() == GLFW_TRUE, "Vulkan is not supported");
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-#endif /* USE_VULKAN */
+#endif  // USE_VULKAN
 
   window_ = glfwCreateWindow(screen_size.x, screen_size.y, name.data(),
                              /*monitor=*/nullptr, /*share=*/nullptr);
@@ -91,7 +90,7 @@ Window::Window(absl::string_view name, const glm::ivec2& screen_size)
 
 #ifdef USE_OPENGL
   glfwMakeContextCurrent(window_);
-#endif /* USE_OPENGL */
+#endif  // USE_OPENGL
   glfwSetWindowUserPointer(window_, this);
   glfwSetFramebufferSizeCallback(
       window_, window_callback::GlfwResizeWindowCallback);
@@ -109,7 +108,7 @@ VkSurfaceKHR Window::CreateSurface(
   ASSERT_TRUE(result == VK_SUCCESS, "Failed to create window surface");
   return surface;
 }
-#endif /* USE_VULKAN */
+#endif  // USE_VULKAN
 
 Window& Window::SetCursorHidden(bool hidden) {
   glfwSetInputMode(window_, GLFW_CURSOR,
@@ -160,7 +159,7 @@ Window& Window::RegisterMouseButtonCallback(MouseButtonCallback&& callback) {
 void Window::SwapFramebuffers() const {
   glfwSwapBuffers(window_);
 }
-#endif /* USE_OPENGL */
+#endif  // USE_OPENGL
 
 void Window::ProcessUserInputs() const {
   glfwPollEvents();
@@ -252,5 +251,4 @@ Window::~Window() {
   glfwTerminate();
 }
 
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common

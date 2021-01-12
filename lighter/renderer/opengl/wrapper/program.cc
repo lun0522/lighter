@@ -7,14 +7,14 @@
 
 #include "lighter/renderer/opengl/wrapper/program.h"
 
+#include <memory>
+#include <optional>
+#include <string_view>
 #include <vector>
 
 #include "lighter/common/file.h"
 #include "lighter/common/util.h"
-#include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/strings/string_view.h"
-#include "third_party/absl/types/optional.h"
 
 namespace lighter {
 namespace renderer {
@@ -26,14 +26,14 @@ using ParameterGetter = void (*)(GLuint, GLenum, GLint*);
 using InfoLogGetter = void (*)(GLuint, GLsizei, GLsizei*, GLchar*);
 
 // Checks status using 'parameter_getter'. If there is any error, returns the
-// error fetched with 'info_log_getter'. Otherwise, returns absl::nullopt.
-absl::optional<std::vector<char>> CheckStatus(GLuint source, GLenum target,
-                                              ParameterGetter parameter_getter,
-                                              InfoLogGetter info_log_getter) {
+// error fetched with 'info_log_getter'. Otherwise, returns std::nullopt.
+std::optional<std::vector<char>> CheckStatus(GLuint source, GLenum target,
+                                             ParameterGetter parameter_getter,
+                                             InfoLogGetter info_log_getter) {
   GLint success;
   parameter_getter(source, target, &success);
   if (success == GL_TRUE) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   GLint info_log_length;
@@ -48,7 +48,7 @@ absl::optional<std::vector<char>> CheckStatus(GLuint source, GLenum target,
 
 Shader::Shader(GLenum shader_type, const std::string& file_path)
     : shader_type_{shader_type}, shader_{glCreateShader(shader_type)} {
-  const auto raw_data = absl::make_unique<common::RawData>(file_path);
+  const auto raw_data = std::make_unique<common::RawData>(file_path);
   // TODO: Remove "ARB" after switching to OpenGL 4.6.
   glShaderBinary(/*count=*/1, &shader_, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB,
                  raw_data->data, raw_data->size);

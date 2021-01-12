@@ -9,7 +9,6 @@
 
 #include "lighter/common/file.h"
 #include "lighter/renderer/image_usage.h"
-#include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace lighter {
@@ -27,14 +26,14 @@ constexpr uint32_t kPerInstanceBufferBindingPointBase = 1;
 std::unique_ptr<SamplableImage> CreateTexture(
     const SharedBasicContext& context,
     const ModelBuilder::TextureSource& source) {
-  if (absl::holds_alternative<SharedTexture::SourcePath>(source)) {
+  if (std::holds_alternative<SharedTexture::SourcePath>(source)) {
     const auto image_usages = {ImageUsage::GetSampledInFragmentShaderUsage()};
-    return absl::make_unique<SharedTexture>(
-        context, absl::get<SharedTexture::SourcePath>(source),
+    return std::make_unique<SharedTexture>(
+        context, std::get<SharedTexture::SourcePath>(source),
         image_usages, ImageSampler::Config{});
-  } else if (absl::holds_alternative<OffscreenImagePtr>(source)) {
-    return absl::make_unique<UnownedOffscreenTexture>(
-        absl::get<OffscreenImagePtr>(source));
+  } else if (std::holds_alternative<OffscreenImagePtr>(source)) {
+    return std::make_unique<UnownedOffscreenTexture>(
+        std::get<OffscreenImagePtr>(source));
   } else {
     FATAL("Unrecognized variant type");
   }
@@ -147,7 +146,7 @@ void ModelBuilder::SingleMeshResource::LoadMesh(ModelBuilder* builder) const {
           PerVertexBuffer::VertexDataInfo{file.vertices},
       }},
   };
-  builder->vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
+  builder->vertex_buffer_ = std::make_unique<StaticPerVertexBuffer>(
       builder->context_, std::move(vertex_info),
       pipeline::GetVertexAttributes<Vertex3DWithTex>());
 
@@ -176,7 +175,7 @@ void ModelBuilder::MultiMeshResource::LoadMesh(ModelBuilder* builder) const {
         PerVertexBuffer::VertexDataInfo{mesh_data.vertices},
     });
   }
-  builder->vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
+  builder->vertex_buffer_ = std::make_unique<StaticPerVertexBuffer>(
       builder->context_, VertexInfo{std::move(per_mesh_infos)},
       pipeline::GetVertexAttributes<Vertex3DWithTex>());
 
@@ -189,7 +188,7 @@ void ModelBuilder::MultiMeshResource::LoadMesh(ModelBuilder* builder) const {
     for (const auto& texture : mesh_data.textures) {
       const auto type_index = static_cast<int>(texture.texture_type);
       mesh_textures.back()[type_index].push_back(
-          absl::make_unique<SharedTexture>(
+          std::make_unique<SharedTexture>(
               builder->context_, texture.path, image_usages,
               ImageSampler::Config{}));
     }
@@ -205,7 +204,7 @@ ModelBuilder::ModelBuilder(SharedBasicContext context,
       num_frames_in_flight_{num_frames_in_flight},
       viewport_aspect_ratio_{viewport_aspect_ratio},
       uniform_buffer_info_maps_(num_frames_in_flight_),
-      pipeline_builder_{absl::make_unique<GraphicsPipelineBuilder>(context_)} {
+      pipeline_builder_{std::make_unique<GraphicsPipelineBuilder>(context_)} {
   pipeline_builder_->SetPipelineName(std::move(name));
   resource.LoadMesh(this);
 }
@@ -297,7 +296,7 @@ ModelBuilder::CreateDescriptors() const {
                         &descriptor_infos.back(), &image_info_map);
 
       descriptors[frame].push_back(
-          absl::make_unique<StaticDescriptor>(context_, descriptor_infos));
+          std::make_unique<StaticDescriptor>(context_, descriptor_infos));
       descriptors[frame].back()->UpdateBufferInfos(
           UniformBuffer::GetDescriptorType(), uniform_buffer_info_maps_[frame]);
       descriptors[frame].back()->UpdateImageInfos(

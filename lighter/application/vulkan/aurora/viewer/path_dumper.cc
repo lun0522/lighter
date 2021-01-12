@@ -14,7 +14,6 @@
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/command.h"
-#include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace lighter {
@@ -72,7 +71,7 @@ PathDumper::PathDumper(
                 ImageUsage::GetLinearAccessInComputeShaderUsage(
                     AccessType::kReadOnly))
       .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
-  paths_image_ = absl::make_unique<OffscreenImage>(
+  paths_image_ = std::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::image::kBwImageChannel,
       paths_image_usage_history.GetAllUsages(), sampler_config,
       /*use_high_precision=*/false);
@@ -87,24 +86,24 @@ PathDumper::PathDumper(
                 ImageUsage::GetLinearAccessInComputeShaderUsage(
                     AccessType::kReadWrite))
       .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
-  distance_field_image_ = absl::make_unique<OffscreenImage>(
+  distance_field_image_ = std::make_unique<OffscreenImage>(
       context_, paths_image_extent, common::image::kRgbaImageChannel,
       distance_field_image_usage_history.GetAllUsages(), sampler_config,
       /*use_high_precision=*/true);
 
   /* Graphics and compute pipelines */
-  compute_pass_ = absl::make_unique<ComputePass>(kNumSubpasses);
+  compute_pass_ = std::make_unique<ComputePass>(kNumSubpasses);
   (*compute_pass_)
       .AddImage(paths_image_name_, std::move(paths_image_usage_history))
       .AddImage(distance_field_image_name_,
                 std::move(distance_field_image_usage_history));
 
-  path_renderer_ = absl::make_unique<PathRenderer2D>(
+  path_renderer_ = std::make_unique<PathRenderer2D>(
       context_, /*intermediate_image=*/*distance_field_image_,
       /*output_image=*/*paths_image_, MultisampleImage::Mode::kBestEffect,
       std::move(aurora_paths_vertex_buffers));
 
-  distance_field_generator_ = absl::make_unique<DistanceFieldGenerator>(
+  distance_field_generator_ = std::make_unique<DistanceFieldGenerator>(
       context_, /*input_image=*/*paths_image_,
       /*output_image=*/*distance_field_image_);
 }

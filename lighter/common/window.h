@@ -9,21 +9,20 @@
 #define LIGHTER_COMMON_WINDOW_H
 
 #include <functional>
+#include <string_view>
 #include <vector>
 
 #include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/strings/string_view.h"
 #include "third_party/glm/glm.hpp"
 #ifdef USE_VULKAN
 #include "third_party/vulkan/vulkan.h"
 // import GLFW after Vulkan
-#endif /* USE_VULKAN */
+#endif  // USE_VULKAN
 
 // Forward declarations.
 struct GLFWwindow;
 
-namespace lighter {
-namespace common {
+namespace lighter::common {
 namespace window_callback {
 
 // Since GLFW requires C-style function callbacks, we use these functions to
@@ -34,7 +33,7 @@ void GlfwScrollCallback(GLFWwindow* window, double x_pos, double y_pos);
 void GlfwMouseButtonCallback(
     GLFWwindow* window, int button, int action, int mods);
 
-} /* namespace window_callback */
+}  // namespace window_callback
 
 // This class is backed by GLFW. It handles all interactions with the user, and
 // the presentation of rendered frames.
@@ -51,7 +50,7 @@ class Window {
   // respond to the press.
   enum class KeyMap { kEscape, kUp, kDown, kLeft, kRight };
 
-  Window(absl::string_view name, const glm::ivec2& screen_size);
+  Window(std::string_view name, const glm::ivec2& screen_size);
 
   // This class is neither copyable nor movable.
   Window(const Window&) = delete;
@@ -63,7 +62,7 @@ class Window {
   // Creates window surface for Vulkan applications.
   VkSurfaceKHR CreateSurface(const VkInstance& instance,
                              const VkAllocationCallbacks* allocator) const;
-#endif /* USE_VULKAN */
+#endif  // USE_VULKAN
 
   // Sets whether the cursor should be hidden.
   Window& SetCursorHidden(bool hidden);
@@ -96,7 +95,7 @@ class Window {
 #ifdef USE_OPENGL
   // Swaps front and back framebuffers. This is not used for Vulkan.
   void SwapFramebuffers() const;
-#endif /* USE_OPENGL */
+#endif  // USE_OPENGL
 
   // Processes user inputs to the window. Callbacks will be invoked if
   // conditions are satisfied.
@@ -171,7 +170,6 @@ class Window {
   absl::flat_hash_map<int, std::function<void()>> press_key_callbacks_;
 };
 
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common
 
-#endif /* LIGHTER_COMMON_WINDOW_H */
+#endif  // LIGHTER_COMMON_WINDOW_H

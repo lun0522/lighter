@@ -12,9 +12,7 @@
 
 #include "lighter/renderer/buffer.h"
 
-namespace lighter {
-namespace renderer {
-namespace buffer {
+namespace lighter::renderer::buffer {
 
 std::vector<VertexBufferView::Attribute> CreateAttributesForVertex2DPosOnly(
     int loc_pos);
@@ -31,8 +29,6 @@ std::vector<VertexBufferView::Attribute> CreateAttributesForVertex3DWithColor(
 std::vector<VertexBufferView::Attribute> CreateAttributesForVertex3DWithTex(
     int loc_pos, int loc_norm, int loc_tex_coord);
 
-} /* namespace buffer */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace lighter::renderer::buffer
 
-#endif /* LIGHTER_RENDERER_BUFFER_UTIL_H */
+#endif  // LIGHTER_RENDERER_BUFFER_UTIL_H

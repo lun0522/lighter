@@ -177,7 +177,6 @@ cc_library(
         "//lighter/common:image",
         "//lighter/common:window",
         "//lighter/common:util",
-        "//third_party:absl",
         "//third_party:vulkan",
     ],
 )

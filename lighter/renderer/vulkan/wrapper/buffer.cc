@@ -288,17 +288,18 @@ Buffer::CopyInfos PerVertexBuffer::NoShareIndicesDataInfo::CreateCopyInfos(
 void PerVertexBuffer::Draw(const VkCommandBuffer& command_buffer,
                            uint32_t binding_point,
                            int mesh_index, uint32_t instance_count) const {
-  if (absl::holds_alternative<MeshDataInfosNoIndices>(mesh_data_infos_)) {
-    const auto& mesh_info =
-        absl::get<MeshDataInfosNoIndices>(mesh_data_infos_).infos[mesh_index];
+  if (const auto* mesh_on_indices =
+          std::get_if<MeshDataInfosNoIndices>(&mesh_data_infos_);
+      mesh_on_indices != nullptr) {
+    const auto& mesh_info = mesh_on_indices->infos[mesh_index];
     vkCmdBindVertexBuffers(command_buffer, binding_point, /*bindingCount=*/1,
                            &buffer(), &mesh_info.vertices_offset);
     vkCmdDraw(command_buffer, mesh_info.vertices_count, instance_count,
               /*firstVertex=*/0, /*firstInstance=*/0);
-  } else if (
-      absl::holds_alternative<MeshDataInfosWithIndices>(mesh_data_infos_)) {
-    const auto& mesh_info =
-        absl::get<MeshDataInfosWithIndices>(mesh_data_infos_).infos[mesh_index];
+  } else if (const auto* mesh_with_indices =
+                 std::get_if<MeshDataInfosWithIndices>(&mesh_data_infos_);
+             mesh_with_indices != nullptr) {
+    const auto& mesh_info = mesh_with_indices->infos[mesh_index];
     vkCmdBindIndexBuffer(command_buffer, buffer(), mesh_info.indices_offset,
                          VK_INDEX_TYPE_UINT32);
     vkCmdBindVertexBuffers(command_buffer, binding_point, /*bindingCount=*/1,

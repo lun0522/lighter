@@ -13,10 +13,7 @@
 // Tests are written according to:
 // https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples
 
-namespace lighter {
-namespace renderer {
-namespace vk {
-namespace image {
+namespace lighter::renderer::vk::image {
 namespace {
 
 TEST(ImageUsageTest, LinearReadInComputeShader) {
@@ -43,8 +40,4 @@ TEST(ImageUsageTest, SampleInFragmentShader) {
   EXPECT_EQ(GetImageLayout(usage), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
-} /* namespace */
-} /* namespace image */
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter::image

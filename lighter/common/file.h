@@ -10,11 +10,11 @@
 
 #include <array>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "third_party/absl/flags/declare.h"
 #include "third_party/absl/flags/flag.h"
-#include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/strings/str_cat.h"
 #include "third_party/glm/glm.hpp"
 
@@ -22,37 +22,36 @@ ABSL_DECLARE_FLAG(std::string, resource_folder);
 ABSL_DECLARE_FLAG(std::string, shader_folder);
 ABSL_DECLARE_FLAG(std::string, vulkan_folder);
 
-namespace lighter {
-namespace common {
+namespace lighter::common {
 namespace file {
 
 // Returns the full path to files in the resource folder.
-inline std::string GetResourcePath(absl::string_view relative_path) {
+inline std::string GetResourcePath(std::string_view relative_path) {
   return absl::StrCat(absl::GetFlag(FLAGS_resource_folder), "/", relative_path);
 }
 
 // Returns the full path to the compiled shader to use with OpenGL.
-inline std::string GetGlShaderPath(absl::string_view relative_path) {
+inline std::string GetGlShaderPath(std::string_view relative_path) {
   return absl::StrCat(absl::GetFlag(FLAGS_shader_folder), "/opengl/",
                       relative_path, ".spv");
 }
 
 // Returns the full path to the compiled shader to use with Vulkan.
-inline std::string GetVkShaderPath(absl::string_view relative_path) {
+inline std::string GetVkShaderPath(std::string_view relative_path) {
   return absl::StrCat(absl::GetFlag(FLAGS_shader_folder), "/vulkan/",
                       relative_path, ".spv");
 }
 
 // Returns the full path to files in the Vulkan SDK folder.
-inline std::string GetVulkanSdkPath(absl::string_view relative_path) {
+inline std::string GetVulkanSdkPath(std::string_view relative_path) {
   return absl::StrCat(absl::GetFlag(FLAGS_vulkan_folder), "/", relative_path);
 }
 
-} /* namespace file */
+}  // namespace file
 
 // Reads raw data from file.
 struct RawData {
-  explicit RawData(absl::string_view path);
+  explicit RawData(std::string_view path);
 
   // This class is neither copyable nor movable.
   RawData(const RawData&) = delete;
@@ -159,11 +158,11 @@ std::vector<VertexAttribute> CreateVertexAttributes() {
   return attributes;
 }
 
-} /* namespace file */
+}  // namespace file
 
 // Loads Wavefront .obj file.
 struct ObjFile {
-  ObjFile(absl::string_view path, int index_base);
+  ObjFile(std::string_view path, int index_base);
 
   // This class is neither copyable nor movable.
   ObjFile(const ObjFile&) = delete;
@@ -176,7 +175,7 @@ struct ObjFile {
 
 // Loads Wavefront .obj file but only preserves vertex positions.
 struct ObjFilePosOnly {
-  ObjFilePosOnly(absl::string_view path, int index_base);
+  ObjFilePosOnly(std::string_view path, int index_base);
 
   // This class is neither copyable nor movable.
   ObjFilePosOnly(const ObjFilePosOnly&) = delete;
@@ -187,7 +186,6 @@ struct ObjFilePosOnly {
   std::vector<Vertex3DPosOnly> vertices;
 };
 
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common
 
-#endif /* LIGHTER_COMMON_FILE_H */
+#endif  // LIGHTER_COMMON_FILE_H

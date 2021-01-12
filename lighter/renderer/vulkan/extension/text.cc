@@ -13,7 +13,6 @@
 #include "lighter/renderer/align.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/glm/glm.hpp"
 
@@ -158,7 +157,7 @@ StaticText::StaticText(const SharedBasicContext& context,
   descriptors_.reserve(num_frames_in_flight);
   for (int frame = 0; frame < num_frames_in_flight; ++frame) {
     descriptors_.push_back(
-        absl::make_unique<DynamicDescriptor>(context, GetDescriptorInfos()));
+        std::make_unique<DynamicDescriptor>(context, GetDescriptorInfos()));
   }
   SetPipelineLayout(descriptors_[0]->layout());
 }
@@ -233,7 +232,7 @@ DynamicText::DynamicText(const SharedBasicContext& context,
   descriptors_.reserve(num_frames_in_flight);
   for (int frame = 0; frame < num_frames_in_flight; ++frame) {
     descriptors_.push_back(
-        absl::make_unique<StaticDescriptor>(context, GetDescriptorInfos()));
+        std::make_unique<StaticDescriptor>(context, GetDescriptorInfos()));
     descriptors_[frame]->UpdateBufferInfos(
         UniformBuffer::GetDescriptorType(),
         /*buffer_info_map=*/{{

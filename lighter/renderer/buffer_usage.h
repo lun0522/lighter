@@ -11,8 +11,7 @@
 #include "lighter/common/util.h"
 #include "lighter/renderer/type.h"
 
-namespace lighter {
-namespace renderer {
+namespace lighter::renderer {
 
 // Describes how we would use a buffer.
 class BufferUsage {
@@ -86,7 +85,6 @@ class BufferUsage {
   AccessLocation access_location_;
 };
 
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace lighter::renderer
 
-#endif /* LIGHTER_RENDERER_BUFFER_USAGE_H */
+#endif  // LIGHTER_RENDERER_BUFFER_USAGE_H

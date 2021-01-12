@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "lighter/application/vulkan/aurora/editor/button_util.h"
-#include "third_party/absl/memory/memory.h"
 
 namespace lighter {
 namespace application {
@@ -111,14 +110,14 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
       kButtonAndPathAlphas{1.0f, 0.5f};
 
   /* Render pass */
-  render_pass_manager_ = absl::make_unique<OnScreenRenderPassManager>(
+  render_pass_manager_ = std::make_unique<OnScreenRenderPassManager>(
       &window_context_,
       NaiveRenderPass::SubpassConfig{
           kNumSubpasses, /*first_transparent_subpass=*/kAuroraPathSubpassIndex,
           /*first_overlay_subpass=*/kButtonSubpassIndex});
 
   /* Earth and skybox */
-  celestial_ = absl::make_unique<Celestial>(
+  celestial_ = std::make_unique<Celestial>(
       context, original_aspect_ratio, num_frames_in_flight);
 
   // Initially, the north pole points to the center of frame.
@@ -141,7 +140,7 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
     return control_points;
   };
   // Initially, the viewpoint is located at Anchorage, AK, USA.
-  aurora_path_ = absl::make_unique<AuroraPath>(
+  aurora_path_ = std::make_unique<AuroraPath>(
       context, num_frames_in_flight, original_aspect_ratio, AuroraPath::Info{
           /*max_num_control_points=*/20, /*control_point_radius=*/0.01f,
           /*max_recursion_depth=*/20, /*spline_smoothness=*/1E-2,
@@ -182,7 +181,7 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
       for (int i = 0; i < kNumTopRowButtons; ++i) {
         button_infos[i] = get_button_info(i);
       }
-      top_row_buttons_ = absl::make_unique<Button>(
+      top_row_buttons_ = std::make_unique<Button>(
           context, original_aspect_ratio, Button::ButtonsInfo{
               kFont, kFontHeight, kBaseY, kTopY, text_color,
               kButtonAndPathAlphas, button_size, button_infos});
@@ -205,7 +204,7 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
       for (int i = 0; i < kNumBottomRowButtons; ++i) {
         button_infos[i] = get_button_info(i);
       }
-      bottom_row_buttons_ = absl::make_unique<Button>(
+      bottom_row_buttons_ = std::make_unique<Button>(
           context, original_aspect_ratio, Button::ButtonsInfo{
               kFont, kFontHeight, kBaseY, kTopY, text_color,
               kButtonAndPathAlphas, button_size, button_infos});
@@ -219,16 +218,16 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
 
   const common::PerspectiveCamera::FrustumConfig frustum_config{
       /*field_of_view_y=*/45.0f, original_aspect_ratio};
-  skybox_camera_ = absl::make_unique<common::UserControlledCamera>(
+  skybox_camera_ = std::make_unique<common::UserControlledCamera>(
       camera_control_config,
-      absl::make_unique<common::PerspectiveCamera>(config, frustum_config));
+      std::make_unique<common::PerspectiveCamera>(config, frustum_config));
   skybox_camera_->SetActivity(true);
 
   const common::OrthographicCamera::OrthoConfig ortho_config{
       /*view_width=*/3.0f, original_aspect_ratio};
-  general_camera_ = absl::make_unique<common::UserControlledCamera>(
+  general_camera_ = std::make_unique<common::UserControlledCamera>(
       camera_control_config,
-      absl::make_unique<common::OrthographicCamera>(config, ortho_config));
+      std::make_unique<common::OrthographicCamera>(config, ortho_config));
   general_camera_->SetActivity(true);
 }
 
@@ -296,7 +295,7 @@ void Editor::UpdateData(int frame) {
   }
 
   // Process clicking on button.
-  absl::optional<int> clicked_button_index;
+  std::optional<int> clicked_button_index;
   if (did_press_left_) {
     clicked_button_index = top_row_buttons_->GetClickedButtonIndex(
         click_ndc, /*button_index_offset=*/0,
@@ -307,7 +306,7 @@ void Editor::UpdateData(int frame) {
           state_manager_.bottom_row_buttons_states());
     }
   }
-  absl::optional<ButtonIndex> clicked_button;
+  std::optional<ButtonIndex> clicked_button;
   if (clicked_button_index.has_value()) {
     clicked_button = static_cast<ButtonIndex>(clicked_button_index.value());
   }
@@ -316,8 +315,8 @@ void Editor::UpdateData(int frame) {
   // Process interaction with earth or aurora layer if no button is clicked.
   const auto& general_camera = dynamic_cast<const common::OrthographicCamera&>(
       general_camera_->camera());
-  absl::optional<glm::vec2> click_earth_ndc;
-  absl::optional<AuroraPath::ClickInfo> click_celestial;
+  std::optional<glm::vec2> click_earth_ndc;
+  std::optional<AuroraPath::ClickInfo> click_celestial;
   if (!clicked_button.has_value()) {
     if (state_manager_.IsEditing()) {
       // If editing aurora paths, intersect with aurora layer. If editing
@@ -403,7 +402,7 @@ Editor::StateManager::StateManager() {
   SetBottomRowButtonsStates(Button::State::kUnselected);
 }
 
-void Editor::StateManager::Update(absl::optional<ButtonIndex> clicked_button) {
+void Editor::StateManager::Update(std::optional<ButtonIndex> clicked_button) {
   if (!clicked_button.has_value() || clicked_button == last_clicked_button_) {
     last_clicked_button_ = clicked_button;
     return;
@@ -430,7 +429,7 @@ void Editor::StateManager::Update(absl::optional<ButtonIndex> clicked_button) {
   last_clicked_button_ = clicked_button;
 }
 
-absl::optional<int> Editor::StateManager::GetSelectedPathIndex() const {
+std::optional<int> Editor::StateManager::GetSelectedPathIndex() const {
   for (int i = kPath1ButtonIndex; i < ButtonIndex::kNumAuroraPaths; ++i) {
     const auto button_index =
         static_cast<ButtonIndex>(ButtonIndex::kPath1ButtonIndex + i);
@@ -438,7 +437,7 @@ absl::optional<int> Editor::StateManager::GetSelectedPathIndex() const {
       return i;
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 void Editor::StateManager::SetTopRowButtonsStates(Button::State state) {

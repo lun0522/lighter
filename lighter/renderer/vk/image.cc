@@ -8,6 +8,7 @@
 #include "lighter/renderer/vk/image.h"
 
 #include <algorithm>
+#include <optional>
 #include <vector>
 
 #include "lighter/renderer/vk/buffer_util.h"
@@ -15,11 +16,8 @@
 #include "lighter/renderer/vk/type_mapping.h"
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/container/flat_hash_set.h"
-#include "third_party/absl/memory/memory.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
+namespace lighter::renderer::vk {
 namespace {
 
 // Extracts width and height from 'dimension'.
@@ -28,8 +26,8 @@ VkExtent2D ExtractExtent(const common::Image::Dimension& dimension) {
 }
 
 // Returns the first image format among 'candidates' that has the specified
-// 'features'. If not found, returns absl::nullopt.
-absl::optional<VkFormat> FindImageFormatWithFeature(
+// 'features'. If not found, returns std::nullopt.
+std::optional<VkFormat> FindImageFormatWithFeature(
     const Context& context, absl::Span<const VkFormat> candidates,
     VkFormatFeatureFlags features) {
   for (const auto format : candidates) {
@@ -40,7 +38,7 @@ absl::optional<VkFormat> FindImageFormatWithFeature(
       return format;
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 VkFormat ChooseColorImageFormat(const Context& context, int channel,
@@ -65,7 +63,7 @@ VkFormat ChooseColorImageFormat(const Context& context, int channel,
 #ifndef NDEBUG
         LOG_INFO << "The single channel image format does not support linear "
                     "access, use the 4-channel format instead";
-#endif /* !NDEBUG */
+#endif  // !NDEBUG
         return high_precision ? VK_FORMAT_R16G16B16A16_SFLOAT
                               : VK_FORMAT_R8G8B8A8_UNORM;
       }
@@ -138,46 +136,46 @@ VkDeviceMemory CreateImageMemory(const Context& context, const VkImage& image,
   return device_memory;
 }
 
-} /* namespace */
+}  // namespace
 
 std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateColorImage(
-    SharedContext context, absl::string_view name,
+    SharedContext context, std::string_view name,
     const common::Image::Dimension& dimension,
     MultisamplingMode multisampling_mode, bool high_precision,
     absl::Span<const ImageUsage> usages) {
   const VkFormat format = ChooseColorImageFormat(*context, dimension.channel,
                                                  high_precision, usages);
-  return absl::make_unique<GeneralDeviceImage>(
+  return std::make_unique<GeneralDeviceImage>(
       std::move(context), name, format, ExtractExtent(dimension),
       kSingleMipLevel, CAST_TO_UINT(dimension.layer), multisampling_mode,
       usages);
 }
 
 std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateColorImage(
-    SharedContext context, absl::string_view name, const common::Image& image,
+    SharedContext context, std::string_view name, const common::Image& image,
     bool generate_mipmaps, absl::Span<const ImageUsage> usages) {
   const auto& dimension = image.dimension();
   const VkFormat format = ChooseColorImageFormat(
       *context, dimension.channel, /*high_precision=*/false, usages);
   // TODO: Generate mipmaps and change mip_levels.
-  return absl::make_unique<GeneralDeviceImage>(
+  return std::make_unique<GeneralDeviceImage>(
       std::move(context), name, format, ExtractExtent(dimension),
       kSingleMipLevel, CAST_TO_UINT(dimension.layer), MultisamplingMode::kNone,
       usages);
 }
 
 std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateDepthStencilImage(
-    SharedContext context, absl::string_view name, const VkExtent2D& extent,
+    SharedContext context, std::string_view name, const VkExtent2D& extent,
     MultisamplingMode multisampling_mode,
     absl::Span<const ImageUsage> usages) {
   const VkFormat format = ChooseDepthStencilImageFormat(*context);
-  return absl::make_unique<GeneralDeviceImage>(
+  return std::make_unique<GeneralDeviceImage>(
       std::move(context), name, format, extent, kSingleMipLevel,
       kSingleImageLayer, multisampling_mode, usages);
 }
 
 GeneralDeviceImage::GeneralDeviceImage(
-    SharedContext context, absl::string_view name, VkFormat format,
+    SharedContext context, std::string_view name, VkFormat format,
     const VkExtent2D& extent, uint32_t mip_levels, uint32_t layer_count,
     MultisamplingMode multisampling_mode, absl::Span<const ImageUsage> usages)
     : renderer::DeviceImage{
@@ -220,6 +218,4 @@ GeneralDeviceImage::~GeneralDeviceImage() {
   buffer::FreeDeviceMemory(*context_, device_memory_);
 }
 
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter

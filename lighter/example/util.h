@@ -11,7 +11,9 @@
 #include <cstdlib>
 #include <exception>
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "lighter/common/file.h"
@@ -23,42 +25,38 @@
 #include "lighter/renderer/renderer.h"
 #include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/renderer.h"
-#include "third_party/absl/memory/memory.h"
-#include "third_party/absl/strings/string_view.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/spirv_cross/spirv_cross.hpp"
 
-namespace lighter {
-namespace example {
+namespace lighter::example {
 
 enum class Backend { kOpenGL, kVulkan };
 
 std::unique_ptr<renderer::Renderer> CreateRenderer(
-    Backend backend, absl::string_view application_name,
+    Backend backend, std::string_view application_name,
     absl::Span<const common::Window* const> windows) {
-  absl::optional<renderer::debug_message::Config> debug_message_config;
+  std::optional<renderer::debug_message::Config> debug_message_config;
 #ifndef NDEBUG
   using namespace renderer::debug_message;
   debug_message_config = {
       severity::WARNING | severity::ERROR,
       type::GENERAL | type::PERFORMANCE,
   };
-#endif /* !NDEBUG */
+#endif  // !NDEBUG
 
   switch (backend) {
     case Backend::kOpenGL:
       FATAL("Not implemented yet");
 
     case Backend::kVulkan:
-      return absl::make_unique<renderer::vk::Renderer>(
+      return std::make_unique<renderer::vk::Renderer>(
           application_name, debug_message_config, windows);
   }
 }
 
 // TODO: Only write Vulkan version shader code, and modify it on-the-fly to be
 // used by OpenGL.
-std::string GetShaderPath(Backend backend, absl::string_view relative_path) {
+std::string GetShaderPath(Backend backend, std::string_view relative_path) {
   switch (backend) {
     case Backend::kOpenGL:
       return common::file::GetGlShaderPath(relative_path);
@@ -82,24 +80,24 @@ int ExampleMain(int argc, char* argv[], ExampleArgs&&... example_args) {
   setenv("VK_LAYER_PATH",
          GetVulkanSdkPath("share/vulkan/explicit_layer.d").c_str(),
          /*overwrite=*/1);
-#endif /* !NDEBUG */
+#endif  // !NDEBUG
 
 #elif defined(__linux__)
 #ifndef NDEBUG
   setenv("VK_LAYER_PATH",
          GetVulkanSdkPath("etc/vulkan/explicit_layer.d").c_str(),
          /*overwrite=*/1);
-#endif /* !NDEBUG */
+#endif  // !NDEBUG
 
-#endif /* __APPLE__ || __linux__ */
+#endif  // __APPLE__ || __linux__
 
-#endif /* USE_VULKAN */
+#endif  // USE_VULKAN
 
   // We don't catch exceptions in the debug mode, so that if there is anything
   // wrong, the debugger would stay at the point where the program breaks.
 #ifdef NDEBUG
   try {
-#endif /* NDEBUG */
+#endif  // NDEBUG
     ExampleType example{std::forward<ExampleArgs>(example_args)...};
     example.MainLoop();
 #ifdef NDEBUG
@@ -107,12 +105,11 @@ int ExampleMain(int argc, char* argv[], ExampleArgs&&... example_args) {
     LOG_ERROR << "Error: " << e.what();
     return EXIT_FAILURE;
   }
-#endif /* NDEBUG */
+#endif  // NDEBUG
 
   return EXIT_SUCCESS;
 }
 
-} /* namespace example */
-} /* namespace lighter */
+}  // namespace lighter::example
 
-#endif /* LIGHTER_EXAMPLE_UTIL_H */
+#endif  // LIGHTER_EXAMPLE_UTIL_H

@@ -16,8 +16,7 @@
 #include "third_party/assimp/mesh.h"
 #include "third_party/assimp/scene.h"
 
-namespace lighter {
-namespace common {
+namespace lighter::common {
 
 // Model loader backed by Assimp.
 class ModelLoader {
@@ -90,7 +89,6 @@ class ModelLoader {
   std::vector<MeshData> mesh_datas_;
 };
 
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common
 
-#endif /* LIGHTER_COMMON_MODEL_LOADER_H */
+#endif  // LIGHTER_COMMON_MODEL_LOADER_H

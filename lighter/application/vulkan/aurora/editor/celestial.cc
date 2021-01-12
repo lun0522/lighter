@@ -9,7 +9,6 @@
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/align.h"
-#include "third_party/absl/memory/memory.h"
 
 namespace lighter {
 namespace application {
@@ -45,11 +44,11 @@ Celestial::Celestial(const SharedBasicContext& context,
   using TextureType = ModelBuilder::TextureType;
   constexpr int kObjFileIndexBase = 1;
 
-  earth_uniform_ = absl::make_unique<UniformBuffer>(
+  earth_uniform_ = std::make_unique<UniformBuffer>(
       context, sizeof(EarthTrans), num_frames_in_flight);
-  earth_constant_ = absl::make_unique<PushConstant>(
+  earth_constant_ = std::make_unique<PushConstant>(
       context, sizeof(TextureIndex), num_frames_in_flight);
-  skybox_constant_ = absl::make_unique<PushConstant>(
+  skybox_constant_ = std::make_unique<PushConstant>(
       context, sizeof(SkyboxTrans), num_frames_in_flight);
 
   earth_model_ = ModelBuilder{

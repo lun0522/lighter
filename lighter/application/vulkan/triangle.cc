@@ -74,7 +74,7 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   using common::Vertex3DWithColor;
 
   /* Command buffer */
-  command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
+  command_ = std::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
   /* Vertex buffer */
   const std::array<Vertex3DWithColor, 3> vertex_data{
@@ -88,16 +88,16 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
   const PerVertexBuffer::NoIndicesDataInfo vertex_data_info{
       /*per_mesh_vertices=*/{{PerVertexBuffer::VertexDataInfo{vertex_data}}}
   };
-  vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
+  vertex_buffer_ = std::make_unique<StaticPerVertexBuffer>(
       context(), vertex_data_info,
       pipeline::GetVertexAttributes<Vertex3DWithColor>());
 
   /* Push constant */
-  alpha_constant_ = absl::make_unique<PushConstant>(context(), sizeof(Alpha),
-                                                    kNumFramesInFlight);
+  alpha_constant_ = std::make_unique<PushConstant>(context(), sizeof(Alpha),
+                                                   kNumFramesInFlight);
 
   /* Pipeline */
-  pipeline_builder_ = absl::make_unique<GraphicsPipelineBuilder>(context());
+  pipeline_builder_ = std::make_unique<GraphicsPipelineBuilder>(context());
   (*pipeline_builder_)
       .SetPipelineName("Triangle")
       .AddVertexInput(
@@ -114,10 +114,10 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
                  common::file::GetVkShaderPath("triangle/triangle.frag"));
 
   /* Render pass */
-  render_pass_manager_ = absl::make_unique<OnScreenRenderPassManager>(
+  render_pass_manager_ = std::make_unique<OnScreenRenderPassManager>(
       &window_context(),
       NaiveRenderPass::SubpassConfig{
-          kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
+          kNumSubpasses, /*first_transparent_subpass=*/std::nullopt,
           /*first_overlay_subpass=*/kRenderSubpassIndex});
 }
 

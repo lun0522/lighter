@@ -10,9 +10,7 @@
 #include "lighter/common/file.h"
 #include "lighter/renderer/type.h"
 
-namespace lighter {
-namespace renderer {
-namespace buffer {
+namespace lighter::renderer::buffer {
 namespace {
 
 template <typename T>
@@ -24,7 +22,7 @@ DataFormat GetDataFormat<glm::vec2>() { return DataFormat::kSFloat32Vec2; }
 template <>
 DataFormat GetDataFormat<glm::vec3>() { return DataFormat::kSFloat32Vec3; }
 
-} /* namespace */
+}  // namespace
 
 #define CREATE_ATTRIBUTE(type, member, location) \
     {location, GetDataFormat<decltype(type::member)>(), offsetof(type, member)}
@@ -66,6 +64,4 @@ std::vector<VertexBufferView::Attribute> CreateAttributesForVertex3DWithTex(
 
 #undef CREATE_ATTRIBUTE
 
-} /* namespace buffer */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace lighter::renderer::buffer

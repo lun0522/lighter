@@ -10,6 +10,7 @@
 
 #include <cmath>
 #include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -17,7 +18,6 @@
 #include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/absl/strings/str_cat.h"
 #include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
@@ -104,7 +104,7 @@ std::vector<AttribType> QueryAttribute(
 // name of the first uncovered attribute. 'get_name' should be able to return
 // the name of any attribute of AttribType.
 template <typename AttribType>
-absl::optional<std::string> FindUnsupported(
+std::optional<std::string> FindUnsupported(
     absl::Span<const std::string> required,
     absl::Span<const AttribType> attribs,
     const std::function<const char*(const AttribType&)>& get_name) {
@@ -130,7 +130,7 @@ absl::optional<std::string> FindUnsupported(
       return req;
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 // Return the number of work groups in one dimension used for compute shader.

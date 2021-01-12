@@ -16,4 +16,4 @@
 #define ALIGN_VEC4 alignas(sizeof(float) * 4)
 #define ALIGN_MAT4 alignas(sizeof(float) * 4)
 
-#endif /* LIGHTER_RENDERER_ALIGN_H */
+#endif  // LIGHTER_RENDERER_ALIGN_H

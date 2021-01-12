@@ -13,6 +13,7 @@
 #include <iostream>
 #include <iterator>
 #include <numeric>
+#include <optional>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
@@ -21,17 +22,16 @@
 #include "third_party/absl/flags/parse.h"
 #include "third_party/absl/functional/function_ref.h"
 #include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 
 #ifdef NDEBUG
 #define LOG(stream) ::lighter::common::util::Logger{stream}          \
                         << ::lighter::common::util::PrintTime << ' '
-#else  /* !NDEBUG */
+#else  // !NDEBUG
 #define LOG(stream) ::lighter::common::util::Logger{stream}          \
                         << '[' << ::lighter::common::util::PrintTime \
                         << absl::StrFormat(" %s:%d] ", __FILE__, __LINE__)
-#endif /* NDEBUG */
+#endif  // NDEBUG
 
 #define LOG_INFO LOG(std::cout)
 #define LOG_EMPTY_LINE LOG_INFO
@@ -39,12 +39,12 @@
 
 #ifdef NDEBUG
 #define FATAL(error) throw std::runtime_error{error}
-#else  /* !NDEBUG */
+#else  // !NDEBUG
 #define FATAL(error)                          \
   throw std::runtime_error{absl::StrFormat(   \
       "%s() in %s at line %d: %s",            \
       __func__, __FILE__, __LINE__, error)}
-#endif /* NDEBUG */
+#endif  // NDEBUG
 
 #define ASSERT_TRUE(expr, error)              \
     if (!ABSL_PREDICT_TRUE(expr))             \
@@ -70,9 +70,7 @@
         ? pointer                             \
         : FATAL(#pointer " is nullptr"))
 
-namespace lighter {
-namespace common {
-namespace util {
+namespace lighter::common::util {
 
 // Parses command line arguments. This should be called in main().
 inline void ParseCommandLine(int argc, char* argv[]) {
@@ -109,15 +107,15 @@ template <typename ContainerType>
 using ValueType = typename ContainerType::value_type;
 
 // Returns the index of the first element that satisfies 'predicate'.
-// If there is no such element, returns 'absl::nullopt'.
+// If there is no such element, returns std::nullopt.
 template <typename ValueType>
-absl::optional<int> FindIndexOfFirst(
+std::optional<int> FindIndexOfFirst(
     absl::Span<const ValueType> container,
     const std::function<bool(const ValueType&)>& predicate) {
   const auto first_itr = std::find_if(container.begin(), container.end(),
                                       predicate);
   if (first_itr == container.end()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   return std::distance(container.begin(), first_itr);
 }
@@ -239,7 +237,7 @@ inline const ExpectedType* GetPointerIfTypeExpectedImpl(
   return nullptr;
 }
 
-} /* namespace internal */
+}  // namespace internal
 
 // Returns a pointer of 'ExpectedType'. If elements of 'container' are of
 // 'ExpectedType', the returned pointer will point to its underlying data.
@@ -259,8 +257,6 @@ void IncludeIfTrue(bool condition, ValueType& value, IncludeType to_include) {
   }
 }
 
-} /* namespace util */
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common
 
-#endif /* LIGHTER_COMMON_UTIL_H */
+#endif  // LIGHTER_COMMON_UTIL_H

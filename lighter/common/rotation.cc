@@ -12,8 +12,7 @@
 #include "third_party/glm/gtx/intersect.hpp"
 #include "third_party/glm/gtx/vector_angle.hpp"
 
-namespace lighter {
-namespace common {
+namespace lighter::common {
 namespace {
 
 // Applies 'transform' to a 3D 'point'.
@@ -29,13 +28,13 @@ inline glm::vec3 TransformVector(const glm::mat4& transform,
   return glm::vec3{transform * glm::vec4{vector, 0.0f}};
 }
 
-} /* namespace */
+}  // namespace
 
 namespace rotation {
 
 template <>
-absl::optional<Rotation> Compute<RotationManager::StopState>(
-    const absl::optional<glm::vec3>& normalized_click_pos,
+std::optional<Rotation> Compute<RotationManager::StopState>(
+    const std::optional<glm::vec3>& normalized_click_pos,
     RotationManager* rotation_manager) {
   // If there is any clicking, turn to rotation state. The rotation axis and
   // angle are left for rotation state to compute.
@@ -46,12 +45,12 @@ absl::optional<Rotation> Compute<RotationManager::StopState>(
   }
 
   // No rotation should be performed this time.
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 template <>
-absl::optional<Rotation> Compute<RotationManager::InertialRotationState>(
-    const absl::optional<glm::vec3>& normalized_click_pos,
+std::optional<Rotation> Compute<RotationManager::InertialRotationState>(
+    const std::optional<glm::vec3>& normalized_click_pos,
     RotationManager* rotation_manager) {
   // If there is any clicking, turn to rotation state. The rotation axis and
   // angle are left for rotation state to compute.
@@ -59,10 +58,10 @@ absl::optional<Rotation> Compute<RotationManager::InertialRotationState>(
     rotation_manager->state_ = RotationManager::RotationState{
         /*last_click_time=*/rotation_manager->GetReferenceTime(),
         /*first_click_pos=*/normalized_click_pos.value(), Rotation{}};
-    return absl::nullopt;
+    return std::nullopt;
   }
 
-  const auto& state = absl::get<RotationManager::InertialRotationState>(
+  const auto& state = std::get<RotationManager::InertialRotationState>(
       rotation_manager->state_);
   const float elapsed_time =
       rotation_manager->GetReferenceTime() - state.start_time;
@@ -72,7 +71,7 @@ absl::optional<Rotation> Compute<RotationManager::InertialRotationState>(
   if (state.rotation.angle == 0.0f ||
       elapsed_time > rotation_manager->inertial_rotation_duration_) {
     rotation_manager->state_ = RotationManager::StopState{};
-    return absl::nullopt;
+    return std::nullopt;
   } else {
     const float inertial_rotation_process =
         elapsed_time / rotation_manager->inertial_rotation_duration_;
@@ -83,11 +82,11 @@ absl::optional<Rotation> Compute<RotationManager::InertialRotationState>(
 }
 
 template <>
-absl::optional<Rotation> Compute<RotationManager::RotationState>(
-    const absl::optional<glm::vec3>& normalized_click_pos,
+std::optional<Rotation> Compute<RotationManager::RotationState>(
+    const std::optional<glm::vec3>& normalized_click_pos,
     RotationManager* rotation_manager) {
   if (normalized_click_pos.has_value()) {
-    auto& state = absl::get<RotationManager::RotationState>(
+    auto& state = std::get<RotationManager::RotationState>(
         rotation_manager->state_);
     state.last_click_time = rotation_manager->GetReferenceTime();
     // If the user is clicking on a different position, perform rotation.
@@ -100,22 +99,22 @@ absl::optional<Rotation> Compute<RotationManager::RotationState>(
       return state.rotation;
     } else {
       state.rotation.angle = 0.0f;
-      return absl::nullopt;
+      return std::nullopt;
     }
   } else {
     // If the user is no longer clicking, turn to inertial rotation state.
     // It is up to inertial rotation state whether or not to perform rotation
     // this time.
-    const auto& state = absl::get<RotationManager::RotationState>(
+    const auto& state = std::get<RotationManager::RotationState>(
         rotation_manager->state_);
     rotation_manager->state_ = RotationManager::InertialRotationState{
         /*start_time=*/state.last_click_time, state.rotation};
     return Compute<RotationManager::InertialRotationState>(
-        /*normalized_click_pos=*/absl::nullopt, rotation_manager);
+        /*normalized_click_pos=*/std::nullopt, rotation_manager);
   }
 }
 
-} /* namespace rotation */
+}  // namespace rotation
 
 Sphere::Sphere(const glm::vec3& center, float radius,
                float inertial_rotation_duration)
@@ -146,9 +145,9 @@ Sphere::Ray Sphere::GetClickingRay(const Camera& camera,
   if (dynamic_cast<const common::OrthographicCamera*>(&camera) != nullptr) {
 #ifdef USE_VULKAN
     constexpr float kNearPlaneNdc = 0.0f;
-#else  /* !USE_VULKAN */
+#else  // !USE_VULKAN
     constexpr float kNearPlaneNdc = -1.0f;
-#endif /* USE_VULKAN */
+#endif  // USE_VULKAN
     const glm::vec3 click_pos =
         TransformPoint(ndc_to_object, glm::vec3{click_ndc, kNearPlaneNdc});
     const glm::vec3 camera_dir =
@@ -159,7 +158,7 @@ Sphere::Ray Sphere::GetClickingRay(const Camera& camera,
   FATAL("Unrecognized camera type");
 }
 
-absl::optional<glm::vec3> Sphere::GetIntersection(
+std::optional<glm::vec3> Sphere::GetIntersection(
     const common::Camera& camera, const glm::vec2& click_ndc) const {
   const Ray ray = GetClickingRay(camera, click_ndc);
   glm::vec3 position, normal;
@@ -169,15 +168,15 @@ absl::optional<glm::vec3> Sphere::GetIntersection(
           position, normal)) {
     return position;
   } else {
-    return absl::nullopt;
+    return std::nullopt;
   }
 }
 
-absl::optional<rotation::Rotation> Sphere::ShouldRotate(
-    const Camera& camera, const absl::optional<glm::vec2>& click_ndc) {
+std::optional<rotation::Rotation> Sphere::ShouldRotate(
+    const Camera& camera, const std::optional<glm::vec2>& click_ndc) {
   const auto intersection = click_ndc.has_value()
                                 ? GetIntersection(camera, click_ndc.value())
-                                : absl::nullopt;
+                                : std::nullopt;
   return rotation_manager_.Compute(intersection);
 }
 
@@ -191,5 +190,4 @@ glm::mat4 Sphere::GetSkyboxModelMatrix(float scale) const {
   return skybox_model;
 }
 
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common

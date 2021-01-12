@@ -9,6 +9,7 @@
 #define LIGHTER_RENDERER_VK_IMAGE_H
 
 #include <memory>
+#include <string_view>
 
 #include "lighter/common/image.h"
 #include "lighter/common/util.h"
@@ -16,38 +17,35 @@
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/context.h"
-#include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
+namespace lighter::renderer::vk {
 
 class GeneralDeviceImage : public renderer::DeviceImage {
  public:
   static std::unique_ptr<DeviceImage> CreateColorImage(
-      SharedContext context, absl::string_view name,
+      SharedContext context, std::string_view name,
       const common::Image::Dimension& dimension,
       MultisamplingMode multisampling_mode, bool high_precision,
       absl::Span<const ImageUsage> usages);
 
   static std::unique_ptr<DeviceImage> CreateColorImage(
-      SharedContext context, absl::string_view name, const common::Image& image,
+      SharedContext context, std::string_view name, const common::Image& image,
       bool generate_mipmaps, absl::Span<const ImageUsage> usages);
 
   static std::unique_ptr<DeviceImage> CreateDepthStencilImage(
-      SharedContext context, absl::string_view name, const VkExtent2D& extent,
+      SharedContext context, std::string_view name, const VkExtent2D& extent,
       MultisamplingMode multisampling_mode,
       absl::Span<const ImageUsage> usages);
 
-  GeneralDeviceImage(SharedContext context, absl::string_view name,
+  GeneralDeviceImage(SharedContext context, std::string_view name,
                      VkFormat format, const VkExtent2D& extent,
                      uint32_t mip_levels, uint32_t layer_count,
                      MultisamplingMode multisampling_mode,
                      absl::Span<const ImageUsage> usages);
 
-  GeneralDeviceImage(SharedContext context, absl::string_view name,
+  GeneralDeviceImage(SharedContext context, std::string_view name,
                      const VkImage& image, SampleCount sample_count)
       : renderer::DeviceImage{name, sample_count},
         context_{std::move(FATAL_IF_NULL(context))}, image_{image} {}
@@ -71,7 +69,7 @@ class GeneralDeviceImage : public renderer::DeviceImage {
 
 class SwapchainImage : public renderer::DeviceImage {
  public:
-  SwapchainImage(absl::string_view name, std::vector<VkImage>&& images)
+  SwapchainImage(std::string_view name, std::vector<VkImage>&& images)
       : renderer::DeviceImage{name, SampleCount::k1},
         images_{std::move(images)} {}
 
@@ -94,8 +92,6 @@ class SampledImageView : public renderer::SampledImageView {
   SampledImageView(const SampledImageView&) = default;
 };
 
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter
 
-#endif /* LIGHTER_RENDERER_VK_IMAGE_H */
+#endif  // LIGHTER_RENDERER_VK_IMAGE_H

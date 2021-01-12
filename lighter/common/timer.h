@@ -10,8 +10,7 @@
 
 #include <chrono>
 
-namespace lighter {
-namespace common {
+namespace lighter::common {
 
 // This is used to get the elapsed time since the timer is launched.
 class BasicTimer {
@@ -88,7 +87,6 @@ class FrameTimer : public BasicTimer {
   int frame_rate_;
 };
 
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common
 
-#endif /* LIGHTER_COMMON_TIMER_H */
+#endif  // LIGHTER_COMMON_TIMER_H

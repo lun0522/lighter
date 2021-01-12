@@ -10,6 +10,7 @@
 
 #include <array>
 #include <memory>
+#include <optional>
 
 #include "lighter/application/vulkan/aurora/editor/button.h"
 #include "lighter/application/vulkan/aurora/editor/celestial.h"
@@ -22,7 +23,6 @@
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
 #include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
@@ -93,13 +93,13 @@ class Editor : public Scene {
     StateManager(const StateManager&) = delete;
     StateManager& operator=(const StateManager&) = delete;
 
-    // Updates button states. 'clicked_button' should be absl::nullopt if no
+    // Updates button states. 'clicked_button' should be std::nullopt if no
     // button is clicked.
-    void Update(absl::optional<ButtonIndex> clicked_button);
+    void Update(std::optional<ButtonIndex> clicked_button);
 
     // Returns the index of selected aurora path. If viewpoint is selected
-    // instead, returns absl::nullopt.
-    absl::optional<int> GetSelectedPathIndex() const;
+    // instead, returns std::nullopt.
+    std::optional<int> GetSelectedPathIndex() const;
 
     // Convenience functions for reading button states.
     bool IsSelected(ButtonIndex index) const {
@@ -145,7 +145,7 @@ class Editor : public Scene {
     std::array<Button::State, kNumButtons> button_states_{};
 
     // Records the last click on any button.
-    absl::optional<ButtonIndex> last_clicked_button_;
+    std::optional<ButtonIndex> last_clicked_button_;
 
     // Tracks the index of the last edited aurora path.
     ButtonIndex last_edited_path_ = kPath1ButtonIndex;

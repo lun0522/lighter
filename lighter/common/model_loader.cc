@@ -12,8 +12,7 @@
 #include "third_party/assimp/Importer.hpp"
 #include "third_party/assimp/postprocess.h"
 
-namespace lighter {
-namespace common {
+namespace lighter::common {
 namespace {
 
 // Translates the resource type we defined to its counterpart in Assimp.
@@ -31,7 +30,7 @@ aiTextureType TextureTypeToAssimpType(ModelLoader::TextureType type) {
   }
 }
 
-} /* namespace */
+}  // namespace
 
 ModelLoader::ModelLoader(const std::string& model_path,
                          const std::string& texture_dir) {
@@ -121,5 +120,4 @@ void ModelLoader::LoadTextures(const std::string& directory,
   }
 }
 
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common

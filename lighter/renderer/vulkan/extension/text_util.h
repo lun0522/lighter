@@ -10,6 +10,7 @@
 
 #include <array>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -23,7 +24,6 @@
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 
@@ -98,9 +98,9 @@ class CharLoader {
                                      int interval_between_chars) const;
 
   // Returns the horizontal advance of space character. If space is not loaded
-  // in 'char_lib', returns absl::nullopt.
-  absl::optional<float> GetSpaceAdvanceX(const common::CharLib& char_lib,
-                                         const Image& target_image) const;
+  // in 'char_lib', returns std::nullopt.
+  std::optional<float> GetSpaceAdvanceX(const common::CharLib& char_lib,
+                                        const Image& target_image) const;
 
   // Populates 'char_texture_map' and 'char_texture_info_map' with characters
   // loaded in 'char_lib', excluding the space character.
@@ -122,7 +122,7 @@ class CharLoader {
 
   // We don't need to render the space character. Instead, we only record
   // its advance.
-  absl::optional<float> space_advance_x_;
+  std::optional<float> space_advance_x_;
 
   // Maps each character to its glyph information on 'char_atlas_image_'.
   CharTextureInfoMap char_texture_info_map_;

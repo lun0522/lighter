@@ -9,12 +9,12 @@
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_COMMAND_H
 
 #include <functional>
+#include <optional>
 #include <vector>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/synchronization.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
@@ -106,13 +106,13 @@ class PerFrameCommand : public Command {
 
   // Records operations for a new frame and submits to the graphics queue,
   // without waiting for completion. The return value can be:
-  //   - absl::nullopt, if the swapchain can be kept using, or
+  //   - std::nullopt, if the swapchain can be kept using, or
   //   - otherwise, if the swapchain need to be rebuilt.
   // If any unexpected error occurs, a runtime exception will be thrown.
-  absl::optional<VkResult> Run(int current_frame,
-                               const VkSwapchainKHR& swapchain,
-                               const UpdateData& update_data,
-                               const OnRecord& on_record);
+  std::optional<VkResult> Run(int current_frame,
+                              const VkSwapchainKHR& swapchain,
+                              const UpdateData& update_data,
+                              const OnRecord& on_record);
 
  private:
   // Opaque command buffer objects.

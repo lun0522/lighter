@@ -34,7 +34,6 @@ cc_library(
     deps = [
         ":type",
         ":image_usage",
-         "//third_party:absl",
     ],
 )
 

@@ -8,16 +8,14 @@
 #ifndef LIGHTER_RENDERER_VK_IMAGE_UTIL_H
 #define LIGHTER_RENDERER_VK_IMAGE_UTIL_H
 
+#include <optional>
+
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vk/context.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
-namespace image {
+namespace lighter::renderer::vk::image {
 
 // Returns VkAccessFlags used for inserting image memory barriers.
 VkAccessFlags GetAccessFlags(const ImageUsage& usage);
@@ -33,13 +31,13 @@ VkImageUsageFlags GetImageUsageFlags(absl::Span<const ImageUsage> usages);
 
 // Returns the family index of the queue that accesses the image for 'usage'.
 // Note that since this is used for creating image buffers, it will return
-// absl::nullopt for the following usage types:
+// std::nullopt for the following usage types:
 // - kDontCare.
 // - kPresentation and kTransfer, since the queue should be inferred from
 //   previous or next usages. Note that both graphics and compute queues can
 //   write to swapchain and do transfer.
-absl::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
-                                             const ImageUsage& usage);
+std::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
+                                            const ImageUsage& usage);
 
 // Returns whether we need to explicitly synchronize image memory access when
 // the image usage changes, which means to insert memory barriers in compute
@@ -47,9 +45,6 @@ absl::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
 bool NeedSynchronization(const ImageUsage& prev_usage,
                          const ImageUsage& curr_usage);
 
-} /* namespace image */
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter::image
 
-#endif /* LIGHTER_RENDERER_VK_IMAGE_UTIL_H */
+#endif  // LIGHTER_RENDERER_VK_IMAGE_UTIL_H

@@ -102,9 +102,9 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
   const common::PerspectiveCamera::FrustumConfig frustum_config{
       /*field_of_view_y=*/45.0f, original_aspect_ratio};
 
-  camera_ = absl::make_unique<common::UserControlledCamera>(
+  camera_ = std::make_unique<common::UserControlledCamera>(
       control_config,
-      absl::make_unique<common::PerspectiveCamera>(config, frustum_config));
+      std::make_unique<common::PerspectiveCamera>(config, frustum_config));
 
   /* Window */
   (*mutable_window_context()->mutable_window())
@@ -135,14 +135,14 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
                                 [this]() { should_quit_ = true; });
 
   /* Command buffer */
-  command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
+  command_ = std::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
   /* Uniform buffer and push constant */
-  nanosuit_vert_uniform_ = absl::make_unique<UniformBuffer>(
+  nanosuit_vert_uniform_ = std::make_unique<UniformBuffer>(
       context(), sizeof(NanosuitVertTrans), kNumFramesInFlight);
-  nanosuit_frag_constant_ = absl::make_unique<PushConstant>(
+  nanosuit_frag_constant_ = std::make_unique<PushConstant>(
       context(), sizeof(NanosuitFragTrans), kNumFramesInFlight);
-  skybox_constant_ = absl::make_unique<PushConstant>(
+  skybox_constant_ = std::make_unique<PushConstant>(
       context(), sizeof(SkyboxTrans), kNumFramesInFlight);
 
   /* Model */
@@ -191,11 +191,11 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
       .Build();
 
   /* Render pass */
-  render_pass_manager_ = absl::make_unique<OnScreenRenderPassManager>(
+  render_pass_manager_ = std::make_unique<OnScreenRenderPassManager>(
       &window_context(),
       NaiveRenderPass::SubpassConfig{
-          kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
-          /*first_overlay_subpass=*/absl::nullopt});
+          kNumSubpasses, /*first_transparent_subpass=*/std::nullopt,
+          /*first_overlay_subpass=*/std::nullopt});
 }
 
 void NanosuitApp::Recreate() {

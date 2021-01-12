@@ -10,6 +10,7 @@
 
 #include <cstdlib>
 #include <memory>
+#include <string_view>
 #include <type_traits>
 
 #include "lighter/application/util.h"
@@ -34,9 +35,6 @@
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
 #include "third_party/absl/flags/declare.h"
 #include "third_party/absl/flags/flag.h"
-#include "third_party/absl/memory/memory.h"
-#include "third_party/absl/strings/string_view.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/glm/gtc/matrix_transform.hpp"
@@ -86,7 +84,7 @@ class Application {
 // Holds identifiers of an attachment image.
 class AttachmentInfo {
  public:
-  explicit AttachmentInfo(absl::string_view image_name)
+  explicit AttachmentInfo(std::string_view image_name)
       : image_name_{image_name} {}
 
   // Makes 'image_usage_tracker' track the usage of this image. The initial
@@ -115,7 +113,7 @@ class AttachmentInfo {
 
   // Attachment index. This is used to identify an image within a
   // VkAttachmentDescription array when constructing render passes.
-  absl::optional<int> attachment_index_;
+  std::optional<int> attachment_index_;
 };
 
 // This class maintains a render pass internally. It assumes the color

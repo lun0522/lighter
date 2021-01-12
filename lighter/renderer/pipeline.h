@@ -10,21 +10,20 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/buffer.h"
 #include "lighter/renderer/image.h"
 #include "lighter/renderer/type.h"
 #include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/strings/string_view.h"
 #include "third_party/glm/glm.hpp"
 
-namespace lighter {
-namespace renderer {
+namespace lighter::renderer {
 
 class Pipeline {
  public:
-  explicit Pipeline(absl::string_view name) : name_{name} {}
+  explicit Pipeline(std::string_view name) : name_{name} {}
 
   // This class is neither copyable nor movable.
   Pipeline(const Pipeline&) = delete;
@@ -123,12 +122,12 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
   };
 
   // Modifiers.
-  GraphicsPipelineDescriptor& SetName(absl::string_view name) {
+  GraphicsPipelineDescriptor& SetName(std::string_view name) {
     pipeline_name = std::string{name};
     return *this;
   }
   GraphicsPipelineDescriptor& SetShader(shader_stage::ShaderStage stage,
-                                        absl::string_view shader_path) {
+                                        std::string_view shader_path) {
     ASSERT_TRUE(common::util::IsPowerOf2(stage),
                 "Exactly one shader stage is allowed");
     shader_path_map.insert({stage, std::string{shader_path}});
@@ -190,11 +189,11 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
 class ComputePipelineDescriptor : public PipelineDescriptor {
  public:
   // Modifiers.
-  ComputePipelineDescriptor& SetName(absl::string_view name) {
+  ComputePipelineDescriptor& SetName(std::string_view name) {
     pipeline_name = std::string{name};
     return *this;
   }
-  ComputePipelineDescriptor& SetShader(absl::string_view path) {
+  ComputePipelineDescriptor& SetShader(std::string_view path) {
     shader_path = std::string{path};
     return *this;
   }
@@ -203,7 +202,6 @@ class ComputePipelineDescriptor : public PipelineDescriptor {
   std::string shader_path;
 };
 
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace lighter::renderer
 
-#endif /* LIGHTER_RENDERER_PIPELINE_H */
+#endif  // LIGHTER_RENDERER_PIPELINE_H

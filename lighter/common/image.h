@@ -9,13 +9,12 @@
 #define LIGHTER_COMMON_IMAGE_H
 
 #include <string>
+#include <string_view>
 #include <vector>
 
-#include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/span.h"
 
-namespace lighter {
-namespace common {
+namespace lighter::common {
 namespace image {
 
 constexpr int kSingleMipLevel = 1;
@@ -26,7 +25,7 @@ constexpr int kBwImageChannel = 1;
 constexpr int kRgbImageChannel = 3;
 constexpr int kRgbaImageChannel = 4;
 
-} /* namespace image */
+}  // namespace image
 
 // Loads image from file or memory.
 class Image {
@@ -45,8 +44,8 @@ class Image {
   // The length of 'paths' and 'relative_paths' must be either 1 or 6 (cubemap).
   explicit Image(absl::Span<const std::string> paths);
   explicit Image(const std::string& path) : Image{{&path, 1}} {}
-  explicit Image(absl::string_view path) : Image{std::string{path}} {}
-  Image(absl::string_view directory,
+  explicit Image(std::string_view path) : Image{std::string{path}} {}
+  Image(std::string_view directory,
         absl::Span<const std::string> relative_paths);
 
   // Loads images from the memory. The data will be copied, hence the caller may
@@ -75,7 +74,7 @@ class Image {
  private:
   // Loads image from 'path' and returns the pointer to image data. It also
   // checks that the dimension of image matches 'dimension_'.
-  const void* LoadImageFromFile(absl::string_view path) const;
+  const void* LoadImageFromFile(std::string_view path) const;
 
   // Dimension of image data.
   Dimension dimension_{};
@@ -84,7 +83,6 @@ class Image {
   std::vector<const void*> data_ptrs_;
 };
 
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common
 
-#endif /* LIGHTER_COMMON_IMAGE_H */
+#endif  // LIGHTER_COMMON_IMAGE_H

@@ -10,6 +10,7 @@
 
 #include <array>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -20,7 +21,6 @@
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
@@ -153,9 +153,9 @@ class Button {
             absl::Span<const State> button_states);
 
   // If any button is clicked, returns 'button_index_offset' plus the index of
-  // it. Otherwise, returns absl::nullopt. If the current state of a button is
+  // it. Otherwise, returns std::nullopt. If the current state of a button is
   // 'State::kHidden', it will be ignored in this click detection.
-  absl::optional<int> GetClickedButtonIndex(
+  std::optional<int> GetClickedButtonIndex(
       const glm::vec2& click_ndc, int button_index_offset,
       absl::Span<const State> button_states) const;
 

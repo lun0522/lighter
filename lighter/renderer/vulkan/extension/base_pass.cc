@@ -83,21 +83,21 @@ const ImageUsage* BasePass::GetImageUsage(const std::string& image_name,
   return iter == history.usage_at_subpass_map().end() ? nullptr : &iter->second;
 }
 
-absl::optional<BasePass::ImageUsagesInfo>
+std::optional<BasePass::ImageUsagesInfo>
 BasePass::GetImageUsagesIfNeedSynchronization(
     const std::string& image_name, int subpass) const {
   ValidateSubpass(subpass, image_name, /*include_virtual_subpasses=*/true);
   const ImageUsageHistory& history = GetUsageHistory(image_name);
   const auto curr_usage_iter = history.usage_at_subpass_map().find(subpass);
   if (curr_usage_iter == history.usage_at_subpass_map().end()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   const auto prev_usage_iter = std::prev(curr_usage_iter);
 
   const ImageUsage& prev_usage = prev_usage_iter->second;
   const ImageUsage& curr_usage = curr_usage_iter->second;
   if (!image::NeedSynchronization(prev_usage, curr_usage)) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   const int prev_usage_subpass = prev_usage_iter->first;

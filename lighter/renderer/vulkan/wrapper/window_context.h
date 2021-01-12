@@ -9,6 +9,7 @@
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_WINDOW_CONTEXT_H
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "lighter/common/window.h"
@@ -18,8 +19,6 @@
 #ifndef NDEBUG
 #include "lighter/renderer/vulkan/wrapper/validation.h"
 #endif /* !NDEBUG */
-#include "third_party/absl/memory/memory.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
@@ -44,7 +43,7 @@ class WindowContext {
     }
 
     Config& disable_multisampling() {
-      multisampling_mode = absl::nullopt;
+      multisampling_mode = std::nullopt;
       return *this;
     }
 
@@ -57,7 +56,7 @@ class WindowContext {
 #endif /* !NDEBUG */
 
     glm::ivec2 screen_size{800, 600};
-    absl::optional<MultisampleImage::Mode> multisampling_mode =
+    std::optional<MultisampleImage::Mode> multisampling_mode =
         MultisampleImage::Mode::kEfficient;
 #ifndef NDEBUG
     DebugCallback::TriggerCondition debug_callback_trigger;
@@ -128,7 +127,7 @@ class WindowContext {
   VkSampleCountFlagBits sample_count() const {
     return swapchain_->sample_count();
   }
-  absl::optional<MultisampleImage::Mode> multisampling_mode() const {
+  std::optional<MultisampleImage::Mode> multisampling_mode() const {
     return multisampling_mode_;
   }
   // The user is responsible for checking if multisampling is used.
@@ -140,7 +139,7 @@ class WindowContext {
   // Creates a swapchain with the given 'frame_size'. This must not be called
   // before 'context_' and 'surface_' are created.
   void CreateSwapchain(const glm::ivec2& frame_size) {
-    swapchain_ = absl::make_unique<Swapchain>(
+    swapchain_ = std::make_unique<Swapchain>(
         context_, surface_,
         VkExtent2D{
             static_cast<uint32_t>(frame_size.x),
@@ -156,7 +155,7 @@ class WindowContext {
   common::Window window_;
 
   // Multisampling mode for swapchain images.
-  const absl::optional<MultisampleImage::Mode> multisampling_mode_;
+  const std::optional<MultisampleImage::Mode> multisampling_mode_;
 
   // Wrapper of VkSurfaceKHR.
   Surface surface_;

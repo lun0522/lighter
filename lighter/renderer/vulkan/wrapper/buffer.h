@@ -8,12 +8,12 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_BUFFER_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_BUFFER_H
 
+#include <variant>
 #include <vector>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include "third_party/absl/types/variant.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
@@ -334,8 +334,8 @@ class PerVertexBuffer : public VertexBuffer {
     std::vector<Info> infos;
   };
 
-  using MeshDataInfos = absl::variant<MeshDataInfosNoIndices,
-                                      MeshDataInfosWithIndices>;
+  using MeshDataInfos = std::variant<MeshDataInfosNoIndices,
+                                     MeshDataInfosWithIndices>;
 
   // Accessors.
   MeshDataInfos* mutable_mesh_data_infos() { return &mesh_data_infos_; }

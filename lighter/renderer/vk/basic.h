@@ -8,6 +8,7 @@
 #ifndef LIGHTER_RENDERER_VK_BASIC_H
 #define LIGHTER_RENDERER_VK_BASIC_H
 
+#include <string_view>
 #include <vector>
 
 #include "lighter/common/window.h"
@@ -15,13 +16,10 @@
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
+namespace lighter::renderer::vk {
 
 // Forward declarations.
 class Context;
@@ -50,7 +48,7 @@ class HostMemoryAllocator {
 // and maintain per-application states.
 class Instance {
  public:
-  Instance(const Context* context, absl::string_view application_name,
+  Instance(const Context* context, std::string_view application_name,
            absl::Span<const common::Window* const> windows);
 
   // This class is neither copyable nor movable.
@@ -205,8 +203,6 @@ class Queues {
   std::vector<VkQueue> present_queues_;
 };
 
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter
 
-#endif /* LIGHTER_RENDERER_VK_BASIC_H */
+#endif  // LIGHTER_RENDERER_VK_BASIC_H

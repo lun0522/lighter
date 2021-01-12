@@ -13,7 +13,6 @@
 #include "lighter/renderer/align.h"
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
-#include "third_party/absl/memory/memory.h"
 #include "third_party/glm/gtc/matrix_transform.hpp"
 
 namespace lighter {
@@ -76,12 +75,12 @@ GeometryPass::GeometryPass(const WindowContext* window_context,
       });
     }
   }
-  center_data_ = absl::make_unique<StaticPerInstanceBuffer>(
+  center_data_ = std::make_unique<StaticPerInstanceBuffer>(
       context, centers,
       pipeline::GetVertexAttributes<common::Vertex3DPosOnly>());
 
   /* Uniform buffer */
-  trans_uniform_ = absl::make_unique<UniformBuffer>(
+  trans_uniform_ = std::make_unique<UniformBuffer>(
       context, sizeof(Transformation), num_frames_in_flight);
   const glm::mat4 model = glm::scale(glm::mat4{1.0f}, glm::vec3{model_scale});
   const glm::mat4 model_inv_trs = glm::transpose(glm::inverse(model));

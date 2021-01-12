@@ -79,10 +79,10 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
   const float original_aspect_ratio = window_context().original_aspect_ratio();
 
   /* Command buffer */
-  command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
+  command_ = std::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
   /* Push constant */
-  trans_constant_ = absl::make_unique<PushConstant>(
+  trans_constant_ = std::make_unique<PushConstant>(
       context(), sizeof(Transformation), kNumFramesInFlight);
 
   /* Model */
@@ -109,18 +109,18 @@ CubeApp::CubeApp(const WindowContext::Config& window_config)
   /* Text */
   constexpr auto kFont = Text::Font::kGeorgia;
   constexpr int kFontHeight = 100;
-  static_text_ = absl::make_unique<StaticText>(
+  static_text_ = std::make_unique<StaticText>(
       context(), kNumFramesInFlight, original_aspect_ratio,
       std::vector<std::string>{"FPS: "}, kFont, kFontHeight);
-  dynamic_text_ = absl::make_unique<DynamicText>(
+  dynamic_text_ = std::make_unique<DynamicText>(
       context(), kNumFramesInFlight, original_aspect_ratio,
       std::vector<std::string>{"01234567890"}, kFont, kFontHeight);
 
   /* Render pass */
-  render_pass_manager_ = absl::make_unique<OnScreenRenderPassManager>(
+  render_pass_manager_ = std::make_unique<OnScreenRenderPassManager>(
       &window_context(),
       NaiveRenderPass::SubpassConfig{
-          kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
+          kNumSubpasses, /*first_transparent_subpass=*/std::nullopt,
           /*first_overlay_subpass=*/kTextSubpassIndex});
 }
 

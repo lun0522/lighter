@@ -8,6 +8,7 @@
 #include "lighter/renderer/vk/basic.h"
 
 #include <algorithm>
+#include <optional>
 #include <string>
 
 #include "lighter/common/util.h"
@@ -16,11 +17,8 @@
 #include "lighter/renderer/vk/debug_callback.h"
 #include "lighter/renderer/vk/type_mapping.h"
 #include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/types/optional.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
+namespace lighter::renderer::vk {
 namespace {
 
 // Returns instance extensions required by 'windows'.
@@ -123,8 +121,8 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
 }
 
 // Finds family indices of queues we need. If any queue is not found in the
-// given 'physical_device', returns absl::nullopt.
-absl::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
+// given 'physical_device', returns std::nullopt.
+std::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
     const VkPhysicalDevice& physical_device,
     absl::Span<const Surface* const> surfaces,
     absl::Span<const char* const> swapchain_extensions) {
@@ -136,14 +134,14 @@ absl::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
   // Request swapchain support if use window.
   if (!surfaces.empty() &&
       !HasSwapchainSupport(physical_device, surfaces, swapchain_extensions)) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   // Request support for anisotropy filtering.
   VkPhysicalDeviceFeatures feature_support;
   vkGetPhysicalDeviceFeatures(physical_device, &feature_support);
   if (!feature_support.samplerAnisotropy) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   // Find queue family that holds graphics queue and compute queue.
@@ -163,7 +161,7 @@ absl::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
       common::util::FindIndexOfFirst<VkQueueFamilyProperties>(
           families, has_graphics_support);
   if (!graphics_queue_index.has_value()) {
-    return absl::nullopt;
+    return std::nullopt;
   } else {
     candidate.graphics = CAST_TO_UINT(graphics_queue_index.value());
   }
@@ -176,7 +174,7 @@ absl::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
       common::util::FindIndexOfFirst<VkQueueFamilyProperties>(
           families, has_compute_support);
   if (!compute_queue_index.has_value()) {
-    return absl::nullopt;
+    return std::nullopt;
   } else {
     candidate.compute = CAST_TO_UINT(compute_queue_index.value());
   }
@@ -196,7 +194,7 @@ absl::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
         common::util::FindIndexOfFirst<VkQueueFamilyProperties>(
             families, has_present_support);
     if (!present_queue_index.has_value()) {
-      return absl::nullopt;
+      return std::nullopt;
     } else {
       candidate.presents.push_back(CAST_TO_UINT(present_queue_index.value()));
     }
@@ -205,9 +203,9 @@ absl::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
   return candidate;
 }
 
-} /* namespace */
+}  // namespace
 
-Instance::Instance(const Context* context, absl::string_view application_name,
+Instance::Instance(const Context* context, std::string_view application_name,
                    absl::Span<const common::Window* const> windows)
     : context_{*FATAL_IF_NULL(context)} {
   // Check required instance layers.
@@ -414,6 +412,4 @@ Queues::Queues(const Context& context) {
   }
 }
 
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter

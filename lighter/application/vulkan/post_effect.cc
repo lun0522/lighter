@@ -5,6 +5,7 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
+#include <memory>
 #include <string>
 
 #include "lighter/application/vulkan/image_viewer.h"
@@ -83,13 +84,13 @@ PostEffectApp::PostEffectApp(const WindowContext::Config& window_config)
   ProcessImageFromFile(common::file::GetResourcePath("texture/statue.jpg"));
 
   /* Command buffer */
-  command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
+  command_ = std::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
   /* Render pass */
-  render_pass_manager_ = absl::make_unique<OnScreenRenderPassManager>(
+  render_pass_manager_ = std::make_unique<OnScreenRenderPassManager>(
       &window_context(),
       NaiveRenderPass::SubpassConfig{
-          kNumGraphicsSubpasses, /*first_transparent_subpass=*/absl::nullopt,
+          kNumGraphicsSubpasses, /*first_transparent_subpass=*/std::nullopt,
           /*first_overlay_subpass=*/kViewImageSubpassIndex});
 }
 
@@ -109,7 +110,7 @@ void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
                 ImageUsage::GetLinearAccessInComputeShaderUsage(
                     AccessType::kWriteOnly))
       .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
-  processed_image_ = absl::make_unique<OffscreenImage>(
+  processed_image_ = std::make_unique<OffscreenImage>(
       context(), original_image.extent(), image_from_file.channel(),
       processed_image_usage_history.GetAllUsages(), ImageSampler::Config{},
       /*use_high_precision=*/false);
@@ -174,7 +175,7 @@ void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
         absl::MakeSpan(&compute_op, 1));
   });
 
-  image_viewer_ = absl::make_unique<ImageViewer>(
+  image_viewer_ = std::make_unique<ImageViewer>(
       context(), *processed_image_, image_from_file.channel(), /*flip_y=*/true);
 }
 

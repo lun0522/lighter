@@ -8,9 +8,10 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_BASIC_OBJECT_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_BASIC_OBJECT_H
 
+#include <optional>
+
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
@@ -47,7 +48,7 @@ struct QueueFamilyIndices {
   uint32_t graphics;
   uint32_t compute;
   uint32_t transfer;
-  absl::optional<uint32_t> present;
+  std::optional<uint32_t> present;
 
   // Returns unique queue family indices. Note that we might be using the same
   // queue for different purposes.
@@ -61,7 +62,7 @@ class Instance {
   // If the window support is requested, 'WindowSupport::create_surface' will be
   // called internally.
   Instance(const BasicContext* context,
-           const absl::optional<WindowSupport>& window_support);
+           const std::optional<WindowSupport>& window_support);
 
   // This class is neither copyable nor movable.
   Instance(const Instance&) = delete;
@@ -86,7 +87,7 @@ struct PhysicalDevice {
   // If there is no physical device that satisfies our need, a runtime exception
   // will be thrown.
   PhysicalDevice(const BasicContext* context,
-                 const absl::optional<WindowSupport>& window_support);
+                 const std::optional<WindowSupport>& window_support);
 
   // This class is neither copyable nor movable.
   PhysicalDevice(const PhysicalDevice&) = delete;
@@ -124,7 +125,7 @@ struct PhysicalDevice {
 struct Device {
  public:
   Device(const BasicContext* context,
-         const absl::optional<WindowSupport>& window_support);
+         const std::optional<WindowSupport>& window_support);
 
   // This class is neither copyable nor movable.
   Device(const Device&) = delete;
@@ -202,7 +203,7 @@ class Queues {
   Queue transfer_queue_;
 
   // Presentation queue.
-  absl::optional<Queue> present_queue_;
+  std::optional<Queue> present_queue_;
 };
 
 } /* namespace vulkan */

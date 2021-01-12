@@ -12,7 +12,6 @@
 
 #include "lighter/renderer/vulkan/wrapper/command.h"
 #include "lighter/renderer/vulkan/wrapper/image_util.h"
-#include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace lighter {
@@ -45,8 +44,8 @@ struct ImageConfig {
 };
 
 // Returns the first image format among 'candidates' that has the specified
-// 'features'. If not found, returns absl::nullopt.
-absl::optional<VkFormat> FindImageFormatWithFeature(
+// 'features'. If not found, returns std::nullopt.
+std::optional<VkFormat> FindImageFormatWithFeature(
     const BasicContext& context,
     absl::Span<const VkFormat> candidates,
     VkFormatFeatureFlags features) {
@@ -58,7 +57,7 @@ absl::optional<VkFormat> FindImageFormatWithFeature(
       return format;
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 // Returns the image format to use for a color image given number of 'channel'.
@@ -619,17 +618,17 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
   const std::string* identifier;
   std::unique_ptr<common::Image> image;
 
-  if (absl::holds_alternative<SingleTexPath>(source_path)) {
+  if (const auto* single_tex_path = std::get_if<SingleTexPath>(&source_path);
+      single_tex_path != nullptr) {
     generate_mipmaps = true;
-    const auto& single_tex_path = absl::get<SingleTexPath>(source_path);
-    identifier = &single_tex_path;
-    image = absl::make_unique<common::Image>(single_tex_path);
-  } else if (absl::holds_alternative<CubemapPath>(source_path)) {
+    identifier = single_tex_path;
+    image = std::make_unique<common::Image>(*single_tex_path);
+  } else if (const auto* cubemap_path = std::get_if<CubemapPath>(&source_path);
+             cubemap_path != nullptr) {
     generate_mipmaps = false;
-    const auto& cubemap_path = absl::get<CubemapPath>(source_path);
-    identifier = &cubemap_path.directory;
-    image = absl::make_unique<common::Image>(
-        cubemap_path.directory, cubemap_path.files);
+    identifier = &cubemap_path->directory;
+    image = std::make_unique<common::Image>(cubemap_path->directory,
+                                            cubemap_path->files);
   } else {
     FATAL("Unrecognized variant type");
   }
@@ -721,12 +720,12 @@ std::unique_ptr<Image> MultisampleImage::CreateDepthStencilMultisampleImage(
 
 std::unique_ptr<Image> MultisampleImage::CreateDepthStencilImage(
     SharedBasicContext context,
-    const VkExtent2D& extent, absl::optional<Mode> mode) {
+    const VkExtent2D& extent, std::optional<Mode> mode) {
   if (mode.has_value()) {
     return CreateDepthStencilMultisampleImage(std::move(context),
                                               extent, mode.value());
   } else {
-    return absl::make_unique<DepthStencilImage>(std::move(context), extent);
+    return std::make_unique<DepthStencilImage>(std::move(context), extent);
   }
 }
 

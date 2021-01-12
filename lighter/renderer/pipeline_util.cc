@@ -12,9 +12,7 @@
 #include "lighter/common/util.h"
 #include "third_party/absl/types/span.h"
 
-namespace lighter {
-namespace renderer {
-namespace pipeline {
+namespace lighter::renderer::pipeline {
 namespace {
 
 SampleCount GetFirstSupportedSampleCount(
@@ -26,7 +24,7 @@ SampleCount GetFirstSupportedSampleCount(
   return *iter;
 }
 
-} /* namespace */
+}  // namespace
 
 SampleCount GetSampleCount(
     MultisamplingMode multisampling_mode,
@@ -122,6 +120,4 @@ GraphicsPipelineDescriptor::Scissor GetFullFrameScissor(
   return {/*origin=*/glm::ivec2{0}, /*extent=*/frame_size};
 }
 
-} /* namespace pipeline */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace lighter::renderer::pipeline

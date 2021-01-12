@@ -28,9 +28,9 @@ using DepthStencilLoadStoreOps =
 // Creates clear value for 'attachment'.
 VkClearValue CreateClearColor(const RenderPassBuilder::Attachment& attachment) {
   VkClearValue clear_value{};
-  if (absl::holds_alternative<ColorLoadStoreOps>(attachment.load_store_ops)) {
+  if (std::holds_alternative<ColorLoadStoreOps>(attachment.load_store_ops)) {
     clear_value.color = {{0, 0, 0, 0}};
-  } else if (absl::holds_alternative<DepthStencilLoadStoreOps>(
+  } else if (std::holds_alternative<DepthStencilLoadStoreOps>(
       attachment.load_store_ops)) {
     clear_value.depthStencil = {/*depth=*/1.0f, /*stencil=*/0};
   } else {
@@ -55,19 +55,19 @@ VkAttachmentDescription CreateAttachmentDescription(
       attachment.initial_layout,
       attachment.final_layout,
   };
-  if (absl::holds_alternative<ColorLoadStoreOps>(attachment.load_store_ops)) {
-    const auto& color_ops =
-        absl::get<ColorLoadStoreOps>(attachment.load_store_ops);
-    description.loadOp = color_ops.color_load_op;
-    description.storeOp = color_ops.color_store_op;
-  } else if (absl::holds_alternative<DepthStencilLoadStoreOps>(
-      attachment.load_store_ops)) {
-    const auto& depth_stencil_ops =
-        absl::get<DepthStencilLoadStoreOps>(attachment.load_store_ops);
-    description.loadOp = depth_stencil_ops.depth_load_op;
-    description.storeOp = depth_stencil_ops.depth_store_op;
-    description.stencilLoadOp = depth_stencil_ops.stencil_load_op;
-    description.stencilStoreOp = depth_stencil_ops.stencil_store_op;
+  if (const auto* color_ops =
+          std::get_if<ColorLoadStoreOps>(&attachment.load_store_ops);
+      color_ops != nullptr) {
+    description.loadOp = color_ops->color_load_op;
+    description.storeOp = color_ops->color_store_op;
+  } else if (const auto* depth_stencil_ops =
+                 std::get_if<DepthStencilLoadStoreOps>(
+                     &attachment.load_store_ops);
+             depth_stencil_ops != nullptr) {
+    description.loadOp = depth_stencil_ops->depth_load_op;
+    description.storeOp = depth_stencil_ops->depth_store_op;
+    description.stencilLoadOp = depth_stencil_ops->stencil_load_op;
+    description.stencilStoreOp = depth_stencil_ops->stencil_store_op;
   } else {
     FATAL("Unrecognized variant type");
   }
@@ -231,7 +231,7 @@ RenderPassBuilder& RenderPassBuilder::UpdateAttachmentImage(
 RenderPassBuilder& RenderPassBuilder::SetSubpass(
     int index, std::vector<VkAttachmentReference>&& color_refs,
     std::vector<VkAttachmentReference>&& multisampling_refs,
-    const absl::optional<VkAttachmentReference>& depth_stencil_ref) {
+    const std::optional<VkAttachmentReference>& depth_stencil_ref) {
   if (!multisampling_refs.empty()) {
     ASSERT_TRUE(multisampling_refs.size() == color_refs.size(),
                 absl::StrFormat("Number of multisampling attachment (%d) must "

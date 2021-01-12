@@ -10,10 +10,7 @@
 #include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/util.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
-namespace buffer {
+namespace lighter::renderer::vk::buffer {
 namespace {
 
 using UsageType = BufferUsage::UsageType;
@@ -73,7 +70,7 @@ uint32_t FindMemoryTypeIndex(const VkPhysicalDevice& physical_device,
   FATAL("Failed to find suitable device memory");
 }
 
-} /* namespace */
+}  // namespace
 
 VkBufferUsageFlags GetBufferUsageFlags(absl::Span<const BufferUsage> usages) {
   auto flags = nullflag;
@@ -85,14 +82,14 @@ VkBufferUsageFlags GetBufferUsageFlags(absl::Span<const BufferUsage> usages) {
   return static_cast<VkImageUsageFlags>(flags);
 }
 
-absl::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
-                                             const BufferUsage& usage) {
+std::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
+                                            const BufferUsage& usage) {
   const auto& queue_family_indices =
       context.physical_device().queue_family_indices();
   switch (usage.usage_type()) {
     case UsageType::kDontCare:
     case UsageType::kTransfer:
-      return absl::nullopt;
+      return std::nullopt;
 
     case UsageType::kIndexOnly:
     case UsageType::kVertexOnly:
@@ -135,7 +132,4 @@ VkDeviceMemory CreateDeviceMemory(
   return memory;
 }
 
-} /* namespace buffer */
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter::buffer

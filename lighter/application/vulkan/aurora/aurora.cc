@@ -55,10 +55,10 @@ class AuroraApp : public Application {
 
 AuroraApp::AuroraApp(const WindowContext::Config& window_config)
     : Application{"Aurora Sketcher", window_config} {
-  command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
-  editor_ = absl::make_unique<aurora::Editor>(mutable_window_context(),
-                                              kNumFramesInFlight);
-  viewer_ = absl::make_unique<aurora::Viewer>(
+  command_ = std::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
+  editor_ = std::make_unique<aurora::Editor>(mutable_window_context(),
+                                             kNumFramesInFlight);
+  viewer_ = std::make_unique<aurora::Viewer>(
       mutable_window_context(), kNumFramesInFlight,
       editor_->GetAuroraPathVertexBuffers());
 }

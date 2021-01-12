@@ -18,7 +18,7 @@ namespace {
 
 // Checks that 'subpass' is within range [0, 'num_subpasses').
 void CheckSubpassIndexInRange(int subpass, int num_subpasses,
-                              absl::string_view name) {
+                              std::string_view name) {
   ASSERT_TRUE(0 <= subpass && subpass < num_subpasses,
               absl::StrFormat("First %s subpass index (%d) must be in range "
                               "[0, %d)",
@@ -27,7 +27,7 @@ void CheckSubpassIndexInRange(int subpass, int num_subpasses,
 
 #ifndef NDEBUG
 // Logs subpass 'count' if it is greater than 0.
-void PrintSubpassCountIfNonZero(int count, absl::string_view name) {
+void PrintSubpassCountIfNonZero(int count, std::string_view name) {
   if (count > 0) {
     LOG_INFO << absl::StreamFormat("Number of %s subpasses: %d", name, count);
   }
@@ -61,8 +61,8 @@ void AddAttachmentToGraphicsPass(
 } /* namespace */
 
 NaiveRenderPass::SubpassConfig::SubpassConfig(
-    int num_subpasses, absl::optional<int> first_transparent_subpass,
-    absl::optional<int> first_overlay_subpass) {
+    int num_subpasses, std::optional<int> first_transparent_subpass,
+    std::optional<int> first_overlay_subpass) {
   ASSERT_TRUE(num_subpasses >= 0,
               absl::StrFormat("Number of subpasses (%d) must be positive",
                               num_subpasses));

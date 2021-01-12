@@ -78,22 +78,22 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
   const auto context = window_context_.basic_context();
 
   /* Uniform buffer and push constant */
-  camera_constant_ = absl::make_unique<PushConstant>(
+  camera_constant_ = std::make_unique<PushConstant>(
       context, sizeof(CameraParameter), num_frames_in_flight);
-  render_info_uniform_ = absl::make_unique<UniformBuffer>(
+  render_info_uniform_ = std::make_unique<UniformBuffer>(
       context, sizeof(RenderInfo), num_frames_in_flight);
 
   /* Image */
   const auto image_usages = {ImageUsage::GetSampledInFragmentShaderUsage()};
   const ImageSampler::Config sampler_config{
       VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
-  aurora_deposition_image_ = absl::make_unique<SharedTexture>(
+  aurora_deposition_image_ = std::make_unique<SharedTexture>(
       context, common::file::GetResourcePath("texture/aurora_deposition.jpg"),
       image_usages, sampler_config);
 
   const auto air_transmit_table =
       GenerateAirTransmitTable(air_transmit_sample_step);
-  air_transmit_table_image_ = absl::make_unique<TextureImage>(
+  air_transmit_table_image_ = std::make_unique<TextureImage>(
       context, /*generate_mipmaps=*/false, *air_transmit_table, image_usages,
       sampler_config);
 
@@ -105,7 +105,7 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
           "PositiveZ.jpg", "NegativeZ.jpg",
       },
   };
-  universe_skybox_image_ = absl::make_unique<SharedTexture>(
+  universe_skybox_image_ = std::make_unique<SharedTexture>(
       context, skybox_path, image_usages, ImageSampler::Config{});
 
   /* Descriptor */
@@ -147,7 +147,7 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
   descriptors_.reserve(num_frames_in_flight);
   for (int frame = 0; frame < num_frames_in_flight; ++frame) {
     descriptors_.push_back(
-        absl::make_unique<StaticDescriptor>(context, descriptor_infos));
+        std::make_unique<StaticDescriptor>(context, descriptor_infos));
     (*descriptors_[frame])
         .UpdateBufferInfos(
             UniformBuffer::GetDescriptorType(),
@@ -163,12 +163,12 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
   const PerVertexBuffer::NoIndicesDataInfo vertex_data_info{
       /*per_mesh_vertices=*/{{PerVertexBuffer::VertexDataInfo{vertex_data}}}
   };
-  vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
+  vertex_buffer_ = std::make_unique<StaticPerVertexBuffer>(
       context, vertex_data_info,
       pipeline::GetVertexAttributes<Vertex2DPosOnly>());
 
   /* Pipeline */
-  pipeline_builder_ = absl::make_unique<GraphicsPipelineBuilder>(context);
+  pipeline_builder_ = std::make_unique<GraphicsPipelineBuilder>(context);
   (*pipeline_builder_)
       .SetPipelineName("View aurora")
       .AddVertexInput(
@@ -278,18 +278,18 @@ Viewer::Viewer(
   // Field of view should be as small as possible so that we can focus on more
   // details of aurora paths, but it should not be too small, in case that the
   // marching ray goes out of the resulting texture.
-  dump_paths_camera_ = absl::make_unique<common::PerspectiveCamera>(
+  dump_paths_camera_ = std::make_unique<common::PerspectiveCamera>(
       config, common::PerspectiveCamera::FrustumConfig{
           /*field_of_view_y=*/40.0f, /*aspect_ratio=*/1.0f,
       });
 
   // 'position' and 'look_at' don't matter at this moment. They will be set
   // according to the user viewpoint.
-  auto perspective_camera = absl::make_unique<common::PerspectiveCamera>(
+  auto perspective_camera = std::make_unique<common::PerspectiveCamera>(
       config, common::PerspectiveCamera::FrustumConfig{
           /*field_of_view_y=*/45.0f, window_context_.original_aspect_ratio(),
       });
-  view_aurora_camera_ = absl::make_unique<common::UserControlledCamera>(
+  view_aurora_camera_ = std::make_unique<common::UserControlledCamera>(
       common::UserControlledCamera::ControlConfig{},
       std::move(perspective_camera));
   view_aurora_camera_->SetActivity(true);

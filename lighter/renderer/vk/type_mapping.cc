@@ -10,10 +10,7 @@
 #include "lighter/common/util.h"
 #include "lighter/renderer/vk/util.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
-namespace type {
+namespace lighter::renderer::vk::type {
 
 VkVertexInputRate ConvertVertexInputRate(VertexInputRate rate) {
   switch (rate) {
@@ -171,7 +168,4 @@ VkShaderStageFlags ConvertShaderStages(shader_stage::ShaderStage stages) {
   return flags;
 }
 
-} /* namespace type */
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter::type

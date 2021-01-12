@@ -11,10 +11,7 @@
 #include "lighter/renderer/type.h"
 #include "third_party/vulkan/vulkan.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
-namespace type {
+namespace lighter::renderer::vk::type {
 
 VkVertexInputRate ConvertVertexInputRate(VertexInputRate rate);
 
@@ -36,9 +33,6 @@ VkShaderStageFlagBits ConvertShaderStage(shader_stage::ShaderStage stage);
 
 VkShaderStageFlags ConvertShaderStages(shader_stage::ShaderStage stages);
 
-} /* namespace type */
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter::type
 
-#endif /* LIGHTER_RENDERER_VK_TYPE_MAPPING_H */
+#endif  // LIGHTER_RENDERER_VK_TYPE_MAPPING_H

@@ -11,7 +11,6 @@
 
 #include "lighter/common/file.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/strings/str_join.h"
 
@@ -122,7 +121,7 @@ ShaderModule::ShaderModule(SharedBasicContext context,
     : context_{std::move(FATAL_IF_NULL(context))} {
   context_->RegisterAutoReleasePool<RefCountedShaderModule>("shader");
 
-  const auto raw_data = absl::make_unique<common::RawData>(file_path);
+  const auto raw_data = std::make_unique<common::RawData>(file_path);
   const VkShaderModuleCreateInfo module_info{
       VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -136,7 +135,7 @@ ShaderModule::ShaderModule(SharedBasicContext context,
 }
 
 PipelineBuilder::PipelineBuilder(SharedBasicContext context,
-                                 absl::optional<int> max_cache_size)
+                                 std::optional<int> max_cache_size)
     : context_{std::move(FATAL_IF_NULL(context))} {
   const VkPipelineCacheCreateInfo cache_info{
       VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
@@ -185,7 +184,7 @@ void PipelineBuilder::SetLayout(
 }
 
 GraphicsPipelineBuilder::GraphicsPipelineBuilder(
-    SharedBasicContext context, absl::optional<int> max_cache_size)
+    SharedBasicContext context, std::optional<int> max_cache_size)
     : PipelineBuilder{std::move(FATAL_IF_NULL(context)), max_cache_size} {
   input_assembly_info_ = {
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,

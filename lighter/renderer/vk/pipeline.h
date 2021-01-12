@@ -9,6 +9,7 @@
 #define LIGHTER_RENDERER_VK_PIPELINE_H
 
 #include <memory>
+#include <string_view>
 
 #include "lighter/common/ref_count.h"
 #include "lighter/common/util.h"
@@ -16,14 +17,10 @@
 #include "lighter/renderer/pass.h"
 #include "lighter/renderer/pipeline.h"
 #include "lighter/renderer/vk/context.h"
-#include "third_party/absl/memory/memory.h"
-#include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
+namespace lighter::renderer::vk {
 
 // This class loads a shader from 'file_path' and creates a VkShaderModule.
 // Shader modules can be released after the pipeline is built in order to save
@@ -38,7 +35,7 @@ class ShaderModule {
   // go out of scope.
   using AutoReleaseShaderPool = RefCountedShaderModule::AutoReleasePool;
 
-  ShaderModule(SharedContext context, absl::string_view file_path);
+  ShaderModule(SharedContext context, std::string_view file_path);
 
   // This class is neither copyable nor movable.
   ShaderModule(const ShaderModule&) = delete;
@@ -82,7 +79,7 @@ class Pipeline : public renderer::Pipeline {
   void Bind(const VkCommandBuffer& command_buffer) const;
 
  private:
-  Pipeline(SharedContext context, absl::string_view name,
+  Pipeline(SharedContext context, std::string_view name,
            VkPipelineBindPoint binding_point,
            const PipelineDescriptor::UniformDescriptor& uniform_descriptor);
 
@@ -99,8 +96,6 @@ class Pipeline : public renderer::Pipeline {
   VkPipeline pipeline_;
 };
 
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter
 
-#endif /* LIGHTER_RENDERER_VK_PIPELINE_H */
+#endif  // LIGHTER_RENDERER_VK_PIPELINE_H

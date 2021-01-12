@@ -14,8 +14,7 @@
 #include "lighter/renderer/type.h"
 #include "third_party/absl/types/span.h"
 
-namespace lighter {
-namespace renderer {
+namespace lighter::renderer {
 
 class HostBuffer {
  public:
@@ -81,7 +80,6 @@ class UniformBufferView {
   UniformBufferView() = default;
 };
 
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace lighter::renderer
 
-#endif /* LIGHTER_RENDERER_BUFFER_H */
+#endif  // LIGHTER_RENDERER_BUFFER_H

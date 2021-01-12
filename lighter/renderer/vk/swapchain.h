@@ -8,6 +8,7 @@
 #ifndef LIGHTER_RENDERER_VK_SWAPCHAIN_H
 #define LIGHTER_RENDERER_VK_SWAPCHAIN_H
 
+#include <memory>
 #include <vector>
 
 #include "lighter/common/util.h"
@@ -17,9 +18,7 @@
 #include "lighter/renderer/vk/image.h"
 #include "third_party/vulkan/vulkan.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
+namespace lighter::renderer::vk {
 
 // Wraps VkSwapchainKHR, which holds a queue of images to present to the screen.
 class Swapchain {
@@ -50,8 +49,6 @@ class Swapchain {
   std::unique_ptr<SwapchainImage> image_;
 };
 
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter
 
-#endif /* LIGHTER_RENDERER_VK_BASIC_H */
+#endif  // LIGHTER_RENDERER_VK_BASIC_H

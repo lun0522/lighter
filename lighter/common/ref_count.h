@@ -14,10 +14,8 @@
 
 #include "lighter/common/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/memory/memory.h"
 
-namespace lighter {
-namespace common {
+namespace lighter::common {
 
 // Each reference counted object uses a string as its identifier. We can use the
 // object with operators '.' and '->', as if using std smart pointers.
@@ -61,7 +59,7 @@ class RefCountedObject {
     if (iter == ref_count_map().end()) {
       const auto inserted = ref_count_map().insert({
           identifier, typename ObjectPool::ObjectWithCounter{
-              absl::make_unique<ObjectType>(std::forward<Args>(args)...),
+              std::make_unique<ObjectType>(std::forward<Args>(args)...),
               /*ref_count=*/0,
           }});
       iter = inserted.first;
@@ -70,7 +68,7 @@ class RefCountedObject {
     else {
       LOG_INFO << "Cache hit: " << identifier;
     }
-#endif  /* !NDEBUG */
+#endif  // !NDEBUG
     auto& ref_counted_object = iter->second;
     ++ref_counted_object.ref_count;
     return RefCountedObject{identifier, ref_counted_object.object.get()};
@@ -166,7 +164,6 @@ template <typename ObjectType>
 typename RefCountedObject<ObjectType>::ObjectPool
     RefCountedObject<ObjectType>::object_pool_{};
 
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common
 
-#endif /* LIGHTER_COMMON_REF_COUNT_H */
+#endif // LIGHTER_COMMON_REF_COUNT_H

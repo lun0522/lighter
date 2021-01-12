@@ -12,13 +12,10 @@
 #include "lighter/renderer/vk/image_util.h"
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/container/flat_hash_set.h"
-#include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/span.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
+namespace lighter::renderer::vk {
 namespace {
 
 // Returns the image extent to use.
@@ -90,7 +87,7 @@ uint32_t ChooseMinImageCount(const Surface& surface) {
   return min_count;
 }
 
-} /* namespace */
+}  // namespace
 
 Swapchain::Swapchain(SharedContext context, int window_index,
                      const common::Window& window)
@@ -166,7 +163,7 @@ Swapchain::Swapchain(SharedContext context, int window_index,
                  "Failed to create swapchain");
 
   // Fetch swapchain images.
-  image_ = absl::make_unique<SwapchainImage>(
+  image_ = std::make_unique<SwapchainImage>(
       absl::StrFormat("Swapchain%d", window_index),
       util::QueryAttribute<VkImage>(
           [this](uint32_t* count, VkImage* images) {
@@ -190,9 +187,7 @@ Swapchain::~Swapchain() {
                         *context_->host_allocator());
 #ifndef NDEBUG
   LOG_INFO << "Swapchain destructed";
-#endif  /* !NDEBUG */
+#endif  // !NDEBUG
 }
 
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter

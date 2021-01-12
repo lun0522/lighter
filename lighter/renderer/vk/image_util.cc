@@ -11,10 +11,7 @@
 #include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/util.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
-namespace image {
+namespace lighter::renderer::vk::image {
 namespace {
 
 using UsageType = ImageUsage::UsageType;
@@ -80,7 +77,7 @@ VkImageUsageFlagBits GetImageUsageFlagBits(const ImageUsage& usage) {
   }
 }
 
-} /* namespace */
+}  // namespace
 
 VkAccessFlags GetAccessFlags(const ImageUsage& usage) {
   const AccessType access_type = usage.access_type();
@@ -197,15 +194,15 @@ VkImageLayout GetImageLayout(const ImageUsage& usage) {
   }
 }
 
-absl::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
-                                             const ImageUsage& usage) {
+std::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
+                                            const ImageUsage& usage) {
   const auto& queue_family_indices =
       context.physical_device().queue_family_indices();
   switch (usage.usage_type()) {
     case UsageType::kDontCare:
     case UsageType::kPresentation:
     case UsageType::kTransfer:
-      return absl::nullopt;
+      return std::nullopt;
 
     case UsageType::kRenderTarget:
     case UsageType::kDepthStencil:
@@ -223,7 +220,7 @@ absl::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
                 "kOther for usage type kLinearAccess and kSample");
 
         case AccessLocation::kHost:
-          return absl::nullopt;
+          return std::nullopt;
 
         case AccessLocation::kFragmentShader:
           return queue_family_indices.graphics;
@@ -254,7 +251,4 @@ bool NeedSynchronization(const ImageUsage& prev_usage,
   return true;
 }
 
-} /* namespace image */
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter::image

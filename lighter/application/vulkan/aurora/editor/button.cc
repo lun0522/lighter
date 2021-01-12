@@ -14,7 +14,6 @@
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace lighter {
@@ -56,12 +55,12 @@ ButtonRenderer::ButtonRenderer(
     int num_buttons, const button::VerticesInfo& vertices_info,
     std::unique_ptr<OffscreenImage>&& buttons_image)
     : buttons_image_{std::move(buttons_image)}, pipeline_builder_{context} {
-  per_instance_buffer_ = absl::make_unique<DynamicPerInstanceBuffer>(
+  per_instance_buffer_ = std::make_unique<DynamicPerInstanceBuffer>(
       context, sizeof(draw_button::RenderInfo),
       /*max_num_instances=*/num_buttons * button::kNumStates,
       pipeline::GetVertexAttributes<draw_button::RenderInfo>());
 
-  vertices_uniform_ = absl::make_unique<UniformBuffer>(
+  vertices_uniform_ = std::make_unique<UniformBuffer>(
       context, sizeof(button::VerticesInfo), /*num_frames_in_flight=*/1);
   *vertices_uniform_->HostData<button::VerticesInfo>(/*chunk_index=*/0) =
       vertices_info;
@@ -84,7 +83,7 @@ ButtonRenderer::ButtonRenderer(
 
 std::unique_ptr<StaticDescriptor> ButtonRenderer::CreateDescriptor(
     const SharedBasicContext& context) const {
-  auto descriptor = absl::make_unique<StaticDescriptor>(
+  auto descriptor = std::make_unique<StaticDescriptor>(
       context, /*infos=*/std::vector<Descriptor::Info>{
           Descriptor::Info{
               UniformBuffer::GetDescriptorType(),
@@ -201,7 +200,7 @@ Button::Button(const SharedBasicContext& context,
       buttons_info.text_color, background_image,
       CreateMakeButtonVerticesInfo(num_buttons, button_uv_scale), button_infos);
 
-  button_renderer_ = absl::make_unique<ButtonRenderer>(
+  button_renderer_ = std::make_unique<ButtonRenderer>(
       context, num_buttons,
       CreateDrawButtonVerticesInfo(buttons_info, button_uv_scale),
       std::move(buttons_image));
@@ -342,7 +341,7 @@ void Button::Draw(const VkCommandBuffer& command_buffer,
   }
 }
 
-absl::optional<int> Button::GetClickedButtonIndex(
+std::optional<int> Button::GetClickedButtonIndex(
     const glm::vec2& click_ndc, int button_index_offset,
     absl::Span<const State> button_states) const {
   const int num_buttons = all_buttons_.size();
@@ -362,7 +361,7 @@ absl::optional<int> Button::GetClickedButtonIndex(
       return button_index_offset + i;
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 } /* namespace aurora */

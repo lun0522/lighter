@@ -14,7 +14,6 @@
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/wrapper/command.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
-#include "third_party/absl/memory/memory.h"
 
 namespace lighter {
 namespace renderer {
@@ -104,7 +103,7 @@ std::unique_ptr<GraphicsPipelineBuilder> CreatePipelineBuilder(
     const PerVertexBuffer& vertex_buffer,
     const VkDescriptorSetLayout& descriptor_layout,
     bool enable_color_blend) {
-  auto pipeline_builder = absl::make_unique<GraphicsPipelineBuilder>(context);
+  auto pipeline_builder = std::make_unique<GraphicsPipelineBuilder>(context);
 
   (*pipeline_builder)
       .SetPipelineName(std::move(pipeline_name))
@@ -161,7 +160,7 @@ CharLoader::CharLoader(const SharedBasicContext& context,
     const int interval_between_chars = GetIntervalBetweenChars(char_lib);
     const auto image_usages = {ImageUsage::GetRenderTargetUsage(0),
                                ImageUsage::GetSampledInFragmentShaderUsage()};
-    char_atlas_image_ = absl::make_unique<OffscreenImage>(
+    char_atlas_image_ = std::make_unique<OffscreenImage>(
         context, GetCharAtlasImageExtent(char_lib, interval_between_chars),
         common::image::kBwImageChannel, image_usages, GetTextSamplerConfig(),
         /*use_high_precision=*/false);
@@ -179,7 +178,7 @@ CharLoader::CharLoader(const SharedBasicContext& context,
 
   const auto vertex_buffer = CreateVertexBuffer(context, char_merge_order);
   const auto descriptor =
-      absl::make_unique<DynamicDescriptor>(context, CreateDescriptorInfos());
+      std::make_unique<DynamicDescriptor>(context, CreateDescriptorInfos());
 
   auto render_pass_builder = CreateRenderPassBuilder(context);
   const auto render_pass = BuildRenderPass(*char_atlas_image_,
@@ -234,10 +233,10 @@ VkExtent2D CharLoader::GetCharAtlasImageExtent(
   };
 }
 
-absl::optional<float> CharLoader::GetSpaceAdvanceX(
+std::optional<float> CharLoader::GetSpaceAdvanceX(
     const common::CharLib& char_lib, const Image& target_image) const {
   const auto iter = char_lib.char_info_map().find(' ');
-  absl::optional<float> space_advance;
+  std::optional<float> space_advance;
   if (iter != char_lib.char_info_map().end()) {
     space_advance = static_cast<float>(iter->second.advance.x) /
                     target_image.extent().width;
@@ -272,9 +271,9 @@ void CharLoader::CreateCharTextures(
         character, CharTextureInfo{size, bearing, offset_x, advance_x}});
     char_image_map->insert({
         character,
-        absl::make_unique<TextureImage>(context, /*generate_mipmaps=*/false,
-                                        *char_info.image, image_usages,
-                                        GetTextSamplerConfig()),
+        std::make_unique<TextureImage>(context, /*generate_mipmaps=*/false,
+                                       *char_info.image, image_usages,
+                                       GetTextSamplerConfig()),
     });
     offset_x += size.x + normalized_interval;
   }
@@ -296,7 +295,7 @@ std::unique_ptr<StaticPerVertexBuffer> CharLoader::CreateVertexBuffer(
         &vertices);
   }
 
-  return absl::make_unique<StaticPerVertexBuffer>(
+  return std::make_unique<StaticPerVertexBuffer>(
       context, PerVertexBuffer::ShareIndicesDataInfo{
           /*num_meshes=*/static_cast<int>(char_merge_order.size()),
           /*per_mesh_vertices=*/
@@ -320,7 +319,7 @@ TextLoader::TextLoader(const SharedBasicContext& context,
       context, text::GetVertexDataSize(longest_text->length()),
       pipeline::GetVertexAttributes<Vertex2D>()};
 
-  auto descriptor = absl::make_unique<StaticDescriptor>(
+  auto descriptor = std::make_unique<StaticDescriptor>(
       context, CreateDescriptorInfos());
   auto render_pass_builder = CreateRenderPassBuilder(context);
   // Advance can be negative, and thus bounding boxes of characters may have
@@ -374,7 +373,7 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
   const float base_y = highest_base_y;
   const auto image_usages = {ImageUsage::GetRenderTargetUsage(0),
                              ImageUsage::GetSampledInFragmentShaderUsage()};
-  auto text_image = absl::make_unique<OffscreenImage>(
+  auto text_image = std::make_unique<OffscreenImage>(
       context, text_image_extent, common::image::kBwImageChannel, image_usages,
       GetTextSamplerConfig(), /*use_high_precision=*/false);
 

@@ -11,6 +11,7 @@
 #include <functional>
 #include <map>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "lighter/common/util.h"
@@ -19,11 +20,9 @@
 #include "lighter/renderer/pipeline.h"
 #include "lighter/renderer/type.h"
 #include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/types/span.h"
 
-namespace lighter {
-namespace renderer {
+namespace lighter::renderer {
 
 class GraphicsPass {
  public:
@@ -157,7 +156,6 @@ class ComputePassDescriptor : public PassDescriptor {
   ComputePassDescriptor(const ComputePassDescriptor&) = default;
 };
 
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace lighter::renderer
 
-#endif /* LIGHTER_RENDERER_PASS_H */
+#endif  // LIGHTER_RENDERER_PASS_H

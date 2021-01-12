@@ -10,7 +10,6 @@
 #include "lighter/common/file.h"
 #include "lighter/renderer/align.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
-#include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/glm/gtc/matrix_transform.hpp"
 
@@ -91,32 +90,32 @@ PathRenderer3D::PathRenderer3D(const SharedBasicContext& context,
           PerVertexBuffer::VertexDataInfo{sphere_file.vertices},
       }},
   };
-  sphere_vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
+  sphere_vertex_buffer_ = std::make_unique<StaticPerVertexBuffer>(
       context, std::move(sphere_vertices_info),
       pipeline::GetVertexAttributes<Vertex3DPosOnly>());
 
   paths_vertex_buffers_.reserve(num_paths_);
   for (int path = 0; path < num_paths_; ++path) {
     paths_vertex_buffers_.push_back(PathVertexBuffers{
-        absl::make_unique<DynamicPerInstanceBuffer>(
+        std::make_unique<DynamicPerInstanceBuffer>(
             context, sizeof(Vertex3DPosOnly), /*max_num_instances=*/1,
             pipeline::GetVertexAttributes<Vertex3DPosOnly>()),
-        absl::make_unique<DynamicPerVertexBuffer>(
+        std::make_unique<DynamicPerVertexBuffer>(
             context, /*initial_size=*/1,
             pipeline::GetVertexAttributes<Vertex3DPosOnly>()),
     });
   }
 
-  color_alpha_vertex_buffer_ = absl::make_unique<DynamicPerInstanceBuffer>(
+  color_alpha_vertex_buffer_ = std::make_unique<DynamicPerInstanceBuffer>(
       context, sizeof(ColorAlpha), num_paths_,
       pipeline::GetVertexAttributes<ColorAlpha>());
 
   /* Push constant */
-  control_render_constant_ = absl::make_unique<PushConstant>(
+  control_render_constant_ = std::make_unique<PushConstant>(
       context, sizeof(ControlRenderInfo), num_frames_in_flight);
-  spline_trans_constant_ = absl::make_unique<PushConstant>(
+  spline_trans_constant_ = std::make_unique<PushConstant>(
       context, sizeof(SplineTrans), num_frames_in_flight);
-  viewpoint_render_constant_ = absl::make_unique<PushConstant>(
+  viewpoint_render_constant_ = std::make_unique<PushConstant>(
       context, sizeof(ViewpointRenderInfo), num_frames_in_flight);
 
   /* Pipeline */
@@ -330,7 +329,7 @@ AuroraPath::AuroraPath(const SharedBasicContext& context,
         glm::vec4{info.path_colors[path][button::kUnselectedState],
                   info.path_alphas[button::kUnselectedState]},
     });
-    spline_editors_.push_back(absl::make_unique<common::SplineEditor>(
+    spline_editors_.push_back(std::make_unique<common::SplineEditor>(
         common::CatmullRomSpline::kMinNumControlPoints,
         info.max_num_control_points, info.generate_control_points(path),
         common::CatmullRomSpline::GetOnSphereSpline(
@@ -350,7 +349,7 @@ void AuroraPath::UpdateFramebuffer(
 void AuroraPath::UpdatePerFrameData(
     int frame, const common::OrthographicCamera& camera,
     const glm::mat4& model, float model_radius,
-    const absl::optional<ClickInfo>& click_info) {
+    const std::optional<ClickInfo>& click_info) {
   const float radius_object_space = camera.view_width() * control_point_radius_;
   const float control_point_scale = radius_object_space / model_radius;
   const glm::mat4 proj_view_model = camera.GetProjectionMatrix() *
@@ -362,7 +361,7 @@ void AuroraPath::UpdatePerFrameData(
 }
 
 void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
-                      absl::optional<int> selected_path_index) {
+                      std::optional<int> selected_path_index) {
   if (selected_path_index.has_value()) {
     ASSERT_TRUE(selected_path_index.value() < num_paths_,
                 absl::StrFormat("Path index (%d) out of range (%d)",
@@ -406,13 +405,13 @@ void AuroraPath::UpdatePath(int path_index) {
                             spline_editors_[path_index]->spline_points());
 }
 
-absl::optional<int> AuroraPath::ProcessClick(
+std::optional<int> AuroraPath::ProcessClick(
     float control_point_radius_object_space,
     const glm::mat4& proj_view_model, const glm::vec3& model_center,
-    const absl::optional<ClickInfo>& click_info) {
+    const std::optional<ClickInfo>& click_info) {
   if (!click_info.has_value()) {
     did_click_viewpoint_ = false;
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   // If no 'path_index' specified, process click on viewpoint.
@@ -434,7 +433,7 @@ absl::optional<int> AuroraPath::ProcessClick(
         did_click_viewpoint_ = true;
       }
     }
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   // Otherwise, process click on aurora paths.
@@ -472,11 +471,11 @@ absl::optional<int> AuroraPath::ProcessClick(
     if (is_path_changed) {
       UpdatePath(path_index);
     }
-    return absl::nullopt;
+    return std::nullopt;
   }
 }
 
-absl::optional<int> AuroraPath::FindClickedControlPoint(
+std::optional<int> AuroraPath::FindClickedControlPoint(
     int path_index, const glm::vec3& click_object_space,
     float control_point_radius_object_space) {
   const auto& control_points =
@@ -487,7 +486,7 @@ absl::optional<int> AuroraPath::FindClickedControlPoint(
       return i;
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 bool AuroraPath::InsertControlPoint(
@@ -509,7 +508,7 @@ bool AuroraPath::InsertControlPoint(
     int index;
     glm::vec2 pos_ndc;
   };
-  absl::optional<ClosestPoint> closest_control_point;
+  std::optional<ClosestPoint> closest_control_point;
   for (int i = 0; i < control_points.size(); i++) {
     const glm::vec3 control_point_ndc =
         TransformPoint(proj_view_model, control_points[i]);

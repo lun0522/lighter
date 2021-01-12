@@ -10,12 +10,10 @@
 #include <algorithm>
 
 #include "lighter/common/util.h"
-#include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/glm/gtx/vector_angle.hpp"
 
-namespace lighter {
-namespace common {
+namespace lighter::common {
 
 BezierSpline::BezierSpline(int max_recursion_depth,
                            GetMiddlePoint&& get_middle_point,
@@ -67,7 +65,7 @@ std::unique_ptr<Spline> CatmullRomSpline::GetOnSphereSpline(
            glm::angle(p1p2, p2p3) <= roughness;
   };
 
-  return absl::make_unique<CatmullRomSpline>(
+  return std::make_unique<CatmullRomSpline>(
       max_recursion_depth, std::move(get_middle_point), std::move(is_smooth));
 }
 
@@ -168,5 +166,4 @@ void SplineEditor::RebuildSpline() {
   spline_->BuildSpline(control_points_);
 }
 
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common

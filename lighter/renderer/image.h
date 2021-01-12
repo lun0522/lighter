@@ -9,13 +9,12 @@
 #define LIGHTER_RENDERER_IMAGE_H
 
 #include <string>
+#include <string_view>
 
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/type.h"
-#include "third_party/absl/strings/string_view.h"
 
-namespace lighter {
-namespace renderer {
+namespace lighter::renderer {
 
 class DeviceImage {
  public:
@@ -30,7 +29,7 @@ class DeviceImage {
   SampleCount sample_count() const { return sample_count_; }
 
  protected:
-  DeviceImage(absl::string_view name, SampleCount sample_count)
+  DeviceImage(std::string_view name, SampleCount sample_count)
       : name_{name}, sample_count_{sample_count} {}
 
  private:
@@ -56,7 +55,6 @@ class SampledImageView {
   SampledImageView() = default;
 };
 
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace lighter::renderer
 
-#endif /* LIGHTER_RENDERER_IMAGE_H */
+#endif  // LIGHTER_RENDERER_IMAGE_H

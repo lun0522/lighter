@@ -10,7 +10,6 @@
 #include <limits>
 
 #include "lighter/common/util.h"
-#include "third_party/absl/memory/memory.h"
 
 namespace lighter {
 namespace application {
@@ -196,7 +195,7 @@ std::unique_ptr<common::Image> GenerateAirTransmitTable(float sample_step) {
     image_data[i] = glm::round(air_transmit);
   }
 
-  auto table = absl::make_unique<common::Image>(
+  auto table = std::make_unique<common::Image>(
       kImageWidth, image_height, common::image::kBwImageChannel, image_data,
       /*flip_y=*/false);
   delete[] image_data;

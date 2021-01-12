@@ -9,8 +9,7 @@
 
 #include "third_party/absl/strings/str_format.h"
 
-namespace lighter {
-namespace renderer {
+namespace lighter::renderer {
 namespace {
 
 std::vector<const DeviceImage*> ExtractImages(
@@ -31,7 +30,7 @@ std::vector<const DeviceImage*> ExtractImages(
   return images;
 }
 
-} /* namespace */
+}  // namespace
 
 PassDescriptor::PassDescriptor(absl::Span<const DeviceImage* const> images) {
   for (const DeviceImage* image : images) {
@@ -86,5 +85,4 @@ GraphicsPassDescriptor& GraphicsPassDescriptor::AddSubpass(
   return *this;
 }
 
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace lighter::renderer

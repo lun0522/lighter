@@ -8,14 +8,14 @@
 #ifndef LIGHTER_COMMON_ROTATION_H
 #define LIGHTER_COMMON_ROTATION_H
 
+#include <optional>
+#include <variant>
+
 #include "lighter/common/camera.h"
 #include "lighter/common/timer.h"
-#include "third_party/absl/types/optional.h"
-#include "third_party/absl/types/variant.h"
 #include "third_party/glm/glm.hpp"
 
-namespace lighter {
-namespace common {
+namespace lighter::common {
 
 // Forward declarations.
 class RotationManager;
@@ -29,32 +29,32 @@ struct Rotation {
 };
 
 // Returns an instance of Rotation if rotation should be performed.
-// Otherwise, returns absl::nullopt.
+// Otherwise, returns std::nullopt.
 template <typename StateType>
-absl::optional<Rotation> Compute(
-    const absl::optional<glm::vec3>& normalized_click_pos,
+std::optional<Rotation> Compute(
+    const std::optional<glm::vec3>& normalized_click_pos,
     RotationManager* rotation_manager);
 
 // This class is used to help visit rotation states and dispatch calls to
 // Compute().
 class StateVisitor {
  public:
-  StateVisitor(const absl::optional<glm::vec3>& normalized_click_pos,
+  StateVisitor(const std::optional<glm::vec3>& normalized_click_pos,
                RotationManager* rotation_manager)
       : normalized_click_pos_{normalized_click_pos},
         rotation_manager_{rotation_manager} {}
 
   template<typename StateType>
-  absl::optional<Rotation> operator()(const StateType& state) {
+  std::optional<Rotation> operator()(const StateType& state) {
     return Compute<StateType>(normalized_click_pos_, rotation_manager_);
   }
 
  private:
-  const absl::optional<glm::vec3>& normalized_click_pos_;
+  const std::optional<glm::vec3>& normalized_click_pos_;
   RotationManager* rotation_manager_;
 };
 
-} /* namespace rotation */
+} // namespace rotation
 
 // This class is used to compute the rotation of 3D objects driven by user
 // inputs. The object can be of any shape, and the user only need to provide a
@@ -65,10 +65,10 @@ class RotationManager {
       : inertial_rotation_duration_{inertial_rotation_duration} {}
 
   // Returns an instance of rotation::Rotation if rotation should be performed.
-  // Otherwise, returns absl::nullopt.
-  absl::optional<rotation::Rotation> Compute(
-      const absl::optional<glm::vec3>& normalized_click_pos) {
-    return absl::visit(
+  // Otherwise, returns std::nullopt.
+  std::optional<rotation::Rotation> Compute(
+      const std::optional<glm::vec3>& normalized_click_pos) {
+    return std::visit(
         rotation::StateVisitor{normalized_click_pos, this}, state_);
   }
 
@@ -84,12 +84,12 @@ class RotationManager {
     float start_time;
     rotation::Rotation rotation;
   };
-  using State = absl::variant<StopState, RotationState, InertialRotationState>;
+  using State = std::variant<StopState, RotationState, InertialRotationState>;
 
   // Computes state transition.
   template <typename StateType>
-  friend absl::optional<rotation::Rotation> rotation::Compute(
-      const absl::optional<glm::vec3>& normalized_click_pos,
+  friend std::optional<rotation::Rotation> rotation::Compute(
+      const std::optional<glm::vec3>& normalized_click_pos,
       RotationManager* rotation_manager);
 
   // Returns the time since this manager is created.
@@ -117,15 +117,15 @@ class Sphere {
 
   // Computes whether the user click intersects with the sphere, and returns
   // the coordinate of intersection point in object space if any intersection.
-  // Otherwise, returns absl::nullopt.
-  absl::optional<glm::vec3> GetIntersection(const Camera& camera,
-                                            const glm::vec2& click_ndc) const;
+  // Otherwise, returns std::nullopt.
+  std::optional<glm::vec3> GetIntersection(const Camera& camera,
+                                           const glm::vec2& click_ndc) const;
 
   // Returns how should the sphere be rotated. 'click_ndc' is the user click
   // position in the normalized device coordinate. Because of inertial rotation,
   // the sphere may need to rotate even if the click is not within the sphere.
-  absl::optional<rotation::Rotation> ShouldRotate(
-      const Camera& camera, const absl::optional<glm::vec2>& click_ndc);
+  std::optional<rotation::Rotation> ShouldRotate(
+      const Camera& camera, const std::optional<glm::vec2>& click_ndc);
 
   // Rotates the sphere.
   void Rotate(const rotation::Rotation& rotation);
@@ -160,7 +160,6 @@ class Sphere {
   RotationManager rotation_manager_;
 };
 
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common
 
-#endif /* LIGHTER_COMMON_ROTATION_H */
+#endif  // LIGHTER_COMMON_ROTATION_H

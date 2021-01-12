@@ -19,8 +19,7 @@
 #include FT_FREETYPE_H
 #include "third_party/glm/glm.hpp"
 
-namespace lighter {
-namespace common {
+namespace lighter::common {
 
 // Character library backed by FreeType.
 class CharLib {
@@ -53,7 +52,6 @@ class CharLib {
   absl::flat_hash_map<char, CharInfo> char_info_map_;
 };
 
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common
 
-#endif /* LIGHTER_COMMON_CHAR_LIB_H */
+#endif  // LIGHTER_COMMON_CHAR_LIB_H

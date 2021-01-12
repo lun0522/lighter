@@ -72,7 +72,7 @@ PathRenderer2D::PathRenderer2D(
       context, intermediate_image, multisampling_mode);
 
   /* Push constant */
-  trans_constant_ = absl::make_unique<PushConstant>(
+  trans_constant_ = std::make_unique<PushConstant>(
       context, sizeof(Transformation), /*num_frames_in_flight=*/1);
 
   /* Render pass */
@@ -89,7 +89,7 @@ PathRenderer2D::PathRenderer2D(
   auto render_pass_builder = NaiveRenderPass::CreateBuilder(
       context, /*num_framebuffers=*/1,
       NaiveRenderPass::SubpassConfig{
-          kNumSubpasses, /*first_transparent_subpass=*/absl::nullopt,
+          kNumSubpasses, /*first_transparent_subpass=*/std::nullopt,
           /*first_overlay_subpass=*/kDumpPathsSubpassIndex},
       intermediate_attachment_config, &multisampling_attachment_config,
       /*depth_stencil_attachment_config=*/nullptr, image_usage_tracker);
@@ -112,7 +112,7 @@ PathRenderer2D::PathRenderer2D(
   };
 
   /* Descriptor */
-  bold_paths_descriptor_ = absl::make_unique<StaticDescriptor>(
+  bold_paths_descriptor_ = std::make_unique<StaticDescriptor>(
       context, std::vector<Descriptor::Info>{
           Descriptor::Info{
               Image::GetDescriptorTypeForLinearAccess(),

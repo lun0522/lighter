@@ -23,19 +23,18 @@ ABSL_FLAG(std::string, shader_folder, "lighter/shader",
 #define VULKAN_FOLDER "external/lib-vulkan-osx"
 #elif defined(__linux__)
 #define VULKAN_FOLDER "external/lib-vulkan-linux"
-#endif /* __APPLE__ || __linux__ */
+#endif  // __APPLE__ || __linux__
 
 ABSL_FLAG(std::string, vulkan_folder, VULKAN_FOLDER,
           "Path to the Vulkan SDK folder");
 
 #undef VULKAN_FOLDER
 
-namespace lighter {
-namespace common {
+namespace lighter::common {
 namespace {
 
 // Opens the file in the given 'path' and checks whether it is successful.
-std::ifstream OpenFile(absl::string_view path) {
+std::ifstream OpenFile(std::string_view path) {
   std::ifstream file{path.data()};
   ASSERT_FALSE(!file.is_open() || file.bad() || file.fail(),
                absl::StrCat("Failed to open file: ", path));
@@ -44,7 +43,7 @@ std::ifstream OpenFile(absl::string_view path) {
 
 // Splits the given 'text' by 'delimiter', while 'num_segments' is the expected
 // length of results. An exception will be thrown if the length does not match.
-std::vector<std::string> SplitText(absl::string_view text, char delimiter,
+std::vector<std::string> SplitText(std::string_view text, char delimiter,
                                    int num_segments) {
   const std::vector<std::string> result =
       absl::StrSplit(text, delimiter, absl::SkipWhitespace{});
@@ -55,9 +54,9 @@ std::vector<std::string> SplitText(absl::string_view text, char delimiter,
   return result;
 }
 
-} /* namespace */
+}  // namespace
 
-RawData::RawData(absl::string_view path) {
+RawData::RawData(std::string_view path) {
   std::ifstream file = OpenFile(path);
   file.seekg(0, std::ios::end);
   size = file.tellg();
@@ -119,7 +118,7 @@ void AppendVertexAttributes<glm::mat4>(std::vector<VertexAttribute>& attributes,
   }
 }
 
-} /* namespace file */
+}  // namespace file
 
 std::array<Vertex2DPosOnly, 6> Vertex2DPosOnly::GetFullScreenSquadVertices() {
   return {
@@ -154,7 +153,7 @@ std::array<Vertex2D, 6> Vertex2D::GetFullScreenSquadVertices(bool flip_y) {
   }
 }
 
-ObjFile::ObjFile(absl::string_view path, int index_base) {
+ObjFile::ObjFile(std::string_view path, int index_base) {
   std::ifstream file = OpenFile(path);
 
   std::vector<glm::vec3> positions;
@@ -162,7 +161,7 @@ ObjFile::ObjFile(absl::string_view path, int index_base) {
   std::vector<glm::vec2> tex_coords;
   absl::flat_hash_map<std::string, uint32_t> loaded_vertices;
 
-  const auto parse_line = [&](absl::string_view line) {
+  const auto parse_line = [&](std::string_view line) {
     const size_t non_space = line.find_first_not_of(' ');
     if (non_space == std::string::npos || line[0] == '#') {
       // Skip blank lines and comments.
@@ -239,7 +238,7 @@ ObjFile::ObjFile(absl::string_view path, int index_base) {
   }
 }
 
-ObjFilePosOnly::ObjFilePosOnly(absl::string_view path, int index_base) {
+ObjFilePosOnly::ObjFilePosOnly(std::string_view path, int index_base) {
   ObjFile file(path, index_base);
   indices = std::move(file.indices);
   vertices.reserve(file.vertices.size());
@@ -248,5 +247,4 @@ ObjFilePosOnly::ObjFilePosOnly(absl::string_view path, int index_base) {
   }
 }
 
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common

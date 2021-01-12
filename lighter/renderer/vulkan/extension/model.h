@@ -11,7 +11,9 @@
 #include <array>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "lighter/common/model_loader.h"
@@ -24,8 +26,6 @@
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/types/optional.h"
-#include "third_party/absl/types/variant.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
@@ -60,8 +60,8 @@ class ModelBuilder {
       TextureType, uint32_t, common::util::EnumClassHash>;
 
   // Textures are either loaded from files or existing offscreen images.
-  using TextureSource = absl::variant<SharedTexture::SourcePath,
-                                      OffscreenImagePtr>;
+  using TextureSource = std::variant<SharedTexture::SourcePath,
+                                     OffscreenImagePtr>;
 
   // Maps each texture type to textures of this type.
   using TextureSourceMap = absl::flat_hash_map<
@@ -225,7 +225,7 @@ class ModelBuilder {
   std::vector<Descriptor::BufferInfoMap> uniform_buffer_info_maps_;
 
   // Describes push constant data sources.
-  absl::optional<PushConstantInfos> push_constant_infos_;
+  std::optional<PushConstantInfos> push_constant_infos_;
 
   // Builder of graphics pipeline.
   std::unique_ptr<GraphicsPipelineBuilder> pipeline_builder_;
@@ -275,7 +275,7 @@ class Model {
         float viewport_aspect_ratio,
         std::unique_ptr<StaticPerVertexBuffer>&& vertex_buffer,
         std::vector<const PerInstanceBuffer*>&& per_instance_buffers,
-        absl::optional<PushConstantInfos>&& push_constant_info,
+        std::optional<PushConstantInfos>&& push_constant_info,
         TexturesPerMesh&& shared_textures,
         std::vector<TexturesPerMesh>&& mesh_textures,
         std::vector<DescriptorsPerFrame>&& descriptors,
@@ -304,7 +304,7 @@ class Model {
   const std::vector<const PerInstanceBuffer*> per_instance_buffers_;
 
   // Describes push constant data sources.
-  const absl::optional<PushConstantInfos> push_constant_info_;
+  const std::optional<PushConstantInfos> push_constant_info_;
 
   // Textures shared by all meshes.
   const TexturesPerMesh shared_textures_;

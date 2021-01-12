@@ -10,14 +10,14 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
+#include <variant>
 #include <vector>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
-#include "third_party/absl/types/variant.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
@@ -52,8 +52,8 @@ class RenderPassBuilder {
       VkAttachmentStoreOp stencil_store_op;
     };
 
-    using LoadStoreOps = absl::variant<ColorLoadStoreOps,
-                                       DepthStencilLoadStoreOps>;
+    using LoadStoreOps = std::variant<ColorLoadStoreOps,
+                                      DepthStencilLoadStoreOps>;
 
     LoadStoreOps load_store_ops;
     VkImageLayout initial_layout;
@@ -67,7 +67,7 @@ class RenderPassBuilder {
   struct SubpassAttachments {
     std::vector<VkAttachmentReference> color_refs;
     std::vector<VkAttachmentReference> multisampling_refs;
-    absl::optional<VkAttachmentReference> depth_stencil_ref;
+    std::optional<VkAttachmentReference> depth_stencil_ref;
   };
 
   // Information we need to describe the dependency between the previous subpass
@@ -177,7 +177,7 @@ class RenderPassBuilder {
   RenderPassBuilder& SetSubpass(
       int index, std::vector<VkAttachmentReference>&& color_refs,
       std::vector<VkAttachmentReference>&& multisampling_refs,
-      const absl::optional<VkAttachmentReference>& depth_stencil_ref);
+      const std::optional<VkAttachmentReference>& depth_stencil_ref);
 
   // Creates a dependency relationship.
   RenderPassBuilder& AddSubpassDependency(const SubpassDependency& dependency);
@@ -192,7 +192,7 @@ class RenderPassBuilder {
   const SharedBasicContext context_;
 
   // Number of framebuffers. It must have value when Build() is called.
-  absl::optional<int> num_framebuffers_;
+  std::optional<int> num_framebuffers_;
 
   // Descriptions of attachments used in this render pass.
   std::vector<VkAttachmentDescription> attachment_descriptions_;

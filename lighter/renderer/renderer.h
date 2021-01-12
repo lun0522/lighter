@@ -9,6 +9,7 @@
 #define LIGHTER_RENDERER_RENDERER_H
 
 #include <memory>
+#include <string_view>
 #include <vector>
 
 #include "lighter/common/file.h"
@@ -22,14 +23,11 @@
 #include "lighter/renderer/pass.h"
 #include "lighter/renderer/pipeline.h"
 #include "lighter/renderer/type.h"
-#include "third_party/absl/memory/memory.h"
-#include "third_party/absl/strings/string_view.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 
-namespace lighter {
-namespace renderer {
+namespace lighter::renderer {
 
 class Renderer {
  public:
@@ -39,10 +37,10 @@ class Renderer {
 
   virtual ~Renderer() = default;
 
-  /* Host buffer */
+  // Host buffer
 
   std::unique_ptr<HostBuffer> CreateHostBuffer(size_t size) const {
-    return absl::make_unique<HostBuffer>(size);
+    return std::make_unique<HostBuffer>(size);
   }
 
   template <typename DataType>
@@ -50,7 +48,7 @@ class Renderer {
     return CreateHostBuffer(sizeof(DataType) * num_chunks);
   }
 
-  /* Device buffer */
+  // Device buffer
 
   virtual std::unique_ptr<DeviceBuffer> CreateDeviceBuffer(
       DeviceBuffer::UpdateRate update_rate, size_t initial_size,
@@ -64,25 +62,25 @@ class Renderer {
                               usages);
   }
 
-  /* Device image */
+  // Device image
 
   virtual const DeviceImage& GetSwapchainImage(int window_index) const = 0;
 
   virtual std::unique_ptr<DeviceImage> CreateColorImage(
-      absl::string_view name, const common::Image::Dimension& dimension,
+      std::string_view name, const common::Image::Dimension& dimension,
       MultisamplingMode multisampling_mode, bool high_precision,
       absl::Span<const ImageUsage> usages) const = 0;
 
   virtual std::unique_ptr<DeviceImage> CreateColorImage(
-      absl::string_view name, const common::Image& image, bool generate_mipmaps,
+      std::string_view name, const common::Image& image, bool generate_mipmaps,
       absl::Span<const ImageUsage> usages) const = 0;
 
   virtual std::unique_ptr<DeviceImage> CreateDepthStencilImage(
-      absl::string_view name, const glm::ivec2& extent,
+      std::string_view name, const glm::ivec2& extent,
       MultisamplingMode multisampling_mode,
       absl::Span<const ImageUsage> usages) const = 0;
 
-  /* Pass */
+  // Pass
 
   virtual std::unique_ptr<GraphicsPass> CreateGraphicsPass(
       const GraphicsPassDescriptor& descriptor) const = 0;
@@ -105,7 +103,6 @@ class Renderer {
   std::vector<const common::Window*> windows_;
 };
 
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace lighter::renderer
 
-#endif /* LIGHTER_RENDERER_RENDERER_H */
+#endif  // LIGHTER_RENDERER_RENDERER_H

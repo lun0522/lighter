@@ -11,9 +11,7 @@
 #include <ctime>
 #include <iomanip>
 
-namespace lighter {
-namespace common {
-namespace util {
+namespace lighter::common::util {
 
 std::ostream& PrintTime(std::ostream& os) {
   using namespace std::chrono;
@@ -31,6 +29,4 @@ std::ostream& PrintTime(std::ostream& os) {
   return os;
 }
 
-} /* namespace util */
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common

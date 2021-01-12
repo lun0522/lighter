@@ -8,10 +8,8 @@
 #include "lighter/common/char_lib.h"
 
 #include "lighter/common/util.h"
-#include "third_party/absl/memory/memory.h"
 
-namespace lighter {
-namespace common {
+namespace lighter::common {
 
 CharLib::CharLib(absl::Span<const std::string> texts,
                  const std::string& font_path, int font_height, bool flip_y) {
@@ -40,7 +38,7 @@ CharLib::CharLib(absl::Span<const std::string> texts,
               static_cast<unsigned int>(face->glyph->advance.x) >> 6U,
               static_cast<unsigned int>(face->glyph->advance.y) >> 6U,
           },
-          /*image=*/absl::make_unique<Image>(
+          /*image=*/std::make_unique<Image>(
               /*width=*/face->glyph->bitmap.width,
               /*height=*/face->glyph->bitmap.rows,
               image::kBwImageChannel,
@@ -55,5 +53,4 @@ CharLib::CharLib(absl::Span<const std::string> texts,
   FT_Done_FreeType(lib);
 }
 
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common

@@ -5,6 +5,7 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
+#include <memory>
 #include <string>
 
 #include "lighter/application/vulkan/troop/geometry_pass.h"
@@ -67,9 +68,9 @@ TroopApp::TroopApp(const WindowContext::Config& window_config)
   const common::PerspectiveCamera::FrustumConfig frustum_config{
       /*field_of_view_y=*/45.0f, window_context().original_aspect_ratio()};
 
-  camera_ = absl::make_unique<common::UserControlledCamera>(
+  camera_ = std::make_unique<common::UserControlledCamera>(
       common::UserControlledCamera::ControlConfig{},
-      absl::make_unique<common::PerspectiveCamera>(config, frustum_config));
+      std::make_unique<common::PerspectiveCamera>(config, frustum_config));
 
   /* Window */
   (*mutable_window_context()->mutable_window())
@@ -100,15 +101,15 @@ TroopApp::TroopApp(const WindowContext::Config& window_config)
                                 [this]() { should_quit_ = true; });
 
   /* Command buffer */
-  command_ = absl::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
+  command_ = std::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
   /* Render pass */
-  geometry_pass_ = absl::make_unique<troop::GeometryPass>(
+  geometry_pass_ = std::make_unique<troop::GeometryPass>(
       &window_context(), kNumFramesInFlight, /*model_scale=*/0.2,
       /*num_soldiers=*/glm::ivec2{5, 10},
       /*interval_between_soldiers=*/glm::vec2{1.7f, -1.0f});
 
-  lighting_pass_ = absl::make_unique<troop::LightingPass>(
+  lighting_pass_ = std::make_unique<troop::LightingPass>(
       &window_context(), kNumFramesInFlight,
       troop::LightingPass::LightCenterConfig{
           /*bound_x=*/{-3.0f, 9.8f}, /*bound_y=*/{3.2f, 4.2f},
@@ -128,7 +129,7 @@ void TroopApp::Recreate() {
   /* Image */
   const VkExtent2D& frame_size = window_context().frame_size();
   depth_stencil_image_ =
-      absl::make_unique<DepthStencilImage>(context(), frame_size);
+      std::make_unique<DepthStencilImage>(context(), frame_size);
 
   struct imageInfo {
     std::unique_ptr<OffscreenImage>* image;
@@ -149,7 +150,7 @@ void TroopApp::Recreate() {
                   ImageUsage::GetRenderTargetUsage(/*attachment_location=*/i))
         .AddUsage(kLightingSubpassIndex,
                   ImageUsage::GetSampledInFragmentShaderUsage());
-    *info.image = absl::make_unique<OffscreenImage>(
+    *info.image = std::make_unique<OffscreenImage>(
         context(), frame_size, common::image::kRgbaImageChannel,
         usage_history.GetAllUsages(), sampler_config, info.high_precision);
   }

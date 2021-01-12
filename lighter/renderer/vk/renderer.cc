@@ -7,13 +7,11 @@
 
 #include "lighter/renderer/vk/renderer.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
+namespace lighter::renderer::vk {
 
 Renderer::Renderer(
-    absl::string_view application_name,
-    const absl::optional<debug_message::Config>& debug_message_config,
+    std::string_view application_name,
+    const std::optional<debug_message::Config>& debug_message_config,
     std::vector<const common::Window*>&& window_ptrs)
     : renderer::Renderer{std::move(window_ptrs)},
       context_{Context::CreateContext(application_name, debug_message_config,
@@ -28,9 +26,7 @@ Renderer::Renderer(
 void Renderer::RecreateSwapchain(int window_index) {
   const auto& window = *windows().at(window_index);
   swapchains_[window_index] =
-      absl::make_unique<Swapchain>(context_, window_index, window);
+      std::make_unique<Swapchain>(context_, window_index, window);
 }
 
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter

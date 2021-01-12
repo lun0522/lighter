@@ -10,20 +10,18 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "lighter/common/window.h"
 #include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/basic.h"
 #include "lighter/renderer/vk/debug_callback.h"
-#include "third_party/absl/strings/string_view.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
+namespace lighter::renderer::vk {
 
 // Forward declarations.
 class Context;
@@ -36,8 +34,8 @@ class Context : public std::enable_shared_from_this<Context> {
   using ReleaseExpiredResourceOp = std::function<void(const Context& context)>;
 
   static SharedContext CreateContext(
-      absl::string_view application_name,
-      const absl::optional<debug_message::Config>& debug_message_config,
+      std::string_view application_name,
+      const std::optional<debug_message::Config>& debug_message_config,
       absl::Span<const common::Window* const> windows,
       absl::Span<const char* const> swapchain_extensions) {
     return std::shared_ptr<Context>(
@@ -80,8 +78,8 @@ class Context : public std::enable_shared_from_this<Context> {
   const Queues& queues() const { return *queues_; }
 
  private:
-  Context(absl::string_view application_name,
-          const absl::optional<debug_message::Config>& debug_message_config,
+  Context(std::string_view application_name,
+          const std::optional<debug_message::Config>& debug_message_config,
           absl::Span<const common::Window* const> windows,
           absl::Span<const char* const> swapchain_extensions);
 
@@ -110,8 +108,6 @@ class Context : public std::enable_shared_from_this<Context> {
   std::vector<ReleaseExpiredResourceOp> release_expired_rsrc_ops_;
 };
 
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter
 
-#endif /* LIGHTER_RENDERER_VK_CONTEXT_H */
+#endif  // LIGHTER_RENDERER_VK_CONTEXT_H

@@ -15,8 +15,7 @@
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 
-namespace lighter {
-namespace common {
+namespace lighter::common {
 
 // This is the base class of all spline classes. The user should use it
 // through derived classes. Note that spline classes determine the way to build
@@ -172,7 +171,6 @@ class SplineEditor {
   std::unique_ptr<Spline> spline_;
 };
 
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common
 
-#endif /* LIGHTER_COMMON_SPLINE_H */
+#endif  // LIGHTER_COMMON_SPLINE_H

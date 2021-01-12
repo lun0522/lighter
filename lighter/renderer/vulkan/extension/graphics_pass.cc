@@ -12,9 +12,7 @@
 #include <vector>
 
 #include "lighter/renderer/vulkan/wrapper/image_util.h"
-#include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/types/variant.h"
 
 namespace lighter {
 namespace renderer {
@@ -37,10 +35,10 @@ void IncludeUsageInSubpassDependency(
 int GraphicsPass::AddAttachment(
     const std::string& image_name,
     ImageUsageHistory&& history, GetLocation&& get_location,
-    const absl::optional<AttachmentLoadStoreOps>& load_store_ops) {
+    const std::optional<AttachmentLoadStoreOps>& load_store_ops) {
   ValidateUsageHistory(image_name, history);
 
-  const absl::optional<int> subpass_requiring_location_getter =
+  const std::optional<int> subpass_requiring_location_getter =
       GetFirstSubpassRequiringLocationGetter(history);
   bool need_location_getter = subpass_requiring_location_getter.has_value();
   if (need_location_getter) {
@@ -109,7 +107,7 @@ GraphicsPass& GraphicsPass::AddMultisampleResolving(
 
 std::unique_ptr<RenderPassBuilder> GraphicsPass::CreateRenderPassBuilder(
     int num_framebuffers) {
-  render_pass_builder_ = absl::make_unique<RenderPassBuilder>(context_);
+  render_pass_builder_ = std::make_unique<RenderPassBuilder>(context_);
   render_pass_builder_->SetNumFramebuffers(num_framebuffers);
   SetAttachments();
   SetSubpasses();
@@ -281,7 +279,7 @@ void GraphicsPass::SetSubpassDependencies() {
   }
 }
 
-absl::optional<int> GraphicsPass::GetFirstSubpassRequiringLocationGetter(
+std::optional<int> GraphicsPass::GetFirstSubpassRequiringLocationGetter(
     const ImageUsageHistory& history) const {
   for (const auto& pair : history.usage_at_subpass_map()) {
     const int subpass = pair.first;
@@ -292,12 +290,12 @@ absl::optional<int> GraphicsPass::GetFirstSubpassRequiringLocationGetter(
       return subpass;
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 GraphicsPass::AttachmentLoadStoreOps GraphicsPass::GetAttachmentLoadStoreOps(
     const std::string& image_name, const ImageUsageHistory& history,
-    const absl::optional<AttachmentLoadStoreOps>& user_specified_load_store_ops)
+    const std::optional<AttachmentLoadStoreOps>& user_specified_load_store_ops)
     const {
   const ImageUsageType usage_type =
       GetImageUsageTypeForAllSubpasses(image_name, history);
@@ -320,7 +318,7 @@ GraphicsPass::AttachmentLoadStoreOps GraphicsPass::GetAttachmentLoadStoreOps(
       using ColorLoadStoreOps =
           RenderPassBuilder::Attachment::ColorLoadStoreOps;
       ASSERT_TRUE(
-          absl::holds_alternative<ColorLoadStoreOps>(load_store_ops),
+          std::holds_alternative<ColorLoadStoreOps>(load_store_ops),
           absl::StrFormat("Image '%s' is used as color attachment, but depth "
                           "stencil attachment load store ops are provided",
                           image_name));
@@ -331,7 +329,7 @@ GraphicsPass::AttachmentLoadStoreOps GraphicsPass::GetAttachmentLoadStoreOps(
       using DepthStencilLoadStoreOps =
           RenderPassBuilder::Attachment::DepthStencilLoadStoreOps;
       ASSERT_TRUE(
-          absl::holds_alternative<DepthStencilLoadStoreOps>(load_store_ops),
+          std::holds_alternative<DepthStencilLoadStoreOps>(load_store_ops),
           absl::StrFormat("Image '%s' is used as depth stencil attachment, "
                           "but color attachment load store ops are provided",
                           image_name));

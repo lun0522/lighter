@@ -13,9 +13,7 @@
 #include "third_party/absl/functional/function_ref.h"
 #include "third_party/glm/glm.hpp"
 
-namespace lighter {
-namespace renderer {
-namespace pipeline {
+namespace lighter::renderer::pipeline {
 
 // Returns the sample count to use when using 'multisampling_mode'.
 SampleCount GetSampleCount(
@@ -59,8 +57,6 @@ GraphicsPipelineDescriptor::Viewport GetViewport(const glm::ivec2& frame_size,
 GraphicsPipelineDescriptor::Scissor GetFullFrameScissor(
     const glm::ivec2& frame_size);
 
-} /* namespace pipeline */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace lighter::renderer::pipeline
 
-#endif /* LIGHTER_RENDERER_PIPELINE_UTIL_H */
+#endif  // LIGHTER_RENDERER_PIPELINE_UTIL_H

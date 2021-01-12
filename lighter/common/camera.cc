@@ -10,8 +10,7 @@
 #include "lighter/common/util.h"
 #include "third_party/glm/gtc/matrix_transform.hpp"
 
-namespace lighter {
-namespace common {
+namespace lighter::common {
 
 Camera& Camera::UpdatePositionByOffset(const glm::vec3& offset) {
   pos_ += offset;
@@ -196,5 +195,4 @@ void UserControlledCamera::ResetAngles() {
   pitch_ = yaw_ = 0.0f;
 }
 
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common

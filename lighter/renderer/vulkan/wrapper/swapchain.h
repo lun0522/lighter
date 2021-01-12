@@ -9,12 +9,12 @@
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_SWAPCHAIN_H
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
@@ -63,11 +63,11 @@ class Surface {
 // This is not required for offscreen rendering.
 class Swapchain {
  public:
-  // If 'multisampling_mode' is not absl::nullopt, we will perform multisampling
+  // If 'multisampling_mode' is not std::nullopt, we will perform multisampling
   // for swapchain images.
   Swapchain(SharedBasicContext context,
             const Surface& surface, const VkExtent2D& frame_size,
-            absl::optional<MultisampleImage::Mode> multisampling_mode);
+            std::optional<MultisampleImage::Mode> multisampling_mode);
 
   // This class is neither copyable nor movable.
   Swapchain(const Swapchain&) = delete;

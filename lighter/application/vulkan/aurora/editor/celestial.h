@@ -8,6 +8,8 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_AURORA_EDITOR_CELESTIAL_H
 #define LIGHTER_APPLICATION_VULKAN_AURORA_EDITOR_CELESTIAL_H
 
+#include <memory>
+
 #include "lighter/renderer/vulkan/extension/model.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"

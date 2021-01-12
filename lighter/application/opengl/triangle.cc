@@ -60,7 +60,7 @@ TriangleApp::TriangleApp()
   const glm::ivec2 frame_size = window().GetFrameSize();
   glViewport(/*x=*/0, /*y=*/0, /*width=*/frame_size.x, /*height=*/frame_size.y);
 
-  program_ = absl::make_unique<Program>(
+  program_ = std::make_unique<Program>(
       absl::flat_hash_map<GLenum, std::string>{
           {GL_VERTEX_SHADER,
               common::file::GetGlShaderPath("triangle/triangle.vert")},

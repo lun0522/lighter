@@ -8,8 +8,7 @@
 #ifndef LIGHTER_RENDERER_TYPE_H
 #define LIGHTER_RENDERER_TYPE_H
 
-namespace lighter {
-namespace renderer {
+namespace lighter::renderer {
 
 enum class DataFormat {
   kSFloat32,
@@ -114,7 +113,7 @@ enum ShaderStage {
   COMPUTE  = 1U << 2U,
 };
 
-} /* namespace shader_stage */
+}  // namespace shader_stage
 
 namespace debug_message {
 
@@ -126,7 +125,7 @@ enum Severity {
   ERROR   = 1U << 2U,
 };
 
-} /* namespace severity */
+}  // namespace severity
 
 namespace type {
 
@@ -135,16 +134,15 @@ enum Type {
   PERFORMANCE = 1U << 1U,
 };
 
-} /* namespace type */
+}  // namespace type
 
 struct Config {
   unsigned int message_severity;
   unsigned int message_type;
 };
 
-} /* namespace debug_message */
+}  // namespace debug_message
 
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace lighter::renderer
 
-#endif /* LIGHTER_RENDERER_TYPE_H */
+#endif  // LIGHTER_RENDERER_TYPE_H

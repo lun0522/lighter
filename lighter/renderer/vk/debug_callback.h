@@ -13,9 +13,7 @@
 #include "lighter/renderer/type.h"
 #include "third_party/vulkan/vulkan.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
+namespace lighter::renderer::vk {
 
 // Forward declarations.
 class Context;
@@ -43,8 +41,6 @@ class DebugCallback {
   VkDebugUtilsMessengerEXT callback_;
 };
 
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter
 
-#endif /* LIGHTER_RENDERER_VK_DEBUG_CALLBACK_H */
+#endif  // LIGHTER_RENDERER_VK_DEBUG_CALLBACK_H

@@ -13,12 +13,9 @@
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vk/type_mapping.h"
 #include "lighter/renderer/vk/util.h"
-#include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
+namespace lighter::renderer::vk {
 namespace {
 
 using ImageAndUsage = PassDescriptor::ImageAndUsage;
@@ -354,11 +351,11 @@ VkPipelineDynamicStateCreateInfo CreateDynamicStateInfo() {
   };
 }
 
-} /* namespace */
+}  // namespace
 
-ShaderModule::ShaderModule(SharedContext context, absl::string_view file_path)
+ShaderModule::ShaderModule(SharedContext context, std::string_view file_path)
     : context_{std::move(FATAL_IF_NULL(context))} {
-  const auto raw_data = absl::make_unique<common::RawData>(file_path);
+  const auto raw_data = std::make_unique<common::RawData>(file_path);
   const VkShaderModuleCreateInfo module_info{
       VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
       /*pNext=*/nullptr,
@@ -464,7 +461,7 @@ Pipeline::Pipeline(SharedContext context,
 }
 
 Pipeline::Pipeline(
-    SharedContext context, absl::string_view name,
+    SharedContext context, std::string_view name,
     VkPipelineBindPoint binding_point,
     const PipelineDescriptor::UniformDescriptor& uniform_descriptor)
     : renderer::Pipeline{name}, context_{std::move(FATAL_IF_NULL(context))},
@@ -492,9 +489,7 @@ Pipeline::~Pipeline() {
                           *context_->host_allocator());
 #ifndef NDEBUG
   LOG_INFO << absl::StreamFormat("Pipeline '%s' destructed", name());
-#endif  /* !NDEBUG */
+#endif  // !NDEBUG
 }
 
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter

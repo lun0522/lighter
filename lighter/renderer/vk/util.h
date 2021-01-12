@@ -9,7 +9,9 @@
 #define LIGHTER_RENDERER_VK_UTIL_H
 
 #include <functional>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "lighter/common/image.h"
@@ -18,8 +20,6 @@
 #include "third_party/absl/functional/function_ref.h"
 #include "third_party/absl/strings/str_cat.h"
 #include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/strings/string_view.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
@@ -32,16 +32,14 @@
   ASSERT_TRUE(event == VK_SUCCESS,                            \
               absl::StrFormat("Errno %d: %s", event, error))
 
-namespace lighter {
-namespace renderer {
-namespace vk {
+namespace lighter::renderer::vk {
 namespace util {
 
 // Returns a function pointer to a Vulkan instance function, and throws a
 // runtime exception if it does not exist.
 template<typename FuncType>
 FuncType LoadInstanceFunction(const VkInstance& instance,
-                              absl::string_view function_name) {
+                              std::string_view function_name) {
   auto func = reinterpret_cast<FuncType>(
       vkGetInstanceProcAddr(instance, function_name.data()));
   ASSERT_NON_NULL(
@@ -53,7 +51,7 @@ FuncType LoadInstanceFunction(const VkInstance& instance,
 // exception if it does not exist.
 template<typename FuncType>
 FuncType LoadDeviceFunction(const VkDevice& device,
-                            absl::string_view function_name) {
+                            std::string_view function_name) {
   auto func = reinterpret_cast<FuncType>(
       vkGetDeviceProcAddr(device, function_name.data()));
   ASSERT_NON_NULL(
@@ -78,7 +76,7 @@ std::vector<AttribType> QueryAttribute(
 // name of the first uncovered attribute. 'get_name' should be able to return
 // the name of any attribute of AttribType.
 template <typename AttribType>
-absl::optional<std::string> FindUnsupported(
+std::optional<std::string> FindUnsupported(
     absl::Span<const std::string> required,
     absl::Span<const AttribType> attribs,
     absl::FunctionRef<const char*(const AttribType&)> get_name) {
@@ -104,7 +102,7 @@ absl::optional<std::string> FindUnsupported(
       return req;
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 // Converts a bool to VkBool32.
@@ -123,15 +121,13 @@ inline VkOffset2D CreateOffset(const glm::ivec2& dimension) {
   return {dimension.x, dimension.y};
 }
 
-} /* namespace util */
+}  // namespace util
 
 constexpr uint32_t nullflag = 0;
 constexpr uint32_t kSingleMipLevel = common::image::kSingleMipLevel;
 constexpr uint32_t kSingleImageLayer = common::image::kSingleImageLayer;
 constexpr uint32_t kCubemapImageLayer = common::image::kCubemapImageLayer;
 
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter
 
-#endif /* LIGHTER_RENDERER_VK_UTIL_H */
+#endif  // LIGHTER_RENDERER_VK_UTIL_H

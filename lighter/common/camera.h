@@ -10,15 +10,14 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 
 #ifdef USE_VULKAN
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#endif /* USE_VULKAN */
-#include "third_party/absl/types/optional.h"
+#endif  // USE_VULKAN
 #include "third_party/glm/glm.hpp"
 
-namespace lighter {
-namespace common {
+namespace lighter::common {
 
 // A camera model. Subclasses must override GetProjectionMatrix().
 class Camera {
@@ -207,7 +206,7 @@ class UserControlledCamera {
     // with no constraints. Otherwise, the camera will move on the surface of a
     // sphere, whose center is 'lock_center', and radius is the distance between
     // the initial position of camera and the 'lock_center' point.
-    absl::optional<glm::vec3> lock_center;
+    std::optional<glm::vec3> lock_center;
   };
 
   UserControlledCamera(const ControlConfig& control_config,
@@ -280,7 +279,6 @@ class UserControlledCamera {
   float yaw_;
 };
 
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common
 
-#endif /* LIGHTER_COMMON_CAMERA_H */
+#endif  // LIGHTER_COMMON_CAMERA_H

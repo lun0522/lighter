@@ -82,7 +82,7 @@ void RecordCommands(
 
 // Checks the given 'result'. The return value is the same as
 // PerFrameCommand::Run().
-absl::optional<VkResult> CheckResult(VkResult result) {
+std::optional<VkResult> CheckResult(VkResult result) {
   // VK_ERROR_OUT_OF_DATE_KHR means the swapchain can no longer present image.
   // VK_SUBOPTIMAL_KHR is not ideal, but we would consider it as a good state.
   switch (result) {
@@ -91,7 +91,7 @@ absl::optional<VkResult> CheckResult(VkResult result) {
 
     case VK_SUCCESS:
     case VK_SUBOPTIMAL_KHR:
-      return absl::nullopt;
+      return std::nullopt;
 
     default:
       FATAL(absl::StrFormat("Errno: %d", result));
@@ -143,10 +143,10 @@ PerFrameCommand::PerFrameCommand(const SharedBasicContext& context,
       *context_, command_pool, static_cast<uint32_t>(num_frames_in_flight));
 }
 
-absl::optional<VkResult> PerFrameCommand::Run(int current_frame,
-                                              const VkSwapchainKHR& swapchain,
-                                              const UpdateData& update_data,
-                                              const OnRecord& on_record) {
+std::optional<VkResult> PerFrameCommand::Run(int current_frame,
+                                             const VkSwapchainKHR& swapchain,
+                                             const UpdateData& update_data,
+                                             const OnRecord& on_record) {
   // Each "action" may firstly "wait on" a semaphore, then perform the action
   // itself, and finally "signal" another semaphore:
   //   |------------------------------------------------------------------|

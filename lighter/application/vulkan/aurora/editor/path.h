@@ -11,6 +11,7 @@
 #include <array>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "lighter/application/vulkan/aurora/editor/button_util.h"
@@ -21,7 +22,6 @@
 #include "lighter/renderer/vulkan/wrapper/descriptor.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
@@ -138,7 +138,7 @@ class AuroraPath {
   // Describes a user click. Note that paths only respond to left mouse button
   // press or right button release.
   struct ClickInfo {
-    absl::optional<int> path_index;
+    std::optional<int> path_index;
     bool is_left_click;
     glm::vec3 click_object_space;
   };
@@ -164,12 +164,12 @@ class AuroraPath {
   // aurora layer.
   void UpdatePerFrameData(int frame, const common::OrthographicCamera& camera,
                           const glm::mat4& model, float model_radius,
-                          const absl::optional<ClickInfo>& click_info);
+                          const std::optional<ClickInfo>& click_info);
 
   // Renders the aurora paths.
   // This should be called when 'command_buffer' is recording commands.
   void Draw(const VkCommandBuffer& command_buffer, int frame,
-            absl::optional<int> selected_path_index);
+            std::optional<int> selected_path_index);
 
   // Returns pointers to spline vertex buffers.
   std::vector<const renderer::vulkan::PerVertexBuffer*>
@@ -186,14 +186,14 @@ class AuroraPath {
 
   // Processes user click and returns the new value of
   // 'selected_control_point_'.
-  absl::optional<int> ProcessClick(float control_point_radius_object_space,
+  std::optional<int> ProcessClick(float control_point_radius_object_space,
                                    const glm::mat4& proj_view_model,
                                    const glm::vec3& model_center,
-                                   const absl::optional<ClickInfo>& click_info);
+                                   const std::optional<ClickInfo>& click_info);
 
   // Returns the index of the clicked control point. If no control point is hit,
-  // returns absl::nullopt.
-  absl::optional<int> FindClickedControlPoint(
+  // returns std::nullopt.
+  std::optional<int> FindClickedControlPoint(
       int path_index, const glm::vec3& click_object_space,
       float control_point_radius_object_space);
 
@@ -218,7 +218,7 @@ class AuroraPath {
   const std::array<glm::vec4, button::kNumStates> viewpoint_color_alphas_;
 
   // Tracks the control point selected by left click.
-  absl::optional<int> selected_control_point_;
+  std::optional<int> selected_control_point_;
 
   // Position of user viewpoint in object space.
   glm::vec3 viewpoint_pos_;

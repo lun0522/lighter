@@ -9,6 +9,7 @@
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_PIPELINE_H
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -16,7 +17,6 @@
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
@@ -80,7 +80,7 @@ class PipelineBuilder {
 
  protected:
   PipelineBuilder(SharedBasicContext context,
-                  absl::optional<int> max_cache_size);
+                  std::optional<int> max_cache_size);
 
   // Sets the name for the pipeline.
   void SetName(std::string&& name) { name_ = std::move(name); }
@@ -110,7 +110,7 @@ class PipelineBuilder {
   std::string name_;
 
   // Descriptor sets and push constants determine the layout of the pipeline.
-  absl::optional<VkPipelineLayoutCreateInfo> pipeline_layout_info_;
+  std::optional<VkPipelineLayoutCreateInfo> pipeline_layout_info_;
   std::vector<VkDescriptorSetLayout> descriptor_layouts_;
   std::vector<VkPushConstantRange> push_constant_ranges_;
 };
@@ -129,10 +129,10 @@ class GraphicsPipelineBuilder : public PipelineBuilder {
   };
 
   // Internal states will be filled with default settings, unless they are of
-  // absl::optional or std::vector types.
+  // std::optional or std::vector types.
   explicit GraphicsPipelineBuilder(
       SharedBasicContext context,
-      absl::optional<int> max_cache_size = absl::nullopt);
+      std::optional<int> max_cache_size = std::nullopt);
 
   // This class is neither copyable nor movable.
   GraphicsPipelineBuilder(const GraphicsPipelineBuilder&) = delete;
@@ -227,10 +227,10 @@ class GraphicsPipelineBuilder : public PipelineBuilder {
   std::vector<VkVertexInputAttributeDescription> attribute_descriptions_;
 
   // Specifies the viewport and scissor.
-  absl::optional<ViewportInfo> viewport_info_;
+  std::optional<ViewportInfo> viewport_info_;
 
   // Specifies this pipeline will be used in which render pass and subpass.
-  absl::optional<RenderPassInfo> render_pass_info_;
+  std::optional<RenderPassInfo> render_pass_info_;
 
   // Color blend states of each color attachment.
   std::vector<VkPipelineColorBlendAttachmentState> color_blend_states_;
@@ -248,7 +248,7 @@ class ComputePipelineBuilder : public PipelineBuilder {
  public:
   explicit ComputePipelineBuilder(
       SharedBasicContext context,
-      absl::optional<int> max_cache_size = absl::nullopt)
+      std::optional<int> max_cache_size = std::nullopt)
       : PipelineBuilder{std::move(FATAL_IF_NULL(context)), max_cache_size} {}
 
   // This class is neither copyable nor movable.
@@ -274,7 +274,7 @@ class ComputePipelineBuilder : public PipelineBuilder {
 
  private:
   // Path to shader file.
-  absl::optional<std::string> shader_file_path_;
+  std::optional<std::string> shader_file_path_;
 };
 
 // VkPipeline configures multiple shader stages, multiple fixed function stages

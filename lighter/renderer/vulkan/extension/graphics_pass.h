@@ -10,6 +10,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "lighter/common/util.h"
@@ -17,7 +18,6 @@
 #include "lighter/renderer/vulkan/extension/base_pass.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/types/optional.h"
 
 namespace lighter {
 namespace renderer {
@@ -70,8 +70,8 @@ class GraphicsPass : public BasePass {
   int AddAttachment(
       const std::string& image_name,
       ImageUsageHistory&& history, GetLocation&& get_location,
-      const absl::optional<AttachmentLoadStoreOps>& load_store_ops =
-          absl::nullopt);
+      const std::optional<AttachmentLoadStoreOps>& load_store_ops =
+          std::nullopt);
 
   // Specifies that the multisample source image will get resolved to the single
   // sample destination image at 'subpass'.
@@ -109,8 +109,8 @@ class GraphicsPass : public BasePass {
   // Returns the first subpass where the image is used as render target, in
   // which case we need to query the location attribute value using the location
   // getter provided by the user. If there is no such subpass, returns
-  // absl::nullopt instead.
-  absl::optional<int> GetFirstSubpassRequiringLocationGetter(
+  // std::nullopt instead.
+  std::optional<int> GetFirstSubpassRequiringLocationGetter(
       const ImageUsageHistory& history) const;
 
   // Returns the load store ops that should be used for the attachment. If the
@@ -119,7 +119,7 @@ class GraphicsPass : public BasePass {
   // 'history' internally.
   AttachmentLoadStoreOps GetAttachmentLoadStoreOps(
       const std::string& image_name, const ImageUsageHistory& history,
-      const absl::optional<AttachmentLoadStoreOps>&
+      const std::optional<AttachmentLoadStoreOps>&
           user_specified_load_store_ops) const;
 
   // Returns the usage type of an image. We assume that each image should either

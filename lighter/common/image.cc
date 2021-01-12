@@ -15,13 +15,12 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "third_party/stb/stb_image.h"
 
-namespace lighter {
-namespace common {
+namespace lighter::common {
 namespace {
 
 // Concatenates 'directory' and each of 'relative_paths'.
 std::vector<std::string> GetFullPaths(
-    absl::string_view directory,
+    std::string_view directory,
     absl::Span<const std::string> relative_paths) {
   std::vector<std::string> paths;
   paths.reserve(relative_paths.size());
@@ -31,7 +30,7 @@ std::vector<std::string> GetFullPaths(
   return paths;
 }
 
-} /* namespace */
+}  // namespace
 
 Image::Image(absl::Span<const std::string> paths) {
   ASSERT_TRUE(paths.size() == image::kSingleImageLayer
@@ -41,7 +40,7 @@ Image::Image(absl::Span<const std::string> paths) {
 
   // Load the first image. The rest of images are expected to have the same
   // dimension to it.
-  const auto raw_data = absl::make_unique<RawData>(paths[0]);
+  const auto raw_data = std::make_unique<RawData>(paths[0]);
   stbi_uc* data = stbi_load_from_memory(
       reinterpret_cast<const stbi_uc*>(raw_data->data),
       static_cast<int>(raw_data->size),
@@ -79,7 +78,7 @@ Image::Image(absl::Span<const std::string> paths) {
   }
 }
 
-Image::Image(absl::string_view directory,
+Image::Image(std::string_view directory,
              absl::Span<const std::string> relative_paths)
     : Image{GetFullPaths(directory, relative_paths)} {}
 
@@ -119,8 +118,8 @@ Image::~Image() {
   }
 }
 
-const void* Image::LoadImageFromFile(absl::string_view path) const {
-  const auto raw_data = absl::make_unique<RawData>(path);
+const void* Image::LoadImageFromFile(std::string_view path) const {
+  const auto raw_data = std::make_unique<RawData>(path);
   int width, height, channel;
   stbi_uc* data = stbi_load_from_memory(
       reinterpret_cast<const stbi_uc*>(raw_data->data),
@@ -140,5 +139,4 @@ const void* Image::LoadImageFromFile(absl::string_view path) const {
   return data;
 }
 
-} /* namespace common */
-} /* namespace lighter */
+}  // namespace lighter::common

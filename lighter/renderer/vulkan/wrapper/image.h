@@ -10,6 +10,8 @@
 
 #include <array>
 #include <memory>
+#include <optional>
+#include <variant>
 
 #include "lighter/common/file.h"
 #include "lighter/common/image.h"
@@ -19,9 +21,7 @@
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
-#include "third_party/absl/types/variant.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
@@ -285,7 +285,7 @@ class SharedTexture : public SamplableImage {
     // PosX, NegX, PosY, NegY, PosZ, NegZ.
     std::array<std::string, common::image::kCubemapImageLayer> files;
   };
-  using SourcePath = absl::variant<SingleTexPath, CubemapPath>;
+  using SourcePath = std::variant<SingleTexPath, CubemapPath>;
 
   SharedTexture(const SharedBasicContext& context,
                 const SourcePath& source_path,
@@ -475,7 +475,7 @@ class MultisampleImage : public Image {
   // directly use whatever image returned by this function.
   static std::unique_ptr<Image> CreateDepthStencilImage(
       SharedBasicContext context,
-      const VkExtent2D& extent, absl::optional<Mode> mode);
+      const VkExtent2D& extent, std::optional<Mode> mode);
 
   // This class is neither copyable nor movable.
   MultisampleImage(const MultisampleImage&) = delete;

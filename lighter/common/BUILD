@@ -10,7 +10,6 @@ cc_library(
     hdrs = ["camera.h"],
     deps = [
         ":util",
-        "//third_party:absl",
         "//third_party:glm",
     ],
 )
@@ -81,7 +80,6 @@ cc_library(
         ":camera",
         ":timer",
         ":util",
-        "//third_party:absl",
         "//third_party:glm",
     ],
 )

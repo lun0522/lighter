@@ -10,6 +10,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -20,7 +21,6 @@
 #include "lighter/renderer/vulkan/wrapper/validation.h"
 #endif /* !NDEBUG */
 #include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -137,7 +137,7 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
 
  private:
   explicit BasicContext(
-      const absl::optional<WindowSupport>& window_support
+      const std::optional<WindowSupport>& window_support
 #ifndef NDEBUG
       , const DebugCallback::TriggerCondition& debug_callback_trigger
 #endif /* !NDEBUG */

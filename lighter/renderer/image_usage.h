@@ -10,16 +10,15 @@
 
 #include <algorithm>
 #include <map>
+#include <optional>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/type.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 
-namespace lighter {
-namespace renderer {
+namespace lighter::renderer {
 
 // Describes how we would use an image.
 class ImageUsage {
@@ -130,7 +129,7 @@ class ImageUsage {
   // to be valid.
   ImageUsage(UsageType usage_type, AccessType access_type,
              AccessLocation access_location,
-             absl::optional<int> attachment_location = absl::nullopt)
+             std::optional<int> attachment_location = std::nullopt)
       : usage_type_{usage_type}, access_type_{access_type},
         access_location_{access_location},
         attachment_location_{attachment_location} {}
@@ -138,7 +137,7 @@ class ImageUsage {
   UsageType usage_type_;
   AccessType access_type_;
   AccessLocation access_location_;
-  absl::optional<int> attachment_location_;
+  std::optional<int> attachment_location_;
 };
 
 // TODO: Remove.
@@ -188,7 +187,7 @@ class ImageUsageHistory {
   // Specifies that the multisample image with 'source_image_name' will resolve
   // to this image at 'subpass'.
   ImageUsageHistory& AddMultisampleResolveSource(
-      int subpass, absl::string_view source_image_name){
+      int subpass, std::string_view source_image_name){
     const auto iter =
         resolve_source_map_.insert({subpass, std::string{source_image_name}});
     ASSERT_TRUE(iter.second,
@@ -228,7 +227,7 @@ class ImageUsageHistory {
     return usage_at_subpass_map_;
   }
   const ImageUsage& initial_usage() const { return initial_usage_; }
-  const absl::optional<ImageUsage>& final_usage() const { return final_usage_; }
+  const std::optional<ImageUsage>& final_usage() const { return final_usage_; }
   const MultisampleResolveSourceMap& multisample_resolve_source_map() const {
     return resolve_source_map_;
   }
@@ -242,7 +241,7 @@ class ImageUsageHistory {
   ImageUsage initial_usage_;
 
   // Usage of image after this pass.
-  absl::optional<ImageUsage> final_usage_;
+  std::optional<ImageUsage> final_usage_;
 
   // Records which images will resolve to this image at which subpasses.
   MultisampleResolveSourceMap resolve_source_map_;
@@ -302,7 +301,6 @@ class ImageUsageTracker {
   absl::flat_hash_map<std::string, ImageUsage> image_usage_map_;
 };
 
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace lighter::renderer
 
-#endif /* LIGHTER_RENDERER_IMAGE_USAGE_H */
+#endif  // LIGHTER_RENDERER_IMAGE_USAGE_H

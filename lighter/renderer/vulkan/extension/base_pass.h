@@ -8,12 +8,12 @@
 #ifndef LIGHTER_RENDERER_VULKAN_EXTENSION_BASE_PASS_H
 #define LIGHTER_RENDERER_VULKAN_EXTENSION_BASE_PASS_H
 
+#include <optional>
 #include <string>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/image_usage.h"
 #include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
@@ -81,7 +81,7 @@ class BasePass {
 
   // Returns previous and current image usages info if the image is used at
   // 'subpass' and synchronization on image memory access is needed,
-  absl::optional<ImageUsagesInfo> GetImageUsagesIfNeedSynchronization(
+  std::optional<ImageUsagesInfo> GetImageUsagesIfNeedSynchronization(
       const std::string& image_name, int subpass) const;
 
   // Checks whether 'subpass' is in range:

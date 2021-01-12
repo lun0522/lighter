@@ -104,11 +104,11 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
 }
 
 // Finds family indices of queues we need. If any queue is not found in the
-// given 'physical_device', returns absl::nullopt.
+// given 'physical_device', returns std::nullopt.
 // The graphics queue will also be used as transfer queue.
-absl::optional<QueueFamilyIndices> FindDeviceQueues(
+std::optional<QueueFamilyIndices> FindDeviceQueues(
     const VkPhysicalDevice& physical_device,
-    const absl::optional<WindowSupport>& window_support) {
+    const std::optional<WindowSupport>& window_support) {
   VkPhysicalDeviceProperties properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
   LOG_INFO << "Found device: " << properties.deviceName;
@@ -117,14 +117,14 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
   // Request swapchain support if use window.
   if (window_support.has_value() &&
       !HasSwapchainSupport(physical_device, window_support.value())) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   // Request support for anisotropy filtering.
   VkPhysicalDeviceFeatures feature_support;
   vkGetPhysicalDeviceFeatures(physical_device, &feature_support);
   if (!feature_support.samplerAnisotropy) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   // Find queue family that holds graphics queue.
@@ -143,7 +143,7 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
       common::util::FindIndexOfFirst<VkQueueFamilyProperties>(
           families, has_graphics_support);
   if (!graphics_queue_index.has_value()) {
-    return absl::nullopt;
+    return std::nullopt;
   } else {
     candidate.graphics = candidate.transfer =
         static_cast<uint32_t>(graphics_queue_index.value());
@@ -156,7 +156,7 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
       common::util::FindIndexOfFirst<VkQueueFamilyProperties>(
           families, has_compute_support);
   if (!compute_queue_index.has_value()) {
-    return absl::nullopt;
+    return std::nullopt;
   } else {
     candidate.compute = static_cast<uint32_t>(compute_queue_index.value());
   }
@@ -175,7 +175,7 @@ absl::optional<QueueFamilyIndices> FindDeviceQueues(
         common::util::FindIndexOfFirst<VkQueueFamilyProperties>(
             families, has_present_support);
     if (!present_queue_index.has_value()) {
-      return absl::nullopt;
+      return std::nullopt;
     } else {
       candidate.present = static_cast<uint32_t>(present_queue_index.value());
     }
@@ -196,7 +196,7 @@ std::vector<uint32_t> QueueFamilyIndices::GetUniqueFamilyIndices() const {
 }
 
 Instance::Instance(const BasicContext* context,
-                   const absl::optional<WindowSupport>& window_support)
+                   const std::optional<WindowSupport>& window_support)
     : context_{FATAL_IF_NULL(context)} {
   // Request support for pushing descriptors.
   std::vector<const char*> instance_extensions{
@@ -273,7 +273,7 @@ Instance::~Instance() {
 
 PhysicalDevice::PhysicalDevice(
     const BasicContext* context,
-    const absl::optional<WindowSupport>& window_support)
+    const std::optional<WindowSupport>& window_support)
     : context_{FATAL_IF_NULL(context)} {
   // Find all physical devices.
   const auto physical_devices = util::QueryAttribute<VkPhysicalDevice>(
@@ -303,7 +303,7 @@ PhysicalDevice::PhysicalDevice(
 }
 
 Device::Device(const BasicContext* context,
-               const absl::optional<WindowSupport>& window_support)
+               const std::optional<WindowSupport>& window_support)
     : context_{FATAL_IF_NULL(context)} {
   if (window_support.has_value()) {
     ASSERT_HAS_VALUE(context_->queue_family_indices().present,

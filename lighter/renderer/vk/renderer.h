@@ -9,6 +9,8 @@
 #define LIGHTER_RENDERER_VK_RENDERER_H
 
 #include <memory>
+#include <optional>
+#include <string_view>
 #include <vector>
 
 #include "lighter/common/image.h"
@@ -22,25 +24,20 @@
 #include "lighter/renderer/vk/pipeline.h"
 #include "lighter/renderer/vk/swapchain.h"
 #include "lighter/renderer/vk/util.h"
-#include "third_party/absl/memory/memory.h"
-#include "third_party/absl/strings/string_view.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
-namespace lighter {
-namespace renderer {
-namespace vk {
+namespace lighter::renderer::vk {
 
 class Renderer : public renderer::Renderer {
  public:
-  Renderer(absl::string_view application_name,
-           const absl::optional<debug_message::Config>& debug_message_config,
+  Renderer(std::string_view application_name,
+           const std::optional<debug_message::Config>& debug_message_config,
            std::vector<const common::Window*>&& window_ptrs);
 
-  Renderer(absl::string_view application_name,
-           const absl::optional<debug_message::Config>& debug_message_config,
+  Renderer(std::string_view application_name,
+           const std::optional<debug_message::Config>& debug_message_config,
            absl::Span<const common::Window* const> windows)
       : Renderer{application_name, debug_message_config,
                  {windows.begin(), windows.end()}} {}
@@ -51,23 +48,23 @@ class Renderer : public renderer::Renderer {
 
   void RecreateSwapchain(int window_index);
 
-  /* Buffer */
+  // Buffer
 
   std::unique_ptr<renderer::DeviceBuffer> CreateDeviceBuffer(
       DeviceBuffer::UpdateRate update_rate, size_t initial_size,
       absl::Span<const BufferUsage> usages) const override {
-    return absl::make_unique<DeviceBuffer>(context_, update_rate, initial_size,
-                                           usages);
+    return std::make_unique<DeviceBuffer>(context_, update_rate, initial_size,
+                                          usages);
   }
 
-  /* Image */
+  // Image
 
   const DeviceImage& GetSwapchainImage(int window_index) const override {
     return swapchains_.at(window_index)->image();
   }
 
   std::unique_ptr<renderer::DeviceImage> CreateColorImage(
-      absl::string_view name, const common::Image::Dimension& dimension,
+      std::string_view name, const common::Image::Dimension& dimension,
       MultisamplingMode multisampling_mode, bool high_precision,
       absl::Span<const ImageUsage> usages) const override {
     return GeneralDeviceImage::CreateColorImage(
@@ -75,21 +72,21 @@ class Renderer : public renderer::Renderer {
   }
 
   std::unique_ptr<renderer::DeviceImage> CreateColorImage(
-      absl::string_view name, const common::Image& image, bool generate_mipmaps,
+      std::string_view name, const common::Image& image, bool generate_mipmaps,
       absl::Span<const ImageUsage> usages) const override {
     return GeneralDeviceImage::CreateColorImage(context_, name, image,
                                                 generate_mipmaps, usages);
   }
 
   std::unique_ptr<renderer::DeviceImage> CreateDepthStencilImage(
-      absl::string_view name, const glm::ivec2& extent,
+      std::string_view name, const glm::ivec2& extent,
       MultisamplingMode multisampling_mode,
       absl::Span<const ImageUsage> usages) const override {
     return GeneralDeviceImage::CreateDepthStencilImage(
         context_, name, util::CreateExtent(extent), multisampling_mode, usages);
   }
 
-  /* Pass */
+  // Pass
 
   std::unique_ptr<GraphicsPass> CreateGraphicsPass(
       const GraphicsPassDescriptor& descriptor) const override {
@@ -107,8 +104,6 @@ class Renderer : public renderer::Renderer {
   std::vector<std::unique_ptr<Swapchain>> swapchains_;
 };
 
-} /* namespace vk */
-} /* namespace renderer */
-} /* namespace lighter */
+}  // namespace vk::renderer::lighter
 
-#endif /* LIGHTER_RENDERER_VK_RENDERER_H */
+#endif  // LIGHTER_RENDERER_VK_RENDERER_H

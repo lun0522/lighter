@@ -16,7 +16,6 @@
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include "third_party/absl/memory/memory.h"
 
 namespace lighter {
 namespace application {
@@ -54,7 +53,7 @@ std::unique_ptr<OffscreenImage> CreateTargetImage(
   const auto image_usages = {
       ImageUsage::GetRenderTargetUsage(/*attachment_location=*/0),
       ImageUsage::GetSampledInFragmentShaderUsage()};
-  return absl::make_unique<OffscreenImage>(
+  return std::make_unique<OffscreenImage>(
       context, buttons_image_extent, common::image::kRgbaImageChannel,
       image_usages, ImageSampler::Config{}, /*use_high_precision=*/false);
 }
@@ -69,7 +68,7 @@ std::unique_ptr<StaticPerInstanceBuffer> CreatePerInstanceBuffer(
     render_infos.push_back({info.render_info[button::kSelectedState]});
     render_infos.push_back({info.render_info[button::kUnselectedState]});
   }
-  return absl::make_unique<StaticPerInstanceBuffer>(
+  return std::make_unique<StaticPerInstanceBuffer>(
       context, render_infos,
       pipeline::GetVertexAttributes<make_button::RenderInfo>());
 }
@@ -78,7 +77,7 @@ std::unique_ptr<StaticPerInstanceBuffer> CreatePerInstanceBuffer(
 std::unique_ptr<StaticDescriptor> CreateDescriptor(
     const SharedBasicContext& context,
     const VkDescriptorImageInfo& image_info) {
-  auto descriptor = absl::make_unique<StaticDescriptor>(
+  auto descriptor = std::make_unique<StaticDescriptor>(
       context, /*infos=*/std::vector<Descriptor::Info>{
           Descriptor::Info{
               Image::GetDescriptorTypeForSampling(),
@@ -123,7 +122,7 @@ std::unique_ptr<DynamicText> CreateTextRenderer(
     texts.push_back(info.text);
   }
 
-  auto text_renderer = absl::make_unique<DynamicText>(
+  auto text_renderer = std::make_unique<DynamicText>(
       context, /*num_frames_in_flight=*/1,
       util::GetAspectRatio(target_image.extent()), texts, font, font_height);
   text_renderer->Update(
@@ -164,7 +163,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
   ASSERT_TRUE(button_background.channel() == common::image::kBwImageChannel,
               "Expecting a single-channel button background image");
   const auto image_usages = {ImageUsage::GetSampledInFragmentShaderUsage()};
-  const auto background_image = absl::make_unique<TextureImage>(
+  const auto background_image = std::make_unique<TextureImage>(
       context, /*generate_mipmaps=*/false, button_background, image_usages,
       ImageSampler::Config{});
 
@@ -175,7 +174,7 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
   const auto per_instance_buffer =
       CreatePerInstanceBuffer(context, button_infos);
 
-  const auto push_constant = absl::make_unique<PushConstant>(
+  const auto push_constant = std::make_unique<PushConstant>(
       context, sizeof(button::VerticesInfo), /*num_frames_in_flight=*/1);
   *push_constant->HostData<button::VerticesInfo>(/*frame=*/0) = vertices_info;
 

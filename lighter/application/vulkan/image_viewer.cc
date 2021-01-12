@@ -25,7 +25,7 @@ ImageViewer::ImageViewer(const SharedBasicContext& context,
   using common::Vertex2D;
 
   /* Descriptor */
-  descriptor_ = absl::make_unique<StaticDescriptor>(
+  descriptor_ = std::make_unique<StaticDescriptor>(
       context, std::vector<Descriptor::Info>{
           Descriptor::Info{
               Image::GetDescriptorTypeForSampling(),
@@ -46,7 +46,7 @@ ImageViewer::ImageViewer(const SharedBasicContext& context,
   const PerVertexBuffer::NoIndicesDataInfo vertex_data_info{
       /*per_mesh_vertices=*/{{PerVertexBuffer::VertexDataInfo{vertex_data}}}
   };
-  vertex_buffer_ = absl::make_unique<StaticPerVertexBuffer>(
+  vertex_buffer_ = std::make_unique<StaticPerVertexBuffer>(
       context, vertex_data_info, pipeline::GetVertexAttributes<Vertex2D>());
 
   /* Pipeline */
@@ -54,7 +54,7 @@ ImageViewer::ImageViewer(const SharedBasicContext& context,
       num_channels == common::image::kBwImageChannel
           ? "image_viewer/view_bw_image.frag"
           : "image_viewer/view_color_image.frag";
-  pipeline_builder_ = absl::make_unique<GraphicsPipelineBuilder>(context);
+  pipeline_builder_ = std::make_unique<GraphicsPipelineBuilder>(context);
   (*pipeline_builder_)
       .SetPipelineName("View image")
       .AddVertexInput(kVertexBufferBindingPoint,

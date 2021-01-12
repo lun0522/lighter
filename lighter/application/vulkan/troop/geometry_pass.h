@@ -10,6 +10,8 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
+#include <optional>
 
 #include "lighter/common/camera.h"
 #include "lighter/common/util.h"
@@ -19,8 +21,6 @@
 #include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
-#include "third_party/absl/strings/string_view.h"
-#include "third_party/absl/types/optional.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
@@ -62,9 +62,9 @@ class GeometryPass {
  private:
   // Used to create and update the render pass builder.
   struct Attachment {
-    Attachment(absl::string_view image_name,
+    Attachment(std::string_view image_name,
                const renderer::vulkan::Image* image,
-               absl::optional<int>* attachment_index, int location)
+               std::optional<int>* attachment_index, int location)
         : image_name{image_name}, image{*FATAL_IF_NULL(image)},
           attachment_index{*FATAL_IF_NULL(attachment_index)},
           location{location} {}
@@ -77,7 +77,7 @@ class GeometryPass {
 
     const std::string image_name;
     const renderer::vulkan::Image& image;
-    absl::optional<int>& attachment_index;
+    std::optional<int>& attachment_index;
     int location;
   };
 
@@ -89,10 +89,10 @@ class GeometryPass {
 
   // Objects used for rendering.
   const renderer::vulkan::WindowContext& window_context_;
-  absl::optional<int> depth_stencil_attachment_index_;
-  absl::optional<int> position_color_attachment_index_;
-  absl::optional<int> normal_color_attachment_index_;
-  absl::optional<int> diffuse_specular_color_attachment_index_;
+  std::optional<int> depth_stencil_attachment_index_;
+  std::optional<int> position_color_attachment_index_;
+  std::optional<int> normal_color_attachment_index_;
+  std::optional<int> diffuse_specular_color_attachment_index_;
   std::unique_ptr<renderer::vulkan::StaticPerInstanceBuffer> center_data_;
   std::unique_ptr<renderer::vulkan::UniformBuffer> trans_uniform_;
   std::unique_ptr<renderer::vulkan::Model> nanosuit_model_;

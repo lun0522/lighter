@@ -14,7 +14,6 @@
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vulkan/wrapper/image_util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include "third_party/absl/memory/memory.h"
 
 namespace lighter {
 namespace application {
@@ -68,7 +67,7 @@ DistanceFieldGenerator::DistanceFieldGenerator(
   }
   num_steps_ = step_widths.size();
 
-  step_width_constant_ = absl::make_unique<PushConstant>(
+  step_width_constant_ = std::make_unique<PushConstant>(
       context, sizeof(StepWidth), num_steps_);
   for (int i = 0; i < num_steps_; ++i) {
     step_width_constant_->HostData<StepWidth>(/*frame=*/i)->value =
@@ -80,12 +79,12 @@ DistanceFieldGenerator::DistanceFieldGenerator(
   /* Image */
   const auto image_usage = ImageUsage::GetLinearAccessInComputeShaderUsage(
       AccessType::kReadWrite);
-  pong_image_ = absl::make_unique<OffscreenImage>(
+  pong_image_ = std::make_unique<OffscreenImage>(
       context, image_extent, output_image.format(),
       absl::MakeSpan(&image_usage, 1), ImageSampler::Config{});
 
   /* Descriptor */
-  descriptor_ = absl::make_unique<DynamicDescriptor>(
+  descriptor_ = std::make_unique<DynamicDescriptor>(
       context, std::vector<Descriptor::Info>{
           Descriptor::Info{
               Image::GetDescriptorTypeForLinearAccess(),

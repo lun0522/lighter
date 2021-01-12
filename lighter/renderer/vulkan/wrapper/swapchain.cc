@@ -12,7 +12,6 @@
 
 #include "lighter/common/image.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include "third_party/absl/memory/memory.h"
 
 namespace lighter {
 namespace renderer {
@@ -111,7 +110,7 @@ Surface::~Surface() {
 Swapchain::Swapchain(
     SharedBasicContext context,
     const Surface& surface, const VkExtent2D& frame_size,
-    absl::optional<MultisampleImage::Mode> multisampling_mode)
+    std::optional<MultisampleImage::Mode> multisampling_mode)
     : context_{std::move(FATAL_IF_NULL(context))} {
   // Choose image extent.
   const auto surface_capabilities = surface.GetCapabilities();
@@ -179,7 +178,7 @@ Swapchain::Swapchain(
   );
   swapchain_images_.reserve(images.size());
   for (const auto& image : images) {
-    swapchain_images_.push_back(absl::make_unique<SwapchainImage>(
+    swapchain_images_.push_back(std::make_unique<SwapchainImage>(
         context_, image, image_extent_, surface_format.format));
   }
 
