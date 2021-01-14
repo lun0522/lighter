@@ -19,6 +19,10 @@ VkFormat ConvertDataFormat(DataFormat format);
 
 VkSampleCountFlagBits ConvertSampleCount(SampleCount count);
 
+VkAttachmentLoadOp ConvertAttachmentLoadOp(AttachmentLoadOp op);
+
+VkAttachmentStoreOp ConvertAttachmentStoreOp(AttachmentStoreOp op);
+
 VkBlendFactor ConvertBlendFactor(BlendFactor factor);
 
 VkBlendOp ConvertBlendOp(BlendOp op);

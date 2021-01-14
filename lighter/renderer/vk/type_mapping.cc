@@ -53,6 +53,26 @@ VkSampleCountFlagBits ConvertSampleCount(SampleCount count) {
   }
 }
 
+VkAttachmentLoadOp ConvertAttachmentLoadOp(AttachmentLoadOp op) {
+  switch (op) {
+    case AttachmentLoadOp::kLoad:
+      return VK_ATTACHMENT_LOAD_OP_LOAD;
+    case AttachmentLoadOp::kClear:
+      return VK_ATTACHMENT_LOAD_OP_CLEAR;
+    case AttachmentLoadOp::kDontCare:
+      return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  }
+}
+
+VkAttachmentStoreOp ConvertAttachmentStoreOp(AttachmentStoreOp op) {
+  switch (op) {
+    case AttachmentStoreOp::kStore:
+      return VK_ATTACHMENT_STORE_OP_STORE;
+    case AttachmentStoreOp::kDontCare:
+      return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  }
+}
+
 VkBlendFactor ConvertBlendFactor(BlendFactor factor) {
   switch (factor) {
     case BlendFactor::kZero:

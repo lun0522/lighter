@@ -9,6 +9,7 @@
 #define LIGHTER_RENDERER_VK_PIPELINE_H
 
 #include <memory>
+#include <string>
 #include <string_view>
 
 #include "lighter/common/ref_count.h"
@@ -57,13 +58,12 @@ class ShaderModule {
   VkShaderModule shader_module_;
 };
 
-class Pipeline : public renderer::Pipeline {
+class Pipeline {
  public:
   // Constructs a graphics pipeline.
   Pipeline(SharedContext context, const GraphicsPipelineDescriptor& descriptor,
            const VkRenderPass& render_pass, int subpass_index,
-           absl::Span<const PassDescriptor::ImageAndUsage>
-               attachments_and_usages);
+           absl::Span<const DeviceImage* const> subpass_attachments);
 
   // Constructs a compute pipeline.
   Pipeline(SharedContext context, const ComputePipelineDescriptor& descriptor);
@@ -72,7 +72,7 @@ class Pipeline : public renderer::Pipeline {
   Pipeline(const Pipeline&) = delete;
   Pipeline& operator=(const Pipeline&) = delete;
 
-  ~Pipeline() override;
+  ~Pipeline();
 
   // Binds to this pipeline. This should be called when 'command_buffer' is
   // recording commands.
@@ -85,6 +85,9 @@ class Pipeline : public renderer::Pipeline {
 
   // Pointer to context.
   const SharedContext context_;
+
+  // Name of pipeline.
+  const std::string name_;
 
   // Pipeline binding point, either graphics or compute.
   const VkPipelineBindPoint binding_point_;

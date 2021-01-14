@@ -50,14 +50,11 @@ cc_library(
 cc_library(
     name = "pass",
     hdrs = ["pass.h"],
-    srcs = ["pass.cc"],
     deps = [
         ":image",
-        ":image_usage",
         ":pipeline",
         ":type",
         "//lighter/common:util",
-        "//third_party:absl",
     ],
 )
 

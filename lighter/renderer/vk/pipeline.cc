@@ -18,8 +18,6 @@
 namespace lighter::renderer::vk {
 namespace {
 
-using ImageAndUsage = PassDescriptor::ImageAndUsage;
-
 // Contains a loaded shader 'module' that will be used at 'stage'.
 struct ShaderStage {
   VkShaderStageFlagBits stage;
@@ -226,26 +224,24 @@ VkPipelineRasterizationStateCreateInfo CreateRasterizationInfo(
 }
 
 VkPipelineMultisampleStateCreateInfo CreateMultisampleInfo(
-    absl::Span<const ImageAndUsage> attachments_and_usages) {
-  // We only look for the first render target, since we only need sample count,
-  // which must be the same to all render targets.
-  for (const auto& attachment_and_usage : attachments_and_usages) {
-    if (attachment_and_usage.usage.usage_type() ==
-        ImageUsage::UsageType::kRenderTarget) {
-      return {
-          VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-          /*pNext=*/nullptr,
-          /*flags=*/nullflag,
-          type::ConvertSampleCount(attachment_and_usage.image.sample_count()),
-          /*sampleShadingEnable=*/VK_FALSE,
-          /*minSampleShading=*/0.0f,
-          /*pSampleMask=*/nullptr,
-          /*alphaToCoverageEnable=*/VK_FALSE,
-          /*alphaToOneEnable=*/VK_FALSE,
-      };
-    }
-  }
-  FATAL("No render target found");
+    const GraphicsPipelineDescriptor& descriptor) {
+  // Since all color and depth stencil attachments must have the same sample
+  // count, we only need to look at one of them.
+  const DeviceImage* attachment =
+      descriptor.depth_stencil_attachment == nullptr
+          ? descriptor.depth_stencil_attachment
+          : *descriptor.color_attachments.begin();
+  return {
+      VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+      /*pNext=*/nullptr,
+      /*flags=*/nullflag,
+      type::ConvertSampleCount(attachment->sample_count()),
+      /*sampleShadingEnable=*/VK_FALSE,
+      /*minSampleShading=*/0.0f,
+      /*pSampleMask=*/nullptr,
+      /*alphaToCoverageEnable=*/VK_FALSE,
+      /*alphaToOneEnable=*/VK_FALSE,
+  };
 }
 
 VkStencilOpState CreateStencilOp(
@@ -285,28 +281,20 @@ VkPipelineDepthStencilStateCreateInfo CreateDepthStencilInfo(
 
 std::vector<VkPipelineColorBlendAttachmentState> CreateColorBlendStates(
     const GraphicsPipelineDescriptor& descriptor,
-    absl::Span<const ImageAndUsage> attachments_and_usages) {
+    absl::Span<const DeviceImage* const> subpass_attachments) {
   const VkPipelineColorBlendAttachmentState
       disabled_state{/*blendEnable=*/VK_FALSE};
   std::vector<VkPipelineColorBlendAttachmentState> color_blend_states(
-      attachments_and_usages.size(), disabled_state);
-  for (int i = 0; i < attachments_and_usages.size(); ++i) {
-    // Skip images that are not render targets.
-    const DeviceImage& image = attachments_and_usages[i].image;
-    if (attachments_and_usages[i].usage.usage_type() !=
-        ImageUsage::UsageType::kRenderTarget) {
-      ASSERT_FALSE(descriptor.color_blend_map.contains(&image),
-                   absl::StrFormat("Image '%s' is not render target, hence "
-                                   "cannot have color blend state",
-                                   image.name()));
-      continue;
-    }
-
-    // Skip render targets whose color blend states are not specified.
-    const auto iter = descriptor.color_blend_map.find(&image);
+      subpass_attachments.size(), disabled_state);
+  for (int i = 0; i < subpass_attachments.size(); ++i) {
+    const DeviceImage* attachment = subpass_attachments[i];
+    const auto iter = descriptor.color_blend_map.find(attachment);
     if (iter == descriptor.color_blend_map.end()) {
       continue;
     }
+    ASSERT_TRUE(descriptor.color_attachments.contains(attachment),
+                absl::StrFormat("'%s' is not declared as color attachment",
+                                attachment->name()));
 
     const auto& color_blend = iter->second;
     color_blend_states[i] = {
@@ -372,7 +360,7 @@ ShaderModule::ShaderModule(SharedContext context, std::string_view file_path)
 Pipeline::Pipeline(SharedContext context,
                    const GraphicsPipelineDescriptor& descriptor,
                    const VkRenderPass& render_pass, int subpass_index,
-                   absl::Span<const ImageAndUsage> attachments_and_usages)
+                   absl::Span<const DeviceImage* const> subpass_attachments)
     : Pipeline{std::move(context), descriptor.pipeline_name,
                VK_PIPELINE_BIND_POINT_GRAPHICS, descriptor.uniform_descriptor} {
   const auto shader_stages = CreateShaderStages(context_,
@@ -391,12 +379,12 @@ Pipeline::Pipeline(SharedContext context,
   const auto viewport_info = CreateViewportInfo(&viewport, &scissor);
 
   const auto color_blend_states =
-      CreateColorBlendStates(descriptor, attachments_and_usages);
+      CreateColorBlendStates(descriptor, subpass_attachments);
   const auto color_blend_info = CreateColorBlendInfo(&color_blend_states);
 
   const auto input_assembly_info = CreateInputAssemblyInfo(descriptor);
   const auto rasterization_info = CreateRasterizationInfo(descriptor);
-  const auto multisample_info = CreateMultisampleInfo(attachments_and_usages);
+  const auto multisample_info = CreateMultisampleInfo(descriptor);
   const auto depth_stencil_info = CreateDepthStencilInfo(descriptor);
   const auto dynamic_state_info = CreateDynamicStateInfo();
 
@@ -464,7 +452,7 @@ Pipeline::Pipeline(
     SharedContext context, std::string_view name,
     VkPipelineBindPoint binding_point,
     const PipelineDescriptor::UniformDescriptor& uniform_descriptor)
-    : renderer::Pipeline{name}, context_{std::move(FATAL_IF_NULL(context))},
+    : context_{std::move(FATAL_IF_NULL(context))}, name_{name},
       binding_point_{binding_point} {
   const auto descriptor_set_layouts = CreateDescriptorSetLayouts();
   const auto push_constant_ranges =
@@ -488,7 +476,7 @@ Pipeline::~Pipeline() {
   vkDestroyPipelineLayout(*context_->device(), layout_,
                           *context_->host_allocator());
 #ifndef NDEBUG
-  LOG_INFO << absl::StreamFormat("Pipeline '%s' destructed", name());
+  LOG_INFO << absl::StreamFormat("Pipeline '%s' destructed", name_);
 #endif  // !NDEBUG
 }
 

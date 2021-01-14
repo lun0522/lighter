@@ -17,28 +17,10 @@
 #include "lighter/renderer/image.h"
 #include "lighter/renderer/type.h"
 #include "third_party/absl/container/flat_hash_map.h"
+#include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/glm/glm.hpp"
 
 namespace lighter::renderer {
-
-class Pipeline {
- public:
-  explicit Pipeline(std::string_view name) : name_{name} {}
-
-  // This class is neither copyable nor movable.
-  Pipeline(const Pipeline&) = delete;
-  Pipeline& operator=(const Pipeline&) = delete;
-
-  virtual ~Pipeline() = default;
-
- protected:
-  // Accessors.
-  const std::string& name() const { return name_; }
-
- private:
-  // Name of pipeline.
-  const std::string name_;
-};
 
 struct PipelineDescriptor {
   struct PushConstantRange {
@@ -133,6 +115,18 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
     shader_path_map.insert({stage, std::string{shader_path}});
     return *this;
   }
+  GraphicsPipelineDescriptor& AddColorAttachment(
+      const DeviceImage* attachment) {
+    FATAL_IF_NULL(attachment);
+    color_attachments.insert(attachment);
+    return *this;
+  }
+  GraphicsPipelineDescriptor& SetDepthStencilAttachment(
+      const DeviceImage* attachment) {
+    FATAL_IF_NULL(attachment);
+    depth_stencil_attachment = attachment;
+    return *this;
+  }
   GraphicsPipelineDescriptor& AddVertexInput(VertexBufferView&& buffer_view) {
     vertex_buffer_views.push_back(std::move(buffer_view));
     return *this;
@@ -178,6 +172,8 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
   }
 
   absl::flat_hash_map<shader_stage::ShaderStage, std::string> shader_path_map;
+  absl::flat_hash_set<const DeviceImage*> color_attachments;
+  const DeviceImage* depth_stencil_attachment;
   std::vector<VertexBufferView> vertex_buffer_views;
   absl::flat_hash_map<const DeviceImage*, ColorBlend> color_blend_map;
   DepthTest depth_test;

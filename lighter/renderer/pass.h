@@ -8,21 +8,105 @@
 #ifndef LIGHTER_RENDERER_PASS_H
 #define LIGHTER_RENDERER_PASS_H
 
-#include <functional>
-#include <map>
-#include <string>
-#include <string_view>
+#include <optional>
 #include <vector>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/image.h"
-#include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/pipeline.h"
 #include "lighter/renderer/type.h"
 #include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/types/span.h"
 
 namespace lighter::renderer {
+
+class GraphicsOps {
+ public:
+  // This class is only movable.
+  GraphicsOps(GraphicsOps&&) noexcept = default;
+  GraphicsOps& operator=(GraphicsOps&&) noexcept = default;
+
+  int AddPipeline(GraphicsPipelineDescriptor&& descriptor) {
+    pipeline_descriptors_.push_back(std::move(descriptor));
+    return (static_cast<int>(pipeline_descriptors_.size()) - 1) * 2;
+  }
+
+  int AddMultisamplingResolve(const DeviceImage* source_image,
+                              const DeviceImage* target_image) {
+    resolve_descriptors_.push_back({source_image, target_image});
+    return (static_cast<int>(resolve_descriptors_.size()) - 1) * 2 + 1;
+  }
+
+ private:
+  struct ResolveDescriptor {
+    ResolveDescriptor(const DeviceImage* source_image,
+                      const DeviceImage* target_image)
+        : source_image{FATAL_IF_NULL(source_image)},
+          target_image{FATAL_IF_NULL(target_image)} {}
+
+    const DeviceImage* source_image;
+    const DeviceImage* target_image;
+  };
+
+  std::vector<GraphicsPipelineDescriptor> pipeline_descriptors_;
+  std::vector<ResolveDescriptor> resolve_descriptors_;
+};
+
+struct GraphicsPassDescriptor {
+  struct LoadStoreOps {
+    AttachmentLoadOp load_op;
+    AttachmentStoreOp store_op;
+  };
+
+  using ColorLoadStoreOps = LoadStoreOps;
+
+  struct DepthStencilLoadStoreOps {
+    LoadStoreOps depth_ops;
+    LoadStoreOps stencil_ops;
+  };
+
+  struct GraphicsOpDependency {
+    int from_id;
+    int to_id;
+    std::vector<const DeviceImage*> attachments;
+  };
+
+  GraphicsPassDescriptor& SetLoadStoreOps(const DeviceImage* attachment,
+                                          const ColorLoadStoreOps& ops) {
+    color_ops_map.insert({attachment, ops});
+    return *this;
+  }
+  GraphicsPassDescriptor& SetLoadStoreOps(const DeviceImage* attachment,
+                                          const DepthStencilLoadStoreOps& ops) {
+    depth_stencil_ops_map.insert({attachment, ops});
+    return *this;
+  }
+
+  GraphicsPassDescriptor& SetGraphicsOps(GraphicsOps&& ops) {
+    graphics_ops = std::move(ops);
+    return *this;
+  }
+  GraphicsPassDescriptor& AddDependency(
+      int from_id, int to_id, std::vector<const DeviceImage*>&& attachments) {
+    dependencies.push_back({from_id, to_id, std::move(attachments)});
+    return *this;
+  }
+  GraphicsPassDescriptor& AddDependency(int from_id, int to_id) {
+    return AddDependency(from_id, to_id, {});
+  }
+
+  absl::flat_hash_map<const DeviceImage*, ColorLoadStoreOps> color_ops_map;
+  absl::flat_hash_map<const DeviceImage*, DepthStencilLoadStoreOps>
+      depth_stencil_ops_map;
+  std::optional<GraphicsOps> graphics_ops;
+  std::vector<GraphicsOpDependency> dependencies;
+};
+
+struct ComputePassDescriptor {
+ public:
+  // This class provides copy constructor and move constructor.
+  ComputePassDescriptor(ComputePassDescriptor&&) noexcept = default;
+  ComputePassDescriptor(const ComputePassDescriptor&) = default;
+};
 
 class GraphicsPass {
  public:
@@ -40,120 +124,6 @@ class ComputePass {
   ComputePass& operator=(const ComputePass&) = delete;
 
   virtual ~ComputePass() = default;
-};
-
-class PassDescriptor {
- public:
-  struct ImageAndUsage {
-    ImageAndUsage(const DeviceImage* image, const ImageUsage& usage)
-        : image{*FATAL_IF_NULL(image)}, usage{usage} {}
-
-    const DeviceImage& image;
-    ImageUsage usage;
-  };
-
-  // This class provides copy constructor and move constructor.
-  PassDescriptor(PassDescriptor&&) noexcept = default;
-  PassDescriptor(const PassDescriptor&) = default;
-
-  virtual ~PassDescriptor() = default;
-
- protected:
-  // Maps subpasses where the image is used to its usage at that subpass. An
-  // ordered map is used to look up the previous/next usage efficiently.
-  using ImageUsageHistory = std::map<int, ImageUsage>;
-
-  using ImageUsageHistoryMap = absl::flat_hash_map<const DeviceImage*,
-                                                   ImageUsageHistory>;
-
-  explicit PassDescriptor(absl::Span<const DeviceImage* const> images);
-
-  void AddSubpass(absl::Span<const ImageAndUsage> images_and_usages);
-
-  // Accessors.
-  int num_subpasses() const { return num_subpasses_; }
-  const ImageUsageHistoryMap& image_usage_history_map() const {
-    return image_usage_history_map_;
-  }
-
- private:
-  // Number of subpasses.
-  int num_subpasses_;
-
-  // Maps images to their usage history.
-  ImageUsageHistoryMap image_usage_history_map_;
-};
-
-class GraphicsPassDescriptor : public PassDescriptor {
- public:
-  struct LoadStoreOps {
-    AttachmentLoadOp load_op;
-    AttachmentStoreOp store_op;
-  };
-
-  using ColorLoadStoreOps = LoadStoreOps;
-
-  struct DepthStencilLoadStoreOps {
-    LoadStoreOps depth_ops;
-    LoadStoreOps stencil_ops;
-  };
-
-  struct ColorAttachment {
-    ColorAttachment(const DeviceImage* image, const LoadStoreOps& color_ops)
-        : image{*FATAL_IF_NULL(image)}, load_store_ops{color_ops} {}
-
-    const DeviceImage& image;
-    ColorLoadStoreOps load_store_ops;
-  };
-
-  struct DepthStencilAttachment {
-    DepthStencilAttachment(const DeviceImage* image,
-                           const LoadStoreOps& depth_ops,
-                           const LoadStoreOps& stencil_ops)
-        : image{*FATAL_IF_NULL(image)},
-          load_store_ops{depth_ops, stencil_ops} {}
-
-    const DeviceImage& image;
-    DepthStencilLoadStoreOps load_store_ops;
-  };
-
-  struct MultisamplingResolve {
-    const DeviceImage& source_image;
-    const DeviceImage& target_image;
-  };
-
-  GraphicsPassDescriptor(
-      absl::Span<const ColorAttachment> color_attachments,
-      absl::Span<const DepthStencilAttachment> depth_stencil_attachments,
-      absl::Span<const DeviceImage* const> uniform_textures);
-
-  // This class provides copy constructor and move constructor.
-  GraphicsPassDescriptor(GraphicsPassDescriptor&&) noexcept = default;
-  GraphicsPassDescriptor(const GraphicsPassDescriptor&) = default;
-
-  GraphicsPassDescriptor& AddSubpass(
-      absl::Span<const ImageAndUsage> images_and_usages,
-      absl::Span<const GraphicsPipelineDescriptor> pipeline_descriptors) {
-    return AddSubpass(images_and_usages, /*multisampling_resolves=*/{},
-                      pipeline_descriptors);
-  }
-  GraphicsPassDescriptor& AddSubpass(
-      absl::Span<const ImageAndUsage> images_and_usages,
-      absl::Span<const MultisamplingResolve> multisampling_resolves,
-      absl::Span<const GraphicsPipelineDescriptor> pipeline_descriptors);
-
- private:
-  absl::flat_hash_map<const DeviceImage*, ColorLoadStoreOps> color_ops_map_;
-  absl::flat_hash_map<const DeviceImage*, DepthStencilLoadStoreOps>
-      depth_stencil_ops_map_;
-  std::vector<std::vector<MultisamplingResolve>> multisampling_resolves_;
-};
-
-class ComputePassDescriptor : public PassDescriptor {
- public:
-  // This class provides copy constructor and move constructor.
-  ComputePassDescriptor(ComputePassDescriptor&&) noexcept = default;
-  ComputePassDescriptor(const ComputePassDescriptor&) = default;
 };
 
 }  // namespace lighter::renderer
