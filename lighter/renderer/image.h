@@ -26,16 +26,12 @@ class DeviceImage {
 
   // Accessors.
   const std::string& name() const { return name_; }
-  SampleCount sample_count() const { return sample_count_; }
 
  protected:
-  DeviceImage(std::string_view name, SampleCount sample_count)
-      : name_{name}, sample_count_{sample_count} {}
+  explicit DeviceImage(std::string_view name) : name_{name} {}
 
  private:
   const std::string name_;
-
-  const SampleCount sample_count_;
 };
 
 struct SamplerDescriptor {

@@ -126,7 +126,7 @@ struct PhysicalDevice {
     return queue_family_indices_;
   }
   const VkPhysicalDeviceLimits& limits() const { return limits_; }
-  SampleCount sample_count(MultisamplingMode mode) const {
+  VkSampleCountFlagBits sample_count(MultisamplingMode mode) const {
     return sample_count_map_.at(mode);
   }
 
@@ -144,7 +144,8 @@ struct PhysicalDevice {
   VkPhysicalDeviceLimits limits_;
 
   // Maps multisampling modes to the sample count that should be chosen.
-  absl::flat_hash_map<MultisamplingMode, SampleCount> sample_count_map_;
+  absl::flat_hash_map<MultisamplingMode, VkSampleCountFlagBits>
+      sample_count_map_;
 };
 
 // Wraps VkDevice, which interfaces with the physical device.

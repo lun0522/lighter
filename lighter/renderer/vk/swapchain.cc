@@ -164,12 +164,13 @@ Swapchain::Swapchain(SharedContext context, int window_index,
 
   // Fetch swapchain images.
   image_ = std::make_unique<SwapchainImage>(
-      absl::StrFormat("Swapchain%d", window_index),
+      absl::StrFormat("swapchain%d", window_index),
       util::QueryAttribute<VkImage>(
           [this](uint32_t* count, VkImage* images) {
             vkGetSwapchainImagesKHR(*context_->device(), swapchain_, count,
                                     images);
-          }));
+          }),
+      surface_format.format);
 }
 
 const std::vector<const char*>& Swapchain::GetRequiredExtensions() {

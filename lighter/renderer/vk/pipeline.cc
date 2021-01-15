@@ -227,7 +227,7 @@ VkPipelineMultisampleStateCreateInfo CreateMultisampleInfo(
     const GraphicsPipelineDescriptor& descriptor) {
   // Since all color and depth stencil attachments must have the same sample
   // count, we only need to look at one of them.
-  const DeviceImage* attachment =
+  const renderer::DeviceImage* attachment =
       descriptor.depth_stencil_attachment == nullptr
           ? descriptor.depth_stencil_attachment
           : descriptor.color_attachment_info_map.begin()->first;
@@ -235,7 +235,7 @@ VkPipelineMultisampleStateCreateInfo CreateMultisampleInfo(
       VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
       .pNext = nullptr,
       .flags = nullflag,
-      type::ConvertSampleCount(attachment->sample_count()),
+      DeviceImage::Cast(*attachment).sample_count(),
       .sampleShadingEnable = VK_FALSE,
       .minSampleShading = 0.0f,
       .pSampleMask = nullptr,

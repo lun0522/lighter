@@ -22,7 +22,33 @@
 
 namespace lighter::renderer::vk {
 
-class GeneralDeviceImage : public renderer::DeviceImage {
+class DeviceImage : public renderer::DeviceImage {
+ public:
+  // This class is neither copyable nor movable.
+  DeviceImage(const DeviceImage&) = delete;
+  DeviceImage& operator=(const DeviceImage&) = delete;
+
+  static const DeviceImage& Cast(const renderer::DeviceImage& image) {
+    return dynamic_cast<const DeviceImage&>(image);
+  }
+
+  // Accessors.
+  VkFormat format() const { return format_; }
+  VkSampleCountFlagBits sample_count() const { return sample_count_; }
+
+ protected:
+  DeviceImage(std::string_view name, VkFormat format,
+              VkSampleCountFlagBits sample_count)
+      : renderer::DeviceImage{name},
+        format_{format}, sample_count_{sample_count} {}
+
+ private:
+  const VkFormat format_;
+
+  const VkSampleCountFlagBits sample_count_;
+};
+
+class GeneralDeviceImage : public DeviceImage {
  public:
   static std::unique_ptr<DeviceImage> CreateColorImage(
       SharedContext context, std::string_view name,
@@ -39,17 +65,6 @@ class GeneralDeviceImage : public renderer::DeviceImage {
       MultisamplingMode multisampling_mode,
       absl::Span<const ImageUsage> usages);
 
-  GeneralDeviceImage(SharedContext context, std::string_view name,
-                     VkFormat format, const VkExtent2D& extent,
-                     uint32_t mip_levels, uint32_t layer_count,
-                     MultisamplingMode multisampling_mode,
-                     absl::Span<const ImageUsage> usages);
-
-  GeneralDeviceImage(SharedContext context, std::string_view name,
-                     const VkImage& image, SampleCount sample_count)
-      : renderer::DeviceImage{name, sample_count},
-        context_{std::move(FATAL_IF_NULL(context))}, image_{image} {}
-
   // This class is neither copyable nor movable.
   GeneralDeviceImage(const GeneralDeviceImage&) = delete;
   GeneralDeviceImage& operator=(const GeneralDeviceImage&) = delete;
@@ -57,6 +72,12 @@ class GeneralDeviceImage : public renderer::DeviceImage {
   ~GeneralDeviceImage() override;
 
  private:
+  GeneralDeviceImage(SharedContext context, std::string_view name,
+                     VkFormat format, const VkExtent2D& extent,
+                     uint32_t mip_levels, uint32_t layer_count,
+                     MultisamplingMode multisampling_mode,
+                     absl::Span<const ImageUsage> usages);
+
   const SharedContext context_;
 
   // Opaque image object.
@@ -67,10 +88,11 @@ class GeneralDeviceImage : public renderer::DeviceImage {
   VkDeviceMemory device_memory_;
 };
 
-class SwapchainImage : public renderer::DeviceImage {
+class SwapchainImage : public DeviceImage {
  public:
-  SwapchainImage(std::string_view name, std::vector<VkImage>&& images)
-      : renderer::DeviceImage{name, SampleCount::k1},
+  SwapchainImage(std::string_view name, std::vector<VkImage>&& images,
+                 VkFormat format)
+      : DeviceImage{name, format, VK_SAMPLE_COUNT_1_BIT},
         images_{std::move(images)} {}
 
   // This class is neither copyable nor movable.

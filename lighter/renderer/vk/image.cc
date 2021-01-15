@@ -7,7 +7,6 @@
 
 #include "lighter/renderer/vk/image.h"
 
-#include <algorithm>
 #include <optional>
 #include <vector>
 
@@ -145,10 +144,10 @@ std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateColorImage(
     absl::Span<const ImageUsage> usages) {
   const VkFormat format = ChooseColorImageFormat(*context, dimension.channel,
                                                  high_precision, usages);
-  return std::make_unique<GeneralDeviceImage>(
+  return absl::WrapUnique(new GeneralDeviceImage(
       std::move(context), name, format, ExtractExtent(dimension),
       kSingleMipLevel, CAST_TO_UINT(dimension.layer), multisampling_mode,
-      usages);
+      usages));
 }
 
 std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateColorImage(
@@ -158,10 +157,10 @@ std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateColorImage(
   const VkFormat format = ChooseColorImageFormat(
       *context, dimension.channel, /*high_precision=*/false, usages);
   // TODO: Generate mipmaps and change mip_levels.
-  return std::make_unique<GeneralDeviceImage>(
+  return absl::WrapUnique(new GeneralDeviceImage(
       std::move(context), name, format, ExtractExtent(dimension),
       kSingleMipLevel, CAST_TO_UINT(dimension.layer), MultisamplingMode::kNone,
-      usages);
+      usages));
 }
 
 std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateDepthStencilImage(
@@ -169,18 +168,18 @@ std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateDepthStencilImage(
     MultisamplingMode multisampling_mode,
     absl::Span<const ImageUsage> usages) {
   const VkFormat format = ChooseDepthStencilImageFormat(*context);
-  return std::make_unique<GeneralDeviceImage>(
+  return absl::WrapUnique(new GeneralDeviceImage(
       std::move(context), name, format, extent, kSingleMipLevel,
-      kSingleImageLayer, multisampling_mode, usages);
+      kSingleImageLayer, multisampling_mode, usages));
 }
 
 GeneralDeviceImage::GeneralDeviceImage(
     SharedContext context, std::string_view name, VkFormat format,
     const VkExtent2D& extent, uint32_t mip_levels, uint32_t layer_count,
     MultisamplingMode multisampling_mode, absl::Span<const ImageUsage> usages)
-    : renderer::DeviceImage{
-          name, FATAL_IF_NULL(context)->physical_device().sample_count(
-                    multisampling_mode)},
+    : DeviceImage{
+          name, format, FATAL_IF_NULL(context)->physical_device().sample_count(
+                            multisampling_mode)},
       context_{std::move(context)} {
   VkImageCreateFlags create_flags = nullflag;
   if (layer_count == kCubemapImageLayer) {
@@ -207,8 +206,8 @@ GeneralDeviceImage::GeneralDeviceImage(
 
   image_ = CreateImage(
       *context_, create_flags, format, extent, mip_levels, layer_count,
-      type::ConvertSampleCount(sample_count()),
-      image::GetImageUsageFlags(usages), unique_queue_family_indices);
+      sample_count(), image::GetImageUsageFlags(usages),
+      unique_queue_family_indices);
   device_memory_ = CreateImageMemory(*context_, image_,
                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }

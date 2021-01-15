@@ -67,13 +67,22 @@ class GraphicsOps {
 
 struct RenderPassDescriptor {
   struct LoadStoreOps {
-    AttachmentLoadOp load_op;
-    AttachmentStoreOp store_op;
+    AttachmentLoadOp load_op = AttachmentLoadOp::kDontCare;
+    AttachmentStoreOp store_op = AttachmentStoreOp::kDontCare;
   };
 
-  using ColorLoadStoreOps = LoadStoreOps;
+  struct ColorLoadStoreOps : public LoadStoreOps {
+    static ColorLoadStoreOps GetDefaultOps() {
+      return {{AttachmentLoadOp::kClear, AttachmentStoreOp::kStore}};
+    }
+  };
 
   struct DepthStencilLoadStoreOps {
+    static DepthStencilLoadStoreOps GetDefaultDepthOps() {
+      return {.depth_ops = {AttachmentLoadOp::kClear,
+                            AttachmentStoreOp::kDontCare}};
+    }
+
     LoadStoreOps depth_ops;
     LoadStoreOps stencil_ops;
   };

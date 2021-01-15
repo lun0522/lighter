@@ -10,41 +10,8 @@
 #include <algorithm>
 
 #include "lighter/common/util.h"
-#include "third_party/absl/types/span.h"
 
 namespace lighter::renderer::pipeline {
-namespace {
-
-SampleCount GetFirstSupportedSampleCount(
-    absl::Span<const SampleCount> candidates,
-    absl::FunctionRef<bool(SampleCount)> is_sample_count_supported) {
-  const auto iter = std::find_if(candidates.begin(), candidates.end(),
-                                 is_sample_count_supported);
-  ASSERT_FALSE(iter == candidates.end(), "Failed to find sample count");
-  return *iter;
-}
-
-}  // namespace
-
-SampleCount GetSampleCount(
-    MultisamplingMode multisampling_mode,
-    absl::FunctionRef<bool(SampleCount)> is_sample_count_supported) {
-  switch (multisampling_mode) {
-    case MultisamplingMode::kNone:
-      return SampleCount::k1;
-
-    case MultisamplingMode::kDecent:
-      return GetFirstSupportedSampleCount(
-          {SampleCount::k4, SampleCount::k2, SampleCount::k1},
-          is_sample_count_supported);
-
-    case MultisamplingMode::kBest:
-      return GetFirstSupportedSampleCount(
-          {SampleCount::k64, SampleCount::k32, SampleCount::k16,
-           SampleCount::k8, SampleCount::k4, SampleCount::k2, SampleCount::k1},
-          is_sample_count_supported);
-  }
-}
 
 GraphicsPipelineDescriptor::ColorBlend GetColorBlend() {
   return {

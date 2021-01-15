@@ -16,6 +16,7 @@
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/debug_callback.h"
 #include "lighter/renderer/vk/type_mapping.h"
+#include "third_party/absl/functional/function_ref.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace lighter::renderer::vk {
@@ -203,6 +204,41 @@ std::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
   return candidate;
 }
 
+// Returns the first supported sample count among 'candidates'.
+VkSampleCountFlagBits GetFirstSupportedSampleCount(
+    VkSampleCountFlags supported,
+    absl::Span<const VkSampleCountFlagBits> candidates) {
+  for (auto candidate : candidates) {
+    if (supported & candidate) {
+      return candidate;
+    }
+  }
+  FATAL("Failed to find sample count");
+}
+
+// Returns the sample count to use for 'multisampling_mode'.
+VkSampleCountFlagBits ChooseSampleCount(
+    MultisamplingMode multisampling_mode,
+    VkSampleCountFlags supported_sample_counts) {
+  switch (multisampling_mode) {
+    case MultisamplingMode::kNone:
+      return VK_SAMPLE_COUNT_1_BIT;
+
+    case MultisamplingMode::kDecent:
+      return GetFirstSupportedSampleCount(
+          supported_sample_counts,
+          {VK_SAMPLE_COUNT_4_BIT, VK_SAMPLE_COUNT_2_BIT,
+           VK_SAMPLE_COUNT_1_BIT});
+
+    case MultisamplingMode::kBest:
+      return GetFirstSupportedSampleCount(
+          supported_sample_counts,
+          {VK_SAMPLE_COUNT_64_BIT, VK_SAMPLE_COUNT_32_BIT,
+           VK_SAMPLE_COUNT_16_BIT, VK_SAMPLE_COUNT_8_BIT, VK_SAMPLE_COUNT_4_BIT,
+           VK_SAMPLE_COUNT_2_BIT, VK_SAMPLE_COUNT_1_BIT});
+  }
+}
+
 }  // namespace
 
 Instance::Instance(const Context* context, std::string_view application_name,
@@ -308,15 +344,11 @@ PhysicalDevice::PhysicalDevice(
           limits_.framebufferDepthSampleCounts,
           limits_.framebufferStencilSampleCounts,
       });
-      const auto is_sample_count_supported =
-          [supported_sample_counts](SampleCount count) {
-            return supported_sample_counts & type::ConvertSampleCount(count);
-      };
       for (const auto mode : {MultisamplingMode::kNone,
                               MultisamplingMode::kDecent,
                               MultisamplingMode::kBest}) {
         sample_count_map_.insert(
-            {mode, pipeline::GetSampleCount(mode, is_sample_count_supported)});
+            {mode, ChooseSampleCount(mode, supported_sample_counts)});
       }
 
       return;

@@ -34,25 +34,6 @@ VkFormat ConvertDataFormat(DataFormat format) {
   }
 }
 
-VkSampleCountFlagBits ConvertSampleCount(SampleCount count) {
-  switch (count) {
-    case SampleCount::k1:
-      return VK_SAMPLE_COUNT_1_BIT;
-    case SampleCount::k2:
-      return VK_SAMPLE_COUNT_2_BIT;
-    case SampleCount::k4:
-      return VK_SAMPLE_COUNT_4_BIT;
-    case SampleCount::k8:
-      return VK_SAMPLE_COUNT_8_BIT;
-    case SampleCount::k16:
-      return VK_SAMPLE_COUNT_16_BIT;
-    case SampleCount::k32:
-      return VK_SAMPLE_COUNT_32_BIT;
-    case SampleCount::k64:
-      return VK_SAMPLE_COUNT_64_BIT;
-  }
-}
-
 VkAttachmentLoadOp ConvertAttachmentLoadOp(AttachmentLoadOp op) {
   switch (op) {
     case AttachmentLoadOp::kLoad:

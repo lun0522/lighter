@@ -14,10 +14,10 @@
 
 #include "lighter/common/ref_count.h"
 #include "lighter/common/util.h"
-#include "lighter/renderer/image.h"
 #include "lighter/renderer/pass.h"
 #include "lighter/renderer/pipeline.h"
 #include "lighter/renderer/vk/context.h"
+#include "lighter/renderer/vk/image.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
 

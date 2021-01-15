@@ -10,15 +10,9 @@
 
 #include "lighter/renderer/pipeline.h"
 #include "lighter/renderer/type.h"
-#include "third_party/absl/functional/function_ref.h"
 #include "third_party/glm/glm.hpp"
 
 namespace lighter::renderer::pipeline {
-
-// Returns the sample count to use when using 'multisampling_mode'.
-SampleCount GetSampleCount(
-    MultisamplingMode multisampling_mode,
-    absl::FunctionRef<bool(SampleCount)> is_sample_count_supported);
 
 // Returns the blend state that simply adds up source and destination colors.
 // This is used for single channel images that do not have alpha channels.

@@ -17,8 +17,6 @@ VkVertexInputRate ConvertVertexInputRate(VertexInputRate rate);
 
 VkFormat ConvertDataFormat(DataFormat format);
 
-VkSampleCountFlagBits ConvertSampleCount(SampleCount count);
-
 VkAttachmentLoadOp ConvertAttachmentLoadOp(AttachmentLoadOp op);
 
 VkAttachmentStoreOp ConvertAttachmentStoreOp(AttachmentStoreOp op);
