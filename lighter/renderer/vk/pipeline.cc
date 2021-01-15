@@ -48,8 +48,8 @@ VkPipelineLayoutCreateInfo CreatePipelineLayoutInfo(
     const std::vector<VkPushConstantRange>* push_constant_ranges) {
   return {
       VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
+      .pNext = nullptr,
+      .flags = nullflag,
       CONTAINER_SIZE(*descriptor_set_layouts),
       descriptor_set_layouts->data(),
       CONTAINER_SIZE(*push_constant_ranges),
@@ -84,13 +84,13 @@ std::vector<VkPipelineShaderStageCreateInfo> CreateShaderStageInfos(
   for (const auto& stage : *shader_stages) {
     shader_stage_infos.push_back({
         VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        /*pNext=*/nullptr,
-        /*flags=*/nullflag,
+        .pNext = nullptr,
+        .flags = nullflag,
         stage.stage,
         **stage.module,
-        /*pName=*/kShaderEntryPoint,
+        .pName = kShaderEntryPoint,
         // May use 'pSpecializationInfo' to specify shader constants.
-        /*pSpecializationInfo=*/nullptr,
+        .pSpecializationInfo = nullptr,
     });
   }
   return shader_stage_infos;
@@ -142,8 +142,8 @@ VkPipelineVertexInputStateCreateInfo CreateVertexInputInfo(
         attribute_descriptions) {
   return {
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
+      .pNext = nullptr,
+      .flags = nullflag,
       CONTAINER_SIZE(*binding_descriptions),
       binding_descriptions->data(),
       CONTAINER_SIZE(*attribute_descriptions),
@@ -155,11 +155,11 @@ VkPipelineInputAssemblyStateCreateInfo CreateInputAssemblyInfo(
     const GraphicsPipelineDescriptor& descriptor) {
   return {
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
+      .pNext = nullptr,
+      .flags = nullflag,
       type::ConvertPrimitiveTopology(descriptor.primitive_topology),
       // 'primitiveRestartEnable' matters for drawing line/triangle strips.
-      /*primitiveRestartEnable=*/VK_FALSE,
+      .primitiveRestartEnable = VK_FALSE,
   };
 }
 
@@ -170,8 +170,8 @@ VkViewport CreateViewport(const GraphicsPipelineDescriptor& descriptor) {
       viewport_info.origin.y,
       viewport_info.extent.x,
       viewport_info.extent.y,
-      /*minDepth=*/0.0f,
-      /*maxDepth=*/1.0f,
+      .minDepth = 0.0f,
+      .maxDepth = 1.0f,
   };
   if (descriptor.viewport_config.flip_y) {
     viewport.y += viewport.height;
@@ -190,11 +190,11 @@ VkPipelineViewportStateCreateInfo CreateViewportInfo(const VkViewport* viewport,
                                                      const VkRect2D* scissor) {
   return {
       VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
-      /*viewportCount=*/1,
+      .pNext = nullptr,
+      .flags = nullflag,
+      .viewportCount = 1,
       viewport,
-      /*scissorCount=*/1,
+      .scissorCount = 1,
       scissor,
   };
 }
@@ -203,23 +203,23 @@ VkPipelineRasterizationStateCreateInfo CreateRasterizationInfo(
     const GraphicsPipelineDescriptor& descriptor) {
   return {
       VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
+      .pNext = nullptr,
+      .flags = nullflag,
       // If false, fragments beyond clip space will be discarded, not clamped.
-      /*depthClampEnable=*/VK_FALSE,
+      .depthClampEnable = VK_FALSE,
       // If true, disable outputs to the framebuffer.
-      /*rasterizerDiscardEnable=*/VK_FALSE,
+      .rasterizerDiscardEnable = VK_FALSE,
       // Fill polygons with fragments.
       VK_POLYGON_MODE_FILL,
       VK_CULL_MODE_BACK_BIT,
       descriptor.viewport_config.flip_y ? VK_FRONT_FACE_COUNTER_CLOCKWISE
                                         : VK_FRONT_FACE_CLOCKWISE,
       // Whether to let the rasterizer alter depth values.
-      /*depthBiasEnable=*/VK_FALSE,
-      /*depthBiasConstantFactor=*/0.0f,
-      /*depthBiasClamp=*/0.0f,
-      /*depthBiasSlopeFactor=*/0.0f,
-      /*lineWidth=*/1.0f,
+      .depthBiasEnable = VK_FALSE,
+      .depthBiasConstantFactor = 0.0f,
+      .depthBiasClamp = 0.0f,
+      .depthBiasSlopeFactor = 0.0f,
+      .lineWidth = 1.0f,
   };
 }
 
@@ -230,17 +230,17 @@ VkPipelineMultisampleStateCreateInfo CreateMultisampleInfo(
   const DeviceImage* attachment =
       descriptor.depth_stencil_attachment == nullptr
           ? descriptor.depth_stencil_attachment
-          : *descriptor.color_attachments.begin();
+          : descriptor.color_attachment_info_map.begin()->first;
   return {
       VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
+      .pNext = nullptr,
+      .flags = nullflag,
       type::ConvertSampleCount(attachment->sample_count()),
-      /*sampleShadingEnable=*/VK_FALSE,
-      /*minSampleShading=*/0.0f,
-      /*pSampleMask=*/nullptr,
-      /*alphaToCoverageEnable=*/VK_FALSE,
-      /*alphaToOneEnable=*/VK_FALSE,
+      .sampleShadingEnable = VK_FALSE,
+      .minSampleShading = 0.0f,
+      .pSampleMask = nullptr,
+      .alphaToCoverageEnable = VK_FALSE,
+      .alphaToOneEnable = VK_FALSE,
   };
 }
 
@@ -264,18 +264,18 @@ VkPipelineDepthStencilStateCreateInfo CreateDepthStencilInfo(
   const auto& stencil_test = descriptor.stencil_test;
   return {
       VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
+      .pNext = nullptr,
+      .flags = nullflag,
       util::ToVkBool(depth_test.enable_test),
       util::ToVkBool(depth_test.enable_write),
       type::ConvertCompareOp(depth_test.compare_op),
       // We may only keep fragments in a specific depth range.
-      /*depthBoundsTestEnable=*/VK_FALSE,
+      .depthBoundsTestEnable = VK_FALSE,
       util::ToVkBool(stencil_test.enable_test),
       CreateStencilOp(stencil_test.tests[StencilTest::kFrontFaceIndex]),
       CreateStencilOp(stencil_test.tests[StencilTest::kBackFaceIndex]),
-      /*minDepthBounds=*/0.0f,
-      /*maxDepthBounds=*/1.0f,
+      .minDepthBounds = 0.0f,
+      .maxDepthBounds = 1.0f,
   };
 }
 
@@ -283,33 +283,30 @@ std::vector<VkPipelineColorBlendAttachmentState> CreateColorBlendStates(
     const GraphicsPipelineDescriptor& descriptor,
     absl::Span<const DeviceImage* const> subpass_attachments) {
   const VkPipelineColorBlendAttachmentState
-      disabled_state{/*blendEnable=*/VK_FALSE};
+      disabled_state{.blendEnable = VK_FALSE};
   std::vector<VkPipelineColorBlendAttachmentState> color_blend_states(
       subpass_attachments.size(), disabled_state);
   for (int i = 0; i < subpass_attachments.size(); ++i) {
     const DeviceImage* attachment = subpass_attachments[i];
-    const auto iter = descriptor.color_blend_map.find(attachment);
-    if (iter == descriptor.color_blend_map.end()) {
+    const auto iter = descriptor.color_attachment_info_map.find(attachment);
+    if (iter == descriptor.color_attachment_info_map.end() ||
+        !iter->second.color_blend.has_value()) {
       continue;
     }
-    ASSERT_TRUE(descriptor.color_attachments.contains(attachment),
-                absl::StrFormat("'%s' is not declared as color attachment",
-                                attachment->name()));
 
-    const auto& color_blend = iter->second;
+    const auto& color_blend = iter->second.color_blend.value();
     color_blend_states[i] = {
-        /*blendEnable=*/VK_TRUE,
+        .blendEnable = VK_TRUE,
         type::ConvertBlendFactor(color_blend.src_color_blend_factor),
         type::ConvertBlendFactor(color_blend.dst_color_blend_factor),
         type::ConvertBlendOp(color_blend.color_blend_op),
         type::ConvertBlendFactor(color_blend.src_alpha_blend_factor),
         type::ConvertBlendFactor(color_blend.dst_alpha_blend_factor),
         type::ConvertBlendOp(color_blend.alpha_blend_op),
-        /*colorWriteMask=*/
-        VK_COLOR_COMPONENT_R_BIT
-            | VK_COLOR_COMPONENT_G_BIT
-            | VK_COLOR_COMPONENT_B_BIT
-            | VK_COLOR_COMPONENT_A_BIT,
+        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT
+                              | VK_COLOR_COMPONENT_G_BIT
+                              | VK_COLOR_COMPONENT_B_BIT
+                              | VK_COLOR_COMPONENT_A_BIT,
     };
   }
   return color_blend_states;
@@ -319,23 +316,23 @@ VkPipelineColorBlendStateCreateInfo CreateColorBlendInfo(
     const std::vector<VkPipelineColorBlendAttachmentState>* states) {
   return {
       VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
-      /*logicOpEnable=*/VK_FALSE,
+      .pNext = nullptr,
+      .flags = nullflag,
+      .logicOpEnable = VK_FALSE,
       VK_LOGIC_OP_CLEAR,
       CONTAINER_SIZE(*states),
       states->data(),
-      /*blendConstants=*/{0.0f, 0.0f, 0.0f, 0.0f},
+      .blendConstants = {0.0f, 0.0f, 0.0f, 0.0f},
   };
 }
 
 VkPipelineDynamicStateCreateInfo CreateDynamicStateInfo() {
   return  {
       VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
-      /*dynamicStateCount=*/0,
-      /*pDynamicStates=*/nullptr,
+      .pNext = nullptr,
+      .flags = nullflag,
+      .dynamicStateCount = 0,
+      .pDynamicStates = nullptr,
   };
 }
 
@@ -346,8 +343,8 @@ ShaderModule::ShaderModule(SharedContext context, std::string_view file_path)
   const auto raw_data = std::make_unique<common::RawData>(file_path);
   const VkShaderModuleCreateInfo module_info{
       VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
+      .pNext = nullptr,
+      .flags = nullflag,
       raw_data->size,
       reinterpret_cast<const uint32_t*>(raw_data->data),
   };
@@ -390,13 +387,13 @@ Pipeline::Pipeline(SharedContext context,
 
   const VkGraphicsPipelineCreateInfo pipeline_info{
       VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
+      .pNext = nullptr,
+      .flags = nullflag,
       CONTAINER_SIZE(shader_stage_infos),
       shader_stage_infos.data(),
       &vertex_input_info,
       &input_assembly_info,
-      /*pTessellationState=*/nullptr,
+      .pTessellationState = nullptr,
       &viewport_info,
       &rasterization_info,
       &multisample_info,
@@ -408,8 +405,8 @@ Pipeline::Pipeline(SharedContext context,
       CAST_TO_UINT(subpass_index),
       // 'basePipelineHandle' and 'basePipelineIndex' can be used to copy
       // settings from another pipeline.
-      /*basePipelineHandle=*/VK_NULL_HANDLE,
-      /*basePipelineIndex=*/0,
+      .basePipelineHandle = VK_NULL_HANDLE,
+      .basePipelineIndex = 0,
   };
 
   ASSERT_SUCCESS(
@@ -430,14 +427,14 @@ Pipeline::Pipeline(SharedContext context,
 
   const VkComputePipelineCreateInfo pipeline_info{
       VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
+      .pNext = nullptr,
+      .flags = nullflag,
       shader_stage_infos[0],
       layout_,
       // 'basePipelineHandle' and 'basePipelineIndex' can be used to copy
       // settings from another pipeline.
-      /*basePipelineHandle=*/VK_NULL_HANDLE,
-      /*basePipelineIndex=*/0,
+      .basePipelineHandle = VK_NULL_HANDLE,
+      .basePipelineIndex = 0,
   };
 
   ASSERT_SUCCESS(

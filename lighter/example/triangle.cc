@@ -38,17 +38,17 @@ class TriangleExample {
                    GetShaderPath(backend, "triangle/triangle.vert"))
         .SetShader(shader_stage::FRAGMENT,
                    GetShaderPath(backend, "triangle/triangle.frag"))
+        .AddColorAttachment(&renderer_->GetSwapchainImage(kWindowIndex),
+                            {.location = 0, pipeline::GetColorAlphaBlend()})
         .AddVertexInput({
             VertexInputRate::kVertex,
-            /*binding_point=*/0,
-            /*stride=*/sizeof(common::Vertex3DWithColor),
+            .binding_point = 0,
+            .stride = sizeof(common::Vertex3DWithColor),
             buffer::CreateAttributesForVertex3DWithColor(/*loc_pos=*/0,
                                                          /*loc_color=*/1)})
         // TODO: Create helper function to make range.
-        .AddPushConstantRange({shader_stage::FRAGMENT, /*offset=*/0,
-                               sizeof(Alpha)})
-        .AddColorBlend(&renderer_->GetSwapchainImage(kWindowIndex),
-                       pipeline::GetColorAlphaBlend());
+        .AddPushConstantRange({shader_stage::FRAGMENT, .offset = 0,
+                              sizeof(Alpha)});
   }
 
   // This class is neither copyable nor movable.

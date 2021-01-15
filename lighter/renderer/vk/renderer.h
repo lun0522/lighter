@@ -22,6 +22,7 @@
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/image.h"
 #include "lighter/renderer/vk/pipeline.h"
+#include "lighter/renderer/vk/render_pass.h"
 #include "lighter/renderer/vk/swapchain.h"
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/types/span.h"
@@ -88,12 +89,12 @@ class Renderer : public renderer::Renderer {
 
   // Pass
 
-  std::unique_ptr<GraphicsPass> CreateGraphicsPass(
-      const GraphicsPassDescriptor& descriptor) const override {
-    FATAL("Not implemented yet");
+  std::unique_ptr<renderer::RenderPass> CreateRenderPass(
+      const RenderPassDescriptor& descriptor) const override {
+    return std::make_unique<RenderPass>(context_, descriptor);
   }
 
-  std::unique_ptr<ComputePass> CreateComputePass(
+  std::unique_ptr<renderer::ComputePass> CreateComputePass(
       const ComputePassDescriptor& descriptor) const override {
     FATAL("Not implemented yet");
   }

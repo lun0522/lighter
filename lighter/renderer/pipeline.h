@@ -9,6 +9,7 @@
 #define LIGHTER_RENDERER_PIPELINE_H
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -17,7 +18,6 @@
 #include "lighter/renderer/image.h"
 #include "lighter/renderer/type.h"
 #include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/glm/glm.hpp"
 
 namespace lighter::renderer {
@@ -58,6 +58,11 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
     BlendFactor src_alpha_blend_factor;
     BlendFactor dst_alpha_blend_factor;
     BlendOp alpha_blend_op;
+  };
+
+  struct ColorAttachmentInfo {
+    int location;
+    std::optional<ColorBlend> color_blend;
   };
 
   struct DepthTest {
@@ -116,9 +121,9 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
     return *this;
   }
   GraphicsPipelineDescriptor& AddColorAttachment(
-      const DeviceImage* attachment) {
+      const DeviceImage* attachment, const ColorAttachmentInfo& info) {
     FATAL_IF_NULL(attachment);
-    color_attachments.insert(attachment);
+    color_attachment_info_map.insert({attachment, info});
     return *this;
   }
   GraphicsPipelineDescriptor& SetDepthStencilAttachment(
@@ -134,12 +139,6 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
   GraphicsPipelineDescriptor& AddPushConstantRange(
       const PushConstantRange& range) {
     AddPushConstantRangeBase(range);
-    return *this;
-  }
-  GraphicsPipelineDescriptor& AddColorBlend(const DeviceImage* attachment,
-                                            const ColorBlend& color_blend) {
-    FATAL_IF_NULL(attachment);
-    color_blend_map[attachment] = color_blend;
     return *this;
   }
   GraphicsPipelineDescriptor& EnableDepthTestOnly(
@@ -172,10 +171,10 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
   }
 
   absl::flat_hash_map<shader_stage::ShaderStage, std::string> shader_path_map;
-  absl::flat_hash_set<const DeviceImage*> color_attachments;
-  const DeviceImage* depth_stencil_attachment;
+  absl::flat_hash_map<const DeviceImage*, ColorAttachmentInfo>
+      color_attachment_info_map;
+  const DeviceImage* depth_stencil_attachment = nullptr;
   std::vector<VertexBufferView> vertex_buffer_views;
-  absl::flat_hash_map<const DeviceImage*, ColorBlend> color_blend_map;
   DepthTest depth_test;
   StencilTest stencil_test;
   ViewportConfig viewport_config;

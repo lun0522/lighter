@@ -21,6 +21,16 @@ namespace lighter::renderer {
 
 class GraphicsOps {
  public:
+  struct MultisampleResolveDescriptor {
+    MultisampleResolveDescriptor(const DeviceImage* source_image,
+                                 const DeviceImage* target_image)
+        : source_image{FATAL_IF_NULL(source_image)},
+          target_image{FATAL_IF_NULL(target_image)} {}
+
+    const DeviceImage* source_image;
+    const DeviceImage* target_image;
+  };
+
   // This class is only movable.
   GraphicsOps(GraphicsOps&&) noexcept = default;
   GraphicsOps& operator=(GraphicsOps&&) noexcept = default;
@@ -30,28 +40,32 @@ class GraphicsOps {
     return (static_cast<int>(pipeline_descriptors_.size()) - 1) * 2;
   }
 
-  int AddMultisamplingResolve(const DeviceImage* source_image,
-                              const DeviceImage* target_image) {
+  int AddMultisampleResolve(const DeviceImage* source_image,
+                            const DeviceImage* target_image) {
     resolve_descriptors_.push_back({source_image, target_image});
     return (static_cast<int>(resolve_descriptors_.size()) - 1) * 2 + 1;
   }
 
+  static bool IsPipeline(int id) {
+    return id % 2 == 0;
+  }
+
+  const GraphicsPipelineDescriptor& GetPipeline(int id) const {
+    ASSERT_TRUE(IsPipeline(id), "Not a pipeline");
+    return pipeline_descriptors_.at(id / 2);
+  }
+
+  const MultisampleResolveDescriptor& GetMultisampleResolve(int id) const {
+    ASSERT_TRUE(!IsPipeline(id), "Not a multisample resolve");
+    return resolve_descriptors_.at(id / 2);
+  }
+
  private:
-  struct ResolveDescriptor {
-    ResolveDescriptor(const DeviceImage* source_image,
-                      const DeviceImage* target_image)
-        : source_image{FATAL_IF_NULL(source_image)},
-          target_image{FATAL_IF_NULL(target_image)} {}
-
-    const DeviceImage* source_image;
-    const DeviceImage* target_image;
-  };
-
   std::vector<GraphicsPipelineDescriptor> pipeline_descriptors_;
-  std::vector<ResolveDescriptor> resolve_descriptors_;
+  std::vector<MultisampleResolveDescriptor> resolve_descriptors_;
 };
 
-struct GraphicsPassDescriptor {
+struct RenderPassDescriptor {
   struct LoadStoreOps {
     AttachmentLoadOp load_op;
     AttachmentStoreOp store_op;
@@ -70,30 +84,35 @@ struct GraphicsPassDescriptor {
     std::vector<const DeviceImage*> attachments;
   };
 
-  GraphicsPassDescriptor& SetLoadStoreOps(const DeviceImage* attachment,
-                                          const ColorLoadStoreOps& ops) {
+  RenderPassDescriptor& SetNumFramebuffers(int count) {
+    num_framebuffers = count;
+    return *this;
+  }
+  RenderPassDescriptor& SetLoadStoreOps(const DeviceImage* attachment,
+                                        const ColorLoadStoreOps& ops) {
     color_ops_map.insert({attachment, ops});
     return *this;
   }
-  GraphicsPassDescriptor& SetLoadStoreOps(const DeviceImage* attachment,
-                                          const DepthStencilLoadStoreOps& ops) {
+  RenderPassDescriptor& SetLoadStoreOps(const DeviceImage* attachment,
+                                        const DepthStencilLoadStoreOps& ops) {
     depth_stencil_ops_map.insert({attachment, ops});
     return *this;
   }
 
-  GraphicsPassDescriptor& SetGraphicsOps(GraphicsOps&& ops) {
+  RenderPassDescriptor& SetGraphicsOps(GraphicsOps&& ops) {
     graphics_ops = std::move(ops);
     return *this;
   }
-  GraphicsPassDescriptor& AddDependency(
+  RenderPassDescriptor& AddDependency(
       int from_id, int to_id, std::vector<const DeviceImage*>&& attachments) {
     dependencies.push_back({from_id, to_id, std::move(attachments)});
     return *this;
   }
-  GraphicsPassDescriptor& AddDependency(int from_id, int to_id) {
+  RenderPassDescriptor& AddDependency(int from_id, int to_id) {
     return AddDependency(from_id, to_id, {});
   }
 
+  int num_framebuffers = 0;
   absl::flat_hash_map<const DeviceImage*, ColorLoadStoreOps> color_ops_map;
   absl::flat_hash_map<const DeviceImage*, DepthStencilLoadStoreOps>
       depth_stencil_ops_map;
@@ -108,13 +127,16 @@ struct ComputePassDescriptor {
   ComputePassDescriptor(const ComputePassDescriptor&) = default;
 };
 
-class GraphicsPass {
+class RenderPass {
  public:
   // This class is neither copyable nor movable.
-  GraphicsPass(const GraphicsPass&) = delete;
-  GraphicsPass& operator=(const GraphicsPass&) = delete;
+  RenderPass(const RenderPass&) = delete;
+  RenderPass& operator=(const RenderPass&) = delete;
 
-  virtual ~GraphicsPass() = default;
+  virtual ~RenderPass() = default;
+
+ protected:
+  explicit RenderPass() = default;
 };
 
 class ComputePass {
@@ -124,6 +146,9 @@ class ComputePass {
   ComputePass& operator=(const ComputePass&) = delete;
 
   virtual ~ComputePass() = default;
+
+ protected:
+  explicit ComputePass() = default;
 };
 
 }  // namespace lighter::renderer

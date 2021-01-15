@@ -48,9 +48,9 @@ PerspectiveCamera::GetRayTracingParams() const {
   const glm::vec3 up_dir = glm::normalize(glm::cross(right(), front()));
   const float tan_fovy = glm::tan(glm::radians(fovy_));
   return RayTracingParams{
-      /*up=*/up_dir * tan_fovy,
-      /*front=*/front(),
-      /*right=*/right() * tan_fovy * aspect_ratio_,
+      .up = up_dir * tan_fovy,
+      .front = front(),
+      .right = right() * tan_fovy * aspect_ratio_,
   };
 }
 

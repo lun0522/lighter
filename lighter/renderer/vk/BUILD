@@ -110,6 +110,7 @@ cc_library(
         ":context",
         ":image",
         ":pipeline",
+        ":render_pass",
         ":swapchain",
         ":util",
         "//lighter/common:image",
@@ -120,6 +121,21 @@ cc_library(
         "//lighter/renderer:type",
         "//third_party:absl",
         "//third_party:glm",
+        "//third_party:vulkan",
+    ],
+)
+
+cc_library(
+    name = "render_pass",
+    hdrs = ["render_pass.h"],
+    srcs = ["render_pass.cc"],
+    deps = [
+        ":pipeline",
+        ":util",
+        "//lighter/common:util",
+        "//lighter/renderer:pass",
+        "//lighter/renderer:pipeline",
+        "//third_party:absl",
         "//third_party:vulkan",
     ],
 )

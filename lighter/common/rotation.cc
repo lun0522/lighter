@@ -40,8 +40,8 @@ std::optional<Rotation> Compute<RotationManager::StopState>(
   // angle are left for rotation state to compute.
   if (normalized_click_pos.has_value()) {
     rotation_manager->state_ = RotationManager::RotationState{
-        /*last_click_time=*/rotation_manager->GetReferenceTime(),
-        /*first_click_pos=*/normalized_click_pos.value(), Rotation{}};
+        .last_click_time = rotation_manager->GetReferenceTime(),
+        .first_click_pos = normalized_click_pos.value(), Rotation{}};
   }
 
   // No rotation should be performed this time.
@@ -56,8 +56,8 @@ std::optional<Rotation> Compute<RotationManager::InertialRotationState>(
   // angle are left for rotation state to compute.
   if (normalized_click_pos.has_value()) {
     rotation_manager->state_ = RotationManager::RotationState{
-        /*last_click_time=*/rotation_manager->GetReferenceTime(),
-        /*first_click_pos=*/normalized_click_pos.value(), Rotation{}};
+        .last_click_time = rotation_manager->GetReferenceTime(),
+        .first_click_pos = normalized_click_pos.value(), Rotation{}};
     return std::nullopt;
   }
 
@@ -108,7 +108,7 @@ std::optional<Rotation> Compute<RotationManager::RotationState>(
     const auto& state = std::get<RotationManager::RotationState>(
         rotation_manager->state_);
     rotation_manager->state_ = RotationManager::InertialRotationState{
-        /*start_time=*/state.last_click_time, state.rotation};
+        .start_time = state.last_click_time, state.rotation};
     return Compute<RotationManager::InertialRotationState>(
         /*normalized_click_pos=*/std::nullopt, rotation_manager);
   }
@@ -139,7 +139,7 @@ Sphere::Ray Sphere::GetClickingRay(const Camera& camera,
     constexpr float kFarPlaneNdc = 1.0f;
     const glm::vec3 click_pos =
         TransformPoint(ndc_to_object, glm::vec3{click_ndc, kFarPlaneNdc});
-    return Ray{/*start=*/camera_pos, /*direction=*/click_pos - camera_pos};
+    return Ray{.start = camera_pos, .direction = click_pos - camera_pos};
   }
 
   if (dynamic_cast<const common::OrthographicCamera*>(&camera) != nullptr) {
@@ -152,7 +152,7 @@ Sphere::Ray Sphere::GetClickingRay(const Camera& camera,
         TransformPoint(ndc_to_object, glm::vec3{click_ndc, kNearPlaneNdc});
     const glm::vec3 camera_dir =
         TransformVector(world_to_object, camera.front());
-    return Ray{/*start=*/click_pos, /*direction=*/camera_dir};
+    return Ray{.start = click_pos, .direction = camera_dir};
   }
 
   FATAL("Unrecognized camera type");

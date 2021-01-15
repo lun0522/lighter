@@ -237,19 +237,19 @@ Instance::Instance(const Context* context, std::string_view application_name,
   const std::string application_name_string{application_name};
   const VkApplicationInfo app_info{
       VK_STRUCTURE_TYPE_APPLICATION_INFO,
-      /*pNext=*/nullptr,
-      /*pApplicationName=*/application_name_string.c_str(),
-      /*applicationVersion=*/VK_MAKE_VERSION(1, 0, 0),
-      /*pEngineName=*/"Lighter",
-      /*engineVersion=*/VK_MAKE_VERSION(1, 0, 0),
+      .pNext = nullptr,
+      .pApplicationName = application_name_string.c_str(),
+      .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+      .pEngineName = "Lighter",
+      .engineVersion = VK_MAKE_VERSION(1, 0, 0),
       VK_API_VERSION_1_2,
   };
 
   // Specify which global extensions and validation layers to use.
   const VkInstanceCreateInfo instance_info{
       VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
+      .pNext = nullptr,
+      .flags = nullflag,
       &app_info,
       CONTAINER_SIZE(required_layers),
       required_layers.data(),
@@ -342,10 +342,10 @@ Device::Device(const Context* context,
   for (uint32_t family_index : queue_family_indices_set) {
     queue_infos.push_back({
         VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-        /*pNext=*/nullptr,
-        /*flags=*/nullflag,
+        .pNext = nullptr,
+        .flags = nullflag,
         family_index,
-        /*queueCount=*/1,
+        .queueCount = 1,
         &kPriority,
     });
   }
@@ -374,8 +374,8 @@ Device::Device(const Context* context,
 
   const VkDeviceCreateInfo device_info{
       VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
+      .pNext = nullptr,
+      .flags = nullflag,
       CONTAINER_SIZE(queue_infos),
       queue_infos.data(),
       CONTAINER_SIZE(enabled_layers),

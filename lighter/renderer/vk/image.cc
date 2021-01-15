@@ -96,11 +96,11 @@ VkImage CreateImage(const Context& context, VkImageCreateFlags create_flags,
                     absl::Span<const uint32_t> unique_queue_family_indices) {
   const VkImageCreateInfo image_info{
       VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-      /*pNext=*/nullptr,
+      .pNext = nullptr,
       create_flags,
       VK_IMAGE_TYPE_2D,
       format,
-      {extent.width, extent.height, /*depth=*/1},
+      {extent.width, extent.height, .depth = 1},
       mip_levels,
       layer_count,
       sample_count,

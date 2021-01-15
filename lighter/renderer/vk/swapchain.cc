@@ -136,8 +136,8 @@ Swapchain::Swapchain(SharedContext context, int window_index,
 
   const VkSwapchainCreateInfoKHR swapchain_info{
       VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
+      .pNext = nullptr,
+      .flags = nullflag,
       *surface,
       ChooseMinImageCount(surface),
       surface_format.format,
@@ -149,13 +149,13 @@ Swapchain::Swapchain(SharedContext context, int window_index,
       CONTAINER_SIZE(unique_queue_family_indices),
       unique_queue_family_indices.data(),
       // May apply transformations.
-      /*preTransform=*/surface.capabilities().currentTransform,
+      .preTransform = surface.capabilities().currentTransform,
       // May alter the alpha channel.
       VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
       present_mode,
       // If true, we don't care about the color of invisible pixels.
-      /*clipped=*/VK_TRUE,
-      /*oldSwapchain=*/VK_NULL_HANDLE,
+      .clipped = VK_TRUE,
+      .oldSwapchain = VK_NULL_HANDLE,
   };
 
   ASSERT_SUCCESS(vkCreateSwapchainKHR(*context_->device(), &swapchain_info,

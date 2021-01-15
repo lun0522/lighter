@@ -106,12 +106,12 @@ DebugCallback::DebugCallback(const Context* context,
   // We may pass data to 'pUserData' which can be retrieved from the callback.
   const VkDebugUtilsMessengerCreateInfoEXT create_info{
       VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
+      .pNext = nullptr,
+      .flags = nullflag,
       ConvertDebugMessageSeverity(config.message_severity),
       ConvertDebugMessageType(config.message_type),
       UserCallback,
-      /*pUserData=*/nullptr,
+      .pUserData = nullptr,
   };
   const auto vkCreateDebugUtilsMessengerEXT =
       util::LoadInstanceFunction<PFN_vkCreateDebugUtilsMessengerEXT>(

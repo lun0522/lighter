@@ -119,8 +119,8 @@ VkDeviceMemory CreateDeviceMemory(
     VkMemoryPropertyFlags property_flags) {
   const VkMemoryAllocateInfo memory_info{
       VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-      /*pNext=*/nullptr,
-      /*allocationSize=*/requirements.size,
+      .pNext = nullptr,
+      .allocationSize = requirements.size,
       FindMemoryTypeIndex(*context.physical_device(),
                           requirements.memoryTypeBits, property_flags),
   };

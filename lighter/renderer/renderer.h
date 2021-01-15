@@ -82,8 +82,8 @@ class Renderer {
 
   // Pass
 
-  virtual std::unique_ptr<GraphicsPass> CreateGraphicsPass(
-      const GraphicsPassDescriptor& descriptor) const = 0;
+  virtual std::unique_ptr<RenderPass> CreateRenderPass(
+      const RenderPassDescriptor& descriptor) const = 0;
 
   virtual std::unique_ptr<ComputePass> CreateComputePass(
       const ComputePassDescriptor& descriptor) const = 0;

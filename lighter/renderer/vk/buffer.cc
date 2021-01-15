@@ -24,8 +24,8 @@ VkBuffer CreateBuffer(const Context& context, VkDeviceSize data_size,
                       absl::Span<const uint32_t> unique_queue_family_indices) {
   const VkBufferCreateInfo buffer_info{
       VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      /*pNext=*/nullptr,
-      /*flags=*/nullflag,
+      .pNext = nullptr,
+      .flags = nullflag,
       data_size,
       usage_flags,
       VK_SHARING_MODE_EXCLUSIVE,
