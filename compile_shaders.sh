@@ -5,12 +5,22 @@
 # Stop if error occurs.
 set -e
 
+# On Windows, avoid to use system binaries.
+case "$(uname)" in
+  CYGWIN* | MINGW* ) PATH=/usr/bin:$PATH;;
+esac
+
+CURRENT_DIR=$(pwd)
+SHADERS_DIR="$(dirname ${BASH_SOURCE[0]})/lighter/shader"
 COMPILER_BIN="/tmp/glslangValidator"
-BASE_DIR=$(dirname "$0")
-SHADERS_DIR="${BASE_DIR}/lighter/shader"
-OUTPUT_FILE_EXT=".spv"
-DATE_BIN="/bin/date"
-DATE_FORMAT="+%F %T"
+
+#######################################
+# Return a string containing the
+# current time.
+#######################################
+get_time_string() {
+  /bin/date "+%F %T"
+}
 
 #######################################
 # Compile a shader file.
@@ -20,7 +30,7 @@ DATE_FORMAT="+%F %T"
 #   Output directory.
 #######################################
 compile_shader() {
-  output="$3/$1${OUTPUT_FILE_EXT}"
+  output="$3/$1$.spv"
   mkdir -p "$(dirname "${output}")"
   ${COMPILER_BIN} -o "${output}" -V "$2" "$1"
 }
@@ -28,23 +38,24 @@ compile_shader() {
 # Download the shader compiler.
 if [ ! -e ${COMPILER_BIN} ]; then
   platform="unknown"
-  case ${OSTYPE} in
-    darwin* ) platform="osx";;
-    linux*  ) platform="linux";;
-    *       ) echo "Unsupported platform"; exit 1;;
+  case "$(uname)" in
+    Darwin*          ) platform="osx";;
+    Linux*           ) platform="linux";;
+    CYGWIN* | MINGW* ) platform="windows-x64";;
+    *                ) echo "Unsupported platform"; exit 1;;
   esac
   compiler_addr="https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-${platform}-Release.zip"
 
-  echo "$(${DATE_BIN} "${DATE_FORMAT}") Downloading shader compiler..."
-  COMPRESSED="/tmp/glslang.zip"
-  curl -L -o ${COMPRESSED} ${compiler_addr}
-  unzip -p ${COMPRESSED} bin/glslangValidator > ${COMPILER_BIN}
+  echo "$(get_time_string) Downloading shader compiler..."
+  compressed_file="/tmp/glslang.zip"
+  curl -L ${compiler_addr} > ${compressed_file}
+  unzip -p ${compressed_file} bin/glslangValidator* > ${COMPILER_BIN}
   chmod 700 ${COMPILER_BIN}
-  rm ${COMPRESSED}
+  rm ${compressed_file}
 fi
 
 # Compile shaders.
-echo "$(${DATE_BIN} "${DATE_FORMAT}") Compiling shaders..."
+echo "$(get_time_string) Compiling shaders..."
 cd "${SHADERS_DIR}"
 for suffix in "*.vert" "*.frag" "*.comp"; do
   find . -type f -name "${suffix}" | while read -r file; do
@@ -52,4 +63,6 @@ for suffix in "*.vert" "*.frag" "*.comp"; do
     compile_shader "${file}" -DTARGET_VULKAN "vulkan"
   done
 done
-echo "$(${DATE_BIN} "${DATE_FORMAT}") Done!"
+
+cd "${CURRENT_DIR}"
+echo "$(get_time_string) Done!"
