@@ -28,8 +28,8 @@ class TriangleExample {
  public:
   TriangleExample(Backend backend, const glm::ivec2& screen_size,
                   MultisamplingMode multisampling_mode)
-      : window_{"Cube", screen_size} {
-    renderer_ = CreateRenderer(backend, "Cube Example", {&window_});
+      : window_{"Triangle", screen_size} {
+    renderer_ = CreateRenderer(backend, "Triangle Example", {&window_});
 
     // TODO: Use refection API for locations.
     pipeline_descriptor_

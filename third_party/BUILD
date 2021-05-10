@@ -17,6 +17,7 @@ select_platform(
     include_target = "@lib-assimp-include//:assimp_include",
     linux_taregt = "@lib-assimp-ubuntu//:assimp_lib",
     osx_target = "@lib-assimp-osx//:assimp_lib",
+    windows_target = "@lib-assimp-windows//:assimp_lib",
 )
 
 select_platform(
@@ -24,6 +25,7 @@ select_platform(
     include_target = "@lib-freetype-include//:freetype_include",
     linux_taregt = "@lib-freetype-ubuntu//:freetype_lib",
     osx_target = "@lib-freetype-osx//:freetype_lib",
+    windows_target = "@lib-freetype-windows//:freetype_lib",
 )
 
 cc_library(
@@ -36,6 +38,7 @@ select_platform(
     include_target = "@lib-glfw-include//:glfw_include",
     linux_taregt = "@lib-glfw-ubuntu//:glfw_lib",
     osx_target = "@lib-glfw-osx//:glfw_lib",
+    windows_target = "@lib-glfw-windows//:glfw_lib",
 )
 
 cc_library(
@@ -59,6 +62,10 @@ cc_library(
             "@lib-spirv-cross-include-linux//:spirv_cross_include",
             "@lib-spirv-cross-lib-linux//:spirv_cross_lib",
         ],
+        "@bazel_tools//src/conditions:windows": [
+            "@lib-spirv-cross-include-windows//:spirv_cross_include",
+            "@lib-spirv-cross-lib-windows//:spirv_cross_lib",
+        ],
     }),
 )
 
@@ -71,4 +78,5 @@ select_platform(
     name = "vulkan",
     linux_taregt = "@lib-vulkan-linux//:vulkan",
     osx_target = "@lib-vulkan-osx//:vulkan",
+    windows_target = "@lib-vulkan-windows//:vulkan",
 )

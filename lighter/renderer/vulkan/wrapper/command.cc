@@ -24,7 +24,7 @@ constexpr auto kTimeoutForever = std::numeric_limits<uint64_t>::max();
 VkCommandPool CreateCommandPool(const BasicContext& context,
                                 const Queues::Queue& queue,
                                 bool is_transient) {
-  const auto flags =
+  const VkCommandPoolCreateFlags flags =
       is_transient ? VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
                    : VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
   const VkCommandPoolCreateInfo pool_info{

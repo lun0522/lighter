@@ -1,0 +1,21 @@
+licenses(["notice"])
+
+cc_library(
+    name = "assimp_lib",
+    visibility = ["//visibility:public"],
+    deps = [":libassimp"],
+)
+
+cc_import(
+    name = "libassimp",
+    static_library = "assimp.lib",
+    visibility = ["//visibility:private"],
+)
+
+genrule(
+    name = "unzip",
+    srcs = ["windows.zip"],
+    outs = ["assimp.lib"],
+    cmd = "unzip -j -d $(RULEDIR) $<",
+    output_to_bindir = True,
+)

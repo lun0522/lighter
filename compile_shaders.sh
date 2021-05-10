@@ -30,7 +30,7 @@ get_time_string() {
 #   Output directory.
 #######################################
 compile_shader() {
-  output="$3/$1$.spv"
+  output="$3/$1.spv"
   mkdir -p "$(dirname "${output}")"
   ${COMPILER_BIN} -o "${output}" -V "$2" "$1"
 }

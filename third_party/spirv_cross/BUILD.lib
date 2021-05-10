@@ -10,5 +10,9 @@ cc_library(
 
 cc_import(
     name = "libspirv-cross-core",
-    static_library = "libspirv-cross-core.a",
+    static_library = select({
+        "@bazel_tools//src/conditions:darwin": "libspirv-cross-core.a",
+        "@bazel_tools//src/conditions:linux_x86_64": "libspirv-cross-core.a",
+        "@bazel_tools//src/conditions:windows": "spirv-cross-core.lib",
+    }),
 )

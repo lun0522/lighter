@@ -174,12 +174,14 @@ int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
 
   common::util::ParseCommandLine(argc, argv);
 
+#if defined(__APPLE__)
   if (absl::GetFlag(FLAGS_performance_mode)) {
     // To avoid the frame rate being clamped on MacOS when using MoltenVK:
     // https://github.com/KhronosGroup/MoltenVK/issues/581#issuecomment-487293665
     setenv("MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS", "0", /*overwrite=*/1);
     setenv("MVK_CONFIG_PRESENT_WITH_COMMAND_BUFFER", "0", /*overwrite=*/1);
   }
+#endif /* __APPLE__ */
 
   // Set up the path to find Vulkan SDK.
   using common::file::GetVulkanSdkPath;
