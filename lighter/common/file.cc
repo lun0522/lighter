@@ -95,8 +95,14 @@ void EnableRunfileLookup(std::string_view arg0) {
   RunfileLookup::Init(arg0);
 }
 
-std::string GetResourcePath(std::string_view relative_path) {
-  return RunfileLookup::GetFullPath("resource/", relative_path, "");
+std::string GetResourcePath(std::string_view relative_file_path,
+                            bool want_directory_path) {
+  std::string full_path =
+      RunfileLookup::GetFullPath("resource/", relative_file_path, "");
+  if (want_directory_path) {
+    full_path = std::filesystem::path{full_path}.parent_path().string();
+  }
+  return full_path;
 }
 
 std::string GetGlShaderPath(std::string_view relative_path) {

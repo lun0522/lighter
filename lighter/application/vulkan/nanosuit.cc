@@ -147,7 +147,9 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
 
   /* Model */
   const SharedTexture::CubemapPath skybox_path{
-      /*directory=*/GetResourcePath("texture/tidepool"),
+      /*directory=*/
+      GetResourcePath("texture/tidepool/right.tga",
+                      /*want_directory_path=*/true),
       /*files=*/{
           "right.tga", "left.tga",
           "top.tga", "bottom.tga",
@@ -158,8 +160,10 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
   nanosuit_model_ = ModelBuilder{
       context(), "Nanosuit", kNumFramesInFlight, original_aspect_ratio,
       ModelBuilder::MultiMeshResource{
-          GetResourcePath("model/nanosuit/nanosuit.obj"),
-          GetResourcePath("model/nanosuit")}}
+          /*model_path=*/GetResourcePath("model/nanosuit/nanosuit.obj"),
+          /*texture_dir=*/
+          GetResourcePath("model/nanosuit/nanosuit.obj",
+                          /*want_directory_path=*/true)}}
       .AddSharedTexture(TextureType::kCubemap, skybox_path)
       .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/1)
       .AddTextureBindingPoint(TextureType::kSpecular, /*binding_point=*/2)

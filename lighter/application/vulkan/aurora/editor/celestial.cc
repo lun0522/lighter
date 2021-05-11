@@ -78,7 +78,9 @@ Celestial::Celestial(const SharedBasicContext& context,
       .Build();
 
   const SharedTexture::CubemapPath skybox_path{
-      /*directory=*/GetResourcePath("texture/universe"),
+      /*directory=*/
+      GetResourcePath("texture/universe/PositiveX.jpg",
+                      /*want_directory_path=*/true),
       /*files=*/{
           "PositiveX.jpg", "NegativeX.jpg",
           "PositiveY.jpg", "NegativeY.jpg",

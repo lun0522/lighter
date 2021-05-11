@@ -28,9 +28,12 @@ namespace file {
 // main() before accessing any runfiles.
 void EnableRunfileLookup(std::string_view arg0);
 
-// Returns the full path to the file in the resource folder. Note that this does
-// not work for directories.
-std::string GetResourcePath(std::string_view relative_path);
+// Returns the full path to a file or directory in the resource folder.
+// Since Bazel only maintains a manifest for file path, in order to get a
+// directory path, we should pass in the path to any file in that directory, and
+// set 'want_directory_path' to true.
+std::string GetResourcePath(std::string_view relative_file_path,
+                            bool want_directory_path = false);
 
 // Returns the full path to the compiled shader to use with OpenGL.
 std::string GetGlShaderPath(std::string_view relative_path);

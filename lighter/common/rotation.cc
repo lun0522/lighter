@@ -41,7 +41,8 @@ std::optional<Rotation> Compute<RotationManager::StopState>(
   if (normalized_click_pos.has_value()) {
     rotation_manager->state_ = RotationManager::RotationState{
         .last_click_time = rotation_manager->GetReferenceTime(),
-        .first_click_pos = normalized_click_pos.value(), Rotation{}};
+        .first_click_pos = normalized_click_pos.value(),
+        .rotation = Rotation{}};
   }
 
   // No rotation should be performed this time.
@@ -57,7 +58,8 @@ std::optional<Rotation> Compute<RotationManager::InertialRotationState>(
   if (normalized_click_pos.has_value()) {
     rotation_manager->state_ = RotationManager::RotationState{
         .last_click_time = rotation_manager->GetReferenceTime(),
-        .first_click_pos = normalized_click_pos.value(), Rotation{}};
+        .first_click_pos = normalized_click_pos.value(),
+        .rotation = Rotation{}};
     return std::nullopt;
   }
 
@@ -108,7 +110,7 @@ std::optional<Rotation> Compute<RotationManager::RotationState>(
     const auto& state = std::get<RotationManager::RotationState>(
         rotation_manager->state_);
     rotation_manager->state_ = RotationManager::InertialRotationState{
-        .start_time = state.last_click_time, state.rotation};
+        .start_time = state.last_click_time, .rotation = state.rotation};
     return Compute<RotationManager::InertialRotationState>(
         /*normalized_click_pos=*/std::nullopt, rotation_manager);
   }

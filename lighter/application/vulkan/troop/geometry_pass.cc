@@ -61,6 +61,8 @@ GeometryPass::GeometryPass(const WindowContext* window_context,
                            const glm::vec2& interval_between_soldiers)
     : num_soldiers_{num_soldiers.x * num_soldiers.y},
       window_context_{*FATAL_IF_NULL(window_context)} {
+  using common::file::GetResourcePath;
+  using common::file::GetVkShaderPath;
   using TextureType = ModelBuilder::TextureType;
   const auto context = window_context_.basic_context();
 
@@ -98,8 +100,10 @@ GeometryPass::GeometryPass(const WindowContext* window_context,
       context, "Geometry pass", num_frames_in_flight,
       window_context_.original_aspect_ratio(),
       ModelBuilder::MultiMeshResource{
-          common::file::GetResourcePath("model/nanosuit/nanosuit.obj"),
-          common::file::GetResourcePath("model/nanosuit")}}
+          /*model_path=*/GetResourcePath("model/nanosuit/nanosuit.obj"),
+          /*texture_dir=*/
+          GetResourcePath("model/nanosuit/nanosuit.obj",
+                          /*want_directory_path=*/true)}}
       .AddTextureBindingPoint(TextureType::kDiffuse,
                               kDiffuseTextureBindingPoint)
       .AddTextureBindingPoint(TextureType::kSpecular,
@@ -112,9 +116,9 @@ GeometryPass::GeometryPass(const WindowContext* window_context,
           /*bindings=*/{{kUniformBufferBindingPoint, /*array_length=*/1}})
       .AddUniformBuffer(kUniformBufferBindingPoint, *trans_uniform_)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("troop/geometry_pass.vert"))
+                 GetVkShaderPath("troop/geometry_pass.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetVkShaderPath("troop/geometry_pass.frag"))
+                 GetVkShaderPath("troop/geometry_pass.frag"))
       .Build();
 }
 

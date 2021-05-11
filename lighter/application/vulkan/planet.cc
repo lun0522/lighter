@@ -200,9 +200,9 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
   asteroid_model_ = ModelBuilder{
       context(), "Asteroid", kNumFramesInFlight, original_aspect_ratio,
       ModelBuilder::MultiMeshResource{
-          GetResourcePath("model/rock/rock.obj"),
-          GetResourcePath("model/rock"),
-      }}
+          /*model_path=*/GetResourcePath("model/rock/rock.obj"),
+          /*texture_dir=*/
+          GetResourcePath("model/rock/rock.obj", /*want_directory_path=*/true)}}
       .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/2)
       .AddPerInstanceBuffer(per_asteroid_data_.get())
       .AddUniformBinding(
@@ -218,7 +218,9 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       .Build();
 
   const SharedTexture::CubemapPath skybox_path{
-      /*directory=*/GetResourcePath("texture/universe"),
+      /*directory=*/
+      GetResourcePath("texture/universe/PositiveX.jpg",
+                      /*want_directory_path=*/true),
       /*files=*/{
           "PositiveX.jpg", "NegativeX.jpg",
           "PositiveY.jpg", "NegativeY.jpg",

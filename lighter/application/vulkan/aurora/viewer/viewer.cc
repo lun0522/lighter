@@ -98,7 +98,9 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
       sampler_config);
 
   const SharedTexture::CubemapPath skybox_path{
-      /*directory=*/common::file::GetResourcePath("texture/universe"),
+      /*directory=*/
+      common::file::GetResourcePath("texture/universe/PositiveX.jpg",
+                                    /*want_directory_path=*/true),
       /*files=*/{
           "PositiveX.jpg", "NegativeX.jpg",
           "PositiveY.jpg", "NegativeY.jpg",
