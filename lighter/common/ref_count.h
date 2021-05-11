@@ -59,7 +59,7 @@ class RefCountedObject {
     if (iter == ref_count_map().end()) {
       const auto inserted = ref_count_map().insert({
           identifier, typename ObjectPool::ObjectWithCounter{
-              std::make_unique<ObjectType>(std::forward<Args>(args)...),
+              .object = std::make_unique<ObjectType>(std::forward<Args>(args)...),
               .ref_count = 0,
           }});
       iter = inserted.first;

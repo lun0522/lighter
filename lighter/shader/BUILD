@@ -1,5 +1,5 @@
 filegroup(
     name = "shader",
-    srcs = glob(["**"]),
+    srcs = glob(["**/*.spv"]),
     visibility = ["//lighter:__subpackages__"],
 )

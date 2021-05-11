@@ -36,6 +36,7 @@ cc_library(
         ":util",
         "//third_party:absl",
         "//third_party:glm",
+        "@bazel_tools//tools/cpp/runfiles",
     ],
 )
 

@@ -1,0 +1,20 @@
+licenses(["notice"])
+
+cc_import(
+    name = "libspirv-cross-core",
+    static_library = select({
+        "@bazel_tools//src/conditions:darwin": "lib/libspirv-cross-core.a",
+        "@bazel_tools//src/conditions:linux_x86_64": "lib/libspirv-cross-core.a",
+        "@bazel_tools//src/conditions:windows": "lib/spirv-cross-core.lib",
+    }),
+    visibility = ["//visibility:private"],
+)
+
+cc_library(
+    name = "spirv_cross",
+    hdrs = glob(["**/*.hpp"]),
+    deps = ["libspirv-cross-core"],
+    strip_include_prefix = "include",
+    include_prefix = "third_party",
+    visibility = ["//visibility:public"],
+)

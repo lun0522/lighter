@@ -18,29 +18,25 @@
 #include "third_party/absl/strings/str_cat.h"
 #include "third_party/glm/glm.hpp"
 
-ABSL_DECLARE_FLAG(std::string, resource_folder);
-ABSL_DECLARE_FLAG(std::string, shader_folder);
 ABSL_DECLARE_FLAG(std::string, vulkan_folder);
 
 namespace lighter::common {
 namespace file {
 
-// Returns the full path to files in the resource folder.
-inline std::string GetResourcePath(std::string_view relative_path) {
-  return absl::StrCat(absl::GetFlag(FLAGS_resource_folder), "/", relative_path);
-}
+// Enables looking up the runtime path of runfiles (i.e. data dependencies of
+// Bazel-built binaries and tests). This should be called once with argv[0] in
+// main() before accessing any runfiles.
+void EnableRunfileLookup(std::string_view arg0);
+
+// Returns the full path to the file in the resource folder. Note that this does
+// not work for directories.
+std::string GetResourcePath(std::string_view relative_path);
 
 // Returns the full path to the compiled shader to use with OpenGL.
-inline std::string GetGlShaderPath(std::string_view relative_path) {
-  return absl::StrCat(absl::GetFlag(FLAGS_shader_folder), "/opengl/",
-                      relative_path, ".spv");
-}
+std::string GetGlShaderPath(std::string_view relative_path);
 
 // Returns the full path to the compiled shader to use with Vulkan.
-inline std::string GetVkShaderPath(std::string_view relative_path) {
-  return absl::StrCat(absl::GetFlag(FLAGS_shader_folder), "/vulkan/",
-                      relative_path, ".spv");
-}
+std::string GetVkShaderPath(std::string_view relative_path);
 
 // Returns the full path to files in the Vulkan SDK folder.
 inline std::string GetVulkanSdkPath(std::string_view relative_path) {

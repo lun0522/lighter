@@ -51,22 +51,11 @@ cc_library(
     deps = ["@lib-glm//:glm"],
 )
 
-cc_library(
+select_platform(
     name = "spirv_cross",
-    deps = select({
-        "@bazel_tools//src/conditions:darwin": [
-            "@lib-spirv-cross-include-osx//:spirv_cross_include",
-            "@lib-spirv-cross-lib-osx//:spirv_cross_lib",
-        ],
-        "@bazel_tools//src/conditions:linux_x86_64": [
-            "@lib-spirv-cross-include-linux//:spirv_cross_include",
-            "@lib-spirv-cross-lib-linux//:spirv_cross_lib",
-        ],
-        "@bazel_tools//src/conditions:windows": [
-            "@lib-spirv-cross-include-windows//:spirv_cross_include",
-            "@lib-spirv-cross-lib-windows//:spirv_cross_lib",
-        ],
-    }),
+    linux_taregt = "@lib-spirv-cross-linux//:spirv_cross",
+    osx_target = "@lib-spirv-cross-osx//:spirv_cross",
+    windows_target = "@lib-spirv-cross-windows//:spirv_cross",
 )
 
 cc_library(

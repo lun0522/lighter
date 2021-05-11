@@ -1,8 +1,0 @@
-licenses(["notice"])
-
-cc_library(
-    name = "spirv_cross_include",
-    hdrs = glob(["**/*.hpp"]),
-    include_prefix = "third_party",
-    visibility = ["//visibility:public"],
-)

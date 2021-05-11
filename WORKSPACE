@@ -13,17 +13,17 @@ load("@//:git_archives.bzl", "spirv_cross_archive")
 http_archive(
     name = "lib-absl-include",
     build_file = "//:third_party/absl/BUILD.include",
-    sha256 = "a68f7a8457b83e4cf0694c79e9bc4a838ac94d0a274737ebd3881c7732578464",
-    strip_prefix = "lib-absl-20200923.2",
-    urls = ["https://github.com/lun0522/lib-absl/archive/20200923.2.zip"],
+    sha256 = "b4c76fbf553934eb03893b6262d48bca9ab06784331e83bce762e5e493b55f7b",
+    strip_prefix = "lib-absl-20210324.1",
+    urls = ["https://github.com/lun0522/lib-absl/archive/20210324.1.zip"],
 )
 
 http_archive(
     name = "lib-absl",
     build_file = "//:third_party/absl/BUILD",
-    sha256 = "306639352ec60dcbfc695405e989e1f63d0e55001582a5185b0a8caf2e8ea9ca",
-    strip_prefix = "abseil-cpp-20200923.2",
-    urls = ["https://github.com/abseil/abseil-cpp/archive/20200923.2.zip"],
+    sha256 = "cfb1f22164808eb0a233ad91287df84c2af2084cfc8b429eca1be1e57511065d",
+    strip_prefix = "abseil-cpp-20210324.1",
+    urls = ["https://github.com/abseil/abseil-cpp/archive/20210324.1.zip"],
 )
 
 #######################################

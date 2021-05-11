@@ -11,7 +11,7 @@ case "$(uname)" in
 esac
 
 CURRENT_DIR=$(pwd)
-SHADERS_DIR="$(dirname ${BASH_SOURCE[0]})/lighter/shader"
+SHADERS_DIR="$(dirname "${BASH_SOURCE[0]}")/lighter/shader"
 COMPILER_BIN="/tmp/glslangValidator"
 
 #######################################

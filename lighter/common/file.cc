@@ -7,17 +7,14 @@
 
 #include "lighter/common/file.h"
 
+#include <filesystem>
 #include <fstream>
 
 #include "lighter/common/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/strings/str_split.h"
-
-ABSL_FLAG(std::string, resource_folder, "external/resource",
-          "Path to the resource folder");
-ABSL_FLAG(std::string, shader_folder, "lighter/shader",
-          "Path to the shader folder");
+#include "tools/cpp/runfiles/runfiles.h"
 
 #if defined(__APPLE__)
 #define VULKAN_FOLDER "external/lib-vulkan-osx"
@@ -35,9 +32,43 @@ ABSL_FLAG(std::string, vulkan_folder, VULKAN_FOLDER,
 namespace lighter::common {
 namespace {
 
+using bazel::tools::cpp::runfiles::Runfiles;
+
+// Used to lookup the full path of a runfile.
+class RunfileLookup {
+ public:
+  // Initializes 'runfiles'. This only needs to be called once.
+  static void Init(std::string_view arg0) {
+    std::string error;
+    runfiles_ = Runfiles::Create(std::string(arg0), &error);
+    ASSERT_NON_NULL(runfiles_,
+                    absl::StrFormat("Failed to init runfiles: %s", error));
+  }
+
+  // Returns the full path of a runfile.
+  static std::string GetFullPath(std::string_view prefix,
+                                 std::string_view relative_path,
+                                 std::string_view postfix) {
+    ASSERT_NON_NULL(runfiles_, "EnableRunfileLookup() must be called first");
+    const std::string concat_path =
+        absl::StrCat(prefix, relative_path, postfix);
+    std::string full_path = runfiles_->Rlocation(concat_path);
+    ASSERT_TRUE(std::filesystem::exists(std::filesystem::path{full_path}),
+                absl::StrFormat("File '%s' does not exist", concat_path));
+    return full_path;
+  }
+
+ private:
+  static const Runfiles* runfiles_;
+};
+
+const Runfiles* RunfileLookup::runfiles_ = nullptr;
+
 // Opens the file in the given 'path' and checks whether it is successful.
 std::ifstream OpenFile(std::string_view path) {
-  std::ifstream file{path.data()};
+  // On Windows, character 26 (Ctrl+Z) is treated as EOF, so we have to include
+  // std::ios::binary.
+  std::ifstream file{path.data(), std::ios::in | std::ios::binary};
   ASSERT_FALSE(!file.is_open() || file.bad() || file.fail(),
                absl::StrCat("Failed to open file: ", path));
   return file;
@@ -58,6 +89,28 @@ std::vector<std::string> SplitText(std::string_view text, char delimiter,
 
 }  // namespace
 
+namespace file {
+
+void EnableRunfileLookup(std::string_view arg0) {
+  RunfileLookup::Init(arg0);
+}
+
+std::string GetResourcePath(std::string_view relative_path) {
+  return RunfileLookup::GetFullPath("resource/", relative_path, "");
+}
+
+std::string GetGlShaderPath(std::string_view relative_path) {
+  return RunfileLookup::GetFullPath("lighter/lighter/shader/opengl/",
+                                    relative_path, ".spv");
+}
+
+std::string GetVkShaderPath(std::string_view relative_path) {
+  return RunfileLookup::GetFullPath("lighter/lighter/shader/vulkan/",
+                                    relative_path, ".spv");
+}
+
+}  // namespace file
+
 RawData::RawData(std::string_view path) {
   std::ifstream file = OpenFile(path);
   file.seekg(0, std::ios::end);
@@ -65,6 +118,8 @@ RawData::RawData(std::string_view path) {
   auto* content = new char[size];
   file.seekg(0, std::ios::beg);
   file.read(content, size);
+  ASSERT_FALSE(file.eof() || file.fail(),
+               absl::StrCat("Failed to read file: ", path));
   data = content;
 }
 

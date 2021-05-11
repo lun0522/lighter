@@ -173,6 +173,7 @@ int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
                 "Not a subclass of Application");
 
   common::util::ParseCommandLine(argc, argv);
+  common::file::EnableRunfileLookup(argv[0]);
 
 #if defined(__APPLE__)
   if (absl::GetFlag(FLAGS_performance_mode)) {
@@ -207,17 +208,17 @@ int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
 
   // We don't catch exceptions in the debug mode, so that if there is anything
   // wrong, the debugger would stay at the point where the application breaks.
-#ifdef NDEBUG
+//#ifdef NDEBUG
   try {
-#endif /* NDEBUG */
+//#endif /* NDEBUG */
     AppType app{std::forward<AppArgs>(app_args)...};
     app.MainLoop();
-#ifdef NDEBUG
+//#ifdef NDEBUG
   } catch (const std::exception& e) {
     LOG_ERROR << "Error: " << e.what();
     return EXIT_FAILURE;
   }
-#endif /* NDEBUG */
+//#endif /* NDEBUG */
 
   return EXIT_SUCCESS;
 }
