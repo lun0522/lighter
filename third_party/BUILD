@@ -15,7 +15,7 @@ cc_library(
 select_platform(
     name = "assimp",
     include_target = "@lib-assimp-include//:assimp_include",
-    linux_taregt = "@lib-assimp-ubuntu//:assimp_lib",
+    linux_taregt = "@lib-assimp-linux//:assimp_lib",
     osx_target = "@lib-assimp-osx//:assimp_lib",
     windows_target = "@lib-assimp-windows//:assimp_lib",
 )
@@ -23,7 +23,7 @@ select_platform(
 select_platform(
     name = "freetype",
     include_target = "@lib-freetype-include//:freetype_include",
-    linux_taregt = "@lib-freetype-ubuntu//:freetype_lib",
+    linux_taregt = "@lib-freetype-linux//:freetype_lib",
     osx_target = "@lib-freetype-osx//:freetype_lib",
     windows_target = "@lib-freetype-windows//:freetype_lib",
 )
@@ -36,7 +36,7 @@ cc_library(
 select_platform(
     name = "glfw",
     include_target = "@lib-glfw-include//:glfw_include",
-    linux_taregt = "@lib-glfw-ubuntu//:glfw_lib",
+    linux_taregt = "@lib-glfw-linux//:glfw_lib",
     osx_target = "@lib-glfw-osx//:glfw_lib",
     windows_target = "@lib-glfw-windows//:glfw_lib",
 )

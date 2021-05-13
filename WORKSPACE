@@ -36,14 +36,14 @@ assimp_archive(
 )
 
 assimp_archive(
-    name = "lib-assimp-osx",
-    build_file = "//:third_party/assimp/BUILD.osx",
+    name = "lib-assimp-linux",
+    build_file = "//:third_party/assimp/BUILD.linux",
     strip_prefix = "lib",
 )
 
 assimp_archive(
-    name = "lib-assimp-ubuntu",
-    build_file = "//:third_party/assimp/BUILD.ubuntu",
+    name = "lib-assimp-osx",
+    build_file = "//:third_party/assimp/BUILD.osx",
     strip_prefix = "lib",
 )
 
@@ -63,15 +63,15 @@ freetype_archive(
 )
 
 freetype_archive(
-    name = "lib-freetype-osx",
-    build_file = "//:third_party/freetype/BUILD.osx",
-    strip_prefix = "lib/osx",
+    name = "lib-freetype-linux",
+    build_file = "//:third_party/freetype/BUILD.unix",
+    strip_prefix = "lib/linux",
 )
 
 freetype_archive(
-    name = "lib-freetype-ubuntu",
-    build_file = "//:third_party/freetype/BUILD.ubuntu",
-    strip_prefix = "lib/ubuntu",
+    name = "lib-freetype-osx",
+    build_file = "//:third_party/freetype/BUILD.unix",
+    strip_prefix = "lib/osx",
 )
 
 freetype_archive(
@@ -101,15 +101,15 @@ glfw_archive(
 )
 
 glfw_archive(
-    name = "lib-glfw-osx",
-    build_file = "//:third_party/glfw/BUILD.osx",
-    strip_prefix = "lib/osx",
+    name = "lib-glfw-linux",
+    build_file = "//:third_party/glfw/BUILD.linux",
+    strip_prefix = "lib/linux",
 )
 
 glfw_archive(
-    name = "lib-glfw-ubuntu",
-    build_file = "//:third_party/glfw/BUILD.ubuntu",
-    strip_prefix = "lib/ubuntu",
+    name = "lib-glfw-osx",
+    build_file = "//:third_party/glfw/BUILD.osx",
+    strip_prefix = "lib/osx",
 )
 
 glfw_archive(
@@ -144,14 +144,14 @@ http_archive(
 
 spirv_cross_archive(
     platform = "linux",
-    url = "https://github.com/KhronosGroup/SPIRV-Cross/releases/download/2020-09-17/spirv-cross-clang-trusty-64bit-8891bd3512.tar.gz",
-    sha256 = "",
+    url = "https://github.com/KhronosGroup/SPIRV-Cross/releases/download/2021-01-15/spirv-cross-clang-trusty-64bit-9acb9ec31f.tar.gz",
+    sha256 = "2e207445efab417ce737c9f320690f5e252d6ac7ee167a2911ef21c145f564f7",
 )
 
 spirv_cross_archive(
     platform = "osx",
-    url = "https://github.com/KhronosGroup/SPIRV-Cross/releases/download/2020-09-17/spirv-cross-clang-macos-64bit-8891bd3512.tar.gz",
-    sha256 = "6c629324d82b04127b5d5d370dd6314d2fb4b4f19c4e208ec18c36ad559fde10",
+    url = "https://github.com/KhronosGroup/SPIRV-Cross/releases/download/2021-01-15/spirv-cross-clang-macos-64bit-9acb9ec31f.tar.gz",
+    sha256 = "6f43900361deb5e2d4df481d812bd83ebdf336dce3dbfa60d9ef3d44f2d09264",
 )
 
 spirv_cross_archive(

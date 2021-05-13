@@ -4,4 +4,4 @@ licenses(["notice"])
 
 load("@//third_party/assimp:generate_unix_target.bzl", "generate_target")
 
-generate_target(src_zip = "osx.zip")
+generate_target(src_zip = "linux.zip")

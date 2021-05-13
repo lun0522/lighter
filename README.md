@@ -78,7 +78,14 @@ To run applications, following these steps:
 3. Run from command line:
 
 ```bash
-sudo apt install mesa-common-dev  # Only needed for Linux
+# Only needed on Linux.
+sudo apt install mesa-common-dev
+
+# Only needed on Windows.
+set BAZEL_LLVM=C:\Program Files\LLVM
+set BAZEL_SH=C:\cygwin64\bin\bash.exe
+
+# Common to all platforms.
 bazel run -c opt --copt=-DUSE_VULKAN //lighter/application/vulkan:triangle
 ```
 
