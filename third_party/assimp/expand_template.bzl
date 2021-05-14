@@ -1,4 +1,4 @@
-def expand_template_impl(ctx):
+def _expand_template_impl(ctx):
     ctx.actions.expand_template(
         template = ctx.file.template,
         output = ctx.outputs.out,
@@ -15,5 +15,5 @@ expand_template = rule(
         "out": attr.output(mandatory = True),
     },
     output_to_genfiles = True,
-    implementation = expand_template_impl,
+    implementation = _expand_template_impl,
 )

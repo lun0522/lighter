@@ -2,10 +2,11 @@ workspace(name = "lighter")
 
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-load("@//:git_archives.bzl", "assimp_archive")
-load("@//:git_archives.bzl", "freetype_archive")
-load("@//:git_archives.bzl", "glfw_archive")
-load("@//:git_archives.bzl", "spirv_cross_archive")
+load("@//:local_archives.bzl", "use_vulkan_sdk")
+load("@//:remote_archives.bzl", "assimp_archive")
+load("@//:remote_archives.bzl", "freetype_archive")
+load("@//:remote_archives.bzl", "glfw_archive")
+load("@//:remote_archives.bzl", "spirv_cross_archive")
 
 #######################################
 # Abseil
@@ -190,24 +191,9 @@ http_archive(
     url = "https://sdk.lunarg.com/sdk/download/1.2.135.0/mac/vulkansdk-macos-1.2.135.0.tar.gz",
 )
 
-new_local_repository(
-    name = "system_libs",
-    path = "C:/VulkanSDK/1.2.176.1/Lib",
-    build_file_content = """
-cc_library(
-    name = "vulkan",
-    srcs = ["vulkan-1.lib"],
-    visibility = ["//visibility:public"],
-)
-""",
-)
-
-http_archive(
+use_vulkan_sdk(
     name = "lib-vulkan-windows",
-    build_file = "//:third_party/vulkan/BUILD.windows",
-    sha256 = "6fc800f1584a9e90f1736df722b6e7ea8f1913b66736d5cef38fb28482c245b5",
-    strip_prefix = "1.2.176.1/x86_64",
-    url = "https://sdk.lunarg.com/sdk/download/1.2.176.1/linux/vulkansdk-linux-x86_64-1.2.176.1.tar.gz",
+    build_file_abs_path = __workspace_dir__ + "/third_party/vulkan/BUILD.windows",
 )
 
 #######################################

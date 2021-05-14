@@ -97,8 +97,10 @@ Celestial::Celestial(const SharedBasicContext& context,
       .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/1)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT, GetVkShaderPath("skybox.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT, GetVkShaderPath("skybox.frag"))
+      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                 GetVkShaderPath("shared/skybox.vert"))
+      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                 GetVkShaderPath("shared/skybox.frag"))
       .Build();
 }
 
