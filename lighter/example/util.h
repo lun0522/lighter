@@ -17,6 +17,7 @@
 #include <utility>
 
 #include "lighter/common/file.h"
+#include "lighter/common/graphics_api.h"
 #include "lighter/common/util.h"
 #include "lighter/common/window.h"
 #include "lighter/renderer/align.h"
@@ -30,10 +31,8 @@
 
 namespace lighter::example {
 
-enum class Backend { kOpenGL, kVulkan };
-
 std::unique_ptr<renderer::Renderer> CreateRenderer(
-    Backend backend, std::string_view application_name,
+    common::GraphicsApi graphics_api, std::string_view application_name,
     absl::Span<const common::Window* const> windows) {
   std::optional<renderer::debug_message::Config> debug_message_config;
 #ifndef NDEBUG
@@ -44,11 +43,11 @@ std::unique_ptr<renderer::Renderer> CreateRenderer(
   };
 #endif  // !NDEBUG
 
-  switch (backend) {
-    case Backend::kOpenGL:
+  switch (graphics_api) {
+    case common::GraphicsApi::kOpengl:
       FATAL("Not implemented yet");
 
-    case Backend::kVulkan:
+    case common::GraphicsApi::kVulkan:
       return std::make_unique<renderer::vk::Renderer>(
           application_name, debug_message_config, windows);
   }
@@ -56,12 +55,13 @@ std::unique_ptr<renderer::Renderer> CreateRenderer(
 
 // TODO: Only write Vulkan version shader code, and modify it on-the-fly to be
 // used by OpenGL.
-std::string GetShaderPath(Backend backend, std::string_view relative_path) {
-  switch (backend) {
-    case Backend::kOpenGL:
+std::string GetShaderPath(common::GraphicsApi graphics_api,
+                          std::string_view relative_path) {
+  switch (graphics_api) {
+    case common::GraphicsApi::kOpengl:
       return common::file::GetGlShaderPath(relative_path);
 
-    case Backend::kVulkan:
+    case common::GraphicsApi::kVulkan:
       return common::file::GetVkShaderPath(relative_path);
   }
 }

@@ -51,6 +51,11 @@ cc_library(
     deps = ["@lib-glm//:glm"],
 )
 
+cc_library(
+    name = "picosha2",
+    deps = ["@lib-picosha2//:picosha2"],
+)
+
 select_platform(
     name = "spirv_cross",
     linux_taregt = "@lib-spirv-cross-linux//:spirv_cross",

@@ -7,6 +7,7 @@
 
 #include "lighter/common/file.h"
 
+#include <exception>
 #include <filesystem>
 #include <fstream>
 
@@ -32,6 +33,8 @@ ABSL_FLAG(std::string, vulkan_folder, VULKAN_FOLDER,
 namespace lighter::common {
 namespace {
 
+namespace stdfs = std::filesystem;
+
 using bazel::tools::cpp::runfiles::Runfiles;
 
 // Used to lookup the full path of a runfile.
@@ -53,7 +56,7 @@ class RunfileLookup {
     const std::string concat_path =
         absl::StrCat(prefix, relative_path, postfix);
     std::string full_path = runfiles_->Rlocation(concat_path);
-    ASSERT_TRUE(std::filesystem::exists(std::filesystem::path{full_path}),
+    ASSERT_TRUE(stdfs::exists(stdfs::path{full_path}),
                 absl::StrFormat("File '%s' does not exist", concat_path));
     return full_path;
   }
@@ -78,13 +81,13 @@ std::ifstream OpenFile(std::string_view path) {
 // length of results. An exception will be thrown if the length does not match.
 std::vector<std::string> SplitText(std::string_view text, char delimiter,
                                    int num_segments) {
-  const std::vector<std::string> result =
+  const std::vector<std::string> segments =
       absl::StrSplit(text, delimiter, absl::SkipWhitespace{});
   ASSERT_TRUE(
-      result.size() == num_segments,
+      segments.size() == num_segments,
       absl::StrFormat("Invalid number of segments (expected %d, but get %d)",
-                      num_segments, result.size()));
-  return result;
+                      num_segments, segments.size()));
+  return segments;
 }
 
 }  // namespace
@@ -100,7 +103,7 @@ std::string GetResourcePath(std::string_view relative_file_path,
   std::string full_path =
       RunfileLookup::GetFullPath("resource/", relative_file_path, "");
   if (want_directory_path) {
-    full_path = std::filesystem::path{full_path}.parent_path().string();
+    full_path = stdfs::path{full_path}.parent_path().string();
   }
   return full_path;
 }

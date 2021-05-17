@@ -1,0 +1,8 @@
+licenses(["notice"])
+
+cc_library(
+    name = "picosha2",
+    hdrs = ["picosha2.h"],
+    include_prefix = "third_party/picosha2",
+    visibility = ["//visibility:public"],
+)

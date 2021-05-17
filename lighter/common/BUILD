@@ -41,6 +41,11 @@ cc_library(
 )
 
 cc_library(
+    name = "graphics_api",
+    hdrs = ["graphics_api.h"],
+)
+
+cc_library(
     name = "image",
     hdrs = ["image.h"],
     srcs = ["image.cc"],

@@ -26,18 +26,19 @@ struct Alpha {
 
 class TriangleExample {
  public:
-  TriangleExample(Backend backend, const glm::ivec2& screen_size,
+  TriangleExample(common::GraphicsApi graphics_api,
+                  const glm::ivec2& screen_size,
                   MultisamplingMode multisampling_mode)
       : window_{"Triangle", screen_size} {
-    renderer_ = CreateRenderer(backend, "Triangle Example", {&window_});
+    renderer_ = CreateRenderer(graphics_api, "Triangle Example", {&window_});
 
     // TODO: Use refection API for locations.
     pipeline_descriptor_
         .SetName("Triangle")
         .SetShader(shader_stage::VERTEX,
-                   GetShaderPath(backend, "triangle/triangle.vert"))
+                   GetShaderPath(graphics_api, "triangle/triangle.vert"))
         .SetShader(shader_stage::FRAGMENT,
-                   GetShaderPath(backend, "triangle/triangle.frag"))
+                   GetShaderPath(graphics_api, "triangle/triangle.frag"))
         .AddColorAttachment(&renderer_->GetSwapchainImage(kWindowIndex),
                             {.location = 0, pipeline::GetColorAlphaBlend()})
         .AddVertexInput({
@@ -69,6 +70,6 @@ class TriangleExample {
 int main(int argc, char* argv[]) {
   using namespace lighter::example;
   return ExampleMain<TriangleExample>(
-      argc, argv, Backend::kVulkan, glm::ivec2{800, 600},
+      argc, argv, lighter::common::GraphicsApi::kVulkan, glm::ivec2{800, 600},
       MultisamplingMode::kDecent);
 }

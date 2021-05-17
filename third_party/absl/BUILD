@@ -13,6 +13,5 @@ cc_library(
         "//absl/strings:str_format",
         "//absl/types:span",
     ],
-    include_prefix = "third_party",
     visibility = ["//visibility:public"],
 )

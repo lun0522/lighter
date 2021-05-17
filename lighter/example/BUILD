@@ -11,6 +11,7 @@ cc_library(
     hdrs = ["util.h"],
     deps = [
         "//lighter/common:file",
+        "//lighter/common:graphics_api",
         "//lighter/common:util",
         "//lighter/common:window",
         "//lighter/renderer:align",

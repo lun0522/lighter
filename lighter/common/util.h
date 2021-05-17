@@ -102,22 +102,37 @@ class Logger {
   std::ostream& os_;
 };
 
-// Extracts value type from container.
+namespace internal {
+
 template <typename ContainerType>
-using ValueType = typename ContainerType::value_type;
+std::optional<int> GetIndexIfExists(
+    const ContainerType& container,
+    const typename ContainerType::const_iterator& iter) {
+  if (iter == container.end()) {
+    return std::nullopt;
+  }
+  return std::distance(container.begin(), iter);
+}
+
+}  // namespace internal
+
+// Returns the index of the first element that is equal to 'target'.
+// If there is no such element, returns std::nullopt.
+template <typename ValueType, typename TargetType>
+std::optional<int> FindIndexOfFirst(absl::Span<const ValueType> container,
+                                    const TargetType& target) {
+  const auto iter = std::find(container.begin(), container.end(), target);
+  return internal::GetIndexIfExists(container, iter);
+}
 
 // Returns the index of the first element that satisfies 'predicate'.
 // If there is no such element, returns std::nullopt.
 template <typename ValueType>
-std::optional<int> FindIndexOfFirst(
+std::optional<int> FindIndexOfFirstIf(
     absl::Span<const ValueType> container,
     const std::function<bool(const ValueType&)>& predicate) {
-  const auto first_itr = std::find_if(container.begin(), container.end(),
-                                      predicate);
-  if (first_itr == container.end()) {
-    return std::nullopt;
-  }
-  return std::distance(container.begin(), first_itr);
+  const auto iter = std::find_if(container.begin(), container.end(), predicate);
+  return internal::GetIndexIfExists(container, iter);
 }
 
 // Moves 'element' to the specified 'index' of 'container'. 'container' will be
@@ -194,7 +209,8 @@ ExtentType FindLargestExtent(const ExtentType& original_extent,
 template <typename AccumulatorType, typename ContainerType>
 AccumulatorType Reduce(
     const ContainerType& container,
-    absl::FunctionRef<AccumulatorType(const ValueType<ContainerType>&)>
+    absl::FunctionRef<AccumulatorType(
+        const typename ContainerType::template value_type<ContainerType>&)>
         extract_value) {
   return std::accumulate(
       container.begin(), container.end(), AccumulatorType{},

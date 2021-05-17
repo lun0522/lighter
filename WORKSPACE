@@ -141,6 +141,17 @@ http_archive(
 )
 
 #######################################
+# PicoSHA2
+
+http_archive(
+    name = "lib-picosha2",
+    build_file = "//:third_party/BUILD.picosha2",
+    sha256 = "feeccc60a01bad34fa8b60406592a0cbab197273a3e0cfbb38fba4789662307e",
+    strip_prefix = "PicoSHA2-1.0.0",
+    urls = ["https://github.com/okdshin/PicoSHA2/archive/v1.0.0.zip"],
+)
+
+#######################################
 # SPIRV-Cross
 
 spirv_cross_archive(

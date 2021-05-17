@@ -80,7 +80,7 @@ const ImageUsage* BasePass::GetImageUsage(const std::string& image_name,
   ValidateSubpass(subpass, image_name, /*include_virtual_subpasses=*/true);
   const ImageUsageHistory& history = GetUsageHistory(image_name);
   const auto iter = history.usage_at_subpass_map().find(subpass);
-  return iter == history.usage_at_subpass_map().end() ? nullptr : &iter->second;
+  return iter != history.usage_at_subpass_map().end() ? &iter->second : nullptr;
 }
 
 std::optional<BasePass::ImageUsagesInfo>

@@ -159,7 +159,7 @@ std::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
         return family.queueCount && (family.queueFlags & VK_QUEUE_GRAPHICS_BIT);
       };
   const auto graphics_queue_index =
-      common::util::FindIndexOfFirst<VkQueueFamilyProperties>(
+      common::util::FindIndexOfFirstIf<VkQueueFamilyProperties>(
           families, has_graphics_support);
   if (!graphics_queue_index.has_value()) {
     return std::nullopt;
@@ -172,7 +172,7 @@ std::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
         return family.queueCount && (family.queueFlags & VK_QUEUE_COMPUTE_BIT);
       };
   const auto compute_queue_index =
-      common::util::FindIndexOfFirst<VkQueueFamilyProperties>(
+      common::util::FindIndexOfFirstIf<VkQueueFamilyProperties>(
           families, has_compute_support);
   if (!compute_queue_index.has_value()) {
     return std::nullopt;
@@ -192,7 +192,7 @@ std::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
       return support;
     };
     const auto present_queue_index =
-        common::util::FindIndexOfFirst<VkQueueFamilyProperties>(
+        common::util::FindIndexOfFirstIf<VkQueueFamilyProperties>(
             families, has_present_support);
     if (!present_queue_index.has_value()) {
       return std::nullopt;
