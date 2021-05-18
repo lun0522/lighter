@@ -8,7 +8,6 @@
 #include "lighter/shader/compilation_record.h"
 
 #include <algorithm>
-#include <array>
 #include <exception>
 #include <optional>
 #include <vector>
@@ -26,28 +25,53 @@ using common::GraphicsApi;
 
 constexpr char kRecordFileName[] = ".compilation_record";
 
-// Returns the path to compilation record file. This file must either not exist
-// or be a regular file.
-stdfs::path GetRecordFilePath(std::string_view shader_dir) {
-  stdfs::path path = stdfs::path{shader_dir} / kRecordFileName;
-  if (stdfs::exists(path) && !stdfs::is_regular_file(path)) {
-    FATAL(absl::StrFormat("%s exists, but is not a regular file",
-                          path.string()));
-  }
-  return path;
-}
-
 }  // namespace
 
-CompilationRecordReader::CompilationRecordReader(std::string_view shader_dir) {
-  const stdfs::path record_file_path = GetRecordFilePath(shader_dir);
+std::tuple<CompilationRecordReader, CompilationRecordWriter>
+CompilationRecordHandler::CreateHandlers(std::string_view shader_dir) {
+  stdfs::path record_file_path = stdfs::path{shader_dir} / kRecordFileName;
+  if (stdfs::exists(record_file_path) &&
+      !stdfs::is_regular_file(record_file_path)) {
+    FATAL(absl::StrFormat("%s exists, but is not a regular file",
+                          record_file_path.string()));
+  }
+
+  CompilationRecordReader reader{record_file_path};
+  CompilationRecordWriter writer{std::move(record_file_path)};
+  return {std::move(reader), std::move(writer)};
+}
+
+const CompilationRecordHandler::ApiAbbreviationArray&
+CompilationRecordHandler::GetApiAbbreviations() {
+  static const ApiAbbreviationArray* api_abbreviations = nullptr;
+  if (api_abbreviations == nullptr) {
+    auto* abbreviations = new ApiAbbreviationArray{};
+    (*abbreviations)[kOpenglIndex] =
+        util::GetApiNameAbbreviation(GraphicsApi::kOpengl);
+    (*abbreviations)[kVulkanIndex] =
+        util::GetApiNameAbbreviation(GraphicsApi::kVulkan);
+    api_abbreviations = abbreviations;
+  }
+  return *api_abbreviations;
+}
+
+int CompilationRecordHandler::ApiToIndex(GraphicsApi graphics_api) {
+  switch (graphics_api) {
+    case GraphicsApi::kOpengl:
+      return kOpenglIndex;
+    case GraphicsApi::kVulkan:
+      return kVulkanIndex;
+  }
+}
+
+CompilationRecordReader::CompilationRecordReader(
+    const stdfs::path& record_file_path) {
   if (!stdfs::exists(record_file_path)) {
     return;
   }
   std::ifstream record_file{record_file_path, std::ios::in | std::ios::binary};
-  ASSERT_FALSE(
-      !record_file.is_open() || record_file.bad() || record_file.fail(),
-      absl::StrFormat("Failed to open %s", record_file_path.string()));
+  ASSERT_TRUE(record_file,
+              absl::StrCat("Failed to open %s", record_file_path.string()));
   ParseRecordFile(record_file);
 }
 
@@ -55,8 +79,8 @@ void CompilationRecordReader::ParseRecordFile(std::ifstream& record_file) {
   enum RecordSegmentIndex {
     kGraphicsApiIndex = 0,
     kSourceFilePathIndex,
-    kSourceFileSha256Index,
-    kCompiledFileSha256Index,
+    kSourceFileHashIndex,
+    kCompiledFileHashIndex,
     kNumSegments,
   };
 
@@ -70,16 +94,17 @@ void CompilationRecordReader::ParseRecordFile(std::ifstream& record_file) {
                                   kNumSegments, segments.size()));
 
       const std::string& api_abbreviation = segments[kGraphicsApiIndex];
-      auto& api_specific_map = file_hash_maps_[ApiToIndex(api_abbreviation)];
+      auto& api_specific_map =
+          file_hash_maps_[ApiAbbreviationToIndex(api_abbreviation)];
       std::string& source_file_path = segments[kSourceFilePathIndex];
       ASSERT_FALSE(api_specific_map.contains(source_file_path),
                    "Duplicated entry");
 
       api_specific_map.insert({
           std::move(source_file_path),
-          CompilationHash{
-              std::move(segments[kSourceFileSha256Index]),
-              std::move(segments[kCompiledFileSha256Index]),
+          FileHash{
+              std::move(segments[kSourceFileHashIndex]),
+              std::move(segments[kCompiledFileHashIndex]),
           },
       });
     }
@@ -89,41 +114,50 @@ void CompilationRecordReader::ParseRecordFile(std::ifstream& record_file) {
   }
 }
 
-int CompilationRecordReader::ApiToIndex(std::string_view abbreviation) const {
-  using ApiAbbreviationArray = std::array<std::string, kNumApis>;
-  static const ApiAbbreviationArray* api_abbreviations = nullptr;
-  if (api_abbreviations == nullptr) {
-    auto* abbreviations = new ApiAbbreviationArray{};
-    (*abbreviations)[kOpenglIndex] =
-        util::GetApiNameAbbreviation(GraphicsApi::kOpengl);
-    (*abbreviations)[kVulkanIndex] =
-        util::GetApiNameAbbreviation(GraphicsApi::kVulkan);
-    api_abbreviations = abbreviations;
-  }
-
+int CompilationRecordReader::ApiAbbreviationToIndex(
+    std::string_view abbreviation) const {
   const std::optional<int> index = common::util::FindIndexOfFirst(
-      absl::MakeSpan(*api_abbreviations), abbreviation);
+      absl::MakeSpan(GetApiAbbreviations()), abbreviation);
   ASSERT_HAS_VALUE(
       index, absl::StrFormat("Unrecognized graphics API '%s'", abbreviation));
   return index.value();
 }
 
-int CompilationRecordReader::ApiToIndex(GraphicsApi graphics_api) const {
-  switch (graphics_api) {
-    case GraphicsApi::kOpengl:
-      return kOpenglIndex;
-    case GraphicsApi::kVulkan:
-      return kVulkanIndex;
-  }
-}
-
-const CompilationHash* CompilationRecordReader::GetCompilationHash(
-    std::string_view source_file_path, GraphicsApi graphics_api) const {
+const CompilationRecordHandler::FileHash* CompilationRecordReader::GetFileHash(
+    GraphicsApi graphics_api, std::string_view source_file_path) const {
   ASSERT_TRUE(stdfs::path{source_file_path}.is_relative(),
               "Source file path is assumed to be a relative path");
   const auto& api_specific_map = file_hash_maps_[ApiToIndex(graphics_api)];
   const auto iter = api_specific_map.find(source_file_path);
   return iter != api_specific_map.end() ? &iter->second : nullptr;
+}
+
+void CompilationRecordWriter::RegisterFileHash(GraphicsApi graphics_api,
+                                               std::string&& source_file_path,
+                                               FileHash&& file_hash) {
+  auto& api_specific_map = file_hash_maps_[ApiToIndex(graphics_api)];
+  ASSERT_FALSE(api_specific_map.contains(source_file_path),
+               absl::StrFormat("%s: Duplicated entry for %s",
+                               GetApiAbbreviations()[ApiToIndex(graphics_api)],
+                               source_file_path));
+  api_specific_map.insert({std::move(source_file_path), std::move(file_hash)});
+}
+
+void CompilationRecordWriter::WriteAll() const {
+  std::ofstream record_file{record_file_path_, std::ios::out | std::ios::trunc};
+  ASSERT_TRUE(record_file,
+              absl::StrCat("Failed to open %s", record_file_path_.string()));
+
+  for (int api_index = 0; api_index < kNumApis; ++api_index) {
+    const std::string& api_abbreviation = GetApiAbbreviations()[api_index];
+    const auto& api_specific_map = file_hash_maps_[api_index];
+    for (const auto& [source_file_path, file_hash] : api_specific_map) {
+      record_file << absl::StreamFormat("%s %s %s %s\n",
+                                        api_abbreviation, source_file_path,
+                                        file_hash.source_file_hash,
+                                        file_hash.compiled_file_hash);
+    }
+  }
 }
 
 }  // namespace lighter::shader

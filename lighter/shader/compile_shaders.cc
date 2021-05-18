@@ -16,6 +16,7 @@ ABSL_FLAG(std::string, shader_dir, "", "Path to the shader directory");
 
 int main(int argc, char* argv[]) {
   namespace stdfs = std::filesystem;
+  using namespace lighter::shader;
 
   absl::ParseCommandLine(argc, argv);
 
@@ -25,7 +26,8 @@ int main(int argc, char* argv[]) {
     ASSERT_TRUE(stdfs::is_directory(stdfs::path{shader_dir}),
                 "--shader_dir must be a valid directory");
 
-    lighter::shader::CompilationRecordReader reader{shader_dir};
+    auto [reader, writer] =
+        CompilationRecordHandler::CreateHandlers(shader_dir);
   } catch (const std::exception& e) {
     LOG_INFO << e.what();
   }
