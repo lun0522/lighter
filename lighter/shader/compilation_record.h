@@ -16,6 +16,7 @@
 #include <tuple>
 
 #include "lighter/common/graphics_api.h"
+#include "lighter/common/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
 
 namespace lighter::shader {
@@ -36,11 +37,15 @@ class CompilationRecordHandler {
   };
 
   static std::tuple<CompilationRecordReader, CompilationRecordWriter>
-  CreateHandlers(std::string_view shader_dir);
+  CreateHandlers(const std::filesystem::path& shader_dir);
 
   virtual ~CompilationRecordHandler() = default;
 
  protected:
+  // Maps the source file path to hash values of source and compiled files.
+  using FileHashValueMap = absl::flat_hash_map<std::filesystem::path, FileHash,
+                                               common::util::PathHash>;
+
   enum ApiIndex {
     kOpenglIndex = 0,
     kVulkanIndex,
@@ -71,8 +76,9 @@ class CompilationRecordReader : public CompilationRecordHandler {
 
   // Returns a pointer to 'FileHash' if it is in the compilation record file.
   // Otherwise, returns nullptr.
-  const FileHash* GetFileHash(common::GraphicsApi graphics_api,
-                              std::string_view source_file_path) const;
+  const FileHash* GetFileHash(
+      common::GraphicsApi graphics_api,
+      const std::filesystem::path& source_file_path) const;
 
  private:
   // Parses the compilation record file and populates 'file_hash_maps_'.
@@ -83,7 +89,7 @@ class CompilationRecordReader : public CompilationRecordHandler {
   int ApiAbbreviationToIndex(std::string_view abbreviation) const;
 
   // Maps the source file path to hash values of source and compiled files.
-  absl::flat_hash_map<std::string, FileHash> file_hash_maps_[kNumApis];
+  FileHashValueMap file_hash_maps_[kNumApis];
 };
 
 // This class collects hash values of files before/after compilation, and writes
@@ -101,7 +107,7 @@ class CompilationRecordWriter : public CompilationRecordHandler {
   // Registers file hash values, and throws a runtime exception if this file has
   // already been registered with the same graphics API.
   void RegisterFileHash(common::GraphicsApi graphics_api,
-                        std::string&& source_file_path,
+                        std::filesystem::path&& source_file_path,
                         FileHash&& file_hash);
 
   // Writes all registered file hash values to the compilation record file.
@@ -118,7 +124,7 @@ class CompilationRecordWriter : public CompilationRecordHandler {
   std::filesystem::path record_file_path_;
 
   // Maps the source file path to hash values of source and compiled files.
-  absl::flat_hash_map<std::string, FileHash> file_hash_maps_[kNumApis];
+  FileHashValueMap file_hash_maps_[kNumApis];
 };
 
 }  // namespace lighter::shader

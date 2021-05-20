@@ -9,6 +9,7 @@
 #define LIGHTER_COMMON_UTIL_H
 
 #include <algorithm>
+#include <filesystem>
 #include <functional>
 #include <iostream>
 #include <iterator>
@@ -228,12 +229,19 @@ inline bool IsPowerOf2(unsigned int x) {
   return (x & (x - 1)) == 0;
 }
 
-// Helper class to enable using an enum class as the key of a hash table:
+// Helper class to enable using an enum class as the key of a hash map:
 //   absl::flat_hash_map<KeyType, ValueType, EnumClassHash>;
 struct EnumClassHash {
   template <typename EnumClass>
   std::size_t operator()(EnumClass value) const {
     return static_cast<std::size_t>(value);
+  }
+};
+
+// Helper class to enable using std::filesystem::path as the key of a hash map.
+struct PathHash {
+  std::size_t operator()(const std::filesystem::path& path) const {
+    return std::filesystem::hash_value(path);
   }
 };
 

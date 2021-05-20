@@ -72,7 +72,7 @@ std::ifstream OpenFile(std::string_view path) {
   // On Windows, character 26 (Ctrl+Z) is treated as EOF, so we have to include
   // std::ios::binary.
   std::ifstream file{path.data(), std::ios::in | std::ios::binary};
-  ASSERT_TRUE(file, absl::StrCat("Failed to open file: %s", path));
+  ASSERT_TRUE(file, absl::StrFormat("Failed to open file %s", path));
   return file;
 }
 
@@ -126,7 +126,7 @@ RawData::RawData(std::string_view path) {
   auto* content = new char[size];
   file.seekg(0, std::ios::beg);
   file.read(content, size);
-  ASSERT_TRUE(file, absl::StrCat("Failed to read file: ", path));
+  ASSERT_TRUE(file, absl::StrFormat("Failed to read file %s", path));
   data = content;
 }
 

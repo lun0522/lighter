@@ -12,7 +12,6 @@
 #include <optional>
 #include <vector>
 
-#include "lighter/common/util.h"
 #include "lighter/shader/util.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/strings/str_split.h"
@@ -28,8 +27,9 @@ constexpr char kRecordFileName[] = ".compilation_record";
 }  // namespace
 
 std::tuple<CompilationRecordReader, CompilationRecordWriter>
-CompilationRecordHandler::CreateHandlers(std::string_view shader_dir) {
-  stdfs::path record_file_path = stdfs::path{shader_dir} / kRecordFileName;
+CompilationRecordHandler::CreateHandlers(
+    const std::filesystem::path& shader_dir) {
+  stdfs::path record_file_path = shader_dir / kRecordFileName;
   if (stdfs::exists(record_file_path) &&
       !stdfs::is_regular_file(record_file_path)) {
     FATAL(absl::StrFormat("%s exists, but is not a regular file",
@@ -71,7 +71,7 @@ CompilationRecordReader::CompilationRecordReader(
   }
   std::ifstream record_file{record_file_path, std::ios::in | std::ios::binary};
   ASSERT_TRUE(record_file,
-              absl::StrCat("Failed to open %s", record_file_path.string()));
+              absl::StrFormat("Failed to open %s", record_file_path.string()));
   ParseRecordFile(record_file);
 }
 
@@ -96,7 +96,7 @@ void CompilationRecordReader::ParseRecordFile(std::ifstream& record_file) {
       const std::string& api_abbreviation = segments[kGraphicsApiIndex];
       auto& api_specific_map =
           file_hash_maps_[ApiAbbreviationToIndex(api_abbreviation)];
-      std::string& source_file_path = segments[kSourceFilePathIndex];
+      stdfs::path source_file_path{std::move(segments[kSourceFilePathIndex])};
       ASSERT_FALSE(api_specific_map.contains(source_file_path),
                    "Duplicated entry");
 
@@ -124,8 +124,8 @@ int CompilationRecordReader::ApiAbbreviationToIndex(
 }
 
 const CompilationRecordHandler::FileHash* CompilationRecordReader::GetFileHash(
-    GraphicsApi graphics_api, std::string_view source_file_path) const {
-  ASSERT_TRUE(stdfs::path{source_file_path}.is_relative(),
+    GraphicsApi graphics_api, const stdfs::path& source_file_path) const {
+  ASSERT_TRUE(source_file_path.is_relative(),
               "Source file path is assumed to be a relative path");
   const auto& api_specific_map = file_hash_maps_[ApiToIndex(graphics_api)];
   const auto iter = api_specific_map.find(source_file_path);
@@ -133,29 +133,29 @@ const CompilationRecordHandler::FileHash* CompilationRecordReader::GetFileHash(
 }
 
 void CompilationRecordWriter::RegisterFileHash(GraphicsApi graphics_api,
-                                               std::string&& source_file_path,
+                                               stdfs::path&& source_file_path,
                                                FileHash&& file_hash) {
   auto& api_specific_map = file_hash_maps_[ApiToIndex(graphics_api)];
   ASSERT_FALSE(api_specific_map.contains(source_file_path),
                absl::StrFormat("%s: Duplicated entry for %s",
                                GetApiAbbreviations()[ApiToIndex(graphics_api)],
-                               source_file_path));
+                               source_file_path.string()));
   api_specific_map.insert({std::move(source_file_path), std::move(file_hash)});
 }
 
 void CompilationRecordWriter::WriteAll() const {
   std::ofstream record_file{record_file_path_, std::ios::out | std::ios::trunc};
   ASSERT_TRUE(record_file,
-              absl::StrCat("Failed to open %s", record_file_path_.string()));
+              absl::StrFormat("Failed to open %s", record_file_path_.string()));
 
   for (int api_index = 0; api_index < kNumApis; ++api_index) {
     const std::string& api_abbreviation = GetApiAbbreviations()[api_index];
     const auto& api_specific_map = file_hash_maps_[api_index];
     for (const auto& [source_file_path, file_hash] : api_specific_map) {
-      record_file << absl::StreamFormat("%s %s %s %s\n",
-                                        api_abbreviation, source_file_path,
-                                        file_hash.source_file_hash,
-                                        file_hash.compiled_file_hash);
+      record_file << absl::StreamFormat(
+          "%s %s %s %s\n",
+          api_abbreviation, source_file_path.string(),
+          file_hash.source_file_hash, file_hash.compiled_file_hash);
     }
   }
 }

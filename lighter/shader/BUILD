@@ -12,11 +12,23 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "compiler",
+    hdrs = ["compiler.h"],
+    srcs = ["compiler.cc"],
+    deps = [
+        ":compilation_record",
+        "//lighter/common:graphics_api",
+        "//lighter/common:util",
+        "//third_party:absl",
+    ],
+)
+
 cc_binary(
     name = "compile_shaders",
     srcs = ["compile_shaders.cc"],
     deps = [
-        ":compilation_record",
+        ":compiler",
         "//third_party:absl",
     ],
 )
