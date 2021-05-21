@@ -126,7 +126,7 @@ http_archive(
     name = "lib-glm",
     build_file = "//:third_party/BUILD.glm",
     sha256 = "4605259c22feadf35388c027f07b345ad3aa3b12631a5a316347f7566c6f1839",
-    strip_prefix = "glm-0.9.9.8/glm",
+    strip_prefix = "glm-0.9.9.8",
     urls = ["https://github.com/g-truc/glm/archive/0.9.9.8.zip"],
 )
 
@@ -143,12 +143,20 @@ http_archive(
 #######################################
 # PicoSHA2
 
-http_archive(
+new_git_repository(
     name = "lib-picosha2",
     build_file = "//:third_party/BUILD.picosha2",
-    sha256 = "feeccc60a01bad34fa8b60406592a0cbab197273a3e0cfbb38fba4789662307e",
-    strip_prefix = "PicoSHA2-1.0.0",
-    urls = ["https://github.com/okdshin/PicoSHA2/archive/v1.0.0.zip"],
+    commit = "b699e6c900be6e00152db5a3d123c1db42ea13d0",
+    remote = "https://github.com/okdshin/PicoSHA2.git",
+    shallow_since = "1531968639 +0900",
+)
+
+#######################################
+# shaderc
+
+use_vulkan_sdk(
+    name = "lib-shaderc-windows",
+    build_file_abs_path = __workspace_dir__ + "/third_party/shaderc/BUILD.windows",
 )
 
 #######################################

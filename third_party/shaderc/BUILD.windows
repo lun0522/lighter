@@ -3,14 +3,15 @@ package(default_visibility = ["//visibility:private"])
 licenses(["notice"])
 
 cc_import(
-    name = "libvulkan",
-    static_library = "vulkan-sdk/Lib/vulkan-1.lib",
+    name = "libshaderc",
+    static_library = "vulkan-sdk/Lib/shaderc.lib",
 )
 
 cc_library(
-    name = "vulkan",
-    hdrs = glob(["vulkan-sdk/include/vulkan/*.h"]),
-    deps = [":libvulkan"],
+    name = "shaderc",
+    hdrs = glob(["vulkan-sdk/include/shaderc/*"]),
+    includes = ["vulkan-sdk/include"],
+    deps = [":libshaderc"],
     include_prefix = "third_party",
     strip_include_prefix = "vulkan-sdk/include",
     visibility = ["//visibility:public"],

@@ -13,7 +13,7 @@
 #include <fstream>
 #include <string>
 #include <string_view>
-#include <tuple>
+#include <utility>
 
 #include "lighter/common/graphics_api.h"
 #include "lighter/common/util.h"
@@ -36,7 +36,7 @@ class CompilationRecordHandler {
     std::string compiled_file_hash;
   };
 
-  static std::tuple<CompilationRecordReader, CompilationRecordWriter>
+  static std::pair<CompilationRecordReader, CompilationRecordWriter>
   CreateHandlers(const std::filesystem::path& shader_dir);
 
   virtual ~CompilationRecordHandler() = default;
@@ -111,7 +111,7 @@ class CompilationRecordWriter : public CompilationRecordHandler {
                         FileHash&& file_hash);
 
   // Writes all registered file hash values to the compilation record file.
-  static void WriteToDisk(CompilationRecordWriter&& writer) {
+  static void WriteAll(CompilationRecordWriter&& writer) {
     writer.WriteAll();
   }
 

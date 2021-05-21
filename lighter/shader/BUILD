@@ -5,7 +5,6 @@ cc_library(
     hdrs = ["compilation_record.h"],
     srcs = ["compilation_record.cc"],
     deps = [
-        ":util",
         "//lighter/common:graphics_api",
         "//lighter/common:util",
         "//third_party:absl",
@@ -21,6 +20,8 @@ cc_library(
         "//lighter/common:graphics_api",
         "//lighter/common:util",
         "//third_party:absl",
+        "//third_party:picosha2",
+        "//third_party:shaderc",
     ],
 )
 
@@ -37,11 +38,4 @@ filegroup(
     name = "shader",
     srcs = glob(["**/*.spv"]),
     visibility = ["//lighter:__subpackages__"],
-)
-
-cc_library(
-    name = "util",
-    hdrs = ["util.h"],
-    srcs = ["util.cc"],
-    deps = ["//lighter/common:graphics_api"],
 )

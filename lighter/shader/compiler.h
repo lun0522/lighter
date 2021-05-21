@@ -12,6 +12,7 @@
 
 namespace lighter::shader::compiler {
 
+// Compiles all shader files in 'shader_dir', which must be a valid directory.
 void Compile(const std::filesystem::path& shader_dir);
 
 }  // namespace lighter::shader::compiler

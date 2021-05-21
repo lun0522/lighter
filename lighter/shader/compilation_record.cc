@@ -12,7 +12,6 @@
 #include <optional>
 #include <vector>
 
-#include "lighter/shader/util.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/strings/str_split.h"
 
@@ -26,14 +25,14 @@ constexpr char kRecordFileName[] = ".compilation_record";
 
 }  // namespace
 
-std::tuple<CompilationRecordReader, CompilationRecordWriter>
+std::pair<CompilationRecordReader, CompilationRecordWriter>
 CompilationRecordHandler::CreateHandlers(
     const std::filesystem::path& shader_dir) {
   stdfs::path record_file_path = shader_dir / kRecordFileName;
   if (stdfs::exists(record_file_path) &&
       !stdfs::is_regular_file(record_file_path)) {
     FATAL(absl::StrFormat("%s exists, but is not a regular file",
-                          record_file_path.string()));
+                          stdfs::absolute(record_file_path).string()));
   }
 
   CompilationRecordReader reader{record_file_path};
@@ -47,9 +46,9 @@ CompilationRecordHandler::GetApiAbbreviations() {
   if (api_abbreviations == nullptr) {
     auto* abbreviations = new ApiAbbreviationArray{};
     (*abbreviations)[kOpenglIndex] =
-        util::GetApiNameAbbreviation(GraphicsApi::kOpengl);
+        common::GetApiAbbreviatedName(GraphicsApi::kOpengl);
     (*abbreviations)[kVulkanIndex] =
-        util::GetApiNameAbbreviation(GraphicsApi::kVulkan);
+        common::GetApiAbbreviatedName(GraphicsApi::kVulkan);
     api_abbreviations = abbreviations;
   }
   return *api_abbreviations;

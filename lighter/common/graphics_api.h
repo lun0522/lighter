@@ -8,9 +8,22 @@
 #ifndef LIGHTER_COMMON_GRAPHICS_API_H
 #define LIGHTER_COMMON_GRAPHICS_API_H
 
+#include <array>
+
 namespace lighter::common {
 
 enum class GraphicsApi { kOpengl, kVulkan };
+
+// Returns the full list of supported graphics APIs.
+inline std::array<GraphicsApi, 2> GetAllApis() {
+  return {GraphicsApi::kOpengl, GraphicsApi::kVulkan};
+}
+
+// Returns the full name of 'api'.
+const char* GetApiFullName(GraphicsApi api);
+
+// Returns the abbreviated name of 'api'.
+const char* GetApiAbbreviatedName(GraphicsApi api);
 
 }  // namespace lighter::common
 

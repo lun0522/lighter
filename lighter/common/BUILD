@@ -43,6 +43,7 @@ cc_library(
 cc_library(
     name = "graphics_api",
     hdrs = ["graphics_api.h"],
+    srcs = ["graphics_api.cc"],
 )
 
 cc_library(
