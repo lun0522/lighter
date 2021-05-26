@@ -19,7 +19,7 @@ namespace lighter::shader {
 namespace {
 
 namespace stdfs = std::filesystem;
-using common::GraphicsApi;
+using common::api::GraphicsApi;
 
 constexpr char kRecordFileName[] = ".compilation_record";
 
@@ -46,9 +46,9 @@ CompilationRecordHandler::GetApiAbbreviations() {
   if (api_abbreviations == nullptr) {
     auto* abbreviations = new ApiAbbreviationArray{};
     (*abbreviations)[kOpenglIndex] =
-        common::GetApiAbbreviatedName(GraphicsApi::kOpengl);
+        common::api::GetApiAbbreviatedName(GraphicsApi::kOpengl);
     (*abbreviations)[kVulkanIndex] =
-        common::GetApiAbbreviatedName(GraphicsApi::kVulkan);
+        common::api::GetApiAbbreviatedName(GraphicsApi::kVulkan);
     api_abbreviations = abbreviations;
   }
   return *api_abbreviations;

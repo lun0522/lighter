@@ -1,2 +1,3 @@
-# Compiled shader files will not be added to Git
+# Compiled shader binaries and the compilation record file will not be added to Git
 **/*.spv
+.compilation_record

@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "lighter/common/file.h"
+#include "lighter/common/graphics_api.h"
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vk/type_mapping.h"
 #include "lighter/renderer/vk/util.h"
@@ -78,7 +79,6 @@ std::vector<ShaderStage> CreateShaderStages(
 // main() function.
 std::vector<VkPipelineShaderStageCreateInfo> CreateShaderStageInfos(
     const std::vector<ShaderStage>* shader_stages) {
-  static constexpr char kShaderEntryPoint[] = "main";
   std::vector<VkPipelineShaderStageCreateInfo> shader_stage_infos;
   shader_stage_infos.reserve(shader_stages->size());
   for (const auto& stage : *shader_stages) {
@@ -88,7 +88,7 @@ std::vector<VkPipelineShaderStageCreateInfo> CreateShaderStageInfos(
         .flags = nullflag,
         stage.stage,
         **stage.module,
-        .pName = kShaderEntryPoint,
+        .pName = common::api::kShaderEntryPoint,
         // May use 'pSpecializationInfo' to specify shader constants.
         .pSpecializationInfo = nullptr,
     });

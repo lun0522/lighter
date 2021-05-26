@@ -7,7 +7,7 @@
 
 #include "lighter/common/graphics_api.h"
 
-namespace lighter::common {
+namespace lighter::common::api {
 
 const char* GetApiFullName(GraphicsApi api) {
   switch (api) {
@@ -27,4 +27,4 @@ const char* GetApiAbbreviatedName(GraphicsApi api) {
   }
 }
 
-}  // namespace lighter::common
+}  // namespace lighter::common::api

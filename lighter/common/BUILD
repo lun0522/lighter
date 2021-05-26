@@ -33,6 +33,7 @@ cc_library(
     srcs = ["file.cc"],
     hdrs = ["file.h"],
     deps = [
+        ":graphics_api",
         ":util",
         "//third_party:absl",
         "//third_party:glm",

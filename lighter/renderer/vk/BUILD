@@ -91,6 +91,7 @@ cc_library(
         ":type_mapping",
         ":util",
         "//lighter/common:file",
+        "//lighter/common:graphics_api",
         "//lighter/common:ref_count",
         "//lighter/common:util",
         "//lighter/renderer:image",

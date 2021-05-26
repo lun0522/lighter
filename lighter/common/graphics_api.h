@@ -10,12 +10,18 @@
 
 #include <array>
 
-namespace lighter::common {
+namespace lighter::common::api {
+
+constexpr const char kSpirvBinaryFileExtension[] = ".spv";
+
+constexpr const char kShaderEntryPoint[] = "main";
 
 enum class GraphicsApi { kOpengl, kVulkan };
 
+constexpr int kNumSupportedApis = 2;
+
 // Returns the full list of supported graphics APIs.
-inline std::array<GraphicsApi, 2> GetAllApis() {
+inline std::array<GraphicsApi, kNumSupportedApis> GetAllApis() {
   return {GraphicsApi::kOpengl, GraphicsApi::kVulkan};
 }
 
@@ -25,6 +31,6 @@ const char* GetApiFullName(GraphicsApi api);
 // Returns the abbreviated name of 'api'.
 const char* GetApiAbbreviatedName(GraphicsApi api);
 
-}  // namespace lighter::common
+}  // namespace lighter::common::api
 
 #endif  // LIGHTER_COMMON_GRAPHICS_API_H

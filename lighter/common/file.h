@@ -15,6 +15,7 @@
 
 #include "third_party/absl/flags/declare.h"
 #include "third_party/absl/flags/flag.h"
+#include "third_party/absl/types/span.h"
 #include "third_party/absl/strings/str_cat.h"
 #include "third_party/glm/glm.hpp"
 
@@ -57,6 +58,9 @@ struct RawData {
   RawData& operator=(const RawData&) = delete;
 
   ~RawData() { delete[] data; }
+
+  // Returns the whole data span, which lives as long as this `RawData` object.
+  absl::Span<const char> GetSpan() const { return {data, size}; }
 
   // Pointer to data.
   const char* data;

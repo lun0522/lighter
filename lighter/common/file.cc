@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <fstream>
 
+#include "lighter/common/graphics_api.h"
 #include "lighter/common/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/strings/str_format.h"
@@ -72,7 +73,7 @@ std::ifstream OpenFile(std::string_view path) {
   // On Windows, character 26 (Ctrl+Z) is treated as EOF, so we have to include
   // std::ios::binary.
   std::ifstream file{path.data(), std::ios::in | std::ios::binary};
-  ASSERT_TRUE(file, absl::StrFormat("Failed to open file %s", path));
+  ASSERT_TRUE(file, absl::StrFormat("Failed to open file '%s'", path));
   return file;
 }
 
@@ -107,14 +108,17 @@ std::string GetResourcePath(std::string_view relative_file_path,
   return full_path;
 }
 
+// TODO: Use api::GetApiAbbreviatedName.
 std::string GetGlShaderPath(std::string_view relative_path) {
-  return RunfileLookup::GetFullPath("lighter/lighter/shader/opengl/",
-                                    relative_path, ".spv");
+  return RunfileLookup::GetFullPath(
+      "lighter/lighter/shader/gl/", relative_path,
+      api::kSpirvBinaryFileExtension);
 }
 
 std::string GetVkShaderPath(std::string_view relative_path) {
-  return RunfileLookup::GetFullPath("lighter/lighter/shader/vulkan/",
-                                    relative_path, ".spv");
+  return RunfileLookup::GetFullPath(
+      "lighter/lighter/shader/vk/", relative_path,
+      api::kSpirvBinaryFileExtension);
 }
 
 }  // namespace file
@@ -126,7 +130,7 @@ RawData::RawData(std::string_view path) {
   auto* content = new char[size];
   file.seekg(0, std::ios::beg);
   file.read(content, size);
-  ASSERT_TRUE(file, absl::StrFormat("Failed to read file %s", path));
+  ASSERT_TRUE(file, absl::StrFormat("Failed to read file '%s'", path));
   data = content;
 }
 

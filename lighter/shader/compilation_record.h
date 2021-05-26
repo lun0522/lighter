@@ -59,7 +59,7 @@ class CompilationRecordHandler {
   static const ApiAbbreviationArray& GetApiAbbreviations();
 
   // Converts a graphics API to the index, which can be used for arrays, etc.
-  static int ApiToIndex(common::GraphicsApi graphics_api);
+  static int ApiToIndex(common::api::GraphicsApi graphics_api);
 };
 
 // This class reads the compilation record file and converts it to hash maps for
@@ -77,7 +77,7 @@ class CompilationRecordReader : public CompilationRecordHandler {
   // Returns a pointer to 'FileHash' if it is in the compilation record file.
   // Otherwise, returns nullptr.
   const FileHash* GetFileHash(
-      common::GraphicsApi graphics_api,
+      common::api::GraphicsApi graphics_api,
       const std::filesystem::path& source_file_path) const;
 
  private:
@@ -106,7 +106,7 @@ class CompilationRecordWriter : public CompilationRecordHandler {
 
   // Registers file hash values, and throws a runtime exception if this file has
   // already been registered with the same graphics API.
-  void RegisterFileHash(common::GraphicsApi graphics_api,
+  void RegisterFileHash(common::api::GraphicsApi graphics_api,
                         std::filesystem::path&& source_file_path,
                         FileHash&& file_hash);
 

@@ -4,12 +4,12 @@ licenses(["notice"])
 
 cc_import(
     name = "libshaderc",
-    static_library = "vulkan-sdk/Lib/shaderc.lib",
+    static_library = "vulkan-sdk/Lib/shaderc_combined.lib",
 )
 
 cc_library(
     name = "shaderc",
-    hdrs = glob(["vulkan-sdk/include/shaderc/*"]),
+    hdrs = glob(["vulkan-sdk/include/shaderc/*.h"]),
     includes = ["vulkan-sdk/include"],
     deps = [":libshaderc"],
     include_prefix = "third_party",
