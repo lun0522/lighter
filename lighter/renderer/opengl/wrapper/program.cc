@@ -57,7 +57,7 @@ Shader::Shader(GLenum shader_type, const std::string& file_path)
 
   if (const auto error = CheckStatus(shader_, GL_COMPILE_STATUS, glGetShaderiv,
                                      glGetShaderInfoLog)) {
-    FATAL(absl::StrFormat("Failed to compile shader loaded from %s: %s",
+    FATAL(absl::StrFormat("Failed to compile shader loaded from '%s': %s",
                           file_path, error.value().data()));
   }
 }
@@ -77,8 +77,8 @@ Program::Program(const absl::flat_hash_map<GLenum, std::string>&
     const auto shader = Shader::RefCountedShader::Get(
         /*identifier=*/file_path, shader_type, file_path);
     ASSERT_TRUE(shader->shader_type() == shader_type,
-                absl::StrFormat("Previous shader type specified for %s was %d, "
-                                "but now type %d instead",
+                absl::StrFormat("Previous shader type specified for '%s' was "
+                                "%d, but now type %d instead",
                                 file_path, shader->shader_type(), shader_type));
 
     glAttachShader(program_, **shader);

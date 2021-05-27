@@ -46,7 +46,7 @@ Image::Image(absl::Span<const std::string> paths) {
       static_cast<int>(raw_data->size),
       &dimension_.width, &dimension_.height, &dimension_.channel, STBI_default);
   ASSERT_NON_NULL(
-      data, absl::StrFormat("Failed to read image from %s", paths[0]));
+      data, absl::StrFormat("Failed to read image from '%s'", paths[0]));
 
   // If the image has 3 channels, reload it so that it has 4 channels.
   switch (channel()) {
@@ -127,13 +127,13 @@ const void* Image::LoadImageFromFile(std::string_view path) const {
       static_cast<int>(raw_data->size),
       &width, &height, &channel, /*desired_channels=*/this->channel());
 
-  ASSERT_NON_NULL(data, absl::StrFormat("Failed to read image from %s", path));
+  ASSERT_NON_NULL(data, absl::StrFormat("Failed to read image from '%s'", path));
   ASSERT_TRUE(width == this->width(),
-              absl::StrFormat("Image loaded from %s has different width (%d vs "
-                              "%d from first image)",
+              absl::StrFormat("Image loaded from '%s' has different width (%d "
+                              "vs %d from first image)",
                               path, width, this->width()));
   ASSERT_TRUE(height == this->height(),
-              absl::StrFormat("Image loaded from %s has different height (%d "
+              absl::StrFormat("Image loaded from '%s' has different height (%d "
                               "vs %d from first image)",
                               path, height, this->height()));
 

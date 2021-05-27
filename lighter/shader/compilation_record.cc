@@ -71,7 +71,8 @@ CompilationRecordReader::CompilationRecordReader(
   }
   std::ifstream record_file{record_file_path, std::ios::in | std::ios::binary};
   ASSERT_TRUE(record_file,
-              absl::StrFormat("Failed to open %s", record_file_path.string()));
+              absl::StrFormat("Failed to open '%s'",
+                              record_file_path.string()));
   ParseRecordFile(record_file, opt_level);
 }
 
@@ -151,7 +152,7 @@ void CompilationRecordWriter::RegisterFileHash(GraphicsApi graphics_api,
                                                FileHash&& file_hash) {
   auto& api_specific_map = file_hash_maps_[ApiToIndex(graphics_api)];
   ASSERT_FALSE(api_specific_map.contains(source_file_path),
-               absl::StrFormat("%s: Duplicated entry for %s",
+               absl::StrFormat("%s: Duplicated entry for '%s'",
                                GetApiAbbreviations()[ApiToIndex(graphics_api)],
                                source_file_path.string()));
   api_specific_map.insert({std::move(source_file_path), std::move(file_hash)});
@@ -161,7 +162,8 @@ void CompilationRecordWriter::WriteAll() const {
   std::ofstream record_file{record_file_path_,
                             std::ios::out | std::ios::binary | std::ios::trunc};
   ASSERT_TRUE(record_file,
-              absl::StrFormat("Failed to open %s", record_file_path_.string()));
+              absl::StrFormat("Failed to open '%s'",
+                              record_file_path_.string()));
 
   // Write header.
   record_file << absl::StreamFormat("%s\n", util::OptLevelToText(opt_level_));

@@ -45,6 +45,7 @@ cc_library(
         ":util",
         "//lighter/common:file",
         "//lighter/common:graphics_api",
+        "//lighter/common:timer",
         "//lighter/common:util",
         "//third_party:absl",
         "//third_party:picosha2",

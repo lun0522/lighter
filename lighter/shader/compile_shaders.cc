@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
   try {
     absl::ParseCommandLine(argc, argv);
 
-    const stdfs::path shader_dir{absl::GetFlag(FLAGS_shader_dir)};
+    stdfs::path shader_dir{absl::GetFlag(FLAGS_shader_dir)};
     ASSERT_TRUE(stdfs::is_directory(shader_dir),
                 "Please specify a valid shader directory with --shader_dir");
 
@@ -34,10 +34,11 @@ int main(int argc, char* argv[]) {
     ASSERT_HAS_VALUE(opt_level,
                      "--opt_level must either be 'none', 'size' or 'perf'");
 
-    lighter::shader::compiler::CompileShaders(shader_dir, opt_level.value());
+    compiler::CompileShaders(std::move(shader_dir), opt_level.value());
   } catch (const std::exception& e) {
     LOG_INFO << e.what();
+    return EXIT_FAILURE;
   }
 
-  return 0;
+  return EXIT_SUCCESS;
 }
