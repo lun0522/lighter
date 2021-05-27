@@ -116,7 +116,6 @@ class PlanetApp : public Application {
 PlanetApp::PlanetApp(const WindowContext::Config& window_config)
     : Application{"Planet", window_config} {
   using common::file::GetResourcePath;
-  using common::file::GetVkShaderPath;
   using WindowKey = common::Window::KeyMap;
   using ControlKey = common::UserControlledCamera::ControlKey;
   using TextureType = ModelBuilder::TextureType;
@@ -191,9 +190,9 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetVkShaderPath("planet/planet.vert"))
+                 GetShaderBinaryPath("planet/planet.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetVkShaderPath("planet/planet.frag"))
+                 GetShaderBinaryPath("planet/planet.frag"))
       .Build();
 
   GenerateAsteroidModels();
@@ -212,9 +211,9 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetVkShaderPath("planet/asteroid.vert"))
+                 GetShaderBinaryPath("planet/asteroid.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetVkShaderPath("planet/planet.frag"))
+                 GetShaderBinaryPath("planet/planet.frag"))
       .Build();
 
   const SharedTexture::CubemapPath skybox_path{
@@ -238,9 +237,9 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetVkShaderPath("shared/skybox.vert"))
+                 GetShaderBinaryPath("shared/skybox.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetVkShaderPath("shared/skybox.frag"))
+                 GetShaderBinaryPath("shared/skybox.frag"))
       .Build();
 
   /* Render pass */

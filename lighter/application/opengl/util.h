@@ -12,6 +12,7 @@
 
 #include "lighter/application/util.h"
 #include "lighter/common/file.h"
+#include "lighter/common/graphics_api.h"
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
 #include "lighter/common/window.h"

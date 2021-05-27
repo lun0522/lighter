@@ -63,9 +63,13 @@ TriangleApp::TriangleApp()
   program_ = std::make_unique<Program>(
       absl::flat_hash_map<GLenum, std::string>{
           {GL_VERTEX_SHADER,
-              common::file::GetGlShaderPath("triangle/triangle.vert")},
+              common::file::GetShaderBinaryPath(
+                  "triangle/triangle.vert",
+                  common::api::GraphicsApi::kOpengl)},
           {GL_FRAGMENT_SHADER,
-              common::file::GetGlShaderPath("triangle/triangle.frag")}});
+              common::file::GetShaderBinaryPath(
+                  "triangle/triangle.frag",
+                  common::api::GraphicsApi::kOpengl)}});
 
   const std::array<Vertex3DWithColor, 3> vertex_data{
       Vertex3DWithColor{/*pos=*/{0.5f, -0.5f, 0.0f},

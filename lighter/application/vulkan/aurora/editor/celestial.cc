@@ -7,6 +7,7 @@
 
 #include "lighter/application/vulkan/aurora/editor/celestial.h"
 
+#include "lighter/application/vulkan/util.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/align.h"
 
@@ -40,7 +41,6 @@ Celestial::Celestial(const SharedBasicContext& context,
                      float viewport_aspect_ratio, int num_frames_in_flight)
     : viewport_aspect_ratio_{viewport_aspect_ratio} {
   using common::file::GetResourcePath;
-  using common::file::GetVkShaderPath;
   using TextureType = ModelBuilder::TextureType;
   constexpr int kObjFileIndexBase = 1;
 
@@ -72,9 +72,9 @@ Celestial::Celestial(const SharedBasicContext& context,
       .SetPushConstantShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT)
       .AddPushConstant(earth_constant_.get(), /*target_offset=*/0)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetVkShaderPath("aurora/earth.vert"))
+                 GetShaderBinaryPath("aurora/earth.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetVkShaderPath("aurora/earth.frag"))
+                 GetShaderBinaryPath("aurora/earth.frag"))
       .Build();
 
   const SharedTexture::CubemapPath skybox_path{
@@ -98,9 +98,9 @@ Celestial::Celestial(const SharedBasicContext& context,
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetVkShaderPath("shared/skybox.vert"))
+                 GetShaderBinaryPath("shared/skybox.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetVkShaderPath("shared/skybox.frag"))
+                 GetShaderBinaryPath("shared/skybox.frag"))
       .Build();
 }
 

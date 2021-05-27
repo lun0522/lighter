@@ -16,6 +16,7 @@
 #include "lighter/application/util.h"
 #include "lighter/common/camera.h"
 #include "lighter/common/file.h"
+#include "lighter/common/graphics_api.h"
 #include "lighter/common/image.h"
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
@@ -80,6 +81,12 @@ class Application {
   // Onscreen rendering context.
   renderer::vulkan::WindowContext window_context_;
 };
+
+// Returns the full path to compiled shader binary.
+inline std::string GetShaderBinaryPath(std::string_view relative_path) {
+  return common::file::GetShaderBinaryPath(relative_path,
+                                           common::api::GraphicsApi::kVulkan);
+}
 
 // Holds identifiers of an attachment image.
 class AttachmentInfo {

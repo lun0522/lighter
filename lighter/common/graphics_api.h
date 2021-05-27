@@ -12,10 +12,6 @@
 
 namespace lighter::common::api {
 
-constexpr const char kSpirvBinaryFileExtension[] = ".spv";
-
-constexpr const char kShaderEntryPoint[] = "main";
-
 enum class GraphicsApi { kOpengl, kVulkan };
 
 constexpr int kNumSupportedApis = 2;

@@ -8,38 +8,19 @@
 #include <exception>
 #include <filesystem>
 #include <optional>
-#include <string_view>
 
 #include "lighter/common/util.h"
-#include "lighter/shader/compiler.h"
 #include "lighter/shader/run_compiler.h"
+#include "lighter/shader/util.h"
 #include "third_party/absl/flags/flag.h"
 
 ABSL_FLAG(std::string, shader_dir, "", "Path to the shader directory");
 ABSL_FLAG(std::string, opt_level, "perf",
           "Optimization level (none/size/perf)");
 
-namespace {
-
-using OptimizationLevel = lighter::shader::CompilerOptions::OptimizationLevel;
-
-// Returns optimization level to use or std::nullopt if unrecognized.
-std::optional<OptimizationLevel> ConvertOptimizationLevel(
-    std::string_view opt_level) {
-  if (opt_level == "none") {
-    return OptimizationLevel::kNone;
-  } else if (opt_level == "size") {
-    return OptimizationLevel::kSize;
-  } else if (opt_level == "perf") {
-    return OptimizationLevel::kPerformance;
-  }
-  return std::nullopt;
-}
-
-}  // namespace
-
 int main(int argc, char* argv[]) {
   namespace stdfs = std::filesystem;
+  using namespace lighter::shader;
 
   try {
     absl::ParseCommandLine(argc, argv);
@@ -49,7 +30,7 @@ int main(int argc, char* argv[]) {
                 "Please specify a valid shader directory with --shader_dir");
 
     const std::optional<OptimizationLevel> opt_level =
-        ConvertOptimizationLevel(absl::GetFlag(FLAGS_opt_level));
+        util::OptLevelFromText(absl::GetFlag(FLAGS_opt_level));
     ASSERT_HAS_VALUE(opt_level,
                      "--opt_level must either be 'none', 'size' or 'perf'");
 

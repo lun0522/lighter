@@ -10,10 +10,10 @@
 #include <vector>
 
 #include "lighter/common/file.h"
-#include "lighter/common/graphics_api.h"
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vk/type_mapping.h"
 #include "lighter/renderer/vk/util.h"
+#include "lighter/shader/util.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace lighter::renderer::vk {
@@ -88,7 +88,7 @@ std::vector<VkPipelineShaderStageCreateInfo> CreateShaderStageInfos(
         .flags = nullflag,
         stage.stage,
         **stage.module,
-        .pName = common::api::kShaderEntryPoint,
+        .pName = shader::kShaderEntryPoint,
         // May use 'pSpecializationInfo' to specify shader constants.
         .pSpecializationInfo = nullptr,
     });

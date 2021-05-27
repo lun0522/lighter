@@ -9,6 +9,7 @@
 
 #include <vector>
 
+#include "lighter/application/vulkan/util.h"
 #include "lighter/common/file.h"
 #include "lighter/renderer/align.h"
 #include "lighter/renderer/image_usage.h"
@@ -62,7 +63,6 @@ GeometryPass::GeometryPass(const WindowContext* window_context,
     : num_soldiers_{num_soldiers.x * num_soldiers.y},
       window_context_{*FATAL_IF_NULL(window_context)} {
   using common::file::GetResourcePath;
-  using common::file::GetVkShaderPath;
   using TextureType = ModelBuilder::TextureType;
   const auto context = window_context_.basic_context();
 
@@ -116,9 +116,9 @@ GeometryPass::GeometryPass(const WindowContext* window_context,
           /*bindings=*/{{kUniformBufferBindingPoint, /*array_length=*/1}})
       .AddUniformBuffer(kUniformBufferBindingPoint, *trans_uniform_)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetVkShaderPath("troop/geometry_pass.vert"))
+                 GetShaderBinaryPath("troop/geometry_pass.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetVkShaderPath("troop/geometry_pass.frag"))
+                 GetShaderBinaryPath("troop/geometry_pass.frag"))
       .Build();
 }
 

@@ -150,16 +150,16 @@ PathRenderer2D::PathRenderer2D(
       .SetColorBlend(
           {pipeline::GetColorAlphaBlendState(/*enable_blend=*/false)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("aurora/dump_path.vert"))
+                 GetShaderBinaryPath("aurora/dump_path.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetVkShaderPath("aurora/dump_path.frag"))
+                 GetShaderBinaryPath("aurora/dump_path.frag"))
       .Build();
 
   bold_paths_pipeline_ = ComputePipelineBuilder{context}
       .SetPipelineName("Bold paths")
       .SetPipelineLayout({bold_paths_descriptor_->layout()},
                          /*push_constant_ranges=*/{})
-      .SetShader(common::file::GetVkShaderPath("aurora/bold_path.comp"))
+      .SetShader(GetShaderBinaryPath("aurora/bold_path.comp"))
       .Build();
 }
 

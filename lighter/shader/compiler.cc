@@ -7,13 +7,10 @@
 
 #include "lighter/shader/compiler.h"
 
-#include "lighter/common/graphics_api.h"
-
 namespace lighter::shader {
 namespace {
 
-using OptimizationLevel = CompilerOptions::OptimizationLevel;
-
+// Converts optimization level enums.
 shaderc_optimization_level GetOptimizationLevelFlag(OptimizationLevel level) {
   switch (level) {
     case OptimizationLevel::kNone:
@@ -28,16 +25,18 @@ shaderc_optimization_level GetOptimizationLevelFlag(OptimizationLevel level) {
 }  // namespace
 
 const Compiler::ShaderKindMap Compiler::shader_kind_map_ = {
-    {".vert", shaderc_glsl_default_vertex_shader},
-    {".frag", shaderc_glsl_default_fragment_shader},
-    {".comp", shaderc_glsl_default_compute_shader},
+    {".vert", shaderc_vertex_shader},
+    {".frag", shaderc_fragment_shader},
+    {".comp", shaderc_compute_shader},
 };
 
 std::optional<shaderc_shader_kind> Compiler::GetShaderKind(
     std::string_view file_extension) {
-  const auto iter = shader_kind_map_.find(file_extension);
-  return iter != shader_kind_map_.end() ? std::make_optional(iter->second)
-                                        : std::nullopt;
+  if (const auto iter = shader_kind_map_.find(file_extension);
+      iter != shader_kind_map_.end()) {
+    return iter->second;
+  }
+  return std::nullopt;
 }
 
 std::unique_ptr<CompilationResult> Compiler::Compile(
@@ -46,9 +45,9 @@ std::unique_ptr<CompilationResult> Compiler::Compile(
     absl::Span<const char> shader_source,
     const CompilerOptions& compiler_options) const {
   auto result = std::make_unique<CompilationResult>(
-      shaderc_compile_into_spv_assembly(
+      shaderc_compile_into_spv(
           compiler_, shader_source.data(), shader_source.size(), shader_kind,
-          shader_tag.data(), common::api::kShaderEntryPoint, *compiler_options)
+          shader_tag.data(), shader::kShaderEntryPoint, *compiler_options)
   );
   if (const char* error_message = result->GetErrorIfFailed()) {
     FATAL(absl::StrFormat("Failed to compile %s: %s",
@@ -74,9 +73,11 @@ CompilerOptions& CompilerOptions::AddMacroDefinition(
 }
 
 const char* CompilationResult::GetErrorIfFailed() const {
-  const bool succeeded = shaderc_result_get_compilation_status(result_) ==
-                         shaderc_compilation_status_success;
-  return succeeded ? nullptr : shaderc_result_get_error_message(result_);
+  if (shaderc_result_get_compilation_status(result_) !=
+      shaderc_compilation_status_success) {
+    return shaderc_result_get_error_message(result_);
+  }
+  return nullptr;
 }
 
 }  // namespace lighter::shader

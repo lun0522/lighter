@@ -11,10 +11,11 @@
 #include <filesystem>
 #include <fstream>
 
-#include "lighter/common/graphics_api.h"
 #include "lighter/common/util.h"
+#include "lighter/shader/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/strings/str_format.h"
+#include "third_party/absl/strings/str_replace.h"
 #include "third_party/absl/strings/str_split.h"
 #include "tools/cpp/runfiles/runfiles.h"
 
@@ -50,15 +51,14 @@ class RunfileLookup {
   }
 
   // Returns the full path of a runfile.
-  static std::string GetFullPath(std::string_view prefix,
-                                 std::string_view relative_path,
-                                 std::string_view postfix) {
+  static stdfs::path GetFullPath(std::string_view relative_path) {
     ASSERT_NON_NULL(runfiles_, "EnableRunfileLookup() must be called first");
-    const std::string concat_path =
-        absl::StrCat(prefix, relative_path, postfix);
-    std::string full_path = runfiles_->Rlocation(concat_path);
-    ASSERT_TRUE(stdfs::exists(stdfs::path{full_path}),
-                absl::StrFormat("File '%s' does not exist", concat_path));
+    // Bazel runfile lookup library expects forward-slash only.
+    const std::string patched_relative_path =
+        absl::StrReplaceAll(relative_path, {{"\\", "/"}});
+    stdfs::path full_path{runfiles_->Rlocation(patched_relative_path)};
+    ASSERT_TRUE(stdfs::exists(full_path),
+                absl::StrFormat("Runfile '%s' does not exist", relative_path));
     return full_path;
   }
 
@@ -100,25 +100,21 @@ void EnableRunfileLookup(std::string_view arg0) {
 
 std::string GetResourcePath(std::string_view relative_file_path,
                             bool want_directory_path) {
-  std::string full_path =
-      RunfileLookup::GetFullPath("resource/", relative_file_path, "");
+  const stdfs::path relative_path =
+      stdfs::path{"resource"} / relative_file_path;
+  stdfs::path full_path = RunfileLookup::GetFullPath(relative_path.string());
   if (want_directory_path) {
-    full_path = stdfs::path{full_path}.parent_path().string();
+    full_path = full_path.parent_path();
   }
-  return full_path;
+  return full_path.string();
 }
 
-// TODO: Use api::GetApiAbbreviatedName.
-std::string GetGlShaderPath(std::string_view relative_path) {
-  return RunfileLookup::GetFullPath(
-      "lighter/lighter/shader/gl/", relative_path,
-      api::kSpirvBinaryFileExtension);
-}
-
-std::string GetVkShaderPath(std::string_view relative_path) {
-  return RunfileLookup::GetFullPath(
-      "lighter/lighter/shader/vk/", relative_path,
-      api::kSpirvBinaryFileExtension);
+std::string GetShaderBinaryPath(std::string_view relative_shader_path,
+                                api::GraphicsApi graphics_api) {
+  const stdfs::path relative_path =
+      stdfs::path{"lighter/lighter/shader"} /
+      shader::util::GetShaderBinaryPath(graphics_api, relative_shader_path);
+  return RunfileLookup::GetFullPath(relative_path.string()).string();
 }
 
 }  // namespace file

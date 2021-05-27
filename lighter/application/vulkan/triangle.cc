@@ -109,9 +109,9 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
           {alpha_constant_->MakePerFrameRange(VK_SHADER_STAGE_FRAGMENT_BIT)})
       .SetColorBlend({pipeline::GetColorAlphaBlendState(/*enable_blend=*/true)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("triangle/triangle.vert"))
+                 GetShaderBinaryPath("triangle/triangle.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetVkShaderPath("triangle/triangle.frag"));
+                 GetShaderBinaryPath("triangle/triangle.frag"));
 
   /* Render pass */
   render_pass_manager_ = std::make_unique<OnScreenRenderPassManager>(

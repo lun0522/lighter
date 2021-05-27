@@ -13,6 +13,7 @@
 #include <string_view>
 #include <vector>
 
+#include "lighter/common/graphics_api.h"
 #include "third_party/absl/flags/declare.h"
 #include "third_party/absl/flags/flag.h"
 #include "third_party/absl/types/span.h"
@@ -36,11 +37,9 @@ void EnableRunfileLookup(std::string_view arg0);
 std::string GetResourcePath(std::string_view relative_file_path,
                             bool want_directory_path = false);
 
-// Returns the full path to the compiled shader to use with OpenGL.
-std::string GetGlShaderPath(std::string_view relative_path);
-
-// Returns the full path to the compiled shader to use with Vulkan.
-std::string GetVkShaderPath(std::string_view relative_path);
+// Returns the full path to the shader binary.
+std::string GetShaderBinaryPath(std::string_view relative_shader_path,
+                                api::GraphicsApi graphics_api);
 
 // Returns the full path to files in the Vulkan SDK folder.
 inline std::string GetVulkanSdkPath(std::string_view relative_path) {

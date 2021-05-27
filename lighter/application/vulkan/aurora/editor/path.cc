@@ -7,6 +7,7 @@
 
 #include "lighter/application/vulkan/aurora/editor/path.h"
 
+#include "lighter/application/vulkan/util.h"
 #include "lighter/common/file.h"
 #include "lighter/renderer/align.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
@@ -74,7 +75,6 @@ PathRenderer3D::PathRenderer3D(const SharedBasicContext& context,
     : num_paths_{num_paths}, num_control_points_per_path_(num_paths_),
       control_pipeline_builder_{context}, spline_pipeline_builder_{context},
       viewpoint_pipeline_builder_{context} {
-  using common::file::GetVkShaderPath;
   using common::Vertex3DPosOnly;
 
   // Prevent shaders from being auto released.
@@ -136,9 +136,9 @@ PathRenderer3D::PathRenderer3D(const SharedBasicContext& context,
                              VK_SHADER_STAGE_VERTEX_BIT)})
       .SetColorBlend({pipeline::GetColorAlphaBlendState(/*enable_blend=*/true)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetVkShaderPath("aurora/draw_path_control.vert"))
+                 GetShaderBinaryPath("aurora/draw_path_control.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetVkShaderPath("aurora/draw_path.frag"));
+                 GetShaderBinaryPath("aurora/draw_path.frag"));
 
   spline_pipeline_builder_
       .SetPipelineName("Aurora path spline")
@@ -158,9 +158,9 @@ PathRenderer3D::PathRenderer3D(const SharedBasicContext& context,
                              VK_SHADER_STAGE_VERTEX_BIT)})
       .SetColorBlend({pipeline::GetColorAlphaBlendState(/*enable_blend=*/true)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetVkShaderPath("aurora/draw_path_spline.vert"))
+                 GetShaderBinaryPath("aurora/draw_path_spline.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetVkShaderPath("aurora/draw_path.frag"));
+                 GetShaderBinaryPath("aurora/draw_path.frag"));
 
   viewpoint_pipeline_builder_
       .SetPipelineName("User viewpoint")
@@ -174,9 +174,9 @@ PathRenderer3D::PathRenderer3D(const SharedBasicContext& context,
                              VK_SHADER_STAGE_VERTEX_BIT)})
       .SetColorBlend({pipeline::GetColorAlphaBlendState(/*enable_blend=*/true)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetVkShaderPath("aurora/viewpoint.vert"))
+                 GetShaderBinaryPath("aurora/viewpoint.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetVkShaderPath("aurora/draw_path.frag"));
+                 GetShaderBinaryPath("aurora/draw_path.frag"));
 }
 
 void PathRenderer3D::UpdatePath(int path_index,

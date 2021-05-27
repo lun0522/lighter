@@ -64,9 +64,9 @@ ImageViewer::ImageViewer(const SharedBasicContext& context,
       .SetColorBlend(
           {pipeline::GetColorAlphaBlendState(/*enable_blend=*/false)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("image_viewer/view_image.vert"))
+                 GetShaderBinaryPath("image_viewer/view_image.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetVkShaderPath(frag_shader_relative_path));
+                 GetShaderBinaryPath(frag_shader_relative_path));
 }
 
 void ImageViewer::UpdateFramebuffer(const VkExtent2D& frame_size,

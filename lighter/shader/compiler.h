@@ -13,6 +13,7 @@
 #include <string_view>
 
 #include "lighter/common/util.h"
+#include "lighter/shader/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/shaderc/shaderc.h"
@@ -60,8 +61,6 @@ class Compiler {
 // Wraps shaderc_compile_options.
 class CompilerOptions {
  public:
-  enum class OptimizationLevel { kNone, kSize, kPerformance };
-
   explicit CompilerOptions()
       : options_{FATAL_IF_NULL(shaderc_compile_options_initialize())} {}
 

@@ -9,6 +9,7 @@
 
 #include <algorithm>
 
+#include "lighter/application/vulkan/util.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/align.h"
 #include "lighter/renderer/image_usage.h"
@@ -121,19 +122,19 @@ DistanceFieldGenerator::DistanceFieldGenerator(
   path_to_coord_pipeline_ = ComputePipelineBuilder{context}
       .SetPipelineName("Path to coordinate")
       .SetPipelineLayout({descriptor_->layout()}, /*push_constant_ranges=*/{})
-      .SetShader(common::file::GetVkShaderPath("aurora/path_to_coord.comp"))
+      .SetShader(GetShaderBinaryPath("aurora/path_to_coord.comp"))
       .Build();
 
   jump_flooding_pipeline_ = ComputePipelineBuilder{context}
       .SetPipelineName("Jump flooding")
       .SetPipelineLayout({descriptor_->layout()}, {push_constant_range})
-      .SetShader(common::file::GetVkShaderPath("aurora/jump_flooding.comp"))
+      .SetShader(GetShaderBinaryPath("aurora/jump_flooding.comp"))
       .Build();
 
   coord_to_dist_pipeline_ = ComputePipelineBuilder{context}
       .SetPipelineName("Coordinate to distance")
       .SetPipelineLayout({descriptor_->layout()}, /*push_constant_ranges=*/{})
-      .SetShader(common::file::GetVkShaderPath("aurora/coord_to_dist.comp"))
+      .SetShader(GetShaderBinaryPath("aurora/coord_to_dist.comp"))
       .Build();
 }
 

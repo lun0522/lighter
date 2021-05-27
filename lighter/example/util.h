@@ -53,17 +53,10 @@ std::unique_ptr<renderer::Renderer> CreateRenderer(
   }
 }
 
-// TODO: Only write Vulkan version shader code, and modify it on-the-fly to be
-// used by OpenGL.
-std::string GetShaderPath(common::GraphicsApi graphics_api,
-                          std::string_view relative_path) {
-  switch (graphics_api) {
-    case common::GraphicsApi::kOpengl:
-      return common::file::GetGlShaderPath(relative_path);
-
-    case common::GraphicsApi::kVulkan:
-      return common::file::GetVkShaderPath(relative_path);
-  }
+// Returns the full path to compiled shader binary.
+inline std::string GetShaderBinaryPath(std::string_view relative_path,
+                                       api::GraphicsApi graphics_api) {
+  return common::file::GetShaderBinaryPath(relative_path, graphics_api);
 }
 
 template <typename ExampleType, typename... ExampleArgs>

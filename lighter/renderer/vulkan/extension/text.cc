@@ -10,6 +10,7 @@
 #include <cmath>
 #include <algorithm>
 
+#include "lighter/common/graphics_api.h"
 #include "lighter/renderer/align.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
@@ -99,9 +100,11 @@ Text::Text(const SharedBasicContext& context,
                       pipeline::GetPerVertexBindingDescription<Vertex2D>(),
                       vertex_buffer_.GetAttributes(/*start_location=*/0))
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("text/char.vert"))
+                 common::file::GetShaderBinaryPath(
+                     "text/char.vert", common::api::GraphicsApi::kVulkan))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetVkShaderPath("text/text.frag"));
+                 common::file::GetShaderBinaryPath(
+                     "text/text.frag", common::api::GraphicsApi::kVulkan));
 }
 
 void Text::Update(const VkExtent2D& frame_size,

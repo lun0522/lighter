@@ -10,6 +10,7 @@
 #include <array>
 
 #include "lighter/application/vulkan/aurora/viewer/air_transmit_table.h"
+#include "lighter/application/vulkan/util.h"
 #include "lighter/renderer/align.h"
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
@@ -183,9 +184,9 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
       .SetColorBlend(
           {pipeline::GetColorAlphaBlendState(/*enable_blend=*/false)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("aurora/aurora.vert"))
+                 GetShaderBinaryPath("aurora/aurora.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetVkShaderPath("aurora/aurora.frag"));
+                 GetShaderBinaryPath("aurora/aurora.frag"));
 
   /* Render pass */
   ImageUsageHistory usage_history{

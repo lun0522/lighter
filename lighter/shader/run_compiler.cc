@@ -25,8 +25,6 @@
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/picosha2/picosha2.h"
-#include "compilation_record.h"
-#include "../common/file.h"
 
 namespace lighter::shader::compiler {
 namespace {
@@ -48,21 +46,12 @@ const char* GetTargetMacro(GraphicsApi graphics_api) {
   }
 }
 
-// Returns the path to output binary if compiling for 'graphics_api'.
-stdfs::path GetCompiledFilePath(GraphicsApi graphics_api,
-                                const stdfs::path& source_path) {
-  stdfs::path res{common::api::GetApiAbbreviatedName(graphics_api)};
-  res /= stdfs::relative(source_path);
-  res += common::api::kSpirvBinaryFileExtension;
-  return res;
-}
-
 // Returns the SHA256 of the file at 'path'.
 std::string ComputeFileSha256(const stdfs::path& path) {
   std::ifstream file{path, std::ios::in | std::ios::binary};
   ASSERT_TRUE(file, absl::StrFormat("Failed to open file '%s'",
                                     stdfs::absolute(path).string()));
-  static auto* buffer = new std::array<char, picosha2::k_digest_size>;
+  static auto* buffer = new std::array<unsigned char, picosha2::k_digest_size>;
   picosha2::hash256(file, buffer->begin(), buffer->end());
   return picosha2::bytes_to_hex_string(*buffer);
 }
@@ -78,7 +67,7 @@ std::optional<std::string> NeedsCompilation(
     GraphicsApi graphics_api, const stdfs::path& source_path,
     const CompilationRecordReader& record_reader) {
   const stdfs::path compiled_path =
-      GetCompiledFilePath(graphics_api, source_path);
+      util::GetShaderBinaryPath(graphics_api, source_path);
   if (!stdfs::exists(compiled_path)) {
     return "compiled file does not exist";
   }
@@ -101,7 +90,7 @@ std::optional<std::string> NeedsCompilation(
 }  // namespace
 
 void CompileShaders(const stdfs::path& shader_dir,
-                    CompilerOptions::OptimizationLevel opt_level) {
+                    OptimizationLevel opt_level) {
   ASSERT_TRUE(stdfs::is_directory(shader_dir),
               absl::StrFormat("%s is not a valid directory",
                               shader_dir.string()));
@@ -109,7 +98,7 @@ void CompileShaders(const stdfs::path& shader_dir,
 
   const stdfs::path current_dir = stdfs::path(".");
   auto [record_reader, record_writer] =
-      CompilationRecordHandler::CreateHandlers(current_dir);
+      CompilationRecordHandler::CreateHandlers(current_dir, opt_level);
 
   const std::array<GraphicsApi, kNumSupportedApis> all_apis =
       common::api::GetAllApis();
@@ -144,6 +133,9 @@ void CompileShaders(const stdfs::path& shader_dir,
       const char* api_name = common::api::GetApiFullName(api);
       if (!reason.has_value()) {
         LOG_INFO << absl::StreamFormat("\tSkip compilation for %s", api_name);
+        const auto& file_hash = *record_reader.GetFileHash(api, path);
+        record_writer.RegisterFileHash(
+            api, path.string(), CompilationRecordHandler::FileHash{file_hash});
         continue;
       }
 
@@ -155,10 +147,11 @@ void CompileShaders(const stdfs::path& shader_dir,
           /*shader_tag=*/path.filename().string(), shader_kind.value(),
           source_data.GetSpan(), *options_array[i]);
 
-      const stdfs::path compiled_path = GetCompiledFilePath(api, path);
+      const stdfs::path compiled_path = util::GetShaderBinaryPath(api, path);
       stdfs::create_directories(compiled_path.parent_path());
 
-      std::ofstream file{compiled_path, std::ios::out | std::ios::trunc};
+      std::ofstream file{compiled_path,
+                         std::ios::out | std::ios::binary | std::ios::trunc};
       ASSERT_TRUE(file, absl::StrFormat("Failed to open file '%s'",
                                         compiled_path.string()));
       const auto result_data_span = result->GetDataSpan();

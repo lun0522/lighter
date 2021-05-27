@@ -150,7 +150,7 @@ void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
   const auto pipeline = ComputePipelineBuilder{context()}
       .SetPipelineName("Post effect")
       .SetPipelineLayout({descriptor.layout()}, /*push_constant_ranges=*/{})
-      .SetShader(common::file::GetVkShaderPath("post_effect/sine_wave.comp"))
+      .SetShader(GetShaderBinaryPath("post_effect/sine_wave.comp"))
       .Build();
 
   const OneTimeCommand command{context(), &context()->queues().compute_queue()};

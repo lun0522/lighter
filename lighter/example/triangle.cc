@@ -36,9 +36,9 @@ class TriangleExample {
     pipeline_descriptor_
         .SetName("Triangle")
         .SetShader(shader_stage::VERTEX,
-                   GetShaderPath(graphics_api, "triangle/triangle.vert"))
+                   GetShaderBinaryPath("triangle/triangle.vert"), graphics_api)
         .SetShader(shader_stage::FRAGMENT,
-                   GetShaderPath(graphics_api, "triangle/triangle.frag"))
+                   GetShaderBinaryPath("triangle/triangle.frag"), graphics_api)
         .AddColorAttachment(&renderer_->GetSwapchainImage(kWindowIndex),
                             {.location = 0, pipeline::GetColorAlphaBlend()})
         .AddVertexInput({

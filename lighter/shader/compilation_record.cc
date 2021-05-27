@@ -27,7 +27,7 @@ constexpr char kRecordFileName[] = ".compilation_record";
 
 std::pair<CompilationRecordReader, CompilationRecordWriter>
 CompilationRecordHandler::CreateHandlers(
-    const std::filesystem::path& shader_dir) {
+    const std::filesystem::path& shader_dir, OptimizationLevel opt_level) {
   stdfs::path record_file_path = shader_dir / kRecordFileName;
   if (stdfs::exists(record_file_path) &&
       !stdfs::is_regular_file(record_file_path)) {
@@ -35,8 +35,8 @@ CompilationRecordHandler::CreateHandlers(
                           stdfs::absolute(record_file_path).string()));
   }
 
-  CompilationRecordReader reader{record_file_path};
-  CompilationRecordWriter writer{std::move(record_file_path)};
+  CompilationRecordReader reader{record_file_path, opt_level};
+  CompilationRecordWriter writer{std::move(record_file_path), opt_level};
   return {std::move(reader), std::move(writer)};
 }
 
@@ -64,17 +64,19 @@ int CompilationRecordHandler::ApiToIndex(GraphicsApi graphics_api) {
 }
 
 CompilationRecordReader::CompilationRecordReader(
-    const stdfs::path& record_file_path) {
+    const stdfs::path& record_file_path, OptimizationLevel opt_level) {
   if (!stdfs::exists(record_file_path)) {
+    LOG_INFO << "No compilation record file found";
     return;
   }
   std::ifstream record_file{record_file_path, std::ios::in | std::ios::binary};
   ASSERT_TRUE(record_file,
               absl::StrFormat("Failed to open %s", record_file_path.string()));
-  ParseRecordFile(record_file);
+  ParseRecordFile(record_file, opt_level);
 }
 
-void CompilationRecordReader::ParseRecordFile(std::ifstream& record_file) {
+void CompilationRecordReader::ParseRecordFile(std::ifstream& record_file,
+                                              OptimizationLevel opt_level) {
   enum RecordSegmentIndex {
     kGraphicsApiIndex = 0,
     kSourceFilePathIndex,
@@ -87,6 +89,19 @@ void CompilationRecordReader::ParseRecordFile(std::ifstream& record_file) {
   int line_num = 1;
   try {
     for (; std::getline(record_file, line); ++line_num) {
+      if (line_num == 1) {
+        const std::optional<OptimizationLevel> opt_level_in_record =
+            util::OptLevelFromText(line);
+        ASSERT_HAS_VALUE(opt_level_in_record,
+                         "Unrecognized optimization level");
+        if (opt_level_in_record.value() != opt_level) {
+          LOG_INFO << "Optimization level has changed, discarding old records";
+          break;
+        } else {
+          continue;
+        }
+      }
+
       std::vector<std::string> segments = absl::StrSplit(line, ' ');
       ASSERT_TRUE(segments.size() == kNumSegments,
                   absl::StrFormat("Expected %d segments, get %d",
@@ -143,10 +158,15 @@ void CompilationRecordWriter::RegisterFileHash(GraphicsApi graphics_api,
 }
 
 void CompilationRecordWriter::WriteAll() const {
-  std::ofstream record_file{record_file_path_, std::ios::out | std::ios::trunc};
+  std::ofstream record_file{record_file_path_,
+                            std::ios::out | std::ios::binary | std::ios::trunc};
   ASSERT_TRUE(record_file,
               absl::StrFormat("Failed to open %s", record_file_path_.string()));
 
+  // Write header.
+  record_file << absl::StreamFormat("%s\n", util::OptLevelToText(opt_level_));
+
+  // Write body.
   for (int api_index = 0; api_index < kNumApis; ++api_index) {
     const std::string& api_abbreviation = GetApiAbbreviations()[api_index];
     const auto& api_specific_map = file_hash_maps_[api_index];

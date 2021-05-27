@@ -35,6 +35,7 @@ cc_library(
     deps = [
         ":graphics_api",
         ":util",
+        "//lighter/shader:util",
         "//third_party:absl",
         "//third_party:glm",
         "@bazel_tools//tools/cpp/runfiles",

@@ -17,6 +17,7 @@
 
 #include "lighter/common/graphics_api.h"
 #include "lighter/common/util.h"
+#include "lighter/shader/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
 
 namespace lighter::shader {
@@ -37,7 +38,8 @@ class CompilationRecordHandler {
   };
 
   static std::pair<CompilationRecordReader, CompilationRecordWriter>
-  CreateHandlers(const std::filesystem::path& shader_dir);
+  CreateHandlers(const std::filesystem::path& shader_dir,
+                 OptimizationLevel opt_level);
 
   virtual ~CompilationRecordHandler() = default;
 
@@ -66,8 +68,8 @@ class CompilationRecordHandler {
 // future queries.
 class CompilationRecordReader : public CompilationRecordHandler {
  public:
-  explicit CompilationRecordReader(
-      const std::filesystem::path& record_file_path);
+  CompilationRecordReader(const std::filesystem::path& record_file_path,
+                          OptimizationLevel opt_level);
 
   // This class is only movable.
   CompilationRecordReader(CompilationRecordReader&&) noexcept = default;
@@ -82,7 +84,8 @@ class CompilationRecordReader : public CompilationRecordHandler {
 
  private:
   // Parses the compilation record file and populates 'file_hash_maps_'.
-  void ParseRecordFile(std::ifstream& record_file);
+  void ParseRecordFile(std::ifstream& record_file,
+                       OptimizationLevel opt_level);
 
   // Converts a graphics API name abbreviation to the index into
   // 'file_hash_maps_'.
@@ -96,8 +99,10 @@ class CompilationRecordReader : public CompilationRecordHandler {
 // them to the compilation record file.
 class CompilationRecordWriter : public CompilationRecordHandler {
  public:
-  explicit CompilationRecordWriter(std::filesystem::path&& record_file_path)
-      : record_file_path_{std::move(record_file_path)} {}
+  CompilationRecordWriter(std::filesystem::path&& record_file_path,
+                          OptimizationLevel opt_level)
+      : record_file_path_{std::move(record_file_path)},
+        opt_level_{opt_level} {}
 
   // This class is only movable.
   CompilationRecordWriter(CompilationRecordWriter&&) noexcept = default;
@@ -122,6 +127,9 @@ class CompilationRecordWriter : public CompilationRecordHandler {
 
   // Path to compilation record file.
   std::filesystem::path record_file_path_;
+
+  // Optimization level is part of the record file header.
+  OptimizationLevel opt_level_;
 
   // Maps the source file path to hash values of source and compiled files.
   FileHashValueMap file_hash_maps_[kNumApis];

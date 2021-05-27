@@ -7,6 +7,7 @@
 
 #include "lighter/application/vulkan/aurora/editor/button_maker.h"
 
+#include "lighter/application/vulkan/util.h"
 #include "lighter/common/image.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/image_usage.h"
@@ -201,9 +202,9 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
       .SetColorBlend(
           {pipeline::GetColorAlphaBlendState(/*enable_blend=*/false)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("aurora/make_button.vert"))
+                 GetShaderBinaryPath("aurora/make_button.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetVkShaderPath("aurora/make_button.frag"))
+                 GetShaderBinaryPath("aurora/make_button.frag"))
       .Build();
 
   const std::vector<RenderPass::RenderOp> render_ops{

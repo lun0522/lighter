@@ -83,7 +83,6 @@ class NanosuitApp : public Application {
 NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
     : Application{"Nanosuit", window_config} {
   using common::file::GetResourcePath;
-  using common::file::GetVkShaderPath;
   using WindowKey = common::Window::KeyMap;
   using ControlKey = common::UserControlledCamera::ControlKey;
   using TextureType = ModelBuilder::TextureType;
@@ -176,9 +175,9 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT)
       .AddPushConstant(nanosuit_frag_constant_.get(), /*target_offset=*/0)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetVkShaderPath("nanosuit/nanosuit.vert"))
+                 GetShaderBinaryPath("nanosuit/nanosuit.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetVkShaderPath("nanosuit/nanosuit.frag"))
+                 GetShaderBinaryPath("nanosuit/nanosuit.frag"))
       .Build();
 
   skybox_model_ = ModelBuilder{
@@ -191,9 +190,9 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
       .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
       .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetVkShaderPath("shared/skybox.vert"))
+                 GetShaderBinaryPath("shared/skybox.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetVkShaderPath("shared/skybox.frag"))
+                 GetShaderBinaryPath("shared/skybox.frag"))
       .Build();
 
   /* Render pass */

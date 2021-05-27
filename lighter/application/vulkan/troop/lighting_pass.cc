@@ -262,9 +262,9 @@ LightingPass::LightingPass(const WindowContext* window_context,
       .SetColorBlend(
           {pipeline::GetColorAlphaBlendState(/*enable_blend=*/false)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("troop/light_cube.vert"))
+                 GetShaderBinaryPath("troop/light_cube.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetVkShaderPath("troop/light_cube.frag"));
+                 GetShaderBinaryPath("troop/light_cube.frag"));
 
   soldiers_pipeline_builder_ =
       std::make_unique<GraphicsPipelineBuilder>(context);
@@ -283,9 +283,9 @@ LightingPass::LightingPass(const WindowContext* window_context,
       .SetColorBlend(
           {pipeline::GetColorAlphaBlendState(/*enable_blend=*/false)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetVkShaderPath("troop/lighting_pass.vert"))
+                 GetShaderBinaryPath("troop/lighting_pass.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetVkShaderPath("troop/lighting_pass.frag"));
+                 GetShaderBinaryPath("troop/lighting_pass.frag"));
 }
 
 void LightingPass::UpdateFramebuffer(
