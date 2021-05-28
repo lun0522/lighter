@@ -141,7 +141,7 @@ class RefCountedObject {
           [](const std::pair<const std::string, ObjectWithCounter>& pair) {
             return pair.second.ref_count == 0;
           };
-      common::util::EraseIf(remove_unused, &ref_count_map());
+      common::util::EraseIf(remove_unused, ref_count_map());
     }
   };
 

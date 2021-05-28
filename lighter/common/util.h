@@ -140,21 +140,21 @@ std::optional<int> FindIndexOfFirstIf(
 // resized if necessary.
 template <typename ValueType>
 void SetElementWithResizing(ValueType&& element, int index,
-                            std::vector<ValueType>* container) {
-  if (index >= container->size()) {
-    container->resize(index + 1);
+                            std::vector<ValueType>& container) {
+  if (index >= container.size()) {
+    container.resize(index + 1);
   }
-  (*container)[index] = std::forward<ValueType>(element);
+  container[index] = std::forward<ValueType>(element);
 }
 
 // Removes duplicated elements from 'container' in-place, hence the size of
 // 'container' may change if there exists any duplicate.
 template <typename ValueType>
-void RemoveDuplicate(std::vector<ValueType>* container) {
-  if (container->size() > 1) {
-    std::sort(container->begin(), container->end());
-    const auto new_end = std::unique(container->begin(), container->end());
-    container->resize(std::distance(container->begin(), new_end));
+void RemoveDuplicate(std::vector<ValueType>& container) {
+  if (container.size() > 1) {
+    std::sort(container.begin(), container.end());
+    const auto new_end = std::unique(container.begin(), container.end());
+    container.resize(std::distance(container.begin(), new_end));
   }
 }
 
@@ -168,11 +168,11 @@ void VectorAppend(std::vector<ValueType>& dst, std::vector<ValueType>& src) {
 
 // Erases elements in 'container' that satisfies the 'predicate'.
 template <typename ContainerType, typename PredicateType>
-void EraseIf(const PredicateType& predicate, ContainerType* container) {
-  auto iter = container->begin();
-  while (iter != container->end()) {
+void EraseIf(const PredicateType& predicate, ContainerType& container) {
+  auto iter = container.begin();
+  while (iter != container.end()) {
     if (predicate(*iter)) {
-      container->erase(iter++);
+      container.erase(iter++);
     } else {
       ++iter;
     }
@@ -211,12 +211,11 @@ template <typename AccumulatorType, typename ContainerType>
 AccumulatorType Reduce(
     const ContainerType& container,
     absl::FunctionRef<AccumulatorType(
-        const typename ContainerType::template value_type<ContainerType>&)>
-        extract_value) {
+        const typename ContainerType::value_type&)> extract_value) {
   return std::accumulate(
       container.begin(), container.end(), AccumulatorType{},
       [extract_value](const AccumulatorType& accumulated,
-                      const ValueType<ContainerType>& element) {
+                      const typename ContainerType::value_type& element) {
         return accumulated + extract_value(element);
       });
 }

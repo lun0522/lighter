@@ -5,7 +5,7 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "lighter/shader/run_compiler.h"
+#include "lighter/shader_compiler/run_compiler.h"
 
 #include <array>
 #include <fstream>
@@ -18,13 +18,13 @@
 #include "lighter/common/graphics_api.h"
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
-#include "lighter/shader/compilation_record.h"
-#include "lighter/shader/compiler.h"
+#include "lighter/shader_compiler/compilation_record.h"
+#include "lighter/shader_compiler/compiler.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/picosha2/picosha2.h"
 
-namespace lighter::shader::compiler {
+namespace lighter::shader_compiler::compiler {
 namespace {
 
 namespace stdfs = std::filesystem;
@@ -208,4 +208,4 @@ void CompileShaders(stdfs::path&& shader_dir, OptimizationLevel opt_level) {
   LOG_INFO << absl::StreamFormat("Finished in %fs", elapsed_time);
 }
 
-}  // namespace lighter::shader::compiler
+}  // namespace lighter::shader_compiler::compiler

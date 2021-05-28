@@ -13,7 +13,7 @@
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vk/type_mapping.h"
 #include "lighter/renderer/vk/util.h"
-#include "lighter/shader/util.h"
+#include "lighter/shader_compiler/util.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace lighter::renderer::vk {
@@ -88,7 +88,7 @@ std::vector<VkPipelineShaderStageCreateInfo> CreateShaderStageInfos(
         .flags = nullflag,
         stage.stage,
         **stage.module,
-        .pName = shader::kShaderEntryPoint,
+        .pName = shader_compiler::kShaderEntryPoint,
         // May use 'pSpecializationInfo' to specify shader constants.
         .pSpecializationInfo = nullptr,
     });

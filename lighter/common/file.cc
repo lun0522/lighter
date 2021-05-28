@@ -12,7 +12,7 @@
 #include <fstream>
 
 #include "lighter/common/util.h"
-#include "lighter/shader/util.h"
+#include "lighter/shader_compiler/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/strings/str_replace.h"
@@ -111,9 +111,9 @@ std::string GetResourcePath(std::string_view relative_file_path,
 
 std::string GetShaderBinaryPath(std::string_view relative_shader_path,
                                 api::GraphicsApi graphics_api) {
-  const stdfs::path relative_path =
-      stdfs::path{"lighter/lighter/shader"} /
-      shader::util::GetShaderBinaryPath(graphics_api, relative_shader_path);
+  stdfs::path relative_path{"lighter/lighter/shader"};
+  relative_path /= shader_compiler::util::GetShaderBinaryPath(
+      graphics_api, relative_shader_path);
   return RunfileLookup::GetFullPath(relative_path.string()).string();
 }
 

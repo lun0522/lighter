@@ -32,7 +32,7 @@
 namespace lighter::example {
 
 std::unique_ptr<renderer::Renderer> CreateRenderer(
-    common::GraphicsApi graphics_api, std::string_view application_name,
+    common::api::GraphicsApi graphics_api, std::string_view application_name,
     absl::Span<const common::Window* const> windows) {
   std::optional<renderer::debug_message::Config> debug_message_config;
 #ifndef NDEBUG
@@ -44,10 +44,10 @@ std::unique_ptr<renderer::Renderer> CreateRenderer(
 #endif  // !NDEBUG
 
   switch (graphics_api) {
-    case common::GraphicsApi::kOpengl:
+    case common::api::GraphicsApi::kOpengl:
       FATAL("Not implemented yet");
 
-    case common::GraphicsApi::kVulkan:
+    case common::api::GraphicsApi::kVulkan:
       return std::make_unique<renderer::vk::Renderer>(
           application_name, debug_message_config, windows);
   }
@@ -55,7 +55,7 @@ std::unique_ptr<renderer::Renderer> CreateRenderer(
 
 // Returns the full path to compiled shader binary.
 inline std::string GetShaderBinaryPath(std::string_view relative_path,
-                                       api::GraphicsApi graphics_api) {
+                                       common::api::GraphicsApi graphics_api) {
   return common::file::GetShaderBinaryPath(relative_path, graphics_api);
 }
 

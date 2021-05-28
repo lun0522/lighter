@@ -17,10 +17,10 @@
 
 #include "lighter/common/graphics_api.h"
 #include "lighter/common/util.h"
-#include "lighter/shader/util.h"
+#include "lighter/shader_compiler/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
 
-namespace lighter::shader {
+namespace lighter::shader_compiler {
 
 // Forward declarations.
 class CompilationRecordReader;
@@ -135,6 +135,6 @@ class CompilationRecordWriter : public CompilationRecordHandler {
   FileHashValueMap file_hash_maps_[kNumApis];
 };
 
-}  // namespace lighter::shader
+}  // namespace lighter::shader_compiler
 
 #endif  // LIGHTER_SHADER_COMPILATION_RECORD_H

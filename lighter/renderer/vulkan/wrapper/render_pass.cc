@@ -209,9 +209,9 @@ RenderPassBuilder& RenderPassBuilder::SetNumFramebuffers(int count) {
 
 RenderPassBuilder& RenderPassBuilder::SetAttachment(
     int index, const Attachment& attachment) {
-  SetElementWithResizing(CreateClearColor(attachment), index, &clear_values_);
+  SetElementWithResizing(CreateClearColor(attachment), index, clear_values_);
   SetElementWithResizing(CreateAttachmentDescription(attachment), index,
-                         &attachment_descriptions_);
+                         attachment_descriptions_);
   if (attachment_descriptions_.size() > get_attachment_images_.size()) {
     get_attachment_images_.resize(attachment_descriptions_.size());
   }
@@ -245,7 +245,7 @@ RenderPassBuilder& RenderPassBuilder::SetSubpass(
       std::move(multisampling_refs),
       depth_stencil_ref,
   };
-  SetElementWithResizing(std::move(attachments), index, &subpass_attachments_);
+  SetElementWithResizing(std::move(attachments), index, subpass_attachments_);
   return *this;
 }
 

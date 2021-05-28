@@ -191,7 +191,7 @@ std::vector<uint32_t> QueueFamilyIndices::GetUniqueFamilyIndices() const {
   if (present.has_value()) {
     queue_family_indices.push_back(present.value());
   }
-  common::util::RemoveDuplicate(&queue_family_indices);
+  common::util::RemoveDuplicate(queue_family_indices);
   return queue_family_indices;
 }
 

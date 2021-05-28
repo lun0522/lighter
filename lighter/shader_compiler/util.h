@@ -14,7 +14,7 @@
 
 #include "lighter/common/graphics_api.h"
 
-namespace lighter::shader {
+namespace lighter::shader_compiler {
 
 constexpr const char kShaderEntryPoint[] = "main";
 
@@ -37,6 +37,6 @@ std::filesystem::path GetShaderBinaryPath(
     const std::filesystem::path& relative_path);
 
 }  // namespace util
-}  // namespace lighter::shader
+}  // namespace lighter::shader_compiler
 
 #endif  // LIGHTER_SHADER_UTIL_H

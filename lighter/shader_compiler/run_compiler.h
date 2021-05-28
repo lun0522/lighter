@@ -10,14 +10,14 @@
 
 #include <filesystem>
 
-#include "lighter/shader/util.h"
+#include "lighter/shader_compiler/util.h"
 
-namespace lighter::shader::compiler {
+namespace lighter::shader_compiler::compiler {
 
 // Compiles all shader files in 'shader_dir', which must be a valid directory.
 void CompileShaders(std::filesystem::path&& shader_dir,
                     OptimizationLevel opt_level);
 
-}  // namespace lighter::shader::compiler
+}  // namespace lighter::shader_compiler::compiler
 
 #endif  // LIGHTER_SHADER_RUN_COMPILER_H

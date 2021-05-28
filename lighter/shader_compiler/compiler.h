@@ -13,12 +13,12 @@
 #include <string_view>
 
 #include "lighter/common/util.h"
-#include "lighter/shader/util.h"
+#include "lighter/shader_compiler/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/shaderc/shaderc.h"
 
-namespace lighter::shader {
+namespace lighter::shader_compiler {
 
 // Forward declarations.
 class CompilationResult;
@@ -115,6 +115,6 @@ class CompilationResult {
   shaderc_compilation_result_t result_;
 };
 
-}  // namespace lighter::shader
+}  // namespace lighter::shader_compiler
 
 #endif  // LIGHTER_SHADER_COMPILER_H

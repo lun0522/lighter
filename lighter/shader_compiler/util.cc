@@ -5,9 +5,9 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "lighter/shader/util.h"
+#include "lighter/shader_compiler/util.h"
 
-namespace lighter::shader::util {
+namespace lighter::shader_compiler::util {
 namespace {
 
 namespace stdfs = std::filesystem;
@@ -49,4 +49,4 @@ stdfs::path GetShaderBinaryPath(common::api::GraphicsApi graphics_api,
   return res;
 }
 
-}  // namespace lighter::shader::util
+}  // namespace lighter::shader_compiler::util

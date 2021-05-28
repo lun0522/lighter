@@ -14,7 +14,7 @@ namespace util {
 
 QueueUsage::QueueUsage(std::vector<uint32_t>&& queue_family_indices) {
   ASSERT_NON_EMPTY(queue_family_indices, "Must contain at least one queue");
-  common::util::RemoveDuplicate(&queue_family_indices);
+  common::util::RemoveDuplicate(queue_family_indices);
   unique_family_indices_ = std::move(queue_family_indices);
   sharing_mode_ = unique_family_indices_.size() == 1
                       ? VK_SHARING_MODE_EXCLUSIVE

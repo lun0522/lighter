@@ -5,7 +5,7 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "lighter/shader/compilation_record.h"
+#include "lighter/shader_compiler/compilation_record.h"
 
 #include <algorithm>
 #include <exception>
@@ -15,7 +15,7 @@
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/strings/str_split.h"
 
-namespace lighter::shader {
+namespace lighter::shader_compiler {
 namespace {
 
 namespace stdfs = std::filesystem;
@@ -181,4 +181,4 @@ void CompilationRecordWriter::WriteAll() const {
   }
 }
 
-}  // namespace lighter::shader
+}  // namespace lighter::shader_compiler

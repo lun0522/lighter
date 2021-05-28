@@ -97,7 +97,7 @@ cc_library(
         "//lighter/renderer:image_usage",
         "//lighter/renderer:pass",
         "//lighter/renderer:pipeline",
-        "//lighter/shader:util",
+        "//lighter/shader_compiler:util",
         "//third_party:absl",
         "//third_party:vulkan",
     ],

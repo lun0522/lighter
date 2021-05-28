@@ -5,9 +5,9 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "lighter/shader/compiler.h"
+#include "lighter/shader_compiler/compiler.h"
 
-namespace lighter::shader {
+namespace lighter::shader_compiler {
 namespace {
 
 // Converts optimization level enums.
@@ -47,7 +47,8 @@ std::unique_ptr<CompilationResult> Compiler::Compile(
   auto result = std::make_unique<CompilationResult>(
       shaderc_compile_into_spv(
           compiler_, shader_source.data(), shader_source.size(), shader_kind,
-          shader_tag.data(), shader::kShaderEntryPoint, *compiler_options)
+          shader_tag.data(), shader_compiler::kShaderEntryPoint,
+          *compiler_options)
   );
   if (const char* error_message = result->GetErrorIfFailed()) {
     FATAL(absl::StrFormat("Failed to compile %s: %s",
@@ -80,4 +81,4 @@ const char* CompilationResult::GetErrorIfFailed() const {
   return nullptr;
 }
 
-}  // namespace lighter::shader
+}  // namespace lighter::shader_compiler
