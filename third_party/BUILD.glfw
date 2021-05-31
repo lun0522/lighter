@@ -1,0 +1,44 @@
+load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
+
+package(default_visibility = ["//visibility:private"])
+
+licenses(["notice"])
+
+objc_library(
+    name = "apple_frameworks",
+    sdk_frameworks = [
+        "Cocoa",
+        "IOKit",
+    ],
+)
+
+cc_library(
+    name = "glfw",
+    deps = [
+        ":glfw_include",
+        ":glfw_lib",
+    ] + select({
+        "@bazel_tools//src/conditions:darwin": [":apple_frameworks"],
+        "//conditions:default": [],
+    }),
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "glfw_include",
+    hdrs = glob(["include/**"]),
+    strip_include_prefix = "include/GLFW",
+    include_prefix = "third_party/glfw",
+)
+
+cmake(
+    name = "glfw_lib",
+    lib_source = "@lib-glfw-all-srcs//:all_srcs",
+    generate_args = [
+        "-D CMAKE_BUILD_TYPE=Release",
+        "-D GLFW_BUILD_EXAMPLES=OFF",
+        "-D GLFW_BUILD_TESTS=OFF",
+        "-D GLFW_BUILD_DOCS=OFF",
+    ],
+    out_static_libs = ["libglfw3.a"],
+)

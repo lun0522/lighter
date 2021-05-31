@@ -1,7 +1,0 @@
-load("@//third_party/assimp:generate_unix_target.bzl", "generate_target")
-
-package(default_visibility = ["//visibility:private"])
-
-licenses(["notice"])
-
-generate_target(src_zip = "osx.zip")

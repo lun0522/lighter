@@ -46,27 +46,13 @@ http_archive(
 # Assimp
 
 assimp_archive(
-    name = "lib-assimp-include",
-    build_file = "//:third_party/assimp/BUILD.include",
-    strip_prefix = "include",
+    name = "lib-assimp",
+    build_file = "//:third_party/BUILD.assimp",
 )
 
 assimp_archive(
-    name = "lib-assimp-linux",
-    build_file = "//:third_party/assimp/BUILD.linux",
-    strip_prefix = "lib",
-)
-
-assimp_archive(
-    name = "lib-assimp-osx",
-    build_file = "//:third_party/assimp/BUILD.osx",
-    strip_prefix = "lib",
-)
-
-assimp_archive(
-    name = "lib-assimp-windows",
-    build_file = "//:third_party/assimp/BUILD.windows",
-    strip_prefix = "lib",
+    name = "lib-assimp-all-srcs",
+    build_file = "//:third_party/BUILD.all_srcs",
 )
 
 #######################################
@@ -97,27 +83,13 @@ http_archive(
 # GLFW
 
 glfw_archive(
-    name = "lib-glfw-include",
-    build_file = "//:third_party/glfw/BUILD.include",
-    strip_prefix = "include",
+    name = "lib-glfw",
+    build_file = "//:third_party/BUILD.glfw",
 )
 
 glfw_archive(
-    name = "lib-glfw-linux",
-    build_file = "//:third_party/glfw/BUILD.linux",
-    strip_prefix = "lib/linux",
-)
-
-glfw_archive(
-    name = "lib-glfw-osx",
-    build_file = "//:third_party/glfw/BUILD.osx",
-    strip_prefix = "lib/osx",
-)
-
-glfw_archive(
-    name = "lib-glfw-windows",
-    build_file = "//:third_party/glfw/BUILD.windows",
-    strip_prefix = "lib/windows",
+    name = "lib-glfw-all-srcs",
+    build_file = "//:third_party/BUILD.all_srcs",
 )
 
 #######################################

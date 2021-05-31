@@ -2,6 +2,7 @@ load("@//third_party:select_platform.bzl", "select_platform")
 
 package(default_visibility = ["//visibility:public"])
 
+# TODO: Review license.
 licenses(["notice"])
 
 cc_library(
@@ -12,12 +13,9 @@ cc_library(
     ],
 )
 
-select_platform(
+cc_library(
     name = "assimp",
-    include_target = "@lib-assimp-include//:assimp_include",
-    linux_taregt = "@lib-assimp-linux//:assimp_lib",
-    osx_target = "@lib-assimp-osx//:assimp_lib",
-    windows_target = "@lib-assimp-windows//:assimp_lib",
+    deps = ["@lib-assimp//:assimp"],
 )
 
 cc_library(
@@ -30,12 +28,9 @@ cc_library(
     deps = ["@lib-glad//:glad"],
 )
 
-select_platform(
+cc_library(
     name = "glfw",
-    include_target = "@lib-glfw-include//:glfw_include",
-    linux_taregt = "@lib-glfw-linux//:glfw_lib",
-    osx_target = "@lib-glfw-osx//:glfw_lib",
-    windows_target = "@lib-glfw-windows//:glfw_lib",
+    deps = ["@lib-glfw//:glfw"],
 )
 
 cc_library(
