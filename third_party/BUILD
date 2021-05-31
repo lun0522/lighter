@@ -1,8 +1,8 @@
+load("@//third_party:select_platform.bzl", "select_platform")
+
 package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
-
-load("@//third_party:select_platform.bzl", "select_platform")
 
 cc_library(
     name = "absl",
@@ -20,12 +20,9 @@ select_platform(
     windows_target = "@lib-assimp-windows//:assimp_lib",
 )
 
-select_platform(
+cc_library(
     name = "freetype",
-    include_target = "@lib-freetype-include//:freetype_include",
-    linux_taregt = "@lib-freetype-linux//:freetype_lib",
-    osx_target = "@lib-freetype-osx//:freetype_lib",
-    windows_target = "@lib-freetype-windows//:freetype_lib",
+    deps = ["@lib-freetype//:freetype"],
 )
 
 cc_library(
@@ -59,7 +56,7 @@ cc_library(
 select_platform(
     name = "shaderc",
     linux_taregt = "@lib-shaderc-windows//:shaderc",
-    osx_target = "@lib-shaderc-windows//:shaderc",
+    osx_target = "@lib-shaderc-osx//:shaderc",
     windows_target = "@lib-shaderc-windows//:shaderc",
 )
 

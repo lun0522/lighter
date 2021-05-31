@@ -1,6 +1,6 @@
-package(default_visibility = ["//lighter:__subpackages__"])
-
 load("//:settings.bzl", "compilation_mode")
+
+package(default_visibility = ["//lighter:__subpackages__"])
 
 compilation_mode()
 

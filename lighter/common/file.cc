@@ -7,8 +7,8 @@
 
 #include "lighter/common/file.h"
 
+#include <cstdlib>
 #include <exception>
-#include <filesystem>
 #include <fstream>
 
 #include "lighter/common/util.h"
@@ -18,17 +18,6 @@
 #include "third_party/absl/strings/str_replace.h"
 #include "third_party/absl/strings/str_split.h"
 #include "tools/cpp/runfiles/runfiles.h"
-
-#if defined(__APPLE__)
-#define VULKAN_FOLDER "external/lib-vulkan-osx"
-#elif defined(__linux__)
-#define VULKAN_FOLDER "external/lib-vulkan-linux"
-#else
-#define VULKAN_FOLDER ""
-#endif
-
-ABSL_FLAG(std::string, vulkan_folder, VULKAN_FOLDER,
-          "Path to the Vulkan SDK folder");
 
 #undef VULKAN_FOLDER
 
@@ -115,6 +104,16 @@ std::string GetShaderBinaryPath(std::string_view relative_shader_path,
   relative_path /= shader_compiler::util::GetShaderBinaryPath(
       graphics_api, relative_shader_path);
   return RunfileLookup::GetFullPath(relative_path.string()).string();
+}
+
+std::string GetVulkanSdkPath(std::string_view relative_path) {
+  static const stdfs::path* vk_sdk_path = nullptr;
+  if (vk_sdk_path == nullptr) {
+    const char* env_var = getenv("VULKAN_SDK");
+    ASSERT_NON_NULL(env_var, "Environment variable 'VULKAN_SDK' not set");
+    vk_sdk_path = new stdfs::path{env_var};
+  }
+  return (*vk_sdk_path / relative_path).string();
 }
 
 }  // namespace file

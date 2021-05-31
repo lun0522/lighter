@@ -9,12 +9,12 @@ def assimp_archive(name, build_file, strip_prefix):
         build_file = build_file,
     )
 
-def freetype_archive(name, build_file, strip_prefix):
+def freetype_archive(name, build_file):
     http_archive(
         name = name,
-        urls = ["https://github.com/lun0522/lib-freetype/archive/2.10.4.zip"],
-        sha256 = "c19562d5e34b041986991a7023074b201005802b3ad11e44788b1fb809d127c4",
-        strip_prefix = "lib-freetype-2.10.4/" + strip_prefix,
+        urls = ["https://download.savannah.gnu.org/releases/freetype/freetype-2.10.4.tar.gz"],
+        sha256 = "5eab795ebb23ac77001cfb68b7d4d50b5d6c7469247b0b01b2c953269f658dac",
+        strip_prefix = "freetype-2.10.4",
         build_file = build_file,
     )
 

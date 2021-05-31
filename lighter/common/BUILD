@@ -1,6 +1,6 @@
-package(default_visibility = ["//lighter:__subpackages__"])
-
 load("//:settings.bzl", "graphics_api")
+
+package(default_visibility = ["//lighter:__subpackages__"])
 
 graphics_api()
 

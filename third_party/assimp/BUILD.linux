@@ -1,7 +1,7 @@
+load("@//third_party/assimp:generate_unix_target.bzl", "generate_target")
+
 package(default_visibility = ["//visibility:private"])
 
 licenses(["notice"])
-
-load("@//third_party/assimp:generate_unix_target.bzl", "generate_target")
 
 generate_target(src_zip = "linux.zip")

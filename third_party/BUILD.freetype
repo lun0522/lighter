@@ -1,0 +1,36 @@
+load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
+
+package(default_visibility = ["//visibility:private"])
+
+licenses(["notice"])
+
+cc_library(
+    name = "freetype",
+    deps = [
+        ":freetype_include",
+        ":freetype_lib",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "freetype_include",
+    includes = ["include"],
+    hdrs = glob(["include/**/*.h"]),
+    strip_include_prefix = "include",
+    include_prefix = "third_party/freetype",
+)
+
+cmake(
+    name = "freetype_lib",
+    lib_source = "@lib-freetype-all-srcs//:all_srcs",
+    generate_args = [
+        "-D CMAKE_BUILD_TYPE=Release",
+        "-D CMAKE_DISABLE_FIND_PACKAGE_ZLIB=TRUE",
+        "-D CMAKE_DISABLE_FIND_PACKAGE_BZip2=TRUE",
+        "-D CMAKE_DISABLE_FIND_PACKAGE_PNG=TRUE",
+        "-D CMAKE_DISABLE_FIND_PACKAGE_HarfBuzz=TRUE",
+        "-D CMAKE_DISABLE_FIND_PACKAGE_BrotliDec=TRUE",
+    ],
+    out_static_libs = ["libfreetype.a"],
+)

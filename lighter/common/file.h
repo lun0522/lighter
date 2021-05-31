@@ -9,18 +9,15 @@
 #define LIGHTER_COMMON_FILE_H
 
 #include <array>
+#include <filesystem>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include "lighter/common/graphics_api.h"
-#include "third_party/absl/flags/declare.h"
-#include "third_party/absl/flags/flag.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/absl/strings/str_cat.h"
 #include "third_party/glm/glm.hpp"
-
-ABSL_DECLARE_FLAG(std::string, vulkan_folder);
 
 namespace lighter::common {
 namespace file {
@@ -42,9 +39,7 @@ std::string GetShaderBinaryPath(std::string_view relative_shader_path,
                                 api::GraphicsApi graphics_api);
 
 // Returns the full path to files in the Vulkan SDK folder.
-inline std::string GetVulkanSdkPath(std::string_view relative_path) {
-  return absl::StrCat(absl::GetFlag(FLAGS_vulkan_folder), "/", relative_path);
-}
+std::string GetVulkanSdkPath(std::string_view relative_path);
 
 }  // namespace file
 

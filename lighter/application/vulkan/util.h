@@ -10,6 +10,7 @@
 
 #include <cstdlib>
 #include <memory>
+#include <string>
 #include <string_view>
 #include <type_traits>
 
@@ -195,14 +196,20 @@ int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
   using common::file::GetVulkanSdkPath;
 
 #if defined(__APPLE__)
+  // export DYLD_LIBRARY_PATH=$VULKAN_SDK/lib:$DYLD_LIBRARY_PATH
+  const std::string dyld_lib_path =
+      GetVulkanSdkPath("lib") + ":$DYLD_LIBRARY_PATH";
+  setenv("DYLD_LIBRARY_PATH", dyld_lib_path.c_str(), /*overwrite=*/1);
+
+  // export VK_ICD_FILENAMES=$VULKAN_SDK/etc/vulkan/icd.d/MoltenVK_icd.json
   setenv("VK_ICD_FILENAMES",
          GetVulkanSdkPath("share/vulkan/icd.d/MoltenVK_icd.json").c_str(),
          /*overwrite=*/1);
-#ifndef NDEBUG
+
+  // export VK_LAYER_PATH=$VULKAN_SDK/etc/vulkan/explicit_layer.d
   setenv("VK_LAYER_PATH",
          GetVulkanSdkPath("share/vulkan/explicit_layer.d").c_str(),
          /*overwrite=*/1);
-#endif /* !NDEBUG */
 
 #elif defined(__linux__)
 #ifndef NDEBUG

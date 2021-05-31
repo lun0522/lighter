@@ -72,14 +72,24 @@ only uses the features of C++11 (enhanced by [Abseil library](https://abseil.io)
 
 To run applications, following these steps:
 
+Install Vulkan SDK:
+- MacOS: Follow the [instruction](https://vulkan.lunarg.com/doc/sdk/latest/mac/getting_started.html).
+There is no need to install Vulkan to `/usr/local`.
+- Windows: Follow the [instruction](https://vulkan.lunarg.com/doc/sdk/latest/windows/getting_started.html)
+and env var `VULKAN_SDK` is set during installation.
+
 1. Compile shaders by executing [compile_shaders.sh](https://github.com/lun0522/lighter/blob/master/compile_shaders.sh)
 (no command line arguments needed).
 2. Install [Bazel build system](https://bazel.build) following the [official guide](https://docs.bazel.build/versions/master/install.html).
 3. Run from command line:
 
 ```bash
+# Only needed on MacOS.
+export VULKAN_SDK=/path/to/MacOS/folder/in/Vulkan/SDK
+
 # Only needed on Linux.
 sudo apt install mesa-common-dev
+export VULKAN_SDK=/path/to/x86_64/folder/in/Vulkan/SDK
 
 # Only needed on Windows.
 set BAZEL_LLVM=C:\Program Files\LLVM

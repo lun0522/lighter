@@ -3,10 +3,25 @@ workspace(name = "lighter")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@//:local_archives.bzl", "use_vulkan_sdk")
-load("@//:remote_archives.bzl", "assimp_archive")
-load("@//:remote_archives.bzl", "freetype_archive")
-load("@//:remote_archives.bzl", "glfw_archive")
-load("@//:remote_archives.bzl", "spirv_cross_archive")
+load("@//:remote_archives.bzl", "assimp_archive", "freetype_archive",
+     "glfw_archive", "spirv_cross_archive")
+
+#######################################
+# rules_foreign_cc
+
+http_archive(
+    name = "rules_foreign_cc",
+    sha256 = "d54742ffbdc6924f222d2179f0e10e911c5c659c4ae74158e9fe827aad862ac6",
+    strip_prefix = "rules_foreign_cc-0.2.0",
+    url = "https://github.com/bazelbuild/rules_foreign_cc/archive/0.2.0.tar.gz",
+)
+
+load("@rules_foreign_cc//foreign_cc:repositories.bzl",
+     "rules_foreign_cc_dependencies")
+
+# Set up common toolchains for building targets. See more details:
+# https://github.com/bazelbuild/rules_foreign_cc/tree/main/docs#rules_foreign_cc_dependencies
+rules_foreign_cc_dependencies()
 
 #######################################
 # Abseil
@@ -58,27 +73,13 @@ assimp_archive(
 # FreeType
 
 freetype_archive(
-    name = "lib-freetype-include",
-    build_file = "//:third_party/freetype/BUILD.include",
-    strip_prefix = "include",
+    name = "lib-freetype",
+    build_file = "//:third_party/BUILD.freetype",
 )
 
 freetype_archive(
-    name = "lib-freetype-linux",
-    build_file = "//:third_party/freetype/BUILD.unix",
-    strip_prefix = "lib/linux",
-)
-
-freetype_archive(
-    name = "lib-freetype-osx",
-    build_file = "//:third_party/freetype/BUILD.unix",
-    strip_prefix = "lib/osx",
-)
-
-freetype_archive(
-    name = "lib-freetype-windows",
-    build_file = "//:third_party/freetype/BUILD.windows",
-    strip_prefix = "lib/windows",
+    name = "lib-freetype-all-srcs",
+    build_file = "//:third_party/BUILD.all_srcs",
 )
 
 #######################################
@@ -155,6 +156,11 @@ new_git_repository(
 # shaderc
 
 use_vulkan_sdk(
+    name = "lib-shaderc-osx",
+    build_file_abs_path = __workspace_dir__ + "/third_party/shaderc/BUILD.osx",
+)
+
+use_vulkan_sdk(
     name = "lib-shaderc-windows",
     build_file_abs_path = __workspace_dir__ + "/third_party/shaderc/BUILD.windows",
 )
@@ -202,12 +208,9 @@ http_archive(
     url = "https://sdk.lunarg.com/sdk/download/1.2.154.0/linux/vulkansdk-linux-x86_64-1.2.154.0.tar.gz",
 )
 
-http_archive(
+use_vulkan_sdk(
     name = "lib-vulkan-osx",
-    build_file = "//:third_party/vulkan/BUILD.osx",
-    sha256 = "81da27908836f6f5f41ed7962ff1b4be56ded3b447d4802a98b253d492f985cf",
-    strip_prefix = "vulkansdk-macos-1.2.135.0/macOS",
-    url = "https://sdk.lunarg.com/sdk/download/1.2.135.0/mac/vulkansdk-macos-1.2.135.0.tar.gz",
+    build_file_abs_path = __workspace_dir__ + "/third_party/vulkan/BUILD.osx",
 )
 
 use_vulkan_sdk(
