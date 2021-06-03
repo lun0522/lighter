@@ -4,6 +4,11 @@ package(default_visibility = ["//visibility:private"])
 
 licenses(["notice"])
 
+filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
+)
+
 objc_library(
     name = "apple_frameworks",
     sdk_frameworks = [
@@ -14,28 +19,19 @@ objc_library(
 
 cc_library(
     name = "glfw",
-    deps = [
-        ":glfw_include",
-        ":glfw_lib",
-    ] + select({
+    deps = [":cmake_build"] + select({
         "@bazel_tools//src/conditions:darwin": [":apple_frameworks"],
         "//conditions:default": [],
     }),
     visibility = ["//visibility:public"],
 )
 
-cc_library(
-    name = "glfw_include",
-    hdrs = glob(["include/**"]),
-    strip_include_prefix = "include/GLFW",
-    include_prefix = "third_party/glfw",
-)
-
 cmake(
-    name = "glfw_lib",
-    lib_source = "@lib-glfw-all-srcs//:all_srcs",
+    name = "cmake_build",
+    lib_source = ":all_srcs",
     generate_args = [
         "-D CMAKE_BUILD_TYPE=Release",
+        "-D CMAKE_INSTALL_INCLUDEDIR=include/third_party",
         "-D GLFW_BUILD_EXAMPLES=OFF",
         "-D GLFW_BUILD_TESTS=OFF",
         "-D GLFW_BUILD_DOCS=OFF",

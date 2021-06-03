@@ -55,11 +55,9 @@ select_platform(
     windows_target = "@lib-shaderc-windows//:shaderc",
 )
 
-select_platform(
+cc_library(
     name = "spirv_cross",
-    linux_taregt = "@lib-spirv-cross-linux//:spirv_cross",
-    osx_target = "@lib-spirv-cross-osx//:spirv_cross",
-    windows_target = "@lib-spirv-cross-windows//:spirv_cross",
+    deps = ["@lib-spirv-cross//:spirv_cross"],
 )
 
 cc_library(

@@ -15,7 +15,7 @@
 #include "lighter/common/file.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/span.h"
-#include "third_party/freetype/ft2build.h"
+#include "third_party/freetype2/ft2build.h"
 #include FT_FREETYPE_H
 #include "third_party/glm/glm.hpp"
 

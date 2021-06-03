@@ -3,8 +3,6 @@ workspace(name = "lighter")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@//:local_archives.bzl", "use_vulkan_sdk")
-load("@//:remote_archives.bzl", "assimp_archive", "freetype_archive",
-     "glfw_archive", "spirv_cross_archive")
 
 #######################################
 # rules_foreign_cc
@@ -29,43 +27,39 @@ rules_foreign_cc_dependencies()
 http_archive(
     name = "lib-absl-include",
     build_file = "//:third_party/absl/BUILD.include",
-    sha256 = "b4c76fbf553934eb03893b6262d48bca9ab06784331e83bce762e5e493b55f7b",
+    sha256 = "5c8ec844ddfd63273887e6b98cdf500279a7f408c0af73cf9901bc5cc7ffac56",
     strip_prefix = "lib-absl-20210324.1",
-    urls = ["https://github.com/lun0522/lib-absl/archive/20210324.1.zip"],
+    url = "https://github.com/lun0522/lib-absl/archive/20210324.1.tar.gz",
 )
 
 http_archive(
     name = "lib-absl",
     build_file = "//:third_party/absl/BUILD",
-    sha256 = "cfb1f22164808eb0a233ad91287df84c2af2084cfc8b429eca1be1e57511065d",
+    sha256 = "441db7c09a0565376ecacf0085b2d4c2bbedde6115d7773551bc116212c2a8d6",
     strip_prefix = "abseil-cpp-20210324.1",
-    urls = ["https://github.com/abseil/abseil-cpp/archive/20210324.1.zip"],
+    url = "https://github.com/abseil/abseil-cpp/archive/20210324.1.tar.gz",
 )
 
 #######################################
 # Assimp
 
-assimp_archive(
+http_archive(
     name = "lib-assimp",
+    sha256 = "11310ec1f2ad2cd46b95ba88faca8f7aaa1efe9aa12605c55e3de2b977b3dbfc",
+    strip_prefix = "assimp-5.0.1",
     build_file = "//:third_party/BUILD.assimp",
-)
-
-assimp_archive(
-    name = "lib-assimp-all-srcs",
-    build_file = "//:third_party/BUILD.all_srcs",
+    url = "https://github.com/assimp/assimp/archive/v5.0.1.tar.gz",
 )
 
 #######################################
 # FreeType
 
-freetype_archive(
+http_archive(
     name = "lib-freetype",
+    sha256 = "5eab795ebb23ac77001cfb68b7d4d50b5d6c7469247b0b01b2c953269f658dac",
+    strip_prefix = "freetype-2.10.4",
     build_file = "//:third_party/BUILD.freetype",
-)
-
-freetype_archive(
-    name = "lib-freetype-all-srcs",
-    build_file = "//:third_party/BUILD.all_srcs",
+    url = "https://download.savannah.gnu.org/releases/freetype/freetype-2.10.4.tar.gz",
 )
 
 #######################################
@@ -76,20 +70,18 @@ http_archive(
     build_file = "//:third_party/BUILD.glad",
     sha256 = "fb70142b175aff3fc9cc0438ea4b2047c6d37163a7afe6942a6868755ec3e636",
     strip_prefix = "lib-glad-4.5",
-    urls = ["https://github.com/lun0522/lib-glad/archive/4.5.zip"],
+    url = "https://github.com/lun0522/lib-glad/archive/4.5.tar.gz",
 )
 
 #######################################
 # GLFW
 
-glfw_archive(
+http_archive(
     name = "lib-glfw",
+    sha256 = "cc8ac1d024a0de5fd6f68c4133af77e1918261396319c24fd697775a6bc93b63",
+    strip_prefix = "glfw-3.3.4",
     build_file = "//:third_party/BUILD.glfw",
-)
-
-glfw_archive(
-    name = "lib-glfw-all-srcs",
-    build_file = "//:third_party/BUILD.all_srcs",
+    url = "https://github.com/glfw/glfw/archive/3.3.4.tar.gz",
 )
 
 #######################################
@@ -98,9 +90,9 @@ glfw_archive(
 http_archive(
     name = "lib-glm",
     build_file = "//:third_party/BUILD.glm",
-    sha256 = "4605259c22feadf35388c027f07b345ad3aa3b12631a5a316347f7566c6f1839",
+    sha256 = "7d508ab72cb5d43227a3711420f06ff99b0a0cb63ee2f93631b162bfe1fe9592",
     strip_prefix = "glm-0.9.9.8",
-    urls = ["https://github.com/g-truc/glm/archive/0.9.9.8.zip"],
+    url = "https://github.com/g-truc/glm/archive/0.9.9.8.tar.gz",
 )
 
 #######################################
@@ -110,7 +102,7 @@ http_archive(
     name = "lib-googletest",
     sha256 = "94c634d499558a76fa649edb13721dce6e98fb1e7018dfaeba3cd7a083945e91",
     strip_prefix = "googletest-release-1.10.0",
-    urls = ["https://github.com/google/googletest/archive/release-1.10.0.zip"],
+    url = "https://github.com/google/googletest/archive/release-1.10.0.tar.gz",
 )
 
 #######################################
@@ -140,22 +132,12 @@ use_vulkan_sdk(
 #######################################
 # SPIRV-Cross
 
-spirv_cross_archive(
-    platform = "linux",
-    url = "https://github.com/KhronosGroup/SPIRV-Cross/releases/download/2021-01-15/spirv-cross-clang-trusty-64bit-9acb9ec31f.tar.gz",
-    sha256 = "2e207445efab417ce737c9f320690f5e252d6ac7ee167a2911ef21c145f564f7",
-)
-
-spirv_cross_archive(
-    platform = "osx",
-    url = "https://github.com/KhronosGroup/SPIRV-Cross/releases/download/2021-01-15/spirv-cross-clang-macos-64bit-9acb9ec31f.tar.gz",
-    sha256 = "6f43900361deb5e2d4df481d812bd83ebdf336dce3dbfa60d9ef3d44f2d09264",
-)
-
-spirv_cross_archive(
-    platform = "windows",
-    url = "https://github.com/KhronosGroup/SPIRV-Cross/releases/download/2021-01-15/spirv-cross-vs2017-64bit-9acb9ec31f.tar.gz",
-    sha256 = "f27bd8aeb36991c9e893d516dc680503ad66b2c548ba540c8b551afa0d230c03",
+http_archive(
+    name = "lib-spirv-cross",
+    sha256 = "d700863b548cbc7f27a678cee305f561669a126eb2cc11d36a7023dfc462b9c4",
+    strip_prefix = "SPIRV-Cross-2021-01-15",
+    build_file = "//:third_party/BUILD.spirv_cross",
+    url = "https://github.com/KhronosGroup/SPIRV-Cross/archive/2021-01-15.tar.gz",
 )
 
 #######################################
@@ -195,7 +177,7 @@ use_vulkan_sdk(
 
 http_archive(
     name = "resource",
-    sha256 = "f1f3ef3d9cda4e9a74171719c3e26aef9b6eeae0b16a9a4f6f3addc1ba2bc131",
+    sha256 = "9a1977db13a18d7af8c0925e12084b0597d1b1c55a912101699bbf58075f4272",
     strip_prefix = "resource-1.0.0",
-    urls = ["https://github.com/lun0522/resource/archive/1.0.0.zip"],
+    url = "https://github.com/lun0522/resource/archive/1.0.0.tar.gz",
 )

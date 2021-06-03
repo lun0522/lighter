@@ -9,7 +9,7 @@
 
 #include "lighter/common/util.h"
 #include "third_party/absl/strings/str_format.h"
-#include "third_party/glfw/glfw3.h"
+#include "third_party/GLFW/glfw3.h"
 
 namespace lighter::common {
 namespace {

@@ -22,8 +22,8 @@
 #include "third_party/absl/flags/declare.h"
 #include "third_party/absl/flags/flag.h"
 #include "third_party/glad/glad.h"
-#include "third_party/glfw/glfw3.h"
 #include "third_party/glm/glm.hpp"
+#include "third_party/GLFW/glfw3.h"
 
 ABSL_DECLARE_FLAG(bool, performance_mode);
 

@@ -1,20 +1,28 @@
+load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
+
+package(default_visibility = ["//visibility:private"])
+
 licenses(["notice"])
 
-cc_import(
-    name = "libspirv-cross-core",
-    static_library = select({
-        "@bazel_tools//src/conditions:darwin": "lib/libspirv-cross-core.a",
-        "@bazel_tools//src/conditions:linux_x86_64": "lib/libspirv-cross-core.a",
-        "@bazel_tools//src/conditions:windows": "lib/spirv-cross-core.lib",
-    }),
-    visibility = ["//visibility:private"],
+filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
 )
 
-cc_library(
+cmake(
     name = "spirv_cross",
-    hdrs = glob(["**/*.hpp"]),
-    deps = ["libspirv-cross-core"],
-    strip_include_prefix = "include",
-    include_prefix = "third_party",
+    lib_source = ":all_srcs",
+    generate_args = [
+        "-D CMAKE_BUILD_TYPE=Release",
+        "-D CMAKE_INSTALL_INCLUDEDIR=include/third_party",
+        "-D SPIRV_CROSS_CLI=OFF",
+        "-D SPIRV_CROSS_ENABLE_TESTS=OFF",
+        "-D SPIRV_CROSS_ENABLE_HLSL=OFF",
+        "-D SPIRV_CROSS_ENABLE_MSL=OFF",
+        "-D SPIRV_CROSS_ENABLE_CPP=OFF",
+        "-D SPIRV_CROSS_ENABLE_C_API=OFF",
+        "-D SPIRV_CROSS_ENABLE_UTIL=OFF",
+    ],
+    out_static_libs = ["libspirv-cross-core.a"],
     visibility = ["//visibility:public"],
 )

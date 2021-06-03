@@ -4,28 +4,18 @@ package(default_visibility = ["//visibility:private"])
 
 licenses(["notice"])
 
-cc_library(
-    name = "assimp",
-    deps = [
-        ":assimp_include",
-        ":assimp_lib",
-    ],
-    visibility = ["//visibility:public"],
-)
-
-cc_library(
-    name = "assimp_include",
-    hdrs = glob(["include/**"]),
-    strip_include_prefix = "include",
-    include_prefix = "third_party",
+filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
 )
 
 cmake(
-    name = "assimp_lib",
-    lib_source = "@lib-assimp-all-srcs//:all_srcs",
+    name = "cmake_build",
+    lib_source = ":all_srcs",
     generate_args = [
         "-D CMAKE_BUILD_TYPE=Release",
         "-D BUILD_SHARED_LIBS=OFF",
+        "-D ASSIMP_INCLUDE_INSTALL_DIR=include/third_party",
         "-D ASSIMP_NO_EXPORT=ON",
         "-D ASSIMP_BUILD_ASSIMP_TOOLS=OFF",
         "-D ASSIMP_BUILD_TESTS=OFF",
@@ -34,4 +24,11 @@ cmake(
         "-D ASSIMP_BUILD_OBJ_IMPORTER=ON",
     ],
     out_static_libs = ["libassimp.a"],
+)
+
+cc_library(
+    name = "assimp",
+    deps = [":cmake_build"],
+    includes = ["cmake_build/include/third_party"],
+    visibility = ["//visibility:public"],
 )
