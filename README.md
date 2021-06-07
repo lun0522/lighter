@@ -88,7 +88,8 @@ and env var `VULKAN_SDK` is set during installation.
 export VULKAN_SDK=/path/to/MacOS/folder/in/Vulkan/SDK
 
 # Only needed on Linux.
-sudo apt install mesa-common-dev
+sudo apt install mesa-common-dev make libxrandr-dev libxinerama-dev \
+    libxcursor-dev libxi-dev
 export VULKAN_SDK=/path/to/x86_64/folder/in/Vulkan/SDK
 
 # Only needed on Windows.

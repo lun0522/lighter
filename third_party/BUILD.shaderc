@@ -1,0 +1,24 @@
+load("@//:repository_rules.bzl", "get_vulkan_include_path",
+     "get_vulkan_lib_path")
+
+package(default_visibility = ["//visibility:private"])
+
+licenses(["notice"])
+
+cc_import(
+    name = "libshaderc",
+    static_library = select({
+        "@platforms//os:windows": get_vulkan_lib_path("shaderc_combined.lib"),
+        "//conditions:default": get_vulkan_lib_path("libshaderc_combined.a"),
+    }),
+)
+
+cc_library(
+    name = "shaderc",
+    hdrs = glob([get_vulkan_include_path("shaderc/*.h")]),
+    includes = [get_vulkan_include_path()],
+    deps = [":libshaderc"],
+    include_prefix = "third_party",
+    strip_include_prefix = get_vulkan_include_path(),
+    visibility = ["//visibility:public"],
+)

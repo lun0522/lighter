@@ -24,7 +24,7 @@ cmake(
         "-D ASSIMP_BUILD_OBJ_IMPORTER=ON",
     ],
     out_static_libs = select({
-        "@bazel_tools//src/conditions:windows": ["assimp-vc142-mt.lib"],
+        "@platforms//os:windows": ["assimp-vc142-mt.lib"],
         "//conditions:default": ["libassimp.a"],
     }),
 )

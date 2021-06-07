@@ -22,7 +22,7 @@ cmake(
         "-D CMAKE_DISABLE_FIND_PACKAGE_BrotliDec=TRUE",
     ],
     out_static_libs = select({
-        "@bazel_tools//src/conditions:windows": ["freetype.lib"],
+        "@platforms//os:windows": ["freetype.lib"],
         "//conditions:default": ["libfreetype.a"],
     }),
 )

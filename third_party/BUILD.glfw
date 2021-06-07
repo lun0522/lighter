@@ -20,11 +20,19 @@ objc_library(
 cc_library(
     name = "glfw",
     deps = [":cmake_build"] + select({
-        "@bazel_tools//src/conditions:darwin": [":apple_frameworks"],
+        "@platforms//os:macos": [":apple_frameworks"],
         "//conditions:default": [],
     }),
     linkopts = select({
-        "@bazel_tools//src/conditions:windows": ["gdi32.lib shell32.lib user32.lib"],
+        "@platforms//os:linux": [
+            "-ldl",
+            "-lX11",
+        ],
+        "@platforms//os:windows": [
+            "gdi32.lib",
+            "shell32.lib",
+            "user32.lib",
+        ],
         "//conditions:default": [],
     }),
     visibility = ["//visibility:public"],
@@ -41,7 +49,7 @@ cmake(
         "-D GLFW_BUILD_DOCS=OFF",
     ],
     out_static_libs = select({
-        "@bazel_tools//src/conditions:windows": ["glfw3.lib"],
+        "@platforms//os:windows": ["glfw3.lib"],
         "//conditions:default": ["libglfw3.a"],
     }),
 )

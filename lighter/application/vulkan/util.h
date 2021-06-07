@@ -210,29 +210,35 @@ int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
   setenv("VK_LAYER_PATH",
          GetVulkanSdkPath("share/vulkan/explicit_layer.d").c_str(),
          /*overwrite=*/1);
+#endif /* __APPLE__ */
 
-#elif defined(__linux__)
-#ifndef NDEBUG
+#if defined(__linux__)
+  // export PATH=$VULKAN_SDK/bin:$PATH
+  const std::string path = GetVulkanSdkPath("bin") + ":$PATH";
+  setenv("PATH", path.c_str(), /*overwrite=*/1);
+
+  // export LD_LIBRARY_PATH=$VULKAN_SDK/lib
+  setenv("LD_LIBRARY_PATH", GetVulkanSdkPath("lib").c_str(), /*overwrite=*/1);
+
+  // export VK_LAYER_PATH=$VULKAN_SDK/etc/vulkan/explicit_layer.d
   setenv("VK_LAYER_PATH",
          GetVulkanSdkPath("etc/vulkan/explicit_layer.d").c_str(),
          /*overwrite=*/1);
-#endif /* !NDEBUG */
-
-#endif /* __APPLE__ || __linux__ */
+#endif /* __linux__ */
 
   // We don't catch exceptions in the debug mode, so that if there is anything
   // wrong, the debugger would stay at the point where the application breaks.
-//#ifdef NDEBUG
+#ifdef NDEBUG
   try {
-//#endif /* NDEBUG */
+#endif /* NDEBUG */
     AppType app{std::forward<AppArgs>(app_args)...};
     app.MainLoop();
-//#ifdef NDEBUG
+#ifdef NDEBUG
   } catch (const std::exception& e) {
     LOG_ERROR << "Error: " << e.what();
     return EXIT_FAILURE;
   }
-//#endif /* NDEBUG */
+#endif /* NDEBUG */
 
   return EXIT_SUCCESS;
 }

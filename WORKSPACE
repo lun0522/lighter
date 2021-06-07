@@ -2,6 +2,13 @@ workspace(name = "lighter")
 
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "bazel_skylib",
+    sha256 = "1c531376ac7e5a180e0237938a2536de0c54d93f5c278634818e0efc952dd56c",
+    urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/1.0.3/bazel-skylib-1.0.3.tar.gz"],
+)
+
 load("@//:repository_rules.bzl", "external_windows_archive", "use_vulkan_sdk")
 
 #######################################
@@ -135,13 +142,8 @@ new_git_repository(
 # shaderc
 
 use_vulkan_sdk(
-    name = "lib-shaderc-osx",
-    build_file_abs_path = __workspace_dir__ + "/third_party/shaderc/BUILD.osx",
-)
-
-use_vulkan_sdk(
-    name = "lib-shaderc-windows",
-    build_file_abs_path = __workspace_dir__ + "/third_party/shaderc/BUILD.windows",
+    name = "lib-shaderc",
+    build_file_abs_path = __workspace_dir__ + "/third_party/BUILD.shaderc",
 )
 
 #######################################
@@ -169,22 +171,9 @@ new_git_repository(
 #######################################
 # Vulkan
 
-http_archive(
-    name = "lib-vulkan-linux",
-    build_file = "//:third_party/vulkan/BUILD.linux",
-    sha256 = "6d8828fa9c9113ef4083a07994cf0eb13b8d239a5263bd95aa408d2f57585268",
-    strip_prefix = "1.2.154.0/x86_64",
-    url = "https://sdk.lunarg.com/sdk/download/1.2.154.0/linux/vulkansdk-linux-x86_64-1.2.154.0.tar.gz",
-)
-
 use_vulkan_sdk(
-    name = "lib-vulkan-osx",
-    build_file_abs_path = __workspace_dir__ + "/third_party/vulkan/BUILD.osx",
-)
-
-use_vulkan_sdk(
-    name = "lib-vulkan-windows",
-    build_file_abs_path = __workspace_dir__ + "/third_party/vulkan/BUILD.windows",
+    name = "lib-vulkan",
+    build_file_abs_path = __workspace_dir__ + "/third_party/BUILD.vulkan",
 )
 
 #######################################

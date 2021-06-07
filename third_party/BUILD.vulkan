@@ -1,0 +1,34 @@
+load("@//:repository_rules.bzl", "get_vulkan_include_path",
+     "get_vulkan_lib_path")
+
+package(default_visibility = ["//visibility:private"])
+
+licenses(["notice"])
+
+cc_import(
+    name = "libvulkan_linux",
+    shared_library = get_vulkan_lib_path("libvulkan.so"),
+)
+
+cc_import(
+    name = "libvulkan_macos",
+    shared_library = get_vulkan_lib_path("libvulkan.dylib"),
+)
+
+cc_import(
+    name = "libvulkan_windows",
+    static_library = get_vulkan_lib_path("vulkan-1.lib"),
+)
+
+cc_library(
+    name = "vulkan",
+    hdrs = glob([get_vulkan_include_path("vulkan/*.h")]),
+    deps = select({
+        "@platforms//os:linux": [":libvulkan_linux"],
+        "@platforms//os:macos": [":libvulkan_macos"],
+        "@platforms//os:windows": [":libvulkan_windows"],
+    }),
+    include_prefix = "third_party",
+    strip_include_prefix = get_vulkan_include_path(),
+    visibility = ["//visibility:public"],
+)
