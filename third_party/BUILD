@@ -15,12 +15,18 @@ cc_library(
 
 cc_library(
     name = "assimp",
-    deps = ["@lib-assimp//:assimp"],
+    deps = select({
+        "@bazel_tools//src/conditions:windows": ["@lib-assimp-windows//:assimp"],
+        "//conditions:default": ["@lib-assimp//:assimp"],
+    }),
 )
 
 cc_library(
     name = "freetype",
-    deps = ["@lib-freetype//:freetype"],
+    deps = select({
+        "@bazel_tools//src/conditions:windows": ["@lib-freetype-windows//:freetype"],
+        "//conditions:default": ["@lib-freetype//:freetype"],
+    }),
 )
 
 cc_library(
@@ -30,7 +36,10 @@ cc_library(
 
 cc_library(
     name = "glfw",
-    deps = ["@lib-glfw//:glfw"],
+    deps = select({
+        "@bazel_tools//src/conditions:windows": ["@lib-glfw-windows//:glfw"],
+        "//conditions:default": ["@lib-glfw//:glfw"],
+    }),
 )
 
 cc_library(

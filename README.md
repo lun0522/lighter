@@ -93,7 +93,7 @@ export VULKAN_SDK=/path/to/x86_64/folder/in/Vulkan/SDK
 
 # Only needed on Windows.
 set BAZEL_LLVM=C:\Program Files\LLVM
-set BAZEL_SH=C:\cygwin64\bin\bash.exe
+set BAZEL_SH=C:\msys64\msys2_shell.cmd
 
 # Common to all platforms.
 bazel run -c opt --copt=-DUSE_VULKAN //lighter/application/vulkan:triangle

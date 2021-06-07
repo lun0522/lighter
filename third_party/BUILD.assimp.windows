@@ -1,0 +1,17 @@
+licenses(["notice"])
+
+package(default_visibility = ["//visibility:private"])
+
+cc_library(
+    name = "assimp",
+    hdrs = glob(["assimp/include/**"]),
+    includes = ["assimp/include/third_party"],
+    strip_include_prefix = "assimp/include",
+    deps = [":libassimp"],
+    visibility = ["//visibility:public"],
+)
+
+cc_import(
+    name = "libassimp",
+    static_library = "assimp/lib/assimp-vc142-mt.lib",
+)

@@ -2,7 +2,7 @@ workspace(name = "lighter")
 
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-load("@//:local_archives.bzl", "use_vulkan_sdk")
+load("@//:repository_rules.bzl", "external_windows_archive", "use_vulkan_sdk")
 
 #######################################
 # rules_foreign_cc
@@ -51,6 +51,11 @@ http_archive(
     url = "https://github.com/assimp/assimp/archive/v5.0.1.tar.gz",
 )
 
+external_windows_archive(
+    name = "lib-assimp-windows",
+    build_file = "//:third_party/BUILD.assimp.windows",
+)
+
 #######################################
 # FreeType
 
@@ -60,6 +65,11 @@ http_archive(
     strip_prefix = "freetype-2.10.4",
     build_file = "//:third_party/BUILD.freetype",
     url = "https://download.savannah.gnu.org/releases/freetype/freetype-2.10.4.tar.gz",
+)
+
+external_windows_archive(
+    name = "lib-freetype-windows",
+    build_file = "//:third_party/BUILD.freetype.windows",
 )
 
 #######################################
@@ -82,6 +92,11 @@ http_archive(
     strip_prefix = "glfw-3.3.4",
     build_file = "//:third_party/BUILD.glfw",
     url = "https://github.com/glfw/glfw/archive/3.3.4.tar.gz",
+)
+
+external_windows_archive(
+    name = "lib-glfw-windows",
+    build_file = "//:third_party/BUILD.glfw.windows",
 )
 
 #######################################

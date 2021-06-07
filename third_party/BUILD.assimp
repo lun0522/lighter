@@ -23,7 +23,10 @@ cmake(
         "-D ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT=OFF",
         "-D ASSIMP_BUILD_OBJ_IMPORTER=ON",
     ],
-    out_static_libs = ["libassimp.a"],
+    out_static_libs = select({
+        "@bazel_tools//src/conditions:windows": ["assimp-vc142-mt.lib"],
+        "//conditions:default": ["libassimp.a"],
+    }),
 )
 
 cc_library(

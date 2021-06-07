@@ -23,6 +23,10 @@ cc_library(
         "@bazel_tools//src/conditions:darwin": [":apple_frameworks"],
         "//conditions:default": [],
     }),
+    linkopts = select({
+        "@bazel_tools//src/conditions:windows": ["gdi32.lib shell32.lib user32.lib"],
+        "//conditions:default": [],
+    }),
     visibility = ["//visibility:public"],
 )
 
@@ -36,5 +40,8 @@ cmake(
         "-D GLFW_BUILD_TESTS=OFF",
         "-D GLFW_BUILD_DOCS=OFF",
     ],
-    out_static_libs = ["libglfw3.a"],
+    out_static_libs = select({
+        "@bazel_tools//src/conditions:windows": ["glfw3.lib"],
+        "//conditions:default": ["libglfw3.a"],
+    }),
 )
