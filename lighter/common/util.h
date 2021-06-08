@@ -20,7 +20,6 @@
 #include <vector>
 
 #include "third_party/absl/base/optimization.h"
-#include "third_party/absl/flags/parse.h"
 #include "third_party/absl/functional/function_ref.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/span.h"
@@ -72,11 +71,6 @@
         : FATAL(#pointer " is nullptr"))
 
 namespace lighter::common::util {
-
-// Parses command line arguments. This should be called in main().
-inline void ParseCommandLine(int argc, char* argv[]) {
-  absl::ParseCommandLine(argc, argv);
-}
 
 // Prints the current time in "YYYY-MM-DD HH:MM:SS.fff" format.
 std::ostream& PrintTime(std::ostream& os);

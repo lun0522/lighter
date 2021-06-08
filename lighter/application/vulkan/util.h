@@ -8,13 +8,11 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_UTIL_H
 #define LIGHTER_APPLICATION_VULKAN_UTIL_H
 
-#include <cstdlib>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <type_traits>
 
-#include "lighter/application/util.h"
 #include "lighter/common/camera.h"
 #include "lighter/common/file.h"
 #include "lighter/common/graphics_api.h"
@@ -23,6 +21,7 @@
 #include "lighter/common/util.h"
 #include "lighter/renderer/align.h"
 #include "lighter/renderer/image_usage.h"
+#include "lighter/renderer/util.h"
 #include "lighter/renderer/vulkan/extension/compute_pass.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/model.h"
@@ -35,14 +34,11 @@
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
-#include "third_party/absl/flags/declare.h"
-#include "third_party/absl/flags/flag.h"
+#include "third_party/absl/flags/parse.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/glm/gtc/matrix_transform.hpp"
 #include "third_party/vulkan/vulkan.h"
-
-ABSL_DECLARE_FLAG(bool, performance_mode);
 
 namespace lighter {
 namespace application {
@@ -180,51 +176,9 @@ int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
   static_assert(std::is_base_of<Application, AppType>::value,
                 "Not a subclass of Application");
 
-  common::util::ParseCommandLine(argc, argv);
+  absl::ParseCommandLine(argc, argv);
   common::file::EnableRunfileLookup(argv[0]);
-
-#if defined(__APPLE__)
-  if (absl::GetFlag(FLAGS_performance_mode)) {
-    // To avoid the frame rate being clamped on MacOS when using MoltenVK:
-    // https://github.com/KhronosGroup/MoltenVK/issues/581#issuecomment-487293665
-    setenv("MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS", "0", /*overwrite=*/1);
-    setenv("MVK_CONFIG_PRESENT_WITH_COMMAND_BUFFER", "0", /*overwrite=*/1);
-  }
-#endif /* __APPLE__ */
-
-  // Set up the path to find Vulkan SDK.
-  using common::file::GetVulkanSdkPath;
-
-#if defined(__APPLE__)
-  // export DYLD_LIBRARY_PATH=$VULKAN_SDK/lib:$DYLD_LIBRARY_PATH
-  const std::string dyld_lib_path =
-      GetVulkanSdkPath("lib") + ":$DYLD_LIBRARY_PATH";
-  setenv("DYLD_LIBRARY_PATH", dyld_lib_path.c_str(), /*overwrite=*/1);
-
-  // export VK_ICD_FILENAMES=$VULKAN_SDK/etc/vulkan/icd.d/MoltenVK_icd.json
-  setenv("VK_ICD_FILENAMES",
-         GetVulkanSdkPath("share/vulkan/icd.d/MoltenVK_icd.json").c_str(),
-         /*overwrite=*/1);
-
-  // export VK_LAYER_PATH=$VULKAN_SDK/etc/vulkan/explicit_layer.d
-  setenv("VK_LAYER_PATH",
-         GetVulkanSdkPath("share/vulkan/explicit_layer.d").c_str(),
-         /*overwrite=*/1);
-#endif /* __APPLE__ */
-
-#if defined(__linux__)
-  // export PATH=$VULKAN_SDK/bin:$PATH
-  const std::string path = GetVulkanSdkPath("bin") + ":$PATH";
-  setenv("PATH", path.c_str(), /*overwrite=*/1);
-
-  // export LD_LIBRARY_PATH=$VULKAN_SDK/lib
-  setenv("LD_LIBRARY_PATH", GetVulkanSdkPath("lib").c_str(), /*overwrite=*/1);
-
-  // export VK_LAYER_PATH=$VULKAN_SDK/etc/vulkan/explicit_layer.d
-  setenv("VK_LAYER_PATH",
-         GetVulkanSdkPath("etc/vulkan/explicit_layer.d").c_str(),
-         /*overwrite=*/1);
-#endif /* __linux__ */
+  renderer::util::GlobalInit(common::api::GraphicsApi::kVulkan);
 
   // We don't catch exceptions in the debug mode, so that if there is anything
   // wrong, the debugger would stay at the point where the application breaks.

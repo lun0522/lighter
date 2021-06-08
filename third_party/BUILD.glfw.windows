@@ -4,8 +4,8 @@ package(default_visibility = ["//visibility:private"])
 
 cc_library(
     name = "glfw",
-    hdrs = glob(["glfw/include/**"]),
-    strip_include_prefix = "glfw/include",
+    hdrs = glob(["include/**"]),
+    strip_include_prefix = "include",
     deps = [":libglfw"],
     linkopts = ["gdi32.lib shell32.lib user32.lib"],
     visibility = ["//visibility:public"],
@@ -13,5 +13,5 @@ cc_library(
 
 cc_import(
     name = "libglfw",
-    static_library = "glfw/lib/glfw3.lib",
+    static_library = "lib/glfw3.lib",
 )

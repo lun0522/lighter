@@ -13,6 +13,7 @@
 #include "lighter/shader_compiler/run_compiler.h"
 #include "lighter/shader_compiler/util.h"
 #include "third_party/absl/flags/flag.h"
+#include "third_party/absl/flags/parse.h"
 
 ABSL_FLAG(std::string, shader_dir, "", "Path to the shader directory");
 ABSL_FLAG(std::string, opt_level, "perf",
@@ -23,7 +24,7 @@ int main(int argc, char* argv[]) {
   using namespace lighter::shader_compiler;
 
   try {
-    lighter::common::util::ParseCommandLine(argc, argv);
+    absl::ParseCommandLine(argc, argv);
 
     stdfs::path shader_dir{absl::GetFlag(FLAGS_shader_dir)};
     ASSERT_TRUE(stdfs::is_directory(shader_dir),

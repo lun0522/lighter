@@ -62,7 +62,10 @@ cc_library(
 
 cc_library(
     name = "spirv_cross",
-    deps = ["@lib-spirv-cross//:spirv_cross"],
+    deps = select({
+        "@platforms//os:windows": ["@lib-spirv-cross-windows//:spirv_cross"],
+        "//conditions:default": ["@lib-spirv-cross//:spirv_cross"],
+    }),
 )
 
 cc_library(

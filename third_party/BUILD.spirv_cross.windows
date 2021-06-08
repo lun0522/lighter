@@ -3,15 +3,14 @@ licenses(["notice"])
 package(default_visibility = ["//visibility:private"])
 
 cc_library(
-    name = "assimp",
+    name = "spirv_cross",
     hdrs = glob(["include/**"]),
-    includes = ["include/third_party"],
     strip_include_prefix = "include",
-    deps = [":libassimp"],
+    deps = [":libspirv_cross_core"],
     visibility = ["//visibility:public"],
 )
 
 cc_import(
-    name = "libassimp",
-    static_library = "lib/assimp-vc142-mt.lib",
+    name = "libspirv_cross_core",
+    static_library = "lib/spirv-cross-core.lib",
 )

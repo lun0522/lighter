@@ -99,3 +99,19 @@ cc_library(
     name = "type",
     hdrs = ["type.h"],
 )
+
+cc_library(
+    name = "util",
+    hdrs = ["util.h"],
+    srcs = ["util.cc"],
+    deps = [
+        ":renderer",
+        ":type",
+        "//lighter/common:graphics_api",
+        "//lighter/common:window",
+        "//lighter/common:util",
+        "//lighter/renderer/vk:renderer",
+        "//lighter/renderer/vk:util",
+        "//third_party:absl",
+    ],
+)

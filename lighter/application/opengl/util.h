@@ -21,11 +21,12 @@
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/flags/declare.h"
 #include "third_party/absl/flags/flag.h"
+#include "third_party/absl/flags/parse.h"
 #include "third_party/glad/glad.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/GLFW/glfw3.h"
 
-ABSL_DECLARE_FLAG(bool, performance_mode);
+ABSL_DECLARE_FLAG(bool, ignore_vsync);
 
 namespace lighter {
 namespace application {
@@ -64,7 +65,8 @@ int AppMain(int argc, char* argv[]) {
   static_assert(std::is_base_of<Application, AppType>::value,
                 "Not a subclass of Application");
 
-  common::util::ParseCommandLine(argc, argv);
+  absl::ParseCommandLine(argc, argv);
+  common::file::EnableRunfileLookup(argv[0]);
 
   // We don't catch exceptions in the debug mode, so that if there is anything
   // wrong, the debugger would stay at the point where the application breaks.
@@ -72,7 +74,7 @@ int AppMain(int argc, char* argv[]) {
   try {
 #endif /* NDEBUG */
   AppType app;
-  if (absl::GetFlag(FLAGS_performance_mode)) {
+  if (absl::GetFlag(FLAGS_ignore_vsync)) {
     glfwSwapInterval(0);
   }
   app.MainLoop();

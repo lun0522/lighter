@@ -15,6 +15,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include "lighter/common/file.h"
 #include "lighter/common/graphics_api.h"
@@ -25,15 +26,17 @@
 #include "lighter/renderer/pipeline_util.h"
 #include "lighter/renderer/renderer.h"
 #include "lighter/renderer/type.h"
+#include "lighter/renderer/util.h"
 #include "lighter/renderer/vk/renderer.h"
+#include "third_party/absl/flags/parse.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/spirv_cross/spirv_cross.hpp"
 
 namespace lighter::example {
 
-std::unique_ptr<renderer::Renderer> CreateRenderer(
+inline std::unique_ptr<renderer::Renderer> CreateRenderer(
     common::api::GraphicsApi graphics_api, std::string_view application_name,
-    absl::Span<const common::Window* const> windows) {
+    std::vector<const common::Window*>&& window_ptrs) {
   std::optional<renderer::debug_message::Config> debug_message_config;
 #ifndef NDEBUG
   using namespace renderer::debug_message;
@@ -42,15 +45,9 @@ std::unique_ptr<renderer::Renderer> CreateRenderer(
       type::GENERAL | type::PERFORMANCE,
   };
 #endif  // !NDEBUG
-
-  switch (graphics_api) {
-    case common::api::GraphicsApi::kOpengl:
-      FATAL("Not implemented yet");
-
-    case common::api::GraphicsApi::kVulkan:
-      return std::make_unique<renderer::vk::Renderer>(
-          application_name, debug_message_config, windows);
-  }
+  return renderer::util::CreateRenderer(
+      graphics_api, application_name, debug_message_config,
+      std::move(window_ptrs));
 }
 
 // Returns the full path to compiled shader binary.
@@ -61,30 +58,10 @@ inline std::string GetShaderBinaryPath(std::string_view relative_path,
 
 template <typename ExampleType, typename... ExampleArgs>
 int ExampleMain(int argc, char* argv[], ExampleArgs&&... example_args) {
-#ifdef USE_VULKAN
-  // Set up the path to find Vulkan SDK.
-  using common::file::GetVulkanSdkPath;
-
-#if defined(__APPLE__)
-  setenv("VK_ICD_FILENAMES",
-         GetVulkanSdkPath("share/vulkan/icd.d/MoltenVK_icd.json").c_str(),
-         /*overwrite=*/1);
-#ifndef NDEBUG
-  setenv("VK_LAYER_PATH",
-         GetVulkanSdkPath("share/vulkan/explicit_layer.d").c_str(),
-         /*overwrite=*/1);
-#endif  // !NDEBUG
-
-#elif defined(__linux__)
-#ifndef NDEBUG
-  setenv("VK_LAYER_PATH",
-         GetVulkanSdkPath("etc/vulkan/explicit_layer.d").c_str(),
-         /*overwrite=*/1);
-#endif  // !NDEBUG
-
-#endif  // __APPLE__ || __linux__
-
-#endif  // USE_VULKAN
+  absl::ParseCommandLine(argc, argv);
+  common::file::EnableRunfileLookup(argv[0]);
+  // TODO: Move to ctor of Example.
+  renderer::util::GlobalInit(common::api::GraphicsApi::kVulkan);
 
   // We don't catch exceptions in the debug mode, so that if there is anything
   // wrong, the debugger would stay at the point where the program breaks.

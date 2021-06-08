@@ -6,7 +6,7 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 http_archive(
     name = "bazel_skylib",
     sha256 = "1c531376ac7e5a180e0237938a2536de0c54d93f5c278634818e0efc952dd56c",
-    urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/1.0.3/bazel-skylib-1.0.3.tar.gz"],
+    urls = ["https://github.com/bazelbuild/bazel-skylib/archive/1.0.3.tar.gz"],
 )
 
 load("@//:repository_rules.bzl", "external_windows_archive", "use_vulkan_sdk")
@@ -60,6 +60,7 @@ http_archive(
 
 external_windows_archive(
     name = "lib-assimp-windows",
+    strip_prefix = "assimp",
     build_file = "//:third_party/BUILD.assimp.windows",
 )
 
@@ -76,6 +77,7 @@ http_archive(
 
 external_windows_archive(
     name = "lib-freetype-windows",
+    strip_prefix = "freetype",
     build_file = "//:third_party/BUILD.freetype.windows",
 )
 
@@ -103,6 +105,7 @@ http_archive(
 
 external_windows_archive(
     name = "lib-glfw-windows",
+    strip_prefix = "glfw",
     build_file = "//:third_party/BUILD.glfw.windows",
 )
 
@@ -155,6 +158,12 @@ http_archive(
     strip_prefix = "SPIRV-Cross-2021-01-15",
     build_file = "//:third_party/BUILD.spirv_cross",
     url = "https://github.com/KhronosGroup/SPIRV-Cross/archive/2021-01-15.tar.gz",
+)
+
+external_windows_archive(
+    name = "lib-spirv-cross-windows",
+    strip_prefix = "spirv_cross",
+    build_file = "//:third_party/BUILD.spirv_cross.windows",
 )
 
 #######################################
