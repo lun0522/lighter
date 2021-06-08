@@ -9,7 +9,8 @@ http_archive(
     urls = ["https://github.com/bazelbuild/bazel-skylib/archive/1.0.3.tar.gz"],
 )
 
-load("@//:repository_rules.bzl", "external_windows_archive", "use_vulkan_sdk")
+load("@//:repository_rules.bzl", "absl_archive", "external_windows_archive", "use_vulkan_sdk")
+load("@bazel_skylib//lib:paths.bzl", "paths")
 
 #######################################
 # rules_foreign_cc
@@ -31,20 +32,10 @@ rules_foreign_cc_dependencies()
 #######################################
 # Abseil
 
-http_archive(
-    name = "lib-absl-include",
-    build_file = "//:third_party/absl/BUILD.include",
-    sha256 = "5c8ec844ddfd63273887e6b98cdf500279a7f408c0af73cf9901bc5cc7ffac56",
-    strip_prefix = "lib-absl-20210324.1",
-    url = "https://github.com/lun0522/lib-absl/archive/20210324.1.tar.gz",
-)
-
-http_archive(
-    name = "lib-absl",
-    build_file = "//:third_party/absl/BUILD",
+absl_archive(
     sha256 = "441db7c09a0565376ecacf0085b2d4c2bbedde6115d7773551bc116212c2a8d6",
-    strip_prefix = "abseil-cpp-20210324.1",
     url = "https://github.com/abseil/abseil-cpp/archive/20210324.1.tar.gz",
+    strip_prefix = "abseil-cpp-20210324.1",
 )
 
 #######################################
@@ -146,7 +137,7 @@ new_git_repository(
 
 use_vulkan_sdk(
     name = "lib-shaderc",
-    build_file_abs_path = __workspace_dir__ + "/third_party/BUILD.shaderc",
+    build_file_abs_path = paths.join(__workspace_dir__, "third_party/BUILD.shaderc"),
 )
 
 #######################################
@@ -182,7 +173,7 @@ new_git_repository(
 
 use_vulkan_sdk(
     name = "lib-vulkan",
-    build_file_abs_path = __workspace_dir__ + "/third_party/BUILD.vulkan",
+    build_file_abs_path = paths.join(__workspace_dir__, "third_party/BUILD.vulkan"),
 )
 
 #######################################
