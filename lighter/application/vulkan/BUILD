@@ -18,7 +18,6 @@ cc_library(
         "//third_party:glm",
         "//third_party:vulkan",
     ],
-    data = ["@resource//:resource"],
     visibility = ["//lighter/application/vulkan:__subpackages__"],
 )
 

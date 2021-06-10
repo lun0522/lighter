@@ -50,31 +50,28 @@ float GetOffsetX(float base_x, Text::Align align, float total_width) {
 
 // Returns descriptor infos for rendering text.
 const std::vector<Descriptor::Info>& GetDescriptorInfos() {
-  static const std::vector<Descriptor::Info>* descriptor_infos = nullptr;
-  if (descriptor_infos == nullptr) {
-    descriptor_infos = new std::vector<Descriptor::Info>{
-        Descriptor::Info{
-            UniformBuffer::GetDescriptorType(),
-            VK_SHADER_STAGE_FRAGMENT_BIT,
-            /*bindings=*/{
-                Descriptor::Info::Binding{
-                    kUniformBufferBindingPoint,
-                    /*array_length=*/1,
-                },
-            },
-        },
-        Descriptor::Info{
-            Image::GetDescriptorTypeForSampling(),
-            VK_SHADER_STAGE_FRAGMENT_BIT,
-            /*bindings=*/{
-                Descriptor::Info::Binding{
-                    kTextureBindingPoint,
-                    /*array_length=*/1,
-                },
-            },
-        },
-    };
-  }
+  static const auto* descriptor_infos = new std::vector<Descriptor::Info>{
+      Descriptor::Info{
+          UniformBuffer::GetDescriptorType(),
+          VK_SHADER_STAGE_FRAGMENT_BIT,
+          /*bindings=*/{
+              Descriptor::Info::Binding{
+                  kUniformBufferBindingPoint,
+                  /*array_length=*/1,
+              },
+          },
+      },
+      Descriptor::Info{
+          Image::GetDescriptorTypeForSampling(),
+          VK_SHADER_STAGE_FRAGMENT_BIT,
+          /*bindings=*/{
+              Descriptor::Info::Binding{
+                  kTextureBindingPoint,
+                  /*array_length=*/1,
+              },
+          },
+      },
+  };
   return *descriptor_infos;
 }
 

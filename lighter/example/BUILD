@@ -21,4 +21,8 @@ cc_library(
         "//third_party:glm",
         "//third_party:spirv_cross",
     ],
+    data = [
+        "//lighter/shader",
+        "@resource//:resource",
+    ],
 )

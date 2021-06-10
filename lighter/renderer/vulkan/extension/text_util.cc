@@ -136,13 +136,10 @@ std::unique_ptr<Pipeline> BuildPipeline(
 
 // Returns texture sampler config for rendering texts.
 const ImageSampler::Config& GetTextSamplerConfig() {
-  static const ImageSampler::Config* config = nullptr;
-  if (config == nullptr) {
-    config = new ImageSampler::Config{
-        VK_FILTER_LINEAR,
-        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-    };
-  }
+  static const auto* config = new ImageSampler::Config{
+      VK_FILTER_LINEAR,
+      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+  };
   return *config;
 }
 
@@ -426,13 +423,8 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
 namespace text {
 
 const std::array<uint32_t, kNumIndicesPerRect>& GetIndicesPerRect() {
-  static const std::array<uint32_t, kNumIndicesPerRect>* indices_per_rect =
-      nullptr;
-  if (indices_per_rect == nullptr) {
-    indices_per_rect = new std::array<uint32_t, kNumIndicesPerRect>{
-        0, 1, 2, 0, 2, 3,
-    };
-  }
+  static const auto* indices_per_rect =
+      new std::array<uint32_t, kNumIndicesPerRect>{0, 1, 2, 0, 2, 3};
   return *indices_per_rect;
 }
 

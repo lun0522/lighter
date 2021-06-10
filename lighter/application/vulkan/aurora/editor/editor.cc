@@ -37,10 +37,7 @@ constexpr float kAuroraLayerModelRadius =
 
 // Returns the coordinate of earth model center.
 const glm::vec3& GetEarthModelCenter() {
-  static const glm::vec3* earth_model_center = nullptr;
-  if (earth_model_center == nullptr) {
-    earth_model_center = new glm::vec3{0.0f};
-  }
+  static const auto* earth_model_center = new glm::vec3{0.0f};
   return *earth_model_center;
 }
 

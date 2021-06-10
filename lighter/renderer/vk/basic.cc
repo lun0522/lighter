@@ -8,7 +8,6 @@
 #include "lighter/renderer/vk/basic.h"
 
 #include <algorithm>
-#include <optional>
 #include <string>
 
 #include "lighter/common/util.h"
@@ -80,8 +79,6 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
                          absl::Span<const Surface* const> surfaces,
                          absl::Span<const char* const> swapchain_extensions) {
   LOG_INFO << "Checking window support...";
-  LOG_EMPTY_LINE;
-
   uint32_t format_count, mode_count;
   for (int i = 0; i < surfaces.size(); ++i) {
     vkGetPhysicalDeviceSurfaceFormatsKHR(
@@ -95,6 +92,8 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
       return false;
     }
   }
+  LOG_INFO << "All supported";
+  LOG_EMPTY_LINE;
 
   LOG_INFO << "Checking swapchain support...";
   LOG_EMPTY_LINE;
@@ -241,13 +240,14 @@ VkSampleCountFlagBits ChooseSampleCount(
 
 }  // namespace
 
-Instance::Instance(const Context* context, std::string_view application_name,
+Instance::Instance(const Context* context, bool enable_validation,
+                   std::string_view application_name,
                    absl::Span<const common::Window* const> windows)
     : context_{*FATAL_IF_NULL(context)} {
   // Check required instance layers.
   std::vector<const char*> required_layers;
-  // Request support for debug reports if needed.
-  if (context_.is_validation_enabled()) {
+  // Request support for validation if needed.
+  if (enable_validation) {
     required_layers.insert(required_layers.end(),
                            DebugCallback::GetRequiredLayers().begin(),
                            DebugCallback::GetRequiredLayers().end());
@@ -261,9 +261,11 @@ Instance::Instance(const Context* context, std::string_view application_name,
   // Request support for pushing descriptors.
   required_extensions.push_back(
       VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-  // Request support for debug reports if needed.
-  if (context_.is_validation_enabled()) {
-    required_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+  // Request support for validation if needed.
+  if (enable_validation) {
+    required_extensions.insert(required_extensions.end(),
+                               DebugCallback::GetRequiredExtensions().begin(),
+                               DebugCallback::GetRequiredExtensions().end());
   }
   const std::vector<std::string> extension_names{required_extensions.begin(),
                                                  required_extensions.end()};
@@ -306,8 +308,6 @@ Surface::Surface(const Context* context, const common::Window& window)
     : context_{*FATAL_IF_NULL(context)} {
   surface_ = window.CreateSurface(*context_.instance(),
                                   *context_.host_allocator());
-  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-      *context_.physical_device(), surface_, &capabilities_);
 }
 
 Surface::~Surface() {
@@ -316,7 +316,7 @@ Surface::~Surface() {
 }
 
 PhysicalDevice::PhysicalDevice(
-    const Context* context, absl::Span<const Surface* const> surfaces,
+    const Context* context, absl::Span<Surface* const> surfaces,
     absl::Span<const char* const> swapchain_extensions)
     : context_{*FATAL_IF_NULL(context)} {
   const auto physical_devices = util::QueryAttribute<VkPhysicalDevice>(
@@ -351,13 +351,21 @@ PhysicalDevice::PhysicalDevice(
             {mode, ChooseSampleCount(mode, supported_sample_counts)});
       }
 
+      // Query surface capabilities.
+      for (Surface* surface : surfaces) {
+        VkSurfaceCapabilitiesKHR capabilities;
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+            physical_device_, **surface, &capabilities);
+        surface->SetCapabilities(std::move(capabilities));
+      }
+
       return;
     }
   }
   FATAL("Failed to find suitable graphics device");
 }
 
-Device::Device(const Context* context,
+Device::Device(const Context* context, bool enable_validation,
                absl::Span<const char* const> swapchain_extensions)
     : context_{*FATAL_IF_NULL(context)} {
   // Specify which queues do we want to use.
@@ -384,7 +392,7 @@ Device::Device(const Context* context,
 
   std::vector<const char*> enabled_layers;
   // Enable support for debug reports if needed.
-  if (context_.is_validation_enabled()) {
+  if (enable_validation) {
     enabled_layers.insert(enabled_layers.end(),
                           DebugCallback::GetRequiredLayers().begin(),
                           DebugCallback::GetRequiredLayers().end());

@@ -30,8 +30,9 @@ class DebugCallback {
 
   ~DebugCallback();
 
-  // Returns the names of required layers for validation support.
+  // Return the names of required layers and extensions for validation support.
   static const std::vector<const char*>& GetRequiredLayers();
+  static const std::vector<const char*>& GetRequiredExtensions();
 
  private:
   // Context that holds basic wrapper objects.

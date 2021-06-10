@@ -86,7 +86,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
     const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
     void* user_data) {
   const std::string log =
-      absl::StrFormat("[Debug] severity %s, types %s:",
+      absl::StrFormat("[DebugCallback] severity %s, types %s",
                       ToString(message_severity), ToString(message_type));
   if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
     LOG_ERROR << log;
@@ -121,13 +121,17 @@ DebugCallback::DebugCallback(const Context* context,
 }
 
 const std::vector<const char*>& DebugCallback::GetRequiredLayers() {
-  static const std::vector<const char*>* validation_layers = nullptr;
-  if (validation_layers == nullptr) {
-    validation_layers = new std::vector<const char*>{
-        "VK_LAYER_KHRONOS_validation",
-    };
-  }
+  static const auto* validation_layers = new std::vector<const char*>{
+      "VK_LAYER_KHRONOS_validation",
+  };
   return *validation_layers;
+}
+
+const std::vector<const char*>& DebugCallback::GetRequiredExtensions() {
+  static const auto* validation_extensions = new std::vector<const char*>{
+      VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+  };
+  return *validation_extensions;
 }
 
 DebugCallback::~DebugCallback() {

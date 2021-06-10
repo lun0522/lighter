@@ -60,10 +60,7 @@ struct RenderInfo {
 
 // Returns the axis of earth model in object space.
 const glm::vec3& GetEarthModelAxis() {
-  static const glm::vec3* earth_model_axis = nullptr;
-  if (earth_model_axis == nullptr) {
-    earth_model_axis = new glm::vec3{0.0f, 1.0f, 0.0f};
-  }
+  static const auto* earth_model_axis = new glm::vec3{0.0f, 1.0f, 0.0f};
   return *earth_model_axis;
 }
 

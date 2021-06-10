@@ -8,6 +8,7 @@
 #ifndef LIGHTER_RENDERER_VK_BASIC_H
 #define LIGHTER_RENDERER_VK_BASIC_H
 
+#include <optional>
 #include <string_view>
 #include <vector>
 
@@ -48,7 +49,8 @@ class HostMemoryAllocator {
 // and maintain per-application states.
 class Instance {
  public:
-  Instance(const Context* context, std::string_view application_name,
+  Instance(const Context* context, bool enable_validation,
+           std::string_view application_name,
            absl::Span<const common::Window* const> windows);
 
   // This class is neither copyable nor movable.
@@ -82,8 +84,15 @@ class Surface {
   // Overloads.
   const VkSurfaceKHR& operator*() const { return surface_; }
 
+  // Modifiers.
+  void SetCapabilities(VkSurfaceCapabilitiesKHR&& capabilities) {
+    capabilities_ = std::move(capabilities);
+  }
+
   // Accessors.
-  const VkSurfaceCapabilitiesKHR& capabilities() const { return capabilities_; }
+  const VkSurfaceCapabilitiesKHR& capabilities() const {
+    return capabilities_.value();
+  }
 
  private:
   // Context that holds basic wrapper objects.
@@ -93,7 +102,7 @@ class Surface {
   VkSurfaceKHR surface_;
 
   // Capabilities of this surface.
-  VkSurfaceCapabilitiesKHR capabilities_;
+  std::optional<VkSurfaceCapabilitiesKHR> capabilities_;
 };
 
 // Wraps VkPhysicalDevice, which is the handle to physical graphics card.
@@ -108,7 +117,7 @@ struct PhysicalDevice {
   };
 
   PhysicalDevice(const Context* context,
-                 absl::Span<const Surface* const> surfaces,
+                 absl::Span<Surface* const> surfaces,
                  absl::Span<const char* const> swapchain_extensions);
 
   // This class is neither copyable nor movable.
@@ -151,7 +160,7 @@ struct PhysicalDevice {
 // Wraps VkDevice, which interfaces with the physical device.
 struct Device {
  public:
-  Device(const Context* context,
+  Device(const Context* context, bool enable_validation,
          absl::Span<const char* const> swapchain_extensions);
 
   // This class is neither copyable nor movable.

@@ -67,7 +67,6 @@ class Context : public std::enable_shared_from_this<Context> {
   }
 
   // Accessors.
-  bool is_validation_enabled() const { return debug_callback_ != nullptr; }
   const HostMemoryAllocator& host_allocator() const { return host_allocator_; }
   const Instance& instance() const { return *instance_; }
   const Surface& surface(int window_index) const {

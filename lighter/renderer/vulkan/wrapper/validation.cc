@@ -31,12 +31,9 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
 namespace validation {
 
 const std::vector<const char*>& GetRequiredLayers() {
-  static const std::vector<const char*>* validation_layers = nullptr;
-  if (validation_layers == nullptr) {
-    validation_layers = new std::vector<const char*>{
-        "VK_LAYER_KHRONOS_validation",
-    };
-  }
+  static const auto* validation_layers = new std::vector<const char*>{
+      "VK_LAYER_KHRONOS_validation",
+  };
   return *validation_layers;
 }
 

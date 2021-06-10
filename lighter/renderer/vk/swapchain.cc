@@ -174,12 +174,9 @@ Swapchain::Swapchain(SharedContext context, int window_index,
 }
 
 const std::vector<const char*>& Swapchain::GetRequiredExtensions() {
-  static const std::vector<const char*>* required_extensions = nullptr;
-  if (required_extensions == nullptr) {
-    required_extensions = new std::vector<const char*>{
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-    };
-  }
+  static const auto* required_extensions = new std::vector<const char*>{
+      VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+  };
   return *required_extensions;
 }
 

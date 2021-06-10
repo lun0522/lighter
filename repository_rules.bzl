@@ -51,7 +51,7 @@ def absl_archive(sha256, url, strip_prefix):
         strip_prefix = paths.join(strip_prefix, "absl"),
         patch_cmds = [
             "find . -type f ! -name '*.h' -delete",
-            "echo {} > BUILD.bazel".format(build_file_content),
+            "echo -en '{}' > BUILD.bazel".format(build_file_content),
         ],
         patch_cmds_win = [
             "Get-ChildItem -Recurse -Force -File -Exclude *.h | Remove-Item -Confirm:$false -Force",

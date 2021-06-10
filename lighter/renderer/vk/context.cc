@@ -19,13 +19,15 @@ Context::Context(
     swapchain_extensions = {};
   }
 
-  instance_ = std::make_unique<Instance>(this, application_name, windows);
-  if (debug_message_config.has_value()) {
+  const bool enable_validation = debug_message_config.has_value();
+  instance_ = std::make_unique<Instance>(this, enable_validation,
+                                         application_name, windows);
+  if (enable_validation) {
     debug_callback_ =
         std::make_unique<DebugCallback>(this, debug_message_config.value());
   }
 
-  std::vector<const Surface*> surface_ptrs;
+  std::vector<Surface*> surface_ptrs;
   surfaces_.reserve(windows.size());
   surface_ptrs.reserve(windows.size());
   for (const common::Window* window : windows) {
@@ -35,7 +37,8 @@ Context::Context(
 
   physical_device_ = std::make_unique<PhysicalDevice>(
       this, surface_ptrs, swapchain_extensions);
-  device_ = std::make_unique<Device>(this, swapchain_extensions);
+  device_ = std::make_unique<Device>(this, enable_validation,
+                                     swapchain_extensions);
   queues_ = std::make_unique<Queues>(*this);
 }
 
