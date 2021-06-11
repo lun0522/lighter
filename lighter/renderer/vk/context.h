@@ -15,6 +15,7 @@
 #include <string_view>
 #include <vector>
 
+#include "lighter/common/util.h"
 #include "lighter/common/window.h"
 #include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/basic.h"
@@ -46,6 +47,10 @@ class Context : public std::enable_shared_from_this<Context> {
   // This class is neither copyable nor movable.
   Context(const Context&) = delete;
   Context& operator=(const Context&) = delete;
+
+#ifndef NDEBUG
+  ~Context() { LOG_INFO << "Context destructed properly"; }
+#endif  /* !NDEBUG */
 
   // Records an operation that releases an expired resource, so that it can be
   // executed once the device becomes idle. This is used for resources that can
@@ -107,6 +112,6 @@ class Context : public std::enable_shared_from_this<Context> {
   std::vector<ReleaseExpiredResourceOp> release_expired_rsrc_ops_;
 };
 
-}  // namespace vk::renderer::lighter
+}  // namespace lighter::renderer::vk
 
 #endif  // LIGHTER_RENDERER_VK_CONTEXT_H

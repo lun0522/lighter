@@ -65,6 +65,6 @@ class DeviceBuffer : public renderer::DeviceBuffer {
   VkDeviceMemory device_memory_;
 };
 
-}  // namespace vk::renderer::lighter
+}  // namespace lighter::renderer::vk
 
 #endif  // LIGHTER_RENDERER_VK_BUFFER_H

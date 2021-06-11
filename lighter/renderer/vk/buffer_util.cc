@@ -132,4 +132,4 @@ VkDeviceMemory CreateDeviceMemory(
   return memory;
 }
 
-}  // namespace vk::renderer::lighter::buffer
+}  // namespace lighter::renderer::vk::buffer

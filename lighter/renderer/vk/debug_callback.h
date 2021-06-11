@@ -42,6 +42,6 @@ class DebugCallback {
   VkDebugUtilsMessengerEXT callback_;
 };
 
-}  // namespace vk::renderer::lighter
+}  // namespace lighter::renderer::vk
 
 #endif  // LIGHTER_RENDERER_VK_DEBUG_CALLBACK_H

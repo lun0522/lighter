@@ -45,6 +45,6 @@ std::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
 bool NeedSynchronization(const ImageUsage& prev_usage,
                          const ImageUsage& curr_usage);
 
-}  // namespace vk::renderer::lighter::image
+}  // namespace lighter::renderer::vk::image
 
 #endif  // LIGHTER_RENDERER_VK_IMAGE_UTIL_H

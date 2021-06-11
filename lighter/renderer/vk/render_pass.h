@@ -40,6 +40,6 @@ class RenderPass : public renderer::RenderPass {
   std::vector<VkFramebuffer> framebuffers_;
 };
 
-}  // namespace vk::renderer::lighter
+}  // namespace lighter::renderer::vk
 
 #endif  // LIGHTER_RENDERER_VK_RENDER_PASS_H

@@ -49,6 +49,6 @@ class Swapchain {
   std::unique_ptr<SwapchainImage> image_;
 };
 
-}  // namespace vk::renderer::lighter
+}  // namespace lighter::renderer::vk
 
 #endif  // LIGHTER_RENDERER_VK_BASIC_H

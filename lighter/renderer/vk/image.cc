@@ -217,4 +217,4 @@ GeneralDeviceImage::~GeneralDeviceImage() {
   buffer::FreeDeviceMemory(*context_, device_memory_);
 }
 
-}  // namespace vk::renderer::lighter
+}  // namespace lighter::renderer::vk

@@ -144,4 +144,4 @@ RenderPass::~RenderPass() {
 #endif  // !NDEBUG
 }
 
-}  // namespace vk::renderer::lighter
+}  // namespace lighter::renderer::vk

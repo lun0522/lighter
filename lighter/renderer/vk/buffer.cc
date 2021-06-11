@@ -172,4 +172,4 @@ void DeviceBuffer::DeallocateBufferAndMemory() {
   device_memory_ = VK_NULL_HANDLE;
 }
 
-}  // namespace vk::renderer::lighter
+}  // namespace lighter::renderer::vk

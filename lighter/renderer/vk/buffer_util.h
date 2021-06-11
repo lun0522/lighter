@@ -38,6 +38,6 @@ inline void FreeDeviceMemory(const Context& context,
   vkFreeMemory(*context.device(), device_memory, *context.host_allocator());
 }
 
-}  // namespace vk::renderer::lighter::buffer
+}  // namespace lighter::renderer::vk::buffer
 
 #endif  // LIGHTER_RENDERER_VK_BUFFER_UTIL_H

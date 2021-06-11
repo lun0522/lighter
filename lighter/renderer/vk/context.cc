@@ -42,4 +42,4 @@ Context::Context(
   queues_ = std::make_unique<Queues>(*this);
 }
 
-}  // namespace vk::renderer::lighter
+}  // namespace lighter::renderer::vk

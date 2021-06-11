@@ -105,6 +105,6 @@ class Renderer : public renderer::Renderer {
   std::vector<std::unique_ptr<Swapchain>> swapchains_;
 };
 
-}  // namespace vk::renderer::lighter
+}  // namespace lighter::renderer::vk
 
 #endif  // LIGHTER_RENDERER_VK_RENDERER_H

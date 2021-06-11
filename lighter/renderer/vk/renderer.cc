@@ -29,4 +29,4 @@ void Renderer::RecreateSwapchain(int window_index) {
       std::make_unique<Swapchain>(context_, window_index, window);
 }
 
-}  // namespace vk::renderer::lighter
+}  // namespace lighter::renderer::vk

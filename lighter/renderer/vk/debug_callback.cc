@@ -142,4 +142,4 @@ DebugCallback::~DebugCallback() {
                                   *context_.host_allocator());
 }
 
-}  // namespace vk::renderer::lighter
+}  // namespace lighter::renderer::vk

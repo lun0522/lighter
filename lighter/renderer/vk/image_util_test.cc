@@ -40,4 +40,4 @@ TEST(ImageUsageTest, SampleInFragmentShader) {
   EXPECT_EQ(GetImageLayout(usage), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
-}  // namespace vk::renderer::lighter::image
+}  // namespace lighter::renderer::vk::image

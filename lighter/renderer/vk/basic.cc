@@ -21,6 +21,44 @@
 namespace lighter::renderer::vk {
 namespace {
 
+// Prints in the format:
+// <header>
+// \t<elem1>
+// \t<elem2>
+// ...
+// <newline>
+template <typename ForwardIterator>
+void PrintElements(std::string_view header, ForwardIterator begin,
+                   ForwardIterator end) {
+  LOG_INFO << header;
+  for (ForwardIterator iter = begin; iter != end; ++iter) {
+    LOG_INFO << "\t" << *iter;
+  }
+  LOG_EMPTY_LINE;
+}
+
+// Convenient function to print elements in 'container'.
+void PrintElements(std::string_view header,
+                   absl::Span<const std::string> container) {
+  PrintElements(header, container.begin(), container.end());
+}
+
+// Returns the names of unsupported attributes. 'get_name' should be able to
+// return the name of any attribute of AttribType.
+template <typename AttribType>
+std::vector<std::string> FindUnsupportedAttributes(
+    absl::Span<const AttribType> supported,
+    absl::Span<const std::string> required,
+    absl::FunctionRef<std::string(const AttribType&)> get_name) {
+  const auto supported_set = common::util::TransformToSet(supported, get_name);
+  PrintElements("Supported:", supported_set.begin(), supported_set.end());
+  PrintElements("Required:", required);
+  return common::util::CopyToVectorIf<std::string>(
+      required, [&supported_set](const std::string& attrib) {
+        return !supported_set.contains(attrib);
+      });
+}
+
 // Returns instance extensions required by 'windows'.
 std::vector<const char*> GetWindowExtensions(
     absl::Span<const common::Window* const> windows) {
@@ -36,49 +74,86 @@ std::vector<const char*> GetWindowExtensions(
 // Checks support for 'required' layers, and throws a runtime exception if any
 // of them is not supported.
 void CheckInstanceLayerSupport(absl::Span<const std::string> required) {
-  LOG_INFO << "Checking instance layer support...";
+  LOG_INFO << "Checking instance layers support";
   LOG_EMPTY_LINE;
 
-  static const auto properties = util::QueryAttribute<VkLayerProperties>(
+  static const auto supported = util::QueryAttribute<VkLayerProperties>(
       [](uint32_t* count, VkLayerProperties* properties) {
         return vkEnumerateInstanceLayerProperties(count, properties);
       }
   );
-  static const auto get_name = [](const VkLayerProperties& property) {
-    return property.layerName;
-  };
-  const auto unsupported = util::FindUnsupported<VkLayerProperties>(
-      required, properties, get_name);
-  ASSERT_NO_VALUE(unsupported,
-                  absl::StrCat("Unsupported layer: ", unsupported.value()));
+  const auto unsupported = FindUnsupportedAttributes<VkLayerProperties>(
+      supported, required,
+      /*get_name=*/[](const auto& property) { return property.layerName; });
+
+  if (unsupported.empty()) {
+    LOG_INFO << "All supported";
+    LOG_EMPTY_LINE;
+  } else {
+    PrintElements("Unsupported:", unsupported);
+    FATAL("Found unsupported instance layers");
+  }
 }
 
 // Checks support for 'required' extensions, and throws a runtime exception
 // if any of them is not supported.
 void CheckInstanceExtensionSupport(absl::Span<const std::string> required) {
-  LOG_INFO << "Checking instance extension support...";
+  LOG_INFO << "Checking instance extensions support";
   LOG_EMPTY_LINE;
 
-  static const auto properties = util::QueryAttribute<VkExtensionProperties>(
+  static const auto supported = util::QueryAttribute<VkExtensionProperties>(
       [](uint32_t* count, VkExtensionProperties* properties) {
         return vkEnumerateInstanceExtensionProperties(
             /*pLayerName=*/nullptr, count, properties);
       }
   );
-  static const auto get_name = [](const VkExtensionProperties& property) {
-    return property.extensionName;
-  };
-  const auto unsupported = util::FindUnsupported<VkExtensionProperties>(
-      required, properties, get_name);
-  ASSERT_NO_VALUE(unsupported,
-                  absl::StrCat("Unsupported extension: ", unsupported.value()));
+  const auto unsupported = FindUnsupportedAttributes<VkExtensionProperties>(
+      supported, required,
+      /*get_name=*/[](const auto& property) { return property.extensionName; });
+
+  if (unsupported.empty()) {
+    LOG_INFO << "All supported";
+    LOG_EMPTY_LINE;
+  } else {
+    PrintElements("Unsupported:", unsupported);
+    FATAL("Found unsupported instance extensions");
+  }
 }
 
 // Returns whether swapchain is supported by 'physical_device'.
-bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
-                         absl::Span<const Surface* const> surfaces,
-                         absl::Span<const char* const> swapchain_extensions) {
-  LOG_INFO << "Checking window support...";
+bool SupportsSwapchain(const VkPhysicalDevice& physical_device,
+                       absl::Span<const char* const> swapchain_extensions) {
+  LOG_INFO << "Checking swapchain support";
+  LOG_EMPTY_LINE;
+
+  const std::vector<std::string> required{swapchain_extensions.begin(),
+                                          swapchain_extensions.end()};
+  const auto supported = util::QueryAttribute<VkExtensionProperties>(
+      [&physical_device](uint32_t* count, VkExtensionProperties* properties) {
+        return vkEnumerateDeviceExtensionProperties(
+            physical_device, /*pLayerName=*/nullptr, count, properties);
+      }
+  );
+  const auto unsupported = FindUnsupportedAttributes<VkExtensionProperties>(
+      supported, required,
+      /*get_name=*/[](const auto& property) { return property.extensionName; });
+
+  if (unsupported.empty()) {
+    LOG_INFO << "All supported";
+    LOG_EMPTY_LINE;
+    return true;
+  } else {
+    PrintElements("Unsupported:", unsupported);
+    return false;
+  }
+}
+
+// Returns whether 'surfaces' are supported by 'physical_device'.
+bool SupportsSurfaces(const VkPhysicalDevice& physical_device,
+                      absl::Span<const Surface* const> surfaces) {
+  LOG_INFO << "Checking window surface support";
+  LOG_EMPTY_LINE;
+
   uint32_t format_count, mode_count;
   for (int i = 0; i < surfaces.size(); ++i) {
     vkGetPhysicalDeviceSurfaceFormatsKHR(
@@ -92,31 +167,9 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
       return false;
     }
   }
+
   LOG_INFO << "All supported";
   LOG_EMPTY_LINE;
-
-  LOG_INFO << "Checking swapchain support...";
-  LOG_EMPTY_LINE;
-
-  // Query support for device extensions.
-  const std::vector<std::string> required{swapchain_extensions.begin(),
-                                          swapchain_extensions.end()};
-  const auto extensions = util::QueryAttribute<VkExtensionProperties>(
-      [&physical_device](uint32_t* count, VkExtensionProperties* properties) {
-        return vkEnumerateDeviceExtensionProperties(
-            physical_device, /*pLayerName=*/nullptr, count, properties);
-      }
-  );
-  const auto get_name = [](const VkExtensionProperties& property) {
-    return property.extensionName;
-  };
-  const auto unsupported = util::FindUnsupported<VkExtensionProperties>(
-      required, extensions, get_name);
-  if (unsupported.has_value()) {
-    LOG_INFO << "Unsupported: " << unsupported.value();
-    return false;
-  }
-
   return true;
 }
 
@@ -131,10 +184,12 @@ std::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
   LOG_INFO << "Found device: " << properties.deviceName;
   LOG_EMPTY_LINE;
 
-  // Request swapchain support if use window.
-  if (!surfaces.empty() &&
-      !HasSwapchainSupport(physical_device, surfaces, swapchain_extensions)) {
-    return std::nullopt;
+  // Request swapchain and surface support if use window.
+  if (!surfaces.empty()) {
+    if (!SupportsSwapchain(physical_device, swapchain_extensions) ||
+        !SupportsSurfaces(physical_device, surfaces)) {
+      return std::nullopt;
+    }
   }
 
   // Request support for anisotropy filtering.
@@ -452,4 +507,4 @@ Queues::Queues(const Context& context) {
   }
 }
 
-}  // namespace vk::renderer::lighter
+}  // namespace lighter::renderer::vk

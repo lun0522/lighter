@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "third_party/absl/base/optimization.h"
+#include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/absl/functional/function_ref.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/span.h"
@@ -184,6 +185,29 @@ std::vector<DstType> TransformToVector(
   std::transform(container.begin(), container.end(),
                  std::back_inserter(transformed), transform);
   return transformed;
+}
+
+// Applies 'transform' to elements in 'container' and returns a hash set of
+// resulting objects.
+template <typename SrcType, typename DstType>
+absl::flat_hash_set<DstType> TransformToSet(
+    absl::Span<const SrcType> container,
+    absl::FunctionRef<DstType(const SrcType&)> transform) {
+  absl::flat_hash_set<std::string> transformed;
+  std::transform(container.begin(), container.end(),
+                 std::inserter(transformed, transformed.end()), transform);
+  return transformed;
+}
+
+// Copies elements in 'container' that satisfies 'predicate' to a new vector.
+template <typename ValueType>
+std::vector<ValueType> CopyToVectorIf(
+    absl::Span<const ValueType> container,
+    absl::FunctionRef<bool(const ValueType&)> predicate) {
+  std::vector<ValueType> copied;
+  std::copy_if(container.begin(), container.end(), std::back_inserter(copied),
+               predicate);
+  return copied;
 }
 
 // Returns the largest extent that does not exceed 'original_extent', and has

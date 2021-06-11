@@ -213,6 +213,6 @@ class Queues {
   std::vector<VkQueue> present_queues_;
 };
 
-}  // namespace vk::renderer::lighter
+}  // namespace lighter::renderer::vk
 
 #endif  // LIGHTER_RENDERER_VK_BASIC_H

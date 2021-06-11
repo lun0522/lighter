@@ -114,6 +114,6 @@ class SampledImageView : public renderer::SampledImageView {
   SampledImageView(const SampledImageView&) = default;
 };
 
-}  // namespace vk::renderer::lighter
+}  // namespace lighter::renderer::vk
 
 #endif  // LIGHTER_RENDERER_VK_IMAGE_H

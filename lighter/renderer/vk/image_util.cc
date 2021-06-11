@@ -251,4 +251,4 @@ bool NeedSynchronization(const ImageUsage& prev_usage,
   return true;
 }
 
-}  // namespace vk::renderer::lighter::image
+}  // namespace lighter::renderer::vk::image

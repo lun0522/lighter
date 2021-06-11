@@ -35,6 +35,6 @@ VkShaderStageFlagBits ConvertShaderStage(shader_stage::ShaderStage stage);
 
 VkShaderStageFlags ConvertShaderStages(shader_stage::ShaderStage stages);
 
-}  // namespace vk::renderer::lighter::type
+}  // namespace lighter::renderer::vk::type
 
 #endif  // LIGHTER_RENDERER_VK_TYPE_MAPPING_H

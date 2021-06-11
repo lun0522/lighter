@@ -8,19 +8,14 @@
 #ifndef LIGHTER_RENDERER_VK_UTIL_H
 #define LIGHTER_RENDERER_VK_UTIL_H
 
-#include <functional>
-#include <optional>
-#include <string>
 #include <string_view>
 #include <vector>
 
 #include "lighter/common/image.h"
 #include "lighter/common/util.h"
-#include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/absl/functional/function_ref.h"
 #include "third_party/absl/strings/str_cat.h"
 #include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
 
@@ -72,39 +67,6 @@ std::vector<AttribType> QueryAttribute(
   return attribs;
 }
 
-// Checks whether 'attribs' covers 'required' attributes. If not, returns the
-// name of the first uncovered attribute. 'get_name' should be able to return
-// the name of any attribute of AttribType.
-template <typename AttribType>
-std::optional<std::string> FindUnsupported(
-    absl::Span<const std::string> required,
-    absl::Span<const AttribType> attribs,
-    absl::FunctionRef<const char*(const AttribType&)> get_name) {
-  absl::flat_hash_set<std::string> available{attribs.size()};
-  for (const auto& atr : attribs) {
-    available.insert(get_name(atr));
-  }
-
-  LOG_INFO << "Available:";
-  for (const auto& avl : available) {
-    LOG_INFO << "\t" << avl;
-  }
-  LOG_EMPTY_LINE;
-
-  LOG_INFO << "Required:";
-  for (const auto& req : required) {
-    LOG_INFO << "\t" << req;
-  }
-  LOG_EMPTY_LINE;
-
-  for (const auto& req : required) {
-    if (!available.contains(req)) {
-      return req;
-    }
-  }
-  return std::nullopt;
-}
-
 // Converts a bool to VkBool32.
 inline VkBool32 ToVkBool(bool value) { return value ? VK_TRUE : VK_FALSE; }
 
@@ -128,6 +90,6 @@ constexpr uint32_t kSingleMipLevel = common::image::kSingleMipLevel;
 constexpr uint32_t kSingleImageLayer = common::image::kSingleImageLayer;
 constexpr uint32_t kCubemapImageLayer = common::image::kCubemapImageLayer;
 
-}  // namespace vk::renderer::lighter
+}  // namespace lighter::renderer::vk
 
 #endif  // LIGHTER_RENDERER_VK_UTIL_H

@@ -99,6 +99,6 @@ class Pipeline {
   VkPipeline pipeline_;
 };
 
-}  // namespace vk::renderer::lighter
+}  // namespace lighter::renderer::vk
 
 #endif  // LIGHTER_RENDERER_VK_PIPELINE_H

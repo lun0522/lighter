@@ -169,4 +169,4 @@ VkShaderStageFlags ConvertShaderStages(shader_stage::ShaderStage stages) {
   return flags;
 }
 
-}  // namespace vk::renderer::lighter::type
+}  // namespace lighter::renderer::vk::type
