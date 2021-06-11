@@ -63,6 +63,9 @@
 #define ASSERT_NON_NULL(pointer, error)       \
     ASSERT_FALSE(pointer == nullptr, error)
 
+#define ASSERT_EMPTY(container, error)        \
+    ASSERT_TRUE(container.empty(), error)
+
 #define ASSERT_NON_EMPTY(container, error)    \
     ASSERT_FALSE(container.empty(), error)
 

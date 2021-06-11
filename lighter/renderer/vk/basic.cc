@@ -14,49 +14,23 @@
 #include "lighter/renderer/pipeline_util.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/debug_callback.h"
+#include "lighter/renderer/vk/property_checker.h"
 #include "lighter/renderer/vk/type_mapping.h"
-#include "third_party/absl/functional/function_ref.h"
+#include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace lighter::renderer::vk {
 namespace {
 
-// Prints in the format:
-// <header>
-// \t<elem1>
-// \t<elem2>
-// ...
-// <newline>
-template <typename ForwardIterator>
-void PrintElements(std::string_view header, ForwardIterator begin,
-                   ForwardIterator end) {
-  LOG_INFO << header;
-  for (ForwardIterator iter = begin; iter != end; ++iter) {
-    LOG_INFO << "\t" << *iter;
-  }
+// Uses 'property_checker' to check if all 'required_properties' are supported,
+// and throws a runtime exception if any unsupported exists.
+void CheckPropertiesSupport(std::string_view property_type,
+                            const PropertyChecker& property_checker,
+                            absl::Span<const std::string> required_properties) {
+  LOG_INFO << absl::StreamFormat("Checking %s support", property_type);
   LOG_EMPTY_LINE;
-}
-
-// Convenient function to print elements in 'container'.
-void PrintElements(std::string_view header,
-                   absl::Span<const std::string> container) {
-  PrintElements(header, container.begin(), container.end());
-}
-
-// Returns the names of unsupported attributes. 'get_name' should be able to
-// return the name of any attribute of AttribType.
-template <typename AttribType>
-std::vector<std::string> FindUnsupportedAttributes(
-    absl::Span<const AttribType> supported,
-    absl::Span<const std::string> required,
-    absl::FunctionRef<std::string(const AttribType&)> get_name) {
-  const auto supported_set = common::util::TransformToSet(supported, get_name);
-  PrintElements("Supported:", supported_set.begin(), supported_set.end());
-  PrintElements("Required:", required);
-  return common::util::CopyToVectorIf<std::string>(
-      required, [&supported_set](const std::string& attrib) {
-        return !supported_set.contains(attrib);
-      });
+  ASSERT_EMPTY(property_checker.FindUnsupported(required_properties),
+               absl::StrFormat("Found unsupported %s", property_type));
 }
 
 // Returns instance extensions required by 'windows'.
@@ -71,87 +45,20 @@ std::vector<const char*> GetWindowExtensions(
   return {window_extensions.begin(), window_extensions.end()};
 }
 
-// Checks support for 'required' layers, and throws a runtime exception if any
-// of them is not supported.
-void CheckInstanceLayerSupport(absl::Span<const std::string> required) {
-  LOG_INFO << "Checking instance layers support";
-  LOG_EMPTY_LINE;
-
-  static const auto supported = util::QueryAttribute<VkLayerProperties>(
-      [](uint32_t* count, VkLayerProperties* properties) {
-        return vkEnumerateInstanceLayerProperties(count, properties);
-      }
-  );
-  const auto unsupported = FindUnsupportedAttributes<VkLayerProperties>(
-      supported, required,
-      /*get_name=*/[](const auto& property) { return property.layerName; });
-
-  if (unsupported.empty()) {
-    LOG_INFO << "All supported";
-    LOG_EMPTY_LINE;
-  } else {
-    PrintElements("Unsupported:", unsupported);
-    FATAL("Found unsupported instance layers");
-  }
-}
-
-// Checks support for 'required' extensions, and throws a runtime exception
-// if any of them is not supported.
-void CheckInstanceExtensionSupport(absl::Span<const std::string> required) {
-  LOG_INFO << "Checking instance extensions support";
-  LOG_EMPTY_LINE;
-
-  static const auto supported = util::QueryAttribute<VkExtensionProperties>(
-      [](uint32_t* count, VkExtensionProperties* properties) {
-        return vkEnumerateInstanceExtensionProperties(
-            /*pLayerName=*/nullptr, count, properties);
-      }
-  );
-  const auto unsupported = FindUnsupportedAttributes<VkExtensionProperties>(
-      supported, required,
-      /*get_name=*/[](const auto& property) { return property.extensionName; });
-
-  if (unsupported.empty()) {
-    LOG_INFO << "All supported";
-    LOG_EMPTY_LINE;
-  } else {
-    PrintElements("Unsupported:", unsupported);
-    FATAL("Found unsupported instance extensions");
-  }
-}
-
 // Returns whether swapchain is supported by 'physical_device'.
 bool SupportsSwapchain(const VkPhysicalDevice& physical_device,
-                       absl::Span<const char* const> swapchain_extensions) {
-  LOG_INFO << "Checking swapchain support";
+                       absl::Span<const std::string> swapchain_extensions) {
+  LOG_INFO << "Checking swapchain device extensions support";
   LOG_EMPTY_LINE;
 
-  const std::vector<std::string> required{swapchain_extensions.begin(),
-                                          swapchain_extensions.end()};
-  const auto supported = util::QueryAttribute<VkExtensionProperties>(
-      [&physical_device](uint32_t* count, VkExtensionProperties* properties) {
-        return vkEnumerateDeviceExtensionProperties(
-            physical_device, /*pLayerName=*/nullptr, count, properties);
-      }
-  );
-  const auto unsupported = FindUnsupportedAttributes<VkExtensionProperties>(
-      supported, required,
-      /*get_name=*/[](const auto& property) { return property.extensionName; });
-
-  if (unsupported.empty()) {
-    LOG_INFO << "All supported";
-    LOG_EMPTY_LINE;
-    return true;
-  } else {
-    PrintElements("Unsupported:", unsupported);
-    return false;
-  }
+  const auto checker = PropertyChecker::ForDeviceExtensions(physical_device);
+  return checker.AreSupported(swapchain_extensions);
 }
 
 // Returns whether 'surfaces' are supported by 'physical_device'.
 bool SupportsSurfaces(const VkPhysicalDevice& physical_device,
                       absl::Span<const Surface* const> surfaces) {
-  LOG_INFO << "Checking window surface support";
+  LOG_INFO << "Checking surfaces compatibility";
   LOG_EMPTY_LINE;
 
   uint32_t format_count, mode_count;
@@ -168,7 +75,7 @@ bool SupportsSurfaces(const VkPhysicalDevice& physical_device,
     }
   }
 
-  LOG_INFO << "All supported";
+  LOG_INFO << "All compatible";
   LOG_EMPTY_LINE;
   return true;
 }
@@ -178,7 +85,7 @@ bool SupportsSurfaces(const VkPhysicalDevice& physical_device,
 std::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
     const VkPhysicalDevice& physical_device,
     absl::Span<const Surface* const> surfaces,
-    absl::Span<const char* const> swapchain_extensions) {
+    absl::Span<const std::string> swapchain_extensions) {
   VkPhysicalDeviceProperties properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
   LOG_INFO << "Found device: " << properties.deviceName;
@@ -307,9 +214,9 @@ Instance::Instance(const Context* context, bool enable_validation,
                            DebugCallback::GetRequiredLayers().begin(),
                            DebugCallback::GetRequiredLayers().end());
   }
-  const std::vector<std::string> layer_names{required_layers.begin(),
-                                             required_layers.end()};
-  CheckInstanceLayerSupport(layer_names);
+  CheckPropertiesSupport(
+      "instance layers", PropertyChecker::ForInstanceLayers(),
+      std::vector<std::string>{required_layers.begin(), required_layers.end()});
 
   // Check required instance extensions.
   std::vector<const char*> required_extensions = GetWindowExtensions(windows);
@@ -322,9 +229,10 @@ Instance::Instance(const Context* context, bool enable_validation,
                                DebugCallback::GetRequiredExtensions().begin(),
                                DebugCallback::GetRequiredExtensions().end());
   }
-  const std::vector<std::string> extension_names{required_extensions.begin(),
-                                                 required_extensions.end()};
-  CheckInstanceExtensionSupport(extension_names);
+  CheckPropertiesSupport(
+      "instance extensions", PropertyChecker::ForInstanceExtensions(),
+      std::vector<std::string>{required_extensions.begin(),
+                               required_extensions.end()});
 
   // Might be useful for the driver to optimize for some graphics engine.
   const std::string application_name_string{application_name};
@@ -374,6 +282,8 @@ PhysicalDevice::PhysicalDevice(
     const Context* context, absl::Span<Surface* const> surfaces,
     absl::Span<const char* const> swapchain_extensions)
     : context_{*FATAL_IF_NULL(context)} {
+  const std::vector<std::string> required_swapchain_extensions{
+      swapchain_extensions.begin(), swapchain_extensions.end()};
   const auto physical_devices = util::QueryAttribute<VkPhysicalDevice>(
       [this](uint32_t* count, VkPhysicalDevice* physical_device) {
         return vkEnumeratePhysicalDevices(
@@ -383,7 +293,7 @@ PhysicalDevice::PhysicalDevice(
 
   for (const auto& candidate : physical_devices) {
     const auto indices = FindDeviceQueues(candidate, surfaces,
-                                          swapchain_extensions);
+                                          required_swapchain_extensions);
     if (indices.has_value()) {
       physical_device_ = candidate;
       queue_family_indices_ = indices.value();
@@ -424,8 +334,8 @@ Device::Device(const Context* context, bool enable_validation,
                absl::Span<const char* const> swapchain_extensions)
     : context_{*FATAL_IF_NULL(context)} {
   // Specify which queues do we want to use.
-  const auto& queue_family_indices =
-      context_.physical_device().queue_family_indices();
+  const PhysicalDevice& physical_device = context_.physical_device();
+  const auto& queue_family_indices = physical_device.queue_family_indices();
   const absl::flat_hash_set<uint32_t> queue_family_indices_set{
       queue_family_indices.graphics,
       queue_family_indices.compute,
@@ -445,25 +355,50 @@ Device::Device(const Context* context, bool enable_validation,
     });
   }
 
-  std::vector<const char*> enabled_layers;
-  // Enable support for debug reports if needed.
+  std::vector<const char*> required_layers;
+  // Request support for validation if needed.
   if (enable_validation) {
-    enabled_layers.insert(enabled_layers.end(),
-                          DebugCallback::GetRequiredLayers().begin(),
-                          DebugCallback::GetRequiredLayers().end());
+    required_layers.insert(required_layers.end(),
+                           DebugCallback::GetRequiredLayers().begin(),
+                           DebugCallback::GetRequiredLayers().end());
   }
+  CheckPropertiesSupport(
+      "device layers", PropertyChecker::ForDeviceLayers(*physical_device),
+      std::vector<std::string>{required_layers.begin(), required_layers.end()});
 
-  std::vector<const char*> enabled_extensions;
-  enabled_extensions.reserve(swapchain_extensions.size() + 2);
-  // Enable support for negative-height viewport and pushing descriptors.
-  enabled_extensions.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
-  enabled_extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
-  // Enable support for swapchain if needed.
-  enabled_extensions.insert(enabled_extensions.end(),
-                            swapchain_extensions.begin(),
-                            swapchain_extensions.end());
+  std::vector<const char*> required_extensions;
+  required_extensions.reserve(swapchain_extensions.size() + 2);
+  // Request support for swapchain if needed.
+  required_extensions.insert(required_extensions.end(),
+                             swapchain_extensions.begin(),
+                             swapchain_extensions.end());
+  // Request support for negative-height viewport and pushing descriptors.
+  required_extensions.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+  required_extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+  const auto device_extensions_checker =
+      PropertyChecker::ForDeviceExtensions(*physical_device);
+  CheckPropertiesSupport(
+      "device extensions", device_extensions_checker,
+      std::vector<std::string>{required_extensions.begin(),
+                               required_extensions.end()});
 
-  // Enable support for anisotropy filtering.
+  // According to the spec, VK_KHR_portability_subset must be included if it is
+  // included in vkEnumerateDeviceExtensionProperties:
+  // https://vulkan.lunarg.com/doc/view/1.2.176.1/mac/1.2-extensions/vkspec.html#VUID-VkDeviceCreateInfo-pProperties-04451
+  // TODO: Remove #define once this extension gets out of beta.
+  #ifndef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+  #define VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME "VK_KHR_portability_subset"
+  for (const char* extension : {VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME}) {
+    if (device_extensions_checker.IsSupported(extension)) {
+      required_extensions.push_back(extension);
+      LOG_INFO << absl::StreamFormat("Also including %s as required by spec",
+                                     extension);
+    }
+  }
+  #endif  // VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+
+  // Request support for anisotropy filtering. This should be safe as we have
+  // checked that during physical device creation.
   VkPhysicalDeviceFeatures required_features{};
   required_features.samplerAnisotropy = VK_TRUE;
 
@@ -473,10 +408,10 @@ Device::Device(const Context* context, bool enable_validation,
       .flags = nullflag,
       CONTAINER_SIZE(queue_infos),
       queue_infos.data(),
-      CONTAINER_SIZE(enabled_layers),
-      enabled_layers.data(),
-      CONTAINER_SIZE(enabled_extensions),
-      enabled_extensions.data(),
+      CONTAINER_SIZE(required_layers),
+      required_layers.data(),
+      CONTAINER_SIZE(required_extensions),
+      required_extensions.data(),
       &required_features,
   };
 

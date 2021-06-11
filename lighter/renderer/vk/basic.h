@@ -15,7 +15,6 @@
 #include "lighter/common/window.h"
 #include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/util.h"
-#include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"

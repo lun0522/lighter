@@ -35,6 +35,7 @@ cc_library(
         "debug_callback.cc",
     ],
     deps = [
+        ":property_checker",
         ":util",
         "//lighter/common:util",
         "//lighter/common:window",
@@ -98,6 +99,18 @@ cc_library(
         "//lighter/renderer:pass",
         "//lighter/renderer:pipeline",
         "//lighter/shader_compiler:util",
+        "//third_party:absl",
+        "//third_party:vulkan",
+    ],
+)
+
+cc_library(
+    name = "property_checker",
+    hdrs = ["property_checker.h"],
+    srcs = ["property_checker.cc"],
+    deps = [
+        ":util",
+        "//lighter/common:util",
         "//third_party:absl",
         "//third_party:vulkan",
     ],
