@@ -9,7 +9,6 @@
 #define LIGHTER_RENDERER_VK_SWAPCHAIN_H
 
 #include <memory>
-#include <vector>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/type.h"
@@ -32,9 +31,6 @@ class Swapchain {
 
   ~Swapchain();
 
-  // Returns the names of required Vulkan extensions for the swapchain.
-  static const std::vector<const char*>& GetRequiredExtensions();
-
   // Accessors.
   const SwapchainImage& image() const { return *image_; }
 
@@ -43,7 +39,7 @@ class Swapchain {
   const SharedContext context_;
 
   // Opaque swapchain object,
-  VkSwapchainKHR swapchain_;
+  VkSwapchainKHR swapchain_ = VK_NULL_HANDLE;
 
   // Wraps images retrieved from the swapchain.
   std::unique_ptr<SwapchainImage> image_;

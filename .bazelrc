@@ -1,5 +1,6 @@
 build --enable_platform_specific_config
 build:macos --cxxopt=-std=c++17
 build:linux --cxxopt=-std=c++17
+build:linux --repo_env=CC=clang
 build:windows --cxxopt=/std:c++17
 build:windows --compiler=clang-cl

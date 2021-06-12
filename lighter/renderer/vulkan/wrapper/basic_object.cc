@@ -274,7 +274,7 @@ Instance::~Instance() {
 PhysicalDevice::PhysicalDevice(
     const BasicContext* context,
     const std::optional<WindowSupport>& window_support)
-    : context_{FATAL_IF_NULL(context)} {
+    : context_{FATAL_IF_NULL(context)}, physical_device_{VK_NULL_HANDLE} {
   // Find all physical devices.
   const auto physical_devices = util::QueryAttribute<VkPhysicalDevice>(
       [this](uint32_t* count, VkPhysicalDevice* physical_device) {
@@ -296,10 +296,19 @@ PhysicalDevice::PhysicalDevice(
       vkGetPhysicalDeviceProperties(physical_device_, &properties);
       physical_device_limits_ = properties.limits;
 
-      return;
+      // Prefer discrete GPUs.
+      if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+        LOG_INFO << "Use this discrete GPU";
+        return;
+      } else {
+        LOG_INFO << "This not a discrete GPU, keep searching";
+      }
     }
   }
-  FATAL("Failed to find suitable graphics device");
+
+  ASSERT_FALSE(physical_device_ == VK_NULL_HANDLE,
+               "Failed to find suitable graphics device");
+  LOG_INFO << "Use the previous found GPU";
 }
 
 Device::Device(const BasicContext* context,

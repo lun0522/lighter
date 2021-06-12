@@ -12,14 +12,10 @@ namespace lighter::renderer::vk {
 Context::Context(
     std::string_view application_name,
     const std::optional<debug_message::Config>& debug_message_config,
-    absl::Span<const common::Window* const> windows,
-    absl::Span<const char* const> swapchain_extensions) {
-  // No need to create any swapchain if no window is used.
-  if (windows.empty()) {
-    swapchain_extensions = {};
-  }
-
+    absl::Span<const common::Window* const> windows) {
   const bool enable_validation = debug_message_config.has_value();
+  const bool enable_swapchain = !windows.empty();
+
   instance_ = std::make_unique<Instance>(this, enable_validation,
                                          application_name, windows);
   if (enable_validation) {
@@ -35,10 +31,8 @@ Context::Context(
     surface_ptrs.push_back(surfaces_.back().get());
   }
 
-  physical_device_ = std::make_unique<PhysicalDevice>(
-      this, surface_ptrs, swapchain_extensions);
-  device_ = std::make_unique<Device>(this, enable_validation,
-                                     swapchain_extensions);
+  physical_device_ = std::make_unique<PhysicalDevice>(this, surface_ptrs);
+  device_ = std::make_unique<Device>(this, enable_validation, enable_swapchain);
   queues_ = std::make_unique<Queues>(*this);
 }
 

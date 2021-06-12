@@ -11,6 +11,11 @@ cc_import(
 )
 
 cc_import(
+    name = "libvulkan_validation_linux",
+    shared_library = get_vulkan_lib_path("libVkLayer_khronos_validation.so"),
+)
+
+cc_import(
     name = "libvulkan_macos",
     shared_library = get_vulkan_lib_path("libvulkan.dylib"),
 )
@@ -24,7 +29,10 @@ cc_library(
     name = "vulkan",
     hdrs = glob([get_vulkan_include_path("vulkan/*.h")]),
     deps = select({
-        "@platforms//os:linux": [":libvulkan_linux"],
+        "@platforms//os:linux": [
+            ":libvulkan_linux",
+            ":libvulkan_validation_linux",
+        ],
         "@platforms//os:macos": [":libvulkan_macos"],
         "@platforms//os:windows": [":libvulkan_windows"],
     }),

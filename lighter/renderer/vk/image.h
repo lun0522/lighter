@@ -81,11 +81,11 @@ class GeneralDeviceImage : public DeviceImage {
   const SharedContext context_;
 
   // Opaque image object.
-  VkImage image_;
+  VkImage image_ = VK_NULL_HANDLE;
 
   // TODO: Hold multiple images in one block of device memory.
   // Opaque device memory object.
-  VkDeviceMemory device_memory_;
+  VkDeviceMemory device_memory_ = VK_NULL_HANDLE;
 };
 
 class SwapchainImage : public DeviceImage {

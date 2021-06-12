@@ -66,7 +66,7 @@ class Instance {
   const Context& context_;
 
   // Opaque instance object.
-  VkInstance instance_;
+  VkInstance instance_ = VK_NULL_HANDLE;
 };
 
 // Wraps VkSurfaceKHR, which interfaces with platform-specific window systems.
@@ -98,7 +98,7 @@ class Surface {
   const Context& context_;
 
   // Opaque surface object.
-  VkSurfaceKHR surface_;
+  VkSurfaceKHR surface_ = VK_NULL_HANDLE;
 
   // Capabilities of this surface.
   std::optional<VkSurfaceCapabilitiesKHR> capabilities_;
@@ -115,9 +115,7 @@ struct PhysicalDevice {
     std::vector<uint32_t> presents;
   };
 
-  PhysicalDevice(const Context* context,
-                 absl::Span<Surface* const> surfaces,
-                 absl::Span<const char* const> swapchain_extensions);
+  PhysicalDevice(const Context* context, absl::Span<Surface* const> surfaces);
 
   // This class is neither copyable nor movable.
   PhysicalDevice(const PhysicalDevice&) = delete;
@@ -143,7 +141,7 @@ struct PhysicalDevice {
   const Context& context_;
 
   // Opaque physical device object.
-  VkPhysicalDevice physical_device_;
+  VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
 
   // Family indices for the queues we need.
   QueueFamilyIndices queue_family_indices_;
@@ -159,8 +157,7 @@ struct PhysicalDevice {
 // Wraps VkDevice, which interfaces with the physical device.
 struct Device {
  public:
-  Device(const Context* context, bool enable_validation,
-         absl::Span<const char* const> swapchain_extensions);
+  Device(const Context* context, bool enable_validation, bool enable_swapchain);
 
   // This class is neither copyable nor movable.
   Device(const Device&) = delete;
@@ -179,7 +176,7 @@ struct Device {
   const Context& context_;
 
   // Opaque device object.
-  VkDevice device_;
+  VkDevice device_ = VK_NULL_HANDLE;
 };
 
 // Wraps VkQueue, which is the queue associated with the logical device.
@@ -203,10 +200,10 @@ class Queues {
 
  private:
   // Graphics queue.
-  VkQueue graphics_queue_;
+  VkQueue graphics_queue_ = VK_NULL_HANDLE;
 
   // Compute queue.
-  VkQueue compute_queue_;
+  VkQueue compute_queue_ = VK_NULL_HANDLE;
 
   // Presentation queues. We have one such queue for each window.
   std::vector<VkQueue> present_queues_;

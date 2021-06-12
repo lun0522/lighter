@@ -8,6 +8,7 @@
 #include "lighter/renderer/vk/debug_callback.h"
 
 #include <string>
+#include <vector>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/vk/context.h"
@@ -118,20 +119,6 @@ DebugCallback::DebugCallback(const Context* context,
           *context_.instance(), "vkCreateDebugUtilsMessengerEXT");
   vkCreateDebugUtilsMessengerEXT(*context_.instance(), &create_info,
                                  *context_.host_allocator(), &callback_);
-}
-
-const std::vector<const char*>& DebugCallback::GetRequiredLayers() {
-  static const auto* validation_layers = new std::vector<const char*>{
-      "VK_LAYER_KHRONOS_validation",
-  };
-  return *validation_layers;
-}
-
-const std::vector<const char*>& DebugCallback::GetRequiredExtensions() {
-  static const auto* validation_extensions = new std::vector<const char*>{
-      VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-  };
-  return *validation_extensions;
 }
 
 DebugCallback::~DebugCallback() {

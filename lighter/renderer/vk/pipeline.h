@@ -55,7 +55,7 @@ class ShaderModule {
   const SharedContext context_;
 
   // Opaque shader module object.
-  VkShaderModule shader_module_;
+  VkShaderModule shader_module_ = VK_NULL_HANDLE;
 };
 
 class Pipeline {
@@ -93,10 +93,10 @@ class Pipeline {
   const VkPipelineBindPoint binding_point_;
 
   // Opaque pipeline layout object.
-  VkPipelineLayout layout_;
+  VkPipelineLayout layout_ = VK_NULL_HANDLE;
 
   // Opaque pipeline object.
-  VkPipeline pipeline_;
+  VkPipeline pipeline_ = VK_NULL_HANDLE;
 };
 
 }  // namespace lighter::renderer::vk

@@ -37,11 +37,9 @@ class Context : public std::enable_shared_from_this<Context> {
   static SharedContext CreateContext(
       std::string_view application_name,
       const std::optional<debug_message::Config>& debug_message_config,
-      absl::Span<const common::Window* const> windows,
-      absl::Span<const char* const> swapchain_extensions) {
+      absl::Span<const common::Window* const> windows) {
     return std::shared_ptr<Context>(
-        new Context{application_name, debug_message_config, windows,
-                    swapchain_extensions});
+        new Context{application_name, debug_message_config, windows});
   }
 
   // This class is neither copyable nor movable.
@@ -84,8 +82,7 @@ class Context : public std::enable_shared_from_this<Context> {
  private:
   Context(std::string_view application_name,
           const std::optional<debug_message::Config>& debug_message_config,
-          absl::Span<const common::Window* const> windows,
-          absl::Span<const char* const> swapchain_extensions);
+          absl::Span<const common::Window* const> windows);
 
   // Wrapper of VkAllocationCallbacks.
   const HostMemoryAllocator host_allocator_;

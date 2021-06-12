@@ -7,6 +7,8 @@
 
 #include "lighter/renderer/vk/swapchain.h"
 
+#include <vector>
+
 #include "lighter/common/image.h"
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vk/image_util.h"
@@ -171,13 +173,6 @@ Swapchain::Swapchain(SharedContext context, int window_index,
                                     images);
           }),
       surface_format.format);
-}
-
-const std::vector<const char*>& Swapchain::GetRequiredExtensions() {
-  static const auto* required_extensions = new std::vector<const char*>{
-      VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-  };
-  return *required_extensions;
 }
 
 Swapchain::~Swapchain() {

@@ -58,11 +58,11 @@ class DeviceBuffer : public renderer::DeviceBuffer {
   size_t buffer_size_ = 0;
 
   // Opaque buffer object.
-  VkBuffer buffer_;
+  VkBuffer buffer_ = VK_NULL_HANDLE;
 
   // TODO: Hold multiple buffers in one block of device memory.
   // Opaque device memory object.
-  VkDeviceMemory device_memory_;
+  VkDeviceMemory device_memory_ = VK_NULL_HANDLE;
 };
 
 }  // namespace lighter::renderer::vk

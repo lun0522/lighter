@@ -34,7 +34,7 @@ class RenderPass : public renderer::RenderPass {
   std::vector<Pipeline> pipelines_;
 
   // Opaque render pass object.
-  VkRenderPass render_pass_;
+  VkRenderPass render_pass_ = VK_NULL_HANDLE;
 
   // Opaque framebuffer objects.
   std::vector<VkFramebuffer> framebuffers_;

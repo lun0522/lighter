@@ -13,7 +13,6 @@
 #include "lighter/common/util.h"
 #include "lighter/renderer/pipeline_util.h"
 #include "lighter/renderer/vk/context.h"
-#include "lighter/renderer/vk/debug_callback.h"
 #include "lighter/renderer/vk/property_checker.h"
 #include "lighter/renderer/vk/type_mapping.h"
 #include "third_party/absl/container/flat_hash_set.h"
@@ -21,6 +20,10 @@
 
 namespace lighter::renderer::vk {
 namespace {
+
+static constexpr char* kSwapchainExtension = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+static constexpr char* kValidationLayer = "VK_LAYER_KHRONOS_validation";
+static constexpr char* kValidationExtension = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 
 // Uses 'property_checker' to check if all 'required_properties' are supported,
 // and throws a runtime exception if any unsupported exists.
@@ -46,13 +49,12 @@ std::vector<const char*> GetWindowExtensions(
 }
 
 // Returns whether swapchain is supported by 'physical_device'.
-bool SupportsSwapchain(const VkPhysicalDevice& physical_device,
-                       absl::Span<const std::string> swapchain_extensions) {
+bool SupportsSwapchain(const VkPhysicalDevice& physical_device) {
   LOG_INFO << "Checking swapchain device extensions support";
   LOG_EMPTY_LINE;
 
   const auto checker = PropertyChecker::ForDeviceExtensions(physical_device);
-  return checker.AreSupported(swapchain_extensions);
+  return checker.AreSupported({kSwapchainExtension});
 }
 
 // Returns whether 'surfaces' are supported by 'physical_device'.
@@ -84,16 +86,15 @@ bool SupportsSurfaces(const VkPhysicalDevice& physical_device,
 // given 'physical_device', returns std::nullopt.
 std::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
     const VkPhysicalDevice& physical_device,
-    absl::Span<const Surface* const> surfaces,
-    absl::Span<const std::string> swapchain_extensions) {
+    absl::Span<const Surface* const> surfaces) {
   VkPhysicalDeviceProperties properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
-  LOG_INFO << "Found device: " << properties.deviceName;
+  LOG_INFO << "Found graphics device: " << properties.deviceName;
   LOG_EMPTY_LINE;
 
   // Request swapchain and surface support if use window.
   if (!surfaces.empty()) {
-    if (!SupportsSwapchain(physical_device, swapchain_extensions) ||
+    if (!SupportsSwapchain(physical_device) ||
         !SupportsSurfaces(physical_device, surfaces)) {
       return std::nullopt;
     }
@@ -210,9 +211,7 @@ Instance::Instance(const Context* context, bool enable_validation,
   std::vector<const char*> required_layers;
   // Request support for validation if needed.
   if (enable_validation) {
-    required_layers.insert(required_layers.end(),
-                           DebugCallback::GetRequiredLayers().begin(),
-                           DebugCallback::GetRequiredLayers().end());
+    required_layers.push_back(kValidationLayer);
   }
   CheckPropertiesSupport(
       "instance layers", PropertyChecker::ForInstanceLayers(),
@@ -225,9 +224,7 @@ Instance::Instance(const Context* context, bool enable_validation,
       VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
   // Request support for validation if needed.
   if (enable_validation) {
-    required_extensions.insert(required_extensions.end(),
-                               DebugCallback::GetRequiredExtensions().begin(),
-                               DebugCallback::GetRequiredExtensions().end());
+    required_extensions.push_back(kValidationExtension);
   }
   CheckPropertiesSupport(
       "instance extensions", PropertyChecker::ForInstanceExtensions(),
@@ -278,12 +275,9 @@ Surface::~Surface() {
                       *context_.host_allocator());
 }
 
-PhysicalDevice::PhysicalDevice(
-    const Context* context, absl::Span<Surface* const> surfaces,
-    absl::Span<const char* const> swapchain_extensions)
+PhysicalDevice::PhysicalDevice(const Context* context,
+                               absl::Span<Surface* const> surfaces)
     : context_{*FATAL_IF_NULL(context)} {
-  const std::vector<std::string> required_swapchain_extensions{
-      swapchain_extensions.begin(), swapchain_extensions.end()};
   const auto physical_devices = util::QueryAttribute<VkPhysicalDevice>(
       [this](uint32_t* count, VkPhysicalDevice* physical_device) {
         return vkEnumeratePhysicalDevices(
@@ -292,8 +286,7 @@ PhysicalDevice::PhysicalDevice(
   );
 
   for (const auto& candidate : physical_devices) {
-    const auto indices = FindDeviceQueues(candidate, surfaces,
-                                          required_swapchain_extensions);
+    const auto indices = FindDeviceQueues(candidate, surfaces);
     if (indices.has_value()) {
       physical_device_ = candidate;
       queue_family_indices_ = indices.value();
@@ -324,14 +317,23 @@ PhysicalDevice::PhysicalDevice(
         surface->SetCapabilities(std::move(capabilities));
       }
 
-      return;
+      // Prefer discrete GPUs.
+      if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+        LOG_INFO << "Use this discrete GPU";
+        return;
+      } else {
+        LOG_INFO << "This not a discrete GPU, keep searching";
+      }
     }
   }
-  FATAL("Failed to find suitable graphics device");
+
+  ASSERT_FALSE(physical_device_ == VK_NULL_HANDLE,
+               "Failed to find suitable graphics device");
+  LOG_INFO << "Use the previous found GPU";
 }
 
 Device::Device(const Context* context, bool enable_validation,
-               absl::Span<const char* const> swapchain_extensions)
+               bool enable_swapchain)
     : context_{*FATAL_IF_NULL(context)} {
   // Specify which queues do we want to use.
   const PhysicalDevice& physical_device = context_.physical_device();
@@ -358,23 +360,22 @@ Device::Device(const Context* context, bool enable_validation,
   std::vector<const char*> required_layers;
   // Request support for validation if needed.
   if (enable_validation) {
-    required_layers.insert(required_layers.end(),
-                           DebugCallback::GetRequiredLayers().begin(),
-                           DebugCallback::GetRequiredLayers().end());
+    required_layers.push_back(kValidationLayer);
   }
   CheckPropertiesSupport(
       "device layers", PropertyChecker::ForDeviceLayers(*physical_device),
       std::vector<std::string>{required_layers.begin(), required_layers.end()});
 
-  std::vector<const char*> required_extensions;
-  required_extensions.reserve(swapchain_extensions.size() + 2);
+  std::vector<const char*> required_extensions{
+      // Request support for negative-height viewport.
+      VK_KHR_MAINTENANCE1_EXTENSION_NAME,
+      // Request support for pushing descriptors.
+      VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
+  };
   // Request support for swapchain if needed.
-  required_extensions.insert(required_extensions.end(),
-                             swapchain_extensions.begin(),
-                             swapchain_extensions.end());
-  // Request support for negative-height viewport and pushing descriptors.
-  required_extensions.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
-  required_extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+  if (enable_swapchain) {
+    required_extensions.push_back(kSwapchainExtension);
+  }
   const auto device_extensions_checker =
       PropertyChecker::ForDeviceExtensions(*physical_device);
   CheckPropertiesSupport(
