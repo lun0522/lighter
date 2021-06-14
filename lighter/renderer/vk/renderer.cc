@@ -10,7 +10,7 @@
 namespace lighter::renderer::vk {
 
 Renderer::Renderer(
-    std::string_view application_name,
+    const char* application_name,
     const std::optional<debug_message::Config>& debug_message_config,
     std::vector<const common::Window*>&& window_ptrs)
     : renderer::Renderer{std::move(window_ptrs)},

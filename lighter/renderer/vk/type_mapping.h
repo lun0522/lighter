@@ -9,31 +9,36 @@
 #define LIGHTER_RENDERER_VK_TYPE_MAPPING_H
 
 #include "lighter/renderer/type.h"
-#include "third_party/vulkan/vulkan.h"
+#include "lighter/renderer/vk/util.h"
 
 namespace lighter::renderer::vk::type {
 
-VkVertexInputRate ConvertVertexInputRate(VertexInputRate rate);
+intl::VertexInputRate ConvertVertexInputRate(VertexInputRate rate);
 
-VkFormat ConvertDataFormat(DataFormat format);
+intl::Format ConvertDataFormat(DataFormat format);
 
-VkAttachmentLoadOp ConvertAttachmentLoadOp(AttachmentLoadOp op);
+intl::AttachmentLoadOp ConvertAttachmentLoadOp(AttachmentLoadOp op);
 
-VkAttachmentStoreOp ConvertAttachmentStoreOp(AttachmentStoreOp op);
+intl::AttachmentStoreOp ConvertAttachmentStoreOp(AttachmentStoreOp op);
 
-VkBlendFactor ConvertBlendFactor(BlendFactor factor);
+intl::BlendFactor ConvertBlendFactor(BlendFactor factor);
 
-VkBlendOp ConvertBlendOp(BlendOp op);
+intl::BlendOp ConvertBlendOp(BlendOp op);
 
-VkCompareOp ConvertCompareOp(CompareOp op);
+intl::CompareOp ConvertCompareOp(CompareOp op);
 
-VkStencilOp ConvertStencilOp(StencilOp op);
+intl::StencilOp ConvertStencilOp(StencilOp op);
 
-VkPrimitiveTopology ConvertPrimitiveTopology(PrimitiveTopology topology);
+intl::PrimitiveTopology ConvertPrimitiveTopology(PrimitiveTopology topology);
 
-VkShaderStageFlagBits ConvertShaderStage(shader_stage::ShaderStage stage);
+intl::ShaderStageFlagBits ConvertShaderStage(shader_stage::ShaderStage stage);
 
-VkShaderStageFlags ConvertShaderStages(shader_stage::ShaderStage stages);
+intl::ShaderStageFlags ConvertShaderStages(shader_stage::ShaderStage stages);
+
+intl::DebugUtilsMessageSeverityFlagsEXT ConvertDebugMessageSeverities(
+    uint32_t severities);
+
+intl::DebugUtilsMessageTypeFlagsEXT ConvertDebugMessageTypes(uint32_t types);
 
 }  // namespace lighter::renderer::vk::type
 

@@ -13,11 +13,10 @@
 
 #include "lighter/common/image.h"
 #include "lighter/common/util.h"
-#include "third_party/absl/functional/function_ref.h"
-#include "third_party/absl/strings/str_cat.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/glm/glm.hpp"
 
+// All members of Vulkan-Hpp are placed in the intl namespace.
 #define VULKAN_HPP_NAMESPACE lighter::renderer::vk::intl
 #include "third_party/vulkan/vulkan.hpp"
 #undef VULKAN_HPP_NAMESPACE
@@ -30,30 +29,10 @@
     ASSERT_TRUE(                                                    \
         result == ::lighter::renderer::vk::intl::Result::eSuccess,  \
         ::absl::StrFormat(                                          \
-            "%s: %s", error, ::lighter::renderer::vk::intl::to_string(result))
+            "%s: %s", error, ::lighter::renderer::vk::intl::to_string(result)))
 
 namespace lighter::renderer::vk {
 namespace util {
-
-// Returns a function pointer to a Vulkan instance function, and throws a
-// runtime exception if it does not exist.
-template<typename FuncType>
-FuncType LoadInstanceFunction(intl::Instance instance, const char* func_name) {
-  auto func = reinterpret_cast<FuncType>(instance.GetProcAddr(func_name));
-  ASSERT_NON_NULL(
-      func, absl::StrFormat("Failed to load instance function %s", func_name));
-  return func;
-}
-
-// Returns a function pointer to a Vulkan device function, and throws a runtime
-// exception if it does not exist.
-template<typename FuncType>
-FuncType LoadDeviceFunction(intl::Device device, const char* func_name) {
-  auto func = reinterpret_cast<FuncType>(device.GetProcAddr(func_name));
-  ASSERT_NON_NULL(
-      func, absl::StrFormat("Failed to load device function %s", func_name));
-  return func;
-}
 
 // Creates VkExtent2D with given dimensions.
 inline intl::Extent2D CreateExtent(int width, int height) {

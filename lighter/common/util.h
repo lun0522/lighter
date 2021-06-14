@@ -82,9 +82,9 @@ class Logger {
  public:
   explicit Logger(std::ostream& os) : os_{os} {}
 
-  // This class is neither copyable nor movable.
-  Logger(const Logger&) = delete;
-  Logger& operator=(const Logger&) = delete;
+  // This class is only move-constructible.
+  Logger(Logger&&) noexcept = default;
+  Logger& operator=(Logger&&) = delete;
 
   ~Logger() { os_ << std::endl; }
 

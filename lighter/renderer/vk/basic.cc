@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <string>
+#include <string_view>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/pipeline_util.h"
@@ -21,9 +22,9 @@
 namespace lighter::renderer::vk {
 namespace {
 
-static constexpr char* kSwapchainExtension = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
-static constexpr char* kValidationLayer = "VK_LAYER_KHRONOS_validation";
-static constexpr char* kValidationExtension = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+const char* kSwapchainExtension = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+const char* kValidationLayer = "VK_LAYER_KHRONOS_validation";
+const char* kValidationExtension = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 
 // Uses 'property_checker' to check if all 'required_properties' are supported,
 // and throws a runtime exception if any unsupported exists.
@@ -49,28 +50,30 @@ std::vector<const char*> GetWindowExtensions(
 }
 
 // Returns whether swapchain is supported by 'physical_device'.
-bool SupportsSwapchain(const VkPhysicalDevice& physical_device) {
+bool SupportsSwapchain(intl::PhysicalDevice physical_device) {
   LOG_INFO << "Checking swapchain device extensions support";
   LOG_EMPTY_LINE;
 
   const auto checker = PropertyChecker::ForDeviceExtensions(physical_device);
-  return checker.AreSupported({kSwapchainExtension});
+  return checker.AreSupported({std::string{kSwapchainExtension}});
 }
 
 // Returns whether 'surfaces' are supported by 'physical_device'.
-bool SupportsSurfaces(const VkPhysicalDevice& physical_device,
+bool SupportsSurfaces(intl::PhysicalDevice physical_device,
                       absl::Span<const Surface* const> surfaces) {
   LOG_INFO << "Checking surfaces compatibility";
   LOG_EMPTY_LINE;
 
   uint32_t format_count, mode_count;
   for (int i = 0; i < surfaces.size(); ++i) {
-    vkGetPhysicalDeviceSurfaceFormatsKHR(
-        physical_device, **surfaces[i], &format_count,
-        /*pSurfaceFormats=*/nullptr);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(
-        physical_device, **surfaces[i], &mode_count, /*pPresentModes=*/nullptr);
-
+    ASSERT_SUCCESS(
+        physical_device.getSurfaceFormatsKHR(**surfaces[i], &format_count,
+                                             /*pSurfaceFormats=*/nullptr),
+        absl::StrFormat("Failed to query surface formats for window %d", i));
+    ASSERT_SUCCESS(
+        physical_device.getSurfacePresentModesKHR(**surfaces[i], &mode_count,
+                                                  /*pPresentModes=*/nullptr),
+        absl::StrFormat("Failed to query present modes for window %d", i));
     if (format_count == 0 || mode_count == 0) {
       LOG_INFO << absl::StrFormat("Not compatible with window %d", i);
       return false;
@@ -82,13 +85,26 @@ bool SupportsSurfaces(const VkPhysicalDevice& physical_device,
   return true;
 }
 
+// Returns true if the queue family supports 'flag'.
+template <intl::QueueFlagBits flag>
+bool FamilyHasQueue(const intl::QueueFamilyProperties& properties) {
+  return properties.queueCount && (properties.queueFlags & flag);
+}
+
+// Returns the index of the first queue family that supports 'flag'.
+template <intl::QueueFlagBits flag>
+std::optional<int> GetQueueFamilyIndex(
+    absl::Span<const intl::QueueFamilyProperties> properties_span) {
+  return common::util::FindIndexOfFirstIf<intl::QueueFamilyProperties>(
+      properties_span, FamilyHasQueue<flag>);
+}
+
 // Finds family indices of queues we need. If any queue is not found in the
 // given 'physical_device', returns std::nullopt.
 std::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
-    const VkPhysicalDevice& physical_device,
+    intl::PhysicalDevice physical_device,
     absl::Span<const Surface* const> surfaces) {
-  VkPhysicalDeviceProperties properties;
-  vkGetPhysicalDeviceProperties(physical_device, &properties);
+  const auto properties = physical_device.getProperties();
   LOG_INFO << "Found graphics device: " << properties.deviceName;
   LOG_EMPTY_LINE;
 
@@ -101,76 +117,53 @@ std::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
   }
 
   // Request support for anisotropy filtering.
-  VkPhysicalDeviceFeatures feature_support;
-  vkGetPhysicalDeviceFeatures(physical_device, &feature_support);
-  if (!feature_support.samplerAnisotropy) {
+  const auto features = physical_device.getFeatures();
+  if (!features.samplerAnisotropy) {
     return std::nullopt;
   }
 
-  // Find queue family that holds graphics queue and compute queue.
+  // Find a queue family that holds graphics queue and compute queue.
+  const auto properties_vector = physical_device.getQueueFamilyProperties();
   PhysicalDevice::QueueFamilyIndices candidate{};
-  const auto families = util::QueryAttribute<VkQueueFamilyProperties>(
-      [&physical_device](uint32_t* count, VkQueueFamilyProperties* properties) {
-        return vkGetPhysicalDeviceQueueFamilyProperties(
-            physical_device, count, properties);
-      }
-  );
 
-  static const auto has_graphics_support =
-      [](const VkQueueFamilyProperties& family) {
-        return family.queueCount && (family.queueFlags & VK_QUEUE_GRAPHICS_BIT);
-      };
-  const auto graphics_queue_index =
-      common::util::FindIndexOfFirstIf<VkQueueFamilyProperties>(
-          families, has_graphics_support);
-  if (!graphics_queue_index.has_value()) {
-    return std::nullopt;
-  } else {
-    candidate.graphics = CAST_TO_UINT(graphics_queue_index.value());
-  }
+  #define RETURN_IF_NO_VALUE(optional_var) \
+      if (!optional_var.has_value()) return std::nullopt
 
-  static const auto has_compute_support =
-      [](const VkQueueFamilyProperties& family) {
-        return family.queueCount && (family.queueFlags & VK_QUEUE_COMPUTE_BIT);
-      };
-  const auto compute_queue_index =
-      common::util::FindIndexOfFirstIf<VkQueueFamilyProperties>(
-          families, has_compute_support);
-  if (!compute_queue_index.has_value()) {
-    return std::nullopt;
-  } else {
-    candidate.compute = CAST_TO_UINT(compute_queue_index.value());
-  }
+  const std::optional<int> graphics_index =
+      GetQueueFamilyIndex<intl::QueueFlagBits::eGraphics>(properties_vector);
+  RETURN_IF_NO_VALUE(graphics_index);
+  candidate.graphics = CAST_TO_UINT(graphics_index.value());
 
-  // Find queue family that holds presentation queue if needed.
+  const std::optional<int> compute_index =
+      GetQueueFamilyIndex<intl::QueueFlagBits::eCompute>(properties_vector);
+  RETURN_IF_NO_VALUE(compute_index);
+  candidate.compute = CAST_TO_UINT(compute_index.value());
+
+  // Find a queue family that holds presentation queues if needed.
   candidate.presents.reserve(surfaces.size());
-  for (const auto* surface : surfaces) {
+  for (const Surface* surface : surfaces) {
     uint32_t index = 0;
-    const auto has_present_support = [&physical_device, surface, index]
-        (const VkQueueFamilyProperties& family) mutable {
-      VkBool32 support = VK_FALSE;
-      vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, index++,
-                                           **surface, &support);
-      return support;
-    };
-    const auto present_queue_index =
-        common::util::FindIndexOfFirstIf<VkQueueFamilyProperties>(
-            families, has_present_support);
-    if (!present_queue_index.has_value()) {
-      return std::nullopt;
-    } else {
-      candidate.presents.push_back(CAST_TO_UINT(present_queue_index.value()));
-    }
+    const auto has_present_support =
+        [physical_device, surface, index](const auto&) mutable {
+          return physical_device.getSurfaceSupportKHR(index++, **surface);
+        };
+    const std::optional<int> present_index =
+        common::util::FindIndexOfFirstIf<intl::QueueFamilyProperties>(
+            properties_vector, has_present_support);
+    RETURN_IF_NO_VALUE(present_index);
+    candidate.presents.push_back(CAST_TO_UINT(present_index.value()));
   }
+
+  #undef RETURN_IF_NO_VALUE
 
   return candidate;
 }
 
 // Returns the first supported sample count among 'candidates'.
-VkSampleCountFlagBits GetFirstSupportedSampleCount(
-    VkSampleCountFlags supported,
-    absl::Span<const VkSampleCountFlagBits> candidates) {
-  for (auto candidate : candidates) {
+intl::SampleCountFlagBits GetFirstSupportedSampleCount(
+    intl::SampleCountFlags supported,
+    absl::Span<const intl::SampleCountFlagBits> candidates) {
+  for (intl::SampleCountFlagBits candidate : candidates) {
     if (supported & candidate) {
       return candidate;
     }
@@ -179,32 +172,52 @@ VkSampleCountFlagBits GetFirstSupportedSampleCount(
 }
 
 // Returns the sample count to use for 'multisampling_mode'.
-VkSampleCountFlagBits ChooseSampleCount(
+intl::SampleCountFlagBits ChooseSampleCount(
     MultisamplingMode multisampling_mode,
-    VkSampleCountFlags supported_sample_counts) {
+    intl::SampleCountFlags supported_sample_counts) {
+  using SampleCount = intl::SampleCountFlagBits;
   switch (multisampling_mode) {
     case MultisamplingMode::kNone:
-      return VK_SAMPLE_COUNT_1_BIT;
+      return SampleCount::e1;
 
     case MultisamplingMode::kDecent:
       return GetFirstSupportedSampleCount(
           supported_sample_counts,
-          {VK_SAMPLE_COUNT_4_BIT, VK_SAMPLE_COUNT_2_BIT,
-           VK_SAMPLE_COUNT_1_BIT});
+          {SampleCount::e4, SampleCount::e2, SampleCount::e1});
 
     case MultisamplingMode::kBest:
       return GetFirstSupportedSampleCount(
           supported_sample_counts,
-          {VK_SAMPLE_COUNT_64_BIT, VK_SAMPLE_COUNT_32_BIT,
-           VK_SAMPLE_COUNT_16_BIT, VK_SAMPLE_COUNT_8_BIT, VK_SAMPLE_COUNT_4_BIT,
-           VK_SAMPLE_COUNT_2_BIT, VK_SAMPLE_COUNT_1_BIT});
+          {SampleCount::e64, SampleCount::e32, SampleCount::e16,
+           SampleCount::e8, SampleCount::e4, SampleCount::e2, SampleCount::e1});
   }
+}
+
+// Returns a callback that prints the debug message.
+VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+    VkDebugUtilsMessageTypeFlagsEXT message_types,
+    const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+    void* user_data) {
+  const auto severity =
+      static_cast<intl::DebugUtilsMessageSeverityFlagBitsEXT>(message_severity);
+  const auto types =
+      static_cast<intl::DebugUtilsMessageTypeFlagsEXT>(message_types);
+  const bool is_error =
+      severity == intl::DebugUtilsMessageSeverityFlagBitsEXT::eError;
+
+  common::util::Logger logger{std::move(is_error ? LOG_ERROR : LOG_INFO)};
+  logger << absl::StreamFormat(
+      "[DebugCallback] severity %s, types %s",
+      intl::to_string(severity), intl::to_string(types));
+  logger << callback_data->pMessage;
+  return VK_FALSE;
 }
 
 }  // namespace
 
 Instance::Instance(const Context* context, bool enable_validation,
-                   std::string_view application_name,
+                   const char* application_name,
                    absl::Span<const common::Window* const> windows)
     : context_{*FATAL_IF_NULL(context)} {
   // Check required instance layers.
@@ -232,72 +245,79 @@ Instance::Instance(const Context* context, bool enable_validation,
                                required_extensions.end()});
 
   // Might be useful for the driver to optimize for some graphics engine.
-  const std::string application_name_string{application_name};
-  const VkApplicationInfo app_info{
-      VK_STRUCTURE_TYPE_APPLICATION_INFO,
-      .pNext = nullptr,
-      .pApplicationName = application_name_string.c_str(),
-      .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-      .pEngineName = "Lighter",
-      .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-      VK_API_VERSION_1_2,
-  };
+  const auto application_info = intl::ApplicationInfo{}
+      .setPApplicationName(application_name)
+      .setApplicationVersion(VK_MAKE_VERSION(1, 0, 0))
+      .setPEngineName("Lighter")
+      .setEngineVersion(VK_MAKE_VERSION(1, 0, 0))
+      .setApiVersion(VK_API_VERSION_1_2);
 
   // Specify which global extensions and validation layers to use.
-  const VkInstanceCreateInfo instance_info{
-      VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = nullflag,
-      &app_info,
-      CONTAINER_SIZE(required_layers),
-      required_layers.data(),
-      CONTAINER_SIZE(required_extensions),
-      required_extensions.data(),
-  };
+  const auto instance_create_info = intl::InstanceCreateInfo{}
+      .setPApplicationInfo(&application_info)
+      .setPEnabledLayerNames(required_layers)
+      .setPEnabledExtensionNames(required_extensions);
 
-  ASSERT_SUCCESS(
-      vkCreateInstance(&instance_info, *context_.host_allocator(), &instance_),
-      "Failed to create instance");
+  ASSERT_SUCCESS(intl::createInstance(&instance_create_info,
+                                      &context_.host_allocator(), &instance_),
+                 "Failed to create instance");
 }
 
 Instance::~Instance() {
-  vkDestroyInstance(instance_, *context_.host_allocator());
+  instance_.destroy(&context_.host_allocator());
+}
+
+DebugMessenger::DebugMessenger(const Context* context,
+                               const debug_message::Config& config)
+    : context_{*FATAL_IF_NULL(context)} {
+  // We may pass data to 'pUserData' which can be retrieved from the callback.
+  const auto create_info = intl::DebugUtilsMessengerCreateInfoEXT{}
+      .setMessageSeverity(
+          type::ConvertDebugMessageSeverities(config.message_severities))
+      .setMessageType(type::ConvertDebugMessageTypes(config.message_types))
+      .setPfnUserCallback(UserCallback);
+  ASSERT_SUCCESS(context_.instance()->createDebugUtilsMessengerEXT(
+                     &create_info, &context_.host_allocator(), &messenger_),
+                 "Failed to create debug messenger");
+}
+
+DebugMessenger::~DebugMessenger() {
+  context_.instance()->destroy(messenger_, &context_.host_allocator());
 }
 
 Surface::Surface(const Context* context, const common::Window& window)
     : context_{*FATAL_IF_NULL(context)} {
-  surface_ = window.CreateSurface(*context_.instance(),
-                                  *context_.host_allocator());
+  const auto create_surface_func = window.GetCreateSurfaceFunc();
+  const auto host_allocator =
+      static_cast<VkAllocationCallbacks>(*context_.host_allocator());
+  VkSurfaceKHR surface;
+  const VkResult result = create_surface_func(
+      *context_.instance(), &host_allocator, &surface);
+  surface_ = surface;
+  ASSERT_SUCCESS(intl::Result{result}, "Failed to create window surface");
 }
 
 Surface::~Surface() {
-  vkDestroySurfaceKHR(*context_.instance(), surface_,
-                      *context_.host_allocator());
+  context_.instance()->destroy(surface_, &context_.host_allocator());
 }
 
 PhysicalDevice::PhysicalDevice(const Context* context,
                                absl::Span<Surface* const> surfaces)
     : context_{*FATAL_IF_NULL(context)} {
-  const auto physical_devices = util::QueryAttribute<VkPhysicalDevice>(
-      [this](uint32_t* count, VkPhysicalDevice* physical_device) {
-        return vkEnumeratePhysicalDevices(
-            *context_.instance(), count, physical_device);
-      }
-  );
-
-  for (const auto& candidate : physical_devices) {
+  const std::vector<intl::PhysicalDevice> physical_devices =
+      context_.instance()->enumeratePhysicalDevices();
+  for (intl::PhysicalDevice candidate : physical_devices) {
     const auto indices = FindDeviceQueues(candidate, surfaces);
     if (indices.has_value()) {
       physical_device_ = candidate;
       queue_family_indices_ = indices.value();
 
       // Query physical device limits.
-      VkPhysicalDeviceProperties properties;
-      vkGetPhysicalDeviceProperties(physical_device_, &properties);
+      const auto properties = candidate.getProperties();
       limits_ = properties.limits;
 
       // Determine the sample count to use in each multisampling mode.
-      const VkSampleCountFlags supported_sample_counts = std::min({
+      const intl::SampleCountFlags supported_sample_counts = std::min({
           limits_.framebufferColorSampleCounts,
           limits_.framebufferDepthSampleCounts,
           limits_.framebufferStencilSampleCounts,
@@ -311,14 +331,12 @@ PhysicalDevice::PhysicalDevice(const Context* context,
 
       // Query surface capabilities.
       for (Surface* surface : surfaces) {
-        VkSurfaceCapabilitiesKHR capabilities;
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-            physical_device_, **surface, &capabilities);
-        surface->SetCapabilities(std::move(capabilities));
+        surface->SetCapabilities(
+            physical_device_.getSurfaceCapabilitiesKHR(**surface));
       }
 
       // Prefer discrete GPUs.
-      if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+      if (properties.deviceType == intl::PhysicalDeviceType::eDiscreteGpu) {
         LOG_INFO << "Use this discrete GPU";
         return;
       } else {
@@ -327,7 +345,7 @@ PhysicalDevice::PhysicalDevice(const Context* context,
     }
   }
 
-  ASSERT_FALSE(physical_device_ == VK_NULL_HANDLE,
+  ASSERT_FALSE(physical_device_ == intl::PhysicalDevice{},
                "Failed to find suitable graphics device");
   LOG_INFO << "Use the previous found GPU";
 }
@@ -344,17 +362,13 @@ Device::Device(const Context* context, bool enable_validation,
   };
 
   // Priority is always required even if there is only one queue.
-  constexpr float kPriority = 1.0f;
-  std::vector<VkDeviceQueueCreateInfo> queue_infos;
-  for (uint32_t family_index : queue_family_indices_set) {
-    queue_infos.push_back({
-        VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = nullflag,
-        family_index,
-        .queueCount = 1,
-        &kPriority,
-    });
+  static const std::vector<float> queue_priorities{1.0f};
+  std::vector<intl::DeviceQueueCreateInfo> queue_create_infos;
+  for (uint32_t queue_family_index : queue_family_indices_set) {
+    queue_create_infos.push_back(intl::DeviceQueueCreateInfo{}
+        .setQueueFamilyIndex(queue_family_index)
+        .setQueuePriorities(queue_priorities)
+    );
   }
 
   std::vector<const char*> required_layers;
@@ -400,38 +414,29 @@ Device::Device(const Context* context, bool enable_validation,
 
   // Request support for anisotropy filtering. This should be safe as we have
   // checked that during physical device creation.
-  VkPhysicalDeviceFeatures required_features{};
-  required_features.samplerAnisotropy = VK_TRUE;
+  const auto required_features = intl::PhysicalDeviceFeatures{}
+      .setSamplerAnisotropy(true);
 
-  const VkDeviceCreateInfo device_info{
-      VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = nullflag,
-      CONTAINER_SIZE(queue_infos),
-      queue_infos.data(),
-      CONTAINER_SIZE(required_layers),
-      required_layers.data(),
-      CONTAINER_SIZE(required_extensions),
-      required_extensions.data(),
-      &required_features,
-  };
+  const auto device_create_info = intl::DeviceCreateInfo{}
+      .setQueueCreateInfos(queue_create_infos)
+      .setPEnabledLayerNames(required_layers)
+      .setPEnabledExtensionNames(required_extensions)
+      .setPEnabledFeatures(&required_features);
 
-  ASSERT_SUCCESS(vkCreateDevice(*context_.physical_device(), &device_info,
-                                *context_.host_allocator(), &device_),
+  ASSERT_SUCCESS(physical_device->createDevice(
+                     &device_create_info, &context_.host_allocator(), &device_),
                  "Failed to create logical device");
 }
 
 Device::~Device() {
-  vkDestroyDevice(device_, *context_.host_allocator());
+  device_.destroy(&context_.host_allocator());
 }
 
 Queues::Queues(const Context& context) {
   // We simply use the first queue in the family with 'family_index'.
   constexpr int kQueueIndex = 0;
   const auto get_queue = [&context](uint32_t family_index) {
-    VkQueue queue;
-    vkGetDeviceQueue(*context.device(), family_index, kQueueIndex, &queue);
-    return queue;
+    return (*context.device()).getQueue(family_index, kQueueIndex);
   };
 
   const auto& family_indices = context.physical_device().queue_family_indices();

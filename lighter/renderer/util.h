@@ -10,7 +10,6 @@
 
 #include <memory>
 #include <optional>
-#include <string_view>
 #include <vector>
 
 #include "lighter/common/graphics_api.h"
@@ -31,7 +30,7 @@ void GlobalInit(common::api::GraphicsApi graphics_api);
 
 // Creates a renderer that uses 'graphics_api' underneath.
 std::unique_ptr<Renderer> CreateRenderer(
-    common::api::GraphicsApi graphics_api, std::string_view application_name,
+    common::api::GraphicsApi graphics_api, const char* application_name,
     const std::optional<debug_message::Config>& debug_message_config,
     std::vector<const common::Window*>&& window_ptrs);
 

@@ -33,11 +33,11 @@ namespace lighter::renderer::vk {
 
 class Renderer : public renderer::Renderer {
  public:
-  Renderer(std::string_view application_name,
+  Renderer(const char* application_name,
            const std::optional<debug_message::Config>& debug_message_config,
            std::vector<const common::Window*>&& window_ptrs);
 
-  Renderer(std::string_view application_name,
+  Renderer(const char* application_name,
            const std::optional<debug_message::Config>& debug_message_config,
            absl::Span<const common::Window* const> windows)
       : Renderer{application_name, debug_message_config,

@@ -27,12 +27,10 @@ cc_library(
     hdrs = [
         "basic.h",
         "context.h",
-        "debug_callback.h",
     ],
     srcs = [
         "basic.cc",
         "context.cc",
-        "debug_callback.cc",
     ],
     deps = [
         ":property_checker",

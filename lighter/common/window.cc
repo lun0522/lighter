@@ -100,13 +100,11 @@ Window::Window(std::string_view name, const glm::ivec2& screen_size)
 }
 
 #ifdef USE_VULKAN
-VkSurfaceKHR Window::CreateSurface(
-    const VkInstance& instance, const VkAllocationCallbacks* allocator) const {
-  VkSurfaceKHR surface;
-  const auto result =
-      glfwCreateWindowSurface(instance, window_, allocator, &surface);
-  ASSERT_TRUE(result == VK_SUCCESS, "Failed to create window surface");
-  return surface;
+Window::CreateSurfaceFunc Window::GetCreateSurfaceFunc() const {
+  return [this](VkInstance instance, const VkAllocationCallbacks* allocator,
+                VkSurfaceKHR* surface) {
+    return glfwCreateWindowSurface(instance, window_, allocator, surface);
+  };
 }
 #endif  // USE_VULKAN
 

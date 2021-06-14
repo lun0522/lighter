@@ -59,9 +59,14 @@ class Window {
   ~Window();
 
 #ifdef USE_VULKAN
-  // Creates window surface for Vulkan applications.
-  VkSurfaceKHR CreateSurface(const VkInstance& instance,
-                             const VkAllocationCallbacks* allocator) const;
+  // Populates 'surface' or returns a non-success result if failed.
+  using CreateSurfaceFunc = std::function<VkResult(
+      VkInstance instance, const VkAllocationCallbacks* allocator,
+      VkSurfaceKHR* surface)>;
+
+  // Returns a function object used to create surfaces. This function expires
+  // when this window is destructed.
+  CreateSurfaceFunc GetCreateSurfaceFunc() const;
 #endif  // USE_VULKAN
 
   // Sets whether the cursor should be hidden.

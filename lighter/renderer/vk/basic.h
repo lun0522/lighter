@@ -9,7 +9,6 @@
 #define LIGHTER_RENDERER_VK_BASIC_H
 
 #include <optional>
-#include <string_view>
 #include <vector>
 
 #include "lighter/common/window.h"
@@ -17,7 +16,6 @@
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/span.h"
-#include "third_party/vulkan/vulkan.h"
 
 namespace lighter::renderer::vk {
 
@@ -35,13 +33,14 @@ class HostMemoryAllocator {
   HostMemoryAllocator& operator=(const HostMemoryAllocator&) = delete;
 
   // Overloads.
-  const VkAllocationCallbacks* operator*() const {
-    return allocation_callback_;
+  intl::AllocationCallbacks operator*() const { return allocation_callbacks_; }
+  const intl::AllocationCallbacks* operator&() const {
+    return &allocation_callbacks_;
   }
 
  private:
   // Used to allocate memory on the host.
-  const VkAllocationCallbacks* allocation_callback_ = nullptr;
+  intl::AllocationCallbacks allocation_callbacks_;
 };
 
 // Wraps VkInstance, which is used to establish connection with Vulkan library
@@ -49,7 +48,7 @@ class HostMemoryAllocator {
 class Instance {
  public:
   Instance(const Context* context, bool enable_validation,
-           std::string_view application_name,
+           const char* application_name,
            absl::Span<const common::Window* const> windows);
 
   // This class is neither copyable nor movable.
@@ -59,14 +58,35 @@ class Instance {
   ~Instance();
 
   // Overloads.
-  const VkInstance& operator*() const { return instance_; }
+  intl::Instance operator*() const { return instance_; }
+  const intl::Instance* operator->() const { return &instance_; }
 
  private:
   // Context that holds basic wrapper objects.
   const Context& context_;
 
   // Opaque instance object.
-  VkInstance instance_ = VK_NULL_HANDLE;
+  intl::Instance instance_;
+};
+
+// Wraps VkDebugUtilsMessengerEXT, which relays debug messages from the graphics
+// driver back to application.
+class DebugMessenger {
+ public:
+  DebugMessenger(const Context* context, const debug_message::Config& config);
+
+  // This class is neither copyable nor movable.
+  DebugMessenger(const DebugMessenger&) = delete;
+  DebugMessenger& operator=(const DebugMessenger&) = delete;
+
+  ~DebugMessenger();
+
+ private:
+  // Context that holds basic wrapper objects.
+  const Context& context_;
+
+  // Opaque debug messenger object.
+  intl::DebugUtilsMessengerEXT messenger_;
 };
 
 // Wraps VkSurfaceKHR, which interfaces with platform-specific window systems.
@@ -81,15 +101,15 @@ class Surface {
   ~Surface();
 
   // Overloads.
-  const VkSurfaceKHR& operator*() const { return surface_; }
+  intl::SurfaceKHR operator*() const { return surface_; }
 
   // Modifiers.
-  void SetCapabilities(VkSurfaceCapabilitiesKHR&& capabilities) {
+  void SetCapabilities(intl::SurfaceCapabilitiesKHR&& capabilities) {
     capabilities_ = std::move(capabilities);
   }
 
   // Accessors.
-  const VkSurfaceCapabilitiesKHR& capabilities() const {
+  const intl::SurfaceCapabilitiesKHR& capabilities() const {
     return capabilities_.value();
   }
 
@@ -98,10 +118,10 @@ class Surface {
   const Context& context_;
 
   // Opaque surface object.
-  VkSurfaceKHR surface_ = VK_NULL_HANDLE;
+  intl::SurfaceKHR surface_;
 
   // Capabilities of this surface.
-  std::optional<VkSurfaceCapabilitiesKHR> capabilities_;
+  std::optional<intl::SurfaceCapabilitiesKHR> capabilities_;
 };
 
 // Wraps VkPhysicalDevice, which is the handle to physical graphics card.
@@ -125,14 +145,15 @@ struct PhysicalDevice {
   ~PhysicalDevice() = default;
 
   // Overloads.
-  const VkPhysicalDevice& operator*() const { return physical_device_; }
+  intl::PhysicalDevice operator*() const { return physical_device_; }
+  const intl::PhysicalDevice* operator->() const { return &physical_device_; }
 
   // Accessors.
   const QueueFamilyIndices& queue_family_indices() const {
     return queue_family_indices_;
   }
-  const VkPhysicalDeviceLimits& limits() const { return limits_; }
-  VkSampleCountFlagBits sample_count(MultisamplingMode mode) const {
+  const intl::PhysicalDeviceLimits& limits() const { return limits_; }
+  intl::SampleCountFlagBits sample_count(MultisamplingMode mode) const {
     return sample_count_map_.at(mode);
   }
 
@@ -141,16 +162,16 @@ struct PhysicalDevice {
   const Context& context_;
 
   // Opaque physical device object.
-  VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
+  intl::PhysicalDevice physical_device_;
 
   // Family indices for the queues we need.
   QueueFamilyIndices queue_family_indices_;
 
   // Limits of the physical device.
-  VkPhysicalDeviceLimits limits_;
+  intl::PhysicalDeviceLimits limits_;
 
   // Maps multisampling modes to the sample count that should be chosen.
-  absl::flat_hash_map<MultisamplingMode, VkSampleCountFlagBits>
+  absl::flat_hash_map<MultisamplingMode, intl::SampleCountFlagBits>
       sample_count_map_;
 };
 
@@ -166,17 +187,17 @@ struct Device {
   ~Device();
 
   // Blocks host until 'device_' becomes idle.
-  void WaitIdle() const { vkDeviceWaitIdle(device_); }
+  void WaitIdle() const { device_.waitIdle(); }
 
   // Overloads.
-  const VkDevice& operator*() const { return device_; }
+  intl::Device operator*() const { return device_; }
 
  private:
   // Context that holds basic wrapper objects.
   const Context& context_;
 
   // Opaque device object.
-  VkDevice device_ = VK_NULL_HANDLE;
+  intl::Device device_;
 };
 
 // Wraps VkQueue, which is the queue associated with the logical device.
@@ -192,21 +213,21 @@ class Queues {
   ~Queues() = default;
 
   // Accessors.
-  const VkQueue& graphics_queue() const { return graphics_queue_; }
-  const VkQueue& compute_queue() const { return compute_queue_; }
-  const VkQueue& present_queue(int window_index) const {
+  intl::Queue graphics_queue() const { return graphics_queue_; }
+  intl::Queue compute_queue() const { return compute_queue_; }
+  intl::Queue present_queue(int window_index) const {
     return present_queues_.at(window_index);
   }
 
  private:
   // Graphics queue.
-  VkQueue graphics_queue_ = VK_NULL_HANDLE;
+  intl::Queue graphics_queue_;
 
   // Compute queue.
-  VkQueue compute_queue_ = VK_NULL_HANDLE;
+  intl::Queue compute_queue_;
 
   // Presentation queues. We have one such queue for each window.
-  std::vector<VkQueue> present_queues_;
+  std::vector<intl::Queue> present_queues_;
 };
 
 }  // namespace lighter::renderer::vk

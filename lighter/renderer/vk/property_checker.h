@@ -11,9 +11,9 @@
 #include <string>
 #include <vector>
 
+#include "lighter/renderer/vk/util.h"
 #include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/absl/types/span.h"
-#include "third_party/vulkan/vulkan.h"
 
 namespace lighter::renderer::vk {
 
@@ -23,8 +23,9 @@ class PropertyChecker {
  public:
   static PropertyChecker ForInstanceLayers();
   static PropertyChecker ForInstanceExtensions();
-  static PropertyChecker ForDeviceLayers(VkPhysicalDevice physical_device);
-  static PropertyChecker ForDeviceExtensions(VkPhysicalDevice physical_device);
+  static PropertyChecker ForDeviceLayers(intl::PhysicalDevice physical_device);
+  static PropertyChecker ForDeviceExtensions(
+      intl::PhysicalDevice physical_device);
 
   // This class is only movable.
   PropertyChecker(PropertyChecker&&) noexcept = default;

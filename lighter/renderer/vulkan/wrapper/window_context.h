@@ -16,6 +16,7 @@
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/swapchain.h"
+#include "lighter/renderer/vulkan/wrapper/util.h"
 #ifndef NDEBUG
 #include "lighter/renderer/vulkan/wrapper/validation.h"
 #endif /* !NDEBUG */
@@ -71,8 +72,12 @@ class WindowContext {
         Swapchain::GetRequiredExtensions(),
         *surface_,
         [this](const BasicContext* context) {
-          surface_.Init(context, window_.CreateSurface(*context->instance(),
-                                                       *context->allocator()));
+          VkSurfaceKHR surface;
+          const auto create_surface_func = window_.GetCreateSurfaceFunc();
+          ASSERT_SUCCESS(create_surface_func(*context->instance(),
+                                             *context->allocator(), &surface),
+                        "Failed to create window surface");
+          surface_.Init(context, surface);
         },
     };
     context_ =

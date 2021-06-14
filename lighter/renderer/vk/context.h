@@ -12,14 +12,12 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <string_view>
 #include <vector>
 
 #include "lighter/common/util.h"
 #include "lighter/common/window.h"
 #include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/basic.h"
-#include "lighter/renderer/vk/debug_callback.h"
 #include "third_party/absl/types/span.h"
 
 namespace lighter::renderer::vk {
@@ -35,7 +33,7 @@ class Context : public std::enable_shared_from_this<Context> {
   using ReleaseExpiredResourceOp = std::function<void(const Context& context)>;
 
   static SharedContext CreateContext(
-      std::string_view application_name,
+      const char* application_name,
       const std::optional<debug_message::Config>& debug_message_config,
       absl::Span<const common::Window* const> windows) {
     return std::shared_ptr<Context>(
@@ -80,7 +78,7 @@ class Context : public std::enable_shared_from_this<Context> {
   const Queues& queues() const { return *queues_; }
 
  private:
-  Context(std::string_view application_name,
+  Context(const char* application_name,
           const std::optional<debug_message::Config>& debug_message_config,
           absl::Span<const common::Window* const> windows);
 
@@ -91,7 +89,7 @@ class Context : public std::enable_shared_from_this<Context> {
   std::unique_ptr<Instance> instance_;
 
   // Wrapper of VkDebugUtilsMessengerEXT.
-  std::unique_ptr<DebugCallback> debug_callback_;
+  std::unique_ptr<DebugMessenger> debug_messenger_;
 
   // Wrapper of VkSurfaceKHR.
   std::vector<std::unique_ptr<Surface>> surfaces_;

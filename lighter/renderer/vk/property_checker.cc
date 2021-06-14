@@ -10,8 +10,6 @@
 #include <string_view>
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/vk/util.h"
-#include "third_party/absl/functional/function_ref.h"
 
 namespace lighter::renderer::vk {
 namespace {
@@ -21,22 +19,21 @@ template <typename PropType>
 std::string GetPropertyName(const PropType& properties);
 
 template <>
-std::string GetPropertyName<VkLayerProperties>(
-    const VkLayerProperties& properties) {
+std::string GetPropertyName<intl::LayerProperties>(
+    const intl::LayerProperties& properties) {
   return properties.layerName;
 }
 
 template <>
-std::string GetPropertyName<VkExtensionProperties>(
-    const VkExtensionProperties& properties) {
+std::string GetPropertyName<intl::ExtensionProperties>(
+    const intl::ExtensionProperties& properties) {
   return properties.extensionName;
 }
 
-// Queries properties, extracts their names and pours into a hash set.
+// Extracts the names of properties and pours them into a hash set.
 template <typename PropType>
 absl::flat_hash_set<std::string> GetPropertyNamesSet(
-    absl::FunctionRef<void(uint32_t*, PropType*)> enumerate) {
-  const std::vector<PropType> properties = util::QueryAttribute(enumerate);
+    absl::Span<const PropType> properties) {
   return common::util::TransformToSet<PropType, std::string>(
       properties, GetPropertyName<PropType>);
 }
@@ -66,40 +63,25 @@ void PrintElements(std::string_view header,
 }  // namespace
 
 PropertyChecker PropertyChecker::ForInstanceLayers() {
-  return PropertyChecker{GetPropertyNamesSet<VkLayerProperties>(
-      [](uint32_t* count, auto* properties) {
-        return vkEnumerateInstanceLayerProperties(count, properties);
-      }
-  )};
+  return PropertyChecker{GetPropertyNamesSet<intl::LayerProperties>(
+      intl::enumerateInstanceLayerProperties())};
 }
 
 PropertyChecker PropertyChecker::ForInstanceExtensions() {
-  return PropertyChecker{GetPropertyNamesSet<VkExtensionProperties>(
-      [](uint32_t* count, auto* properties) {
-        return vkEnumerateInstanceExtensionProperties(/*pLayerName=*/nullptr,
-                                                      count, properties);
-      }
-  )};
+  return PropertyChecker{GetPropertyNamesSet<intl::ExtensionProperties>(
+      intl::enumerateInstanceExtensionProperties())};
 }
 
 PropertyChecker PropertyChecker::ForDeviceLayers(
-    VkPhysicalDevice physical_device) {
-  return PropertyChecker{GetPropertyNamesSet<VkLayerProperties>(
-      [physical_device](uint32_t* count, auto* properties) {
-        return vkEnumerateDeviceLayerProperties(physical_device, count,
-                                                properties);
-      }
-  )};
+    intl::PhysicalDevice physical_device) {
+  return PropertyChecker{GetPropertyNamesSet<intl::LayerProperties>(
+      physical_device.enumerateDeviceLayerProperties())};
 }
 
 PropertyChecker PropertyChecker::ForDeviceExtensions(
-    VkPhysicalDevice physical_device) {
-  return PropertyChecker{GetPropertyNamesSet<VkExtensionProperties>(
-      [physical_device](uint32_t* count, auto* properties) {
-        return vkEnumerateDeviceExtensionProperties(
-            physical_device, /*pLayerName=*/nullptr, count, properties);
-      }
-  )};
+    intl::PhysicalDevice physical_device) {
+  return PropertyChecker{GetPropertyNamesSet<intl::ExtensionProperties>(
+      physical_device.enumerateDeviceExtensionProperties())};
 }
 
 std::vector<std::string> PropertyChecker::FindUnsupported(

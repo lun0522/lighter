@@ -118,9 +118,10 @@ namespace debug_message {
 namespace severity {
 
 enum Severity {
-  INFO    = 1U << 0U,
-  WARNING = 1U << 1U,
-  ERROR   = 1U << 2U,
+  VERBOSE = 1U << 0U,
+  INFO    = 1U << 1U,
+  WARNING = 1U << 2U,
+  ERROR   = 1U << 3U,
 };
 
 }  // namespace severity
@@ -135,8 +136,8 @@ enum Type {
 }  // namespace type
 
 struct Config {
-  unsigned int message_severity;
-  unsigned int message_type;
+  unsigned int message_severities;
+  unsigned int message_types;
 };
 
 }  // namespace debug_message

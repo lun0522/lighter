@@ -10,7 +10,7 @@
 namespace lighter::renderer::vk {
 
 Context::Context(
-    std::string_view application_name,
+    const char* application_name,
     const std::optional<debug_message::Config>& debug_message_config,
     absl::Span<const common::Window* const> windows) {
   const bool enable_validation = debug_message_config.has_value();
@@ -19,8 +19,8 @@ Context::Context(
   instance_ = std::make_unique<Instance>(this, enable_validation,
                                          application_name, windows);
   if (enable_validation) {
-    debug_callback_ =
-        std::make_unique<DebugCallback>(this, debug_message_config.value());
+    debug_messenger_ =
+        std::make_unique<DebugMessenger>(this, debug_message_config.value());
   }
 
   std::vector<Surface*> surface_ptrs;

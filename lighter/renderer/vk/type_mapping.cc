@@ -8,165 +8,179 @@
 #include "lighter/renderer/vk/type_mapping.h"
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/vk/util.h"
 
 namespace lighter::renderer::vk::type {
 
-VkVertexInputRate ConvertVertexInputRate(VertexInputRate rate) {
+intl::VertexInputRate ConvertVertexInputRate(VertexInputRate rate) {
+  #define CONVERT(rate) \
+      case VertexInputRate::k##rate: return intl::VertexInputRate::e##rate
   switch (rate) {
-    case VertexInputRate::kVertex:
-      return VK_VERTEX_INPUT_RATE_VERTEX;
-    case VertexInputRate::kInstance:
-      return VK_VERTEX_INPUT_RATE_INSTANCE;
+    CONVERT(Vertex);
+    CONVERT(Instance);
   }
+  #undef CONVERT
 }
 
-VkFormat ConvertDataFormat(DataFormat format) {
+intl::Format ConvertDataFormat(DataFormat format) {
+  #define CONVERT_ALIAS(format, format_intl) \
+      case DataFormat::k##format: return intl::Format::e##format_intl
   switch (format) {
-    case DataFormat::kSFloat32:
-      return VK_FORMAT_R32_SFLOAT;
-    case DataFormat::kSFloat32Vec2:
-      return VK_FORMAT_R32G32_SFLOAT;
-    case DataFormat::kSFloat32Vec3:
-      return VK_FORMAT_R32G32B32_SFLOAT;
-    case DataFormat::kSFloat32Vec4:
-      return VK_FORMAT_R32G32B32A32_SFLOAT;
+    CONVERT_ALIAS(SFloat32, R32Sfloat);
+    CONVERT_ALIAS(SFloat32Vec2, R32G32Sfloat);
+    CONVERT_ALIAS(SFloat32Vec3, R32G32B32Sfloat);
+    CONVERT_ALIAS(SFloat32Vec4, R32G32B32A32Sfloat);
   }
+  #undef CONVERT_ALIAS
 }
 
-VkAttachmentLoadOp ConvertAttachmentLoadOp(AttachmentLoadOp op) {
+intl::AttachmentLoadOp ConvertAttachmentLoadOp(AttachmentLoadOp op) {
+  #define CONVERT(op) \
+      case AttachmentLoadOp::k##op: return intl::AttachmentLoadOp::e##op
   switch (op) {
-    case AttachmentLoadOp::kLoad:
-      return VK_ATTACHMENT_LOAD_OP_LOAD;
-    case AttachmentLoadOp::kClear:
-      return VK_ATTACHMENT_LOAD_OP_CLEAR;
-    case AttachmentLoadOp::kDontCare:
-      return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    CONVERT(Load);
+    CONVERT(Clear);
+    CONVERT(DontCare);
   }
+  #undef CONVERT
 }
 
-VkAttachmentStoreOp ConvertAttachmentStoreOp(AttachmentStoreOp op) {
+intl::AttachmentStoreOp ConvertAttachmentStoreOp(AttachmentStoreOp op) {
+  #define CONVERT(op) \
+      case AttachmentStoreOp::k##op: return intl::AttachmentStoreOp::e##op
   switch (op) {
-    case AttachmentStoreOp::kStore:
-      return VK_ATTACHMENT_STORE_OP_STORE;
-    case AttachmentStoreOp::kDontCare:
-      return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    CONVERT(Store);
+    CONVERT(DontCare);
   }
+  #undef CONVERT
 }
 
-VkBlendFactor ConvertBlendFactor(BlendFactor factor) {
+intl::BlendFactor ConvertBlendFactor(BlendFactor factor) {
+  #define CONVERT(factor) \
+      case BlendFactor::k##factor: return intl::BlendFactor::e##factor
   switch (factor) {
-    case BlendFactor::kZero:
-      return VK_BLEND_FACTOR_ZERO;
-    case BlendFactor::kOne:
-      return VK_BLEND_FACTOR_ONE;
-    case BlendFactor::kSrcColor:
-      return VK_BLEND_FACTOR_SRC_COLOR;
-    case BlendFactor::kOneMinusSrcColor:
-      return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
-    case BlendFactor::kDstColor:
-      return VK_BLEND_FACTOR_DST_COLOR;
-    case BlendFactor::kOneMinusDstColor:
-      return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
-    case BlendFactor::kSrcAlpha:
-      return VK_BLEND_FACTOR_SRC_ALPHA;
-    case BlendFactor::kOneMinusSrcAlpha:
-      return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    case BlendFactor::kDstAlpha:
-      return VK_BLEND_FACTOR_DST_ALPHA;
-    case BlendFactor::kOneMinusDstAlpha:
-      return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+    CONVERT(Zero);
+    CONVERT(One);
+    CONVERT(SrcColor);
+    CONVERT(OneMinusSrcColor);
+    CONVERT(DstColor);
+    CONVERT(OneMinusDstColor);
+    CONVERT(SrcAlpha);
+    CONVERT(OneMinusSrcAlpha);
+    CONVERT(DstAlpha);
+    CONVERT(OneMinusDstAlpha);
   }
+  #undef CONVERT
 }
 
-VkBlendOp ConvertBlendOp(BlendOp op) {
+intl::BlendOp ConvertBlendOp(BlendOp op) {
+  #define CONVERT(op) case BlendOp::k##op: return intl::BlendOp::e##op
   switch (op) {
-    case BlendOp::kAdd:
-      return VK_BLEND_OP_ADD;
-    case BlendOp::kSubtract:
-      return VK_BLEND_OP_SUBTRACT;
-    case BlendOp::kReverseSubtract:
-      return VK_BLEND_OP_REVERSE_SUBTRACT;
-    case BlendOp::kMin:
-      return VK_BLEND_OP_MIN;
-    case BlendOp::kMax:
-      return VK_BLEND_OP_MAX;
+    CONVERT(Add);
+    CONVERT(Subtract);
+    CONVERT(ReverseSubtract);
+    CONVERT(Min);
+    CONVERT(Max);
   }
+  #undef CONVERT
 }
 
-VkCompareOp ConvertCompareOp(CompareOp op) {
+intl::CompareOp ConvertCompareOp(CompareOp op) {
+  #define CONVERT(op) case CompareOp::k##op: return intl::CompareOp::e##op
+  #define CONVERT_ALIAS(op, op_intl) \
+      case CompareOp::k##op: return intl::CompareOp::e##op_intl
   switch (op) {
-    case CompareOp::kNeverPass:
-      return VK_COMPARE_OP_NEVER;
-    case CompareOp::kLess:
-      return VK_COMPARE_OP_LESS;
-    case CompareOp::kEqual:
-      return VK_COMPARE_OP_EQUAL;
-    case CompareOp::kLessEqual:
-      return VK_COMPARE_OP_LESS_OR_EQUAL;
-    case CompareOp::kGreater:
-      return VK_COMPARE_OP_GREATER;
-    case CompareOp::kNotEqual:
-      return VK_COMPARE_OP_NOT_EQUAL;
-    case CompareOp::kGreaterEqual:
-      return VK_COMPARE_OP_GREATER_OR_EQUAL;
-    case CompareOp::kAlwaysPass:
-      return VK_COMPARE_OP_ALWAYS;
+    CONVERT_ALIAS(NeverPass, Never);
+    CONVERT(Less);
+    CONVERT(Equal);
+    CONVERT_ALIAS(LessEqual, LessOrEqual);
+    CONVERT(Greater);
+    CONVERT(NotEqual);
+    CONVERT_ALIAS(GreaterEqual, GreaterOrEqual);
+    CONVERT_ALIAS(AlwaysPass, Always);
   }
+  #undef CONVERT
+  #undef CONVERT_ALIAS
 }
 
-VkStencilOp ConvertStencilOp(StencilOp op) {
+intl::StencilOp ConvertStencilOp(StencilOp op) {
+  #define CONVERT(op) case StencilOp::k##op: return intl::StencilOp::e##op
   switch (op) {
-    case StencilOp::kKeep:
-      return VK_STENCIL_OP_KEEP;
-    case StencilOp::kZero:
-      return VK_STENCIL_OP_ZERO;
-    case StencilOp::kReplace:
-      return VK_STENCIL_OP_REPLACE;
+    CONVERT(Keep);
+    CONVERT(Zero);
+    CONVERT(Replace);
   }
+  #undef CONVERT
 }
 
-VkPrimitiveTopology ConvertPrimitiveTopology(PrimitiveTopology topology) {
+intl::PrimitiveTopology ConvertPrimitiveTopology(PrimitiveTopology topology) {
+  #define CONVERT(topology)                 \
+      case PrimitiveTopology::k##topology:  \
+        return intl::PrimitiveTopology::e##topology
   switch (topology) {
-    case PrimitiveTopology::kPointList:
-      return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-    case PrimitiveTopology::kLineList:
-      return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-    case PrimitiveTopology::kLineStrip:
-      return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-    case PrimitiveTopology::kTriangleList:
-      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    case PrimitiveTopology::kTriangleStrip:
-      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-    case PrimitiveTopology::kTriangleFan:
-      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+    CONVERT(PointList);
+    CONVERT(LineList);
+    CONVERT(LineStrip);
+    CONVERT(TriangleList);
+    CONVERT(TriangleStrip);
+    CONVERT(TriangleFan);
   }
+  #undef CONVERT
 }
 
-VkShaderStageFlagBits ConvertShaderStage(shader_stage::ShaderStage stage) {
-  using ShaderStage = shader_stage::ShaderStage;
+intl::ShaderStageFlagBits ConvertShaderStage(shader_stage::ShaderStage stage) {
   ASSERT_TRUE(common::util::IsPowerOf2(stage),
               "'stage' must only contain one shader stage");
+  #define CONVERT_ALIAS(stage, stage_intl)    \
+      case shader_stage::ShaderStage::stage:  \
+          return intl::ShaderStageFlagBits::e##stage_intl
   switch (stage) {
-    case ShaderStage::VERTEX:
-      return VK_SHADER_STAGE_VERTEX_BIT;
-    case ShaderStage::FRAGMENT:
-      return VK_SHADER_STAGE_FRAGMENT_BIT;
-    case ShaderStage::COMPUTE:
-      return VK_SHADER_STAGE_COMPUTE_BIT;
+    CONVERT_ALIAS(VERTEX, Vertex);
+    CONVERT_ALIAS(FRAGMENT, Fragment);
+    CONVERT_ALIAS(COMPUTE, Compute);
   }
+  #undef CONVERT_ALIAS
 }
 
-VkShaderStageFlags ConvertShaderStages(shader_stage::ShaderStage stages) {
-  using ShaderStage = shader_stage::ShaderStage;
-  VkShaderStageFlags flags = nullflag;
-  common::util::IncludeIfTrue(stages & ShaderStage::VERTEX,
-                              flags, VK_SHADER_STAGE_VERTEX_BIT);
-  common::util::IncludeIfTrue(stages & ShaderStage::FRAGMENT,
-                              flags, VK_SHADER_STAGE_FRAGMENT_BIT);
-  common::util::IncludeIfTrue(stages & ShaderStage::COMPUTE,
-                              flags, VK_SHADER_STAGE_COMPUTE_BIT);
-  return flags;
+intl::ShaderStageFlags ConvertShaderStages(shader_stage::ShaderStage stages) {
+  intl::ShaderStageFlags stages_intl;
+  #define INCLUDE_STAGE(stage, stage_intl)            \
+      common::util::IncludeIfTrue(                    \
+          stages & shader_stage::ShaderStage::stage,  \
+          stages_intl, intl::ShaderStageFlagBits::e##stage_intl)
+  INCLUDE_STAGE(VERTEX, Vertex);
+  INCLUDE_STAGE(FRAGMENT, Fragment);
+  INCLUDE_STAGE(COMPUTE, Compute);
+  #undef INCLUDE_STAGE
+  return stages_intl;
+}
+
+intl::DebugUtilsMessageSeverityFlagsEXT ConvertDebugMessageSeverities(
+    uint32_t severities) {
+  intl::DebugUtilsMessageSeverityFlagsEXT severities_intl;
+  #define INCLUDE_SEVERITY(severity_enum, severity_intl)        \
+      common::util::IncludeIfTrue(                              \
+          severities & debug_message::severity::severity_enum,  \
+          severities_intl,                                      \
+          intl::DebugUtilsMessageSeverityFlagBitsEXT::e##severity_intl)
+  INCLUDE_SEVERITY(VERBOSE, Verbose);
+  INCLUDE_SEVERITY(INFO, Info);
+  INCLUDE_SEVERITY(WARNING, Warning);
+  INCLUDE_SEVERITY(ERROR, Error);
+  #undef INCLUDE_SEVERITY
+  return severities_intl;
+}
+
+intl::DebugUtilsMessageTypeFlagsEXT ConvertDebugMessageTypes(uint32_t types) {
+  intl::DebugUtilsMessageTypeFlagsEXT types_intl;
+  #define INCLUDE_TYPE(type_enum, type_intl)                  \
+      common::util::IncludeIfTrue(                            \
+          types & debug_message::type::type_enum, types_intl, \
+          intl::DebugUtilsMessageTypeFlagBitsEXT::e##type_intl)
+  INCLUDE_TYPE(GENERAL, General);
+  INCLUDE_TYPE(GENERAL, Validation);
+  INCLUDE_TYPE(PERFORMANCE, Performance);
+  #undef INCLUDE_TYPE
+  return types_intl;
 }
 
 }  // namespace lighter::renderer::vk::type
