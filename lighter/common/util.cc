@@ -10,23 +10,22 @@
 #include <chrono>
 #include <ctime>
 #include <iomanip>
+#include <sstream>
 
 namespace lighter::common::util {
 
-std::ostream& PrintTime(std::ostream& os) {
+std::string GetCurrentTime() {
   using namespace std::chrono;
 
-  // Print the "YYYY-MM-DD HH:MM:SS" part.
   const auto now = system_clock::now();
   const auto now_t = system_clock::to_time_t(now);
   const std::tm now_tm = *std::localtime(&now_t);
-  os << std::put_time(&now_tm, "%F %T");
-
-  // Print the ".fff" part.
   const auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
-  os << absl::StreamFormat(".%03d", ms.count());
 
-  return os;
+  std::stringstream stream;
+  stream << std::put_time(&now_tm, "%F %T")
+         << absl::StreamFormat(".%03d", ms.count());
+  return stream.str();
 }
 
-}  // namespace lighter::common
+}  // namespace lighter::common::util

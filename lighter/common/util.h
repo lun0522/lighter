@@ -16,6 +16,7 @@
 #include <numeric>
 #include <optional>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <vector>
 
@@ -26,58 +27,54 @@
 #include "third_party/absl/types/span.h"
 
 #ifdef NDEBUG
-#define LOG(stream) ::lighter::common::util::Logger{stream}          \
-                        << ::lighter::common::util::PrintTime << ' '
+#define LOG(stream)                         \
+    ::lighter::common::util::Logger{stream} \
+        << ::absl::StreamFormat(            \
+               "%s ", ::lighter::common::util::GetCurrentTime())
 #else  // !NDEBUG
-#define LOG(stream) ::lighter::common::util::Logger{stream}          \
-                        << '[' << ::lighter::common::util::PrintTime \
-                        << absl::StrFormat(" %s:%d] ", __FILE__, __LINE__)
+#define LOG(stream)                         \
+    ::lighter::common::util::Logger{stream} \
+        << ::absl::StreamFormat(            \
+               "[%s %s:%d] ",               \
+               ::lighter::common::util::GetCurrentTime(), __FILE__, __LINE__)
 #endif  // NDEBUG
 
-#define LOG_INFO LOG(std::cout)
+#define LOG_INFO LOG(::std::cout)
 #define LOG_EMPTY_LINE LOG_INFO
-#define LOG_ERROR LOG(std::cerr)
+#define LOG_ERROR LOG(::std::cerr)
 
 #ifdef NDEBUG
-#define FATAL(error) throw std::runtime_error{error}
+#define FATAL(error) throw ::std::runtime_error{error}
 #else  // !NDEBUG
-#define FATAL(error)                          \
-  throw std::runtime_error{absl::StrFormat(   \
-      "%s() in %s at line %d: %s",            \
-      __func__, __FILE__, __LINE__, error)}
+#define FATAL(error)                              \
+    throw ::std::runtime_error{::absl::StrFormat( \
+        "%s() in %s at line %d: %s", __func__, __FILE__, __LINE__, error)}
 #endif  // NDEBUG
 
-#define ASSERT_TRUE(expr, error)              \
-    if (!ABSL_PREDICT_TRUE(expr))             \
-      FATAL(error)
+#define ASSERT_TRUE(expr, error) if (!ABSL_PREDICT_TRUE(expr)) FATAL(error)
 
-#define ASSERT_FALSE(expr, error)             \
-    ASSERT_TRUE(!(expr), error)
+#define ASSERT_FALSE(expr, error) ASSERT_TRUE(!(expr), error)
 
-#define ASSERT_HAS_VALUE(object, error)       \
-    ASSERT_TRUE(object.has_value(), error)
+#define ASSERT_HAS_VALUE(object, error) ASSERT_TRUE(object.has_value(), error)
 
-#define ASSERT_NO_VALUE(object, error)        \
-    ASSERT_FALSE(object.has_value(), error)
+#define ASSERT_NO_VALUE(object, error) ASSERT_FALSE(object.has_value(), error)
 
-#define ASSERT_NON_NULL(pointer, error)       \
-    ASSERT_FALSE(pointer == nullptr, error)
+#define ASSERT_NON_NULL(pointer, error) ASSERT_FALSE(pointer == nullptr, error)
 
-#define ASSERT_EMPTY(container, error)        \
-    ASSERT_TRUE(container.empty(), error)
+#define ASSERT_EMPTY(container, error) ASSERT_TRUE(container.empty(), error)
 
-#define ASSERT_NON_EMPTY(container, error)    \
+#define ASSERT_NON_EMPTY(container, error)        \
     ASSERT_FALSE(container.empty(), error)
 
-#define FATAL_IF_NULL(pointer)                \
-    (ABSL_PREDICT_TRUE(pointer != nullptr)    \
-        ? pointer                             \
+#define FATAL_IF_NULL(pointer)                    \
+    (ABSL_PREDICT_TRUE(pointer != nullptr)        \
+        ? pointer                                 \
         : FATAL(#pointer " is nullptr"))
 
 namespace lighter::common::util {
 
-// Prints the current time in "YYYY-MM-DD HH:MM:SS.fff" format.
-std::ostream& PrintTime(std::ostream& os);
+// Returns the current time in "YYYY-MM-DD HH:MM:SS.fff" format.
+std::string GetCurrentTime();
 
 // This class simply wraps a std::ostream. When an instance of it gets
 // destructed, it will append std::endl to the end;

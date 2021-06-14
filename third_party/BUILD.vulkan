@@ -27,7 +27,10 @@ cc_import(
 
 cc_library(
     name = "vulkan",
-    hdrs = glob([get_vulkan_include_path("vulkan/*.h")]),
+    hdrs = glob([
+        get_vulkan_include_path("vulkan/*.h"),
+        get_vulkan_include_path("vulkan/*.hpp"),
+    ]),
     deps = select({
         "@platforms//os:linux": [
             ":libvulkan_linux",
@@ -36,6 +39,7 @@ cc_library(
         "@platforms//os:macos": [":libvulkan_macos"],
         "@platforms//os:windows": [":libvulkan_windows"],
     }),
+    includes = [get_vulkan_include_path()],
     include_prefix = "third_party",
     strip_include_prefix = get_vulkan_include_path(),
     visibility = ["//visibility:public"],
