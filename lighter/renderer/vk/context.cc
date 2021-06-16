@@ -18,6 +18,7 @@ Context::Context(
 
   instance_ = std::make_unique<Instance>(this, enable_validation,
                                          application_name, windows);
+  host_allocator_ = std::make_unique<HostMemoryAllocator>();
   if (enable_validation) {
     debug_messenger_ =
         std::make_unique<DebugMessenger>(this, debug_message_config.value());

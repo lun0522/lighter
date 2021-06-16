@@ -39,11 +39,12 @@ class DeviceBuffer : public renderer::DeviceBuffer {
 
     // Returns true if the device memory is visible to host.
     bool IsHostVisible() const {
-      return memory_property_flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+      return static_cast<bool>(
+          memory_property_flags & intl::MemoryPropertyFlagBits::eHostVisible);
     }
 
-    VkBufferUsageFlags usage_flags = nullflag;
-    VkMemoryPropertyFlags memory_property_flags = nullflag;
+    intl::BufferUsageFlags usage_flags;
+    intl::MemoryPropertyFlags memory_property_flags;
     std::vector<uint32_t> unique_queue_family_indices;
   };
 
@@ -58,11 +59,11 @@ class DeviceBuffer : public renderer::DeviceBuffer {
   size_t buffer_size_ = 0;
 
   // Opaque buffer object.
-  VkBuffer buffer_ = VK_NULL_HANDLE;
+  intl::Buffer buffer_;
 
-  // TODO: Hold multiple buffers in one block of device memory.
+  // TODO: Integrate VMA.
   // Opaque device memory object.
-  VkDeviceMemory device_memory_ = VK_NULL_HANDLE;
+  intl::DeviceMemory device_memory_;
 };
 
 }  // namespace lighter::renderer::vk

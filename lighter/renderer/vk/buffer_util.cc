@@ -8,7 +8,6 @@
 #include "lighter/renderer/vk/buffer_util.h"
 
 #include "lighter/renderer/type.h"
-#include "lighter/renderer/vk/util.h"
 
 namespace lighter::renderer::vk::buffer {
 namespace {
@@ -17,23 +16,23 @@ using UsageType = BufferUsage::UsageType;
 
 // Returns VkBufferUsageFlags for 'usage'. Note that this must not be called
 // if usage type is kDontCare, since it doesn't have corresponding flag bits.
-VkBufferUsageFlags GetBufferUsageFlags(const BufferUsage& usage) {
+intl::BufferUsageFlags GetBufferUsageFlags(const BufferUsage& usage) {
+  using UsageFlag = intl::BufferUsageFlagBits;
   switch (usage.usage_type()) {
     case UsageType::kDontCare:
       FATAL("No corresponding buffer usage flags for usage type kDontCare");
 
     case UsageType::kIndexOnly:
-      return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+      return UsageFlag::eIndexBuffer;
 
     case UsageType::kVertexOnly:
-      return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+      return UsageFlag::eVertexBuffer;
 
     case UsageType::kIndexAndVertex:
-      return VK_BUFFER_USAGE_INDEX_BUFFER_BIT
-                 | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+      return UsageFlag::eIndexBuffer | UsageFlag::eVertexBuffer;
 
     case UsageType::kUniform:
-      return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+      return UsageFlag::eUniformBuffer;
 
     case UsageType::kTransfer:
       switch (usage.access_type()) {
@@ -43,22 +42,20 @@ VkBufferUsageFlags GetBufferUsageFlags(const BufferUsage& usage) {
                 "type kTransfer");
 
         case AccessType::kReadOnly:
-          return VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+          return UsageFlag::eTransferSrc;
 
         case AccessType::kWriteOnly:
-          return VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+          return UsageFlag::eTransferDst;
       }
   }
 }
 
 // Returns the index of a VkMemoryType that satisfies both 'memory_type' and
 // 'property_flags' within VkPhysicalDeviceMemoryProperties.memoryTypes.
-uint32_t FindMemoryTypeIndex(const VkPhysicalDevice& physical_device,
+uint32_t FindMemoryTypeIndex(intl::PhysicalDevice physical_device,
                              uint32_t memory_type,
-                             VkMemoryPropertyFlags property_flags) {
-  VkPhysicalDeviceMemoryProperties properties;
-  vkGetPhysicalDeviceMemoryProperties(physical_device, &properties);
-
+                             intl::MemoryPropertyFlags property_flags) {
+  const auto properties = physical_device.getMemoryProperties();
   for (uint32_t i = 0; i < properties.memoryTypeCount; ++i) {
     if ((1U << i) & memory_type) {
       if ((properties.memoryTypes[i].propertyFlags & property_flags) ==
@@ -72,14 +69,15 @@ uint32_t FindMemoryTypeIndex(const VkPhysicalDevice& physical_device,
 
 }  // namespace
 
-VkBufferUsageFlags GetBufferUsageFlags(absl::Span<const BufferUsage> usages) {
-  auto flags = nullflag;
+intl::BufferUsageFlags GetBufferUsageFlags(
+    absl::Span<const BufferUsage> usages) {
+  intl::BufferUsageFlags flags;
   for (const auto& usage : usages) {
     if (usage.usage_type() != UsageType::kDontCare) {
       flags |= GetBufferUsageFlags(usage);
     }
   }
-  return static_cast<VkImageUsageFlags>(flags);
+  return flags;
 }
 
 std::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
@@ -114,22 +112,15 @@ std::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
   }
 }
 
-VkDeviceMemory CreateDeviceMemory(
-    const Context& context, const VkMemoryRequirements& requirements,
-    VkMemoryPropertyFlags property_flags) {
-  const VkMemoryAllocateInfo memory_info{
-      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-      .pNext = nullptr,
-      .allocationSize = requirements.size,
-      FindMemoryTypeIndex(*context.physical_device(),
-                          requirements.memoryTypeBits, property_flags),
-  };
-
-  VkDeviceMemory memory;
-  ASSERT_SUCCESS(vkAllocateMemory(*context.device(), &memory_info,
-                                  *context.host_allocator(), &memory),
-                 "Failed to allocate device memory");
-  return memory;
+intl::DeviceMemory CreateDeviceMemory(
+    const Context& context, const intl::MemoryRequirements& requirements,
+    intl::MemoryPropertyFlags property_flags) {
+  const auto memory_create_info = intl::MemoryAllocateInfo{}
+      .setAllocationSize(requirements.size)
+      .setMemoryTypeIndex(FindMemoryTypeIndex(*context.physical_device(),
+                              requirements.memoryTypeBits, property_flags));
+  return context.device()->allocateMemory(memory_create_info,
+                                          *context.host_allocator());
 }
 
 }  // namespace lighter::renderer::vk::buffer

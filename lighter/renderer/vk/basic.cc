@@ -251,20 +251,16 @@ Instance::Instance(const Context* context, bool enable_validation,
       .setPEngineName("Lighter")
       .setEngineVersion(VK_MAKE_VERSION(1, 0, 0))
       .setApiVersion(VK_API_VERSION_1_2);
-
-  // Specify which global extensions and validation layers to use.
   const auto instance_create_info = intl::InstanceCreateInfo{}
       .setPApplicationInfo(&application_info)
       .setPEnabledLayerNames(required_layers)
       .setPEnabledExtensionNames(required_extensions);
-
-  ASSERT_SUCCESS(intl::createInstance(&instance_create_info,
-                                      &context_.host_allocator(), &instance_),
-                 "Failed to create instance");
+  instance_ = intl::createInstance(instance_create_info,
+                                   *context_.host_allocator());
 }
 
 Instance::~Instance() {
-  instance_.destroy(&context_.host_allocator());
+  instance_.destroy(*context_.host_allocator());
 }
 
 DebugMessenger::DebugMessenger(const Context* context,
@@ -276,29 +272,27 @@ DebugMessenger::DebugMessenger(const Context* context,
           type::ConvertDebugMessageSeverities(config.message_severities))
       .setMessageType(type::ConvertDebugMessageTypes(config.message_types))
       .setPfnUserCallback(UserCallback);
-  ASSERT_SUCCESS(context_.instance()->createDebugUtilsMessengerEXT(
-                     &create_info, &context_.host_allocator(), &messenger_),
-                 "Failed to create debug messenger");
+  messenger_ = context_.instance()->createDebugUtilsMessengerEXT(
+      create_info, *context_.host_allocator());
 }
 
 DebugMessenger::~DebugMessenger() {
-  context_.instance()->destroy(messenger_, &context_.host_allocator());
+  context_.instance()->destroy(messenger_, *context_.host_allocator());
 }
 
 Surface::Surface(const Context* context, const common::Window& window)
     : context_{*FATAL_IF_NULL(context)} {
   const auto create_surface_func = window.GetCreateSurfaceFunc();
-  const auto host_allocator =
-      static_cast<VkAllocationCallbacks>(*context_.host_allocator());
+  const auto host_allocator = context_.host_allocator().handle();
   VkSurfaceKHR surface;
-  const VkResult result = create_surface_func(
-      *context_.instance(), &host_allocator, &surface);
+  ASSERT_SUCCESS(intl::Result{create_surface_func(*context_.instance(),
+                                                  &host_allocator, &surface)},
+                 "Failed to create window surface");
   surface_ = surface;
-  ASSERT_SUCCESS(intl::Result{result}, "Failed to create window surface");
 }
 
 Surface::~Surface() {
-  context_.instance()->destroy(surface_, &context_.host_allocator());
+  context_.instance()->destroy(surface_, *context_.host_allocator());
 }
 
 PhysicalDevice::PhysicalDevice(const Context* context,
@@ -416,20 +410,17 @@ Device::Device(const Context* context, bool enable_validation,
   // checked that during physical device creation.
   const auto required_features = intl::PhysicalDeviceFeatures{}
       .setSamplerAnisotropy(true);
-
   const auto device_create_info = intl::DeviceCreateInfo{}
       .setQueueCreateInfos(queue_create_infos)
       .setPEnabledLayerNames(required_layers)
       .setPEnabledExtensionNames(required_extensions)
       .setPEnabledFeatures(&required_features);
-
-  ASSERT_SUCCESS(physical_device->createDevice(
-                     &device_create_info, &context_.host_allocator(), &device_),
-                 "Failed to create logical device");
+  device_ = physical_device->createDevice(device_create_info,
+                                          *context_.host_allocator());
 }
 
 Device::~Device() {
-  device_.destroy(&context_.host_allocator());
+  device_.destroy(*context_.host_allocator());
 }
 
 Queues::Queues(const Context& context) {

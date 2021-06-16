@@ -19,54 +19,43 @@ namespace {
 using CopyInfo = renderer::DeviceBuffer::CopyInfo;
 
 // Creates a buffer of 'data_size'.
-VkBuffer CreateBuffer(const Context& context, VkDeviceSize data_size,
-                      VkBufferUsageFlags usage_flags,
-                      absl::Span<const uint32_t> unique_queue_family_indices) {
-  const VkBufferCreateInfo buffer_info{
-      VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = nullflag,
-      data_size,
-      usage_flags,
-      VK_SHARING_MODE_EXCLUSIVE,
-      CONTAINER_SIZE(unique_queue_family_indices),
-      unique_queue_family_indices.data(),
-  };
-
-  VkBuffer buffer;
-  ASSERT_SUCCESS(vkCreateBuffer(*context.device(), &buffer_info,
-                                *context.host_allocator(), &buffer),
-                 "Failed to create buffer");
-  return buffer;
+intl::Buffer CreateBuffer(
+    const Context& context, intl::DeviceSize data_size,
+    intl::BufferUsageFlags usage_flags,
+    const std::vector<uint32_t>& unique_queue_family_indices) {
+  const auto buffer_create_info = intl::BufferCreateInfo{}
+      .setSize(data_size)
+      .setUsage(usage_flags)
+      .setSharingMode(intl::SharingMode::eExclusive)
+      .setQueueFamilyIndices(unique_queue_family_indices);
+  return context.device()->createBuffer(buffer_create_info,
+                                        *context.host_allocator());
 }
 
 // Destroys "buffer".
-void DestroyBuffer(const Context& context, const VkBuffer& buffer) {
-  vkDestroyBuffer(*context.device(), buffer, *context.host_allocator());
+void DestroyBuffer(const Context& context, intl::Buffer buffer) {
+  context.device()->destroy(buffer, *context.host_allocator());
 }
 
 // Allocates device memory for 'buffer' with 'memory_properties'.
-VkDeviceMemory CreateBufferMemory(const Context& context,
-                                  const VkBuffer& buffer,
-                                  VkMemoryPropertyFlags property_flags) {
-  const VkDevice& device = *context.device();
-  VkMemoryRequirements requirements;
-  vkGetBufferMemoryRequirements(device, buffer, &requirements);
-
-  VkDeviceMemory device_memory = buffer::CreateDeviceMemory(
-      context, requirements, property_flags);
+intl::DeviceMemory CreateBufferMemory(const Context& context,
+                                      intl::Buffer buffer,
+                                      intl::MemoryPropertyFlags property_flags) {
+  const intl::Device device = *context.device();
+  intl::DeviceMemory device_memory = buffer::CreateDeviceMemory(
+      context,  device.getBufferMemoryRequirements(buffer), property_flags);
 
   // Bind the allocated memory with 'buffer'. If this memory is used for
   // multiple buffers, the memory offset should be re-calculated and
   // VkMemoryRequirements.alignment should be considered.
-  vkBindBufferMemory(device, buffer, device_memory, /*memoryOffset=*/0);
+  device.bindBufferMemory(buffer, device_memory, /*memoryOffset=*/0);
   return device_memory;
 }
 
 // Returns the total data size to be copied.
-VkDeviceSize GetTotalSize(absl::Span<const CopyInfo> infos) {
-  VkDeviceSize total_size = 0;
-  for (const auto& info : infos) {
+intl::DeviceSize GetTotalSize(absl::Span<const CopyInfo> infos) {
+  intl::DeviceSize total_size = 0;
+  for (const CopyInfo& info : infos) {
     total_size += info.size;
   }
   return total_size;
@@ -75,20 +64,20 @@ VkDeviceSize GetTotalSize(absl::Span<const CopyInfo> infos) {
 // Maps device memory with the given 'map_offset' and 'map_size', and copies
 // data from the host according to 'copy_infos'.
 void CopyHostToBuffer(const Context& context,
-                      const VkDeviceMemory& device_memory,
-                      VkDeviceSize map_offset, VkDeviceSize map_size,
+                      intl::DeviceMemory device_memory,
+                      intl::DeviceSize map_offset, intl::DeviceSize map_size,
                       absl::Span<const CopyInfo> copy_infos) {
   // Data transfer may not happen immediately, for example, because it is only
   // written to cache and not yet to device. We can either flush host writes
   // with vkFlushMappedMemoryRanges and vkInvalidateMappedMemoryRanges, or
   // use VK_MEMORY_PROPERTY_HOST_COHERENT_BIT (a little less efficient).
-  void* dst;
-  vkMapMemory(*context.device(), device_memory, map_offset, map_size, nullflag,
-              &dst);
+  const intl::Device device = *context.device();
+  void* dst = device.mapMemory(device_memory, map_offset, map_size,
+                               /*flags=*/{});
   for (const auto& info : copy_infos) {
     std::memcpy(static_cast<char*>(dst) + info.offset, info.data, info.size);
   }
-  vkUnmapMemory(*context.device(), device_memory);
+  device.unmapMemory(device_memory);
 }
 
 }  // namespace
@@ -123,12 +112,12 @@ DeviceBuffer::AllocationInfo::AllocationInfo(
     case UpdateRate::kLow:
       usage_flags |= buffer::GetBufferUsageFlags(
                          {BufferUsage::GetTransferDestinationUsage()});
-      memory_property_flags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+      memory_property_flags |= intl::MemoryPropertyFlagBits::eDeviceLocal;
       break;
 
     case UpdateRate::kHigh:
-      memory_property_flags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-      memory_property_flags |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+      memory_property_flags |= intl::MemoryPropertyFlagBits::eHostVisible;
+      memory_property_flags |= intl::MemoryPropertyFlagBits::eHostCoherent;
       break;
   }
   unique_queue_family_indices = {queue_family_indices_set.begin(),
@@ -168,8 +157,8 @@ void DeviceBuffer::DeallocateBufferAndMemory() {
       });
 
   buffer_size_ = 0;
-  buffer_ = VK_NULL_HANDLE;
-  device_memory_ = VK_NULL_HANDLE;
+  buffer_ = nullptr;
+  device_memory_ = nullptr;
 }
 
 }  // namespace lighter::renderer::vk

@@ -33,9 +33,13 @@ class HostMemoryAllocator {
   HostMemoryAllocator& operator=(const HostMemoryAllocator&) = delete;
 
   // Overloads.
-  intl::AllocationCallbacks operator*() const { return allocation_callbacks_; }
-  const intl::AllocationCallbacks* operator&() const {
-    return &allocation_callbacks_;
+  intl::Optional<const intl::AllocationCallbacks> operator*() const {
+    return {&allocation_callbacks_};
+  }
+
+  // Accessors.
+  VkAllocationCallbacks handle() const {
+    return static_cast<VkAllocationCallbacks>(allocation_callbacks_);
   }
 
  private:
@@ -191,6 +195,7 @@ struct Device {
 
   // Overloads.
   intl::Device operator*() const { return device_; }
+  const intl::Device* operator->() const { return &device_; }
 
  private:
   // Context that holds basic wrapper objects.

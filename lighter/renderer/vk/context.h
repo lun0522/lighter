@@ -68,7 +68,7 @@ class Context : public std::enable_shared_from_this<Context> {
   }
 
   // Accessors.
-  const HostMemoryAllocator& host_allocator() const { return host_allocator_; }
+  const HostMemoryAllocator& host_allocator() const { return *host_allocator_; }
   const Instance& instance() const { return *instance_; }
   const Surface& surface(int window_index) const {
     return *surfaces_.at(window_index);
@@ -83,7 +83,7 @@ class Context : public std::enable_shared_from_this<Context> {
           absl::Span<const common::Window* const> windows);
 
   // Wrapper of VkAllocationCallbacks.
-  const HostMemoryAllocator host_allocator_;
+  std::unique_ptr<HostMemoryAllocator> host_allocator_;
 
   // Wrapper of VkInstance.
   std::unique_ptr<Instance> instance_;
