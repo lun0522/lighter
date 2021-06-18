@@ -9,7 +9,8 @@ http_archive(
     urls = ["https://github.com/bazelbuild/bazel-skylib/archive/1.0.3.tar.gz"],
 )
 
-load("@//:repository_rules.bzl", "absl_archive", "external_windows_archive", "use_vulkan_sdk")
+load("@//:repository_rules.bzl", "absl_archive", "external_windows_archive",
+     "gtest_archive", "use_vulkan_sdk")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 #######################################
@@ -34,8 +35,8 @@ rules_foreign_cc_dependencies()
 
 absl_archive(
     sha256 = "441db7c09a0565376ecacf0085b2d4c2bbedde6115d7773551bc116212c2a8d6",
-    url = "https://github.com/abseil/abseil-cpp/archive/20210324.1.tar.gz",
     strip_prefix = "abseil-cpp-20210324.1",
+    url = "https://github.com/abseil/abseil-cpp/archive/20210324.1.tar.gz",
 )
 
 #######################################
@@ -114,11 +115,10 @@ http_archive(
 #######################################
 # GoogleTest
 
-http_archive(
-    name = "lib-googletest",
-    sha256 = "94c634d499558a76fa649edb13721dce6e98fb1e7018dfaeba3cd7a083945e91",
-    strip_prefix = "googletest-release-1.10.0",
-    url = "https://github.com/google/googletest/archive/release-1.10.0.tar.gz",
+gtest_archive(
+    sha256 = "b4870bf121ff7795ba20d20bcdd8627b8e088f2d1dab299a031c1034eddc93d5",
+    strip_prefix = "googletest-release-1.11.0",
+    url = "https://github.com/google/googletest/archive/release-1.11.0.tar.gz",
 )
 
 #######################################
@@ -137,7 +137,8 @@ new_git_repository(
 
 use_vulkan_sdk(
     name = "lib-shaderc",
-    build_file_abs_path = paths.join(__workspace_dir__, "third_party/BUILD.shaderc"),
+    build_file_abs_path = paths.join(__workspace_dir__,
+                                     "third_party/BUILD.shaderc"),
 )
 
 #######################################
@@ -173,7 +174,8 @@ new_git_repository(
 
 use_vulkan_sdk(
     name = "lib-vulkan",
-    build_file_abs_path = paths.join(__workspace_dir__, "third_party/BUILD.vulkan"),
+    build_file_abs_path = paths.join(__workspace_dir__,
+                                     "third_party/BUILD.vulkan"),
 )
 
 #######################################

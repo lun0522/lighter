@@ -18,7 +18,6 @@ cc_library(
         "//lighter/renderer:buffer_usage",
         "//lighter/renderer:type",
         "//third_party:absl",
-        "//third_party:vulkan",
     ],
 )
 
@@ -41,7 +40,6 @@ cc_library(
         "//lighter/renderer:type",
         "//lighter/renderer/vk:type_mapping",
         "//third_party:absl",
-        "//third_party:vulkan",
     ],
 )
 
@@ -66,7 +64,6 @@ cc_library(
         "//lighter/renderer:image_usage",
         "//lighter/renderer:type",
         "//third_party:absl",
-        "//third_party:vulkan",
     ],
 )
 
@@ -75,8 +72,8 @@ cc_test(
     srcs = ["image_util_test.cc"],
     deps = [
         ":image",
-        "//third_party:gtest_main",
-        "//third_party:vulkan",
+        ":util",
+        "//third_party:gtest",
     ],
 )
 
@@ -98,7 +95,6 @@ cc_library(
         "//lighter/renderer:pipeline",
         "//lighter/shader_compiler:util",
         "//third_party:absl",
-        "//third_party:vulkan",
     ],
 )
 
@@ -110,7 +106,6 @@ cc_library(
         ":util",
         "//lighter/common:util",
         "//third_party:absl",
-        "//third_party:vulkan",
     ],
 )
 
@@ -134,7 +129,6 @@ cc_library(
         "//lighter/renderer:type",
         "//third_party:absl",
         "//third_party:glm",
-        "//third_party:vulkan",
     ],
 )
 
@@ -151,7 +145,6 @@ cc_library(
         "//lighter/renderer:pass",
         "//lighter/renderer:pipeline",
         "//third_party:absl",
-        "//third_party:vulkan",
     ],
 )
 
@@ -168,7 +161,6 @@ cc_library(
         "//lighter/renderer:image_usage",
         "//lighter/renderer:type",
         "//third_party:absl",
-        "//third_party:vulkan"
     ],
 )
 
@@ -180,7 +172,6 @@ cc_library(
         ":util",
         "//lighter/common:util",
         "//lighter/renderer:type",
-        "//third_party:vulkan",
     ],
 )
 

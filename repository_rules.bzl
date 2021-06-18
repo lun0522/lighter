@@ -24,31 +24,32 @@ def get_vulkan_include_path(relative_path=""):
 def get_vulkan_lib_path(relative_path):
     return paths.join(_VK_SDK_SYMLINK, "lib", relative_path)
 
-def absl_archive(sha256, url, strip_prefix):
+_CC_LIBRARY_ALL_SRCS = """cc_library(
+    name = "{}",
+    hdrs = glob(["**"]),
+    include_prefix = "third_party",
+    visibility = ["//visibility:public"],
+)
+"""
+
+def absl_archive(sha256, strip_prefix, url):
     http_archive(
         name = "lib-absl",
-        build_file = "//:third_party/BUILD.absl",
         sha256 = sha256,
-        url = url,
         strip_prefix = strip_prefix,
+        url = url,
     )
 
     # Since patch commands are executed after the build file is copied there, it would be hard to differentiate that
     # build file from the existing ones in the repository (we want to remove the latter), hence we make
     # 'build_file_content' empty, and we will generate the real one in the patch command.
-    build_file_content = """cc_library(
-    name = "absl_include",
-    hdrs = glob(["**"]),
-    include_prefix = "third_party/absl",
-    visibility = ["//visibility:public"],
-)
-"""
+    build_file_content = _CC_LIBRARY_ALL_SRCS.format("absl_include")
     http_archive(
         name = "lib-absl-include",
         build_file_content = "",
         sha256 = sha256,
+        strip_prefix = strip_prefix,
         url = url,
-        strip_prefix = paths.join(strip_prefix, "absl"),
         patch_cmds = [
             "find . -type f ! -name '*.h' -delete",
             "echo -en '{}' > BUILD.bazel".format(build_file_content),
@@ -57,6 +58,22 @@ def absl_archive(sha256, url, strip_prefix):
             "Get-ChildItem -Recurse -Force -File -Exclude *.h | Remove-Item -Confirm:$false -Force",
             "Set-Content -Path BUILD.bazel -Value '{}'".format(build_file_content),
         ],
+    )
+
+def gtest_archive(sha256, strip_prefix, url):
+    http_archive(
+        name = "lib-gtest",
+        sha256 = sha256,
+        strip_prefix = strip_prefix,
+        url = url,
+    )
+
+    http_archive(
+        name = "lib-gtest-include",
+        sha256 = sha256,
+        strip_prefix = paths.join(strip_prefix, "googletest/include"),
+        url = url,
+        build_file_content = _CC_LIBRARY_ALL_SRCS.format("gtest_include"),
     )
 
 # TODO: rules_foreign_cc doesn't work on Windows yet.
