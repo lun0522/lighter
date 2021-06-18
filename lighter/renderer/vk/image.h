@@ -17,8 +17,8 @@
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/type.h"
 #include "lighter/renderer/vk/context.h"
+#include "lighter/renderer/vk/util.h"
 #include "third_party/absl/types/span.h"
-#include "third_party/vulkan/vulkan.h"
 
 namespace lighter::renderer::vk {
 
@@ -33,19 +33,19 @@ class DeviceImage : public renderer::DeviceImage {
   }
 
   // Accessors.
-  VkFormat format() const { return format_; }
-  VkSampleCountFlagBits sample_count() const { return sample_count_; }
+  intl::Format format() const { return format_; }
+  intl::SampleCountFlagBits sample_count() const { return sample_count_; }
 
  protected:
-  DeviceImage(std::string_view name, VkFormat format,
-              VkSampleCountFlagBits sample_count)
+  DeviceImage(std::string_view name, intl::Format format,
+              intl::SampleCountFlagBits sample_count)
       : renderer::DeviceImage{name},
         format_{format}, sample_count_{sample_count} {}
 
  private:
-  const VkFormat format_;
+  const intl::Format format_;
 
-  const VkSampleCountFlagBits sample_count_;
+  const intl::SampleCountFlagBits sample_count_;
 };
 
 class GeneralDeviceImage : public DeviceImage {
@@ -61,8 +61,8 @@ class GeneralDeviceImage : public DeviceImage {
       bool generate_mipmaps, absl::Span<const ImageUsage> usages);
 
   static std::unique_ptr<DeviceImage> CreateDepthStencilImage(
-      SharedContext context, std::string_view name, const VkExtent2D& extent,
-      MultisamplingMode multisampling_mode,
+      SharedContext context, std::string_view name,
+      const intl::Extent2D& extent, MultisamplingMode multisampling_mode,
       absl::Span<const ImageUsage> usages);
 
   // This class is neither copyable nor movable.
@@ -73,7 +73,7 @@ class GeneralDeviceImage : public DeviceImage {
 
  private:
   GeneralDeviceImage(SharedContext context, std::string_view name,
-                     VkFormat format, const VkExtent2D& extent,
+                     intl::Format format, const intl::Extent2D& extent,
                      uint32_t mip_levels, uint32_t layer_count,
                      MultisamplingMode multisampling_mode,
                      absl::Span<const ImageUsage> usages);
@@ -81,18 +81,18 @@ class GeneralDeviceImage : public DeviceImage {
   const SharedContext context_;
 
   // Opaque image object.
-  VkImage image_ = VK_NULL_HANDLE;
+  intl::Image image_;
 
-  // TODO: Hold multiple images in one block of device memory.
+  // TODO: Integrate VMA.
   // Opaque device memory object.
-  VkDeviceMemory device_memory_ = VK_NULL_HANDLE;
+  intl::DeviceMemory device_memory_;
 };
 
 class SwapchainImage : public DeviceImage {
  public:
-  SwapchainImage(std::string_view name, std::vector<VkImage>&& images,
-                 VkFormat format)
-      : DeviceImage{name, format, VK_SAMPLE_COUNT_1_BIT},
+  SwapchainImage(std::string_view name, std::vector<intl::Image>&& images,
+                 intl::Format format)
+      : DeviceImage{name, format, intl::SampleCountFlagBits::e1},
         images_{std::move(images)} {}
 
   // This class is neither copyable nor movable.
@@ -101,7 +101,7 @@ class SwapchainImage : public DeviceImage {
 
  private:
   // Opaque image objects.
-  std::vector<VkImage> images_;
+  std::vector<intl::Image> images_;
 };
 
 class SampledImageView : public renderer::SampledImageView {

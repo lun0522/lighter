@@ -12,22 +12,22 @@
 
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vk/context.h"
+#include "lighter/renderer/vk/util.h"
 #include "third_party/absl/types/span.h"
-#include "third_party/vulkan/vulkan.h"
 
 namespace lighter::renderer::vk::image {
 
 // Returns VkAccessFlags used for inserting image memory barriers.
-VkAccessFlags GetAccessFlags(const ImageUsage& usage);
+intl::AccessFlags GetAccessFlags(const ImageUsage& usage);
 
 // Returns VkPipelineStageFlags used for inserting image memory barriers.
-VkPipelineStageFlags GetPipelineStageFlags(const ImageUsage& usage);
+intl::PipelineStageFlags GetPipelineStageFlags(const ImageUsage& usage);
 
 // Returns which VkImageLayout should be used for 'usage'.
-VkImageLayout GetImageLayout(const ImageUsage& usage);
+intl::ImageLayout GetImageLayout(const ImageUsage& usage);
 
 // Returns VkImageUsageFlags that contains all usages.
-VkImageUsageFlags GetImageUsageFlags(absl::Span<const ImageUsage> usages);
+intl::ImageUsageFlags GetImageUsageFlags(absl::Span<const ImageUsage> usages);
 
 // Returns the family index of the queue that accesses the image for 'usage'.
 // Note that since this is used for creating image buffers, it will return
@@ -42,8 +42,8 @@ std::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
 // Returns whether we need to explicitly synchronize image memory access when
 // the image usage changes, which means to insert memory barriers in compute
 // pass, or add subpass dependencies in graphics pass.
-bool NeedSynchronization(const ImageUsage& prev_usage,
-                         const ImageUsage& curr_usage);
+bool NeedsSynchronization(const ImageUsage& prev_usage,
+                          const ImageUsage& curr_usage);
 
 }  // namespace lighter::renderer::vk::image
 
