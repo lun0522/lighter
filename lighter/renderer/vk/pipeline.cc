@@ -12,7 +12,6 @@
 #include "lighter/common/file.h"
 #include "lighter/renderer/image_usage.h"
 #include "lighter/renderer/vk/type_mapping.h"
-#include "lighter/renderer/vk/util.h"
 #include "lighter/shader_compiler/util.h"
 #include "third_party/absl/strings/str_format.h"
 
@@ -21,41 +20,35 @@ namespace {
 
 // Contains a loaded shader 'module' that will be used at 'stage'.
 struct ShaderStage {
-  VkShaderStageFlagBits stage;
+  intl::ShaderStageFlagBits stage;
   ShaderModule::RefCountedShaderModule module;
 };
 
-std::vector<VkDescriptorSetLayout> CreateDescriptorSetLayouts() {
+std::vector<intl::DescriptorSetLayout> CreateDescriptorSetLayouts() {
   FATAL("Not yet implemented");
   return {};
 }
 
-std::vector<VkPushConstantRange> CreatePushConstantRanges(
+std::vector<intl::PushConstantRange> CreatePushConstantRanges(
     const PipelineDescriptor::UniformDescriptor& descriptor) {
-  std::vector<VkPushConstantRange> ranges;
+  std::vector<intl::PushConstantRange> ranges;
   ranges.reserve(descriptor.push_constant_ranges.size());
   for (const auto& range : descriptor.push_constant_ranges) {
-    ranges.push_back({
-        type::ConvertShaderStages(range.shader_stages),
-        CAST_TO_UINT(range.offset),
-        CAST_TO_UINT(range.size),
-    });
+    ranges.push_back(intl::PushConstantRange{}
+        .setStageFlags(type::ConvertShaderStages(range.shader_stages))
+        .setOffset(CAST_TO_UINT(range.offset))
+        .setSize(CAST_TO_UINT(range.size))
+    );
   }
   return ranges;
 }
 
-VkPipelineLayoutCreateInfo CreatePipelineLayoutInfo(
-    const std::vector<VkDescriptorSetLayout>* descriptor_set_layouts,
-    const std::vector<VkPushConstantRange>* push_constant_ranges) {
-  return {
-      VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = nullflag,
-      CONTAINER_SIZE(*descriptor_set_layouts),
-      descriptor_set_layouts->data(),
-      CONTAINER_SIZE(*push_constant_ranges),
-      push_constant_ranges->data(),
-  };
+intl::PipelineLayoutCreateInfo GetPipelineLayoutCreateInfo(
+    const std::vector<intl::DescriptorSetLayout>* descriptor_set_layouts,
+    const std::vector<intl::PushConstantRange>* push_constant_ranges) {
+  return intl::PipelineLayoutCreateInfo{}
+      .setSetLayouts(*descriptor_set_layouts)
+      .setPushConstantRanges(*push_constant_ranges);
 }
 
 // Loads shaders in 'shader_file_path_map'.
@@ -77,41 +70,36 @@ std::vector<ShaderStage> CreateShaderStages(
 
 // Extracts shader stage infos, assuming the entry point of each shader is a
 // main() function.
-std::vector<VkPipelineShaderStageCreateInfo> CreateShaderStageInfos(
+std::vector<intl::PipelineShaderStageCreateInfo> GetShaderStageCreateInfos(
     const std::vector<ShaderStage>* shader_stages) {
-  std::vector<VkPipelineShaderStageCreateInfo> shader_stage_infos;
+  std::vector<intl::PipelineShaderStageCreateInfo> shader_stage_infos;
   shader_stage_infos.reserve(shader_stages->size());
   for (const auto& stage : *shader_stages) {
-    shader_stage_infos.push_back({
-        VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = nullflag,
-        stage.stage,
-        **stage.module,
-        .pName = shader_compiler::kShaderEntryPoint,
-        // May use 'pSpecializationInfo' to specify shader constants.
-        .pSpecializationInfo = nullptr,
-    });
+    shader_stage_infos.push_back(intl::PipelineShaderStageCreateInfo{}
+        .setStage(stage.stage)
+        .setModule(**stage.module)
+        .setPName(shader_compiler::kShaderEntryPoint)
+    );
   }
   return shader_stage_infos;
 }
 
-std::vector<VkVertexInputBindingDescription>
+std::vector<intl::VertexInputBindingDescription>
 CreateVertexInputBindingDescriptions(
     const GraphicsPipelineDescriptor& descriptor) {
-  std::vector<VkVertexInputBindingDescription> descriptions;
+  std::vector<intl::VertexInputBindingDescription> descriptions;
   descriptions.reserve(descriptor.vertex_buffer_views.size());
   for (const auto& view : descriptor.vertex_buffer_views) {
-    descriptions.push_back({
-        CAST_TO_UINT(view.binding_point),
-        CAST_TO_UINT(view.stride),
-        type::ConvertVertexInputRate(view.input_rate),
-    });
+    descriptions.push_back(intl::VertexInputBindingDescription{}
+        .setBinding(CAST_TO_UINT(view.binding_point))
+        .setStride(CAST_TO_UINT(view.stride))
+        .setInputRate(type::ConvertVertexInputRate(view.input_rate))
+    );
   }
   return descriptions;
 }
 
-std::vector<VkVertexInputAttributeDescription>
+std::vector<intl::VertexInputAttributeDescription>
 CreateVertexInputAttributeDescriptions(
     const GraphicsPipelineDescriptor& descriptor) {
   const auto num_attributes = common::util::Reduce<int>(
@@ -120,59 +108,48 @@ CreateVertexInputAttributeDescriptions(
         return view.attributes.size();
       });
 
-  std::vector<VkVertexInputAttributeDescription> descriptions;
+  std::vector<intl::VertexInputAttributeDescription> descriptions;
   descriptions.reserve(num_attributes);
   for (const auto& view : descriptor.vertex_buffer_views) {
     for (const auto& attrib : view.attributes) {
-      descriptions.push_back({
-          CAST_TO_UINT(attrib.location),
-          CAST_TO_UINT(view.binding_point),
-          type::ConvertDataFormat(attrib.format),
-          CAST_TO_UINT(attrib.offset),
-      });
+      descriptions.push_back(intl::VertexInputAttributeDescription{}
+          .setLocation(CAST_TO_UINT(attrib.location))
+          .setBinding(CAST_TO_UINT(view.binding_point))
+          .setFormat(type::ConvertDataFormat(attrib.format))
+          .setOffset(CAST_TO_UINT(attrib.offset))
+      );
     }
   }
   return descriptions;
 }
 
 // Creates a vertex input state.
-VkPipelineVertexInputStateCreateInfo CreateVertexInputInfo(
-    const std::vector<VkVertexInputBindingDescription>* binding_descriptions,
-    const std::vector<VkVertexInputAttributeDescription>*
+intl::PipelineVertexInputStateCreateInfo GetVertexInputStateCreateInfo(
+    const std::vector<intl::VertexInputBindingDescription>*
+        binding_descriptions,
+    const std::vector<intl::VertexInputAttributeDescription>*
         attribute_descriptions) {
-  return {
-      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = nullflag,
-      CONTAINER_SIZE(*binding_descriptions),
-      binding_descriptions->data(),
-      CONTAINER_SIZE(*attribute_descriptions),
-      attribute_descriptions->data(),
-  };
+  return intl::PipelineVertexInputStateCreateInfo{}
+      .setVertexBindingDescriptions(*binding_descriptions)
+      .setVertexAttributeDescriptions(*attribute_descriptions);
 }
 
-VkPipelineInputAssemblyStateCreateInfo CreateInputAssemblyInfo(
+intl::PipelineInputAssemblyStateCreateInfo GetInputAssemblyStateCreateInfo(
     const GraphicsPipelineDescriptor& descriptor) {
-  return {
-      VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = nullflag,
-      type::ConvertPrimitiveTopology(descriptor.primitive_topology),
-      // 'primitiveRestartEnable' matters for drawing line/triangle strips.
-      .primitiveRestartEnable = VK_FALSE,
-  };
+  return intl::PipelineInputAssemblyStateCreateInfo{}
+      .setTopology(
+          type::ConvertPrimitiveTopology(descriptor.primitive_topology));
 }
 
-VkViewport CreateViewport(const GraphicsPipelineDescriptor& descriptor) {
+intl::Viewport CreateViewport(const GraphicsPipelineDescriptor& descriptor) {
   const auto& viewport_info = descriptor.viewport_config.viewport;
-  VkViewport viewport{
-      viewport_info.origin.x,
-      viewport_info.origin.y,
-      viewport_info.extent.x,
-      viewport_info.extent.y,
-      .minDepth = 0.0f,
-      .maxDepth = 1.0f,
-  };
+  auto viewport = intl::Viewport{}
+      .setX(viewport_info.origin.x)
+      .setY(viewport_info.origin.y)
+      .setWidth(viewport_info.extent.x)
+      .setHeight(viewport_info.extent.y)
+      .setMinDepth(0.0f)
+      .setMaxDepth(1.0f);
   if (descriptor.viewport_config.flip_y) {
     viewport.y += viewport.height;
     viewport.height *= -1;
@@ -180,50 +157,32 @@ VkViewport CreateViewport(const GraphicsPipelineDescriptor& descriptor) {
   return viewport;
 }
 
-VkRect2D CreateScissor(const GraphicsPipelineDescriptor& descriptor) {
+intl::Rect2D CreateScissor(const GraphicsPipelineDescriptor& descriptor) {
   const auto& scissor_info = descriptor.viewport_config.scissor;
-  return {util::CreateOffset(scissor_info.origin),
-          util::CreateExtent(scissor_info.extent)};
+  return intl::Rect2D{}
+      .setOffset(util::CreateOffset(scissor_info.origin))
+      .setExtent(util::CreateExtent(scissor_info.extent));
 }
 
-VkPipelineViewportStateCreateInfo CreateViewportInfo(const VkViewport* viewport,
-                                                     const VkRect2D* scissor) {
-  return {
-      VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = nullflag,
-      .viewportCount = 1,
-      viewport,
-      .scissorCount = 1,
-      scissor,
-  };
+intl::PipelineViewportStateCreateInfo GetViewportStateCreateInfo(
+    const std::vector<intl::Viewport>* viewports,
+    const std::vector<intl::Rect2D>* scissors) {
+  return intl::PipelineViewportStateCreateInfo{}
+      .setViewports(*viewports)
+      .setScissors(*scissors);
 }
 
-VkPipelineRasterizationStateCreateInfo CreateRasterizationInfo(
+intl::PipelineRasterizationStateCreateInfo GetRasterizationStateCreateInfo(
     const GraphicsPipelineDescriptor& descriptor) {
-  return {
-      VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = nullflag,
-      // If false, fragments beyond clip space will be discarded, not clamped.
-      .depthClampEnable = VK_FALSE,
-      // If true, disable outputs to the framebuffer.
-      .rasterizerDiscardEnable = VK_FALSE,
-      // Fill polygons with fragments.
-      VK_POLYGON_MODE_FILL,
-      VK_CULL_MODE_BACK_BIT,
-      descriptor.viewport_config.flip_y ? VK_FRONT_FACE_COUNTER_CLOCKWISE
-                                        : VK_FRONT_FACE_CLOCKWISE,
-      // Whether to let the rasterizer alter depth values.
-      .depthBiasEnable = VK_FALSE,
-      .depthBiasConstantFactor = 0.0f,
-      .depthBiasClamp = 0.0f,
-      .depthBiasSlopeFactor = 0.0f,
-      .lineWidth = 1.0f,
-  };
+  return intl::PipelineRasterizationStateCreateInfo{}
+      .setCullMode(intl::CullModeFlagBits::eBack)
+      .setFrontFace(
+          descriptor.viewport_config.flip_y ? intl::FrontFace::eCounterClockwise
+                                            : intl::FrontFace::eClockwise)
+      .setLineWidth(1.0f);
 }
 
-VkPipelineMultisampleStateCreateInfo CreateMultisampleInfo(
+intl::PipelineMultisampleStateCreateInfo GetMultisampleStateCreateInfo(
     const GraphicsPipelineDescriptor& descriptor) {
   // Since all color and depth stencil attachments must have the same sample
   // count, we only need to look at one of them.
@@ -231,61 +190,46 @@ VkPipelineMultisampleStateCreateInfo CreateMultisampleInfo(
       descriptor.depth_stencil_attachment == nullptr
           ? descriptor.depth_stencil_attachment
           : descriptor.color_attachment_info_map.begin()->first;
-  return {
-      VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = nullflag,
-      DeviceImage::Cast(*attachment).sample_count(),
-      .sampleShadingEnable = VK_FALSE,
-      .minSampleShading = 0.0f,
-      .pSampleMask = nullptr,
-      .alphaToCoverageEnable = VK_FALSE,
-      .alphaToOneEnable = VK_FALSE,
-  };
+  return intl::PipelineMultisampleStateCreateInfo{}
+      .setRasterizationSamples(DeviceImage::Cast(*attachment).sample_count());
 }
 
-VkStencilOpState CreateStencilOp(
+intl::StencilOpState CreateStencilOpState(
     const GraphicsPipelineDescriptor::StencilTestOneFace& test) {
-  return {
-      type::ConvertStencilOp(test.stencil_fail_op),
-      type::ConvertStencilOp(test.stencil_and_depth_pass_op),
-      type::ConvertStencilOp(test.stencil_pass_depth_fail_op),
-      type::ConvertCompareOp(test.compare_op),
-      CAST_TO_UINT(test.compare_mask),
-      CAST_TO_UINT(test.write_mask),
-      CAST_TO_UINT(test.reference),
-  };
+  return intl::StencilOpState{}
+      .setFailOp(type::ConvertStencilOp(test.stencil_fail_op))
+      .setPassOp(type::ConvertStencilOp(test.stencil_and_depth_pass_op))
+      .setDepthFailOp(type::ConvertStencilOp(test.stencil_pass_depth_fail_op))
+      .setCompareOp(type::ConvertCompareOp(test.compare_op))
+      .setCompareMask(CAST_TO_UINT(test.compare_mask))
+      .setWriteMask(CAST_TO_UINT(test.write_mask))
+      .setReference(CAST_TO_UINT(test.reference));
 }
 
-VkPipelineDepthStencilStateCreateInfo CreateDepthStencilInfo(
+intl::PipelineDepthStencilStateCreateInfo GetDepthStencilStateCreateInfo(
     const GraphicsPipelineDescriptor& descriptor) {
   using StencilTest = GraphicsPipelineDescriptor::StencilTest;
   const auto& depth_test = descriptor.depth_test;
   const auto& stencil_test = descriptor.stencil_test;
-  return {
-      VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = nullflag,
-      util::ToVkBool(depth_test.enable_test),
-      util::ToVkBool(depth_test.enable_write),
-      type::ConvertCompareOp(depth_test.compare_op),
-      // We may only keep fragments in a specific depth range.
-      .depthBoundsTestEnable = VK_FALSE,
-      util::ToVkBool(stencil_test.enable_test),
-      CreateStencilOp(stencil_test.tests[StencilTest::kFrontFaceIndex]),
-      CreateStencilOp(stencil_test.tests[StencilTest::kBackFaceIndex]),
-      .minDepthBounds = 0.0f,
-      .maxDepthBounds = 1.0f,
-  };
+  return intl::PipelineDepthStencilStateCreateInfo{}
+      .setDepthTestEnable(depth_test.enable_test)
+      .setDepthWriteEnable(depth_test.enable_write)
+      .setDepthCompareOp(type::ConvertCompareOp(depth_test.compare_op))
+      .setStencilTestEnable(stencil_test.enable_test)
+      .setFront(CreateStencilOpState(
+          stencil_test.tests[StencilTest::kFrontFaceIndex]))
+      .setBack(CreateStencilOpState(
+          stencil_test.tests[StencilTest::kBackFaceIndex]))
+      .setMinDepthBounds(0.0f)
+      .setMaxDepthBounds(1.0f);
 }
 
-std::vector<VkPipelineColorBlendAttachmentState> CreateColorBlendStates(
+std::vector<intl::PipelineColorBlendAttachmentState>
+CreateColorBlendAttachmentStates(
     const GraphicsPipelineDescriptor& descriptor,
     absl::Span<const DeviceImage* const> subpass_attachments) {
-  const VkPipelineColorBlendAttachmentState
-      disabled_state{.blendEnable = VK_FALSE};
-  std::vector<VkPipelineColorBlendAttachmentState> color_blend_states(
-      subpass_attachments.size(), disabled_state);
+  std::vector<intl::PipelineColorBlendAttachmentState> color_blend_states(
+      subpass_attachments.size());
   for (int i = 0; i < subpass_attachments.size(); ++i) {
     const DeviceImage* attachment = subpass_attachments[i];
     const auto iter = descriptor.color_attachment_info_map.find(attachment);
@@ -295,45 +239,27 @@ std::vector<VkPipelineColorBlendAttachmentState> CreateColorBlendStates(
     }
 
     const auto& color_blend = iter->second.color_blend.value();
-    color_blend_states[i] = {
-        .blendEnable = VK_TRUE,
-        type::ConvertBlendFactor(color_blend.src_color_blend_factor),
-        type::ConvertBlendFactor(color_blend.dst_color_blend_factor),
-        type::ConvertBlendOp(color_blend.color_blend_op),
-        type::ConvertBlendFactor(color_blend.src_alpha_blend_factor),
-        type::ConvertBlendFactor(color_blend.dst_alpha_blend_factor),
-        type::ConvertBlendOp(color_blend.alpha_blend_op),
-        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT
-                              | VK_COLOR_COMPONENT_G_BIT
-                              | VK_COLOR_COMPONENT_B_BIT
-                              | VK_COLOR_COMPONENT_A_BIT,
-    };
+    color_blend_states[i] = intl::PipelineColorBlendAttachmentState{}
+        .setSrcColorBlendFactor(
+            type::ConvertBlendFactor(color_blend.src_color_blend_factor))
+        .setDstColorBlendFactor(
+            type::ConvertBlendFactor(color_blend.dst_color_blend_factor))
+        .setColorBlendOp(type::ConvertBlendOp(color_blend.color_blend_op))
+        .setSrcAlphaBlendFactor(
+            type::ConvertBlendFactor(color_blend.src_alpha_blend_factor))
+        .setDstColorBlendFactor(
+            type::ConvertBlendFactor(color_blend.dst_alpha_blend_factor))
+        .setAlphaBlendOp(type::ConvertBlendOp(color_blend.alpha_blend_op))
+        .setColorWriteMask(intl::ColorComponentFlags{
+            intl::FlagTraits<intl::ColorComponentFlagBits>::allFlags});
   }
   return color_blend_states;
 }
 
-VkPipelineColorBlendStateCreateInfo CreateColorBlendInfo(
-    const std::vector<VkPipelineColorBlendAttachmentState>* states) {
-  return {
-      VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = nullflag,
-      .logicOpEnable = VK_FALSE,
-      VK_LOGIC_OP_CLEAR,
-      CONTAINER_SIZE(*states),
-      states->data(),
-      .blendConstants = {0.0f, 0.0f, 0.0f, 0.0f},
-  };
-}
-
-VkPipelineDynamicStateCreateInfo CreateDynamicStateInfo() {
-  return  {
-      VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = nullflag,
-      .dynamicStateCount = 0,
-      .pDynamicStates = nullptr,
-  };
+intl::PipelineColorBlendStateCreateInfo GetColorBlendStateCreateInfo(
+    const std::vector<intl::PipelineColorBlendAttachmentState>* states) {
+  return intl::PipelineColorBlendStateCreateInfo{}
+      .setAttachments(*states);
 }
 
 }  // namespace
@@ -341,137 +267,109 @@ VkPipelineDynamicStateCreateInfo CreateDynamicStateInfo() {
 ShaderModule::ShaderModule(SharedContext context, std::string_view file_path)
     : context_{std::move(FATAL_IF_NULL(context))} {
   const auto raw_data = std::make_unique<common::RawData>(file_path);
-  const VkShaderModuleCreateInfo module_info{
-      VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = nullflag,
-      raw_data->size,
-      reinterpret_cast<const uint32_t*>(raw_data->data),
-  };
-  ASSERT_SUCCESS(vkCreateShaderModule(*context_->device(), &module_info,
-                                      *context_->host_allocator(),
-                                      &shader_module_),
-                 "Failed to create shader module");
+  const auto shader_module_create_info = intl::ShaderModuleCreateInfo{}
+      .setCodeSize(raw_data->size)
+      .setPCode(reinterpret_cast<const uint32_t*>(raw_data->data));
+  shader_module_ = context_->device()->createShaderModule(
+      shader_module_create_info, *context_->host_allocator());
 }
 
 Pipeline::Pipeline(SharedContext context,
                    const GraphicsPipelineDescriptor& descriptor,
-                   const VkRenderPass& render_pass, int subpass_index,
+                   intl::RenderPass render_pass, int subpass_index,
                    absl::Span<const DeviceImage* const> subpass_attachments)
     : Pipeline{std::move(context), descriptor.pipeline_name,
-               VK_PIPELINE_BIND_POINT_GRAPHICS, descriptor.uniform_descriptor} {
+               intl::PipelineBindPoint::eGraphics,
+               descriptor.uniform_descriptor} {
   const auto shader_stages = CreateShaderStages(context_,
                                                 descriptor.shader_path_map);
-  const auto shader_stage_infos = CreateShaderStageInfos(&shader_stages);
+  const auto shader_stage_create_infos =
+      GetShaderStageCreateInfos(&shader_stages);
 
-  const auto vertex_input_bindings =
+  const auto vertex_input_binding_descs =
       CreateVertexInputBindingDescriptions(descriptor);
-  const auto vertex_input_attributes =
+  const auto vertex_input_attribute_descs =
       CreateVertexInputAttributeDescriptions(descriptor);
-  const auto vertex_input_info = CreateVertexInputInfo(
-      &vertex_input_bindings, &vertex_input_attributes);
+  const auto vertex_input_state_create_info = GetVertexInputStateCreateInfo(
+      &vertex_input_binding_descs, &vertex_input_attribute_descs);
 
-  const auto viewport = CreateViewport(descriptor);
-  const auto scissor = CreateScissor(descriptor);
-  const auto viewport_info = CreateViewportInfo(&viewport, &scissor);
+  const std::vector<intl::Viewport> viewports{CreateViewport(descriptor)};
+  const std::vector<intl::Rect2D> scissors{CreateScissor(descriptor)};
+  const auto viewport_state_create_info =
+      GetViewportStateCreateInfo(&viewports, &scissors);
 
-  const auto color_blend_states =
-      CreateColorBlendStates(descriptor, subpass_attachments);
-  const auto color_blend_info = CreateColorBlendInfo(&color_blend_states);
+  const auto color_blend_attachment_states =
+      CreateColorBlendAttachmentStates(descriptor, subpass_attachments);
+  const auto color_blend_state_create_info =
+      GetColorBlendStateCreateInfo(&color_blend_attachment_states);
 
-  const auto input_assembly_info = CreateInputAssemblyInfo(descriptor);
-  const auto rasterization_info = CreateRasterizationInfo(descriptor);
-  const auto multisample_info = CreateMultisampleInfo(descriptor);
-  const auto depth_stencil_info = CreateDepthStencilInfo(descriptor);
-  const auto dynamic_state_info = CreateDynamicStateInfo();
+  const auto input_assembly_state_create_info =
+      GetInputAssemblyStateCreateInfo(descriptor);
+  const auto rasterization_state_create_info =
+      GetRasterizationStateCreateInfo(descriptor);
+  const auto multisample_state_create_info =
+      GetMultisampleStateCreateInfo(descriptor);
+  const auto depth_stencil_state_create_info =
+      GetDepthStencilStateCreateInfo(descriptor);
 
-  const VkGraphicsPipelineCreateInfo pipeline_info{
-      VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = nullflag,
-      CONTAINER_SIZE(shader_stage_infos),
-      shader_stage_infos.data(),
-      &vertex_input_info,
-      &input_assembly_info,
-      .pTessellationState = nullptr,
-      &viewport_info,
-      &rasterization_info,
-      &multisample_info,
-      &depth_stencil_info,
-      &color_blend_info,
-      &dynamic_state_info,
-      layout_,
-      render_pass,
-      CAST_TO_UINT(subpass_index),
-      // 'basePipelineHandle' and 'basePipelineIndex' can be used to copy
-      // settings from another pipeline.
-      .basePipelineHandle = VK_NULL_HANDLE,
-      .basePipelineIndex = 0,
-  };
-
-  ASSERT_SUCCESS(
-      vkCreateGraphicsPipelines(
-          *context_->device(), /*pipelineCache=*/VK_NULL_HANDLE,
-          /*createInfoCount=*/1, &pipeline_info, *context_->host_allocator(),
-          &pipeline_),
-      "Failed to create graphics pipeline");
+  const auto pipeline_create_info = intl::GraphicsPipelineCreateInfo{}
+      .setStages(shader_stage_create_infos)
+      .setPVertexInputState(&vertex_input_state_create_info)
+      .setPInputAssemblyState(&input_assembly_state_create_info)
+      .setPViewportState(&viewport_state_create_info)
+      .setPRasterizationState(&rasterization_state_create_info)
+      .setPMultisampleState(&multisample_state_create_info)
+      .setPDepthStencilState(&depth_stencil_state_create_info)
+      .setPColorBlendState(&color_blend_state_create_info)
+      .setLayout(pipeline_layout_)
+      .setRenderPass(render_pass)
+      .setSubpass(CAST_TO_UINT(subpass_index));
+  const auto result_value = context_->device()->createGraphicsPipeline(
+      intl::PipelineCache{}, pipeline_create_info, *context_->host_allocator());
+  pipeline_ = result_value.value;
 }
 
 Pipeline::Pipeline(SharedContext context,
                    const ComputePipelineDescriptor& descriptor)
     : Pipeline{std::move(context), descriptor.pipeline_name,
-               VK_PIPELINE_BIND_POINT_COMPUTE, descriptor.uniform_descriptor} {
+               intl::PipelineBindPoint::eCompute,
+               descriptor.uniform_descriptor} {
   const auto shader_stages = CreateShaderStages(
       context_, {{shader_stage::COMPUTE, descriptor.shader_path}});
-  const auto shader_stage_infos = CreateShaderStageInfos(&shader_stages);
+  const auto shader_stage_create_infos =
+      GetShaderStageCreateInfos(&shader_stages);
 
-  const VkComputePipelineCreateInfo pipeline_info{
-      VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = nullflag,
-      shader_stage_infos[0],
-      layout_,
-      // 'basePipelineHandle' and 'basePipelineIndex' can be used to copy
-      // settings from another pipeline.
-      .basePipelineHandle = VK_NULL_HANDLE,
-      .basePipelineIndex = 0,
-  };
-
-  ASSERT_SUCCESS(
-      vkCreateComputePipelines(
-          *context_->device(), /*pipelineCache=*/VK_NULL_HANDLE,
-          /*createInfoCount=*/1, &pipeline_info, *context_->host_allocator(),
-          &pipeline_),
-      "Failed to create compute pipeline");
+  const auto pipeline_create_info = intl::ComputePipelineCreateInfo{}
+      .setStage(shader_stage_create_infos[0])
+      .setLayout(pipeline_layout_);
+  const auto result_value = context_->device()->createComputePipeline(
+      intl::PipelineCache{}, pipeline_create_info, *context_->host_allocator());
+  pipeline_ = result_value.value;
 }
 
 Pipeline::Pipeline(
     SharedContext context, std::string_view name,
-    VkPipelineBindPoint binding_point,
+    intl::PipelineBindPoint binding_point,
     const PipelineDescriptor::UniformDescriptor& uniform_descriptor)
     : context_{std::move(FATAL_IF_NULL(context))}, name_{name},
       binding_point_{binding_point} {
   const auto descriptor_set_layouts = CreateDescriptorSetLayouts();
   const auto push_constant_ranges =
       CreatePushConstantRanges(uniform_descriptor);
-  const auto pipeline_layout_info = CreatePipelineLayoutInfo(
-      &descriptor_set_layouts, &push_constant_ranges);
 
-  ASSERT_SUCCESS(
-      vkCreatePipelineLayout(*context_->device(), &pipeline_layout_info,
-                             *context_->host_allocator(), &layout_),
-      "Failed to create pipeline layout");
+  const auto layout_create_info = GetPipelineLayoutCreateInfo(
+      &descriptor_set_layouts, &push_constant_ranges);
+  pipeline_layout_ = context_->device()->createPipelineLayout(
+      layout_create_info, *context_->host_allocator());
 }
 
-void Pipeline::Bind(const VkCommandBuffer& command_buffer) const {
-  vkCmdBindPipeline(command_buffer, binding_point_, pipeline_);
+void Pipeline::Bind(intl::CommandBuffer command_buffer) const {
+  command_buffer.bindPipeline(binding_point_, pipeline_);
 }
 
 Pipeline::~Pipeline() {
-  vkDestroyPipeline(*context_->device(), pipeline_,
-                    *context_->host_allocator());
-  vkDestroyPipelineLayout(*context_->device(), layout_,
-                          *context_->host_allocator());
+  context_->device()->destroy(pipeline_, *context_->host_allocator());
+  context_->device()->destroy(pipeline_layout_, *context_->host_allocator());
 #ifndef NDEBUG
   LOG_INFO << absl::StreamFormat("Pipeline '%s' destructed", name_);
 #endif  // !NDEBUG

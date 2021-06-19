@@ -18,8 +18,8 @@
 #include "lighter/renderer/pipeline.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/image.h"
+#include "lighter/renderer/vk/util.h"
 #include "third_party/absl/types/span.h"
-#include "third_party/vulkan/vulkan.h"
 
 namespace lighter::renderer::vk {
 
@@ -43,26 +43,25 @@ class ShaderModule {
   ShaderModule& operator=(const ShaderModule&) = delete;
 
   ~ShaderModule() {
-    vkDestroyShaderModule(*context_->device(), shader_module_,
-                          *context_->host_allocator());
+    context_->device()->destroy(shader_module_, *context_->host_allocator());
   }
 
   // Overloads.
-  const VkShaderModule& operator*() const { return shader_module_; }
+  intl::ShaderModule operator*() const { return shader_module_; }
 
  private:
   // Pointer to context.
   const SharedContext context_;
 
   // Opaque shader module object.
-  VkShaderModule shader_module_ = VK_NULL_HANDLE;
+  intl::ShaderModule shader_module_;
 };
 
 class Pipeline {
  public:
   // Constructs a graphics pipeline.
   Pipeline(SharedContext context, const GraphicsPipelineDescriptor& descriptor,
-           const VkRenderPass& render_pass, int subpass_index,
+           intl::RenderPass render_pass, int subpass_index,
            absl::Span<const DeviceImage* const> subpass_attachments);
 
   // Constructs a compute pipeline.
@@ -76,11 +75,11 @@ class Pipeline {
 
   // Binds to this pipeline. This should be called when 'command_buffer' is
   // recording commands.
-  void Bind(const VkCommandBuffer& command_buffer) const;
+  void Bind(intl::CommandBuffer command_buffer) const;
 
  private:
   Pipeline(SharedContext context, std::string_view name,
-           VkPipelineBindPoint binding_point,
+           intl::PipelineBindPoint binding_point,
            const PipelineDescriptor::UniformDescriptor& uniform_descriptor);
 
   // Pointer to context.
@@ -90,13 +89,13 @@ class Pipeline {
   const std::string name_;
 
   // Pipeline binding point, either graphics or compute.
-  const VkPipelineBindPoint binding_point_;
+  const intl::PipelineBindPoint binding_point_;
 
   // Opaque pipeline layout object.
-  VkPipelineLayout layout_ = VK_NULL_HANDLE;
+  intl::PipelineLayout pipeline_layout_;
 
   // Opaque pipeline object.
-  VkPipeline pipeline_ = VK_NULL_HANDLE;
+  intl::Pipeline pipeline_;
 };
 
 }  // namespace lighter::renderer::vk
