@@ -25,7 +25,7 @@ namespace {
 // if any of them is not supported.
 void CheckInstanceExtensionSupport(const std::vector<std::string>& required) {
   LOG_INFO << "Checking instance extension support...";
-  LOG_EMPTY_LINE;
+  LOG_INFO;
 
   const auto properties = util::QueryAttribute<VkExtensionProperties>(
       [](uint32_t* count, VkExtensionProperties* properties) {
@@ -47,7 +47,7 @@ void CheckInstanceExtensionSupport(const std::vector<std::string>& required) {
 // of them is not supported.
 void CheckValidationLayerSupport(const std::vector<std::string>& required) {
   LOG_INFO << "Checking validation layer support...";
-  LOG_EMPTY_LINE;
+  LOG_INFO;
 
   const auto properties = util::QueryAttribute<VkLayerProperties>(
       [](uint32_t* count, VkLayerProperties* properties) {
@@ -68,7 +68,7 @@ void CheckValidationLayerSupport(const std::vector<std::string>& required) {
 bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
                          const WindowSupport& window_support) {
   LOG_INFO << "Checking swapchain support...";
-  LOG_EMPTY_LINE;
+  LOG_INFO;
 
   // Query support for device extensions.
   const std::vector<std::string> required{
@@ -112,7 +112,7 @@ std::optional<QueueFamilyIndices> FindDeviceQueues(
   VkPhysicalDeviceProperties properties;
   vkGetPhysicalDeviceProperties(physical_device, &properties);
   LOG_INFO << "Found device: " << properties.deviceName;
-  LOG_EMPTY_LINE;
+  LOG_INFO;
 
   // Request swapchain support if use window.
   if (window_support.has_value() &&

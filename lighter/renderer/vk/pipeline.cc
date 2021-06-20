@@ -57,12 +57,11 @@ std::vector<ShaderStage> CreateShaderStages(
     const GraphicsPipelineDescriptor::ShaderPathMap& shader_path_map) {
   std::vector<ShaderStage> shader_stages;
   shader_stages.reserve(shader_path_map.size());
-  for (const auto& pair : shader_path_map) {
-    const auto& file_path = pair.second;
+  for (const auto& [shader_stage, shader_path] : shader_path_map) {
     shader_stages.push_back({
-        type::ConvertShaderStage(pair.first),
+        type::ConvertShaderStage(shader_stage),
         ShaderModule::RefCountedShaderModule::Get(
-            /*identifier=*/file_path, context, file_path),
+            /*identifier=*/shader_path, context, shader_path),
     });
   }
   return shader_stages;
@@ -240,15 +239,16 @@ CreateColorBlendAttachmentStates(
 
     const auto& color_blend = iter->second.color_blend.value();
     color_blend_states[i] = intl::PipelineColorBlendAttachmentState{}
-        .setSrcColorBlendFactor(
-            type::ConvertBlendFactor(color_blend.src_color_blend_factor))
-        .setDstColorBlendFactor(
-            type::ConvertBlendFactor(color_blend.dst_color_blend_factor))
-        .setColorBlendOp(type::ConvertBlendOp(color_blend.color_blend_op))
-        .setSrcAlphaBlendFactor(
-            type::ConvertBlendFactor(color_blend.src_alpha_blend_factor))
-        .setDstColorBlendFactor(
-            type::ConvertBlendFactor(color_blend.dst_alpha_blend_factor))
+        .setSrcColorBlendFactor(type::ConvertBlendFactor(
+            color_blend.src_color_blend_factor))
+        .setDstColorBlendFactor(type::ConvertBlendFactor(
+            color_blend.dst_color_blend_factor))
+        .setColorBlendOp(type::ConvertBlendOp(
+            color_blend.color_blend_op))
+        .setSrcAlphaBlendFactor(type::ConvertBlendFactor(
+            color_blend.src_alpha_blend_factor))
+        .setDstColorBlendFactor(type::ConvertBlendFactor(
+            color_blend.dst_alpha_blend_factor))
         .setAlphaBlendOp(type::ConvertBlendOp(color_blend.alpha_blend_op))
         .setColorWriteMask(intl::ColorComponentFlags{
             intl::FlagTraits<intl::ColorComponentFlagBits>::allFlags});
@@ -324,9 +324,8 @@ Pipeline::Pipeline(SharedContext context,
       .setLayout(pipeline_layout_)
       .setRenderPass(render_pass)
       .setSubpass(CAST_TO_UINT(subpass_index));
-  const auto result_value = context_->device()->createGraphicsPipeline(
+  const auto [_, pipeline_] = context_->device()->createGraphicsPipeline(
       intl::PipelineCache{}, pipeline_create_info, *context_->host_allocator());
-  pipeline_ = result_value.value;
 }
 
 Pipeline::Pipeline(SharedContext context,
@@ -342,9 +341,8 @@ Pipeline::Pipeline(SharedContext context,
   const auto pipeline_create_info = intl::ComputePipelineCreateInfo{}
       .setStage(shader_stage_create_infos[0])
       .setLayout(pipeline_layout_);
-  const auto result_value = context_->device()->createComputePipeline(
+  const auto [_, pipeline_] = context_->device()->createComputePipeline(
       intl::PipelineCache{}, pipeline_create_info, *context_->host_allocator());
-  pipeline_ = result_value.value;
 }
 
 Pipeline::Pipeline(

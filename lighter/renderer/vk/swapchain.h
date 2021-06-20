@@ -15,7 +15,7 @@
 #include "lighter/renderer/vk/basic.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/image.h"
-#include "third_party/vulkan/vulkan.h"
+#include "lighter/renderer/vk/util.h"
 
 namespace lighter::renderer::vk {
 
@@ -39,7 +39,7 @@ class Swapchain {
   const SharedContext context_;
 
   // Opaque swapchain object,
-  VkSwapchainKHR swapchain_ = VK_NULL_HANDLE;
+  intl::SwapchainKHR swapchain_;
 
   // Wraps images retrieved from the swapchain.
   std::unique_ptr<SwapchainImage> image_;

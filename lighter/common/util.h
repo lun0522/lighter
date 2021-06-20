@@ -40,8 +40,8 @@
 #endif  // NDEBUG
 
 #define LOG_INFO LOG(::std::cout)
-#define LOG_EMPTY_LINE LOG_INFO
 #define LOG_ERROR LOG(::std::cerr)
+#define LOG_SWITCH(is_error) (is_error ? LOG_ERROR : LOG_INFO)
 
 #ifdef NDEBUG
 #define FATAL(error) throw ::std::runtime_error{error}

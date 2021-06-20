@@ -11,7 +11,6 @@
 #include "lighter/renderer/pipeline.h"
 #include "lighter/renderer/vk/image.h"
 #include "lighter/renderer/vk/type_mapping.h"
-#include "lighter/renderer/vk/util.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/span.h"
 
@@ -19,11 +18,11 @@ namespace lighter::renderer::vk {
 namespace {
 
 // TODO: Populate image layout.
-std::vector<VkAttachmentDescription> CreateAttachmentDescriptions(
+std::vector<intl::AttachmentDescription> CreateAttachmentDescriptions(
     const RenderPassDescriptor& descriptor,
     absl::Span<const DeviceImage* const> color_attachments,
     absl::Span<const DeviceImage* const> depth_stencil_attachments) {
-  std::vector<VkAttachmentDescription> descriptions;
+  std::vector<intl::AttachmentDescription> descriptions;
   descriptions.reserve(color_attachments.size() +
                        depth_stencil_attachments.size());
 
@@ -31,17 +30,16 @@ std::vector<VkAttachmentDescription> CreateAttachmentDescriptions(
     if (const auto iter = descriptor.color_ops_map.find(attachment);
         iter != descriptor.color_ops_map.end()) {
       const auto& load_store_ops = iter->second;
-      descriptions.push_back({
-          .flags = nullflag,
-          attachment->format(),
-          attachment->sample_count(),
-          type::ConvertAttachmentLoadOp(load_store_ops.load_op),
-          type::ConvertAttachmentStoreOp(load_store_ops.store_op),
-          .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-          .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-          .initialLayout = VK_IMAGE_LAYOUT_GENERAL,
-          .finalLayout = VK_IMAGE_LAYOUT_GENERAL,
-         });
+      descriptions.push_back(intl::AttachmentDescription{}
+          .setFormat(attachment->format())
+          .setSamples(attachment->sample_count())
+          .setLoadOp(type::ConvertAttachmentLoadOp(load_store_ops.load_op))
+          .setStoreOp(type::ConvertAttachmentStoreOp(load_store_ops.store_op))
+          .setStencilLoadOp(intl::AttachmentLoadOp::eDontCare)
+          .setStencilStoreOp(intl::AttachmentStoreOp::eDontCare)
+          .setInitialLayout(intl::ImageLayout::eGeneral)
+          .setFinalLayout(intl::ImageLayout::eGeneral)
+      );
     } else {
       FATAL(absl::StrFormat(
           "No color load store ops specified for attachment %s",
@@ -53,17 +51,20 @@ std::vector<VkAttachmentDescription> CreateAttachmentDescriptions(
     if (const auto iter = descriptor.depth_stencil_ops_map.find(attachment);
         iter != descriptor.depth_stencil_ops_map.end()) {
       const auto& load_store_ops = iter->second;
-      descriptions.push_back({
-          .flags = nullflag,
-          attachment->format(),
-          attachment->sample_count(),
-          type::ConvertAttachmentLoadOp(load_store_ops.depth_ops.load_op),
-          type::ConvertAttachmentStoreOp(load_store_ops.depth_ops.store_op),
-          type::ConvertAttachmentLoadOp(load_store_ops.stencil_ops.load_op),
-          type::ConvertAttachmentStoreOp(load_store_ops.stencil_ops.store_op),
-          .initialLayout = VK_IMAGE_LAYOUT_GENERAL,
-          .finalLayout = VK_IMAGE_LAYOUT_GENERAL,
-      });
+      descriptions.push_back(intl::AttachmentDescription{}
+          .setFormat(attachment->format())
+          .setSamples(attachment->sample_count())
+          .setLoadOp(type::ConvertAttachmentLoadOp(
+              load_store_ops.depth_ops.load_op))
+          .setStoreOp(type::ConvertAttachmentStoreOp(
+              load_store_ops.depth_ops.store_op))
+          .setStencilLoadOp(type::ConvertAttachmentLoadOp(
+              load_store_ops.stencil_ops.load_op))
+          .setStencilStoreOp(type::ConvertAttachmentStoreOp(
+              load_store_ops.stencil_ops.store_op))
+          .setInitialLayout(intl::ImageLayout::eGeneral)
+          .setFinalLayout(intl::ImageLayout::eGeneral)
+      );
     } else {
       FATAL(absl::StrFormat(
           "No depth stencil load store ops specified for attachment %s",
@@ -74,15 +75,15 @@ std::vector<VkAttachmentDescription> CreateAttachmentDescriptions(
   return descriptions;
 }
 
-std::vector<VkSubpassDescription> CreateSubpassDescriptions() {
+std::vector<intl::SubpassDescription> CreateSubpassDescriptions() {
   FATAL("Not yet implemented");
 }
 
-std::vector<VkSubpassDependency> CreateSubpassDependencies() {
+std::vector<intl::SubpassDependency> CreateSubpassDependencies() {
   FATAL("Not yet implemented");
 }
 
-std::vector<VkFramebuffer> CreateFrameBuffers() {
+std::vector<intl::Framebuffer> CreateFrameBuffers() {
   FATAL("Not yet implemented");
 }
 
@@ -96,8 +97,9 @@ RenderPass::RenderPass(SharedContext context,
       descriptor.graphics_ops.value().GetPipeline(0);
   std::vector<const DeviceImage*> attachments;
 
-  for (const auto& pair : pipeline_descriptor.color_attachment_info_map) {
-    attachments.push_back(&DeviceImage::Cast(*pair.first));
+  for (const auto& [attachment, _] :
+           pipeline_descriptor.color_attachment_info_map) {
+    attachments.push_back(&DeviceImage::Cast(*attachment));
   }
   const absl::Span<const DeviceImage* const> color_attachments = attachments;
 
@@ -113,32 +115,20 @@ RenderPass::RenderPass(SharedContext context,
   const auto subpass_descriptions = CreateSubpassDescriptions();
   const auto subpass_dependencies = CreateSubpassDependencies();
 
-  const VkRenderPassCreateInfo render_pass_info{
-      VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = nullflag,
-      CONTAINER_SIZE(attachment_descriptions),
-      attachment_descriptions.data(),
-      CONTAINER_SIZE(subpass_descriptions),
-      subpass_descriptions.data(),
-      CONTAINER_SIZE(subpass_dependencies),
-      subpass_dependencies.data(),
-  };
-
-  ASSERT_SUCCESS(vkCreateRenderPass(*context_->device(), &render_pass_info,
-                                    *context_->host_allocator(), &render_pass_),
-                 "Failed to create render pass");
-
+  const auto render_pass_create_info = intl::RenderPassCreateInfo{}
+      .setAttachments(attachment_descriptions)
+      .setSubpasses(subpass_descriptions)
+      .setDependencies(subpass_dependencies);
+  render_pass_ = context_->device()->createRenderPass(
+      render_pass_create_info, *context_->host_allocator());
   framebuffers_ = CreateFrameBuffers();
 }
 
 RenderPass::~RenderPass() {
   for (const auto& framebuffer : framebuffers_) {
-    vkDestroyFramebuffer(*context_->device(), framebuffer,
-                         *context_->host_allocator());
+    context_->device()->destroy(framebuffer, *context_->host_allocator());
   }
-  vkDestroyRenderPass(*context_->device(), render_pass_,
-                      *context_->host_allocator());
+  context_->device()->destroy(render_pass_, *context_->host_allocator());
 #ifndef NDEBUG
   LOG_INFO << "Render pass destructed";
 #endif  // !NDEBUG

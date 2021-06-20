@@ -117,13 +117,13 @@ std::optional<std::string> FindUnsupported(
   for (const auto& avl : available) {
     LOG_INFO << "\t" << avl;
   }
-  LOG_EMPTY_LINE;
+  LOG_INFO;
 
   LOG_INFO << "Required:";
   for (const auto& req : required) {
     LOG_INFO << "\t" << req;
   }
-  LOG_EMPTY_LINE;
+  LOG_INFO;
 
   for (const auto& req : required) {
     if (!available.contains(req)) {

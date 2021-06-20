@@ -34,17 +34,13 @@ class HostMemoryAllocator {
 
   // Overloads.
   intl::Optional<const intl::AllocationCallbacks> operator*() const {
-    return {&allocation_callbacks_};
+    return nullptr;
   }
 
   // Accessors.
-  VkAllocationCallbacks handle() const {
-    return static_cast<VkAllocationCallbacks>(allocation_callbacks_);
+  const VkAllocationCallbacks* c_type() const {
+    return nullptr;
   }
-
- private:
-  // Used to allocate memory on the host.
-  intl::AllocationCallbacks allocation_callbacks_;
 };
 
 // Wraps VkInstance, which is used to establish connection with Vulkan library

@@ -51,7 +51,7 @@ void PrintElements(std::string_view header, ForwardIterator begin,
   for (ForwardIterator iter = begin; iter != end; ++iter) {
     LOG_INFO << "\t" << *iter;
   }
-  LOG_EMPTY_LINE;
+  LOG_INFO;
 }
 
 // Convenient function to print elements in 'container'.
@@ -99,7 +99,7 @@ std::vector<std::string> PropertyChecker::FindUnsupported(
   } else {
     PrintElements("Unsupported:", unsupported_properties);
   }
-  LOG_EMPTY_LINE;
+  LOG_INFO;
 
   return unsupported_properties;
 }

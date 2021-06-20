@@ -12,7 +12,7 @@
 
 #include "lighter/renderer/pass.h"
 #include "lighter/renderer/vk/pipeline.h"
-#include "third_party/vulkan/vulkan.h"
+#include "lighter/renderer/vk/util.h"
 
 namespace lighter::renderer::vk {
 
@@ -34,10 +34,10 @@ class RenderPass : public renderer::RenderPass {
   std::vector<Pipeline> pipelines_;
 
   // Opaque render pass object.
-  VkRenderPass render_pass_ = VK_NULL_HANDLE;
+  intl::RenderPass render_pass_;
 
   // Opaque framebuffer objects.
-  std::vector<VkFramebuffer> framebuffers_;
+  std::vector<intl::Framebuffer> framebuffers_;
 };
 
 }  // namespace lighter::renderer::vk

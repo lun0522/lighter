@@ -18,8 +18,8 @@
 
 // All members of Vulkan-Hpp are placed in the intl namespace.
 #define VULKAN_HPP_NAMESPACE lighter::renderer::vk::intl
+#define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
 #include "third_party/vulkan/vulkan.hpp"
-#undef VULKAN_HPP_NAMESPACE
 
 #define CAST_TO_UINT(number) static_cast<uint32_t>(number)
 

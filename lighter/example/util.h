@@ -35,7 +35,7 @@
 namespace lighter::example {
 
 inline std::unique_ptr<renderer::Renderer> CreateRenderer(
-    common::api::GraphicsApi graphics_api, std::string_view application_name,
+    common::api::GraphicsApi graphics_api, const char* application_name,
     std::vector<const common::Window*>&& window_ptrs) {
   std::optional<renderer::debug_message::Config> debug_message_config;
 #ifndef NDEBUG

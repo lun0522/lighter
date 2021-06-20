@@ -14,6 +14,7 @@
 #include "lighter/renderer/vk/image_util.h"
 #include "lighter/renderer/vk/type_mapping.h"
 #include "third_party/absl/container/flat_hash_set.h"
+#include "third_party/absl/strings/str_format.h"
 
 namespace lighter::renderer::vk {
 namespace {

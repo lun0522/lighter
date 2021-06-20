@@ -7,6 +7,10 @@
 
 #include "lighter/renderer/vk/context.h"
 
+#include "lighter/renderer/vk/util.h"
+
+VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
+
 namespace lighter::renderer::vk {
 
 Context::Context(
@@ -16,8 +20,17 @@ Context::Context(
   const bool enable_validation = debug_message_config.has_value();
   const bool enable_swapchain = !windows.empty();
 
+  // Load instance-independent function pointers.
+  const intl::DynamicLoader dynamic_loader;
+  const auto vkGetInstanceProcAddr =
+      dynamic_loader.getProcAddress<PFN_vkGetInstanceProcAddr>(
+          "vkGetInstanceProcAddr");
+  VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
+
   instance_ = std::make_unique<Instance>(this, enable_validation,
                                          application_name, windows);
+  // Load instance-dependent function pointers.
+  VULKAN_HPP_DEFAULT_DISPATCHER.init(**instance_);
   host_allocator_ = std::make_unique<HostMemoryAllocator>();
   if (enable_validation) {
     debug_messenger_ =
@@ -34,6 +47,8 @@ Context::Context(
 
   physical_device_ = std::make_unique<PhysicalDevice>(this, surface_ptrs);
   device_ = std::make_unique<Device>(this, enable_validation, enable_swapchain);
+  // Load device-specific function pointers.
+  VULKAN_HPP_DEFAULT_DISPATCHER.init(**device_);
   queues_ = std::make_unique<Queues>(*this);
 }
 

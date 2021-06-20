@@ -32,7 +32,7 @@ void CheckPropertiesSupport(std::string_view property_type,
                             const PropertyChecker& property_checker,
                             absl::Span<const std::string> required_properties) {
   LOG_INFO << absl::StreamFormat("Checking %s support", property_type);
-  LOG_EMPTY_LINE;
+  LOG_INFO;
   ASSERT_EMPTY(property_checker.FindUnsupported(required_properties),
                absl::StrFormat("Found unsupported %s", property_type));
 }
@@ -52,7 +52,7 @@ std::vector<const char*> GetWindowExtensions(
 // Returns whether swapchain is supported by 'physical_device'.
 bool SupportsSwapchain(intl::PhysicalDevice physical_device) {
   LOG_INFO << "Checking swapchain device extensions support";
-  LOG_EMPTY_LINE;
+  LOG_INFO;
 
   const auto checker = PropertyChecker::ForDeviceExtensions(physical_device);
   return checker.AreSupported({std::string{kSwapchainExtension}});
@@ -62,7 +62,7 @@ bool SupportsSwapchain(intl::PhysicalDevice physical_device) {
 bool SupportsSurfaces(intl::PhysicalDevice physical_device,
                       absl::Span<const Surface* const> surfaces) {
   LOG_INFO << "Checking surfaces compatibility";
-  LOG_EMPTY_LINE;
+  LOG_INFO;
 
   uint32_t format_count, mode_count;
   for (int i = 0; i < surfaces.size(); ++i) {
@@ -81,7 +81,7 @@ bool SupportsSurfaces(intl::PhysicalDevice physical_device,
   }
 
   LOG_INFO << "All compatible";
-  LOG_EMPTY_LINE;
+  LOG_INFO;
   return true;
 }
 
@@ -106,7 +106,7 @@ std::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
     absl::Span<const Surface* const> surfaces) {
   const auto properties = physical_device.getProperties();
   LOG_INFO << "Found graphics device: " << properties.deviceName;
-  LOG_EMPTY_LINE;
+  LOG_INFO;
 
   // Request swapchain and surface support if use window.
   if (!surfaces.empty()) {
@@ -206,11 +206,10 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
   const bool is_error =
       severity == intl::DebugUtilsMessageSeverityFlagBitsEXT::eError;
 
-  common::util::Logger logger{std::move(is_error ? LOG_ERROR : LOG_INFO)};
-  logger << absl::StreamFormat(
-      "[DebugCallback] severity %s, types %s",
+  LOG_SWITCH(is_error) << absl::StreamFormat(
+      "[DebugCallback] severity %s, types %s, message:",
       intl::to_string(severity), intl::to_string(types));
-  logger << callback_data->pMessage;
+  LOG_SWITCH(is_error) << callback_data->pMessage;
   return VK_FALSE;
 }
 
@@ -267,13 +266,13 @@ DebugMessenger::DebugMessenger(const Context* context,
                                const debug_message::Config& config)
     : context_{*FATAL_IF_NULL(context)} {
   // We may pass data to 'pUserData' which can be retrieved from the callback.
-  const auto create_info = intl::DebugUtilsMessengerCreateInfoEXT{}
+  const auto messenger_create_info = intl::DebugUtilsMessengerCreateInfoEXT{}
       .setMessageSeverity(
           type::ConvertDebugMessageSeverities(config.message_severities))
       .setMessageType(type::ConvertDebugMessageTypes(config.message_types))
       .setPfnUserCallback(UserCallback);
   messenger_ = context_.instance()->createDebugUtilsMessengerEXT(
-      create_info, *context_.host_allocator());
+      messenger_create_info, *context_.host_allocator());
 }
 
 DebugMessenger::~DebugMessenger() {
@@ -283,11 +282,11 @@ DebugMessenger::~DebugMessenger() {
 Surface::Surface(const Context* context, const common::Window& window)
     : context_{*FATAL_IF_NULL(context)} {
   const auto create_surface_func = window.GetCreateSurfaceFunc();
-  const auto host_allocator = context_.host_allocator().handle();
   VkSurfaceKHR surface;
-  ASSERT_SUCCESS(intl::Result{create_surface_func(*context_.instance(),
-                                                  &host_allocator, &surface)},
-                 "Failed to create window surface");
+  ASSERT_SUCCESS(
+    intl::Result{create_surface_func(
+        *context_.instance(), context_.host_allocator().c_type(), &surface)},
+    "Failed to create window surface");
   surface_ = surface;
 }
 
