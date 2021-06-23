@@ -16,7 +16,9 @@
 #include "lighter/common/window.h"
 #include "lighter/renderer/renderer.h"
 #include "lighter/renderer/type.h"
+#ifdef USE_VULKAN
 #include "lighter/renderer/vk/renderer.h"
+#endif  // USE_VULKAN
 #include "third_party/absl/flags/declare.h"
 #include "third_party/absl/flags/flag.h"
 

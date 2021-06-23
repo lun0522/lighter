@@ -10,7 +10,6 @@
 
 #include <string>
 
-#include "lighter/application/util.h"
 #include "lighter/common/file.h"
 #include "lighter/common/graphics_api.h"
 #include "lighter/common/timer.h"
@@ -18,6 +17,7 @@
 #include "lighter/common/window.h"
 #include "lighter/renderer/align.h"
 #include "lighter/renderer/opengl/wrapper/program.h"
+#include "lighter/renderer/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/flags/declare.h"
 #include "third_party/absl/flags/flag.h"
@@ -25,8 +25,6 @@
 #include "third_party/glad/glad.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/GLFW/glfw3.h"
-
-ABSL_DECLARE_FLAG(bool, ignore_vsync);
 
 namespace lighter {
 namespace application {

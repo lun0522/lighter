@@ -21,12 +21,7 @@ Context::Context(
   const bool enable_swapchain = !windows.empty();
 
   // Load instance-independent function pointers.
-  const intl::DynamicLoader dynamic_loader;
-  const auto vkGetInstanceProcAddr =
-      dynamic_loader.getProcAddress<PFN_vkGetInstanceProcAddr>(
-          "vkGetInstanceProcAddr");
   VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
-
   instance_ = std::make_unique<Instance>(this, enable_validation,
                                          application_name, windows);
   // Load instance-dependent function pointers.

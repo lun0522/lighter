@@ -1,4 +1,8 @@
+load("//:settings.bzl", "graphics_api")
+
 package(default_visibility = ["//lighter:__subpackages__"])
+
+graphics_api()
 
 cc_library(
     name = "align",
@@ -7,11 +11,11 @@ cc_library(
 
 cc_library(
     name = "buffer",
+    srcs = ["buffer_util.cc"],
     hdrs = [
         "buffer.h",
         "buffer_util.h",
     ],
-    srcs = ["buffer_util.cc"],
     deps = [
         ":type",
         "//lighter/common:file",
@@ -32,8 +36,8 @@ cc_library(
     name = "image",
     hdrs = ["image.h"],
     deps = [
-        ":type",
         ":image_usage",
+        ":type",
     ],
 )
 
@@ -60,11 +64,11 @@ cc_library(
 
 cc_library(
     name = "pipeline",
+    srcs = ["pipeline_util.cc"],
     hdrs = [
         "pipeline.h",
         "pipeline_util.h",
     ],
-    srcs = ["pipeline_util.cc"],
     deps = [
         ":buffer",
         ":image",
@@ -102,16 +106,17 @@ cc_library(
 
 cc_library(
     name = "util",
-    hdrs = ["util.h"],
     srcs = ["util.cc"],
+    hdrs = ["util.h"],
     deps = [
         ":renderer",
         ":type",
         "//lighter/common:graphics_api",
-        "//lighter/common:window",
         "//lighter/common:util",
-        "//lighter/renderer/vk:renderer",
-        "//lighter/renderer/vk:util",
+        "//lighter/common:window",
         "//third_party:absl",
-    ],
+    ] + select({
+        "use_vulkan": ["//lighter/renderer/vk:renderer"],
+        "//conditions:default": [],
+    }),
 )

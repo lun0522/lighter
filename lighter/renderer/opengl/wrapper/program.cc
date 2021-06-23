@@ -49,11 +49,10 @@ std::optional<std::vector<char>> CheckStatus(GLuint source, GLenum target,
 Shader::Shader(GLenum shader_type, const std::string& file_path)
     : shader_type_{shader_type}, shader_{glCreateShader(shader_type)} {
   const auto raw_data = std::make_unique<common::RawData>(file_path);
-  // TODO: Remove "ARB" after switching to OpenGL 4.6.
-  glShaderBinary(/*count=*/1, &shader_, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB,
+  glShaderBinary(/*count=*/1, &shader_, GL_SHADER_BINARY_FORMAT_SPIR_V,
                  raw_data->data, raw_data->size);
-  glSpecializeShaderARB(shader_, "main", /*numSpecializationConstants=*/0,
-                        /*pConstantIndex=*/nullptr, /*pConstantValue=*/nullptr);
+  glSpecializeShader(shader_, "main", /*numSpecializationConstants=*/0,
+                     /*pConstantIndex=*/nullptr, /*pConstantValue=*/nullptr);
 
   if (const auto error = CheckStatus(shader_, GL_COMPILE_STATUS, glGetShaderiv,
                                      glGetShaderInfoLog)) {

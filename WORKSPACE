@@ -9,8 +9,13 @@ http_archive(
     urls = ["https://github.com/bazelbuild/bazel-skylib/archive/1.0.3.tar.gz"],
 )
 
-load("@//:repository_rules.bzl", "absl_archive", "external_windows_archive",
-     "gtest_archive", "use_vulkan_sdk")
+load(
+    "@//:repository_rules.bzl",
+    "absl_archive",
+    "external_windows_archive",
+    "gtest_archive",
+    "use_vulkan_sdk",
+)
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 #######################################
@@ -23,8 +28,10 @@ http_archive(
     url = "https://github.com/bazelbuild/rules_foreign_cc/archive/0.2.0.tar.gz",
 )
 
-load("@rules_foreign_cc//foreign_cc:repositories.bzl",
-     "rules_foreign_cc_dependencies")
+load(
+    "@rules_foreign_cc//foreign_cc:repositories.bzl",
+    "rules_foreign_cc_dependencies",
+)
 
 # Set up common toolchains for building targets. See more details:
 # https://github.com/bazelbuild/rules_foreign_cc/tree/main/docs#rules_foreign_cc_dependencies
@@ -44,16 +51,16 @@ absl_archive(
 
 http_archive(
     name = "lib-assimp",
+    build_file = "//:third_party/BUILD.assimp",
     sha256 = "11310ec1f2ad2cd46b95ba88faca8f7aaa1efe9aa12605c55e3de2b977b3dbfc",
     strip_prefix = "assimp-5.0.1",
-    build_file = "//:third_party/BUILD.assimp",
     url = "https://github.com/assimp/assimp/archive/v5.0.1.tar.gz",
 )
 
 external_windows_archive(
     name = "lib-assimp-windows",
-    strip_prefix = "assimp",
     build_file = "//:third_party/BUILD.assimp.windows",
+    strip_prefix = "assimp",
 )
 
 #######################################
@@ -61,16 +68,16 @@ external_windows_archive(
 
 http_archive(
     name = "lib-freetype",
+    build_file = "//:third_party/BUILD.freetype",
     sha256 = "5eab795ebb23ac77001cfb68b7d4d50b5d6c7469247b0b01b2c953269f658dac",
     strip_prefix = "freetype-2.10.4",
-    build_file = "//:third_party/BUILD.freetype",
     url = "https://download.savannah.gnu.org/releases/freetype/freetype-2.10.4.tar.gz",
 )
 
 external_windows_archive(
     name = "lib-freetype-windows",
-    strip_prefix = "freetype",
     build_file = "//:third_party/BUILD.freetype.windows",
+    strip_prefix = "freetype",
 )
 
 #######################################
@@ -79,9 +86,9 @@ external_windows_archive(
 http_archive(
     name = "lib-glad",
     build_file = "//:third_party/BUILD.glad",
-    sha256 = "fb70142b175aff3fc9cc0438ea4b2047c6d37163a7afe6942a6868755ec3e636",
-    strip_prefix = "lib-glad-4.5",
-    url = "https://github.com/lun0522/lib-glad/archive/4.5.tar.gz",
+    sha256 = "b4b5b242594ee92325f4c5072a3203b00a83c5a5199a1c923ede611b5b58db42",
+    strip_prefix = "lib-glad-4.6",
+    url = "https://github.com/lun0522/lib-glad/archive/4.6.tar.gz",
 )
 
 #######################################
@@ -89,16 +96,16 @@ http_archive(
 
 http_archive(
     name = "lib-glfw",
+    build_file = "//:third_party/BUILD.glfw",
     sha256 = "cc8ac1d024a0de5fd6f68c4133af77e1918261396319c24fd697775a6bc93b63",
     strip_prefix = "glfw-3.3.4",
-    build_file = "//:third_party/BUILD.glfw",
     url = "https://github.com/glfw/glfw/archive/3.3.4.tar.gz",
 )
 
 external_windows_archive(
     name = "lib-glfw-windows",
-    strip_prefix = "glfw",
     build_file = "//:third_party/BUILD.glfw.windows",
+    strip_prefix = "glfw",
 )
 
 #######################################
@@ -137,8 +144,10 @@ new_git_repository(
 
 use_vulkan_sdk(
     name = "lib-shaderc",
-    build_file_abs_path = paths.join(__workspace_dir__,
-                                     "third_party/BUILD.shaderc"),
+    build_file_abs_path = paths.join(
+        __workspace_dir__,
+        "third_party/BUILD.shaderc",
+    ),
 )
 
 #######################################
@@ -146,16 +155,16 @@ use_vulkan_sdk(
 
 http_archive(
     name = "lib-spirv-cross",
+    build_file = "//:third_party/BUILD.spirv_cross",
     sha256 = "d700863b548cbc7f27a678cee305f561669a126eb2cc11d36a7023dfc462b9c4",
     strip_prefix = "SPIRV-Cross-2021-01-15",
-    build_file = "//:third_party/BUILD.spirv_cross",
     url = "https://github.com/KhronosGroup/SPIRV-Cross/archive/2021-01-15.tar.gz",
 )
 
 external_windows_archive(
     name = "lib-spirv-cross-windows",
-    strip_prefix = "spirv_cross",
     build_file = "//:third_party/BUILD.spirv_cross.windows",
+    strip_prefix = "spirv_cross",
 )
 
 #######################################
@@ -174,8 +183,10 @@ new_git_repository(
 
 use_vulkan_sdk(
     name = "lib-vulkan",
-    build_file_abs_path = paths.join(__workspace_dir__,
-                                     "third_party/BUILD.vulkan"),
+    build_file_abs_path = paths.join(
+        __workspace_dir__,
+        "third_party/BUILD.vulkan",
+    ),
 )
 
 #######################################

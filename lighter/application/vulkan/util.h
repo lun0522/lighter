@@ -21,7 +21,6 @@
 #include "lighter/common/util.h"
 #include "lighter/renderer/align.h"
 #include "lighter/renderer/image_usage.h"
-#include "lighter/renderer/util.h"
 #include "lighter/renderer/vulkan/extension/compute_pass.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/model.h"
@@ -43,6 +42,10 @@
 namespace lighter {
 namespace application {
 namespace vulkan {
+
+// Initializes the graphics API. This must be called once at the very beginning
+// for each API that is going to be used.
+void GlobalInit(common::api::GraphicsApi graphics_api);
 
 // This is the base class of all applications. Its constructor simply forwards
 // all arguments to the constructor of WindowContext. Each application should
@@ -178,7 +181,7 @@ int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
 
   absl::ParseCommandLine(argc, argv);
   common::file::EnableRunfileLookup(argv[0]);
-  renderer::util::GlobalInit(common::api::GraphicsApi::kVulkan);
+  GlobalInit(common::api::GraphicsApi::kVulkan);
 
   // We don't catch exceptions in the debug mode, so that if there is anything
   // wrong, the debugger would stay at the point where the application breaks.

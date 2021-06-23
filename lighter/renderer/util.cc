@@ -83,8 +83,12 @@ std::unique_ptr<Renderer> CreateRenderer(
       FATAL("Not implemented yet");
 
     case common::api::GraphicsApi::kVulkan:
+#ifdef USE_VULKAN
       return std::make_unique<vk::Renderer>(
           application_name, debug_message_config, std::move(window_ptrs));
+#else
+      FATAL("Vulkan is not enabled");
+#endif  // USE_VULKAN
   }
 }
 

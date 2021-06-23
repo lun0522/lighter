@@ -315,9 +315,9 @@ PhysicalDevice::PhysicalDevice(const Context* context,
           limits_.framebufferDepthSampleCounts,
           limits_.framebufferStencilSampleCounts,
       });
-      for (const auto mode : {MultisamplingMode::kNone,
-                              MultisamplingMode::kDecent,
-                              MultisamplingMode::kBest}) {
+      for (auto mode : {MultisamplingMode::kNone,
+                        MultisamplingMode::kDecent,
+                        MultisamplingMode::kBest}) {
         sample_count_map_.insert(
             {mode, ChooseSampleCount(mode, supported_sample_counts)});
       }

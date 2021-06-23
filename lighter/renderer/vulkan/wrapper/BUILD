@@ -6,16 +6,16 @@ compilation_mode()
 
 cc_library(
     name = "basics",
+    srcs = ["basic_object.cc"] + select({
+        ":optimal_build": [],
+        "//conditions:default": ["validation.cc"],
+    }),
     hdrs = [
         "basic_context.h",
         "basic_object.h",
     ] + select({
         ":optimal_build": [],
         "//conditions:default": ["validation.h"],
-    }),
-    srcs = ["basic_object.cc"] + select({
-        ":optimal_build": [],
-        "//conditions:default": ["validation.cc"],
     }),
     deps = [
         ":util",
@@ -28,8 +28,8 @@ cc_library(
 
 cc_library(
     name = "buffer",
-    hdrs = ["buffer.h"],
     srcs = ["buffer.cc"],
+    hdrs = ["buffer.h"],
     deps = [
         ":basics",
         ":command",
@@ -42,8 +42,8 @@ cc_library(
 
 cc_library(
     name = "command",
-    hdrs = ["command.h"],
     srcs = ["command.cc"],
+    hdrs = ["command.h"],
     deps = [
         ":basics",
         ":synchronization",
@@ -56,8 +56,8 @@ cc_library(
 
 cc_library(
     name = "descriptor",
-    hdrs = ["descriptor.h"],
     srcs = ["descriptor.cc"],
+    hdrs = ["descriptor.h"],
     deps = [
         ":basics",
         ":util",
@@ -70,13 +70,13 @@ cc_library(
 
 cc_library(
     name = "image",
-    hdrs = [
-        "image.h",
-        "image_util.h",
-    ],
     srcs = [
         "image.cc",
         "image_util.cc",
+    ],
+    hdrs = [
+        "image.h",
+        "image_util.h",
     ],
     deps = [
         ":basics",
@@ -90,7 +90,7 @@ cc_library(
         "//lighter/renderer:image_usage",
         "//third_party:absl",
         "//third_party:vulkan",
-    ]
+    ],
 )
 
 cc_test(
@@ -98,20 +98,20 @@ cc_test(
     srcs = ["image_util_test.cc"],
     deps = [
         ":image",
-        "//third_party:gtest_main",
+        "//third_party:gtest",
         "//third_party:vulkan",
     ],
 )
 
 cc_library(
     name = "pipeline",
-    hdrs = [
-        "pipeline.h",
-        "pipeline_util.h",
-    ],
     srcs = [
         "pipeline.cc",
         "pipeline_util.cc",
+    ],
+    hdrs = [
+        "pipeline.h",
+        "pipeline_util.h",
     ],
     deps = [
         ":basics",
@@ -127,8 +127,8 @@ cc_library(
 
 cc_library(
     name = "render_pass",
-    hdrs = ["render_pass.h"],
     srcs = ["render_pass.cc"],
+    hdrs = ["render_pass.h"],
     deps = [
         ":basics",
         ":image",
@@ -142,8 +142,8 @@ cc_library(
 
 cc_library(
     name = "synchronization",
-    hdrs = ["synchronization.h"],
     srcs = ["synchronization.cc"],
+    hdrs = ["synchronization.h"],
     deps = [
         ":basics",
         ":util",
@@ -153,8 +153,8 @@ cc_library(
 
 cc_library(
     name = "util",
-    hdrs = ["util.h"],
     srcs = ["util.cc"],
+    hdrs = ["util.h"],
     deps = [
         "//lighter/common:util",
         "//third_party:absl",
@@ -165,18 +165,18 @@ cc_library(
 
 cc_library(
     name = "window",
+    srcs = ["swapchain.cc"],
     hdrs = [
         "swapchain.h",
         "window_context.h",
     ],
-    srcs = ["swapchain.cc"],
     deps = [
         ":basics",
         ":image",
         ":util",
         "//lighter/common:image",
-        "//lighter/common:window",
         "//lighter/common:util",
+        "//lighter/common:window",
         "//third_party:vulkan",
     ],
 )

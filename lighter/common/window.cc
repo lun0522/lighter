@@ -70,9 +70,8 @@ Window::Window(std::string_view name, const glm::ivec2& screen_size)
   ASSERT_TRUE(glfwInit() == GLFW_TRUE, "Failed to init GLFW");
 
 #ifdef USE_OPENGL
-  // TODO: Switch to OpenGL 4.6.
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #endif  // USE_OPENGL
 

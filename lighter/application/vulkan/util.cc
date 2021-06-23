@@ -7,6 +7,8 @@
 
 #include "lighter/application/vulkan/util.h"
 
+#include "lighter/renderer/util.h"
+
 namespace lighter {
 namespace application {
 namespace vulkan {
@@ -16,6 +18,10 @@ using namespace renderer;
 using namespace renderer::vulkan;
 
 } /* namespace */
+
+void GlobalInit(common::api::GraphicsApi graphics_api) {
+  lighter::renderer::util::GlobalInit(graphics_api);
+}
 
 void OnScreenRenderPassManager::RecreateRenderPass() {
   /* Depth stencil image */

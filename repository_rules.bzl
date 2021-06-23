@@ -14,11 +14,11 @@ def _use_vulkan_sdk_impl(repository_ctx):
 use_vulkan_sdk = repository_rule(
     implementation = _use_vulkan_sdk_impl,
     local = True,
-    attrs = {"build_file_abs_path": attr.string(mandatory=True)},
+    attrs = {"build_file_abs_path": attr.string(mandatory = True)},
     environ = [_VK_SDK_ENV_VAR],
 )
 
-def get_vulkan_include_path(relative_path=""):
+def get_vulkan_include_path(relative_path = ""):
     return paths.join(_VK_SDK_SYMLINK, "include", relative_path)
 
 def get_vulkan_lib_path(relative_path):
