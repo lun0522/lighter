@@ -6,6 +6,7 @@ licenses(["notice"])
 cc_library(
     name = "absl",
     deps = [
+        "@lib-absl-include//:absl_include",
         "@lib-absl//absl/base:core_headers",
         "@lib-absl//absl/container:flat_hash_map",
         "@lib-absl//absl/container:flat_hash_set",
@@ -15,7 +16,6 @@ cc_library(
         "@lib-absl//absl/strings",
         "@lib-absl//absl/strings:str_format",
         "@lib-absl//absl/types:span",
-        "@lib-absl-include//:absl_include",
     ],
 )
 
@@ -51,8 +51,8 @@ cc_library(
 cc_library(
     name = "gtest",
     deps = [
-        "@lib-gtest//:gtest_main",
         "@lib-gtest-include//:gtest_include",
+        "@lib-gtest//:gtest_main",
     ],
 )
 

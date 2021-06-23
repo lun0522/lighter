@@ -9,6 +9,10 @@ cc_binary(
 cc_library(
     name = "util",
     hdrs = ["util.h"],
+    data = [
+        "//lighter/shader",
+        "@resource",
+    ],
     deps = [
         "//lighter/common:file",
         "//lighter/common:graphics_api",
@@ -20,9 +24,5 @@ cc_library(
         "//third_party:absl",
         "//third_party:glm",
         "//third_party:spirv_cross",
-    ],
-    data = [
-        "//lighter/shader",
-        "@resource//:resource",
     ],
 )

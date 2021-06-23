@@ -6,8 +6,8 @@ cc_library(
     name = "spirv_cross",
     hdrs = glob(["include/**"]),
     strip_include_prefix = "include",
-    deps = [":libspirv_cross_core"],
     visibility = ["//visibility:public"],
+    deps = [":libspirv_cross_core"],
 )
 
 cc_import(

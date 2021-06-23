@@ -2,8 +2,9 @@ package(default_visibility = ["//visibility:private"])
 
 cc_library(
     name = "common",
-    hdrs = ["util.h"],
     srcs = ["util.cc"],
+    hdrs = ["util.h"],
+    visibility = ["//lighter/application/vulkan:__subpackages__"],
     deps = [
         "//lighter/application:resource",
         "//lighter/common:camera",
@@ -18,7 +19,6 @@ cc_library(
         "//third_party:glm",
         "//third_party:vulkan",
     ],
-    visibility = ["//lighter/application/vulkan:__subpackages__"],
 )
 
 cc_binary(
@@ -29,8 +29,8 @@ cc_binary(
 
 cc_library(
     name = "image_viewer",
-    hdrs = ["image_viewer.h"],
     srcs = ["image_viewer.cc"],
+    hdrs = ["image_viewer.h"],
     deps = [":common"],
 )
 

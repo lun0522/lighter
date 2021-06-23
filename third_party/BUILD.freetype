@@ -11,7 +11,6 @@ filegroup(
 
 cmake(
     name = "cmake_build",
-    lib_source = ":all_srcs",
     generate_args = [
         "-D CMAKE_BUILD_TYPE=Release",
         "-D CMAKE_INSTALL_INCLUDEDIR=include/third_party",
@@ -21,6 +20,7 @@ cmake(
         "-D CMAKE_DISABLE_FIND_PACKAGE_HarfBuzz=TRUE",
         "-D CMAKE_DISABLE_FIND_PACKAGE_BrotliDec=TRUE",
     ],
+    lib_source = ":all_srcs",
     out_static_libs = select({
         "@platforms//os:windows": ["freetype.lib"],
         "//conditions:default": ["libfreetype.a"],
@@ -29,7 +29,7 @@ cmake(
 
 cc_library(
     name = "freetype",
-    deps = [":cmake_build"],
     includes = ["cmake_build/include/third_party/freetype2"],
     visibility = ["//visibility:public"],
+    deps = [":cmake_build"],
 )

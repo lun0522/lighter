@@ -2,8 +2,8 @@ package(default_visibility = ["//lighter/application/vulkan/aurora:__subpackages
 
 cc_library(
     name = "button",
-    hdrs = ["button.h"],
     srcs = ["button.cc"],
+    hdrs = ["button.h"],
     deps = [
         ":button_maker",
         ":button_util",
@@ -14,8 +14,8 @@ cc_library(
 
 cc_library(
     name = "button_maker",
-    hdrs = ["button_maker.h"],
     srcs = ["button_maker.cc"],
+    hdrs = ["button_maker.h"],
     deps = [
         ":button_util",
         "//lighter/application/vulkan:common",
@@ -25,28 +25,28 @@ cc_library(
 
 cc_library(
     name = "button_util",
-    hdrs = ["button_util.h"],
     srcs = ["button_util.cc"],
+    hdrs = ["button_util.h"],
     deps = ["//lighter/application/vulkan:common"],
 )
 
 cc_library(
     name = "celestial",
-    hdrs = ["celestial.h"],
     srcs = ["celestial.cc"],
+    hdrs = ["celestial.h"],
     deps = ["//lighter/application/vulkan:common"],
 )
 
 cc_library(
     name = "editor",
-    hdrs = ["editor.h"],
     srcs = ["editor.cc"],
+    hdrs = ["editor.h"],
     deps = [
         ":button",
         ":celestial",
         ":path",
-        "//lighter/application/vulkan/aurora:scene",
         "//lighter/application/vulkan:common",
+        "//lighter/application/vulkan/aurora:scene",
         "//lighter/common:rotation",
         "//third_party:absl",
     ],
@@ -54,8 +54,8 @@ cc_library(
 
 cc_library(
     name = "path",
-    hdrs = ["path.h"],
     srcs = ["path.cc"],
+    hdrs = ["path.h"],
     deps = [
         ":button_util",
         "//lighter/application/vulkan:common",

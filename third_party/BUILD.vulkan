@@ -1,5 +1,8 @@
-load("@//:repository_rules.bzl", "get_vulkan_include_path",
-     "get_vulkan_lib_path")
+load(
+    "@//:repository_rules.bzl",
+    "get_vulkan_include_path",
+    "get_vulkan_lib_path",
+)
 
 package(default_visibility = ["//visibility:private"])
 
@@ -31,6 +34,10 @@ cc_library(
         get_vulkan_include_path("vulkan/*.h"),
         get_vulkan_include_path("vulkan/*.hpp"),
     ]),
+    include_prefix = "third_party",
+    includes = [get_vulkan_include_path()],
+    strip_include_prefix = get_vulkan_include_path(),
+    visibility = ["//visibility:public"],
     deps = select({
         "@platforms//os:linux": [
             ":libvulkan_linux",
@@ -39,8 +46,4 @@ cc_library(
         "@platforms//os:macos": [":libvulkan_macos"],
         "@platforms//os:windows": [":libvulkan_windows"],
     }),
-    includes = [get_vulkan_include_path()],
-    include_prefix = "third_party",
-    strip_include_prefix = get_vulkan_include_path(),
-    visibility = ["//visibility:public"],
 )

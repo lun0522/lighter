@@ -1,5 +1,8 @@
-load("@//:repository_rules.bzl", "get_vulkan_include_path",
-     "get_vulkan_lib_path")
+load(
+    "@//:repository_rules.bzl",
+    "get_vulkan_include_path",
+    "get_vulkan_lib_path",
+)
 
 package(default_visibility = ["//visibility:private"])
 
@@ -16,9 +19,9 @@ cc_import(
 cc_library(
     name = "shaderc",
     hdrs = glob([get_vulkan_include_path("shaderc/*.h")]),
-    includes = [get_vulkan_include_path()],
-    deps = [":libshaderc"],
     include_prefix = "third_party",
+    includes = [get_vulkan_include_path()],
     strip_include_prefix = get_vulkan_include_path(),
     visibility = ["//visibility:public"],
+    deps = [":libshaderc"],
 )

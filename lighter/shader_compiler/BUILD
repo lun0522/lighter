@@ -2,8 +2,8 @@ package(default_visibility = ["//visibility:private"])
 
 cc_library(
     name = "compilation_record",
-    hdrs = ["compilation_record.h"],
     srcs = ["compilation_record.cc"],
+    hdrs = ["compilation_record.h"],
     deps = [
         ":util",
         "//lighter/common:graphics_api",
@@ -14,8 +14,8 @@ cc_library(
 
 cc_library(
     name = "compiler",
-    hdrs = ["compiler.h"],
     srcs = ["compiler.cc"],
+    hdrs = ["compiler.h"],
     deps = [
         ":util",
         "//lighter/common:util",
@@ -37,8 +37,8 @@ cc_binary(
 
 cc_library(
     name = "run_compiler",
-    hdrs = ["run_compiler.h"],
     srcs = ["run_compiler.cc"],
+    hdrs = ["run_compiler.h"],
     deps = [
         ":compilation_record",
         ":compiler",
@@ -54,8 +54,8 @@ cc_library(
 
 cc_library(
     name = "util",
-    hdrs = ["util.h"],
     srcs = ["util.cc"],
-    deps = ["//lighter/common:graphics_api"],
+    hdrs = ["util.h"],
     visibility = ["//visibility:public"],
+    deps = ["//lighter/common:graphics_api"],
 )

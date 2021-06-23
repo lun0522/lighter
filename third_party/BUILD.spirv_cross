@@ -11,7 +11,6 @@ filegroup(
 
 cmake(
     name = "spirv_cross",
-    lib_source = ":all_srcs",
     generate_args = [
         "-D CMAKE_BUILD_TYPE=Release",
         "-D CMAKE_INSTALL_INCLUDEDIR=include/third_party",
@@ -23,6 +22,7 @@ cmake(
         "-D SPIRV_CROSS_ENABLE_C_API=OFF",
         "-D SPIRV_CROSS_ENABLE_UTIL=OFF",
     ],
+    lib_source = ":all_srcs",
     out_static_libs = ["libspirv-cross-core.a"],
     visibility = ["//visibility:public"],
 )

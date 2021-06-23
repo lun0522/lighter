@@ -6,6 +6,7 @@ compilation_mode()
 
 cc_library(
     name = "offscreen",
+    data = ["@resource"],
     deps = [
         ":compute_pass",
         ":graphics_pass",
@@ -14,7 +15,6 @@ cc_library(
         ":offscreen_wrappers",
         ":text",
     ],
-    data = ["@resource//:resource"],
 )
 
 cc_library(
@@ -27,8 +27,8 @@ cc_library(
 
 cc_library(
     name = "base_pass",
-    hdrs = ["base_pass.h"],
     srcs = ["base_pass.cc"],
+    hdrs = ["base_pass.h"],
     deps = [
         "//lighter/common:util",
         "//lighter/renderer:image_usage",
@@ -40,8 +40,8 @@ cc_library(
 
 cc_library(
     name = "compute_pass",
-    hdrs = ["compute_pass.h"],
     srcs = ["compute_pass.cc"],
+    hdrs = ["compute_pass.h"],
     deps = [
         ":base_pass",
         "//lighter/common:util",
@@ -54,8 +54,8 @@ cc_library(
 
 cc_library(
     name = "graphics_pass",
-    hdrs = ["graphics_pass.h"],
     srcs = ["graphics_pass.cc"],
+    hdrs = ["graphics_pass.h"],
     deps = [
         ":base_pass",
         "//lighter/common:util",
@@ -68,8 +68,8 @@ cc_library(
 
 cc_library(
     name = "model",
-    hdrs = ["model.h"],
     srcs = ["model.cc"],
+    hdrs = ["model.h"],
     deps = [
         ":offscreen_wrappers",
         "//lighter/common:file",
@@ -82,8 +82,8 @@ cc_library(
 
 cc_library(
     name = "naive_render_pass",
-    hdrs = ["naive_render_pass.h"],
     srcs = ["naive_render_pass.cc"],
+    hdrs = ["naive_render_pass.h"],
     deps = [
         ":graphics_pass",
         "//lighter/common:util",
@@ -110,13 +110,13 @@ cc_library(
 
 cc_library(
     name = "text",
-    hdrs = [
-        "text.h",
-        "text_util.h"
-    ],
     srcs = [
         "text.cc",
         "text_util.cc",
+    ],
+    hdrs = [
+        "text.h",
+        "text_util.h",
     ],
     deps = [
         ":naive_render_pass",

@@ -11,7 +11,6 @@ filegroup(
 
 cmake(
     name = "cmake_build",
-    lib_source = ":all_srcs",
     generate_args = [
         "-D CMAKE_BUILD_TYPE=Release",
         "-D BUILD_SHARED_LIBS=OFF",
@@ -23,6 +22,7 @@ cmake(
         "-D ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT=OFF",
         "-D ASSIMP_BUILD_OBJ_IMPORTER=ON",
     ],
+    lib_source = ":all_srcs",
     out_static_libs = select({
         "@platforms//os:windows": ["assimp-vc142-mt.lib"],
         "//conditions:default": ["libassimp.a"],
@@ -31,7 +31,7 @@ cmake(
 
 cc_library(
     name = "assimp",
-    deps = [":cmake_build"],
     includes = ["cmake_build/include/third_party"],
     visibility = ["//visibility:public"],
+    deps = [":cmake_build"],
 )

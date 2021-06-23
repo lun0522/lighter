@@ -9,15 +9,15 @@ cc_library(
 
 cc_library(
     name = "distance_field",
-    hdrs = ["distance_field.h"],
     srcs = ["distance_field.cc"],
+    hdrs = ["distance_field.h"],
     deps = ["//lighter/application/vulkan:common"],
 )
 
 cc_library(
     name = "path_dumper",
-    hdrs = ["path_dumper.h"],
     srcs = ["path_dumper.cc"],
+    hdrs = ["path_dumper.h"],
     deps = [
         ":distance_field",
         ":path_renderer",
@@ -28,19 +28,19 @@ cc_library(
 
 cc_library(
     name = "path_renderer",
-    hdrs = ["path_renderer.h"],
     srcs = ["path_renderer.cc"],
+    hdrs = ["path_renderer.h"],
     deps = ["//lighter/application/vulkan:common"],
 )
 
 cc_library(
     name = "viewer",
-    hdrs = ["viewer.h"],
     srcs = ["viewer.cc"],
+    hdrs = ["viewer.h"],
     deps = [
         ":air_transmit_table",
         ":path_dumper",
-        "//lighter/application/vulkan/aurora:scene",
         "//lighter/application/vulkan:common",
+        "//lighter/application/vulkan/aurora:scene",
     ],
 )

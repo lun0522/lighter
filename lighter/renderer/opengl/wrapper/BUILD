@@ -6,8 +6,8 @@ compilation_mode()
 
 cc_library(
     name = "program",
-    hdrs = ["program.h"],
     srcs = ["program.cc"],
+    hdrs = ["program.h"],
     deps = [
         "//lighter/common:file",
         "//lighter/common:ref_count",

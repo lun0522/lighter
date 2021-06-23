@@ -2,13 +2,13 @@ package(default_visibility = ["//lighter:__subpackages__"])
 
 cc_library(
     name = "buffer",
-    hdrs = [
-        "buffer.h",
-        "buffer_util.h",
-    ],
     srcs = [
         "buffer.cc",
         "buffer_util.cc",
+    ],
+    hdrs = [
+        "buffer.h",
+        "buffer_util.h",
     ],
     deps = [
         ":context",
@@ -23,13 +23,13 @@ cc_library(
 
 cc_library(
     name = "context",
-    hdrs = [
-        "basic.h",
-        "context.h",
-    ],
     srcs = [
         "basic.cc",
         "context.cc",
+    ],
+    hdrs = [
+        "basic.h",
+        "context.h",
     ],
     deps = [
         ":property_checker",
@@ -45,13 +45,13 @@ cc_library(
 
 cc_library(
     name = "image",
-    hdrs = [
-        "image.h",
-        "image_util.h",
-    ],
     srcs = [
         "image.cc",
         "image_util.cc",
+    ],
+    hdrs = [
+        "image.h",
+        "image_util.h",
     ],
     deps = [
         ":buffer",
@@ -79,8 +79,8 @@ cc_test(
 
 cc_library(
     name = "pipeline",
-    hdrs = ["pipeline.h"],
     srcs = ["pipeline.cc"],
+    hdrs = ["pipeline.h"],
     deps = [
         ":context",
         ":image",
@@ -100,8 +100,8 @@ cc_library(
 
 cc_library(
     name = "property_checker",
-    hdrs = ["property_checker.h"],
     srcs = ["property_checker.cc"],
+    hdrs = ["property_checker.h"],
     deps = [
         ":util",
         "//lighter/common:util",
@@ -111,8 +111,8 @@ cc_library(
 
 cc_library(
     name = "renderer",
-    hdrs = ["renderer.h"],
     srcs = ["renderer.cc"],
+    hdrs = ["renderer.h"],
     deps = [
         ":buffer",
         ":context",
@@ -134,8 +134,8 @@ cc_library(
 
 cc_library(
     name = "render_pass",
-    hdrs = ["render_pass.h"],
     srcs = ["render_pass.cc"],
+    hdrs = ["render_pass.h"],
     deps = [
         ":image",
         ":pipeline",
@@ -150,8 +150,8 @@ cc_library(
 
 cc_library(
     name = "swapchain",
-    hdrs = ["swapchain.h"],
     srcs = ["swapchain.cc"],
+    hdrs = ["swapchain.h"],
     deps = [
         ":context",
         ":image",
@@ -166,8 +166,8 @@ cc_library(
 
 cc_library(
     name = "type_mapping",
-    hdrs = ["type_mapping.h"],
     srcs = ["type_mapping.cc"],
+    hdrs = ["type_mapping.h"],
     deps = [
         ":util",
         "//lighter/common:util",

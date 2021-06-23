@@ -44,19 +44,19 @@ cc_library(
 
 cc_library(
     name = "graphics_api",
-    hdrs = ["graphics_api.h"],
     srcs = ["graphics_api.cc"],
+    hdrs = ["graphics_api.h"],
 )
 
 cc_library(
     name = "image",
-    hdrs = ["image.h"],
     srcs = ["image.cc"],
+    hdrs = ["image.h"],
     deps = [
-        ":util",
         ":file",
-        "//third_party:stb",
+        ":util",
         "//third_party:absl",
+        "//third_party:stb",
     ],
 )
 
@@ -83,8 +83,8 @@ cc_library(
 
 cc_library(
     name = "rotation",
-    hdrs = ["rotation.h"],
     srcs = ["rotation.cc"],
+    hdrs = ["rotation.h"],
     deps = [
         ":camera",
         ":timer",
@@ -95,8 +95,8 @@ cc_library(
 
 cc_library(
     name = "spline",
-    hdrs = ["spline.h"],
     srcs = ["spline.cc"],
+    hdrs = ["spline.h"],
     deps = [
         ":util",
         "//third_party:absl",
@@ -111,8 +111,8 @@ cc_library(
 
 cc_library(
     name = "util",
-    hdrs = ["util.h"],
     srcs = ["util.cc"],
+    hdrs = ["util.h"],
     deps = ["//third_party:absl"],
 )
 

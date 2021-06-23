@@ -2,11 +2,11 @@ licenses(["notice"])
 
 cc_library(
     name = "glad",
-    textual_hdrs = glob(["**/*.h"]),
-    includes = ["include"],
-    hdrs = glob(["**/*.h"]),
     srcs = glob(["**/*.c"]),
-    strip_include_prefix = "include",
+    hdrs = glob(["**/*.h"]),
     include_prefix = "third_party",
+    includes = ["include"],
+    strip_include_prefix = "include",
+    textual_hdrs = glob(["**/*.h"]),
     visibility = ["//visibility:public"],
 )

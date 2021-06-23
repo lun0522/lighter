@@ -7,8 +7,8 @@ cc_library(
     hdrs = glob(["include/**"]),
     includes = ["include/third_party/freetype2"],
     strip_include_prefix = "include",
-    deps = [":libfreetype"],
     visibility = ["//visibility:public"],
+    deps = [":libfreetype"],
 )
 
 cc_import(
