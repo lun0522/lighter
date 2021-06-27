@@ -5,14 +5,14 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_PIPELINE_UTIL_H
-#define LIGHTER_RENDERER_PIPELINE_UTIL_H
+#ifndef LIGHTER_RENDERER_IR_PIPELINE_UTIL_H
+#define LIGHTER_RENDERER_IR_PIPELINE_UTIL_H
 
-#include "lighter/renderer/pipeline.h"
-#include "lighter/renderer/type.h"
+#include "lighter/renderer/ir/pipeline.h"
+#include "lighter/renderer/ir/type.h"
 #include "third_party/glm/glm.hpp"
 
-namespace lighter::renderer::pipeline {
+namespace lighter::renderer::ir::pipeline {
 
 // Returns the blend state that simply adds up source and destination colors.
 // This is used for single channel images that do not have alpha channels.
@@ -51,6 +51,6 @@ GraphicsPipelineDescriptor::Viewport GetViewport(const glm::ivec2& frame_size,
 GraphicsPipelineDescriptor::Scissor GetFullFrameScissor(
     const glm::ivec2& frame_size);
 
-}  // namespace lighter::renderer::pipeline
+}  // namespace lighter::renderer::ir::pipeline
 
-#endif  // LIGHTER_RENDERER_PIPELINE_UTIL_H
+#endif  // LIGHTER_RENDERER_IR_PIPELINE_UTIL_H

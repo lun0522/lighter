@@ -11,7 +11,7 @@
 #include <memory>
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/type.h"
+#include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/vk/basic.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/image.h"

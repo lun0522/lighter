@@ -24,6 +24,7 @@ namespace {
 
 using namespace renderer;
 using namespace renderer::vulkan;
+using ir::AccessType;
 
 // To save device memory, we reuse images in this way:
 //   - Render paths: [output] distance_field_image

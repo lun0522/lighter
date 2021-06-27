@@ -5,19 +5,19 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_PASS_H
-#define LIGHTER_RENDERER_PASS_H
+#ifndef LIGHTER_RENDERER_IR_PASS_H
+#define LIGHTER_RENDERER_IR_PASS_H
 
 #include <optional>
 #include <vector>
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/image.h"
-#include "lighter/renderer/pipeline.h"
-#include "lighter/renderer/type.h"
+#include "lighter/renderer/ir/image.h"
+#include "lighter/renderer/ir/pipeline.h"
+#include "lighter/renderer/ir/type.h"
 #include "third_party/absl/container/flat_hash_map.h"
 
-namespace lighter::renderer {
+namespace lighter::renderer::ir {
 
 class GraphicsOps {
  public:
@@ -160,6 +160,6 @@ class ComputePass {
   explicit ComputePass() = default;
 };
 
-}  // namespace lighter::renderer
+}  // namespace lighter::renderer::ir
 
-#endif  // LIGHTER_RENDERER_PASS_H
+#endif  // LIGHTER_RENDERER_IR_PASS_H

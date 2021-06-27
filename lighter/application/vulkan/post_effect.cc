@@ -98,7 +98,8 @@ void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
   ImageUsageHistory original_image_usage_history{};
   original_image_usage_history.AddUsage(
       kPostEffectSubpassIndex,
-      ImageUsage::GetLinearAccessInComputeShaderUsage(AccessType::kReadOnly));
+      ImageUsage::GetLinearAccessInComputeShaderUsage(
+          ir::AccessType::kReadOnly));
   const common::Image image_from_file{file_path};
   TextureImage original_image(
       context(), /*generate_mipmaps=*/false, image_from_file,
@@ -108,7 +109,7 @@ void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
   processed_image_usage_history
       .AddUsage(kPostEffectSubpassIndex,
                 ImageUsage::GetLinearAccessInComputeShaderUsage(
-                    AccessType::kWriteOnly))
+                    ir::AccessType::kWriteOnly))
       .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
   processed_image_ = std::make_unique<OffscreenImage>(
       context(), original_image.extent(), image_from_file.channel(),
@@ -159,9 +160,9 @@ void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
       pipeline->Bind(command_buffer);
       descriptor.Bind(command_buffer, pipeline->layout(),
                       pipeline->binding_point());
-      const auto group_count_x = util::GetWorkGroupCount(
+      const auto group_count_x = renderer::vulkan::util::GetWorkGroupCount(
           image_from_file.width(), kWorkGroupSizeX);
-      const auto group_count_y = util::GetWorkGroupCount(
+      const auto group_count_y = renderer::vulkan::util::GetWorkGroupCount(
           image_from_file.height(), kWorkGroupSizeY);
       vkCmdDispatch(command_buffer, group_count_x, group_count_y,
                     /*groupCountZ=*/1);

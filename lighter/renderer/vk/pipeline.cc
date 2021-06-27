@@ -10,13 +10,16 @@
 #include <vector>
 
 #include "lighter/common/file.h"
-#include "lighter/renderer/image_usage.h"
+#include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/vk/type_mapping.h"
 #include "lighter/shader_compiler/util.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace lighter::renderer::vk {
 namespace {
+
+using ir::GraphicsPipelineDescriptor;
+using ir::PipelineDescriptor;
 
 // Contains a loaded shader 'module' that will be used at 'stage'.
 struct ShaderStage {
@@ -103,7 +106,7 @@ CreateVertexInputAttributeDescriptions(
     const GraphicsPipelineDescriptor& descriptor) {
   const auto num_attributes = common::util::Reduce<int>(
       descriptor.vertex_buffer_views,
-      [](const renderer::VertexBufferView& view) {
+      [](const ir::VertexBufferView& view) {
         return view.attributes.size();
       });
 
@@ -185,7 +188,7 @@ intl::PipelineMultisampleStateCreateInfo GetMultisampleStateCreateInfo(
     const GraphicsPipelineDescriptor& descriptor) {
   // Since all color and depth stencil attachments must have the same sample
   // count, we only need to look at one of them.
-  const renderer::DeviceImage* attachment =
+  const ir::DeviceImage* attachment =
       descriptor.depth_stencil_attachment == nullptr
           ? descriptor.depth_stencil_attachment
           : descriptor.color_attachment_info_map.begin()->first;
@@ -329,12 +332,12 @@ Pipeline::Pipeline(SharedContext context,
 }
 
 Pipeline::Pipeline(SharedContext context,
-                   const ComputePipelineDescriptor& descriptor)
+                   const ir::ComputePipelineDescriptor& descriptor)
     : Pipeline{std::move(context), descriptor.pipeline_name,
                intl::PipelineBindPoint::eCompute,
                descriptor.uniform_descriptor} {
   const auto shader_stages = CreateShaderStages(
-      context_, {{shader_stage::COMPUTE, descriptor.shader_path}});
+      context_, {{ir::shader_stage::COMPUTE, descriptor.shader_path}});
   const auto shader_stage_create_infos =
       GetShaderStageCreateInfos(&shader_stages);
 

@@ -49,7 +49,6 @@ inline intl::Offset2D CreateOffset(const glm::ivec2& dimension) {
 
 }  // namespace util
 
-constexpr uint32_t nullflag = 0;
 constexpr uint32_t kSingleMipLevel = common::image::kSingleMipLevel;
 constexpr uint32_t kSingleImageLayer = common::image::kSingleImageLayer;
 constexpr uint32_t kCubemapImageLayer = common::image::kCubemapImageLayer;

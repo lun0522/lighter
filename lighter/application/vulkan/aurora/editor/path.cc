@@ -9,7 +9,7 @@
 
 #include "lighter/application/vulkan/util.h"
 #include "lighter/common/file.h"
-#include "lighter/renderer/align.h"
+#include "lighter/renderer/util.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/glm/gtc/matrix_transform.hpp"

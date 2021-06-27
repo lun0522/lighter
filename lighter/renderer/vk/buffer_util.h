@@ -10,7 +10,7 @@
 
 #include <optional>
 
-#include "lighter/renderer/buffer_usage.h"
+#include "lighter/renderer/ir/buffer_usage.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/types/span.h"
@@ -19,14 +19,14 @@ namespace lighter::renderer::vk::buffer {
 
 // Returns VkBufferUsageFlags that contains all usages.
 intl::BufferUsageFlags GetBufferUsageFlags(
-    absl::Span<const BufferUsage> usages);
+    absl::Span<const ir::BufferUsage> usages);
 
 // Returns the family index of the queue that accesses the buffer for 'usage'.
 // Note that since this is used for creating buffers, it will return
 // std::nullopt for the following usage types (apart from kDontCare):
 // - kTransfer, since the queue should be inferred from previous or next usages.
 std::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
-                                            const BufferUsage& usage);
+                                            const ir::BufferUsage& usage);
 
 // Allocates device memory.
 intl::DeviceMemory CreateDeviceMemory(

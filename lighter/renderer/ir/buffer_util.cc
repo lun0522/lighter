@@ -5,12 +5,12 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "lighter/renderer/buffer_util.h"
+#include "lighter/renderer/ir/buffer_util.h"
 
 #include "lighter/common/file.h"
-#include "lighter/renderer/type.h"
+#include "lighter/renderer/ir/type.h"
 
-namespace lighter::renderer::buffer {
+namespace lighter::renderer::ir::buffer {
 namespace {
 
 template <typename T>
@@ -64,4 +64,4 @@ std::vector<VertexBufferView::Attribute> CreateAttributesForVertex3DWithTex(
 
 #undef CREATE_ATTRIBUTE
 
-}  // namespace lighter::renderer::buffer
+}  // namespace lighter::renderer::ir::buffer

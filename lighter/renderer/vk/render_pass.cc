@@ -8,7 +8,6 @@
 #include "lighter/renderer/vk/render_pass.h"
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/pipeline.h"
 #include "lighter/renderer/vk/image.h"
 #include "lighter/renderer/vk/type_mapping.h"
 #include "third_party/absl/strings/str_format.h"
@@ -16,6 +15,8 @@
 
 namespace lighter::renderer::vk {
 namespace {
+
+using ir::RenderPassDescriptor;
 
 // TODO: Populate image layout.
 std::vector<intl::AttachmentDescription> CreateAttachmentDescriptions(

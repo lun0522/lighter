@@ -11,8 +11,8 @@
 
 #include "lighter/application/vulkan/util.h"
 #include "lighter/common/file.h"
-#include "lighter/renderer/align.h"
-#include "lighter/renderer/image_usage.h"
+#include "lighter/renderer/ir/image_usage.h"
+#include "lighter/renderer/util.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "third_party/glm/gtc/matrix_transform.hpp"
 
@@ -186,7 +186,7 @@ void GeometryPass::CreateRenderPassBuilder(
     if (attachment.location == kAttachmentNonApplicable) {
       history.AddUsage(kRenderSubpassIndex,
                        ImageUsage::GetDepthStencilUsage(
-                           AccessType::kReadWrite));
+                           ir::AccessType::kReadWrite));
       attachment.attachment_index = graphics_pass.AddAttachment(
           attachment.image_name, std::move(history), /*get_location=*/nullptr,
           depth_stencil_load_store_ops);

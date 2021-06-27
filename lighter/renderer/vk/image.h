@@ -13,22 +13,22 @@
 
 #include "lighter/common/image.h"
 #include "lighter/common/util.h"
-#include "lighter/renderer/image.h"
-#include "lighter/renderer/image_usage.h"
-#include "lighter/renderer/type.h"
+#include "lighter/renderer/ir/image.h"
+#include "lighter/renderer/ir/image_usage.h"
+#include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/types/span.h"
 
 namespace lighter::renderer::vk {
 
-class DeviceImage : public renderer::DeviceImage {
+class DeviceImage : public ir::DeviceImage {
  public:
   // This class is neither copyable nor movable.
   DeviceImage(const DeviceImage&) = delete;
   DeviceImage& operator=(const DeviceImage&) = delete;
 
-  static const DeviceImage& Cast(const renderer::DeviceImage& image) {
+  static const DeviceImage& Cast(const ir::DeviceImage& image) {
     return dynamic_cast<const DeviceImage&>(image);
   }
 
@@ -39,8 +39,7 @@ class DeviceImage : public renderer::DeviceImage {
  protected:
   DeviceImage(std::string_view name, intl::Format format,
               intl::SampleCountFlagBits sample_count)
-      : renderer::DeviceImage{name},
-        format_{format}, sample_count_{sample_count} {}
+      : ir::DeviceImage{name}, format_{format}, sample_count_{sample_count} {}
 
  private:
   const intl::Format format_;
@@ -53,17 +52,17 @@ class GeneralDeviceImage : public DeviceImage {
   static std::unique_ptr<DeviceImage> CreateColorImage(
       SharedContext context, std::string_view name,
       const common::Image::Dimension& dimension,
-      MultisamplingMode multisampling_mode, bool high_precision,
-      absl::Span<const ImageUsage> usages);
+      ir::MultisamplingMode multisampling_mode, bool high_precision,
+      absl::Span<const ir::ImageUsage> usages);
 
   static std::unique_ptr<DeviceImage> CreateColorImage(
       SharedContext context, std::string_view name, const common::Image& image,
-      bool generate_mipmaps, absl::Span<const ImageUsage> usages);
+      bool generate_mipmaps, absl::Span<const ir::ImageUsage> usages);
 
   static std::unique_ptr<DeviceImage> CreateDepthStencilImage(
       SharedContext context, std::string_view name,
-      const intl::Extent2D& extent, MultisamplingMode multisampling_mode,
-      absl::Span<const ImageUsage> usages);
+      const intl::Extent2D& extent, ir::MultisamplingMode multisampling_mode,
+      absl::Span<const ir::ImageUsage> usages);
 
   // This class is neither copyable nor movable.
   GeneralDeviceImage(const GeneralDeviceImage&) = delete;
@@ -75,8 +74,8 @@ class GeneralDeviceImage : public DeviceImage {
   GeneralDeviceImage(SharedContext context, std::string_view name,
                      intl::Format format, const intl::Extent2D& extent,
                      uint32_t mip_levels, uint32_t layer_count,
-                     MultisamplingMode multisampling_mode,
-                     absl::Span<const ImageUsage> usages);
+                     ir::MultisamplingMode multisampling_mode,
+                     absl::Span<const ir::ImageUsage> usages);
 
   const SharedContext context_;
 
@@ -104,10 +103,10 @@ class SwapchainImage : public DeviceImage {
   std::vector<intl::Image> images_;
 };
 
-class SampledImageView : public renderer::SampledImageView {
+class SampledImageView : public ir::SampledImageView {
  public:
-  SampledImageView(const renderer::DeviceImage& image,
-                   const SamplerDescriptor& sampler_descriptor) {}
+  SampledImageView(const ir::DeviceImage& image,
+                   const ir::SamplerDescriptor& sampler_descriptor) {}
 
   // This class provides copy constructor and move constructor.
   SampledImageView(SampledImageView&&) noexcept = default;

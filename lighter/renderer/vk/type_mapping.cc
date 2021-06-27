@@ -11,6 +11,8 @@
 
 namespace lighter::renderer::vk::type {
 
+using namespace ir;
+
 intl::VertexInputRate ConvertVertexInputRate(VertexInputRate rate) {
   #define CONVERT(rate) \
       case VertexInputRate::k##rate: return intl::VertexInputRate::e##rate

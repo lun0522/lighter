@@ -31,7 +31,7 @@ cc_library(
     hdrs = ["base_pass.h"],
     deps = [
         "//lighter/common:util",
-        "//lighter/renderer:image_usage",
+        "//lighter/renderer/ir:image_usage",
         "//lighter/renderer/vulkan/wrapper:image",
         "//third_party:absl",
         "//third_party:vulkan",
@@ -45,7 +45,7 @@ cc_library(
     deps = [
         ":base_pass",
         "//lighter/common:util",
-        "//lighter/renderer:image_usage",
+        "//lighter/renderer/ir:image_usage",
         "//lighter/renderer/vulkan/wrapper:image",
         "//third_party:absl",
         "//third_party:vulkan",
@@ -59,7 +59,7 @@ cc_library(
     deps = [
         ":base_pass",
         "//lighter/common:util",
-        "//lighter/renderer:image_usage",
+        "//lighter/renderer/ir:image_usage",
         "//lighter/renderer/vulkan/wrapper:image",
         "//lighter/renderer/vulkan/wrapper:render_pass",
         "//third_party:absl",
@@ -126,7 +126,7 @@ cc_library(
         "//lighter/common:graphics_api",
         "//lighter/common:image",
         "//lighter/common:util",
-        "//lighter/renderer:align",
+        "//lighter/renderer:util",
         "//third_party:absl",
         "//third_party:glm",
     ],

@@ -8,7 +8,7 @@
 #include "lighter/renderer/vulkan/extension/model.h"
 
 #include "lighter/common/file.h"
-#include "lighter/renderer/image_usage.h"
+#include "lighter/renderer/ir/image_usage.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace lighter {

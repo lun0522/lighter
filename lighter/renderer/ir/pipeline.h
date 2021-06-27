@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_PIPELINE_H
-#define LIGHTER_RENDERER_PIPELINE_H
+#ifndef LIGHTER_RENDERER_IR_PIPELINE_H
+#define LIGHTER_RENDERER_IR_PIPELINE_H
 
 #include <memory>
 #include <optional>
@@ -14,13 +14,13 @@
 #include <string_view>
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/buffer.h"
-#include "lighter/renderer/image.h"
-#include "lighter/renderer/type.h"
+#include "lighter/renderer/ir/buffer.h"
+#include "lighter/renderer/ir/image.h"
+#include "lighter/renderer/ir/type.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/glm/glm.hpp"
 
-namespace lighter::renderer {
+namespace lighter::renderer::ir {
 
 struct PipelineDescriptor {
   struct PushConstantRange {
@@ -197,6 +197,6 @@ class ComputePipelineDescriptor : public PipelineDescriptor {
   std::string shader_path;
 };
 
-}  // namespace lighter::renderer
+}  // namespace lighter::renderer::ir
 
-#endif  // LIGHTER_RENDERER_PIPELINE_H
+#endif  // LIGHTER_RENDERER_IR_PIPELINE_H

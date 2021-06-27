@@ -8,8 +8,8 @@
 #include "lighter/application/vulkan/aurora/viewer/path_renderer.h"
 
 #include "lighter/application/vulkan/util.h"
-#include "lighter/renderer/align.h"
-#include "lighter/renderer/image_usage.h"
+#include "lighter/renderer/ir/image_usage.h"
+#include "lighter/renderer/util.h"
 #include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
@@ -59,7 +59,7 @@ PathRenderer2D::PathRenderer2D(
     const OffscreenImage& output_image,
     MultisampleImage::Mode multisampling_mode,
     std::vector<const PerVertexBuffer*>&& aurora_paths_vertex_buffers)
-    : work_group_count_{util::GetWorkGroupCount(
+    : work_group_count_{renderer::vulkan::util::GetWorkGroupCount(
           intermediate_image.extent(), {kWorkGroupSizeX, kWorkGroupSizeY})},
       aurora_paths_vertex_buffers_{std::move(aurora_paths_vertex_buffers)} {
   const auto& image_extent = intermediate_image.extent();

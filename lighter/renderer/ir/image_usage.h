@@ -5,20 +5,20 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_IMAGE_USAGE_H
-#define LIGHTER_RENDERER_IMAGE_USAGE_H
+#ifndef LIGHTER_RENDERER_IR_IMAGE_USAGE_H
+#define LIGHTER_RENDERER_IR_IMAGE_USAGE_H
 
 #include <algorithm>
 #include <map>
 #include <optional>
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/type.h"
+#include "lighter/renderer/ir/type.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/strings/str_format.h"
 #include "third_party/absl/types/span.h"
 
-namespace lighter::renderer {
+namespace lighter::renderer::ir {
 
 // Describes how we would use an image.
 class ImageUsage {
@@ -301,6 +301,6 @@ class ImageUsageTracker {
   absl::flat_hash_map<std::string, ImageUsage> image_usage_map_;
 };
 
-}  // namespace lighter::renderer
+}  // namespace lighter::renderer::ir
 
-#endif  // LIGHTER_RENDERER_IMAGE_USAGE_H
+#endif  // LIGHTER_RENDERER_IR_IMAGE_USAGE_H

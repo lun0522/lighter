@@ -14,8 +14,8 @@
 
 #include "lighter/common/ref_count.h"
 #include "lighter/common/util.h"
-#include "lighter/renderer/pass.h"
-#include "lighter/renderer/pipeline.h"
+#include "lighter/renderer/ir/pass.h"
+#include "lighter/renderer/ir/pipeline.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/image.h"
 #include "lighter/renderer/vk/util.h"
@@ -60,12 +60,14 @@ class ShaderModule {
 class Pipeline {
  public:
   // Constructs a graphics pipeline.
-  Pipeline(SharedContext context, const GraphicsPipelineDescriptor& descriptor,
+  Pipeline(SharedContext context,
+           const ir::GraphicsPipelineDescriptor& descriptor,
            intl::RenderPass render_pass, int subpass_index,
            absl::Span<const DeviceImage* const> subpass_attachments);
 
   // Constructs a compute pipeline.
-  Pipeline(SharedContext context, const ComputePipelineDescriptor& descriptor);
+  Pipeline(SharedContext context,
+           const ir::ComputePipelineDescriptor& descriptor);
 
   // This class is neither copyable nor movable.
   Pipeline(const Pipeline&) = delete;
@@ -80,7 +82,7 @@ class Pipeline {
  private:
   Pipeline(SharedContext context, std::string_view name,
            intl::PipelineBindPoint binding_point,
-           const PipelineDescriptor::UniformDescriptor& uniform_descriptor);
+           const ir::PipelineDescriptor::UniformDescriptor& uniform_descriptor);
 
   // Pointer to context.
   const SharedContext context_;

@@ -7,16 +7,14 @@
 
 #include "lighter/renderer/vk/image_util.h"
 
-#include "lighter/renderer/vk/util.h"
+#include "lighter/renderer/ir/type.h"
 
 #ifdef ASSERT_TRUE
 #undef ASSERT_TRUE
 #endif
-
 #ifdef ASSERT_FALSE
 #undef ASSERT_FALSE
 #endif
-
 #include "third_party/gtest/gtest.h"
 
 // Tests are written according to:
@@ -24,6 +22,9 @@
 
 namespace lighter::renderer::vk::image {
 namespace {
+
+using ir::AccessType;
+using ir::ImageUsage;
 
 TEST(ImageUsageTest, LinearReadInComputeShader) {
   const ImageUsage usage =

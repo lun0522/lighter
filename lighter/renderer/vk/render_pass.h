@@ -10,15 +10,15 @@
 
 #include <vector>
 
-#include "lighter/renderer/pass.h"
+#include "lighter/renderer/ir/pass.h"
 #include "lighter/renderer/vk/pipeline.h"
 #include "lighter/renderer/vk/util.h"
 
 namespace lighter::renderer::vk {
 
-class RenderPass : public renderer::RenderPass {
+class RenderPass : public ir::RenderPass {
  public:
-  RenderPass(SharedContext context, const RenderPassDescriptor& descriptor);
+  RenderPass(SharedContext context, const ir::RenderPassDescriptor& descriptor);
 
   // This class is neither copyable nor movable.
   RenderPass(const RenderPass&) = delete;

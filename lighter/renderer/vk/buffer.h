@@ -9,18 +9,18 @@
 #define LIGHTER_RENDERER_VK_BUFFER_H
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/buffer.h"
-#include "lighter/renderer/buffer_usage.h"
+#include "lighter/renderer/ir/buffer.h"
+#include "lighter/renderer/ir/buffer_usage.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/types/span.h"
 
 namespace lighter::renderer::vk {
 
-class DeviceBuffer : public renderer::DeviceBuffer {
+class DeviceBuffer : public ir::DeviceBuffer {
  public:
   DeviceBuffer(SharedContext context, UpdateRate update_rate,
-               size_t initial_size, absl::Span<const BufferUsage> usages)
+               size_t initial_size, absl::Span<const ir::BufferUsage> usages)
       : context_{std::move(FATAL_IF_NULL(context))},
         allocation_info_{*context_, update_rate, usages} {
     AllocateBufferAndMemory(initial_size);
@@ -35,7 +35,7 @@ class DeviceBuffer : public renderer::DeviceBuffer {
  private:
   struct AllocationInfo {
     AllocationInfo(const Context& context, UpdateRate update_rate,
-                   absl::Span<const BufferUsage> usages);
+                   absl::Span<const ir::BufferUsage> usages);
 
     // Returns true if the device memory is visible to host.
     bool IsHostVisible() const {

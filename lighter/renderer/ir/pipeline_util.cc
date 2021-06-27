@@ -5,13 +5,13 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "lighter/renderer/pipeline_util.h"
+#include "lighter/renderer/ir/pipeline_util.h"
 
 #include <algorithm>
 
 #include "lighter/common/util.h"
 
-namespace lighter::renderer::pipeline {
+namespace lighter::renderer::ir::pipeline {
 
 GraphicsPipelineDescriptor::ColorBlend GetColorBlend() {
   return {
@@ -87,4 +87,4 @@ GraphicsPipelineDescriptor::Scissor GetFullFrameScissor(
   return {/*origin=*/glm::ivec2{0}, /*extent=*/frame_size};
 }
 
-}  // namespace lighter::renderer::pipeline
+}  // namespace lighter::renderer::ir::pipeline

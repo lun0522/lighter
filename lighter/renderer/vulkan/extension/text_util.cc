@@ -11,7 +11,7 @@
 
 #include "lighter/common/graphics_api.h"
 #include "lighter/common/image.h"
-#include "lighter/renderer/image_usage.h"
+#include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/wrapper/command.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"

@@ -11,7 +11,7 @@
 #include <algorithm>
 
 #include "lighter/common/graphics_api.h"
-#include "lighter/renderer/align.h"
+#include "lighter/renderer/util.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
 #include "third_party/absl/strings/str_format.h"

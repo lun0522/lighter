@@ -14,10 +14,10 @@
 #include <vector>
 
 #include "lighter/common/image.h"
-#include "lighter/renderer/buffer_usage.h"
-#include "lighter/renderer/renderer.h"
-#include "lighter/renderer/image_usage.h"
-#include "lighter/renderer/type.h"
+#include "lighter/renderer/ir/buffer_usage.h"
+#include "lighter/renderer/ir/renderer.h"
+#include "lighter/renderer/ir/image_usage.h"
+#include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/vk/buffer.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/image.h"
@@ -31,14 +31,14 @@
 
 namespace lighter::renderer::vk {
 
-class Renderer : public renderer::Renderer {
+class Renderer : public ir::Renderer {
  public:
   Renderer(const char* application_name,
-           const std::optional<debug_message::Config>& debug_message_config,
+           const std::optional<ir::debug_message::Config>& debug_message_config,
            std::vector<const common::Window*>&& window_ptrs);
 
   Renderer(const char* application_name,
-           const std::optional<debug_message::Config>& debug_message_config,
+           const std::optional<ir::debug_message::Config>& debug_message_config,
            absl::Span<const common::Window* const> windows)
       : Renderer{application_name, debug_message_config,
                  {windows.begin(), windows.end()}} {}
@@ -51,9 +51,9 @@ class Renderer : public renderer::Renderer {
 
   // Buffer
 
-  std::unique_ptr<renderer::DeviceBuffer> CreateDeviceBuffer(
+  std::unique_ptr<ir::DeviceBuffer> CreateDeviceBuffer(
       DeviceBuffer::UpdateRate update_rate, size_t initial_size,
-      absl::Span<const BufferUsage> usages) const override {
+      absl::Span<const ir::BufferUsage> usages) const override {
     return std::make_unique<DeviceBuffer>(context_, update_rate, initial_size,
                                           usages);
   }
@@ -64,38 +64,38 @@ class Renderer : public renderer::Renderer {
     return swapchains_.at(window_index)->image();
   }
 
-  std::unique_ptr<renderer::DeviceImage> CreateColorImage(
+  std::unique_ptr<ir::DeviceImage> CreateColorImage(
       std::string_view name, const common::Image::Dimension& dimension,
-      MultisamplingMode multisampling_mode, bool high_precision,
-      absl::Span<const ImageUsage> usages) const override {
+      ir::MultisamplingMode multisampling_mode, bool high_precision,
+      absl::Span<const ir::ImageUsage> usages) const override {
     return GeneralDeviceImage::CreateColorImage(
         context_, name, dimension, multisampling_mode, high_precision, usages);
   }
 
-  std::unique_ptr<renderer::DeviceImage> CreateColorImage(
+  std::unique_ptr<ir::DeviceImage> CreateColorImage(
       std::string_view name, const common::Image& image, bool generate_mipmaps,
-      absl::Span<const ImageUsage> usages) const override {
+      absl::Span<const ir::ImageUsage> usages) const override {
     return GeneralDeviceImage::CreateColorImage(context_, name, image,
                                                 generate_mipmaps, usages);
   }
 
-  std::unique_ptr<renderer::DeviceImage> CreateDepthStencilImage(
+  std::unique_ptr<ir::DeviceImage> CreateDepthStencilImage(
       std::string_view name, const glm::ivec2& extent,
-      MultisamplingMode multisampling_mode,
-      absl::Span<const ImageUsage> usages) const override {
+      ir::MultisamplingMode multisampling_mode,
+      absl::Span<const ir::ImageUsage> usages) const override {
     return GeneralDeviceImage::CreateDepthStencilImage(
         context_, name, util::CreateExtent(extent), multisampling_mode, usages);
   }
 
   // Pass
 
-  std::unique_ptr<renderer::RenderPass> CreateRenderPass(
-      const RenderPassDescriptor& descriptor) const override {
+  std::unique_ptr<ir::RenderPass> CreateRenderPass(
+      const ir::RenderPassDescriptor& descriptor) const override {
     return std::make_unique<RenderPass>(context_, descriptor);
   }
 
-  std::unique_ptr<renderer::ComputePass> CreateComputePass(
-      const ComputePassDescriptor& descriptor) const override {
+  std::unique_ptr<ir::ComputePass> CreateComputePass(
+      const ir::ComputePassDescriptor& descriptor) const override {
     FATAL("Not implemented yet");
   }
 

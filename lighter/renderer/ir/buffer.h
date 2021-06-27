@@ -5,16 +5,16 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_BUFFER_H
-#define LIGHTER_RENDERER_BUFFER_H
+#ifndef LIGHTER_RENDERER_IR_BUFFER_H
+#define LIGHTER_RENDERER_IR_BUFFER_H
 
 #include <cstddef>
 #include <vector>
 
-#include "lighter/renderer/type.h"
+#include "lighter/renderer/ir/type.h"
 #include "third_party/absl/types/span.h"
 
-namespace lighter::renderer {
+namespace lighter::renderer::ir {
 
 class HostBuffer {
  public:
@@ -80,6 +80,6 @@ class UniformBufferView {
   UniformBufferView() = default;
 };
 
-}  // namespace lighter::renderer
+}  // namespace lighter::renderer::ir
 
-#endif  // LIGHTER_RENDERER_BUFFER_H
+#endif  // LIGHTER_RENDERER_IR_BUFFER_H

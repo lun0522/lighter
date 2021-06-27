@@ -5,16 +5,16 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_IMAGE_H
-#define LIGHTER_RENDERER_IMAGE_H
+#ifndef LIGHTER_RENDERER_IR_IMAGE_H
+#define LIGHTER_RENDERER_IR_IMAGE_H
 
 #include <string>
 #include <string_view>
 
-#include "lighter/renderer/image_usage.h"
-#include "lighter/renderer/type.h"
+#include "lighter/renderer/ir/image_usage.h"
+#include "lighter/renderer/ir/type.h"
 
-namespace lighter::renderer {
+namespace lighter::renderer::ir {
 
 class DeviceImage {
  public:
@@ -51,6 +51,6 @@ class SampledImageView {
   SampledImageView() = default;
 };
 
-}  // namespace lighter::renderer
+}  // namespace lighter::renderer::ir
 
-#endif  // LIGHTER_RENDERER_IMAGE_H
+#endif  // LIGHTER_RENDERER_IR_IMAGE_H

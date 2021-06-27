@@ -17,7 +17,7 @@
 #include "lighter/common/image.h"
 #include "lighter/common/ref_count.h"
 #include "lighter/common/util.h"
-#include "lighter/renderer/image_usage.h"
+#include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
@@ -27,6 +27,8 @@
 namespace lighter {
 namespace renderer {
 namespace vulkan {
+
+using ir::ImageUsage;
 
 // This class creates a chunk of memory that is visible to both host and device,
 // used for transferring image data from the host to some memory that is only

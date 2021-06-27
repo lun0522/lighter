@@ -12,7 +12,7 @@
 #include <string_view>
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/pipeline_util.h"
+#include "lighter/renderer/ir/pipeline_util.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/property_checker.h"
 #include "lighter/renderer/vk/type_mapping.h"
@@ -21,6 +21,8 @@
 
 namespace lighter::renderer::vk {
 namespace {
+
+using ir::MultisamplingMode;
 
 const char* kSwapchainExtension = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 const char* kValidationLayer = "VK_LAYER_KHRONOS_validation";
@@ -263,7 +265,7 @@ Instance::~Instance() {
 }
 
 DebugMessenger::DebugMessenger(const Context* context,
-                               const debug_message::Config& config)
+                               const ir::debug_message::Config& config)
     : context_{*FATAL_IF_NULL(context)} {
   // We may pass data to 'pUserData' which can be retrieved from the callback.
   const auto messenger_create_info = intl::DebugUtilsMessengerCreateInfoEXT{}

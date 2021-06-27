@@ -5,13 +5,13 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_BUFFER_USAGE_H
-#define LIGHTER_RENDERER_BUFFER_USAGE_H
+#ifndef LIGHTER_RENDERER_IR_BUFFER_USAGE_H
+#define LIGHTER_RENDERER_IR_BUFFER_USAGE_H
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/type.h"
+#include "lighter/renderer/ir/type.h"
 
-namespace lighter::renderer {
+namespace lighter::renderer::ir {
 
 // Describes how we would use a buffer.
 class BufferUsage {
@@ -85,6 +85,6 @@ class BufferUsage {
   AccessLocation access_location_;
 };
 
-}  // namespace lighter::renderer
+}  // namespace lighter::renderer::ir
 
-#endif  // LIGHTER_RENDERER_BUFFER_USAGE_H
+#endif  // LIGHTER_RENDERER_IR_BUFFER_USAGE_H

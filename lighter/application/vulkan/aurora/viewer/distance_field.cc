@@ -11,8 +11,8 @@
 
 #include "lighter/application/vulkan/util.h"
 #include "lighter/common/util.h"
-#include "lighter/renderer/align.h"
-#include "lighter/renderer/image_usage.h"
+#include "lighter/renderer/ir/image_usage.h"
+#include "lighter/renderer/util.h"
 #include "lighter/renderer/vulkan/wrapper/image_util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
 
@@ -50,7 +50,7 @@ struct StepWidth {
 DistanceFieldGenerator::DistanceFieldGenerator(
     const SharedBasicContext& context,
     const OffscreenImage& input_image, const OffscreenImage& output_image)
-    : work_group_count_{util::GetWorkGroupCount(
+    : work_group_count_{renderer::vulkan::util::GetWorkGroupCount(
           input_image.extent(), {kWorkGroupSizeX, kWorkGroupSizeY})} {
   const auto& image_extent = input_image.extent();
   ASSERT_TRUE(output_image.extent().width == image_extent.width &&
@@ -79,7 +79,7 @@ DistanceFieldGenerator::DistanceFieldGenerator(
 
   /* Image */
   const auto image_usage = ImageUsage::GetLinearAccessInComputeShaderUsage(
-      AccessType::kReadWrite);
+      ir::AccessType::kReadWrite);
   pong_image_ = std::make_unique<OffscreenImage>(
       context, image_extent, output_image.format(),
       absl::MakeSpan(&image_usage, 1), ImageSampler::Config{});

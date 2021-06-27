@@ -9,7 +9,7 @@
 
 #include "lighter/application/vulkan/util.h"
 #include "lighter/common/util.h"
-#include "lighter/renderer/align.h"
+#include "lighter/renderer/util.h"
 
 namespace lighter {
 namespace application {

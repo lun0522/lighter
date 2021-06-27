@@ -8,8 +8,8 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_AURORA_EDITOR_BUTTON_UTIL_H
 #define LIGHTER_APPLICATION_VULKAN_AURORA_EDITOR_BUTTON_UTIL_H
 
-#include "lighter/renderer/align.h"
 #include "third_party/glm/glm.hpp"
+#include "lighter/renderer/util.h"
 
 namespace lighter {
 namespace application {

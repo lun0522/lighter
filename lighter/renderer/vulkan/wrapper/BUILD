@@ -87,7 +87,7 @@ cc_library(
         "//lighter/common:image",
         "//lighter/common:ref_count",
         "//lighter/common:util",
-        "//lighter/renderer:image_usage",
+        "//lighter/renderer/ir:image_usage",
         "//third_party:absl",
         "//third_party:vulkan",
     ],

@@ -8,11 +8,14 @@
 #include "lighter/renderer/vk/image_util.h"
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/type.h"
+#include "lighter/renderer/ir/type.h"
 
 namespace lighter::renderer::vk::image {
 namespace {
 
+using ir::AccessLocation;
+using ir::AccessType;
+using ir::ImageUsage;
 using UsageType = ImageUsage::UsageType;
 
 // Converts 'access_type' to VkAccessFlags, depending on whether it contains

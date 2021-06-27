@@ -8,7 +8,7 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_UTIL_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_UTIL_H
 
-#include "lighter/renderer/image_usage.h"
+#include "lighter/renderer/ir/image_usage.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/vulkan/vulkan.h"
 
@@ -16,6 +16,10 @@ namespace lighter {
 namespace renderer {
 namespace vulkan {
 namespace image {
+
+using ir::AccessLocation;
+using ir::AccessType;
+using ir::ImageUsage;
 
 // Returns VkAccessFlags used for inserting image memory barriers.
 VkAccessFlags GetAccessFlags(const ImageUsage& usage);

@@ -19,8 +19,11 @@
 #include "lighter/common/image.h"
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
-#include "lighter/renderer/align.h"
-#include "lighter/renderer/image_usage.h"
+#include "lighter/renderer/ir/image_usage.h"
+#include "lighter/renderer/util.h"
+#define ASSERT_SUCCESS(event, error)                          \
+  ASSERT_TRUE(event == VK_SUCCESS,                            \
+              absl::StrFormat("Errno %d: %s", event, error))
 #include "lighter/renderer/vulkan/extension/compute_pass.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/model.h"
@@ -96,7 +99,7 @@ class AttachmentInfo {
 
   // Makes 'image_usage_tracker' track the usage of this image. The initial
   // usage of 'sample_image' is used as the current usage.
-  void AddToTracker(renderer::ImageUsageTracker& image_usage_tracker,
+  void AddToTracker(renderer::ir::ImageUsageTracker& image_usage_tracker,
                     const renderer::vulkan::Image& sample_image) {
     image_usage_tracker.TrackImage(image_name_, sample_image.GetInitialUsage());
   }

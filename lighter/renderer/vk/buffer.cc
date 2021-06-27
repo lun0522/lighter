@@ -16,7 +16,8 @@
 namespace lighter::renderer::vk {
 namespace {
 
-using CopyInfo = renderer::DeviceBuffer::CopyInfo;
+using ir::BufferUsage;
+using CopyInfo = ir::DeviceBuffer::CopyInfo;
 
 // Creates a buffer of 'data_size'.
 intl::Buffer CreateBuffer(

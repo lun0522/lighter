@@ -7,11 +7,14 @@
 
 #include "lighter/renderer/vk/buffer_util.h"
 
-#include "lighter/renderer/type.h"
+#include "lighter/renderer/ir/type.h"
 
 namespace lighter::renderer::vk::buffer {
 namespace {
 
+using ir::AccessLocation;
+using ir::AccessType;
+using ir::BufferUsage;
 using UsageType = BufferUsage::UsageType;
 
 // Returns VkBufferUsageFlags for 'usage'. Note that this must not be called

@@ -12,13 +12,17 @@
 #include <string>
 
 #include "lighter/common/util.h"
-#include "lighter/renderer/image_usage.h"
+#include "lighter/renderer/ir/image_usage.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/vulkan/vulkan.h"
 
 namespace lighter {
 namespace renderer {
 namespace vulkan {
+
+using ir::ImageUsage;
+using ir::ImageUsageHistory;
+using ir::ImageUsageTracker;
 
 // The base class of compute pass and graphics pass.
 class BasePass {

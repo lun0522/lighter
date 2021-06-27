@@ -11,7 +11,6 @@ cc_library(
         "//lighter/common:timer",
         "//lighter/common:util",
         "//lighter/common:window",
-        "//lighter/renderer:align",
         "//lighter/renderer:util",
         "//lighter/renderer/opengl/wrapper:program",
         "//third_party:absl",

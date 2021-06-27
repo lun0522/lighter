@@ -10,7 +10,7 @@
 #include "lighter/application/vulkan/util.h"
 #include "lighter/common/image.h"
 #include "lighter/common/util.h"
-#include "lighter/renderer/image_usage.h"
+#include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/wrapper/command.h"
 #include "lighter/renderer/vulkan/wrapper/descriptor.h"
@@ -125,7 +125,8 @@ std::unique_ptr<DynamicText> CreateTextRenderer(
 
   auto text_renderer = std::make_unique<DynamicText>(
       context, /*num_frames_in_flight=*/1,
-      util::GetAspectRatio(target_image.extent()), texts, font, font_height);
+      renderer::vulkan::util::GetAspectRatio(target_image.extent()),
+      texts, font, font_height);
   text_renderer->Update(
       target_image.extent(), target_image.sample_count(),
       render_pass, kTextSubpassIndex, /*flip_y=*/false);

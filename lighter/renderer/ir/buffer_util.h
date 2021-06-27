@@ -5,14 +5,14 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_BUFFER_UTIL_H
-#define LIGHTER_RENDERER_BUFFER_UTIL_H
+#ifndef LIGHTER_RENDERER_IR_BUFFER_UTIL_H
+#define LIGHTER_RENDERER_IR_BUFFER_UTIL_H
 
 #include <vector>
 
-#include "lighter/renderer/buffer.h"
+#include "lighter/renderer/ir/buffer.h"
 
-namespace lighter::renderer::buffer {
+namespace lighter::renderer::ir::buffer {
 
 std::vector<VertexBufferView::Attribute> CreateAttributesForVertex2DPosOnly(
     int loc_pos);
@@ -29,6 +29,6 @@ std::vector<VertexBufferView::Attribute> CreateAttributesForVertex3DWithColor(
 std::vector<VertexBufferView::Attribute> CreateAttributesForVertex3DWithTex(
     int loc_pos, int loc_norm, int loc_tex_coord);
 
-}  // namespace lighter::renderer::buffer
+}  // namespace lighter::renderer::ir::buffer
 
-#endif  // LIGHTER_RENDERER_BUFFER_UTIL_H
+#endif  // LIGHTER_RENDERER_IR_BUFFER_UTIL_H

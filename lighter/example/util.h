@@ -21,11 +21,10 @@
 #include "lighter/common/graphics_api.h"
 #include "lighter/common/util.h"
 #include "lighter/common/window.h"
-#include "lighter/renderer/align.h"
-#include "lighter/renderer/buffer_util.h"
-#include "lighter/renderer/pipeline_util.h"
-#include "lighter/renderer/renderer.h"
-#include "lighter/renderer/type.h"
+#include "lighter/renderer/ir/buffer_util.h"
+#include "lighter/renderer/ir/pipeline_util.h"
+#include "lighter/renderer/ir/renderer.h"
+#include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/util.h"
 #include "lighter/renderer/vk/renderer.h"
 #include "third_party/absl/flags/parse.h"
@@ -34,12 +33,14 @@
 
 namespace lighter::example {
 
-inline std::unique_ptr<renderer::Renderer> CreateRenderer(
+using namespace renderer::ir;
+
+inline std::unique_ptr<Renderer> CreateRenderer(
     common::api::GraphicsApi graphics_api, const char* application_name,
     std::vector<const common::Window*>&& window_ptrs) {
-  std::optional<renderer::debug_message::Config> debug_message_config;
+  std::optional<debug_message::Config> debug_message_config;
 #ifndef NDEBUG
-  using namespace renderer::debug_message;
+  using namespace debug_message;
   debug_message_config = {
       severity::WARNING | severity::ERROR,
       type::GENERAL | type::PERFORMANCE,

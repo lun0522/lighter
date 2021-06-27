@@ -19,6 +19,9 @@
 namespace lighter::renderer::vk {
 namespace {
 
+using ir::ImageUsage;
+using ir::MultisamplingMode;
+
 // Extracts width and height from 'dimension'.
 intl::Extent2D ExtractExtent(const common::Image::Dimension& dimension) {
   return util::CreateExtent(dimension.width, dimension.height);

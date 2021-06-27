@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "lighter/common/image.h"
-#include "lighter/renderer/image_usage.h"
+#include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/vk/image_util.h"
 #include "third_party/absl/container/flat_hash_set.h"
 #include "third_party/absl/strings/str_format.h"
@@ -18,6 +18,8 @@
 
 namespace lighter::renderer::vk {
 namespace {
+
+using ir::ImageUsage;
 
 // Returns the image extent to use.
 intl::Extent2D ChooseImageExtent(const common::Window& window,

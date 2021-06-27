@@ -15,7 +15,7 @@ namespace lighter::renderer::vk {
 
 Context::Context(
     const char* application_name,
-    const std::optional<debug_message::Config>& debug_message_config,
+    const std::optional<ir::debug_message::Config>& debug_message_config,
     absl::Span<const common::Window* const> windows) {
   const bool enable_validation = debug_message_config.has_value();
   const bool enable_swapchain = !windows.empty();

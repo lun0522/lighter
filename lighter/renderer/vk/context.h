@@ -16,7 +16,7 @@
 
 #include "lighter/common/util.h"
 #include "lighter/common/window.h"
-#include "lighter/renderer/type.h"
+#include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/vk/basic.h"
 #include "third_party/absl/types/span.h"
 
@@ -34,7 +34,7 @@ class Context : public std::enable_shared_from_this<Context> {
 
   static SharedContext CreateContext(
       const char* application_name,
-      const std::optional<debug_message::Config>& debug_message_config,
+      const std::optional<ir::debug_message::Config>& debug_message_config,
       absl::Span<const common::Window* const> windows) {
     return std::shared_ptr<Context>(
         new Context{application_name, debug_message_config, windows});
@@ -79,7 +79,7 @@ class Context : public std::enable_shared_from_this<Context> {
 
  private:
   Context(const char* application_name,
-          const std::optional<debug_message::Config>& debug_message_config,
+          const std::optional<ir::debug_message::Config>& debug_message_config,
           absl::Span<const common::Window* const> windows);
 
   // Wrapper of VkAllocationCallbacks.

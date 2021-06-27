@@ -11,8 +11,8 @@
 
 #include "lighter/application/vulkan/aurora/viewer/air_transmit_table.h"
 #include "lighter/application/vulkan/util.h"
-#include "lighter/renderer/align.h"
-#include "lighter/renderer/image_usage.h"
+#include "lighter/renderer/ir/image_usage.h"
+#include "lighter/renderer/util.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 

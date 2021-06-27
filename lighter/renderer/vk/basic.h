@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "lighter/common/window.h"
-#include "lighter/renderer/type.h"
+#include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/types/span.h"
@@ -73,7 +73,8 @@ class Instance {
 // driver back to application.
 class DebugMessenger {
  public:
-  DebugMessenger(const Context* context, const debug_message::Config& config);
+  DebugMessenger(const Context* context,
+                 const ir::debug_message::Config& config);
 
   // This class is neither copyable nor movable.
   DebugMessenger(const DebugMessenger&) = delete;
@@ -153,7 +154,7 @@ struct PhysicalDevice {
     return queue_family_indices_;
   }
   const intl::PhysicalDeviceLimits& limits() const { return limits_; }
-  intl::SampleCountFlagBits sample_count(MultisamplingMode mode) const {
+  intl::SampleCountFlagBits sample_count(ir::MultisamplingMode mode) const {
     return sample_count_map_.at(mode);
   }
 
@@ -171,7 +172,7 @@ struct PhysicalDevice {
   intl::PhysicalDeviceLimits limits_;
 
   // Maps multisampling modes to the sample count that should be chosen.
-  absl::flat_hash_map<MultisamplingMode, intl::SampleCountFlagBits>
+  absl::flat_hash_map<ir::MultisamplingMode, intl::SampleCountFlagBits>
       sample_count_map_;
 };
 

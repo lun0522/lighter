@@ -8,10 +8,10 @@
 #ifndef LIGHTER_COMMON_CAMERA_H
 #define LIGHTER_COMMON_CAMERA_H
 
-#include <functional>
 #include <memory>
 #include <optional>
 
+#include "third_party/absl/functional/function_ref.h"
 #ifdef USE_VULKAN
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #endif  // USE_VULKAN
@@ -221,7 +221,7 @@ class UserControlledCamera {
 
   // Directly modifies states of the underlying camera object. Internal states
   // of this class will be reset after the modification.
-  void SetInternalStates(const std::function<void(Camera*)>& operation);
+  void SetInternalStates(absl::FunctionRef<void(Camera*)> operation);
 
   // Sets the cursor position. If the user care about the mouse movement, this
   // should be called after the window is created or resized.

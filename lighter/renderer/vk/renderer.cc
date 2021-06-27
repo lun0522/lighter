@@ -11,9 +11,9 @@ namespace lighter::renderer::vk {
 
 Renderer::Renderer(
     const char* application_name,
-    const std::optional<debug_message::Config>& debug_message_config,
+    const std::optional<ir::debug_message::Config>& debug_message_config,
     std::vector<const common::Window*>&& window_ptrs)
-    : renderer::Renderer{std::move(window_ptrs)},
+    : ir::Renderer{std::move(window_ptrs)},
       context_{Context::CreateContext(
           application_name, debug_message_config, windows())} {
   swapchains_.resize(num_windows());

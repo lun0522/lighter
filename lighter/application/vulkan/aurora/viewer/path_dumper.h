@@ -15,7 +15,7 @@
 #include "lighter/application/vulkan/aurora/viewer/distance_field.h"
 #include "lighter/application/vulkan/aurora/viewer/path_renderer.h"
 #include "lighter/common/camera.h"
-#include "lighter/renderer/image_usage.h"
+#include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/vulkan/extension/compute_pass.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"

@@ -5,10 +5,10 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_TYPE_H
-#define LIGHTER_RENDERER_TYPE_H
+#ifndef LIGHTER_RENDERER_IR_TYPE_H
+#define LIGHTER_RENDERER_IR_TYPE_H
 
-namespace lighter::renderer {
+namespace lighter::renderer::ir {
 
 enum class DataFormat {
   kSFloat32,
@@ -142,6 +142,6 @@ struct Config {
 
 }  // namespace debug_message
 
-}  // namespace lighter::renderer
+}  // namespace lighter::renderer::ir
 
-#endif  // LIGHTER_RENDERER_TYPE_H
+#endif  // LIGHTER_RENDERER_IR_TYPE_H

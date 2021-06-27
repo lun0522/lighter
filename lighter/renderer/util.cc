@@ -74,9 +74,9 @@ void GlobalInit(common::api::GraphicsApi graphics_api) {
   }
 }
 
-std::unique_ptr<Renderer> CreateRenderer(
+std::unique_ptr<ir::Renderer> CreateRenderer(
     common::api::GraphicsApi graphics_api, const char* application_name,
-    const std::optional<debug_message::Config>& debug_message_config,
+    const std::optional<ir::debug_message::Config>& debug_message_config,
     std::vector<const common::Window*>&& window_ptrs) {
   switch (graphics_api) {
     case common::api::GraphicsApi::kOpengl:
