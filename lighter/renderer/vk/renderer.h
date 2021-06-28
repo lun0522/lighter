@@ -31,7 +31,8 @@
 
 namespace lighter::renderer::vk {
 
-class Renderer : public ir::Renderer {
+class Renderer : public WithSharedContext,
+                 public ir::Renderer {
  public:
   Renderer(const char* application_name,
            const std::optional<ir::debug_message::Config>& debug_message_config,
@@ -47,6 +48,7 @@ class Renderer : public ir::Renderer {
   Renderer(const Renderer&) = delete;
   Renderer& operator=(const Renderer&) = delete;
 
+  // TODO: Should handle this internally.
   void RecreateSwapchain(int window_index);
 
   // Buffer
@@ -100,8 +102,6 @@ class Renderer : public ir::Renderer {
   }
 
  private:
-  const SharedContext context_;
-
   std::vector<std::unique_ptr<Swapchain>> swapchains_;
 };
 

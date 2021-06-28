@@ -90,9 +90,9 @@ std::vector<intl::Framebuffer> CreateFrameBuffers() {
 
 }  // namespace
 
-RenderPass::RenderPass(SharedContext context,
+RenderPass::RenderPass(const SharedContext& context,
                        const RenderPassDescriptor& descriptor)
-    : context_{std::move(context)} {
+    : WithSharedContext{context} {
   // TODO: Only one pipeline is supported for now.
   const auto& pipeline_descriptor =
       descriptor.graphics_ops.value().GetPipeline(0);
@@ -132,7 +132,7 @@ RenderPass::~RenderPass() {
   context_->device()->destroy(render_pass_, *context_->host_allocator());
 #ifndef NDEBUG
   LOG_INFO << "Render pass destructed";
-#endif  // !NDEBUG
+#endif  // DEBUG
 }
 
 }  // namespace lighter::renderer::vk

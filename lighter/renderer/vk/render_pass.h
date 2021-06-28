@@ -16,9 +16,11 @@
 
 namespace lighter::renderer::vk {
 
-class RenderPass : public ir::RenderPass {
+class RenderPass : public WithSharedContext,
+                   public ir::RenderPass {
  public:
-  RenderPass(SharedContext context, const ir::RenderPassDescriptor& descriptor);
+  RenderPass(const SharedContext& context,
+             const ir::RenderPassDescriptor& descriptor);
 
   // This class is neither copyable nor movable.
   RenderPass(const RenderPass&) = delete;
@@ -27,9 +29,6 @@ class RenderPass : public ir::RenderPass {
   ~RenderPass() override;
 
  private:
-  // Pointer to context.
-  const SharedContext context_;
-
   // Graphics pipelines used in this render pass.
   std::vector<Pipeline> pipelines_;
 

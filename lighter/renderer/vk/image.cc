@@ -64,7 +64,7 @@ intl::Format ChooseColorImageFormat(const Context& context, int channel,
 #ifndef NDEBUG
         LOG_INFO << "The single channel image format does not support linear "
                     "access, use the 4-channel format instead";
-#endif  // !NDEBUG
+#endif  // DEBUG
         return high_precision ? intl::Format::eR16G16B16A16Sfloat
                               : intl::Format::eR8G8B8A8Unorm;
       }
@@ -129,48 +129,47 @@ intl::DeviceMemory CreateImageMemory(const Context& context, intl::Image image,
 }  // namespace
 
 std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateColorImage(
-    SharedContext context, std::string_view name,
+    const SharedContext& context, std::string_view name,
     const common::Image::Dimension& dimension,
     MultisamplingMode multisampling_mode, bool high_precision,
     absl::Span<const ImageUsage> usages) {
   const intl::Format format = ChooseColorImageFormat(
       *context, dimension.channel, high_precision, usages);
   return absl::WrapUnique(new GeneralDeviceImage(
-      std::move(context), name, format, ExtractExtent(dimension),
-      kSingleMipLevel, CAST_TO_UINT(dimension.layer), multisampling_mode,
-      usages));
+      context, name, format, ExtractExtent(dimension), kSingleMipLevel,
+      CAST_TO_UINT(dimension.layer), multisampling_mode, usages));
 }
 
 std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateColorImage(
-    SharedContext context, std::string_view name, const common::Image& image,
+    const SharedContext& context, std::string_view name, const common::Image& image,
     bool generate_mipmaps, absl::Span<const ImageUsage> usages) {
   const auto& dimension = image.dimension();
   const intl::Format format = ChooseColorImageFormat(
       *context, dimension.channel, /*high_precision=*/false, usages);
   // TODO: Generate mipmaps and change mip_levels.
   return absl::WrapUnique(new GeneralDeviceImage(
-      std::move(context), name, format, ExtractExtent(dimension),
-      kSingleMipLevel, CAST_TO_UINT(dimension.layer), MultisamplingMode::kNone,
-      usages));
+      context, name, format, ExtractExtent(dimension), kSingleMipLevel,
+      CAST_TO_UINT(dimension.layer), MultisamplingMode::kNone, usages));
 }
 
 std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateDepthStencilImage(
-    SharedContext context, std::string_view name, const intl::Extent2D& extent,
-    MultisamplingMode multisampling_mode, absl::Span<const ImageUsage> usages) {
+    const SharedContext& context, std::string_view name,
+    const intl::Extent2D& extent, MultisamplingMode multisampling_mode,
+    absl::Span<const ImageUsage> usages) {
   const intl::Format format = ChooseDepthStencilImageFormat(*context);
   return absl::WrapUnique(new GeneralDeviceImage(
-      std::move(context), name, format, extent, kSingleMipLevel,
-      kSingleImageLayer, multisampling_mode, usages));
+      context, name, format, extent, kSingleMipLevel, kSingleImageLayer,
+      multisampling_mode, usages));
 }
 
 GeneralDeviceImage::GeneralDeviceImage(
-    SharedContext context, std::string_view name, intl::Format format,
+    const SharedContext& context, std::string_view name, intl::Format format,
     const intl::Extent2D& extent, uint32_t mip_levels, uint32_t layer_count,
     MultisamplingMode multisampling_mode, absl::Span<const ImageUsage> usages)
-    : DeviceImage{
-          name, format, FATAL_IF_NULL(context)->physical_device().sample_count(
-                            multisampling_mode)},
-      context_{std::move(context)} {
+    : WithSharedContext{context},
+      DeviceImage{
+          name, format,
+          context_->physical_device().sample_count(multisampling_mode)} {
   intl::ImageCreateFlags create_flags;
   if (layer_count == kCubemapImageLayer) {
     create_flags |= intl::ImageCreateFlagBits::eCubeCompatible;

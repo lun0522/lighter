@@ -17,11 +17,12 @@
 
 namespace lighter::renderer::vk {
 
-class DeviceBuffer : public ir::DeviceBuffer {
+class DeviceBuffer : public WithSharedContext,
+                     public ir::DeviceBuffer {
  public:
-  DeviceBuffer(SharedContext context, UpdateRate update_rate,
+  DeviceBuffer(const SharedContext& context, UpdateRate update_rate,
                size_t initial_size, absl::Span<const ir::BufferUsage> usages)
-      : context_{std::move(FATAL_IF_NULL(context))},
+      : WithSharedContext{context},
         allocation_info_{*context_, update_rate, usages} {
     AllocateBufferAndMemory(initial_size);
   }
@@ -51,8 +52,6 @@ class DeviceBuffer : public ir::DeviceBuffer {
   void AllocateBufferAndMemory(size_t size);
 
   void DeallocateBufferAndMemory();
-
-  const SharedContext context_;
 
   const AllocationInfo allocation_info_;
 

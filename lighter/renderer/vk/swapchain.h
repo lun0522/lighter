@@ -20,9 +20,9 @@
 namespace lighter::renderer::vk {
 
 // Wraps VkSwapchainKHR, which holds a queue of images to present to the screen.
-class Swapchain {
+class Swapchain : WithSharedContext {
  public:
-  Swapchain(SharedContext context, int window_index,
+  Swapchain(const SharedContext& context, int window_index,
             const common::Window& window);
 
   // This class is neither copyable nor movable.
@@ -35,9 +35,6 @@ class Swapchain {
   const SwapchainImage& image() const { return *image_; }
 
  private:
-  // Pointer to context.
-  const SharedContext context_;
-
   // Opaque swapchain object,
   intl::SwapchainKHR swapchain_;
 

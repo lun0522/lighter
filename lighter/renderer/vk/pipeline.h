@@ -26,7 +26,7 @@ namespace lighter::renderer::vk {
 // This class loads a shader from 'file_path' and creates a VkShaderModule.
 // Shader modules can be released after the pipeline is built in order to save
 // the host memory.
-class ShaderModule {
+class ShaderModule : public WithSharedContext {
  public:
   // Reference counted shader modules.
   using RefCountedShaderModule = common::RefCountedObject<ShaderModule>;
@@ -36,7 +36,7 @@ class ShaderModule {
   // go out of scope.
   using AutoReleaseShaderPool = RefCountedShaderModule::AutoReleasePool;
 
-  ShaderModule(SharedContext context, std::string_view file_path);
+  ShaderModule(const SharedContext& context, std::string_view file_path);
 
   // This class is neither copyable nor movable.
   ShaderModule(const ShaderModule&) = delete;
@@ -50,23 +50,20 @@ class ShaderModule {
   intl::ShaderModule operator*() const { return shader_module_; }
 
  private:
-  // Pointer to context.
-  const SharedContext context_;
-
   // Opaque shader module object.
   intl::ShaderModule shader_module_;
 };
 
-class Pipeline {
+class Pipeline : public WithSharedContext {
  public:
   // Constructs a graphics pipeline.
-  Pipeline(SharedContext context,
+  Pipeline(const SharedContext& context,
            const ir::GraphicsPipelineDescriptor& descriptor,
            intl::RenderPass render_pass, int subpass_index,
            absl::Span<const DeviceImage* const> subpass_attachments);
 
   // Constructs a compute pipeline.
-  Pipeline(SharedContext context,
+  Pipeline(const SharedContext& context,
            const ir::ComputePipelineDescriptor& descriptor);
 
   // This class is neither copyable nor movable.
@@ -80,12 +77,9 @@ class Pipeline {
   void Bind(intl::CommandBuffer command_buffer) const;
 
  private:
-  Pipeline(SharedContext context, std::string_view name,
+  Pipeline(const SharedContext& context, std::string_view name,
            intl::PipelineBindPoint binding_point,
            const ir::PipelineDescriptor::UniformDescriptor& uniform_descriptor);
-
-  // Pointer to context.
-  const SharedContext context_;
 
   // Name of pipeline.
   const std::string name_;

@@ -267,8 +267,9 @@ intl::PipelineColorBlendStateCreateInfo GetColorBlendStateCreateInfo(
 
 }  // namespace
 
-ShaderModule::ShaderModule(SharedContext context, std::string_view file_path)
-    : context_{std::move(FATAL_IF_NULL(context))} {
+ShaderModule::ShaderModule(const SharedContext& context,
+                           std::string_view file_path)
+    : WithSharedContext{context} {
   const auto raw_data = std::make_unique<common::RawData>(file_path);
   const auto shader_module_create_info = intl::ShaderModuleCreateInfo{}
       .setCodeSize(raw_data->size)
@@ -277,11 +278,11 @@ ShaderModule::ShaderModule(SharedContext context, std::string_view file_path)
       shader_module_create_info, *context_->host_allocator());
 }
 
-Pipeline::Pipeline(SharedContext context,
+Pipeline::Pipeline(const SharedContext& context,
                    const GraphicsPipelineDescriptor& descriptor,
                    intl::RenderPass render_pass, int subpass_index,
                    absl::Span<const DeviceImage* const> subpass_attachments)
-    : Pipeline{std::move(context), descriptor.pipeline_name,
+    : Pipeline{context, descriptor.pipeline_name,
                intl::PipelineBindPoint::eGraphics,
                descriptor.uniform_descriptor} {
   const auto shader_stages = CreateShaderStages(context_,
@@ -331,9 +332,9 @@ Pipeline::Pipeline(SharedContext context,
       intl::PipelineCache{}, pipeline_create_info, *context_->host_allocator());
 }
 
-Pipeline::Pipeline(SharedContext context,
+Pipeline::Pipeline(const SharedContext& context,
                    const ir::ComputePipelineDescriptor& descriptor)
-    : Pipeline{std::move(context), descriptor.pipeline_name,
+    : Pipeline{context, descriptor.pipeline_name,
                intl::PipelineBindPoint::eCompute,
                descriptor.uniform_descriptor} {
   const auto shader_stages = CreateShaderStages(
@@ -349,10 +350,10 @@ Pipeline::Pipeline(SharedContext context,
 }
 
 Pipeline::Pipeline(
-    SharedContext context, std::string_view name,
+    const SharedContext& context, std::string_view name,
     intl::PipelineBindPoint binding_point,
     const PipelineDescriptor::UniformDescriptor& uniform_descriptor)
-    : context_{std::move(FATAL_IF_NULL(context))}, name_{name},
+    : WithSharedContext{context}, name_{name},
       binding_point_{binding_point} {
   const auto descriptor_set_layouts = CreateDescriptorSetLayouts();
   const auto push_constant_ranges =
@@ -373,7 +374,7 @@ Pipeline::~Pipeline() {
   context_->device()->destroy(pipeline_layout_, *context_->host_allocator());
 #ifndef NDEBUG
   LOG_INFO << absl::StreamFormat("Pipeline '%s' destructed", name_);
-#endif  // !NDEBUG
+#endif  // DEBUG
 }
 
 }  // namespace lighter::renderer::vk

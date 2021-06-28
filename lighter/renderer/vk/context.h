@@ -46,7 +46,7 @@ class Context : public std::enable_shared_from_this<Context> {
 
 #ifndef NDEBUG
   ~Context() { LOG_INFO << "Context destructed properly"; }
-#endif  /* !NDEBUG */
+#endif  // DEBUG
 
   // Records an operation that releases an expired resource, so that it can be
   // executed once the device becomes idle. This is used for resources that can
@@ -105,6 +105,21 @@ class Context : public std::enable_shared_from_this<Context> {
 
   // Ops that are delayed to be executed until the device becomes idle.
   std::vector<ReleaseExpiredResourceOp> release_expired_rsrc_ops_;
+};
+
+class WithSharedContext {
+ public:
+  explicit WithSharedContext(const SharedContext& context)
+      : context_{FATAL_IF_NULL(context)} {}
+
+  // This class is neither copyable nor movable.
+  WithSharedContext(const WithSharedContext&) = delete;
+  WithSharedContext& operator=(const WithSharedContext&) = delete;
+
+  virtual ~WithSharedContext() = default;
+
+ protected:
+  const SharedContext context_;
 };
 
 }  // namespace lighter::renderer::vk

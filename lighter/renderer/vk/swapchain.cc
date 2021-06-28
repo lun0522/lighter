@@ -92,9 +92,9 @@ uint32_t ChooseMinImageCount(const Surface& surface) {
 
 }  // namespace
 
-Swapchain::Swapchain(SharedContext context, int window_index,
+Swapchain::Swapchain(const SharedContext& context, int window_index,
                      const common::Window& window)
-    : context_{std::move(FATAL_IF_NULL(context))} {
+    : WithSharedContext{context} {
   // Choose image extent.
   const PhysicalDevice& physical_device = context_->physical_device();
   const Surface& surface = context_->surface(window_index);
@@ -153,7 +153,7 @@ Swapchain::~Swapchain() {
   context_->device()->destroy(swapchain_, *context_->host_allocator());
 #ifndef NDEBUG
   LOG_INFO << "Swapchain destructed";
-#endif  // !NDEBUG
+#endif  // DEBUG
 }
 
 }  // namespace lighter::renderer::vk

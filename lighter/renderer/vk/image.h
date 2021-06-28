@@ -47,20 +47,22 @@ class DeviceImage : public ir::DeviceImage {
   const intl::SampleCountFlagBits sample_count_;
 };
 
-class GeneralDeviceImage : public DeviceImage {
+class GeneralDeviceImage : public WithSharedContext,
+                           public DeviceImage {
  public:
   static std::unique_ptr<DeviceImage> CreateColorImage(
-      SharedContext context, std::string_view name,
+      const SharedContext& context, std::string_view name,
       const common::Image::Dimension& dimension,
       ir::MultisamplingMode multisampling_mode, bool high_precision,
       absl::Span<const ir::ImageUsage> usages);
 
   static std::unique_ptr<DeviceImage> CreateColorImage(
-      SharedContext context, std::string_view name, const common::Image& image,
-      bool generate_mipmaps, absl::Span<const ir::ImageUsage> usages);
+      const SharedContext& context, std::string_view name,
+      const common::Image& image, bool generate_mipmaps,
+      absl::Span<const ir::ImageUsage> usages);
 
   static std::unique_ptr<DeviceImage> CreateDepthStencilImage(
-      SharedContext context, std::string_view name,
+      const SharedContext& context, std::string_view name,
       const intl::Extent2D& extent, ir::MultisamplingMode multisampling_mode,
       absl::Span<const ir::ImageUsage> usages);
 
@@ -71,13 +73,11 @@ class GeneralDeviceImage : public DeviceImage {
   ~GeneralDeviceImage() override;
 
  private:
-  GeneralDeviceImage(SharedContext context, std::string_view name,
+  GeneralDeviceImage(const SharedContext& context, std::string_view name,
                      intl::Format format, const intl::Extent2D& extent,
                      uint32_t mip_levels, uint32_t layer_count,
                      ir::MultisamplingMode multisampling_mode,
                      absl::Span<const ir::ImageUsage> usages);
-
-  const SharedContext context_;
 
   // Opaque image object.
   intl::Image image_;
