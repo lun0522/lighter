@@ -171,13 +171,13 @@ std::optional<QueueFamilyIndices> FindDeviceQueues(
           physical_device, index++, window_support->surface, &support);
       return support;
     };
-    const auto present_queue_index =
-        common::util::FindIndexOfFirstIf<VkQueueFamilyProperties>(
-            families, has_present_support);
-    if (!present_queue_index.has_value()) {
+    const auto iter = std::find_if(families.begin(), families.end(),
+                                   has_present_support);
+    if (iter == families.end()) {
       return std::nullopt;
     } else {
-      candidate.present = static_cast<uint32_t>(present_queue_index.value());
+      candidate.present =
+          static_cast<uint32_t>(std::distance(families.begin(), iter));
     }
   }
 

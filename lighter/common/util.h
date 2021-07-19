@@ -10,7 +10,6 @@
 
 #include <algorithm>
 #include <filesystem>
-#include <functional>
 #include <iostream>
 #include <iterator>
 #include <numeric>
@@ -103,7 +102,7 @@ namespace internal {
 template <typename ContainerType>
 std::optional<int> GetIndexIfExists(
     const ContainerType& container,
-    const typename ContainerType::const_iterator& iter) {
+    typename ContainerType::const_iterator iter) {
   if (iter == container.end()) {
     return std::nullopt;
   }
@@ -126,7 +125,7 @@ std::optional<int> FindIndexOfFirst(absl::Span<const ValueType> container,
 template <typename ValueType>
 std::optional<int> FindIndexOfFirstIf(
     absl::Span<const ValueType> container,
-    const std::function<bool(const ValueType&)>& predicate) {
+    absl::FunctionRef<bool(const ValueType&)> predicate) {
   const auto iter = std::find_if(container.begin(), container.end(), predicate);
   return internal::GetIndexIfExists(container, iter);
 }

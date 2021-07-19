@@ -121,6 +121,7 @@ std::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
   // Request support for anisotropy filtering.
   const auto features = physical_device.getFeatures();
   if (!features.samplerAnisotropy) {
+    LOG_INFO << "Anisotropy filtering not supported";
     return std::nullopt;
   }
 
@@ -128,35 +129,41 @@ std::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
   const auto properties_vector = physical_device.getQueueFamilyProperties();
   PhysicalDevice::QueueFamilyIndices candidate{};
 
-  #define RETURN_IF_NO_VALUE(optional_var) \
-      if (!optional_var.has_value()) return std::nullopt
-
   const std::optional<int> graphics_index =
       GetQueueFamilyIndex<intl::QueueFlagBits::eGraphics>(properties_vector);
-  RETURN_IF_NO_VALUE(graphics_index);
+  if (!graphics_index.has_value()) {
+    LOG_INFO << "No graphics queue";
+    return std::nullopt;
+  }
   candidate.graphics = CAST_TO_UINT(graphics_index.value());
 
   const std::optional<int> compute_index =
       GetQueueFamilyIndex<intl::QueueFlagBits::eCompute>(properties_vector);
-  RETURN_IF_NO_VALUE(compute_index);
+  if (!compute_index.has_value()) {
+    LOG_INFO << "No compute queue";
+    return std::nullopt;
+  }
   candidate.compute = CAST_TO_UINT(compute_index.value());
 
   // Find a queue family that holds presentation queues if needed.
   candidate.presents.reserve(surfaces.size());
-  for (const Surface* surface : surfaces) {
-    uint32_t index = 0;
+  for (int i = 0; i < surfaces.size(); ++i) {
+    const intl::SurfaceKHR surface = **surfaces[i];
+    uint32_t family_index = 0;
     const auto has_present_support =
-        [physical_device, surface, index](const auto&) mutable {
-          return physical_device.getSurfaceSupportKHR(index++, **surface);
+        [physical_device, surface, family_index](const auto&) mutable {
+          return physical_device.getSurfaceSupportKHR(family_index++, surface);
         };
-    const std::optional<int> present_index =
-        common::util::FindIndexOfFirstIf<intl::QueueFamilyProperties>(
-            properties_vector, has_present_support);
-    RETURN_IF_NO_VALUE(present_index);
-    candidate.presents.push_back(CAST_TO_UINT(present_index.value()));
+    const auto iter = std::find_if(properties_vector.begin(),
+                                   properties_vector.end(),
+                                   has_present_support);
+    if (iter == properties_vector.end()) {
+      LOG_INFO << absl::StreamFormat("No presentation queue for surface %d", i);
+      return std::nullopt;
+    }
+    candidate.presents.push_back(
+        CAST_TO_UINT(std::distance(properties_vector.begin(), iter)));
   }
-
-  #undef RETURN_IF_NO_VALUE
 
   return candidate;
 }
@@ -299,50 +306,56 @@ Surface::~Surface() {
 PhysicalDevice::PhysicalDevice(const Context* context,
                                absl::Span<Surface* const> surfaces)
     : context_{*FATAL_IF_NULL(context)} {
-  const std::vector<intl::PhysicalDevice> physical_devices =
-      context_.instance()->enumeratePhysicalDevices();
-  for (intl::PhysicalDevice candidate : physical_devices) {
+  static const auto is_discrete_gpu = [](const auto& properties) {
+    return properties.deviceType == intl::PhysicalDeviceType::eDiscreteGpu;
+  };
+  std::optional<intl::PhysicalDeviceProperties> properties;
+  for (intl::PhysicalDevice candidate :
+       context_.instance()->enumeratePhysicalDevices()) {
     const auto indices = FindDeviceQueues(candidate, surfaces);
-    if (indices.has_value()) {
-      physical_device_ = candidate;
-      queue_family_indices_ = indices.value();
+    if (!indices.has_value()) {
+      LOG_INFO << "Found unsupported features, keep searching";
+      continue;
+    }
 
-      // Query physical device limits.
-      const auto properties = candidate.getProperties();
-      limits_ = properties.limits;
+    physical_device_ = candidate;
+    queue_family_indices_ = indices.value();
+    properties = candidate.getProperties();
+    limits_ = properties->limits;
 
-      // Determine the sample count to use in each multisampling mode.
-      const intl::SampleCountFlags supported_sample_counts = std::min({
-          limits_.framebufferColorSampleCounts,
-          limits_.framebufferDepthSampleCounts,
-          limits_.framebufferStencilSampleCounts,
-      });
-      for (auto mode : {MultisamplingMode::kNone,
-                        MultisamplingMode::kDecent,
-                        MultisamplingMode::kBest}) {
-        sample_count_map_.insert(
-            {mode, ChooseSampleCount(mode, supported_sample_counts)});
-      }
-
-      // Query surface capabilities.
-      for (Surface* surface : surfaces) {
-        surface->SetCapabilities(
-            physical_device_.getSurfaceCapabilitiesKHR(**surface));
-      }
-
-      // Prefer discrete GPUs.
-      if (properties.deviceType == intl::PhysicalDeviceType::eDiscreteGpu) {
-        LOG_INFO << "Use this discrete GPU";
-        return;
-      } else {
-        LOG_INFO << "This not a discrete GPU, keep searching";
-      }
+    // Prefer discrete GPUs.
+    if (is_discrete_gpu(properties.value())) {
+      LOG_INFO << "Use discrete GPU: " << properties->deviceName;
+      break;
+    } else {
+      LOG_INFO << "Not a discrete GPU, keep searching";
     }
   }
 
-  ASSERT_FALSE(physical_device_ == intl::PhysicalDevice{},
-               "Failed to find suitable graphics device");
-  LOG_INFO << "Use the previous found GPU";
+  ASSERT_HAS_VALUE(properties, "Failed to find suitable graphics device");
+  if (!is_discrete_gpu(properties.value())) {
+    LOG_INFO << "Use previously found GPU: " << properties->deviceName;
+  }
+  LOG_INFO;
+
+  // Determine the sample count to use in each multisampling mode.
+  const intl::SampleCountFlags supported_sample_counts = std::min({
+      limits_.framebufferColorSampleCounts,
+      limits_.framebufferDepthSampleCounts,
+      limits_.framebufferStencilSampleCounts,
+  });
+  for (auto mode : {MultisamplingMode::kNone,
+                    MultisamplingMode::kDecent,
+                    MultisamplingMode::kBest}) {
+    sample_count_map_.insert(
+        {mode, ChooseSampleCount(mode, supported_sample_counts)});
+  }
+
+  // Query surface capabilities.
+  for (Surface* surface : surfaces) {
+    surface->SetCapabilities(
+        physical_device_.getSurfaceCapabilitiesKHR(**surface));
+  }
 }
 
 Device::Device(const Context* context, bool enable_validation,
