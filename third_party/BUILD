@@ -21,18 +21,12 @@ cc_library(
 
 cc_library(
     name = "assimp",
-    deps = select({
-        "@platforms//os:windows": ["@lib-assimp-windows//:assimp"],
-        "//conditions:default": ["@lib-assimp//:assimp"],
-    }),
+    deps = ["@lib-assimp//:assimp"],
 )
 
 cc_library(
     name = "freetype",
-    deps = select({
-        "@platforms//os:windows": ["@lib-freetype-windows//:freetype"],
-        "//conditions:default": ["@lib-freetype//:freetype"],
-    }),
+    deps = ["@lib-freetype//:freetype"],
 )
 
 cc_library(
@@ -42,10 +36,7 @@ cc_library(
 
 cc_library(
     name = "glfw",
-    deps = select({
-        "@platforms//os:windows": ["@lib-glfw-windows//:glfw"],
-        "//conditions:default": ["@lib-glfw//:glfw"],
-    }),
+    deps = ["@lib-glfw//:glfw"],
 )
 
 cc_library(
@@ -73,10 +64,7 @@ cc_library(
 
 cc_library(
     name = "spirv_cross",
-    deps = select({
-        "@platforms//os:windows": ["@lib-spirv-cross-windows//:spirv_cross"],
-        "//conditions:default": ["@lib-spirv-cross//:spirv_cross"],
-    }),
+    deps = ["@lib-spirv-cross//:spirv_cross"],
 )
 
 cc_library(

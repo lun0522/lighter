@@ -12,20 +12,16 @@ http_archive(
 load(
     "@//:repository_rules.bzl",
     "absl_archive",
-    "external_windows_archive",
     "gtest_archive",
     "use_vulkan_sdk",
 )
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
-#######################################
-# rules_foreign_cc
-
 http_archive(
     name = "rules_foreign_cc",
-    sha256 = "d54742ffbdc6924f222d2179f0e10e911c5c659c4ae74158e9fe827aad862ac6",
-    strip_prefix = "rules_foreign_cc-0.2.0",
-    url = "https://github.com/bazelbuild/rules_foreign_cc/archive/0.2.0.tar.gz",
+    sha256 = "33a5690733c5cc2ede39cb62ebf89e751f2448e27f20c8b2fbbc7d136b166804",
+    strip_prefix = "rules_foreign_cc-0.5.1",
+    url = "https://github.com/bazelbuild/rules_foreign_cc/archive/0.5.1.tar.gz",
 )
 
 load(
@@ -37,17 +33,11 @@ load(
 # https://github.com/bazelbuild/rules_foreign_cc/tree/main/docs#rules_foreign_cc_dependencies
 rules_foreign_cc_dependencies()
 
-#######################################
-# Abseil
-
 absl_archive(
-    sha256 = "441db7c09a0565376ecacf0085b2d4c2bbedde6115d7773551bc116212c2a8d6",
-    strip_prefix = "abseil-cpp-20210324.1",
-    url = "https://github.com/abseil/abseil-cpp/archive/20210324.1.tar.gz",
+    sha256 = "59b862f50e710277f8ede96f083a5bb8d7c9595376146838b9580be90374ee1f",
+    strip_prefix = "abseil-cpp-20210324.2",
+    url = "https://github.com/abseil/abseil-cpp/archive/20210324.2.tar.gz",
 )
-
-#######################################
-# Assimp
 
 http_archive(
     name = "lib-assimp",
@@ -57,31 +47,13 @@ http_archive(
     url = "https://github.com/assimp/assimp/archive/v5.0.1.tar.gz",
 )
 
-external_windows_archive(
-    name = "lib-assimp-windows",
-    build_file = "//:third_party/BUILD.assimp.windows",
-    strip_prefix = "assimp",
-)
-
-#######################################
-# FreeType
-
 http_archive(
     name = "lib-freetype",
     build_file = "//:third_party/BUILD.freetype",
-    sha256 = "5eab795ebb23ac77001cfb68b7d4d50b5d6c7469247b0b01b2c953269f658dac",
-    strip_prefix = "freetype-2.10.4",
-    url = "https://download.savannah.gnu.org/releases/freetype/freetype-2.10.4.tar.gz",
+    sha256 = "a45c6b403413abd5706f3582f04c8339d26397c4304b78fa552f2215df64101f",
+    strip_prefix = "freetype-2.11.0",
+    url = "https://download.savannah.gnu.org/releases/freetype/freetype-2.11.0.tar.gz",
 )
-
-external_windows_archive(
-    name = "lib-freetype-windows",
-    build_file = "//:third_party/BUILD.freetype.windows",
-    strip_prefix = "freetype",
-)
-
-#######################################
-# GLAD
 
 http_archive(
     name = "lib-glad",
@@ -91,9 +63,6 @@ http_archive(
     url = "https://github.com/lun0522/lib-glad/archive/4.6.tar.gz",
 )
 
-#######################################
-# GLFW
-
 http_archive(
     name = "lib-glfw",
     build_file = "//:third_party/BUILD.glfw",
@@ -101,15 +70,6 @@ http_archive(
     strip_prefix = "glfw-3.3.4",
     url = "https://github.com/glfw/glfw/archive/3.3.4.tar.gz",
 )
-
-external_windows_archive(
-    name = "lib-glfw-windows",
-    build_file = "//:third_party/BUILD.glfw.windows",
-    strip_prefix = "glfw",
-)
-
-#######################################
-# GLM
 
 http_archive(
     name = "lib-glm",
@@ -119,17 +79,11 @@ http_archive(
     url = "https://github.com/g-truc/glm/archive/0.9.9.8.tar.gz",
 )
 
-#######################################
-# GoogleTest
-
 gtest_archive(
     sha256 = "b4870bf121ff7795ba20d20bcdd8627b8e088f2d1dab299a031c1034eddc93d5",
     strip_prefix = "googletest-release-1.11.0",
     url = "https://github.com/google/googletest/archive/release-1.11.0.tar.gz",
 )
-
-#######################################
-# PicoSHA2
 
 new_git_repository(
     name = "lib-picosha2",
@@ -139,9 +93,6 @@ new_git_repository(
     shallow_since = "1531968639 +0900",
 )
 
-#######################################
-# shaderc
-
 use_vulkan_sdk(
     name = "lib-shaderc",
     build_file_abs_path = paths.join(
@@ -149,9 +100,6 @@ use_vulkan_sdk(
         "third_party/BUILD.shaderc",
     ),
 )
-
-#######################################
-# SPIRV-Cross
 
 http_archive(
     name = "lib-spirv-cross",
@@ -161,15 +109,6 @@ http_archive(
     url = "https://github.com/KhronosGroup/SPIRV-Cross/archive/2021-01-15.tar.gz",
 )
 
-external_windows_archive(
-    name = "lib-spirv-cross-windows",
-    build_file = "//:third_party/BUILD.spirv_cross.windows",
-    strip_prefix = "spirv_cross",
-)
-
-#######################################
-# stb
-
 new_git_repository(
     name = "lib-stb",
     build_file = "//:third_party/BUILD.stb",
@@ -178,9 +117,6 @@ new_git_repository(
     shallow_since = "1617298303 -0700",
 )
 
-#######################################
-# Vulkan
-
 use_vulkan_sdk(
     name = "lib-vulkan",
     build_file_abs_path = paths.join(
@@ -188,9 +124,6 @@ use_vulkan_sdk(
         "third_party/BUILD.vulkan",
     ),
 )
-
-#######################################
-# resource
 
 http_archive(
     name = "resource",

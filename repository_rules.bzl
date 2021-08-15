@@ -75,13 +75,3 @@ def gtest_archive(sha256, strip_prefix, url):
         url = url,
         build_file_content = _CC_LIBRARY_ALL_SRCS.format("gtest_include"),
     )
-
-# TODO: rules_foreign_cc doesn't work on Windows yet.
-def external_windows_archive(name, strip_prefix, build_file):
-    http_archive(
-        name = name,
-        sha256 = "2e70a4ae84a93820a4d4db4cdd37dd7deb7a1380ad8736d43180d298ef5e04d0",
-        strip_prefix = paths.join("lighter_external_windows-1.0.0", strip_prefix),
-        build_file = build_file,
-        url = "https://github.com/lun0522/lighter_external_windows/archive/1.0.0.tar.gz",
-    )
