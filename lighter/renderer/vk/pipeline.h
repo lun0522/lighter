@@ -17,7 +17,6 @@
 #include "lighter/renderer/ir/pass.h"
 #include "lighter/renderer/ir/pipeline.h"
 #include "lighter/renderer/vk/context.h"
-#include "lighter/renderer/vk/image.h"
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/types/span.h"
 
@@ -59,8 +58,8 @@ class Pipeline : public WithSharedContext {
   // Constructs a graphics pipeline.
   Pipeline(const SharedContext& context,
            const ir::GraphicsPipelineDescriptor& descriptor,
-           intl::RenderPass render_pass, int subpass_index,
-           absl::Span<const DeviceImage* const> subpass_attachments);
+           intl::SampleCountFlagBits sample_count,
+           intl::RenderPass render_pass, int subpass_index);
 
   // Constructs a compute pipeline.
   Pipeline(const SharedContext& context,

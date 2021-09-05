@@ -7,6 +7,7 @@
 
 #include "lighter/renderer/vk/pipeline.h"
 
+#include <algorithm>
 #include <vector>
 
 #include "lighter/common/file.h"
@@ -185,15 +186,9 @@ intl::PipelineRasterizationStateCreateInfo GetRasterizationStateCreateInfo(
 }
 
 intl::PipelineMultisampleStateCreateInfo GetMultisampleStateCreateInfo(
-    const GraphicsPipelineDescriptor& descriptor) {
-  // Since all color and depth stencil attachments must have the same sample
-  // count, we only need to look at one of them.
-  const ir::DeviceImage* attachment =
-      descriptor.depth_stencil_attachment == nullptr
-          ? descriptor.depth_stencil_attachment
-          : descriptor.color_attachment_info_map.begin()->first;
+    intl::SampleCountFlagBits sample_count) {
   return intl::PipelineMultisampleStateCreateInfo{}
-      .setRasterizationSamples(DeviceImage::Cast(*attachment).sample_count());
+      .setRasterizationSamples(sample_count);
 }
 
 intl::StencilOpState CreateStencilOpState(
@@ -227,21 +222,20 @@ intl::PipelineDepthStencilStateCreateInfo GetDepthStencilStateCreateInfo(
 }
 
 std::vector<intl::PipelineColorBlendAttachmentState>
-CreateColorBlendAttachmentStates(
-    const GraphicsPipelineDescriptor& descriptor,
-    absl::Span<const DeviceImage* const> subpass_attachments) {
+CreateColorBlendAttachmentStates(const GraphicsPipelineDescriptor& descriptor) {
+  int max_location = -1;
+  for (const auto& [location, _] : descriptor.color_attachment_map) {
+    max_location = std::max(max_location, location);
+  }
   std::vector<intl::PipelineColorBlendAttachmentState> color_blend_states(
-      subpass_attachments.size());
-  for (int i = 0; i < subpass_attachments.size(); ++i) {
-    const DeviceImage* attachment = subpass_attachments[i];
-    const auto iter = descriptor.color_attachment_info_map.find(attachment);
-    if (iter == descriptor.color_attachment_info_map.end() ||
-        !iter->second.color_blend.has_value()) {
+      max_location + 1);
+  for (const auto& [location, optional_color_blend] :
+           descriptor.color_attachment_map) {
+    if (!optional_color_blend.has_value()) {
       continue;
     }
-
-    const auto& color_blend = iter->second.color_blend.value();
-    color_blend_states[i] = intl::PipelineColorBlendAttachmentState{}
+    const auto& color_blend = optional_color_blend.value();
+    color_blend_states[location] = intl::PipelineColorBlendAttachmentState{}
         .setSrcColorBlendFactor(type::ConvertBlendFactor(
             color_blend.src_color_blend_factor))
         .setDstColorBlendFactor(type::ConvertBlendFactor(
@@ -280,8 +274,8 @@ ShaderModule::ShaderModule(const SharedContext& context,
 
 Pipeline::Pipeline(const SharedContext& context,
                    const GraphicsPipelineDescriptor& descriptor,
-                   intl::RenderPass render_pass, int subpass_index,
-                   absl::Span<const DeviceImage* const> subpass_attachments)
+                   intl::SampleCountFlagBits sample_count,
+                   intl::RenderPass render_pass, int subpass_index)
     : Pipeline{context, descriptor.pipeline_name,
                intl::PipelineBindPoint::eGraphics,
                descriptor.uniform_descriptor} {
@@ -303,7 +297,7 @@ Pipeline::Pipeline(const SharedContext& context,
       GetViewportStateCreateInfo(&viewports, &scissors);
 
   const auto color_blend_attachment_states =
-      CreateColorBlendAttachmentStates(descriptor, subpass_attachments);
+      CreateColorBlendAttachmentStates(descriptor);
   const auto color_blend_state_create_info =
       GetColorBlendStateCreateInfo(&color_blend_attachment_states);
 
@@ -312,7 +306,7 @@ Pipeline::Pipeline(const SharedContext& context,
   const auto rasterization_state_create_info =
       GetRasterizationStateCreateInfo(descriptor);
   const auto multisample_state_create_info =
-      GetMultisampleStateCreateInfo(descriptor);
+      GetMultisampleStateCreateInfo(sample_count);
   const auto depth_stencil_state_create_info =
       GetDepthStencilStateCreateInfo(descriptor);
 

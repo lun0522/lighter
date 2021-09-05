@@ -192,7 +192,7 @@ template <typename SrcType, typename DstType>
 absl::flat_hash_set<DstType> TransformToSet(
     absl::Span<const SrcType> container,
     absl::FunctionRef<DstType(const SrcType&)> transform) {
-  absl::flat_hash_set<std::string> transformed;
+  absl::flat_hash_set<DstType> transformed;
   std::transform(container.begin(), container.end(),
                  std::inserter(transformed, transformed.end()), transform);
   return transformed;

@@ -39,8 +39,7 @@ class TriangleExample {
                    GetShaderBinaryPath("triangle/triangle.vert", graphics_api))
         .SetShader(shader_stage::FRAGMENT,
                    GetShaderBinaryPath("triangle/triangle.frag", graphics_api))
-        .AddColorAttachment(&renderer_->GetSwapchainImage(kWindowIndex),
-                            {/*location=*/0, pipeline::GetColorAlphaBlend()})
+        .UseColorAttachment(/*location=*/0, pipeline::GetColorAlphaBlend())
         .AddVertexInput({
             VertexInputRate::kVertex,
             /*binding_point=*/0,

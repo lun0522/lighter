@@ -62,7 +62,6 @@ cc_library(
     ],
     deps = [
         ":buffer",
-        ":image",
         ":type",
         "//lighter/common:util",
         "//third_party:absl",

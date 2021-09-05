@@ -15,7 +15,6 @@
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/ir/buffer.h"
-#include "lighter/renderer/ir/image.h"
 #include "lighter/renderer/ir/type.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/glm/glm.hpp"
@@ -58,11 +57,6 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
     BlendFactor src_alpha_blend_factor;
     BlendFactor dst_alpha_blend_factor;
     BlendOp alpha_blend_op;
-  };
-
-  struct ColorAttachmentInfo {
-    int location;
-    std::optional<ColorBlend> color_blend;
   };
 
   struct DepthTest {
@@ -120,16 +114,9 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
     shader_path_map.insert({stage, std::string{shader_path}});
     return *this;
   }
-  GraphicsPipelineDescriptor& AddColorAttachment(
-      const DeviceImage* attachment, const ColorAttachmentInfo& info) {
-    FATAL_IF_NULL(attachment);
-    color_attachment_info_map.insert({attachment, info});
-    return *this;
-  }
-  GraphicsPipelineDescriptor& SetDepthStencilAttachment(
-      const DeviceImage* attachment) {
-    FATAL_IF_NULL(attachment);
-    depth_stencil_attachment = attachment;
+  GraphicsPipelineDescriptor& UseColorAttachment(
+      int location, const std::optional<ColorBlend>& color_blend) {
+    color_attachment_map.insert({location, color_blend});
     return *this;
   }
   GraphicsPipelineDescriptor& AddVertexInput(VertexBufferView&& buffer_view) {
@@ -171,9 +158,7 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
   }
 
   absl::flat_hash_map<shader_stage::ShaderStage, std::string> shader_path_map;
-  absl::flat_hash_map<const DeviceImage*, ColorAttachmentInfo>
-      color_attachment_info_map;
-  const DeviceImage* depth_stencil_attachment = nullptr;
+  absl::flat_hash_map<int, std::optional<ColorBlend>> color_attachment_map;
   std::vector<VertexBufferView> vertex_buffer_views;
   DepthTest depth_test;
   StencilTest stencil_test;

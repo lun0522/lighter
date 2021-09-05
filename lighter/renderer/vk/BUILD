@@ -83,7 +83,6 @@ cc_library(
     hdrs = ["pipeline.h"],
     deps = [
         ":context",
-        ":image",
         ":type_mapping",
         ":util",
         "//lighter/common:file",
