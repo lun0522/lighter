@@ -92,7 +92,7 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
   const auto air_transmit_table =
       GenerateAirTransmitTable(air_transmit_sample_step);
   air_transmit_table_image_ = std::make_unique<TextureImage>(
-      context, /*generate_mipmaps=*/false, *air_transmit_table, image_usages,
+      context, /*generate_mipmaps=*/false, air_transmit_table, image_usages,
       sampler_config);
 
   const SharedTexture::CubemapPath skybox_path{

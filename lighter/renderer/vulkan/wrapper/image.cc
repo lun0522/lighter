@@ -141,7 +141,7 @@ TextureImage::Info CreateTextureBufferInfo(
     const common::Image& image,
     absl::Span<const ImageUsage> usages) {
   return TextureImage::Info{
-      image.data_ptrs(),
+      image.GetDataPtrs(),
       FindColorImageFormat(context, image.channel(), usages),
       static_cast<uint32_t>(image.width()),
       static_cast<uint32_t>(image.height()),
@@ -616,26 +616,26 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
 
   bool generate_mipmaps;
   const std::string* identifier;
-  std::unique_ptr<common::Image> image;
+  common::Image image;
 
   if (const auto* single_tex_path = std::get_if<SingleTexPath>(&source_path);
       single_tex_path != nullptr) {
     generate_mipmaps = true;
     identifier = single_tex_path;
-    image = std::make_unique<common::Image>(*single_tex_path);
+    image = common::Image{*single_tex_path, /*flip_y=*/false};
   } else if (const auto* cubemap_path = std::get_if<CubemapPath>(&source_path);
              cubemap_path != nullptr) {
     generate_mipmaps = false;
     identifier = &cubemap_path->directory;
-    image = std::make_unique<common::Image>(cubemap_path->directory,
-                                            cubemap_path->files);
+    image = common::Image::LoadCubemapFromFiles(
+        cubemap_path->directory, cubemap_path->files, /*flip_y=*/false);
   } else {
     FATAL("Unrecognized variant type");
   }
 
   return RefCountedTexture::Get(
       *identifier, context, generate_mipmaps, sampler_config,
-      CreateTextureBufferInfo(*context, *image, usages));
+      CreateTextureBufferInfo(*context, image, usages));
 }
 
 OffscreenImage::OffscreenImage(SharedBasicContext context,

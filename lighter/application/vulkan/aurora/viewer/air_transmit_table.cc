@@ -178,7 +178,7 @@ float GetAtmosphereThickness(const Ray& ray, const SpanT& span) {
 
 } /* namespace */
 
-std::unique_ptr<common::Image> GenerateAirTransmitTable(float sample_step) {
+common::Image GenerateAirTransmitTable(float sample_step) {
   constexpr int kImageWidth = 1;
   const int image_height = glm::floor(1.0f / sample_step);
   auto* image_data = new unsigned char[kImageWidth * image_height];
@@ -197,9 +197,9 @@ std::unique_ptr<common::Image> GenerateAirTransmitTable(float sample_step) {
     image_data[i] = glm::round(air_transmit);
   }
 
-  auto table = std::make_unique<common::Image>(
-      kImageWidth, image_height, common::image::kBwImageChannel, image_data,
-      /*flip_y=*/false);
+  const common::Image::Dimension dimension{kImageWidth, image_height,
+                                           common::image::kBwImageChannel};
+  auto table = common::Image{dimension, image_data, /*flip_y=*/false};
   delete[] image_data;
   return table;
 }

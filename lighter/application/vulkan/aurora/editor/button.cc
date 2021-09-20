@@ -166,11 +166,14 @@ Button::Button(const SharedBasicContext& context,
   const std::vector<char> background_image_pixels(
       kBackgroundImageWidth * background_image_height, static_cast<char>(255));
   const common::Image background_image{
-      kBackgroundImageWidth, background_image_height,
-      common::image::kBwImageChannel, background_image_pixels.data(),
+      /*dimension=*/{
+          kBackgroundImageWidth,
+          background_image_height,
+          common::image::kBwImageChannel,
+      },
+      background_image_pixels.data(),
       /*flip_y=*/false};
-  const glm::vec2 background_image_size{background_image.width(),
-                                        background_image.height()};
+  const glm::vec2 background_image_size{background_image.extent()};
 
   // On the all buttons texture, if buttons are too close to each other, when
   // sampling one button, pixels of another button might be included due to

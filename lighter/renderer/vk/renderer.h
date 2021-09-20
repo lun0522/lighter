@@ -24,7 +24,6 @@
 #include "lighter/renderer/vk/pipeline.h"
 #include "lighter/renderer/vk/render_pass.h"
 #include "lighter/renderer/vk/swapchain.h"
-#include "lighter/renderer/vk/util.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/glm/glm.hpp"
 #include "third_party/vulkan/vulkan.h"
@@ -86,7 +85,7 @@ class Renderer : public WithSharedContext,
       ir::MultisamplingMode multisampling_mode,
       absl::Span<const ir::ImageUsage> usages) const override {
     return GeneralDeviceImage::CreateDepthStencilImage(
-        context_, name, util::CreateExtent(extent), multisampling_mode, usages);
+        context_, name, extent, multisampling_mode, usages);
   }
 
   // Pass

@@ -34,7 +34,6 @@ void CheckPropertiesSupport(std::string_view property_type,
                             const PropertyChecker& property_checker,
                             absl::Span<const std::string> required_properties) {
   LOG_INFO << absl::StreamFormat("Checking %s support", property_type);
-  LOG_INFO;
   ASSERT_EMPTY(property_checker.FindUnsupported(required_properties),
                absl::StrFormat("Found unsupported %s", property_type));
 }
@@ -54,8 +53,6 @@ std::vector<const char*> GetWindowExtensions(
 // Returns whether swapchain is supported by 'physical_device'.
 bool SupportsSwapchain(intl::PhysicalDevice physical_device) {
   LOG_INFO << "Checking swapchain device extensions support";
-  LOG_INFO;
-
   const auto checker = PropertyChecker::ForDeviceExtensions(physical_device);
   return checker.AreSupported({std::string{kSwapchainExtension}});
 }
@@ -64,7 +61,6 @@ bool SupportsSwapchain(intl::PhysicalDevice physical_device) {
 bool SupportsSurfaces(intl::PhysicalDevice physical_device,
                       absl::Span<const Surface* const> surfaces) {
   LOG_INFO << "Checking surfaces compatibility";
-  LOG_INFO;
 
   uint32_t format_count, mode_count;
   for (int i = 0; i < surfaces.size(); ++i) {
@@ -306,6 +302,8 @@ Surface::~Surface() {
 PhysicalDevice::PhysicalDevice(const Context* context,
                                absl::Span<Surface* const> surfaces)
     : context_{*FATAL_IF_NULL(context)} {
+  LOG_INFO << "Selecting physical device";
+
   static const auto is_discrete_gpu = [](const auto& properties) {
     return properties.deviceType == intl::PhysicalDeviceType::eDiscreteGpu;
   };

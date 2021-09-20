@@ -17,6 +17,8 @@ Context::Context(
     const char* application_name,
     const std::optional<ir::debug_message::Config>& debug_message_config,
     absl::Span<const common::Window* const> windows) {
+  LOG_INFO << "Starting Vulkan initialization";
+
   const bool enable_validation = debug_message_config.has_value();
   const bool enable_swapchain = !windows.empty();
 
@@ -45,6 +47,8 @@ Context::Context(
   // Load device-specific function pointers.
   VULKAN_HPP_DEFAULT_DISPATCHER.init(**device_);
   queues_ = std::make_unique<Queues>(*this);
+
+  LOG_INFO << "Finished Vulkan initialization";
 }
 
 }  // namespace lighter::renderer::vk

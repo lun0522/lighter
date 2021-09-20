@@ -31,28 +31,26 @@
         ::absl::StrFormat(                                          \
             "%s: %s", error, ::lighter::renderer::vk::intl::to_string(result)))
 
-namespace lighter::renderer::vk {
-namespace util {
+namespace lighter::renderer::vk::util {
 
 // Creates VkExtent2D with given dimensions.
 inline intl::Extent2D CreateExtent(int width, int height) {
   return {CAST_TO_UINT(width), CAST_TO_UINT(height)};
 }
-inline intl::Extent2D CreateExtent(const glm::ivec2& dimension) {
-  return CreateExtent(dimension.x, dimension.y);
+
+// Conversion between glm::ivec2 and VkExtent2D.
+inline intl::Extent2D ToExtent(const glm::ivec2& vec) {
+  return CreateExtent(vec.x, vec.y);
+}
+inline glm::ivec2 ToVec(const intl::Extent2D& extent) {
+  return {static_cast<int>(extent.width), static_cast<int>(extent.height)};
 }
 
-// Creates VkOffset2D with given dimensions.
-inline intl::Offset2D CreateOffset(const glm::ivec2& dimension) {
-  return {dimension.x, dimension.y};
+// Conversion between glm::ivec2 and VkOffset2D.
+inline intl::Offset2D ToOffset(const glm::ivec2& vec) {
+  return {vec.x, vec.y};
 }
 
-}  // namespace util
-
-constexpr uint32_t kSingleMipLevel = common::image::kSingleMipLevel;
-constexpr uint32_t kSingleImageLayer = common::image::kSingleImageLayer;
-constexpr uint32_t kCubemapImageLayer = common::image::kCubemapImageLayer;
-
-}  // namespace lighter::renderer::vk
+}  // namespace lighter::renderer::vk::util
 
 #endif  // LIGHTER_RENDERER_VK_UTIL_H

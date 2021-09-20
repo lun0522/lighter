@@ -8,8 +8,6 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_AURORA_VIEWER_AIR_TRANSMIT_TABLE_H
 #define LIGHTER_APPLICATION_VULKAN_AURORA_VIEWER_AIR_TRANSMIT_TABLE_H
 
-#include <memory>
-
 #include "lighter/common/file.h"
 #include "lighter/common/image.h"
 #include "third_party/glm/glm.hpp"
@@ -28,7 +26,7 @@ namespace aurora {
 // The size of the returned image will be [1, floor(1.0 / 'sample_step')].
 // The Y coordinate, after scaled to range [0.0, 1.0], represents the cosine
 // value of the angle between view ray and up vector.
-std::unique_ptr<common::Image> GenerateAirTransmitTable(float sample_step);
+common::Image GenerateAirTransmitTable(float sample_step);
 
 } /* namespace aurora */
 } /* namespace vulkan */

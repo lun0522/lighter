@@ -38,13 +38,15 @@ CharLib::CharLib(absl::Span<const std::string> texts,
               static_cast<unsigned int>(face->glyph->advance.x) >> 6U,
               static_cast<unsigned int>(face->glyph->advance.y) >> 6U,
           },
-          .image = std::make_unique<Image>(
-              /*width=*/face->glyph->bitmap.width,
-              /*height=*/face->glyph->bitmap.rows,
-              image::kBwImageChannel,
+          .image = Image{
+              /*dimension=*/{
+                  /*width=*/static_cast<int>(face->glyph->bitmap.width),
+                  /*height=*/static_cast<int>(face->glyph->bitmap.rows),
+                  image::kBwImageChannel,
+              },
               /*raw_data=*/face->glyph->bitmap.buffer,
-              flip_y
-          ),
+              flip_y,
+          },
       }});
     }
   }

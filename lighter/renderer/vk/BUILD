@@ -64,6 +64,7 @@ cc_library(
         "//lighter/renderer/ir:image_usage",
         "//lighter/renderer/ir:type",
         "//third_party:absl",
+        "//third_party:glm",
     ],
 )
 
@@ -119,7 +120,6 @@ cc_library(
         ":pipeline",
         ":render_pass",
         ":swapchain",
-        ":util",
         "//lighter/common:image",
         "//lighter/common:window",
         "//lighter/renderer/ir:buffer_usage",
@@ -140,6 +140,7 @@ cc_library(
         ":pipeline",
         ":type_mapping",
         ":util",
+        "//lighter/common:image",
         "//lighter/common:util",
         "//lighter/renderer/ir:pass",
         "//lighter/renderer/ir:pipeline",

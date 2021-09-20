@@ -57,6 +57,7 @@ cc_library(
         ":file",
         ":util",
         "//third_party:absl",
+        "//third_party:glm",
         "//third_party:stb",
     ],
 )

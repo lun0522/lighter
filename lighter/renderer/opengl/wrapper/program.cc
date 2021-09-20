@@ -48,9 +48,9 @@ std::optional<std::vector<char>> CheckStatus(GLuint source, GLenum target,
 
 Shader::Shader(GLenum shader_type, const std::string& file_path)
     : shader_type_{shader_type}, shader_{glCreateShader(shader_type)} {
-  const auto raw_data = std::make_unique<common::RawData>(file_path);
+  const common::RawData raw_data{file_path};
   glShaderBinary(/*count=*/1, &shader_, GL_SHADER_BINARY_FORMAT_SPIR_V,
-                 raw_data->data, raw_data->size);
+                 raw_data.data, raw_data.size);
   glSpecializeShader(shader_, "main", /*numSpecializationConstants=*/0,
                      /*pConstantIndex=*/nullptr, /*pConstantValue=*/nullptr);
 

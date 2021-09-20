@@ -31,7 +31,7 @@ intl::Extent2D ChooseImageExtent(const common::Window& window,
       std::numeric_limits<uint32_t>::max()) {
     return capabilities.currentExtent;
   } else {
-    intl::Extent2D extent = util::CreateExtent(window.GetFrameSize());
+    intl::Extent2D extent = util::ToExtent(window.GetFrameSize());
     extent.width = std::max(extent.width, capabilities.minImageExtent.width);
     extent.width = std::min(extent.width, capabilities.maxImageExtent.width);
     extent.height = std::max(extent.height, capabilities.minImageExtent.height);
@@ -131,7 +131,7 @@ Swapchain::Swapchain(const SharedContext& context, int window_index,
       .setImageFormat(surface_format.format)
       .setImageColorSpace(surface_format.colorSpace)
       .setImageExtent(image_extent)
-      .setImageArrayLayers(kSingleImageLayer)
+      .setImageArrayLayers(CAST_TO_UINT(common::image::kSingleImageLayer))
       .setImageUsage(image::GetImageUsageFlags(swapchain_image_usages))
       .setImageSharingMode(intl::SharingMode::eExclusive)
       .setQueueFamilyIndices(unique_queue_family_indices)
@@ -146,7 +146,7 @@ Swapchain::Swapchain(const SharedContext& context, int window_index,
   image_ = std::make_unique<SwapchainImage>(
       absl::StrFormat("swapchain%d", window_index),
       context_->device()->getSwapchainImagesKHR(swapchain_),
-      surface_format.format);
+      util::ToVec(image_extent), surface_format.format);
 }
 
 Swapchain::~Swapchain() {

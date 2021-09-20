@@ -29,7 +29,7 @@ class CharLib {
   struct CharInfo {
     glm::ivec2 bearing;
     glm::ivec2 advance;
-    std::unique_ptr<Image> image;
+    Image image;
   };
 
   // We will load all characters in 'texts' from the library. All of them will

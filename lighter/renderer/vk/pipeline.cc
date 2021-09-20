@@ -163,8 +163,8 @@ intl::Viewport CreateViewport(const GraphicsPipelineDescriptor& descriptor) {
 intl::Rect2D CreateScissor(const GraphicsPipelineDescriptor& descriptor) {
   const auto& scissor_info = descriptor.viewport_config.scissor;
   return intl::Rect2D{}
-      .setOffset(util::CreateOffset(scissor_info.origin))
-      .setExtent(util::CreateExtent(scissor_info.extent));
+      .setOffset(util::ToOffset(scissor_info.origin))
+      .setExtent(util::ToExtent(scissor_info.extent));
 }
 
 intl::PipelineViewportStateCreateInfo GetViewportStateCreateInfo(
@@ -264,10 +264,10 @@ intl::PipelineColorBlendStateCreateInfo GetColorBlendStateCreateInfo(
 ShaderModule::ShaderModule(const SharedContext& context,
                            std::string_view file_path)
     : WithSharedContext{context} {
-  const auto raw_data = std::make_unique<common::RawData>(file_path);
+  const common::RawData raw_data{file_path};
   const auto shader_module_create_info = intl::ShaderModuleCreateInfo{}
-      .setCodeSize(raw_data->size)
-      .setPCode(reinterpret_cast<const uint32_t*>(raw_data->data));
+      .setCodeSize(raw_data.size)
+      .setPCode(reinterpret_cast<const uint32_t*>(raw_data.data));
   shader_module_ = context_->device()->createShaderModule(
       shader_module_create_info, *context_->host_allocator());
 }

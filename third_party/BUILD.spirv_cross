@@ -23,6 +23,9 @@ cmake(
         "-D SPIRV_CROSS_ENABLE_UTIL=OFF",
     ],
     lib_source = ":all_srcs",
-    out_static_libs = ["libspirv-cross-core.a"],
+    out_static_libs = select({
+        "@platforms//os:windows": ["spirv-cross-core.lib"],
+        "//conditions:default": ["libspirv-cross-core.a"],
+    }),
     visibility = ["//visibility:public"],
 )

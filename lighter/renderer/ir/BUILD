@@ -29,6 +29,8 @@ cc_library(
     deps = [
         ":image_usage",
         ":type",
+        "//lighter/common:image",
+        "//third_party:glm",
     ],
 )
 

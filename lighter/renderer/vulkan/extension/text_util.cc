@@ -50,7 +50,7 @@ int GetIntervalBetweenChars(const common::CharLib& char_lib) {
   int total_width = 0;
   for (const auto& pair : char_lib.char_info_map()) {
     if (pair.first != ' ') {
-      total_width += pair.second.image->width();
+      total_width += pair.second.image.width();
     }
   }
   return std::max(total_width / kCharWidthToIntervalRatio, 1);
@@ -222,8 +222,8 @@ VkExtent2D CharLoader::GetCharAtlasImageExtent(
   int total_width = 0, height = 0;
   for (const auto& pair : char_lib.char_info_map()) {
     if (pair.first != ' ') {
-      total_width += pair.second.image->width() + interval_between_chars;
-      height = std::max(height, pair.second.image->height());
+      total_width += pair.second.image.width() + interval_between_chars;
+      height = std::max(height, pair.second.image.height());
     }
   }
   total_width -= interval_between_chars;
@@ -265,14 +265,14 @@ void CharLoader::CreateCharTextures(
     const auto& char_info = pair.second;
     const auto advance_x = static_cast<float>(char_info.advance.x) * ratio.x;
     const glm::vec2 size =
-        glm::vec2{char_info.image->width(), char_info.image->height()} * ratio;
+        glm::vec2{char_info.image.width(), char_info.image.height()} * ratio;
     const glm::vec2 bearing = glm::vec2{char_info.bearing} * ratio;
     char_texture_info_map->insert({
         character, CharTextureInfo{size, bearing, offset_x, advance_x}});
     char_image_map->insert({
         character,
         std::make_unique<TextureImage>(context, /*generate_mipmaps=*/false,
-                                       *char_info.image, image_usages,
+                                       char_info.image, image_usages,
                                        GetTextSamplerConfig()),
     });
     offset_x += size.x + normalized_interval;

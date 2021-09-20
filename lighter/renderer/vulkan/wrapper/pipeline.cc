@@ -121,13 +121,13 @@ ShaderModule::ShaderModule(SharedBasicContext context,
     : context_{std::move(FATAL_IF_NULL(context))} {
   context_->RegisterAutoReleasePool<RefCountedShaderModule>("shader");
 
-  const auto raw_data = std::make_unique<common::RawData>(file_path);
+  const common::RawData raw_data{file_path};
   const VkShaderModuleCreateInfo module_info{
       VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
       /*pNext=*/nullptr,
       /*flags=*/nullflag,
-      raw_data->size,
-      reinterpret_cast<const uint32_t*>(raw_data->data),
+      raw_data.size,
+      reinterpret_cast<const uint32_t*>(raw_data.data),
   };
   ASSERT_SUCCESS(vkCreateShaderModule(*context_->device(), &module_info,
                                       *context_->allocator(), &shader_module_),

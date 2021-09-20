@@ -19,6 +19,7 @@
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/util.h"
 #include "third_party/absl/types/span.h"
+#include "third_party/glm/glm.hpp"
 
 namespace lighter::renderer::vk {
 
@@ -33,13 +34,18 @@ class DeviceImage : public ir::DeviceImage {
   }
 
   // Accessors.
+  intl::Extent2D extent() const {
+    return util::CreateExtent(width(), height());
+  }
   intl::Format format() const { return format_; }
   intl::SampleCountFlagBits sample_count() const { return sample_count_; }
 
  protected:
-  DeviceImage(std::string_view name, intl::Format format,
+  DeviceImage(std::string_view name, Type type, const glm::ivec2& extent,
+              int mip_levels, intl::Format format,
               intl::SampleCountFlagBits sample_count)
-      : ir::DeviceImage{name}, format_{format}, sample_count_{sample_count} {}
+      : ir::DeviceImage{name, type, extent, mip_levels},
+        format_{format}, sample_count_{sample_count} {}
 
  private:
   const intl::Format format_;
@@ -63,7 +69,7 @@ class GeneralDeviceImage : public WithSharedContext,
 
   static std::unique_ptr<DeviceImage> CreateDepthStencilImage(
       const SharedContext& context, std::string_view name,
-      const intl::Extent2D& extent, ir::MultisamplingMode multisampling_mode,
+      const glm::ivec2& extent, ir::MultisamplingMode multisampling_mode,
       absl::Span<const ir::ImageUsage> usages);
 
   // This class is neither copyable nor movable.
@@ -73,11 +79,11 @@ class GeneralDeviceImage : public WithSharedContext,
   ~GeneralDeviceImage() override;
 
  private:
-  GeneralDeviceImage(const SharedContext& context, std::string_view name,
-                     intl::Format format, const intl::Extent2D& extent,
-                     uint32_t mip_levels, uint32_t layer_count,
-                     ir::MultisamplingMode multisampling_mode,
-                     absl::Span<const ir::ImageUsage> usages);
+  GeneralDeviceImage(
+    const SharedContext& context, std::string_view name, Type type,
+    const glm::ivec2& extent, int mip_levels, intl::Format format,
+    ir::MultisamplingMode multisampling_mode,
+    absl::Span<const ir::ImageUsage> usages);
 
   // Opaque image object.
   intl::Image image_;
@@ -90,8 +96,9 @@ class GeneralDeviceImage : public WithSharedContext,
 class SwapchainImage : public DeviceImage {
  public:
   SwapchainImage(std::string_view name, std::vector<intl::Image>&& images,
-                 intl::Format format)
-      : DeviceImage{name, format, intl::SampleCountFlagBits::e1},
+                 const glm::ivec2& extent, intl::Format format)
+      : DeviceImage{name, Type::kSingle, extent, /*mip_levels=*/1,
+                    format, intl::SampleCountFlagBits::e1},
         images_{std::move(images)} {}
 
   // This class is neither copyable nor movable.

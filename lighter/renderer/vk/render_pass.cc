@@ -7,6 +7,7 @@
 
 #include "lighter/renderer/vk/render_pass.h"
 
+#include "lighter/common/image.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/vk/image.h"
 #include "lighter/renderer/vk/type_mapping.h"
@@ -34,7 +35,7 @@ class RenderPassBuilder {
  private:
   RenderPassBuilder(const Context& context,
                     const RenderPassDescriptor& descriptor);
-  void CreateAttachment();
+  void CreateAttachments();
   void CreateSubpassDescriptions();
   void CreateSubpassDependencies();
 
@@ -50,7 +51,7 @@ class RenderPassBuilder {
 RenderPassBuilder::RenderPassBuilder(const Context& context,
                                      const RenderPassDescriptor& descriptor)
     : descriptor_{descriptor} {
-  CreateAttachment();
+  CreateAttachments();
   CreateSubpassDescriptions();
   CreateSubpassDependencies();
 
@@ -63,7 +64,7 @@ RenderPassBuilder::RenderPassBuilder(const Context& context,
 }
 
 // TODO: Populate image layout.
-void RenderPassBuilder::CreateAttachment() {
+void RenderPassBuilder::CreateAttachments() {
   for (const auto& [attachment, load_store_ops] : descriptor_.color_ops_map) {
     attachment_index_map_.insert(
         {attachment, static_cast<int>(attachment_descriptions_.size())});
@@ -147,12 +148,54 @@ void RenderPassBuilder::CreateSubpassDescriptions() {
   }
 }
 
+// TODO: Set fields properly.
 void RenderPassBuilder::CreateSubpassDependencies() {
-  FATAL("Not yet implemented");
+  for (const auto& [from, to, attachments] : descriptor_.subpass_dependencies) {
+    subpass_dependencies_.push_back(
+      intl::SubpassDependency{}
+          .setSrcSubpass(CAST_TO_UINT(from))
+          .setDstSubpass(CAST_TO_UINT(to))
+          .setSrcStageMask(intl::PipelineStageFlagBits::eAllGraphics)
+          .setDstStageMask(intl::PipelineStageFlagBits::eAllGraphics)
+          .setSrcAccessMask(intl::AccessFlagBits::eColorAttachmentWrite)
+          .setDstAccessMask(intl::AccessFlagBits::eColorAttachmentWrite)
+    );
+  }
 }
 
-std::vector<intl::Framebuffer> CreateFrameBuffers() {
-  FATAL("Not yet implemented");
+std::vector<intl::Framebuffer> CreateFrameBuffers(
+    const Context& context, intl::RenderPass render_pass,
+    const RenderPassDescriptor& descriptor) {
+  std::vector<const DeviceImage*> attachments;
+  attachments.reserve(descriptor.color_ops_map.size() +
+                      descriptor.depth_stencil_ops_map.size());
+  for (const auto& [attachment, _]: descriptor.color_ops_map) {
+    attachments.push_back(&DeviceImage::Cast(*attachment));
+  }
+  for (const auto& [attachment, _]: descriptor.depth_stencil_ops_map) {
+    attachments.push_back(&DeviceImage::Cast(*attachment));
+  }
+
+  // TODO: Populate image views.
+  std::vector<intl::ImageView> image_views;
+  image_views.resize(attachments.size());
+  
+  ASSERT_FALSE(descriptor.color_ops_map.empty(), "No color attachment found");
+  const ir::DeviceImage* sample_attachemnt =
+      descriptor.color_ops_map.begin()->first;
+  auto framebuffer_create_info = intl::FramebufferCreateInfo{}
+      .setRenderPass(render_pass)
+      .setAttachments(image_views)
+      .setWidth(CAST_TO_UINT(sample_attachemnt->width()))
+      .setHeight(CAST_TO_UINT(sample_attachemnt->height()))
+      .setLayers(CAST_TO_UINT(sample_attachemnt->GetNumLayers()));
+
+  std::vector<intl::Framebuffer> framebuffers(descriptor.num_framebuffers);
+  for (int i = 0; i < framebuffers.size(); ++i) {
+    framebuffers[i] = context.device()->createFramebuffer(
+        framebuffer_create_info, *context.host_allocator());
+  }
+  return framebuffers;
 }
 
 }  // namespace
@@ -161,7 +204,7 @@ RenderPass::RenderPass(const SharedContext& context,
                        const RenderPassDescriptor& descriptor)
     : WithSharedContext{context} {
   render_pass_ = RenderPassBuilder::Build(*context_, descriptor);
-  framebuffers_ = CreateFrameBuffers();
+  framebuffers_ = CreateFrameBuffers(*context_, render_pass_, descriptor);
 }
 
 RenderPass::~RenderPass() {

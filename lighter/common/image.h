@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "third_party/absl/types/span.h"
+#include "third_party/glm/glm.hpp"
 
 namespace lighter::common {
 namespace image {
@@ -25,62 +26,99 @@ constexpr int kBwImageChannel = 1;
 constexpr int kRgbImageChannel = 3;
 constexpr int kRgbaImageChannel = 4;
 
+enum class Type { kSingle, kCubemap };
+
+inline int GetNumLayers(Type type) {
+  switch (type) {
+    case Type::kSingle:
+      return kSingleImageLayer;
+    case Type::kCubemap:
+      return kCubemapImageLayer;
+  }
+}
+
 }  // namespace image
 
 // Loads image from file or memory.
 class Image {
  public:
+  using Type = image::Type;
+
   // Dimension of image data.
   struct Dimension {
     int width;
     int height;
     int channel;
-    int layer;
+
+    glm::ivec2 extent() const { return {width, height}; }
+    size_t size_per_layer() const { return width * height * channel; }
   };
 
-  // Loads images from files. All images are expected to have the same width,
+  // Loads cubemaps from files. All images are expected to have the same width,
   // height and channel. The number of channels may be either 1, 3 or 4. If it
   // is 3, we will create the 4th channel internally.
-  // The length of 'paths' and 'relative_paths' must be either 1 or 6 (cubemap).
-  explicit Image(absl::Span<const std::string> paths);
-  explicit Image(const std::string& path) : Image{{&path, 1}} {}
-  explicit Image(std::string_view path) : Image{std::string{path}} {}
-  Image(std::string_view directory,
-        absl::Span<const std::string> relative_paths);
+  // The length of 'paths' and 'relative_paths' must be 6.
+  static Image LoadCubemapFromFiles(absl::Span<const std::string> paths,
+                                    bool flip_y);
+  static Image LoadCubemapFromFiles(
+        std::string_view directory,
+        absl::Span<const std::string> relative_paths, bool flip_y);
+
+  explicit Image() = default;
+
+  // Loads an image from file. The number of channels may be either 1, 3 or 4.
+  // If it is 3, we will create the 4th channel internally.
+  Image(std::string_view path, bool flip_y);
 
   // Loads images from the memory. The data will be copied, hence the caller may
   // free the original data once the constructor returns.
   // Images may have either 1 or 4 channels.
-  // The length of 'raw_data_ptrs' must be either 1 or 6.
-  Image(int width, int height, int channel,
-        absl::Span<const void* const> raw_data_ptrs, bool flip_y);
-  Image(int width, int height, int channel, const void* raw_data, bool flip_y)
-      : Image{width, height, channel, {&raw_data, 1}, flip_y} {}
+  // The length of 'raw_data_ptrs' must be either 1 or 6 (cubemap).
+  Image(const Dimension& dimension, absl::Span<const void* const> raw_data_ptrs,
+        bool flip_y);
+  Image(const Dimension& dimension, const void* raw_data, bool flip_y)
+      : Image{dimension, {&raw_data, 1}, flip_y} {}
 
-  // This class is neither copyable nor movable.
-  Image(const Image&) = delete;
-  Image& operator=(const Image&) = delete;
+  // This class is only movable.
+  Image(Image&& rhs) noexcept {
+    type_ = rhs.type_;
+    dimension_ = rhs.dimension_;
+    data_ = rhs.data_;
+    rhs.data_ = nullptr;
+  }
 
-  ~Image();
+  Image& operator=(Image&& rhs) noexcept {
+    std::swap(type_, rhs.type_);
+    std::swap(dimension_, rhs.dimension_);
+    std::swap(data_, rhs.data_);
+    return *this;
+  }
+
+  ~Image() { std::free(const_cast<void*>(data_)); }
+
+  // Returns the number of image layers, which is determined by whether this is
+  // a cubemap.
+  int GetNumLayers() const { return image::GetNumLayers(type_); }
+
+  // Returns a vector of pointers to the data of each image layer.
+  std::vector<const void*> GetDataPtrs() const;
 
   // Accessors.
-  const Dimension& dimension() const { return dimension_; }
+  Type type() const { return type_; }
+  glm::ivec2 extent() const { return dimension_.extent(); }
   int width() const { return dimension_.width; }
   int height() const { return dimension_.height; }
   int channel() const { return dimension_.channel; }
-  int layer() const { return dimension_.layer; }
-  const std::vector<const void*>& data_ptrs() const { return data_ptrs_; }
 
  private:
-  // Loads image from 'path' and returns the pointer to image data. It also
-  // checks that the dimension of image matches 'dimension_'.
-  const void* LoadImageFromFile(std::string_view path) const;
+  // Type of image.
+  Type type_{};
 
   // Dimension of image data.
   Dimension dimension_{};
 
-  // Pointers to image data.
-  std::vector<const void*> data_ptrs_;
+  // Pointer to all image data.
+  const void* data_ = nullptr;
 };
 
 }  // namespace lighter::common

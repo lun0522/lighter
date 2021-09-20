@@ -22,10 +22,7 @@ namespace {
 using ir::ImageUsage;
 using ir::MultisamplingMode;
 
-// Extracts width and height from 'dimension'.
-intl::Extent2D ExtractExtent(const common::Image::Dimension& dimension) {
-  return util::CreateExtent(dimension.width, dimension.height);
-}
+const int kSingleMipLevel = common::image::kSingleMipLevel;
 
 // Returns the first image format among 'candidates' that has the specified
 // 'features'. If not found, returns std::nullopt.
@@ -136,46 +133,44 @@ std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateColorImage(
   const intl::Format format = ChooseColorImageFormat(
       *context, dimension.channel, high_precision, usages);
   return absl::WrapUnique(new GeneralDeviceImage(
-      context, name, format, ExtractExtent(dimension), kSingleMipLevel,
-      CAST_TO_UINT(dimension.layer), multisampling_mode, usages));
+      context, name, Type::kSingle, dimension.extent(), kSingleMipLevel, format,
+      multisampling_mode, usages));
 }
 
 std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateColorImage(
-    const SharedContext& context, std::string_view name, const common::Image& image,
-    bool generate_mipmaps, absl::Span<const ImageUsage> usages) {
-  const auto& dimension = image.dimension();
+    const SharedContext& context, std::string_view name,
+    const common::Image& image, bool generate_mipmaps,
+    absl::Span<const ImageUsage> usages) {
   const intl::Format format = ChooseColorImageFormat(
-      *context, dimension.channel, /*high_precision=*/false, usages);
+      *context, image.channel(), /*high_precision=*/false, usages);
   // TODO: Generate mipmaps and change mip_levels.
   return absl::WrapUnique(new GeneralDeviceImage(
-      context, name, format, ExtractExtent(dimension), kSingleMipLevel,
-      CAST_TO_UINT(dimension.layer), MultisamplingMode::kNone, usages));
+      context, name, image.type(), image.extent(), kSingleMipLevel, format,
+      MultisamplingMode::kNone, usages));
 }
 
 std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateDepthStencilImage(
     const SharedContext& context, std::string_view name,
-    const intl::Extent2D& extent, MultisamplingMode multisampling_mode,
+    const glm::ivec2& extent, MultisamplingMode multisampling_mode,
     absl::Span<const ImageUsage> usages) {
   const intl::Format format = ChooseDepthStencilImageFormat(*context);
   return absl::WrapUnique(new GeneralDeviceImage(
-      context, name, format, extent, kSingleMipLevel, kSingleImageLayer,
+      context, name, Type::kSingle, extent, kSingleMipLevel, format,
       multisampling_mode, usages));
 }
 
 GeneralDeviceImage::GeneralDeviceImage(
-    const SharedContext& context, std::string_view name, intl::Format format,
-    const intl::Extent2D& extent, uint32_t mip_levels, uint32_t layer_count,
-    MultisamplingMode multisampling_mode, absl::Span<const ImageUsage> usages)
+    const SharedContext& context, std::string_view name, Type type,
+    const glm::ivec2& extent, int mip_levels, intl::Format format,
+    ir::MultisamplingMode multisampling_mode,
+    absl::Span<const ir::ImageUsage> usages)
     : WithSharedContext{context},
       DeviceImage{
-          name, format,
+          name, type, extent, mip_levels, format,
           context_->physical_device().sample_count(multisampling_mode)} {
   intl::ImageCreateFlags create_flags;
-  if (layer_count == kCubemapImageLayer) {
+  if (type == Type::kCubemap) {
     create_flags |= intl::ImageCreateFlagBits::eCubeCompatible;
-  } else {
-    ASSERT_TRUE(layer_count == kSingleImageLayer,
-                absl::StrFormat("Unsupported layer count: %d", layer_count));
   }
 
   absl::flat_hash_set<uint32_t> queue_family_indices_set;
@@ -194,9 +189,9 @@ GeneralDeviceImage::GeneralDeviceImage(
   };
 
   image_ = CreateImage(
-      *context_, create_flags, format, extent, mip_levels, layer_count,
-      sample_count(), image::GetImageUsageFlags(usages),
-      unique_queue_family_indices);
+      *context_, create_flags, format, util::ToExtent(extent), mip_levels,
+      CAST_TO_UINT(GetNumLayers()), sample_count(),
+      image::GetImageUsageFlags(usages), unique_queue_family_indices);
   device_memory_ = CreateImageMemory(
       *context_, image_, intl::MemoryPropertyFlagBits::eDeviceLocal);
 }

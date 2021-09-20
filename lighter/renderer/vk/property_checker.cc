@@ -43,7 +43,6 @@ absl::flat_hash_set<std::string> GetPropertyNamesSet(
 // \t<elem1>
 // \t<elem2>
 // ...
-// <newline>
 template <typename ForwardIterator>
 void PrintElements(std::string_view header, ForwardIterator begin,
                    ForwardIterator end) {
@@ -51,7 +50,6 @@ void PrintElements(std::string_view header, ForwardIterator begin,
   for (ForwardIterator iter = begin; iter != end; ++iter) {
     LOG_INFO << "\t" << *iter;
   }
-  LOG_INFO;
 }
 
 // Convenient function to print elements in 'container'.
@@ -86,6 +84,12 @@ PropertyChecker PropertyChecker::ForDeviceExtensions(
 
 std::vector<std::string> PropertyChecker::FindUnsupported(
     absl::Span<const std::string> required_properties) const {
+  if (required_properties.empty()) {
+    LOG_INFO << "No property requested, skip";
+    LOG_INFO;
+    return {};
+  }
+
   PrintElements("Supported:", supported_properties_.begin(),
                 supported_properties_.end());
   PrintElements("Required:", required_properties);

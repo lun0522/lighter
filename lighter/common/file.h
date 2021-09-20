@@ -47,9 +47,18 @@ std::string GetVulkanSdkPath(std::string_view relative_path);
 struct RawData {
   explicit RawData(std::string_view path);
 
-  // This class is neither copyable nor movable.
-  RawData(const RawData&) = delete;
-  RawData& operator=(const RawData&) = delete;
+  // This class is only movable.
+  RawData(RawData&& rhs) noexcept {
+    data = rhs.data;
+    size = rhs.size;
+    rhs.data = nullptr;
+  }
+
+  RawData& operator=(RawData&& rhs) noexcept {
+    std::swap(data, rhs.data);
+    std::swap(size, rhs.size);
+    return *this;
+  }
 
   ~RawData() { delete[] data; }
 
