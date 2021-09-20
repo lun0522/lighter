@@ -141,7 +141,7 @@ TextureImage::Info CreateTextureBufferInfo(
     const common::Image& image,
     absl::Span<const ImageUsage> usages) {
   return TextureImage::Info{
-      image.GetDataPtrs(),
+      image.data_ptrs(),
       FindColorImageFormat(context, image.channel(), usages),
       static_cast<uint32_t>(image.width()),
       static_cast<uint32_t>(image.height()),

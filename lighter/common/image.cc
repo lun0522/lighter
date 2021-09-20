@@ -122,7 +122,7 @@ Image::Image(std::string_view path, bool flip_y) : type_{Type::kSingle} {
   stbi_set_flip_vertically_on_load(false);
 
   dimension_ = image.dimension;
-  data_ = image.data;
+  data_ptrs_ = {image.data};
 } 
 
 Image::Image(const Dimension& dimension,
@@ -148,6 +148,7 @@ Image::Image(const Dimension& dimension,
   const size_t size_per_layer = dimension_.size_per_layer();
   char* copied_data =
       static_cast<char*>(std::malloc(size_per_layer * num_layers));
+  data_ptrs_.reserve(num_layers);
   for (const auto* raw_data : raw_data_ptrs) {
     if (flip_y) {
       const size_t stride = width() * channel;
@@ -160,19 +161,15 @@ Image::Image(const Dimension& dimension,
     } else {
       std::memcpy(copied_data, raw_data, size_per_layer);
     }
+    data_ptrs_.push_back(copied_data);
     copied_data += size_per_layer;
   }
-  data_ = copied_data;
 }
 
-std::vector<const void*> Image::GetDataPtrs() const {
-  const size_t size_per_layer = dimension_.size_per_layer();
-  const int num_layers = GetNumLayers();
-  std::vector<const void*> ptrs(num_layers);
-  for (int layer = 0; layer < num_layers; ++layer) {
-    ptrs[layer] = static_cast<const char*>(data_) + size_per_layer * layer;
+Image::~Image() {
+  if (!data_ptrs_.empty()) {
+    std::free(const_cast<void*>(data_ptrs_[0]));
   }
-  return ptrs;
 }
 
 }  // namespace lighter::common

@@ -83,25 +83,22 @@ class Image {
   Image(Image&& rhs) noexcept {
     type_ = rhs.type_;
     dimension_ = rhs.dimension_;
-    data_ = rhs.data_;
-    rhs.data_ = nullptr;
+    data_ptrs_ = std::move(rhs.data_ptrs_);
+    rhs.data_ptrs_ = {};
   }
 
   Image& operator=(Image&& rhs) noexcept {
     std::swap(type_, rhs.type_);
     std::swap(dimension_, rhs.dimension_);
-    std::swap(data_, rhs.data_);
+    std::swap(data_ptrs_, rhs.data_ptrs_);
     return *this;
   }
 
-  ~Image() { std::free(const_cast<void*>(data_)); }
+  ~Image();
 
   // Returns the number of image layers, which is determined by whether this is
   // a cubemap.
   int GetNumLayers() const { return image::GetNumLayers(type_); }
-
-  // Returns a vector of pointers to the data of each image layer.
-  std::vector<const void*> GetDataPtrs() const;
 
   // Accessors.
   Type type() const { return type_; }
@@ -109,6 +106,7 @@ class Image {
   int width() const { return dimension_.width; }
   int height() const { return dimension_.height; }
   int channel() const { return dimension_.channel; }
+  const std::vector<const void*>& data_ptrs() const { return data_ptrs_; }
 
  private:
   // Type of image.
@@ -117,8 +115,9 @@ class Image {
   // Dimension of image data.
   Dimension dimension_{};
 
-  // Pointer to all image data.
-  const void* data_ = nullptr;
+  // Pointers to each layer of image data. Note that we store all the data in
+  // one block, and only 'data_ptrs_[0]' needs to be freed.
+  std::vector<const void*> data_ptrs_;
 };
 
 }  // namespace lighter::common
