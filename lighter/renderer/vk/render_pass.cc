@@ -41,7 +41,7 @@ class RenderPassBuilder {
 
   const RenderPassDescriptor& descriptor_;
   std::vector<intl::AttachmentDescription> attachment_descriptions_;
-  absl::flat_hash_map<const ir::DeviceImage*, int> attachment_index_map_;
+  absl::flat_hash_map<const ir::Image*, int> attachment_index_map_;
   std::vector<intl::AttachmentReference> attachment_references_;
   std::vector<intl::SubpassDescription> subpass_descriptions_;
   std::vector<intl::SubpassDependency> subpass_dependencies_;
@@ -68,7 +68,7 @@ void RenderPassBuilder::CreateAttachments() {
   for (const auto& [attachment, load_store_ops] : descriptor_.color_ops_map) {
     attachment_index_map_.insert(
         {attachment, static_cast<int>(attachment_descriptions_.size())});
-    const auto& vk_attachment = DeviceImage::Cast(*attachment);
+    const auto& vk_attachment = Image::Cast(*attachment);
     attachment_descriptions_.push_back(intl::AttachmentDescription{}
         .setFormat(vk_attachment.format())
         .setSamples(vk_attachment.sample_count())
@@ -84,7 +84,7 @@ void RenderPassBuilder::CreateAttachments() {
        descriptor_.depth_stencil_ops_map) {
     attachment_index_map_.insert(
         {attachment, static_cast<int>(attachment_descriptions_.size())});
-    const auto& vk_attachment = DeviceImage::Cast(*attachment);
+    const auto& vk_attachment = Image::Cast(*attachment);
     attachment_descriptions_.push_back(intl::AttachmentDescription{}
         .setFormat(vk_attachment.format())
         .setSamples(vk_attachment.sample_count())
@@ -116,7 +116,7 @@ void RenderPassBuilder::CreateSubpassDescriptions() {
 
   int reference_index = 0;
   const auto add_reference =
-      [this, &reference_index](const ir::DeviceImage* attachment) {
+      [this, &reference_index](const ir::Image* attachment) {
         const auto iter = attachment_index_map_.find(attachment);
         ASSERT_FALSE(iter == attachment_index_map_.end(),
                      absl::StrFormat("Attachment '%s' not declared",
@@ -130,7 +130,7 @@ void RenderPassBuilder::CreateSubpassDescriptions() {
   for (const SubpassDescriptor& subpass : descriptor_.subpass_descriptors) {
     const intl::AttachmentReference* color_refs_ptr =
         &attachment_references_[reference_index];
-    for (const ir::DeviceImage* attachment : subpass.color_attachments) {
+    for (const ir::Image* attachment : subpass.color_attachments) {
       add_reference(attachment);
     }
 
@@ -166,14 +166,14 @@ void RenderPassBuilder::CreateSubpassDependencies() {
 std::vector<intl::Framebuffer> CreateFrameBuffers(
     const Context& context, intl::RenderPass render_pass,
     const RenderPassDescriptor& descriptor) {
-  std::vector<const DeviceImage*> attachments;
+  std::vector<const Image*> attachments;
   attachments.reserve(descriptor.color_ops_map.size() +
                       descriptor.depth_stencil_ops_map.size());
   for (const auto& [attachment, _]: descriptor.color_ops_map) {
-    attachments.push_back(&DeviceImage::Cast(*attachment));
+    attachments.push_back(&Image::Cast(*attachment));
   }
   for (const auto& [attachment, _]: descriptor.depth_stencil_ops_map) {
-    attachments.push_back(&DeviceImage::Cast(*attachment));
+    attachments.push_back(&Image::Cast(*attachment));
   }
 
   // TODO: Populate image views.
@@ -181,8 +181,7 @@ std::vector<intl::Framebuffer> CreateFrameBuffers(
   image_views.resize(attachments.size());
   
   ASSERT_FALSE(descriptor.color_ops_map.empty(), "No color attachment found");
-  const ir::DeviceImage* sample_attachemnt =
-      descriptor.color_ops_map.begin()->first;
+  const ir::Image* sample_attachemnt = descriptor.color_ops_map.begin()->first;
   auto framebuffer_create_info = intl::FramebufferCreateInfo{}
       .setRenderPass(render_pass)
       .setAttachments(image_views)

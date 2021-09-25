@@ -19,15 +19,15 @@
 
 namespace lighter::renderer::ir {
 
-class DeviceImage {
+class Image {
  public:
   using Type = common::image::Type;
 
   // This class is neither copyable nor movable.
-  DeviceImage(const DeviceImage&) = delete;
-  DeviceImage& operator=(const DeviceImage&) = delete;
+  Image(const Image&) = delete;
+  Image& operator=(const Image&) = delete;
 
-  virtual ~DeviceImage() = default;
+  virtual ~Image() = default;
 
   int GetNumLayers() const { return common::image::GetNumLayers(type_); }
 
@@ -44,8 +44,8 @@ class DeviceImage {
   int mip_levels() const { return mip_levels_; }
 
  protected:
-  DeviceImage(std::string_view name, Type type, const glm::ivec2& extent,
-              int mip_levels)
+  Image(std::string_view name, Type type, const glm::ivec2& extent,
+        int mip_levels)
       : name_{name}, type_{type}, extent_{extent}, mip_levels_{mip_levels} {}
 
  private:
@@ -58,18 +58,6 @@ class DeviceImage {
 struct SamplerDescriptor {
   FilterType filter_type;
   SamplerAddressMode address_mode;
-};
-
-class SampledImageView {
- public:
-  // This class provides copy constructor and move constructor.
-  SampledImageView(SampledImageView&&) noexcept = default;
-  SampledImageView(const SampledImageView&) = default;
-
-  virtual ~SampledImageView() = default;
-
- protected:
-  SampledImageView() = default;
 };
 
 }  // namespace lighter::renderer::ir

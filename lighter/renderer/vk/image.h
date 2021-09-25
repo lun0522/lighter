@@ -23,14 +23,14 @@
 
 namespace lighter::renderer::vk {
 
-class DeviceImage : public ir::DeviceImage {
+class Image : public ir::Image {
  public:
   // This class is neither copyable nor movable.
-  DeviceImage(const DeviceImage&) = delete;
-  DeviceImage& operator=(const DeviceImage&) = delete;
+  Image(const Image&) = delete;
+  Image& operator=(const Image&) = delete;
 
-  static const DeviceImage& Cast(const ir::DeviceImage& image) {
-    return dynamic_cast<const DeviceImage&>(image);
+  static const Image& Cast(const ir::Image& image) {
+    return dynamic_cast<const Image&>(image);
   }
 
   // Accessors.
@@ -41,10 +41,10 @@ class DeviceImage : public ir::DeviceImage {
   intl::SampleCountFlagBits sample_count() const { return sample_count_; }
 
  protected:
-  DeviceImage(std::string_view name, Type type, const glm::ivec2& extent,
-              int mip_levels, intl::Format format,
-              intl::SampleCountFlagBits sample_count)
-      : ir::DeviceImage{name, type, extent, mip_levels},
+  Image(std::string_view name, Type type, const glm::ivec2& extent,
+        int mip_levels, intl::Format format,
+        intl::SampleCountFlagBits sample_count)
+      : ir::Image{name, type, extent, mip_levels},
         format_{format}, sample_count_{sample_count} {}
 
  private:
@@ -53,37 +53,35 @@ class DeviceImage : public ir::DeviceImage {
   const intl::SampleCountFlagBits sample_count_;
 };
 
-class GeneralDeviceImage : public WithSharedContext,
-                           public DeviceImage {
+class SingleImage : public WithSharedContext, public Image {
  public:
-  static std::unique_ptr<DeviceImage> CreateColorImage(
+  static std::unique_ptr<SingleImage> CreateColorImage(
       const SharedContext& context, std::string_view name,
       const common::Image::Dimension& dimension,
       ir::MultisamplingMode multisampling_mode, bool high_precision,
       absl::Span<const ir::ImageUsage> usages);
 
-  static std::unique_ptr<DeviceImage> CreateColorImage(
+  static std::unique_ptr<SingleImage> CreateColorImage(
       const SharedContext& context, std::string_view name,
       const common::Image& image, bool generate_mipmaps,
       absl::Span<const ir::ImageUsage> usages);
 
-  static std::unique_ptr<DeviceImage> CreateDepthStencilImage(
+  static std::unique_ptr<SingleImage> CreateDepthStencilImage(
       const SharedContext& context, std::string_view name,
       const glm::ivec2& extent, ir::MultisamplingMode multisampling_mode,
       absl::Span<const ir::ImageUsage> usages);
 
   // This class is neither copyable nor movable.
-  GeneralDeviceImage(const GeneralDeviceImage&) = delete;
-  GeneralDeviceImage& operator=(const GeneralDeviceImage&) = delete;
+  SingleImage(const SingleImage&) = delete;
+  SingleImage& operator=(const SingleImage&) = delete;
 
-  ~GeneralDeviceImage() override;
+  ~SingleImage() override;
 
  private:
-  GeneralDeviceImage(
-    const SharedContext& context, std::string_view name, Type type,
-    const glm::ivec2& extent, int mip_levels, intl::Format format,
-    ir::MultisamplingMode multisampling_mode,
-    absl::Span<const ir::ImageUsage> usages);
+  SingleImage(const SharedContext& context, std::string_view name, Type type,
+              const glm::ivec2& extent, int mip_levels, intl::Format format,
+              ir::MultisamplingMode multisampling_mode,
+              absl::Span<const ir::ImageUsage> usages);
 
   // Opaque image object.
   intl::Image image_;
@@ -93,31 +91,25 @@ class GeneralDeviceImage : public WithSharedContext,
   intl::DeviceMemory device_memory_;
 };
 
-class SwapchainImage : public DeviceImage {
+// A series of images that share the same size, format and usage, etc.
+// Swapchain images are good examples of this type of image. We may need this
+// when doing offscreen rendering and writing to the disk.
+// TODO: Consider the case where we do own the image.
+class MultiImage : public Image {
  public:
-  SwapchainImage(std::string_view name, std::vector<intl::Image>&& images,
-                 const glm::ivec2& extent, intl::Format format)
-      : DeviceImage{name, Type::kSingle, extent, /*mip_levels=*/1,
-                    format, intl::SampleCountFlagBits::e1},
+  MultiImage(std::string_view name, std::vector<intl::Image>&& images,
+             const glm::ivec2& extent, intl::Format format)
+      : Image{name, Type::kSingle, extent, /*mip_levels=*/1, format,
+              intl::SampleCountFlagBits::e1},
         images_{std::move(images)} {}
 
   // This class is neither copyable nor movable.
-  SwapchainImage(const SwapchainImage&) = delete;
-  SwapchainImage& operator=(const SwapchainImage&) = delete;
+  MultiImage(const MultiImage&) = delete;
+  MultiImage& operator=(const MultiImage&) = delete;
 
  private:
   // Opaque image objects.
   std::vector<intl::Image> images_;
-};
-
-class SampledImageView : public ir::SampledImageView {
- public:
-  SampledImageView(const ir::DeviceImage& image,
-                   const ir::SamplerDescriptor& sampler_descriptor) {}
-
-  // This class provides copy constructor and move constructor.
-  SampledImageView(SampledImageView&&) noexcept = default;
-  SampledImageView(const SampledImageView&) = default;
 };
 
 }  // namespace lighter::renderer::vk

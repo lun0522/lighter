@@ -125,49 +125,48 @@ intl::DeviceMemory CreateImageMemory(const Context& context, intl::Image image,
 
 }  // namespace
 
-std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateColorImage(
+std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
     const SharedContext& context, std::string_view name,
     const common::Image::Dimension& dimension,
     MultisamplingMode multisampling_mode, bool high_precision,
     absl::Span<const ImageUsage> usages) {
   const intl::Format format = ChooseColorImageFormat(
       *context, dimension.channel, high_precision, usages);
-  return absl::WrapUnique(new GeneralDeviceImage(
+  return absl::WrapUnique(new SingleImage(
       context, name, Type::kSingle, dimension.extent(), kSingleMipLevel, format,
       multisampling_mode, usages));
 }
 
-std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateColorImage(
+std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
     const SharedContext& context, std::string_view name,
     const common::Image& image, bool generate_mipmaps,
     absl::Span<const ImageUsage> usages) {
   const intl::Format format = ChooseColorImageFormat(
       *context, image.channel(), /*high_precision=*/false, usages);
   // TODO: Generate mipmaps and change mip_levels.
-  return absl::WrapUnique(new GeneralDeviceImage(
+  return absl::WrapUnique(new SingleImage(
       context, name, image.type(), image.extent(), kSingleMipLevel, format,
       MultisamplingMode::kNone, usages));
 }
 
-std::unique_ptr<DeviceImage> GeneralDeviceImage::CreateDepthStencilImage(
+std::unique_ptr<SingleImage> SingleImage::CreateDepthStencilImage(
     const SharedContext& context, std::string_view name,
     const glm::ivec2& extent, MultisamplingMode multisampling_mode,
     absl::Span<const ImageUsage> usages) {
   const intl::Format format = ChooseDepthStencilImageFormat(*context);
-  return absl::WrapUnique(new GeneralDeviceImage(
+  return absl::WrapUnique(new SingleImage(
       context, name, Type::kSingle, extent, kSingleMipLevel, format,
       multisampling_mode, usages));
 }
 
-GeneralDeviceImage::GeneralDeviceImage(
+SingleImage::SingleImage(
     const SharedContext& context, std::string_view name, Type type,
     const glm::ivec2& extent, int mip_levels, intl::Format format,
     ir::MultisamplingMode multisampling_mode,
     absl::Span<const ir::ImageUsage> usages)
     : WithSharedContext{context},
-      DeviceImage{
-          name, type, extent, mip_levels, format,
-          context_->physical_device().sample_count(multisampling_mode)} {
+      Image{name, type, extent, mip_levels, format,
+            context_->physical_device().sample_count(multisampling_mode)} {
   intl::ImageCreateFlags create_flags;
   if (type == Type::kCubemap) {
     create_flags |= intl::ImageCreateFlagBits::eCubeCompatible;
@@ -196,7 +195,7 @@ GeneralDeviceImage::GeneralDeviceImage(
       *context_, image_, intl::MemoryPropertyFlagBits::eDeviceLocal);
 }
 
-GeneralDeviceImage::~GeneralDeviceImage() {
+SingleImage::~SingleImage() {
   context_->device()->destroy(image_, *context_->host_allocator());
   buffer::FreeDeviceMemory(*context_, device_memory_);
 }

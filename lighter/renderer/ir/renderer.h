@@ -64,18 +64,18 @@ class Renderer {
 
   // Device image
 
-  virtual const DeviceImage& GetSwapchainImage(int window_index) const = 0;
+  virtual const Image& GetSwapchainImage(int window_index) const = 0;
 
-  virtual std::unique_ptr<DeviceImage> CreateColorImage(
+  virtual std::unique_ptr<Image> CreateColorImage(
       std::string_view name, const common::Image::Dimension& dimension,
       MultisamplingMode multisampling_mode, bool high_precision,
       absl::Span<const ImageUsage> usages) const = 0;
 
-  virtual std::unique_ptr<DeviceImage> CreateColorImage(
+  virtual std::unique_ptr<Image> CreateColorImage(
       std::string_view name, const common::Image& image, bool generate_mipmaps,
       absl::Span<const ImageUsage> usages) const = 0;
 
-  virtual std::unique_ptr<DeviceImage> CreateDepthStencilImage(
+  virtual std::unique_ptr<Image> CreateDepthStencilImage(
       std::string_view name, const glm::ivec2& extent,
       MultisamplingMode multisampling_mode,
       absl::Span<const ImageUsage> usages) const = 0;

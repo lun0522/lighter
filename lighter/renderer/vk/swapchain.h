@@ -32,14 +32,14 @@ class Swapchain : WithSharedContext {
   ~Swapchain();
 
   // Accessors.
-  const SwapchainImage& image() const { return *image_; }
+  const MultiImage& image() const { return *image_; }
 
  private:
   // Opaque swapchain object,
   intl::SwapchainKHR swapchain_;
 
   // Wraps images retrieved from the swapchain.
-  std::unique_ptr<SwapchainImage> image_;
+  std::unique_ptr<MultiImage> image_;
 };
 
 }  // namespace lighter::renderer::vk
