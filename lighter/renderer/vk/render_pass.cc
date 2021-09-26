@@ -203,14 +203,16 @@ RenderPass::RenderPass(const SharedContext& context,
                        const RenderPassDescriptor& descriptor)
     : WithSharedContext{context} {
   render_pass_ = RenderPassBuilder::Build(*context_, descriptor);
-  framebuffers_ = CreateFrameBuffers(*context_, render_pass_, descriptor);
 }
 
 RenderPass::~RenderPass() {
-  for (const auto& framebuffer : framebuffers_) {
-    context_->device()->destroy(framebuffer, *context_->host_allocator());
+  for (intl::Framebuffer framebuffer : framebuffers_) {
+    context_->DeviceDestroy(framebuffer);
   }
-  context_->device()->destroy(render_pass_, *context_->host_allocator());
+  for (intl::ImageView image_view : image_views_) {
+    context_->DeviceDestroy(image_view);
+  }
+  context_->DeviceDestroy(render_pass_);
 #ifndef NDEBUG
   LOG_INFO << "Render pass destructed";
 #endif  // DEBUG

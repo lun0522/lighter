@@ -12,6 +12,7 @@
 #include <optional>
 
 #include "third_party/absl/functional/function_ref.h"
+#include "third_party/absl/memory/memory.h"
 #ifdef USE_VULKAN
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #endif  // USE_VULKAN
@@ -182,46 +183,47 @@ class OrthographicCamera : public Camera {
   float view_width_;
 };
 
+namespace camera_control {
+
+// The user may use these keys to control the camera.
+enum class Key { kUp, kDown, kLeft, kRight };
+
+// Configurations used to initialize the control.
+struct Config {
+  // If the user keeps pressing the key for 1 second, the position of camera
+  // will change by 'move_speed'. If 'lock_center' has value, it will be
+  // measured by radians.
+  float move_speed = 10.0f;
+
+  // If the user moves the cursor by 1 pixel, the direction of camera will
+  // change by 'turn_speed' measured in radians.
+  float turn_speed = 0.0005f;
+
+  // When the user presses on keys, if this has value, the camera will move
+  // with no constraints. Otherwise, the camera will move on the surface of a
+  // sphere, whose center is 'lock_center', and radius is the distance between
+  // the initial position of camera and the 'lock_center' point.
+  std::optional<glm::vec3> lock_center;
+};
+
+}  // namespace camera_control
+
 // A camera model with cursor, scroll and keyboard control.
 // The camera is not active after construction. The user should call
 // SetActivity() to activate/deactivate it. The user should also call
 // SetCursorPos() after a window is created and whenever it is resized.
+template <typename CameraType>
 class UserControlledCamera {
  public:
-  // The user may use these keys to control the camera.
-  enum class ControlKey { kUp, kDown, kLeft, kRight };
-
-  // Configurations used to initialize the control.
-  struct ControlConfig {
-    // If the user keeps pressing the key for 1 second, the position of camera
-    // will change by 'move_speed'. If 'lock_center' has value, it will be
-    // measured by radians.
-    float move_speed = 10.0f;
-
-    // If the user moves the cursor by 1 pixel, the direction of camera will
-    // change by 'turn_speed' measured in radians.
-    float turn_speed = 0.0005f;
-
-    // When the user presses on keys, if this has value, the camera will move
-    // with no constraints. Otherwise, the camera will move on the surface of a
-    // sphere, whose center is 'lock_center', and radius is the distance between
-    // the initial position of camera and the 'lock_center' point.
-    std::optional<glm::vec3> lock_center;
-  };
-
-  UserControlledCamera(const ControlConfig& control_config,
-                       std::unique_ptr<Camera>&& camera)
-      : control_config_{control_config}, camera_{std::move(camera)} {
-    ResetAngles();
-  }
-
   // This class is neither copyable nor movable.
   UserControlledCamera(const UserControlledCamera&) = delete;
   UserControlledCamera& operator=(const UserControlledCamera&) = delete;
 
+  virtual ~UserControlledCamera() = default;
+
   // Directly modifies states of the underlying camera object. Internal states
   // of this class will be reset after the modification.
-  void SetInternalStates(absl::FunctionRef<void(Camera*)> operation);
+  void SetInternalStates(absl::FunctionRef<void(CameraType*)> operation);
 
   // Sets the cursor position. If the user care about the mouse movement, this
   // should be called after the window is created or resized.
@@ -242,13 +244,20 @@ class UserControlledCamera {
   // Informs the camera that 'key' has been pressed.
   // The camera will move to a different position depending on the key, while
   // the distance traveled is determined by 'elapsed_time' and 'move_speed_'.
-  void DidPressKey(ControlKey key, float elapsed_time);
+  void DidPressKey(camera_control::Key key, float elapsed_time);
 
   // Modifiers.
   void SetActivity(bool active) { is_active_ = active; }
 
   // Accessors.
-  const Camera& camera() const { return *camera_; }
+  const CameraType& camera() const { return *camera_; }
+
+protected:
+  UserControlledCamera(const camera_control::Config& control_config,
+                       std::unique_ptr<CameraType>&& camera)
+      : control_config_{control_config}, camera_{std::move(camera)} {
+    ResetAngles();
+  }
 
  private:
   // Resets reference vectors and angles, and turns to the coordinate system
@@ -256,13 +265,13 @@ class UserControlledCamera {
   void ResetAngles();
 
   // Controls the way the camera moves and turns.
-  const ControlConfig control_config_;
+  const camera_control::Config control_config_;
 
   // Whether the camera responds to user inputs.
   bool is_active_ = false;
 
   // Camera model.
-  std::unique_ptr<Camera> camera_;
+  std::unique_ptr<CameraType> camera_;
 
   // Current position of cursor in the screen coordinate.
   glm::dvec2 cursor_pos_;
@@ -277,6 +286,40 @@ class UserControlledCamera {
 
   // Yaw in radians.
   float yaw_;
+};
+
+class UserControlledPerspectiveCamera
+    : public UserControlledCamera<PerspectiveCamera> {
+ public:
+  static std::unique_ptr<UserControlledPerspectiveCamera> Create(
+      const camera_control::Config& control_config,
+      const Camera::Config& camera_config,
+      const PerspectiveCamera::FrustumConfig& frustum_config) {
+    return absl::WrapUnique(new UserControlledPerspectiveCamera {
+        control_config,
+        std::make_unique<PerspectiveCamera>(camera_config, frustum_config)});
+  }
+
+  protected:
+   // Inherits constructor.
+   using UserControlledCamera<PerspectiveCamera>::UserControlledCamera;
+};
+
+class UserControlledOrthographicCamera
+    : public UserControlledCamera<OrthographicCamera> {
+ public:
+  static std::unique_ptr<UserControlledOrthographicCamera> Create(
+      const camera_control::Config& control_config,
+      const Camera::Config& camera_config,
+      const OrthographicCamera::OrthoConfig& ortho_config) {
+    return absl::WrapUnique(new UserControlledOrthographicCamera{
+        control_config,
+        std::make_unique<OrthographicCamera>(camera_config, ortho_config)});
+  }
+
+ protected:
+  // Inherits constructor.
+  using UserControlledCamera<OrthographicCamera>::UserControlledCamera;
 };
 
 }  // namespace lighter::common

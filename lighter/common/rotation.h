@@ -115,17 +115,7 @@ class Sphere {
   Sphere(const Sphere&) = delete;
   Sphere& operator=(const Sphere&) = delete;
 
-  // Computes whether the user click intersects with the sphere, and returns
-  // the coordinate of intersection point in object space if any intersection.
-  // Otherwise, returns std::nullopt.
-  std::optional<glm::vec3> GetIntersection(const Camera& camera,
-                                           const glm::vec2& click_ndc) const;
-
-  // Returns how should the sphere be rotated. 'click_ndc' is the user click
-  // position in the normalized device coordinate. Because of inertial rotation,
-  // the sphere may need to rotate even if the click is not within the sphere.
-  std::optional<rotation::Rotation> ShouldRotate(
-      const Camera& camera, const std::optional<glm::vec2>& click_ndc);
+  virtual ~Sphere() = default;
 
   // Rotates the sphere.
   void Rotate(const rotation::Rotation& rotation);
@@ -137,19 +127,19 @@ class Sphere {
   // Accessors.
   const glm::mat4& model_matrix() const { return model_matrix_; }
 
- private:
+ protected:
   // Describes a ray. 'direction' may not be normalized.
   struct Ray {
     glm::vec3 start;
     glm::vec3 direction;
   };
 
-  // Returns a ray that represents the clicking in the object space.
-  Ray GetClickingRay(const Camera& camera, const glm::vec2& click_ndc) const;
+  // Returns how should the sphere be rotated. 'intersection' is the user click
+  // position in the object space.
+  std::optional<rotation::Rotation> ShouldRotate(
+      const std::optional<glm::vec3>& intersection);
 
-  // Center of sphere.
-  const glm::vec3 center_;
-
+ private:
   // Radius of sphere.
   const float radius_;
 
@@ -159,6 +149,39 @@ class Sphere {
   // Computes and tracks rotation.
   RotationManager rotation_manager_;
 };
+
+// This class models a sphere that is viewed from a Camera, and rotates
+// following the user input.
+template <typename CameraType>
+class CameraViewedSphere : public Sphere {
+ public:
+  // Inherits constructor.
+  using Sphere::Sphere;
+
+  // This class is neither copyable nor movable.
+  CameraViewedSphere(const CameraViewedSphere&) = delete;
+  CameraViewedSphere& operator=(const CameraViewedSphere&) = delete;
+
+  // Computes whether the user click intersects with the sphere, and returns
+  // the coordinate of intersection point in object space if any intersection.
+  // Otherwise, returns std::nullopt.
+  std::optional<glm::vec3> GetIntersection(const CameraType& camera,
+                                           const glm::vec2& click_ndc) const;
+
+  // Returns how should the sphere be rotated. 'click_ndc' is the user click
+  // position in the normalized device coordinate. Because of inertial rotation,
+  // the sphere may need to rotate even if the click is not within the sphere.
+  std::optional<rotation::Rotation> ShouldRotate(
+      const CameraType& camera, const std::optional<glm::vec2>& click_ndc);
+
+ private:
+  // Returns a ray that represents the clicking in the object space.
+  Ray GetClickingRay(const CameraType& camera,
+                     const glm::vec2& click_ndc) const;
+};
+
+using PerspectiveCameraViewedSphere = CameraViewedSphere<PerspectiveCamera>;
+using OrthographicCameraViewedSphere = CameraViewedSphere<OrthographicCamera>;
 
 }  // namespace lighter::common
 

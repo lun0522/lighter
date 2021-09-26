@@ -179,7 +179,7 @@ class OnScreenRenderPassManager {
 // the constructor of the application.
 template <typename AppType, typename... AppArgs>
 int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
-  static_assert(std::is_base_of<Application, AppType>::value,
+  static_assert(std::is_base_of_v<Application, AppType>,
                 "Not a subclass of Application");
 
   absl::ParseCommandLine(argc, argv);

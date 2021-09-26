@@ -7,6 +7,8 @@
 
 #include "lighter/common/rotation.h"
 
+#include <type_traits>
+
 #include "lighter/common/util.h"
 #define GLM_ENABLE_EXPERIMENTAL
 #include "third_party/glm/gtx/intersect.hpp"
@@ -120,65 +122,14 @@ std::optional<Rotation> Compute<RotationManager::RotationState>(
 
 Sphere::Sphere(const glm::vec3& center, float radius,
                float inertial_rotation_duration)
-    : center_{center}, radius_{radius}, model_matrix_{1.0f},
+    : radius_{radius}, model_matrix_{1.0f},
       rotation_manager_{inertial_rotation_duration} {
-  model_matrix_ = glm::translate(model_matrix_, center_);
+  model_matrix_ = glm::translate(model_matrix_, center);
   model_matrix_ = glm::scale(model_matrix_, glm::vec3{radius_});
 }
 
-Sphere::Ray Sphere::GetClickingRay(const Camera& camera,
-                                   const glm::vec2& click_ndc) const {
-  // All computation will be done in the object space.
-  const glm::mat4 world_to_object = glm::inverse(model_matrix_);
-  const glm::mat4 world_to_ndc = camera.GetProjectionMatrix() *
-                                 camera.GetViewMatrix();
-  const glm::mat4 ndc_to_world = glm::inverse(world_to_ndc);
-  const glm::mat4 ndc_to_object = world_to_object * ndc_to_world;
-
-  if (dynamic_cast<const common::PerspectiveCamera*>(&camera) != nullptr) {
-    const glm::vec3 camera_pos =
-        TransformPoint(world_to_object, camera.position());
-    constexpr float kFarPlaneNdc = 1.0f;
-    const glm::vec3 click_pos =
-        TransformPoint(ndc_to_object, glm::vec3{click_ndc, kFarPlaneNdc});
-    return Ray{.start = camera_pos, .direction = click_pos - camera_pos};
-  }
-
-  if (dynamic_cast<const common::OrthographicCamera*>(&camera) != nullptr) {
-#ifdef USE_VULKAN
-    constexpr float kNearPlaneNdc = 0.0f;
-#else  // !USE_VULKAN
-    constexpr float kNearPlaneNdc = -1.0f;
-#endif  // USE_VULKAN
-    const glm::vec3 click_pos =
-        TransformPoint(ndc_to_object, glm::vec3{click_ndc, kNearPlaneNdc});
-    const glm::vec3 camera_dir =
-        TransformVector(world_to_object, camera.front());
-    return Ray{.start = click_pos, .direction = camera_dir};
-  }
-
-  FATAL("Unrecognized camera type");
-}
-
-std::optional<glm::vec3> Sphere::GetIntersection(
-    const common::Camera& camera, const glm::vec2& click_ndc) const {
-  const Ray ray = GetClickingRay(camera, click_ndc);
-  glm::vec3 position, normal;
-  if (glm::intersectRaySphere(
-          ray.start, glm::normalize(ray.direction),
-          /*sphereCenter=*/glm::vec3{0.0f}, /*sphereRadius=*/1.0f,
-          position, normal)) {
-    return position;
-  } else {
-    return std::nullopt;
-  }
-}
-
 std::optional<rotation::Rotation> Sphere::ShouldRotate(
-    const Camera& camera, const std::optional<glm::vec2>& click_ndc) {
-  const auto intersection = click_ndc.has_value()
-                                ? GetIntersection(camera, click_ndc.value())
-                                : std::nullopt;
+    const std::optional<glm::vec3>& intersection) {
   return rotation_manager_.Compute(intersection);
 }
 
@@ -191,5 +142,65 @@ glm::mat4 Sphere::GetSkyboxModelMatrix(float scale) const {
   skybox_model[3] *= glm::vec4{0.0f, 0.0f, 0.0f, 1.0f};
   return skybox_model;
 }
+
+template <typename CameraType>
+Sphere::Ray CameraViewedSphere<CameraType>::GetClickingRay(
+    const CameraType& camera, const glm::vec2& click_ndc) const {
+  // All computation will be done in the object space.
+  const glm::mat4 world_to_object = glm::inverse(model_matrix());
+  const glm::mat4 world_to_ndc = camera.GetProjectionMatrix() *
+                                 camera.GetViewMatrix();
+  const glm::mat4 ndc_to_world = glm::inverse(world_to_ndc);
+  const glm::mat4 ndc_to_object = world_to_object * ndc_to_world;
+
+  if constexpr (std::is_same_v<CameraType, PerspectiveCamera>) {
+    const glm::vec3 camera_pos =
+        TransformPoint(world_to_object, camera.position());
+    constexpr float kFarPlaneNdc = 1.0f;
+    const glm::vec3 click_pos =
+        TransformPoint(ndc_to_object, glm::vec3{click_ndc, kFarPlaneNdc});
+    return Ray{.start = camera_pos, .direction = click_pos - camera_pos};
+  } else if constexpr (std::is_same_v<CameraType, OrthographicCamera>) {
+    #ifdef USE_VULKAN
+    constexpr float kNearPlaneNdc = 0.0f;
+#else  // !USE_VULKAN
+    constexpr float kNearPlaneNdc = -1.0f;
+#endif  // USE_VULKAN
+    const glm::vec3 click_pos =
+        TransformPoint(ndc_to_object, glm::vec3{click_ndc, kNearPlaneNdc});
+    const glm::vec3 camera_dir =
+        TransformVector(world_to_object, camera.front());
+    return Ray{.start = click_pos, .direction = camera_dir};
+  } else {
+    static_assert("Unhandled camera type");
+  }
+}
+
+template <typename CameraType>
+std::optional<glm::vec3> CameraViewedSphere<CameraType>::GetIntersection(
+    const CameraType& camera, const glm::vec2& click_ndc) const {
+  const Ray ray = GetClickingRay(camera, click_ndc);
+  glm::vec3 position, normal;
+  if (glm::intersectRaySphere(
+          ray.start, glm::normalize(ray.direction),
+          /*sphereCenter=*/glm::vec3{0.0f}, /*sphereRadius=*/1.0f,
+          position, normal)) {
+    return position;
+  } else {
+    return std::nullopt;
+  }
+}
+
+template <typename CameraType>
+std::optional<rotation::Rotation> CameraViewedSphere<CameraType>::ShouldRotate(
+    const CameraType& camera, const std::optional<glm::vec2>& click_ndc) {
+  const auto intersection = click_ndc.has_value()
+                                ? GetIntersection(camera, click_ndc.value())
+                                : std::nullopt;
+  return Sphere::ShouldRotate(intersection);
+}
+
+template class CameraViewedSphere<PerspectiveCamera>;
+template class CameraViewedSphere<OrthographicCamera>;
 
 }  // namespace lighter::common

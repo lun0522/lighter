@@ -7,6 +7,8 @@
 
 #include "lighter/common/camera.h"
 
+#include <type_traits>
+
 #include "lighter/common/util.h"
 #include "third_party/glm/gtc/matrix_transform.hpp"
 
@@ -70,13 +72,15 @@ glm::mat4 OrthographicCamera::GetProjectionMatrix() const {
                     -half_view_size.y, half_view_size.y, near_, far_);
 }
 
-void UserControlledCamera::SetInternalStates(
-    absl::FunctionRef<void(Camera*)> operation) {
+template <typename CameraType>
+void UserControlledCamera<CameraType>::SetInternalStates(
+    absl::FunctionRef<void(CameraType*)> operation) {
   operation(camera_.get());
   ResetAngles();
 }
 
-void UserControlledCamera::DidMoveCursor(double x, double y) {
+template <typename CameraType>
+void UserControlledCamera<CameraType>::DidMoveCursor(double x, double y) {
   if (!is_active_) {
     return;
   }
@@ -94,37 +98,38 @@ void UserControlledCamera::DidMoveCursor(double x, double y) {
                      glm::sin(pitch_) * camera_->up()});
 }
 
-bool UserControlledCamera::DidScroll(
+template <typename CameraType>
+bool UserControlledCamera<CameraType>::DidScroll(
     double delta, double min_val, double max_val) {
   if (!is_active_) {
     return false;
   }
 
-  if (auto* perspective_camera =
-          dynamic_cast<PerspectiveCamera*>(camera_.get())) {
-    const float new_fovy = glm::clamp(
-        perspective_camera->field_of_view_y() + delta, min_val, max_val);
-    if (new_fovy != perspective_camera->field_of_view_y()) {
-      perspective_camera->SetFieldOfViewY(new_fovy);
+  if constexpr (std::is_same_v<CameraType, PerspectiveCamera>) {
+    const float new_fovy = glm::clamp(camera_->field_of_view_y() + delta,
+                                      min_val, max_val);
+    if (new_fovy != camera_->field_of_view_y()) {
+      camera_->SetFieldOfViewY(new_fovy);
       return true;
     }
-    return false;
-  }
-
-  if (auto* ortho_camera = dynamic_cast<OrthographicCamera*>(camera_.get())) {
-    const float new_width =
-        glm::clamp(ortho_camera->view_width() + delta, min_val, max_val);
-    if (new_width != ortho_camera->view_width()) {
-      ortho_camera->SetViewWidth(new_width);
+  } else if constexpr (std::is_same_v<CameraType, OrthographicCamera>) {
+    const float new_width = glm::clamp(camera_->view_width() + delta,
+                                      min_val, max_val);
+    if (new_width != camera_->view_width()) {
+      camera_->SetViewWidth(new_width);
       return true;
     }
-    return false;
+  } else {
+    static_assert("Unhandled camera type");
   }
-
-  FATAL("Unrecognized camera type");
+  return false;
 }
 
-void UserControlledCamera::DidPressKey(ControlKey key, float elapsed_time) {
+template <typename CameraType>
+void UserControlledCamera<CameraType>::DidPressKey(camera_control::Key key,
+                                                   float elapsed_time) {
+  using ControlKey = camera_control::Key;
+
   if (!is_active_) {
     return;
   }
@@ -189,10 +194,14 @@ void UserControlledCamera::DidPressKey(ControlKey key, float elapsed_time) {
   }
 }
 
-void UserControlledCamera::ResetAngles() {
+template <typename CameraType>
+void UserControlledCamera<CameraType>::ResetAngles() {
   ref_front_ = camera_->front();
   ref_left_ = -camera_->right();
   pitch_ = yaw_ = 0.0f;
 }
+
+template class UserControlledCamera<PerspectiveCamera>;
+template class UserControlledCamera<OrthographicCamera>;
 
 }  // namespace lighter::common

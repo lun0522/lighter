@@ -59,7 +59,7 @@ class Application {
 // runs its MainLoop(). AppType must be a subclass of Application.
 template <typename AppType>
 int AppMain(int argc, char* argv[]) {
-  static_assert(std::is_base_of<Application, AppType>::value,
+  static_assert(std::is_base_of_v<Application, AppType>,
                 "Not a subclass of Application");
 
   absl::ParseCommandLine(argc, argv);

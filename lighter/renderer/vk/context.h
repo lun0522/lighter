@@ -48,6 +48,16 @@ class Context : public std::enable_shared_from_this<Context> {
   ~Context() { LOG_INFO << "Context destructed properly"; }
 #endif  // DEBUG
 
+  // Convenience functions for destroying Vulkan objects.
+  template <typename T>
+  void InstanceDestroy(T t) const {
+    instance()->destroy(t, *host_allocator());
+  }
+  template <typename T>
+  void DeviceDestroy(T t) const {
+    device()->destroy(t, *host_allocator());
+  }
+
   // Records an operation that releases an expired resource, so that it can be
   // executed once the device becomes idle. This is used for resources that can
   // be released only when the device is no longer using it.

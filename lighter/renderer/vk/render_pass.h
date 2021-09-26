@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "lighter/renderer/ir/pass.h"
-#include "lighter/renderer/vk/pipeline.h"
+#include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/util.h"
 
 namespace lighter::renderer::vk {
@@ -29,11 +29,11 @@ class RenderPass : public WithSharedContext,
   ~RenderPass() override;
 
  private:
-  // Graphics pipelines used in this render pass.
-  std::vector<Pipeline> pipelines_;
-
   // Opaque render pass object.
   intl::RenderPass render_pass_;
+
+  // Opaque image view objects.
+  std::vector<intl::ImageView> image_views_;
 
   // Opaque framebuffer objects.
   std::vector<intl::Framebuffer> framebuffers_;

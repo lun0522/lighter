@@ -21,7 +21,7 @@ namespace lighter::renderer::ir {
 
 class Image {
  public:
-  using Type = common::image::Type;
+  using LayerType = common::image::Type;
 
   // This class is neither copyable nor movable.
   Image(const Image&) = delete;
@@ -29,7 +29,7 @@ class Image {
 
   virtual ~Image() = default;
 
-  int GetNumLayers() const { return common::image::GetNumLayers(type_); }
+  int GetNumLayers() const { return common::image::GetNumLayers(layer_type_); }
 
   int CalculateMipLevels() const {
     const int largest_dim = std::max(width(), height());
@@ -38,19 +38,20 @@ class Image {
 
   // Accessors.
   const std::string& name() const { return name_; }
-  Type type() const { return type_; }
+  LayerType layer_type() const { return layer_type_; }
   int width() const { return extent_.x; }
   int height() const { return extent_.y; }
   int mip_levels() const { return mip_levels_; }
 
  protected:
-  Image(std::string_view name, Type type, const glm::ivec2& extent,
+  Image(std::string_view name, LayerType layer_type, const glm::ivec2& extent,
         int mip_levels)
-      : name_{name}, type_{type}, extent_{extent}, mip_levels_{mip_levels} {}
+      : name_{name}, layer_type_{layer_type}, extent_{extent},
+        mip_levels_{mip_levels} {}
 
  private:
   const std::string name_;
-  const Type type_;
+  const LayerType layer_type_;
   const glm::ivec2 extent_;
   const int mip_levels_;
 };

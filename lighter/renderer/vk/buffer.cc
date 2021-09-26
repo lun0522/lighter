@@ -33,11 +33,6 @@ intl::Buffer CreateBuffer(
                                         *context.host_allocator());
 }
 
-// Destroys "buffer".
-void DestroyBuffer(const Context& context, intl::Buffer buffer) {
-  context.device()->destroy(buffer, *context.host_allocator());
-}
-
 // Allocates device memory for 'buffer' with 'memory_properties'.
 intl::DeviceMemory CreateBufferMemory(const Context& context,
                                       intl::Buffer buffer,
@@ -153,7 +148,7 @@ void DeviceBuffer::DeallocateBufferAndMemory() {
   const auto device_memory = device_memory_;
   context_->AddReleaseExpiredResourceOp(
       [buffer, device_memory](const Context& context) {
-        DestroyBuffer(context, buffer);
+        context.DeviceDestroy(buffer);
         buffer::FreeDeviceMemory(context, device_memory);
       });
 

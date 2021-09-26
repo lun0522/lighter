@@ -364,8 +364,8 @@ void Pipeline::Bind(intl::CommandBuffer command_buffer) const {
 }
 
 Pipeline::~Pipeline() {
-  context_->device()->destroy(pipeline_, *context_->host_allocator());
-  context_->device()->destroy(pipeline_layout_, *context_->host_allocator());
+  context_->DeviceDestroy(pipeline_);
+  context_->DeviceDestroy(pipeline_layout_);
 #ifndef NDEBUG
   LOG_INFO << absl::StreamFormat("Pipeline '%s' destructed", name_);
 #endif  // DEBUG

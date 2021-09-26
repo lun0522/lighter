@@ -99,7 +99,7 @@ class PlanetApp : public Application {
   int current_frame_ = 0;
   std::optional<int> num_asteroids_;
   common::FrameTimer timer_;
-  std::unique_ptr<common::UserControlledCamera> camera_;
+  std::unique_ptr<common::UserControlledPerspectiveCamera> camera_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<StaticPerInstanceBuffer> per_asteroid_data_;
   std::unique_ptr<UniformBuffer> light_uniform_;
@@ -117,20 +117,19 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
     : Application{"Planet", window_config} {
   using common::file::GetResourcePath;
   using WindowKey = common::Window::KeyMap;
-  using ControlKey = common::UserControlledCamera::ControlKey;
+  using ControlKey = common::camera_control::Key;
   using TextureType = ModelBuilder::TextureType;
 
   const float original_aspect_ratio = window_context().original_aspect_ratio();
 
   /* Camera */
-  common::Camera::Config config;
-  config.position = glm::vec3{1.6f, -5.1f, -5.9f};
-  config.look_at = glm::vec3{-2.4f, -0.8f, 0.0f};
+  common::Camera::Config camera_config;
+  camera_config.position = glm::vec3{1.6f, -5.1f, -5.9f};
+  camera_config.look_at = glm::vec3{-2.4f, -0.8f, 0.0f};
   const common::PerspectiveCamera::FrustumConfig frustum_config{
       /*field_of_view_y=*/45.0f, original_aspect_ratio};
-  camera_ = std::make_unique<common::UserControlledCamera>(
-      common::UserControlledCamera::ControlConfig{},
-      std::make_unique<common::PerspectiveCamera>(config, frustum_config));
+  camera_ = common::UserControlledPerspectiveCamera::Create(
+      /*control_config=*/{}, camera_config, frustum_config);
 
   /* Window */
   (*mutable_window_context()->mutable_window())

@@ -209,22 +209,20 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
   }
 
   /* Camera */
-  common::Camera::Config config;
-  config.position = glm::vec3{0.0f, 0.0f, 3.0f};
-  const common::UserControlledCamera::ControlConfig camera_control_config{};
+  const common::camera_control::Config control_config;
+  common::Camera::Config camera_config;
+  camera_config.position = glm::vec3{0.0f, 0.0f, 3.0f};
 
   const common::PerspectiveCamera::FrustumConfig frustum_config{
       /*field_of_view_y=*/45.0f, original_aspect_ratio};
-  skybox_camera_ = std::make_unique<common::UserControlledCamera>(
-      camera_control_config,
-      std::make_unique<common::PerspectiveCamera>(config, frustum_config));
+  skybox_camera_ = common::UserControlledPerspectiveCamera::Create(
+      control_config, camera_config, frustum_config);
   skybox_camera_->SetActivity(true);
 
   const common::OrthographicCamera::OrthoConfig ortho_config{
       /*view_width=*/3.0f, original_aspect_ratio};
-  general_camera_ = std::make_unique<common::UserControlledCamera>(
-      camera_control_config,
-      std::make_unique<common::OrthographicCamera>(config, ortho_config));
+  general_camera_ = common::UserControlledOrthographicCamera::Create(
+      control_config, camera_config, ortho_config);
   general_camera_->SetActivity(true);
 }
 
@@ -310,8 +308,7 @@ void Editor::UpdateData(int frame) {
   state_manager_.Update(clicked_button);
 
   // Process interaction with earth or aurora layer if no button is clicked.
-  const auto& general_camera = dynamic_cast<const common::OrthographicCamera&>(
-      general_camera_->camera());
+  const common::OrthographicCamera& general_camera = general_camera_->camera();
   std::optional<glm::vec2> click_earth_ndc;
   std::optional<AuroraPath::ClickInfo> click_celestial;
   if (!clicked_button.has_value()) {

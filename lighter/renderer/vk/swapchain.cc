@@ -150,7 +150,7 @@ Swapchain::Swapchain(const SharedContext& context, int window_index,
 }
 
 Swapchain::~Swapchain() {
-  context_->device()->destroy(swapchain_, *context_->host_allocator());
+  context_->DeviceDestroy(swapchain_);
 #ifndef NDEBUG
   LOG_INFO << "Swapchain destructed";
 #endif  // DEBUG

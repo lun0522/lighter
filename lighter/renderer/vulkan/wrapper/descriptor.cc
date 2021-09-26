@@ -125,9 +125,9 @@ std::vector<VkWriteDescriptorSet> CreateWriteDescriptorSets(
     const VkDescriptorSet& descriptor_set,
     VkDescriptorType descriptor_type,
     const absl::flat_hash_map<uint32_t, std::vector<InfoType>>& info_map) {
-  static_assert(std::is_same<InfoType, VkDescriptorBufferInfo>::value ||
-                    std::is_same<InfoType, VkDescriptorImageInfo>::value ||
-                    std::is_same<InfoType, VkBufferView>::value,
+  static_assert(std::is_same_v<InfoType, VkDescriptorBufferInfo> ||
+                    std::is_same_v<InfoType, VkDescriptorImageInfo> ||
+                    std::is_same_v<InfoType, VkBufferView>,
                 "Unexpected info type");
 
   using common::util::GetPointerIfTypeExpected;

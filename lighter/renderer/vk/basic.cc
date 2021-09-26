@@ -281,7 +281,7 @@ DebugMessenger::DebugMessenger(const Context* context,
 }
 
 DebugMessenger::~DebugMessenger() {
-  context_.instance()->destroy(messenger_, *context_.host_allocator());
+  context_.InstanceDestroy(messenger_);
 }
 
 Surface::Surface(const Context* context, const common::Window& window)
@@ -296,7 +296,7 @@ Surface::Surface(const Context* context, const common::Window& window)
 }
 
 Surface::~Surface() {
-  context_.instance()->destroy(surface_, *context_.host_allocator());
+  context_.InstanceDestroy(surface_);
 }
 
 PhysicalDevice::PhysicalDevice(const Context* context,

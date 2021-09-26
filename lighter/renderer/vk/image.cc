@@ -14,6 +14,7 @@
 #include "lighter/renderer/vk/image_util.h"
 #include "lighter/renderer/vk/type_mapping.h"
 #include "third_party/absl/container/flat_hash_set.h"
+#include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/str_format.h"
 
 namespace lighter::renderer::vk {
@@ -133,8 +134,8 @@ std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
   const intl::Format format = ChooseColorImageFormat(
       *context, dimension.channel, high_precision, usages);
   return absl::WrapUnique(new SingleImage(
-      context, name, Type::kSingle, dimension.extent(), kSingleMipLevel, format,
-      multisampling_mode, usages));
+      context, name, LayerType::kSingle, dimension.extent(), kSingleMipLevel,
+      format, multisampling_mode, usages));
 }
 
 std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
@@ -155,20 +156,20 @@ std::unique_ptr<SingleImage> SingleImage::CreateDepthStencilImage(
     absl::Span<const ImageUsage> usages) {
   const intl::Format format = ChooseDepthStencilImageFormat(*context);
   return absl::WrapUnique(new SingleImage(
-      context, name, Type::kSingle, extent, kSingleMipLevel, format,
+      context, name, LayerType::kSingle, extent, kSingleMipLevel, format,
       multisampling_mode, usages));
 }
 
 SingleImage::SingleImage(
-    const SharedContext& context, std::string_view name, Type type,
+    const SharedContext& context, std::string_view name, LayerType layer_type,
     const glm::ivec2& extent, int mip_levels, intl::Format format,
     ir::MultisamplingMode multisampling_mode,
     absl::Span<const ir::ImageUsage> usages)
     : WithSharedContext{context},
-      Image{name, type, extent, mip_levels, format,
+      Image{name, layer_type, extent, mip_levels, format,
             context_->physical_device().sample_count(multisampling_mode)} {
   intl::ImageCreateFlags create_flags;
-  if (type == Type::kCubemap) {
+  if (layer_type == LayerType::kCubemap) {
     create_flags |= intl::ImageCreateFlagBits::eCubeCompatible;
   }
 
@@ -196,7 +197,7 @@ SingleImage::SingleImage(
 }
 
 SingleImage::~SingleImage() {
-  context_->device()->destroy(image_, *context_->host_allocator());
+  context_->DeviceDestroy(image_);
   buffer::FreeDeviceMemory(*context_, device_memory_);
 }
 

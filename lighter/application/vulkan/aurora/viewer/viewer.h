@@ -101,8 +101,7 @@ class Viewer : public Scene {
   void Recreate() override;
   void UpdateData(int frame) override {
     viewer_renderer_.UpdateViewAuroraCamera(
-        frame, dynamic_cast<const common::PerspectiveCamera&>(
-            view_aurora_camera_->camera()));
+        frame, view_aurora_camera_->camera());
   }
   void Draw(const VkCommandBuffer& command_buffer,
             uint32_t framebuffer_index, int current_frame) override {
@@ -133,7 +132,7 @@ class Viewer : public Scene {
   // Camera used for viewing aurora. We would change both position and direction
   // of this camera when the user viewpoint changes, and when the user gives
   // inputs to change the direction.
-  std::unique_ptr<common::UserControlledCamera> view_aurora_camera_;
+  std::unique_ptr<common::UserControlledPerspectiveCamera> view_aurora_camera_;
 };
 
 } /* namespace aurora */

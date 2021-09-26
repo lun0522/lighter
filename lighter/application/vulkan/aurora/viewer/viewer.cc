@@ -268,30 +268,28 @@ Viewer::Viewer(
                        /*air_transmit_sample_step=*/0.01f,
                        path_dumper_.aurora_paths_image(),
                        path_dumper_.distance_field_image()} {
-  common::Camera::Config config;
-  config.far = 2.0f;
-  config.up = GetEarthModelAxis();
-  config.position = glm::vec3{0.0f};
+  common::Camera::Config camera_config;
+  camera_config.far = 2.0f;
+  camera_config.up = GetEarthModelAxis();
+  camera_config.position = glm::vec3{0.0f};
   // The 'look_at' point doesn't matter at this moment. It just can't be the
   // position of camera itself. It will be updated to user viewpoint.
-  config.look_at = glm::vec3{1.0f};
+  camera_config.look_at = glm::vec3{1.0f};
   // Field of view should be as small as possible so that we can focus on more
   // details of aurora paths, but it should not be too small, in case that the
   // marching ray goes out of the resulting texture.
   dump_paths_camera_ = std::make_unique<common::PerspectiveCamera>(
-      config, common::PerspectiveCamera::FrustumConfig{
+      camera_config, common::PerspectiveCamera::FrustumConfig{
           /*field_of_view_y=*/40.0f, /*aspect_ratio=*/1.0f,
       });
 
   // 'position' and 'look_at' don't matter at this moment. They will be set
   // according to the user viewpoint.
-  auto perspective_camera = std::make_unique<common::PerspectiveCamera>(
-      config, common::PerspectiveCamera::FrustumConfig{
+  view_aurora_camera_ = common::UserControlledPerspectiveCamera::Create(
+      /*control_config=*/{}, camera_config,
+      common::PerspectiveCamera::FrustumConfig{
           /*field_of_view_y=*/45.0f, window_context_.original_aspect_ratio(),
       });
-  view_aurora_camera_ = std::make_unique<common::UserControlledCamera>(
-      common::UserControlledCamera::ControlConfig{},
-      std::move(perspective_camera));
   view_aurora_camera_->SetActivity(true);
 }
 
@@ -301,7 +299,7 @@ void Viewer::UpdateAuroraPaths(const glm::vec3& viewpoint_position) {
   viewer_renderer_.UpdateDumpPathsCamera(*dump_paths_camera_);
 
   view_aurora_camera_->SetInternalStates(
-      [&viewpoint_position](common::Camera* camera) {
+      [&viewpoint_position](common::PerspectiveCamera* camera) {
         camera->SetPosition(viewpoint_position);
         camera->SetUp(viewpoint_position);
         const glm::vec3 right = glm::cross(GetEarthModelAxis(), camera->up());

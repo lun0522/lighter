@@ -30,7 +30,7 @@ class Image : public ir::Image {
   Image& operator=(const Image&) = delete;
 
   static const Image& Cast(const ir::Image& image) {
-    return dynamic_cast<const Image&>(image);
+    return static_cast<const Image&>(image);
   }
 
   // Accessors.
@@ -41,10 +41,10 @@ class Image : public ir::Image {
   intl::SampleCountFlagBits sample_count() const { return sample_count_; }
 
  protected:
-  Image(std::string_view name, Type type, const glm::ivec2& extent,
+  Image(std::string_view name, LayerType layer_type, const glm::ivec2& extent,
         int mip_levels, intl::Format format,
         intl::SampleCountFlagBits sample_count)
-      : ir::Image{name, type, extent, mip_levels},
+      : ir::Image{name, layer_type, extent, mip_levels},
         format_{format}, sample_count_{sample_count} {}
 
  private:
@@ -53,7 +53,9 @@ class Image : public ir::Image {
   const intl::SampleCountFlagBits sample_count_;
 };
 
-class SingleImage : public WithSharedContext, public Image {
+// "Single" means there is only one backing VkImage, which might be a cubemap.
+class SingleImage : public WithSharedContext,
+                    public Image {
  public:
   static std::unique_ptr<SingleImage> CreateColorImage(
       const SharedContext& context, std::string_view name,
@@ -77,10 +79,13 @@ class SingleImage : public WithSharedContext, public Image {
 
   ~SingleImage() override;
 
+  // Overloads.
+  intl::Image operator*() const { return image_; }
+
  private:
-  SingleImage(const SharedContext& context, std::string_view name, Type type,
-              const glm::ivec2& extent, int mip_levels, intl::Format format,
-              ir::MultisamplingMode multisampling_mode,
+  SingleImage(const SharedContext& context, std::string_view name,
+              LayerType layer_type, const glm::ivec2& extent, int mip_levels,
+              intl::Format format, ir::MultisamplingMode multisampling_mode,
               absl::Span<const ir::ImageUsage> usages);
 
   // Opaque image object.
@@ -99,13 +104,17 @@ class MultiImage : public Image {
  public:
   MultiImage(std::string_view name, std::vector<intl::Image>&& images,
              const glm::ivec2& extent, intl::Format format)
-      : Image{name, Type::kSingle, extent, /*mip_levels=*/1, format,
+      : Image{name, LayerType::kSingle, extent, /*mip_levels=*/1, format,
               intl::SampleCountFlagBits::e1},
         images_{std::move(images)} {}
 
   // This class is neither copyable nor movable.
   MultiImage(const MultiImage&) = delete;
   MultiImage& operator=(const MultiImage&) = delete;
+
+  // Accessors.
+  int num_images() const { return images_.size(); }
+  intl::Image image(int index) const { return images_.at(index); }
 
  private:
   // Opaque image objects.

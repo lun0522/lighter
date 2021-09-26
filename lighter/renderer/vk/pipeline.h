@@ -42,7 +42,7 @@ class ShaderModule : public WithSharedContext {
   ShaderModule& operator=(const ShaderModule&) = delete;
 
   ~ShaderModule() {
-    context_->device()->destroy(shader_module_, *context_->host_allocator());
+    context_->DeviceDestroy(shader_module_);
   }
 
   // Overloads.

@@ -68,7 +68,7 @@ class NanosuitApp : public Application {
   bool should_quit_ = false;
   int current_frame_ = 0;
   common::FrameTimer timer_;
-  std::unique_ptr<common::UserControlledCamera> camera_;
+  std::unique_ptr<common::UserControlledPerspectiveCamera> camera_;
   std::unique_ptr<PerFrameCommand> command_;
   std::unique_ptr<UniformBuffer> nanosuit_vert_uniform_;
   std::unique_ptr<PushConstant> nanosuit_frag_constant_;
@@ -84,26 +84,25 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
     : Application{"Nanosuit", window_config} {
   using common::file::GetResourcePath;
   using WindowKey = common::Window::KeyMap;
-  using ControlKey = common::UserControlledCamera::ControlKey;
+  using ControlKey = common::camera_control::Key;
   using TextureType = ModelBuilder::TextureType;
 
   const float original_aspect_ratio = window_context().original_aspect_ratio();
 
   /* Camera */
-  common::Camera::Config config;
-  config.position = glm::vec3{0.0f, 4.0f, -12.0f};
-  config.look_at = glm::vec3{0.0f, 4.0f, 0.0f};
+  common::Camera::Config camera_config;
+  camera_config.position = glm::vec3{0.0f, 4.0f, -12.0f};
+  camera_config.look_at = glm::vec3{0.0f, 4.0f, 0.0f};
 
-  common::UserControlledCamera::ControlConfig control_config;
+  common::camera_control::Config control_config;
   control_config.move_speed = 1.0f;
-  control_config.lock_center = config.look_at;
+  control_config.lock_center = camera_config.look_at;
 
   const common::PerspectiveCamera::FrustumConfig frustum_config{
       /*field_of_view_y=*/45.0f, original_aspect_ratio};
 
-  camera_ = std::make_unique<common::UserControlledCamera>(
-      control_config,
-      std::make_unique<common::PerspectiveCamera>(config, frustum_config));
+  camera_ = common::UserControlledPerspectiveCamera::Create(
+      control_config, camera_config, frustum_config);
 
   /* Window */
   (*mutable_window_context()->mutable_window())

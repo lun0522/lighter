@@ -171,8 +171,8 @@ class Editor : public Scene {
 
   // Sphere models used to handle user interaction with the earth model and
   // virtual aurora layer in the scene.
-  common::Sphere earth_;
-  common::Sphere aurora_layer_;
+  common::OrthographicCameraViewedSphere earth_;
+  common::OrthographicCameraViewedSphere aurora_layer_;
 
   // Manages button states.
   StateManager state_manager_;
@@ -186,8 +186,8 @@ class Editor : public Scene {
   // Camera models. We use a perspective camera for the skybox, and an
   // orthographic camera for the earth model, so that the user need not worry
   // about the distortion of perspective camera when editing aurora paths.
-  std::unique_ptr<common::UserControlledCamera> general_camera_;
-  std::unique_ptr<common::UserControlledCamera> skybox_camera_;
+  std::unique_ptr<common::UserControlledPerspectiveCamera> skybox_camera_;
+  std::unique_ptr<common::UserControlledOrthographicCamera> general_camera_;
 };
 
 } /* namespace aurora */
