@@ -120,8 +120,8 @@ void FramebuffersBuilder::CreateAndAppendImageViews(const Image& attachment) {
   switch (attachment.type()) {
     case Image::Type::kSingle: {
       image_view_create_info.setImage(*SingleImage::Cast(attachment));
-      image_views_.push_back(context_->device()->createImageView(
-          image_view_create_info, *context_->host_allocator()));
+      image_views_.push_back(vk_device().createImageView(
+          image_view_create_info, vk_host_allocator()));
       break;
     }
 
@@ -129,8 +129,8 @@ void FramebuffersBuilder::CreateAndAppendImageViews(const Image& attachment) {
       const auto& multi_image = MultiImage::Cast(attachment);
       for (int i = 0; i < multi_image.num_images(); ++i) {
         image_view_create_info.setImage(multi_image.image(i));
-        image_views_.push_back(context_->device()->createImageView(
-            image_view_create_info, *context_->host_allocator()));
+        image_views_.push_back(vk_device().createImageView(
+            image_view_create_info, vk_host_allocator()));
       }
       break;
     }
@@ -168,8 +168,8 @@ void FramebuffersBuilder::CreateFrameBuffers(intl::RenderPass render_pass) {
         }
       }
     }
-    framebuffers_[framebuffer_index] = context_->device()->createFramebuffer(
-        framebuffer_create_info, *context_->host_allocator());
+    framebuffers_[framebuffer_index] = vk_device().createFramebuffer(
+        framebuffer_create_info, vk_host_allocator());
   }
 }
 

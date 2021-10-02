@@ -139,13 +139,13 @@ Swapchain::Swapchain(const SharedContext& context, int window_index,
       .setPresentMode(present_mode)
       // Don't care about the color of invisible pixels.
       .setClipped(true);
-  swapchain_ = context_->device()->createSwapchainKHR(
-      swapchain_create_info, *context_->host_allocator());
+  swapchain_ = vk_device().createSwapchainKHR(swapchain_create_info,
+                                              vk_host_allocator());
 
   // Fetch swapchain images.
   image_ = std::make_unique<MultiImage>(
       absl::StrFormat("swapchain%d", window_index),
-      context_->device()->getSwapchainImagesKHR(swapchain_),
+      vk_device().getSwapchainImagesKHR(swapchain_),
       util::ToVec(image_extent), surface_format.format);
 }
 

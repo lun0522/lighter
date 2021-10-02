@@ -128,6 +128,12 @@ class WithSharedContext {
 
   virtual ~WithSharedContext() = default;
 
+  // Accessors.
+  intl::Device vk_device() const { return *context_->device(); }
+  intl::Optional<const intl::AllocationCallbacks> vk_host_allocator() const {
+    return *context_->host_allocator();
+  }
+
  protected:
   const SharedContext context_;
 };

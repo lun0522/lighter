@@ -83,10 +83,10 @@ class Renderer {
   // Pass
 
   virtual std::unique_ptr<RenderPass> CreateRenderPass(
-      const RenderPassDescriptor& descriptor) const = 0;
+      RenderPassDescriptor&& descriptor) const = 0;
 
   virtual std::unique_ptr<ComputePass> CreateComputePass(
-      const ComputePassDescriptor& descriptor) const = 0;
+      ComputePassDescriptor&& descriptor) const = 0;
 
  protected:
   explicit Renderer(std::vector<const common::Window*>&& windows)

@@ -60,18 +60,9 @@ struct RenderPassDescriptor {
     AttachmentStoreOp store_op = AttachmentStoreOp::kDontCare;
   };
 
-  struct ColorLoadStoreOps : public LoadStoreOps {
-    static ColorLoadStoreOps GetDefaultOps() {
-      return {{AttachmentLoadOp::kClear, AttachmentStoreOp::kStore}};
-    }
-  };
+  struct ColorLoadStoreOps : public LoadStoreOps {};
 
   struct DepthStencilLoadStoreOps {
-    static DepthStencilLoadStoreOps GetDefaultDepthOps() {
-      return {.depth_ops = {AttachmentLoadOp::kClear,
-                            AttachmentStoreOp::kDontCare}};
-    }
-
     LoadStoreOps depth_ops;
     LoadStoreOps stencil_ops;
   };

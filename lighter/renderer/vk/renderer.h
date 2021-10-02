@@ -91,12 +91,12 @@ class Renderer : public WithSharedContext,
   // Pass
 
   std::unique_ptr<ir::RenderPass> CreateRenderPass(
-      const ir::RenderPassDescriptor& descriptor) const override {
-    return std::make_unique<RenderPass>(context_, descriptor);
+      ir::RenderPassDescriptor&& descriptor) const override {
+    return std::make_unique<RenderPass>(context_, std::move(descriptor));
   }
 
   std::unique_ptr<ir::ComputePass> CreateComputePass(
-      const ir::ComputePassDescriptor& descriptor) const override {
+      ir::ComputePassDescriptor&& descriptor) const override {
     FATAL("Not implemented yet");
   }
 

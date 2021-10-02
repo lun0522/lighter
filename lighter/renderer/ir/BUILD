@@ -46,7 +46,10 @@ cc_library(
 
 cc_library(
     name = "pass",
-    hdrs = ["pass.h"],
+    hdrs = [
+        "pass.h",
+        "pass_util.h",
+    ],
     deps = [
         ":image",
         ":pipeline",

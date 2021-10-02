@@ -10,8 +10,6 @@
 namespace lighter::example {
 namespace {
 
-using namespace renderer;
-
 constexpr int kWindowIndex = 0;
 
 // BEGIN: Consistent with uniform blocks defined in shaders.
@@ -30,10 +28,12 @@ class TriangleExample {
                   const glm::ivec2& screen_size,
                   MultisamplingMode multisampling_mode)
       : window_{"Triangle", screen_size} {
+    const bool use_multisamping =
+        multisampling_mode != MultisamplingMode::kNone;
     renderer_ = CreateRenderer(graphics_api, "Triangle Example", {&window_});
 
     // TODO: Use refection API for locations.
-    pipeline_descriptor_
+    auto pipeline_descriptor = GraphicsPipelineDescriptor{}
         .SetName("Triangle")
         .SetShader(shader_stage::VERTEX,
                    GetShaderBinaryPath("triangle/triangle.vert", graphics_api))
@@ -49,6 +49,38 @@ class TriangleExample {
         // TODO: Create helper function to make range.
         .AddPushConstantRange({shader_stage::FRAGMENT, /*offset=*/0,
                               sizeof(Alpha)});
+    
+    const Image& swapchain_image = renderer_->GetSwapchainImage(kWindowIndex);
+    auto subpass_descriptor = SubpassDescriptor{}
+        .AddPipeline(std::move(pipeline_descriptor));
+    auto render_pass_descriptor = RenderPassDescriptor{};
+
+    if (use_multisamping) {
+      multisample_attachment_ = renderer_->CreateColorImage(
+          "color_multisample", {screen_size, common::image::kRgbaImageChannel},
+          multisampling_mode, /*high_precision=*/false,
+          {ImageUsage::GetRenderTargetUsage(/*attachment_location=*/0)});
+      subpass_descriptor
+          .AddColorAttachment(multisample_attachment_.get())
+          .AddMultisampleResolve(multisample_attachment_.get(),
+                                 &swapchain_image);
+      render_pass_descriptor
+          .SetLoadStoreOps(
+              multisample_attachment_.get(),
+              pass::GetRenderTargetLoadStoreOps(/*is_multisampled=*/true))
+          .SetLoadStoreOps(&swapchain_image,
+                           pass::GetResolveTargetLoadStoreOps());
+    } else {
+      subpass_descriptor.AddColorAttachment(&swapchain_image);
+      render_pass_descriptor
+          .SetLoadStoreOps(
+              &swapchain_image,
+              pass::GetRenderTargetLoadStoreOps(/*is_multisampled=*/false));
+    }
+
+    render_pass_descriptor.AddSubpass(std::move(subpass_descriptor));
+    render_pass_ =
+        renderer_->CreateRenderPass(std::move(render_pass_descriptor));
   }
 
   // This class is neither copyable nor movable.
@@ -61,7 +93,8 @@ class TriangleExample {
   common::Window window_;
   std::unique_ptr<Renderer> renderer_;
   std::unique_ptr<DeviceBuffer> vertex_buffer_;
-  GraphicsPipelineDescriptor pipeline_descriptor_;
+  std::unique_ptr<Image> multisample_attachment_;
+  std::unique_ptr<RenderPass> render_pass_;
 };
 
 }  // namespace lighter::example

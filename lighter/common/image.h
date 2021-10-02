@@ -50,6 +50,12 @@ class Image {
     int height;
     int channel;
 
+    Dimension(int width, int height, int channel)
+        : width{width}, height{height}, channel{channel} {}
+    Dimension(const glm::ivec2& extent, int channel)
+        : Dimension{extent.x, extent.y, channel} {}
+    explicit Dimension() : Dimension{0, 0, 0} {}
+
     glm::ivec2 extent() const { return {width, height}; }
     size_t size_per_layer() const { return width * height * channel; }
   };
