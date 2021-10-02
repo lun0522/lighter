@@ -12,6 +12,7 @@
 
 #include "lighter/renderer/ir/pass.h"
 #include "lighter/renderer/vk/context.h"
+#include "lighter/renderer/vk/framebuffer.h"
 #include "lighter/renderer/vk/util.h"
 
 namespace lighter::renderer::vk {
@@ -32,11 +33,8 @@ class RenderPass : public WithSharedContext,
   // Opaque render pass object.
   intl::RenderPass render_pass_;
 
-  // Opaque image view objects.
-  std::vector<intl::ImageView> image_views_;
-
-  // Opaque framebuffer objects.
-  std::vector<intl::Framebuffer> framebuffers_;
+  // Manages framebuffers and associated image views.
+  const Framebuffers framebuffers_;
 };
 
 }  // namespace lighter::renderer::vk

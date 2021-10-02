@@ -72,8 +72,8 @@ intl::PresentModeKHR ChoosePresentMode(
   // so that we always get the most recently generated frame.
   // TODO: Use FIFO for mobile to save power.
   constexpr auto kBestMode = intl::PresentModeKHR::eMailbox;
-  const auto iter = std::find(modes.begin(), modes.end(), kBestMode);
-  return iter == modes.end() ? intl::PresentModeKHR::eFifo : kBestMode;
+  const bool supports_best_mode = common::util::Contains(modes, kBestMode);
+  return supports_best_mode ? kBestMode : intl::PresentModeKHR::eFifo;
 }
 
 // Returns the minimum number of images we want to have in the swapchain.

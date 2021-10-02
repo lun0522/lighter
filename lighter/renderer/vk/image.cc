@@ -78,9 +78,15 @@ intl::Format ChooseColorImageFormat(const Context& context, int channel,
   }
 }
 
+const std::vector<intl::Format>& GetSupportedDepthStencilFormats() {
+  static const auto* formats = new std::vector<intl::Format>{
+      intl::Format::eD24UnormS8Uint, intl::Format::eD32SfloatS8Uint};
+  return *formats;
+}
+
 intl::Format ChooseDepthStencilImageFormat(const Context& context) {
   const auto format = FindImageFormatWithFeature(
-      context, {intl::Format::eD24UnormS8Uint, intl::Format::eD32SfloatS8Uint},
+      context, GetSupportedDepthStencilFormats(),
       intl::FormatFeatureFlagBits::eDepthStencilAttachment);
   ASSERT_HAS_VALUE(format, "Failed to find depth stencil image format");
   return format.value();
@@ -126,6 +132,25 @@ intl::DeviceMemory CreateImageMemory(const Context& context, intl::Image image,
 
 }  // namespace
 
+intl::ImageViewType Image::GetViewType() const {
+  switch (layer_type()) {
+    case LayerType::kSingle:
+      return intl::ImageViewType::e2D;
+    case LayerType::kCubemap:
+      return intl::ImageViewType::eCube;
+  }
+}
+
+intl::ImageAspectFlags Image::GetAspectFlags() const {
+  const auto formats_span = absl::MakeSpan(GetSupportedDepthStencilFormats());
+  if (common::util::Contains(formats_span, format())) {
+    return intl::ImageAspectFlagBits::eDepth |
+           intl::ImageAspectFlagBits::eStencil;
+  } else {
+    return intl::ImageAspectFlagBits::eColor;
+  }
+}
+
 std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
     const SharedContext& context, std::string_view name,
     const common::Image::Dimension& dimension,
@@ -166,7 +191,7 @@ SingleImage::SingleImage(
     ir::MultisamplingMode multisampling_mode,
     absl::Span<const ir::ImageUsage> usages)
     : WithSharedContext{context},
-      Image{name, layer_type, extent, mip_levels, format,
+      Image{Type::kSingle, name, layer_type, extent, mip_levels, format,
             context_->physical_device().sample_count(multisampling_mode)} {
   intl::ImageCreateFlags create_flags;
   if (layer_type == LayerType::kCubemap) {

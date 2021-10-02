@@ -7,8 +7,7 @@
 
 #include "lighter/renderer/vk/render_pass.h"
 
-#include "lighter/common/image.h"
-#include "lighter/common/util.h"
+#include "lighter/renderer/ir/image.h"
 #include "lighter/renderer/vk/image.h"
 #include "lighter/renderer/vk/type_mapping.h"
 #include "third_party/absl/container/flat_hash_map.h"
@@ -163,55 +162,15 @@ void RenderPassBuilder::CreateSubpassDependencies() {
   }
 }
 
-std::vector<intl::Framebuffer> CreateFrameBuffers(
-    const Context& context, intl::RenderPass render_pass,
-    const RenderPassDescriptor& descriptor) {
-  std::vector<const Image*> attachments;
-  attachments.reserve(descriptor.color_ops_map.size() +
-                      descriptor.depth_stencil_ops_map.size());
-  for (const auto& [attachment, _]: descriptor.color_ops_map) {
-    attachments.push_back(&Image::Cast(*attachment));
-  }
-  for (const auto& [attachment, _]: descriptor.depth_stencil_ops_map) {
-    attachments.push_back(&Image::Cast(*attachment));
-  }
-
-  // TODO: Populate image views.
-  std::vector<intl::ImageView> image_views;
-  image_views.resize(attachments.size());
-  
-  ASSERT_FALSE(descriptor.color_ops_map.empty(), "No color attachment found");
-  const ir::Image* sample_attachemnt = descriptor.color_ops_map.begin()->first;
-  auto framebuffer_create_info = intl::FramebufferCreateInfo{}
-      .setRenderPass(render_pass)
-      .setAttachments(image_views)
-      .setWidth(CAST_TO_UINT(sample_attachemnt->width()))
-      .setHeight(CAST_TO_UINT(sample_attachemnt->height()))
-      .setLayers(CAST_TO_UINT(sample_attachemnt->GetNumLayers()));
-
-  std::vector<intl::Framebuffer> framebuffers(descriptor.num_framebuffers);
-  for (int i = 0; i < framebuffers.size(); ++i) {
-    framebuffers[i] = context.device()->createFramebuffer(
-        framebuffer_create_info, *context.host_allocator());
-  }
-  return framebuffers;
-}
-
 }  // namespace
 
 RenderPass::RenderPass(const SharedContext& context,
                        const RenderPassDescriptor& descriptor)
-    : WithSharedContext{context} {
-  render_pass_ = RenderPassBuilder::Build(*context_, descriptor);
-}
+    : WithSharedContext{context},
+      render_pass_{RenderPassBuilder::Build(*context_, descriptor)},
+      framebuffers_{context_, render_pass_, descriptor} {}
 
 RenderPass::~RenderPass() {
-  for (intl::Framebuffer framebuffer : framebuffers_) {
-    context_->DeviceDestroy(framebuffer);
-  }
-  for (intl::ImageView image_view : image_views_) {
-    context_->DeviceDestroy(image_view);
-  }
   context_->DeviceDestroy(render_pass_);
 #ifndef NDEBUG
   LOG_INFO << "Render pass destructed";

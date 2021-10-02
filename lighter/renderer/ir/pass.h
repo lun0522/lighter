@@ -82,10 +82,6 @@ struct RenderPassDescriptor {
     std::vector<const Image*> attachments;
   };
 
-  RenderPassDescriptor& SetNumFramebuffers(int count) {
-    num_framebuffers = count;
-    return *this;
-  }
   RenderPassDescriptor& SetLoadStoreOps(const Image* attachment,
                                         const ColorLoadStoreOps& ops) {
     color_ops_map.insert({attachment, ops});
@@ -105,7 +101,6 @@ struct RenderPassDescriptor {
     return *this;
   }
 
-  int num_framebuffers = 0;
   absl::flat_hash_map<const Image*, ColorLoadStoreOps> color_ops_map;
   absl::flat_hash_map<const Image*, DepthStencilLoadStoreOps>
       depth_stencil_ops_map;

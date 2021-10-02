@@ -111,6 +111,13 @@ std::optional<int> GetIndexIfExists(
 
 }  // namespace internal
 
+// Returns true if 'container' contains 'target'.
+template <typename ValueType, typename TargetType>
+bool Contains(absl::Span<const ValueType> container, const TargetType& target) {
+  const auto iter = std::find(container.begin(), container.end(), target);
+  return iter != container.end();
+}
+
 // Returns the index of the first element that is equal to 'target'.
 // If there is no such element, returns std::nullopt.
 template <typename ValueType, typename TargetType>

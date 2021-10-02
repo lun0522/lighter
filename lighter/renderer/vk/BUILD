@@ -133,16 +133,20 @@ cc_library(
 
 cc_library(
     name = "render_pass",
-    srcs = ["render_pass.cc"],
-    hdrs = ["render_pass.h"],
+    srcs = [
+        "framebuffer.cc",
+        "render_pass.cc",
+    ],
+    hdrs = [
+        "framebuffer.h",
+        "render_pass.h",
+    ],
     deps = [
         ":context",
         ":image",
-        ":pipeline",
         ":type_mapping",
         ":util",
-        "//lighter/common:image",
-        "//lighter/common:util",
+        "//lighter/renderer/ir:image",
         "//lighter/renderer/ir:pass",
         "//third_party:absl",
     ],
