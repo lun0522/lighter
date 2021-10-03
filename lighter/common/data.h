@@ -111,12 +111,12 @@ class TypedChunkedData : public ChunkedData {
 
   T* GetMutData(int chunk_index) {
     ValidateChunkIndex(chunk_index);
-    return mut_data<T>()[chunk_index];
+    return &mut_data<T>()[chunk_index];
   }
 
   const T* GetData(int chunk_index) const {
     ValidateChunkIndex(chunk_index);
-    return data<T>()[chunk_index];
+    return &data<T>()[chunk_index];
   }
 };
 

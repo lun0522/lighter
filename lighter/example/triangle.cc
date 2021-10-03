@@ -30,7 +30,7 @@ class TriangleExample {
   TriangleExample(common::api::GraphicsApi graphics_api,
                   const glm::ivec2& screen_size,
                   MultisamplingMode multisampling_mode)
-      : window_{"Triangle", screen_size} {
+      : window_{"Triangle", screen_size}, alpha_{kNumFramesInFlight} {
     using common::Vertex3DWithColor;
 
     const bool use_multisamping =
@@ -115,11 +115,10 @@ class TriangleExample {
     while (!window_.ShouldQuit()) {
       window_.ProcessUserInputs();
 
-      // TODO: Create data.h/.cc in common module. Put vertex data types there
-      // and a new host data buffer class.
-      const Alpha alpha{glm::abs(glm::sin(timer_.GetElapsedTimeSinceLaunch()))};
+      alpha_.GetMutData(current_frame_)->value =
+          glm::abs(glm::sin(timer_.GetElapsedTimeSinceLaunch()));
       uniform_buffer_->CopyToDevice(
-          {Buffer::CopyInfo{&alpha, sizeof(Alpha),
+          {Buffer::CopyInfo{alpha_.GetData(current_frame_), sizeof(Alpha),
                             sizeof(Alpha) * current_frame_}});
 
       current_frame_ = (current_frame_ + 1) % kNumFramesInFlight;
@@ -133,6 +132,7 @@ class TriangleExample {
   common::Window window_;
   std::unique_ptr<Renderer> renderer_;
   std::unique_ptr<Buffer> vertex_buffer_;
+  common::TypedChunkedData<Alpha> alpha_;
   std::unique_ptr<Buffer> uniform_buffer_;
   std::unique_ptr<Image> multisample_attachment_;
   std::unique_ptr<RenderPass> render_pass_;

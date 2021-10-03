@@ -17,6 +17,7 @@
 #include <utility>
 #include <vector>
 
+#include "lighter/common/data.h"
 #include "lighter/common/file.h"
 #include "lighter/common/graphics_api.h"
 #include "lighter/common/timer.h"

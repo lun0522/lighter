@@ -8,7 +8,6 @@
 #ifndef LIGHTER_RENDERER_IR_BUFFER_H
 #define LIGHTER_RENDERER_IR_BUFFER_H
 
-#include <cstddef>
 #include <vector>
 
 #include "lighter/renderer/ir/type.h"
@@ -26,8 +25,8 @@ class Buffer {
     kHigh,
   };
 
-  // Info for copying one memory chunk of 'size' from host memory (starting from
-  // 'data' pointer) to device memory with 'offset'.
+  // Info for copying one memory chunk of `size` from host memory (starting from
+  // `data` pointer) to device memory with `offset`.
   struct CopyInfo {
     const void* data;
     size_t size;
