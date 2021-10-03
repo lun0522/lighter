@@ -8,6 +8,7 @@
 #include "lighter/application/vulkan/aurora/editor/button_maker.h"
 
 #include "lighter/application/vulkan/util.h"
+#include "lighter/common/data.h"
 #include "lighter/common/image.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/ir/image_usage.h"
@@ -148,9 +149,9 @@ namespace make_button {
 
 std::vector<common::VertexAttribute> RenderInfo::GetVertexAttributes() {
   std::vector<common::VertexAttribute> attributes;
-  common::file::AppendVertexAttributes<glm::vec3>(
+  common::data::AppendVertexAttributes<glm::vec3>(
       attributes, offsetof(RenderInfo, color));
-  common::file::AppendVertexAttributes<glm::vec2>(
+  common::data::AppendVertexAttributes<glm::vec2>(
       attributes, offsetof(RenderInfo, center));
   return attributes;
 }

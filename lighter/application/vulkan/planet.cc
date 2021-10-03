@@ -36,11 +36,11 @@ struct Asteroid {
   // Returns vertex input attributes.
   static std::vector<common::VertexAttribute> GetVertexAttributes() {
     std::vector<common::VertexAttribute> attributes;
-    common::file::AppendVertexAttributes<glm::vec1>(
+    common::data::AppendVertexAttributes<glm::vec1>(
         attributes, offsetof(Asteroid, theta));
-    common::file::AppendVertexAttributes<glm::vec1>(
+    common::data::AppendVertexAttributes<glm::vec1>(
         attributes, offsetof(Asteroid, radius));
-    common::file::AppendVertexAttributes<glm::mat4>(
+    common::data::AppendVertexAttributes<glm::mat4>(
         attributes, offsetof(Asteroid, model));
     return attributes;
   }

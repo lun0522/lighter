@@ -32,9 +32,11 @@ cc_library(
 cc_library(
     name = "data",
     hdrs = ["data.h"],
+    srcs = ["data.cc"],
     deps = [
         ":util",
         "//third_party:absl",
+        "//third_party:glm",
     ],
 )
 

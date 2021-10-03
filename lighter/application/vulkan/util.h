@@ -14,6 +14,7 @@
 #include <type_traits>
 
 #include "lighter/common/camera.h"
+#include "lighter/common/data.h"
 #include "lighter/common/file.h"
 #include "lighter/common/graphics_api.h"
 #include "lighter/common/image.h"

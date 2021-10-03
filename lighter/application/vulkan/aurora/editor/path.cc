@@ -8,6 +8,7 @@
 #include "lighter/application/vulkan/aurora/editor/path.h"
 
 #include "lighter/application/vulkan/util.h"
+#include "lighter/common/data.h"
 #include "lighter/common/file.h"
 #include "lighter/renderer/util.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
@@ -33,7 +34,7 @@ constexpr uint32_t kViewpointVertexBufferBindingPoint = 0;
 struct ColorAlpha {
   // Returns vertex input attributes.
   static std::vector<common::VertexAttribute> GetVertexAttributes() {
-    return common::file::CreateVertexAttributes<glm::vec4>();
+    return common::data::CreateVertexAttributes<glm::vec4>();
   }
 
   glm::vec4 value;

@@ -10,6 +10,7 @@
 #include <algorithm>
 
 #include "lighter/application/vulkan/util.h"
+#include "lighter/common/data.h"
 #include "lighter/common/image.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
@@ -40,11 +41,11 @@ namespace draw_button {
 
 std::vector<common::VertexAttribute> RenderInfo::GetVertexAttributes() {
   std::vector<common::VertexAttribute> attributes;
-  common::file::AppendVertexAttributes<glm::vec1>(
+  common::data::AppendVertexAttributes<glm::vec1>(
       attributes, offsetof(RenderInfo, alpha));
-  common::file::AppendVertexAttributes<glm::vec2>(
+  common::data::AppendVertexAttributes<glm::vec2>(
       attributes, offsetof(RenderInfo, pos_center_ndc));
-  common::file::AppendVertexAttributes<glm::vec2>(
+  common::data::AppendVertexAttributes<glm::vec2>(
       attributes, offsetof(RenderInfo, tex_coord_center));
   return attributes;
 }

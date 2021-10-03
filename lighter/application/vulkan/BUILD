@@ -8,6 +8,7 @@ cc_library(
     deps = [
         "//lighter/application:resource",
         "//lighter/common:camera",
+        "//lighter/common:data",
         "//lighter/common:file",
         "//lighter/common:graphics_api",
         "//lighter/common:image",
