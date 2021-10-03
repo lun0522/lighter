@@ -14,6 +14,7 @@
 #include <string_view>
 #include <vector>
 
+#include "lighter/common/data.h"
 #include "lighter/common/graphics_api.h"
 #include "third_party/absl/types/span.h"
 #include "third_party/absl/strings/str_cat.h"
@@ -41,36 +42,10 @@ std::string GetShaderBinaryPath(std::string_view relative_shader_path,
 // Returns the full path to files in the Vulkan SDK folder.
 std::string GetVulkanSdkPath(std::string_view relative_path);
 
+// Reads the data from file in `path`.
+Data LoadDataFromFile(std::string_view path);
+
 }  // namespace file
-
-// Reads raw data from file.
-struct RawData {
-  explicit RawData(std::string_view path);
-
-  // This class is only movable.
-  RawData(RawData&& rhs) noexcept {
-    data = rhs.data;
-    size = rhs.size;
-    rhs.data = nullptr;
-  }
-
-  RawData& operator=(RawData&& rhs) noexcept {
-    std::swap(data, rhs.data);
-    std::swap(size, rhs.size);
-    return *this;
-  }
-
-  ~RawData() { delete[] data; }
-
-  // Returns the whole data span, which lives as long as this `RawData` object.
-  absl::Span<const char> GetSpan() const { return {data, size}; }
-
-  // Pointer to data.
-  const char* data;
-
-  // Data size.
-  size_t size;
-};
 
 // TODO: Remove this struct and related methods.
 // Describes a vertex input attribute.

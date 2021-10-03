@@ -117,6 +117,7 @@ cc_library(
         ":basics",
         ":buffer",
         ":util",
+        "//lighter/common:data",
         "//lighter/common:file",
         "//lighter/common:ref_count",
         "//lighter/common:util",

@@ -9,6 +9,7 @@ cc_library(
     srcs = ["program.cc"],
     hdrs = ["program.h"],
     deps = [
+        "//lighter/common:data",
         "//lighter/common:file",
         "//lighter/common:ref_count",
         "//lighter/common:util",

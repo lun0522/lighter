@@ -86,6 +86,7 @@ cc_library(
         ":context",
         ":type_mapping",
         ":util",
+        "//lighter/common:data",
         "//lighter/common:file",
         "//lighter/common:ref_count",
         "//lighter/common:util",

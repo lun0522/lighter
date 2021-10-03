@@ -12,6 +12,7 @@
 #include <memory>
 #include <optional>
 #include <variant>
+#include <vector>
 
 #include "lighter/common/file.h"
 #include "lighter/common/image.h"
@@ -212,7 +213,7 @@ class TextureImage : public Image, public SamplableImage {
     // from the host to device memory.
     Buffer::CopyInfos GetCopyInfos() const;
 
-    absl::Span<const void* const> datas;
+    std::vector<const void*> data_ptrs;
     VkFormat format;
     uint32_t width;
     uint32_t height;

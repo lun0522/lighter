@@ -12,6 +12,7 @@
 #include <string_view>
 #include <vector>
 
+#include "lighter/common/data.h"
 #include "lighter/common/file.h"
 #include "lighter/common/util.h"
 #include "third_party/absl/strings/str_format.h"
@@ -48,9 +49,9 @@ std::optional<std::vector<char>> CheckStatus(GLuint source, GLenum target,
 
 Shader::Shader(GLenum shader_type, const std::string& file_path)
     : shader_type_{shader_type}, shader_{glCreateShader(shader_type)} {
-  const common::RawData raw_data{file_path};
+  const common::Data file_data = common::file::LoadDataFromFile(file_path);
   glShaderBinary(/*count=*/1, &shader_, GL_SHADER_BINARY_FORMAT_SPIR_V,
-                 raw_data.data, raw_data.size);
+                 file_data.data<char>(), file_data.size());
   glSpecializeShader(shader_, "main", /*numSpecializationConstants=*/0,
                      /*pConstantIndex=*/nullptr, /*pConstantValue=*/nullptr);
 

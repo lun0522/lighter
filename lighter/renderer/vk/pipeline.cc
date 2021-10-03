@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <vector>
 
+#include "lighter/common/data.h"
 #include "lighter/common/file.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/vk/type_mapping.h"
@@ -264,10 +265,10 @@ intl::PipelineColorBlendStateCreateInfo GetColorBlendStateCreateInfo(
 ShaderModule::ShaderModule(const SharedContext& context,
                            std::string_view file_path)
     : WithSharedContext{context} {
-  const common::RawData raw_data{file_path};
+  const common::Data file_data = common::file::LoadDataFromFile(file_path);
   const auto shader_module_create_info = intl::ShaderModuleCreateInfo{}
-      .setCodeSize(raw_data.size)
-      .setPCode(reinterpret_cast<const uint32_t*>(raw_data.data));
+      .setCodeSize(file_data.size())
+      .setPCode(file_data.data<uint32_t>());
   shader_module_ = vk_device().createShaderModule(shader_module_create_info,
                                                   vk_host_allocator());
 }

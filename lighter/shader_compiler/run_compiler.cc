@@ -14,6 +14,7 @@
 #include <string>
 #include <utility>
 
+#include "lighter/common/data.h"
 #include "lighter/common/file.h"
 #include "lighter/common/graphics_api.h"
 #include "lighter/common/timer.h"
@@ -174,10 +175,13 @@ FileHash CompilerRunner::CompileIfNeeded(
   }
 
   // Compile shader.
-  const common::RawData source_data{source_path.string()};
+  const common::Data source_data =
+      common::file::LoadDataFromFile(source_path.string());
+  const auto source_data_span = absl::MakeSpan(source_data.data<char>(),
+                                               source_data.size());
   const std::unique_ptr<CompilationResult> result = compiler_.Compile(
       /*shader_tag=*/source_path.filename().string(), shader_kind,
-      source_data.GetSpan(), *options_array_[api_index]);
+      source_data_span, *options_array_[api_index]);
   const auto result_data_span = result->GetDataSpan();
 
   // Write shader binary to disk.
@@ -190,7 +194,7 @@ FileHash CompilerRunner::CompileIfNeeded(
   file.write(result_data_span.data(), result_data_span.size());
 
   return FileHash {
-      ComputeDataSha256(source_data.GetSpan()),
+      ComputeDataSha256(source_data_span),
       ComputeDataSha256(result_data_span),
   };
 }

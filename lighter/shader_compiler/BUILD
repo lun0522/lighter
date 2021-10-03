@@ -43,6 +43,7 @@ cc_library(
         ":compilation_record",
         ":compiler",
         ":util",
+        "//lighter/common:data",
         "//lighter/common:file",
         "//lighter/common:graphics_api",
         "//lighter/common:timer",

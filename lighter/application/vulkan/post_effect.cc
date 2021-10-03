@@ -100,7 +100,8 @@ void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
       kPostEffectSubpassIndex,
       ImageUsage::GetLinearAccessInComputeShaderUsage(
           ir::AccessType::kReadOnly));
-  const common::Image image_from_file{file_path, /*flip_y=*/false};
+  const auto image_from_file =
+      common::Image::LoadSingleImageFromFile(file_path, /*flip_y=*/false);
   TextureImage original_image(
       context(), /*generate_mipmaps=*/false, image_from_file,
       original_image_usage_history.GetAllUsages(), ImageSampler::Config{});

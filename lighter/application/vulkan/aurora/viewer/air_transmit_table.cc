@@ -199,7 +199,8 @@ common::Image GenerateAirTransmitTable(float sample_step) {
 
   const common::Image::Dimension dimension{kImageWidth, image_height,
                                            common::image::kBwImageChannel};
-  auto table = common::Image{dimension, image_data, /*flip_y=*/false};
+  auto table = common::Image::LoadSingleImageFromMemory(dimension, image_data,
+                                                        /*flip_y=*/false);
   delete[] image_data;
   return table;
 }

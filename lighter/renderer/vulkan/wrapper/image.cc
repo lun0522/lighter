@@ -8,7 +8,6 @@
 #include "lighter/renderer/vulkan/wrapper/image.h"
 
 #include <algorithm>
-#include <vector>
 
 #include "lighter/renderer/vulkan/wrapper/command.h"
 #include "lighter/renderer/vulkan/wrapper/image_util.h"
@@ -141,7 +140,7 @@ TextureImage::Info CreateTextureBufferInfo(
     const common::Image& image,
     absl::Span<const ImageUsage> usages) {
   return TextureImage::Info{
-      image.data_ptrs(),
+      image.GetDataPtrs(),
       FindColorImageFormat(context, image.channel(), usages),
       static_cast<uint32_t>(image.width()),
       static_cast<uint32_t>(image.height()),
@@ -515,10 +514,11 @@ ImageSampler::ImageSampler(SharedBasicContext context,
 
 Buffer::CopyInfos TextureImage::Info::GetCopyInfos() const {
   const VkDeviceSize single_image_data_size = width * height * channel;
-  const VkDeviceSize total_data_size = single_image_data_size * datas.size();
-  std::vector<Buffer::CopyInfo> copy_infos(datas.size());
+  const VkDeviceSize total_data_size =
+      single_image_data_size * data_ptrs.size();
+  std::vector<Buffer::CopyInfo> copy_infos(data_ptrs.size());
   for (int i = 0; i < copy_infos.size(); ++i) {
-    copy_infos[i] = {datas[i], single_image_data_size,
+    copy_infos[i] = {data_ptrs[i], single_image_data_size,
                      /*offset=*/single_image_data_size * i};
   }
   return {total_data_size, std::move(copy_infos)};
@@ -533,7 +533,7 @@ TextureImage::TextureImage(SharedBasicContext context,
       sampler_{context_, buffer_.mip_levels(), sampler_config} {
   set_image_view(CreateImageView(
       *context_, buffer_.image(), format_, VK_IMAGE_ASPECT_COLOR_BIT,
-      buffer_.mip_levels(), /*layer_count=*/CONTAINER_SIZE(info.datas)));
+      buffer_.mip_levels(), /*layer_count=*/CONTAINER_SIZE(info.data_ptrs)));
 }
 
 TextureImage::TextureImage(const SharedBasicContext& context,
@@ -549,13 +549,13 @@ TextureImage::TextureBuffer::TextureBuffer(
     SharedBasicContext context, bool generate_mipmaps, const Info& info)
     : ImageBuffer{std::move(FATAL_IF_NULL(context))} {
   const VkExtent3D image_extent = info.GetExtent3D();
-  const auto layer_count = CONTAINER_SIZE(info.datas);
+  const auto layer_count = CONTAINER_SIZE(info.data_ptrs);
   ASSERT_TRUE(layer_count == kSingleImageLayer ||
                   layer_count == kCubemapImageLayer,
               absl::StrFormat("Invalid number of images: %d", layer_count));
 
   ImageConfig image_config;
-  image_config.layer_count = CONTAINER_SIZE(info.datas);
+  image_config.layer_count = CONTAINER_SIZE(info.data_ptrs);
 
   // Generate mipmap extents if requested.
   std::vector<VkExtent2D> mipmap_extents;
@@ -616,26 +616,29 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
 
   bool generate_mipmaps;
   const std::string* identifier;
-  common::Image image;
+  std::unique_ptr<common::Image> image;
 
   if (const auto* single_tex_path = std::get_if<SingleTexPath>(&source_path);
       single_tex_path != nullptr) {
     generate_mipmaps = true;
     identifier = single_tex_path;
-    image = common::Image{*single_tex_path, /*flip_y=*/false};
+    image = std::make_unique<common::Image>(
+        common::Image::LoadSingleImageFromFile(*single_tex_path,
+                                               /*flip_y=*/false));
   } else if (const auto* cubemap_path = std::get_if<CubemapPath>(&source_path);
              cubemap_path != nullptr) {
     generate_mipmaps = false;
     identifier = &cubemap_path->directory;
-    image = common::Image::LoadCubemapFromFiles(
-        cubemap_path->directory, cubemap_path->files, /*flip_y=*/false);
+    image = std::make_unique<common::Image>(
+        common::Image::LoadCubemapFromFiles(
+            cubemap_path->directory, cubemap_path->files, /*flip_y=*/false));
   } else {
     FATAL("Unrecognized variant type");
   }
 
   return RefCountedTexture::Get(
       *identifier, context, generate_mipmaps, sampler_config,
-      CreateTextureBufferInfo(*context, image, usages));
+      CreateTextureBufferInfo(*context, *image, usages));
 }
 
 OffscreenImage::OffscreenImage(SharedBasicContext context,

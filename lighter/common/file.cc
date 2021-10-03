@@ -116,18 +116,18 @@ std::string GetVulkanSdkPath(std::string_view relative_path) {
   return (*vk_sdk_path / relative_path).string();
 }
 
-}  // namespace file
-
-RawData::RawData(std::string_view path) {
+Data LoadDataFromFile(std::string_view path) {
   std::ifstream file = OpenFile(path);
   file.seekg(0, std::ios::end);
-  size = file.tellg();
-  auto* content = new char[size];
+  const size_t size = file.tellg();
+  Data data{size};
   file.seekg(0, std::ios::beg);
-  file.read(content, size);
+  file.read(data.mut_data<char>(), size);
   ASSERT_TRUE(file, absl::StrFormat("Failed to read file '%s'", path));
-  data = content;
+  return data;
 }
+
+}  // namespace file
 
 #define APPEND_ATTRIBUTES(attributes, type, member) \
     file::AppendVertexAttributes<decltype(type::member)>( \

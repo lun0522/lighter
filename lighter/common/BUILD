@@ -30,10 +30,20 @@ cc_library(
 )
 
 cc_library(
+    name = "data",
+    hdrs = ["data.h"],
+    deps = [
+        ":util",
+        "//third_party:absl",
+    ],
+)
+
+cc_library(
     name = "file",
     srcs = ["file.cc"],
     hdrs = ["file.h"],
     deps = [
+        ":data",
         ":graphics_api",
         ":util",
         "//lighter/shader_compiler:util",
@@ -54,6 +64,7 @@ cc_library(
     srcs = ["image.cc"],
     hdrs = ["image.h"],
     deps = [
+        ":data",
         ":file",
         ":util",
         "//third_party:absl",
