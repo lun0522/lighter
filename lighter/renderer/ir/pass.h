@@ -73,13 +73,13 @@ struct RenderPassDescriptor {
     std::vector<const Image*> attachments;
   };
 
-  RenderPassDescriptor& SetLoadStoreOps(const Image* attachment,
-                                        const ColorLoadStoreOps& ops) {
+  RenderPassDescriptor& AddAttachment(const Image* attachment,
+                                      const ColorLoadStoreOps& ops) {
     color_ops_map.insert({attachment, ops});
     return *this;
   }
-  RenderPassDescriptor& SetLoadStoreOps(const Image* attachment,
-                                        const DepthStencilLoadStoreOps& ops) {
+  RenderPassDescriptor& AddAttachment(const Image* attachment,
+                                      const DepthStencilLoadStoreOps& ops) {
     depth_stencil_ops_map.insert({attachment, ops});
     return *this;
   }

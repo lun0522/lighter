@@ -17,21 +17,23 @@
 
 namespace lighter::renderer::vk {
 
-class DeviceBuffer : public WithSharedContext,
-                     public ir::DeviceBuffer {
+class Buffer : public WithSharedContext,
+               public ir::Buffer {
  public:
-  DeviceBuffer(const SharedContext& context, UpdateRate update_rate,
-               size_t initial_size, absl::Span<const ir::BufferUsage> usages)
+  Buffer(const SharedContext& context, UpdateRate update_rate,
+         size_t initial_size, absl::Span<const ir::BufferUsage> usages)
       : WithSharedContext{context},
         allocation_info_{*context_, update_rate, usages} {
     AllocateBufferAndMemory(initial_size);
   }
 
   // This class is neither copyable nor movable.
-  DeviceBuffer(const DeviceBuffer&) = delete;
-  DeviceBuffer& operator=(const DeviceBuffer&) = delete;
+  Buffer(const Buffer&) = delete;
+  Buffer& operator=(const Buffer&) = delete;
 
-  ~DeviceBuffer() override { DeallocateBufferAndMemory(); }
+  ~Buffer() override { DeallocateBufferAndMemory(); }
+
+  void CopyToDevice(absl::Span<const CopyInfo> copy_infos) const override;
 
  private:
   struct AllocationInfo {

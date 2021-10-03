@@ -17,7 +17,7 @@ namespace lighter::renderer::vk {
 namespace {
 
 using ir::BufferUsage;
-using CopyInfo = ir::DeviceBuffer::CopyInfo;
+using CopyInfo = Buffer::CopyInfo;
 
 // Creates a buffer of 'data_size'.
 intl::Buffer CreateBuffer(
@@ -48,15 +48,6 @@ intl::DeviceMemory CreateBufferMemory(const Context& context,
   return device_memory;
 }
 
-// Returns the total data size to be copied.
-intl::DeviceSize GetTotalSize(absl::Span<const CopyInfo> infos) {
-  intl::DeviceSize total_size = 0;
-  for (const CopyInfo& info : infos) {
-    total_size += info.size;
-  }
-  return total_size;
-}
-
 // Maps device memory with the given 'map_offset' and 'map_size', and copies
 // data from the host according to 'copy_infos'.
 void CopyHostToBuffer(const Context& context,
@@ -78,7 +69,7 @@ void CopyHostToBuffer(const Context& context,
 
 }  // namespace
 
-DeviceBuffer::AllocationInfo::AllocationInfo(
+Buffer::AllocationInfo::AllocationInfo(
     const Context& context, UpdateRate update_rate,
     absl::Span<const BufferUsage> usages) {
   ASSERT_NON_EMPTY(usages, "Buffer has no usage");
@@ -120,7 +111,7 @@ DeviceBuffer::AllocationInfo::AllocationInfo(
                                  queue_family_indices_set.end()};
 }
 
-void DeviceBuffer::AllocateBufferAndMemory(size_t size) {
+void Buffer::AllocateBufferAndMemory(size_t size) {
   ASSERT_TRUE(size >= 0, "Buffer size must be non-negative");
 
   // Allocate only if the old buffer is not big enough.
@@ -138,7 +129,7 @@ void DeviceBuffer::AllocateBufferAndMemory(size_t size) {
                                       allocation_info_.memory_property_flags);
 }
 
-void DeviceBuffer::DeallocateBufferAndMemory() {
+void Buffer::DeallocateBufferAndMemory() {
   if (buffer_size_ == 0) {
     return;
   }
@@ -155,6 +146,15 @@ void DeviceBuffer::DeallocateBufferAndMemory() {
   buffer_size_ = 0;
   buffer_ = nullptr;
   device_memory_ = nullptr;
+}
+
+void Buffer::CopyToDevice(absl::Span<const CopyInfo> copy_infos) const {
+  if (allocation_info_.IsHostVisible()) {
+    CopyHostToBuffer(*context_, device_memory_, /*map_offset=*/0, buffer_size_,
+                     copy_infos);
+  } else {
+    FATAL("Not implemented yet");
+  }
 }
 
 }  // namespace lighter::renderer::vk

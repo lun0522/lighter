@@ -159,6 +159,12 @@ void RemoveDuplicate(std::vector<ValueType>& container) {
   }
 }
 
+// Returns the total data size of `container`.
+template <typename ValueType>
+size_t GetTotalDataSize(absl::Span<const ValueType> container) {
+  return sizeof(ValueType) * container.size();
+}
+
 // Moves all elements of 'src' to the end of 'dst'.
 template <typename ValueType>
 void VectorAppend(std::vector<ValueType>& dst, std::vector<ValueType>& src) {

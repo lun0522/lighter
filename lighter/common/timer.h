@@ -53,7 +53,7 @@ class FrameTimer : public BasicTimer {
   FrameTimer(const FrameTimer&) = delete;
   FrameTimer& operator=(const FrameTimer&) = delete;
 
-  // Informs the timer that a new frame is starting to be rendered.
+  // Informs the timer that we have finished rendering a new frame.
   // The frame rate is updated per second.
   void Tick() {
     ++frame_count_;

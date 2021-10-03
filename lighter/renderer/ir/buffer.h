@@ -16,25 +16,15 @@
 
 namespace lighter::renderer::ir {
 
-class HostBuffer {
- public:
-  explicit HostBuffer(size_t size) { data_ = new char[size]; }
-
-  // This class is neither copyable nor movable.
-  HostBuffer(const HostBuffer&) = delete;
-  HostBuffer& operator=(const HostBuffer&) = delete;
-
-  ~HostBuffer() { delete data_; }
-
- private:
-  // Pointer to data on the host.
-  char* data_;
-};
-
-class DeviceBuffer {
+class Buffer {
  public:
   // Specifies whether the data is updated frequently.
-  enum class UpdateRate { kLow, kHigh };
+  enum class UpdateRate {
+    // The data is rarely or never updated.
+    kLow,
+    // The data is updated every frame or every few frames.
+    kHigh,
+  };
 
   // Info for copying one memory chunk of 'size' from host memory (starting from
   // 'data' pointer) to device memory with 'offset'.
@@ -45,13 +35,15 @@ class DeviceBuffer {
   };
 
   // This class is neither copyable nor movable.
-  DeviceBuffer(const DeviceBuffer&) = delete;
-  DeviceBuffer& operator=(const DeviceBuffer&) = delete;
+  Buffer(const Buffer&) = delete;
+  Buffer& operator=(const Buffer&) = delete;
 
-  virtual ~DeviceBuffer() = default;
+  virtual ~Buffer() = default;
+
+  virtual void CopyToDevice(absl::Span<const CopyInfo> copy_infos) const = 0;
 
  protected:
-  DeviceBuffer() = default;
+  Buffer() = default;
 };
 
 struct VertexBufferView {

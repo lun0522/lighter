@@ -52,11 +52,11 @@ class Renderer : public WithSharedContext,
 
   // Buffer
 
-  std::unique_ptr<ir::DeviceBuffer> CreateDeviceBuffer(
-      DeviceBuffer::UpdateRate update_rate, size_t initial_size,
+  std::unique_ptr<ir::Buffer> CreateBuffer(
+      Buffer::UpdateRate update_rate, size_t initial_size,
       absl::Span<const ir::BufferUsage> usages) const override {
-    return std::make_unique<DeviceBuffer>(context_, update_rate, initial_size,
-                                          usages);
+    return std::make_unique<Buffer>(context_, update_rate, initial_size,
+                                    usages);
   }
 
   // Image

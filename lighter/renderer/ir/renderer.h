@@ -37,29 +37,17 @@ class Renderer {
 
   virtual ~Renderer() = default;
 
-  // Host buffer
-
-  std::unique_ptr<HostBuffer> CreateHostBuffer(size_t size) const {
-    return std::make_unique<HostBuffer>(size);
-  }
-
-  template <typename DataType>
-  std::unique_ptr<HostBuffer> CreateHostBuffer(int num_chunks) const {
-    return CreateHostBuffer(sizeof(DataType) * num_chunks);
-  }
-
   // Device buffer
 
-  virtual std::unique_ptr<DeviceBuffer> CreateDeviceBuffer(
-      DeviceBuffer::UpdateRate update_rate, size_t initial_size,
+  virtual std::unique_ptr<Buffer> CreateBuffer(
+      Buffer::UpdateRate update_rate, size_t initial_size,
       absl::Span<const BufferUsage> usages) const = 0;
 
   template <typename DataType>
-  std::unique_ptr<DeviceBuffer> CreateDeviceBuffer(
-      DeviceBuffer::UpdateRate update_rate, int num_chunks,
+  std::unique_ptr<Buffer> CreateBuffer(
+      Buffer::UpdateRate update_rate, int num_chunks,
       absl::Span<const BufferUsage> usages) const {
-    return CreateDeviceBuffer(update_rate, sizeof(DataType) * num_chunks,
-                              usages);
+    return CreateBuffer(update_rate, sizeof(DataType) * num_chunks, usages);
   }
 
   // Device image

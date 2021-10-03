@@ -44,9 +44,12 @@ class Context : public std::enable_shared_from_this<Context> {
   Context(const Context&) = delete;
   Context& operator=(const Context&) = delete;
 
+  ~Context() {
+    WaitIdle();
 #ifndef NDEBUG
-  ~Context() { LOG_INFO << "Context destructed properly"; }
+    LOG_INFO << "Context destructed";
 #endif  // DEBUG
+  }
 
   // Convenience functions for destroying Vulkan objects.
   template <typename T>
