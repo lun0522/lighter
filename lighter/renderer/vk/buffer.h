@@ -8,6 +8,8 @@
 #ifndef LIGHTER_RENDERER_VK_BUFFER_H
 #define LIGHTER_RENDERER_VK_BUFFER_H
 
+#include <vk_mem_alloc.h>
+
 #include <span>
 
 #include "lighter/common/util.h"
@@ -35,19 +37,16 @@ class Buffer : public WithSharedContext, public ir::Buffer {
 
   void CopyToDevice(std::span<const CopyInfo> copy_infos) const override;
 
+  // Accessors.
+  intl::Buffer vk_buffer() const { return buffer_; }
+
  private:
   struct AllocationInfo {
     AllocationInfo(const Context& context, UpdateRate update_rate,
                    std::span<const ir::BufferUsage> usages);
 
-    // Returns true if the device memory is visible to host.
-    bool IsHostVisible() const {
-      return static_cast<bool>(memory_property_flags &
-                               intl::MemoryPropertyFlagBits::eHostVisible);
-    }
-
+    bool host_visible = false;
     intl::BufferUsageFlags usage_flags;
-    intl::MemoryPropertyFlags memory_property_flags;
     std::vector<uint32_t> unique_queue_family_indices;
   };
 
@@ -62,9 +61,8 @@ class Buffer : public WithSharedContext, public ir::Buffer {
   // Opaque buffer object.
   intl::Buffer buffer_;
 
-  // TODO: Integrate VMA.
-  // Opaque device memory object.
-  intl::DeviceMemory device_memory_;
+  // VMA allocation handle.
+  VmaAllocation allocation_ = VK_NULL_HANDLE;
 };
 
 }  // namespace lighter::renderer::vk

@@ -9,8 +9,9 @@
 
 #include <algorithm>
 #include <array>
-#include <cstring>
+#include <format>
 #include <unordered_set>
+#include <vector>
 
 #include "lighter/renderer/vk/buffer_util.h"
 
@@ -19,54 +20,6 @@ namespace {
 
 using ir::BufferUsage;
 using CopyInfo = Buffer::CopyInfo;
-
-// Creates a buffer of 'data_size'.
-intl::Buffer CreateBuffer(
-    const Context& context, intl::DeviceSize data_size,
-    intl::BufferUsageFlags usage_flags,
-    const std::vector<uint32_t>& unique_queue_family_indices) {
-  const auto buffer_create_info =
-      intl::BufferCreateInfo{}
-          .setSize(data_size)
-          .setUsage(usage_flags)
-          .setSharingMode(intl::SharingMode::eExclusive)
-          .setQueueFamilyIndices(unique_queue_family_indices);
-  return context.device()->createBuffer(buffer_create_info,
-                                        *context.host_allocator());
-}
-
-// Allocates device memory for 'buffer' with 'memory_properties'.
-intl::DeviceMemory CreateBufferMemory(
-    const Context& context, intl::Buffer buffer,
-    intl::MemoryPropertyFlags property_flags) {
-  const intl::Device device = *context.device();
-  intl::DeviceMemory device_memory = buffer::CreateDeviceMemory(
-      context, device.getBufferMemoryRequirements(buffer), property_flags);
-
-  // Bind the allocated memory with 'buffer'. If this memory is used for
-  // multiple buffers, the memory offset should be re-calculated and
-  // VkMemoryRequirements.alignment should be considered.
-  device.bindBufferMemory(buffer, device_memory, /*memoryOffset=*/0);
-  return device_memory;
-}
-
-// Maps device memory with the given 'map_offset' and 'map_size', and copies
-// data from the host according to 'copy_infos'.
-void CopyHostToBuffer(const Context& context, intl::DeviceMemory device_memory,
-                      intl::DeviceSize map_offset, intl::DeviceSize map_size,
-                      std::span<const CopyInfo> copy_infos) {
-  // Data transfer may not happen immediately, for example, because it is only
-  // written to cache and not yet to device. We can either flush host writes
-  // with vkFlushMappedMemoryRanges and vkInvalidateMappedMemoryRanges, or
-  // use VK_MEMORY_PROPERTY_HOST_COHERENT_BIT (a little less efficient).
-  const intl::Device device = *context.device();
-  void* dst = device.mapMemory(device_memory, map_offset, map_size,
-                               /*flags=*/{});
-  for (const auto& info : copy_infos) {
-    std::memcpy(static_cast<char*>(dst) + info.offset, info.data, info.size);
-  }
-  device.unmapMemory(device_memory);
-}
 
 }  // namespace
 
@@ -100,12 +53,13 @@ Buffer::AllocationInfo::AllocationInfo(const Context& context,
     case UpdateRate::kLow:
       usage_flags |= buffer::GetBufferUsageFlags(
           std::array{BufferUsage::GetTransferDestinationUsage()});
-      memory_property_flags |= intl::MemoryPropertyFlagBits::eDeviceLocal;
+      queue_family_indices_set.insert(
+          context.physical_device().queue_family_indices().graphics);
+      host_visible = false;
       break;
 
     case UpdateRate::kHigh:
-      memory_property_flags |= intl::MemoryPropertyFlagBits::eHostVisible;
-      memory_property_flags |= intl::MemoryPropertyFlagBits::eHostCoherent;
+      host_visible = true;
       break;
   }
   unique_queue_family_indices = {queue_family_indices_set.begin(),
@@ -113,8 +67,6 @@ Buffer::AllocationInfo::AllocationInfo(const Context& context,
 }
 
 void Buffer::AllocateBufferAndMemory(size_t size) {
-  ASSERT_TRUE(size >= 0, "Buffer size must be non-negative");
-
   // Allocate only if the old buffer is not big enough.
   if (size <= buffer_size_) {
     return;
@@ -124,10 +76,12 @@ void Buffer::AllocateBufferAndMemory(size_t size) {
   DeallocateBufferAndMemory();
 
   buffer_size_ = size;
-  buffer_ = CreateBuffer(*context_, buffer_size_, allocation_info_.usage_flags,
-                         allocation_info_.unique_queue_family_indices);
-  device_memory_ = CreateBufferMemory(*context_, buffer_,
-                                      allocation_info_.memory_property_flags);
+  const buffer::AllocatedBuffer allocated = buffer::CreateBuffer(
+      *context_, buffer_size_, allocation_info_.usage_flags,
+      allocation_info_.unique_queue_family_indices,
+      allocation_info_.host_visible);
+  buffer_ = allocated.handle;
+  allocation_ = allocated.allocation;
 }
 
 void Buffer::DeallocateBufferAndMemory() {
@@ -135,27 +89,67 @@ void Buffer::DeallocateBufferAndMemory() {
     return;
   }
 
-  // Make copies of 'buffer_' and 'device_memory_' since they will be changed.
-  const auto buffer = buffer_;
-  const auto device_memory = device_memory_;
-  context_->AddReleaseExpiredResourceOp(
-      [buffer, device_memory](const Context& context) {
-        context.DeviceDestroy(buffer);
-        buffer::FreeDeviceMemory(context, device_memory);
-      });
+  // Make copies of 'buffer_' and 'allocation_' since they will be changed.
+  const buffer::AllocatedBuffer expired{buffer_, allocation_};
+  context_->AddReleaseExpiredResourceOp([expired](const Context& context) {
+    buffer::DestroyBuffer(context, expired);
+  });
 
   buffer_size_ = 0;
   buffer_ = nullptr;
-  device_memory_ = nullptr;
+  allocation_ = VK_NULL_HANDLE;
 }
 
 void Buffer::CopyToDevice(std::span<const CopyInfo> copy_infos) const {
-  if (allocation_info_.IsHostVisible()) {
-    CopyHostToBuffer(*context_, device_memory_, /*map_offset=*/0, buffer_size_,
-                     copy_infos);
-  } else {
-    FATAL("Not implemented yet");
+  if (copy_infos.empty()) {
+    return;
   }
+  for (const auto& info : copy_infos) {
+    ASSERT_TRUE(
+        info.offset + info.size <= buffer_size_,
+        std::format("Copy range [{}, {}) exceeds buffer size {}", info.offset,
+                    info.offset + info.size, buffer_size_));
+  }
+
+  if (allocation_info_.host_visible) {
+    buffer::CopyHostDataToAllocation(*context_, allocation_, copy_infos);
+    return;
+  }
+
+  // Pack all copy regions contiguously into a transient staging buffer.
+  size_t total_size = 0;
+  for (const auto& info : copy_infos) {
+    total_size += info.size;
+  }
+  if (total_size == 0) {
+    return;
+  }
+
+  std::vector<CopyInfo> staging_copies;
+  std::vector<intl::BufferCopy> copy_regions;
+  staging_copies.reserve(copy_infos.size());
+  copy_regions.reserve(copy_infos.size());
+  size_t staging_offset = 0;
+  for (const auto& info : copy_infos) {
+    if (info.size == 0) {
+      continue;
+    }
+    staging_copies.push_back(CopyInfo{info.data, info.size, staging_offset});
+    copy_regions.push_back(intl::BufferCopy{}
+                               .setSrcOffset(staging_offset)
+                               .setDstOffset(info.offset)
+                               .setSize(info.size));
+    staging_offset += info.size;
+  }
+
+  const buffer::AllocatedBuffer staging =
+      buffer::CreateStagingBuffer(*context_, total_size);
+  buffer::CopyHostDataToAllocation(*context_, staging.allocation,
+                                   staging_copies);
+  context_->RunOneTimeGraphicsCommand([&](intl::CommandBuffer cmd) {
+    cmd.copyBuffer(staging.handle, buffer_, copy_regions);
+  });
+  buffer::DestroyBuffer(*context_, staging);
 }
 
 }  // namespace lighter::renderer::vk

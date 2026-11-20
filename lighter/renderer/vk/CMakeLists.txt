@@ -42,6 +42,12 @@ add_library(lighter_renderer_vk_context STATIC
   basic.h
   context.cc
   context.h
+  vma_impl.cc
+)
+target_compile_definitions(lighter_renderer_vk_context
+  PUBLIC
+    VMA_STATIC_VULKAN_FUNCTIONS=0
+    VMA_DYNAMIC_VULKAN_FUNCTIONS=1
 )
 target_link_libraries(lighter_renderer_vk_context
   PUBLIC
@@ -53,6 +59,7 @@ target_link_libraries(lighter_renderer_vk_context
     lighter_renderer_vk_property_checker
     lighter_renderer_vk_type_mapping
     lighter_renderer_vk_util
+    GPUOpen::VulkanMemoryAllocator
 )
 
 add_library(lighter_renderer_vk_buffer STATIC

@@ -8,14 +8,24 @@
 #ifndef LIGHTER_RENDERER_VK_BUFFER_UTIL_H
 #define LIGHTER_RENDERER_VK_BUFFER_UTIL_H
 
+#include <vk_mem_alloc.h>
+
 #include <optional>
 #include <span>
+#include <vector>
 
+#include "lighter/renderer/ir/buffer.h"
 #include "lighter/renderer/ir/buffer_usage.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/util.h"
 
 namespace lighter::renderer::vk::buffer {
+
+// Holds a VkBuffer together with its VMA memory allocation.
+struct AllocatedBuffer {
+  intl::Buffer handle;
+  VmaAllocation allocation = VK_NULL_HANDLE;
+};
 
 // Returns VkBufferUsageFlags that contains all usages.
 intl::BufferUsageFlags GetBufferUsageFlags(
@@ -28,16 +38,24 @@ intl::BufferUsageFlags GetBufferUsageFlags(
 std::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
                                             const ir::BufferUsage& usage);
 
-// Allocates device memory.
-intl::DeviceMemory CreateDeviceMemory(
-    const Context& context, const intl::MemoryRequirements& requirements,
-    intl::MemoryPropertyFlags property_flags);
+// Allocates a buffer and its backing memory via VMA.
+AllocatedBuffer CreateBuffer(
+    const Context& context, intl::DeviceSize size,
+    intl::BufferUsageFlags usage_flags,
+    const std::vector<uint32_t>& unique_queue_family_indices,
+    bool host_visible);
 
-// Deallocates device memory.
-inline void FreeDeviceMemory(const Context& context,
-                             intl::DeviceMemory device_memory) {
-  context.device()->freeMemory(device_memory, *context.host_allocator());
-}
+// Allocates a host-visible transfer source staging buffer via VMA.
+AllocatedBuffer CreateStagingBuffer(const Context& context,
+                                    intl::DeviceSize size);
+
+// Destroys 'buffer' and frees its VMA allocation.
+void DestroyBuffer(const Context& context, const AllocatedBuffer& buffer);
+
+// Copies host memory regions specified by 'copy_infos' into a host-visible
+// VMA allocation and flushes caches.
+void CopyHostDataToAllocation(const Context& context, VmaAllocation allocation,
+                              std::span<const ir::Buffer::CopyInfo> copy_infos);
 
 }  // namespace lighter::renderer::vk::buffer
 

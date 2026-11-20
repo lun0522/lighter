@@ -7,7 +7,9 @@
 
 #include "lighter/renderer/vk/image.h"
 
+#include <algorithm>
 #include <array>
+#include <cmath>
 #include <format>
 #include <optional>
 #include <unordered_set>
@@ -92,8 +94,13 @@ intl::Format ChooseDepthStencilImageFormat(const Context& context) {
   return format.value();
 }
 
-// Creates an image.
-intl::Image CreateImage(
+struct AllocatedImage {
+  intl::Image handle;
+  VmaAllocation allocation = VK_NULL_HANDLE;
+};
+
+// Creates an image and allocates its device memory via VMA.
+AllocatedImage CreateImage(
     const Context& context, intl::ImageCreateFlags create_flags,
     intl::Format format, const intl::Extent2D& extent, uint32_t mip_levels,
     uint32_t layer_count, intl::SampleCountFlagBits sample_count,
@@ -110,25 +117,189 @@ intl::Image CreateImage(
           .setSamples(sample_count)
           .setTiling(intl::ImageTiling::eOptimal)
           .setUsage(usage_flags)
-          .setSharingMode(intl::SharingMode::eExclusive)
+          .setSharingMode(unique_queue_family_indices.size() > 1
+                              ? intl::SharingMode::eConcurrent
+                              : intl::SharingMode::eExclusive)
           .setQueueFamilyIndices(unique_queue_family_indices)
           .setInitialLayout(intl::ImageLayout::eUndefined);
-  return context.device()->createImage(image_create_info,
-                                       *context.host_allocator());
+  const VmaAllocationCreateInfo alloc_info{
+      .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+  };
+  VkImage raw_image = VK_NULL_HANDLE;
+  VmaAllocation allocation = VK_NULL_HANDLE;
+  ASSERT_SUCCESS(static_cast<intl::Result>(vmaCreateImage(
+                     context.vma_allocator(),
+                     &static_cast<const VkImageCreateInfo&>(image_create_info),
+                     &alloc_info, &raw_image, &allocation,
+                     /*pAllocationInfo=*/nullptr)),
+                 "Failed to create VMA image");
+  return {.handle = raw_image, .allocation = allocation};
 }
 
-// Allocates device memory for 'image' with 'memory_properties'.
-intl::DeviceMemory CreateImageMemory(const Context& context, intl::Image image,
-                                     intl::MemoryPropertyFlags property_flags) {
-  const intl::Device device = *context.device();
-  const auto requirements = device.getImageMemoryRequirements(image);
-  intl::DeviceMemory device_memory =
-      buffer::CreateDeviceMemory(context, requirements, property_flags);
-  // Bind the allocated memory with 'image'. If this memory is used for
-  // multiple images, the memory offset should be re-calculated and
-  // VkMemoryRequirements.alignment should be considered.
-  device.bindImageMemory(image, device_memory, /*memoryOffset=*/0);
-  return device_memory;
+int ComputeMipLevels(const glm::ivec2& extent, bool generate_mipmaps) {
+  if (!generate_mipmaps) {
+    return kSingleMipLevel;
+  }
+  const int max_dim = std::max(extent.x, extent.y);
+  return static_cast<int>(std::floor(std::log2(max_dim))) + 1;
+}
+
+void TransitionImageLayout(intl::CommandBuffer cmd, intl::Image image,
+                           intl::ImageAspectFlags aspect_mask,
+                           uint32_t base_mip_level, uint32_t level_count,
+                           uint32_t layer_count, intl::ImageLayout old_layout,
+                           intl::ImageLayout new_layout,
+                           intl::PipelineStageFlags2 src_stage_mask,
+                           intl::AccessFlags2 src_access_mask,
+                           intl::PipelineStageFlags2 dst_stage_mask,
+                           intl::AccessFlags2 dst_access_mask) {
+  const auto barrier =
+      intl::ImageMemoryBarrier2{}
+          .setSrcStageMask(src_stage_mask)
+          .setSrcAccessMask(src_access_mask)
+          .setDstStageMask(dst_stage_mask)
+          .setDstAccessMask(dst_access_mask)
+          .setOldLayout(old_layout)
+          .setNewLayout(new_layout)
+          .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+          .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+          .setImage(image)
+          .setSubresourceRange({aspect_mask, base_mip_level, level_count,
+                                /*baseArrayLayer=*/0, layer_count});
+  cmd.pipelineBarrier2(intl::DependencyInfo{}.setImageMemoryBarriers(barrier));
+}
+
+// Uploads 'host_image' pixel data into 'target' via a staging buffer and
+// generates mipmaps if target.mip_levels() > 1.
+void UploadImageData(const Context& context, const SingleImage& target,
+                     const common::Image& host_image,
+                     std::span<const ImageUsage> usages) {
+  const std::vector<const void*> data_ptrs = host_image.GetDataPtrs();
+  const glm::ivec2 extent = host_image.extent();
+  const size_t layer_size =
+      static_cast<size_t>(extent.x) * extent.y * host_image.channel();
+  const uint32_t layer_count = CAST_TO_UINT(data_ptrs.size());
+  const intl::DeviceSize total_size = layer_size * layer_count;
+
+  const buffer::AllocatedBuffer staging =
+      buffer::CreateStagingBuffer(context, total_size);
+  std::vector<ir::Buffer::CopyInfo> copy_infos;
+  copy_infos.reserve(layer_count);
+  for (uint32_t layer = 0; layer < layer_count; ++layer) {
+    copy_infos.push_back({
+        .data = data_ptrs[layer],
+        .size = layer_size,
+        .offset = layer_size * layer,
+    });
+  }
+  buffer::CopyHostDataToAllocation(context, staging.allocation, copy_infos);
+
+  const uint32_t mip_levels = CAST_TO_UINT(target.mip_levels());
+  if (mip_levels > 1) {
+    const auto format_props =
+        context.physical_device()->getFormatProperties(target.format());
+    ASSERT_TRUE(
+        static_cast<bool>(
+            format_props.optimalTilingFeatures &
+            intl::FormatFeatureFlagBits::eSampledImageFilterLinear),
+        "Image format does not support linear blitting for mipmap generation");
+  }
+
+  intl::ImageLayout target_layout = intl::ImageLayout::eShaderReadOnlyOptimal;
+  intl::PipelineStageFlags2 dst_stage =
+      intl::PipelineStageFlagBits2::eFragmentShader;
+  intl::AccessFlags2 dst_access = intl::AccessFlagBits2::eShaderRead;
+  if (!usages.empty()) {
+    const intl::ImageLayout usage_layout =
+        image::GetImageLayout(usages.front());
+    if (usage_layout != intl::ImageLayout::eUndefined) {
+      target_layout = usage_layout;
+    }
+    const auto stage_bits = static_cast<VkPipelineStageFlags>(
+        image::GetPipelineStageFlags(usages.front()));
+    const auto access_bits =
+        static_cast<VkAccessFlags>(image::GetAccessFlags(usages.front()));
+    if (stage_bits != 0) {
+      dst_stage = static_cast<intl::PipelineStageFlags2>(stage_bits);
+    }
+    if (access_bits != 0) {
+      dst_access = static_cast<intl::AccessFlags2>(access_bits);
+    }
+  }
+
+  const intl::ImageAspectFlags aspect_mask = target.GetAspectFlags();
+  context.RunOneTimeGraphicsCommand([&](intl::CommandBuffer cmd) {
+    TransitionImageLayout(cmd, *target, aspect_mask, /*base_mip_level=*/0,
+                          mip_levels, layer_count,
+                          intl::ImageLayout::eUndefined,
+                          intl::ImageLayout::eTransferDstOptimal,
+                          intl::PipelineStageFlagBits2::eTopOfPipe, {},
+                          intl::PipelineStageFlagBits2::eTransfer,
+                          intl::AccessFlagBits2::eTransferWrite);
+
+    const auto copy_region =
+        intl::BufferImageCopy{}
+            .setBufferOffset(0)
+            .setBufferRowLength(0)
+            .setBufferImageHeight(0)
+            .setImageSubresource({aspect_mask, /*mipLevel=*/0,
+                                  /*baseArrayLayer=*/0, layer_count})
+            .setImageOffset({0, 0, 0})
+            .setImageExtent(
+                {CAST_TO_UINT(extent.x), CAST_TO_UINT(extent.y), 1});
+    cmd.copyBufferToImage(staging.handle, *target,
+                          intl::ImageLayout::eTransferDstOptimal, copy_region);
+
+    if (mip_levels > 1) {
+      int mip_width = extent.x;
+      int mip_height = extent.y;
+      for (uint32_t level = 1; level < mip_levels; ++level) {
+        TransitionImageLayout(cmd, *target, aspect_mask,
+                              /*base_mip_level=*/level - 1,
+                              /*level_count=*/1, layer_count,
+                              intl::ImageLayout::eTransferDstOptimal,
+                              intl::ImageLayout::eTransferSrcOptimal,
+                              intl::PipelineStageFlagBits2::eTransfer,
+                              intl::AccessFlagBits2::eTransferWrite,
+                              intl::PipelineStageFlagBits2::eTransfer,
+                              intl::AccessFlagBits2::eTransferRead);
+
+        const int next_width = std::max(mip_width / 2, 1);
+        const int next_height = std::max(mip_height / 2, 1);
+        const auto blit =
+            intl::ImageBlit{}
+                .setSrcSubresource(
+                    {aspect_mask, level - 1, /*baseArrayLayer=*/0, layer_count})
+                .setSrcOffsets({intl::Offset3D{0, 0, 0},
+                                intl::Offset3D{mip_width, mip_height, 1}})
+                .setDstSubresource(
+                    {aspect_mask, level, /*baseArrayLayer=*/0, layer_count})
+                .setDstOffsets({intl::Offset3D{0, 0, 0},
+                                intl::Offset3D{next_width, next_height, 1}});
+        cmd.blitImage(*target, intl::ImageLayout::eTransferSrcOptimal, *target,
+                      intl::ImageLayout::eTransferDstOptimal, blit,
+                      intl::Filter::eLinear);
+
+        TransitionImageLayout(
+            cmd, *target, aspect_mask, /*base_mip_level=*/level - 1,
+            /*level_count=*/1, layer_count,
+            intl::ImageLayout::eTransferSrcOptimal, target_layout,
+            intl::PipelineStageFlagBits2::eTransfer,
+            intl::AccessFlagBits2::eTransferRead, dst_stage, dst_access);
+
+        mip_width = next_width;
+        mip_height = next_height;
+      }
+    }
+
+    TransitionImageLayout(
+        cmd, *target, aspect_mask, /*base_mip_level=*/mip_levels - 1,
+        /*level_count=*/1, layer_count, intl::ImageLayout::eTransferDstOptimal,
+        target_layout, intl::PipelineStageFlagBits2::eTransfer,
+        intl::AccessFlagBits2::eTransferWrite, dst_stage, dst_access);
+  });
+
+  buffer::DestroyBuffer(context, staging);
 }
 
 }  // namespace
@@ -171,10 +342,18 @@ std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
     std::span<const ImageUsage> usages) {
   const intl::Format format = ChooseColorImageFormat(
       *context, image.channel(), /*high_precision=*/false, usages);
-  // TODO: Generate mipmaps and change mip_levels.
-  return std::unique_ptr<SingleImage>(new SingleImage(
-      context, name, image.type(), image.extent(), kSingleMipLevel, format,
-      MultisamplingMode::kNone, usages));
+  const int mip_levels = ComputeMipLevels(image.extent(), generate_mipmaps);
+  intl::ImageUsageFlags extra_usage_flags =
+      intl::ImageUsageFlagBits::eTransferDst;
+  if (mip_levels > 1) {
+    extra_usage_flags |= intl::ImageUsageFlagBits::eTransferSrc;
+  }
+  auto result = std::unique_ptr<SingleImage>(new SingleImage(
+      context, name, image.type(), image.extent(), mip_levels, format,
+      MultisamplingMode::kNone, usages, extra_usage_flags,
+      /*include_graphics_queue=*/true));
+  UploadImageData(*context, *result, image, usages);
+  return result;
 }
 
 std::unique_ptr<SingleImage> SingleImage::CreateDepthStencilImage(
@@ -191,7 +370,9 @@ SingleImage::SingleImage(const SharedContext& context, std::string_view name,
                          LayerType layer_type, const glm::ivec2& extent,
                          int mip_levels, intl::Format format,
                          ir::MultisamplingMode multisampling_mode,
-                         std::span<const ir::ImageUsage> usages)
+                         std::span<const ir::ImageUsage> usages,
+                         intl::ImageUsageFlags extra_usage_flags,
+                         bool include_graphics_queue)
     : WithSharedContext{context},
       Image{Type::kSingle,
             name,
@@ -213,6 +394,10 @@ SingleImage::SingleImage(const SharedContext& context, std::string_view name,
       queue_family_indices_set.insert(queue_family_index.value());
     }
   }
+  if (include_graphics_queue) {
+    queue_family_indices_set.insert(
+        context_->physical_device().queue_family_indices().graphics);
+  }
   ASSERT_NON_EMPTY(queue_family_indices_set,
                    "Cannot find any queue used for this image");
   const std::vector<uint32_t> unique_queue_family_indices{
@@ -220,17 +405,26 @@ SingleImage::SingleImage(const SharedContext& context, std::string_view name,
       queue_family_indices_set.end(),
   };
 
-  image_ = CreateImage(*context_, create_flags, format, util::ToExtent(extent),
-                       mip_levels, CAST_TO_UINT(GetNumLayers()), sample_count(),
-                       image::GetImageUsageFlags(usages),
-                       unique_queue_family_indices);
-  device_memory_ = CreateImageMemory(
-      *context_, image_, intl::MemoryPropertyFlagBits::eDeviceLocal);
+  const AllocatedImage allocated =
+      CreateImage(*context_, create_flags, format, util::ToExtent(extent),
+                  mip_levels, CAST_TO_UINT(GetNumLayers()), sample_count(),
+                  image::GetImageUsageFlags(usages) | extra_usage_flags,
+                  unique_queue_family_indices);
+  image_ = allocated.handle;
+  allocation_ = allocated.allocation;
 }
 
 SingleImage::~SingleImage() {
-  context_->DeviceDestroy(image_);
-  buffer::FreeDeviceMemory(*context_, device_memory_);
+  if (allocation_ == VK_NULL_HANDLE) {
+    return;
+  }
+  const intl::Image image = image_;
+  const VmaAllocation allocation = allocation_;
+  context_->AddReleaseExpiredResourceOp(
+      [image, allocation](const Context& context) {
+        vmaDestroyImage(context.vma_allocator(), static_cast<VkImage>(image),
+                        allocation);
+      });
 }
 
 }  // namespace lighter::renderer::vk

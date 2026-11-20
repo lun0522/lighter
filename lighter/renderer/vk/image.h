@@ -8,6 +8,8 @@
 #ifndef LIGHTER_RENDERER_VK_IMAGE_H
 #define LIGHTER_RENDERER_VK_IMAGE_H
 
+#include <vk_mem_alloc.h>
+
 #include <glm/glm.hpp>
 #include <memory>
 #include <span>
@@ -100,14 +102,15 @@ class SingleImage : public WithSharedContext, public Image {
   SingleImage(const SharedContext& context, std::string_view name,
               LayerType layer_type, const glm::ivec2& extent, int mip_levels,
               intl::Format format, ir::MultisamplingMode multisampling_mode,
-              std::span<const ir::ImageUsage> usages);
+              std::span<const ir::ImageUsage> usages,
+              intl::ImageUsageFlags extra_usage_flags = {},
+              bool include_graphics_queue = false);
 
   // Opaque image object.
   intl::Image image_;
 
-  // TODO: Integrate VMA.
-  // Opaque device memory object.
-  intl::DeviceMemory device_memory_;
+  // VMA allocation handle.
+  VmaAllocation allocation_ = VK_NULL_HANDLE;
 };
 
 // A series of images that share the same size, format and usage, etc.

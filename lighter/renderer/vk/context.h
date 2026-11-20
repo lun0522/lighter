@@ -8,6 +8,8 @@
 #ifndef LIGHTER_RENDERER_VK_CONTEXT_H
 #define LIGHTER_RENDERER_VK_CONTEXT_H
 
+#include <vk_mem_alloc.h>
+
 #include <functional>
 #include <memory>
 #include <optional>
@@ -44,12 +46,7 @@ class Context : public std::enable_shared_from_this<Context> {
   Context(const Context&) = delete;
   Context& operator=(const Context&) = delete;
 
-  ~Context() {
-    WaitIdle();
-#ifndef NDEBUG
-    LOG_INFO << "Context destructed";
-#endif  // DEBUG
-  }
+  ~Context();
 
   // Convenience functions for destroying Vulkan objects.
   template <typename T>
@@ -60,6 +57,11 @@ class Context : public std::enable_shared_from_this<Context> {
   void DeviceDestroy(T t) const {
     device()->destroy(t, *host_allocator());
   }
+
+  // Records commands on a transient command buffer, submits to the graphics
+  // queue, and waits until completion.
+  void RunOneTimeGraphicsCommand(
+      const std::function<void(intl::CommandBuffer)>& record_commands) const;
 
   // Records an operation that releases an expired resource, so that it can be
   // executed once the device becomes idle. This is used for resources that can
@@ -89,6 +91,7 @@ class Context : public std::enable_shared_from_this<Context> {
   const PhysicalDevice& physical_device() const { return *physical_device_; }
   const Device& device() const { return *device_; }
   const Queues& queues() const { return *queues_; }
+  VmaAllocator vma_allocator() const { return vma_allocator_; }
 
  private:
   Context(const char* application_name,
@@ -116,6 +119,9 @@ class Context : public std::enable_shared_from_this<Context> {
   // Wrapper of VkQueue.
   std::unique_ptr<Queues> queues_;
 
+  // VMA GPU memory allocator.
+  VmaAllocator vma_allocator_ = VK_NULL_HANDLE;
+
   // Ops that are delayed to be executed until the device becomes idle.
   std::vector<ReleaseExpiredResourceOp> release_expired_rsrc_ops_;
 };
@@ -136,6 +142,7 @@ class WithSharedContext {
   intl::Optional<const intl::AllocationCallbacks> vk_host_allocator() const {
     return *context_->host_allocator();
   }
+  VmaAllocator vma_allocator() const { return context_->vma_allocator(); }
 
  protected:
   const SharedContext context_;

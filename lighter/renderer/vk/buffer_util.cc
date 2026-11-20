@@ -7,6 +7,8 @@
 
 #include "lighter/renderer/vk/buffer_util.h"
 
+#include <cstring>
+
 #include "lighter/renderer/ir/type.h"
 
 namespace lighter::renderer::vk::buffer {
@@ -52,23 +54,6 @@ intl::BufferUsageFlags GetBufferUsageFlags(const BufferUsage& usage) {
           return UsageFlag::eTransferDst;
       }
   }
-}
-
-// Returns the index of a VkMemoryType that satisfies both 'memory_type' and
-// 'property_flags' within VkPhysicalDeviceMemoryProperties.memoryTypes.
-uint32_t FindMemoryTypeIndex(intl::PhysicalDevice physical_device,
-                             uint32_t memory_type,
-                             intl::MemoryPropertyFlags property_flags) {
-  const auto properties = physical_device.getMemoryProperties();
-  for (uint32_t i = 0; i < properties.memoryTypeCount; ++i) {
-    if ((1U << i) & memory_type) {
-      if ((properties.memoryTypes[i].propertyFlags & property_flags) ==
-          property_flags) {
-        return i;
-      }
-    }
-  }
-  FATAL("Failed to find suitable device memory");
 }
 
 }  // namespace
@@ -117,17 +102,70 @@ std::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
   }
 }
 
-intl::DeviceMemory CreateDeviceMemory(
-    const Context& context, const intl::MemoryRequirements& requirements,
-    intl::MemoryPropertyFlags property_flags) {
-  const auto memory_create_info =
-      intl::MemoryAllocateInfo{}
-          .setAllocationSize(requirements.size)
-          .setMemoryTypeIndex(FindMemoryTypeIndex(*context.physical_device(),
-                                                  requirements.memoryTypeBits,
-                                                  property_flags));
-  return context.device()->allocateMemory(memory_create_info,
-                                          *context.host_allocator());
+AllocatedBuffer CreateBuffer(
+    const Context& context, intl::DeviceSize size,
+    intl::BufferUsageFlags usage_flags,
+    const std::vector<uint32_t>& unique_queue_family_indices,
+    bool host_visible) {
+  const auto buffer_create_info =
+      intl::BufferCreateInfo{}
+          .setSize(size)
+          .setUsage(usage_flags)
+          .setSharingMode(intl::SharingMode::eExclusive)
+          .setQueueFamilyIndices(unique_queue_family_indices);
+  const auto& c_buffer_info =
+      static_cast<const VkBufferCreateInfo&>(buffer_create_info);
+
+  VmaAllocationCreateInfo alloc_create_info{};
+  if (host_visible) {
+    alloc_create_info.usage = VMA_MEMORY_USAGE_AUTO;
+    alloc_create_info.flags =
+        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+        VMA_ALLOCATION_CREATE_MAPPED_BIT;
+  } else {
+    alloc_create_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+  }
+
+  VkBuffer raw_buffer = VK_NULL_HANDLE;
+  VmaAllocation allocation = VK_NULL_HANDLE;
+  ASSERT_SUCCESS(intl::Result{vmaCreateBuffer(
+                     context.vma_allocator(), &c_buffer_info,
+                     &alloc_create_info, &raw_buffer, &allocation, nullptr)},
+                 "Failed to create VMA buffer");
+  return AllocatedBuffer{intl::Buffer{raw_buffer}, allocation};
+}
+
+AllocatedBuffer CreateStagingBuffer(const Context& context,
+                                    intl::DeviceSize size) {
+  const std::vector<uint32_t> queue_family_indices{
+      context.physical_device().queue_family_indices().graphics};
+  return CreateBuffer(context, size, intl::BufferUsageFlagBits::eTransferSrc,
+                      queue_family_indices, /*host_visible=*/true);
+}
+
+void DestroyBuffer(const Context& context, const AllocatedBuffer& buffer) {
+  if (buffer.allocation != VK_NULL_HANDLE) {
+    vmaDestroyBuffer(context.vma_allocator(),
+                     static_cast<VkBuffer>(buffer.handle), buffer.allocation);
+  }
+}
+
+void CopyHostDataToAllocation(
+    const Context& context, VmaAllocation allocation,
+    std::span<const ir::Buffer::CopyInfo> copy_infos) {
+  VmaAllocationInfo alloc_info{};
+  vmaGetAllocationInfo(context.vma_allocator(), allocation, &alloc_info);
+  ASSERT_NON_NULL(alloc_info.pMappedData, "VMA allocation is not mapped");
+  for (const auto& info : copy_infos) {
+    if (info.size > 0) {
+      std::memcpy(static_cast<char*>(alloc_info.pMappedData) + info.offset,
+                  info.data, info.size);
+    }
+  }
+  ASSERT_SUCCESS(
+      intl::Result{vmaFlushAllocation(context.vma_allocator(), allocation,
+                                      /*offset=*/0, VK_WHOLE_SIZE)},
+      "Failed to flush VMA allocation");
 }
 
 }  // namespace lighter::renderer::vk::buffer

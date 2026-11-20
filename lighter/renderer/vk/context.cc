@@ -7,6 +7,9 @@
 
 #include "lighter/renderer/vk/context.h"
 
+#include <cstdint>
+#include <limits>
+
 #include "lighter/renderer/vk/util.h"
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
@@ -48,7 +51,71 @@ Context::Context(
   VULKAN_HPP_DEFAULT_DISPATCHER.init(**device_);
   queues_ = std::make_unique<Queues>(*this);
 
+  const VmaVulkanFunctions vulkan_functions{
+      .vkGetInstanceProcAddr =
+          VULKAN_HPP_DEFAULT_DISPATCHER.vkGetInstanceProcAddr,
+      .vkGetDeviceProcAddr = VULKAN_HPP_DEFAULT_DISPATCHER.vkGetDeviceProcAddr,
+  };
+  const VmaAllocatorCreateInfo allocator_info{
+      .flags = {},
+      .physicalDevice = static_cast<VkPhysicalDevice>(**physical_device_),
+      .device = static_cast<VkDevice>(**device_),
+      .pAllocationCallbacks = host_allocator_->c_type(),
+      .pVulkanFunctions = &vulkan_functions,
+      .instance = static_cast<VkInstance>(**instance_),
+      .vulkanApiVersion = VK_API_VERSION_1_3,
+  };
+  ASSERT_SUCCESS(static_cast<intl::Result>(
+                     vmaCreateAllocator(&allocator_info, &vma_allocator_)),
+                 "Failed to create VMA allocator");
+
   LOG_INFO << "Finished Vulkan initialization";
+}
+
+Context::~Context() {
+  if (device_) {
+    WaitIdle();
+  }
+  if (vma_allocator_ != VK_NULL_HANDLE) {
+    vmaDestroyAllocator(vma_allocator_);
+    vma_allocator_ = VK_NULL_HANDLE;
+  }
+}
+
+void Context::RunOneTimeGraphicsCommand(
+    const std::function<void(intl::CommandBuffer)>& record_commands) const {
+  const auto pool_info =
+      intl::CommandPoolCreateInfo{}
+          .setFlags(intl::CommandPoolCreateFlagBits::eTransient)
+          .setQueueFamilyIndex(
+              physical_device_->queue_family_indices().graphics);
+  const intl::raii::CommandPool command_pool =
+      device_->handle().createCommandPool(pool_info, *host_allocator());
+
+  const auto alloc_info = intl::CommandBufferAllocateInfo{}
+                              .setCommandPool(*command_pool)
+                              .setLevel(intl::CommandBufferLevel::ePrimary)
+                              .setCommandBufferCount(1);
+  std::vector<intl::raii::CommandBuffer> command_buffers =
+      device_->handle().allocateCommandBuffers(alloc_info);
+  const intl::raii::CommandBuffer& command_buffer = command_buffers.front();
+
+  const auto begin_info = intl::CommandBufferBeginInfo{}.setFlags(
+      intl::CommandBufferUsageFlagBits::eOneTimeSubmit);
+  command_buffer.begin(begin_info);
+  record_commands(*command_buffer);
+  command_buffer.end();
+
+  const intl::raii::Fence fence =
+      device_->handle().createFence(intl::FenceCreateInfo{}, *host_allocator());
+  const auto cmd_info =
+      intl::CommandBufferSubmitInfo{}.setCommandBuffer(*command_buffer);
+  const auto submit_info = intl::SubmitInfo2{}.setCommandBufferInfos(cmd_info);
+  queues_->graphics_queue().submit2(submit_info, *fence);
+  ASSERT_SUCCESS(
+      device_->handle().waitForFences({*fence}, intl::True,
+                                      std::numeric_limits<uint64_t>::max()),
+      "Failed to wait for one-time graphics command fence");
 }
 
 }  // namespace lighter::renderer::vk
