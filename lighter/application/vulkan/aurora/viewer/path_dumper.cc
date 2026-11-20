@@ -137,7 +137,8 @@ void PathDumper::DumpAuroraPaths(const common::Camera& camera) {
     path_renderer_->RenderPaths(command_buffer, camera);
     compute_pass_->Run(
         command_buffer, context_->queues().compute_queue().family_index,
-        /*image_map=*/{
+        /*image_map=*/
+        {
             {paths_image_name_, paths_image_.get()},
             {distance_field_image_name_, distance_field_image_.get()},
         },

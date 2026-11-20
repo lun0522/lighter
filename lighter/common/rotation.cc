@@ -92,14 +92,14 @@ std::optional<Rotation> Compute<RotationManager::RotationState>(
     const std::optional<glm::vec3>& normalized_click_pos,
     RotationManager* rotation_manager) {
   if (normalized_click_pos.has_value()) {
-    auto& state = std::get<RotationManager::RotationState>(
-        rotation_manager->state_);
+    auto& state =
+        std::get<RotationManager::RotationState>(rotation_manager->state_);
     state.last_click_time = rotation_manager->GetReferenceTime();
     // If the user is clicking on a different position, perform rotation.
     // Otherwise, keep in rotation state but do not perform rotation.
     if (state.first_click_pos != normalized_click_pos.value()) {
-      state.rotation.angle = glm::angle(state.first_click_pos,
-                                        normalized_click_pos.value());
+      state.rotation.angle =
+          glm::angle(state.first_click_pos, normalized_click_pos.value());
       state.rotation.axis = glm::normalize(
           glm::cross(state.first_click_pos, normalized_click_pos.value()));
       return state.rotation;
@@ -111,8 +111,8 @@ std::optional<Rotation> Compute<RotationManager::RotationState>(
     // If the user is no longer clicking, turn to inertial rotation state.
     // It is up to inertial rotation state whether or not to perform rotation
     // this time.
-    const auto& state = std::get<RotationManager::RotationState>(
-        rotation_manager->state_);
+    const auto& state =
+        std::get<RotationManager::RotationState>(rotation_manager->state_);
     rotation_manager->state_ = RotationManager::InertialRotationState{
         .start_time = state.last_click_time, .rotation = state.rotation};
     return Compute<RotationManager::InertialRotationState>(
@@ -124,7 +124,8 @@ std::optional<Rotation> Compute<RotationManager::RotationState>(
 
 Sphere::Sphere(const glm::vec3& center, float radius,
                float inertial_rotation_duration)
-    : radius_{radius}, model_matrix_{1.0f},
+    : radius_{radius},
+      model_matrix_{1.0f},
       rotation_manager_{inertial_rotation_duration} {
   model_matrix_ = glm::translate(model_matrix_, center);
   model_matrix_ = glm::scale(model_matrix_, glm::vec3{radius_});
@@ -150,8 +151,8 @@ Sphere::Ray CameraViewedSphere<CameraType>::GetClickingRay(
     const CameraType& camera, const glm::vec2& click_ndc) const {
   // All computation will be done in the object space.
   const glm::mat4 world_to_object = glm::inverse(model_matrix());
-  const glm::mat4 world_to_ndc = camera.GetProjectionMatrix() *
-                                 camera.GetViewMatrix();
+  const glm::mat4 world_to_ndc =
+      camera.GetProjectionMatrix() * camera.GetViewMatrix();
   const glm::mat4 ndc_to_world = glm::inverse(world_to_ndc);
   const glm::mat4 ndc_to_object = world_to_object * ndc_to_world;
 
@@ -179,10 +180,9 @@ std::optional<glm::vec3> CameraViewedSphere<CameraType>::GetIntersection(
     const CameraType& camera, const glm::vec2& click_ndc) const {
   const Ray ray = GetClickingRay(camera, click_ndc);
   glm::vec3 position, normal;
-  if (glm::intersectRaySphere(
-          ray.start, glm::normalize(ray.direction),
-          /*sphereCenter=*/glm::vec3{0.0f}, /*sphereRadius=*/1.0f,
-          position, normal)) {
+  if (glm::intersectRaySphere(ray.start, glm::normalize(ray.direction),
+                              /*sphereCenter=*/glm::vec3{0.0f},
+                              /*sphereRadius=*/1.0f, position, normal)) {
     return position;
   } else {
     return std::nullopt;

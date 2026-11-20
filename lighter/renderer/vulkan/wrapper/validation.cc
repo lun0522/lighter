@@ -17,11 +17,11 @@ namespace vulkan {
 namespace {
 
 // Returns a callback that simply prints the error reason.
-VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
-    VkDebugUtilsMessageTypeFlagsEXT message_type,
-    const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
-    void* user_data) {
+VKAPI_ATTR VkBool32 VKAPI_CALL
+UserCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+             VkDebugUtilsMessageTypeFlagsEXT message_type,
+             const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+             void* user_data) {
   LOG_INFO << callback_data->pMessage;
   return VK_FALSE;
 }

@@ -8,14 +8,15 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_AURORA_EDITOR_CELESTIAL_H
 #define LIGHTER_APPLICATION_VULKAN_AURORA_EDITOR_CELESTIAL_H
 
+#include <vulkan/vulkan.h>
+
+#include <glm/glm.hpp>
 #include <memory>
 
 #include "lighter/renderer/vulkan/extension/model.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include <glm/glm.hpp>
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace application {
@@ -43,9 +44,10 @@ class Celestial {
 
   // Updates internal states and rebuilds the graphics pipeline.
   // For simplicity, the render area will be the same to 'frame_size'.
-  void UpdateFramebuffer(
-      const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
-      const renderer::vulkan::RenderPass& render_pass, uint32_t subpass_index);
+  void UpdateFramebuffer(const VkExtent2D& frame_size,
+                         VkSampleCountFlagBits sample_count,
+                         const renderer::vulkan::RenderPass& render_pass,
+                         uint32_t subpass_index);
 
   // Updates per-frame data for earth.
   void UpdateEarthData(int frame, EarthTextureIndex texture_index,

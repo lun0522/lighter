@@ -42,16 +42,13 @@ std::optional<shaderc_shader_kind> Compiler::GetShaderKind(
 }
 
 std::unique_ptr<CompilationResult> Compiler::Compile(
-    const std::string& shader_tag,
-    shaderc_shader_kind shader_kind,
+    const std::string& shader_tag, shaderc_shader_kind shader_kind,
     std::span<const char> shader_source,
     const CompilerOptions& compiler_options) const {
-  auto result = std::make_unique<CompilationResult>(
-      shaderc_compile_into_spv(
-          compiler_, shader_source.data(), shader_source.size(), shader_kind,
-          shader_tag.data(), shader_compiler::kShaderEntryPoint,
-          *compiler_options)
-  );
+  auto result = std::make_unique<CompilationResult>(shaderc_compile_into_spv(
+      compiler_, shader_source.data(), shader_source.size(), shader_kind,
+      shader_tag.data(), shader_compiler::kShaderEntryPoint,
+      *compiler_options));
   if (const char* error_message = result->GetErrorIfFailed()) {
     FATAL(std::format("Failed to compile {}: {}", shader_tag, error_message));
   }

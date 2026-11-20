@@ -17,8 +17,7 @@
 
 namespace lighter::renderer::vk {
 
-class RenderPass : public WithSharedContext,
-                   public ir::RenderPass {
+class RenderPass : public WithSharedContext, public ir::RenderPass {
  public:
   RenderPass(const SharedContext& context,
              const ir::RenderPassDescriptor& descriptor);

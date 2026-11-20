@@ -8,6 +8,8 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_DESCRIPTOR_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_DESCRIPTOR_H
 
+#include <vulkan/vulkan.h>
+
 #include <functional>
 #include <span>
 #include <unordered_map>
@@ -16,7 +18,6 @@
 #include "lighter/common/model_loader.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {
@@ -37,12 +38,12 @@ class Descriptor {
   using TextureType = common::ModelLoader::TextureType;
 
   // Maps a binding point to buffers bound to it.
-  using BufferInfoMap = std::unordered_map<
-      uint32_t, std::vector<VkDescriptorBufferInfo>>;
+  using BufferInfoMap =
+      std::unordered_map<uint32_t, std::vector<VkDescriptorBufferInfo>>;
 
   // Maps a binding point to images bound to it.
-  using ImageInfoMap = std::unordered_map<
-      uint32_t, std::vector<VkDescriptorImageInfo>>;
+  using ImageInfoMap =
+      std::unordered_map<uint32_t, std::vector<VkDescriptorImageInfo>>;
 
   // Contains the information we need to define the layout of a descriptor set.
   struct Info {

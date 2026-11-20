@@ -124,22 +124,30 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
       .RegisterScrollCallback([this](double x_pos, double y_pos) {
         camera_->DidScroll(y_pos, 1.0f, 60.0f);
       })
-      .RegisterPressKeyCallback(WindowKey::kUp, [this]() {
-        camera_->DidPressKey(ControlKey::kUp,
-                             timer_.GetElapsedTimeSinceLastFrame());
-      })
-      .RegisterPressKeyCallback(WindowKey::kDown, [this]() {
-        camera_->DidPressKey(ControlKey::kDown,
-                             timer_.GetElapsedTimeSinceLastFrame());
-      })
-      .RegisterPressKeyCallback(WindowKey::kLeft, [this]() {
-        camera_->DidPressKey(ControlKey::kLeft,
-                             timer_.GetElapsedTimeSinceLastFrame());
-      })
-      .RegisterPressKeyCallback(WindowKey::kRight, [this]() {
-        camera_->DidPressKey(ControlKey::kRight,
-                             timer_.GetElapsedTimeSinceLastFrame());
-      })
+      .RegisterPressKeyCallback(WindowKey::kUp,
+                                [this]() {
+                                  camera_->DidPressKey(
+                                      ControlKey::kUp,
+                                      timer_.GetElapsedTimeSinceLastFrame());
+                                })
+      .RegisterPressKeyCallback(WindowKey::kDown,
+                                [this]() {
+                                  camera_->DidPressKey(
+                                      ControlKey::kDown,
+                                      timer_.GetElapsedTimeSinceLastFrame());
+                                })
+      .RegisterPressKeyCallback(WindowKey::kLeft,
+                                [this]() {
+                                  camera_->DidPressKey(
+                                      ControlKey::kLeft,
+                                      timer_.GetElapsedTimeSinceLastFrame());
+                                })
+      .RegisterPressKeyCallback(WindowKey::kRight,
+                                [this]() {
+                                  camera_->DidPressKey(
+                                      ControlKey::kRight,
+                                      timer_.GetElapsedTimeSinceLastFrame());
+                                })
       .RegisterPressKeyCallback(WindowKey::kEscape,
                                 [this]() { should_quit_ = true; });
 
@@ -159,58 +167,65 @@ NanosuitApp::NanosuitApp(const WindowContext::Config& window_config)
       /*directory=*/
       GetResourcePath("texture/tidepool/right.tga",
                       /*want_directory_path=*/true),
-      /*files=*/{
-          "right.tga", "left.tga",
-          "top.tga", "bottom.tga",
-          "back.tga", "front.tga",
+      /*files=*/
+      {
+          "right.tga",
+          "left.tga",
+          "top.tga",
+          "bottom.tga",
+          "back.tga",
+          "front.tga",
       },
   };
 
-  nanosuit_model_ = ModelBuilder{
-      context(), "Nanosuit", kNumFramesInFlight, original_aspect_ratio,
-      ModelBuilder::MultiMeshResource{
-          /*model_path=*/GetResourcePath("model/nanosuit/nanosuit.obj"),
-          /*texture_dir=*/
-          GetResourcePath("model/nanosuit/nanosuit.obj",
-                          /*want_directory_path=*/true)}}
-      .AddSharedTexture(TextureType::kCubemap, skybox_path)
-      .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/1)
-      .AddTextureBindingPoint(TextureType::kSpecular, /*binding_point=*/2)
-      .AddTextureBindingPoint(TextureType::kReflection, /*binding_point=*/3)
-      .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/4)
-      .AddUniformBinding(
-           VK_SHADER_STAGE_VERTEX_BIT,
-           /*bindings=*/{{/*binding_point=*/0, /*array_length=*/1}})
-      .AddUniformBuffer(/*binding_point=*/0, *nanosuit_vert_uniform_)
-      .SetPushConstantShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT)
-      .AddPushConstant(nanosuit_frag_constant_.get(), /*target_offset=*/0)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetShaderBinaryPath("nanosuit/nanosuit.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetShaderBinaryPath("nanosuit/nanosuit.frag"))
-      .Build();
+  nanosuit_model_ =
+      ModelBuilder{
+          context(), "Nanosuit", kNumFramesInFlight, original_aspect_ratio,
+          ModelBuilder::MultiMeshResource{
+              /*model_path=*/GetResourcePath("model/nanosuit/nanosuit.obj"),
+              /*texture_dir=*/
+              GetResourcePath("model/nanosuit/nanosuit.obj",
+                              /*want_directory_path=*/true)}}
+          .AddSharedTexture(TextureType::kCubemap, skybox_path)
+          .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/1)
+          .AddTextureBindingPoint(TextureType::kSpecular, /*binding_point=*/2)
+          .AddTextureBindingPoint(TextureType::kReflection, /*binding_point=*/3)
+          .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/4)
+          .AddUniformBinding(
+              VK_SHADER_STAGE_VERTEX_BIT,
+              /*bindings=*/{{/*binding_point=*/0, /*array_length=*/1}})
+          .AddUniformBuffer(/*binding_point=*/0, *nanosuit_vert_uniform_)
+          .SetPushConstantShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT)
+          .AddPushConstant(nanosuit_frag_constant_.get(), /*target_offset=*/0)
+          .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                     GetShaderBinaryPath("nanosuit/nanosuit.vert"))
+          .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                     GetShaderBinaryPath("nanosuit/nanosuit.frag"))
+          .Build();
 
-  skybox_model_ = ModelBuilder{
-      context(), "Skybox", kNumFramesInFlight, original_aspect_ratio,
-      ModelBuilder::SingleMeshResource{
-          GetResourcePath("model/skybox.obj"), kObjFileIndexBase,
-          /*tex_source_map=*/{{TextureType::kCubemap, {skybox_path}}},
-      }}
-      .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/1)
-      .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
-      .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetShaderBinaryPath("shared/skybox.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetShaderBinaryPath("shared/skybox.frag"))
-      .Build();
+  skybox_model_ =
+      ModelBuilder{
+          context(), "Skybox", kNumFramesInFlight, original_aspect_ratio,
+          ModelBuilder::SingleMeshResource{
+              GetResourcePath("model/skybox.obj"),
+              kObjFileIndexBase,
+              /*tex_source_map=*/{{TextureType::kCubemap, {skybox_path}}},
+          }}
+          .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/1)
+          .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
+          .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
+          .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                     GetShaderBinaryPath("shared/skybox.vert"))
+          .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                     GetShaderBinaryPath("shared/skybox.frag"))
+          .Build();
 
   /* Render pass */
   render_pass_manager_ = std::make_unique<OnScreenRenderPassManager>(
       &window_context(),
-      NaiveRenderPass::SubpassConfig{
-          kNumSubpasses, /*first_transparent_subpass=*/std::nullopt,
-          /*first_overlay_subpass=*/std::nullopt});
+      NaiveRenderPass::SubpassConfig{kNumSubpasses,
+                                     /*first_transparent_subpass=*/std::nullopt,
+                                     /*first_overlay_subpass=*/std::nullopt});
 }
 
 void NanosuitApp::Recreate() {
@@ -250,8 +265,8 @@ void NanosuitApp::UpdateData(int frame) {
   };
   nanosuit_vert_uniform_->Flush(frame);
 
-  *nanosuit_frag_constant_->HostData<NanosuitFragTrans>(frame) =
-      {glm::inverse(view)};
+  *nanosuit_frag_constant_->HostData<NanosuitFragTrans>(frame) = {
+      glm::inverse(view)};
   skybox_constant_->HostData<SkyboxTrans>(frame)->proj_view_model =
       proj * camera.GetSkyboxViewMatrix();
 }

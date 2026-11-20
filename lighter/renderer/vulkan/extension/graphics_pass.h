@@ -67,11 +67,10 @@ class GraphicsPass : public BasePass {
   // RenderPassBuilder::UpdateAttachmentImage(). Note that if the image is used
   // as render target at any subpass, 'get_location' must not be nullptr.
   // If 'load_store_ops' is not specified, default load store ops will be used.
-  int AddAttachment(
-      const std::string& image_name,
-      ImageUsageHistory&& history, GetLocation&& get_location,
-      const std::optional<AttachmentLoadStoreOps>& load_store_ops =
-          std::nullopt);
+  int AddAttachment(const std::string& image_name, ImageUsageHistory&& history,
+                    GetLocation&& get_location,
+                    const std::optional<AttachmentLoadStoreOps>&
+                        load_store_ops = std::nullopt);
 
   // Specifies that the multisample source image will get resolved to the single
   // sample destination image at 'subpass'.

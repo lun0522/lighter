@@ -8,6 +8,8 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_PIPELINE_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_PIPELINE_H
 
+#include <vulkan/vulkan.h>
+
 #include <memory>
 #include <optional>
 #include <string>
@@ -17,7 +19,6 @@
 #include "lighter/common/ref_count.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {
@@ -309,13 +310,13 @@ class Pipeline {
   friend std::unique_ptr<Pipeline> GraphicsPipelineBuilder::Build() const;
   friend std::unique_ptr<Pipeline> ComputePipelineBuilder::Build() const;
 
-  Pipeline(SharedBasicContext context,
-           std::string name,
-           const VkPipeline& pipeline,
-           const VkPipelineLayout& pipeline_layout,
+  Pipeline(SharedBasicContext context, std::string name,
+           const VkPipeline& pipeline, const VkPipelineLayout& pipeline_layout,
            VkPipelineBindPoint binding_point)
-      : context_{std::move(FATAL_IF_NULL(context))}, name_{std::move(name)},
-        pipeline_{pipeline}, layout_{pipeline_layout},
+      : context_{std::move(FATAL_IF_NULL(context))},
+        name_{std::move(name)},
+        pipeline_{pipeline},
+        layout_{pipeline_layout},
         binding_point_{binding_point} {}
 
   // Pointer to context.

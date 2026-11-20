@@ -9,11 +9,11 @@
 #define LIGHTER_RENDERER_VULKAN_EXTENSION_TEXT_H
 
 #include <functional>
+#include <glm/glm.hpp>
 #include <memory>
+#include <span>
 #include <string>
 #include <vector>
-
-#include <span>
 
 #include "lighter/common/file.h"
 #include "lighter/common/util.h"
@@ -23,7 +23,6 @@
 #include "lighter/renderer/vulkan/wrapper/descriptor.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include <glm/glm.hpp>
 
 namespace lighter {
 namespace renderer {
@@ -57,16 +56,14 @@ class Text {
 
   // Renders all texts tht have been added.
   // This should be called when 'command_buffer' is recording commands.
-  virtual void Draw(const VkCommandBuffer& command_buffer,
-                    int frame, const glm::vec3& color, float alpha) = 0;
+  virtual void Draw(const VkCommandBuffer& command_buffer, int frame,
+                    const glm::vec3& color, float alpha) = 0;
 
  protected:
   // When the frame is resized, the aspect ratio of viewport will always be
   // 'viewport_aspect_ratio'.
-  Text(const SharedBasicContext& context,
-       std::string&& pipeline_name,
-       int num_frames_in_flight,
-       float viewport_aspect_ratio);
+  Text(const SharedBasicContext& context, std::string&& pipeline_name,
+       int num_frames_in_flight, float viewport_aspect_ratio);
 
   // Updates uniform buffer and vertex buffer, and returns the number of
   // meshes to render. 'vertices_to_draw_' will be cleared after calling this.
@@ -113,10 +110,8 @@ class Text {
 // the corresponding texture. This is backed by TextLoader.
 class StaticText : public Text {
  public:
-  StaticText(const SharedBasicContext& context,
-             int num_frames_in_flight,
-             float viewport_aspect_ratio,
-             std::span<const std::string> texts,
+  StaticText(const SharedBasicContext& context, int num_frames_in_flight,
+             float viewport_aspect_ratio, std::span<const std::string> texts,
              Font font, int font_height);
 
   // This class is neither copyable nor movable.
@@ -133,14 +128,14 @@ class StaticText : public Text {
                     Align align);
 
   // Overrides.
-  void Draw(const VkCommandBuffer& command_buffer,
-            int frame, const glm::vec3& color, float alpha) override;
+  void Draw(const VkCommandBuffer& command_buffer, int frame,
+            const glm::vec3& color, float alpha) override;
 
  private:
   // Updates the descriptor for rendering the text at 'text_index'.
   // This should be called when 'command_buffer' is recording commands.
-  void UpdateDescriptor(const VkCommandBuffer& command_buffer,
-                        int frame, int text_index);
+  void UpdateDescriptor(const VkCommandBuffer& command_buffer, int frame,
+                        int text_index);
 
   // Renders each text (containing multiple characters) to one texture.
   TextLoader text_loader_;
@@ -157,10 +152,8 @@ class StaticText : public Text {
 // needs to bind that texture. This is backed by CharLoader.
 class DynamicText : public Text {
  public:
-  DynamicText(const SharedBasicContext& context,
-              int num_frames_in_flight,
-              float viewport_aspect_ratio,
-              std::span<const std::string> texts,
+  DynamicText(const SharedBasicContext& context, int num_frames_in_flight,
+              float viewport_aspect_ratio, std::span<const std::string> texts,
               Font font, int font_height);
 
   // This class is neither copyable nor movable.
@@ -178,8 +171,8 @@ class DynamicText : public Text {
                     float base_y, Align align);
 
   // Overrides.
-  void Draw(const VkCommandBuffer& command_buffer,
-            int frame, const glm::vec3& color, float alpha) override;
+  void Draw(const VkCommandBuffer& command_buffer, int frame,
+            const glm::vec3& color, float alpha) override;
 
  private:
   // Renders all characters that may be used onto one big texture, so that we

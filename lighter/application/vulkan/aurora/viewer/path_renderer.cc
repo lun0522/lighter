@@ -7,6 +7,7 @@
 
 #include "lighter/application/vulkan/aurora/viewer/path_renderer.h"
 
+#include <glm/glm.hpp>
 #include <span>
 
 #include "lighter/application/vulkan/util.h"
@@ -15,7 +16,6 @@
 #include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include <glm/glm.hpp>
 
 namespace lighter {
 namespace application {
@@ -75,8 +75,7 @@ struct Transformation {
 } /* namespace */
 
 PathRenderer2D::PathRenderer2D(
-    const SharedBasicContext& context,
-    const OffscreenImage& intermediate_image,
+    const SharedBasicContext& context, const OffscreenImage& intermediate_image,
     const OffscreenImage& output_image,
     MultisampleImage::Mode multisampling_mode,
     std::vector<const PerVertexBuffer*>&& aurora_paths_vertex_buffers)
@@ -115,15 +114,16 @@ PathRenderer2D::PathRenderer2D(
       intermediate_attachment_config, &multisampling_attachment_config,
       /*depth_stencil_attachment_config=*/nullptr, image_usage_tracker);
 
-  render_pass_ = (*render_pass_builder)
-      .UpdateAttachmentImage(intermediate_image_info.index(),
-                             [&intermediate_image](int) -> const Image& {
-                               return intermediate_image;
-                             })
-      .UpdateAttachmentImage(
-          multisample_image_info.index(),
-          [this](int) -> const Image& { return *multisample_image_; })
-      .Build();
+  render_pass_ =
+      (*render_pass_builder)
+          .UpdateAttachmentImage(intermediate_image_info.index(),
+                                 [&intermediate_image](int) -> const Image& {
+                                   return intermediate_image;
+                                 })
+          .UpdateAttachmentImage(
+              multisample_image_info.index(),
+              [this](int) -> const Image& { return *multisample_image_; })
+          .Build();
 
   render_op_ = [this](const VkCommandBuffer& command_buffer) {
     for (const auto* buffer : aurora_paths_vertex_buffers_) {
@@ -135,15 +135,16 @@ PathRenderer2D::PathRenderer2D(
   /* Descriptor */
   bold_paths_descriptor_ = std::make_unique<StaticDescriptor>(
       context, std::vector<Descriptor::Info>{
-          Descriptor::Info{
-              Image::GetDescriptorTypeForLinearAccess(),
-              VK_SHADER_STAGE_COMPUTE_BIT,
-              /*bindings=*/{
-                  {kOriginalImageBindingPoint, /*array_length=*/1},
-                  {kOutputImageBindingPoint, /*array_length=*/1},
-              },
-          },
-      });
+                   Descriptor::Info{
+                       Image::GetDescriptorTypeForLinearAccess(),
+                       VK_SHADER_STAGE_COMPUTE_BIT,
+                       /*bindings=*/
+                       {
+                           {kOriginalImageBindingPoint, /*array_length=*/1},
+                           {kOutputImageBindingPoint, /*array_length=*/1},
+                       },
+                   },
+               });
   bold_paths_descriptor_->UpdateImageInfos(
       Image::GetDescriptorTypeForLinearAccess(),
       /*image_info_map=*/{
@@ -154,34 +155,37 @@ PathRenderer2D::PathRenderer2D(
       });
 
   /* Pipeline */
-  render_paths_pipeline_ = GraphicsPipelineBuilder{context}
-      .SetPipelineName("Dump path")
-      .SetMultisampling(multisample_image_->sample_count())
-      .SetPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_LINE_STRIP)
-      .AddVertexInput(
-          kVertexBufferBindingPoint,
-          pipeline::GetPerVertexBindingDescription<common::Vertex3DPosOnly>(),
-          aurora_paths_vertex_buffers_[0]->GetAttributes(/*start_location=*/0))
-      .SetPipelineLayout(/*descriptor_layouts=*/{},
-                         {trans_constant_->MakePerFrameRange(
-                             VK_SHADER_STAGE_VERTEX_BIT)})
-      .SetViewport(pipeline::GetFullFrameViewport(image_extent),
-                   /*flip_y=*/false)
-      .SetRenderPass(**render_pass_, kDumpPathsSubpassIndex)
-      .SetColorBlend(
-          {pipeline::GetColorAlphaBlendState(/*enable_blend=*/false)})
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetShaderBinaryPath("aurora/dump_path.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetShaderBinaryPath("aurora/dump_path.frag"))
-      .Build();
+  render_paths_pipeline_ =
+      GraphicsPipelineBuilder{context}
+          .SetPipelineName("Dump path")
+          .SetMultisampling(multisample_image_->sample_count())
+          .SetPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_LINE_STRIP)
+          .AddVertexInput(kVertexBufferBindingPoint,
+                          pipeline::GetPerVertexBindingDescription<
+                              common::Vertex3DPosOnly>(),
+                          aurora_paths_vertex_buffers_[0]->GetAttributes(
+                              /*start_location=*/0))
+          .SetPipelineLayout(
+              /*descriptor_layouts=*/{},
+              {trans_constant_->MakePerFrameRange(VK_SHADER_STAGE_VERTEX_BIT)})
+          .SetViewport(pipeline::GetFullFrameViewport(image_extent),
+                       /*flip_y=*/false)
+          .SetRenderPass(**render_pass_, kDumpPathsSubpassIndex)
+          .SetColorBlend(
+              {pipeline::GetColorAlphaBlendState(/*enable_blend=*/false)})
+          .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                     GetShaderBinaryPath("aurora/dump_path.vert"))
+          .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                     GetShaderBinaryPath("aurora/dump_path.frag"))
+          .Build();
 
-  bold_paths_pipeline_ = ComputePipelineBuilder{context}
-      .SetPipelineName("Bold paths")
-      .SetPipelineLayout({bold_paths_descriptor_->layout()},
-                         /*push_constant_ranges=*/{})
-      .SetShader(GetShaderBinaryPath("aurora/bold_path.comp"))
-      .Build();
+  bold_paths_pipeline_ =
+      ComputePipelineBuilder{context}
+          .SetPipelineName("Bold paths")
+          .SetPipelineLayout({bold_paths_descriptor_->layout()},
+                             /*push_constant_ranges=*/{})
+          .SetShader(GetShaderBinaryPath("aurora/bold_path.comp"))
+          .Build();
 }
 
 void PathRenderer2D::RenderPaths(const VkCommandBuffer& command_buffer,

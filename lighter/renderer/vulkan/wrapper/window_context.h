@@ -20,8 +20,9 @@
 #ifndef NDEBUG
 #include "lighter/renderer/vulkan/wrapper/validation.h"
 #endif /* !NDEBUG */
-#include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
+
+#include <glm/glm.hpp>
 
 namespace lighter {
 namespace renderer {
@@ -65,8 +66,8 @@ class WindowContext {
   };
 
   WindowContext(const std::string& name, const Config& config)
-    : window_{name, config.screen_size},
-      multisampling_mode_{config.multisampling_mode} {
+      : window_{name, config.screen_size},
+        multisampling_mode_{config.multisampling_mode} {
     const WindowSupport window_support{
         common::Window::GetRequiredExtensions(),
         Swapchain::GetRequiredExtensions(),
@@ -76,7 +77,7 @@ class WindowContext {
           const auto create_surface_func = window_.GetCreateSurfaceFunc();
           ASSERT_SUCCESS(create_surface_func(*context->instance(),
                                              *context->allocator(), &surface),
-                        "Failed to create window surface");
+                         "Failed to create window surface");
           surface_.Init(context, surface);
         },
     };
@@ -144,13 +145,13 @@ class WindowContext {
   // Creates a swapchain with the given 'frame_size'. This must not be called
   // before 'context_' and 'surface_' are created.
   void CreateSwapchain(const glm::ivec2& frame_size) {
-    swapchain_ = std::make_unique<Swapchain>(
-        context_, surface_,
-        VkExtent2D{
-            static_cast<uint32_t>(frame_size.x),
-            static_cast<uint32_t>(frame_size.y),
-        },
-        multisampling_mode_);
+    swapchain_ =
+        std::make_unique<Swapchain>(context_, surface_,
+                                    VkExtent2D{
+                                        static_cast<uint32_t>(frame_size.x),
+                                        static_cast<uint32_t>(frame_size.y),
+                                    },
+                                    multisampling_mode_);
   }
 
   // Pointer to basic context.

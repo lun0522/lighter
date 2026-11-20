@@ -7,6 +7,8 @@
 
 #include "lighter/shader_compiler/run_compiler.h"
 
+#include <picosha2.h>
+
 #include <array>
 #include <format>
 #include <fstream>
@@ -15,8 +17,6 @@
 #include <span>
 #include <string>
 #include <utility>
-
-#include <picosha2.h>
 
 #include "lighter/common/data.h"
 #include "lighter/common/file.h"
@@ -94,7 +94,7 @@ CompilerRunner::CompilerRunner(std::filesystem::path&& shader_dir,
 void CompilerRunner::Run() {
   stdfs::current_path(shader_dir_);
   for (const stdfs::directory_entry& entry :
-           stdfs::recursive_directory_iterator(".")) {
+       stdfs::recursive_directory_iterator(".")) {
     const stdfs::path& path = entry.path();
     if (!stdfs::is_regular_file(path)) {
       continue;
@@ -146,8 +146,8 @@ FileHash CompilerRunner::CompileIfNeeded(
   // Compile shader.
   const common::Data source_data =
       common::file::LoadDataFromFile(source_path.string());
-  const std::span<const char> source_data_span{
-      source_data.data<char>(), source_data.size()};
+  const std::span<const char> source_data_span{source_data.data<char>(),
+                                               source_data.size()};
   const std::unique_ptr<CompilationResult> result = compiler_.Compile(
       /*shader_tag=*/source_path.filename().string(), shader_kind,
       source_data_span, options_);
@@ -158,11 +158,11 @@ FileHash CompilerRunner::CompileIfNeeded(
   stdfs::create_directories(compiled_path.parent_path());
   std::ofstream file{compiled_path,
                      std::ios::out | std::ios::binary | std::ios::trunc};
-  ASSERT_TRUE(file, std::format("Failed to open file '{}'",
-                                compiled_path.string()));
+  ASSERT_TRUE(file,
+              std::format("Failed to open file '{}'", compiled_path.string()));
   file.write(result_data_span.data(), result_data_span.size());
 
-  return FileHash {
+  return FileHash{
       ComputeDataSha256(source_data_span),
       ComputeDataSha256(result_data_span),
   };

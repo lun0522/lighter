@@ -13,9 +13,8 @@
 #include <cstring>
 #include <format>
 #include <fstream>
-#include <vector>
-
 #include <glm/glm.hpp>
+#include <vector>
 
 #include "lighter/common/util.h"
 
@@ -47,9 +46,13 @@ class Data {
   // Accessors.
   size_t size() const { return size_; }
   template <typename T>
-  T* mut_data() { return static_cast<T*>(data_); }
+  T* mut_data() {
+    return static_cast<T*>(data_);
+  }
   template <typename T>
-  const T* data() const { return static_cast<const T*>(data_); }
+  const T* data() const {
+    return static_cast<const T*>(data_);
+  }
 
  private:
   void* data_;

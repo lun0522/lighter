@@ -53,8 +53,8 @@ namespace draw_button {
 
 std::vector<common::VertexAttribute> RenderInfo::GetVertexAttributes() {
   std::vector<common::VertexAttribute> attributes;
-  common::data::AppendVertexAttributes<glm::vec1>(
-      attributes, offsetof(RenderInfo, alpha));
+  common::data::AppendVertexAttributes<glm::vec1>(attributes,
+                                                  offsetof(RenderInfo, alpha));
   common::data::AppendVertexAttributes<glm::vec2>(
       attributes, offsetof(RenderInfo, pos_center_ndc));
   common::data::AppendVertexAttributes<glm::vec2>(
@@ -64,10 +64,10 @@ std::vector<common::VertexAttribute> RenderInfo::GetVertexAttributes() {
 
 } /* namespace draw_button */
 
-ButtonRenderer::ButtonRenderer(
-    const SharedBasicContext& context,
-    int num_buttons, const button::VerticesInfo& vertices_info,
-    std::unique_ptr<OffscreenImage>&& buttons_image)
+ButtonRenderer::ButtonRenderer(const SharedBasicContext& context,
+                               int num_buttons,
+                               const button::VerticesInfo& vertices_info,
+                               std::unique_ptr<OffscreenImage>&& buttons_image)
     : buttons_image_{std::move(buttons_image)}, pipeline_builder_{context} {
   per_instance_buffer_ = std::make_unique<DynamicPerInstanceBuffer>(
       context, sizeof(draw_button::RenderInfo),
@@ -82,8 +82,7 @@ ButtonRenderer::ButtonRenderer(
 
   descriptor_ = CreateDescriptor(context);
 
-  pipeline_builder_
-      .SetPipelineName("Draw button")
+  pipeline_builder_.SetPipelineName("Draw button")
       .AddVertexInput(
           kPerInstanceBufferBindingPoint,
           pipeline::GetPerInstanceBindingDescription<draw_button::RenderInfo>(),
@@ -102,7 +101,8 @@ std::unique_ptr<StaticDescriptor> ButtonRenderer::CreateDescriptor(
           Descriptor::Info{
               UniformBuffer::GetDescriptorType(),
               VK_SHADER_STAGE_VERTEX_BIT,
-              /*bindings=*/{
+              /*bindings=*/
+              {
                   Descriptor::Info::Binding{
                       kVerticesInfoBindingPoint,
                       /*array_length=*/1,
@@ -112,17 +112,17 @@ std::unique_ptr<StaticDescriptor> ButtonRenderer::CreateDescriptor(
           Descriptor::Info{
               Image::GetDescriptorTypeForSampling(),
               VK_SHADER_STAGE_FRAGMENT_BIT,
-              /*bindings=*/{
-                  Descriptor::Info::Binding{
-                      kImageBindingPoint,
-                      /*array_length=*/1,
-                  }},
+              /*bindings=*/
+              {Descriptor::Info::Binding{
+                  kImageBindingPoint,
+                  /*array_length=*/1,
+              }},
           }});
   descriptor->UpdateBufferInfos(
       UniformBuffer::GetDescriptorType(),
-      /*buffer_info_map=*/{
-          {kVerticesInfoBindingPoint,
-           {vertices_uniform_->GetDescriptorInfo(/*chunk_index=*/0)},
+      /*buffer_info_map=*/{{
+          kVerticesInfoBindingPoint,
+          {vertices_uniform_->GetDescriptorInfo(/*chunk_index=*/0)},
       }});
   descriptor->UpdateImageInfos(
       Image::GetDescriptorTypeForSampling(),
@@ -134,18 +134,17 @@ std::unique_ptr<StaticDescriptor> ButtonRenderer::CreateDescriptor(
 }
 
 void ButtonRenderer::UpdateFramebuffer(
-    VkSampleCountFlagBits sample_count,
-    const RenderPass& render_pass, uint32_t subpass_index,
+    VkSampleCountFlagBits sample_count, const RenderPass& render_pass,
+    uint32_t subpass_index,
     const GraphicsPipelineBuilder::ViewportInfo& viewport) {
-  pipeline_ = pipeline_builder_
-      .SetMultisampling(sample_count)
-      .SetViewport(GraphicsPipelineBuilder::ViewportInfo{viewport})
-      .SetRenderPass(*render_pass, subpass_index)
-      .SetColorBlend(
-          std::vector<VkPipelineColorBlendAttachmentState>(
+  pipeline_ =
+      pipeline_builder_.SetMultisampling(sample_count)
+          .SetViewport(GraphicsPipelineBuilder::ViewportInfo{viewport})
+          .SetRenderPass(*render_pass, subpass_index)
+          .SetColorBlend(std::vector<VkPipelineColorBlendAttachmentState>(
               render_pass.num_color_attachments(subpass_index),
               pipeline::GetColorAlphaBlendState(/*enable_blend=*/true)))
-      .Build();
+          .Build();
 }
 
 void ButtonRenderer::Draw(
@@ -154,16 +153,15 @@ void ButtonRenderer::Draw(
   ASSERT_NON_NULL(pipeline_, "UpdateFramebuffer() must have been called");
   per_instance_buffer_->CopyHostData(buttons_to_render);
   pipeline_->Bind(command_buffer);
-  per_instance_buffer_->Bind(
-      command_buffer, kPerInstanceBufferBindingPoint, /*offset=*/0);
+  per_instance_buffer_->Bind(command_buffer, kPerInstanceBufferBindingPoint,
+                             /*offset=*/0);
   descriptor_->Bind(command_buffer, pipeline_->layout(),
                     pipeline_->binding_point());
   VertexBuffer::DrawWithoutBuffer(command_buffer, button::kNumVerticesPerButton,
                                   buttons_to_render.size());
 }
 
-Button::Button(const SharedBasicContext& context,
-               float viewport_aspect_ratio,
+Button::Button(const SharedBasicContext& context, float viewport_aspect_ratio,
                const ButtonsInfo& buttons_info)
     : viewport_aspect_ratio_{viewport_aspect_ratio},
       button_half_size_ndc_{buttons_info.button_size * kNdcDim / 2.0f},
@@ -179,7 +177,8 @@ Button::Button(const SharedBasicContext& context,
   const std::vector<char> background_image_pixels(
       kBackgroundImageWidth * background_image_height, static_cast<char>(255));
   const auto background_image = common::Image::LoadSingleImageFromMemory(
-      /*dimension=*/{
+      /*dimension=*/
+      {
           kBackgroundImageWidth,
           background_image_height,
           common::image::kBwImageChannel,
@@ -194,8 +193,8 @@ Button::Button(const SharedBasicContext& context,
   constexpr float kButtonDimensionToIntervalRatio = 100.0f;
   const glm::vec2 interval_candidates =
       background_image_size / kButtonDimensionToIntervalRatio;
-  const float button_interval = std::max(interval_candidates.x,
-                                         interval_candidates.y);
+  const float button_interval =
+      std::max(interval_candidates.x, interval_candidates.y);
   const glm::vec2& button_uv_scale =
       background_image_size / (background_image_size + button_interval);
 
@@ -317,7 +316,7 @@ button::VerticesInfo Button::CreateDrawButtonVerticesInfo(
 
   button::VerticesInfo vertices_info{};
   SetVerticesPositions(button_size_ndc, &vertices_info);
-  SetVerticesTexCoords(/*center_uv*/glm::vec2{0.0f}, size_uv, &vertices_info);
+  SetVerticesTexCoords(/*center_uv*/ glm::vec2{0.0f}, size_uv, &vertices_info);
   return vertices_info;
 }
 

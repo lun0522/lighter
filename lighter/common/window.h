@@ -8,13 +8,13 @@
 #ifndef LIGHTER_COMMON_WINDOW_H
 #define LIGHTER_COMMON_WINDOW_H
 
+#include <vulkan/vulkan.h>
+
 #include <functional>
+#include <glm/glm.hpp>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
-
-#include <glm/glm.hpp>
-#include <vulkan/vulkan.h>
 // import GLFW after Vulkan
 
 // Forward declarations.
@@ -28,8 +28,8 @@ namespace window_callback {
 void GlfwResizeWindowCallback(GLFWwindow* window, int width, int height);
 void GlfwMoveCursorCallback(GLFWwindow* window, double x_pos, double y_pos);
 void GlfwScrollCallback(GLFWwindow* window, double x_pos, double y_pos);
-void GlfwMouseButtonCallback(
-    GLFWwindow* window, int button, int action, int mods);
+void GlfwMouseButtonCallback(GLFWwindow* window, int button, int action,
+                             int mods);
 
 }  // namespace window_callback
 
@@ -132,11 +132,12 @@ class Window {
 
  private:
   friend void window_callback::GlfwResizeWindowCallback(GLFWwindow*, int, int);
-  friend void window_callback::GlfwMoveCursorCallback(
-      GLFWwindow*, double, double);
+  friend void window_callback::GlfwMoveCursorCallback(GLFWwindow*, double,
+                                                      double);
   friend void window_callback::GlfwScrollCallback(GLFWwindow*, double, double);
-  friend void window_callback::GlfwMouseButtonCallback(
-      GLFWwindow* window, int button, int action, int mods);
+  friend void window_callback::GlfwMouseButtonCallback(GLFWwindow* window,
+                                                       int button, int action,
+                                                       int mods);
 
   // These functions handles window events and invoke callbacks if necessary.
   void DidResizeWindow();

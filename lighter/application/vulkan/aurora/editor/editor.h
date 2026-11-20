@@ -8,10 +8,12 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_AURORA_EDITOR_EDITOR_H
 #define LIGHTER_APPLICATION_VULKAN_AURORA_EDITOR_EDITOR_H
 
+#include <vulkan/vulkan.h>
+
 #include <array>
+#include <glm/glm.hpp>
 #include <memory>
 #include <optional>
-
 #include <span>
 
 #include "lighter/application/vulkan/aurora/editor/button.h"
@@ -24,8 +26,6 @@
 #include "lighter/common/window.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
-#include <glm/glm.hpp>
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace application {
@@ -58,8 +58,8 @@ class Editor : public Scene {
   void OnExit() override;
   void Recreate() override;
   void UpdateData(int frame) override;
-  void Draw(const VkCommandBuffer& command_buffer,
-            uint32_t framebuffer_index, int current_frame) override;
+  void Draw(const VkCommandBuffer& command_buffer, uint32_t framebuffer_index,
+            int current_frame) override;
   bool ShouldTransitionScene() const override {
     return state_manager_.ShouldDisplayAurora();
   }

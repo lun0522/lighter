@@ -36,8 +36,8 @@ stdfs::path ResolveAssetDir(std::string_view flag_value, const char* env_var,
   if (!flag_value.empty()) {
     stdfs::path path{flag_value};
     ASSERT_TRUE(stdfs::is_directory(path),
-                std::format("{} '{}' is not a valid directory",
-                            dir_label, path.string()));
+                std::format("{} '{}' is not a valid directory", dir_label,
+                            path.string()));
     return path;
   }
 
@@ -58,8 +58,8 @@ stdfs::path ResolveAssetDir(std::string_view flag_value, const char* env_var,
   }
 
   ASSERT_TRUE(stdfs::is_directory(cwd_fallback),
-              std::format("Failed to locate {}; pass --{} or set {}",
-                          dir_label, dir_label, env_var));
+              std::format("Failed to locate {}; pass --{} or set {}", dir_label,
+                          dir_label, env_var));
   return cwd_fallback;
 }
 
@@ -70,8 +70,8 @@ const stdfs::path& GetResourceDir() {
   constexpr const char* kDefaultResourceDir = nullptr;
 #endif
   static const auto* resource_dir = new stdfs::path{ResolveAssetDir(
-      FLAGS_resource_dir.Get(), "LIGHTER_RESOURCE_DIR",
-      kDefaultResourceDir, stdfs::path{"resource"}, "resource_dir")};
+      FLAGS_resource_dir.Get(), "LIGHTER_RESOURCE_DIR", kDefaultResourceDir,
+      stdfs::path{"resource"}, "resource_dir")};
   return *resource_dir;
 }
 
@@ -82,8 +82,8 @@ const stdfs::path& GetShaderDir() {
   constexpr const char* kDefaultShaderDir = nullptr;
 #endif
   static const auto* shader_dir = new stdfs::path{ResolveAssetDir(
-      FLAGS_shader_dir.Get(), "LIGHTER_SHADER_DIR",
-      kDefaultShaderDir, stdfs::path{"lighter/shader"}, "shader_dir")};
+      FLAGS_shader_dir.Get(), "LIGHTER_SHADER_DIR", kDefaultShaderDir,
+      stdfs::path{"lighter/shader"}, "shader_dir")};
   return *shader_dir;
 }
 
@@ -128,9 +128,9 @@ std::string GetShaderBinaryPath(std::string_view relative_shader_path) {
   const stdfs::path full_path =
       GetShaderDir() /
       shader_compiler::util::GetShaderBinaryPath(relative_shader_path);
-  ASSERT_TRUE(stdfs::exists(full_path),
-              std::format("Shader binary '{}' does not exist",
-                          full_path.string()));
+  ASSERT_TRUE(
+      stdfs::exists(full_path),
+      std::format("Shader binary '{}' does not exist", full_path.string()));
   return full_path.string();
 }
 
@@ -236,8 +236,8 @@ ObjFile::ObjFile(std::string_view path, int index_base) {
       parse_line(line);
     }
   } catch (const std::exception& e) {
-    FATAL(std::format("Failed to parse line {}: {}\n{}",
-                      line_num, line, e.what()));
+    FATAL(std::format("Failed to parse line {}: {}\n{}", line_num, line,
+                      e.what()));
   }
 }
 

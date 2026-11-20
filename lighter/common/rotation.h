@@ -8,12 +8,12 @@
 #ifndef LIGHTER_COMMON_ROTATION_H
 #define LIGHTER_COMMON_ROTATION_H
 
+#include <glm/glm.hpp>
 #include <optional>
 #include <variant>
 
 #include "lighter/common/camera.h"
 #include "lighter/common/timer.h"
-#include <glm/glm.hpp>
 
 namespace lighter::common {
 
@@ -44,7 +44,7 @@ class StateVisitor {
       : normalized_click_pos_{normalized_click_pos},
         rotation_manager_{rotation_manager} {}
 
-  template<typename StateType>
+  template <typename StateType>
   std::optional<Rotation> operator()(const StateType& state) {
     return Compute<StateType>(normalized_click_pos_, rotation_manager_);
   }
@@ -54,7 +54,7 @@ class StateVisitor {
   RotationManager* rotation_manager_;
 };
 
-} // namespace rotation
+}  // namespace rotation
 
 // This class is used to compute the rotation of 3D objects driven by user
 // inputs. The object can be of any shape, and the user only need to provide a
@@ -68,8 +68,8 @@ class RotationManager {
   // Otherwise, returns std::nullopt.
   std::optional<rotation::Rotation> Compute(
       const std::optional<glm::vec3>& normalized_click_pos) {
-    return std::visit(
-        rotation::StateVisitor{normalized_click_pos, this}, state_);
+    return std::visit(rotation::StateVisitor{normalized_click_pos, this},
+                      state_);
   }
 
  private:

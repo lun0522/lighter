@@ -46,13 +46,12 @@ struct ImageConfig {
 // Returns the first image format among 'candidates' that has the specified
 // 'features'. If not found, returns std::nullopt.
 std::optional<VkFormat> FindImageFormatWithFeature(
-    const BasicContext& context,
-    std::span<const VkFormat> candidates,
+    const BasicContext& context, std::span<const VkFormat> candidates,
     VkFormatFeatureFlags features) {
   for (const auto format : candidates) {
     VkFormatProperties properties;
-    vkGetPhysicalDeviceFormatProperties(*context.physical_device(),
-                                        format, &properties);
+    vkGetPhysicalDeviceFormatProperties(*context.physical_device(), format,
+                                        &properties);
     if ((properties.optimalTilingFeatures & features) == features) {
       return format;
     }
@@ -62,10 +61,9 @@ std::optional<VkFormat> FindImageFormatWithFeature(
 
 // Returns the image format to use for a color image given number of 'channel'.
 // Only 1 or 4 channels are supported.
-VkFormat FindColorImageFormat(
-    const BasicContext& context,
-    int channel, std::span<const ImageUsage> usages,
-    bool use_high_precision = false) {
+VkFormat FindColorImageFormat(const BasicContext& context, int channel,
+                              std::span<const ImageUsage> usages,
+                              bool use_high_precision = false) {
   switch (channel) {
     case common::image::kBwImageChannel: {
       // VK_FORMAT_R8_UNORM and VK_FORMAT_R16_SFLOAT have mandatory support for
@@ -83,9 +81,9 @@ VkFormat FindColorImageFormat(
         return best_format;
       }
       const std::array candidates{best_format};
-      if (FindImageFormatWithFeature(
-              context, candidates,
-              VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT).has_value()) {
+      if (FindImageFormatWithFeature(context, candidates,
+                                     VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT)
+              .has_value()) {
         return best_format;
       } else {
 #ifndef NDEBUG
@@ -115,20 +113,16 @@ VkFormat FindDepthStencilImageFormat(const BasicContext& context) {
   const std::array candidates{VK_FORMAT_D32_SFLOAT_S8_UINT,
                               VK_FORMAT_D24_UNORM_S8_UINT};
   const auto format = FindImageFormatWithFeature(
-      context, candidates,
-      VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+      context, candidates, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
   ASSERT_HAS_VALUE(format, "Failed to find depth stencil image format");
   return format.value();
 }
 
 // Returns the maximum number of samples per pixel indicated by 'sample_counts'.
 VkSampleCountFlagBits GetMaxSampleCount(VkSampleCountFlags sample_counts) {
-  for (const auto count : {VK_SAMPLE_COUNT_64_BIT,
-                           VK_SAMPLE_COUNT_32_BIT,
-                           VK_SAMPLE_COUNT_16_BIT,
-                           VK_SAMPLE_COUNT_8_BIT,
-                           VK_SAMPLE_COUNT_4_BIT,
-                           VK_SAMPLE_COUNT_2_BIT}) {
+  for (const auto count :
+       {VK_SAMPLE_COUNT_64_BIT, VK_SAMPLE_COUNT_32_BIT, VK_SAMPLE_COUNT_16_BIT,
+        VK_SAMPLE_COUNT_8_BIT, VK_SAMPLE_COUNT_4_BIT, VK_SAMPLE_COUNT_2_BIT}) {
     if (sample_counts & count) {
       return count;
     }
@@ -139,10 +133,9 @@ VkSampleCountFlagBits GetMaxSampleCount(VkSampleCountFlags sample_counts) {
 // Creates a TextureBuffer::Info object, assuming all images have the same
 // properties as the given 'sample_image'. The size of 'image_datas' can only be
 // either 1 or 6 (for cubemaps)
-TextureImage::Info CreateTextureBufferInfo(
-    const BasicContext& context,
-    const common::Image& image,
-    std::span<const ImageUsage> usages) {
+TextureImage::Info CreateTextureBufferInfo(const BasicContext& context,
+                                           const common::Image& image,
+                                           std::span<const ImageUsage> usages) {
   return TextureImage::Info{
       image.GetDataPtrs(),
       FindColorImageFormat(context, image.channel(), usages),
@@ -154,12 +147,9 @@ TextureImage::Info CreateTextureBufferInfo(
 }
 
 // Creates an image that can be used by the graphics queue.
-VkImage CreateImage(const BasicContext& context,
-                    const ImageConfig& config,
-                    VkImageCreateFlags flags,
-                    VkFormat format,
-                    const VkExtent3D& extent,
-                    VkImageUsageFlags usage) {
+VkImage CreateImage(const BasicContext& context, const ImageConfig& config,
+                    VkImageCreateFlags flags, VkFormat format,
+                    const VkExtent3D& extent, VkImageUsageFlags usage) {
   const auto queue_usage = context.queues().GetGraphicsQueueUsage();
   const VkImageCreateInfo image_info{
       VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -205,9 +195,9 @@ VkDeviceMemory CreateImageMemory(const BasicContext& context,
   };
 
   VkDeviceMemory memory;
-  ASSERT_SUCCESS(vkAllocateMemory(device, &memory_info,
-                                  *context.allocator(), &memory),
-                 "Failed to allocate image memory");
+  ASSERT_SUCCESS(
+      vkAllocateMemory(device, &memory_info, *context.allocator(), &memory),
+      "Failed to allocate image memory");
 
   // Bind the allocated memory with 'image'. If this memory is used for
   // multiple images, the memory offset should be re-calculated and
@@ -219,30 +209,24 @@ VkDeviceMemory CreateImageMemory(const BasicContext& context,
 // Inserts a pipeline barrier for transitioning the image layout.
 // This should be called when 'command_buffer' is recording commands.
 void WaitForImageMemoryBarrier(
-    const VkImageMemoryBarrier& barrier,
-    const VkCommandBuffer& command_buffer,
+    const VkImageMemoryBarrier& barrier, const VkCommandBuffer& command_buffer,
     const std::array<VkPipelineStageFlags, 2>& pipeline_stages) {
-  vkCmdPipelineBarrier(
-      command_buffer,
-      pipeline_stages[0],
-      pipeline_stages[1],
-      // Either 0 or VK_DEPENDENCY_BY_REGION_BIT. The latter one allows reading
-      // from regions that have been written to, even if the entire writing has
-      // not yet finished.
-      /*dependencyFlags=*/0,
-      /*memoryBarrierCount=*/0,
-      /*pMemoryBarriers=*/nullptr,
-      /*bufferMemoryBarrierCount=*/0,
-      /*pBufferMemoryBarriers=*/nullptr,
-      /*imageMemoryBarrierCount=*/1,
-      &barrier);
+  vkCmdPipelineBarrier(command_buffer, pipeline_stages[0], pipeline_stages[1],
+                       // Either 0 or VK_DEPENDENCY_BY_REGION_BIT. The latter
+                       // one allows reading from regions that have been written
+                       // to, even if the entire writing has not yet finished.
+                       /*dependencyFlags=*/0,
+                       /*memoryBarrierCount=*/0,
+                       /*pMemoryBarriers=*/nullptr,
+                       /*bufferMemoryBarrierCount=*/0,
+                       /*pBufferMemoryBarriers=*/nullptr,
+                       /*imageMemoryBarrierCount=*/1, &barrier);
 }
 
 // Transitions image layout using the transfer queue.
 void TransitionImageLayout(
-    const SharedBasicContext& context,
-    const VkImage& image, const ImageConfig& image_config,
-    VkImageAspectFlags image_aspect,
+    const SharedBasicContext& context, const VkImage& image,
+    const ImageConfig& image_config, VkImageAspectFlags image_aspect,
     const std::array<VkImageLayout, 2>& image_layouts,
     const std::array<VkAccessFlags, 2>& access_flags,
     const std::array<VkPipelineStageFlags, 2>& pipeline_stages) {
@@ -300,13 +284,12 @@ std::vector<VkExtent2D> GenerateMipmapExtents(const VkExtent3D& image_extent) {
 }
 
 // Generates mipmaps for 'image' using the transfer queue.
-void GenerateMipmaps(const SharedBasicContext& context,
-                     const VkImage& image, VkFormat image_format,
-                     const VkExtent3D& image_extent,
+void GenerateMipmaps(const SharedBasicContext& context, const VkImage& image,
+                     VkFormat image_format, const VkExtent3D& image_extent,
                      const std::vector<VkExtent2D>& mipmap_extents) {
   VkFormatProperties properties;
-  vkGetPhysicalDeviceFormatProperties(*context->physical_device(),
-                                      image_format, &properties);
+  vkGetPhysicalDeviceFormatProperties(*context->physical_device(), image_format,
+                                      &properties);
   ASSERT_TRUE(properties.optimalTilingFeatures &
                   VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT,
               "Image format does not support linear blitting");
@@ -317,8 +300,8 @@ void GenerateMipmaps(const SharedBasicContext& context,
     VkImageMemoryBarrier barrier{
         VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
         /*pNext=*/nullptr,
-        /*srcAccessMask=*/0,  // To be updated.
-        /*dstAccessMask=*/0,  // To be updated.
+        /*srcAccessMask=*/0,                      // To be updated.
+        /*dstAccessMask=*/0,                      // To be updated.
         /*oldLayout=*/VK_IMAGE_LAYOUT_UNDEFINED,  // To be updated.
         /*newLayout=*/VK_IMAGE_LAYOUT_UNDEFINED,  // To be updated.
         /*srcQueueFamilyIndex=*/transfer_queue.family_index,
@@ -344,9 +327,9 @@ void GenerateMipmaps(const SharedBasicContext& context,
       barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
       barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
       barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-      WaitForImageMemoryBarrier(barrier, command_buffer,
-                                {VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                 VK_PIPELINE_STAGE_TRANSFER_BIT});
+      WaitForImageMemoryBarrier(
+          barrier, command_buffer,
+          {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT});
 
       // Blit the previous level to next level after transitioning is done.
       const VkImageBlit image_blit{
@@ -356,17 +339,20 @@ void GenerateMipmaps(const SharedBasicContext& context,
               /*baseArrayLayer=*/0,
               /*layerCount=*/1,
           },
-          /*srcOffsets=*/{
+          /*srcOffsets=*/
+          {
               VkOffset3D{/*x=*/0, /*y=*/0, /*z=*/0},
               ExtentToOffset(prev_extent),
           },
-          /*dstSubresource=*/VkImageSubresourceLayers{
+          /*dstSubresource=*/
+          VkImageSubresourceLayers{
               VK_IMAGE_ASPECT_COLOR_BIT,
               /*mipLevel=*/dst_level,
               /*baseArrayLayer=*/0,
               /*layerCount=*/1,
           },
-          /*dstOffsets=*/{
+          /*dstOffsets=*/
+          {
               VkOffset3D{/*x=*/0, /*y=*/0, /*z=*/0},
               ExtentToOffset(extent),
           },
@@ -392,20 +378,17 @@ void GenerateMipmaps(const SharedBasicContext& context,
       barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
       barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-      WaitForImageMemoryBarrier(barrier, command_buffer,
-                                {VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                 VK_PIPELINE_STAGE_TRANSFER_BIT});
+      WaitForImageMemoryBarrier(
+          barrier, command_buffer,
+          {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT});
     }
   });
 }
 
 // Creates an image view to specify the usage of image data.
-VkImageView CreateImageView(const BasicContext& context,
-                            const VkImage& image,
-                            VkFormat format,
-                            VkImageAspectFlags image_aspect,
-                            uint32_t mip_levels,
-                            uint32_t layer_count) {
+VkImageView CreateImageView(const BasicContext& context, const VkImage& image,
+                            VkFormat format, VkImageAspectFlags image_aspect,
+                            uint32_t mip_levels, uint32_t layer_count) {
   VkImageViewType view_type;
   switch (layer_count) {
     case kSingleImageLayer:
@@ -427,11 +410,8 @@ VkImageView CreateImageView(const BasicContext& context,
       format,
       // Swizzle color channels around.
       VkComponentMapping{
-          VK_COMPONENT_SWIZZLE_IDENTITY,
-          VK_COMPONENT_SWIZZLE_IDENTITY,
-          VK_COMPONENT_SWIZZLE_IDENTITY,
-          VK_COMPONENT_SWIZZLE_IDENTITY
-      },
+          VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+          VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
       // Specify image's purpose and which part to access.
       VkImageSubresourceRange{
           image_aspect,
@@ -450,8 +430,8 @@ VkImageView CreateImageView(const BasicContext& context,
 }
 
 // Creates an image sampler.
-VkSampler CreateSampler(const BasicContext& context,
-                        int mip_levels, const ImageSampler::Config& config) {
+VkSampler CreateSampler(const BasicContext& context, int mip_levels,
+                        const ImageSampler::Config& config) {
   // 'mipLodBias', 'minLod' and 'maxLod' are used to control mipmapping.
   const VkSamplerCreateInfo sampler_info{
       VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -511,8 +491,8 @@ void ImageStagingBuffer::CopyToImage(const VkImage& target,
   });
 }
 
-ImageSampler::ImageSampler(SharedBasicContext context,
-                           int mip_levels, const Config& config)
+ImageSampler::ImageSampler(SharedBasicContext context, int mip_levels,
+                           const Config& config)
     : context_{std::move(FATAL_IF_NULL(context))},
       sampler_{CreateSampler(*context_, mip_levels, config)} {}
 
@@ -528,8 +508,7 @@ Buffer::CopyInfos TextureImage::Info::GetCopyInfos() const {
   return {total_data_size, std::move(copy_infos)};
 }
 
-TextureImage::TextureImage(SharedBasicContext context,
-                           bool generate_mipmaps,
+TextureImage::TextureImage(SharedBasicContext context, bool generate_mipmaps,
                            const ImageSampler::Config& sampler_config,
                            const Info& info)
     : Image{std::move(FATAL_IF_NULL(context)), info.GetExtent2D(), info.format},
@@ -541,22 +520,22 @@ TextureImage::TextureImage(SharedBasicContext context,
 }
 
 TextureImage::TextureImage(const SharedBasicContext& context,
-                           bool generate_mipmaps,
-                           const common::Image& image,
+                           bool generate_mipmaps, const common::Image& image,
                            std::span<const ImageUsage> usages,
                            const ImageSampler::Config& sampler_config)
-    : TextureImage{context, generate_mipmaps, sampler_config,
-                   CreateTextureBufferInfo(*FATAL_IF_NULL(context), image,
-                                           usages)} {}
+    : TextureImage{
+          context, generate_mipmaps, sampler_config,
+          CreateTextureBufferInfo(*FATAL_IF_NULL(context), image, usages)} {}
 
-TextureImage::TextureBuffer::TextureBuffer(
-    SharedBasicContext context, bool generate_mipmaps, const Info& info)
+TextureImage::TextureBuffer::TextureBuffer(SharedBasicContext context,
+                                           bool generate_mipmaps,
+                                           const Info& info)
     : ImageBuffer{std::move(FATAL_IF_NULL(context))} {
   const VkExtent3D image_extent = info.GetExtent3D();
   const auto layer_count = CONTAINER_SIZE(info.data_ptrs);
-  ASSERT_TRUE(layer_count == kSingleImageLayer ||
-                  layer_count == kCubemapImageLayer,
-              std::format("Invalid number of images: {}", layer_count));
+  ASSERT_TRUE(
+      layer_count == kSingleImageLayer || layer_count == kCubemapImageLayer,
+      std::format("Invalid number of images: {}", layer_count));
 
   ImageConfig image_config;
   image_config.layer_count = CONTAINER_SIZE(info.data_ptrs);
@@ -583,8 +562,8 @@ TextureImage::TextureBuffer::TextureBuffer(
 
   set_image(CreateImage(*context_, image_config, create_flags, info.format,
                         image_extent, usage_flags));
-  set_device_memory(CreateImageMemory(
-      *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+  set_device_memory(CreateImageMemory(*context_, image(),
+                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 
   // Copy data from host to image buffer via staging buffer.
   TransitionImageLayout(
@@ -597,8 +576,8 @@ TextureImage::TextureBuffer::TextureBuffer(
   staging_buffer.CopyToImage(image(), image_extent, image_config.layer_count);
 
   if (generate_mipmaps) {
-    GenerateMipmaps(context_, image(), info.format,
-                    image_extent, mipmap_extents);
+    GenerateMipmaps(context_, image(), info.format, image_extent,
+                    mipmap_extents);
   } else {
     TransitionImageLayout(
         context_, image(), image_config, VK_IMAGE_ASPECT_COLOR_BIT,
@@ -611,8 +590,7 @@ TextureImage::TextureBuffer::TextureBuffer(
 }
 
 SharedTexture::RefCountedTexture SharedTexture::GetTexture(
-    const SharedBasicContext& context,
-    const SourcePath& source_path,
+    const SharedBasicContext& context, const SourcePath& source_path,
     std::span<const ImageUsage> usages,
     const ImageSampler::Config& sampler_config) {
   FATAL_IF_NULL(context);
@@ -633,9 +611,8 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
              cubemap_path != nullptr) {
     generate_mipmaps = false;
     identifier = &cubemap_path->directory;
-    image = std::make_unique<common::Image>(
-        common::Image::LoadCubemapFromFiles(
-            cubemap_path->directory, cubemap_path->files, /*flip_y=*/false));
+    image = std::make_unique<common::Image>(common::Image::LoadCubemapFromFiles(
+        cubemap_path->directory, cubemap_path->files, /*flip_y=*/false));
   } else {
     FATAL("Unrecognized variant type");
   }
@@ -653,8 +630,8 @@ OffscreenImage::OffscreenImage(SharedBasicContext context,
       buffer_{context_, extent_, format_, usages},
       sampler_{context_, kSingleMipLevel, sampler_config} {
   set_image_view(CreateImageView(*context_, buffer_.image(), format_,
-                                 VK_IMAGE_ASPECT_COLOR_BIT,
-                                 kSingleMipLevel, kSingleImageLayer));
+                                 VK_IMAGE_ASPECT_COLOR_BIT, kSingleMipLevel,
+                                 kSingleImageLayer));
 }
 
 OffscreenImage::OffscreenImage(const SharedBasicContext& context,
@@ -663,30 +640,29 @@ OffscreenImage::OffscreenImage(const SharedBasicContext& context,
                                const ImageSampler::Config& sampler_config,
                                bool use_high_precision)
     : OffscreenImage{context, extent,
-                     FindColorImageFormat(*FATAL_IF_NULL(context),
-                                          channel, usages, use_high_precision),
+                     FindColorImageFormat(*FATAL_IF_NULL(context), channel,
+                                          usages, use_high_precision),
                      usages, sampler_config} {}
 
 OffscreenImage::OffscreenBuffer::OffscreenBuffer(
-    SharedBasicContext context,
-    const VkExtent2D& extent, VkFormat format,
+    SharedBasicContext context, const VkExtent2D& extent, VkFormat format,
     std::span<const ImageUsage> usages)
     : ImageBuffer{std::move(context)} {
   set_image(CreateImage(*context_, ImageConfig{}, nullflag, format,
                         ExpandDimension(extent),
                         image::GetImageUsageFlags(usages)));
-  set_device_memory(CreateImageMemory(
-      *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+  set_device_memory(CreateImageMemory(*context_, image(),
+                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 }
 
 DepthStencilImage::DepthStencilImage(const SharedBasicContext& context,
                                      const VkExtent2D& extent)
     : Image{context, extent, FindDepthStencilImageFormat(*context)},
       buffer_{context_, extent_, format_} {
-  set_image_view(CreateImageView(*context_, buffer_.image(), format_,
-                                 VK_IMAGE_ASPECT_DEPTH_BIT
-                                     | VK_IMAGE_ASPECT_STENCIL_BIT,
-                                 kSingleMipLevel, kSingleImageLayer));
+  set_image_view(
+      CreateImageView(*context_, buffer_.image(), format_,
+                      VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
+                      kSingleMipLevel, kSingleImageLayer));
 }
 
 DepthStencilImage::DepthStencilBuffer::DepthStencilBuffer(
@@ -695,51 +671,47 @@ DepthStencilImage::DepthStencilBuffer::DepthStencilBuffer(
   set_image(CreateImage(*context_, ImageConfig{}, nullflag, format,
                         ExpandDimension(extent),
                         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT));
-  set_device_memory(CreateImageMemory(
-      *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+  set_device_memory(CreateImageMemory(*context_, image(),
+                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 }
 
-SwapchainImage::SwapchainImage(SharedBasicContext context,
-                               const VkImage& image,
+SwapchainImage::SwapchainImage(SharedBasicContext context, const VkImage& image,
                                const VkExtent2D& extent, VkFormat format)
     : Image{std::move(context), extent, format}, image_{image} {
   set_image_view(CreateImageView(*context_, image_, format_,
-                                 VK_IMAGE_ASPECT_COLOR_BIT,
-                                 kSingleMipLevel, kSingleImageLayer));
+                                 VK_IMAGE_ASPECT_COLOR_BIT, kSingleMipLevel,
+                                 kSingleImageLayer));
 }
 
 std::unique_ptr<Image> MultisampleImage::CreateColorMultisampleImage(
-    SharedBasicContext context,
-    const Image& target_image, Mode mode) {
+    SharedBasicContext context, const Image& target_image, Mode mode) {
   return std::unique_ptr<Image>(new MultisampleImage{
-      std::move(context), target_image.extent(), target_image.format(),
-      mode, MultisampleBuffer::Type::kColor});
+      std::move(context), target_image.extent(), target_image.format(), mode,
+      MultisampleBuffer::Type::kColor});
 }
 
 std::unique_ptr<Image> MultisampleImage::CreateDepthStencilMultisampleImage(
-    SharedBasicContext context,
-    const VkExtent2D& extent, Mode mode) {
+    SharedBasicContext context, const VkExtent2D& extent, Mode mode) {
   const VkFormat format = FindDepthStencilImageFormat(*context);
-  return std::unique_ptr<Image>(new MultisampleImage{
-      std::move(context), extent, format, mode,
-      MultisampleBuffer::Type::kDepthStencil});
+  return std::unique_ptr<Image>(
+      new MultisampleImage{std::move(context), extent, format, mode,
+                           MultisampleBuffer::Type::kDepthStencil});
 }
 
 std::unique_ptr<Image> MultisampleImage::CreateDepthStencilImage(
-    SharedBasicContext context,
-    const VkExtent2D& extent, std::optional<Mode> mode) {
+    SharedBasicContext context, const VkExtent2D& extent,
+    std::optional<Mode> mode) {
   if (mode.has_value()) {
-    return CreateDepthStencilMultisampleImage(std::move(context),
-                                              extent, mode.value());
+    return CreateDepthStencilMultisampleImage(std::move(context), extent,
+                                              mode.value());
   } else {
     return std::make_unique<DepthStencilImage>(std::move(context), extent);
   }
 }
 
-MultisampleImage::MultisampleImage(
-    SharedBasicContext context,
-    const VkExtent2D& extent, VkFormat format,
-    Mode mode, MultisampleBuffer::Type type)
+MultisampleImage::MultisampleImage(SharedBasicContext context,
+                                   const VkExtent2D& extent, VkFormat format,
+                                   Mode mode, MultisampleBuffer::Type type)
     : Image{std::move(context), extent, format},
       sample_count_{ChooseSampleCount(mode)},
       buffer_{context_, type, extent_, format_, sample_count_} {
@@ -752,9 +724,9 @@ MultisampleImage::MultisampleImage(
       image_aspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
       break;
   }
-  set_image_view(CreateImageView(
-      *context_, buffer_.image(), format_,
-      image_aspect, kSingleMipLevel, kSingleImageLayer));
+  set_image_view(CreateImageView(*context_, buffer_.image(), format_,
+                                 image_aspect, kSingleMipLevel,
+                                 kSingleImageLayer));
 }
 
 VkSampleCountFlagBits MultisampleImage::ChooseSampleCount(Mode mode) {
@@ -775,15 +747,14 @@ VkSampleCountFlagBits MultisampleImage::ChooseSampleCount(Mode mode) {
 }
 
 MultisampleImage::MultisampleBuffer::MultisampleBuffer(
-    SharedBasicContext context,
-    Type type, const VkExtent2D& extent, VkFormat format,
-    VkSampleCountFlagBits sample_count)
+    SharedBasicContext context, Type type, const VkExtent2D& extent,
+    VkFormat format, VkSampleCountFlagBits sample_count)
     : ImageBuffer{std::move(context)} {
   VkImageUsageFlags image_usage;
   switch (type) {
     case Type::kColor:
-      image_usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-                        | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+      image_usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                    VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
       break;
     case Type::kDepthStencil:
       image_usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -793,8 +764,8 @@ MultisampleImage::MultisampleBuffer::MultisampleBuffer(
   image_config.sample_count = sample_count;
   set_image(CreateImage(*context_, image_config, nullflag, format,
                         ExpandDimension(extent), image_usage));
-  set_device_memory(CreateImageMemory(
-      *context_, image(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+  set_device_memory(CreateImageMemory(*context_, image(),
+                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 }
 
 } /* namespace vulkan */

@@ -52,74 +52,84 @@ Celestial::Celestial(const SharedBasicContext& context,
   using TextureType = ModelBuilder::TextureType;
   constexpr int kObjFileIndexBase = 1;
 
-  earth_uniform_ = std::make_unique<UniformBuffer>(
-      context, sizeof(EarthTrans), num_frames_in_flight);
+  earth_uniform_ = std::make_unique<UniformBuffer>(context, sizeof(EarthTrans),
+                                                   num_frames_in_flight);
   earth_constant_ = std::make_unique<PushConstant>(
       context, sizeof(TextureIndex), num_frames_in_flight);
   skybox_constant_ = std::make_unique<PushConstant>(
       context, sizeof(SkyboxTrans), num_frames_in_flight);
 
-  earth_model_ = ModelBuilder{
-      context, "Earth", num_frames_in_flight, viewport_aspect_ratio_,
-      ModelBuilder::SingleMeshResource{
-          GetResourcePath("model/sphere.obj"), kObjFileIndexBase,
-          /*tex_source_map=*/{{
-              TextureType::kDiffuse, {
-                  SharedTexture::SingleTexPath{
-                      GetResourcePath("texture/earth/day.jpg")},
-                  SharedTexture::SingleTexPath{
-                      GetResourcePath("texture/earth/night.jpg")},
-              },
-          }}
-      }}
-      .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/2)
-      .AddUniformBinding(
-          VK_SHADER_STAGE_VERTEX_BIT,
-          /*bindings=*/{{/*binding_point=*/0, /*array_length=*/1}})
-      .AddUniformBuffer(/*binding_point=*/0, *earth_uniform_)
-      .SetPushConstantShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT)
-      .AddPushConstant(earth_constant_.get(), /*target_offset=*/0)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetShaderBinaryPath("aurora/earth.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetShaderBinaryPath("aurora/earth.frag"))
-      .Build();
+  earth_model_ =
+      ModelBuilder{context, "Earth", num_frames_in_flight,
+                   viewport_aspect_ratio_,
+                   ModelBuilder::SingleMeshResource{
+                       GetResourcePath("model/sphere.obj"),
+                       kObjFileIndexBase,
+                       /*tex_source_map=*/
+                       {{
+                           TextureType::kDiffuse,
+                           {
+                               SharedTexture::SingleTexPath{
+                                   GetResourcePath("texture/earth/day.jpg")},
+                               SharedTexture::SingleTexPath{
+                                   GetResourcePath("texture/earth/night.jpg")},
+                           },
+                       }}}}
+          .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/2)
+          .AddUniformBinding(
+              VK_SHADER_STAGE_VERTEX_BIT,
+              /*bindings=*/{{/*binding_point=*/0, /*array_length=*/1}})
+          .AddUniformBuffer(/*binding_point=*/0, *earth_uniform_)
+          .SetPushConstantShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT)
+          .AddPushConstant(earth_constant_.get(), /*target_offset=*/0)
+          .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                     GetShaderBinaryPath("aurora/earth.vert"))
+          .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                     GetShaderBinaryPath("aurora/earth.frag"))
+          .Build();
 
   const SharedTexture::CubemapPath skybox_path{
       /*directory=*/
       GetResourcePath("texture/universe/PositiveX.jpg",
                       /*want_directory_path=*/true),
-      /*files=*/{
-          "PositiveX.jpg", "NegativeX.jpg",
-          "PositiveY.jpg", "NegativeY.jpg",
-          "PositiveZ.jpg", "NegativeZ.jpg",
+      /*files=*/
+      {
+          "PositiveX.jpg",
+          "NegativeX.jpg",
+          "PositiveY.jpg",
+          "NegativeY.jpg",
+          "PositiveZ.jpg",
+          "NegativeZ.jpg",
       },
   };
 
-  skybox_model_ = ModelBuilder{
-      context, "Skybox", num_frames_in_flight, viewport_aspect_ratio_,
-      ModelBuilder::SingleMeshResource{
-          GetResourcePath("model/skybox.obj"), kObjFileIndexBase,
-          {{TextureType::kCubemap, {skybox_path}}},
-      }}
-      .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/1)
-      .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
-      .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetShaderBinaryPath("shared/skybox.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetShaderBinaryPath("shared/skybox.frag"))
-      .Build();
+  skybox_model_ =
+      ModelBuilder{context, "Skybox", num_frames_in_flight,
+                   viewport_aspect_ratio_,
+                   ModelBuilder::SingleMeshResource{
+                       GetResourcePath("model/skybox.obj"),
+                       kObjFileIndexBase,
+                       {{TextureType::kCubemap, {skybox_path}}},
+                   }}
+          .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/1)
+          .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
+          .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
+          .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                     GetShaderBinaryPath("shared/skybox.vert"))
+          .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                     GetShaderBinaryPath("shared/skybox.frag"))
+          .Build();
 }
 
-void Celestial::UpdateFramebuffer(
-    const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
-    const RenderPass& render_pass, uint32_t subpass_index) {
+void Celestial::UpdateFramebuffer(const VkExtent2D& frame_size,
+                                  VkSampleCountFlagBits sample_count,
+                                  const RenderPass& render_pass,
+                                  uint32_t subpass_index) {
   constexpr bool kIsObjectOpaque = true;
-  earth_model_->Update(kIsObjectOpaque, frame_size, sample_count,
-                       render_pass, subpass_index);
-  skybox_model_->Update(kIsObjectOpaque, frame_size, sample_count,
-                        render_pass, subpass_index);
+  earth_model_->Update(kIsObjectOpaque, frame_size, sample_count, render_pass,
+                       subpass_index);
+  skybox_model_->Update(kIsObjectOpaque, frame_size, sample_count, render_pass,
+                        subpass_index);
 }
 
 void Celestial::UpdateEarthData(int frame, EarthTextureIndex texture_index,

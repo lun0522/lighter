@@ -31,22 +31,21 @@ constexpr uint32_t kImageBindingPoint = 0;
 } /* namespace */
 
 ImageViewer::ImageViewer(const SharedBasicContext& context,
-                         const SamplableImage& image,
-                         int num_channels, bool flip_y) {
+                         const SamplableImage& image, int num_channels,
+                         bool flip_y) {
   using common::Vertex2D;
 
   /* Descriptor */
   descriptor_ = std::make_unique<StaticDescriptor>(
-      context, std::vector<Descriptor::Info>{
-          Descriptor::Info{
-              Image::GetDescriptorTypeForSampling(),
-              VK_SHADER_STAGE_FRAGMENT_BIT,
-              /*bindings=*/{
-                  Descriptor::Info::Binding{
-                      kImageBindingPoint,
-                      /*array_length=*/1,
-                  }},
-          }});
+      context, std::vector<Descriptor::Info>{Descriptor::Info{
+                   Image::GetDescriptorTypeForSampling(),
+                   VK_SHADER_STAGE_FRAGMENT_BIT,
+                   /*bindings=*/
+                   {Descriptor::Info::Binding{
+                       kImageBindingPoint,
+                       /*array_length=*/1,
+                   }},
+               }});
   descriptor_->UpdateImageInfos(
       Image::GetDescriptorTypeForSampling(),
       /*image_info_map=*/
@@ -55,8 +54,7 @@ ImageViewer::ImageViewer(const SharedBasicContext& context,
   /* Vertex buffer */
   const auto vertex_data = Vertex2D::GetFullScreenSquadVertices(flip_y);
   const PerVertexBuffer::NoIndicesDataInfo vertex_data_info{
-      /*per_mesh_vertices=*/{{PerVertexBuffer::VertexDataInfo{vertex_data}}}
-  };
+      /*per_mesh_vertices=*/{{PerVertexBuffer::VertexDataInfo{vertex_data}}}};
   vertex_buffer_ = std::make_unique<StaticPerVertexBuffer>(
       context, vertex_data_info, pipeline::GetVertexAttributes<Vertex2D>());
 

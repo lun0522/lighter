@@ -8,13 +8,13 @@
 #include "lighter/application/vulkan/aurora/editor/path.h"
 
 #include <format>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "lighter/application/vulkan/util.h"
 #include "lighter/common/data.h"
 #include "lighter/common/file.h"
 #include "lighter/renderer/util.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
-#include <glm/gtc/matrix_transform.hpp>
 
 namespace lighter {
 namespace application {
@@ -86,8 +86,10 @@ inline glm::vec3 TransformPoint(const glm::mat4& transform,
 
 PathRenderer3D::PathRenderer3D(const SharedBasicContext& context,
                                int num_frames_in_flight, int num_paths)
-    : num_paths_{num_paths}, num_control_points_per_path_(num_paths_),
-      control_pipeline_builder_{context}, spline_pipeline_builder_{context},
+    : num_paths_{num_paths},
+      num_control_points_per_path_(num_paths_),
+      control_pipeline_builder_{context},
+      spline_pipeline_builder_{context},
       viewpoint_pipeline_builder_{context} {
   using common::Vertex3DPosOnly;
 
@@ -133,14 +135,13 @@ PathRenderer3D::PathRenderer3D(const SharedBasicContext& context,
       context, sizeof(ViewpointRenderInfo), num_frames_in_flight);
 
   /* Pipeline */
-  control_pipeline_builder_
-      .SetPipelineName("Aurora path control")
+  control_pipeline_builder_.SetPipelineName("Aurora path control")
       .SetDepthTestEnable(/*enable_test=*/true, /*enable_write=*/false)
       .AddVertexInput(
           static_cast<uint32_t>(ControlVertexBufferBindingPoint::kCenter),
           pipeline::GetPerInstanceBindingDescription<Vertex3DPosOnly>(),
-          paths_vertex_buffers_[0].spline_points_buffer
-              ->GetAttributes(/*start_location=*/0))
+          paths_vertex_buffers_[0].spline_points_buffer->GetAttributes(
+              /*start_location=*/0))
       .AddVertexInput(
           static_cast<uint32_t>(ControlVertexBufferBindingPoint::kPos),
           pipeline::GetPerVertexBindingDescription<Vertex3DPosOnly>(),
@@ -154,15 +155,14 @@ PathRenderer3D::PathRenderer3D(const SharedBasicContext& context,
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
                  GetShaderBinaryPath("aurora/draw_path.frag"));
 
-  spline_pipeline_builder_
-      .SetPipelineName("Aurora path spline")
+  spline_pipeline_builder_.SetPipelineName("Aurora path spline")
       .SetDepthTestEnable(/*enable_test=*/true, /*enable_write=*/false)
       .SetPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_LINE_STRIP)
       .AddVertexInput(
           static_cast<uint32_t>(SplineVertexBufferBindingPoint::kPos),
           pipeline::GetPerVertexBindingDescription<Vertex3DPosOnly>(),
-          paths_vertex_buffers_[0].spline_points_buffer
-              ->GetAttributes(/*start_location=*/0))
+          paths_vertex_buffers_[0].spline_points_buffer->GetAttributes(
+              /*start_location=*/0))
       .AddVertexInput(
           static_cast<uint32_t>(SplineVertexBufferBindingPoint::kColorAlpha),
           pipeline::GetPerInstanceBindingDescription<ColorAlpha>(),
@@ -176,8 +176,7 @@ PathRenderer3D::PathRenderer3D(const SharedBasicContext& context,
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
                  GetShaderBinaryPath("aurora/draw_path.frag"));
 
-  viewpoint_pipeline_builder_
-      .SetPipelineName("User viewpoint")
+  viewpoint_pipeline_builder_.SetPipelineName("User viewpoint")
       .SetDepthTestEnable(/*enable_test=*/true, /*enable_write=*/false)
       .AddVertexInput(
           kViewpointVertexBufferBindingPoint,
@@ -208,27 +207,27 @@ void PathRenderer3D::UpdatePath(int path_index,
 }
 
 void PathRenderer3D::UpdateFramebuffer(
-    VkSampleCountFlagBits sample_count,
-    const RenderPass& render_pass, uint32_t subpass_index,
+    VkSampleCountFlagBits sample_count, const RenderPass& render_pass,
+    uint32_t subpass_index,
     const GraphicsPipelineBuilder::ViewportInfo& viewport) {
   // Prevent shaders from being auto released.
   ShaderModule::AutoReleaseShaderPool shader_pool;
 
-  control_pipeline_ = control_pipeline_builder_
-      .SetMultisampling(sample_count)
-      .SetViewport(GraphicsPipelineBuilder::ViewportInfo{viewport})
-      .SetRenderPass(*render_pass, subpass_index)
-      .Build();
-  spline_pipeline_ = spline_pipeline_builder_
-      .SetMultisampling(sample_count)
-      .SetViewport(GraphicsPipelineBuilder::ViewportInfo{viewport})
-      .SetRenderPass(*render_pass, subpass_index)
-      .Build();
-  viewpoint_pipeline_ = viewpoint_pipeline_builder_
-      .SetMultisampling(sample_count)
-      .SetViewport(GraphicsPipelineBuilder::ViewportInfo{viewport})
-      .SetRenderPass(*render_pass, subpass_index)
-      .Build();
+  control_pipeline_ =
+      control_pipeline_builder_.SetMultisampling(sample_count)
+          .SetViewport(GraphicsPipelineBuilder::ViewportInfo{viewport})
+          .SetRenderPass(*render_pass, subpass_index)
+          .Build();
+  spline_pipeline_ =
+      spline_pipeline_builder_.SetMultisampling(sample_count)
+          .SetViewport(GraphicsPipelineBuilder::ViewportInfo{viewport})
+          .SetRenderPass(*render_pass, subpass_index)
+          .Build();
+  viewpoint_pipeline_ =
+      viewpoint_pipeline_builder_.SetMultisampling(sample_count)
+          .SetViewport(GraphicsPipelineBuilder::ViewportInfo{viewport})
+          .SetRenderPass(*render_pass, subpass_index)
+          .Build();
 }
 
 void PathRenderer3D::UpdatePerFrameData(int frame, float control_point_scale,
@@ -244,13 +243,12 @@ void PathRenderer3D::UpdatePerFrameData(int frame, float control_point_scale,
 
   // 'color_alpha' and 'center_scale' will be updated by DrawViewpoint().
   viewpoint_render_constant_->HostData<ViewpointRenderInfo>(frame)
-                            ->proj_view_model
-      = proj_view_model;
+      ->proj_view_model = proj_view_model;
 }
 
-void PathRenderer3D::DrawControlPoints(
-    const VkCommandBuffer& command_buffer, int frame,
-    int path_index, const glm::vec4& color_alpha) {
+void PathRenderer3D::DrawControlPoints(const VkCommandBuffer& command_buffer,
+                                       int frame, int path_index,
+                                       const glm::vec4& color_alpha) {
   control_render_constant_->HostData<ControlRenderInfo>(frame)->color_alpha =
       color_alpha;
   control_pipeline_->Bind(command_buffer);
@@ -267,9 +265,9 @@ void PathRenderer3D::DrawControlPoints(
       /*mesh_index=*/0, num_control_points_per_path_[path_index]);
 }
 
-void PathRenderer3D::DrawSplines(
-    const VkCommandBuffer& command_buffer, int frame,
-    std::span<const glm::vec4> color_alphas) {
+void PathRenderer3D::DrawSplines(const VkCommandBuffer& command_buffer,
+                                 int frame,
+                                 std::span<const glm::vec4> color_alphas) {
   ASSERT_TRUE(color_alphas.size() == num_paths_,
               std::format("Length of 'color_alphas' ({}) must match with "
                           "the number of aurora paths ({})",
@@ -291,9 +289,9 @@ void PathRenderer3D::DrawSplines(
   }
 }
 
-void PathRenderer3D::DrawViewpoint(
-    const VkCommandBuffer& command_buffer, int frame,
-    const glm::vec3& center, const glm::vec4& color_alpha) {
+void PathRenderer3D::DrawViewpoint(const VkCommandBuffer& command_buffer,
+                                   int frame, const glm::vec3& center,
+                                   const glm::vec4& color_alpha) {
   const float scale =
       control_render_constant_->HostData<ControlRenderInfo>(frame)->scale;
   auto& render_info =
@@ -305,13 +303,13 @@ void PathRenderer3D::DrawViewpoint(
   viewpoint_render_constant_->Flush(
       command_buffer, viewpoint_pipeline_->layout(), frame, /*target_offset=*/0,
       VK_SHADER_STAGE_VERTEX_BIT);
-  sphere_vertex_buffer_->Draw(
-      command_buffer, kViewpointVertexBufferBindingPoint,
-      /*mesh_index=*/0, /*instance_count=*/1);
+  sphere_vertex_buffer_->Draw(command_buffer,
+                              kViewpointVertexBufferBindingPoint,
+                              /*mesh_index=*/0, /*instance_count=*/1);
 }
 
-std::vector<const PerVertexBuffer*>
-PathRenderer3D::GetPathVertexBuffers() const {
+std::vector<const PerVertexBuffer*> PathRenderer3D::GetPathVertexBuffers()
+    const {
   std::vector<const PerVertexBuffer*> buffers;
   buffers.reserve(num_paths_);
   for (const auto& buffer : paths_vertex_buffers_) {
@@ -346,28 +344,28 @@ AuroraPath::AuroraPath(const SharedBasicContext& context,
     spline_editors_.push_back(std::make_unique<common::SplineEditor>(
         common::CatmullRomSpline::kMinNumControlPoints,
         info.max_num_control_points, info.generate_control_points(path),
-        common::CatmullRomSpline::GetOnSphereSpline(
-            info.max_recursion_depth, info.spline_roughness)));
+        common::CatmullRomSpline::GetOnSphereSpline(info.max_recursion_depth,
+                                                    info.spline_roughness)));
     UpdatePath(path);
   }
 }
 
-void AuroraPath::UpdateFramebuffer(
-    const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
-    const RenderPass& render_pass, uint32_t subpass_index) {
+void AuroraPath::UpdateFramebuffer(const VkExtent2D& frame_size,
+                                   VkSampleCountFlagBits sample_count,
+                                   const RenderPass& render_pass,
+                                   uint32_t subpass_index) {
   path_renderer_.UpdateFramebuffer(
       sample_count, render_pass, subpass_index,
       pipeline::GetViewport(frame_size, viewport_aspect_ratio_));
 }
 
 void AuroraPath::UpdatePerFrameData(
-    int frame, const common::OrthographicCamera& camera,
-    const glm::mat4& model, float model_radius,
-    const std::optional<ClickInfo>& click_info) {
+    int frame, const common::OrthographicCamera& camera, const glm::mat4& model,
+    float model_radius, const std::optional<ClickInfo>& click_info) {
   const float radius_object_space = camera.view_width() * control_point_radius_;
   const float control_point_scale = radius_object_space / model_radius;
-  const glm::mat4 proj_view_model = camera.GetProjectionMatrix() *
-                                    camera.GetViewMatrix() * model;
+  const glm::mat4 proj_view_model =
+      camera.GetProjectionMatrix() * camera.GetViewMatrix() * model;
   path_renderer_.UpdatePerFrameData(frame, control_point_scale,
                                     proj_view_model);
   selected_control_point_ = ProcessClick(radius_object_space, proj_view_model,
@@ -407,8 +405,8 @@ void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
 
   // Render user viewpoint at last.
   const bool is_viewpoint_selected = !selected_path_index.has_value();
-  const auto viewpoint_state = is_viewpoint_selected ? button::kSelectedState
-                                                     : button::kUnselectedState;
+  const auto viewpoint_state =
+      is_viewpoint_selected ? button::kSelectedState : button::kUnselectedState;
   path_renderer_.DrawViewpoint(command_buffer, frame, viewpoint_pos_,
                                viewpoint_color_alphas_[viewpoint_state]);
 }
@@ -420,9 +418,8 @@ void AuroraPath::UpdatePath(int path_index) {
 }
 
 std::optional<int> AuroraPath::ProcessClick(
-    float control_point_radius_object_space,
-    const glm::mat4& proj_view_model, const glm::vec3& model_center,
-    const std::optional<ClickInfo>& click_info) {
+    float control_point_radius_object_space, const glm::mat4& proj_view_model,
+    const glm::vec3& model_center, const std::optional<ClickInfo>& click_info) {
   if (!click_info.has_value()) {
     did_click_viewpoint_ = false;
     return std::nullopt;
@@ -452,9 +449,9 @@ std::optional<int> AuroraPath::ProcessClick(
 
   // Otherwise, process click on aurora paths.
   const int path_index = user_click.path_index.value();
-  ASSERT_TRUE(path_index < num_paths_,
-              std::format(
-                  "Trying to access aurora path at index {} ({} paths exist)",
+  ASSERT_TRUE(
+      path_index < num_paths_,
+      std::format("Trying to access aurora path at index {} ({} paths exist)",
                   path_index, num_paths_));
 
   // If a control point has been selected before this frame, simply move it to
@@ -467,9 +464,9 @@ std::optional<int> AuroraPath::ProcessClick(
     return selected_control_point_;
   }
 
-  const auto clicked_control_point = FindClickedControlPoint(
-      path_index, user_click.click_object_space,
-      control_point_radius_object_space);
+  const auto clicked_control_point =
+      FindClickedControlPoint(path_index, user_click.click_object_space,
+                              control_point_radius_object_space);
   if (user_click.is_left_click) {
     // For left click, if no control point has been selected, find out if any
     // control point is selected in this frame.
@@ -492,8 +489,7 @@ std::optional<int> AuroraPath::ProcessClick(
 std::optional<int> AuroraPath::FindClickedControlPoint(
     int path_index, const glm::vec3& click_object_space,
     float control_point_radius_object_space) {
-  const auto& control_points =
-      spline_editors_[path_index]->control_points();
+  const auto& control_points = spline_editors_[path_index]->control_points();
   for (int i = 0; i < control_points.size(); ++i) {
     if (glm::distance(control_points[i], click_object_space) <=
         control_point_radius_object_space) {
@@ -503,9 +499,10 @@ std::optional<int> AuroraPath::FindClickedControlPoint(
   return std::nullopt;
 }
 
-bool AuroraPath::InsertControlPoint(
-    int path_index, const glm::vec3& click_object_space,
-    const glm::mat4& proj_view_model, const glm::vec3& model_center) {
+bool AuroraPath::InsertControlPoint(int path_index,
+                                    const glm::vec3& click_object_space,
+                                    const glm::mat4& proj_view_model,
+                                    const glm::vec3& model_center) {
   auto& editor = *spline_editors_[path_index];
   if (!editor.CanInsertControlPoint()) {
     return false;
@@ -549,9 +546,9 @@ bool AuroraPath::InsertControlPoint(
         glm::distance(control_points[prev_point_index], click_object_space);
     const float next_point_distance =
         glm::distance(control_points[next_point_index], click_object_space);
-    const int insert_at_index =
-        prev_point_distance < next_point_distance ? closest_control_point->index
-                                                  : next_point_index;
+    const int insert_at_index = prev_point_distance < next_point_distance
+                                    ? closest_control_point->index
+                                    : next_point_index;
     return editor.InsertControlPoint(insert_at_index, click_object_space);
   }
   return false;

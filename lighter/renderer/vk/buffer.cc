@@ -25,11 +25,12 @@ intl::Buffer CreateBuffer(
     const Context& context, intl::DeviceSize data_size,
     intl::BufferUsageFlags usage_flags,
     const std::vector<uint32_t>& unique_queue_family_indices) {
-  const auto buffer_create_info = intl::BufferCreateInfo{}
-      .setSize(data_size)
-      .setUsage(usage_flags)
-      .setSharingMode(intl::SharingMode::eExclusive)
-      .setQueueFamilyIndices(unique_queue_family_indices);
+  const auto buffer_create_info =
+      intl::BufferCreateInfo{}
+          .setSize(data_size)
+          .setUsage(usage_flags)
+          .setSharingMode(intl::SharingMode::eExclusive)
+          .setQueueFamilyIndices(unique_queue_family_indices);
   return context.device()->createBuffer(buffer_create_info,
                                         *context.host_allocator());
 }
@@ -40,7 +41,7 @@ intl::DeviceMemory CreateBufferMemory(
     intl::MemoryPropertyFlags property_flags) {
   const intl::Device device = *context.device();
   intl::DeviceMemory device_memory = buffer::CreateDeviceMemory(
-      context,  device.getBufferMemoryRequirements(buffer), property_flags);
+      context, device.getBufferMemoryRequirements(buffer), property_flags);
 
   // Bind the allocated memory with 'buffer'. If this memory is used for
   // multiple buffers, the memory offset should be re-calculated and
@@ -51,8 +52,7 @@ intl::DeviceMemory CreateBufferMemory(
 
 // Maps device memory with the given 'map_offset' and 'map_size', and copies
 // data from the host according to 'copy_infos'.
-void CopyHostToBuffer(const Context& context,
-                      intl::DeviceMemory device_memory,
+void CopyHostToBuffer(const Context& context, intl::DeviceMemory device_memory,
                       intl::DeviceSize map_offset, intl::DeviceSize map_size,
                       std::span<const CopyInfo> copy_infos) {
   // Data transfer may not happen immediately, for example, because it is only
@@ -70,9 +70,9 @@ void CopyHostToBuffer(const Context& context,
 
 }  // namespace
 
-Buffer::AllocationInfo::AllocationInfo(
-    const Context& context, UpdateRate update_rate,
-    std::span<const BufferUsage> usages) {
+Buffer::AllocationInfo::AllocationInfo(const Context& context,
+                                       UpdateRate update_rate,
+                                       std::span<const BufferUsage> usages) {
   ASSERT_NON_EMPTY(usages, "Buffer has no usage");
 
   std::unordered_set<uint32_t> queue_family_indices_set;

@@ -62,8 +62,8 @@ struct StepWidth {
 } /* namespace */
 
 DistanceFieldGenerator::DistanceFieldGenerator(
-    const SharedBasicContext& context,
-    const OffscreenImage& input_image, const OffscreenImage& output_image)
+    const SharedBasicContext& context, const OffscreenImage& input_image,
+    const OffscreenImage& output_image)
     : work_group_count_{renderer::vulkan::util::GetWorkGroupCount(
           input_image.extent(), {kWorkGroupSizeX, kWorkGroupSizeY})} {
   const auto& image_extent = input_image.extent();
@@ -72,8 +72,8 @@ DistanceFieldGenerator::DistanceFieldGenerator(
               "Size of input and output images must match");
 
   /* Push constant */
-  const int greatest_dimension = std::max(image_extent.width,
-                                          image_extent.height);
+  const int greatest_dimension =
+      std::max(image_extent.width, image_extent.height);
   std::vector<int> step_widths;
   int dimension = 1;
   while (dimension < greatest_dimension) {
@@ -82,8 +82,8 @@ DistanceFieldGenerator::DistanceFieldGenerator(
   }
   num_steps_ = step_widths.size();
 
-  step_width_constant_ = std::make_unique<PushConstant>(
-      context, sizeof(StepWidth), num_steps_);
+  step_width_constant_ =
+      std::make_unique<PushConstant>(context, sizeof(StepWidth), num_steps_);
   for (int i = 0; i < num_steps_; ++i) {
     step_width_constant_->HostData<StepWidth>(/*frame=*/i)->value =
         step_widths[i];
@@ -95,21 +95,22 @@ DistanceFieldGenerator::DistanceFieldGenerator(
   const auto image_usage = ImageUsage::GetLinearAccessInComputeShaderUsage(
       ir::AccessType::kReadWrite);
   pong_image_ = std::make_unique<OffscreenImage>(
-      context, image_extent, output_image.format(),
-      std::span{&image_usage, 1}, ImageSampler::Config{});
+      context, image_extent, output_image.format(), std::span{&image_usage, 1},
+      ImageSampler::Config{});
 
   /* Descriptor */
   descriptor_ = std::make_unique<DynamicDescriptor>(
       context, std::vector<Descriptor::Info>{
-          Descriptor::Info{
-              Image::GetDescriptorTypeForLinearAccess(),
-              VK_SHADER_STAGE_COMPUTE_BIT,
-              /*bindings=*/{
-                  {kOriginalImageBindingPoint, /*array_length=*/1},
-                  {kOutputImageBindingPoint, /*array_length=*/1},
-              },
-          },
-      });
+                   Descriptor::Info{
+                       Image::GetDescriptorTypeForLinearAccess(),
+                       VK_SHADER_STAGE_COMPUTE_BIT,
+                       /*bindings=*/
+                       {
+                           {kOriginalImageBindingPoint, /*array_length=*/1},
+                           {kOutputImageBindingPoint, /*array_length=*/1},
+                       },
+                   },
+               });
 
   const VkImageLayout image_layout = image::GetImageLayout(image_usage);
   const auto input_image_descriptor_info =
@@ -133,23 +134,28 @@ DistanceFieldGenerator::DistanceFieldGenerator(
       {kOutputImageBindingPoint, {ping_image_descriptor_info}}};
 
   /* Pipeline */
-  path_to_coord_pipeline_ = ComputePipelineBuilder{context}
-      .SetPipelineName("Path to coordinate")
-      .SetPipelineLayout({descriptor_->layout()}, /*push_constant_ranges=*/{})
-      .SetShader(GetShaderBinaryPath("aurora/path_to_coord.comp"))
-      .Build();
+  path_to_coord_pipeline_ =
+      ComputePipelineBuilder{context}
+          .SetPipelineName("Path to coordinate")
+          .SetPipelineLayout({descriptor_->layout()},
+                             /*push_constant_ranges=*/{})
+          .SetShader(GetShaderBinaryPath("aurora/path_to_coord.comp"))
+          .Build();
 
-  jump_flooding_pipeline_ = ComputePipelineBuilder{context}
-      .SetPipelineName("Jump flooding")
-      .SetPipelineLayout({descriptor_->layout()}, {push_constant_range})
-      .SetShader(GetShaderBinaryPath("aurora/jump_flooding.comp"))
-      .Build();
+  jump_flooding_pipeline_ =
+      ComputePipelineBuilder{context}
+          .SetPipelineName("Jump flooding")
+          .SetPipelineLayout({descriptor_->layout()}, {push_constant_range})
+          .SetShader(GetShaderBinaryPath("aurora/jump_flooding.comp"))
+          .Build();
 
-  coord_to_dist_pipeline_ = ComputePipelineBuilder{context}
-      .SetPipelineName("Coordinate to distance")
-      .SetPipelineLayout({descriptor_->layout()}, /*push_constant_ranges=*/{})
-      .SetShader(GetShaderBinaryPath("aurora/coord_to_dist.comp"))
-      .Build();
+  coord_to_dist_pipeline_ =
+      ComputePipelineBuilder{context}
+          .SetPipelineName("Coordinate to distance")
+          .SetPipelineLayout({descriptor_->layout()},
+                             /*push_constant_ranges=*/{})
+          .SetShader(GetShaderBinaryPath("aurora/coord_to_dist.comp"))
+          .Build();
 }
 
 void DistanceFieldGenerator::Generate(const VkCommandBuffer& command_buffer) {
@@ -172,9 +178,9 @@ void DistanceFieldGenerator::Generate(const VkCommandBuffer& command_buffer) {
   Dispatch(command_buffer, *coord_to_dist_pipeline_, direction);
 }
 
-void DistanceFieldGenerator::Dispatch(
-    const VkCommandBuffer& command_buffer,
-    const Pipeline& pipeline, Direction direction) const {
+void DistanceFieldGenerator::Dispatch(const VkCommandBuffer& command_buffer,
+                                      const Pipeline& pipeline,
+                                      Direction direction) const {
   pipeline.Bind(command_buffer);
   descriptor_->PushImageInfos(
       command_buffer, pipeline.layout(), pipeline.binding_point(),

@@ -99,9 +99,9 @@ class ImageUsage {
                       AccessLocation::kComputeShader};
   }
 
-  explicit ImageUsage() : ImageUsage{UsageType::kDontCare,
-                                     AccessType::kDontCare,
-                                     AccessLocation::kDontCare} {}
+  explicit ImageUsage()
+      : ImageUsage{UsageType::kDontCare, AccessType::kDontCare,
+                   AccessLocation::kDontCare} {}
 
   // Returns true if any of 'usages' is UsageType::kLinearAccess.
   static bool IsLinearAccessed(std::span<const ImageUsage> usages) {
@@ -131,7 +131,8 @@ class ImageUsage {
   ImageUsage(UsageType usage_type, AccessType access_type,
              AccessLocation access_location,
              std::optional<int> attachment_location = std::nullopt)
-      : usage_type_{usage_type}, access_type_{access_type},
+      : usage_type_{usage_type},
+        access_type_{access_type},
         access_location_{access_location},
         attachment_location_{attachment_location} {}
 
@@ -166,9 +167,8 @@ class ImageUsageHistory {
   ImageUsageHistory& AddUsage(int subpass, const ImageUsage& usage) {
     const auto did_insert =
         usage_at_subpass_map_.insert({subpass, usage}).second;
-    ASSERT_TRUE(
-        did_insert,
-        std::format("Already specified usage for subpass {}", subpass));
+    ASSERT_TRUE(did_insert,
+                std::format("Already specified usage for subpass {}", subpass));
     return *this;
   }
 
@@ -176,9 +176,9 @@ class ImageUsageHistory {
   // ['subpass_start', 'subpass_end'].
   ImageUsageHistory& AddUsage(int subpass_start, int subpass_end,
                               const ImageUsage& usage) {
-    ASSERT_TRUE(subpass_start <= subpass_end,
-                std::format("Invalid range [{}, {}]",
-                            subpass_start, subpass_end));
+    ASSERT_TRUE(
+        subpass_start <= subpass_end,
+        std::format("Invalid range [{}, {}]", subpass_start, subpass_end));
     for (int subpass = subpass_start; subpass <= subpass_end; ++subpass) {
       AddUsage(subpass, usage);
     }
@@ -188,12 +188,12 @@ class ImageUsageHistory {
   // Specifies that the multisample image with 'source_image_name' will resolve
   // to this image at 'subpass'.
   ImageUsageHistory& AddMultisampleResolveSource(
-      int subpass, std::string_view source_image_name){
+      int subpass, std::string_view source_image_name) {
     const auto iter =
         resolve_source_map_.insert({subpass, std::string{source_image_name}});
-    ASSERT_TRUE(iter.second,
-                std::format("Already specified source for subpass {}",
-                            subpass));
+    ASSERT_TRUE(
+        iter.second,
+        std::format("Already specified source for subpass {}", subpass));
     return AddUsage(subpass, ImageUsage::GetMultisampleResolveTargetUsage());
   }
 
@@ -262,9 +262,9 @@ class ImageUsageTracker {
   // Makes this tracker track the usage of image.
   ImageUsageTracker& TrackImage(std::string&& image_name,
                                 const ImageUsage& current_usage) {
-    ASSERT_FALSE(image_usage_map_.contains(image_name),
-                 std::format("Already tracking image with name '{}'",
-                             image_name));
+    ASSERT_FALSE(
+        image_usage_map_.contains(image_name),
+        std::format("Already tracking image with name '{}'", image_name));
     image_usage_map_.insert({std::move(image_name), current_usage});
     return *this;
   }

@@ -8,10 +8,11 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_UTIL_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_UTIL_H
 
+#include <vulkan/vulkan.h>
+
 #include <span>
 
 #include "lighter/renderer/ir/image_usage.h"
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {

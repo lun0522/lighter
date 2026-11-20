@@ -8,19 +8,19 @@
 #ifndef LIGHTER_RENDERER_VK_RENDERER_H
 #define LIGHTER_RENDERER_VK_RENDERER_H
 
+#include <vulkan/vulkan.h>
+
+#include <glm/glm.hpp>
 #include <memory>
 #include <optional>
 #include <span>
 #include <string_view>
 #include <vector>
 
-#include <glm/glm.hpp>
-#include <vulkan/vulkan.h>
-
 #include "lighter/common/image.h"
 #include "lighter/renderer/ir/buffer_usage.h"
-#include "lighter/renderer/ir/renderer.h"
 #include "lighter/renderer/ir/image_usage.h"
+#include "lighter/renderer/ir/renderer.h"
 #include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/vk/buffer.h"
 #include "lighter/renderer/vk/context.h"
@@ -31,8 +31,7 @@
 
 namespace lighter::renderer::vk {
 
-class Renderer : public WithSharedContext,
-                 public ir::Renderer {
+class Renderer : public WithSharedContext, public ir::Renderer {
  public:
   Renderer(const char* application_name,
            const std::optional<ir::debug_message::Config>& debug_message_config,
@@ -86,8 +85,8 @@ class Renderer : public WithSharedContext,
       std::string_view name, const glm::ivec2& extent,
       ir::MultisamplingMode multisampling_mode,
       std::span<const ir::ImageUsage> usages) const override {
-    return SingleImage::CreateDepthStencilImage(
-        context_, name, extent, multisampling_mode, usages);
+    return SingleImage::CreateDepthStencilImage(context_, name, extent,
+                                                multisampling_mode, usages);
   }
 
   // Pass

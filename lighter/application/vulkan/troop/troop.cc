@@ -88,22 +88,30 @@ TroopApp::TroopApp(const WindowContext::Config& window_config)
       .RegisterScrollCallback([this](double x_pos, double y_pos) {
         camera_->DidScroll(y_pos, 1.0f, 60.0f);
       })
-      .RegisterPressKeyCallback(WindowKey::kUp, [this]() {
-        camera_->DidPressKey(ControlKey::kUp,
-                             timer_.GetElapsedTimeSinceLastFrame());
-      })
-      .RegisterPressKeyCallback(WindowKey::kDown, [this]() {
-        camera_->DidPressKey(ControlKey::kDown,
-                             timer_.GetElapsedTimeSinceLastFrame());
-      })
-      .RegisterPressKeyCallback(WindowKey::kLeft, [this]() {
-        camera_->DidPressKey(ControlKey::kLeft,
-                             timer_.GetElapsedTimeSinceLastFrame());
-      })
-      .RegisterPressKeyCallback(WindowKey::kRight, [this]() {
-        camera_->DidPressKey(ControlKey::kRight,
-                             timer_.GetElapsedTimeSinceLastFrame());
-      })
+      .RegisterPressKeyCallback(WindowKey::kUp,
+                                [this]() {
+                                  camera_->DidPressKey(
+                                      ControlKey::kUp,
+                                      timer_.GetElapsedTimeSinceLastFrame());
+                                })
+      .RegisterPressKeyCallback(WindowKey::kDown,
+                                [this]() {
+                                  camera_->DidPressKey(
+                                      ControlKey::kDown,
+                                      timer_.GetElapsedTimeSinceLastFrame());
+                                })
+      .RegisterPressKeyCallback(WindowKey::kLeft,
+                                [this]() {
+                                  camera_->DidPressKey(
+                                      ControlKey::kLeft,
+                                      timer_.GetElapsedTimeSinceLastFrame());
+                                })
+      .RegisterPressKeyCallback(WindowKey::kRight,
+                                [this]() {
+                                  camera_->DidPressKey(
+                                      ControlKey::kRight,
+                                      timer_.GetElapsedTimeSinceLastFrame());
+                                })
       .RegisterPressKeyCallback(WindowKey::kEscape,
                                 [this]() { should_quit_ = true; });
 
@@ -119,8 +127,10 @@ TroopApp::TroopApp(const WindowContext::Config& window_config)
   lighting_pass_ = std::make_unique<troop::LightingPass>(
       &window_context(), kNumFramesInFlight,
       troop::LightingPass::LightCenterConfig{
-          /*bound_x=*/{-3.0f, 9.8f}, /*bound_y=*/{3.2f, 4.2f},
-          /*bound_z=*/{-12.0f, 3.0f}, /*increments=*/{0.0f, 0.0f, 2.0f},
+          /*bound_x=*/{-3.0f, 9.8f},
+          /*bound_y=*/{3.2f, 4.2f},
+          /*bound_z=*/{-12.0f, 3.0f},
+          /*increments=*/{0.0f, 0.0f, 2.0f},
       });
 }
 
@@ -182,15 +192,15 @@ void TroopApp::MainLoop() {
   while (!should_quit_ && mutable_window_context()->CheckEvents()) {
     timer_.Tick();
 
-    const auto draw_result = command_->Run(
-        current_frame_, window_context().swapchain(), update_data,
-        [this](const VkCommandBuffer& command_buffer,
-               uint32_t framebuffer_index) {
-          geometry_pass_->Draw(command_buffer, framebuffer_index,
-                               current_frame_);
-          lighting_pass_->Draw(command_buffer, framebuffer_index,
-                               current_frame_);
-        });
+    const auto draw_result =
+        command_->Run(current_frame_, window_context().swapchain(), update_data,
+                      [this](const VkCommandBuffer& command_buffer,
+                             uint32_t framebuffer_index) {
+                        geometry_pass_->Draw(command_buffer, framebuffer_index,
+                                             current_frame_);
+                        lighting_pass_->Draw(command_buffer, framebuffer_index,
+                                             current_frame_);
+                      });
 
     if (draw_result.has_value() || window_context().ShouldRecreate()) {
       mutable_window_context()->Recreate();

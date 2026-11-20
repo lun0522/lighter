@@ -8,11 +8,14 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_AURORA_EDITOR_BUTTON_H
 #define LIGHTER_APPLICATION_VULKAN_AURORA_EDITOR_BUTTON_H
 
+#include <vulkan/vulkan.h>
+
 #include <array>
+#include <glm/glm.hpp>
 #include <memory>
 #include <optional>
-#include <string>
 #include <span>
+#include <string>
 #include <vector>
 
 #include "lighter/application/vulkan/aurora/editor/button_maker.h"
@@ -22,8 +25,6 @@
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
-#include <glm/glm.hpp>
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace application {
@@ -53,8 +54,8 @@ struct RenderInfo {
 class ButtonRenderer {
  public:
   ButtonRenderer(
-      const renderer::vulkan::SharedBasicContext& context,
-      int num_buttons, const button::VerticesInfo& vertices_info,
+      const renderer::vulkan::SharedBasicContext& context, int num_buttons,
+      const button::VerticesInfo& vertices_info,
       std::unique_ptr<renderer::vulkan::OffscreenImage>&& buttons_image);
 
   // This class is neither copyable nor movable.

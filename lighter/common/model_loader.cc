@@ -7,10 +7,10 @@
 
 #include "lighter/common/model_loader.h"
 
-#include <format>
+#include <assimp/postprocess.h>
 
 #include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
+#include <format>
 
 #include "lighter/common/util.h"
 
@@ -28,8 +28,8 @@ aiTextureType TextureTypeToAssimpType(ModelLoader::TextureType type) {
     case TextureType::kReflection:
       return aiTextureType_AMBIENT;
     default:
-      FATAL(std::format("Unsupported resource type: {}",
-                        static_cast<int>(type)));
+      FATAL(
+          std::format("Unsupported resource type: {}", static_cast<int>(type)));
   }
 }
 
@@ -37,23 +37,21 @@ aiTextureType TextureTypeToAssimpType(ModelLoader::TextureType type) {
 
 ModelLoader::ModelLoader(const std::string& model_path,
                          const std::string& texture_dir) {
-  constexpr unsigned int flags = aiProcess_Triangulate
-                                     | aiProcess_GenNormals
-                                     | aiProcess_PreTransformVertices
-                                     | aiProcess_FlipUVs;
+  constexpr unsigned int flags = aiProcess_Triangulate | aiProcess_GenNormals |
+                                 aiProcess_PreTransformVertices |
+                                 aiProcess_FlipUVs;
 
   Assimp::Importer importer;
   const aiScene* scene = importer.ReadFile(model_path, flags);
-  ASSERT_FALSE(scene == nullptr || scene->mRootNode == nullptr ||
-               (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE),
-               std::format("Failed to import scene: {}",
-                           importer.GetErrorString()));
+  ASSERT_FALSE(
+      scene == nullptr || scene->mRootNode == nullptr ||
+          (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE),
+      std::format("Failed to import scene: {}", importer.GetErrorString()));
 
   ProcessNode(texture_dir, scene->mRootNode, scene);
 }
 
-void ModelLoader::ProcessNode(const std::string& directory,
-                              const aiNode* node,
+void ModelLoader::ProcessNode(const std::string& directory, const aiNode* node,
                               const aiScene* scene) {
   mesh_datas_.reserve(mesh_datas_.size() + node->mNumMeshes);
   for (int i = 0; i < node->mNumMeshes; ++i) {
@@ -75,11 +73,9 @@ ModelLoader::MeshData ModelLoader::LoadMesh(const std::string& directory,
   constexpr int kTexCoordSetIndex = 0;
   const aiVector3D* tex_coord_set = mesh->mTextureCoords[kTexCoordSetIndex];
   for (int i = 0; i < mesh->mNumVertices; ++i) {
-    const glm::vec3 position{mesh->mVertices[i].x,
-                             mesh->mVertices[i].y,
+    const glm::vec3 position{mesh->mVertices[i].x, mesh->mVertices[i].y,
                              mesh->mVertices[i].z};
-    const glm::vec3 normal{mesh->mNormals[i].x,
-                           mesh->mNormals[i].y,
+    const glm::vec3 normal{mesh->mNormals[i].x, mesh->mNormals[i].y,
                            mesh->mNormals[i].z};
     glm::vec2 tex_coord{0.0f};
     if (tex_coord_set != nullptr) {

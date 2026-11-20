@@ -32,8 +32,8 @@ std::unique_ptr<SamplableImage> CreateTexture(
     const std::array image_usages{
         ImageUsage::GetSampledInFragmentShaderUsage()};
     return std::make_unique<SharedTexture>(
-        context, std::get<SharedTexture::SourcePath>(source),
-        image_usages, ImageSampler::Config{});
+        context, std::get<SharedTexture::SourcePath>(source), image_usages,
+        ImageSampler::Config{});
   } else if (std::holds_alternative<OffscreenImagePtr>(source)) {
     return std::make_unique<UnownedOffscreenTexture>(
         std::get<OffscreenImagePtr>(source));
@@ -62,8 +62,8 @@ void CreateTextureInfo(const ModelBuilder::BindingPointMap& binding_map,
   for (int type_index = 0; type_index < kNumTypes; ++type_index) {
     const auto texture_type =
         static_cast<ModelBuilder::TextureType>(type_index);
-    const int num_textures = mesh_textures[type_index].size() +
-                             shared_textures[type_index].size();
+    const int num_textures =
+        mesh_textures[type_index].size() + shared_textures[type_index].size();
 
     if (num_textures != 0) {
       const auto iter = binding_map.find(texture_type);
@@ -132,9 +132,9 @@ void SetPipelineVertexInput(
     auto per_instance_attributes =
         per_instance_buffers[i]->GetAttributes(attribute_start_location);
     attribute_start_location += per_instance_attributes.size();
-    pipeline_builder->AddVertexInput(
-        kPerInstanceBufferBindingPointBase + i,
-        std::move(per_instance_binding), std::move(per_instance_attributes));
+    pipeline_builder->AddVertexInput(kPerInstanceBufferBindingPointBase + i,
+                                     std::move(per_instance_binding),
+                                     std::move(per_instance_attributes));
   }
 }
 
@@ -191,15 +191,14 @@ void ModelBuilder::MultiMeshResource::LoadMesh(ModelBuilder* builder) const {
     for (const auto& texture : mesh_data.textures) {
       const auto type_index = static_cast<int>(texture.texture_type);
       mesh_textures.back()[type_index].push_back(
-          std::make_unique<SharedTexture>(
-              builder->context_, texture.path, image_usages,
-              ImageSampler::Config{}));
+          std::make_unique<SharedTexture>(builder->context_, texture.path,
+                                          image_usages,
+                                          ImageSampler::Config{}));
     }
   }
 }
 
-ModelBuilder::ModelBuilder(SharedBasicContext context,
-                           std::string&& name,
+ModelBuilder::ModelBuilder(SharedBasicContext context, std::string&& name,
                            int num_frames_in_flight,
                            float viewport_aspect_ratio,
                            const ModelResource& resource)
@@ -280,8 +279,8 @@ ModelBuilder& ModelBuilder::SetShader(VkShaderStageFlagBits shader_stage,
   return *this;
 }
 
-std::vector<ModelBuilder::DescriptorsPerFrame>
-ModelBuilder::CreateDescriptors() const {
+std::vector<ModelBuilder::DescriptorsPerFrame> ModelBuilder::CreateDescriptors()
+    const {
   // For different frames, we get data from different parts of uniform buffers.
   // For different meshes, we bind different textures.
   // Hence, we need a 2D array: descriptors[num_frames][num_meshes].
@@ -338,23 +337,24 @@ void Model::Update(bool is_object_opaque, const VkExtent2D& frame_size,
                    VkSampleCountFlagBits sample_count,
                    const RenderPass& render_pass, uint32_t subpass_index,
                    bool flip_viewport_y) {
-  pipeline_ = (*pipeline_builder_)
-      .SetDepthTestEnable(/*enable_test=*/true,
-                          /*enable_write=*/is_object_opaque)
-      .SetMultisampling(sample_count)
-      .SetViewport(pipeline::GetViewport(frame_size, viewport_aspect_ratio_),
-                   flip_viewport_y)
-      .SetRenderPass(*render_pass, subpass_index)
-      .SetColorBlend(
-          std::vector<VkPipelineColorBlendAttachmentState>(
+  pipeline_ =
+      (*pipeline_builder_)
+          .SetDepthTestEnable(/*enable_test=*/true,
+                              /*enable_write=*/is_object_opaque)
+          .SetMultisampling(sample_count)
+          .SetViewport(
+              pipeline::GetViewport(frame_size, viewport_aspect_ratio_),
+              flip_viewport_y)
+          .SetRenderPass(*render_pass, subpass_index)
+          .SetColorBlend(std::vector<VkPipelineColorBlendAttachmentState>(
               render_pass.num_color_attachments(subpass_index),
               pipeline::GetColorAlphaBlendState(
                   /*enable_blend=*/!is_object_opaque)))
-      .Build();
+          .Build();
 }
 
-void Model::Draw(const VkCommandBuffer& command_buffer,
-                 int frame, uint32_t instance_count) const {
+void Model::Draw(const VkCommandBuffer& command_buffer, int frame,
+                 uint32_t instance_count) const {
   ASSERT_NON_NULL(pipeline_, "Update() must have been called");
   pipeline_->Bind(command_buffer);
   for (int i = 0; i < per_instance_buffers_.size(); ++i) {
@@ -363,9 +363,9 @@ void Model::Draw(const VkCommandBuffer& command_buffer,
   }
   if (push_constant_info_.has_value()) {
     for (const auto& info : push_constant_info_->infos) {
-      info.push_constant->Flush(
-          command_buffer, pipeline_->layout(), frame, info.target_offset,
-          push_constant_info_->shader_stage);
+      info.push_constant->Flush(command_buffer, pipeline_->layout(), frame,
+                                info.target_offset,
+                                push_constant_info_->shader_stage);
     }
   }
   for (int mesh_index = 0; mesh_index < mesh_textures_.size(); ++mesh_index) {

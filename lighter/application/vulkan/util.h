@@ -24,9 +24,14 @@
 #include "lighter/common/util.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/util.h"
-#define ASSERT_SUCCESS(event, error)                                    \
-  ASSERT_TRUE(event == VK_SUCCESS,                                      \
+#define ASSERT_SUCCESS(event, error) \
+  ASSERT_TRUE(event == VK_SUCCESS,   \
               std::format("Errno {}: {}", static_cast<int>(event), error))
+#include <vulkan/vulkan.h>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "lighter/renderer/vulkan/extension/compute_pass.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/model.h"
@@ -39,9 +44,6 @@
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace application {
@@ -141,8 +143,8 @@ class OnScreenRenderPassManager {
 
   // This class is neither copyable nor movable.
   OnScreenRenderPassManager(const OnScreenRenderPassManager&) = delete;
-  OnScreenRenderPassManager& operator=(
-      const OnScreenRenderPassManager&) = delete;
+  OnScreenRenderPassManager& operator=(const OnScreenRenderPassManager&) =
+      delete;
 
   // Recreates 'render_pass_'. If the depth stencil attachment is used in any
   // subpass, this will also recreate 'depth_stencil_image_' with the current

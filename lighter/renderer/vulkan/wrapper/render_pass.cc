@@ -31,7 +31,7 @@ VkClearValue CreateClearColor(const RenderPassBuilder::Attachment& attachment) {
   if (std::holds_alternative<ColorLoadStoreOps>(attachment.load_store_ops)) {
     clear_value.color = {{0, 0, 0, 0}};
   } else if (std::holds_alternative<DepthStencilLoadStoreOps>(
-      attachment.load_store_ops)) {
+                 attachment.load_store_ops)) {
     clear_value.depthStencil = {/*depth=*/1.0f, /*stencil=*/0};
   } else {
     FATAL("Unrecognized variant type");
@@ -46,11 +46,11 @@ VkAttachmentDescription CreateAttachmentDescription(
     const RenderPassBuilder::Attachment& attachment) {
   VkAttachmentDescription description{
       /*flags=*/nullflag,
-      VK_FORMAT_UNDEFINED,  // To be updated.
-      VK_SAMPLE_COUNT_1_BIT,  // To be updated.
-      /*loadOp=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,  // To be updated.
-      /*storeOp=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,  // To be updated.
-      /*stencilLoadOp=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,  // To be updated.
+      VK_FORMAT_UNDEFINED,                                  // To be updated.
+      VK_SAMPLE_COUNT_1_BIT,                                // To be updated.
+      /*loadOp=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,           // To be updated.
+      /*storeOp=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,         // To be updated.
+      /*stencilLoadOp=*/VK_ATTACHMENT_LOAD_OP_DONT_CARE,    // To be updated.
       /*stencilStoreOp=*/VK_ATTACHMENT_STORE_OP_DONT_CARE,  // To be updated.
       attachment.initial_layout,
       attachment.final_layout,
@@ -119,20 +119,16 @@ std::vector<int> GetNumberColorAttachmentsInSubpasses(
 VkSubpassDependency CreateSubpassDependency(
     const RenderPassBuilder::SubpassDependency& dependency) {
   return VkSubpassDependency{
-      dependency.src_subpass.index,
-      dependency.dst_subpass.index,
-      dependency.src_subpass.stage_flags,
-      dependency.dst_subpass.stage_flags,
-      dependency.src_subpass.access_flags,
-      dependency.dst_subpass.access_flags,
+      dependency.src_subpass.index,        dependency.dst_subpass.index,
+      dependency.src_subpass.stage_flags,  dependency.dst_subpass.stage_flags,
+      dependency.src_subpass.access_flags, dependency.dst_subpass.access_flags,
       dependency.dependency_flags,
   };
 }
 
 // Creates framebuffers.
 std::vector<VkFramebuffer> CreateFramebuffers(
-    const BasicContext& context,
-    const VkRenderPass& render_pass,
+    const BasicContext& context, const VkRenderPass& render_pass,
     const std::vector<RenderPassBuilder::GetImage>& get_images,
     int num_framebuffers, const VkExtent2D& framebuffer_size) {
   std::vector<VkImageView> image_views(get_images.size());
@@ -233,12 +229,12 @@ RenderPassBuilder& RenderPassBuilder::SetSubpass(
     std::vector<VkAttachmentReference>&& multisampling_refs,
     const std::optional<VkAttachmentReference>& depth_stencil_ref) {
   if (!multisampling_refs.empty()) {
-    ASSERT_TRUE(multisampling_refs.size() == color_refs.size(),
-                std::format("Number of multisampling attachment ({}) must "
-                            "match the number of color attachments ({}) at "
-                            "subpass {}",
-                            multisampling_refs.size(), color_refs.size(),
-                            index));
+    ASSERT_TRUE(
+        multisampling_refs.size() == color_refs.size(),
+        std::format("Number of multisampling attachment ({}) must "
+                    "match the number of color attachments ({}) at "
+                    "subpass {}",
+                    multisampling_refs.size(), color_refs.size(), index));
   }
   SubpassAttachments attachments{
       std::move(color_refs),
@@ -258,9 +254,8 @@ RenderPassBuilder& RenderPassBuilder::AddSubpassDependency(
 std::unique_ptr<RenderPass> RenderPassBuilder::Build() const {
   ASSERT_HAS_VALUE(num_framebuffers_, "Number of framebuffers is not set");
   for (int i = 0; i < get_attachment_images_.size(); ++i) {
-    ASSERT_NON_NULL(
-        get_attachment_images_[i],
-        std::format("Attachment image at index {} is not set", i));
+    ASSERT_NON_NULL(get_attachment_images_[i],
+                    std::format("Attachment image at index {} is not set", i));
   }
 
   const auto subpass_descriptions =
@@ -305,7 +300,8 @@ void RenderPass::Run(const VkCommandBuffer& command_buffer,
       /*pNext=*/nullptr,
       render_pass_,
       framebuffers_[framebuffer_index],
-      /*renderArea=*/{
+      /*renderArea=*/
+      {
           /*offset=*/{0, 0},
           framebuffer_size_,
       },
@@ -332,7 +328,7 @@ RenderPass::~RenderPass() {
                       *context_->allocator());
 #ifndef NDEBUG
   LOG_INFO << "Render pass destructed";
-#endif  /* !NDEBUG */
+#endif /* !NDEBUG */
 }
 
 } /* namespace vulkan */

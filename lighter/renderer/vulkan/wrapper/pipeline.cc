@@ -159,12 +159,11 @@ void PipelineBuilder::SetLayout(
   for (int i = 0; i < push_constant_ranges.size(); ++i) {
     push_constant_sizes[i] = push_constant_ranges[i].size;
   }
-  const auto total_push_constant_size =
-      std::accumulate(push_constant_sizes.begin(),
-                      push_constant_sizes.end(), 0);
-  ASSERT_TRUE(total_push_constant_size <= kMaxPushConstantSize,
-              std::format(
-                  "Pushing constant of total size {} bytes in the pipeline "
+  const auto total_push_constant_size = std::accumulate(
+      push_constant_sizes.begin(), push_constant_sizes.end(), 0);
+  ASSERT_TRUE(
+      total_push_constant_size <= kMaxPushConstantSize,
+      std::format("Pushing constant of total size {} bytes in the pipeline "
                   "(break down: {}). To be compatible with all devices, the "
                   "total size should not be greater than {} bytes.",
                   total_push_constant_size,
@@ -326,8 +325,8 @@ GraphicsPipelineBuilder& GraphicsPipelineBuilder::SetViewport(
     viewport.y += viewport.height;
     viewport.height *= -1;
   }
-  rasterization_info_.frontFace = flip_y ? VK_FRONT_FACE_COUNTER_CLOCKWISE
-                                         : VK_FRONT_FACE_CLOCKWISE;
+  rasterization_info_.frontFace =
+      flip_y ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE;
   return *this;
 }
 
@@ -359,8 +358,8 @@ std::unique_ptr<Pipeline> GraphicsPipelineBuilder::Build() const {
   const auto viewport_state_info =
       CreateViewportStateInfo(viewport_info_.value());
   const auto color_blend_info = CreateColorBlendInfo(color_blend_states_);
-  const auto vertex_input_info = CreateVertexInputInfo(binding_descriptions_,
-                                                       attribute_descriptions_);
+  const auto vertex_input_info =
+      CreateVertexInputInfo(binding_descriptions_, attribute_descriptions_);
   // Shader modules can be destroyed to save the host memory after the pipeline
   // is created.
   const auto shader_stages =
@@ -398,12 +397,11 @@ std::unique_ptr<Pipeline> GraphicsPipelineBuilder::Build() const {
   };
 
   VkPipeline pipeline;
-  ASSERT_SUCCESS(
-      vkCreateGraphicsPipelines(
-          *context()->device(), /*pipelineCache=*/VK_NULL_HANDLE,
-          /*createInfoCount=*/1, &pipeline_info, *context()->allocator(),
-          &pipeline),
-      "Failed to create graphics pipeline");
+  ASSERT_SUCCESS(vkCreateGraphicsPipelines(
+                     *context()->device(), /*pipelineCache=*/VK_NULL_HANDLE,
+                     /*createInfoCount=*/1, &pipeline_info,
+                     *context()->allocator(), &pipeline),
+                 "Failed to create graphics pipeline");
 
   return std::unique_ptr<Pipeline>{
       new Pipeline{context(), name(), pipeline, pipeline_layout,
@@ -460,12 +458,11 @@ std::unique_ptr<Pipeline> ComputePipelineBuilder::Build() const {
   };
 
   VkPipeline pipeline;
-  ASSERT_SUCCESS(
-      vkCreateComputePipelines(
-          *context()->device(), /*pipelineCache=*/VK_NULL_HANDLE,
-          /*createInfoCount=*/1, &pipeline_info, *context()->allocator(),
-          &pipeline),
-      "Failed to create compute pipeline");
+  ASSERT_SUCCESS(vkCreateComputePipelines(*context()->device(),
+                                          /*pipelineCache=*/VK_NULL_HANDLE,
+                                          /*createInfoCount=*/1, &pipeline_info,
+                                          *context()->allocator(), &pipeline),
+                 "Failed to create compute pipeline");
 
   return std::unique_ptr<Pipeline>{
       new Pipeline{context(), name(), pipeline, pipeline_layout,
@@ -481,7 +478,7 @@ Pipeline::~Pipeline() {
   vkDestroyPipelineLayout(*context_->device(), layout_, *context_->allocator());
 #ifndef NDEBUG
   LOG_INFO << std::format("Pipeline '{}' destructed", name_);
-#endif  /* !NDEBUG */
+#endif /* !NDEBUG */
 }
 
 } /* namespace vulkan */

@@ -9,7 +9,6 @@
 
 #include <algorithm>
 #include <format>
-
 #include <glm/gtx/vector_angle.hpp>
 
 #include "lighter/common/util.h"
@@ -23,10 +22,8 @@ BezierSpline::BezierSpline(int max_recursion_depth,
       get_middle_point_{std::move(FATAL_IF_NULL(get_middle_point))},
       is_smooth_{std::move(FATAL_IF_NULL(is_smooth))} {}
 
-void BezierSpline::Tessellate(const glm::vec3& p0,
-                              const glm::vec3& p1,
-                              const glm::vec3& p2,
-                              const glm::vec3& p3,
+void BezierSpline::Tessellate(const glm::vec3& p0, const glm::vec3& p1,
+                              const glm::vec3& p2, const glm::vec3& p3,
                               int recursion_depth) {
   constexpr float kMinDistBetweenPoints = 1E-2;
   if (++recursion_depth == max_recursion_depth_ ||
@@ -50,43 +47,35 @@ const int CatmullRomSpline::kMinNumControlPoints = 3;
 
 std::unique_ptr<Spline> CatmullRomSpline::GetOnSphereSpline(
     int max_recursion_depth, float roughness) {
-  BezierSpline::GetMiddlePoint get_middle_point =
-      [](const glm::vec3& p0, const glm::vec3& p1) {
-        return glm::normalize(p0 + p1) * glm::length(p0);
-      };
-
-  BezierSpline::IsSmooth is_smooth = [roughness](const glm::vec3& p0,
-                                                 const glm::vec3& p1,
-                                                 const glm::vec3& p2,
-                                                 const glm::vec3& p3) {
-    const glm::vec3 p0p1 = glm::normalize(p0 - p1);
-    const glm::vec3 p1p2 = glm::normalize(p1 - p2);
-    const glm::vec3 p2p3 = glm::normalize(p2 - p3);
-    return glm::angle(p0p1, p1p2) <= roughness &&
-           glm::angle(p1p2, p2p3) <= roughness;
+  BezierSpline::GetMiddlePoint get_middle_point = [](const glm::vec3& p0,
+                                                     const glm::vec3& p1) {
+    return glm::normalize(p0 + p1) * glm::length(p0);
   };
+
+  BezierSpline::IsSmooth is_smooth =
+      [roughness](const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2,
+                  const glm::vec3& p3) {
+        const glm::vec3 p0p1 = glm::normalize(p0 - p1);
+        const glm::vec3 p1p2 = glm::normalize(p1 - p2);
+        const glm::vec3 p2p3 = glm::normalize(p2 - p3);
+        return glm::angle(p0p1, p1p2) <= roughness &&
+               glm::angle(p1p2, p2p3) <= roughness;
+      };
 
   return std::make_unique<CatmullRomSpline>(
       max_recursion_depth, std::move(get_middle_point), std::move(is_smooth));
 }
 
-void CatmullRomSpline::Tessellate(const glm::vec3& p0,
-                                  const glm::vec3& p1,
-                                  const glm::vec3& p2,
-                                  const glm::vec3& p3) {
+void CatmullRomSpline::Tessellate(const glm::vec3& p0, const glm::vec3& p1,
+                                  const glm::vec3& p2, const glm::vec3& p3) {
   static const glm::mat4* catmull_rom_to_bezier = nullptr;
   if (catmull_rom_to_bezier == nullptr) {
-    const glm::mat4 catmull_rom_coeff{
-        -0.5f,  1.5f, -1.5f,  0.5f,
-         1.0f, -2.5f,  2.0f, -0.5f,
-        -0.5f,  0.0f,  0.5f,  0.0f,
-         0.0f,  1.0f,  0.0f,  0.0f
-    };
+    const glm::mat4 catmull_rom_coeff{-0.5f, 1.5f,  -1.5f, 0.5f, 1.0f, -2.5f,
+                                      2.0f,  -0.5f, -0.5f, 0.0f, 0.5f, 0.0f,
+                                      0.0f,  1.0f,  0.0f,  0.0f};
     const glm::mat4 bezier_coeff{
-        -1.0f,  3.0f, -3.0f,  1.0f,
-         3.0f, -6.0f,  3.0f,  0.0f,
-        -3.0f,  3.0f,  0.0f,  0.0f,
-         1.0f,  0.0f,  0.0f,  0.0f,
+        -1.0f, 3.0f, -3.0f, 1.0f, 3.0f, -6.0f, 3.0f, 0.0f,
+        -3.0f, 3.0f, 0.0f,  0.0f, 1.0f, 0.0f,  0.0f, 0.0f,
     };
     catmull_rom_to_bezier =
         new glm::mat4{catmull_rom_coeff * glm::inverse(bezier_coeff)};
@@ -98,18 +87,16 @@ void CatmullRomSpline::Tessellate(const glm::vec3& p0,
       glm::vec4{p3, 0.0f},
   };
   const glm::mat4 bezier_points = catmull_rom_points * (*catmull_rom_to_bezier);
-  BezierSpline::Tessellate(bezier_points[0],
-                           bezier_points[1],
-                           bezier_points[2],
+  BezierSpline::Tessellate(bezier_points[0], bezier_points[1], bezier_points[2],
                            bezier_points[3],
                            /*recursion_depth=*/0);
 }
 
 void CatmullRomSpline::BuildSpline(std::span<const glm::vec3> control_points) {
   const auto num_control_points = static_cast<int>(control_points.size());
-  ASSERT_TRUE(num_control_points >= kMinNumControlPoints,
-              std::format(
-                  "Must have at least {} control points, while {} provided",
+  ASSERT_TRUE(
+      num_control_points >= kMinNumControlPoints,
+      std::format("Must have at least {} control points, while {} provided",
                   kMinNumControlPoints, num_control_points));
 
   mutable_splines()->clear();
@@ -163,8 +150,6 @@ bool SplineEditor::RemoveControlPoint(int index) {
   return true;
 }
 
-void SplineEditor::RebuildSpline() {
-  spline_->BuildSpline(control_points_);
-}
+void SplineEditor::RebuildSpline() { spline_->BuildSpline(control_points_); }
 
 }  // namespace lighter::common

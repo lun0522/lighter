@@ -8,9 +8,10 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_AURORA_VIEWER_AIR_TRANSMIT_TABLE_H
 #define LIGHTER_APPLICATION_VULKAN_AURORA_VIEWER_AIR_TRANSMIT_TABLE_H
 
+#include <glm/glm.hpp>
+
 #include "lighter/common/file.h"
 #include "lighter/common/image.h"
-#include <glm/glm.hpp>
 
 namespace lighter {
 namespace application {

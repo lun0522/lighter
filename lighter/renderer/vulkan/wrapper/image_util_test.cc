@@ -7,8 +7,9 @@
 
 #include "lighter/renderer/vulkan/wrapper/image_util.h"
 
-#include "gtest/gtest.h"
 #include <vulkan/vulkan.h>
+
+#include "gtest/gtest.h"
 
 // Tests are written according to:
 // https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples

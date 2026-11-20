@@ -8,13 +8,14 @@
 #ifndef LIGHTER_COMMON_MODEL_LOADER_H
 #define LIGHTER_COMMON_MODEL_LOADER_H
 
+#include <assimp/material.h>
+#include <assimp/mesh.h>
+#include <assimp/scene.h>
+
 #include <string>
 #include <vector>
 
 #include "lighter/common/file.h"
-#include <assimp/material.h>
-#include <assimp/mesh.h>
-#include <assimp/scene.h>
 
 namespace lighter::common {
 
@@ -23,7 +24,11 @@ class ModelLoader {
  public:
   // Texture types that can be bound to shaders.
   enum class TextureType {
-    kDiffuse, kSpecular, kReflection, kCubemap, kNumTypes,
+    kDiffuse,
+    kSpecular,
+    kReflection,
+    kCubemap,
+    kNumTypes,
   };
 
   // Information about a texture.
@@ -46,8 +51,7 @@ class ModelLoader {
   struct MeshData {
     MeshData() = default;
     MeshData(std::vector<Vertex3DWithTex> vertices,
-             std::vector<uint32_t> indices,
-             std::vector<TextureInfo> textures)
+             std::vector<uint32_t> indices, std::vector<TextureInfo> textures)
         : vertices{std::move(vertices)},
           indices{std::move(indices)},
           textures{std::move(textures)} {}
@@ -79,18 +83,15 @@ class ModelLoader {
   // Processes the 'node' in Assimp scene graph. This adds all the data of
   // meshes stored in 'node' to 'mesh_datas_', and recursively processes all
   // children nodes.
-  void ProcessNode(const std::string& directory,
-                   const aiNode* node,
+  void ProcessNode(const std::string& directory, const aiNode* node,
                    const aiScene* scene);
 
   // Loads mesh data from the given 'mesh'.
-  MeshData LoadMesh(const std::string& directory,
-                    const aiMesh* mesh,
+  MeshData LoadMesh(const std::string& directory, const aiMesh* mesh,
                     const aiScene* scene) const;
 
   // Loads textures of the given 'texture_type' and appends to 'texture_infos'.
-  void LoadTextures(const std::string& directory,
-                    const aiMaterial* material,
+  void LoadTextures(const std::string& directory, const aiMaterial* material,
                     TextureType texture_type,
                     std::vector<TextureInfo>* texture_infos) const;
 

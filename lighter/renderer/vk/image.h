@@ -8,11 +8,10 @@
 #ifndef LIGHTER_RENDERER_VK_IMAGE_H
 #define LIGHTER_RENDERER_VK_IMAGE_H
 
+#include <glm/glm.hpp>
 #include <memory>
 #include <span>
 #include <string_view>
-
-#include <glm/glm.hpp>
 
 #include "lighter/common/image.h"
 #include "lighter/common/util.h"
@@ -55,7 +54,9 @@ class Image : public ir::Image {
         const glm::ivec2& extent, int mip_levels, intl::Format format,
         intl::SampleCountFlagBits sample_count)
       : ir::Image{name, layer_type, extent, mip_levels},
-        type_{type}, format_{format}, sample_count_{sample_count} {}
+        type_{type},
+        format_{format},
+        sample_count_{sample_count} {}
 
  private:
   const Type type_;
@@ -64,8 +65,7 @@ class Image : public ir::Image {
 };
 
 // "Single" means there is only one backing VkImage, which might be a cubemap.
-class SingleImage : public WithSharedContext,
-                    public Image {
+class SingleImage : public WithSharedContext, public Image {
  public:
   static std::unique_ptr<SingleImage> CreateColorImage(
       const SharedContext& context, std::string_view name,
@@ -118,7 +118,7 @@ class MultiImage : public Image {
  public:
   MultiImage(std::string_view name, std::vector<intl::Image>&& images,
              const glm::ivec2& extent, intl::Format format)
-      : Image{Type::kMultiple, name, LayerType::kSingle, extent,
+      : Image{Type::kMultiple,  name,   LayerType::kSingle,           extent,
               /*mip_levels=*/1, format, intl::SampleCountFlagBits::e1},
         images_{std::move(images)} {}
 

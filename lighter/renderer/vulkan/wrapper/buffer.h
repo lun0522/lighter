@@ -8,13 +8,14 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_BUFFER_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_BUFFER_H
 
+#include <vulkan/vulkan.h>
+
 #include <variant>
 #include <vector>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {
@@ -143,8 +144,8 @@ class VertexBuffer : public DataBuffer {
   // Returns attributes of the vertex data stored in this buffer.
   // The 'location' field of attributes will start from 'start_location'.
   // For flexibility, the 'binding' field will not be set.
-  std::vector<VkVertexInputAttributeDescription>
-  GetAttributes(uint32_t start_location) const;
+  std::vector<VkVertexInputAttributeDescription> GetAttributes(
+      uint32_t start_location) const;
 
   // Renders vertices without using per-vertex buffer.
   // This should be called when 'command_buffer' is recording commands.
@@ -334,8 +335,8 @@ class PerVertexBuffer : public VertexBuffer {
     std::vector<Info> infos;
   };
 
-  using MeshDataInfos = std::variant<MeshDataInfosNoIndices,
-                                     MeshDataInfosWithIndices>;
+  using MeshDataInfos =
+      std::variant<MeshDataInfosNoIndices, MeshDataInfosWithIndices>;
 
   // Accessors.
   MeshDataInfos* mutable_mesh_data_infos() { return &mesh_data_infos_; }
@@ -392,15 +393,14 @@ class PerInstanceBuffer : public VertexBuffer {
   PerInstanceBuffer& operator=(const PerInstanceBuffer&) = delete;
 
   // Binds vertex data to 'binding_point', skipping instances of count 'offset'.
-  void Bind(const VkCommandBuffer& command_buffer,
-            uint32_t binding_point, int offset) const;
+  void Bind(const VkCommandBuffer& command_buffer, uint32_t binding_point,
+            int offset) const;
 
   // Accessors.
   uint32_t per_instance_data_size() const { return per_instance_data_size_; }
 
  protected:
-  PerInstanceBuffer(SharedBasicContext context,
-                    uint32_t per_instance_data_size,
+  PerInstanceBuffer(SharedBasicContext context, uint32_t per_instance_data_size,
                     std::vector<Attribute>&& attributes)
       : VertexBuffer{std::move(context), std::move(attributes)},
         per_instance_data_size_{per_instance_data_size} {}
@@ -414,15 +414,15 @@ class PerInstanceBuffer : public VertexBuffer {
 // transferred to the device via the staging buffer.
 class StaticPerInstanceBuffer : public PerInstanceBuffer {
  public:
-  StaticPerInstanceBuffer(
-      SharedBasicContext context, uint32_t per_instance_data_size,
-      const void* data, uint32_t num_instances,
-      std::vector<Attribute>&& attributes);
+  StaticPerInstanceBuffer(SharedBasicContext context,
+                          uint32_t per_instance_data_size, const void* data,
+                          uint32_t num_instances,
+                          std::vector<Attribute>&& attributes);
 
   template <typename Container>
-  StaticPerInstanceBuffer(
-      SharedBasicContext context, const Container& container,
-      std::vector<Attribute>&& attributes)
+  StaticPerInstanceBuffer(SharedBasicContext context,
+                          const Container& container,
+                          std::vector<Attribute>&& attributes)
       : StaticPerInstanceBuffer{std::move(context), sizeof(container[0]),
                                 container.data(), CONTAINER_SIZE(container),
                                 std::move(attributes)} {}
@@ -538,8 +538,8 @@ class UniformBuffer : public DataBuffer {
 class PushConstant {
  public:
   // 'size_per_frame' must be less than 128.
-  PushConstant(const SharedBasicContext& context,
-               size_t size_per_frame, int num_frames_in_flight);
+  PushConstant(const SharedBasicContext& context, size_t size_per_frame,
+               int num_frames_in_flight);
 
   // This class is neither copyable nor movable.
   PushConstant(const PushConstant&) = delete;
@@ -566,9 +566,8 @@ class PushConstant {
   // Flushes the data from host to device. Data of 'size_per_frame_' will be
   // sent, and written to the target with 'target_offset' bytes.
   void Flush(const VkCommandBuffer& command_buffer,
-             const VkPipelineLayout& pipeline_layout,
-             int frame, uint32_t target_offset,
-             VkShaderStageFlags shader_stage) const;
+             const VkPipelineLayout& pipeline_layout, int frame,
+             uint32_t target_offset, VkShaderStageFlags shader_stage) const;
 
   // Accessors.
   uint32_t size_per_frame() const { return size_per_frame_; }

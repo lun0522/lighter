@@ -8,8 +8,11 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_AURORA_EDITOR_PATH_H
 #define LIGHTER_APPLICATION_VULKAN_AURORA_EDITOR_PATH_H
 
+#include <vulkan/vulkan.h>
+
 #include <array>
 #include <functional>
+#include <glm/glm.hpp>
 #include <memory>
 #include <optional>
 #include <span>
@@ -23,8 +26,6 @@
 #include "lighter/renderer/vulkan/wrapper/descriptor.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include <glm/glm.hpp>
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace application {
@@ -44,8 +45,7 @@ class PathRenderer3D {
   PathRenderer3D& operator=(const PathRenderer3D&) = delete;
 
   // Updates the vertex data of aurora path at 'path_index'.
-  void UpdatePath(int path_index,
-                  std::span<const glm::vec3> control_points,
+  void UpdatePath(int path_index, std::span<const glm::vec3> control_points,
                   std::span<const glm::vec3> spline_points);
 
   // Updates internal states and rebuilds the graphics pipeline.
@@ -76,8 +76,8 @@ class PathRenderer3D {
                      const glm::vec3& center, const glm::vec4& color_alpha);
 
   // Returns pointers to spline vertex buffers.
-  std::vector<const renderer::vulkan::PerVertexBuffer*>
-  GetPathVertexBuffers() const;
+  std::vector<const renderer::vulkan::PerVertexBuffer*> GetPathVertexBuffers()
+      const;
 
  private:
   // Vertex buffers for a single aurora path.
@@ -155,9 +155,10 @@ class AuroraPath {
 
   // Updates internal states and rebuilds the graphics pipeline.
   // For simplicity, the render area will be the same to 'frame_size'.
-  void UpdateFramebuffer(
-      const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
-      const renderer::vulkan::RenderPass& render_pass, uint32_t subpass_index);
+  void UpdateFramebuffer(const VkExtent2D& frame_size,
+                         VkSampleCountFlagBits sample_count,
+                         const renderer::vulkan::RenderPass& render_pass,
+                         uint32_t subpass_index);
 
   // Updates per-frame data. Note that all control points and spline points are
   // on a unit sphere, hence the 'model' matrix will determine the height of
@@ -172,8 +173,8 @@ class AuroraPath {
             std::optional<int> selected_path_index);
 
   // Returns pointers to spline vertex buffers.
-  std::vector<const renderer::vulkan::PerVertexBuffer*>
-  GetPathVertexBuffers() const {
+  std::vector<const renderer::vulkan::PerVertexBuffer*> GetPathVertexBuffers()
+      const {
     return path_renderer_.GetPathVertexBuffers();
   }
 
@@ -187,9 +188,9 @@ class AuroraPath {
   // Processes user click and returns the new value of
   // 'selected_control_point_'.
   std::optional<int> ProcessClick(float control_point_radius_object_space,
-                                   const glm::mat4& proj_view_model,
-                                   const glm::vec3& model_center,
-                                   const std::optional<ClickInfo>& click_info);
+                                  const glm::mat4& proj_view_model,
+                                  const glm::vec3& model_center,
+                                  const std::optional<ClickInfo>& click_info);
 
   // Returns the index of the clicked control point. If no control point is hit,
   // returns std::nullopt.

@@ -21,8 +21,8 @@ namespace {
 // Returns the surface format to use.
 VkSurfaceFormatKHR ChooseSurfaceFormat(
     const std::vector<VkSurfaceFormatKHR>& available) {
-  constexpr VkSurfaceFormatKHR best_format{
-    VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+  constexpr VkSurfaceFormatKHR best_format{VK_FORMAT_B8G8R8A8_UNORM,
+                                           VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
 
   // If the surface has no preferred format, we can choose any format.
   if (available.size() == 1 && available[0].format == VK_FORMAT_UNDEFINED) {
@@ -95,8 +95,8 @@ uint32_t ChooseMinImageCount(const VkSurfaceCapabilitiesKHR& capabilities) {
 
 VkSurfaceCapabilitiesKHR Surface::GetCapabilities() const {
   VkSurfaceCapabilitiesKHR capabilities;
-  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-      *context_->physical_device(), surface_, &capabilities);
+  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*context_->physical_device(),
+                                            surface_, &capabilities);
   return capabilities;
 }
 
@@ -107,10 +107,9 @@ Surface::~Surface() {
   }
 }
 
-Swapchain::Swapchain(
-    SharedBasicContext context,
-    const Surface& surface, const VkExtent2D& frame_size,
-    std::optional<MultisampleImage::Mode> multisampling_mode)
+Swapchain::Swapchain(SharedBasicContext context, const Surface& surface,
+                     const VkExtent2D& frame_size,
+                     std::optional<MultisampleImage::Mode> multisampling_mode)
     : context_{std::move(FATAL_IF_NULL(context))} {
   // Choose image extent.
   const auto surface_capabilities = surface.GetCapabilities();
@@ -118,12 +117,10 @@ Swapchain::Swapchain(
 
   // Choose surface format.
   const auto surface_formats{util::QueryAttribute<VkSurfaceFormatKHR>(
-      [this, &surface]
-      (uint32_t* count, VkSurfaceFormatKHR* formats) {
+      [this, &surface](uint32_t* count, VkSurfaceFormatKHR* formats) {
         return vkGetPhysicalDeviceSurfaceFormatsKHR(
             *context_->physical_device(), *surface, count, formats);
-      }
-  )};
+      })};
   const VkSurfaceFormatKHR surface_format =
       ChooseSurfaceFormat(surface_formats);
 
@@ -132,8 +129,7 @@ Swapchain::Swapchain(
       [this, &surface](uint32_t* count, VkPresentModeKHR* modes) {
         return vkGetPhysicalDeviceSurfacePresentModesKHR(
             *context_->physical_device(), *surface, count, modes);
-      }
-  )};
+      })};
   const VkPresentModeKHR present_mode = ChoosePresentMode(present_modes);
 
   const util::QueueUsage queue_usage{{
@@ -171,11 +167,10 @@ Swapchain::Swapchain(
                  "Failed to create swapchain");
 
   // Fetch swapchain images.
-  const auto images = util::QueryAttribute<VkImage>(
-      [this](uint32_t* count, VkImage* images) {
+  const auto images =
+      util::QueryAttribute<VkImage>([this](uint32_t* count, VkImage* images) {
         vkGetSwapchainImagesKHR(*context_->device(), swapchain_, count, images);
-      }
-  );
+      });
   swapchain_images_.reserve(images.size());
   for (const auto& image : images) {
     swapchain_images_.push_back(std::make_unique<SwapchainImage>(
@@ -201,7 +196,7 @@ Swapchain::~Swapchain() {
                         *context_->allocator());
 #ifndef NDEBUG
   LOG_INFO << "Swapchain destructed";
-#endif  /* !NDEBUG */
+#endif /* !NDEBUG */
 }
 
 } /* namespace vulkan */

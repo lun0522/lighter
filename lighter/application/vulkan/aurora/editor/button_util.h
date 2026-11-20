@@ -9,6 +9,7 @@
 #define LIGHTER_APPLICATION_VULKAN_AURORA_EDITOR_BUTTON_UTIL_H
 
 #include <glm/glm.hpp>
+
 #include "lighter/renderer/util.h"
 
 namespace lighter {

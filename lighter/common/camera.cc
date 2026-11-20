@@ -7,10 +7,10 @@
 
 #include "lighter/common/camera.h"
 
+#include <glm/gtc/matrix_transform.hpp>
 #include <type_traits>
 
 #include "lighter/common/util.h"
-#include <glm/gtc/matrix_transform.hpp>
 
 namespace lighter::common {
 
@@ -45,8 +45,8 @@ PerspectiveCamera& PerspectiveCamera::SetFieldOfViewY(float fovy) {
   return *this;
 }
 
-PerspectiveCamera::RayTracingParams
-PerspectiveCamera::GetRayTracingParams() const {
+PerspectiveCamera::RayTracingParams PerspectiveCamera::GetRayTracingParams()
+    const {
   const glm::vec3 up_dir = glm::normalize(glm::cross(right(), front()));
   const float tan_fovy = glm::tan(glm::radians(fovy_));
   return RayTracingParams{
@@ -68,8 +68,8 @@ OrthographicCamera& OrthographicCamera::SetViewWidth(float view_width) {
 glm::mat4 OrthographicCamera::GetProjectionMatrix() const {
   const float view_height = view_width_ / aspect_ratio_;
   const auto half_view_size = glm::vec2{view_width_, view_height} / 2.0f;
-  return glm::ortho(-half_view_size.x, half_view_size.x,
-                    -half_view_size.y, half_view_size.y, near_, far_);
+  return glm::ortho(-half_view_size.x, half_view_size.x, -half_view_size.y,
+                    half_view_size.y, near_, far_);
 }
 
 template <typename CameraType>
@@ -85,13 +85,13 @@ void UserControlledCamera<CameraType>::DidMoveCursor(double x, double y) {
     return;
   }
 
-  const auto offset_x = static_cast<float>((x - cursor_pos_.x) *
-                        control_config_.turn_speed);
-  const auto offset_y = static_cast<float>((y - cursor_pos_.y) *
-                        control_config_.turn_speed);
+  const auto offset_x =
+      static_cast<float>((x - cursor_pos_.x) * control_config_.turn_speed);
+  const auto offset_y =
+      static_cast<float>((y - cursor_pos_.y) * control_config_.turn_speed);
   cursor_pos_ = glm::dvec2{x, y};
-  pitch_ = glm::clamp(pitch_ - offset_y, glm::radians(-89.9f),
-                      glm::radians(89.9f));
+  pitch_ =
+      glm::clamp(pitch_ - offset_y, glm::radians(-89.9f), glm::radians(89.9f));
   yaw_ = glm::mod(yaw_ - offset_x, glm::radians(360.0f));
   camera_->SetFront({glm::cos(pitch_) * glm::sin(yaw_) * ref_left_ +
                      glm::cos(pitch_) * glm::cos(yaw_) * ref_front_ +
@@ -99,22 +99,22 @@ void UserControlledCamera<CameraType>::DidMoveCursor(double x, double y) {
 }
 
 template <typename CameraType>
-bool UserControlledCamera<CameraType>::DidScroll(
-    double delta, double min_val, double max_val) {
+bool UserControlledCamera<CameraType>::DidScroll(double delta, double min_val,
+                                                 double max_val) {
   if (!is_active_) {
     return false;
   }
 
   if constexpr (std::is_same_v<CameraType, PerspectiveCamera>) {
-    const float new_fovy = glm::clamp(camera_->field_of_view_y() + delta,
-                                      min_val, max_val);
+    const float new_fovy =
+        glm::clamp(camera_->field_of_view_y() + delta, min_val, max_val);
     if (new_fovy != camera_->field_of_view_y()) {
       camera_->SetFieldOfViewY(new_fovy);
       return true;
     }
   } else if constexpr (std::is_same_v<CameraType, OrthographicCamera>) {
-    const float new_width = glm::clamp(camera_->view_width() + delta,
-                                      min_val, max_val);
+    const float new_width =
+        glm::clamp(camera_->view_width() + delta, min_val, max_val);
     if (new_width != camera_->view_width()) {
       camera_->SetViewWidth(new_width);
       return true;

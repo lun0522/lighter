@@ -8,6 +8,7 @@
 #include "lighter/application/vulkan/troop/geometry_pass.h"
 
 #include <array>
+#include <glm/gtc/matrix_transform.hpp>
 #include <vector>
 
 #include "lighter/application/vulkan/util.h"
@@ -15,7 +16,6 @@
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/util.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
-#include <glm/gtc/matrix_transform.hpp>
 
 namespace lighter {
 namespace application {
@@ -27,6 +27,7 @@ using renderer::vulkan::GraphicsPass;
 using renderer::vulkan::Image;
 using renderer::vulkan::ImageUsage;
 using renderer::vulkan::ImageUsageHistory;
+using renderer::vulkan::kSingleSample;
 using renderer::vulkan::ModelBuilder;
 using renderer::vulkan::PerVertexBuffer;
 using renderer::vulkan::RenderPass;
@@ -34,7 +35,6 @@ using renderer::vulkan::SharedTexture;
 using renderer::vulkan::StaticPerInstanceBuffer;
 using renderer::vulkan::UniformBuffer;
 using renderer::vulkan::WindowContext;
-using renderer::vulkan::kSingleSample;
 namespace ir = renderer::ir;
 namespace pipeline = renderer::vulkan::pipeline;
 
@@ -70,8 +70,8 @@ struct Transformation {
 } /* namespace */
 
 GeometryPass::GeometryPass(const WindowContext* window_context,
-                           int num_frames_in_flight,
-                           float model_scale, const glm::ivec2& num_soldiers,
+                           int num_frames_in_flight, float model_scale,
+                           const glm::ivec2& num_soldiers,
                            const glm::vec2& interval_between_soldiers)
     : num_soldiers_{num_soldiers.x * num_soldiers.y},
       window_context_{*FATAL_IF_NULL(window_context)} {
@@ -85,7 +85,8 @@ GeometryPass::GeometryPass(const WindowContext* window_context,
   for (int x = 0; x < num_soldiers.x; ++x) {
     for (int z = 0; z < num_soldiers.y; ++z) {
       centers.push_back(glm::vec3{
-          interval_between_soldiers.x * static_cast<float>(x), 0.0f,
+          interval_between_soldiers.x * static_cast<float>(x),
+          0.0f,
           interval_between_soldiers.y * static_cast<float>(z),
       });
     }
@@ -103,36 +104,37 @@ GeometryPass::GeometryPass(const WindowContext* window_context,
     auto& trans = *trans_uniform_->HostData<Transformation>(frame);
     trans.model = model;
     trans.model_inv_trs = model_inv_trs;
-    constexpr auto kDataSize = sizeof(Transformation::model) +
-                               sizeof(Transformation::model_inv_trs);
+    constexpr auto kDataSize =
+        sizeof(Transformation::model) + sizeof(Transformation::model_inv_trs);
     trans_uniform_->Flush(frame, kDataSize, offsetof(Transformation, model));
   }
 
   /* Model */
-  nanosuit_model_ = ModelBuilder{
-      context, "Geometry pass", num_frames_in_flight,
-      window_context_.original_aspect_ratio(),
-      ModelBuilder::MultiMeshResource{
-          /*model_path=*/GetResourcePath("model/nanosuit/nanosuit.obj"),
-          /*texture_dir=*/
-          GetResourcePath("model/nanosuit/nanosuit.obj",
-                          /*want_directory_path=*/true)}}
-      .AddTextureBindingPoint(TextureType::kDiffuse,
-                              kDiffuseTextureBindingPoint)
-      .AddTextureBindingPoint(TextureType::kSpecular,
-                              kSpecularTextureBindingPoint)
-      .AddTextureBindingPoint(TextureType::kReflection,
-                              kReflectionTextureBindingPoint)
-      .AddPerInstanceBuffer(center_data_.get())
-      .AddUniformBinding(
-          VK_SHADER_STAGE_VERTEX_BIT,
-          /*bindings=*/{{kUniformBufferBindingPoint, /*array_length=*/1}})
-      .AddUniformBuffer(kUniformBufferBindingPoint, *trans_uniform_)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetShaderBinaryPath("troop/geometry_pass.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetShaderBinaryPath("troop/geometry_pass.frag"))
-      .Build();
+  nanosuit_model_ =
+      ModelBuilder{
+          context, "Geometry pass", num_frames_in_flight,
+          window_context_.original_aspect_ratio(),
+          ModelBuilder::MultiMeshResource{
+              /*model_path=*/GetResourcePath("model/nanosuit/nanosuit.obj"),
+              /*texture_dir=*/
+              GetResourcePath("model/nanosuit/nanosuit.obj",
+                              /*want_directory_path=*/true)}}
+          .AddTextureBindingPoint(TextureType::kDiffuse,
+                                  kDiffuseTextureBindingPoint)
+          .AddTextureBindingPoint(TextureType::kSpecular,
+                                  kSpecularTextureBindingPoint)
+          .AddTextureBindingPoint(TextureType::kReflection,
+                                  kReflectionTextureBindingPoint)
+          .AddPerInstanceBuffer(center_data_.get())
+          .AddUniformBinding(
+              VK_SHADER_STAGE_VERTEX_BIT,
+              /*bindings=*/{{kUniformBufferBindingPoint, /*array_length=*/1}})
+          .AddUniformBuffer(kUniformBufferBindingPoint, *trans_uniform_)
+          .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                     GetShaderBinaryPath("troop/geometry_pass.vert"))
+          .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                     GetShaderBinaryPath("troop/geometry_pass.frag"))
+          .Build();
 }
 
 void GeometryPass::UpdateFramebuffer(const Image& depth_stencil_image,
@@ -198,9 +200,8 @@ void GeometryPass::CreateRenderPassBuilder(
   for (const auto& attachment : attachments) {
     ImageUsageHistory history{attachment.image.GetInitialUsage()};
     if (attachment.location == kAttachmentNonApplicable) {
-      history.AddUsage(kRenderSubpassIndex,
-                       ImageUsage::GetDepthStencilUsage(
-                           ir::AccessType::kReadWrite));
+      history.AddUsage(kRenderSubpassIndex, ImageUsage::GetDepthStencilUsage(
+                                                ir::AccessType::kReadWrite));
       attachment.attachment_index = graphics_pass.AddAttachment(
           attachment.image_name, std::move(history), /*get_location=*/nullptr,
           depth_stencil_load_store_ops);
@@ -209,9 +210,9 @@ void GeometryPass::CreateRenderPassBuilder(
           .AddUsage(kRenderSubpassIndex,
                     ImageUsage::GetRenderTargetUsage(/*attachment_location=*/0))
           .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
-      attachment.attachment_index = graphics_pass.AddAttachment(
-          attachment.image_name, std::move(history),
-          attachment.MakeLocationGetter());
+      attachment.attachment_index =
+          graphics_pass.AddAttachment(attachment.image_name, std::move(history),
+                                      attachment.MakeLocationGetter());
     }
   }
 

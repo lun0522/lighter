@@ -8,6 +8,9 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_AURORA_VIEWER_PATH_DUMPER_H
 #define LIGHTER_APPLICATION_VULKAN_AURORA_VIEWER_PATH_DUMPER_H
 
+#include <vulkan/vulkan.h>
+
+#include <glm/glm.hpp>
 #include <memory>
 #include <string>
 #include <vector>
@@ -20,8 +23,6 @@
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
-#include <glm/glm.hpp>
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace application {

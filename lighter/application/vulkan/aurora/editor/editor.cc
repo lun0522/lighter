@@ -104,16 +104,16 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
   // Buttons and paths share color and alpha values.
   using ButtonColors = std::array<glm::vec3, button::kNumStates>;
   const std::array<ButtonColors, kNumButtons> button_and_path_colors{
-      ButtonColors{MakeColor(241, 196,  15), MakeColor(243, 156,  18)},
-      ButtonColors{MakeColor(230, 126,  34), MakeColor(211,  84,   0)},
-      ButtonColors{MakeColor(231,  76,  60), MakeColor(192,  57,  43)},
-      ButtonColors{MakeColor( 26, 188, 156), MakeColor( 22, 160, 133)},
-      ButtonColors{MakeColor( 52, 152, 219), MakeColor( 41, 128, 185)},
-      ButtonColors{MakeColor(155,  89, 182), MakeColor(142,  68, 173)},
-      ButtonColors{MakeColor( 46, 204, 113), MakeColor( 39, 174,  96)},
+      ButtonColors{MakeColor(241, 196, 15), MakeColor(243, 156, 18)},
+      ButtonColors{MakeColor(230, 126, 34), MakeColor(211, 84, 0)},
+      ButtonColors{MakeColor(231, 76, 60), MakeColor(192, 57, 43)},
+      ButtonColors{MakeColor(26, 188, 156), MakeColor(22, 160, 133)},
+      ButtonColors{MakeColor(52, 152, 219), MakeColor(41, 128, 185)},
+      ButtonColors{MakeColor(155, 89, 182), MakeColor(142, 68, 173)},
+      ButtonColors{MakeColor(46, 204, 113), MakeColor(39, 174, 96)},
   };
-  constexpr std::array<float, button::kNumStates>
-      kButtonAndPathAlphas{1.0f, 0.5f};
+  constexpr std::array<float, button::kNumStates> kButtonAndPathAlphas{1.0f,
+                                                                       0.5f};
 
   /* Render pass */
   render_pass_manager_ = std::make_unique<OnScreenRenderPassManager>(
@@ -123,8 +123,8 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
           /*first_overlay_subpass=*/kButtonSubpassIndex});
 
   /* Earth and skybox */
-  celestial_ = std::make_unique<Celestial>(
-      context, original_aspect_ratio, num_frames_in_flight);
+  celestial_ = std::make_unique<Celestial>(context, original_aspect_ratio,
+                                           num_frames_in_flight);
 
   // Initially, the north pole points to the center of frame.
   RotateCelestials({/*axis=*/{1.0f, 0.0f, 0.0f},
@@ -147,13 +147,17 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
   };
   // Initially, the viewpoint is located at Anchorage, AK, USA.
   aurora_path_ = std::make_unique<AuroraPath>(
-      context, num_frames_in_flight, original_aspect_ratio, AuroraPath::Info{
-          /*max_num_control_points=*/20, /*control_point_radius=*/0.01f,
-          /*max_recursion_depth=*/20, /*spline_smoothness=*/1E-2,
+      context, num_frames_in_flight, original_aspect_ratio,
+      AuroraPath::Info{
+          /*max_num_control_points=*/20,
+          /*control_point_radius=*/0.01f,
+          /*max_recursion_depth=*/20,
+          /*spline_smoothness=*/1E-2,
           /*viewpoint_initial_pos=*/GetLocation(61.2f, -149.9f),
           button_and_path_colors[kViewpointButtonIndex],
           {&button_and_path_colors[kPath1ButtonIndex], kNumAuroraPaths},
-          kButtonAndPathAlphas, std::move(generate_control_points),
+          kButtonAndPathAlphas,
+          std::move(generate_control_points),
       });
 
   /* Buttons */
@@ -167,7 +171,7 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
     const glm::vec3 text_color{1.0f};
 
     const std::array<std::string, kNumButtons> button_texts{
-        "Path 1", "Path 2", "Path 3", "Viewpoint",
+        "Path 1",  "Path 2",   "Path 3", "Viewpoint",
         "Editing", "Daylight", "Aurora",
     };
 
@@ -188,9 +192,9 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
         button_infos[i] = get_button_info(i);
       }
       top_row_buttons_ = std::make_unique<Button>(
-          context, original_aspect_ratio, Button::ButtonsInfo{
-              kFont, kFontHeight, kBaseY, kTopY, text_color,
-              kButtonAndPathAlphas, button_size, button_infos});
+          context, original_aspect_ratio,
+          Button::ButtonsInfo{kFont, kFontHeight, kBaseY, kTopY, text_color,
+                              kButtonAndPathAlphas, button_size, button_infos});
     }
 
     /* Bottom row buttons */
@@ -211,9 +215,9 @@ Editor::Editor(WindowContext* window_context, int num_frames_in_flight)
         button_infos[i] = get_button_info(i);
       }
       bottom_row_buttons_ = std::make_unique<Button>(
-          context, original_aspect_ratio, Button::ButtonsInfo{
-              kFont, kFontHeight, kBaseY, kTopY, text_color,
-              kButtonAndPathAlphas, button_size, button_infos});
+          context, original_aspect_ratio,
+          Button::ButtonsInfo{kFont, kFontHeight, kBaseY, kTopY, text_color,
+                              kButtonAndPathAlphas, button_size, button_infos});
     }
   }
 
@@ -368,9 +372,9 @@ void Editor::UpdateData(int frame) {
       earth_.GetSkyboxModelMatrix(/*scale=*/1.5f);
   celestial_->UpdateSkyboxData(frame, skybox_transform_matrix);
 
-  aurora_path_->UpdatePerFrameData(
-      frame, general_camera, aurora_layer_.model_matrix(),
-      kAuroraLayerModelRadius, click_celestial);
+  aurora_path_->UpdatePerFrameData(frame, general_camera,
+                                   aurora_layer_.model_matrix(),
+                                   kAuroraLayerModelRadius, click_celestial);
 
   // Reset right mouse button flag.
   did_release_right_ = false;
@@ -387,10 +391,10 @@ void Editor::Draw(const VkCommandBuffer& command_buffer,
                            state_manager_.GetSelectedPathIndex());
       },
       [this](const VkCommandBuffer& command_buffer) {
-        top_row_buttons_->Draw(
-            command_buffer, state_manager_.top_row_buttons_states());
-        bottom_row_buttons_->Draw(
-            command_buffer, state_manager_.bottom_row_buttons_states());
+        top_row_buttons_->Draw(command_buffer,
+                               state_manager_.top_row_buttons_states());
+        bottom_row_buttons_->Draw(command_buffer,
+                                  state_manager_.bottom_row_buttons_states());
       },
   };
   render_pass().Run(command_buffer, framebuffer_index, render_ops);

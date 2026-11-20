@@ -57,13 +57,12 @@ class RefCountedObject {
   static RefCountedObject Get(const std::string& identifier, Args&&... args) {
     auto iter = ref_count_map().find(identifier);
     if (iter == ref_count_map().end()) {
-      const auto inserted = ref_count_map().insert({
-          identifier,
-          typename ObjectPool::ObjectWithCounter{
-              .object =
-                  std::make_unique<ObjectType>(std::forward<Args>(args)...),
-              .ref_count = 0,
-          }});
+      const auto inserted = ref_count_map().insert(
+          {identifier, typename ObjectPool::ObjectWithCounter{
+                           .object = std::make_unique<ObjectType>(
+                               std::forward<Args>(args)...),
+                           .ref_count = 0,
+                       }});
       iter = inserted.first;
     }
 #ifndef NDEBUG
@@ -168,4 +167,4 @@ typename RefCountedObject<ObjectType>::ObjectPool
 
 }  // namespace lighter::common
 
-#endif // LIGHTER_COMMON_REF_COUNT_H
+#endif  // LIGHTER_COMMON_REF_COUNT_H

@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <random>
 #include <span>
 
@@ -18,8 +20,6 @@
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
 namespace lighter {
 namespace application {
@@ -62,7 +62,7 @@ enum UniformBindingPoint {
   kDiffuseSpecularTextureBindingPoint,
   kNumUniforms,
   kNumUniformBuffers = kPositionTextureBindingPoint -
-                       kLightsUniformBufferBindingPoint,
+      kLightsUniformBufferBindingPoint,
   kNumTextures = kNumUniforms - kPositionTextureBindingPoint,
 };
 
@@ -166,11 +166,11 @@ LightingPass::LightingPass(const WindowContext* window_context,
 
   auto& light_colors =
       lights_colors_uniform_->HostData<Lights>(/*chunk_index=*/0)->colors;
-  std::generate(
-      light_colors, light_colors + kNumLights,
-      [&rand_gen, &color]() -> glm::vec4 {
-        return {color(rand_gen), color(rand_gen), color(rand_gen), 0.0f};
-      });
+  std::generate(light_colors, light_colors + kNumLights,
+                [&rand_gen, &color]() -> glm::vec4 {
+                  return {color(rand_gen), color(rand_gen), color(rand_gen),
+                          0.0f};
+                });
   lights_colors_uniform_->Flush(/*chunk_index=*/0);
 
   /* Descriptor */
@@ -220,9 +220,9 @@ LightingPass::LightingPass(const WindowContext* window_context,
   for (int frame = 0; frame < num_frames_in_flight; ++frame) {
     const Descriptor::BufferInfoMap buffer_info_map{
         {kLightsUniformBufferBindingPoint,
-            {lights_colors_uniform_->GetDescriptorInfo(/*chunk_index=*/0)}},
+         {lights_colors_uniform_->GetDescriptorInfo(/*chunk_index=*/0)}},
         {kRenderInfoUniformBufferBindingPoint,
-            {render_info_uniform_->GetDescriptorInfo(frame)}},
+         {render_info_uniform_->GetDescriptorInfo(frame)}},
     };
 
     lights_descriptors_[frame] = std::make_unique<StaticDescriptor>(
@@ -255,16 +255,14 @@ LightingPass::LightingPass(const WindowContext* window_context,
       Vertex2D::GetFullScreenSquadVertices(/*flip_y=*/true);
   PerVertexBuffer::NoIndicesDataInfo squad_vertex_data_info{
       /*per_mesh_vertices=*/
-      {{PerVertexBuffer::VertexDataInfo{squad_vertex_data}}}
-  };
+      {{PerVertexBuffer::VertexDataInfo{squad_vertex_data}}}};
   squad_vertex_buffer_ = std::make_unique<StaticPerVertexBuffer>(
       context, std::move(squad_vertex_data_info),
       pipeline::GetVertexAttributes<Vertex2D>());
 
   /* Pipeline */
   constexpr uint32_t kStencilReference = 0xFF;
-  lights_pipeline_builder_ =
-      std::make_unique<GraphicsPipelineBuilder>(context);
+  lights_pipeline_builder_ = std::make_unique<GraphicsPipelineBuilder>(context);
   (*lights_pipeline_builder_)
       .SetPipelineName("Lights")
       .SetDepthTestEnable(/*enable_test=*/true, /*enable_write=*/true)
@@ -290,10 +288,9 @@ LightingPass::LightingPass(const WindowContext* window_context,
   (*soldiers_pipeline_builder_)
       .SetPipelineName("Soldiers")
       .SetStencilTestEnable(true)
-      .SetStencilOpState(
-          pipeline::GetStencilReadOpState(VK_COMPARE_OP_NOT_EQUAL,
-                                          kStencilReference),
-          VK_STENCIL_FACE_FRONT_BIT)
+      .SetStencilOpState(pipeline::GetStencilReadOpState(
+                             VK_COMPARE_OP_NOT_EQUAL, kStencilReference),
+                         VK_STENCIL_FACE_FRONT_BIT)
       .AddVertexInput(kVertexBufferBindingPoint,
                       pipeline::GetPerVertexBindingDescription<Vertex2D>(),
                       squad_vertex_buffer_->GetAttributes(/*start_location=*/0))
@@ -308,8 +305,7 @@ LightingPass::LightingPass(const WindowContext* window_context,
 }
 
 void LightingPass::UpdateFramebuffer(
-    const Image& depth_stencil_image,
-    const OffscreenImage& position_image,
+    const Image& depth_stencil_image, const OffscreenImage& position_image,
     const OffscreenImage& normal_image,
     const OffscreenImage& diffuse_specular_image) {
   /* Descriptor */
@@ -318,11 +314,11 @@ void LightingPass::UpdateFramebuffer(
         Image::GetDescriptorTypeForSampling(),
         Descriptor::ImageInfoMap{
             {kPositionTextureBindingPoint,
-                {position_image.GetDescriptorInfoForSampling()}},
+             {position_image.GetDescriptorInfoForSampling()}},
             {kNormalTextureBindingPoint,
-                {normal_image.GetDescriptorInfoForSampling()}},
+             {normal_image.GetDescriptorInfoForSampling()}},
             {kDiffuseSpecularTextureBindingPoint,
-                {diffuse_specular_image.GetDescriptorInfoForSampling()}},
+             {diffuse_specular_image.GetDescriptorInfoForSampling()}},
         });
   }
 
@@ -366,11 +362,11 @@ void LightingPass::UpdatePerFrameData(int frame, const common::Camera& camera,
 
   auto& render_info = *render_info_uniform_->HostData<RenderInfo>(frame);
   render_info.camera_pos = glm::vec4{camera.position(), 0.0f};
-  const glm::vec3 light_center_increments = light_center_config_.increments *
-                                            timer_.GetElapsedTimeSinceLaunch();
+  const glm::vec3 light_center_increments =
+      light_center_config_.increments * timer_.GetElapsedTimeSinceLaunch();
   for (int light = 0; light < kNumLights; ++light) {
-    render_info.light_centers[light] =
-        {original_light_centers_[light] + light_center_increments, 0.0f};
+    render_info.light_centers[light] = {
+        original_light_centers_[light] + light_center_increments, 0.0f};
   }
   WrapAroundLightCenters(light_center_config_, &render_info);
   render_info_uniform_->Flush(frame);
@@ -387,9 +383,9 @@ void LightingPass::Draw(const VkCommandBuffer& command_buffer,
         lights_trans_constant_->Flush(
             command_buffer, lights_pipeline_->layout(), current_frame,
             /*target_offset=*/0, VK_SHADER_STAGE_VERTEX_BIT);
-        cube_vertex_buffer_->Draw(
-            command_buffer, kVertexBufferBindingPoint,
-            /*mesh_index=*/0, /*instance_count=*/kNumLights);
+        cube_vertex_buffer_->Draw(command_buffer, kVertexBufferBindingPoint,
+                                  /*mesh_index=*/0,
+                                  /*instance_count=*/kNumLights);
       },
       [this, current_frame](const VkCommandBuffer& command_buffer) {
         soldiers_pipeline_->Bind(command_buffer);
@@ -411,20 +407,21 @@ void LightingPass::CreateRenderPassBuilder(const Image& depth_stencil_image) {
                                          depth_stencil_image);
 
   const NaiveRenderPass::SubpassConfig subpass_config{
-      kNumSubpasses, /*first_transparent_subpass=*/kSoldiersSubpassIndex,
+      kNumSubpasses,
+      /*first_transparent_subpass=*/kSoldiersSubpassIndex,
       /*first_overlay_subpass=*/std::nullopt,
   };
 
   const auto color_attachment_config =
-      swapchain_image_info_.MakeAttachmentConfig()
-          .set_final_usage(ImageUsage::GetPresentationUsage());
+      swapchain_image_info_.MakeAttachmentConfig().set_final_usage(
+          ImageUsage::GetPresentationUsage());
 
   auto depth_stencil_load_store_ops =
       GraphicsPass::GetDefaultDepthStencilLoadStoreOps();
   depth_stencil_load_store_ops.depth_load_op = VK_ATTACHMENT_LOAD_OP_LOAD;
   const auto depth_stencil_attachment_config =
-      depth_stencil_image_info_.MakeAttachmentConfig()
-          .set_load_store_ops(depth_stencil_load_store_ops);
+      depth_stencil_image_info_.MakeAttachmentConfig().set_load_store_ops(
+          depth_stencil_load_store_ops);
 
   render_pass_builder_ = NaiveRenderPass::CreateBuilder(
       window_context_.basic_context(),

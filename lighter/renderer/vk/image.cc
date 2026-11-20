@@ -45,8 +45,8 @@ intl::Format ChooseColorImageFormat(const Context& context, int channel,
                                     std::span<const ImageUsage> usages) {
   switch (channel) {
     case common::image::kBwImageChannel: {
-      const intl::Format best_format = high_precision ? intl::Format::eR16Sfloat
-                                                      : intl::Format::eR8Unorm;
+      const intl::Format best_format =
+          high_precision ? intl::Format::eR16Sfloat : intl::Format::eR8Unorm;
       if (!ImageUsage::IsLinearAccessed(usages)) {
         return best_format;
       }
@@ -54,9 +54,9 @@ intl::Format ChooseColorImageFormat(const Context& context, int channel,
       // VK_FORMAT_R8_UNORM and VK_FORMAT_R16_SFLOAT have mandatory support for
       // sampling, but may not support linear access. We switch to 4-channel
       // formats instead since they have mandatory support for both.
-      if (FindImageFormatWithFeature(
-              context, std::array{best_format},
-              intl::FormatFeatureFlagBits::eStorageImage).has_value()) {
+      if (FindImageFormatWithFeature(context, std::array{best_format},
+                                     intl::FormatFeatureFlagBits::eStorageImage)
+              .has_value()) {
         return best_format;
       } else {
 #ifndef NDEBUG
@@ -99,19 +99,20 @@ intl::Image CreateImage(
     uint32_t layer_count, intl::SampleCountFlagBits sample_count,
     intl::ImageUsageFlags usage_flags,
     const std::vector<uint32_t>& unique_queue_family_indices) {
-  const auto image_create_info = intl::ImageCreateInfo{}
-      .setFlags(create_flags)
-      .setImageType(intl::ImageType::e2D)
-      .setFormat(format)
-      .setExtent({extent.width, extent.height, /*depth=*/1})
-      .setMipLevels(mip_levels)
-      .setArrayLayers(layer_count)
-      .setSamples(sample_count)
-      .setTiling(intl::ImageTiling::eOptimal)
-      .setUsage(usage_flags)
-      .setSharingMode(intl::SharingMode::eExclusive)
-      .setQueueFamilyIndices(unique_queue_family_indices)
-      .setInitialLayout(intl::ImageLayout::eUndefined);
+  const auto image_create_info =
+      intl::ImageCreateInfo{}
+          .setFlags(create_flags)
+          .setImageType(intl::ImageType::e2D)
+          .setFormat(format)
+          .setExtent({extent.width, extent.height, /*depth=*/1})
+          .setMipLevels(mip_levels)
+          .setArrayLayers(layer_count)
+          .setSamples(sample_count)
+          .setTiling(intl::ImageTiling::eOptimal)
+          .setUsage(usage_flags)
+          .setSharingMode(intl::SharingMode::eExclusive)
+          .setQueueFamilyIndices(unique_queue_family_indices)
+          .setInitialLayout(intl::ImageLayout::eUndefined);
   return context.device()->createImage(image_create_info,
                                        *context.host_allocator());
 }
@@ -121,8 +122,8 @@ intl::DeviceMemory CreateImageMemory(const Context& context, intl::Image image,
                                      intl::MemoryPropertyFlags property_flags) {
   const intl::Device device = *context.device();
   const auto requirements = device.getImageMemoryRequirements(image);
-  intl::DeviceMemory device_memory = buffer::CreateDeviceMemory(
-      context, requirements, property_flags);
+  intl::DeviceMemory device_memory =
+      buffer::CreateDeviceMemory(context, requirements, property_flags);
   // Bind the allocated memory with 'image'. If this memory is used for
   // multiple images, the memory offset should be re-calculated and
   // VkMemoryRequirements.alignment should be considered.
@@ -159,9 +160,9 @@ std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
     std::span<const ImageUsage> usages) {
   const intl::Format format = ChooseColorImageFormat(
       *context, dimension.channel, high_precision, usages);
-  return std::unique_ptr<SingleImage>(new SingleImage(
-      context, name, LayerType::kSingle, dimension.extent(), kSingleMipLevel,
-      format, multisampling_mode, usages));
+  return std::unique_ptr<SingleImage>(
+      new SingleImage(context, name, LayerType::kSingle, dimension.extent(),
+                      kSingleMipLevel, format, multisampling_mode, usages));
 }
 
 std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
@@ -181,18 +182,23 @@ std::unique_ptr<SingleImage> SingleImage::CreateDepthStencilImage(
     const glm::ivec2& extent, MultisamplingMode multisampling_mode,
     std::span<const ImageUsage> usages) {
   const intl::Format format = ChooseDepthStencilImageFormat(*context);
-  return std::unique_ptr<SingleImage>(new SingleImage(
-      context, name, LayerType::kSingle, extent, kSingleMipLevel, format,
-      multisampling_mode, usages));
+  return std::unique_ptr<SingleImage>(
+      new SingleImage(context, name, LayerType::kSingle, extent,
+                      kSingleMipLevel, format, multisampling_mode, usages));
 }
 
-SingleImage::SingleImage(
-    const SharedContext& context, std::string_view name, LayerType layer_type,
-    const glm::ivec2& extent, int mip_levels, intl::Format format,
-    ir::MultisamplingMode multisampling_mode,
-    std::span<const ir::ImageUsage> usages)
+SingleImage::SingleImage(const SharedContext& context, std::string_view name,
+                         LayerType layer_type, const glm::ivec2& extent,
+                         int mip_levels, intl::Format format,
+                         ir::MultisamplingMode multisampling_mode,
+                         std::span<const ir::ImageUsage> usages)
     : WithSharedContext{context},
-      Image{Type::kSingle, name, layer_type, extent, mip_levels, format,
+      Image{Type::kSingle,
+            name,
+            layer_type,
+            extent,
+            mip_levels,
+            format,
             context_->physical_device().sample_count(multisampling_mode)} {
   intl::ImageCreateFlags create_flags;
   if (layer_type == LayerType::kCubemap) {
@@ -214,10 +220,10 @@ SingleImage::SingleImage(
       queue_family_indices_set.end(),
   };
 
-  image_ = CreateImage(
-      *context_, create_flags, format, util::ToExtent(extent), mip_levels,
-      CAST_TO_UINT(GetNumLayers()), sample_count(),
-      image::GetImageUsageFlags(usages), unique_queue_family_indices);
+  image_ = CreateImage(*context_, create_flags, format, util::ToExtent(extent),
+                       mip_levels, CAST_TO_UINT(GetNumLayers()), sample_count(),
+                       image::GetImageUsageFlags(usages),
+                       unique_queue_family_indices);
   device_memory_ = CreateImageMemory(
       *context_, image_, intl::MemoryPropertyFlagBits::eDeviceLocal);
 }

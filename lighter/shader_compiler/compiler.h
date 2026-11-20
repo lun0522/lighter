@@ -8,6 +8,8 @@
 #ifndef LIGHTER_SHADER_COMPILER_COMPILER_H
 #define LIGHTER_SHADER_COMPILER_COMPILER_H
 
+#include <shaderc/shaderc.h>
+
 #include <functional>
 #include <memory>
 #include <optional>
@@ -15,8 +17,6 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
-
-#include <shaderc/shaderc.h>
 
 #include "lighter/common/util.h"
 #include "lighter/shader_compiler/util.h"
@@ -47,16 +47,15 @@ class Compiler {
   // Compiles a shader. 'shader_tag' is only used for cases like emitting error
   // messages, and it does not need to be a unique identifier.
   std::unique_ptr<CompilationResult> Compile(
-      const std::string& shader_tag,
-      shaderc_shader_kind shader_kind,
+      const std::string& shader_tag, shaderc_shader_kind shader_kind,
       std::span<const char> shader_source,
       const CompilerOptions& compiler_options) const;
 
  private:
   // Maps file extensions to shader kinds.
-  using ShaderKindMap = std::unordered_map<
-      std::string, shaderc_shader_kind,
-      common::util::TransparentStringHash, std::equal_to<>>;
+  using ShaderKindMap =
+      std::unordered_map<std::string, shaderc_shader_kind,
+                         common::util::TransparentStringHash, std::equal_to<>>;
   static const ShaderKindMap shader_kind_map_;
 
   // Opaque compiler object.

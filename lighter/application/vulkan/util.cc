@@ -21,9 +21,7 @@ using renderer::vulkan::NaiveRenderPass;
 using renderer::vulkan::RenderPassBuilder;
 using renderer::vulkan::SwapchainImage;
 
-void GlobalInit() {
-  lighter::renderer::util::GlobalInit();
-}
+void GlobalInit() { lighter::renderer::util::GlobalInit(); }
 
 void OnScreenRenderPassManager::RecreateRenderPass() {
   /* Depth stencil image */
@@ -80,8 +78,8 @@ void OnScreenRenderPassManager::CreateRenderPassBuilder() {
 
   /* Render pass builder */
   const auto color_attachment_config =
-      swapchain_image_info_.MakeAttachmentConfig()
-          .set_final_usage(ImageUsage::GetPresentationUsage());
+      swapchain_image_info_.MakeAttachmentConfig().set_final_usage(
+          ImageUsage::GetPresentationUsage());
   const auto multisampling_attachment_config =
       multisample_image_info_.MakeAttachmentConfig();
   const auto depth_stencil_attachment_config =

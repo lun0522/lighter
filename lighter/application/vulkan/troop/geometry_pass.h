@@ -8,12 +8,14 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_TROOP_GEOMETRY_PASS_H
 #define LIGHTER_APPLICATION_VULKAN_TROOP_GEOMETRY_PASS_H
 
+#include <vulkan/vulkan.h>
+
+#include <glm/glm.hpp>
 #include <memory>
+#include <optional>
+#include <span>
 #include <string>
 #include <string_view>
-#include <optional>
-
-#include <span>
 
 #include "lighter/common/camera.h"
 #include "lighter/common/util.h"
@@ -23,8 +25,6 @@
 #include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
-#include <glm/glm.hpp>
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace application {
@@ -38,8 +38,8 @@ namespace troop {
 class GeometryPass {
  public:
   GeometryPass(const renderer::vulkan::WindowContext* window_context,
-               int num_frames_in_flight,
-               float model_scale, const glm::ivec2& num_soldiers,
+               int num_frames_in_flight, float model_scale,
+               const glm::ivec2& num_soldiers,
                const glm::vec2& interval_between_soldiers);
 
   // This class is neither copyable nor movable.
@@ -57,8 +57,8 @@ class GeometryPass {
 
   // Runs the geometry pass.
   // This should be called when 'command_buffer' is recording commands.
-  void Draw(const VkCommandBuffer& command_buffer,
-            uint32_t framebuffer_index, int current_frame) const;
+  void Draw(const VkCommandBuffer& command_buffer, uint32_t framebuffer_index,
+            int current_frame) const;
 
  private:
   // Used to create and update the render pass builder.
@@ -66,7 +66,8 @@ class GeometryPass {
     Attachment(std::string_view image_name,
                const renderer::vulkan::Image* image,
                std::optional<int>* attachment_index, int location)
-        : image_name{image_name}, image{*FATAL_IF_NULL(image)},
+        : image_name{image_name},
+          image{*FATAL_IF_NULL(image)},
           attachment_index{*FATAL_IF_NULL(attachment_index)},
           location{location} {}
 

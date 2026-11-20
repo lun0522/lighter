@@ -22,8 +22,7 @@ constexpr auto kTimeoutForever = std::numeric_limits<uint64_t>::max();
 // Creates a command pool on 'queue'. If 'is_transient' is true, the command
 // pool is expected to have a short lifetime.
 VkCommandPool CreateCommandPool(const BasicContext& context,
-                                const Queues::Queue& queue,
-                                bool is_transient) {
+                                const Queues::Queue& queue, bool is_transient) {
   const VkCommandPoolCreateFlags flags =
       is_transient ? VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
                    : VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -43,8 +42,8 @@ VkCommandPool CreateCommandPool(const BasicContext& context,
 
 // Allocates command buffers of 'count' from 'command_pool'.
 std::vector<VkCommandBuffer> AllocateCommandBuffers(
-    const BasicContext& context,
-    const VkCommandPool& command_pool, uint32_t count) {
+    const BasicContext& context, const VkCommandPool& command_pool,
+    uint32_t count) {
   const VkCommandBufferAllocateInfo buffer_info{
       VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
       /*pNext=*/nullptr,
@@ -54,9 +53,9 @@ std::vector<VkCommandBuffer> AllocateCommandBuffers(
   };
 
   std::vector<VkCommandBuffer> buffers(count);
-  ASSERT_SUCCESS(vkAllocateCommandBuffers(*context.device(), &buffer_info,
-                                          buffers.data()),
-                 "Failed to allocate command buffers");
+  ASSERT_SUCCESS(
+      vkAllocateCommandBuffers(*context.device(), &buffer_info, buffers.data()),
+      "Failed to allocate command buffers");
   return buffers;
 }
 
@@ -172,10 +171,10 @@ std::optional<VkResult> PerFrameCommand::Run(int current_frame,
 
   // Acquire the next available swapchain image.
   uint32_t image_index;
-  const auto acquire_result = CheckResult(vkAcquireNextImageKHR(
-      device, swapchain, kTimeoutForever,
-      present_finished_semas_[current_frame], /*fence=*/VK_NULL_HANDLE,
-      &image_index));
+  const auto acquire_result = CheckResult(
+      vkAcquireNextImageKHR(device, swapchain, kTimeoutForever,
+                            present_finished_semas_[current_frame],
+                            /*fence=*/VK_NULL_HANDLE, &image_index));
   if (acquire_result.has_value()) {
     return acquire_result;
   }
@@ -209,11 +208,10 @@ std::optional<VkResult> PerFrameCommand::Run(int current_frame,
   // Reset the fence to the unsignaled state. Note that we don't need to do this
   // for semaphores.
   vkResetFences(device, /*fenceCount=*/1, &in_flight_fences_[current_frame]);
-  ASSERT_SUCCESS(
-      vkQueueSubmit(context_->queues().graphics_queue().queue,
-                    /*submitCount=*/1, &submit_info,
-                    in_flight_fences_[current_frame]),
-      "Failed to submit command buffer");
+  ASSERT_SUCCESS(vkQueueSubmit(context_->queues().graphics_queue().queue,
+                               /*submitCount=*/1, &submit_info,
+                               in_flight_fences_[current_frame]),
+                 "Failed to submit command buffer");
 
   // Present the swapchain image to screen.
   const VkPresentInfoKHR present_info{
@@ -227,8 +225,8 @@ std::optional<VkResult> PerFrameCommand::Run(int current_frame,
       // May use 'pResults' to check if each swapchain rendered successfully.
       /*pResults=*/nullptr,
   };
-  return CheckResult(vkQueuePresentKHR(
-      context_->queues().present_queue().queue, &present_info));
+  return CheckResult(vkQueuePresentKHR(context_->queues().present_queue().queue,
+                                       &present_info));
 }
 
 } /* namespace vulkan */

@@ -34,10 +34,9 @@ SingleImage LoadSingleImage(std::string_view path, int desired_channels) {
   const Data file_data = file::LoadDataFromFile(path);
   int width, height, channel;
   stbi_uc* data = stbi_load_from_memory(
-      file_data.data<stbi_uc>(), static_cast<int>(file_data.size()),
-      &width, &height, &channel, desired_channels);
-  ASSERT_NON_NULL(
-      data, std::format("Failed to read image from '{}'", path));
+      file_data.data<stbi_uc>(), static_cast<int>(file_data.size()), &width,
+      &height, &channel, desired_channels);
+  ASSERT_NON_NULL(data, std::format("Failed to read image from '{}'", path));
 
   // If the image has 3 channels, reload it so that it has 4 channels.
   switch (channel) {
@@ -47,17 +46,17 @@ SingleImage LoadSingleImage(std::string_view path, int desired_channels) {
 
     case image::kRgbImageChannel: {
       stbi_image_free(data);
-      data = stbi_load_from_memory(
-          file_data.data<stbi_uc>(), static_cast<int>(file_data.size()),
-          &width, &height, &channel, STBI_rgb_alpha);
+      data = stbi_load_from_memory(file_data.data<stbi_uc>(),
+                                   static_cast<int>(file_data.size()), &width,
+                                   &height, &channel, STBI_rgb_alpha);
       channel = STBI_rgb_alpha;
       break;
     }
 
     default:
       FATAL(std::format(
-          "Unsupported number of channels ({}) when loading from {}",
-          channel, path));
+          "Unsupported number of channels ({}) when loading from {}", channel,
+          path));
   }
 
   const Image::Dimension dimension{width, height, channel};
@@ -69,8 +68,7 @@ SingleImage LoadSingleImage(std::string_view path, int desired_channels) {
 
 // Concatenates 'directory' and each of 'relative_paths'.
 std::vector<std::string> GetFullPaths(
-    std::string_view directory,
-    std::span<const std::string> relative_paths) {
+    std::string_view directory, std::span<const std::string> relative_paths) {
   std::vector<std::string> paths;
   paths.reserve(relative_paths.size());
   for (const auto& path : relative_paths) {
@@ -80,9 +78,8 @@ std::vector<std::string> GetFullPaths(
 }
 
 bool operator==(const Image::Dimension& lhs, const Image::Dimension& rhs) {
-    return lhs.width == rhs.width &&
-           lhs.height == rhs.height &&
-           lhs.channel == rhs.channel;
+  return lhs.width == rhs.width && lhs.height == rhs.height &&
+         lhs.channel == rhs.channel;
 }
 
 }  // namespace
@@ -105,7 +102,7 @@ Image Image::LoadSingleImageFromFile(std::string_view path, bool flip_y) {
   SingleImage image = LoadSingleImage(path, STBI_default);
   stbi_set_flip_vertically_on_load(false);
   return {Image::Type::kSingle, image.dimension, std::move(image.data)};
-} 
+}
 
 Image Image::LoadCubemapFromFiles(std::span<const std::string> paths,
                                   bool flip_y) {
@@ -132,27 +129,27 @@ Image Image::LoadCubemapFromFiles(std::span<const std::string> paths,
   return {Image::Type::kCubemap, dimension, std::move(cubemap_data)};
 }
 
-Image Image::LoadCubemapFromFiles(
-    std::string_view directory, std::span<const std::string> relative_paths,
-    bool flip_y) {
+Image Image::LoadCubemapFromFiles(std::string_view directory,
+                                  std::span<const std::string> relative_paths,
+                                  bool flip_y) {
   ASSERT_TRUE(relative_paths.size() == image::kCubemapImageLayer,
               std::format("Length of 'relative_paths' ({}) is not 6",
                           relative_paths.size()));
   return LoadCubemapFromFiles(GetFullPaths(directory, relative_paths), flip_y);
 }
 
-Image Image::LoadCubemapFromMemory(
-    const Dimension& dimension, std::span<const void* const> raw_data_ptrs,
-    bool flip_y) {
+Image Image::LoadCubemapFromMemory(const Dimension& dimension,
+                                   std::span<const void* const> raw_data_ptrs,
+                                   bool flip_y) {
   ASSERT_TRUE(raw_data_ptrs.size() == image::kCubemapImageLayer,
               std::format("Length of 'raw_data_ptrs' ({}) is not 6",
                           raw_data_ptrs.size()));
   return LoadImagesFromMemory(dimension, raw_data_ptrs, flip_y);
 }
 
-Image Image::LoadImagesFromMemory(
-    const Dimension& dimension, std::span<const void* const> raw_data_ptrs,
-    bool flip_y) {
+Image Image::LoadImagesFromMemory(const Dimension& dimension,
+                                  std::span<const void* const> raw_data_ptrs,
+                                  bool flip_y) {
   const int num_layers = raw_data_ptrs.size();
   Type type;
   switch (num_layers) {
@@ -167,9 +164,9 @@ Image Image::LoadImagesFromMemory(
   }
 
   const int channel = dimension.channel;
-  ASSERT_TRUE(channel == image::kBwImageChannel
-                  || channel == image::kRgbaImageChannel,
-              std::format("Unsupported number of channels: {}", channel));
+  ASSERT_TRUE(
+      channel == image::kBwImageChannel || channel == image::kRgbaImageChannel,
+      std::format("Unsupported number of channels: {}", channel));
 
   RawChunkedData data{dimension.size_per_layer(), num_layers};
   for (int layer = 0; layer < num_layers; ++layer) {
@@ -179,8 +176,7 @@ Image Image::LoadImagesFromMemory(
       const size_t stride = dimension.width * channel;
       for (int row = 0; row < dimension.height; ++row) {
         std::memcpy(copied_data + stride * row,
-                    raw_data + stride * (dimension.height - row - 1),
-                    stride);
+                    raw_data + stride * (dimension.height - row - 1), stride);
       }
     } else {
       std::memcpy(copied_data, raw_data, data.chunk_size());

@@ -8,6 +8,8 @@
 #ifndef LIGHTER_RENDERER_VULKAN_EXTENSION_MODEL_H
 #define LIGHTER_RENDERER_VULKAN_EXTENSION_MODEL_H
 
+#include <vulkan/vulkan.h>
+
 #include <array>
 #include <functional>
 #include <memory>
@@ -26,7 +28,6 @@
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {
@@ -56,16 +57,17 @@ class ModelBuilder {
                  static_cast<int>(TextureType::kNumTypes)>;
 
   // Maps each texture type to its binding point.
-  using BindingPointMap = std::unordered_map<
-      TextureType, uint32_t, common::util::EnumClassHash>;
+  using BindingPointMap =
+      std::unordered_map<TextureType, uint32_t, common::util::EnumClassHash>;
 
   // Textures are either loaded from files or existing offscreen images.
-  using TextureSource = std::variant<SharedTexture::SourcePath,
-                                     OffscreenImagePtr>;
+  using TextureSource =
+      std::variant<SharedTexture::SourcePath, OffscreenImagePtr>;
 
   // Maps each texture type to textures of this type.
-  using TextureSourceMap = std::unordered_map<
-      TextureType, std::vector<TextureSource>, common::util::EnumClassHash>;
+  using TextureSourceMap =
+      std::unordered_map<TextureType, std::vector<TextureSource>,
+                         common::util::EnumClassHash>;
 
   // Interface of model resource classes.
   class ModelResource {
@@ -82,8 +84,7 @@ class ModelBuilder {
   // lightweight .obj file loader.
   class SingleMeshResource : public ModelResource {
    public:
-    SingleMeshResource(std::string&& obj_file_path,
-                       int obj_file_index_base,
+    SingleMeshResource(std::string&& obj_file_path, int obj_file_index_base,
                        TextureSourceMap&& tex_source_map)
         : obj_file_path_{std::move(obj_file_path)},
           obj_file_index_base_{obj_file_index_base},
@@ -133,10 +134,8 @@ class ModelBuilder {
   // When the frame is resized, the aspect ratio of viewport will always be
   // 'viewport_aspect_ratio'. If any offscreen images are used in 'resource',
   // the user is responsible for keeping the existence of them.
-  ModelBuilder(SharedBasicContext context,
-               std::string&& name,
-               int num_frames_in_flight,
-               float viewport_aspect_ratio,
+  ModelBuilder(SharedBasicContext context, std::string&& name,
+               int num_frames_in_flight, float viewport_aspect_ratio,
                const ModelResource& resource);
 
   // This class is neither copyable nor movable.
@@ -254,15 +253,14 @@ class Model {
   // If 'flip_viewport_y' is true, point (0, 0) will be located at the upper
   // left corner, which is appropriate for presenting to the screen. The user
   // can choose whether or not to do the flipping for offscreen rendering.
-  void Update(bool is_object_opaque,
-              const VkExtent2D& frame_size, VkSampleCountFlagBits sample_count,
-              const RenderPass& render_pass, uint32_t subpass_index,
-              bool flip_viewport_y = true);
+  void Update(bool is_object_opaque, const VkExtent2D& frame_size,
+              VkSampleCountFlagBits sample_count, const RenderPass& render_pass,
+              uint32_t subpass_index, bool flip_viewport_y = true);
 
   // Renders the model.
   // This should be called when 'command_buffer' is recording commands.
-  void Draw(const VkCommandBuffer& command_buffer,
-            int frame, uint32_t instance_count) const;
+  void Draw(const VkCommandBuffer& command_buffer, int frame,
+            uint32_t instance_count) const;
 
  private:
   friend std::unique_ptr<Model> ModelBuilder::Build();
@@ -271,8 +269,7 @@ class Model {
   using PushConstantInfos = ModelBuilder::PushConstantInfos;
   using TexturesPerMesh = ModelBuilder::TexturesPerMesh;
 
-  Model(SharedBasicContext context,
-        float viewport_aspect_ratio,
+  Model(SharedBasicContext context, float viewport_aspect_ratio,
         std::unique_ptr<StaticPerVertexBuffer>&& vertex_buffer,
         std::vector<const PerInstanceBuffer*>&& per_instance_buffers,
         std::optional<PushConstantInfos>&& push_constant_info,

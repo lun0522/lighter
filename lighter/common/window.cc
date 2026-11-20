@@ -7,9 +7,9 @@
 
 #include "lighter/common/window.h"
 
-#include <format>
-
 #include <GLFW/glfw3.h>
+
+#include <format>
 
 #include "lighter/common/util.h"
 
@@ -57,8 +57,8 @@ void GlfwMoveCursorCallback(GLFWwindow* window, double x_pos, double y_pos) {
 void GlfwScrollCallback(GLFWwindow* window, double x_pos, double y_pos) {
   GetWindow(window).DidScroll(x_pos, y_pos);
 }
-void GlfwMouseButtonCallback(
-    GLFWwindow* window, int button, int action, int mods) {
+void GlfwMouseButtonCallback(GLFWwindow* window, int button, int action,
+                             int mods) {
   GetWindow(window).DidClickMouse(/*is_left=*/button == GLFW_MOUSE_BUTTON_LEFT,
                                   /*is_press=*/action == GLFW_PRESS);
 }
@@ -66,8 +66,8 @@ void GlfwMouseButtonCallback(
 }  // namespace window_callback
 
 Window::Window(std::string_view name, const glm::ivec2& screen_size)
-    : original_aspect_ratio_{
-          static_cast<float>(screen_size.x) / screen_size.y} {
+    : original_aspect_ratio_{static_cast<float>(screen_size.x) /
+                             screen_size.y} {
   glfwSetErrorCallback(window_callback::GlfwErrorCallback);
   ASSERT_TRUE(glfwInit() == GLFW_TRUE, "Failed to init GLFW");
 
@@ -82,8 +82,8 @@ Window::Window(std::string_view name, const glm::ivec2& screen_size)
   }
 
   glfwSetWindowUserPointer(window_, this);
-  glfwSetFramebufferSizeCallback(
-      window_, window_callback::GlfwResizeWindowCallback);
+  glfwSetFramebufferSizeCallback(window_,
+                                 window_callback::GlfwResizeWindowCallback);
   glfwSetCursorPosCallback(window_, window_callback::GlfwMoveCursorCallback);
   glfwSetScrollCallback(window_, window_callback::GlfwScrollCallback);
   glfwSetMouseButtonCallback(window_, window_callback::GlfwMouseButtonCallback);
@@ -102,8 +102,8 @@ Window& Window::SetCursorHidden(bool hidden) {
   return *this;
 }
 
-Window& Window::RegisterPressKeyCallback(
-    KeyMap key, PressKeyCallback&& callback) {
+Window& Window::RegisterPressKeyCallback(KeyMap key,
+                                         PressKeyCallback&& callback) {
   const auto glfw_key = WindowKeyToGlfwKey(key);
   if (callback == nullptr) {
     press_key_callbacks_.erase(glfw_key);
@@ -160,9 +160,7 @@ glm::ivec2 Window::Recreate() {
   return frame_size;
 }
 
-bool Window::ShouldQuit() const {
-  return glfwWindowShouldClose(window_);
-}
+bool Window::ShouldQuit() const { return glfwWindowShouldClose(window_); }
 
 const std::vector<const char*>& Window::GetRequiredExtensions() {
   static const std::vector<const char*>* required_extensions = nullptr;
@@ -204,9 +202,7 @@ glm::dvec2 Window::GetNormalizedCursorPos() const {
   return normalized_cursor_pos;
 }
 
-void Window::DidResizeWindow() {
-  is_resized_ = true;
-}
+void Window::DidResizeWindow() { is_resized_ = true; }
 
 void Window::DidMoveCursor(double x_pos, double y_pos) {
   if (move_cursor_callback_ != nullptr) {

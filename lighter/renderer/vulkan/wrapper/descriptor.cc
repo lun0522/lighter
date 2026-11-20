@@ -59,8 +59,7 @@ VkDescriptorPool CreateDescriptorPool(
 // ready for pushing descriptors.
 VkDescriptorSetLayout CreateDescriptorSetLayout(
     const BasicContext& context,
-    std::span<const Descriptor::Info> descriptor_infos,
-    bool is_dynamic) {
+    std::span<const Descriptor::Info> descriptor_infos, bool is_dynamic) {
   int total_bindings = 0;
   for (const auto& info : descriptor_infos) {
     total_bindings += info.bindings.size();
@@ -122,8 +121,7 @@ VkDescriptorSet AllocateDescriptorSet(const BasicContext& context,
 // VkBufferView.
 template <typename InfoType>
 std::vector<VkWriteDescriptorSet> CreateWriteDescriptorSets(
-    const VkDescriptorSet& descriptor_set,
-    VkDescriptorType descriptor_type,
+    const VkDescriptorSet& descriptor_set, VkDescriptorType descriptor_type,
     const std::unordered_map<uint32_t, std::vector<InfoType>>& info_map) {
   static_assert(std::is_same_v<InfoType, VkDescriptorBufferInfo> ||
                     std::is_same_v<InfoType, VkDescriptorImageInfo> ||
@@ -180,8 +178,8 @@ const StaticDescriptor& StaticDescriptor::UpdateImageInfos(
 const StaticDescriptor& StaticDescriptor::UpdateDescriptorSets(
     const std::vector<VkWriteDescriptorSet>& write_descriptor_sets) const {
   vkUpdateDescriptorSets(
-      *context_->device(),
-      CONTAINER_SIZE(write_descriptor_sets), write_descriptor_sets.data(),
+      *context_->device(), CONTAINER_SIZE(write_descriptor_sets),
+      write_descriptor_sets.data(),
       /*descriptorCopyCount=*/0, /*pDescriptorCopies=*/nullptr);
   return *this;
 }

@@ -8,6 +8,8 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_SWAPCHAIN_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_SWAPCHAIN_H
 
+#include <vulkan/vulkan.h>
+
 #include <memory>
 #include <optional>
 #include <vector>
@@ -15,7 +17,6 @@
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {
@@ -65,8 +66,8 @@ class Swapchain {
  public:
   // If 'multisampling_mode' is not std::nullopt, we will perform multisampling
   // for swapchain images.
-  Swapchain(SharedBasicContext context,
-            const Surface& surface, const VkExtent2D& frame_size,
+  Swapchain(SharedBasicContext context, const Surface& surface,
+            const VkExtent2D& frame_size,
             std::optional<MultisampleImage::Mode> multisampling_mode);
 
   // This class is neither copyable nor movable.

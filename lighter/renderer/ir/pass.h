@@ -21,8 +21,7 @@ namespace lighter::renderer::ir {
 
 struct SubpassDescriptor {
   struct MultisampleResolve {
-    MultisampleResolve(const Image* source_image,
-                       const Image* target_image)
+    MultisampleResolve(const Image* source_image, const Image* target_image)
         : source_image{FATAL_IF_NULL(source_image)},
           target_image{FATAL_IF_NULL(target_image)} {}
 

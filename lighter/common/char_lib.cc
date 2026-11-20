@@ -28,25 +28,28 @@ CharLib::CharLib(std::span<const std::string> texts,
 
       ASSERT_FALSE(FT_Load_Char(face, character, FT_LOAD_RENDER),
                    "Failed to load glyph");
-      char_info_map_.insert({character, CharInfo{
-          .bearing = {
-              face->glyph->bitmap_left,
-              face->glyph->bitmap_top,
-          },
-          // Advance is measured in number of 1/64 pixels.
-          .advance = {
-              static_cast<unsigned int>(face->glyph->advance.x) >> 6U,
-              static_cast<unsigned int>(face->glyph->advance.y) >> 6U,
-          },
-          .image = Image::LoadSingleImageFromMemory(
-              /*dimension=*/{
-                  /*width=*/static_cast<int>(face->glyph->bitmap.width),
-                  /*height=*/static_cast<int>(face->glyph->bitmap.rows),
-                  image::kBwImageChannel,
-              },
-              /*raw_data=*/face->glyph->bitmap.buffer,
-              flip_y),
-      }});
+      char_info_map_.insert(
+          {character,
+           CharInfo{
+               .bearing =
+                   {
+                       face->glyph->bitmap_left,
+                       face->glyph->bitmap_top,
+                   },
+               // Advance is measured in number of 1/64 pixels.
+               .advance =
+                   {
+                       static_cast<unsigned int>(face->glyph->advance.x) >> 6U,
+                       static_cast<unsigned int>(face->glyph->advance.y) >> 6U,
+                   },
+               .image = Image::LoadSingleImageFromMemory(
+                   /*dimension=*/{
+                       /*width=*/static_cast<int>(face->glyph->bitmap.width),
+                       /*height=*/static_cast<int>(face->glyph->bitmap.rows),
+                       image::kBwImageChannel,
+                   },
+                   /*raw_data=*/face->glyph->bitmap.buffer, flip_y),
+           }});
     }
   }
 

@@ -9,11 +9,10 @@
 #define LIGHTER_COMMON_SPLINE_H
 
 #include <functional>
+#include <glm/glm.hpp>
 #include <memory>
 #include <span>
 #include <vector>
-
-#include <glm/glm.hpp>
 
 namespace lighter::common {
 
@@ -51,20 +50,18 @@ class Spline {
 class BezierSpline : public Spline {
  public:
   // Returns the middle point of the 2 given control points.
-  using GetMiddlePoint = std::function<glm::vec3(const glm::vec3& p0,
-                                                 const glm::vec3& p1)>;
+  using GetMiddlePoint =
+      std::function<glm::vec3(const glm::vec3& p0, const glm::vec3& p1)>;
 
   // Returns whether the spline segment can be considered smooth given 4 control
   // points. This is used for determining whether the recursion should stop.
-  using IsSmooth = std::function<bool(const glm::vec3& p0,
-                                      const glm::vec3& p1,
-                                      const glm::vec3& p2,
-                                      const glm::vec3& p3)>;
+  using IsSmooth =
+      std::function<bool(const glm::vec3& p0, const glm::vec3& p1,
+                         const glm::vec3& p2, const glm::vec3& p3)>;
 
   // If the depth of recursion reaches 'max_recursion_depth', or if 'is_smooth'
   // returns true, the recursion will stop.
-  BezierSpline(int max_recursion_depth,
-               GetMiddlePoint&& get_middle_point,
+  BezierSpline(int max_recursion_depth, GetMiddlePoint&& get_middle_point,
                IsSmooth&& is_smooth);
 
   // This class is neither copyable nor movable.
@@ -74,11 +71,8 @@ class BezierSpline : public Spline {
  protected:
   // This function is recursively called to interpolate spline points. When
   // recursion stop conditions are met, 'p0' will be added to 'spline_points_'.
-  void Tessellate(const glm::vec3& p0,
-                  const glm::vec3& p1,
-                  const glm::vec3& p2,
-                  const glm::vec3& p3,
-                  int recursion_depth);
+  void Tessellate(const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2,
+                  const glm::vec3& p3, int recursion_depth);
 
  private:
   // Maximum recursion depth of calling Tessellate().
@@ -99,8 +93,8 @@ class CatmullRomSpline : public BezierSpline {
   static const int kMinNumControlPoints;
 
   // Returns a Catmull-Rom spline on sphere.
-  static std::unique_ptr<Spline> GetOnSphereSpline(
-      int max_recursion_depth, float roughness);
+  static std::unique_ptr<Spline> GetOnSphereSpline(int max_recursion_depth,
+                                                   float roughness);
 
   // Inherits constructor.
   using BezierSpline::BezierSpline;
@@ -115,9 +109,7 @@ class CatmullRomSpline : public BezierSpline {
  private:
   // Converts Catmull-Rom spline control points to bezier spline control points,
   // and builds the spline.
-  void Tessellate(const glm::vec3& p0,
-                  const glm::vec3& p1,
-                  const glm::vec3& p2,
+  void Tessellate(const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2,
                   const glm::vec3& p3);
 };
 
@@ -126,8 +118,7 @@ class CatmullRomSpline : public BezierSpline {
 // spline through it.
 class SplineEditor {
  public:
-  SplineEditor(int min_num_control_points,
-               int max_num_control_points,
+  SplineEditor(int min_num_control_points, int max_num_control_points,
                std::vector<glm::vec3>&& initial_control_points,
                std::unique_ptr<Spline>&& spline);
 

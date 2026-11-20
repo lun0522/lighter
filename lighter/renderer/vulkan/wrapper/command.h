@@ -8,6 +8,8 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_COMMAND_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_COMMAND_H
 
+#include <vulkan/vulkan.h>
+
 #include <functional>
 #include <optional>
 #include <vector>
@@ -15,7 +17,6 @@
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/synchronization.h"
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {

@@ -8,9 +8,10 @@
 #ifndef LIGHTER_RENDERER_IR_PIPELINE_UTIL_H
 #define LIGHTER_RENDERER_IR_PIPELINE_UTIL_H
 
+#include <glm/glm.hpp>
+
 #include "lighter/renderer/ir/pipeline.h"
 #include "lighter/renderer/ir/type.h"
-#include <glm/glm.hpp>
 
 namespace lighter::renderer::ir::pipeline {
 

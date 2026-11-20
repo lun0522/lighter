@@ -8,13 +8,14 @@
 #ifndef LIGHTER_RENDERER_VULKAN_EXTENSION_BASE_PASS_H
 #define LIGHTER_RENDERER_VULKAN_EXTENSION_BASE_PASS_H
 
+#include <vulkan/vulkan.h>
+
 #include <optional>
 #include <string>
 #include <unordered_map>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/ir/image_usage.h"
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {
@@ -28,8 +29,8 @@ using ir::ImageUsageTracker;
 class BasePass {
  public:
   // Maps image name to usage history.
-  using ImageUsageHistoryMap = std::unordered_map<std::string,
-                                                  ImageUsageHistory>;
+  using ImageUsageHistoryMap =
+      std::unordered_map<std::string, ImageUsageHistory>;
 
   explicit BasePass(int num_subpasses) : num_subpasses_{num_subpasses} {}
 
@@ -58,8 +59,7 @@ class BasePass {
  protected:
   // Holds the previous and current image usage.
   struct ImageUsagesInfo {
-    ImageUsagesInfo(int prev_usage_subpass,
-                    const ImageUsage* prev_usage,
+    ImageUsagesInfo(int prev_usage_subpass, const ImageUsage* prev_usage,
                     const ImageUsage* curr_usage)
         : prev_usage_subpass{prev_usage_subpass},
           prev_usage{*FATAL_IF_NULL(prev_usage)},
@@ -75,8 +75,7 @@ class BasePass {
   void AddUsageHistory(std::string&& image_name, ImageUsageHistory&& history);
 
   // Returns the usage history of image.
-  const ImageUsageHistory& GetUsageHistory(
-      const std::string& image_name) const;
+  const ImageUsageHistory& GetUsageHistory(const std::string& image_name) const;
 
   // Returns a pointer to image usage at 'subpass', or nullptr if the usage has
   // not been specified for that subpass.

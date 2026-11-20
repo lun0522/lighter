@@ -8,10 +8,11 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_SYNCHRONIZATION_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_SYNCHRONIZATION_H
 
+#include <vulkan/vulkan.h>
+
 #include <vector>
 
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {

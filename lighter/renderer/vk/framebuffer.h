@@ -20,7 +20,7 @@ class Framebuffers : public WithSharedContext {
  public:
   Framebuffers(const SharedContext& context, intl::RenderPass render_pass,
                const ir::RenderPassDescriptor& descriptor);
-  
+
   // This class is neither copyable nor movable.
   Framebuffers(const Framebuffers&) = delete;
   Framebuffers& operator=(const Framebuffers&) = delete;

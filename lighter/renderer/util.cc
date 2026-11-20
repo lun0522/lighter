@@ -74,8 +74,8 @@ std::unique_ptr<ir::Renderer> CreateRenderer(
     const char* application_name,
     const std::optional<ir::debug_message::Config>& debug_message_config,
     std::vector<const common::Window*>&& window_ptrs) {
-  return std::make_unique<vk::Renderer>(
-      application_name, debug_message_config, std::move(window_ptrs));
+  return std::make_unique<vk::Renderer>(application_name, debug_message_config,
+                                        std::move(window_ptrs));
 }
 
 }  // namespace lighter::renderer::util

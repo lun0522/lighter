@@ -8,13 +8,12 @@
 #ifndef LIGHTER_RENDERER_IR_PIPELINE_H
 #define LIGHTER_RENDERER_IR_PIPELINE_H
 
+#include <glm/glm.hpp>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
-
-#include <glm/glm.hpp>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/ir/buffer.h"
@@ -48,8 +47,8 @@ struct PipelineDescriptor {
 struct GraphicsPipelineDescriptor : public PipelineDescriptor {
  public:
   // Paths to shaders used at each stage.
-  using ShaderPathMap = std::unordered_map<shader_stage::ShaderStage,
-                                           std::string>;
+  using ShaderPathMap =
+      std::unordered_map<shader_stage::ShaderStage, std::string>;
 
   struct ColorBlend {
     BlendFactor src_color_blend_factor;

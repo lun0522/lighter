@@ -41,9 +41,7 @@ class ShaderModule : public WithSharedContext {
   ShaderModule(const ShaderModule&) = delete;
   ShaderModule& operator=(const ShaderModule&) = delete;
 
-  ~ShaderModule() {
-    context_->DeviceDestroy(shader_module_);
-  }
+  ~ShaderModule() { context_->DeviceDestroy(shader_module_); }
 
   // Overloads.
   intl::ShaderModule operator*() const { return shader_module_; }
@@ -58,8 +56,8 @@ class Pipeline : public WithSharedContext {
   // Constructs a graphics pipeline.
   Pipeline(const SharedContext& context,
            const ir::GraphicsPipelineDescriptor& descriptor,
-           intl::SampleCountFlagBits sample_count,
-           intl::RenderPass render_pass, int subpass_index);
+           intl::SampleCountFlagBits sample_count, intl::RenderPass render_pass,
+           int subpass_index);
 
   // Constructs a compute pipeline.
   Pipeline(const SharedContext& context,

@@ -69,7 +69,7 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
 
 #ifndef NDEBUG
   ~BasicContext() { LOG_INFO << "Context destructed properly"; }
-#endif  /* !NDEBUG */
+#endif /* !NDEBUG */
 
   // Records an operation that releases an expired resource, so that it can be
   // executed once the graphics device becomes idle. This is used for resources
@@ -103,7 +103,9 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   void WaitIdle() {
     device_.WaitIdle();
     if (!release_expired_rsrc_ops_.empty()) {
-      for (const auto& op : release_expired_rsrc_ops_) { op(*this); }
+      for (const auto& op : release_expired_rsrc_ops_) {
+        op(*this);
+      }
       release_expired_rsrc_ops_.clear();
     }
   }
@@ -113,8 +115,12 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   // other resources get destroyed.
   void OnExit() {
     device_.WaitIdle();
-    for (const auto& op : release_expired_rsrc_ops_) { op(*this); }
-    for (const auto& op : check_no_active_auto_release_pool_ops_) { op(); }
+    for (const auto& op : release_expired_rsrc_ops_) {
+      op(*this);
+    }
+    for (const auto& op : check_no_active_auto_release_pool_ops_) {
+      op();
+    }
   }
 
   // Returns unique queue family indices.
@@ -139,16 +145,18 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
   explicit BasicContext(
       const std::optional<WindowSupport>& window_support
 #ifndef NDEBUG
-      , const DebugCallback::TriggerCondition& debug_callback_trigger
+      ,
+      const DebugCallback::TriggerCondition& debug_callback_trigger
 #endif /* !NDEBUG */
-  )
+      )
       : instance_{this, window_support},
 #ifndef NDEBUG
         debug_callback_{this, debug_callback_trigger},
 #endif /* !NDEBUG */
         physical_device_{this, window_support},
         device_{this, window_support},
-        queues_{*this, queue_family_indices()} {}
+        queues_{*this, queue_family_indices()} {
+  }
 
   // Wrapper of VkAllocationCallbacks.
   const HostMemoryAllocator allocator_;

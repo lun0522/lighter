@@ -9,24 +9,24 @@
 #define LIGHTER_RENDERER_VULKAN_EXTENSION_TEXT_UTIL_H
 
 #include <array>
+#include <format>
+#include <glm/glm.hpp>
 #include <memory>
 #include <optional>
-#include <string>
-#include <format>
 #include <span>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "lighter/common/char_lib.h"
 #include "lighter/common/file.h"
 #include "lighter/common/util.h"
-#include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
+#include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/descriptor.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include <glm/glm.hpp>
 
 namespace lighter {
 namespace renderer {
@@ -105,12 +105,11 @@ class CharLoader {
 
   // Populates 'char_texture_map' and 'char_texture_info_map' with characters
   // loaded in 'char_lib', excluding the space character.
-  void CreateCharTextures(
-      const SharedBasicContext& context,
-      const common::CharLib& char_lib,
-      int interval_between_chars, const Image& target_image,
-      CharImageMap* char_texture_map,
-      CharTextureInfoMap* char_texture_info_map) const;
+  void CreateCharTextures(const SharedBasicContext& context,
+                          const common::CharLib& char_lib,
+                          int interval_between_chars, const Image& target_image,
+                          CharImageMap* char_texture_map,
+                          CharTextureInfoMap* char_texture_info_map) const;
 
   // Creates a vertex buffer for rendering characters in 'char_merge_order',
   // which should not include the space character.
@@ -143,8 +142,8 @@ class TextLoader {
 
   // The loader will be able to render any of 'texts'.
   TextLoader(const SharedBasicContext& context,
-             std::span<const std::string> texts,
-             CharLoader::Font font, int font_height);
+             std::span<const std::string> texts, CharLoader::Font font,
+             int font_height);
 
   // This class is neither copyable nor movable.
   TextLoader(const TextLoader&) = delete;
@@ -158,11 +157,9 @@ class TextLoader {
  private:
   // Creates texture for 'text'.
   TextTextureInfo CreateTextTexture(
-      const SharedBasicContext& context,
-      const std::string& text, int font_height,
-      const CharLoader& char_loader,
-      StaticDescriptor* descriptor,
-      RenderPassBuilder* render_pass_builder,
+      const SharedBasicContext& context, const std::string& text,
+      int font_height, const CharLoader& char_loader,
+      StaticDescriptor* descriptor, RenderPassBuilder* render_pass_builder,
       GraphicsPipelineBuilder* pipeline_builder,
       DynamicPerVertexBuffer* vertex_buffer) const;
 

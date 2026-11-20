@@ -27,8 +27,9 @@ struct FlagEntry {
 };
 
 auto& GetRegistry() {
-  static auto* registry = new std::unordered_map<
-      std::string, FlagEntry, util::TransparentStringHash, std::equal_to<>>{};
+  static auto* registry =
+      new std::unordered_map<std::string, FlagEntry,
+                             util::TransparentStringHash, std::equal_to<>>{};
   return *registry;
 }
 
@@ -56,26 +57,26 @@ template <>
 Flag<bool>::Flag(std::string_view name, bool default_value,
                  std::string_view description)
     : name_{name}, value_{default_value}, description_{description} {
-  GetRegistry().emplace(
-      std::string{name},
-      FlagEntry{
-          std::string{description},
-          /*is_bool=*/true,
-          [this](std::string_view val) { value_ = ParseBool(val); },
-      });
+  GetRegistry().emplace(std::string{name}, FlagEntry{
+                                               std::string{description},
+                                               /*is_bool=*/true,
+                                               [this](std::string_view val) {
+                                                 value_ = ParseBool(val);
+                                               },
+                                           });
 }
 
 template <>
 Flag<std::string>::Flag(std::string_view name, std::string default_value,
                         std::string_view description)
     : name_{name}, value_{std::move(default_value)}, description_{description} {
-  GetRegistry().emplace(
-      std::string{name},
-      FlagEntry{
-          std::string{description},
-          /*is_bool=*/false,
-          [this](std::string_view val) { value_ = std::string{val}; },
-      });
+  GetRegistry().emplace(std::string{name}, FlagEntry{
+                                               std::string{description},
+                                               /*is_bool=*/false,
+                                               [this](std::string_view val) {
+                                                 value_ = std::string{val};
+                                               },
+                                           });
 }
 
 void ParseCommandLine(int argc, char* argv[]) {

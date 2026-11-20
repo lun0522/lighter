@@ -5,9 +5,9 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#include "lighter/example/util.h"
-
 #include <array>
+
+#include "lighter/example/util.h"
 
 namespace lighter::example {
 namespace {
@@ -18,9 +18,9 @@ using renderer::ir::GraphicsPipelineDescriptor;
 using renderer::ir::Image;
 using renderer::ir::ImageUsage;
 using renderer::ir::MultisamplingMode;
+using renderer::ir::Renderer;
 using renderer::ir::RenderPass;
 using renderer::ir::RenderPassDescriptor;
-using renderer::ir::Renderer;
 using renderer::ir::SubpassDescriptor;
 using renderer::ir::VertexInputRate;
 
@@ -56,14 +56,13 @@ class TriangleExample {
         Vertex3DWithColor{/*pos=*/{-0.5f, -0.5f, 0.0f},
                           /*color=*/{0.0f, 1.0f, 0.0f}},
     };
-    const size_t vertex_data_size =
-        common::util::GetTotalDataSize(std::span<const Vertex3DWithColor>{
-            vertex_data});
+    const size_t vertex_data_size = common::util::GetTotalDataSize(
+        std::span<const Vertex3DWithColor>{vertex_data});
     // TODO: change to UpdateRate::kLow.
-    vertex_buffer_ = renderer_->CreateBuffer(
-        Buffer::UpdateRate::kHigh, vertex_data_size,
-        std::array{BufferUsage::GetVertexBufferUsage(
-            BufferUsage::UsageType::kVertexOnly)});
+    vertex_buffer_ =
+        renderer_->CreateBuffer(Buffer::UpdateRate::kHigh, vertex_data_size,
+                                std::array{BufferUsage::GetVertexBufferUsage(
+                                    BufferUsage::UsageType::kVertexOnly)});
     vertex_buffer_->CopyToDevice(
         std::array{Buffer::CopyInfo{vertex_data.data(), vertex_data_size,
                                     /*offset=*/0}});
@@ -74,24 +73,25 @@ class TriangleExample {
             renderer::ir::AccessLocation::kFragmentShader)});
 
     // TODO: Use refection API for locations.
-    auto pipeline_descriptor = GraphicsPipelineDescriptor{}
-        .SetName("Triangle")
-        .SetShader(renderer::ir::shader_stage::VERTEX,
-                   GetShaderBinaryPath("triangle/triangle.vert"))
-        .SetShader(renderer::ir::shader_stage::FRAGMENT,
-                   GetShaderBinaryPath("triangle/triangle.frag"))
-        .UseColorAttachment(/*location=*/0,
-                            renderer::ir::pipeline::GetColorAlphaBlend())
-        .AddVertexInput({
-            VertexInputRate::kVertex,
-            /*binding_point=*/0,
-            /*stride=*/sizeof(vertex_data[0]),
-            renderer::ir::buffer::CreateAttributesForVertex3DWithColor(
-                /*loc_pos=*/0, /*loc_color=*/1)});
+    auto pipeline_descriptor =
+        GraphicsPipelineDescriptor{}
+            .SetName("Triangle")
+            .SetShader(renderer::ir::shader_stage::VERTEX,
+                       GetShaderBinaryPath("triangle/triangle.vert"))
+            .SetShader(renderer::ir::shader_stage::FRAGMENT,
+                       GetShaderBinaryPath("triangle/triangle.frag"))
+            .UseColorAttachment(/*location=*/0,
+                                renderer::ir::pipeline::GetColorAlphaBlend())
+            .AddVertexInput(
+                {VertexInputRate::kVertex,
+                 /*binding_point=*/0,
+                 /*stride=*/sizeof(vertex_data[0]),
+                 renderer::ir::buffer::CreateAttributesForVertex3DWithColor(
+                     /*loc_pos=*/0, /*loc_color=*/1)});
 
     const Image& swapchain_image = renderer_->GetSwapchainImage(kWindowIndex);
-    auto subpass_descriptor = SubpassDescriptor{}
-        .AddPipeline(std::move(pipeline_descriptor));
+    auto subpass_descriptor =
+        SubpassDescriptor{}.AddPipeline(std::move(pipeline_descriptor));
     auto render_pass_descriptor = RenderPassDescriptor{};
 
     if (use_multisamping) {
@@ -100,25 +100,20 @@ class TriangleExample {
           multisampling_mode, /*high_precision=*/false,
           std::array{ImageUsage::GetRenderTargetUsage(
               /*attachment_location=*/0)});
-      subpass_descriptor
-          .AddColorAttachment(multisample_attachment_.get())
+      subpass_descriptor.AddColorAttachment(multisample_attachment_.get())
           .AddMultisampleResolve(multisample_attachment_.get(),
                                  &swapchain_image);
       render_pass_descriptor
-          .AddAttachment(
-              multisample_attachment_.get(),
-              renderer::ir::pass::GetRenderTargetLoadStoreOps(
-                  /*is_multisampled=*/true))
-          .AddAttachment(
-              &swapchain_image,
-              renderer::ir::pass::GetResolveTargetLoadStoreOps());
+          .AddAttachment(multisample_attachment_.get(),
+                         renderer::ir::pass::GetRenderTargetLoadStoreOps(
+                             /*is_multisampled=*/true))
+          .AddAttachment(&swapchain_image,
+                         renderer::ir::pass::GetResolveTargetLoadStoreOps());
     } else {
       subpass_descriptor.AddColorAttachment(&swapchain_image);
-      render_pass_descriptor
-          .AddAttachment(
-              &swapchain_image,
-              renderer::ir::pass::GetRenderTargetLoadStoreOps(
-                  /*is_multisampled=*/false));
+      render_pass_descriptor.AddAttachment(
+          &swapchain_image, renderer::ir::pass::GetRenderTargetLoadStoreOps(
+                                /*is_multisampled=*/false));
     }
 
     render_pass_descriptor.AddSubpass(std::move(subpass_descriptor));
@@ -136,10 +131,9 @@ class TriangleExample {
 
       alpha_.GetMutData(current_frame_)->value =
           glm::abs(glm::sin(timer_.GetElapsedTimeSinceLaunch()));
-      uniform_buffer_->CopyToDevice(
-          std::array{Buffer::CopyInfo{alpha_.GetData(current_frame_),
-                                      sizeof(Alpha),
-                                      sizeof(Alpha) * current_frame_}});
+      uniform_buffer_->CopyToDevice(std::array{
+          Buffer::CopyInfo{alpha_.GetData(current_frame_), sizeof(Alpha),
+                           sizeof(Alpha) * current_frame_}});
 
       current_frame_ = (current_frame_ + 1) % kNumFramesInFlight;
       timer_.Tick();

@@ -8,6 +8,8 @@
 #ifndef LIGHTER_RENDERER_VULKAN_EXTENSION_COMPUTE_PASS_H
 #define LIGHTER_RENDERER_VULKAN_EXTENSION_COMPUTE_PASS_H
 
+#include <vulkan/vulkan.h>
+
 #include <functional>
 #include <span>
 #include <string>
@@ -16,7 +18,6 @@
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/vulkan/extension/base_pass.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {

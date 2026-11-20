@@ -55,12 +55,13 @@ RenderPassBuilder::RenderPassBuilder(const Context& context,
   CreateSubpassDescriptions();
   CreateSubpassDependencies();
 
-  const auto render_pass_create_info = intl::RenderPassCreateInfo{}
-      .setAttachments(attachment_descriptions_)
-      .setSubpasses(subpass_descriptions_)
-      .setDependencies(subpass_dependencies_);
-  render_pass_ = context.device()->createRenderPass(
-      render_pass_create_info, *context.host_allocator());
+  const auto render_pass_create_info =
+      intl::RenderPassCreateInfo{}
+          .setAttachments(attachment_descriptions_)
+          .setSubpasses(subpass_descriptions_)
+          .setDependencies(subpass_dependencies_);
+  render_pass_ = context.device()->createRenderPass(render_pass_create_info,
+                                                    *context.host_allocator());
 }
 
 // TODO: Populate image layout.
@@ -69,15 +70,16 @@ void RenderPassBuilder::CreateAttachments() {
     attachment_index_map_.insert(
         {attachment, static_cast<int>(attachment_descriptions_.size())});
     const auto& vk_attachment = Image::Cast(*attachment);
-    attachment_descriptions_.push_back(intl::AttachmentDescription{}
-        .setFormat(vk_attachment.format())
-        .setSamples(vk_attachment.sample_count())
-        .setLoadOp(type::ConvertAttachmentLoadOp(load_store_ops.load_op))
-        .setStoreOp(type::ConvertAttachmentStoreOp(load_store_ops.store_op))
-        .setStencilLoadOp(intl::AttachmentLoadOp::eDontCare)
-        .setStencilStoreOp(intl::AttachmentStoreOp::eDontCare)
-        .setInitialLayout(intl::ImageLayout::eGeneral)
-        .setFinalLayout(intl::ImageLayout::eGeneral));
+    attachment_descriptions_.push_back(
+        intl::AttachmentDescription{}
+            .setFormat(vk_attachment.format())
+            .setSamples(vk_attachment.sample_count())
+            .setLoadOp(type::ConvertAttachmentLoadOp(load_store_ops.load_op))
+            .setStoreOp(type::ConvertAttachmentStoreOp(load_store_ops.store_op))
+            .setStencilLoadOp(intl::AttachmentLoadOp::eDontCare)
+            .setStencilStoreOp(intl::AttachmentStoreOp::eDontCare)
+            .setInitialLayout(intl::ImageLayout::eGeneral)
+            .setFinalLayout(intl::ImageLayout::eGeneral));
   }
 
   for (const auto& [attachment, load_store_ops] :
@@ -85,20 +87,20 @@ void RenderPassBuilder::CreateAttachments() {
     attachment_index_map_.insert(
         {attachment, static_cast<int>(attachment_descriptions_.size())});
     const auto& vk_attachment = Image::Cast(*attachment);
-    attachment_descriptions_.push_back(intl::AttachmentDescription{}
-        .setFormat(vk_attachment.format())
-        .setSamples(vk_attachment.sample_count())
-        .setLoadOp(type::ConvertAttachmentLoadOp(
-            load_store_ops.depth_ops.load_op))
-        .setStoreOp(type::ConvertAttachmentStoreOp(
-            load_store_ops.depth_ops.store_op))
-        .setStencilLoadOp(type::ConvertAttachmentLoadOp(
-            load_store_ops.stencil_ops.load_op))
-        .setStencilStoreOp(type::ConvertAttachmentStoreOp(
-            load_store_ops.stencil_ops.store_op))
-        .setInitialLayout(intl::ImageLayout::eGeneral)
-        .setFinalLayout(intl::ImageLayout::eGeneral)
-    );
+    attachment_descriptions_.push_back(
+        intl::AttachmentDescription{}
+            .setFormat(vk_attachment.format())
+            .setSamples(vk_attachment.sample_count())
+            .setLoadOp(
+                type::ConvertAttachmentLoadOp(load_store_ops.depth_ops.load_op))
+            .setStoreOp(type::ConvertAttachmentStoreOp(
+                load_store_ops.depth_ops.store_op))
+            .setStencilLoadOp(type::ConvertAttachmentLoadOp(
+                load_store_ops.stencil_ops.load_op))
+            .setStencilStoreOp(type::ConvertAttachmentStoreOp(
+                load_store_ops.stencil_ops.store_op))
+            .setInitialLayout(intl::ImageLayout::eGeneral)
+            .setFinalLayout(intl::ImageLayout::eGeneral));
   }
 }
 
@@ -115,16 +117,17 @@ void RenderPassBuilder::CreateSubpassDescriptions() {
       num_references, intl::AttachmentReference{VK_ATTACHMENT_UNUSED});
 
   int reference_index = 0;
-  const auto add_reference =
-      [this, &reference_index](const ir::Image* attachment) {
-        const auto iter = attachment_index_map_.find(attachment);
-        ASSERT_FALSE(iter == attachment_index_map_.end(),
-                     std::format("Attachment '{}' not declared",
-                                 attachment->name()));
-        attachment_references_[reference_index++] = intl::AttachmentReference{}
+  const auto add_reference = [this,
+                              &reference_index](const ir::Image* attachment) {
+    const auto iter = attachment_index_map_.find(attachment);
+    ASSERT_FALSE(
+        iter == attachment_index_map_.end(),
+        std::format("Attachment '{}' not declared", attachment->name()));
+    attachment_references_[reference_index++] =
+        intl::AttachmentReference{}
             .setAttachment(iter->second)
             .setLayout(intl::ImageLayout::eGeneral);
-      };
+  };
 
   subpass_descriptions_.reserve(descriptor_.subpass_descriptors.size());
   for (const SubpassDescriptor& subpass : descriptor_.subpass_descriptors) {
@@ -140,11 +143,12 @@ void RenderPassBuilder::CreateSubpassDescriptions() {
       add_reference(subpass.depth_stencil_attachment);
     }
 
-    subpass_descriptions_.push_back(intl::SubpassDescription{}
-        .setPipelineBindPoint(intl::PipelineBindPoint::eGraphics)
-        .setColorAttachmentCount(CONTAINER_SIZE(subpass.color_attachments))
-        .setPColorAttachments(color_refs_ptr)
-        .setPDepthStencilAttachment(depth_stencil_ref_ptr));
+    subpass_descriptions_.push_back(
+        intl::SubpassDescription{}
+            .setPipelineBindPoint(intl::PipelineBindPoint::eGraphics)
+            .setColorAttachmentCount(CONTAINER_SIZE(subpass.color_attachments))
+            .setPColorAttachments(color_refs_ptr)
+            .setPDepthStencilAttachment(depth_stencil_ref_ptr));
   }
 }
 
@@ -152,14 +156,13 @@ void RenderPassBuilder::CreateSubpassDescriptions() {
 void RenderPassBuilder::CreateSubpassDependencies() {
   for (const auto& [from, to, attachments] : descriptor_.subpass_dependencies) {
     subpass_dependencies_.push_back(
-      intl::SubpassDependency{}
-          .setSrcSubpass(CAST_TO_UINT(from))
-          .setDstSubpass(CAST_TO_UINT(to))
-          .setSrcStageMask(intl::PipelineStageFlagBits::eAllGraphics)
-          .setDstStageMask(intl::PipelineStageFlagBits::eAllGraphics)
-          .setSrcAccessMask(intl::AccessFlagBits::eColorAttachmentWrite)
-          .setDstAccessMask(intl::AccessFlagBits::eColorAttachmentWrite)
-    );
+        intl::SubpassDependency{}
+            .setSrcSubpass(CAST_TO_UINT(from))
+            .setDstSubpass(CAST_TO_UINT(to))
+            .setSrcStageMask(intl::PipelineStageFlagBits::eAllGraphics)
+            .setDstStageMask(intl::PipelineStageFlagBits::eAllGraphics)
+            .setSrcAccessMask(intl::AccessFlagBits::eColorAttachmentWrite)
+            .setDstAccessMask(intl::AccessFlagBits::eColorAttachmentWrite));
   }
 }
 

@@ -148,13 +148,13 @@ std::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
   for (int i = 0; i < surfaces.size(); ++i) {
     const intl::SurfaceKHR surface = **surfaces[i];
     uint32_t family_index = 0;
-    const auto has_present_support =
-        [physical_device, surface, family_index](const auto&) mutable {
-          return physical_device.getSurfaceSupportKHR(family_index++, surface);
-        };
-    const auto iter = std::find_if(properties_vector.begin(),
-                                   properties_vector.end(),
-                                   has_present_support);
+    const auto has_present_support = [physical_device, surface,
+                                      family_index](const auto&) mutable {
+      return physical_device.getSurfaceSupportKHR(family_index++, surface);
+    };
+    const auto iter =
+        std::find_if(properties_vector.begin(), properties_vector.end(),
+                     has_present_support);
     if (iter == properties_vector.end()) {
       LOG_INFO << std::format("No presentation queue for surface {}", i);
       return std::nullopt;
@@ -188,27 +188,26 @@ intl::SampleCountFlagBits ChooseSampleCount(
       return SampleCount::e1;
 
     case MultisamplingMode::kDecent: {
-      constexpr std::array candidates{
-          SampleCount::e4, SampleCount::e2, SampleCount::e1};
+      constexpr std::array candidates{SampleCount::e4, SampleCount::e2,
+                                      SampleCount::e1};
       return GetFirstSupportedSampleCount(supported_sample_counts, candidates);
     }
 
     case MultisamplingMode::kBest: {
       constexpr std::array candidates{
-          SampleCount::e64, SampleCount::e32, SampleCount::e16,
-          SampleCount::e8,  SampleCount::e4,  SampleCount::e2,
-          SampleCount::e1};
+          SampleCount::e64, SampleCount::e32, SampleCount::e16, SampleCount::e8,
+          SampleCount::e4,  SampleCount::e2,  SampleCount::e1};
       return GetFirstSupportedSampleCount(supported_sample_counts, candidates);
     }
   }
 }
 
 // Returns a callback that prints the debug message.
-VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
-    VkDebugUtilsMessageTypeFlagsEXT message_types,
-    const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
-    void* user_data) {
+VKAPI_ATTR VkBool32 VKAPI_CALL
+UserCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+             VkDebugUtilsMessageTypeFlagsEXT message_types,
+             const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+             void* user_data) {
   const auto severity =
       static_cast<intl::DebugUtilsMessageSeverityFlagBitsEXT>(message_severity);
   const auto types =
@@ -248,61 +247,58 @@ Instance::Instance(const Context* context, bool enable_validation,
   if (enable_validation) {
     required_extensions.push_back(kValidationExtension);
   }
-  CheckPropertiesSupport(
-      "instance extensions", PropertyChecker::ForInstanceExtensions(),
-      std::vector<std::string>{required_extensions.begin(),
-                               required_extensions.end()});
+  CheckPropertiesSupport("instance extensions",
+                         PropertyChecker::ForInstanceExtensions(),
+                         std::vector<std::string>{required_extensions.begin(),
+                                                  required_extensions.end()});
 
   // Might be useful for the driver to optimize for some graphics engine.
-  const auto application_info = intl::ApplicationInfo{}
-      .setPApplicationName(application_name)
-      .setApplicationVersion(VK_MAKE_VERSION(1, 0, 0))
-      .setPEngineName("Lighter")
-      .setEngineVersion(VK_MAKE_VERSION(1, 0, 0))
-      .setApiVersion(VK_API_VERSION_1_2);
-  const auto instance_create_info = intl::InstanceCreateInfo{}
-      .setPApplicationInfo(&application_info)
-      .setPEnabledLayerNames(required_layers)
-      .setPEnabledExtensionNames(required_extensions);
-  instance_ = intl::createInstance(instance_create_info,
-                                   *context_.host_allocator());
+  const auto application_info =
+      intl::ApplicationInfo{}
+          .setPApplicationName(application_name)
+          .setApplicationVersion(VK_MAKE_VERSION(1, 0, 0))
+          .setPEngineName("Lighter")
+          .setEngineVersion(VK_MAKE_VERSION(1, 0, 0))
+          .setApiVersion(VK_API_VERSION_1_2);
+  const auto instance_create_info =
+      intl::InstanceCreateInfo{}
+          .setPApplicationInfo(&application_info)
+          .setPEnabledLayerNames(required_layers)
+          .setPEnabledExtensionNames(required_extensions);
+  instance_ =
+      intl::createInstance(instance_create_info, *context_.host_allocator());
 }
 
-Instance::~Instance() {
-  instance_.destroy(*context_.host_allocator());
-}
+Instance::~Instance() { instance_.destroy(*context_.host_allocator()); }
 
 DebugMessenger::DebugMessenger(const Context* context,
                                const ir::debug_message::Config& config)
     : context_{*FATAL_IF_NULL(context)} {
   // We may pass data to 'pUserData' which can be retrieved from the callback.
-  const auto messenger_create_info = intl::DebugUtilsMessengerCreateInfoEXT{}
-      .setMessageSeverity(
-          type::ConvertDebugMessageSeverities(config.message_severities))
-      .setMessageType(type::ConvertDebugMessageTypes(config.message_types))
-      .setPfnUserCallback(UserCallback);
+  const auto messenger_create_info =
+      intl::DebugUtilsMessengerCreateInfoEXT{}
+          .setMessageSeverity(
+              type::ConvertDebugMessageSeverities(config.message_severities))
+          .setMessageType(type::ConvertDebugMessageTypes(config.message_types))
+          .setPfnUserCallback(UserCallback);
   messenger_ = context_.instance()->createDebugUtilsMessengerEXT(
       messenger_create_info, *context_.host_allocator());
 }
 
-DebugMessenger::~DebugMessenger() {
-  context_.InstanceDestroy(messenger_);
-}
+DebugMessenger::~DebugMessenger() { context_.InstanceDestroy(messenger_); }
 
 Surface::Surface(const Context* context, const common::Window& window)
     : context_{*FATAL_IF_NULL(context)} {
   const auto create_surface_func = window.GetCreateSurfaceFunc();
   VkSurfaceKHR surface;
   ASSERT_SUCCESS(
-    intl::Result{create_surface_func(
-        *context_.instance(), context_.host_allocator().c_type(), &surface)},
-    "Failed to create window surface");
+      intl::Result{create_surface_func(
+          *context_.instance(), context_.host_allocator().c_type(), &surface)},
+      "Failed to create window surface");
   surface_ = surface;
 }
 
-Surface::~Surface() {
-  context_.InstanceDestroy(surface_);
-}
+Surface::~Surface() { context_.InstanceDestroy(surface_); }
 
 PhysicalDevice::PhysicalDevice(const Context* context,
                                std::span<Surface* const> surfaces)
@@ -347,8 +343,7 @@ PhysicalDevice::PhysicalDevice(const Context* context,
       limits_.framebufferDepthSampleCounts,
       limits_.framebufferStencilSampleCounts,
   });
-  for (auto mode : {MultisamplingMode::kNone,
-                    MultisamplingMode::kDecent,
+  for (auto mode : {MultisamplingMode::kNone, MultisamplingMode::kDecent,
                     MultisamplingMode::kBest}) {
     sample_count_map_.insert(
         {mode, ChooseSampleCount(mode, supported_sample_counts)});
@@ -377,9 +372,8 @@ Device::Device(const Context* context, bool enable_validation,
   std::vector<intl::DeviceQueueCreateInfo> queue_create_infos;
   for (uint32_t queue_family_index : queue_family_indices_set) {
     queue_create_infos.push_back(intl::DeviceQueueCreateInfo{}
-        .setQueueFamilyIndex(queue_family_index)
-        .setQueuePriorities(queue_priorities)
-    );
+                                     .setQueueFamilyIndex(queue_family_index)
+                                     .setQueuePriorities(queue_priorities));
   }
 
   std::vector<const char*> required_layers;
@@ -403,17 +397,16 @@ Device::Device(const Context* context, bool enable_validation,
   }
   const auto device_extensions_checker =
       PropertyChecker::ForDeviceExtensions(*physical_device);
-  CheckPropertiesSupport(
-      "device extensions", device_extensions_checker,
-      std::vector<std::string>{required_extensions.begin(),
-                               required_extensions.end()});
+  CheckPropertiesSupport("device extensions", device_extensions_checker,
+                         std::vector<std::string>{required_extensions.begin(),
+                                                  required_extensions.end()});
 
-  // According to the spec, VK_KHR_portability_subset must be included if it is
-  // included in vkEnumerateDeviceExtensionProperties:
-  // https://vulkan.lunarg.com/doc/view/1.2.176.1/mac/1.2-extensions/vkspec.html#VUID-VkDeviceCreateInfo-pProperties-04451
-  // TODO: Remove #define once this extension gets out of beta.
-  #ifndef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
-  #define VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME "VK_KHR_portability_subset"
+// According to the spec, VK_KHR_portability_subset must be included if it is
+// included in vkEnumerateDeviceExtensionProperties:
+// https://vulkan.lunarg.com/doc/view/1.2.176.1/mac/1.2-extensions/vkspec.html#VUID-VkDeviceCreateInfo-pProperties-04451
+// TODO: Remove #define once this extension gets out of beta.
+#ifndef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+#define VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME "VK_KHR_portability_subset"
   for (const char* extension : {VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME}) {
     if (device_extensions_checker.IsSupported(extension)) {
       required_extensions.push_back(extension);
@@ -421,24 +414,23 @@ Device::Device(const Context* context, bool enable_validation,
                               extension);
     }
   }
-  #endif  // VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+#endif  // VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
 
   // Request support for anisotropy filtering. This should be safe as we have
   // checked that during physical device creation.
-  const auto required_features = intl::PhysicalDeviceFeatures{}
-      .setSamplerAnisotropy(true);
-  const auto device_create_info = intl::DeviceCreateInfo{}
-      .setQueueCreateInfos(queue_create_infos)
-      .setPEnabledLayerNames(required_layers)
-      .setPEnabledExtensionNames(required_extensions)
-      .setPEnabledFeatures(&required_features);
+  const auto required_features =
+      intl::PhysicalDeviceFeatures{}.setSamplerAnisotropy(true);
+  const auto device_create_info =
+      intl::DeviceCreateInfo{}
+          .setQueueCreateInfos(queue_create_infos)
+          .setPEnabledLayerNames(required_layers)
+          .setPEnabledExtensionNames(required_extensions)
+          .setPEnabledFeatures(&required_features);
   device_ = physical_device->createDevice(device_create_info,
                                           *context_.host_allocator());
 }
 
-Device::~Device() {
-  device_.destroy(*context_.host_allocator());
-}
+Device::~Device() { device_.destroy(*context_.host_allocator()); }
 
 Queues::Queues(const Context& context) {
   // We simply use the first queue in the family with 'family_index'.

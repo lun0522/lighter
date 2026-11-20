@@ -8,6 +8,8 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_PIPELINE_UTIL_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_PIPELINE_UTIL_H
 
+#include <vulkan/vulkan.h>
+
 #include <span>
 #include <vector>
 
@@ -15,7 +17,6 @@
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {

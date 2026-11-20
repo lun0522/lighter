@@ -8,9 +8,12 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_UTIL_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_UTIL_H
 
+#include <vulkan/vulkan.h>
+
 #include <cmath>
 #include <format>
 #include <functional>
+#include <glm/glm.hpp>
 #include <optional>
 #include <span>
 #include <string>
@@ -18,11 +21,9 @@
 #include <vector>
 
 #include "lighter/common/util.h"
-#include <glm/glm.hpp>
-#include <vulkan/vulkan.h>
 
-#define ASSERT_SUCCESS(event, error)                                    \
-  ASSERT_TRUE(event == VK_SUCCESS,                                      \
+#define ASSERT_SUCCESS(event, error) \
+  ASSERT_TRUE(event == VK_SUCCESS,   \
               std::format("Errno {}: {}", static_cast<int>(event), error))
 
 #define CONTAINER_SIZE(container) static_cast<uint32_t>(container.size())
@@ -64,7 +65,7 @@ class QueueUsage {
 
 // Returns a function pointer to a Vulkan instance function, and throws a
 // runtime exception if it does not exist.
-template<typename FuncType>
+template <typename FuncType>
 FuncType LoadInstanceFunction(const VkInstance& instance,
                               const std::string& func_name) {
   auto func = reinterpret_cast<FuncType>(
@@ -76,13 +77,13 @@ FuncType LoadInstanceFunction(const VkInstance& instance,
 
 // Returns a function pointer to a Vulkan device function, and throws a runtime
 // exception if it does not exist.
-template<typename FuncType>
+template <typename FuncType>
 FuncType LoadDeviceFunction(const VkDevice& device,
                             const std::string& func_name) {
   auto func = reinterpret_cast<FuncType>(
       vkGetDeviceProcAddr(device, func_name.c_str()));
-  ASSERT_NON_NULL(
-      func, std::format("Failed to load device function {}", func_name));
+  ASSERT_NON_NULL(func,
+                  std::format("Failed to load device function {}", func_name));
   return func;
 }
 
@@ -104,8 +105,7 @@ std::vector<AttribType> QueryAttribute(
 // the name of any attribute of AttribType.
 template <typename AttribType>
 std::optional<std::string> FindUnsupported(
-    std::span<const std::string> required,
-    std::span<const AttribType> attribs,
+    std::span<const std::string> required, std::span<const AttribType> attribs,
     const std::function<const char*(const AttribType&)>& get_name) {
   std::unordered_set<std::string> available;
   available.reserve(attribs.size());
@@ -135,8 +135,8 @@ std::optional<std::string> FindUnsupported(
 
 // Return the number of work groups in one dimension used for compute shader.
 inline uint32_t GetWorkGroupCount(int total_size, int work_group_size) {
-  return static_cast<uint32_t>(std::ceil(
-      static_cast<float>(total_size) / work_group_size));
+  return static_cast<uint32_t>(
+      std::ceil(static_cast<float>(total_size) / work_group_size));
 }
 
 // Return the number of work groups used for compute shader.

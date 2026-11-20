@@ -68,8 +68,10 @@ class Camera {
 
  protected:
   explicit Camera(const Config& config)
-      : near_{config.near}, far_{config.far},
-        pos_{config.position}, up_{glm::normalize(config.up)} {
+      : near_{config.near},
+        far_{config.far},
+        pos_{config.position},
+        up_{glm::normalize(config.up)} {
     SetFront(config.look_at - pos_);
   }
 
@@ -115,7 +117,8 @@ class PerspectiveCamera : public Camera {
 
   PerspectiveCamera(const Camera::Config& config,
                     const FrustumConfig& frustum_config)
-      : Camera{config}, aspect_ratio_{frustum_config.aspect_ratio},
+      : Camera{config},
+        aspect_ratio_{frustum_config.aspect_ratio},
         fovy_{frustum_config.field_of_view_y} {}
 
   // This class is neither copyable nor movable.
@@ -158,7 +161,8 @@ class OrthographicCamera : public Camera {
 
   OrthographicCamera(const Camera::Config& config,
                      const OrthoConfig& ortho_config)
-      : Camera{config}, aspect_ratio_{ortho_config.aspect_ratio},
+      : Camera{config},
+        aspect_ratio_{ortho_config.aspect_ratio},
         view_width_{ortho_config.view_width} {}
 
   // This class is neither copyable nor movable.
@@ -251,7 +255,7 @@ class UserControlledCamera {
   // Accessors.
   const CameraType& camera() const { return *camera_; }
 
-protected:
+ protected:
   UserControlledCamera(const camera_control::Config& control_config,
                        std::unique_ptr<CameraType>&& camera)
       : control_config_{control_config}, camera_{std::move(camera)} {
@@ -300,9 +304,9 @@ class UserControlledPerspectiveCamera
                                 camera_config, frustum_config)});
   }
 
-  protected:
-   // Inherits constructor.
-   using UserControlledCamera<PerspectiveCamera>::UserControlledCamera;
+ protected:
+  // Inherits constructor.
+  using UserControlledCamera<PerspectiveCamera>::UserControlledCamera;
 };
 
 class UserControlledOrthographicCamera

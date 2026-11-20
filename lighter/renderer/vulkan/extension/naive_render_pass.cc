@@ -31,7 +31,7 @@ void PrintSubpassCountIfNonZero(int count, std::string_view name) {
     LOG_INFO << std::format("Number of {} subpasses: {}", name, count);
   }
 }
-#endif  /* !NDEBUG */
+#endif /* !NDEBUG */
 
 // Adds an attachment to 'graphics_pass' and records the attachment index. The
 // usage of attachment image must have been tracked by 'image_usage_tracker'.
@@ -61,9 +61,9 @@ void AddAttachmentToGraphicsPass(
 NaiveRenderPass::SubpassConfig::SubpassConfig(
     int num_subpasses, std::optional<int> first_transparent_subpass,
     std::optional<int> first_overlay_subpass) {
-  ASSERT_TRUE(num_subpasses >= 0,
-              std::format("Number of subpasses ({}) must be positive",
-                          num_subpasses));
+  ASSERT_TRUE(
+      num_subpasses >= 0,
+      std::format("Number of subpasses ({}) must be positive", num_subpasses));
   if (first_transparent_subpass.has_value()) {
     CheckSubpassIndexInRange(first_transparent_subpass.value(), num_subpasses,
                              "transparent");
@@ -79,8 +79,8 @@ NaiveRenderPass::SubpassConfig::SubpassConfig(
 
   if (first_transparent_subpass.has_value()) {
     num_opaque_subpass_ = first_transparent_subpass.value();
-    num_transparent_subpasses_ = num_subpasses - num_opaque_subpass_ -
-                                 num_overlay_subpasses_;
+    num_transparent_subpasses_ =
+        num_subpasses - num_opaque_subpass_ - num_overlay_subpasses_;
   } else {
     num_opaque_subpass_ = num_subpasses - num_overlay_subpasses_;
   }
@@ -99,7 +99,7 @@ std::unique_ptr<RenderPassBuilder> NaiveRenderPass::CreateBuilder(
   PrintSubpassCountIfNonZero(subpass_config.num_transparent_subpasses_,
                              "transparent");
   PrintSubpassCountIfNonZero(subpass_config.num_overlay_subpasses_, "overlay");
-#endif  /* !NDEBUG */
+#endif /* !NDEBUG */
 
   const int num_subpasses = subpass_config.num_subpasses();
   const int first_subpass = 0;
@@ -154,9 +154,9 @@ std::unique_ptr<RenderPassBuilder> NaiveRenderPass::CreateBuilder(
           if (subpass_config.num_opaque_subpass_ > 0) {
             const int last_opaque_subpass =
                 subpass_config.num_opaque_subpass_ - 1;
-            history.AddUsage(first_subpass, last_opaque_subpass,
-                             ImageUsage::GetDepthStencilUsage(
-                                 ir::AccessType::kReadWrite));
+            history.AddUsage(
+                first_subpass, last_opaque_subpass,
+                ImageUsage::GetDepthStencilUsage(ir::AccessType::kReadWrite));
           }
 
           if (subpass_config.num_transparent_subpasses_ > 0) {
@@ -165,10 +165,9 @@ std::unique_ptr<RenderPassBuilder> NaiveRenderPass::CreateBuilder(
             const int last_transparent_subpass =
                 first_transparent_subpass +
                 subpass_config.num_transparent_subpasses_ - 1;
-            history.AddUsage(first_transparent_subpass,
-                             last_transparent_subpass,
-                             ImageUsage::GetDepthStencilUsage(
-                                 ir::AccessType::kReadOnly));
+            history.AddUsage(
+                first_transparent_subpass, last_transparent_subpass,
+                ImageUsage::GetDepthStencilUsage(ir::AccessType::kReadOnly));
           }
         });
   }

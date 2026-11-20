@@ -9,12 +9,11 @@
 #define LIGHTER_RENDERER_IR_RENDERER_H
 
 #include <format>
+#include <glm/glm.hpp>
 #include <memory>
 #include <span>
 #include <string_view>
 #include <vector>
-
-#include <glm/glm.hpp>
 
 #include "lighter/common/file.h"
 #include "lighter/common/image.h"

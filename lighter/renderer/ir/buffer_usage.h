@@ -44,9 +44,9 @@ class BufferUsage {
 
   // Convenience function to return usage for vertex buffers.
   static BufferUsage GetVertexBufferUsage(UsageType usage_type) {
-    ASSERT_TRUE(usage_type == UsageType::kIndexOnly
-                    || usage_type == UsageType::kVertexOnly
-                    || usage_type == UsageType::kIndexAndVertex,
+    ASSERT_TRUE(usage_type == UsageType::kIndexOnly ||
+                    usage_type == UsageType::kVertexOnly ||
+                    usage_type == UsageType::kIndexAndVertex,
                 "Unexpected usage type");
     return BufferUsage{usage_type, AccessType::kReadOnly,
                        AccessLocation::kVertexShader};
@@ -54,17 +54,17 @@ class BufferUsage {
 
   // Convenience function to return usage for uniform buffers.
   static BufferUsage GetUniformBufferUsage(AccessLocation access_location) {
-    ASSERT_TRUE(access_location == AccessLocation::kVertexShader
-                    || access_location == AccessLocation::kFragmentShader
-                    || access_location == AccessLocation::kComputeShader,
-                 "Unexpected access location");
+    ASSERT_TRUE(access_location == AccessLocation::kVertexShader ||
+                    access_location == AccessLocation::kFragmentShader ||
+                    access_location == AccessLocation::kComputeShader,
+                "Unexpected access location");
     return BufferUsage{UsageType::kUniform, AccessType::kReadOnly,
                        access_location};
   }
 
-  explicit BufferUsage() : BufferUsage{UsageType::kDontCare,
-                                       AccessType::kDontCare,
-                                       AccessLocation::kDontCare} {}
+  explicit BufferUsage()
+      : BufferUsage{UsageType::kDontCare, AccessType::kDontCare,
+                    AccessLocation::kDontCare} {}
 
   // Accessors.
   UsageType usage_type() const { return usage_type_; }
@@ -77,8 +77,9 @@ class BufferUsage {
   // to be valid.
   BufferUsage(UsageType usage_type, AccessType access_type,
               AccessLocation access_location)
-  : usage_type_{usage_type}, access_type_{access_type},
-    access_location_{access_location} {}
+      : usage_type_{usage_type},
+        access_type_{access_type},
+        access_location_{access_location} {}
 
   UsageType usage_type_;
   AccessType access_type_;

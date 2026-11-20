@@ -38,9 +38,7 @@ class HostMemoryAllocator {
   }
 
   // Accessors.
-  const VkAllocationCallbacks* c_type() const {
-    return nullptr;
-  }
+  const VkAllocationCallbacks* c_type() const { return nullptr; }
 };
 
 // Wraps VkInstance, which is used to establish connection with Vulkan library

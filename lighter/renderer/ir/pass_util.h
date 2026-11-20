@@ -26,6 +26,6 @@ RenderPassDescriptor::ColorLoadStoreOps GetResolveTargetLoadStoreOps() {
   return {AttachmentLoadOp::kDontCare, AttachmentStoreOp::kStore};
 }
 
-}  // lighter::renderer::ir::pass
+}  // namespace lighter::renderer::ir::pass
 
 #endif  // LIGHTER_RENDERER_IR_PASS_UTIL_H

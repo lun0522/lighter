@@ -98,8 +98,7 @@ TriangleApp::TriangleApp(const WindowContext::Config& window_config)
                         /*color=*/{0.0f, 1.0f, 0.0f}},
   };
   const PerVertexBuffer::NoIndicesDataInfo vertex_data_info{
-      /*per_mesh_vertices=*/{{PerVertexBuffer::VertexDataInfo{vertex_data}}}
-  };
+      /*per_mesh_vertices=*/{{PerVertexBuffer::VertexDataInfo{vertex_data}}}};
   vertex_buffer_ = std::make_unique<StaticPerVertexBuffer>(
       context(), vertex_data_info,
       pipeline::GetVertexAttributes<Vertex3DWithColor>());

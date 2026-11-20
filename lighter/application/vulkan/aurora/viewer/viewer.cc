@@ -119,10 +119,14 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
       /*directory=*/
       common::file::GetResourcePath("texture/universe/PositiveX.jpg",
                                     /*want_directory_path=*/true),
-      /*files=*/{
-          "PositiveX.jpg", "NegativeX.jpg",
-          "PositiveY.jpg", "NegativeY.jpg",
-          "PositiveZ.jpg", "NegativeZ.jpg",
+      /*files=*/
+      {
+          "PositiveX.jpg",
+          "NegativeX.jpg",
+          "PositiveY.jpg",
+          "NegativeY.jpg",
+          "PositiveZ.jpg",
+          "NegativeZ.jpg",
       },
   };
   universe_skybox_image_ = std::make_unique<SharedTexture>(
@@ -153,16 +157,15 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
 
   const Descriptor::ImageInfoMap image_info_map{
       {kAuroraDepositionImageBindingPoint,
-          {aurora_deposition_image_->GetDescriptorInfoForSampling()}},
+       {aurora_deposition_image_->GetDescriptorInfoForSampling()}},
       {kAuroraPathsImageBindingPoint,
-          {aurora_paths_image.GetDescriptorInfoForSampling()}},
+       {aurora_paths_image.GetDescriptorInfoForSampling()}},
       {kDistanceFieldImageBindingPoint,
-          {distance_field_image.GetDescriptorInfoForSampling()}},
+       {distance_field_image.GetDescriptorInfoForSampling()}},
       {kAirTransmitTableImageBindingPoint,
-          {air_transmit_table_image_->GetDescriptorInfoForSampling()}},
+       {air_transmit_table_image_->GetDescriptorInfoForSampling()}},
       {kUniverseSkyboxImageBindingPoint,
-          {universe_skybox_image_->GetDescriptorInfoForSampling()}}
-  };
+       {universe_skybox_image_->GetDescriptorInfoForSampling()}}};
 
   descriptors_.reserve(num_frames_in_flight);
   for (int frame = 0; frame < num_frames_in_flight; ++frame) {
@@ -171,9 +174,9 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
     (*descriptors_[frame])
         .UpdateBufferInfos(
             UniformBuffer::GetDescriptorType(),
-            /*buffer_info_map=*/{
-                {kCameraUniformBindingPoint,
-                    {render_info_uniform_->GetDescriptorInfo(frame)}}})
+            /*buffer_info_map=*/{{kCameraUniformBindingPoint,
+                                  {render_info_uniform_->GetDescriptorInfo(
+                                      frame)}}})
         .UpdateImageInfos(Image::GetDescriptorTypeForSampling(),
                           image_info_map);
   }
@@ -181,8 +184,7 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
   /* Vertex buffer */
   const auto vertex_data = Vertex2DPosOnly::GetFullScreenSquadVertices();
   const PerVertexBuffer::NoIndicesDataInfo vertex_data_info{
-      /*per_mesh_vertices=*/{{PerVertexBuffer::VertexDataInfo{vertex_data}}}
-  };
+      /*per_mesh_vertices=*/{{PerVertexBuffer::VertexDataInfo{vertex_data}}}};
   vertex_buffer_ = std::make_unique<StaticPerVertexBuffer>(
       context, vertex_data_info,
       pipeline::GetVertexAttributes<Vertex2DPosOnly>());
@@ -195,9 +197,9 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
           kVertexBufferBindingPoint,
           pipeline::GetPerVertexBindingDescription<Vertex2DPosOnly>(),
           vertex_buffer_->GetAttributes(/*start_location=*/0))
-      .SetPipelineLayout({descriptors_[0]->layout()},
-                         {camera_constant_->MakePerFrameRange(
-                             VK_SHADER_STAGE_VERTEX_BIT)})
+      .SetPipelineLayout(
+          {descriptors_[0]->layout()},
+          {camera_constant_->MakePerFrameRange(VK_SHADER_STAGE_VERTEX_BIT)})
       .SetColorBlend(
           {pipeline::GetColorAlphaBlendState(/*enable_blend=*/false)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
@@ -207,7 +209,7 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
 
   /* Render pass */
   ImageUsageHistory usage_history{
-    window_context_.swapchain_image(/*index=*/0).GetInitialUsage()};
+      window_context_.swapchain_image(/*index=*/0).GetInitialUsage()};
   usage_history
       .AddUsage(kViewImageSubpassIndex,
                 ImageUsage::GetRenderTargetUsage(/*attachment_location=*/0))
@@ -222,23 +224,22 @@ ViewerRenderer::ViewerRenderer(const WindowContext* window_context,
 
 void ViewerRenderer::Recreate() {
   render_pass_builder_->UpdateAttachmentImage(
-      /*index=*/0,
-      [this](int framebuffer_index) -> const Image& {
+      /*index=*/0, [this](int framebuffer_index) -> const Image& {
         return window_context_.swapchain_image(framebuffer_index);
       });
   render_pass_ = render_pass_builder_->Build();
 
   (*pipeline_builder_)
-      .SetViewport(pipeline::GetViewport(
-          window_context_.frame_size(),
-          window_context_.original_aspect_ratio()))
+      .SetViewport(
+          pipeline::GetViewport(window_context_.frame_size(),
+                                window_context_.original_aspect_ratio()))
       .SetRenderPass(**render_pass_, kViewImageSubpassIndex);
   pipeline_ = pipeline_builder_->Build();
 }
 
 void ViewerRenderer::UpdateDumpPathsCamera(const common::Camera& camera) {
-  const glm::mat4 proj_view = camera.GetProjectionMatrix() *
-                              camera.GetViewMatrix();
+  const glm::mat4 proj_view =
+      camera.GetProjectionMatrix() * camera.GetViewMatrix();
   for (int frame = 0; frame < descriptors_.size(); ++frame) {
     render_info_uniform_->HostData<RenderInfo>(frame)->aurora_proj_view =
         proj_view;
@@ -301,15 +302,17 @@ Viewer::Viewer(
   // marching ray goes out of the resulting texture.
   dump_paths_camera_ = std::make_unique<common::PerspectiveCamera>(
       camera_config, common::PerspectiveCamera::FrustumConfig{
-          /*field_of_view_y=*/40.0f, /*aspect_ratio=*/1.0f,
-      });
+                         /*field_of_view_y=*/40.0f,
+                         /*aspect_ratio=*/1.0f,
+                     });
 
   // 'position' and 'look_at' don't matter at this moment. They will be set
   // according to the user viewpoint.
   view_aurora_camera_ = common::UserControlledPerspectiveCamera::Create(
       /*control_config=*/{}, camera_config,
       common::PerspectiveCamera::FrustumConfig{
-          /*field_of_view_y=*/45.0f, window_context_.original_aspect_ratio(),
+          /*field_of_view_y=*/45.0f,
+          window_context_.original_aspect_ratio(),
       });
   view_aurora_camera_->SetActivity(true);
 }

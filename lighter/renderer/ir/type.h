@@ -106,9 +106,9 @@ enum class PrimitiveTopology {
 namespace shader_stage {
 
 enum ShaderStage {
-  VERTEX   = 1U << 0U,
+  VERTEX = 1U << 0U,
   FRAGMENT = 1U << 1U,
-  COMPUTE  = 1U << 2U,
+  COMPUTE = 1U << 2U,
 };
 
 }  // namespace shader_stage
@@ -119,9 +119,9 @@ namespace severity {
 
 enum Severity {
   VERBOSE = 1U << 0U,
-  INFO    = 1U << 1U,
+  INFO = 1U << 1U,
   WARNING = 1U << 2U,
-  ERROR   = 1U << 3U,
+  ERROR = 1U << 3U,
 };
 
 }  // namespace severity
@@ -129,7 +129,7 @@ enum Severity {
 namespace type {
 
 enum Type {
-  GENERAL     = 1U << 0U,
+  GENERAL = 1U << 0U,
   PERFORMANCE = 1U << 1U,
 };
 

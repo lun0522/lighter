@@ -49,15 +49,13 @@ VkImageLayout BasePass::GetImageLayoutAtSubpass(const std::string& image_name,
   ValidateSubpass(subpass, image_name, /*include_virtual_subpasses=*/false);
   const ImageUsage* usage = GetImageUsage(image_name, subpass);
   ASSERT_NON_NULL(
-      usage,
-      std::format("Usage not specified for image '{}' at subpass {}",
-                  image_name, subpass));
+      usage, std::format("Usage not specified for image '{}' at subpass {}",
+                         image_name, subpass));
   return image::GetImageLayout(*usage);
 }
 
-void BasePass::UpdateTrackedImageUsage(
-    const std::string& image_name,
-    ImageUsageTracker& usage_tracker) const {
+void BasePass::UpdateTrackedImageUsage(const std::string& image_name,
+                                       ImageUsageTracker& usage_tracker) const {
   const auto& last_usage =
       GetUsageHistory(image_name).usage_at_subpass_map().rbegin()->second;
   usage_tracker.UpdateUsage(image_name, last_usage);
@@ -84,8 +82,8 @@ const ImageUsage* BasePass::GetImageUsage(const std::string& image_name,
 }
 
 std::optional<BasePass::ImageUsagesInfo>
-BasePass::GetImageUsagesIfNeedSynchronization(
-    const std::string& image_name, int subpass) const {
+BasePass::GetImageUsagesIfNeedSynchronization(const std::string& image_name,
+                                              int subpass) const {
   ValidateSubpass(subpass, image_name, /*include_virtual_subpasses=*/true);
   const ImageUsageHistory& history = GetUsageHistory(image_name);
   const auto curr_usage_iter = history.usage_at_subpass_map().find(subpass);
@@ -104,21 +102,18 @@ BasePass::GetImageUsagesIfNeedSynchronization(
   return ImageUsagesInfo{prev_usage_subpass, &prev_usage, &curr_usage};
 }
 
-void BasePass::ValidateSubpass(int subpass,
-                               const std::string& image_name,
+void BasePass::ValidateSubpass(int subpass, const std::string& image_name,
                                bool include_virtual_subpasses) const {
   if (include_virtual_subpasses) {
-    ASSERT_TRUE(
-        subpass >= virtual_initial_subpass_index()
-        && subpass <= virtual_final_subpass_index(),
-        std::format("Subpass ({}) out of range [{}, {}] for image '{}'",
-                    subpass, virtual_initial_subpass_index(),
-                    virtual_final_subpass_index(), image_name));
+    ASSERT_TRUE(subpass >= virtual_initial_subpass_index() &&
+                    subpass <= virtual_final_subpass_index(),
+                std::format("Subpass ({}) out of range [{}, {}] for image '{}'",
+                            subpass, virtual_initial_subpass_index(),
+                            virtual_final_subpass_index(), image_name));
   } else {
-    ASSERT_TRUE(
-        subpass >= 0 && subpass < num_subpasses_,
-        std::format("Subpass ({}) out of range [0, {}) for image '{}'",
-                    subpass, num_subpasses_, image_name));
+    ASSERT_TRUE(subpass >= 0 && subpass < num_subpasses_,
+                std::format("Subpass ({}) out of range [0, {}) for image '{}'",
+                            subpass, num_subpasses_, image_name));
   }
 }
 

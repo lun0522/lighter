@@ -25,16 +25,14 @@
 #include <vector>
 
 #ifdef NDEBUG
-#define LOG(stream)                         \
-    ::lighter::common::util::Logger{stream} \
-        << ::std::format(                   \
-               "{} ", ::lighter::common::util::GetCurrentTime())
+#define LOG(stream)                       \
+  ::lighter::common::util::Logger{stream} \
+      << ::std::format("{} ", ::lighter::common::util::GetCurrentTime())
 #else  // !NDEBUG
-#define LOG(stream)                         \
-    ::lighter::common::util::Logger{stream} \
-        << ::std::format(                   \
-               "[{} {}:{}] ",               \
-               ::lighter::common::util::GetCurrentTime(), __FILE__, __LINE__)
+#define LOG(stream)                                                       \
+  ::lighter::common::util::Logger{stream} << ::std::format(               \
+      "[{} {}:{}] ", ::lighter::common::util::GetCurrentTime(), __FILE__, \
+      __LINE__)
 #endif  // NDEBUG
 
 #define LOG_INFO LOG(::std::cout)
@@ -42,14 +40,18 @@
 #define LOG_SWITCH(is_error) (is_error ? LOG_ERROR : LOG_INFO)
 
 #ifdef NDEBUG
-#define FATAL(error) throw ::std::runtime_error{error}
+#define FATAL(error) \
+  throw ::std::runtime_error { error }
 #else  // !NDEBUG
-#define FATAL(error)                              \
-    throw ::std::runtime_error{::std::format(     \
-        "{}() in {} at line {}: {}", __func__, __FILE__, __LINE__, error)}
+#define FATAL(error)                                                         \
+  throw ::std::runtime_error {                                               \
+    ::std::format("{}() in {} at line {}: {}", __func__, __FILE__, __LINE__, \
+                  error)                                                     \
+  }
 #endif  // NDEBUG
 
-#define ASSERT_TRUE(expr, error) if (!(expr)) FATAL(error)
+#define ASSERT_TRUE(expr, error) \
+  if (!(expr)) FATAL(error)
 
 #define ASSERT_FALSE(expr, error) ASSERT_TRUE(!(expr), error)
 
@@ -61,11 +63,11 @@
 
 #define ASSERT_EMPTY(container, error) ASSERT_TRUE(container.empty(), error)
 
-#define ASSERT_NON_EMPTY(container, error)        \
-    ASSERT_FALSE(container.empty(), error)
+#define ASSERT_NON_EMPTY(container, error) \
+  ASSERT_FALSE(container.empty(), error)
 
 #define FATAL_IF_NULL(pointer) \
-    ((pointer) != nullptr ? (pointer) : FATAL(#pointer " is nullptr"))
+  ((pointer) != nullptr ? (pointer) : FATAL(#pointer " is nullptr"))
 
 namespace lighter::common::util {
 
@@ -337,6 +339,6 @@ void IncludeIfTrue(bool condition, ValueType& value, IncludeType to_include) {
   }
 }
 
-}  // namespace lighter::common
+}  // namespace lighter::common::util
 
 #endif  // LIGHTER_COMMON_UTIL_H

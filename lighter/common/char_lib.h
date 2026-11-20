@@ -8,12 +8,12 @@
 #ifndef LIGHTER_COMMON_CHAR_LIB_H
 #define LIGHTER_COMMON_CHAR_LIB_H
 
+#include <ft2build.h>
+
 #include <memory>
 #include <span>
 #include <string>
 #include <unordered_map>
-
-#include <ft2build.h>
 #include FT_FREETYPE_H
 #include <glm/glm.hpp>
 
@@ -35,8 +35,8 @@ class CharLib {
 
   // We will load all characters in 'texts' from the library. All of them will
   // be of height 'font_height', while the width is self-adjusted.
-  CharLib(std::span<const std::string> texts,
-          const std::string& font_path, int font_height, bool flip_y);
+  CharLib(std::span<const std::string> texts, const std::string& font_path,
+          int font_height, bool flip_y);
 
   // This class is neither copyable nor movable.
   CharLib(const CharLib&) = delete;

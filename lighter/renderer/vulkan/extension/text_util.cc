@@ -61,7 +61,8 @@ std::vector<Descriptor::Info> CreateDescriptorInfos() {
       Descriptor::Info{
           Image::GetDescriptorTypeForSampling(),
           VK_SHADER_STAGE_FRAGMENT_BIT,
-          /*bindings=*/{
+          /*bindings=*/
+          {
               Descriptor::Info::Binding{
                   kImageBindingPoint,
                   /*array_length=*/1,
@@ -75,8 +76,7 @@ std::vector<Descriptor::Info> CreateDescriptorInfos() {
 std::unique_ptr<RenderPassBuilder> CreateRenderPassBuilder(
     const SharedBasicContext& context) {
   ImageUsageHistory usage_history{ImageUsage{}};
-  usage_history
-      .AddUsage(kTextSubpassIndex, ImageUsage::GetRenderTargetUsage(0))
+  usage_history.AddUsage(kTextSubpassIndex, ImageUsage::GetRenderTargetUsage(0))
       .SetFinalUsage(ImageUsage::GetSampledInFragmentShaderUsage());
 
   GraphicsPass graphics_pass{context, kNumSubpasses};
@@ -89,20 +89,17 @@ std::unique_ptr<RenderPassBuilder> CreateRenderPassBuilder(
 std::unique_ptr<RenderPass> BuildRenderPass(
     const Image& target_image, RenderPassBuilder* render_pass_builder) {
   render_pass_builder->UpdateAttachmentImage(
-      /*index=*/0,
-      [&target_image](int framebuffer_index) -> const Image& {
-          return target_image;
+      /*index=*/0, [&target_image](int framebuffer_index) -> const Image& {
+        return target_image;
       });
   return render_pass_builder->Build();
 }
 
 // Returns a pipeline builder, assuming the per-vertex data is of type Vertex2D.
 std::unique_ptr<GraphicsPipelineBuilder> CreatePipelineBuilder(
-    const SharedBasicContext& context,
-    std::string&& pipeline_name,
+    const SharedBasicContext& context, std::string&& pipeline_name,
     const PerVertexBuffer& vertex_buffer,
-    const VkDescriptorSetLayout& descriptor_layout,
-    bool enable_color_blend) {
+    const VkDescriptorSetLayout& descriptor_layout, bool enable_color_blend) {
   auto pipeline_builder = std::make_unique<GraphicsPipelineBuilder>(context);
 
   (*pipeline_builder)
@@ -148,12 +145,12 @@ inline glm::vec2 NormalizePos(const glm::vec2& coordinate) {
 } /* namespace */
 
 CharLoader::CharLoader(const SharedBasicContext& context,
-                       std::span<const std::string> texts,
-                       Font font, int font_height) {
+                       std::span<const std::string> texts, Font font,
+                       int font_height) {
   CharImageMap char_image_map;
   {
-    const common::CharLib char_lib{
-        texts, GetFontPath(font), font_height, /*flip_y=*/true};
+    const common::CharLib char_lib{texts, GetFontPath(font), font_height,
+                                   /*flip_y=*/true};
     const int interval_between_chars = GetIntervalBetweenChars(char_lib);
     const std::array image_usages{
         ImageUsage::GetRenderTargetUsage(0),
@@ -179,14 +176,14 @@ CharLoader::CharLoader(const SharedBasicContext& context,
       std::make_unique<DynamicDescriptor>(context, CreateDescriptorInfos());
 
   auto render_pass_builder = CreateRenderPassBuilder(context);
-  const auto render_pass = BuildRenderPass(*char_atlas_image_,
-                                           render_pass_builder.get());
+  const auto render_pass =
+      BuildRenderPass(*char_atlas_image_, render_pass_builder.get());
 
   auto pipeline_builder =
       CreatePipelineBuilder(context, "Char loader", *vertex_buffer,
                             descriptor->layout(), /*enable_color_blend=*/false);
-  const auto pipeline = BuildPipeline(*char_atlas_image_, **render_pass,
-                                      pipeline_builder.get());
+  const auto pipeline =
+      BuildPipeline(*char_atlas_image_, **render_pass, pipeline_builder.get());
 
   const std::vector<RenderPass::RenderOp> render_ops{
       [&](const VkCommandBuffer& command_buffer) {
@@ -197,9 +194,10 @@ CharLoader::CharLoader(const SharedBasicContext& context,
           descriptor->PushImageInfos(
               command_buffer, pipeline->layout(), pipeline->binding_point(),
               Image::GetDescriptorTypeForSampling(),
-              /*image_info_map=*/{{
-                  kImageBindingPoint,
-                  {char_image->GetDescriptorInfoForSampling()}},
+              /*image_info_map=*/
+              {
+                  {kImageBindingPoint,
+                   {char_image->GetDescriptorInfoForSampling()}},
               });
           vertex_buffer->Draw(command_buffer, kVertexBufferBindingPoint,
                               /*mesh_index=*/i, /*instance_count=*/1);
@@ -243,8 +241,7 @@ std::optional<float> CharLoader::GetSpaceAdvanceX(
 }
 
 void CharLoader::CreateCharTextures(
-    const SharedBasicContext& context,
-    const common::CharLib& char_lib,
+    const SharedBasicContext& context, const common::CharLib& char_lib,
     int interval_between_chars, const Image& target_image,
     CharImageMap* char_image_map,
     CharTextureInfoMap* char_texture_info_map) const {
@@ -265,8 +262,8 @@ void CharLoader::CreateCharTextures(
     const glm::vec2 size =
         glm::vec2{char_info.image.width(), char_info.image.height()} * ratio;
     const glm::vec2 bearing = glm::vec2{char_info.bearing} * ratio;
-    char_texture_info_map->insert({
-        character, CharTextureInfo{size, bearing, offset_x, advance_x}});
+    char_texture_info_map->insert(
+        {character, CharTextureInfo{size, bearing, offset_x, advance_x}});
     char_image_map->insert({
         character,
         std::make_unique<TextureImage>(context, /*generate_mipmaps=*/false,
@@ -289,36 +286,35 @@ std::unique_ptr<StaticPerVertexBuffer> CharLoader::CreateVertexBuffer(
         {texture_info.offset_x, 0.0f},
         /*pos_increment=*/texture_info.size,
         /*tex_coord_bottom_left=*/glm::vec2{0.0f},
-        /*tex_coord_increment=*/glm::vec2{1.0f},
-        &vertices);
+        /*tex_coord_increment=*/glm::vec2{1.0f}, &vertices);
   }
 
   return std::make_unique<StaticPerVertexBuffer>(
-      context, PerVertexBuffer::ShareIndicesDataInfo{
+      context,
+      PerVertexBuffer::ShareIndicesDataInfo{
           /*num_meshes=*/static_cast<int>(char_merge_order.size()),
           /*per_mesh_vertices=*/
           {vertices, /*num_units_per_mesh=*/text::kNumVerticesPerRect},
           /*shared_indices=*/
           {PerVertexBuffer::VertexDataInfo{text::GetIndicesPerRect()}},
       },
-      pipeline::GetVertexAttributes<Vertex2D>()
-  );
+      pipeline::GetVertexAttributes<Vertex2D>());
 }
 
 TextLoader::TextLoader(const SharedBasicContext& context,
                        std::span<const std::string> texts,
                        CharLoader::Font font, int font_height) {
-  const auto& longest_text = std::max_element(
-      texts.begin(), texts.end(),
-      [](const std::string& lhs, const std::string& rhs) {
-        return lhs.length() > rhs.length();
-      });
+  const auto& longest_text =
+      std::max_element(texts.begin(), texts.end(),
+                       [](const std::string& lhs, const std::string& rhs) {
+                         return lhs.length() > rhs.length();
+                       });
   DynamicPerVertexBuffer vertex_buffer{
       context, text::GetVertexDataSize(longest_text->length()),
       pipeline::GetVertexAttributes<Vertex2D>()};
 
-  auto descriptor = std::make_unique<StaticDescriptor>(
-      context, CreateDescriptorInfos());
+  auto descriptor =
+      std::make_unique<StaticDescriptor>(context, CreateDescriptorInfos());
   auto render_pass_builder = CreateRenderPassBuilder(context);
   // Advance can be negative, and thus bounding boxes of characters may have
   // overlap, hence we need to enable color blending.
@@ -329,18 +325,15 @@ TextLoader::TextLoader(const SharedBasicContext& context,
   const CharLoader char_loader{context, texts, font, font_height};
   text_texture_infos_.reserve(texts.size());
   for (const auto& text : texts) {
-    text_texture_infos_.push_back(
-        CreateTextTexture(context, text, font_height, char_loader,
-                          descriptor.get(), render_pass_builder.get(),
-                          pipeline_builder.get(), &vertex_buffer));
+    text_texture_infos_.push_back(CreateTextTexture(
+        context, text, font_height, char_loader, descriptor.get(),
+        render_pass_builder.get(), pipeline_builder.get(), &vertex_buffer));
   }
 }
 
 TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
-    const SharedBasicContext& context,
-    const std::string& text, int font_height,
-    const CharLoader& char_loader,
-    StaticDescriptor* descriptor,
+    const SharedBasicContext& context, const std::string& text, int font_height,
+    const CharLoader& char_loader, StaticDescriptor* descriptor,
     RenderPassBuilder* render_pass_builder,
     GraphicsPipelineBuilder* pipeline_builder,
     DynamicPerVertexBuffer* vertex_buffer) const {
@@ -391,10 +384,10 @@ TextLoader::TextTextureInfo TextLoader::CreateTextTexture(
       /*image_info_map=*/{
           {kImageBindingPoint,
            {char_loader.atlas_image()->GetDescriptorInfoForSampling()}},
-  });
+      });
   const auto render_pass = BuildRenderPass(*text_image, render_pass_builder);
-  const auto pipeline = BuildPipeline(*text_image, **render_pass,
-                                      pipeline_builder);
+  const auto pipeline =
+      BuildPipeline(*text_image, **render_pass, pipeline_builder);
 
   const std::vector<RenderPass::RenderOp> render_ops{
       [&](const VkCommandBuffer& command_buffer) {
@@ -432,8 +425,8 @@ void AppendCharPosAndTexCoord(const glm::vec2& pos_bottom_left,
                               const glm::vec2& tex_coord_increment,
                               std::vector<Vertex2D>* vertices) {
   const glm::vec2 pos_top_right = pos_bottom_left + pos_increment;
-  const glm::vec2 tex_coord_top_right = tex_coord_bottom_left +
-                                        tex_coord_increment;
+  const glm::vec2 tex_coord_top_right =
+      tex_coord_bottom_left + tex_coord_increment;
   vertices->reserve(vertices->size() + kNumVerticesPerRect);
   vertices->push_back(Vertex2D{
       NormalizePos(pos_bottom_left),
@@ -458,8 +451,8 @@ float LoadCharsVertexData(const std::string& text,
                           float initial_offset_x, float base_y,
                           std::vector<Vertex2D>* vertices) {
   float offset_x = initial_offset_x;
-  vertices->reserve(
-      vertices->size() + text::kNumVerticesPerRect * text.length());
+  vertices->reserve(vertices->size() +
+                    text::kNumVerticesPerRect * text.length());
   for (const auto character : text) {
     if (character == ' ') {
       offset_x += char_loader.space_advance() * ratio.x;
@@ -474,8 +467,7 @@ float LoadCharsVertexData(const std::string& text,
         /*pos_increment=*/size_in_tex * ratio,
         /*tex_coord_bottom_left=*/
         {texture_info.offset_x, 0.0f},
-        /*tex_coord_increment=*/size_in_tex,
-        vertices);
+        /*tex_coord_increment=*/size_in_tex, vertices);
     offset_x += texture_info.advance_x * ratio.x;
   }
   return offset_x;

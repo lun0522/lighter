@@ -22,8 +22,8 @@ namespace vulkan {
 class ImageViewer {
  public:
   ImageViewer(const renderer::vulkan::SharedBasicContext& context,
-              const renderer::vulkan::SamplableImage& image,
-              int num_channels, bool flip_y);
+              const renderer::vulkan::SamplableImage& image, int num_channels,
+              bool flip_y);
 
   // This class is neither copyable nor movable.
   ImageViewer(const ImageViewer&) = delete;

@@ -41,8 +41,9 @@ intl::BufferUsageFlags GetBufferUsageFlags(const BufferUsage& usage) {
       switch (usage.access_type()) {
         case AccessType::kDontCare:
         case AccessType::kReadWrite:
-          FATAL("Access type must not be kDontCare or kReadWrite for usage "
-                "type kTransfer");
+          FATAL(
+              "Access type must not be kDontCare or kReadWrite for usage "
+              "type kTransfer");
 
         case AccessType::kReadOnly:
           return UsageFlag::eTransferSrc;
@@ -102,8 +103,9 @@ std::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
         case AccessLocation::kDontCare:
         case AccessLocation::kHost:
         case AccessLocation::kOther:
-          FATAL("Access location must not be kDontCare, kHost or kOther "
-                "for usage type kUniform");
+          FATAL(
+              "Access location must not be kDontCare, kHost or kOther "
+              "for usage type kUniform");
 
         case AccessLocation::kVertexShader:
         case AccessLocation::kFragmentShader:
@@ -118,10 +120,12 @@ std::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
 intl::DeviceMemory CreateDeviceMemory(
     const Context& context, const intl::MemoryRequirements& requirements,
     intl::MemoryPropertyFlags property_flags) {
-  const auto memory_create_info = intl::MemoryAllocateInfo{}
-      .setAllocationSize(requirements.size)
-      .setMemoryTypeIndex(FindMemoryTypeIndex(*context.physical_device(),
-                              requirements.memoryTypeBits, property_flags));
+  const auto memory_create_info =
+      intl::MemoryAllocateInfo{}
+          .setAllocationSize(requirements.size)
+          .setMemoryTypeIndex(FindMemoryTypeIndex(*context.physical_device(),
+                                                  requirements.memoryTypeBits,
+                                                  property_flags));
   return context.device()->allocateMemory(memory_create_info,
                                           *context.host_allocator());
 }

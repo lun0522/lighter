@@ -8,9 +8,9 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_VALIDATION_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_VALIDATION_H
 
-#include <vector>
-
 #include <vulkan/vulkan.h>
+
+#include <vector>
 
 namespace lighter {
 namespace renderer {
@@ -23,10 +23,10 @@ namespace message_severity {
 
 // Bridges VK_DEBUG_UTILS_MESSAGE_SEVERITY.
 enum Severity {
-  kVerbose  = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT,
-  kInfo     = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT,
-  kWarning  = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT,
-  kError    = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+  kVerbose = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT,
+  kInfo = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT,
+  kWarning = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT,
+  kError = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
 };
 
 } /* namespace message_severity */
@@ -35,9 +35,9 @@ namespace message_type {
 
 // Bridges VK_DEBUG_UTILS_MESSAGE_TYPE.
 enum Type {
-  kGeneral      = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT,
-  kValidation   = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
-  kPerformance  = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+  kGeneral = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT,
+  kValidation = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
+  kPerformance = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
 };
 
 } /* namespace message_type */
@@ -55,11 +55,9 @@ class DebugCallback {
   // Specifies messages of which severity and type can trigger debug callbacks.
   struct TriggerCondition {
     TriggerCondition()
-        : severity{message_severity::kWarning
-                       | message_severity::kError},
-          type{message_type::kGeneral
-                   | message_type::kValidation
-                   | message_type::kPerformance} {}
+        : severity{message_severity::kWarning | message_severity::kError},
+          type{message_type::kGeneral | message_type::kValidation |
+               message_type::kPerformance} {}
 
     VkDebugUtilsMessageSeverityFlagsEXT severity;
     VkDebugUtilsMessageTypeFlagsEXT type;

@@ -48,12 +48,12 @@ struct Asteroid {
   // Returns vertex input attributes.
   static std::vector<common::VertexAttribute> GetVertexAttributes() {
     std::vector<common::VertexAttribute> attributes;
-    common::data::AppendVertexAttributes<glm::vec1>(
-        attributes, offsetof(Asteroid, theta));
-    common::data::AppendVertexAttributes<glm::vec1>(
-        attributes, offsetof(Asteroid, radius));
-    common::data::AppendVertexAttributes<glm::mat4>(
-        attributes, offsetof(Asteroid, model));
+    common::data::AppendVertexAttributes<glm::vec1>(attributes,
+                                                    offsetof(Asteroid, theta));
+    common::data::AppendVertexAttributes<glm::vec1>(attributes,
+                                                    offsetof(Asteroid, radius));
+    common::data::AppendVertexAttributes<glm::mat4>(attributes,
+                                                    offsetof(Asteroid, model));
     return attributes;
   }
 
@@ -152,22 +152,30 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
       .RegisterScrollCallback([this](double x_pos, double y_pos) {
         camera_->DidScroll(y_pos, 1.0f, 60.0f);
       })
-      .RegisterPressKeyCallback(WindowKey::kUp, [this]() {
-        camera_->DidPressKey(ControlKey::kUp,
-                             timer_.GetElapsedTimeSinceLastFrame());
-      })
-      .RegisterPressKeyCallback(WindowKey::kDown, [this]() {
-        camera_->DidPressKey(ControlKey::kDown,
-                             timer_.GetElapsedTimeSinceLastFrame());
-      })
-      .RegisterPressKeyCallback(WindowKey::kLeft, [this]() {
-        camera_->DidPressKey(ControlKey::kLeft,
-                             timer_.GetElapsedTimeSinceLastFrame());
-      })
-      .RegisterPressKeyCallback(WindowKey::kRight, [this]() {
-        camera_->DidPressKey(ControlKey::kRight,
-                             timer_.GetElapsedTimeSinceLastFrame());
-      })
+      .RegisterPressKeyCallback(WindowKey::kUp,
+                                [this]() {
+                                  camera_->DidPressKey(
+                                      ControlKey::kUp,
+                                      timer_.GetElapsedTimeSinceLastFrame());
+                                })
+      .RegisterPressKeyCallback(WindowKey::kDown,
+                                [this]() {
+                                  camera_->DidPressKey(
+                                      ControlKey::kDown,
+                                      timer_.GetElapsedTimeSinceLastFrame());
+                                })
+      .RegisterPressKeyCallback(WindowKey::kLeft,
+                                [this]() {
+                                  camera_->DidPressKey(
+                                      ControlKey::kLeft,
+                                      timer_.GetElapsedTimeSinceLastFrame());
+                                })
+      .RegisterPressKeyCallback(WindowKey::kRight,
+                                [this]() {
+                                  camera_->DidPressKey(
+                                      ControlKey::kRight,
+                                      timer_.GetElapsedTimeSinceLastFrame());
+                                })
       .RegisterPressKeyCallback(WindowKey::kEscape,
                                 [this]() { should_quit_ = true; });
 
@@ -175,90 +183,100 @@ PlanetApp::PlanetApp(const WindowContext::Config& window_config)
   command_ = std::make_unique<PerFrameCommand>(context(), kNumFramesInFlight);
 
   /* Uniform buffer and push constant */
-  light_uniform_ = std::make_unique<UniformBuffer>(
-      context(), sizeof(Light), kNumFramesInFlight);
+  light_uniform_ = std::make_unique<UniformBuffer>(context(), sizeof(Light),
+                                                   kNumFramesInFlight);
   planet_constant_ = std::make_unique<PushConstant>(
       context(), sizeof(PlanetTrans), kNumFramesInFlight);
   skybox_constant_ = std::make_unique<PushConstant>(
       context(), sizeof(SkyboxTrans), kNumFramesInFlight);
 
   /* Model */
-  planet_model_ = ModelBuilder{
-      context(), "Planet", kNumFramesInFlight, original_aspect_ratio,
-      ModelBuilder::SingleMeshResource{
-          GetResourcePath("model/sphere.obj"), kObjFileIndexBase,
-          /*tex_source_map=*/{{
-              TextureType::kDiffuse,
-              {SharedTexture::SingleTexPath{
-                   GetResourcePath("texture/planet.png")}},
-          }}
-      }}
-      .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/2)
-      .AddUniformBinding(
-          VK_SHADER_STAGE_FRAGMENT_BIT,
-          /*bindings=*/{{/*binding_point=*/1, /*array_length=*/1}})
-      .AddUniformBuffer(/*binding_point=*/1, *light_uniform_)
-      .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
-      .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetShaderBinaryPath("planet/planet.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetShaderBinaryPath("planet/planet.frag"))
-      .Build();
+  planet_model_ =
+      ModelBuilder{context(), "Planet", kNumFramesInFlight,
+                   original_aspect_ratio,
+                   ModelBuilder::SingleMeshResource{
+                       GetResourcePath("model/sphere.obj"),
+                       kObjFileIndexBase,
+                       /*tex_source_map=*/
+                       {{
+                           TextureType::kDiffuse,
+                           {SharedTexture::SingleTexPath{
+                               GetResourcePath("texture/planet.png")}},
+                       }}}}
+          .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/2)
+          .AddUniformBinding(
+              VK_SHADER_STAGE_FRAGMENT_BIT,
+              /*bindings=*/{{/*binding_point=*/1, /*array_length=*/1}})
+          .AddUniformBuffer(/*binding_point=*/1, *light_uniform_)
+          .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
+          .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
+          .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                     GetShaderBinaryPath("planet/planet.vert"))
+          .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                     GetShaderBinaryPath("planet/planet.frag"))
+          .Build();
 
   GenerateAsteroidModels();
-  asteroid_model_ = ModelBuilder{
-      context(), "Asteroid", kNumFramesInFlight, original_aspect_ratio,
-      ModelBuilder::MultiMeshResource{
-          /*model_path=*/GetResourcePath("model/rock/rock.obj"),
-          /*texture_dir=*/
-          GetResourcePath("model/rock/rock.obj", /*want_directory_path=*/true)}}
-      .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/2)
-      .AddPerInstanceBuffer(per_asteroid_data_.get())
-      .AddUniformBinding(
-          VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-          /*bindings=*/{{/*binding_point=*/1, /*array_length=*/1}})
-      .AddUniformBuffer(/*binding_point=*/1, *light_uniform_)
-      .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
-      .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetShaderBinaryPath("planet/asteroid.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetShaderBinaryPath("planet/planet.frag"))
-      .Build();
+  asteroid_model_ =
+      ModelBuilder{context(), "Asteroid", kNumFramesInFlight,
+                   original_aspect_ratio,
+                   ModelBuilder::MultiMeshResource{
+                       /*model_path=*/GetResourcePath("model/rock/rock.obj"),
+                       /*texture_dir=*/
+                       GetResourcePath("model/rock/rock.obj",
+                                       /*want_directory_path=*/true)}}
+          .AddTextureBindingPoint(TextureType::kDiffuse, /*binding_point=*/2)
+          .AddPerInstanceBuffer(per_asteroid_data_.get())
+          .AddUniformBinding(
+              VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+              /*bindings=*/{{/*binding_point=*/1, /*array_length=*/1}})
+          .AddUniformBuffer(/*binding_point=*/1, *light_uniform_)
+          .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
+          .AddPushConstant(planet_constant_.get(), /*target_offset=*/0)
+          .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                     GetShaderBinaryPath("planet/asteroid.vert"))
+          .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                     GetShaderBinaryPath("planet/planet.frag"))
+          .Build();
 
   const SharedTexture::CubemapPath skybox_path{
       /*directory=*/
       GetResourcePath("texture/universe/PositiveX.jpg",
                       /*want_directory_path=*/true),
-      /*files=*/{
-          "PositiveX.jpg", "NegativeX.jpg",
-          "PositiveY.jpg", "NegativeY.jpg",
-          "PositiveZ.jpg", "NegativeZ.jpg",
+      /*files=*/
+      {
+          "PositiveX.jpg",
+          "NegativeX.jpg",
+          "PositiveY.jpg",
+          "NegativeY.jpg",
+          "PositiveZ.jpg",
+          "NegativeZ.jpg",
       },
   };
 
-  skybox_model_ = ModelBuilder{
-      context(), "Skybox", kNumFramesInFlight, original_aspect_ratio,
-      ModelBuilder::SingleMeshResource{
-          GetResourcePath("model/skybox.obj"), kObjFileIndexBase,
-          {{TextureType::kCubemap, {skybox_path}}},
-      }}
-      .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/1)
-      .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
-      .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetShaderBinaryPath("shared/skybox.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetShaderBinaryPath("shared/skybox.frag"))
-      .Build();
+  skybox_model_ =
+      ModelBuilder{context(), "Skybox", kNumFramesInFlight,
+                   original_aspect_ratio,
+                   ModelBuilder::SingleMeshResource{
+                       GetResourcePath("model/skybox.obj"),
+                       kObjFileIndexBase,
+                       {{TextureType::kCubemap, {skybox_path}}},
+                   }}
+          .AddTextureBindingPoint(TextureType::kCubemap, /*binding_point=*/1)
+          .SetPushConstantShaderStage(VK_SHADER_STAGE_VERTEX_BIT)
+          .AddPushConstant(skybox_constant_.get(), /*target_offset=*/0)
+          .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                     GetShaderBinaryPath("shared/skybox.vert"))
+          .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                     GetShaderBinaryPath("shared/skybox.frag"))
+          .Build();
 
   /* Render pass */
   render_pass_manager_ = std::make_unique<OnScreenRenderPassManager>(
       &window_context(),
-      NaiveRenderPass::SubpassConfig{
-          kNumSubpasses, /*first_transparent_subpass=*/std::nullopt,
-          /*first_overlay_subpass=*/std::nullopt});
+      NaiveRenderPass::SubpassConfig{kNumSubpasses,
+                                     /*first_transparent_subpass=*/std::nullopt,
+                                     /*first_overlay_subpass=*/std::nullopt});
 }
 
 void PlanetApp::Recreate() {
@@ -282,7 +300,7 @@ void PlanetApp::Recreate() {
 
 void PlanetApp::GenerateAsteroidModels() {
   const std::array<int, kNumAsteroidRings> num_asteroid = {300, 500, 700};
-  const std::array<float, kNumAsteroidRings> radii = {6.0f, 12.0f,  18.0f};
+  const std::array<float, kNumAsteroidRings> radii = {6.0f, 12.0f, 18.0f};
 
   // Randomly generate rotation, radius and scale for each asteroid.
   std::random_device device;
@@ -292,8 +310,8 @@ void PlanetApp::GenerateAsteroidModels() {
   std::uniform_real_distribution<float> radius_gen{-1.5f, 1.5f};
   std::uniform_real_distribution<float> scale_gen{1.0f, 3.0f};
 
-  num_asteroids_ = static_cast<int>(std::accumulate(
-      num_asteroid.begin(), num_asteroid.end(), 0));
+  num_asteroids_ = static_cast<int>(
+      std::accumulate(num_asteroid.begin(), num_asteroid.end(), 0));
   std::vector<Asteroid> asteroids;
   asteroids.reserve(num_asteroids_.value());
 
@@ -322,8 +340,8 @@ void PlanetApp::UpdateData(int frame) {
 
   const glm::vec3 light_dir{glm::sin(elapsed_time * 0.6f), -0.3f,
                             glm::cos(elapsed_time * 0.6f)};
-  *light_uniform_->HostData<Light>(frame) =
-      {glm::vec4{light_dir, elapsed_time}};
+  *light_uniform_->HostData<Light>(frame) = {
+      glm::vec4{light_dir, elapsed_time}};
   light_uniform_->Flush(frame);
 
   glm::mat4 model{1.0f};
@@ -331,8 +349,8 @@ void PlanetApp::UpdateData(int frame) {
                       glm::vec3{0.0f, 1.0f, 0.0f});
   const common::Camera& camera = camera_->camera();
   const glm::mat4 proj = camera.GetProjectionMatrix();
-  *planet_constant_->HostData<PlanetTrans>(frame) =
-      {model, proj * camera.GetViewMatrix()};
+  *planet_constant_->HostData<PlanetTrans>(frame) = {
+      model, proj * camera.GetViewMatrix()};
   skybox_constant_->HostData<SkyboxTrans>(frame)->proj_view_model =
       proj * camera.GetSkyboxViewMatrix();
 }

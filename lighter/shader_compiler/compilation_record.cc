@@ -96,8 +96,8 @@ void CompilationRecordReader::ParseRecordFile(std::ifstream& record_file,
       });
     }
   } catch (const std::exception& e) {
-    FATAL(std::format("Failed to parse line {}: {}\n{}",
-                      line_num, line, e.what()));
+    FATAL(std::format("Failed to parse line {}: {}\n{}", line_num, line,
+                      e.what()));
   }
 }
 
@@ -109,11 +109,11 @@ const CompilationRecordHandler::FileHash* CompilationRecordReader::GetFileHash(
   return iter != file_hash_map_.end() ? &iter->second : nullptr;
 }
 
-void CompilationRecordWriter::RegisterFileHash(
-    stdfs::path&& source_file_path, FileHash&& file_hash) {
-  ASSERT_FALSE(file_hash_map_.contains(source_file_path),
-               std::format("Duplicated entry for '{}'",
-                           source_file_path.string()));
+void CompilationRecordWriter::RegisterFileHash(stdfs::path&& source_file_path,
+                                               FileHash&& file_hash) {
+  ASSERT_FALSE(
+      file_hash_map_.contains(source_file_path),
+      std::format("Duplicated entry for '{}'", source_file_path.string()));
   file_hash_map_.insert({std::move(source_file_path), std::move(file_hash)});
 }
 
@@ -128,10 +128,9 @@ void CompilationRecordWriter::WriteAll() const {
 
   // Write body.
   for (const auto& [source_file_path, file_hash] : file_hash_map_) {
-    record_file << std::format(
-        "{} {} {}\n",
-        source_file_path.string(),
-        file_hash.source_file_hash, file_hash.compiled_file_hash);
+    record_file << std::format("{} {} {}\n", source_file_path.string(),
+                               file_hash.source_file_hash,
+                               file_hash.compiled_file_hash);
   }
 }
 

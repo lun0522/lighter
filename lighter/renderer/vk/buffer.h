@@ -18,8 +18,7 @@
 
 namespace lighter::renderer::vk {
 
-class Buffer : public WithSharedContext,
-               public ir::Buffer {
+class Buffer : public WithSharedContext, public ir::Buffer {
  public:
   Buffer(const SharedContext& context, UpdateRate update_rate,
          size_t initial_size, std::span<const ir::BufferUsage> usages)
@@ -43,8 +42,8 @@ class Buffer : public WithSharedContext,
 
     // Returns true if the device memory is visible to host.
     bool IsHostVisible() const {
-      return static_cast<bool>(
-          memory_property_flags & intl::MemoryPropertyFlagBits::eHostVisible);
+      return static_cast<bool>(memory_property_flags &
+                               intl::MemoryPropertyFlagBits::eHostVisible);
     }
 
     intl::BufferUsageFlags usage_flags;

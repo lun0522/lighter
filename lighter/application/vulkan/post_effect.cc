@@ -115,9 +115,8 @@ PostEffectApp::PostEffectApp(const WindowContext::Config& window_config)
 void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
   ImageUsageHistory original_image_usage_history{};
   original_image_usage_history.AddUsage(
-      kPostEffectSubpassIndex,
-      ImageUsage::GetLinearAccessInComputeShaderUsage(
-          ir::AccessType::kReadOnly));
+      kPostEffectSubpassIndex, ImageUsage::GetLinearAccessInComputeShaderUsage(
+                                   ir::AccessType::kReadOnly));
   const auto image_from_file =
       common::Image::LoadSingleImageFromFile(file_path, /*flip_y=*/false);
   TextureImage original_image(
@@ -146,31 +145,32 @@ void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
       Descriptor::Info{
           Image::GetDescriptorTypeForLinearAccess(),
           VK_SHADER_STAGE_COMPUTE_BIT,
-          /*bindings=*/{
+          /*bindings=*/
+          {
               {kOriginalImageBindingPoint, /*array_length=*/1},
               {kProcessedImageBindingPoint, /*array_length=*/1},
           },
       },
   };
   StaticDescriptor descriptor{context(), descriptor_infos};
-  const auto original_image_descriptor_info = original_image.GetDescriptorInfo(
-      compute_pass.GetImageLayoutAtSubpass(original_image_name,
-                                           kPostEffectSubpassIndex));
+  const auto original_image_descriptor_info =
+      original_image.GetDescriptorInfo(compute_pass.GetImageLayoutAtSubpass(
+          original_image_name, kPostEffectSubpassIndex));
   const auto processed_image_descriptor_info =
-      processed_image_->GetDescriptorInfo(
-          compute_pass.GetImageLayoutAtSubpass(processed_image_name,
-                                               kPostEffectSubpassIndex));
+      processed_image_->GetDescriptorInfo(compute_pass.GetImageLayoutAtSubpass(
+          processed_image_name, kPostEffectSubpassIndex));
   descriptor.UpdateImageInfos(
       Image::GetDescriptorTypeForLinearAccess(),
       /*image_info_map=*/
       {{kOriginalImageBindingPoint, {original_image_descriptor_info}},
        {kProcessedImageBindingPoint, {processed_image_descriptor_info}}});
 
-  const auto pipeline = ComputePipelineBuilder{context()}
-      .SetPipelineName("Post effect")
-      .SetPipelineLayout({descriptor.layout()}, /*push_constant_ranges=*/{})
-      .SetShader(GetShaderBinaryPath("post_effect/sine_wave.comp"))
-      .Build();
+  const auto pipeline =
+      ComputePipelineBuilder{context()}
+          .SetPipelineName("Post effect")
+          .SetPipelineLayout({descriptor.layout()}, /*push_constant_ranges=*/{})
+          .SetShader(GetShaderBinaryPath("post_effect/sine_wave.comp"))
+          .Build();
 
   const OneTimeCommand command{context(), &context()->queues().compute_queue()};
   command.Run([&](const VkCommandBuffer& command_buffer) {
@@ -185,13 +185,14 @@ void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
       vkCmdDispatch(command_buffer, group_count_x, group_count_y,
                     /*groupCountZ=*/1);
     };
-    compute_pass.Run(
-        command_buffer, context()->queues().compute_queue().family_index,
-        /*image_map=*/{
-            {original_image_name, &original_image},
-            {processed_image_name, processed_image_.get()},
-        },
-        std::span{&compute_op, 1});
+    compute_pass.Run(command_buffer,
+                     context()->queues().compute_queue().family_index,
+                     /*image_map=*/
+                     {
+                         {original_image_name, &original_image},
+                         {processed_image_name, processed_image_.get()},
+                     },
+                     std::span{&compute_op, 1});
   });
 
   image_viewer_ = std::make_unique<ImageViewer>(
@@ -215,7 +216,7 @@ void PostEffectApp::MainLoop() {
     const auto draw_result = command_->Run(
         current_frame_, window_context().swapchain(), /*update_data=*/nullptr,
         [this, &render_op](const VkCommandBuffer& command_buffer,
-                            uint32_t framebuffer_index) {
+                           uint32_t framebuffer_index) {
           render_pass().Run(command_buffer, framebuffer_index,
                             std::span{&render_op, 1});
         });

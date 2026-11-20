@@ -8,8 +8,10 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_TROOP_LIGHTING_PASS_H
 #define LIGHTER_APPLICATION_VULKAN_TROOP_LIGHTING_PASS_H
 
-#include <vector>
+#include <vulkan/vulkan.h>
+
 #include <memory>
+#include <vector>
 
 #include "lighter/application/vulkan/util.h"
 #include "lighter/common/camera.h"
@@ -19,7 +21,6 @@
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace application {
@@ -60,8 +61,8 @@ class LightingPass {
 
   // Runs the lighting pass.
   // This should be called when 'command_buffer' is recording commands.
-  void Draw(const VkCommandBuffer& command_buffer,
-            uint32_t framebuffer_index, int current_frame) const;
+  void Draw(const VkCommandBuffer& command_buffer, uint32_t framebuffer_index,
+            int current_frame) const;
 
  private:
   // Populates 'render_pass_builder_'.

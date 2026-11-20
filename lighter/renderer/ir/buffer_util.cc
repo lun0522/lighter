@@ -17,15 +17,19 @@ template <typename T>
 DataFormat GetDataFormat();
 
 template <>
-DataFormat GetDataFormat<glm::vec2>() { return DataFormat::kSFloat32Vec2; }
+DataFormat GetDataFormat<glm::vec2>() {
+  return DataFormat::kSFloat32Vec2;
+}
 
 template <>
-DataFormat GetDataFormat<glm::vec3>() { return DataFormat::kSFloat32Vec3; }
+DataFormat GetDataFormat<glm::vec3>() {
+  return DataFormat::kSFloat32Vec3;
+}
 
 }  // namespace
 
 #define CREATE_ATTRIBUTE(type, member, location) \
-    {location, GetDataFormat<decltype(type::member)>(), offsetof(type, member)}
+  {location, GetDataFormat<decltype(type::member)>(), offsetof(type, member)}
 
 std::vector<VertexBufferView::Attribute> CreateAttributesForVertex2DPosOnly(
     int loc_pos) {

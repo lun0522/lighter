@@ -9,12 +9,12 @@
 #define LIGHTER_COMMON_FILE_H
 
 #include <filesystem>
+#include <glm/glm.hpp>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include "lighter/common/data.h"
-#include <glm/glm.hpp>
 
 namespace lighter::common {
 namespace file {

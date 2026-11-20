@@ -8,6 +8,9 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_AURORA_VIEWER_VIEWER_H
 #define LIGHTER_APPLICATION_VULKAN_AURORA_VIEWER_VIEWER_H
 
+#include <vulkan/vulkan.h>
+
+#include <glm/glm.hpp>
 #include <memory>
 #include <vector>
 
@@ -19,8 +22,6 @@
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
-#include <glm/glm.hpp>
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace application {
@@ -46,13 +47,13 @@ class ViewerRenderer {
   void UpdateDumpPathsCamera(const common::Camera& camera);
 
   // Updates camera parameters used for viewing aurora.
-  void UpdateViewAuroraCamera(
-      int frame, const common::PerspectiveCamera& camera);
+  void UpdateViewAuroraCamera(int frame,
+                              const common::PerspectiveCamera& camera);
 
   // Renders aurora paths.
   // This should be called when 'command_buffer' is recording commands.
-  void Draw(const VkCommandBuffer& command_buffer,
-            uint32_t framebuffer_index, int current_frame) const;
+  void Draw(const VkCommandBuffer& command_buffer, uint32_t framebuffer_index,
+            int current_frame) const;
 
  private:
   // Objects used for rendering.
@@ -100,11 +101,11 @@ class Viewer : public Scene {
   void OnExit() override;
   void Recreate() override;
   void UpdateData(int frame) override {
-    viewer_renderer_.UpdateViewAuroraCamera(
-        frame, view_aurora_camera_->camera());
+    viewer_renderer_.UpdateViewAuroraCamera(frame,
+                                            view_aurora_camera_->camera());
   }
-  void Draw(const VkCommandBuffer& command_buffer,
-            uint32_t framebuffer_index, int current_frame) override {
+  void Draw(const VkCommandBuffer& command_buffer, uint32_t framebuffer_index,
+            int current_frame) override {
     viewer_renderer_.Draw(command_buffer, framebuffer_index, current_frame);
   }
   bool ShouldTransitionScene() const override { return should_quit_; }

@@ -72,8 +72,7 @@ intl::PresentModeKHR ChoosePresentMode(
   // so that we always get the most recently generated frame.
   // TODO: Use FIFO for mobile to save power.
   constexpr auto kBestMode = intl::PresentModeKHR::eMailbox;
-  const bool supports_best_mode =
-      common::util::Contains(modes, kBestMode);
+  const bool supports_best_mode = common::util::Contains(modes, kBestMode);
   return supports_best_mode ? kBestMode : intl::PresentModeKHR::eFifo;
 }
 
@@ -126,28 +125,29 @@ Swapchain::Swapchain(const SharedContext& context, int window_index,
       queue_family_indices_set.end(),
   };
 
-  const auto swapchain_create_info = intl::SwapchainCreateInfoKHR{}
-      .setSurface(*surface)
-      .setMinImageCount(ChooseMinImageCount(surface))
-      .setImageFormat(surface_format.format)
-      .setImageColorSpace(surface_format.colorSpace)
-      .setImageExtent(image_extent)
-      .setImageArrayLayers(CAST_TO_UINT(common::image::kSingleImageLayer))
-      .setImageUsage(image::GetImageUsageFlags(swapchain_image_usages))
-      .setImageSharingMode(intl::SharingMode::eExclusive)
-      .setQueueFamilyIndices(unique_queue_family_indices)
-      .setPreTransform(surface.capabilities().currentTransform)
-      .setPresentMode(present_mode)
-      // Don't care about the color of invisible pixels.
-      .setClipped(true);
+  const auto swapchain_create_info =
+      intl::SwapchainCreateInfoKHR{}
+          .setSurface(*surface)
+          .setMinImageCount(ChooseMinImageCount(surface))
+          .setImageFormat(surface_format.format)
+          .setImageColorSpace(surface_format.colorSpace)
+          .setImageExtent(image_extent)
+          .setImageArrayLayers(CAST_TO_UINT(common::image::kSingleImageLayer))
+          .setImageUsage(image::GetImageUsageFlags(swapchain_image_usages))
+          .setImageSharingMode(intl::SharingMode::eExclusive)
+          .setQueueFamilyIndices(unique_queue_family_indices)
+          .setPreTransform(surface.capabilities().currentTransform)
+          .setPresentMode(present_mode)
+          // Don't care about the color of invisible pixels.
+          .setClipped(true);
   swapchain_ = vk_device().createSwapchainKHR(swapchain_create_info,
                                               vk_host_allocator());
 
   // Fetch swapchain images.
   image_ = std::make_unique<MultiImage>(
       std::format("swapchain{}", window_index),
-      vk_device().getSwapchainImagesKHR(swapchain_),
-      util::ToVec(image_extent), surface_format.format);
+      vk_device().getSwapchainImagesKHR(swapchain_), util::ToVec(image_extent),
+      surface_format.format);
 }
 
 Swapchain::~Swapchain() {

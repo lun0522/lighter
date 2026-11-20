@@ -8,6 +8,8 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_AURORA_VIEWER_PATH_RENDERER_H
 #define LIGHTER_APPLICATION_VULKAN_AURORA_VIEWER_PATH_RENDERER_H
 
+#include <vulkan/vulkan.h>
+
 #include <memory>
 #include <vector>
 
@@ -18,7 +20,6 @@
 #include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace application {

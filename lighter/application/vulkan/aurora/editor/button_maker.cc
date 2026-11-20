@@ -65,12 +65,12 @@ constexpr uint32_t kPerInstanceBufferBindingPoint = 0;
 // Creates a big offscreen image. We will render all buttons in all states onto
 // this image.
 std::unique_ptr<OffscreenImage> CreateTargetImage(
-    const SharedBasicContext& context,
-    int num_buttons, const VkExtent2D& background_image_extent) {
+    const SharedBasicContext& context, int num_buttons,
+    const VkExtent2D& background_image_extent) {
   const VkExtent2D buttons_image_extent{
       background_image_extent.width,
-      static_cast<uint32_t>(background_image_extent.height *
-                            num_buttons * button::kNumStates),
+      static_cast<uint32_t>(background_image_extent.height * num_buttons *
+                            button::kNumStates),
   };
   const std::array image_usages{
       ImageUsage::GetRenderTargetUsage(/*attachment_location=*/0),
@@ -100,12 +100,11 @@ std::unique_ptr<StaticDescriptor> CreateDescriptor(
     const SharedBasicContext& context,
     const VkDescriptorImageInfo& image_info) {
   auto descriptor = std::make_unique<StaticDescriptor>(
-      context, /*infos=*/std::vector<Descriptor::Info>{
-          Descriptor::Info{
-              Image::GetDescriptorTypeForSampling(),
-              VK_SHADER_STAGE_FRAGMENT_BIT,
-              /*bindings=*/{{kImageBindingPoint, /*array_length=*/1}},
-          }});
+      context, /*infos=*/std::vector<Descriptor::Info>{Descriptor::Info{
+          Image::GetDescriptorTypeForSampling(),
+          VK_SHADER_STAGE_FRAGMENT_BIT,
+          /*bindings=*/{{kImageBindingPoint, /*array_length=*/1}},
+      }});
   descriptor->UpdateImageInfos(
       Image::GetDescriptorTypeForSampling(),
       /*image_info_map=*/{{kImageBindingPoint, {image_info}}});
@@ -146,11 +145,10 @@ std::unique_ptr<DynamicText> CreateTextRenderer(
 
   auto text_renderer = std::make_unique<DynamicText>(
       context, /*num_frames_in_flight=*/1,
-      renderer::vulkan::util::GetAspectRatio(target_image.extent()),
-      texts, font, font_height);
-  text_renderer->Update(
-      target_image.extent(), target_image.sample_count(),
-      render_pass, kTextSubpassIndex, /*flip_y=*/false);
+      renderer::vulkan::util::GetAspectRatio(target_image.extent()), texts,
+      font, font_height);
+  text_renderer->Update(target_image.extent(), target_image.sample_count(),
+                        render_pass, kTextSubpassIndex, /*flip_y=*/false);
 
   constexpr float kTextBaseX = kUvDim / 2.0f;
   for (const auto& info : button_infos) {
@@ -169,10 +167,10 @@ namespace make_button {
 
 std::vector<common::VertexAttribute> RenderInfo::GetVertexAttributes() {
   std::vector<common::VertexAttribute> attributes;
-  common::data::AppendVertexAttributes<glm::vec3>(
-      attributes, offsetof(RenderInfo, color));
-  common::data::AppendVertexAttributes<glm::vec2>(
-      attributes, offsetof(RenderInfo, center));
+  common::data::AppendVertexAttributes<glm::vec3>(attributes,
+                                                  offsetof(RenderInfo, color));
+  common::data::AppendVertexAttributes<glm::vec2>(attributes,
+                                                  offsetof(RenderInfo, center));
   return attributes;
 }
 
@@ -191,8 +189,8 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
       ImageSampler::Config{});
 
   const int num_buttons = button_infos.size();
-  auto buttons_image = CreateTargetImage(context, num_buttons,
-                                         background_image->extent());
+  auto buttons_image =
+      CreateTargetImage(context, num_buttons, background_image->extent());
 
   const auto per_instance_buffer =
       CreatePerInstanceBuffer(context, button_infos);
@@ -209,35 +207,36 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
   const auto text_renderer = CreateTextRenderer(
       context, font, font_height, *buttons_image, *render_pass, button_infos);
 
-  const auto pipeline = GraphicsPipelineBuilder{context}
-      .SetPipelineName("Button background")
-      .AddVertexInput(
-          kPerInstanceBufferBindingPoint,
-          pipeline::GetPerInstanceBindingDescription<make_button::RenderInfo>(),
-          per_instance_buffer->GetAttributes(/*start_location=*/0))
-      .SetPipelineLayout(
-          {descriptor->layout()},
-          {push_constant->MakePerFrameRange(VK_SHADER_STAGE_VERTEX_BIT)})
-      .SetViewport(pipeline::GetFullFrameViewport(buttons_image->extent()),
-                   /*flip_y=*/false)
-      .SetRenderPass(**render_pass, kBackgroundSubpassIndex)
-      .SetColorBlend(
-          {pipeline::GetColorAlphaBlendState(/*enable_blend=*/false)})
-      .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 GetShaderBinaryPath("aurora/make_button.vert"))
-      .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 GetShaderBinaryPath("aurora/make_button.frag"))
-      .Build();
+  const auto pipeline =
+      GraphicsPipelineBuilder{context}
+          .SetPipelineName("Button background")
+          .AddVertexInput(
+              kPerInstanceBufferBindingPoint,
+              pipeline::GetPerInstanceBindingDescription<
+                  make_button::RenderInfo>(),
+              per_instance_buffer->GetAttributes(/*start_location=*/0))
+          .SetPipelineLayout(
+              {descriptor->layout()},
+              {push_constant->MakePerFrameRange(VK_SHADER_STAGE_VERTEX_BIT)})
+          .SetViewport(pipeline::GetFullFrameViewport(buttons_image->extent()),
+                       /*flip_y=*/false)
+          .SetRenderPass(**render_pass, kBackgroundSubpassIndex)
+          .SetColorBlend(
+              {pipeline::GetColorAlphaBlendState(/*enable_blend=*/false)})
+          .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
+                     GetShaderBinaryPath("aurora/make_button.vert"))
+          .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
+                     GetShaderBinaryPath("aurora/make_button.frag"))
+          .Build();
 
   const std::vector<RenderPass::RenderOp> render_ops{
       [&](const VkCommandBuffer& command_buffer) {
         // Render buttons' background.
         pipeline->Bind(command_buffer);
-        per_instance_buffer->Bind(
-            command_buffer, kPerInstanceBufferBindingPoint, /*offset=*/0);
-        push_constant->Flush(
-            command_buffer, pipeline->layout(), /*frame=*/0,
-            /*target_offset=*/0, VK_SHADER_STAGE_VERTEX_BIT);
+        per_instance_buffer->Bind(command_buffer,
+                                  kPerInstanceBufferBindingPoint, /*offset=*/0);
+        push_constant->Flush(command_buffer, pipeline->layout(), /*frame=*/0,
+                             /*target_offset=*/0, VK_SHADER_STAGE_VERTEX_BIT);
         descriptor->Bind(command_buffer, pipeline->layout(),
                          pipeline->binding_point());
         VertexBuffer::DrawWithoutBuffer(
@@ -246,8 +245,8 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
       },
       [&text_renderer, &text_color](const VkCommandBuffer& command_buffer) {
         // Render texts on buttons.
-        text_renderer->Draw(command_buffer, /*frame=*/0,
-                            text_color, /*alpha=*/1.0f);
+        text_renderer->Draw(command_buffer, /*frame=*/0, text_color,
+                            /*alpha=*/1.0f);
       },
   };
 

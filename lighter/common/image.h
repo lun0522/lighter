@@ -8,13 +8,12 @@
 #ifndef LIGHTER_COMMON_IMAGE_H
 #define LIGHTER_COMMON_IMAGE_H
 
+#include <glm/glm.hpp>
 #include <memory>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
-
-#include <glm/glm.hpp>
 
 #include "lighter/common/data.h"
 
@@ -66,22 +65,22 @@ class Image {
   // The length of 'paths' and 'relative_paths' must be 6.
   static Image LoadCubemapFromFiles(std::span<const std::string> paths,
                                     bool flip_y);
-  static Image LoadCubemapFromFiles(
-      std::string_view directory, std::span<const std::string> relative_paths,
-      bool flip_y);
+  static Image LoadCubemapFromFiles(std::string_view directory,
+                                    std::span<const std::string> relative_paths,
+                                    bool flip_y);
 
   // Loads images from the memory. The data will be copied, hence the caller may
   // free the original data once the constructor returns.
   // Images may have either 1 or 4 channels.
-  static Image LoadSingleImageFromMemory(
-      const Dimension& dimension, const void* raw_data, bool flip_y) {
+  static Image LoadSingleImageFromMemory(const Dimension& dimension,
+                                         const void* raw_data, bool flip_y) {
     return LoadImagesFromMemory(
         dimension, std::span<const void* const>{&raw_data, 1}, flip_y);
   }
   // The length of 'raw_data_ptrs' must be 6.
-  static Image LoadCubemapFromMemory(
-      const Dimension& dimension, std::span<const void* const> raw_data_ptrs,
-      bool flip_y);
+  static Image LoadCubemapFromMemory(const Dimension& dimension,
+                                     std::span<const void* const> raw_data_ptrs,
+                                     bool flip_y);
 
   // This class is only movable.
   Image(Image&& rhs) noexcept = default;
@@ -102,9 +101,9 @@ class Image {
   int channel() const { return dimension_.channel; }
 
  private:
-  static Image LoadImagesFromMemory(
-      const Dimension& dimension, std::span<const void* const> raw_data_ptrs,
-      bool flip_y);
+  static Image LoadImagesFromMemory(const Dimension& dimension,
+                                    std::span<const void* const> raw_data_ptrs,
+                                    bool flip_y);
 
   Image(Type type, const Dimension& dimension, RawChunkedData&& data)
       : type_{type}, dimension_{dimension}, data_{std::move(data)} {}

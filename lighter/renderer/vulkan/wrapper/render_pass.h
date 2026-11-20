@@ -8,6 +8,8 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_RENDER_PASS_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_RENDER_PASS_H
 
+#include <vulkan/vulkan.h>
+
 #include <functional>
 #include <memory>
 #include <optional>
@@ -18,7 +20,6 @@
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {
@@ -52,8 +53,8 @@ class RenderPassBuilder {
       VkAttachmentStoreOp stencil_store_op;
     };
 
-    using LoadStoreOps = std::variant<ColorLoadStoreOps,
-                                      DepthStencilLoadStoreOps>;
+    using LoadStoreOps =
+        std::variant<ColorLoadStoreOps, DepthStencilLoadStoreOps>;
 
     LoadStoreOps load_store_ops;
     VkImageLayout initial_layout;
@@ -237,8 +238,8 @@ class RenderPass {
   // This should be called when 'command_buffer' is recording commands.
   // Each element of 'render_ops' represents the operations to perform in each
   // subpass, hence the size of 'render_ops' must be equal to 'num_subpasses_'.
-  void Run(const VkCommandBuffer& command_buffer,
-           int framebuffer_index, std::span<const RenderOp> render_ops) const;
+  void Run(const VkCommandBuffer& command_buffer, int framebuffer_index,
+           std::span<const RenderOp> render_ops) const;
 
   // Overloads.
   const VkRenderPass& operator*() const { return render_pass_; }
@@ -252,8 +253,7 @@ class RenderPass {
   friend std::unique_ptr<RenderPass> RenderPassBuilder::Build() const;
 
   // 'clear_values' is intended to be passed by value.
-  RenderPass(SharedBasicContext context,
-             int num_subpasses,
+  RenderPass(SharedBasicContext context, int num_subpasses,
              const VkRenderPass& render_pass,
              std::vector<VkClearValue> clear_values,
              const VkExtent2D& framebuffer_size,

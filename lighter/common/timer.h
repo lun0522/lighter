@@ -34,8 +34,8 @@ class BasicTimer {
 
   // Returns the length of interval between two time points in second.
   static float TimeInterval(const TimePoint& t1, const TimePoint& t2) {
-    return std::chrono::duration<
-        float, std::chrono::seconds::period>(t2 - t1).count();
+    return std::chrono::duration<float, std::chrono::seconds::period>(t2 - t1)
+        .count();
   }
 
   // Time point when the timer was launched.

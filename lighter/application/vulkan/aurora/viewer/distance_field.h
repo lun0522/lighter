@@ -8,13 +8,14 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_AURORA_VIEWER_DISTANCE_FIELD_H
 #define LIGHTER_APPLICATION_VULKAN_AURORA_VIEWER_DISTANCE_FIELD_H
 
+#include <vulkan/vulkan.h>
+
 #include <memory>
 
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/descriptor.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace application {

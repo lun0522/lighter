@@ -55,8 +55,8 @@ class CompilationRecordReader : public CompilationRecordHandler {
 
   // This class is only movable.
   CompilationRecordReader(CompilationRecordReader&&) noexcept = default;
-  CompilationRecordReader& operator=(CompilationRecordReader&&) noexcept
-      = default;
+  CompilationRecordReader& operator=(CompilationRecordReader&&) noexcept =
+      default;
 
   // Returns a pointer to 'FileHash' if it is in the compilation record file.
   // Otherwise, returns nullptr.
@@ -65,8 +65,7 @@ class CompilationRecordReader : public CompilationRecordHandler {
 
  private:
   // Parses the compilation record file and populates 'file_hash_map_'.
-  void ParseRecordFile(std::ifstream& record_file,
-                       OptimizationLevel opt_level);
+  void ParseRecordFile(std::ifstream& record_file, OptimizationLevel opt_level);
 
   // Maps the source file path to hash values of source and compiled files.
   FileHashValueMap file_hash_map_;
@@ -78,13 +77,12 @@ class CompilationRecordWriter : public CompilationRecordHandler {
  public:
   CompilationRecordWriter(std::filesystem::path&& record_file_path,
                           OptimizationLevel opt_level)
-      : record_file_path_{std::move(record_file_path)},
-        opt_level_{opt_level} {}
+      : record_file_path_{std::move(record_file_path)}, opt_level_{opt_level} {}
 
   // This class is only movable.
   CompilationRecordWriter(CompilationRecordWriter&&) noexcept = default;
-  CompilationRecordWriter& operator=(CompilationRecordWriter&&) noexcept
-      = default;
+  CompilationRecordWriter& operator=(CompilationRecordWriter&&) noexcept =
+      default;
 
   // Registers file hash values, and throws a runtime exception if this file has
   // already been registered.
@@ -92,9 +90,7 @@ class CompilationRecordWriter : public CompilationRecordHandler {
                         FileHash&& file_hash);
 
   // Writes all registered file hash values to the compilation record file.
-  static void WriteAll(CompilationRecordWriter&& writer) {
-    writer.WriteAll();
-  }
+  static void WriteAll(CompilationRecordWriter&& writer) { writer.WriteAll(); }
 
  private:
   // Writes all registered file hash values to the compilation record file.

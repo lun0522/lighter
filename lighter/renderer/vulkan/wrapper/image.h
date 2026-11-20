@@ -8,11 +8,13 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_H
 
+#include <vulkan/vulkan.h>
+
 #include <array>
 #include <memory>
 #include <optional>
-#include <variant>
 #include <span>
+#include <variant>
 #include <vector>
 
 #include "lighter/common/file.h"
@@ -23,7 +25,6 @@
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {
@@ -122,7 +123,8 @@ class Image {
  protected:
   Image(SharedBasicContext context, const VkExtent2D& extent, VkFormat format)
       : context_{std::move(FATAL_IF_NULL(context))},
-        extent_{extent}, format_{format} {}
+        extent_{extent},
+        format_{format} {}
 
   // Modifiers.
   void set_image_view(const VkImageView& image_view) {
@@ -157,8 +159,8 @@ class ImageSampler {
     VkSamplerAddressMode address_mode;
   };
 
-  ImageSampler(SharedBasicContext context,
-               int mip_levels, const Config& config);
+  ImageSampler(SharedBasicContext context, int mip_levels,
+               const Config& config);
 
   // This class is neither copyable nor movable.
   ImageSampler(const ImageSampler&) = delete;
@@ -204,7 +206,7 @@ class TextureImage : public Image, public SamplableImage {
  public:
   // Description of the image data. The size of 'datas' can only be either 1
   // or 6 (for cubemaps), otherwise, the constructor will throw an exception.
-  struct Info{
+  struct Info {
     // Returns the extent of image.
     VkExtent2D GetExtent2D() const { return {width, height}; }
     VkExtent3D GetExtent3D() const { return {width, height, /*depth=*/1}; }
@@ -221,15 +223,11 @@ class TextureImage : public Image, public SamplableImage {
     std::span<const ImageUsage> usages;
   };
 
-  TextureImage(SharedBasicContext context,
-               bool generate_mipmaps,
-               const ImageSampler::Config& sampler_config,
-               const Info& info);
+  TextureImage(SharedBasicContext context, bool generate_mipmaps,
+               const ImageSampler::Config& sampler_config, const Info& info);
 
-  TextureImage(const SharedBasicContext& context,
-               bool generate_mipmaps,
-               const common::Image& image,
-               std::span<const ImageUsage> usages,
+  TextureImage(const SharedBasicContext& context, bool generate_mipmaps,
+               const common::Image& image, std::span<const ImageUsage> usages,
                const ImageSampler::Config& sampler_config);
 
   // This class is neither copyable nor movable.
@@ -249,8 +247,8 @@ class TextureImage : public Image, public SamplableImage {
   // Texture image buffer on the device.
   class TextureBuffer : public ImageBuffer {
    public:
-    TextureBuffer(SharedBasicContext context,
-                  bool generate_mipmaps, const Info& info);
+    TextureBuffer(SharedBasicContext context, bool generate_mipmaps,
+                  const Info& info);
 
     // This class is neither copyable nor movable.
     TextureBuffer(const TextureBuffer&) = delete;
@@ -316,8 +314,7 @@ class SharedTexture : public SamplableImage {
   // no other holder, it will be loaded from the file. Otherwise, this returns
   // a reference to an existing resource on the device.
   static RefCountedTexture GetTexture(
-      const SharedBasicContext& context,
-      const SourcePath& source_path,
+      const SharedBasicContext& context, const SourcePath& source_path,
       std::span<const ImageUsage> usages,
       const ImageSampler::Config& sampler_config);
 
@@ -329,15 +326,13 @@ class SharedTexture : public SamplableImage {
 // compute shaders. No data transfer is required at construction.
 class OffscreenImage : public Image, public SamplableImage {
  public:
-  OffscreenImage(SharedBasicContext context,
-                 const VkExtent2D& extent, VkFormat format,
-                 std::span<const ImageUsage> usages,
+  OffscreenImage(SharedBasicContext context, const VkExtent2D& extent,
+                 VkFormat format, std::span<const ImageUsage> usages,
                  const ImageSampler::Config& sampler_config);
 
   // Only 1 or 4 channels are supported.
-  OffscreenImage(const SharedBasicContext& context,
-                 const VkExtent2D& extent, int channel,
-                 std::span<const ImageUsage> usages,
+  OffscreenImage(const SharedBasicContext& context, const VkExtent2D& extent,
+                 int channel, std::span<const ImageUsage> usages,
                  const ImageSampler::Config& sampler_config,
                  bool use_high_precision);
 
@@ -355,9 +350,8 @@ class OffscreenImage : public Image, public SamplableImage {
   // Offscreen image buffer on the device.
   class OffscreenBuffer : public ImageBuffer {
    public:
-    OffscreenBuffer(SharedBasicContext context,
-                    const VkExtent2D& extent, VkFormat format,
-                    std::span<const ImageUsage> usages);
+    OffscreenBuffer(SharedBasicContext context, const VkExtent2D& extent,
+                    VkFormat format, std::span<const ImageUsage> usages);
 
     // This class is neither copyable nor movable.
     OffscreenBuffer(const OffscreenBuffer&) = delete;
@@ -416,8 +410,8 @@ class DepthStencilImage : public Image {
   // Depth stencil image buffer on the device.
   class DepthStencilBuffer : public ImageBuffer {
    public:
-    DepthStencilBuffer(SharedBasicContext context,
-                       const VkExtent2D& extent, VkFormat format);
+    DepthStencilBuffer(SharedBasicContext context, const VkExtent2D& extent,
+                       VkFormat format);
 
     // This class is neither copyable nor movable.
     DepthStencilBuffer(const DepthStencilBuffer&) = delete;
@@ -432,8 +426,7 @@ class DepthStencilImage : public Image {
 // for keeping the existence of the swapchain before done using this class.
 class SwapchainImage : public Image {
  public:
-  SwapchainImage(SharedBasicContext context,
-                 const VkImage& image,
+  SwapchainImage(SharedBasicContext context, const VkImage& image,
                  const VkExtent2D& extent, VkFormat format);
 
   // This class is neither copyable nor movable.
@@ -463,22 +456,20 @@ class MultisampleImage : public Image {
 
   // Returns a multisample image for a regular color image 'target_image'.
   static std::unique_ptr<Image> CreateColorMultisampleImage(
-      SharedBasicContext context,
-      const Image& target_image, Mode mode);
+      SharedBasicContext context, const Image& target_image, Mode mode);
 
   // Returns a multisample image that can be used as depth stencil attachment.
   // Note that we don't need to resolve this image to another regular image.
   static std::unique_ptr<Image> CreateDepthStencilMultisampleImage(
-      SharedBasicContext context,
-      const VkExtent2D& extent, Mode mode);
+      SharedBasicContext context, const VkExtent2D& extent, Mode mode);
 
   // Convenience function for creating a depth stencil image. Whether the image
   // is a multisample image depends on whether 'mode' has value.
   // Since we don't need to resolve multisampling depth stencil images, we can
   // directly use whatever image returned by this function.
   static std::unique_ptr<Image> CreateDepthStencilImage(
-      SharedBasicContext context,
-      const VkExtent2D& extent, std::optional<Mode> mode);
+      SharedBasicContext context, const VkExtent2D& extent,
+      std::optional<Mode> mode);
 
   // This class is neither copyable nor movable.
   MultisampleImage(const MultisampleImage&) = delete;
@@ -498,8 +489,8 @@ class MultisampleImage : public Image {
     // stencil attachments.
     enum class Type { kColor, kDepthStencil };
 
-    MultisampleBuffer(SharedBasicContext context,
-                      Type type, const VkExtent2D& extent, VkFormat format,
+    MultisampleBuffer(SharedBasicContext context, Type type,
+                      const VkExtent2D& extent, VkFormat format,
                       VkSampleCountFlagBits sample_count);
 
     // This class is neither copyable nor movable.
@@ -507,9 +498,8 @@ class MultisampleImage : public Image {
     MultisampleBuffer& operator=(const MultisampleBuffer&) = delete;
   };
 
-  MultisampleImage(SharedBasicContext context,
-                   const VkExtent2D& extent, VkFormat format,
-                   Mode mode, MultisampleBuffer::Type type);
+  MultisampleImage(SharedBasicContext context, const VkExtent2D& extent,
+                   VkFormat format, Mode mode, MultisampleBuffer::Type type);
 
   // Returns the number of samples per pixel chosen according to 'mode' and
   // physical device limits.

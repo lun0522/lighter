@@ -24,10 +24,10 @@ std::vector<const Image*> ExtractAttachments(
   std::vector<const Image*> attachments;
   attachments.reserve(descriptor.color_ops_map.size() +
                       descriptor.depth_stencil_ops_map.size());
-  for (const auto& [attachment, _]: descriptor.color_ops_map) {
+  for (const auto& [attachment, _] : descriptor.color_ops_map) {
     attachments.push_back(&Image::Cast(*attachment));
   }
-  for (const auto& [attachment, _]: descriptor.depth_stencil_ops_map) {
+  for (const auto& [attachment, _] : descriptor.depth_stencil_ops_map) {
     attachments.push_back(&Image::Cast(*attachment));
   }
   return attachments;
@@ -46,8 +46,7 @@ int FindNumFramebuffers(std::span<const Image* const> attachments) {
         !num_framebuffers.has_value() || num_images == num_framebuffers.value(),
         std::format("Number of images ({}) in '{}' mismatches with other "
                     "attachments (found {})",
-                    num_images, attachment->name(),
-                    num_framebuffers.value()));
+                    num_images, attachment->name(), num_framebuffers.value()));
     num_framebuffers = num_images;
   }
   return num_framebuffers.has_value() ? num_framebuffers.value() : 1;
@@ -55,16 +54,16 @@ int FindNumFramebuffers(std::span<const Image* const> attachments) {
 
 class FramebuffersBuilder : public WithSharedContext {
  public:
-  FramebuffersBuilder(
-      const SharedContext& context, intl::RenderPass render_pass,
-      const RenderPassDescriptor& descriptor)
+  FramebuffersBuilder(const SharedContext& context,
+                      intl::RenderPass render_pass,
+                      const RenderPassDescriptor& descriptor)
       : WithSharedContext{context},
         attachments_{ExtractAttachments(descriptor)},
         num_framebuffers_{FindNumFramebuffers(attachments_)} {
     CreateImageViews();
     CreateFrameBuffers(render_pass);
   }
-  
+
   // This class is neither copyable nor movable.
   FramebuffersBuilder(const FramebuffersBuilder&) = delete;
   FramebuffersBuilder& operator=(const FramebuffersBuilder&) = delete;
@@ -95,33 +94,34 @@ class FramebuffersBuilder : public WithSharedContext {
 };
 
 void FramebuffersBuilder::CreateImageViews() {
-  const int num_single_images = std::count_if(
-      attachments_.begin(), attachments_.end(),
-      [](const Image* image) { return image->IsSingleImage(); });
+  const int num_single_images =
+      std::count_if(attachments_.begin(), attachments_.end(),
+                    [](const Image* image) { return image->IsSingleImage(); });
   const int num_multi_images = attachments_.size() - num_single_images;
   const int num_image_views =
       num_single_images + num_multi_images * num_framebuffers_;
   image_views_.reserve(num_image_views);
-  for (const Image* attachment: attachments_) {
+  for (const Image* attachment : attachments_) {
     CreateAndAppendImageViews(*attachment);
   }
 }
 
 void FramebuffersBuilder::CreateAndAppendImageViews(const Image& attachment) {
-  const auto subresource_range = intl::ImageSubresourceRange{}
-      .setAspectMask(attachment.GetAspectFlags())
-      .setLevelCount(CAST_TO_UINT(attachment.mip_levels()))
-      .setLayerCount(CAST_TO_UINT(attachment.GetNumLayers()));
+  const auto subresource_range =
+      intl::ImageSubresourceRange{}
+          .setAspectMask(attachment.GetAspectFlags())
+          .setLevelCount(CAST_TO_UINT(attachment.mip_levels()))
+          .setLayerCount(CAST_TO_UINT(attachment.GetNumLayers()));
   auto image_view_create_info = intl::ImageViewCreateInfo{}
-      .setViewType(attachment.GetViewType())
-      .setFormat(attachment.format())
-      .setSubresourceRange(subresource_range);
+                                    .setViewType(attachment.GetViewType())
+                                    .setFormat(attachment.format())
+                                    .setSubresourceRange(subresource_range);
 
   switch (attachment.type()) {
     case Image::Type::kSingle: {
       image_view_create_info.setImage(*SingleImage::Cast(attachment));
-      image_views_.push_back(vk_device().createImageView(
-          image_view_create_info, vk_host_allocator()));
+      image_views_.push_back(vk_device().createImageView(image_view_create_info,
+                                                         vk_host_allocator()));
       break;
     }
 
@@ -140,12 +140,13 @@ void FramebuffersBuilder::CreateAndAppendImageViews(const Image& attachment) {
 void FramebuffersBuilder::CreateFrameBuffers(intl::RenderPass render_pass) {
   std::vector<intl::ImageView> image_views_for_framebuffer(attachments_.size());
   const Image& sample_attachemnt = *attachments_.front();
-  const auto framebuffer_create_info = intl::FramebufferCreateInfo{}
-      .setRenderPass(render_pass)
-      .setAttachments(image_views_for_framebuffer)
-      .setWidth(CAST_TO_UINT(sample_attachemnt.width()))
-      .setHeight(CAST_TO_UINT(sample_attachemnt.height()))
-      .setLayers(CAST_TO_UINT(sample_attachemnt.GetNumLayers()));
+  const auto framebuffer_create_info =
+      intl::FramebufferCreateInfo{}
+          .setRenderPass(render_pass)
+          .setAttachments(image_views_for_framebuffer)
+          .setWidth(CAST_TO_UINT(sample_attachemnt.width()))
+          .setHeight(CAST_TO_UINT(sample_attachemnt.height()))
+          .setLayers(CAST_TO_UINT(sample_attachemnt.GetNumLayers()));
 
   framebuffers_.resize(num_framebuffers_);
   for (int framebuffer_index = 0; framebuffer_index < num_framebuffers_;
@@ -159,7 +160,7 @@ void FramebuffersBuilder::CreateFrameBuffers(intl::RenderPass render_pass) {
           ++image_view_ptr;
           break;
         }
-        
+
         case Image::Type::kMultiple: {
           image_views_for_framebuffer[attachment_index] =
               image_view_ptr[framebuffer_index];
@@ -175,9 +176,9 @@ void FramebuffersBuilder::CreateFrameBuffers(intl::RenderPass render_pass) {
 
 }  // namespace
 
-Framebuffers::Framebuffers(
-    const SharedContext& context, intl::RenderPass render_pass,
-    const RenderPassDescriptor& descriptor)
+Framebuffers::Framebuffers(const SharedContext& context,
+                           intl::RenderPass render_pass,
+                           const RenderPassDescriptor& descriptor)
     : WithSharedContext{context} {
   FramebuffersBuilder builder{context_, render_pass, descriptor};
   image_views_ = builder.AcquireImageViews();

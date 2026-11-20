@@ -9,10 +9,9 @@
 #define LIGHTER_RENDERER_VK_UTIL_H
 
 #include <format>
+#include <glm/glm.hpp>
 #include <string_view>
 #include <vector>
-
-#include <glm/glm.hpp>
 
 #include "lighter/common/image.h"
 #include "lighter/common/util.h"
@@ -30,11 +29,10 @@ namespace intl = ::vk;
 
 #define CONTAINER_SIZE(container) CAST_TO_UINT((container).size())
 
-#define ASSERT_SUCCESS(result, error)                                       \
-    ASSERT_TRUE(                                                            \
-        result == ::lighter::renderer::vk::intl::Result::eSuccess,          \
-        ::std::format(                                                      \
-            "{}: {}", error, ::lighter::renderer::vk::intl::to_string(result)))
+#define ASSERT_SUCCESS(result, error)                                    \
+  ASSERT_TRUE(result == ::lighter::renderer::vk::intl::Result::eSuccess, \
+              ::std::format("{}: {}", error,                             \
+                            ::lighter::renderer::vk::intl::to_string(result)))
 
 namespace lighter::renderer::vk::util {
 
@@ -52,9 +50,7 @@ inline glm::ivec2 ToVec(const intl::Extent2D& extent) {
 }
 
 // Conversion between glm::ivec2 and VkOffset2D.
-inline intl::Offset2D ToOffset(const glm::ivec2& vec) {
-  return {vec.x, vec.y};
-}
+inline intl::Offset2D ToOffset(const glm::ivec2& vec) { return {vec.x, vec.y}; }
 
 }  // namespace lighter::renderer::vk::util
 

@@ -9,13 +9,13 @@
 #define LIGHTER_RENDERER_IR_IMAGE_H
 
 #include <algorithm>
+#include <glm/glm.hpp>
 #include <string>
 #include <string_view>
 
 #include "lighter/common/image.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/ir/type.h"
-#include <glm/glm.hpp>
 
 namespace lighter::renderer::ir {
 
@@ -46,7 +46,9 @@ class Image {
  protected:
   Image(std::string_view name, LayerType layer_type, const glm::ivec2& extent,
         int mip_levels)
-      : name_{name}, layer_type_{layer_type}, extent_{extent},
+      : name_{name},
+        layer_type_{layer_type},
+        extent_{extent},
         mip_levels_{mip_levels} {}
 
  private:

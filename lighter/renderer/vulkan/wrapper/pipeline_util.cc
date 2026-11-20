@@ -80,8 +80,7 @@ GraphicsPipelineBuilder::ViewportInfo GetFullFrameViewport(
       /*scissor=*/VkRect2D{
           /*offset=*/{0, 0},
           frame_size,
-      }
-  };
+      }};
 }
 
 GraphicsPipelineBuilder::ViewportInfo GetViewport(const VkExtent2D& frame_size,
@@ -102,8 +101,7 @@ GraphicsPipelineBuilder::ViewportInfo GetViewport(const VkExtent2D& frame_size,
       /*scissor=*/VkRect2D{
           /*offset=*/{0, 0},
           frame_size,
-      }
-  };
+      }};
 }
 
 VkPipelineColorBlendAttachmentState GetColorBlendState(bool enable_blend) {
@@ -116,10 +114,8 @@ VkPipelineColorBlendAttachmentState GetColorBlendState(bool enable_blend) {
       /*dstAlphaBlendFactor=*/VK_BLEND_FACTOR_ONE,
       /*alphaBlendOp=*/VK_BLEND_OP_ADD,
       /*colorWriteMask=*/
-      VK_COLOR_COMPONENT_R_BIT
-          | VK_COLOR_COMPONENT_G_BIT
-          | VK_COLOR_COMPONENT_B_BIT
-          | VK_COLOR_COMPONENT_A_BIT,
+      VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
   };
 }
 
@@ -133,10 +129,8 @@ VkPipelineColorBlendAttachmentState GetColorAlphaBlendState(bool enable_blend) {
       /*dstAlphaBlendFactor=*/VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
       /*alphaBlendOp=*/VK_BLEND_OP_ADD,
       /*colorWriteMask=*/
-      VK_COLOR_COMPONENT_R_BIT
-          | VK_COLOR_COMPONENT_G_BIT
-          | VK_COLOR_COMPONENT_B_BIT
-          | VK_COLOR_COMPONENT_A_BIT,
+      VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
   };
 }
 

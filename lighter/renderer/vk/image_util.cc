@@ -66,8 +66,9 @@ intl::ImageUsageFlagBits GetImageUsageFlagBits(const ImageUsage& usage) {
       switch (usage.access_type()) {
         case AccessType::kDontCare:
         case AccessType::kReadWrite:
-          FATAL("Access type must not be kDontCare or kReadWrite for usage "
-                "type kTransfer");
+          FATAL(
+              "Access type must not be kDontCare or kReadWrite for usage "
+              "type kTransfer");
 
         case AccessType::kReadOnly:
           return UsageFlag::eTransferSrc;
@@ -90,8 +91,7 @@ intl::AccessFlags GetAccessFlags(const ImageUsage& usage) {
 
     case UsageType::kRenderTarget:
     case UsageType::kMultisampleResolve:
-      return GetReadWriteFlags(access_type,
-                               AccessFlag::eColorAttachmentRead,
+      return GetReadWriteFlags(access_type, AccessFlag::eColorAttachmentRead,
                                AccessFlag::eColorAttachmentWrite);
 
     case UsageType::kDepthStencil:
@@ -102,19 +102,16 @@ intl::AccessFlags GetAccessFlags(const ImageUsage& usage) {
     case UsageType::kLinearAccess:
     case UsageType::kSample:
       return usage.access_location() == AccessLocation::kHost
-                 ? GetReadWriteFlags(access_type,
-                                     AccessFlag::eHostRead,
+                 ? GetReadWriteFlags(access_type, AccessFlag::eHostRead,
                                      AccessFlag::eHostWrite)
-                 : GetReadWriteFlags(access_type,
-                                     AccessFlag::eShaderRead,
+                 : GetReadWriteFlags(access_type, AccessFlag::eShaderRead,
                                      AccessFlag::eShaderWrite);
 
     case UsageType::kInputAttachment:
       return AccessFlag::eInputAttachmentRead;
 
     case UsageType::kTransfer:
-      return GetReadWriteFlags(access_type,
-                               AccessFlag::eTransferRead,
+      return GetReadWriteFlags(access_type, AccessFlag::eTransferRead,
                                AccessFlag::eTransferWrite);
   }
 }
@@ -140,8 +137,9 @@ intl::PipelineStageFlags GetPipelineStageFlags(const ImageUsage& usage) {
         case AccessLocation::kDontCare:
         case AccessLocation::kVertexShader:
         case AccessLocation::kOther:
-          FATAL("Access location must not be kDontCare, kVertexShader or "
-                "kOther for usage type kLinearAccess and kSample");
+          FATAL(
+              "Access location must not be kDontCare, kVertexShader or "
+              "kOther for usage type kLinearAccess and kSample");
 
         case AccessLocation::kHost:
           return StageFlag::eHost;
@@ -185,8 +183,9 @@ intl::ImageLayout GetImageLayout(const ImageUsage& usage) {
       switch (usage.access_type()) {
         case AccessType::kDontCare:
         case AccessType::kReadWrite:
-          FATAL("Access type must not be kDontCare or kReadWrite for usage "
-                "type kTransfer");
+          FATAL(
+              "Access type must not be kDontCare or kReadWrite for usage "
+              "type kTransfer");
 
         case AccessType::kReadOnly:
           return ImageLayout::eTransferSrcOptimal;
@@ -219,8 +218,9 @@ std::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
         case AccessLocation::kDontCare:
         case AccessLocation::kVertexShader:
         case AccessLocation::kOther:
-          FATAL("Access location must not be kDontCare, kVertexShader or "
-                "kOther for usage type kLinearAccess and kSample");
+          FATAL(
+              "Access location must not be kDontCare, kVertexShader or "
+              "kOther for usage type kLinearAccess and kSample");
 
         case AccessLocation::kHost:
           return std::nullopt;

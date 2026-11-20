@@ -10,15 +10,14 @@
 
 #include <cstdlib>
 #include <exception>
+#include <glm/glm.hpp>
 #include <memory>
 #include <optional>
+#include <spirv_cross/spirv_cross.hpp>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
-
-#include <glm/glm.hpp>
-#include <spirv_cross/spirv_cross.hpp>
 
 #include "lighter/common/data.h"
 #include "lighter/common/file.h"
@@ -50,8 +49,8 @@ inline std::unique_ptr<renderer::ir::Renderer> CreateRenderer(
       type::GENERAL | type::PERFORMANCE,
   };
 #endif  // !NDEBUG
-  return renderer::util::CreateRenderer(
-      application_name, debug_message_config, std::move(window_ptrs));
+  return renderer::util::CreateRenderer(application_name, debug_message_config,
+                                        std::move(window_ptrs));
 }
 
 // Returns the full path to compiled shader binary.

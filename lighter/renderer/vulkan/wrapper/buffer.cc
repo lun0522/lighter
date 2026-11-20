@@ -18,8 +18,7 @@ namespace vulkan {
 namespace {
 
 // Creates a buffer of 'data_size' for 'buffer_usages'
-VkBuffer CreateBuffer(const BasicContext& context,
-                      VkDeviceSize data_size,
+VkBuffer CreateBuffer(const BasicContext& context, VkDeviceSize data_size,
                       VkBufferUsageFlags buffer_usages,
                       const util::QueueUsage& queue_usage) {
   const VkBufferCreateInfo buffer_info{
@@ -59,9 +58,9 @@ VkDeviceMemory CreateBufferMemory(const BasicContext& context,
   };
 
   VkDeviceMemory memory;
-  ASSERT_SUCCESS(vkAllocateMemory(device, &memory_info,
-                                  *context.allocator(), &memory),
-                 "Failed to allocate buffer memory");
+  ASSERT_SUCCESS(
+      vkAllocateMemory(device, &memory_info, *context.allocator(), &memory),
+      "Failed to allocate buffer memory");
 
   // Bind the allocated memory with 'buffer'. If this memory is used for
   // multiple buffers, the memory offset should be re-calculated and
@@ -72,8 +71,7 @@ VkDeviceMemory CreateBufferMemory(const BasicContext& context,
 
 // Maps device memory with the given 'map_offset' and 'map_size', and copies
 // data from the host according to 'copy_infos'.
-void CopyHostToBuffer(const BasicContext& context,
-                      VkDeviceSize map_offset,
+void CopyHostToBuffer(const BasicContext& context, VkDeviceSize map_offset,
                       VkDeviceSize map_size,
                       const VkDeviceMemory& device_memory,
                       const std::vector<Buffer::CopyInfo>& copy_infos) {
@@ -99,8 +97,8 @@ StagingBuffer::StagingBuffer(SharedBasicContext context,
   set_buffer(CreateBuffer(*context_, data_size_,
                           VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                           context_->queues().GetTransferQueueUsage()));
-  set_device_memory(CreateBufferMemory(
-      *context_, buffer(), kHostVisibleMemory));
+  set_device_memory(
+      CreateBufferMemory(*context_, buffer(), kHostVisibleMemory));
   CopyHostToBuffer(*context_, /*map_offset=*/0, /*map_size=*/data_size_,
                    device_memory(), copy_infos.copy_infos);
 }
@@ -129,9 +127,9 @@ std::vector<VkVertexInputAttributeDescription> VertexBuffer::GetAttributes(
   return descriptions;
 }
 
-void VertexBuffer::DrawWithoutBuffer(
-    const VkCommandBuffer& command_buffer,
-    uint32_t vertex_count, uint32_t instance_count) {
+void VertexBuffer::DrawWithoutBuffer(const VkCommandBuffer& command_buffer,
+                                     uint32_t vertex_count,
+                                     uint32_t instance_count) {
   vkCmdDraw(command_buffer, vertex_count, instance_count,
             /*firstVertex=*/0, /*firstInstance=*/0);
 }
@@ -186,7 +184,8 @@ Buffer::CopyInfos PerVertexBuffer::NoIndicesDataInfo::CreateCopyInfos(
   // Vertex buffer layout (@ refers to the index of mesh):
   // | vertices@0 | vertices@1 | vertices@2 | ...
   auto& mesh_infos = buffer->mutable_mesh_data_infos()
-                           ->emplace<MeshDataInfosNoIndices>().infos;
+                         ->emplace<MeshDataInfosNoIndices>()
+                         .infos;
   mesh_infos.reserve(per_mesh_vertices_.size());
   std::vector<Buffer::CopyInfo> copy_infos;
   copy_infos.reserve(per_mesh_vertices_.size());
@@ -213,7 +212,8 @@ Buffer::CopyInfos PerVertexBuffer::ShareIndicesDataInfo::CreateCopyInfos(
   // Vertex buffer layout (@ refers to the index of mesh):
   // | shared indices | vertices@0 | vertices@1 | vertices@2 | ...
   auto& mesh_infos = buffer->mutable_mesh_data_infos()
-                           ->emplace<MeshDataInfosWithIndices>().infos;
+                         ->emplace<MeshDataInfosWithIndices>()
+                         .infos;
   mesh_infos.reserve(num_meshes_);
 
   constexpr int kIndicesOffset = 0;
@@ -231,7 +231,8 @@ Buffer::CopyInfos PerVertexBuffer::ShareIndicesDataInfo::CreateCopyInfos(
 
   return Buffer::CopyInfos{
       /*total_size=*/vertices_offset,
-      /*copy_infos=*/{
+      /*copy_infos=*/
+      {
           Buffer::CopyInfo{
               shared_indices_.data,
               shared_indices_.size_per_mesh,
@@ -251,7 +252,8 @@ Buffer::CopyInfos PerVertexBuffer::NoShareIndicesDataInfo::CreateCopyInfos(
   // Vertex buffer layout (@ refers to the index of mesh):
   // | indices@0 | vertices@0 | indices@1 | vertices@1 | ...
   auto& mesh_infos = buffer->mutable_mesh_data_infos()
-                           ->emplace<MeshDataInfosWithIndices>().infos;
+                         ->emplace<MeshDataInfosWithIndices>()
+                         .infos;
   mesh_infos.reserve(per_mesh_infos_.size());
   std::vector<Buffer::CopyInfo> copy_infos;
   copy_infos.reserve(per_mesh_infos_.size() * 2);
@@ -286,8 +288,8 @@ Buffer::CopyInfos PerVertexBuffer::NoShareIndicesDataInfo::CreateCopyInfos(
 }
 
 void PerVertexBuffer::Draw(const VkCommandBuffer& command_buffer,
-                           uint32_t binding_point,
-                           int mesh_index, uint32_t instance_count) const {
+                           uint32_t binding_point, int mesh_index,
+                           uint32_t instance_count) const {
   if (const auto* mesh_on_indices =
           std::get_if<MeshDataInfosNoIndices>(&mesh_data_infos_);
       mesh_on_indices != nullptr) {
@@ -350,21 +352,23 @@ StaticPerInstanceBuffer::StaticPerInstanceBuffer(
   staging_buffer.CopyToBuffer(buffer());
 }
 
-void DynamicPerInstanceBuffer::CopyHostData(
-    const void* data, uint32_t num_instances) {
+void DynamicPerInstanceBuffer::CopyHostData(const void* data,
+                                            uint32_t num_instances) {
   const uint32_t total_size = per_instance_data_size() * num_instances;
   const CopyInfos copy_infos{
-      total_size, /*copy_infos=*/{CopyInfo{data, total_size, /*offset=*/0}},
+      total_size,
+      /*copy_infos=*/{CopyInfo{data, total_size, /*offset=*/0}},
   };
   Reserve(total_size);
   CopyHostToBuffer(*context_, /*map_offset=*/0, /*map_size=*/buffer_size(),
                    device_memory(), copy_infos.copy_infos);
 }
 
-UniformBuffer::UniformBuffer(SharedBasicContext context,
-                             size_t chunk_size, int num_chunks)
+UniformBuffer::UniformBuffer(SharedBasicContext context, size_t chunk_size,
+                             int num_chunks)
     : DataBuffer{std::move(context)},
-      chunk_data_size_{chunk_size}, num_chunks_{num_chunks} {
+      chunk_data_size_{chunk_size},
+      num_chunks_{num_chunks} {
   const VkDeviceSize alignment =
       context_->physical_device_limits().minUniformBufferOffsetAlignment;
   chunk_memory_size_ =
@@ -374,17 +378,16 @@ UniformBuffer::UniformBuffer(SharedBasicContext context,
   set_buffer(CreateBuffer(*context_, chunk_memory_size_ * num_chunks,
                           VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                           context_->queues().GetGraphicsQueueUsage()));
-  set_device_memory(CreateBufferMemory(
-      *context_, buffer(), kHostVisibleMemory));
+  set_device_memory(
+      CreateBufferMemory(*context_, buffer(), kHostVisibleMemory));
 }
 
 void UniformBuffer::Flush(int chunk_index) const {
   ValidateChunkIndex(chunk_index);
   const VkDeviceSize src_offset = chunk_data_size_ * chunk_index;
   const VkDeviceSize dst_offset = chunk_memory_size_ * chunk_index;
-  CopyHostToBuffer(
-      *context_, dst_offset, chunk_data_size_, device_memory(),
-      {{data_ + src_offset, chunk_data_size_, /*offset=*/0}});
+  CopyHostToBuffer(*context_, dst_offset, chunk_data_size_, device_memory(),
+                   {{data_ + src_offset, chunk_data_size_, /*offset=*/0}});
 }
 
 void UniformBuffer::Flush(int chunk_index, VkDeviceSize data_size,
@@ -392,13 +395,11 @@ void UniformBuffer::Flush(int chunk_index, VkDeviceSize data_size,
   ValidateChunkIndex(chunk_index);
   const VkDeviceSize src_offset = chunk_data_size_ * chunk_index + offset;
   const VkDeviceSize dst_offset = chunk_memory_size_ * chunk_index + offset;
-  CopyHostToBuffer(
-      *context_, dst_offset, data_size, device_memory(),
-      {{data_ + src_offset, data_size, /*offset=*/0}});
+  CopyHostToBuffer(*context_, dst_offset, data_size, device_memory(),
+                   {{data_ + src_offset, data_size, /*offset=*/0}});
 }
 
-VkDescriptorBufferInfo UniformBuffer::GetDescriptorInfo(
-    int chunk_index) const {
+VkDescriptorBufferInfo UniformBuffer::GetDescriptorInfo(int chunk_index) const {
   ValidateChunkIndex(chunk_index);
   return VkDescriptorBufferInfo{
       buffer(),
@@ -409,8 +410,8 @@ VkDescriptorBufferInfo UniformBuffer::GetDescriptorInfo(
 
 void UniformBuffer::ValidateChunkIndex(int chunk_index) const {
   ASSERT_TRUE(chunk_index < num_chunks_,
-              std::format("Chunk index ({}) of out range ({})",
-                          chunk_index, num_chunks_));
+              std::format("Chunk index ({}) of out range ({})", chunk_index,
+                          num_chunks_));
 }
 
 PushConstant::PushConstant(const SharedBasicContext& context,
@@ -426,8 +427,8 @@ PushConstant::PushConstant(const SharedBasicContext& context,
 }
 
 void PushConstant::Flush(const VkCommandBuffer& command_buffer,
-                         const VkPipelineLayout& pipeline_layout,
-                         int frame, uint32_t target_offset,
+                         const VkPipelineLayout& pipeline_layout, int frame,
+                         uint32_t target_offset,
                          VkShaderStageFlags shader_stage) const {
   ValidateFrame(frame);
   vkCmdPushConstants(command_buffer, pipeline_layout, shader_stage,

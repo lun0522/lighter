@@ -48,9 +48,9 @@ void ComputePass::Run(
       }
 
       const auto iter = image_map.find(image_name);
-      ASSERT_FALSE(iter == image_map.end(),
-                   std::format("Image '{}' not provided in image map",
-                               image_name));
+      ASSERT_FALSE(
+          iter == image_map.end(),
+          std::format("Image '{}' not provided in image map", image_name));
       InsertMemoryBarrier(command_buffer, queue_family_index, **iter->second,
                           usages_info.value().prev_usage,
                           usages_info.value().curr_usage);
@@ -72,10 +72,11 @@ void ComputePass::Run(
   }
 }
 
-void ComputePass::InsertMemoryBarrier(
-    const VkCommandBuffer& command_buffer, uint32_t queue_family_index,
-    const VkImage& image, const ImageUsage& prev_usage,
-    const ImageUsage& curr_usage) const {
+void ComputePass::InsertMemoryBarrier(const VkCommandBuffer& command_buffer,
+                                      uint32_t queue_family_index,
+                                      const VkImage& image,
+                                      const ImageUsage& prev_usage,
+                                      const ImageUsage& curr_usage) const {
   const VkImageMemoryBarrier barrier{
       VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
       /*pNext=*/nullptr,
@@ -104,23 +105,22 @@ void ComputePass::InsertMemoryBarrier(
       /*pMemoryBarriers=*/nullptr,
       /*bufferMemoryBarrierCount=*/0,
       /*pBufferMemoryBarriers=*/nullptr,
-      /*imageMemoryBarrierCount=*/1,
-      &barrier);
+      /*imageMemoryBarrierCount=*/1, &barrier);
 }
 
-void ComputePass::ValidateUsageHistory(
-    const std::string& image_name, const ImageUsageHistory& history) const {
+void ComputePass::ValidateUsageHistory(const std::string& image_name,
+                                       const ImageUsageHistory& history) const {
   using ImageUsageType = ImageUsage::UsageType;
   for (const auto& pair : history.usage_at_subpass_map()) {
     const ImageUsageType usage_type = pair.second.usage_type();
-    ASSERT_TRUE(usage_type == ImageUsageType::kLinearAccess
-                    || usage_type == ImageUsageType::kSample
-                    || usage_type == ImageUsageType::kTransfer,
-                std::format("Usage type ({}) is neither kLinearAccess, "
-                            "kSample nor kTransfer for image '{}' at "
-                            "subpass {}",
-                            static_cast<int>(usage_type), image_name,
-                            pair.first));
+    ASSERT_TRUE(
+        usage_type == ImageUsageType::kLinearAccess ||
+            usage_type == ImageUsageType::kSample ||
+            usage_type == ImageUsageType::kTransfer,
+        std::format("Usage type ({}) is neither kLinearAccess, "
+                    "kSample nor kTransfer for image '{}' at "
+                    "subpass {}",
+                    static_cast<int>(usage_type), image_name, pair.first));
   }
 }
 

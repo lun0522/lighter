@@ -31,8 +31,7 @@ void CheckInstanceExtensionSupport(const std::vector<std::string>& required) {
       [](uint32_t* count, VkExtensionProperties* properties) {
         return vkEnumerateInstanceExtensionProperties(
             /*pLayerName=*/nullptr, count, properties);
-      }
-  );
+      });
   const auto get_name = [](const VkExtensionProperties& property) {
     return property.extensionName;
   };
@@ -52,13 +51,12 @@ void CheckValidationLayerSupport(const std::vector<std::string>& required) {
   const auto properties = util::QueryAttribute<VkLayerProperties>(
       [](uint32_t* count, VkLayerProperties* properties) {
         return vkEnumerateInstanceLayerProperties(count, properties);
-      }
-  );
+      });
   const auto get_name = [](const VkLayerProperties& property) {
     return property.layerName;
   };
-  const auto unsupported = util::FindUnsupported<VkLayerProperties>(
-      required, properties, get_name);
+  const auto unsupported =
+      util::FindUnsupported<VkLayerProperties>(required, properties, get_name);
   ASSERT_NO_VALUE(unsupported,
                   std::format("Unsupported: {}", unsupported.value()));
 }
@@ -79,8 +77,7 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
       [&physical_device](uint32_t* count, VkExtensionProperties* properties) {
         return vkEnumerateDeviceExtensionProperties(
             physical_device, /*pLayerName=*/nullptr, count, properties);
-      }
-  );
+      });
   const auto get_name = [](const VkExtensionProperties& property) {
     return property.extensionName;
   };
@@ -94,12 +91,12 @@ bool HasSwapchainSupport(const VkPhysicalDevice& physical_device,
   // Physical device may support swapchain but maybe not compatible with the
   // window system, so we need to query details.
   uint32_t format_count, mode_count;
-  vkGetPhysicalDeviceSurfaceFormatsKHR(
-      physical_device, window_support.surface, &format_count,
-      /*pSurfaceFormats=*/nullptr);
-  vkGetPhysicalDeviceSurfacePresentModesKHR(
-      physical_device, window_support.surface, &mode_count,
-      /*pPresentModes=*/nullptr);
+  vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, window_support.surface,
+                                       &format_count,
+                                       /*pSurfaceFormats=*/nullptr);
+  vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device,
+                                            window_support.surface, &mode_count,
+                                            /*pPresentModes=*/nullptr);
   return format_count && mode_count;
 }
 
@@ -131,10 +128,9 @@ std::optional<QueueFamilyIndices> FindDeviceQueues(
   QueueFamilyIndices candidate{};
   const auto families = util::QueryAttribute<VkQueueFamilyProperties>(
       [&physical_device](uint32_t* count, VkQueueFamilyProperties* properties) {
-        return vkGetPhysicalDeviceQueueFamilyProperties(
-            physical_device, count, properties);
-      }
-  );
+        return vkGetPhysicalDeviceQueueFamilyProperties(physical_device, count,
+                                                        properties);
+      });
 
   const auto has_graphics_support = [](const VkQueueFamilyProperties& family) {
     return family.queueCount && (family.queueFlags & VK_QUEUE_GRAPHICS_BIT);
@@ -164,15 +160,16 @@ std::optional<QueueFamilyIndices> FindDeviceQueues(
   // Find queue family that holds presentation queue if use window.
   if (window_support.has_value()) {
     uint32_t index = 0;
-    const auto has_present_support = [&physical_device, &window_support, index]
-        (const VkQueueFamilyProperties& family) mutable {
-      VkBool32 support = VK_FALSE;
-      vkGetPhysicalDeviceSurfaceSupportKHR(
-          physical_device, index++, window_support->surface, &support);
-      return support;
-    };
-    const auto iter = std::find_if(families.begin(), families.end(),
-                                   has_present_support);
+    const auto has_present_support =
+        [&physical_device, &window_support,
+         index](const VkQueueFamilyProperties& family) mutable {
+          VkBool32 support = VK_FALSE;
+          vkGetPhysicalDeviceSurfaceSupportKHR(
+              physical_device, index++, window_support->surface, &support);
+          return support;
+        };
+    const auto iter =
+        std::find_if(families.begin(), families.end(), has_present_support);
     if (iter == families.end()) {
       return std::nullopt;
     } else {
@@ -204,11 +201,9 @@ Instance::Instance(const BasicContext* context,
   };
   // Request support for window if necessary.
   if (window_support.has_value()) {
-    instance_extensions.insert(
-        instance_extensions.end(),
-        window_support->window_extensions.begin(),
-        window_support->window_extensions.end()
-    );
+    instance_extensions.insert(instance_extensions.end(),
+                               window_support->window_extensions.begin(),
+                               window_support->window_extensions.end());
   }
 #ifndef NDEBUG
   // Request support for debug reports.
@@ -236,15 +231,11 @@ Instance::Instance(const BasicContext* context,
 #endif  // VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
 
   // Make sure we have support for relevant extensions and layers.
-  CheckInstanceExtensionSupport({
-      instance_extensions.begin(),
-      instance_extensions.end()
-  });
+  CheckInstanceExtensionSupport(
+      {instance_extensions.begin(), instance_extensions.end()});
 #ifndef NDEBUG
-  CheckValidationLayerSupport({
-      validation::GetRequiredLayers().begin(),
-      validation::GetRequiredLayers().end()
-  });
+  CheckValidationLayerSupport({validation::GetRequiredLayers().begin(),
+                               validation::GetRequiredLayers().end()});
 #endif /* !NDEBUG */
 
   // [optional]
@@ -287,9 +278,7 @@ Instance::Instance(const BasicContext* context,
   }
 }
 
-Instance::~Instance() {
-  vkDestroyInstance(instance_, *context_->allocator());
-}
+Instance::~Instance() { vkDestroyInstance(instance_, *context_->allocator()); }
 
 PhysicalDevice::PhysicalDevice(
     const BasicContext* context,
@@ -298,10 +287,9 @@ PhysicalDevice::PhysicalDevice(
   // Find all physical devices.
   const auto physical_devices = util::QueryAttribute<VkPhysicalDevice>(
       [this](uint32_t* count, VkPhysicalDevice* physical_device) {
-        return vkEnumeratePhysicalDevices(
-            *context_->instance(), count, physical_device);
-      }
-  );
+        return vkEnumeratePhysicalDevices(*context_->instance(), count,
+                                          physical_device);
+      });
 
   // Find a suitable device. If window support is requested, also request for
   // the swapchain and presentation queue here.
@@ -350,10 +338,9 @@ Device::Device(const BasicContext* context,
   };
   // Request support for window if necessary.
   if (window_support.has_value()) {
-    device_extensions.insert(
-        device_extensions.end(),
-        window_support->swapchain_extensions.begin(),
-        window_support->swapchain_extensions.end());
+    device_extensions.insert(device_extensions.end(),
+                             window_support->swapchain_extensions.begin(),
+                             window_support->swapchain_extensions.end());
   }
 
   // Specify which queue we want to use.
@@ -394,9 +381,7 @@ Device::Device(const BasicContext* context,
                  "Failed to create logical device");
 }
 
-Device::~Device() {
-  vkDestroyDevice(device_, *context_->allocator());
-}
+Device::~Device() { vkDestroyDevice(device_, *context_->allocator()); }
 
 Queues::Queues(const BasicContext& context,
                const QueueFamilyIndices& family_indices) {

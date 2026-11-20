@@ -8,11 +8,12 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_BASIC_OBJECT_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_BASIC_OBJECT_H
 
+#include <vulkan/vulkan.h>
+
 #include <optional>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {
@@ -156,8 +157,7 @@ class Queues {
     uint32_t family_index;
   };
 
-  Queues(const BasicContext& context,
-         const QueueFamilyIndices& family_indices);
+  Queues(const BasicContext& context, const QueueFamilyIndices& family_indices);
 
   // This class is neither copyable nor movable.
   Queues(const Queues&) = delete;

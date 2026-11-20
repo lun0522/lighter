@@ -44,8 +44,7 @@ VkAccessFlags GetAccessFlags(const ImageUsage& usage) {
       return kNullAccessFlag;
 
     case UsageType::kRenderTarget:
-      return GetReadWriteFlags(access_type,
-                               VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
+      return GetReadWriteFlags(access_type, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
                                VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 
     case UsageType::kDepthStencil:
@@ -68,16 +67,13 @@ VkAccessFlags GetAccessFlags(const ImageUsage& usage) {
     case UsageType::kLinearAccess:
     case UsageType::kSample:
       return usage.access_location() == AccessLocation::kHost
-                 ? GetReadWriteFlags(access_type,
-                                     VK_ACCESS_HOST_READ_BIT,
+                 ? GetReadWriteFlags(access_type, VK_ACCESS_HOST_READ_BIT,
                                      VK_ACCESS_HOST_WRITE_BIT)
-                 : GetReadWriteFlags(access_type,
-                                     VK_ACCESS_SHADER_READ_BIT,
+                 : GetReadWriteFlags(access_type, VK_ACCESS_SHADER_READ_BIT,
                                      VK_ACCESS_SHADER_WRITE_BIT);
 
     case UsageType::kTransfer:
-      return GetReadWriteFlags(access_type,
-                               VK_ACCESS_TRANSFER_READ_BIT,
+      return GetReadWriteFlags(access_type, VK_ACCESS_TRANSFER_READ_BIT,
                                VK_ACCESS_TRANSFER_WRITE_BIT);
   }
 }
@@ -93,15 +89,16 @@ VkPipelineStageFlags GetPipelineStageFlags(const ImageUsage& usage) {
       return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
     case UsageType::kDepthStencil:
-      return VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT
-                 | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+      return VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+             VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
 
     case UsageType::kLinearAccess:
     case UsageType::kSample:
       switch (usage.access_location()) {
         case AccessLocation::kDontCare:
-          FATAL("Access location must be specified for "
-                "UsageType::kLinearAccess and UsageType::kSample");
+          FATAL(
+              "Access location must be specified for "
+              "UsageType::kLinearAccess and UsageType::kSample");
 
         case AccessLocation::kHost:
           return VK_PIPELINE_STAGE_HOST_BIT;
@@ -114,8 +111,9 @@ VkPipelineStageFlags GetPipelineStageFlags(const ImageUsage& usage) {
 
         case AccessLocation::kVertexShader:
         case AccessLocation::kOther:
-          FATAL("Access location must not be kVertexShader or kOther for"
-                "UsageType::kLinearAccess and UsageType::kSample");
+          FATAL(
+              "Access location must not be kVertexShader or kOther for"
+              "UsageType::kLinearAccess and UsageType::kSample");
       }
 
     case UsageType::kTransfer:
