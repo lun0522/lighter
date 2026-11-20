@@ -69,16 +69,8 @@ Window::Window(std::string_view name, const glm::ivec2& screen_size)
   glfwSetErrorCallback(window_callback::GlfwErrorCallback);
   ASSERT_TRUE(glfwInit() == GLFW_TRUE, "Failed to init GLFW");
 
-#ifdef USE_OPENGL
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-#endif  // USE_OPENGL
-
-#ifdef USE_VULKAN
   ASSERT_TRUE(glfwVulkanSupported() == GLFW_TRUE, "Vulkan is not supported");
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-#endif  // USE_VULKAN
 
   window_ = glfwCreateWindow(screen_size.x, screen_size.y, name.data(),
                              /*monitor=*/nullptr, /*share=*/nullptr);
@@ -87,9 +79,6 @@ Window::Window(std::string_view name, const glm::ivec2& screen_size)
     FATAL("Failed to create window");
   }
 
-#ifdef USE_OPENGL
-  glfwMakeContextCurrent(window_);
-#endif  // USE_OPENGL
   glfwSetWindowUserPointer(window_, this);
   glfwSetFramebufferSizeCallback(
       window_, window_callback::GlfwResizeWindowCallback);
@@ -98,14 +87,12 @@ Window::Window(std::string_view name, const glm::ivec2& screen_size)
   glfwSetMouseButtonCallback(window_, window_callback::GlfwMouseButtonCallback);
 }
 
-#ifdef USE_VULKAN
 Window::CreateSurfaceFunc Window::GetCreateSurfaceFunc() const {
   return [this](VkInstance instance, const VkAllocationCallbacks* allocator,
                 VkSurfaceKHR* surface) {
     return glfwCreateWindowSurface(instance, window_, allocator, surface);
   };
 }
-#endif  // USE_VULKAN
 
 Window& Window::SetCursorHidden(bool hidden) {
   glfwSetInputMode(window_, GLFW_CURSOR,
@@ -151,12 +138,6 @@ Window& Window::RegisterMouseButtonCallback(MouseButtonCallback&& callback) {
   mouse_button_callback_ = std::move(callback);
   return *this;
 }
-
-#ifdef USE_OPENGL
-void Window::SwapFramebuffers() const {
-  glfwSwapBuffers(window_);
-}
-#endif  // USE_OPENGL
 
 void Window::ProcessUserInputs() const {
   glfwPollEvents();

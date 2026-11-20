@@ -161,11 +161,7 @@ Sphere::Ray CameraViewedSphere<CameraType>::GetClickingRay(
         TransformPoint(ndc_to_object, glm::vec3{click_ndc, kFarPlaneNdc});
     return Ray{.start = camera_pos, .direction = click_pos - camera_pos};
   } else if constexpr (std::is_same_v<CameraType, OrthographicCamera>) {
-    #ifdef USE_VULKAN
     constexpr float kNearPlaneNdc = 0.0f;
-#else  // !USE_VULKAN
-    constexpr float kNearPlaneNdc = -1.0f;
-#endif  // USE_VULKAN
     const glm::vec3 click_pos =
         TransformPoint(ndc_to_object, glm::vec3{click_ndc, kNearPlaneNdc});
     const glm::vec3 camera_dir =

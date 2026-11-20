@@ -16,7 +16,6 @@ cc_library(
     deps = [
         "//lighter/common:data",
         "//lighter/common:file",
-        "//lighter/common:graphics_api",
         "//lighter/common:timer",
         "//lighter/common:util",
         "//lighter/common:window",

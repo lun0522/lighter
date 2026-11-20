@@ -9,7 +9,6 @@
 
 #include <algorithm>
 
-#include "lighter/common/graphics_api.h"
 #include "lighter/common/image.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
@@ -114,11 +113,9 @@ std::unique_ptr<GraphicsPipelineBuilder> CreatePipelineBuilder(
       .SetPipelineLayout({descriptor_layout}, /*push_constant_ranges=*/{})
       .SetColorBlend({pipeline::GetColorBlendState(enable_color_blend)})
       .SetShader(VK_SHADER_STAGE_VERTEX_BIT,
-                 common::file::GetShaderBinaryPath(
-                     "text/char.vert", common::api::GraphicsApi::kVulkan))
+                 common::file::GetShaderBinaryPath("text/char.vert"))
       .SetShader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                 common::file::GetShaderBinaryPath(
-                     "text/char.frag", common::api::GraphicsApi::kVulkan));
+                 common::file::GetShaderBinaryPath("text/char.frag"));
 
   return pipeline_builder;
 }

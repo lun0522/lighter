@@ -14,10 +14,8 @@
 
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/glm/glm.hpp"
-#ifdef USE_VULKAN
 #include "third_party/vulkan/vulkan.h"
 // import GLFW after Vulkan
-#endif  // USE_VULKAN
 
 // Forward declarations.
 struct GLFWwindow;
@@ -58,7 +56,6 @@ class Window {
 
   ~Window();
 
-#ifdef USE_VULKAN
   // Populates 'surface' or returns a non-success result if failed.
   using CreateSurfaceFunc = std::function<VkResult(
       VkInstance instance, const VkAllocationCallbacks* allocator,
@@ -67,7 +64,6 @@ class Window {
   // Returns a function object used to create surfaces. This function expires
   // when this window is destructed.
   CreateSurfaceFunc GetCreateSurfaceFunc() const;
-#endif  // USE_VULKAN
 
   // Sets whether the cursor should be hidden.
   Window& SetCursorHidden(bool hidden);
@@ -96,11 +92,6 @@ class Window {
   // Note that if 'callback' is not nullptr, the previous callback, if exists,
   // must have been unregistered.
   Window& RegisterMouseButtonCallback(MouseButtonCallback&& callback);
-
-#ifdef USE_OPENGL
-  // Swaps front and back framebuffers. This is not used for Vulkan.
-  void SwapFramebuffers() const;
-#endif  // USE_OPENGL
 
   // Processes user inputs to the window. Callbacks will be invoked if
   // conditions are satisfied.

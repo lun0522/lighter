@@ -1,8 +1,4 @@
-load("//:settings.bzl", "graphics_api")
-
 package(default_visibility = ["//lighter:__subpackages__"])
-
-graphics_api()
 
 cc_library(
     name = "camera",
@@ -46,19 +42,12 @@ cc_library(
     hdrs = ["file.h"],
     deps = [
         ":data",
-        ":graphics_api",
         ":util",
         "//lighter/shader_compiler:util",
         "//third_party:absl",
         "//third_party:glm",
         "@bazel_tools//tools/cpp/runfiles",
     ],
-)
-
-cc_library(
-    name = "graphics_api",
-    srcs = ["graphics_api.cc"],
-    hdrs = ["graphics_api.h"],
 )
 
 cc_library(
@@ -140,8 +129,6 @@ cc_library(
         "//third_party:absl",
         "//third_party:glm",
         "//third_party:glfw",
-    ] + select({
-        "use_vulkan": ["//third_party:vulkan"],
-        "//conditions:default": [],
-    }),
+        "//third_party:vulkan",
+    ],
 )

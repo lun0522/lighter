@@ -8,14 +8,11 @@
 #ifndef LIGHTER_SHADER_COMPILATION_RECORD_H
 #define LIGHTER_SHADER_COMPILATION_RECORD_H
 
-#include <array>
 #include <filesystem>
 #include <fstream>
 #include <string>
-#include <string_view>
 #include <utility>
 
-#include "lighter/common/graphics_api.h"
 #include "lighter/common/util.h"
 #include "lighter/shader_compiler/util.h"
 #include "third_party/absl/container/flat_hash_map.h"
@@ -28,7 +25,7 @@ class CompilationRecordWriter;
 
 // This is the base class of readers and writers of the compilation record file.
 // Each line in the record file would have such a format:
-// <graphics API> <source file path> <source file hash> <compiled file hash>
+// <source file path> <source file hash> <compiled file hash>
 class CompilationRecordHandler {
  public:
   // Stores hash values of source and compiled files.
@@ -47,25 +44,10 @@ class CompilationRecordHandler {
   // Maps the source file path to hash values of source and compiled files.
   using FileHashValueMap = absl::flat_hash_map<std::filesystem::path, FileHash,
                                                common::util::PathHash>;
-
-  enum ApiIndex {
-    kOpenglIndex = 0,
-    kVulkanIndex,
-    kNumApis,
-  };
-
-  // Each element is an abbreviation of an graphics API's name.
-  using ApiAbbreviationArray = std::array<std::string, kNumApis>;
-
-  // Returns an array of graphics API name abbreviations.
-  static const ApiAbbreviationArray& GetApiAbbreviations();
-
-  // Converts a graphics API to the index, which can be used for arrays, etc.
-  static int ApiToIndex(common::api::GraphicsApi graphics_api);
 };
 
-// This class reads the compilation record file and converts it to hash maps for
-// future queries.
+// This class reads the compilation record file and converts it to a hash map
+// for future queries.
 class CompilationRecordReader : public CompilationRecordHandler {
  public:
   CompilationRecordReader(const std::filesystem::path& record_file_path,
@@ -79,20 +61,15 @@ class CompilationRecordReader : public CompilationRecordHandler {
   // Returns a pointer to 'FileHash' if it is in the compilation record file.
   // Otherwise, returns nullptr.
   const FileHash* GetFileHash(
-      common::api::GraphicsApi graphics_api,
       const std::filesystem::path& source_file_path) const;
 
  private:
-  // Parses the compilation record file and populates 'file_hash_maps_'.
+  // Parses the compilation record file and populates 'file_hash_map_'.
   void ParseRecordFile(std::ifstream& record_file,
                        OptimizationLevel opt_level);
 
-  // Converts a graphics API name abbreviation to the index into
-  // 'file_hash_maps_'.
-  int ApiAbbreviationToIndex(std::string_view abbreviation) const;
-
   // Maps the source file path to hash values of source and compiled files.
-  FileHashValueMap file_hash_maps_[kNumApis];
+  FileHashValueMap file_hash_map_;
 };
 
 // This class collects hash values of files before/after compilation, and writes
@@ -110,9 +87,8 @@ class CompilationRecordWriter : public CompilationRecordHandler {
       = default;
 
   // Registers file hash values, and throws a runtime exception if this file has
-  // already been registered with the same graphics API.
-  void RegisterFileHash(common::api::GraphicsApi graphics_api,
-                        std::filesystem::path&& source_file_path,
+  // already been registered.
+  void RegisterFileHash(std::filesystem::path&& source_file_path,
                         FileHash&& file_hash);
 
   // Writes all registered file hash values to the compilation record file.
@@ -132,7 +108,7 @@ class CompilationRecordWriter : public CompilationRecordHandler {
   OptimizationLevel opt_level_;
 
   // Maps the source file path to hash values of source and compiled files.
-  FileHashValueMap file_hash_maps_[kNumApis];
+  FileHashValueMap file_hash_map_;
 };
 
 }  // namespace lighter::shader_compiler

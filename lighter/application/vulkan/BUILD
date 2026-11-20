@@ -10,7 +10,6 @@ cc_library(
         "//lighter/common:camera",
         "//lighter/common:data",
         "//lighter/common:file",
-        "//lighter/common:graphics_api",
         "//lighter/common:image",
         "//lighter/common:timer",
         "//lighter/common:util",

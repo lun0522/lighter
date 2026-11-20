@@ -123,7 +123,6 @@ cc_library(
         ":offscreen_wrappers",
         "//lighter/common:char_lib",
         "//lighter/common:file",
-        "//lighter/common:graphics_api",
         "//lighter/common:image",
         "//lighter/common:util",
         "//lighter/renderer:util",

@@ -19,8 +19,8 @@ using namespace renderer::vulkan;
 
 } /* namespace */
 
-void GlobalInit(common::api::GraphicsApi graphics_api) {
-  lighter::renderer::util::GlobalInit(graphics_api);
+void GlobalInit() {
+  lighter::renderer::util::GlobalInit();
 }
 
 void OnScreenRenderPassManager::RecreateRenderPass() {

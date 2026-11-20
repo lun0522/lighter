@@ -1,19 +1,8 @@
 #version 460 core
 
-#if defined(TARGET_OPENGL)
-layout(std140, binding = 1) uniform TransFrag {
-  mat4 view_inv;
-} trans_frag;
-
-#elif defined(TARGET_VULKAN)
 layout(std140, push_constant) uniform TransFrag {
   mat4 view_inv;
 } trans_frag;
-
-#else
-#error Unrecognized target
-
-#endif  // TARGET_OPENGL || TARGET_VULKAN
 
 layout(binding = 1) uniform sampler2D diff_sampler;
 layout(binding = 2) uniform sampler2D spec_sampler;

@@ -1,19 +1,8 @@
 #version 460 core
 
-#if defined(TARGET_OPENGL)
-layout(std140, binding = 1) uniform TextureIndex {
-  int value;
-} texture_index;
-
-#elif defined(TARGET_VULKAN)
 layout(std140, push_constant) uniform TextureIndex {
   int value;
 } texture_index;
-
-#else
-#error Unrecognized target
-
-#endif  // TARGET_OPENGL || TARGET_VULKAN
 
 layout(binding = 2) uniform sampler2D tex_sampler[2];
 

@@ -95,11 +95,10 @@ std::string GetResourcePath(std::string_view relative_file_path,
   return full_path.string();
 }
 
-std::string GetShaderBinaryPath(std::string_view relative_shader_path,
-                                api::GraphicsApi graphics_api) {
+std::string GetShaderBinaryPath(std::string_view relative_shader_path) {
   stdfs::path relative_path{"lighter/lighter/shader"};
-  relative_path /= shader_compiler::util::GetShaderBinaryPath(
-      graphics_api, relative_shader_path);
+  relative_path /=
+      shader_compiler::util::GetShaderBinaryPath(relative_shader_path);
   return RunfileLookup::GetFullPath(relative_path.string()).string();
 }
 

@@ -12,8 +12,6 @@
 #include <optional>
 #include <string_view>
 
-#include "lighter/common/graphics_api.h"
-
 namespace lighter::shader_compiler {
 
 constexpr const char kShaderEntryPoint[] = "main";
@@ -33,7 +31,6 @@ std::optional<OptimizationLevel> OptLevelFromText(std::string_view text);
 // Returns the path to compiled shader binary relative to the shader directory.
 // 'relative_path' refers to the path to source shader file.
 std::filesystem::path GetShaderBinaryPath(
-    common::api::GraphicsApi graphics_api,
     const std::filesystem::path& relative_path);
 
 }  // namespace util

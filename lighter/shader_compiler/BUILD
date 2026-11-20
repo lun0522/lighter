@@ -6,7 +6,6 @@ cc_library(
     hdrs = ["compilation_record.h"],
     deps = [
         ":util",
-        "//lighter/common:graphics_api",
         "//lighter/common:util",
         "//third_party:absl",
     ],
@@ -45,7 +44,6 @@ cc_library(
         ":util",
         "//lighter/common:data",
         "//lighter/common:file",
-        "//lighter/common:graphics_api",
         "//lighter/common:timer",
         "//lighter/common:util",
         "//third_party:absl",
@@ -58,5 +56,4 @@ cc_library(
     srcs = ["util.cc"],
     hdrs = ["util.h"],
     visibility = ["//visibility:public"],
-    deps = ["//lighter/common:graphics_api"],
 )

@@ -13,9 +13,7 @@
 
 #include "third_party/absl/functional/function_ref.h"
 #include "third_party/absl/memory/memory.h"
-#ifdef USE_VULKAN
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#endif  // USE_VULKAN
 #include "third_party/glm/glm.hpp"
 
 namespace lighter::common {

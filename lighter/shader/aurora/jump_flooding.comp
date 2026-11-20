@@ -4,20 +4,9 @@ layout(binding = 0, rgba16f) uniform readonly image2D original_image;
 
 layout(binding = 1, rgba16f) uniform writeonly image2D output_image;
 
-#if defined(TARGET_OPENGL)
-layout(std140, binding = 2) uniform StepWidth {
-  int value;
-} step_width;
-
-#elif defined(TARGET_VULKAN)
 layout(std140, push_constant) uniform StepWidth {
   int value;
 } step_width;
-
-#else
-#error Unrecognized target
-
-#endif  // TARGET_OPENGL || TARGET_VULKAN
 
 layout(local_size_x = 16, local_size_y = 16) in;
 

@@ -27,15 +27,14 @@ struct Alpha {
 
 class TriangleExample {
  public:
-  TriangleExample(common::api::GraphicsApi graphics_api,
-                  const glm::ivec2& screen_size,
+  TriangleExample(const glm::ivec2& screen_size,
                   MultisamplingMode multisampling_mode)
       : window_{"Triangle", screen_size}, alpha_{kNumFramesInFlight} {
     using common::Vertex3DWithColor;
 
     const bool use_multisamping =
         multisampling_mode != MultisamplingMode::kNone;
-    renderer_ = CreateRenderer(graphics_api, "Triangle Example", {&window_});
+    renderer_ = CreateRenderer("Triangle Example", {&window_});
 
     const std::array<Vertex3DWithColor, 3> vertex_data{
         Vertex3DWithColor{/*pos=*/{0.5f, -0.5f, 0.0f},
@@ -63,9 +62,9 @@ class TriangleExample {
     auto pipeline_descriptor = GraphicsPipelineDescriptor{}
         .SetName("Triangle")
         .SetShader(shader_stage::VERTEX,
-                   GetShaderBinaryPath("triangle/triangle.vert", graphics_api))
+                   GetShaderBinaryPath("triangle/triangle.vert"))
         .SetShader(shader_stage::FRAGMENT,
-                   GetShaderBinaryPath("triangle/triangle.frag", graphics_api))
+                   GetShaderBinaryPath("triangle/triangle.frag"))
         .UseColorAttachment(/*location=*/0, pipeline::GetColorAlphaBlend())
         .AddVertexInput({
             VertexInputRate::kVertex,
@@ -143,6 +142,5 @@ class TriangleExample {
 int main(int argc, char* argv[]) {
   using namespace lighter::example;
   return ExampleMain<TriangleExample>(
-      argc, argv, lighter::common::api::GraphicsApi::kVulkan,
-      glm::ivec2{800, 600}, MultisamplingMode::kDecent);
+      argc, argv, glm::ivec2{800, 600}, MultisamplingMode::kDecent);
 }

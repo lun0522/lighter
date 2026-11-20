@@ -14,7 +14,6 @@
 #include <vector>
 
 #include "lighter/common/data.h"
-#include "lighter/common/graphics_api.h"
 #include "third_party/glm/glm.hpp"
 
 namespace lighter::common {
@@ -33,8 +32,7 @@ std::string GetResourcePath(std::string_view relative_file_path,
                             bool want_directory_path = false);
 
 // Returns the full path to the shader binary.
-std::string GetShaderBinaryPath(std::string_view relative_shader_path,
-                                api::GraphicsApi graphics_api);
+std::string GetShaderBinaryPath(std::string_view relative_shader_path);
 
 // Returns the full path to files in the Vulkan SDK folder.
 std::string GetVulkanSdkPath(std::string_view relative_path);

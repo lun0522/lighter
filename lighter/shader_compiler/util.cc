@@ -41,10 +41,8 @@ std::optional<OptimizationLevel> OptLevelFromText(std::string_view text) {
   return std::nullopt;
 }
 
-stdfs::path GetShaderBinaryPath(common::api::GraphicsApi graphics_api,
-                                const stdfs::path& relative_path) {
-  stdfs::path res{common::api::GetApiAbbreviatedName(graphics_api)};
-  res /= relative_path;
+stdfs::path GetShaderBinaryPath(const stdfs::path& relative_path) {
+  stdfs::path res = relative_path;
   res += kSpirvBinaryFileExtension;
   return res;
 }

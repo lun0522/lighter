@@ -19,7 +19,6 @@
 
 #include "lighter/common/data.h"
 #include "lighter/common/file.h"
-#include "lighter/common/graphics_api.h"
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
 #include "lighter/common/window.h"
@@ -42,7 +41,7 @@ namespace lighter::example {
 using namespace renderer::ir;
 
 inline std::unique_ptr<Renderer> CreateRenderer(
-    common::api::GraphicsApi graphics_api, const char* application_name,
+    const char* application_name,
     std::vector<const common::Window*>&& window_ptrs) {
   std::optional<debug_message::Config> debug_message_config;
 #ifndef NDEBUG
@@ -53,14 +52,12 @@ inline std::unique_ptr<Renderer> CreateRenderer(
   };
 #endif  // !NDEBUG
   return renderer::util::CreateRenderer(
-      graphics_api, application_name, debug_message_config,
-      std::move(window_ptrs));
+      application_name, debug_message_config, std::move(window_ptrs));
 }
 
 // Returns the full path to compiled shader binary.
-inline std::string GetShaderBinaryPath(std::string_view relative_path,
-                                       common::api::GraphicsApi graphics_api) {
-  return common::file::GetShaderBinaryPath(relative_path, graphics_api);
+inline std::string GetShaderBinaryPath(std::string_view relative_path) {
+  return common::file::GetShaderBinaryPath(relative_path);
 }
 
 template <typename ExampleType, typename... ExampleArgs>
@@ -68,7 +65,7 @@ int ExampleMain(int argc, char* argv[], ExampleArgs&&... example_args) {
   absl::ParseCommandLine(argc, argv);
   common::file::EnableRunfileLookup(argv[0]);
   // TODO: Move to ctor of Example.
-  renderer::util::GlobalInit(common::api::GraphicsApi::kVulkan);
+  renderer::util::GlobalInit();
 
   // We don't catch exceptions in the debug mode, so that if there is anything
   // wrong, the debugger would stay at the point where the program breaks.

@@ -63,33 +63,14 @@ void InitVulkan() {
 
 }  // namespace
 
-void GlobalInit(common::api::GraphicsApi graphics_api) {
-  switch (graphics_api) {
-    case common::api::GraphicsApi::kOpengl:
-      FATAL("Not implemented yet");
-
-    case common::api::GraphicsApi::kVulkan:
-      InitVulkan();
-      break;
-  }
-}
+void GlobalInit() { InitVulkan(); }
 
 std::unique_ptr<ir::Renderer> CreateRenderer(
-    common::api::GraphicsApi graphics_api, const char* application_name,
+    const char* application_name,
     const std::optional<ir::debug_message::Config>& debug_message_config,
     std::vector<const common::Window*>&& window_ptrs) {
-  switch (graphics_api) {
-    case common::api::GraphicsApi::kOpengl:
-      FATAL("Not implemented yet");
-
-    case common::api::GraphicsApi::kVulkan:
-#ifdef USE_VULKAN
-      return std::make_unique<vk::Renderer>(
-          application_name, debug_message_config, std::move(window_ptrs));
-#else
-      FATAL("Vulkan is not enabled");
-#endif  // USE_VULKAN
-  }
+  return std::make_unique<vk::Renderer>(
+      application_name, debug_message_config, std::move(window_ptrs));
 }
 
 }  // namespace lighter::renderer::util

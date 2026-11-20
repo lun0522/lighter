@@ -11,22 +11,10 @@ layout(std140, binding = 1) uniform RenderInfo {
   vec4 camera_pos;
 } render_info;
 
-#if defined(TARGET_OPENGL)
-layout(std140, binding = 2) uniform Transformation {
-  mat4 model;
-  mat4 proj_view;
-} trans;
-
-#elif defined(TARGET_VULKAN)
 layout(std140, push_constant) uniform Transformation {
   mat4 model;
   mat4 proj_view;
 } trans;
-
-#else
-#error Unrecognized target
-
-#endif  // TARGET_OPENGL || TARGET_VULKAN
 
 layout(location = 0) in vec3 in_pos;
 

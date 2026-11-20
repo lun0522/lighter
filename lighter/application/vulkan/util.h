@@ -16,7 +16,6 @@
 #include "lighter/common/camera.h"
 #include "lighter/common/data.h"
 #include "lighter/common/file.h"
-#include "lighter/common/graphics_api.h"
 #include "lighter/common/image.h"
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
@@ -47,9 +46,8 @@ namespace lighter {
 namespace application {
 namespace vulkan {
 
-// Initializes the graphics API. This must be called once at the very beginning
-// for each API that is going to be used.
-void GlobalInit(common::api::GraphicsApi graphics_api);
+// Initializes the graphics API. This must be called once at the very beginning.
+void GlobalInit();
 
 // This is the base class of all applications. Its constructor simply forwards
 // all arguments to the constructor of WindowContext. Each application should
@@ -88,8 +86,7 @@ class Application {
 
 // Returns the full path to compiled shader binary.
 inline std::string GetShaderBinaryPath(std::string_view relative_path) {
-  return common::file::GetShaderBinaryPath(relative_path,
-                                           common::api::GraphicsApi::kVulkan);
+  return common::file::GetShaderBinaryPath(relative_path);
 }
 
 // Holds identifiers of an attachment image.
@@ -185,7 +182,7 @@ int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
 
   absl::ParseCommandLine(argc, argv);
   common::file::EnableRunfileLookup(argv[0]);
-  GlobalInit(common::api::GraphicsApi::kVulkan);
+  GlobalInit();
 
   // We don't catch exceptions in the debug mode, so that if there is anything
   // wrong, the debugger would stay at the point where the application breaks.

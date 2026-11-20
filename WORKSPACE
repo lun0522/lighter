@@ -59,14 +59,6 @@ http_archive(
 )
 
 http_archive(
-    name = "lib-glad",
-    build_file = "//:third_party/BUILD.glad",
-    sha256 = "b4b5b242594ee92325f4c5072a3203b00a83c5a5199a1c923ede611b5b58db42",
-    strip_prefix = "lib-glad-4.6",
-    url = "https://github.com/lun0522/lib-glad/archive/4.6.tar.gz",
-)
-
-http_archive(
     name = "lib-glfw",
     build_file = "//:third_party/BUILD.glfw",
     sha256 = "cc8ac1d024a0de5fd6f68c4133af77e1918261396319c24fd697775a6bc93b63",
