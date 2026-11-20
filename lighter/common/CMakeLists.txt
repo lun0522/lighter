@@ -5,10 +5,10 @@ add_library(lighter_common_util STATIC
 target_link_libraries(lighter_common_util
   PUBLIC
     lighter_project_options
+    absl::base
     absl::core_headers
     absl::flat_hash_set
     absl::function_ref
-    absl::optimization
     absl::span
     absl::str_format
     absl::strings

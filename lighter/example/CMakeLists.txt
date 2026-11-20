@@ -1,0 +1,20 @@
+add_executable(example_triangle
+  triangle.cc
+  util.h
+)
+add_dependencies(example_triangle lighter_shaders)
+target_link_libraries(example_triangle
+  PRIVATE
+    lighter_project_options
+    lighter_common_data
+    lighter_common_file
+    lighter_common_timer
+    lighter_common_util
+    lighter_common_window
+    lighter_renderer_util
+    lighter_renderer_vk_renderer
+    absl::flags_parse
+    absl::span
+    glm::glm
+    lighter_spirv_cross
+)

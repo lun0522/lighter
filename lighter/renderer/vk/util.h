@@ -16,10 +16,14 @@
 #include <absl/strings/str_format.h>
 #include <glm/glm.hpp>
 
-// All members of Vulkan-Hpp are placed in the intl namespace.
-#define VULKAN_HPP_NAMESPACE lighter::renderer::vk::intl
+// Keep Vulkan-Hpp in its default ::vk namespace (SDK 1.4.350 references
+// vk::Result directly) and alias it as lighter::renderer::vk::intl.
 #define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
 #include <vulkan/vulkan.hpp>
+
+namespace lighter::renderer::vk {
+namespace intl = ::vk;
+}  // namespace lighter::renderer::vk
 
 #define CAST_TO_UINT(number) static_cast<uint32_t>(number)
 

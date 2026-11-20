@@ -215,6 +215,26 @@ Instance::Instance(const BasicContext* context,
   instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif /* !NDEBUG */
 
+#ifdef VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
+  VkInstanceCreateFlags instance_flags = nullflag;
+  const auto supported_extensions = util::QueryAttribute<VkExtensionProperties>(
+      [](uint32_t* count, VkExtensionProperties* properties) {
+        return vkEnumerateInstanceExtensionProperties(
+            /*pLayerName=*/nullptr, count, properties);
+      });
+  for (const auto& ext : supported_extensions) {
+    if (std::string_view{ext.extensionName} ==
+        VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) {
+      instance_extensions.push_back(
+          VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+      instance_flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+      break;
+    }
+  }
+#else
+  const VkInstanceCreateFlags instance_flags = nullflag;
+#endif  // VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
+
   // Make sure we have support for relevant extensions and layers.
   CheckInstanceExtensionSupport({
       instance_extensions.begin(),
@@ -244,7 +264,7 @@ Instance::Instance(const BasicContext* context,
   const VkInstanceCreateInfo instance_info{
       VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
       /*pNext=*/nullptr,
-      /*flags=*/nullflag,
+      instance_flags,
       &app_info,
 #ifdef NDEBUG
       /*enabledLayerCount=*/0,

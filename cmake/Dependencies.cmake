@@ -74,6 +74,7 @@ set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_OBJ_IMPORTER ON CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_USE_CCACHE OFF CACHE BOOL "" FORCE)
 set(ASSIMP_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
   assimp
@@ -141,38 +142,38 @@ FetchContent_MakeAvailable(
   VulkanMemoryAllocator
   spirv_cross
   googletest
+  stb
+  picosha2
 )
 
 if(NOT TARGET stb::stb)
-  FetchContent_GetProperties(stb)
-  if(NOT stb_POPULATED)
-    FetchContent_Populate(stb)
-  endif()
   add_library(stb_headers INTERFACE)
-  target_include_directories(stb_headers INTERFACE "${stb_SOURCE_DIR}")
+  target_include_directories(stb_headers INTERFACE
+    "$<BUILD_INTERFACE:${stb_SOURCE_DIR}>"
+  )
   add_library(stb::stb ALIAS stb_headers)
 endif()
 
 if(NOT TARGET picosha2::picosha2)
-  FetchContent_GetProperties(picosha2)
-  if(NOT picosha2_POPULATED)
-    FetchContent_Populate(picosha2)
-  endif()
   add_library(picosha2_headers INTERFACE)
-  target_include_directories(picosha2_headers INTERFACE "${picosha2_SOURCE_DIR}")
+  target_include_directories(picosha2_headers INTERFACE
+    "$<BUILD_INTERFACE:${picosha2_SOURCE_DIR}>"
+  )
   add_library(picosha2::picosha2 ALIAS picosha2_headers)
 endif()
 
 # Expose SPIRV-Cross headers under <spirv_cross/...> to match project includes.
-if(TARGET spirv-cross-core AND spirv_cross_SOURCE_DIR)
+if(TARGET spirv-cross-core AND NOT TARGET lighter_spirv_cross)
   set(_spirv_cross_inc_root "${CMAKE_BINARY_DIR}/_generated_includes")
   file(MAKE_DIRECTORY "${_spirv_cross_inc_root}")
   if(NOT EXISTS "${_spirv_cross_inc_root}/spirv_cross")
     file(CREATE_LINK "${spirv_cross_SOURCE_DIR}"
          "${_spirv_cross_inc_root}/spirv_cross" SYMBOLIC)
   endif()
-  target_include_directories(spirv-cross-core INTERFACE
-    "${_spirv_cross_inc_root}"
+  add_library(lighter_spirv_cross INTERFACE)
+  target_link_libraries(lighter_spirv_cross INTERFACE spirv-cross-core)
+  target_include_directories(lighter_spirv_cross INTERFACE
+    "$<BUILD_INTERFACE:${_spirv_cross_inc_root}>"
   )
 endif()
 

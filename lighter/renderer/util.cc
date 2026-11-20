@@ -30,34 +30,38 @@ void InitVulkan() {
     setenv("MVK_CONFIG_PRESENT_WITH_COMMAND_BUFFER", "0", /*overwrite=*/1);
   }
 
-  // export DYLD_LIBRARY_PATH=$VULKAN_SDK/lib:$DYLD_LIBRARY_PATH
-  const std::string dyld_lib_path =
-      GetVulkanSdkPath("lib") + ":$DYLD_LIBRARY_PATH";
-  setenv("DYLD_LIBRARY_PATH", dyld_lib_path.c_str(), /*overwrite=*/1);
+  if (std::getenv("VULKAN_SDK") != nullptr) {
+    // export DYLD_LIBRARY_PATH=$VULKAN_SDK/lib:$DYLD_LIBRARY_PATH
+    const std::string dyld_lib_path =
+        GetVulkanSdkPath("lib") + ":$DYLD_LIBRARY_PATH";
+    setenv("DYLD_LIBRARY_PATH", dyld_lib_path.c_str(), /*overwrite=*/1);
 
-  // export VK_ICD_FILENAMES=$VULKAN_SDK/etc/vulkan/icd.d/MoltenVK_icd.json
-  setenv("VK_ICD_FILENAMES",
-         GetVulkanSdkPath("share/vulkan/icd.d/MoltenVK_icd.json").c_str(),
-         /*overwrite=*/1);
+    // export VK_ICD_FILENAMES=$VULKAN_SDK/share/vulkan/icd.d/MoltenVK_icd.json
+    setenv("VK_ICD_FILENAMES",
+           GetVulkanSdkPath("share/vulkan/icd.d/MoltenVK_icd.json").c_str(),
+           /*overwrite=*/1);
 
-  // export VK_LAYER_PATH=$VULKAN_SDK/etc/vulkan/explicit_layer.d
-  setenv("VK_LAYER_PATH",
-         GetVulkanSdkPath("share/vulkan/explicit_layer.d").c_str(),
-         /*overwrite=*/1);
+    // export VK_LAYER_PATH=$VULKAN_SDK/share/vulkan/explicit_layer.d
+    setenv("VK_LAYER_PATH",
+           GetVulkanSdkPath("share/vulkan/explicit_layer.d").c_str(),
+           /*overwrite=*/1);
+  }
 #endif  // __APPLE__
 
 #ifdef __linux__
-  // export PATH=$VULKAN_SDK/bin:$PATH
-  const std::string path = GetVulkanSdkPath("bin") + ":$PATH";
-  setenv("PATH", path.c_str(), /*overwrite=*/1);
+  if (std::getenv("VULKAN_SDK") != nullptr) {
+    // export PATH=$VULKAN_SDK/bin:$PATH
+    const std::string path = GetVulkanSdkPath("bin") + ":$PATH";
+    setenv("PATH", path.c_str(), /*overwrite=*/1);
 
-  // export LD_LIBRARY_PATH=$VULKAN_SDK/lib
-  setenv("LD_LIBRARY_PATH", GetVulkanSdkPath("lib").c_str(), /*overwrite=*/1);
+    // export LD_LIBRARY_PATH=$VULKAN_SDK/lib
+    setenv("LD_LIBRARY_PATH", GetVulkanSdkPath("lib").c_str(), /*overwrite=*/1);
 
-  // export VK_LAYER_PATH=$VULKAN_SDK/etc/vulkan/explicit_layer.d
-  setenv("VK_LAYER_PATH",
-         GetVulkanSdkPath("etc/vulkan/explicit_layer.d").c_str(),
-         /*overwrite=*/1);
+    // export VK_LAYER_PATH=$VULKAN_SDK/etc/vulkan/explicit_layer.d
+    setenv("VK_LAYER_PATH",
+           GetVulkanSdkPath("etc/vulkan/explicit_layer.d").c_str(),
+           /*overwrite=*/1);
+  }
 #endif  // __linux__
 }
 

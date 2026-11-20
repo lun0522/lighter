@@ -13,7 +13,9 @@
 
 #include <absl/functional/function_ref.h>
 #include <absl/memory/memory.h>
+#ifndef GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#endif  // GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 
 namespace lighter::common {

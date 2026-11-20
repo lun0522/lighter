@@ -444,7 +444,7 @@ Queues::Queues(const Context& context) {
 
   const auto& family_indices = context.physical_device().queue_family_indices();
   graphics_queue_ = get_queue(family_indices.graphics);
-  graphics_queue_ = get_queue(family_indices.compute);
+  compute_queue_ = get_queue(family_indices.compute);
   present_queues_.reserve(family_indices.presents.size());
   for (uint32_t family_index : family_indices.presents) {
     present_queues_.push_back(get_queue(family_index));

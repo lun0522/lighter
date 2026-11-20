@@ -33,6 +33,8 @@ endif()
 
 include(cmake/Dependencies.cmake)
 
+enable_testing()
+
 add_library(lighter_project_options INTERFACE)
 target_include_directories(lighter_project_options INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -42,8 +44,12 @@ target_compile_definitions(lighter_project_options INTERFACE
   GLM_FORCE_DEPTH_ZERO_TO_ONE
 )
 
-enable_testing()
-
 add_subdirectory(lighter/common)
 add_subdirectory(lighter/shader_compiler)
 add_subdirectory(lighter/shader)
+add_subdirectory(lighter/renderer)
+add_subdirectory(lighter/example)
+
+if(LIGHTER_BUILD_LEGACY_APPS)
+  add_subdirectory(lighter/application/vulkan)
+endif()

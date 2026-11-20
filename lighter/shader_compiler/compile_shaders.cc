@@ -12,10 +12,11 @@
 #include "lighter/common/util.h"
 #include "lighter/shader_compiler/run_compiler.h"
 #include "lighter/shader_compiler/util.h"
+#include <absl/flags/declare.h>
 #include <absl/flags/flag.h>
 #include <absl/flags/parse.h>
 
-ABSL_FLAG(std::string, shader_dir, "", "Path to the shader directory");
+ABSL_DECLARE_FLAG(std::string, shader_dir);
 ABSL_FLAG(std::string, opt_level, "perf",
           "Optimization level (none/size/perf)");
 

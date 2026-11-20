@@ -323,8 +323,10 @@ Pipeline::Pipeline(const SharedContext& context,
       .setLayout(pipeline_layout_)
       .setRenderPass(render_pass)
       .setSubpass(CAST_TO_UINT(subpass_index));
-  const auto [_, pipeline_] = vk_device().createGraphicsPipeline(
+  const auto result = vk_device().createGraphicsPipeline(
       intl::PipelineCache{}, pipeline_create_info, vk_host_allocator());
+  ASSERT_SUCCESS(result.result, "Failed to create graphics pipeline");
+  pipeline_ = result.value;
 }
 
 Pipeline::Pipeline(const SharedContext& context,
@@ -340,8 +342,10 @@ Pipeline::Pipeline(const SharedContext& context,
   const auto pipeline_create_info = intl::ComputePipelineCreateInfo{}
       .setStage(shader_stage_create_infos[0])
       .setLayout(pipeline_layout_);
-  const auto [_, pipeline_] = vk_device().createComputePipeline(
+  const auto result = vk_device().createComputePipeline(
       intl::PipelineCache{}, pipeline_create_info, vk_host_allocator());
+  ASSERT_SUCCESS(result.result, "Failed to create compute pipeline");
+  pipeline_ = result.value;
 }
 
 Pipeline::Pipeline(

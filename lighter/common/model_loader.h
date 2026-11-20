@@ -28,6 +28,9 @@ class ModelLoader {
 
   // Information about a texture.
   struct TextureInfo {
+    TextureInfo(std::string path, TextureType texture_type)
+        : path{std::move(path)}, texture_type{texture_type} {}
+
     // This class is only movable.
     TextureInfo(TextureInfo&&) noexcept = default;
     TextureInfo& operator=(TextureInfo&&) noexcept = default;
@@ -42,6 +45,12 @@ class ModelLoader {
   // Vertex data and textures information for one mesh.
   struct MeshData {
     MeshData() = default;
+    MeshData(std::vector<Vertex3DWithTex> vertices,
+             std::vector<uint32_t> indices,
+             std::vector<TextureInfo> textures)
+        : vertices{std::move(vertices)},
+          indices{std::move(indices)},
+          textures{std::move(textures)} {}
 
     // This class is only movable.
     MeshData(MeshData&&) noexcept = default;
