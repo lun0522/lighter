@@ -19,15 +19,9 @@
 namespace lighter::common {
 namespace file {
 
-// Enables looking up the runtime path of runfiles (i.e. data dependencies of
-// Bazel-built binaries and tests). This should be called once with argv[0] in
-// main() before accessing any runfiles.
-void EnableRunfileLookup(std::string_view arg0);
-
 // Returns the full path to a file or directory in the resource folder.
-// Since Bazel only maintains a manifest for file path, in order to get a
-// directory path, we should pass in the path to any file in that directory, and
-// set `want_directory_path` to true.
+// If `want_directory_path` is true, returns the parent directory of
+// `relative_file_path`.
 std::string GetResourcePath(std::string_view relative_file_path,
                             bool want_directory_path = false);
 

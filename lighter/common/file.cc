@@ -7,52 +7,87 @@
 
 #include "lighter/common/file.h"
 
+#include <cstdlib>
 #include <exception>
 #include <fstream>
 
+#include <absl/container/flat_hash_map.h>
+#include <absl/flags/flag.h>
+#include <absl/strings/str_format.h>
+#include <absl/strings/str_split.h>
+
 #include "lighter/common/util.h"
 #include "lighter/shader_compiler/util.h"
-#include <absl/container/flat_hash_map.h>
-#include <absl/strings/str_format.h>
-#include <absl/strings/str_replace.h>
-#include <absl/strings/str_split.h>
-#include "tools/cpp/runfiles/runfiles.h"
+
+ABSL_FLAG(std::string, resource_dir, "",
+          "Path to the directory containing runtime resource assets");
+ABSL_FLAG(std::string, shader_dir, "",
+          "Path to the directory containing compiled shader binaries");
 
 namespace lighter::common {
 namespace {
 
 namespace stdfs = std::filesystem;
 
-using bazel::tools::cpp::runfiles::Runfiles;
-
-// Used to lookup the full path of a runfile.
-class RunfileLookup {
- public:
-  // Initializes 'runfiles'. This only needs to be called once.
-  static void Init(std::string_view arg0) {
-    std::string error;
-    runfiles_ = Runfiles::Create(std::string(arg0), &error);
-    ASSERT_NON_NULL(runfiles_,
-                    absl::StrFormat("Failed to init runfiles: %s", error));
+// Resolves a base directory from a CLI flag, an environment variable, an
+// optional compile-time default, or a workspace-relative fallback path.
+stdfs::path ResolveAssetDir(std::string_view flag_value, const char* env_var,
+                            const char* compile_time_default,
+                            const stdfs::path& cwd_fallback,
+                            std::string_view dir_label) {
+  if (!flag_value.empty()) {
+    stdfs::path path{flag_value};
+    ASSERT_TRUE(stdfs::is_directory(path),
+                absl::StrFormat("%s '%s' is not a valid directory",
+                                dir_label, path.string()));
+    return path;
   }
 
-  // Returns the full path of a runfile.
-  static stdfs::path GetFullPath(std::string_view relative_path) {
-    ASSERT_NON_NULL(runfiles_, "EnableRunfileLookup() must be called first");
-    // Bazel runfile lookup library expects forward-slash only.
-    const std::string patched_relative_path =
-        absl::StrReplaceAll(relative_path, {{"\\", "/"}});
-    stdfs::path full_path{runfiles_->Rlocation(patched_relative_path)};
-    ASSERT_TRUE(stdfs::exists(full_path),
-                absl::StrFormat("Runfile '%s' does not exist", relative_path));
-    return full_path;
+  if (const char* env_value = std::getenv(env_var);
+      env_value != nullptr && env_value[0] != '\0') {
+    stdfs::path path{env_value};
+    ASSERT_TRUE(stdfs::is_directory(path),
+                absl::StrFormat("%s '%s' (from %s) is not a valid directory",
+                                dir_label, path.string(), env_var));
+    return path;
   }
 
- private:
-  static const Runfiles* runfiles_;
-};
+  if (compile_time_default != nullptr && compile_time_default[0] != '\0') {
+    stdfs::path path{compile_time_default};
+    if (stdfs::is_directory(path)) {
+      return path;
+    }
+  }
 
-const Runfiles* RunfileLookup::runfiles_ = nullptr;
+  ASSERT_TRUE(stdfs::is_directory(cwd_fallback),
+              absl::StrFormat("Failed to locate %s; pass --%s or set %s",
+                              dir_label, dir_label, env_var));
+  return cwd_fallback;
+}
+
+const stdfs::path& GetResourceDir() {
+#ifdef LIGHTER_RESOURCE_DIR
+  constexpr const char* kDefaultResourceDir = LIGHTER_RESOURCE_DIR;
+#else
+  constexpr const char* kDefaultResourceDir = nullptr;
+#endif
+  static const auto* resource_dir = new stdfs::path{ResolveAssetDir(
+      absl::GetFlag(FLAGS_resource_dir), "LIGHTER_RESOURCE_DIR",
+      kDefaultResourceDir, stdfs::path{"resource"}, "resource_dir")};
+  return *resource_dir;
+}
+
+const stdfs::path& GetShaderDir() {
+#ifdef LIGHTER_SHADER_DIR
+  constexpr const char* kDefaultShaderDir = LIGHTER_SHADER_DIR;
+#else
+  constexpr const char* kDefaultShaderDir = nullptr;
+#endif
+  static const auto* shader_dir = new stdfs::path{ResolveAssetDir(
+      absl::GetFlag(FLAGS_shader_dir), "LIGHTER_SHADER_DIR",
+      kDefaultShaderDir, stdfs::path{"lighter/shader"}, "shader_dir")};
+  return *shader_dir;
+}
 
 // Opens the file in the given `path` and checks whether it is successful.
 std::ifstream OpenFile(std::string_view path) {
@@ -80,15 +115,12 @@ std::vector<std::string> SplitText(std::string_view text, char delimiter,
 
 namespace file {
 
-void EnableRunfileLookup(std::string_view arg0) {
-  RunfileLookup::Init(arg0);
-}
-
 std::string GetResourcePath(std::string_view relative_file_path,
                             bool want_directory_path) {
-  const stdfs::path relative_path =
-      stdfs::path{"resource"} / relative_file_path;
-  stdfs::path full_path = RunfileLookup::GetFullPath(relative_path.string());
+  stdfs::path full_path = GetResourceDir() / relative_file_path;
+  ASSERT_TRUE(stdfs::exists(full_path),
+              absl::StrFormat("Resource '%s' does not exist",
+                              full_path.string()));
   if (want_directory_path) {
     full_path = full_path.parent_path();
   }
@@ -96,10 +128,13 @@ std::string GetResourcePath(std::string_view relative_file_path,
 }
 
 std::string GetShaderBinaryPath(std::string_view relative_shader_path) {
-  stdfs::path relative_path{"lighter/lighter/shader"};
-  relative_path /=
+  const stdfs::path full_path =
+      GetShaderDir() /
       shader_compiler::util::GetShaderBinaryPath(relative_shader_path);
-  return RunfileLookup::GetFullPath(relative_path.string()).string();
+  ASSERT_TRUE(stdfs::exists(full_path),
+              absl::StrFormat("Shader binary '%s' does not exist",
+                              full_path.string()));
+  return full_path.string();
 }
 
 std::string GetVulkanSdkPath(std::string_view relative_path) {

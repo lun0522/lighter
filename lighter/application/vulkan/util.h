@@ -181,7 +181,6 @@ int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
                 "Not a subclass of Application");
 
   absl::ParseCommandLine(argc, argv);
-  common::file::EnableRunfileLookup(argv[0]);
   GlobalInit();
 
   // We don't catch exceptions in the debug mode, so that if there is anything

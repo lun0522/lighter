@@ -46,7 +46,6 @@ cc_library(
         "//lighter/shader_compiler:util",
         "//third_party:absl",
         "//third_party:glm",
-        "@bazel_tools//tools/cpp/runfiles",
     ],
 )
 

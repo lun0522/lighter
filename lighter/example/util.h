@@ -63,7 +63,6 @@ inline std::string GetShaderBinaryPath(std::string_view relative_path) {
 template <typename ExampleType, typename... ExampleArgs>
 int ExampleMain(int argc, char* argv[], ExampleArgs&&... example_args) {
   absl::ParseCommandLine(argc, argv);
-  common::file::EnableRunfileLookup(argv[0]);
   // TODO: Move to ctor of Example.
   renderer::util::GlobalInit();
 

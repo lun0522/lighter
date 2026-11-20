@@ -106,22 +106,30 @@ also just build it with Bazel and directly launch the executable, which is more
 useful for debugging with external tools:
 
 ```bash
-bazel build -c dbg --copt=-DUSE_VULKAN //lighter/application/vulkan:triangle
-bazel-bin/lighter/application/vulkan/triangle --resource_folder=<path to resource folder> --shader_folder=<path to shader folder> --vulkan_folder=<path to Vulkan SDK folder>
+bazel build -c dbg //lighter/application/vulkan:triangle
+bazel-bin/lighter/application/vulkan/triangle --resource_dir=<path to resource dir> --shader_dir=<path to shader dir>
 ```
 
-Here is the meaning of each flag (note that these are **not** required if you 
-directly use `bazel run`):
+Asset directories are resolved in the following order:
 
-- *resource_folder*: Since resource files are stored in a separate
-[resource repo](https://github.com/lun0522/resource), it must have been
-downloaded, and the path to it should be specified with this flag.
-- *shader_folder*: The local address of [this folder](https://github.com/lun0522/lighter/tree/master/lighter/shader)
-should be specified with this flag.
-- *vulkan_folder*: The [Vulkan SDK](https://vulkan.lunarg.com) must have been 
-downloaded, and the path to the platform specific folder should be specified
-with this flag. For MacOS, this would be
-`vulkansdk-macos-<version number>/macOS`.
+1. **CLI flags**:
+   - `--resource_dir`: Path to the downloaded
+     [resource repo](https://github.com/lun0522/resource) directory.
+   - `--shader_dir`: Path to the compiled shader binaries directory
+     ([lighter/shader](https://github.com/lun0522/lighter/tree/master/lighter/shader)).
+2. **Environment variables**:
+   - `LIGHTER_RESOURCE_DIR`: Fallback path to the resource directory if
+     `--resource_dir` is not set.
+   - `LIGHTER_SHADER_DIR`: Fallback path to the compiled shader directory if
+     `--shader_dir` is not set.
+3. **Compile-time defaults / working-directory fallbacks**:
+   - `LIGHTER_RESOURCE_DIR` / `LIGHTER_SHADER_DIR` compile-time definitions if
+     configured by the build system, or `./resource` and `./lighter/shader`
+     relative to the current working directory.
+
+In addition, `VULKAN_SDK` must point to your platform-specific
+[Vulkan SDK](https://vulkan.lunarg.com) directory (for MacOS,
+`vulkansdk-macos-<version number>/macOS`).
 
 This README introduces the modules we created, and the decisions we made when we
 designed them. The usage of classes and util functions is put right before the
