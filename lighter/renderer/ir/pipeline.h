@@ -12,12 +12,13 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+
+#include <glm/glm.hpp>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/ir/buffer.h"
 #include "lighter/renderer/ir/type.h"
-#include <absl/container/flat_hash_map.h>
-#include <glm/glm.hpp>
 
 namespace lighter::renderer::ir {
 
@@ -47,8 +48,8 @@ struct PipelineDescriptor {
 struct GraphicsPipelineDescriptor : public PipelineDescriptor {
  public:
   // Paths to shaders used at each stage.
-  using ShaderPathMap = absl::flat_hash_map<shader_stage::ShaderStage,
-                                            std::string>;
+  using ShaderPathMap = std::unordered_map<shader_stage::ShaderStage,
+                                           std::string>;
 
   struct ColorBlend {
     BlendFactor src_color_blend_factor;
@@ -157,8 +158,8 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
     return *this;
   }
 
-  absl::flat_hash_map<shader_stage::ShaderStage, std::string> shader_path_map;
-  absl::flat_hash_map<int, std::optional<ColorBlend>> color_attachment_map;
+  std::unordered_map<shader_stage::ShaderStage, std::string> shader_path_map;
+  std::unordered_map<int, std::optional<ColorBlend>> color_attachment_map;
   std::vector<VertexBufferView> vertex_buffer_views;
   DepthTest depth_test;
   StencilTest stencil_test;

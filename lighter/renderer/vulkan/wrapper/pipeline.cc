@@ -7,13 +7,13 @@
 
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 
+#include <format>
 #include <numeric>
+#include <span>
 
 #include "lighter/common/data.h"
 #include "lighter/common/file.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include <absl/strings/str_format.h>
-#include <absl/strings/str_join.h>
 
 namespace lighter {
 namespace renderer {
@@ -77,7 +77,7 @@ struct ShaderStage {
 // Loads shaders in 'shader_file_path_map'.
 std::vector<ShaderStage> CreateShaderStages(
     const SharedBasicContext& context,
-    const absl::flat_hash_map<VkShaderStageFlagBits, std::string>&
+    const std::unordered_map<VkShaderStageFlagBits, std::string>&
         shader_file_path_map) {
   std::vector<ShaderStage> shader_stages;
   shader_stages.reserve(shader_file_path_map.size());
@@ -163,12 +163,12 @@ void PipelineBuilder::SetLayout(
       std::accumulate(push_constant_sizes.begin(),
                       push_constant_sizes.end(), 0);
   ASSERT_TRUE(total_push_constant_size <= kMaxPushConstantSize,
-              absl::StrFormat(
-                  "Pushing constant of total size %d bytes in the pipeline "
-                  "(break down: %s). To be compatible with all devices, the "
-                  "total size should not be greater than %d bytes.",
+              std::format(
+                  "Pushing constant of total size {} bytes in the pipeline "
+                  "(break down: {}). To be compatible with all devices, the "
+                  "total size should not be greater than {} bytes.",
                   total_push_constant_size,
-                  absl::StrJoin(push_constant_sizes, " + "),
+                  common::util::StrJoin<int>(push_constant_sizes, " + "),
                   kMaxPushConstantSize));
 
   descriptor_layouts_ = std::move(descriptor_layouts);
@@ -480,7 +480,7 @@ Pipeline::~Pipeline() {
   vkDestroyPipeline(*context_->device(), pipeline_, *context_->allocator());
   vkDestroyPipelineLayout(*context_->device(), layout_, *context_->allocator());
 #ifndef NDEBUG
-  LOG_INFO << absl::StreamFormat("Pipeline '%s' destructed", name_);
+  LOG_INFO << std::format("Pipeline '{}' destructed", name_);
 #endif  /* !NDEBUG */
 }
 

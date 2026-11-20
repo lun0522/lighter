@@ -20,10 +20,30 @@ namespace lighter {
 namespace application {
 namespace vulkan {
 namespace aurora {
-namespace {
 
-using namespace renderer;
-using namespace renderer::vulkan;
+using renderer::vulkan::Descriptor;
+using renderer::vulkan::GraphicsPass;
+using renderer::vulkan::GraphicsPipelineBuilder;
+using renderer::vulkan::Image;
+using renderer::vulkan::ImageSampler;
+using renderer::vulkan::ImageUsage;
+using renderer::vulkan::ImageUsageHistory;
+using renderer::vulkan::ModelBuilder;
+using renderer::vulkan::NaiveRenderPass;
+using renderer::vulkan::PerVertexBuffer;
+using renderer::vulkan::PushConstant;
+using renderer::vulkan::RenderPass;
+using renderer::vulkan::SamplableImage;
+using renderer::vulkan::SharedBasicContext;
+using renderer::vulkan::SharedTexture;
+using renderer::vulkan::StaticDescriptor;
+using renderer::vulkan::StaticPerVertexBuffer;
+using renderer::vulkan::TextureImage;
+using renderer::vulkan::UniformBuffer;
+using renderer::vulkan::WindowContext;
+namespace pipeline = renderer::vulkan::pipeline;
+
+namespace {
 
 enum SubpassIndex {
   kViewImageSubpassIndex = 0,
@@ -243,7 +263,7 @@ void ViewerRenderer::UpdateViewAuroraCamera(
 
 void ViewerRenderer::Draw(const VkCommandBuffer& command_buffer,
                           uint32_t framebuffer_index, int current_frame) const {
-  render_pass_->Run(command_buffer, framebuffer_index, /*render_ops=*/{
+  const std::array<RenderPass::RenderOp, 1> render_ops{
       [this, current_frame](const VkCommandBuffer& command_buffer) {
         pipeline_->Bind(command_buffer);
         descriptors_[current_frame]->Bind(command_buffer, pipeline_->layout(),
@@ -254,7 +274,8 @@ void ViewerRenderer::Draw(const VkCommandBuffer& command_buffer,
         vertex_buffer_->Draw(command_buffer, kVertexBufferBindingPoint,
                              /*mesh_index=*/0, /*instance_count=*/1);
       },
-  });
+  };
+  render_pass_->Run(command_buffer, framebuffer_index, render_ops);
 }
 
 Viewer::Viewer(

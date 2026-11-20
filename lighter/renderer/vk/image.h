@@ -9,7 +9,10 @@
 #define LIGHTER_RENDERER_VK_IMAGE_H
 
 #include <memory>
+#include <span>
 #include <string_view>
+
+#include <glm/glm.hpp>
 
 #include "lighter/common/image.h"
 #include "lighter/common/util.h"
@@ -18,8 +21,6 @@
 #include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/util.h"
-#include <absl/types/span.h>
-#include <glm/glm.hpp>
 
 namespace lighter::renderer::vk {
 
@@ -70,17 +71,17 @@ class SingleImage : public WithSharedContext,
       const SharedContext& context, std::string_view name,
       const common::Image::Dimension& dimension,
       ir::MultisamplingMode multisampling_mode, bool high_precision,
-      absl::Span<const ir::ImageUsage> usages);
+      std::span<const ir::ImageUsage> usages);
 
   static std::unique_ptr<SingleImage> CreateColorImage(
       const SharedContext& context, std::string_view name,
       const common::Image& image, bool generate_mipmaps,
-      absl::Span<const ir::ImageUsage> usages);
+      std::span<const ir::ImageUsage> usages);
 
   static std::unique_ptr<SingleImage> CreateDepthStencilImage(
       const SharedContext& context, std::string_view name,
       const glm::ivec2& extent, ir::MultisamplingMode multisampling_mode,
-      absl::Span<const ir::ImageUsage> usages);
+      std::span<const ir::ImageUsage> usages);
 
   // This class is neither copyable nor movable.
   SingleImage(const SingleImage&) = delete;
@@ -99,7 +100,7 @@ class SingleImage : public WithSharedContext,
   SingleImage(const SharedContext& context, std::string_view name,
               LayerType layer_type, const glm::ivec2& extent, int mip_levels,
               intl::Format format, ir::MultisamplingMode multisampling_mode,
-              absl::Span<const ir::ImageUsage> usages);
+              std::span<const ir::ImageUsage> usages);
 
   // Opaque image object.
   intl::Image image_;

@@ -7,10 +7,12 @@
 
 #include "lighter/common/model_loader.h"
 
-#include "lighter/common/util.h"
-#include <absl/strings/str_format.h>
+#include <format>
+
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
+
+#include "lighter/common/util.h"
 
 namespace lighter::common {
 namespace {
@@ -26,7 +28,8 @@ aiTextureType TextureTypeToAssimpType(ModelLoader::TextureType type) {
     case TextureType::kReflection:
       return aiTextureType_AMBIENT;
     default:
-      FATAL(absl::StrFormat("Unsupported resource type: %d", type));
+      FATAL(std::format("Unsupported resource type: {}",
+                        static_cast<int>(type)));
   }
 }
 
@@ -43,8 +46,8 @@ ModelLoader::ModelLoader(const std::string& model_path,
   const aiScene* scene = importer.ReadFile(model_path, flags);
   ASSERT_FALSE(scene == nullptr || scene->mRootNode == nullptr ||
                (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE),
-               absl::StrFormat("Failed to import scene: %s",
-                               importer.GetErrorString()));
+               std::format("Failed to import scene: {}",
+                           importer.GetErrorString()));
 
   ProcessNode(texture_dir, scene->mRootNode, scene);
 }
@@ -116,7 +119,7 @@ void ModelLoader::LoadTextures(const std::string& directory,
     aiString path;
     material->GetTexture(ai_type, i, &path);
     texture_infos->push_back(TextureInfo{
-        absl::StrFormat("%s/%s", directory, path.C_Str()), texture_type});
+        std::format("{}/{}", directory, path.C_Str()), texture_type});
   }
 }
 

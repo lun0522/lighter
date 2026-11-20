@@ -8,11 +8,11 @@
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 
 #include <algorithm>
+#include <format>
 #include <limits>
 
 #include "lighter/common/image.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include <absl/strings/str_format.h>
 
 namespace lighter {
 namespace renderer {
@@ -165,7 +165,7 @@ std::vector<VkFramebuffer> CreateFramebuffers(
 
 std::vector<VkAttachmentReference>
 RenderPassBuilder::CreateColorAttachmentReferences(
-    absl::Span<const ColorAttachmentInfo> infos) {
+    std::span<const ColorAttachmentInfo> infos) {
   if (infos.empty()) {
     return {};
   }
@@ -189,7 +189,7 @@ RenderPassBuilder::CreateColorAttachmentReferences(
 
 std::vector<VkAttachmentReference>
 RenderPassBuilder::CreateMultisamplingReferences(
-    int num_color_refs, absl::Span<const MultisampleResolveInfo> infos) {
+    int num_color_refs, std::span<const MultisampleResolveInfo> infos) {
   std::vector<VkAttachmentReference> references(
       num_color_refs,
       VkAttachmentReference{VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED});
@@ -234,11 +234,11 @@ RenderPassBuilder& RenderPassBuilder::SetSubpass(
     const std::optional<VkAttachmentReference>& depth_stencil_ref) {
   if (!multisampling_refs.empty()) {
     ASSERT_TRUE(multisampling_refs.size() == color_refs.size(),
-                absl::StrFormat("Number of multisampling attachment (%d) must "
-                                "match the number of color attachments (%d) at "
-                                "subpass %d",
-                                multisampling_refs.size(), color_refs.size(),
-                                index));
+                std::format("Number of multisampling attachment ({}) must "
+                            "match the number of color attachments ({}) at "
+                            "subpass {}",
+                            multisampling_refs.size(), color_refs.size(),
+                            index));
   }
   SubpassAttachments attachments{
       std::move(color_refs),
@@ -260,7 +260,7 @@ std::unique_ptr<RenderPass> RenderPassBuilder::Build() const {
   for (int i = 0; i < get_attachment_images_.size(); ++i) {
     ASSERT_NON_NULL(
         get_attachment_images_[i],
-        absl::StrFormat("Attachment image at index %d is not set", i));
+        std::format("Attachment image at index {} is not set", i));
   }
 
   const auto subpass_descriptions =
@@ -294,11 +294,11 @@ std::unique_ptr<RenderPass> RenderPassBuilder::Build() const {
 
 void RenderPass::Run(const VkCommandBuffer& command_buffer,
                      int framebuffer_index,
-                     absl::Span<const RenderOp> render_ops) const {
+                     std::span<const RenderOp> render_ops) const {
   ASSERT_TRUE(render_ops.size() == num_subpasses_,
-              absl::StrFormat("Render pass contains %d subpasses, but %d "
-                              "rendering operations are provided",
-                              num_subpasses_, render_ops.size()));
+              std::format("Render pass contains {} subpasses, but {} "
+                          "rendering operations are provided",
+                          num_subpasses_, render_ops.size()));
 
   const VkRenderPassBeginInfo begin_info{
       VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,

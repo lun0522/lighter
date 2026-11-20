@@ -7,13 +7,13 @@
 
 #include "lighter/renderer/vulkan/extension/text.h"
 
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+#include <format>
 
 #include "lighter/renderer/util.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include <absl/strings/str_format.h>
 #include <glm/glm.hpp>
 
 namespace lighter {
@@ -147,7 +147,7 @@ VkDescriptorBufferInfo Text::GetUniformBufferDescriptorInfo(int frame) const {
 StaticText::StaticText(const SharedBasicContext& context,
                        int num_frames_in_flight,
                        float viewport_aspect_ratio,
-                       absl::Span<const std::string> texts,
+                       std::span<const std::string> texts,
                        Font font, int font_height)
     : Text{context, "Static text", num_frames_in_flight, viewport_aspect_ratio},
       text_loader_{context, texts, font, font_height} {
@@ -183,8 +183,8 @@ void StaticText::Draw(const VkCommandBuffer& command_buffer,
                       int frame, const glm::vec3& color, float alpha) {
   const int num_texts = UpdateBuffers(frame, color, alpha);
   ASSERT_TRUE(num_texts == texts_to_draw_.size(),
-              absl::StrFormat("Expected number of texts: %d vs %d",
-                              num_texts, texts_to_draw_.size()));
+              std::format("Expected number of texts: {} vs {}",
+                          num_texts, texts_to_draw_.size()));
   pipeline().Bind(command_buffer);
   for (int i = 0; i < num_texts; ++i) {
     UpdateDescriptor(command_buffer, frame, texts_to_draw_[i]);
@@ -218,7 +218,7 @@ void StaticText::UpdateDescriptor(const VkCommandBuffer& command_buffer,
 DynamicText::DynamicText(const SharedBasicContext& context,
                          int num_frames_in_flight,
                          float viewport_aspect_ratio,
-                         absl::Span<const std::string> texts,
+                         std::span<const std::string> texts,
                          Font font, int font_height)
     : Text{context, "Dynamic text", num_frames_in_flight,
            viewport_aspect_ratio},

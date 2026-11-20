@@ -20,8 +20,8 @@ namespace {
 // for one descriptor set.
 VkDescriptorPool CreateDescriptorPool(
     const BasicContext& context,
-    absl::Span<const Descriptor::Info> descriptor_infos) {
-  absl::flat_hash_map<VkDescriptorType, uint32_t> pool_size_map;
+    std::span<const Descriptor::Info> descriptor_infos) {
+  std::unordered_map<VkDescriptorType, uint32_t> pool_size_map;
   for (const auto& info : descriptor_infos) {
     uint32_t total_length = 0;
     for (const auto& binding : info.bindings) {
@@ -59,7 +59,7 @@ VkDescriptorPool CreateDescriptorPool(
 // ready for pushing descriptors.
 VkDescriptorSetLayout CreateDescriptorSetLayout(
     const BasicContext& context,
-    absl::Span<const Descriptor::Info> descriptor_infos,
+    std::span<const Descriptor::Info> descriptor_infos,
     bool is_dynamic) {
   int total_bindings = 0;
   for (const auto& info : descriptor_infos) {
@@ -124,7 +124,7 @@ template <typename InfoType>
 std::vector<VkWriteDescriptorSet> CreateWriteDescriptorSets(
     const VkDescriptorSet& descriptor_set,
     VkDescriptorType descriptor_type,
-    const absl::flat_hash_map<uint32_t, std::vector<InfoType>>& info_map) {
+    const std::unordered_map<uint32_t, std::vector<InfoType>>& info_map) {
   static_assert(std::is_same_v<InfoType, VkDescriptorBufferInfo> ||
                     std::is_same_v<InfoType, VkDescriptorImageInfo> ||
                     std::is_same_v<InfoType, VkBufferView>,
@@ -154,7 +154,7 @@ std::vector<VkWriteDescriptorSet> CreateWriteDescriptorSets(
 } /* namespace */
 
 StaticDescriptor::StaticDescriptor(SharedBasicContext context,
-                                   absl::Span<const Info> infos)
+                                   std::span<const Info> infos)
     : Descriptor{std::move(context)} {
   pool_ = CreateDescriptorPool(*context_, infos);
   const auto layout = CreateDescriptorSetLayout(*context_, infos,
@@ -196,7 +196,7 @@ void StaticDescriptor::Bind(const VkCommandBuffer& command_buffer,
 }
 
 DynamicDescriptor::DynamicDescriptor(SharedBasicContext context,
-                                     absl::Span<const Info> infos)
+                                     std::span<const Info> infos)
     : Descriptor{std::move(context)} {
   set_layout(CreateDescriptorSetLayout(*context_, infos, /*is_dynamic=*/true));
   push_descriptor_sets_func_ =

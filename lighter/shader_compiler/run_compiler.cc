@@ -8,11 +8,15 @@
 #include "lighter/shader_compiler/run_compiler.h"
 
 #include <array>
+#include <format>
 #include <fstream>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <utility>
+
+#include <picosha2.h>
 
 #include "lighter/common/data.h"
 #include "lighter/common/file.h"
@@ -20,9 +24,6 @@
 #include "lighter/common/util.h"
 #include "lighter/shader_compiler/compilation_record.h"
 #include "lighter/shader_compiler/compiler.h"
-#include <absl/strings/str_format.h>
-#include <absl/types/span.h>
-#include <picosha2.h>
 
 namespace lighter::shader_compiler::compiler {
 namespace {
@@ -34,15 +35,15 @@ using FileHash = CompilationRecordHandler::FileHash;
 // Returns the SHA256 of the file at 'path'.
 std::string ComputeFileSha256(const stdfs::path& path) {
   std::ifstream file{path, std::ios::in | std::ios::binary};
-  ASSERT_TRUE(file, absl::StrFormat("Failed to open file '%s'",
-                                    stdfs::absolute(path).string()));
+  ASSERT_TRUE(file, std::format("Failed to open file '{}'",
+                                stdfs::absolute(path).string()));
   static auto* buffer = new std::array<unsigned char, picosha2::k_digest_size>;
   picosha2::hash256(file, buffer->begin(), buffer->end());
   return picosha2::bytes_to_hex_string(*buffer);
 }
 
 // Returns the SHA256 of 'data'.
-std::string ComputeDataSha256(absl::Span<const char> data) {
+std::string ComputeDataSha256(std::span<const char> data) {
   return picosha2::hash256_hex_string(data);
 }
 
@@ -103,8 +104,8 @@ void CompilerRunner::Run() {
     if (!shader_kind.has_value()) {
       continue;
     }
-    LOG_INFO << absl::StreamFormat("Found shader file '%s'",
-                                   stdfs::absolute(path).string());
+    LOG_INFO << std::format("Found shader file '{}'",
+                            stdfs::absolute(path).string());
 
     record_writer().RegisterFileHash(
         stdfs::path{path}, CompileIfNeeded(path, shader_kind.value()));
@@ -140,13 +141,13 @@ FileHash CompilerRunner::CompileIfNeeded(
     LOG_INFO << "\tSkip compilation";
     return *record_reader().GetFileHash(source_path);
   }
-  LOG_INFO << absl::StreamFormat("\tNeed to compile: %s", reason.value());
+  LOG_INFO << std::format("\tNeed to compile: {}", reason.value());
 
   // Compile shader.
   const common::Data source_data =
       common::file::LoadDataFromFile(source_path.string());
-  const auto source_data_span = absl::MakeSpan(source_data.data<char>(),
-                                               source_data.size());
+  const std::span<const char> source_data_span{
+      source_data.data<char>(), source_data.size()};
   const std::unique_ptr<CompilationResult> result = compiler_.Compile(
       /*shader_tag=*/source_path.filename().string(), shader_kind,
       source_data_span, options_);
@@ -157,8 +158,8 @@ FileHash CompilerRunner::CompileIfNeeded(
   stdfs::create_directories(compiled_path.parent_path());
   std::ofstream file{compiled_path,
                      std::ios::out | std::ios::binary | std::ios::trunc};
-  ASSERT_TRUE(file, absl::StrFormat("Failed to open file '%s'",
-                                    compiled_path.string()));
+  ASSERT_TRUE(file, std::format("Failed to open file '{}'",
+                                compiled_path.string()));
   file.write(result_data_span.data(), result_data_span.size());
 
   return FileHash {
@@ -177,7 +178,7 @@ void CompileShaders(stdfs::path&& shader_dir, OptimizationLevel opt_level) {
   runner.Run();
   const float elapsed_time = timer.GetElapsedTimeSinceLaunch();
 
-  LOG_INFO << absl::StreamFormat("Finished in %fs", elapsed_time);
+  LOG_INFO << std::format("Finished in {}s", elapsed_time);
 }
 
 }  // namespace lighter::shader_compiler::compiler

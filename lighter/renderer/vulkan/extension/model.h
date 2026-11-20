@@ -13,6 +13,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -25,7 +26,6 @@
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include <absl/container/flat_hash_map.h>
 #include <vulkan/vulkan.h>
 
 namespace lighter {
@@ -56,7 +56,7 @@ class ModelBuilder {
                  static_cast<int>(TextureType::kNumTypes)>;
 
   // Maps each texture type to its binding point.
-  using BindingPointMap = absl::flat_hash_map<
+  using BindingPointMap = std::unordered_map<
       TextureType, uint32_t, common::util::EnumClassHash>;
 
   // Textures are either loaded from files or existing offscreen images.
@@ -64,7 +64,7 @@ class ModelBuilder {
                                      OffscreenImagePtr>;
 
   // Maps each texture type to textures of this type.
-  using TextureSourceMap = absl::flat_hash_map<
+  using TextureSourceMap = std::unordered_map<
       TextureType, std::vector<TextureSource>, common::util::EnumClassHash>;
 
   // Interface of model resource classes.

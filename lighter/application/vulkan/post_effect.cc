@@ -5,7 +5,9 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
+#include <array>
 #include <memory>
+#include <span>
 #include <string>
 
 #include "lighter/application/vulkan/image_viewer.h"
@@ -16,8 +18,24 @@ namespace application {
 namespace vulkan {
 namespace {
 
-using namespace renderer;
-using namespace renderer::vulkan;
+using renderer::vulkan::ComputePass;
+using renderer::vulkan::ComputePipelineBuilder;
+using renderer::vulkan::Descriptor;
+using renderer::vulkan::DynamicDescriptor;
+using renderer::vulkan::Image;
+using renderer::vulkan::ImageSampler;
+using renderer::vulkan::ImageUsage;
+using renderer::vulkan::ImageUsageHistory;
+using renderer::vulkan::NaiveRenderPass;
+using renderer::vulkan::OffscreenImage;
+using renderer::vulkan::OneTimeCommand;
+using renderer::vulkan::PerFrameCommand;
+using renderer::vulkan::Pipeline;
+using renderer::vulkan::RenderPass;
+using renderer::vulkan::StaticDescriptor;
+using renderer::vulkan::TextureImage;
+using renderer::vulkan::WindowContext;
+namespace ir = renderer::ir;
 
 enum ComputeSubpassIndex {
   kPostEffectSubpassIndex = 0,
@@ -124,18 +142,17 @@ void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
       .AddImage(original_image_name, std::move(original_image_usage_history))
       .AddImage(processed_image_name, std::move(processed_image_usage_history));
 
-  StaticDescriptor descriptor{
-      context(), /*infos=*/{
-          Descriptor::Info{
-              Image::GetDescriptorTypeForLinearAccess(),
-              VK_SHADER_STAGE_COMPUTE_BIT,
-              /*bindings=*/{
-                  {kOriginalImageBindingPoint, /*array_length=*/1},
-                  {kProcessedImageBindingPoint, /*array_length=*/1},
-              },
+  const std::array descriptor_infos{
+      Descriptor::Info{
+          Image::GetDescriptorTypeForLinearAccess(),
+          VK_SHADER_STAGE_COMPUTE_BIT,
+          /*bindings=*/{
+              {kOriginalImageBindingPoint, /*array_length=*/1},
+              {kProcessedImageBindingPoint, /*array_length=*/1},
           },
-      }
+      },
   };
+  StaticDescriptor descriptor{context(), descriptor_infos};
   const auto original_image_descriptor_info = original_image.GetDescriptorInfo(
       compute_pass.GetImageLayoutAtSubpass(original_image_name,
                                            kPostEffectSubpassIndex));
@@ -174,7 +191,7 @@ void PostEffectApp::ProcessImageFromFile(const std::string& file_path) {
             {original_image_name, &original_image},
             {processed_image_name, processed_image_.get()},
         },
-        absl::MakeSpan(&compute_op, 1));
+        std::span{&compute_op, 1});
   });
 
   image_viewer_ = std::make_unique<ImageViewer>(
@@ -200,7 +217,7 @@ void PostEffectApp::MainLoop() {
         [this, &render_op](const VkCommandBuffer& command_buffer,
                             uint32_t framebuffer_index) {
           render_pass().Run(command_buffer, framebuffer_index,
-                            absl::MakeSpan(&render_op, 1));
+                            std::span{&render_op, 1});
         });
 
     if (draw_result.has_value() || window_context().ShouldRecreate()) {
@@ -217,7 +234,9 @@ void PostEffectApp::MainLoop() {
 } /* namespace lighter */
 
 int main(int argc, char* argv[]) {
-  using namespace lighter::application::vulkan;
+  using lighter::application::vulkan::AppMain;
+  using lighter::application::vulkan::PostEffectApp;
+  using lighter::renderer::vulkan::WindowContext;
   return AppMain<PostEffectApp>(
       argc, argv, WindowContext::Config{}.disable_multisampling());
 }

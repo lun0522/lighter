@@ -8,11 +8,10 @@
 #ifndef LIGHTER_COMMON_CAMERA_H
 #define LIGHTER_COMMON_CAMERA_H
 
+#include <functional>
 #include <memory>
 #include <optional>
 
-#include <absl/functional/function_ref.h>
-#include <absl/memory/memory.h>
 #ifndef GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #endif  // GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -223,7 +222,7 @@ class UserControlledCamera {
 
   // Directly modifies states of the underlying camera object. Internal states
   // of this class will be reset after the modification.
-  void SetInternalStates(absl::FunctionRef<void(CameraType*)> operation);
+  void SetInternalStates(const std::function<void(CameraType*)>& operation);
 
   // Sets the cursor position. If the user care about the mouse movement, this
   // should be called after the window is created or resized.
@@ -295,9 +294,10 @@ class UserControlledPerspectiveCamera
       const camera_control::Config& control_config,
       const Camera::Config& camera_config,
       const PerspectiveCamera::FrustumConfig& frustum_config) {
-    return absl::WrapUnique(new UserControlledPerspectiveCamera {
-        control_config,
-        std::make_unique<PerspectiveCamera>(camera_config, frustum_config)});
+    return std::unique_ptr<UserControlledPerspectiveCamera>(
+        new UserControlledPerspectiveCamera{
+            control_config, std::make_unique<PerspectiveCamera>(
+                                camera_config, frustum_config)});
   }
 
   protected:
@@ -312,9 +312,10 @@ class UserControlledOrthographicCamera
       const camera_control::Config& control_config,
       const Camera::Config& camera_config,
       const OrthographicCamera::OrthoConfig& ortho_config) {
-    return absl::WrapUnique(new UserControlledOrthographicCamera{
-        control_config,
-        std::make_unique<OrthographicCamera>(camera_config, ortho_config)});
+    return std::unique_ptr<UserControlledOrthographicCamera>(
+        new UserControlledOrthographicCamera{
+            control_config,
+            std::make_unique<OrthographicCamera>(camera_config, ortho_config)});
   }
 
  protected:

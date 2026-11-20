@@ -8,16 +8,17 @@
 #include "lighter/renderer/vk/basic.h"
 
 #include <algorithm>
+#include <array>
+#include <format>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/ir/pipeline_util.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/property_checker.h"
 #include "lighter/renderer/vk/type_mapping.h"
-#include <absl/container/flat_hash_set.h>
-#include <absl/strings/str_format.h>
 
 namespace lighter::renderer::vk {
 namespace {
@@ -32,16 +33,16 @@ const char* kValidationExtension = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 // and throws a runtime exception if any unsupported exists.
 void CheckPropertiesSupport(std::string_view property_type,
                             const PropertyChecker& property_checker,
-                            absl::Span<const std::string> required_properties) {
-  LOG_INFO << absl::StreamFormat("Checking %s support", property_type);
+                            std::span<const std::string> required_properties) {
+  LOG_INFO << std::format("Checking {} support", property_type);
   ASSERT_EMPTY(property_checker.FindUnsupported(required_properties),
-               absl::StrFormat("Found unsupported %s", property_type));
+               std::format("Found unsupported {}", property_type));
 }
 
 // Returns instance extensions required by 'windows'.
 std::vector<const char*> GetWindowExtensions(
-    absl::Span<const common::Window* const> windows) {
-  absl::flat_hash_set<const char*> window_extensions;
+    std::span<const common::Window* const> windows) {
+  std::unordered_set<const char*> window_extensions;
   for (const common::Window* window : windows) {
     const auto required_extensions = window->GetRequiredExtensions();
     window_extensions.insert(required_extensions.begin(),
@@ -54,12 +55,13 @@ std::vector<const char*> GetWindowExtensions(
 bool SupportsSwapchain(intl::PhysicalDevice physical_device) {
   LOG_INFO << "Checking swapchain device extensions support";
   const auto checker = PropertyChecker::ForDeviceExtensions(physical_device);
-  return checker.AreSupported({std::string{kSwapchainExtension}});
+  const std::array required{std::string{kSwapchainExtension}};
+  return checker.AreSupported(required);
 }
 
 // Returns whether 'surfaces' are supported by 'physical_device'.
 bool SupportsSurfaces(intl::PhysicalDevice physical_device,
-                      absl::Span<const Surface* const> surfaces) {
+                      std::span<const Surface* const> surfaces) {
   LOG_INFO << "Checking surfaces compatibility";
 
   uint32_t format_count, mode_count;
@@ -67,13 +69,13 @@ bool SupportsSurfaces(intl::PhysicalDevice physical_device,
     ASSERT_SUCCESS(
         physical_device.getSurfaceFormatsKHR(**surfaces[i], &format_count,
                                              /*pSurfaceFormats=*/nullptr),
-        absl::StrFormat("Failed to query surface formats for window %d", i));
+        std::format("Failed to query surface formats for window {}", i));
     ASSERT_SUCCESS(
         physical_device.getSurfacePresentModesKHR(**surfaces[i], &mode_count,
                                                   /*pPresentModes=*/nullptr),
-        absl::StrFormat("Failed to query present modes for window %d", i));
+        std::format("Failed to query present modes for window {}", i));
     if (format_count == 0 || mode_count == 0) {
-      LOG_INFO << absl::StrFormat("Not compatible with window %d", i);
+      LOG_INFO << std::format("Not compatible with window {}", i);
       return false;
     }
   }
@@ -92,7 +94,7 @@ bool FamilyHasQueue(const intl::QueueFamilyProperties& properties) {
 // Returns the index of the first queue family that supports 'flag'.
 template <intl::QueueFlagBits flag>
 std::optional<int> GetQueueFamilyIndex(
-    absl::Span<const intl::QueueFamilyProperties> properties_span) {
+    std::span<const intl::QueueFamilyProperties> properties_span) {
   return common::util::FindIndexOfFirstIf<intl::QueueFamilyProperties>(
       properties_span, FamilyHasQueue<flag>);
 }
@@ -101,7 +103,7 @@ std::optional<int> GetQueueFamilyIndex(
 // given 'physical_device', returns std::nullopt.
 std::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
     intl::PhysicalDevice physical_device,
-    absl::Span<const Surface* const> surfaces) {
+    std::span<const Surface* const> surfaces) {
   const auto properties = physical_device.getProperties();
   LOG_INFO << "Found graphics device: " << properties.deviceName;
   LOG_INFO;
@@ -154,7 +156,7 @@ std::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
                                    properties_vector.end(),
                                    has_present_support);
     if (iter == properties_vector.end()) {
-      LOG_INFO << absl::StreamFormat("No presentation queue for surface %d", i);
+      LOG_INFO << std::format("No presentation queue for surface {}", i);
       return std::nullopt;
     }
     candidate.presents.push_back(
@@ -167,7 +169,7 @@ std::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
 // Returns the first supported sample count among 'candidates'.
 intl::SampleCountFlagBits GetFirstSupportedSampleCount(
     intl::SampleCountFlags supported,
-    absl::Span<const intl::SampleCountFlagBits> candidates) {
+    std::span<const intl::SampleCountFlagBits> candidates) {
   for (intl::SampleCountFlagBits candidate : candidates) {
     if (supported & candidate) {
       return candidate;
@@ -185,16 +187,19 @@ intl::SampleCountFlagBits ChooseSampleCount(
     case MultisamplingMode::kNone:
       return SampleCount::e1;
 
-    case MultisamplingMode::kDecent:
-      return GetFirstSupportedSampleCount(
-          supported_sample_counts,
-          {SampleCount::e4, SampleCount::e2, SampleCount::e1});
+    case MultisamplingMode::kDecent: {
+      constexpr std::array candidates{
+          SampleCount::e4, SampleCount::e2, SampleCount::e1};
+      return GetFirstSupportedSampleCount(supported_sample_counts, candidates);
+    }
 
-    case MultisamplingMode::kBest:
-      return GetFirstSupportedSampleCount(
-          supported_sample_counts,
-          {SampleCount::e64, SampleCount::e32, SampleCount::e16,
-           SampleCount::e8, SampleCount::e4, SampleCount::e2, SampleCount::e1});
+    case MultisamplingMode::kBest: {
+      constexpr std::array candidates{
+          SampleCount::e64, SampleCount::e32, SampleCount::e16,
+          SampleCount::e8,  SampleCount::e4,  SampleCount::e2,
+          SampleCount::e1};
+      return GetFirstSupportedSampleCount(supported_sample_counts, candidates);
+    }
   }
 }
 
@@ -211,8 +216,8 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
   const bool is_error =
       severity == intl::DebugUtilsMessageSeverityFlagBitsEXT::eError;
 
-  LOG_SWITCH(is_error) << absl::StreamFormat(
-      "[DebugCallback] severity %s, types %s, message:",
+  LOG_SWITCH(is_error) << std::format(
+      "[DebugCallback] severity {}, types {}, message:",
       intl::to_string(severity), intl::to_string(types));
   LOG_SWITCH(is_error) << callback_data->pMessage;
   return VK_FALSE;
@@ -222,7 +227,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL UserCallback(
 
 Instance::Instance(const Context* context, bool enable_validation,
                    const char* application_name,
-                   absl::Span<const common::Window* const> windows)
+                   std::span<const common::Window* const> windows)
     : context_{*FATAL_IF_NULL(context)} {
   // Check required instance layers.
   std::vector<const char*> required_layers;
@@ -300,7 +305,7 @@ Surface::~Surface() {
 }
 
 PhysicalDevice::PhysicalDevice(const Context* context,
-                               absl::Span<Surface* const> surfaces)
+                               std::span<Surface* const> surfaces)
     : context_{*FATAL_IF_NULL(context)} {
   LOG_INFO << "Selecting physical device";
 
@@ -362,7 +367,7 @@ Device::Device(const Context* context, bool enable_validation,
   // Specify which queues do we want to use.
   const PhysicalDevice& physical_device = context_.physical_device();
   const auto& queue_family_indices = physical_device.queue_family_indices();
-  const absl::flat_hash_set<uint32_t> queue_family_indices_set{
+  const std::unordered_set<uint32_t> queue_family_indices_set{
       queue_family_indices.graphics,
       queue_family_indices.compute,
   };
@@ -412,8 +417,8 @@ Device::Device(const Context* context, bool enable_validation,
   for (const char* extension : {VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME}) {
     if (device_extensions_checker.IsSupported(extension)) {
       required_extensions.push_back(extension);
-      LOG_INFO << absl::StreamFormat("Also including %s as required by spec",
-                                     extension);
+      LOG_INFO << std::format("Also including {} as required by spec",
+                              extension);
     }
   }
   #endif  // VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME

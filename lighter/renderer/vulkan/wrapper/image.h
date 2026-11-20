@@ -12,6 +12,7 @@
 #include <memory>
 #include <optional>
 #include <variant>
+#include <span>
 #include <vector>
 
 #include "lighter/common/file.h"
@@ -22,7 +23,6 @@
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include <absl/types/span.h>
 #include <vulkan/vulkan.h>
 
 namespace lighter {
@@ -218,7 +218,7 @@ class TextureImage : public Image, public SamplableImage {
     uint32_t width;
     uint32_t height;
     uint32_t channel;
-    absl::Span<const ImageUsage> usages;
+    std::span<const ImageUsage> usages;
   };
 
   TextureImage(SharedBasicContext context,
@@ -229,7 +229,7 @@ class TextureImage : public Image, public SamplableImage {
   TextureImage(const SharedBasicContext& context,
                bool generate_mipmaps,
                const common::Image& image,
-               absl::Span<const ImageUsage> usages,
+               std::span<const ImageUsage> usages,
                const ImageSampler::Config& sampler_config);
 
   // This class is neither copyable nor movable.
@@ -292,7 +292,7 @@ class SharedTexture : public SamplableImage {
 
   SharedTexture(const SharedBasicContext& context,
                 const SourcePath& source_path,
-                absl::Span<const ImageUsage> usages,
+                std::span<const ImageUsage> usages,
                 const ImageSampler::Config& sampler_config)
       : texture_{GetTexture(context, source_path, usages, sampler_config)} {}
 
@@ -318,7 +318,7 @@ class SharedTexture : public SamplableImage {
   static RefCountedTexture GetTexture(
       const SharedBasicContext& context,
       const SourcePath& source_path,
-      absl::Span<const ImageUsage> usages,
+      std::span<const ImageUsage> usages,
       const ImageSampler::Config& sampler_config);
 
   // Reference counted texture image.
@@ -331,13 +331,13 @@ class OffscreenImage : public Image, public SamplableImage {
  public:
   OffscreenImage(SharedBasicContext context,
                  const VkExtent2D& extent, VkFormat format,
-                 absl::Span<const ImageUsage> usages,
+                 std::span<const ImageUsage> usages,
                  const ImageSampler::Config& sampler_config);
 
   // Only 1 or 4 channels are supported.
   OffscreenImage(const SharedBasicContext& context,
                  const VkExtent2D& extent, int channel,
-                 absl::Span<const ImageUsage> usages,
+                 std::span<const ImageUsage> usages,
                  const ImageSampler::Config& sampler_config,
                  bool use_high_precision);
 
@@ -357,7 +357,7 @@ class OffscreenImage : public Image, public SamplableImage {
    public:
     OffscreenBuffer(SharedBasicContext context,
                     const VkExtent2D& extent, VkFormat format,
-                    absl::Span<const ImageUsage> usages);
+                    std::span<const ImageUsage> usages);
 
     // This class is neither copyable nor movable.
     OffscreenBuffer(const OffscreenBuffer&) = delete;

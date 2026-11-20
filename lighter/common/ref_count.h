@@ -10,10 +10,10 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 
 #include "lighter/common/util.h"
-#include <absl/container/flat_hash_map.h>
 
 namespace lighter::common {
 
@@ -58,8 +58,10 @@ class RefCountedObject {
     auto iter = ref_count_map().find(identifier);
     if (iter == ref_count_map().end()) {
       const auto inserted = ref_count_map().insert({
-          identifier, typename ObjectPool::ObjectWithCounter{
-              .object = std::make_unique<ObjectType>(std::forward<Args>(args)...),
+          identifier,
+          typename ObjectPool::ObjectWithCounter{
+              .object =
+                  std::make_unique<ObjectType>(std::forward<Args>(args)...),
               .ref_count = 0,
           }});
       iter = inserted.first;
@@ -118,7 +120,7 @@ class RefCountedObject {
       std::unique_ptr<ObjectType> object;
       int ref_count;
     };
-    using RefCountMap = absl::flat_hash_map<std::string, ObjectWithCounter>;
+    using RefCountMap = std::unordered_map<std::string, ObjectWithCounter>;
 
     RefCountMap ref_count_map;
     int num_active_auto_release_pools = 0;

@@ -9,20 +9,18 @@
 
 #include <cstdlib>
 #include <exception>
+#include <format>
 #include <fstream>
+#include <unordered_map>
 
-#include <absl/container/flat_hash_map.h>
-#include <absl/flags/flag.h>
-#include <absl/strings/str_format.h>
-#include <absl/strings/str_split.h>
-
+#include "lighter/common/flag.h"
 #include "lighter/common/util.h"
 #include "lighter/shader_compiler/util.h"
 
-ABSL_FLAG(std::string, resource_dir, "",
-          "Path to the directory containing runtime resource assets");
-ABSL_FLAG(std::string, shader_dir, "",
-          "Path to the directory containing compiled shader binaries");
+LIGHTER_FLAG(std::string, resource_dir, "",
+             "Path to the directory containing runtime resource assets");
+LIGHTER_FLAG(std::string, shader_dir, "",
+             "Path to the directory containing compiled shader binaries");
 
 namespace lighter::common {
 namespace {
@@ -38,8 +36,8 @@ stdfs::path ResolveAssetDir(std::string_view flag_value, const char* env_var,
   if (!flag_value.empty()) {
     stdfs::path path{flag_value};
     ASSERT_TRUE(stdfs::is_directory(path),
-                absl::StrFormat("%s '%s' is not a valid directory",
-                                dir_label, path.string()));
+                std::format("{} '{}' is not a valid directory",
+                            dir_label, path.string()));
     return path;
   }
 
@@ -47,8 +45,8 @@ stdfs::path ResolveAssetDir(std::string_view flag_value, const char* env_var,
       env_value != nullptr && env_value[0] != '\0') {
     stdfs::path path{env_value};
     ASSERT_TRUE(stdfs::is_directory(path),
-                absl::StrFormat("%s '%s' (from %s) is not a valid directory",
-                                dir_label, path.string(), env_var));
+                std::format("{} '{}' (from {}) is not a valid directory",
+                            dir_label, path.string(), env_var));
     return path;
   }
 
@@ -60,8 +58,8 @@ stdfs::path ResolveAssetDir(std::string_view flag_value, const char* env_var,
   }
 
   ASSERT_TRUE(stdfs::is_directory(cwd_fallback),
-              absl::StrFormat("Failed to locate %s; pass --%s or set %s",
-                              dir_label, dir_label, env_var));
+              std::format("Failed to locate {}; pass --{} or set {}",
+                          dir_label, dir_label, env_var));
   return cwd_fallback;
 }
 
@@ -72,7 +70,7 @@ const stdfs::path& GetResourceDir() {
   constexpr const char* kDefaultResourceDir = nullptr;
 #endif
   static const auto* resource_dir = new stdfs::path{ResolveAssetDir(
-      absl::GetFlag(FLAGS_resource_dir), "LIGHTER_RESOURCE_DIR",
+      FLAGS_resource_dir.Get(), "LIGHTER_RESOURCE_DIR",
       kDefaultResourceDir, stdfs::path{"resource"}, "resource_dir")};
   return *resource_dir;
 }
@@ -84,7 +82,7 @@ const stdfs::path& GetShaderDir() {
   constexpr const char* kDefaultShaderDir = nullptr;
 #endif
   static const auto* shader_dir = new stdfs::path{ResolveAssetDir(
-      absl::GetFlag(FLAGS_shader_dir), "LIGHTER_SHADER_DIR",
+      FLAGS_shader_dir.Get(), "LIGHTER_SHADER_DIR",
       kDefaultShaderDir, stdfs::path{"lighter/shader"}, "shader_dir")};
   return *shader_dir;
 }
@@ -94,7 +92,7 @@ std::ifstream OpenFile(std::string_view path) {
   // On Windows, character 26 (Ctrl+Z) is treated as EOF, so we have to include
   // std::ios::binary.
   std::ifstream file{path.data(), std::ios::in | std::ios::binary};
-  ASSERT_TRUE(file, absl::StrFormat("Failed to open file '%s'", path));
+  ASSERT_TRUE(file, std::format("Failed to open file '{}'", path));
   return file;
 }
 
@@ -103,11 +101,11 @@ std::ifstream OpenFile(std::string_view path) {
 std::vector<std::string> SplitText(std::string_view text, char delimiter,
                                    int num_segments) {
   const std::vector<std::string> segments =
-      absl::StrSplit(text, delimiter, absl::SkipWhitespace{});
+      util::StrSplit(text, delimiter, /*skip_empty=*/true);
   ASSERT_TRUE(
       segments.size() == num_segments,
-      absl::StrFormat("Invalid number of segments (expected %d, but get %d)",
-                      num_segments, segments.size()));
+      std::format("Invalid number of segments (expected {}, but get {})",
+                  num_segments, segments.size()));
   return segments;
 }
 
@@ -119,8 +117,7 @@ std::string GetResourcePath(std::string_view relative_file_path,
                             bool want_directory_path) {
   stdfs::path full_path = GetResourceDir() / relative_file_path;
   ASSERT_TRUE(stdfs::exists(full_path),
-              absl::StrFormat("Resource '%s' does not exist",
-                              full_path.string()));
+              std::format("Resource '{}' does not exist", full_path.string()));
   if (want_directory_path) {
     full_path = full_path.parent_path();
   }
@@ -132,8 +129,8 @@ std::string GetShaderBinaryPath(std::string_view relative_shader_path) {
       GetShaderDir() /
       shader_compiler::util::GetShaderBinaryPath(relative_shader_path);
   ASSERT_TRUE(stdfs::exists(full_path),
-              absl::StrFormat("Shader binary '%s' does not exist",
-                              full_path.string()));
+              std::format("Shader binary '{}' does not exist",
+                          full_path.string()));
   return full_path.string();
 }
 
@@ -154,7 +151,7 @@ Data LoadDataFromFile(std::string_view path) {
   Data data{size};
   file.seekg(0, std::ios::beg);
   file.read(data.mut_data<char>(), size);
-  ASSERT_TRUE(file, absl::StrFormat("Failed to read file '%s'", path));
+  ASSERT_TRUE(file, std::format("Failed to read file '{}'", path));
   return data;
 }
 
@@ -166,7 +163,7 @@ ObjFile::ObjFile(std::string_view path, int index_base) {
   std::vector<glm::vec3> positions;
   std::vector<glm::vec3> normals;
   std::vector<glm::vec2> tex_coords;
-  absl::flat_hash_map<std::string, uint32_t> loaded_vertices;
+  std::unordered_map<std::string, uint32_t> loaded_vertices;
 
   const auto parse_line = [&](std::string_view line) {
     const size_t non_space = line.find_first_not_of(' ');
@@ -203,8 +200,7 @@ ObjFile::ObjFile(std::string_view path, int index_base) {
             break;
           }
           default:
-            FATAL(absl::StrFormat("Unexpected symbol '%c'",
-                                  line[non_space + 1]));
+            FATAL(std::format("Unexpected symbol '{}'", line[non_space + 1]));
         }
         break;
       }
@@ -229,7 +225,7 @@ ObjFile::ObjFile(std::string_view path, int index_base) {
         break;
       }
       default:
-        FATAL(absl::StrFormat("Unexpected symbol '%c'", line[non_space]));
+        FATAL(std::format("Unexpected symbol '{}'", line[non_space]));
     }
   };
 
@@ -240,8 +236,8 @@ ObjFile::ObjFile(std::string_view path, int index_base) {
       parse_line(line);
     }
   } catch (const std::exception& e) {
-    FATAL(absl::StrFormat("Failed to parse line %d: %s\n%s",
-                          line_num, line, e.what()));
+    FATAL(std::format("Failed to parse line {}: {}\n{}",
+                      line_num, line, e.what()));
   }
 }
 

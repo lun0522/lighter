@@ -7,21 +7,34 @@
 
 #include "lighter/application/vulkan/aurora/editor/path.h"
 
+#include <format>
+
 #include "lighter/application/vulkan/util.h"
 #include "lighter/common/data.h"
 #include "lighter/common/file.h"
 #include "lighter/renderer/util.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
-#include <absl/strings/str_format.h>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace lighter {
 namespace application {
 namespace vulkan {
 namespace aurora {
-namespace {
 
-using namespace renderer::vulkan;
+using renderer::vulkan::DynamicPerInstanceBuffer;
+using renderer::vulkan::DynamicPerVertexBuffer;
+using renderer::vulkan::GraphicsPipelineBuilder;
+using renderer::vulkan::PerVertexBuffer;
+using renderer::vulkan::Pipeline;
+using renderer::vulkan::PushConstant;
+using renderer::vulkan::RenderPass;
+using renderer::vulkan::ShaderModule;
+using renderer::vulkan::SharedBasicContext;
+using renderer::vulkan::StaticPerVertexBuffer;
+using renderer::vulkan::VertexBuffer;
+namespace pipeline = renderer::vulkan::pipeline;
+
+namespace {
 
 enum class ControlVertexBufferBindingPoint { kCenter = 0, kPos };
 
@@ -181,8 +194,8 @@ PathRenderer3D::PathRenderer3D(const SharedBasicContext& context,
 }
 
 void PathRenderer3D::UpdatePath(int path_index,
-                                absl::Span<const glm::vec3> control_points,
-                                absl::Span<const glm::vec3> spline_points) {
+                                std::span<const glm::vec3> control_points,
+                                std::span<const glm::vec3> spline_points) {
   num_control_points_per_path_[path_index] = control_points.size();
   paths_vertex_buffers_[path_index].control_points_buffer->CopyHostData(
       control_points);
@@ -256,11 +269,11 @@ void PathRenderer3D::DrawControlPoints(
 
 void PathRenderer3D::DrawSplines(
     const VkCommandBuffer& command_buffer, int frame,
-    absl::Span<const glm::vec4> color_alphas) {
+    std::span<const glm::vec4> color_alphas) {
   ASSERT_TRUE(color_alphas.size() == num_paths_,
-              absl::StrFormat("Length of 'color_alphas' (%d) must match with "
-                              "the number of aurora paths (%d)",
-                              color_alphas.size(), num_paths_));
+              std::format("Length of 'color_alphas' ({}) must match with "
+                          "the number of aurora paths ({})",
+                          color_alphas.size(), num_paths_));
   color_alpha_vertex_buffer_->CopyHostData(color_alphas);
   spline_pipeline_->Bind(command_buffer);
   spline_trans_constant_->Flush(command_buffer, spline_pipeline_->layout(),
@@ -365,8 +378,8 @@ void AuroraPath::Draw(const VkCommandBuffer& command_buffer, int frame,
                       std::optional<int> selected_path_index) {
   if (selected_path_index.has_value()) {
     ASSERT_TRUE(selected_path_index.value() < num_paths_,
-                absl::StrFormat("Path index (%d) out of range (%d)",
-                                selected_path_index.value(), num_paths_));
+                std::format("Path index ({}) out of range ({})",
+                            selected_path_index.value(), num_paths_));
   }
 
   // If one path is selected, highlight it. Otherwise, highlight all paths.
@@ -440,8 +453,8 @@ std::optional<int> AuroraPath::ProcessClick(
   // Otherwise, process click on aurora paths.
   const int path_index = user_click.path_index.value();
   ASSERT_TRUE(path_index < num_paths_,
-              absl::StrFormat(
-                  "Trying to access aurora path at index %d (%d paths exist)",
+              std::format(
+                  "Trying to access aurora path at index {} ({} paths exist)",
                   path_index, num_paths_));
 
   // If a control point has been selected before this frame, simply move it to

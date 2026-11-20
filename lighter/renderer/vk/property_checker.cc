@@ -32,8 +32,8 @@ std::string GetPropertyName<intl::ExtensionProperties>(
 
 // Extracts the names of properties and pours them into a hash set.
 template <typename PropType>
-absl::flat_hash_set<std::string> GetPropertyNamesSet(
-    absl::Span<const PropType> properties) {
+std::unordered_set<std::string> GetPropertyNamesSet(
+    std::span<const PropType> properties) {
   return common::util::TransformToSet<PropType, std::string>(
       properties, GetPropertyName<PropType>);
 }
@@ -54,7 +54,7 @@ void PrintElements(std::string_view header, ForwardIterator begin,
 
 // Convenient function to print elements in 'container'.
 void PrintElements(std::string_view header,
-                   absl::Span<const std::string> container) {
+                   std::span<const std::string> container) {
   PrintElements(header, container.begin(), container.end());
 }
 
@@ -83,7 +83,7 @@ PropertyChecker PropertyChecker::ForDeviceExtensions(
 }
 
 std::vector<std::string> PropertyChecker::FindUnsupported(
-    absl::Span<const std::string> required_properties) const {
+    std::span<const std::string> required_properties) const {
   if (required_properties.empty()) {
     LOG_INFO << "No property requested, skip";
     LOG_INFO;

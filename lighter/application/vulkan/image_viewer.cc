@@ -10,9 +10,20 @@
 namespace lighter {
 namespace application {
 namespace vulkan {
-namespace {
 
-using namespace renderer::vulkan;
+using renderer::vulkan::Descriptor;
+using renderer::vulkan::GraphicsPipelineBuilder;
+using renderer::vulkan::Image;
+using renderer::vulkan::PerVertexBuffer;
+using renderer::vulkan::RenderPass;
+using renderer::vulkan::SamplableImage;
+using renderer::vulkan::SharedBasicContext;
+using renderer::vulkan::StaticDescriptor;
+using renderer::vulkan::StaticPerVertexBuffer;
+using renderer::vulkan::VertexBuffer;
+namespace pipeline = renderer::vulkan::pipeline;
+
+namespace {
 
 constexpr uint32_t kVertexBufferBindingPoint = 0;
 constexpr uint32_t kImageBindingPoint = 0;

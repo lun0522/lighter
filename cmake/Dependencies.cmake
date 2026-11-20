@@ -18,17 +18,6 @@ if(NOT TARGET Vulkan::shaderc_combined)
   )
 endif()
 
-# Abseil (temporary until replaced by C++20 STL in Commit 6).
-set(ABSL_PROPAGATE_CXX_STD ON CACHE BOOL "" FORCE)
-set(ABSL_BUILD_TESTING OFF CACHE BOOL "" FORCE)
-FetchContent_Declare(
-  absl
-  GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
-  GIT_TAG 20240722.0
-  GIT_SHALLOW TRUE
-  FIND_PACKAGE_ARGS NAMES absl
-)
-
 # GLFW.
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -134,7 +123,6 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(
-  absl
   glfw
   glm
   freetype

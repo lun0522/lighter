@@ -8,10 +8,11 @@
 #include "lighter/common/spline.h"
 
 #include <algorithm>
+#include <format>
+
+#include <glm/gtx/vector_angle.hpp>
 
 #include "lighter/common/util.h"
-#include <absl/strings/str_format.h>
-#include <glm/gtx/vector_angle.hpp>
 
 namespace lighter::common {
 
@@ -104,11 +105,11 @@ void CatmullRomSpline::Tessellate(const glm::vec3& p0,
                            /*recursion_depth=*/0);
 }
 
-void CatmullRomSpline::BuildSpline(absl::Span<const glm::vec3> control_points) {
+void CatmullRomSpline::BuildSpline(std::span<const glm::vec3> control_points) {
   const auto num_control_points = static_cast<int>(control_points.size());
   ASSERT_TRUE(num_control_points >= kMinNumControlPoints,
-              absl::StrFormat(
-                  "Must have at least %d control points, while %d provided",
+              std::format(
+                  "Must have at least {} control points, while {} provided",
                   kMinNumControlPoints, num_control_points));
 
   mutable_splines()->clear();

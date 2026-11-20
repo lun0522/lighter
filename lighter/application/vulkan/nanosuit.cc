@@ -5,6 +5,7 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
+#include <array>
 #include <vector>
 
 #include "lighter/application/vulkan/util.h"
@@ -14,7 +15,17 @@ namespace application {
 namespace vulkan {
 namespace {
 
-using namespace renderer::vulkan;
+using renderer::vulkan::Image;
+using renderer::vulkan::ImageUsage;
+using renderer::vulkan::Model;
+using renderer::vulkan::ModelBuilder;
+using renderer::vulkan::NaiveRenderPass;
+using renderer::vulkan::PerFrameCommand;
+using renderer::vulkan::PushConstant;
+using renderer::vulkan::RenderPass;
+using renderer::vulkan::SharedTexture;
+using renderer::vulkan::UniformBuffer;
+using renderer::vulkan::WindowContext;
 
 enum SubpassIndex {
   kModelSubpassIndex = 0,
@@ -252,18 +263,19 @@ void NanosuitApp::MainLoop() {
   while (!should_quit_ && mutable_window_context()->CheckEvents()) {
     timer_.Tick();
 
+    const std::array<RenderPass::RenderOp, 1> render_ops{
+        [this](const VkCommandBuffer& command_buffer) {
+          nanosuit_model_->Draw(command_buffer, current_frame_,
+                                /*instance_count=*/1);
+          skybox_model_->Draw(command_buffer, current_frame_,
+                              /*instance_count=*/1);
+        },
+    };
     const auto draw_result = command_->Run(
         current_frame_, window_context().swapchain(), update_data,
-        [this](const VkCommandBuffer& command_buffer,
-               uint32_t framebuffer_index) {
-          render_pass().Run(command_buffer, framebuffer_index, /*render_ops=*/{
-              [this](const VkCommandBuffer& command_buffer) {
-                nanosuit_model_->Draw(command_buffer, current_frame_,
-                                      /*instance_count=*/1);
-                skybox_model_->Draw(command_buffer, current_frame_,
-                                    /*instance_count=*/1);
-              },
-          });
+        [this, &render_ops](const VkCommandBuffer& command_buffer,
+                            uint32_t framebuffer_index) {
+          render_pass().Run(command_buffer, framebuffer_index, render_ops);
         });
 
     if (draw_result.has_value() || window_context().ShouldRecreate()) {
@@ -282,6 +294,8 @@ void NanosuitApp::MainLoop() {
 } /* namespace lighter */
 
 int main(int argc, char* argv[]) {
-  using namespace lighter::application::vulkan;
+  using lighter::application::vulkan::AppMain;
+  using lighter::application::vulkan::NanosuitApp;
+  using lighter::renderer::vulkan::WindowContext;
   return AppMain<NanosuitApp>(argc, argv, WindowContext::Config{});
 }

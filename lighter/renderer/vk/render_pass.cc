@@ -7,11 +7,12 @@
 
 #include "lighter/renderer/vk/render_pass.h"
 
+#include <format>
+#include <unordered_map>
+
 #include "lighter/renderer/ir/image.h"
 #include "lighter/renderer/vk/image.h"
 #include "lighter/renderer/vk/type_mapping.h"
-#include <absl/container/flat_hash_map.h>
-#include <absl/strings/str_format.h>
 
 namespace lighter::renderer::vk {
 namespace {
@@ -40,7 +41,7 @@ class RenderPassBuilder {
 
   const RenderPassDescriptor& descriptor_;
   std::vector<intl::AttachmentDescription> attachment_descriptions_;
-  absl::flat_hash_map<const ir::Image*, int> attachment_index_map_;
+  std::unordered_map<const ir::Image*, int> attachment_index_map_;
   std::vector<intl::AttachmentReference> attachment_references_;
   std::vector<intl::SubpassDescription> subpass_descriptions_;
   std::vector<intl::SubpassDependency> subpass_dependencies_;
@@ -118,8 +119,8 @@ void RenderPassBuilder::CreateSubpassDescriptions() {
       [this, &reference_index](const ir::Image* attachment) {
         const auto iter = attachment_index_map_.find(attachment);
         ASSERT_FALSE(iter == attachment_index_map_.end(),
-                     absl::StrFormat("Attachment '%s' not declared",
-                                     attachment->name()));
+                     std::format("Attachment '{}' not declared",
+                                 attachment->name()));
         attachment_references_[reference_index++] = intl::AttachmentReference{}
             .setAttachment(iter->second)
             .setLayout(intl::ImageLayout::eGeneral);

@@ -9,11 +9,9 @@
 
 #include <algorithm>
 #include <exception>
+#include <format>
 #include <optional>
 #include <vector>
-
-#include <absl/strings/str_format.h>
-#include <absl/strings/str_split.h>
 
 namespace lighter::shader_compiler {
 namespace {
@@ -30,8 +28,8 @@ CompilationRecordHandler::CreateHandlers(
   stdfs::path record_file_path = shader_dir / kRecordFileName;
   if (stdfs::exists(record_file_path) &&
       !stdfs::is_regular_file(record_file_path)) {
-    FATAL(absl::StrFormat("%s exists, but is not a regular file",
-                          stdfs::absolute(record_file_path).string()));
+    FATAL(std::format("{} exists, but is not a regular file",
+                      stdfs::absolute(record_file_path).string()));
   }
 
   CompilationRecordReader reader{record_file_path, opt_level};
@@ -47,8 +45,7 @@ CompilationRecordReader::CompilationRecordReader(
   }
   std::ifstream record_file{record_file_path, std::ios::in | std::ios::binary};
   ASSERT_TRUE(record_file,
-              absl::StrFormat("Failed to open '%s'",
-                              record_file_path.string()));
+              std::format("Failed to open '{}'", record_file_path.string()));
   ParseRecordFile(record_file, opt_level);
 }
 
@@ -78,7 +75,7 @@ void CompilationRecordReader::ParseRecordFile(std::ifstream& record_file,
         }
       }
 
-      std::vector<std::string> segments = absl::StrSplit(line, ' ');
+      std::vector<std::string> segments = common::util::StrSplit(line, ' ');
       if (segments.size() != kNumSegments) {
         LOG_INFO << "Compilation record format has changed, discarding old "
                     "records";
@@ -99,8 +96,8 @@ void CompilationRecordReader::ParseRecordFile(std::ifstream& record_file,
       });
     }
   } catch (const std::exception& e) {
-    FATAL(absl::StrFormat("Failed to parse line %d: %s\n%s",
-                          line_num, line, e.what()));
+    FATAL(std::format("Failed to parse line {}: {}\n{}",
+                      line_num, line, e.what()));
   }
 }
 
@@ -115,8 +112,8 @@ const CompilationRecordHandler::FileHash* CompilationRecordReader::GetFileHash(
 void CompilationRecordWriter::RegisterFileHash(
     stdfs::path&& source_file_path, FileHash&& file_hash) {
   ASSERT_FALSE(file_hash_map_.contains(source_file_path),
-               absl::StrFormat("Duplicated entry for '%s'",
-                               source_file_path.string()));
+               std::format("Duplicated entry for '{}'",
+                           source_file_path.string()));
   file_hash_map_.insert({std::move(source_file_path), std::move(file_hash)});
 }
 
@@ -124,16 +121,15 @@ void CompilationRecordWriter::WriteAll() const {
   std::ofstream record_file{record_file_path_,
                             std::ios::out | std::ios::binary | std::ios::trunc};
   ASSERT_TRUE(record_file,
-              absl::StrFormat("Failed to open '%s'",
-                              record_file_path_.string()));
+              std::format("Failed to open '{}'", record_file_path_.string()));
 
   // Write header.
-  record_file << absl::StreamFormat("%s\n", util::OptLevelToText(opt_level_));
+  record_file << std::format("{}\n", util::OptLevelToText(opt_level_));
 
   // Write body.
   for (const auto& [source_file_path, file_hash] : file_hash_map_) {
-    record_file << absl::StreamFormat(
-        "%s %s %s\n",
+    record_file << std::format(
+        "{} {} {}\n",
         source_file_path.string(),
         file_hash.source_file_hash, file_hash.compiled_file_hash);
   }

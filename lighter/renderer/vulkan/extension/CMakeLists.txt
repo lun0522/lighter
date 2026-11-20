@@ -22,8 +22,6 @@ target_link_libraries(lighter_renderer_vulkan_extension_base_pass
     lighter_common_util
     lighter_renderer_ir_image_usage
     lighter_renderer_vulkan_wrapper_image
-    absl::flat_hash_map
-    absl::str_format
     Vulkan::Vulkan
 )
 
@@ -38,9 +36,6 @@ target_link_libraries(lighter_renderer_vulkan_extension_compute_pass
     lighter_renderer_ir_image_usage
     lighter_renderer_vulkan_extension_base_pass
     lighter_renderer_vulkan_wrapper_image
-    absl::flat_hash_map
-    absl::span
-    absl::str_format
     Vulkan::Vulkan
 )
 
@@ -56,8 +51,6 @@ target_link_libraries(lighter_renderer_vulkan_extension_graphics_pass
     lighter_renderer_vulkan_extension_base_pass
     lighter_renderer_vulkan_wrapper_image
     lighter_renderer_vulkan_wrapper_render_pass
-    absl::flat_hash_map
-    absl::str_format
 )
 
 add_library(lighter_renderer_vulkan_extension_model STATIC
@@ -71,9 +64,6 @@ target_link_libraries(lighter_renderer_vulkan_extension_model
     lighter_common_model_loader
     lighter_common_util
     lighter_renderer_vulkan_extension_offscreen_wrappers
-    absl::flat_hash_map
-    absl::span
-    absl::str_format
     Vulkan::Vulkan
 )
 
@@ -88,7 +78,6 @@ target_link_libraries(lighter_renderer_vulkan_extension_naive_render_pass
     lighter_renderer_vulkan_extension_graphics_pass
     lighter_renderer_vulkan_wrapper_basics
     lighter_renderer_vulkan_wrapper_render_pass
-    absl::span
 )
 
 add_library(lighter_renderer_vulkan_extension_text STATIC
@@ -107,8 +96,6 @@ target_link_libraries(lighter_renderer_vulkan_extension_text
     lighter_renderer_util
     lighter_renderer_vulkan_extension_naive_render_pass
     lighter_renderer_vulkan_extension_offscreen_wrappers
-    absl::span
-    absl::str_format
     glm::glm
 )
 

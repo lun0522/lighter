@@ -11,13 +11,13 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <span>
 #include <variant>
 #include <vector>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
-#include <absl/types/span.h>
 #include <vulkan/vulkan.h>
 
 namespace lighter {
@@ -139,12 +139,12 @@ class RenderPassBuilder {
   // that will be used in a subpass. The length of the vector will be equal to
   // the maximum location of all these attachments +1.
   static std::vector<VkAttachmentReference> CreateColorAttachmentReferences(
-      absl::Span<const ColorAttachmentInfo> infos);
+      std::span<const ColorAttachmentInfo> infos);
 
   // Creates a vector of VkAttachmentReference to describe the multisampling
   // relationships. The length of the vector will be equal to 'num_color_refs'.
   static std::vector<VkAttachmentReference> CreateMultisamplingReferences(
-      int num_color_refs, absl::Span<const MultisampleResolveInfo> infos);
+      int num_color_refs, std::span<const MultisampleResolveInfo> infos);
 
   explicit RenderPassBuilder(SharedBasicContext context)
       : context_{std::move(FATAL_IF_NULL(context))} {}
@@ -238,7 +238,7 @@ class RenderPass {
   // Each element of 'render_ops' represents the operations to perform in each
   // subpass, hence the size of 'render_ops' must be equal to 'num_subpasses_'.
   void Run(const VkCommandBuffer& command_buffer,
-           int framebuffer_index, absl::Span<const RenderOp> render_ops) const;
+           int framebuffer_index, std::span<const RenderOp> render_ops) const;
 
   // Overloads.
   const VkRenderPass& operator*() const { return render_pass_; }

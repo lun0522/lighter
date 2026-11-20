@@ -8,10 +8,11 @@
 #include "lighter/renderer/vk/buffer.h"
 
 #include <algorithm>
+#include <array>
 #include <cstring>
+#include <unordered_set>
 
 #include "lighter/renderer/vk/buffer_util.h"
-#include <absl/container/flat_hash_set.h>
 
 namespace lighter::renderer::vk {
 namespace {
@@ -34,9 +35,9 @@ intl::Buffer CreateBuffer(
 }
 
 // Allocates device memory for 'buffer' with 'memory_properties'.
-intl::DeviceMemory CreateBufferMemory(const Context& context,
-                                      intl::Buffer buffer,
-                                      intl::MemoryPropertyFlags property_flags) {
+intl::DeviceMemory CreateBufferMemory(
+    const Context& context, intl::Buffer buffer,
+    intl::MemoryPropertyFlags property_flags) {
   const intl::Device device = *context.device();
   intl::DeviceMemory device_memory = buffer::CreateDeviceMemory(
       context,  device.getBufferMemoryRequirements(buffer), property_flags);
@@ -53,7 +54,7 @@ intl::DeviceMemory CreateBufferMemory(const Context& context,
 void CopyHostToBuffer(const Context& context,
                       intl::DeviceMemory device_memory,
                       intl::DeviceSize map_offset, intl::DeviceSize map_size,
-                      absl::Span<const CopyInfo> copy_infos) {
+                      std::span<const CopyInfo> copy_infos) {
   // Data transfer may not happen immediately, for example, because it is only
   // written to cache and not yet to device. We can either flush host writes
   // with vkFlushMappedMemoryRanges and vkInvalidateMappedMemoryRanges, or
@@ -71,10 +72,10 @@ void CopyHostToBuffer(const Context& context,
 
 Buffer::AllocationInfo::AllocationInfo(
     const Context& context, UpdateRate update_rate,
-    absl::Span<const BufferUsage> usages) {
+    std::span<const BufferUsage> usages) {
   ASSERT_NON_EMPTY(usages, "Buffer has no usage");
 
-  absl::flat_hash_set<uint32_t> queue_family_indices_set;
+  std::unordered_set<uint32_t> queue_family_indices_set;
   for (const BufferUsage& usage : usages) {
     const auto queue_family_index = buffer::GetQueueFamilyIndex(context, usage);
     if (queue_family_index.has_value()) {
@@ -98,7 +99,7 @@ Buffer::AllocationInfo::AllocationInfo(
   switch (update_rate) {
     case UpdateRate::kLow:
       usage_flags |= buffer::GetBufferUsageFlags(
-                         {BufferUsage::GetTransferDestinationUsage()});
+          std::array{BufferUsage::GetTransferDestinationUsage()});
       memory_property_flags |= intl::MemoryPropertyFlagBits::eDeviceLocal;
       break;
 
@@ -148,7 +149,7 @@ void Buffer::DeallocateBufferAndMemory() {
   device_memory_ = nullptr;
 }
 
-void Buffer::CopyToDevice(absl::Span<const CopyInfo> copy_infos) const {
+void Buffer::CopyToDevice(std::span<const CopyInfo> copy_infos) const {
   if (allocation_info_.IsHostVisible()) {
     CopyHostToBuffer(*context_, device_memory_, /*map_offset=*/0, buffer_size_,
                      copy_infos);

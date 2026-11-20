@@ -12,6 +12,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <span>
 #include <vector>
 
 #include "lighter/application/vulkan/aurora/editor/button_maker.h"
@@ -21,7 +22,6 @@
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
-#include <absl/types/span.h>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 
@@ -71,7 +71,7 @@ class ButtonRenderer {
   // 'buttons_to_render'.
   // This should be called when 'command_buffer' is recording commands.
   void Draw(const VkCommandBuffer& command_buffer,
-            absl::Span<const draw_button::RenderInfo> buttons_to_render);
+            std::span<const draw_button::RenderInfo> buttons_to_render);
 
  private:
   // Creates a descriptor for 'vertices_uniform_' and 'buttons_image_'.
@@ -122,7 +122,7 @@ class Button {
     glm::vec3 text_color;
     std::array<float, button::kNumStates> button_alphas;
     glm::vec2 button_size;
-    absl::Span<const Info> button_infos;
+    std::span<const Info> button_infos;
   };
 
   // Possible states of each button.
@@ -150,14 +150,14 @@ class Button {
   // 'buttons_info.button_infos' passed to the constructor.
   // This should be called when 'command_buffer' is recording commands.
   void Draw(const VkCommandBuffer& command_buffer,
-            absl::Span<const State> button_states);
+            std::span<const State> button_states);
 
   // If any button is clicked, returns 'button_index_offset' plus the index of
   // it. Otherwise, returns std::nullopt. If the current state of a button is
   // 'State::kHidden', it will be ignored in this click detection.
   std::optional<int> GetClickedButtonIndex(
       const glm::vec2& click_ndc, int button_index_offset,
-      absl::Span<const State> button_states) const;
+      std::span<const State> button_states) const;
 
  private:
   // The first dimension is different buttons, and the second dimension is

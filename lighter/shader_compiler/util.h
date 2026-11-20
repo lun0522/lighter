@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_SHADER_UTIL_H
-#define LIGHTER_SHADER_UTIL_H
+#ifndef LIGHTER_SHADER_COMPILER_UTIL_H
+#define LIGHTER_SHADER_COMPILER_UTIL_H
 
 #include <filesystem>
 #include <optional>
@@ -36,4 +36,4 @@ std::filesystem::path GetShaderBinaryPath(
 }  // namespace util
 }  // namespace lighter::shader_compiler
 
-#endif  // LIGHTER_SHADER_UTIL_H
+#endif  // LIGHTER_SHADER_COMPILER_UTIL_H

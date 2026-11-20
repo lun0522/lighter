@@ -12,12 +12,12 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/vulkan/extension/base_pass.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include <absl/container/flat_hash_map.h>
 
 namespace lighter {
 namespace renderer {
@@ -98,7 +98,7 @@ class GraphicsPass : public BasePass {
     AttachmentLoadStoreOps load_store_ops;
 
     // Maps subpasses to images that will be resolved to at those subpasses.
-    absl::flat_hash_map<int, std::string> multisampling_resolve_target_map;
+    std::unordered_map<int, std::string> multisampling_resolve_target_map;
   };
 
   // Following functions populate 'render_pass_builder_'.
@@ -156,7 +156,7 @@ class GraphicsPass : public BasePass {
   const SharedBasicContext context_;
 
   // Maps attachment images to associated infos.
-  absl::flat_hash_map<std::string, AttachmentInfo> attachment_info_map_;
+  std::unordered_map<std::string, AttachmentInfo> attachment_info_map_;
 
   // Builder of RenderPass.
   std::unique_ptr<RenderPassBuilder> render_pass_builder_;

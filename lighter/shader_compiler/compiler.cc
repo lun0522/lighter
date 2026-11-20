@@ -7,6 +7,8 @@
 
 #include "lighter/shader_compiler/compiler.h"
 
+#include <format>
+
 namespace lighter::shader_compiler {
 namespace {
 
@@ -42,7 +44,7 @@ std::optional<shaderc_shader_kind> Compiler::GetShaderKind(
 std::unique_ptr<CompilationResult> Compiler::Compile(
     const std::string& shader_tag,
     shaderc_shader_kind shader_kind,
-    absl::Span<const char> shader_source,
+    std::span<const char> shader_source,
     const CompilerOptions& compiler_options) const {
   auto result = std::make_unique<CompilationResult>(
       shaderc_compile_into_spv(
@@ -51,8 +53,7 @@ std::unique_ptr<CompilationResult> Compiler::Compile(
           *compiler_options)
   );
   if (const char* error_message = result->GetErrorIfFailed()) {
-    FATAL(absl::StrFormat("Failed to compile %s: %s",
-                          shader_tag, error_message));
+    FATAL(std::format("Failed to compile {}: {}", shader_tag, error_message));
   }
   return result;
 }

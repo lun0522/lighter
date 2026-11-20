@@ -7,14 +7,14 @@
 
 #include "lighter/renderer/vk/swapchain.h"
 
+#include <format>
+#include <span>
+#include <unordered_set>
 #include <vector>
 
 #include "lighter/common/image.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/vk/image_util.h"
-#include <absl/container/flat_hash_set.h>
-#include <absl/strings/str_format.h>
-#include <absl/types/span.h>
 
 namespace lighter::renderer::vk {
 namespace {
@@ -42,7 +42,7 @@ intl::Extent2D ChooseImageExtent(const common::Window& window,
 
 // Returns the surface format to use.
 intl::SurfaceFormatKHR ChooseSurfaceFormat(
-    absl::Span<const intl::SurfaceFormatKHR> formats) {
+    std::span<const intl::SurfaceFormatKHR> formats) {
   constexpr intl::SurfaceFormatKHR best_format{
       intl::Format::eB8G8R8A8Unorm, intl::ColorSpaceKHR::eSrgbNonlinear};
 
@@ -64,7 +64,7 @@ intl::SurfaceFormatKHR ChooseSurfaceFormat(
 
 // Returns the present mode to use.
 intl::PresentModeKHR ChoosePresentMode(
-    absl::Span<const intl::PresentModeKHR> modes) {
+    std::span<const intl::PresentModeKHR> modes) {
   // In FIFO mode, which is supported by all drivers, rendered images will wait
   // in a queue to be presented, while in MAILBOX mode, there will be only one
   // image waiting to be presented. If that image has not been presented yet and
@@ -72,7 +72,8 @@ intl::PresentModeKHR ChoosePresentMode(
   // so that we always get the most recently generated frame.
   // TODO: Use FIFO for mobile to save power.
   constexpr auto kBestMode = intl::PresentModeKHR::eMailbox;
-  const bool supports_best_mode = common::util::Contains(modes, kBestMode);
+  const bool supports_best_mode =
+      common::util::Contains(modes, kBestMode);
   return supports_best_mode ? kBestMode : intl::PresentModeKHR::eFifo;
 }
 
@@ -116,7 +117,7 @@ Swapchain::Swapchain(const SharedContext& context, int window_index,
 
   // Only graphics queue and presentation queue would access swapchain images.
   const auto& queue_family_indices = physical_device.queue_family_indices();
-  const absl::flat_hash_set<uint32_t> queue_family_indices_set{
+  const std::unordered_set<uint32_t> queue_family_indices_set{
       queue_family_indices.graphics,
       queue_family_indices.presents.at(window_index),
   };
@@ -144,7 +145,7 @@ Swapchain::Swapchain(const SharedContext& context, int window_index,
 
   // Fetch swapchain images.
   image_ = std::make_unique<MultiImage>(
-      absl::StrFormat("swapchain%d", window_index),
+      std::format("swapchain{}", window_index),
       vk_device().getSwapchainImagesKHR(swapchain_),
       util::ToVec(image_extent), surface_format.format);
 }

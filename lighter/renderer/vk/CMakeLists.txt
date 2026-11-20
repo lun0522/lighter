@@ -6,7 +6,6 @@ target_link_libraries(lighter_renderer_vk_util
     lighter_project_options
     lighter_common_image
     lighter_common_util
-    absl::str_format
     glm::glm
     Vulkan::Vulkan
 )
@@ -32,8 +31,6 @@ target_link_libraries(lighter_renderer_vk_property_checker
     lighter_project_options
     lighter_common_util
     lighter_renderer_vk_util
-    absl::flat_hash_set
-    absl::span
 )
 
 add_library(lighter_renderer_vk_context STATIC
@@ -52,10 +49,6 @@ target_link_libraries(lighter_renderer_vk_context
     lighter_renderer_vk_property_checker
     lighter_renderer_vk_type_mapping
     lighter_renderer_vk_util
-    absl::flat_hash_map
-    absl::flat_hash_set
-    absl::span
-    absl::str_format
 )
 
 add_library(lighter_renderer_vk_buffer STATIC
@@ -73,8 +66,6 @@ target_link_libraries(lighter_renderer_vk_buffer
     lighter_renderer_ir_type
     lighter_renderer_vk_context
     lighter_renderer_vk_util
-    absl::flat_hash_set
-    absl::span
 )
 
 add_library(lighter_renderer_vk_image STATIC
@@ -95,10 +86,6 @@ target_link_libraries(lighter_renderer_vk_image
     lighter_renderer_vk_context
     lighter_renderer_vk_type_mapping
     lighter_renderer_vk_util
-    absl::flat_hash_set
-    absl::memory
-    absl::span
-    absl::str_format
     glm::glm
 )
 
@@ -121,8 +108,6 @@ target_link_libraries(lighter_renderer_vk_pipeline
     lighter_renderer_vk_type_mapping
     lighter_renderer_vk_util
     lighter_shader_compiler_util
-    absl::span
-    absl::str_format
 )
 
 add_library(lighter_renderer_vk_render_pass STATIC
@@ -140,9 +125,6 @@ target_link_libraries(lighter_renderer_vk_render_pass
     lighter_renderer_vk_image
     lighter_renderer_vk_type_mapping
     lighter_renderer_vk_util
-    absl::flat_hash_map
-    absl::span
-    absl::str_format
 )
 
 add_library(lighter_renderer_vk_swapchain STATIC
@@ -159,9 +141,6 @@ target_link_libraries(lighter_renderer_vk_swapchain
     lighter_renderer_vk_context
     lighter_renderer_vk_image
     lighter_renderer_vk_util
-    absl::flat_hash_set
-    absl::span
-    absl::str_format
 )
 
 add_library(lighter_renderer_vk_renderer STATIC
@@ -183,7 +162,6 @@ target_link_libraries(lighter_renderer_vk_renderer
     lighter_renderer_vk_pipeline
     lighter_renderer_vk_render_pass
     lighter_renderer_vk_swapchain
-    absl::span
     glm::glm
 )
 

@@ -9,14 +9,15 @@
 #define LIGHTER_RENDERER_IR_IMAGE_USAGE_H
 
 #include <algorithm>
+#include <format>
 #include <map>
 #include <optional>
+#include <span>
+#include <string>
+#include <unordered_map>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/ir/type.h"
-#include <absl/container/flat_hash_map.h>
-#include <absl/strings/str_format.h>
-#include <absl/types/span.h>
 
 namespace lighter::renderer::ir {
 
@@ -103,7 +104,7 @@ class ImageUsage {
                                      AccessLocation::kDontCare} {}
 
   // Returns true if any of 'usages' is UsageType::kLinearAccess.
-  static bool IsLinearAccessed(absl::Span<const ImageUsage> usages) {
+  static bool IsLinearAccessed(std::span<const ImageUsage> usages) {
     return std::any_of(usages.begin(), usages.end(),
                        [](const ImageUsage& usage) {
                          return usage.usage_type() == UsageType::kLinearAccess;
@@ -147,7 +148,7 @@ class ImageUsageHistory {
  public:
   // Maps subpass to the name of image that will resolve to this image at that
   // subpass.
-  using MultisampleResolveSourceMap = absl::flat_hash_map<int, std::string>;
+  using MultisampleResolveSourceMap = std::unordered_map<int, std::string>;
 
   explicit ImageUsageHistory(const ImageUsage& initial_usage)
       : initial_usage_{initial_usage} {}
@@ -167,7 +168,7 @@ class ImageUsageHistory {
         usage_at_subpass_map_.insert({subpass, usage}).second;
     ASSERT_TRUE(
         did_insert,
-        absl::StrFormat("Already specified usage for subpass %d", subpass));
+        std::format("Already specified usage for subpass {}", subpass));
     return *this;
   }
 
@@ -176,8 +177,8 @@ class ImageUsageHistory {
   ImageUsageHistory& AddUsage(int subpass_start, int subpass_end,
                               const ImageUsage& usage) {
     ASSERT_TRUE(subpass_start <= subpass_end,
-                absl::StrFormat("Invalid range [%d, %d]",
-                                subpass_start, subpass_end));
+                std::format("Invalid range [{}, {}]",
+                            subpass_start, subpass_end));
     for (int subpass = subpass_start; subpass <= subpass_end; ++subpass) {
       AddUsage(subpass, usage);
     }
@@ -191,8 +192,8 @@ class ImageUsageHistory {
     const auto iter =
         resolve_source_map_.insert({subpass, std::string{source_image_name}});
     ASSERT_TRUE(iter.second,
-                absl::StrFormat("Already specified source for subpass %d",
-                                subpass));
+                std::format("Already specified source for subpass {}",
+                            subpass));
     return AddUsage(subpass, ImageUsage::GetMultisampleResolveTargetUsage());
   }
 
@@ -262,8 +263,8 @@ class ImageUsageTracker {
   ImageUsageTracker& TrackImage(std::string&& image_name,
                                 const ImageUsage& current_usage) {
     ASSERT_FALSE(image_usage_map_.contains(image_name),
-                 absl::StrFormat("Already tracking image with name '%s'",
-                                 image_name));
+                 std::format("Already tracking image with name '{}'",
+                             image_name));
     image_usage_map_.insert({std::move(image_name), current_usage});
     return *this;
   }
@@ -282,7 +283,7 @@ class ImageUsageTracker {
   const ImageUsage& GetUsage(const std::string& image_name) const {
     const auto iter = image_usage_map_.find(image_name);
     ASSERT_FALSE(iter == image_usage_map_.end(),
-                 absl::StrFormat("Unrecognized image '%s'", image_name));
+                 std::format("Unrecognized image '{}'", image_name));
     return iter->second;
   }
 
@@ -291,14 +292,14 @@ class ImageUsageTracker {
                                  const ImageUsage& usage) {
     auto iter = image_usage_map_.find(image_name);
     ASSERT_FALSE(iter == image_usage_map_.end(),
-                 absl::StrFormat("Unrecognized image '%s'", image_name));
+                 std::format("Unrecognized image '{}'", image_name));
     iter->second = usage;
     return *this;
   }
 
  private:
   // Maps the image name to the current usage of that image.
-  absl::flat_hash_map<std::string, ImageUsage> image_usage_map_;
+  std::unordered_map<std::string, ImageUsage> image_usage_map_;
 };
 
 }  // namespace lighter::renderer::ir

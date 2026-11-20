@@ -17,8 +17,12 @@
 #include <utility>
 #include <vector>
 
+#include <glm/glm.hpp>
+#include <spirv_cross/spirv_cross.hpp>
+
 #include "lighter/common/data.h"
 #include "lighter/common/file.h"
+#include "lighter/common/flag.h"
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
 #include "lighter/common/window.h"
@@ -31,23 +35,18 @@
 #include "lighter/renderer/ir/renderer.h"
 #include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/util.h"
-#include <absl/flags/parse.h>
-#include <absl/types/span.h>
-#include <glm/glm.hpp>
-#include <spirv_cross/spirv_cross.hpp>
 
 namespace lighter::example {
 
-using namespace renderer::ir;
-
-inline std::unique_ptr<Renderer> CreateRenderer(
+inline std::unique_ptr<renderer::ir::Renderer> CreateRenderer(
     const char* application_name,
     std::vector<const common::Window*>&& window_ptrs) {
-  std::optional<debug_message::Config> debug_message_config;
+  std::optional<renderer::ir::debug_message::Config> debug_message_config;
 #ifndef NDEBUG
-  using namespace debug_message;
+  namespace sev = renderer::ir::debug_message::severity;
+  namespace type = renderer::ir::debug_message::type;
   debug_message_config = {
-      severity::WARNING | severity::ERROR,
+      sev::WARNING | sev::ERROR,
       type::GENERAL | type::PERFORMANCE,
   };
 #endif  // !NDEBUG
@@ -62,7 +61,7 @@ inline std::string GetShaderBinaryPath(std::string_view relative_path) {
 
 template <typename ExampleType, typename... ExampleArgs>
 int ExampleMain(int argc, char* argv[], ExampleArgs&&... example_args) {
-  absl::ParseCommandLine(argc, argv);
+  common::flag::ParseCommandLine(argc, argv);
   // TODO: Move to ctor of Example.
   renderer::util::GlobalInit();
 

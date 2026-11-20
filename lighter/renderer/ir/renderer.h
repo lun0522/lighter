@@ -8,9 +8,13 @@
 #ifndef LIGHTER_RENDERER_IR_RENDERER_H
 #define LIGHTER_RENDERER_IR_RENDERER_H
 
+#include <format>
 #include <memory>
+#include <span>
 #include <string_view>
 #include <vector>
+
+#include <glm/glm.hpp>
 
 #include "lighter/common/file.h"
 #include "lighter/common/image.h"
@@ -23,9 +27,6 @@
 #include "lighter/renderer/ir/pass.h"
 #include "lighter/renderer/ir/pipeline.h"
 #include "lighter/renderer/ir/type.h"
-#include <absl/strings/str_format.h>
-#include <absl/types/span.h>
-#include <glm/glm.hpp>
 
 namespace lighter::renderer::ir {
 
@@ -41,12 +42,12 @@ class Renderer {
 
   virtual std::unique_ptr<Buffer> CreateBuffer(
       Buffer::UpdateRate update_rate, size_t initial_size,
-      absl::Span<const BufferUsage> usages) const = 0;
+      std::span<const BufferUsage> usages) const = 0;
 
   template <typename DataType>
   std::unique_ptr<Buffer> CreateBuffer(
       Buffer::UpdateRate update_rate, int num_chunks,
-      absl::Span<const BufferUsage> usages) const {
+      std::span<const BufferUsage> usages) const {
     return CreateBuffer(update_rate, sizeof(DataType) * num_chunks, usages);
   }
 
@@ -57,16 +58,16 @@ class Renderer {
   virtual std::unique_ptr<Image> CreateColorImage(
       std::string_view name, const common::Image::Dimension& dimension,
       MultisamplingMode multisampling_mode, bool high_precision,
-      absl::Span<const ImageUsage> usages) const = 0;
+      std::span<const ImageUsage> usages) const = 0;
 
   virtual std::unique_ptr<Image> CreateColorImage(
       std::string_view name, const common::Image& image, bool generate_mipmaps,
-      absl::Span<const ImageUsage> usages) const = 0;
+      std::span<const ImageUsage> usages) const = 0;
 
   virtual std::unique_ptr<Image> CreateDepthStencilImage(
       std::string_view name, const glm::ivec2& extent,
       MultisamplingMode multisampling_mode,
-      absl::Span<const ImageUsage> usages) const = 0;
+      std::span<const ImageUsage> usages) const = 0;
 
   // Pass
 
@@ -80,7 +81,7 @@ class Renderer {
   explicit Renderer(std::vector<const common::Window*>&& windows)
       : windows_{std::move(windows)} {
     for (int i = 0; i < num_windows(); ++i) {
-      ASSERT_NON_NULL(windows_[i], absl::StrFormat("Window %d is nullptr", i));
+      ASSERT_NON_NULL(windows_[i], std::format("Window {} is nullptr", i));
     }
   }
 

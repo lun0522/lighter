@@ -12,12 +12,14 @@
 namespace lighter {
 namespace application {
 namespace vulkan {
-namespace {
 
-using namespace renderer;
-using namespace renderer::vulkan;
-
-} /* namespace */
+using renderer::ir::ImageUsage;
+using renderer::ir::ImageUsageTracker;
+using renderer::vulkan::Image;
+using renderer::vulkan::MultisampleImage;
+using renderer::vulkan::NaiveRenderPass;
+using renderer::vulkan::RenderPassBuilder;
+using renderer::vulkan::SwapchainImage;
 
 void GlobalInit() {
   lighter::renderer::util::GlobalInit();

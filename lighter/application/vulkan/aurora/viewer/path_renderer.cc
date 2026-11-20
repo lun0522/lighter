@@ -7,6 +7,8 @@
 
 #include "lighter/application/vulkan/aurora/viewer/path_renderer.h"
 
+#include <span>
+
 #include "lighter/application/vulkan/util.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/util.h"
@@ -19,10 +21,29 @@ namespace lighter {
 namespace application {
 namespace vulkan {
 namespace aurora {
-namespace {
 
-using namespace renderer;
-using namespace renderer::vulkan;
+using renderer::ir::ImageUsageTracker;
+using renderer::vulkan::ComputePipelineBuilder;
+using renderer::vulkan::Descriptor;
+using renderer::vulkan::DynamicDescriptor;
+using renderer::vulkan::GraphicsPipelineBuilder;
+using renderer::vulkan::Image;
+using renderer::vulkan::ImageSampler;
+using renderer::vulkan::ImageUsage;
+using renderer::vulkan::ImageUsageHistory;
+using renderer::vulkan::MultisampleImage;
+using renderer::vulkan::NaiveRenderPass;
+using renderer::vulkan::OffscreenImage;
+using renderer::vulkan::PerVertexBuffer;
+using renderer::vulkan::Pipeline;
+using renderer::vulkan::PushConstant;
+using renderer::vulkan::RenderPass;
+using renderer::vulkan::SharedBasicContext;
+using renderer::vulkan::StaticDescriptor;
+using renderer::vulkan::VertexBuffer;
+namespace pipeline = renderer::vulkan::pipeline;
+
+namespace {
 
 enum SubpassIndex {
   kDumpPathsSubpassIndex = 0,
@@ -172,7 +193,7 @@ void PathRenderer2D::RenderPaths(const VkCommandBuffer& command_buffer,
                          /*frame=*/0, /*target_offset=*/0,
                          VK_SHADER_STAGE_VERTEX_BIT);
   render_pass_->Run(command_buffer, /*framebuffer_index=*/0,
-                    absl::MakeSpan(&render_op_, 1));
+                    std::span{&render_op_, 1});
 }
 
 void PathRenderer2D::BoldPaths(const VkCommandBuffer& command_buffer) {

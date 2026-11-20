@@ -8,13 +8,13 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_PIPELINE_UTIL_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_PIPELINE_UTIL_H
 
+#include <span>
 #include <vector>
 
 #include "lighter/common/file.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include <absl/types/span.h>
 #include <vulkan/vulkan.h>
 
 namespace lighter {
@@ -82,7 +82,7 @@ inline VkVertexInputBindingDescription GetPerInstanceBindingDescription() {
 
 // Converts common::VertexAttribute to VertexBuffer::Attribute.
 std::vector<VertexBuffer::Attribute> ConvertVertexAttributes(
-    absl::Span<const common::VertexAttribute> attributes);
+    std::span<const common::VertexAttribute> attributes);
 
 // Convenience function to return a vector of VertexBuffer::Attribute, assuming
 // the class of DataType provides a static GetVertexAttributes() method.

@@ -7,6 +7,7 @@
 
 #include "lighter/renderer/vulkan/wrapper/basic_object.h"
 
+#include <format>
 #include <functional>
 #include <vector>
 
@@ -14,7 +15,6 @@
 #ifndef NDEBUG
 #include "lighter/renderer/vulkan/wrapper/validation.h"
 #endif /* !NDEBUG */
-#include <absl/strings/str_cat.h>
 
 namespace lighter {
 namespace renderer {
@@ -39,7 +39,7 @@ void CheckInstanceExtensionSupport(const std::vector<std::string>& required) {
   const auto unsupported = util::FindUnsupported<VkExtensionProperties>(
       required, properties, get_name);
   ASSERT_NO_VALUE(unsupported,
-                  absl::StrCat("Unsupported: ", unsupported.value()));
+                  std::format("Unsupported: {}", unsupported.value()));
 }
 
 #ifndef NDEBUG
@@ -60,7 +60,7 @@ void CheckValidationLayerSupport(const std::vector<std::string>& required) {
   const auto unsupported = util::FindUnsupported<VkLayerProperties>(
       required, properties, get_name);
   ASSERT_NO_VALUE(unsupported,
-                  absl::StrCat("Unsupported: ", unsupported.value()));
+                  std::format("Unsupported: {}", unsupported.value()));
 }
 #endif /* !NDEBUG */
 

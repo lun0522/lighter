@@ -23,10 +23,30 @@ namespace lighter {
 namespace application {
 namespace vulkan {
 namespace aurora {
-namespace {
 
-using namespace renderer;
-using namespace renderer::vulkan;
+using renderer::vulkan::Descriptor;
+using renderer::vulkan::DynamicText;
+using renderer::vulkan::GraphicsPass;
+using renderer::vulkan::GraphicsPipelineBuilder;
+using renderer::vulkan::Image;
+using renderer::vulkan::ImageSampler;
+using renderer::vulkan::ImageUsage;
+using renderer::vulkan::ImageUsageHistory;
+using renderer::vulkan::OffscreenImage;
+using renderer::vulkan::OneTimeCommand;
+using renderer::vulkan::Pipeline;
+using renderer::vulkan::PushConstant;
+using renderer::vulkan::RenderPass;
+using renderer::vulkan::SharedBasicContext;
+using renderer::vulkan::StaticDescriptor;
+using renderer::vulkan::StaticPerInstanceBuffer;
+using renderer::vulkan::Text;
+using renderer::vulkan::TextureImage;
+using renderer::vulkan::UniformBuffer;
+using renderer::vulkan::VertexBuffer;
+namespace pipeline = renderer::vulkan::pipeline;
+
+namespace {
 
 enum SubpassIndex {
   kBackgroundSubpassIndex = 0,
@@ -52,7 +72,7 @@ std::unique_ptr<OffscreenImage> CreateTargetImage(
       static_cast<uint32_t>(background_image_extent.height *
                             num_buttons * button::kNumStates),
   };
-  const auto image_usages = {
+  const std::array image_usages{
       ImageUsage::GetRenderTargetUsage(/*attachment_location=*/0),
       ImageUsage::GetSampledInFragmentShaderUsage()};
   return std::make_unique<OffscreenImage>(
@@ -63,7 +83,7 @@ std::unique_ptr<OffscreenImage> CreateTargetImage(
 // Creates per-instance vertex buffer storing RenderInfo.
 std::unique_ptr<StaticPerInstanceBuffer> CreatePerInstanceBuffer(
     const SharedBasicContext& context,
-    absl::Span<const make_button::ButtonInfo> button_infos) {
+    std::span<const make_button::ButtonInfo> button_infos) {
   std::vector<make_button::RenderInfo> render_infos;
   render_infos.reserve(button_infos.size() * button::kNumStates);
   for (const auto& info : button_infos) {
@@ -117,7 +137,7 @@ std::unique_ptr<RenderPass> CreateRenderPass(
 std::unique_ptr<DynamicText> CreateTextRenderer(
     const SharedBasicContext& context, Text::Font font, int font_height,
     const Image& target_image, const RenderPass& render_pass,
-    absl::Span<const make_button::ButtonInfo> button_infos) {
+    std::span<const make_button::ButtonInfo> button_infos) {
   std::vector<std::string> texts;
   texts.reserve(button_infos.size());
   for (const auto& info : button_infos) {
@@ -162,10 +182,10 @@ std::unique_ptr<OffscreenImage> ButtonMaker::CreateButtonsImage(
     const SharedBasicContext& context, Text::Font font, int font_height,
     const glm::vec3& text_color, const common::Image& button_background,
     const button::VerticesInfo& vertices_info,
-    absl::Span<const make_button::ButtonInfo> button_infos) {
+    std::span<const make_button::ButtonInfo> button_infos) {
   ASSERT_TRUE(button_background.channel() == common::image::kBwImageChannel,
               "Expecting a single-channel button background image");
-  const auto image_usages = {ImageUsage::GetSampledInFragmentShaderUsage()};
+  const std::array image_usages{ImageUsage::GetSampledInFragmentShaderUsage()};
   const auto background_image = std::make_unique<TextureImage>(
       context, /*generate_mipmaps=*/false, button_background, image_usages,
       ImageSampler::Config{});

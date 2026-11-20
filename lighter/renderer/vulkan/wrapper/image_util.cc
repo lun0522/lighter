@@ -197,7 +197,7 @@ VkImageUsageFlagBits GetImageUsageFlagBits(const ImageUsage& usage) {
   }
 }
 
-VkImageUsageFlags GetImageUsageFlags(absl::Span<const ImageUsage> usages) {
+VkImageUsageFlags GetImageUsageFlags(std::span<const ImageUsage> usages) {
   auto flags = nullflag;
   for (const auto& usage : usages) {
     if (usage.usage_type() != UsageType::kDontCare) {

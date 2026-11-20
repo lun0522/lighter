@@ -8,10 +8,10 @@
 #ifndef LIGHTER_RENDERER_IR_BUFFER_H
 #define LIGHTER_RENDERER_IR_BUFFER_H
 
+#include <span>
 #include <vector>
 
 #include "lighter/renderer/ir/type.h"
-#include <absl/types/span.h>
 
 namespace lighter::renderer::ir {
 
@@ -39,7 +39,7 @@ class Buffer {
 
   virtual ~Buffer() = default;
 
-  virtual void CopyToDevice(absl::Span<const CopyInfo> copy_infos) const = 0;
+  virtual void CopyToDevice(std::span<const CopyInfo> copy_infos) const = 0;
 
  protected:
   Buffer() = default;

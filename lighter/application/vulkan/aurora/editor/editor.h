@@ -12,6 +12,8 @@
 #include <memory>
 #include <optional>
 
+#include <span>
+
 #include "lighter/application/vulkan/aurora/editor/button.h"
 #include "lighter/application/vulkan/aurora/editor/celestial.h"
 #include "lighter/application/vulkan/aurora/editor/path.h"
@@ -22,8 +24,6 @@
 #include "lighter/common/window.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
-#include <absl/strings/str_format.h>
-#include <absl/types/span.h>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 
@@ -123,10 +123,10 @@ class Editor : public Scene {
     }
 
     // Accessors.
-    absl::Span<const Button::State> top_row_buttons_states() const {
+    std::span<const Button::State> top_row_buttons_states() const {
       return {button_states_.data(), kNumTopRowButtons};
     }
-    absl::Span<const Button::State> bottom_row_buttons_states() const {
+    std::span<const Button::State> bottom_row_buttons_states() const {
       return {button_states_.data() + kNumTopRowButtons, kNumBottomRowButtons};
     }
 

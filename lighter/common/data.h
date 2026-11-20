@@ -10,12 +10,14 @@
 
 #include <array>
 #include <cstdlib>
+#include <cstring>
+#include <format>
 #include <fstream>
 #include <vector>
 
-#include "lighter/common/util.h"
-#include <absl/strings/str_format.h>
 #include <glm/glm.hpp>
+
+#include "lighter/common/util.h"
 
 namespace lighter::common {
 
@@ -62,9 +64,9 @@ class ChunkedData : public Data {
 
   void ValidateChunkIndex(int chunk_index) const {
     ASSERT_TRUE(
-      chunk_index < num_chunks_,
-      absl::StrFormat("Trying to access chunk %d, while only %d chunks exist",
-                      chunk_index, num_chunks_));
+        chunk_index < num_chunks_,
+        std::format("Trying to access chunk {}, while only {} chunks exist",
+                    chunk_index, num_chunks_));
   }
 
  private:

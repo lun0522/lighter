@@ -12,13 +12,14 @@
 #include <string>
 #include <vector>
 
+#include <span>
+
 #include "lighter/application/vulkan/aurora/editor/button_util.h"
 #include "lighter/common/file.h"
 #include "lighter/renderer/vulkan/extension/text.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
-#include <absl/types/span.h>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 
@@ -75,7 +76,7 @@ class ButtonMaker {
       renderer::vulkan::Text::Font font, int font_height,
       const glm::vec3& text_color, const common::Image& button_background,
       const button::VerticesInfo& vertices_info,
-      absl::Span<const make_button::ButtonInfo> button_infos);
+      std::span<const make_button::ButtonInfo> button_infos);
 };
 
 } /* namespace aurora */

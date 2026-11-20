@@ -17,7 +17,6 @@ target_link_libraries(lighter_renderer_ir_buffer
     lighter_common_data
     lighter_common_file
     lighter_renderer_ir_type
-    absl::span
 )
 
 add_library(lighter_renderer_ir_buffer_usage INTERFACE
@@ -38,9 +37,6 @@ target_link_libraries(lighter_renderer_ir_image_usage
     lighter_project_options
     lighter_common_util
     lighter_renderer_ir_type
-    absl::flat_hash_map
-    absl::span
-    absl::str_format
 )
 
 add_library(lighter_renderer_ir_image INTERFACE
@@ -66,7 +62,6 @@ target_link_libraries(lighter_renderer_ir_pipeline
     lighter_common_util
     lighter_renderer_ir_buffer
     lighter_renderer_ir_type
-    absl::flat_hash_map
     glm::glm
 )
 
@@ -81,7 +76,6 @@ target_link_libraries(lighter_renderer_ir_pass
     lighter_renderer_ir_image
     lighter_renderer_ir_pipeline
     lighter_renderer_ir_type
-    absl::flat_hash_map
 )
 
 add_library(lighter_renderer_ir_renderer INTERFACE
@@ -101,7 +95,5 @@ target_link_libraries(lighter_renderer_ir_renderer
     lighter_renderer_ir_pass
     lighter_renderer_ir_pipeline
     lighter_renderer_ir_type
-    absl::span
-    absl::str_format
     glm::glm
 )

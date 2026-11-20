@@ -8,13 +8,12 @@ target_link_libraries(lighter_app_vulkan_common
     lighter_common_camera
     lighter_common_data
     lighter_common_file
+    lighter_common_flag
     lighter_common_image
     lighter_common_timer
     lighter_common_util
     lighter_renderer_util
     lighter_renderer_vulkan_extension_onscreen
-    absl::flags_parse
-    absl::span
     glm::glm
     Vulkan::Vulkan
 )

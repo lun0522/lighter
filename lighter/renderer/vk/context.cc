@@ -16,7 +16,7 @@ namespace lighter::renderer::vk {
 Context::Context(
     const char* application_name,
     const std::optional<ir::debug_message::Config>& debug_message_config,
-    absl::Span<const common::Window* const> windows) {
+    std::span<const common::Window* const> windows) {
   LOG_INFO << "Starting Vulkan initialization";
 
   const bool enable_validation = debug_message_config.has_value();

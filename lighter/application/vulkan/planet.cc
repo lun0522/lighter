@@ -19,7 +19,19 @@ namespace application {
 namespace vulkan {
 namespace {
 
-using namespace renderer::vulkan;
+using renderer::vulkan::Image;
+using renderer::vulkan::ImageUsage;
+using renderer::vulkan::Model;
+using renderer::vulkan::ModelBuilder;
+using renderer::vulkan::NaiveRenderPass;
+using renderer::vulkan::PerFrameCommand;
+using renderer::vulkan::PushConstant;
+using renderer::vulkan::RenderPass;
+using renderer::vulkan::SharedTexture;
+using renderer::vulkan::StaticPerInstanceBuffer;
+using renderer::vulkan::UniformBuffer;
+using renderer::vulkan::WindowContext;
+namespace pipeline = renderer::vulkan::pipeline;
 
 enum SubpassIndex {
   kModelSubpassIndex = 0,
@@ -365,6 +377,8 @@ void PlanetApp::MainLoop() {
 } /* namespace lighter */
 
 int main(int argc, char* argv[]) {
-  using namespace lighter::application::vulkan;
+  using lighter::application::vulkan::AppMain;
+  using lighter::application::vulkan::PlanetApp;
+  using lighter::renderer::vulkan::WindowContext;
   return AppMain<PlanetApp>(argc, argv, WindowContext::Config{});
 }

@@ -9,13 +9,13 @@
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_DESCRIPTOR_H
 
 #include <functional>
+#include <span>
+#include <unordered_map>
 #include <vector>
 
 #include "lighter/common/model_loader.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
-#include <absl/container/flat_hash_map.h>
-#include <absl/types/span.h>
 #include <vulkan/vulkan.h>
 
 namespace lighter {
@@ -37,11 +37,11 @@ class Descriptor {
   using TextureType = common::ModelLoader::TextureType;
 
   // Maps a binding point to buffers bound to it.
-  using BufferInfoMap = absl::flat_hash_map<
+  using BufferInfoMap = std::unordered_map<
       uint32_t, std::vector<VkDescriptorBufferInfo>>;
 
   // Maps a binding point to images bound to it.
-  using ImageInfoMap = absl::flat_hash_map<
+  using ImageInfoMap = std::unordered_map<
       uint32_t, std::vector<VkDescriptorImageInfo>>;
 
   // Contains the information we need to define the layout of a descriptor set.
@@ -90,7 +90,7 @@ class StaticDescriptor : public Descriptor {
  public:
   // Declares the resources that are used in shaders and specified by 'infos'.
   // The descriptor set layout should be fixed once construction is done.
-  StaticDescriptor(SharedBasicContext context, absl::Span<const Info> infos);
+  StaticDescriptor(SharedBasicContext context, std::span<const Info> infos);
 
   // This class is neither copyable nor movable.
   StaticDescriptor(const StaticDescriptor&) = delete;
@@ -136,7 +136,7 @@ class DynamicDescriptor : public Descriptor {
  public:
   // Declares the resources that are used in shaders and specified by 'infos'.
   // The descriptor set layout should be fixed once construction is done.
-  DynamicDescriptor(SharedBasicContext context, absl::Span<const Info> infos);
+  DynamicDescriptor(SharedBasicContext context, std::span<const Info> infos);
 
   // This class is neither copyable nor movable.
   DynamicDescriptor(const DynamicDescriptor&) = delete;

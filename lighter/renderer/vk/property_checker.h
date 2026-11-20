@@ -8,12 +8,12 @@
 #ifndef LIGHTER_RENDERER_VK_PROPERTY_CHECKER_H
 #define LIGHTER_RENDERER_VK_PROPERTY_CHECKER_H
 
+#include <span>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "lighter/renderer/vk/util.h"
-#include <absl/container/flat_hash_set.h>
-#include <absl/types/span.h>
 
 namespace lighter::renderer::vk {
 
@@ -39,20 +39,20 @@ class PropertyChecker {
   // Returns a vector of unsupported properties if exists any. It also prints
   // out supported, required and unsupported (if exists any) properties.
   std::vector<std::string> FindUnsupported(
-      absl::Span<const std::string> required_properties) const;
+      std::span<const std::string> required_properties) const;
 
   // Returns true if all properties are supported. It also prints out properties
   // as FindUnsupported().
-  bool AreSupported(absl::Span<const std::string> required_properties) const {
+  bool AreSupported(std::span<const std::string> required_properties) const {
     return FindUnsupported(required_properties).empty();
   }
 
  private:
-  PropertyChecker(absl::flat_hash_set<std::string>&& supported_properties)
+  PropertyChecker(std::unordered_set<std::string>&& supported_properties)
       : supported_properties_{std::move(supported_properties)} {}
 
   // Holds all supported properties.
-  absl::flat_hash_set<std::string> supported_properties_;
+  std::unordered_set<std::string> supported_properties_;
 };
 
 }  // namespace lighter::renderer::vk

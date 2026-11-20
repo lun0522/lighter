@@ -9,13 +9,13 @@
 #define LIGHTER_RENDERER_IR_PASS_H
 
 #include <optional>
+#include <unordered_map>
 #include <vector>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/ir/image.h"
 #include "lighter/renderer/ir/pipeline.h"
 #include "lighter/renderer/ir/type.h"
-#include <absl/container/flat_hash_map.h>
 
 namespace lighter::renderer::ir {
 
@@ -92,8 +92,8 @@ struct RenderPassDescriptor {
     return *this;
   }
 
-  absl::flat_hash_map<const Image*, ColorLoadStoreOps> color_ops_map;
-  absl::flat_hash_map<const Image*, DepthStencilLoadStoreOps>
+  std::unordered_map<const Image*, ColorLoadStoreOps> color_ops_map;
+  std::unordered_map<const Image*, DepthStencilLoadStoreOps>
       depth_stencil_ops_map;
   std::vector<SubpassDescriptor> subpass_descriptors;
   std::vector<SubpassDependency> subpass_dependencies;

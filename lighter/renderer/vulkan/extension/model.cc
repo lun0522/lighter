@@ -7,9 +7,11 @@
 
 #include "lighter/renderer/vulkan/extension/model.h"
 
+#include <array>
+#include <format>
+
 #include "lighter/common/file.h"
 #include "lighter/renderer/ir/image_usage.h"
-#include <absl/strings/str_format.h>
 
 namespace lighter {
 namespace renderer {
@@ -27,7 +29,8 @@ std::unique_ptr<SamplableImage> CreateTexture(
     const SharedBasicContext& context,
     const ModelBuilder::TextureSource& source) {
   if (std::holds_alternative<SharedTexture::SourcePath>(source)) {
-    const auto image_usages = {ImageUsage::GetSampledInFragmentShaderUsage()};
+    const std::array image_usages{
+        ImageUsage::GetSampledInFragmentShaderUsage()};
     return std::make_unique<SharedTexture>(
         context, std::get<SharedTexture::SourcePath>(source),
         image_usages, ImageSampler::Config{});
@@ -65,8 +68,8 @@ void CreateTextureInfo(const ModelBuilder::BindingPointMap& binding_map,
     if (num_textures != 0) {
       const auto iter = binding_map.find(texture_type);
       ASSERT_TRUE(iter != binding_map.end(),
-                  absl::StrFormat("Binding point of texture type %d is not set",
-                                  type_index));
+                  std::format("Binding point of texture type {} is not set",
+                              type_index));
       const auto binding_point = iter->second;
 
       // Populate 'descriptor_info' with declarations of resources.

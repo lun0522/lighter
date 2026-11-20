@@ -8,9 +8,11 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_BASIC_CONTEXT_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_BASIC_CONTEXT_H
 
+#include <format>
 #include <functional>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -20,8 +22,6 @@
 #ifndef NDEBUG
 #include "lighter/renderer/vulkan/wrapper/validation.h"
 #endif /* !NDEBUG */
-#include <absl/strings/str_format.h>
-#include <absl/types/span.h>
 #include <vulkan/vulkan.h>
 
 namespace lighter {
@@ -41,8 +41,8 @@ using SharedBasicContext = std::shared_ptr<BasicContext>;
 // Note that only VkAllocationCallbacks and VkInstance are guaranteed to exist
 // when 'create_surface' is called.
 struct WindowSupport {
-  absl::Span<const char* const> window_extensions;
-  absl::Span<const char* const> swapchain_extensions;
+  std::span<const char* const> window_extensions;
+  std::span<const char* const> swapchain_extensions;
   const VkSurfaceKHR& surface;
   const std::function<void(const BasicContext* context)>& create_surface;
 };
@@ -90,8 +90,8 @@ class BasicContext : public std::enable_shared_from_this<BasicContext> {
       first_time = false;
       check_no_active_auto_release_pool_ops_.push_back([pool_name]() {
         if (RefCountedObjectType::has_active_auto_release_pool()) {
-          FATAL(absl::StrFormat("Number of '%s' auto release pool is non-zero",
-                                pool_name));
+          FATAL(std::format("Number of '{}' auto release pool is non-zero",
+                            pool_name));
         }
       });
     }

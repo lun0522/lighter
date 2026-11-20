@@ -9,22 +9,31 @@
 
 #include <algorithm>
 #include <array>
+#include <format>
 
 #include "lighter/common/image.h"
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/command.h"
-#include <absl/strings/str_format.h>
 
 namespace lighter {
 namespace application {
 namespace vulkan {
 namespace aurora {
-namespace {
 
-using namespace renderer;
-using namespace renderer::vulkan;
-using ir::AccessType;
+using renderer::ir::AccessType;
+using renderer::vulkan::ComputePass;
+using renderer::vulkan::Image;
+using renderer::vulkan::ImageSampler;
+using renderer::vulkan::ImageUsage;
+using renderer::vulkan::ImageUsageHistory;
+using renderer::vulkan::MultisampleImage;
+using renderer::vulkan::OffscreenImage;
+using renderer::vulkan::OneTimeCommand;
+using renderer::vulkan::PerVertexBuffer;
+using renderer::vulkan::SharedBasicContext;
+
+namespace {
 
 // To save device memory, we reuse images in this way:
 //   - Render paths: [output] distance_field_image
@@ -50,9 +59,9 @@ PathDumper::PathDumper(
     std::vector<const PerVertexBuffer*>&& aurora_paths_vertex_buffers)
     : context_{std::move(FATAL_IF_NULL(context))} {
   ASSERT_TRUE(common::util::IsPowerOf2(paths_image_dimension),
-              absl::StrFormat("'paths_image_dimension' is expected to be power "
-                              "of 2, while %d provided",
-                              paths_image_dimension));
+              std::format("'paths_image_dimension' is expected to be power "
+                          "of 2, while {} provided",
+                          paths_image_dimension));
 
   /* Image */
   const VkExtent2D paths_image_extent{
@@ -136,8 +145,8 @@ void PathDumper::DumpAuroraPaths(const common::Camera& camera) {
   });
 
 #ifndef NDEBUG
-  LOG_INFO << absl::StreamFormat("Elapsed time for dumping aurora paths: %fs",
-                                 timer.GetElapsedTimeSinceLaunch());
+  LOG_INFO << std::format("Elapsed time for dumping aurora paths: {}s",
+                          timer.GetElapsedTimeSinceLaunch());
 #endif /* !NDEBUG */
 }
 

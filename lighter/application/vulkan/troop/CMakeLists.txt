@@ -9,6 +9,5 @@ add_dependencies(vulkan_troop lighter_shaders)
 target_link_libraries(vulkan_troop
   PRIVATE
     lighter_app_vulkan_common
-    absl::flat_hash_map
     glm::glm
 )

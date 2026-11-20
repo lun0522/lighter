@@ -10,9 +10,9 @@
 
 #include <functional>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
-#include <absl/container/flat_hash_map.h>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 // import GLFW after Vulkan
@@ -163,7 +163,7 @@ class Window {
   MouseButtonCallback mouse_button_callback_;
 
   // Maps GLFW keys to their callbacks.
-  absl::flat_hash_map<int, std::function<void()>> press_key_callbacks_;
+  std::unordered_map<int, std::function<void()>> press_key_callbacks_;
 };
 
 }  // namespace lighter::common

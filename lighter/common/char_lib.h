@@ -9,15 +9,16 @@
 #define LIGHTER_COMMON_CHAR_LIB_H
 
 #include <memory>
+#include <span>
 #include <string>
+#include <unordered_map>
 
-#include "lighter/common/image.h"
-#include "lighter/common/file.h"
-#include <absl/container/flat_hash_map.h>
-#include <absl/types/span.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include <glm/glm.hpp>
+
+#include "lighter/common/file.h"
+#include "lighter/common/image.h"
 
 namespace lighter::common {
 
@@ -34,7 +35,7 @@ class CharLib {
 
   // We will load all characters in 'texts' from the library. All of them will
   // be of height 'font_height', while the width is self-adjusted.
-  CharLib(absl::Span<const std::string> texts,
+  CharLib(std::span<const std::string> texts,
           const std::string& font_path, int font_height, bool flip_y);
 
   // This class is neither copyable nor movable.
@@ -42,14 +43,14 @@ class CharLib {
   CharLib& operator=(const CharLib&) = delete;
 
   // Accessors.
-  const absl::flat_hash_map<char, CharInfo>& char_info_map() const {
+  const std::unordered_map<char, CharInfo>& char_info_map() const {
     return char_info_map_;
   }
 
  private:
   // Holds information about loaded characters. Only those characters loaded
   // via the constructor will be in this map.
-  absl::flat_hash_map<char, CharInfo> char_info_map_;
+  std::unordered_map<char, CharInfo> char_info_map_;
 };
 
 }  // namespace lighter::common

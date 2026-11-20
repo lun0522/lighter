@@ -5,18 +5,21 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_SHADER_COMPILER_H
-#define LIGHTER_SHADER_COMPILER_H
+#ifndef LIGHTER_SHADER_COMPILER_COMPILER_H
+#define LIGHTER_SHADER_COMPILER_COMPILER_H
 
+#include <functional>
+#include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+
+#include <shaderc/shaderc.h>
 
 #include "lighter/common/util.h"
 #include "lighter/shader_compiler/util.h"
-#include <absl/container/flat_hash_map.h>
-#include <absl/types/span.h>
-#include <shaderc/shaderc.h>
 
 namespace lighter::shader_compiler {
 
@@ -46,12 +49,14 @@ class Compiler {
   std::unique_ptr<CompilationResult> Compile(
       const std::string& shader_tag,
       shaderc_shader_kind shader_kind,
-      absl::Span<const char> shader_source,
+      std::span<const char> shader_source,
       const CompilerOptions& compiler_options) const;
 
  private:
   // Maps file extensions to shader kinds.
-  using ShaderKindMap = absl::flat_hash_map<std::string, shaderc_shader_kind>;
+  using ShaderKindMap = std::unordered_map<
+      std::string, shaderc_shader_kind,
+      common::util::TransparentStringHash, std::equal_to<>>;
   static const ShaderKindMap shader_kind_map_;
 
   // Opaque compiler object.
@@ -105,7 +110,7 @@ class CompilationResult {
   const char* GetErrorIfFailed() const;
 
   // Returns the whole data span, which lives as long as the result object.
-  absl::Span<const char> GetDataSpan() const {
+  std::span<const char> GetDataSpan() const {
     return {shaderc_result_get_bytes(result_),
             shaderc_result_get_length(result_)};
   }
@@ -117,4 +122,4 @@ class CompilationResult {
 
 }  // namespace lighter::shader_compiler
 
-#endif  // LIGHTER_SHADER_COMPILER_H
+#endif  // LIGHTER_SHADER_COMPILER_COMPILER_H

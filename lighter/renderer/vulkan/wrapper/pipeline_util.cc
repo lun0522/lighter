@@ -8,10 +8,10 @@
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 
 #include <algorithm>
+#include <format>
 #include <iterator>
 
 #include "lighter/common/util.h"
-#include <absl/strings/str_format.h>
 
 namespace lighter {
 namespace renderer {
@@ -34,8 +34,8 @@ VkFormat ChooseFormat(common::VertexAttribute attribute) {
     case 4:
       return VK_FORMAT_R32G32B32A32_SFLOAT;
     default:
-      FATAL(absl::StrFormat("Length must be in range [1, 4], while %d provided",
-                            attribute.length));
+      FATAL(std::format("Length must be in range [1, 4], while {} provided",
+                        attribute.length));
   }
 }
 
@@ -150,7 +150,7 @@ VkVertexInputBindingDescription GetBindingDescription(uint32_t stride,
 }
 
 std::vector<VertexBuffer::Attribute> ConvertVertexAttributes(
-    absl::Span<const common::VertexAttribute> attributes) {
+    std::span<const common::VertexAttribute> attributes) {
   return common::util::TransformToVector<common::VertexAttribute,
                                          VertexBuffer::Attribute>(
       attributes,

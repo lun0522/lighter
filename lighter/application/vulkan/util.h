@@ -8,7 +8,9 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_UTIL_H
 #define LIGHTER_APPLICATION_VULKAN_UTIL_H
 
+#include <format>
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -16,14 +18,15 @@
 #include "lighter/common/camera.h"
 #include "lighter/common/data.h"
 #include "lighter/common/file.h"
+#include "lighter/common/flag.h"
 #include "lighter/common/image.h"
 #include "lighter/common/timer.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/util.h"
-#define ASSERT_SUCCESS(event, error)                          \
-  ASSERT_TRUE(event == VK_SUCCESS,                            \
-              absl::StrFormat("Errno %d: %s", event, error))
+#define ASSERT_SUCCESS(event, error)                                    \
+  ASSERT_TRUE(event == VK_SUCCESS,                                      \
+              std::format("Errno {}: {}", static_cast<int>(event), error))
 #include "lighter/renderer/vulkan/extension/compute_pass.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/model.h"
@@ -36,8 +39,6 @@
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
-#include <absl/flags/parse.h>
-#include <absl/types/span.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <vulkan/vulkan.h>
@@ -180,7 +181,7 @@ int AppMain(int argc, char* argv[], AppArgs&&... app_args) {
   static_assert(std::is_base_of_v<Application, AppType>,
                 "Not a subclass of Application");
 
-  absl::ParseCommandLine(argc, argv);
+  common::flag::ParseCommandLine(argc, argv);
   GlobalInit();
 
   // We don't catch exceptions in the debug mode, so that if there is anything

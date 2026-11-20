@@ -11,7 +11,7 @@
 
 namespace lighter::common {
 
-CharLib::CharLib(absl::Span<const std::string> texts,
+CharLib::CharLib(std::span<const std::string> texts,
                  const std::string& font_path, int font_height, bool flip_y) {
   FT_Library lib;
   FT_Face face;

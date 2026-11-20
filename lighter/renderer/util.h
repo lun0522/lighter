@@ -12,12 +12,11 @@
 #include <optional>
 #include <vector>
 
+#include "lighter/common/flag.h"
 #include "lighter/common/window.h"
 #include "lighter/renderer/ir/renderer.h"
 #include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/vk/renderer.h"
-#include <absl/flags/declare.h>
-#include <absl/flags/flag.h>
 
 // We use the uniform block layout std140 in all shaders. The following
 // alignment requirements must be enforced on the host code:
@@ -26,7 +25,7 @@
 #define ALIGN_VEC4 alignas(sizeof(float) * 4)
 #define ALIGN_MAT4 alignas(sizeof(float) * 4)
 
-ABSL_DECLARE_FLAG(bool, ignore_vsync);
+LIGHTER_DECLARE_FLAG(bool, ignore_vsync);
 
 namespace lighter::renderer::util {
 

@@ -7,8 +7,9 @@
 
 #include "lighter/renderer/vulkan/extension/base_pass.h"
 
+#include <format>
+
 #include "lighter/renderer/vulkan/wrapper/image_util.h"
-#include <absl/strings/str_format.h>
 
 namespace lighter {
 namespace renderer {
@@ -49,8 +50,8 @@ VkImageLayout BasePass::GetImageLayoutAtSubpass(const std::string& image_name,
   const ImageUsage* usage = GetImageUsage(image_name, subpass);
   ASSERT_NON_NULL(
       usage,
-      absl::StrFormat("Usage not specified for image '%s' at subpass %d",
-                      image_name, subpass));
+      std::format("Usage not specified for image '{}' at subpass {}",
+                  image_name, subpass));
   return image::GetImageLayout(*usage);
 }
 
@@ -62,8 +63,7 @@ void BasePass::UpdateTrackedImageUsage(
   usage_tracker.UpdateUsage(image_name, last_usage);
 
 #ifndef NDEBUG
-  LOG_INFO << absl::StreamFormat("Updated tracked usage for image '%s'",
-                                 image_name);
+  LOG_INFO << std::format("Updated tracked usage for image '{}'", image_name);
 #endif /* !NDEBUG */
 }
 
@@ -71,7 +71,7 @@ const ImageUsageHistory& BasePass::GetUsageHistory(
     const std::string& image_name) const {
   const auto iter = image_usage_history_map_.find(image_name);
   ASSERT_FALSE(iter == image_usage_history_map_.end(),
-               absl::StrFormat("Unrecognized image '%s'", image_name));
+               std::format("Unrecognized image '{}'", image_name));
   return iter->second;
 }
 
@@ -111,14 +111,14 @@ void BasePass::ValidateSubpass(int subpass,
     ASSERT_TRUE(
         subpass >= virtual_initial_subpass_index()
         && subpass <= virtual_final_subpass_index(),
-        absl::StrFormat("Subpass (%d) out of range [%d, %d] for image '%s'",
-                        subpass, virtual_initial_subpass_index(),
-                        virtual_final_subpass_index(), image_name));
+        std::format("Subpass ({}) out of range [{}, {}] for image '{}'",
+                    subpass, virtual_initial_subpass_index(),
+                    virtual_final_subpass_index(), image_name));
   } else {
     ASSERT_TRUE(
         subpass >= 0 && subpass < num_subpasses_,
-        absl::StrFormat("Subpass (%d) out of range [0, %d) for image '%s'",
-                        subpass, num_subpasses_, image_name));
+        std::format("Subpass ({}) out of range [0, {}) for image '{}'",
+                    subpass, num_subpasses_, image_name));
   }
 }
 

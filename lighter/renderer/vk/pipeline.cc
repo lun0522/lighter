@@ -8,6 +8,7 @@
 #include "lighter/renderer/vk/pipeline.h"
 
 #include <algorithm>
+#include <format>
 #include <vector>
 
 #include "lighter/common/data.h"
@@ -15,7 +16,6 @@
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/vk/type_mapping.h"
 #include "lighter/shader_compiler/util.h"
-#include <absl/strings/str_format.h>
 
 namespace lighter::renderer::vk {
 namespace {
@@ -372,7 +372,7 @@ Pipeline::~Pipeline() {
   context_->DeviceDestroy(pipeline_);
   context_->DeviceDestroy(pipeline_layout_);
 #ifndef NDEBUG
-  LOG_INFO << absl::StreamFormat("Pipeline '%s' destructed", name_);
+  LOG_INFO << std::format("Pipeline '{}' destructed", name_);
 #endif  // DEBUG
 }
 

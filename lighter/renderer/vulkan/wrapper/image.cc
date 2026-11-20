@@ -8,10 +8,11 @@
 #include "lighter/renderer/vulkan/wrapper/image.h"
 
 #include <algorithm>
+#include <array>
+#include <format>
 
 #include "lighter/renderer/vulkan/wrapper/command.h"
 #include "lighter/renderer/vulkan/wrapper/image_util.h"
-#include <absl/strings/str_format.h>
 
 namespace lighter {
 namespace renderer {
@@ -46,7 +47,7 @@ struct ImageConfig {
 // 'features'. If not found, returns std::nullopt.
 std::optional<VkFormat> FindImageFormatWithFeature(
     const BasicContext& context,
-    absl::Span<const VkFormat> candidates,
+    std::span<const VkFormat> candidates,
     VkFormatFeatureFlags features) {
   for (const auto format : candidates) {
     VkFormatProperties properties;
@@ -63,7 +64,7 @@ std::optional<VkFormat> FindImageFormatWithFeature(
 // Only 1 or 4 channels are supported.
 VkFormat FindColorImageFormat(
     const BasicContext& context,
-    int channel, absl::Span<const ImageUsage> usages,
+    int channel, std::span<const ImageUsage> usages,
     bool use_high_precision = false) {
   switch (channel) {
     case common::image::kBwImageChannel: {
@@ -81,8 +82,9 @@ VkFormat FindColorImageFormat(
       if (!ImageUsage::IsLinearAccessed(usages)) {
         return best_format;
       }
+      const std::array candidates{best_format};
       if (FindImageFormatWithFeature(
-              context, {best_format},
+              context, candidates,
               VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT).has_value()) {
         return best_format;
       } else {
@@ -102,16 +104,18 @@ VkFormat FindColorImageFormat(
       }
 
     default:
-      FATAL(absl::StrFormat(
-          "Number of channels can only be 1 or 4, while %d provided", channel));
+      FATAL(std::format(
+          "Number of channels can only be 1 or 4, while {} provided", channel));
   }
 }
 
 // Returns the image format to use for a depth stencil image. If not found, a
 // runtime exception will be thrown.
 VkFormat FindDepthStencilImageFormat(const BasicContext& context) {
+  const std::array candidates{VK_FORMAT_D32_SFLOAT_S8_UINT,
+                              VK_FORMAT_D24_UNORM_S8_UINT};
   const auto format = FindImageFormatWithFeature(
-      context, {VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+      context, candidates,
       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
   ASSERT_HAS_VALUE(format, "Failed to find depth stencil image format");
   return format.value();
@@ -138,7 +142,7 @@ VkSampleCountFlagBits GetMaxSampleCount(VkSampleCountFlags sample_counts) {
 TextureImage::Info CreateTextureBufferInfo(
     const BasicContext& context,
     const common::Image& image,
-    absl::Span<const ImageUsage> usages) {
+    std::span<const ImageUsage> usages) {
   return TextureImage::Info{
       image.GetDataPtrs(),
       FindColorImageFormat(context, image.channel(), usages),
@@ -411,7 +415,7 @@ VkImageView CreateImageView(const BasicContext& context,
       view_type = VK_IMAGE_VIEW_TYPE_CUBE;
       break;
     default:
-      FATAL(absl::StrFormat("Unsupported layer count: %d", layer_count));
+      FATAL(std::format("Unsupported layer count: {}", layer_count));
   }
 
   const VkImageViewCreateInfo image_view_info{
@@ -539,7 +543,7 @@ TextureImage::TextureImage(SharedBasicContext context,
 TextureImage::TextureImage(const SharedBasicContext& context,
                            bool generate_mipmaps,
                            const common::Image& image,
-                           absl::Span<const ImageUsage> usages,
+                           std::span<const ImageUsage> usages,
                            const ImageSampler::Config& sampler_config)
     : TextureImage{context, generate_mipmaps, sampler_config,
                    CreateTextureBufferInfo(*FATAL_IF_NULL(context), image,
@@ -552,7 +556,7 @@ TextureImage::TextureBuffer::TextureBuffer(
   const auto layer_count = CONTAINER_SIZE(info.data_ptrs);
   ASSERT_TRUE(layer_count == kSingleImageLayer ||
                   layer_count == kCubemapImageLayer,
-              absl::StrFormat("Invalid number of images: %d", layer_count));
+              std::format("Invalid number of images: {}", layer_count));
 
   ImageConfig image_config;
   image_config.layer_count = CONTAINER_SIZE(info.data_ptrs);
@@ -609,7 +613,7 @@ TextureImage::TextureBuffer::TextureBuffer(
 SharedTexture::RefCountedTexture SharedTexture::GetTexture(
     const SharedBasicContext& context,
     const SourcePath& source_path,
-    absl::Span<const ImageUsage> usages,
+    std::span<const ImageUsage> usages,
     const ImageSampler::Config& sampler_config) {
   FATAL_IF_NULL(context);
   context->RegisterAutoReleasePool<SharedTexture::RefCountedTexture>("texture");
@@ -643,7 +647,7 @@ SharedTexture::RefCountedTexture SharedTexture::GetTexture(
 
 OffscreenImage::OffscreenImage(SharedBasicContext context,
                                const VkExtent2D& extent, VkFormat format,
-                               absl::Span<const ImageUsage> usages,
+                               std::span<const ImageUsage> usages,
                                const ImageSampler::Config& sampler_config)
     : Image{std::move(FATAL_IF_NULL(context)), extent, format},
       buffer_{context_, extent_, format_, usages},
@@ -655,7 +659,7 @@ OffscreenImage::OffscreenImage(SharedBasicContext context,
 
 OffscreenImage::OffscreenImage(const SharedBasicContext& context,
                                const VkExtent2D& extent, int channel,
-                               absl::Span<const ImageUsage> usages,
+                               std::span<const ImageUsage> usages,
                                const ImageSampler::Config& sampler_config,
                                bool use_high_precision)
     : OffscreenImage{context, extent,
@@ -666,7 +670,7 @@ OffscreenImage::OffscreenImage(const SharedBasicContext& context,
 OffscreenImage::OffscreenBuffer::OffscreenBuffer(
     SharedBasicContext context,
     const VkExtent2D& extent, VkFormat format,
-    absl::Span<const ImageUsage> usages)
+    std::span<const ImageUsage> usages)
     : ImageBuffer{std::move(context)} {
   set_image(CreateImage(*context_, ImageConfig{}, nullflag, format,
                         ExpandDimension(extent),

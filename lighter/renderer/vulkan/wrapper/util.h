@@ -9,22 +9,21 @@
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_UTIL_H
 
 #include <cmath>
+#include <format>
 #include <functional>
 #include <optional>
+#include <span>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "lighter/common/util.h"
-#include <absl/container/flat_hash_set.h>
-#include <absl/strings/str_cat.h>
-#include <absl/strings/str_format.h>
-#include <absl/types/span.h>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 
-#define ASSERT_SUCCESS(event, error)                          \
-  ASSERT_TRUE(event == VK_SUCCESS,                            \
-              absl::StrFormat("Errno %d: %s", event, error))
+#define ASSERT_SUCCESS(event, error)                                    \
+  ASSERT_TRUE(event == VK_SUCCESS,                                      \
+              std::format("Errno {}: {}", static_cast<int>(event), error))
 
 #define CONTAINER_SIZE(container) static_cast<uint32_t>(container.size())
 
@@ -71,7 +70,7 @@ FuncType LoadInstanceFunction(const VkInstance& instance,
   auto func = reinterpret_cast<FuncType>(
       vkGetInstanceProcAddr(instance, func_name.c_str()));
   ASSERT_NON_NULL(
-      func, absl::StrCat("Failed to load instance function ", func_name));
+      func, std::format("Failed to load instance function {}", func_name));
   return func;
 }
 
@@ -83,7 +82,7 @@ FuncType LoadDeviceFunction(const VkDevice& device,
   auto func = reinterpret_cast<FuncType>(
       vkGetDeviceProcAddr(device, func_name.c_str()));
   ASSERT_NON_NULL(
-      func, absl::StrCat("Failed to load device function ", func_name));
+      func, std::format("Failed to load device function {}", func_name));
   return func;
 }
 
@@ -105,10 +104,11 @@ std::vector<AttribType> QueryAttribute(
 // the name of any attribute of AttribType.
 template <typename AttribType>
 std::optional<std::string> FindUnsupported(
-    absl::Span<const std::string> required,
-    absl::Span<const AttribType> attribs,
+    std::span<const std::string> required,
+    std::span<const AttribType> attribs,
     const std::function<const char*(const AttribType&)>& get_name) {
-  absl::flat_hash_set<std::string> available{attribs.size()};
+  std::unordered_set<std::string> available;
+  available.reserve(attribs.size());
   for (const auto& atr : attribs) {
     available.insert(get_name(atr));
   }

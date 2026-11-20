@@ -5,17 +5,17 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_SHADER_COMPILATION_RECORD_H
-#define LIGHTER_SHADER_COMPILATION_RECORD_H
+#ifndef LIGHTER_SHADER_COMPILER_COMPILATION_RECORD_H
+#define LIGHTER_SHADER_COMPILER_COMPILATION_RECORD_H
 
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <unordered_map>
 #include <utility>
 
 #include "lighter/common/util.h"
 #include "lighter/shader_compiler/util.h"
-#include <absl/container/flat_hash_map.h>
 
 namespace lighter::shader_compiler {
 
@@ -42,8 +42,8 @@ class CompilationRecordHandler {
 
  protected:
   // Maps the source file path to hash values of source and compiled files.
-  using FileHashValueMap = absl::flat_hash_map<std::filesystem::path, FileHash,
-                                               common::util::PathHash>;
+  using FileHashValueMap = std::unordered_map<std::filesystem::path, FileHash,
+                                              common::util::PathHash>;
 };
 
 // This class reads the compilation record file and converts it to a hash map
@@ -113,4 +113,4 @@ class CompilationRecordWriter : public CompilationRecordHandler {
 
 }  // namespace lighter::shader_compiler
 
-#endif  // LIGHTER_SHADER_COMPILATION_RECORD_H
+#endif  // LIGHTER_SHADER_COMPILER_COMPILATION_RECORD_H

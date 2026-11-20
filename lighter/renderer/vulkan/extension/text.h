@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 
+#include <span>
+
 #include "lighter/common/file.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/extension/text_util.h"
@@ -21,7 +23,6 @@
 #include "lighter/renderer/vulkan/wrapper/descriptor.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include <absl/types/span.h>
 #include <glm/glm.hpp>
 
 namespace lighter {
@@ -115,7 +116,7 @@ class StaticText : public Text {
   StaticText(const SharedBasicContext& context,
              int num_frames_in_flight,
              float viewport_aspect_ratio,
-             absl::Span<const std::string> texts,
+             std::span<const std::string> texts,
              Font font, int font_height);
 
   // This class is neither copyable nor movable.
@@ -159,7 +160,7 @@ class DynamicText : public Text {
   DynamicText(const SharedBasicContext& context,
               int num_frames_in_flight,
               float viewport_aspect_ratio,
-              absl::Span<const std::string> texts,
+              std::span<const std::string> texts,
               Font font, int font_height);
 
   // This class is neither copyable nor movable.

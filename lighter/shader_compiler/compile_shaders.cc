@@ -9,34 +9,32 @@
 #include <filesystem>
 #include <optional>
 
+#include "lighter/common/flag.h"
 #include "lighter/common/util.h"
 #include "lighter/shader_compiler/run_compiler.h"
 #include "lighter/shader_compiler/util.h"
-#include <absl/flags/declare.h>
-#include <absl/flags/flag.h>
-#include <absl/flags/parse.h>
 
-ABSL_DECLARE_FLAG(std::string, shader_dir);
-ABSL_FLAG(std::string, opt_level, "perf",
-          "Optimization level (none/size/perf)");
+LIGHTER_DECLARE_FLAG(std::string, shader_dir);
+LIGHTER_FLAG(std::string, opt_level, "perf",
+             "Optimization level (none/size/perf)");
 
 int main(int argc, char* argv[]) {
   namespace stdfs = std::filesystem;
-  using namespace lighter::shader_compiler;
+  namespace sc = lighter::shader_compiler;
 
   try {
-    absl::ParseCommandLine(argc, argv);
+    lighter::common::flag::ParseCommandLine(argc, argv);
 
-    stdfs::path shader_dir{absl::GetFlag(FLAGS_shader_dir)};
+    stdfs::path shader_dir{FLAGS_shader_dir.Get()};
     ASSERT_TRUE(stdfs::is_directory(shader_dir),
                 "Please specify a valid shader directory with --shader_dir");
 
-    const std::optional<OptimizationLevel> opt_level =
-        util::OptLevelFromText(absl::GetFlag(FLAGS_opt_level));
+    const std::optional<sc::OptimizationLevel> opt_level =
+        sc::util::OptLevelFromText(FLAGS_opt_level.Get());
     ASSERT_HAS_VALUE(opt_level,
                      "--opt_level must either be 'none', 'size' or 'perf'");
 
-    compiler::CompileShaders(std::move(shader_dir), opt_level.value());
+    sc::compiler::CompileShaders(std::move(shader_dir), opt_level.value());
   } catch (const std::exception& e) {
     LOG_INFO << e.what();
     return EXIT_FAILURE;

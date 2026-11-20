@@ -73,7 +73,7 @@ uint32_t FindMemoryTypeIndex(intl::PhysicalDevice physical_device,
 }  // namespace
 
 intl::BufferUsageFlags GetBufferUsageFlags(
-    absl::Span<const BufferUsage> usages) {
+    std::span<const BufferUsage> usages) {
   intl::BufferUsageFlags flags;
   for (const auto& usage : usages) {
     if (usage.usage_type() != UsageType::kDontCare) {

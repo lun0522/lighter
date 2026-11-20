@@ -10,10 +10,10 @@
 
 #include <optional>
 #include <string>
+#include <unordered_map>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/ir/image_usage.h"
-#include <absl/container/flat_hash_map.h>
 #include <vulkan/vulkan.h>
 
 namespace lighter {
@@ -28,8 +28,8 @@ using ir::ImageUsageTracker;
 class BasePass {
  public:
   // Maps image name to usage history.
-  using ImageUsageHistoryMap = absl::flat_hash_map<std::string,
-                                                   ImageUsageHistory>;
+  using ImageUsageHistoryMap = std::unordered_map<std::string,
+                                                  ImageUsageHistory>;
 
   explicit BasePass(int num_subpasses) : num_subpasses_{num_subpasses} {}
 

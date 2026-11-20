@@ -12,6 +12,9 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <format>
+#include <span>
+#include <unordered_map>
 #include <vector>
 
 #include "lighter/common/char_lib.h"
@@ -23,8 +26,6 @@
 #include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include <absl/container/flat_hash_map.h>
-#include <absl/types/span.h>
 #include <glm/glm.hpp>
 
 namespace lighter {
@@ -54,13 +55,13 @@ class CharLoader {
   };
 
   // Maps each character to its texture information.
-  using CharTextureInfoMap = absl::flat_hash_map<char, CharTextureInfo>;
+  using CharTextureInfoMap = std::unordered_map<char, CharTextureInfo>;
 
   // 'texts' must contain all characters that might be rendered using this
   // loader. Note that this does not mean the user can only use this to render
   // elements of 'texts'. The user may use any combination of these characters.
   CharLoader(const SharedBasicContext& context,
-             absl::Span<const std::string> texts, Font font, int font_height);
+             std::span<const std::string> texts, Font font, int font_height);
 
   // This class is neither copyable nor movable.
   CharLoader(const CharLoader&) = delete;
@@ -83,13 +84,13 @@ class CharLoader {
   const CharTextureInfo& char_texture_info(char character) const {
     const auto iter = char_texture_info_map_.find(character);
     ASSERT_FALSE(iter == char_texture_info_map_.end(),
-                 absl::StrFormat("'%c' was not loaded", character));
+                 std::format("'{}' was not loaded", character));
     return iter->second;
   }
 
  private:
   // Maps each character to its texture image.
-  using CharImageMap = absl::flat_hash_map<char, std::unique_ptr<TextureImage>>;
+  using CharImageMap = std::unordered_map<char, std::unique_ptr<TextureImage>>;
 
   // Computes the extent of 'char_atlas_image_'. The width will be the total
   // width of characters (excluding space) in 'char_lib', and the height will be
@@ -142,7 +143,7 @@ class TextLoader {
 
   // The loader will be able to render any of 'texts'.
   TextLoader(const SharedBasicContext& context,
-             absl::Span<const std::string> texts,
+             std::span<const std::string> texts,
              CharLoader::Font font, int font_height);
 
   // This class is neither copyable nor movable.

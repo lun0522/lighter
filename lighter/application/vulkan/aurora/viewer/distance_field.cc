@@ -8,6 +8,7 @@
 #include "lighter/application/vulkan/aurora/viewer/distance_field.h"
 
 #include <algorithm>
+#include <span>
 
 #include "lighter/application/vulkan/util.h"
 #include "lighter/common/util.h"
@@ -20,10 +21,23 @@ namespace lighter {
 namespace application {
 namespace vulkan {
 namespace aurora {
-namespace {
 
-using namespace renderer;
-using namespace renderer::vulkan;
+using renderer::vulkan::ComputePass;
+using renderer::vulkan::ComputePipelineBuilder;
+using renderer::vulkan::Descriptor;
+using renderer::vulkan::DynamicDescriptor;
+using renderer::vulkan::Image;
+using renderer::vulkan::ImageSampler;
+using renderer::vulkan::ImageUsage;
+using renderer::vulkan::ImageUsageHistory;
+using renderer::vulkan::OffscreenImage;
+using renderer::vulkan::Pipeline;
+using renderer::vulkan::PushConstant;
+using renderer::vulkan::SharedBasicContext;
+namespace image = renderer::vulkan::image;
+namespace ir = renderer::ir;
+
+namespace {
 
 enum ImageBindingPoint {
   kOriginalImageBindingPoint = 0,
@@ -82,7 +96,7 @@ DistanceFieldGenerator::DistanceFieldGenerator(
       ir::AccessType::kReadWrite);
   pong_image_ = std::make_unique<OffscreenImage>(
       context, image_extent, output_image.format(),
-      absl::MakeSpan(&image_usage, 1), ImageSampler::Config{});
+      std::span{&image_usage, 1}, ImageSampler::Config{});
 
   /* Descriptor */
   descriptor_ = std::make_unique<DynamicDescriptor>(

@@ -7,10 +7,11 @@
 
 #include "lighter/application/vulkan/troop/lighting_pass.h"
 
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <random>
+#include <span>
 
 #include "lighter/common/file.h"
 #include "lighter/renderer/util.h"
@@ -24,10 +25,28 @@ namespace lighter {
 namespace application {
 namespace vulkan {
 namespace troop {
-namespace {
 
-using namespace renderer;
-using namespace renderer::vulkan;
+using renderer::ir::ImageUsageTracker;
+using renderer::vulkan::Descriptor;
+using renderer::vulkan::GraphicsPass;
+using renderer::vulkan::GraphicsPipelineBuilder;
+using renderer::vulkan::Image;
+using renderer::vulkan::ImageUsage;
+using renderer::vulkan::ImageUsageHistory;
+using renderer::vulkan::NaiveRenderPass;
+using renderer::vulkan::OffscreenImage;
+using renderer::vulkan::PerVertexBuffer;
+using renderer::vulkan::PushConstant;
+using renderer::vulkan::RenderPass;
+using renderer::vulkan::RenderPassBuilder;
+using renderer::vulkan::StaticDescriptor;
+using renderer::vulkan::StaticPerVertexBuffer;
+using renderer::vulkan::UniformBuffer;
+using renderer::vulkan::VertexBuffer;
+using renderer::vulkan::WindowContext;
+namespace pipeline = renderer::vulkan::pipeline;
+
+namespace {
 
 enum SubpassIndex {
   kLightsSubpassIndex = 0,
@@ -207,7 +226,7 @@ LightingPass::LightingPass(const WindowContext* window_context,
     };
 
     lights_descriptors_[frame] = std::make_unique<StaticDescriptor>(
-        context, absl::MakeSpan(&lights_descriptor_info, 1));
+        context, std::span{&lights_descriptor_info, 1});
     lights_descriptors_[frame]->UpdateBufferInfos(
         UniformBuffer::GetDescriptorType(), buffer_info_map);
 
@@ -359,7 +378,7 @@ void LightingPass::UpdatePerFrameData(int frame, const common::Camera& camera,
 
 void LightingPass::Draw(const VkCommandBuffer& command_buffer,
                         uint32_t framebuffer_index, int current_frame) const {
-  render_pass_->Run(command_buffer, framebuffer_index, /*render_ops=*/{
+  const std::array<RenderPass::RenderOp, 2> render_ops{
       [this, current_frame](const VkCommandBuffer& command_buffer) {
         lights_pipeline_->Bind(command_buffer);
         lights_descriptors_[current_frame]->Bind(
@@ -380,7 +399,8 @@ void LightingPass::Draw(const VkCommandBuffer& command_buffer,
         squad_vertex_buffer_->Draw(command_buffer, kVertexBufferBindingPoint,
                                    /*mesh_index=*/0, /*instance_count=*/1);
       },
-  });
+  };
+  render_pass_->Run(command_buffer, framebuffer_index, render_ops);
 }
 
 void LightingPass::CreateRenderPassBuilder(const Image& depth_stencil_image) {

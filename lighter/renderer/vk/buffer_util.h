@@ -9,17 +9,17 @@
 #define LIGHTER_RENDERER_VK_BUFFER_UTIL_H
 
 #include <optional>
+#include <span>
 
 #include "lighter/renderer/ir/buffer_usage.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/util.h"
-#include <absl/types/span.h>
 
 namespace lighter::renderer::vk::buffer {
 
 // Returns VkBufferUsageFlags that contains all usages.
 intl::BufferUsageFlags GetBufferUsageFlags(
-    absl::Span<const ir::BufferUsage> usages);
+    std::span<const ir::BufferUsage> usages);
 
 // Returns the family index of the queue that accesses the buffer for 'usage'.
 // Note that since this is used for creating buffers, it will return

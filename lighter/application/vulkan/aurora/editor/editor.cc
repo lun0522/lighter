@@ -7,6 +7,8 @@
 
 #include "lighter/application/vulkan/aurora/editor/editor.h"
 
+#include <array>
+#include <format>
 #include <vector>
 
 #include "lighter/application/vulkan/aurora/editor/button_util.h"
@@ -15,9 +17,16 @@ namespace lighter {
 namespace application {
 namespace vulkan {
 namespace aurora {
-namespace {
 
-using namespace renderer::vulkan;
+using renderer::vulkan::ImageUsage;
+using renderer::vulkan::NaiveRenderPass;
+using renderer::vulkan::RenderPass;
+using renderer::vulkan::ShaderModule;
+using renderer::vulkan::Text;
+using renderer::vulkan::WindowContext;
+namespace util = renderer::vulkan::util;
+
+namespace {
 
 enum SubpassIndex {
   kModelSubpassIndex = 0,
@@ -51,9 +60,9 @@ inline glm::vec3 MakeColor(int r, int g, int b) {
 // South latitude and West longitude are negative.
 glm::vec3 GetLocation(float latitude, float longitude) {
   ASSERT_TRUE(glm::abs(latitude) <= 90.0f,
-              absl::StrFormat("Invalid latitude: %f", latitude));
+              std::format("Invalid latitude: {}", latitude));
   ASSERT_TRUE(glm::abs(longitude) <= 180.0f,
-              absl::StrFormat("Invalid longitude: %f", longitude));
+              std::format("Invalid longitude: {}", longitude));
   // Offset is determined by the location of prime meridian on earth textures.
   longitude -= 90.0f;
   const float longitude_radians = glm::radians(longitude);
@@ -369,7 +378,7 @@ void Editor::UpdateData(int frame) {
 
 void Editor::Draw(const VkCommandBuffer& command_buffer,
                   uint32_t framebuffer_index, int current_frame) {
-  render_pass().Run(command_buffer, framebuffer_index, /*render_ops=*/{
+  const std::array<RenderPass::RenderOp, 3> render_ops{
       [this, current_frame](const VkCommandBuffer& command_buffer) {
         celestial_->Draw(command_buffer, current_frame);
       },
@@ -383,7 +392,8 @@ void Editor::Draw(const VkCommandBuffer& command_buffer,
         bottom_row_buttons_->Draw(
             command_buffer, state_manager_.bottom_row_buttons_states());
       },
-  });
+  };
+  render_pass().Run(command_buffer, framebuffer_index, render_ops);
 }
 
 void Editor::RotateCelestials(const common::rotation::Rotation& rotation) {

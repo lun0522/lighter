@@ -8,12 +8,13 @@
 #ifndef LIGHTER_RENDERER_VK_BUFFER_H
 #define LIGHTER_RENDERER_VK_BUFFER_H
 
+#include <span>
+
 #include "lighter/common/util.h"
 #include "lighter/renderer/ir/buffer.h"
 #include "lighter/renderer/ir/buffer_usage.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/util.h"
-#include <absl/types/span.h>
 
 namespace lighter::renderer::vk {
 
@@ -21,7 +22,7 @@ class Buffer : public WithSharedContext,
                public ir::Buffer {
  public:
   Buffer(const SharedContext& context, UpdateRate update_rate,
-         size_t initial_size, absl::Span<const ir::BufferUsage> usages)
+         size_t initial_size, std::span<const ir::BufferUsage> usages)
       : WithSharedContext{context},
         allocation_info_{*context_, update_rate, usages} {
     AllocateBufferAndMemory(initial_size);
@@ -33,12 +34,12 @@ class Buffer : public WithSharedContext,
 
   ~Buffer() override { DeallocateBufferAndMemory(); }
 
-  void CopyToDevice(absl::Span<const CopyInfo> copy_infos) const override;
+  void CopyToDevice(std::span<const CopyInfo> copy_infos) const override;
 
  private:
   struct AllocationInfo {
     AllocationInfo(const Context& context, UpdateRate update_rate,
-                   absl::Span<const ir::BufferUsage> usages);
+                   std::span<const ir::BufferUsage> usages);
 
     // Returns true if the device memory is visible to host.
     bool IsHostVisible() const {

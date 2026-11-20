@@ -8,6 +8,7 @@
 #include "lighter/application/vulkan/aurora/editor/button.h"
 
 #include <algorithm>
+#include <format>
 
 #include "lighter/application/vulkan/util.h"
 #include "lighter/common/data.h"
@@ -16,15 +17,26 @@
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include <absl/strings/str_format.h>
 
 namespace lighter {
 namespace application {
 namespace vulkan {
 namespace aurora {
-namespace {
 
-using namespace renderer::vulkan;
+using renderer::vulkan::Descriptor;
+using renderer::vulkan::DynamicPerInstanceBuffer;
+using renderer::vulkan::GraphicsPipelineBuilder;
+using renderer::vulkan::Image;
+using renderer::vulkan::OffscreenImage;
+using renderer::vulkan::Pipeline;
+using renderer::vulkan::RenderPass;
+using renderer::vulkan::SharedBasicContext;
+using renderer::vulkan::StaticDescriptor;
+using renderer::vulkan::UniformBuffer;
+using renderer::vulkan::VertexBuffer;
+namespace pipeline = renderer::vulkan::pipeline;
+
+namespace {
 
 enum UniformBindingPoint {
   kVerticesInfoBindingPoint = 0,
@@ -138,7 +150,7 @@ void ButtonRenderer::UpdateFramebuffer(
 
 void ButtonRenderer::Draw(
     const VkCommandBuffer& command_buffer,
-    absl::Span<const draw_button::RenderInfo> buttons_to_render) {
+    std::span<const draw_button::RenderInfo> buttons_to_render) {
   ASSERT_NON_NULL(pipeline_, "UpdateFramebuffer() must have been called");
   per_instance_buffer_->CopyHostData(buttons_to_render);
   pipeline_->Bind(command_buffer);
@@ -319,12 +331,12 @@ void Button::UpdateFramebuffer(const VkExtent2D& frame_size,
 }
 
 void Button::Draw(const VkCommandBuffer& command_buffer,
-                  absl::Span<const State> button_states) {
+                  std::span<const State> button_states) {
   const int num_buttons = all_buttons_.size();
   ASSERT_TRUE(button_states.size() == num_buttons,
-              absl::StrFormat("Length of button states (%d) must match with "
-                              "number of buttons (%d)",
-                              button_states.size(), num_buttons));
+              std::format("Length of button states ({}) must match with "
+                          "number of buttons ({})",
+                          button_states.size(), num_buttons));
 
   buttons_to_render_.clear();
   for (int button = 0; button < num_buttons; ++button) {
@@ -348,12 +360,12 @@ void Button::Draw(const VkCommandBuffer& command_buffer,
 
 std::optional<int> Button::GetClickedButtonIndex(
     const glm::vec2& click_ndc, int button_index_offset,
-    absl::Span<const State> button_states) const {
+    std::span<const State> button_states) const {
   const int num_buttons = all_buttons_.size();
   ASSERT_TRUE(button_states.size() == num_buttons,
-              absl::StrFormat("Length of button states (%d) must match with "
-                              "number of buttons (%d)",
-                              button_states.size(), num_buttons));
+              std::format("Length of button states ({}) must match with "
+                          "number of buttons ({})",
+                          button_states.size(), num_buttons));
 
   for (int i = 0; i < num_buttons; ++i) {
     if (button_states[i] == State::kHidden) {

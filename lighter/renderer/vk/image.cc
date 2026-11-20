@@ -7,15 +7,15 @@
 
 #include "lighter/renderer/vk/image.h"
 
+#include <array>
+#include <format>
 #include <optional>
+#include <unordered_set>
 #include <vector>
 
 #include "lighter/renderer/vk/buffer_util.h"
 #include "lighter/renderer/vk/image_util.h"
 #include "lighter/renderer/vk/type_mapping.h"
-#include <absl/container/flat_hash_set.h>
-#include <absl/memory/memory.h>
-#include <absl/strings/str_format.h>
 
 namespace lighter::renderer::vk {
 namespace {
@@ -28,7 +28,7 @@ const int kSingleMipLevel = common::image::kSingleMipLevel;
 // Returns the first image format among 'candidates' that has the specified
 // 'features'. If not found, returns std::nullopt.
 std::optional<intl::Format> FindImageFormatWithFeature(
-    const Context& context, absl::Span<const intl::Format> candidates,
+    const Context& context, std::span<const intl::Format> candidates,
     intl::FormatFeatureFlags features) {
   for (const intl::Format format : candidates) {
     const intl::FormatProperties properties =
@@ -42,7 +42,7 @@ std::optional<intl::Format> FindImageFormatWithFeature(
 
 intl::Format ChooseColorImageFormat(const Context& context, int channel,
                                     bool high_precision,
-                                    absl::Span<const ImageUsage> usages) {
+                                    std::span<const ImageUsage> usages) {
   switch (channel) {
     case common::image::kBwImageChannel: {
       const intl::Format best_format = high_precision ? intl::Format::eR16Sfloat
@@ -55,7 +55,7 @@ intl::Format ChooseColorImageFormat(const Context& context, int channel,
       // sampling, but may not support linear access. We switch to 4-channel
       // formats instead since they have mandatory support for both.
       if (FindImageFormatWithFeature(
-              context, {best_format},
+              context, std::array{best_format},
               intl::FormatFeatureFlagBits::eStorageImage).has_value()) {
         return best_format;
       } else {
@@ -73,8 +73,8 @@ intl::Format ChooseColorImageFormat(const Context& context, int channel,
                             : intl::Format::eR8G8B8A8Unorm;
 
     default:
-      FATAL(absl::StrFormat(
-          "Number of channels can only be 1 or 4, while %d provided", channel));
+      FATAL(std::format(
+          "Number of channels can only be 1 or 4, while {} provided", channel));
   }
 }
 
@@ -142,7 +142,8 @@ intl::ImageViewType Image::GetViewType() const {
 }
 
 intl::ImageAspectFlags Image::GetAspectFlags() const {
-  const auto formats_span = absl::MakeSpan(GetSupportedDepthStencilFormats());
+  const std::span<const intl::Format> formats_span{
+      GetSupportedDepthStencilFormats()};
   if (common::util::Contains(formats_span, format())) {
     return intl::ImageAspectFlagBits::eDepth |
            intl::ImageAspectFlagBits::eStencil;
@@ -155,10 +156,10 @@ std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
     const SharedContext& context, std::string_view name,
     const common::Image::Dimension& dimension,
     MultisamplingMode multisampling_mode, bool high_precision,
-    absl::Span<const ImageUsage> usages) {
+    std::span<const ImageUsage> usages) {
   const intl::Format format = ChooseColorImageFormat(
       *context, dimension.channel, high_precision, usages);
-  return absl::WrapUnique(new SingleImage(
+  return std::unique_ptr<SingleImage>(new SingleImage(
       context, name, LayerType::kSingle, dimension.extent(), kSingleMipLevel,
       format, multisampling_mode, usages));
 }
@@ -166,11 +167,11 @@ std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
 std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
     const SharedContext& context, std::string_view name,
     const common::Image& image, bool generate_mipmaps,
-    absl::Span<const ImageUsage> usages) {
+    std::span<const ImageUsage> usages) {
   const intl::Format format = ChooseColorImageFormat(
       *context, image.channel(), /*high_precision=*/false, usages);
   // TODO: Generate mipmaps and change mip_levels.
-  return absl::WrapUnique(new SingleImage(
+  return std::unique_ptr<SingleImage>(new SingleImage(
       context, name, image.type(), image.extent(), kSingleMipLevel, format,
       MultisamplingMode::kNone, usages));
 }
@@ -178,9 +179,9 @@ std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
 std::unique_ptr<SingleImage> SingleImage::CreateDepthStencilImage(
     const SharedContext& context, std::string_view name,
     const glm::ivec2& extent, MultisamplingMode multisampling_mode,
-    absl::Span<const ImageUsage> usages) {
+    std::span<const ImageUsage> usages) {
   const intl::Format format = ChooseDepthStencilImageFormat(*context);
-  return absl::WrapUnique(new SingleImage(
+  return std::unique_ptr<SingleImage>(new SingleImage(
       context, name, LayerType::kSingle, extent, kSingleMipLevel, format,
       multisampling_mode, usages));
 }
@@ -189,7 +190,7 @@ SingleImage::SingleImage(
     const SharedContext& context, std::string_view name, LayerType layer_type,
     const glm::ivec2& extent, int mip_levels, intl::Format format,
     ir::MultisamplingMode multisampling_mode,
-    absl::Span<const ir::ImageUsage> usages)
+    std::span<const ir::ImageUsage> usages)
     : WithSharedContext{context},
       Image{Type::kSingle, name, layer_type, extent, mip_levels, format,
             context_->physical_device().sample_count(multisampling_mode)} {
@@ -198,7 +199,7 @@ SingleImage::SingleImage(
     create_flags |= intl::ImageCreateFlagBits::eCubeCompatible;
   }
 
-  absl::flat_hash_set<uint32_t> queue_family_indices_set;
+  std::unordered_set<uint32_t> queue_family_indices_set;
   for (const ImageUsage& usage : usages) {
     const auto queue_family_index =
         image::GetQueueFamilyIndex(*context_, usage);

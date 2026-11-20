@@ -5,8 +5,8 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_SHADER_RUN_COMPILER_H
-#define LIGHTER_SHADER_RUN_COMPILER_H
+#ifndef LIGHTER_SHADER_COMPILER_RUN_COMPILER_H
+#define LIGHTER_SHADER_COMPILER_RUN_COMPILER_H
 
 #include <filesystem>
 
@@ -20,4 +20,4 @@ void CompileShaders(std::filesystem::path&& shader_dir,
 
 }  // namespace lighter::shader_compiler::compiler
 
-#endif  // LIGHTER_SHADER_RUN_COMPILER_H
+#endif  // LIGHTER_SHADER_COMPILER_RUN_COMPILER_H

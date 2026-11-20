@@ -9,13 +9,14 @@
 #define LIGHTER_COMMON_IMAGE_H
 
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
 
-#include "lighter/common/data.h"
-#include <absl/types/span.h>
 #include <glm/glm.hpp>
+
+#include "lighter/common/data.h"
 
 namespace lighter::common {
 namespace image {
@@ -63,10 +64,10 @@ class Image {
   // height and channel. The number of channels may be either 1, 3 or 4. If it
   // is 3, we will create the 4th channel internally.
   // The length of 'paths' and 'relative_paths' must be 6.
-  static Image LoadCubemapFromFiles(absl::Span<const std::string> paths,
+  static Image LoadCubemapFromFiles(std::span<const std::string> paths,
                                     bool flip_y);
   static Image LoadCubemapFromFiles(
-      std::string_view directory, absl::Span<const std::string> relative_paths,
+      std::string_view directory, std::span<const std::string> relative_paths,
       bool flip_y);
 
   // Loads images from the memory. The data will be copied, hence the caller may
@@ -74,11 +75,12 @@ class Image {
   // Images may have either 1 or 4 channels.
   static Image LoadSingleImageFromMemory(
       const Dimension& dimension, const void* raw_data, bool flip_y) {
-    return LoadImagesFromMemory(dimension, {&raw_data, 1}, flip_y);
+    return LoadImagesFromMemory(
+        dimension, std::span<const void* const>{&raw_data, 1}, flip_y);
   }
   // The length of 'raw_data_ptrs' must be 6.
   static Image LoadCubemapFromMemory(
-      const Dimension& dimension, absl::Span<const void* const> raw_data_ptrs,
+      const Dimension& dimension, std::span<const void* const> raw_data_ptrs,
       bool flip_y);
 
   // This class is only movable.
@@ -101,7 +103,7 @@ class Image {
 
  private:
   static Image LoadImagesFromMemory(
-      const Dimension& dimension, absl::Span<const void* const> raw_data_ptrs,
+      const Dimension& dimension, std::span<const void* const> raw_data_ptrs,
       bool flip_y);
 
   Image(Type type, const Dimension& dimension, RawChunkedData&& data)

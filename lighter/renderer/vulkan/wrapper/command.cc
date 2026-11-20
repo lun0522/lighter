@@ -7,10 +7,10 @@
 
 #include "lighter/renderer/vulkan/wrapper/command.h"
 
+#include <format>
 #include <limits>
 
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include <absl/strings/str_format.h>
 
 namespace lighter {
 namespace renderer {
@@ -94,7 +94,7 @@ std::optional<VkResult> CheckResult(VkResult result) {
       return std::nullopt;
 
     default:
-      FATAL(absl::StrFormat("Errno: %d", result));
+      FATAL(std::format("Errno: {}", static_cast<int>(result)));
   }
 }
 

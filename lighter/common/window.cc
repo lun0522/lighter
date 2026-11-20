@@ -7,9 +7,11 @@
 
 #include "lighter/common/window.h"
 
-#include "lighter/common/util.h"
-#include <absl/strings/str_format.h>
+#include <format>
+
 #include <GLFW/glfw3.h>
+
+#include "lighter/common/util.h"
 
 namespace lighter::common {
 namespace {
@@ -37,7 +39,7 @@ namespace window_callback {
 
 // Prints errors reported by GLFW.
 void GlfwErrorCallback(int error, const char* description) {
-  FATAL(absl::StrFormat("GLFW error %d: %s", error, description));
+  FATAL(std::format("GLFW error {}: {}", error, description));
 }
 
 // We pass a pointer to the Window instance with 'glfwSetWindowUserPointer'
@@ -107,9 +109,9 @@ Window& Window::RegisterPressKeyCallback(
     press_key_callbacks_.erase(glfw_key);
   } else {
     ASSERT_FALSE(press_key_callbacks_.contains(glfw_key),
-                 absl::StrFormat("Must unregister press key callback for %d"
-                                 "before registering a new one",
-                                 static_cast<int>(key)));
+                 std::format("Must unregister press key callback for {} "
+                             "before registering a new one",
+                             static_cast<int>(key)));
     press_key_callbacks_[glfw_key] = std::move(callback);
   }
   return *this;

@@ -9,11 +9,11 @@
 #define LIGHTER_RENDERER_VK_IMAGE_UTIL_H
 
 #include <optional>
+#include <span>
 
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/util.h"
-#include <absl/types/span.h>
 
 namespace lighter::renderer::vk::image {
 
@@ -28,7 +28,7 @@ intl::ImageLayout GetImageLayout(const ir::ImageUsage& usage);
 
 // Returns VkImageUsageFlags that contains all usages.
 intl::ImageUsageFlags GetImageUsageFlags(
-    absl::Span<const ir::ImageUsage> usages);
+    std::span<const ir::ImageUsage> usages);
 
 // Returns the family index of the queue that accesses the image for 'usage'.
 // Note that since this is used for creating image buffers, it will return

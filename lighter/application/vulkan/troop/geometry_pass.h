@@ -13,6 +13,8 @@
 #include <string_view>
 #include <optional>
 
+#include <span>
+
 #include "lighter/common/camera.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
@@ -21,7 +23,6 @@
 #include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
-#include <absl/types/span.h>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 
@@ -82,7 +83,7 @@ class GeometryPass {
   };
 
   // Populates 'render_pass_builder_'.
-  void CreateRenderPassBuilder(absl::Span<const Attachment> attachments);
+  void CreateRenderPassBuilder(std::span<const Attachment> attachments);
 
   // Number of soldiers to render.
   const int num_soldiers_;

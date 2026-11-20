@@ -8,9 +8,9 @@
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 
 #include <cstring>
+#include <format>
 
 #include "lighter/renderer/vulkan/wrapper/command.h"
-#include <absl/strings/str_format.h>
 
 namespace lighter {
 namespace renderer {
@@ -409,8 +409,8 @@ VkDescriptorBufferInfo UniformBuffer::GetDescriptorInfo(
 
 void UniformBuffer::ValidateChunkIndex(int chunk_index) const {
   ASSERT_TRUE(chunk_index < num_chunks_,
-              absl::StrFormat("Chunk index (%d) of out range (%d)",
-                              chunk_index, num_chunks_));
+              std::format("Chunk index ({}) of out range ({})",
+                          chunk_index, num_chunks_));
 }
 
 PushConstant::PushConstant(const SharedBasicContext& context,
@@ -418,10 +418,10 @@ PushConstant::PushConstant(const SharedBasicContext& context,
     : size_per_frame_{static_cast<uint32_t>(size_per_frame)},
       num_frames_{num_frames_in_flight} {
   ASSERT_TRUE(size_per_frame <= kMaxPushConstantSize,
-              absl::StrFormat("Pushing constant of size %d bytes per-frame. To "
-                              "be compatible with all devices, the size should "
-                              "not be greater than %d bytes.",
-                              size_per_frame, kMaxPushConstantSize));
+              std::format("Pushing constant of size {} bytes per-frame. To "
+                          "be compatible with all devices, the size should "
+                          "not be greater than {} bytes.",
+                          size_per_frame, kMaxPushConstantSize));
   data_ = new char[size_per_frame_ * num_frames_in_flight];
 }
 
@@ -436,8 +436,7 @@ void PushConstant::Flush(const VkCommandBuffer& command_buffer,
 
 void PushConstant::ValidateFrame(int frame) const {
   ASSERT_TRUE(frame < num_frames_,
-              absl::StrFormat("Frame (%d) of out range (%d)",
-                              frame, num_frames_));
+              std::format("Frame ({}) of out range ({})", frame, num_frames_));
 }
 
 } /* namespace vulkan */

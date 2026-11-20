@@ -9,13 +9,13 @@
 #define LIGHTER_RENDERER_VK_BASIC_H
 
 #include <optional>
+#include <span>
+#include <unordered_map>
 #include <vector>
 
 #include "lighter/common/window.h"
 #include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/vk/util.h"
-#include <absl/container/flat_hash_map.h>
-#include <absl/types/span.h>
 
 namespace lighter::renderer::vk {
 
@@ -49,7 +49,7 @@ class Instance {
  public:
   Instance(const Context* context, bool enable_validation,
            const char* application_name,
-           absl::Span<const common::Window* const> windows);
+           std::span<const common::Window* const> windows);
 
   // This class is neither copyable nor movable.
   Instance(const Instance&) = delete;
@@ -136,7 +136,7 @@ struct PhysicalDevice {
     std::vector<uint32_t> presents;
   };
 
-  PhysicalDevice(const Context* context, absl::Span<Surface* const> surfaces);
+  PhysicalDevice(const Context* context, std::span<Surface* const> surfaces);
 
   // This class is neither copyable nor movable.
   PhysicalDevice(const PhysicalDevice&) = delete;
@@ -172,7 +172,7 @@ struct PhysicalDevice {
   intl::PhysicalDeviceLimits limits_;
 
   // Maps multisampling modes to the sample count that should be chosen.
-  absl::flat_hash_map<ir::MultisamplingMode, intl::SampleCountFlagBits>
+  std::unordered_map<ir::MultisamplingMode, intl::SampleCountFlagBits>
       sample_count_map_;
 };
 

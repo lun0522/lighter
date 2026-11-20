@@ -7,9 +7,8 @@
 
 #include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 
+#include <format>
 #include <functional>
-
-#include <absl/strings/str_format.h>
 
 namespace lighter {
 namespace renderer {
@@ -20,16 +19,16 @@ namespace {
 void CheckSubpassIndexInRange(int subpass, int num_subpasses,
                               std::string_view name) {
   ASSERT_TRUE(0 <= subpass && subpass < num_subpasses,
-              absl::StrFormat("First %s subpass index (%d) must be in range "
-                              "[0, %d)",
-                              name, subpass, num_subpasses));
+              std::format("First {} subpass index ({}) must be in range "
+                          "[0, {})",
+                          name, subpass, num_subpasses));
 }
 
 #ifndef NDEBUG
 // Logs subpass 'count' if it is greater than 0.
 void PrintSubpassCountIfNonZero(int count, std::string_view name) {
   if (count > 0) {
-    LOG_INFO << absl::StreamFormat("Number of %s subpasses: %d", name, count);
+    LOG_INFO << std::format("Number of {} subpasses: {}", name, count);
   }
 }
 #endif  /* !NDEBUG */
@@ -43,8 +42,7 @@ void AddAttachmentToGraphicsPass(
     const std::function<void(ImageUsageHistory&)>& populate_history) {
   const std::string& image_name = attachment_config.image_name;
   ASSERT_TRUE(image_usage_tracker.IsImageTracked(image_name),
-              absl::StrFormat("Usage of attachment %s is not tracked",
-                              image_name));
+              std::format("Usage of attachment {} is not tracked", image_name));
 
   ImageUsageHistory history{image_usage_tracker.GetUsage(image_name)};
   populate_history(history);
@@ -64,8 +62,8 @@ NaiveRenderPass::SubpassConfig::SubpassConfig(
     int num_subpasses, std::optional<int> first_transparent_subpass,
     std::optional<int> first_overlay_subpass) {
   ASSERT_TRUE(num_subpasses >= 0,
-              absl::StrFormat("Number of subpasses (%d) must be positive",
-                              num_subpasses));
+              std::format("Number of subpasses ({}) must be positive",
+                          num_subpasses));
   if (first_transparent_subpass.has_value()) {
     CheckSubpassIndexInRange(first_transparent_subpass.value(), num_subpasses,
                              "transparent");

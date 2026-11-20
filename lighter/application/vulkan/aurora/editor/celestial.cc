@@ -15,9 +15,17 @@ namespace lighter {
 namespace application {
 namespace vulkan {
 namespace aurora {
-namespace {
 
-using namespace renderer::vulkan;
+using renderer::vulkan::Image;
+using renderer::vulkan::ImageUsage;
+using renderer::vulkan::ModelBuilder;
+using renderer::vulkan::PushConstant;
+using renderer::vulkan::RenderPass;
+using renderer::vulkan::SharedBasicContext;
+using renderer::vulkan::SharedTexture;
+using renderer::vulkan::UniformBuffer;
+
+namespace {
 
 /* BEGIN: Consistent with uniform blocks defined in shaders. */
 

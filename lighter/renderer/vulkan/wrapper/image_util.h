@@ -8,8 +8,9 @@
 #ifndef LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_UTIL_H
 #define LIGHTER_RENDERER_VULKAN_WRAPPER_IMAGE_UTIL_H
 
+#include <span>
+
 #include "lighter/renderer/ir/image_usage.h"
-#include <absl/types/span.h>
 #include <vulkan/vulkan.h>
 
 namespace lighter {
@@ -35,7 +36,7 @@ VkImageLayout GetImageLayout(const ImageUsage& usage);
 VkImageUsageFlagBits GetImageUsageFlagBits(const ImageUsage& usage);
 
 // Returns VkImageUsageFlags that contains all usages.
-VkImageUsageFlags GetImageUsageFlags(absl::Span<const ImageUsage> usages);
+VkImageUsageFlags GetImageUsageFlags(std::span<const ImageUsage> usages);
 
 // Returns whether we need to explicitly synchronize image memory access when
 // the image usage changes, which means to insert memory barriers in compute

@@ -234,7 +234,7 @@ std::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
   }
 }
 
-intl::ImageUsageFlags GetImageUsageFlags(absl::Span<const ImageUsage> usages) {
+intl::ImageUsageFlags GetImageUsageFlags(std::span<const ImageUsage> usages) {
   intl::ImageUsageFlags flags;
   for (const auto& usage : usages) {
     if (usage.usage_type() != UsageType::kDontCare) {

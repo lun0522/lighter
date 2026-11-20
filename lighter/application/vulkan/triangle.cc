@@ -16,7 +16,19 @@ namespace application {
 namespace vulkan {
 namespace {
 
-using namespace renderer::vulkan;
+using renderer::vulkan::DynamicPerVertexBuffer;
+using renderer::vulkan::GraphicsPipelineBuilder;
+using renderer::vulkan::ImageUsage;
+using renderer::vulkan::NaiveRenderPass;
+using renderer::vulkan::PerFrameCommand;
+using renderer::vulkan::PerVertexBuffer;
+using renderer::vulkan::Pipeline;
+using renderer::vulkan::PushConstant;
+using renderer::vulkan::RenderPass;
+using renderer::vulkan::StaticPerVertexBuffer;
+using renderer::vulkan::VertexBuffer;
+using renderer::vulkan::WindowContext;
+namespace pipeline = renderer::vulkan::pipeline;
 
 enum SubpassIndex {
   kRenderSubpassIndex = 0,
@@ -146,20 +158,21 @@ void TriangleApp::MainLoop() {
   while (mutable_window_context()->CheckEvents()) {
     timer_.Tick();
 
+    const std::array<RenderPass::RenderOp, 1> render_ops{
+        [this](const VkCommandBuffer& command_buffer) {
+          pipeline_->Bind(command_buffer);
+          alpha_constant_->Flush(command_buffer, pipeline_->layout(),
+                                 current_frame_, /*target_offset=*/0,
+                                 VK_SHADER_STAGE_FRAGMENT_BIT);
+          vertex_buffer_->Draw(command_buffer, kVertexBufferBindingPoint,
+                               /*mesh_index=*/0, /*instance_count=*/1);
+        },
+    };
     const auto draw_result = command_->Run(
         current_frame_, window_context().swapchain(), update_data,
-        [this](const VkCommandBuffer& command_buffer,
-               uint32_t framebuffer_index) {
-          render_pass().Run(command_buffer, framebuffer_index, /*render_ops=*/{
-              [this](const VkCommandBuffer& command_buffer) {
-                pipeline_->Bind(command_buffer);
-                alpha_constant_->Flush(command_buffer, pipeline_->layout(),
-                                       current_frame_, /*target_offset=*/0,
-                                       VK_SHADER_STAGE_FRAGMENT_BIT);
-                vertex_buffer_->Draw(command_buffer, kVertexBufferBindingPoint,
-                                     /*mesh_index=*/0, /*instance_count=*/1);
-              },
-          });
+        [this, &render_ops](const VkCommandBuffer& command_buffer,
+                            uint32_t framebuffer_index) {
+          render_pass().Run(command_buffer, framebuffer_index, render_ops);
         });
 
     if (draw_result.has_value() || window_context().ShouldRecreate()) {
@@ -176,6 +189,8 @@ void TriangleApp::MainLoop() {
 } /* namespace lighter */
 
 int main(int argc, char* argv[]) {
-  using namespace lighter::application::vulkan;
+  using lighter::application::vulkan::AppMain;
+  using lighter::application::vulkan::TriangleApp;
+  using lighter::renderer::vulkan::WindowContext;
   return AppMain<TriangleApp>(argc, argv, WindowContext::Config{});
 }

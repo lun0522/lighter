@@ -9,13 +9,13 @@
 #define LIGHTER_RENDERER_VULKAN_EXTENSION_COMPUTE_PASS_H
 
 #include <functional>
+#include <span>
 #include <string>
+#include <unordered_map>
 
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/vulkan/extension/base_pass.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
-#include <absl/container/flat_hash_map.h>
-#include <absl/types/span.h>
 #include <vulkan/vulkan.h>
 
 namespace lighter {
@@ -52,8 +52,8 @@ class ComputePass : public BasePass {
   // This should be called when 'command_buffer' is recording commands.
   // TODO: Handle queue transfer
   void Run(const VkCommandBuffer& command_buffer, uint32_t queue_family_index,
-           const absl::flat_hash_map<std::string, const Image*>& image_map,
-           absl::Span<const ComputeOp> compute_ops) const;
+           const std::unordered_map<std::string, const Image*>& image_map,
+           std::span<const ComputeOp> compute_ops) const;
 
  private:
   // Inserts a memory barrier for transitioning the layout of 'image' using the

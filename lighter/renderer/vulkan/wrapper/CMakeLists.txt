@@ -6,7 +6,6 @@ target_link_libraries(lighter_renderer_vulkan_wrapper_util
   PUBLIC
     lighter_project_options
     lighter_common_util
-    absl::str_format
     glm::glm
     Vulkan::Vulkan
 )
@@ -24,12 +23,6 @@ target_link_libraries(lighter_renderer_vulkan_wrapper_basics
     lighter_common_ref_count
     lighter_common_util
     lighter_renderer_vulkan_wrapper_util
-    absl::flat_hash_map
-    absl::flat_hash_set
-    absl::memory
-    absl::span
-    absl::str_format
-    absl::strings
     Vulkan::Vulkan
 )
 
@@ -56,7 +49,6 @@ target_link_libraries(lighter_renderer_vulkan_wrapper_command
     lighter_renderer_vulkan_wrapper_basics
     lighter_renderer_vulkan_wrapper_synchronization
     lighter_renderer_vulkan_wrapper_util
-    absl::str_format
     Vulkan::Vulkan
 )
 
@@ -71,8 +63,6 @@ target_link_libraries(lighter_renderer_vulkan_wrapper_buffer
     lighter_renderer_vulkan_wrapper_basics
     lighter_renderer_vulkan_wrapper_command
     lighter_renderer_vulkan_wrapper_util
-    absl::span
-    absl::str_format
     Vulkan::Vulkan
 )
 
@@ -87,9 +77,6 @@ target_link_libraries(lighter_renderer_vulkan_wrapper_descriptor
     lighter_common_util
     lighter_renderer_vulkan_wrapper_basics
     lighter_renderer_vulkan_wrapper_util
-    absl::flat_hash_map
-    absl::span
-    absl::str_format
     Vulkan::Vulkan
 )
 
@@ -111,10 +98,6 @@ target_link_libraries(lighter_renderer_vulkan_wrapper_image
     lighter_renderer_vulkan_wrapper_buffer
     lighter_renderer_vulkan_wrapper_command
     lighter_renderer_vulkan_wrapper_util
-    absl::flat_hash_set
-    absl::memory
-    absl::span
-    absl::str_format
     Vulkan::Vulkan
 )
 
@@ -134,9 +117,6 @@ target_link_libraries(lighter_renderer_vulkan_wrapper_pipeline
     lighter_renderer_vulkan_wrapper_basics
     lighter_renderer_vulkan_wrapper_buffer
     lighter_renderer_vulkan_wrapper_util
-    absl::flat_hash_map
-    absl::span
-    absl::str_format
     Vulkan::Vulkan
 )
 
@@ -152,8 +132,6 @@ target_link_libraries(lighter_renderer_vulkan_wrapper_render_pass
     lighter_renderer_vulkan_wrapper_basics
     lighter_renderer_vulkan_wrapper_image
     lighter_renderer_vulkan_wrapper_util
-    absl::span
-    absl::str_format
     Vulkan::Vulkan
 )
 

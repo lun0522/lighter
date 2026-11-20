@@ -7,11 +7,11 @@
 
 #include "lighter/renderer/vk/framebuffer.h"
 
+#include <format>
 #include <optional>
+#include <span>
 
 #include "lighter/renderer/vk/image.h"
-#include <absl/strings/str_format.h>
-#include <absl/types/span.h>
 
 namespace lighter::renderer::vk {
 namespace {
@@ -35,7 +35,7 @@ std::vector<const Image*> ExtractAttachments(
 
 // Returns the number of framebuffers to create. This assumes that all instances
 // of MultiImage have the same image count.
-int FindNumFramebuffers(absl::Span<const Image* const> attachments) {
+int FindNumFramebuffers(std::span<const Image* const> attachments) {
   std::optional<int> num_framebuffers;
   for (const Image* attachment : attachments) {
     if (attachment->IsSingleImage()) {
@@ -44,10 +44,10 @@ int FindNumFramebuffers(absl::Span<const Image* const> attachments) {
     const int num_images = MultiImage::Cast(*attachment).num_images();
     ASSERT_TRUE(
         !num_framebuffers.has_value() || num_images == num_framebuffers.value(),
-        absl::StrFormat("Number of images (%d) in '%s' mismatches with other "
-                        "attachments (found %d)",
-                        num_images, attachment->name(),
-                        num_framebuffers.value()));
+        std::format("Number of images ({}) in '{}' mismatches with other "
+                    "attachments (found {})",
+                    num_images, attachment->name(),
+                    num_framebuffers.value()));
     num_framebuffers = num_images;
   }
   return num_framebuffers.has_value() ? num_framebuffers.value() : 1;

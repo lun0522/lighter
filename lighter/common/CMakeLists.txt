@@ -5,13 +5,16 @@ add_library(lighter_common_util STATIC
 target_link_libraries(lighter_common_util
   PUBLIC
     lighter_project_options
-    absl::base
-    absl::core_headers
-    absl::flat_hash_set
-    absl::function_ref
-    absl::span
-    absl::str_format
-    absl::strings
+)
+
+add_library(lighter_common_flag STATIC
+  flag.cc
+  flag.h
+)
+target_link_libraries(lighter_common_flag
+  PUBLIC
+    lighter_project_options
+    lighter_common_util
 )
 
 add_library(lighter_common_data STATIC
@@ -22,7 +25,6 @@ target_link_libraries(lighter_common_data
   PUBLIC
     lighter_project_options
     lighter_common_util
-    absl::str_format
     glm::glm
 )
 
@@ -34,12 +36,9 @@ target_link_libraries(lighter_common_file
   PUBLIC
     lighter_project_options
     lighter_common_data
+    lighter_common_flag
     lighter_common_util
     lighter_shader_compiler_util
-    absl::flat_hash_map
-    absl::flags
-    absl::str_format
-    absl::strings
     glm::glm
 )
 if(LIGHTER_RESOURCE_DIR)
@@ -61,8 +60,6 @@ target_link_libraries(lighter_common_image
     lighter_common_data
     lighter_common_file
     lighter_common_util
-    absl::span
-    absl::strings
     glm::glm
     stb::stb
 )
@@ -77,8 +74,6 @@ target_link_libraries(lighter_common_char_lib
     lighter_common_file
     lighter_common_image
     lighter_common_util
-    absl::flat_hash_map
-    absl::span
     freetype
     glm::glm
 )
@@ -92,7 +87,6 @@ target_link_libraries(lighter_common_model_loader
     lighter_project_options
     lighter_common_file
     lighter_common_util
-    absl::str_format
     assimp::assimp
 )
 
@@ -104,8 +98,6 @@ target_link_libraries(lighter_common_camera
   PUBLIC
     lighter_project_options
     lighter_common_util
-    absl::function_ref
-    absl::memory
     glm::glm
 )
 
@@ -124,7 +116,6 @@ target_link_libraries(lighter_common_ref_count
   INTERFACE
     lighter_project_options
     lighter_common_util
-    absl::flat_hash_map
 )
 
 add_library(lighter_common_rotation STATIC
@@ -148,8 +139,6 @@ target_link_libraries(lighter_common_spline
   PUBLIC
     lighter_project_options
     lighter_common_util
-    absl::span
-    absl::str_format
     glm::glm
 )
 
@@ -161,8 +150,6 @@ target_link_libraries(lighter_common_window
   PUBLIC
     lighter_project_options
     lighter_common_util
-    absl::flat_hash_map
-    absl::str_format
     glfw
     glm::glm
     Vulkan::Vulkan

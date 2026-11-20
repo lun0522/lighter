@@ -74,7 +74,7 @@ glm::mat4 OrthographicCamera::GetProjectionMatrix() const {
 
 template <typename CameraType>
 void UserControlledCamera<CameraType>::SetInternalStates(
-    absl::FunctionRef<void(CameraType*)> operation) {
+    const std::function<void(CameraType*)>& operation) {
   operation(camera_.get());
   ResetAngles();
 }

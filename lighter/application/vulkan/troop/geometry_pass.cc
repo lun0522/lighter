@@ -7,6 +7,7 @@
 
 #include "lighter/application/vulkan/troop/geometry_pass.h"
 
+#include <array>
 #include <vector>
 
 #include "lighter/application/vulkan/util.h"
@@ -22,8 +23,20 @@ namespace vulkan {
 namespace troop {
 namespace {
 
-using namespace renderer;
-using namespace renderer::vulkan;
+using renderer::vulkan::GraphicsPass;
+using renderer::vulkan::Image;
+using renderer::vulkan::ImageUsage;
+using renderer::vulkan::ImageUsageHistory;
+using renderer::vulkan::ModelBuilder;
+using renderer::vulkan::PerVertexBuffer;
+using renderer::vulkan::RenderPass;
+using renderer::vulkan::SharedTexture;
+using renderer::vulkan::StaticPerInstanceBuffer;
+using renderer::vulkan::UniformBuffer;
+using renderer::vulkan::WindowContext;
+using renderer::vulkan::kSingleSample;
+namespace ir = renderer::ir;
+namespace pipeline = renderer::vulkan::pipeline;
 
 enum SubpassIndex {
   kRenderSubpassIndex = 0,
@@ -164,16 +177,17 @@ void GeometryPass::UpdatePerFrameData(int frame, const common::Camera& camera) {
 
 void GeometryPass::Draw(const VkCommandBuffer& command_buffer,
                         uint32_t framebuffer_index, int current_frame) const {
-  render_pass_->Run(command_buffer, framebuffer_index, /*render_ops=*/{
-          [this, current_frame](const VkCommandBuffer& command_buffer) {
-            nanosuit_model_->Draw(command_buffer, current_frame,
-                                  /*instance_count=*/num_soldiers_);
-          },
-      });
+  const std::array<renderer::vulkan::RenderPass::RenderOp, 1> render_ops{
+      [this, current_frame](const VkCommandBuffer& command_buffer) {
+        nanosuit_model_->Draw(command_buffer, current_frame,
+                              /*instance_count=*/num_soldiers_);
+      },
+  };
+  render_pass_->Run(command_buffer, framebuffer_index, render_ops);
 }
 
 void GeometryPass::CreateRenderPassBuilder(
-    absl::Span<const Attachment> attachments) {
+    std::span<const Attachment> attachments) {
   // TODO: Image usage tracker should be held by upper level. Infer when to
   // preserve attachment content?
   auto depth_stencil_load_store_ops =

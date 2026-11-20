@@ -14,7 +14,11 @@ namespace application {
 namespace vulkan {
 namespace {
 
-using namespace renderer::vulkan;
+using renderer::vulkan::ImageUsage;
+using renderer::vulkan::NaiveRenderPass;
+using renderer::vulkan::PerFrameCommand;
+using renderer::vulkan::RenderPass;
+using renderer::vulkan::WindowContext;
 
 enum class Scene { kNone, kEditor, kViewer };
 
@@ -135,6 +139,8 @@ void AuroraApp::MainLoop() {
 } /* namespace lighter */
 
 int main(int argc, char* argv[]) {
-  using namespace lighter::application::vulkan;
+  using lighter::application::vulkan::AppMain;
+  using lighter::application::vulkan::AuroraApp;
+  using lighter::renderer::vulkan::WindowContext;
   return AppMain<AuroraApp>(argc, argv, WindowContext::Config{});
 }

@@ -9,6 +9,7 @@
 #define LIGHTER_RENDERER_VK_PIPELINE_H
 
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -18,7 +19,6 @@
 #include "lighter/renderer/ir/pipeline.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/util.h"
-#include <absl/types/span.h>
 
 namespace lighter::renderer::vk {
 

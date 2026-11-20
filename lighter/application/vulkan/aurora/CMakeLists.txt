@@ -30,8 +30,5 @@ target_link_libraries(vulkan_aurora
     lighter_app_vulkan_common
     lighter_common_rotation
     lighter_common_spline
-    absl::flat_hash_map
-    absl::span
-    absl::str_format
     glm::glm
 )

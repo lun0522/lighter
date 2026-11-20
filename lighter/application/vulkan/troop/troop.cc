@@ -17,8 +17,16 @@ namespace application {
 namespace vulkan {
 namespace {
 
-using namespace renderer;
-using namespace renderer::vulkan;
+using renderer::ir::ImageUsageHistory;
+using renderer::vulkan::DepthStencilImage;
+using renderer::vulkan::Image;
+using renderer::vulkan::ImageSampler;
+using renderer::vulkan::ImageUsage;
+using renderer::vulkan::NaiveRenderPass;
+using renderer::vulkan::OffscreenImage;
+using renderer::vulkan::PerFrameCommand;
+using renderer::vulkan::RenderPass;
+using renderer::vulkan::WindowContext;
 
 constexpr int kNumFramesInFlight = 2;
 
@@ -200,6 +208,8 @@ void TroopApp::MainLoop() {
 } /* namespace lighter */
 
 int main(int argc, char* argv[]) {
-  using namespace lighter::application::vulkan;
+  using lighter::application::vulkan::AppMain;
+  using lighter::application::vulkan::TroopApp;
+  using lighter::renderer::vulkan::WindowContext;
   return AppMain<TroopApp>(argc, argv, WindowContext::Config{});
 }

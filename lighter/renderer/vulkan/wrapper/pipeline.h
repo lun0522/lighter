@@ -11,12 +11,12 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "lighter/common/ref_count.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
-#include <absl/container/flat_hash_map.h>
 #include <vulkan/vulkan.h>
 
 namespace lighter {
@@ -236,7 +236,7 @@ class GraphicsPipelineBuilder : public PipelineBuilder {
   std::vector<VkPipelineColorBlendAttachmentState> color_blend_states_;
 
   // Maps each shader stage to the file path of shader used in that stage.
-  absl::flat_hash_map<VkShaderStageFlagBits, std::string> shader_file_path_map_;
+  std::unordered_map<VkShaderStageFlagBits, std::string> shader_file_path_map_;
 };
 
 // The user should use this class to create compute pipelines. All internal

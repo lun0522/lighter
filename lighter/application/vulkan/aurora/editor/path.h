@@ -12,6 +12,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <span>
 #include <vector>
 
 #include "lighter/application/vulkan/aurora/editor/button_util.h"
@@ -22,7 +23,6 @@
 #include "lighter/renderer/vulkan/wrapper/descriptor.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include <absl/types/span.h>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 
@@ -45,8 +45,8 @@ class PathRenderer3D {
 
   // Updates the vertex data of aurora path at 'path_index'.
   void UpdatePath(int path_index,
-                  absl::Span<const glm::vec3> control_points,
-                  absl::Span<const glm::vec3> spline_points);
+                  std::span<const glm::vec3> control_points,
+                  std::span<const glm::vec3> spline_points);
 
   // Updates internal states and rebuilds the graphics pipeline.
   void UpdateFramebuffer(
@@ -68,7 +68,7 @@ class PathRenderer3D {
   // 'color_alphas' must match with the number of aurora paths.
   // This should be called when 'command_buffer' is recording commands.
   void DrawSplines(const VkCommandBuffer& command_buffer, int frame,
-                   absl::Span<const glm::vec4> color_alphas);
+                   std::span<const glm::vec4> color_alphas);
 
   // Renders viewpoint of user on the earth model.
   // This should be called when 'command_buffer' is recording commands.
@@ -130,7 +130,7 @@ class AuroraPath {
     float spline_roughness;
     glm::vec3 viewpoint_initial_pos;
     std::array<glm::vec3, button::kNumStates> viewpoint_colors;
-    absl::Span<const std::array<glm::vec3, button::kNumStates>> path_colors;
+    std::span<const std::array<glm::vec3, button::kNumStates>> path_colors;
     std::array<float, button::kNumStates> path_alphas;
     GenerateControlPoints generate_control_points;
   };

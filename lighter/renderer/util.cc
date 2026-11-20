@@ -11,8 +11,9 @@
 
 #include "lighter/common/util.h"
 
-ABSL_FLAG(bool, ignore_vsync, false,
-          "Ignore VSync and present images to the screen as fast as possible");
+LIGHTER_FLAG(bool, ignore_vsync, false,
+             "Ignore VSync and present images to the screen as fast as "
+             "possible");
 
 namespace lighter::renderer::util {
 namespace {
@@ -23,7 +24,7 @@ void InitVulkan() {
   // TODO: Limit framerate on Windows. Present mode need to be changed as well.
 #ifdef __APPLE__
   // TODO: Revisit this.
-  if (absl::GetFlag(FLAGS_ignore_vsync)) {
+  if (FLAGS_ignore_vsync.Get()) {
     // To avoid the frame rate being clamped on MacOS when using MoltenVK:
     // https://github.com/KhronosGroup/MoltenVK/issues/581#issuecomment-487293665
     setenv("MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS", "0", /*overwrite=*/1);

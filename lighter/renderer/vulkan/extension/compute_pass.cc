@@ -7,12 +7,12 @@
 
 #include "lighter/renderer/vulkan/extension/compute_pass.h"
 
+#include <format>
 #include <iterator>
 #include <string>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/image_util.h"
-#include <absl/strings/str_format.h>
 
 namespace lighter {
 namespace renderer {
@@ -27,12 +27,12 @@ ComputePass& ComputePass::AddImage(std::string&& image_name,
 
 void ComputePass::Run(
     const VkCommandBuffer& command_buffer, uint32_t queue_family_index,
-    const absl::flat_hash_map<std::string, const Image*>& image_map,
-    absl::Span<const ComputeOp> compute_ops) const {
+    const std::unordered_map<std::string, const Image*>& image_map,
+    std::span<const ComputeOp> compute_ops) const {
   ASSERT_TRUE(compute_ops.size() == num_subpasses_,
-              absl::StrFormat("Size of 'compute_ops' (%d) mismatches with the "
-                              "number of subpasses (%d)",
-                              compute_ops.size(), num_subpasses_));
+              std::format("Size of 'compute_ops' ({}) mismatches with the "
+                          "number of subpasses ({})",
+                          compute_ops.size(), num_subpasses_));
 
   // Run all subpasses and insert memory barriers. Note that even if the image
   // usage does not change, we still need to insert a memory barrier if not RAR.
@@ -49,8 +49,8 @@ void ComputePass::Run(
 
       const auto iter = image_map.find(image_name);
       ASSERT_FALSE(iter == image_map.end(),
-                   absl::StrFormat("Image '%s' not provided in image map",
-                                   image_name));
+                   std::format("Image '{}' not provided in image map",
+                               image_name));
       InsertMemoryBarrier(command_buffer, queue_family_index, **iter->second,
                           usages_info.value().prev_usage,
                           usages_info.value().curr_usage);
@@ -59,9 +59,9 @@ void ComputePass::Run(
       const std::string log_suffix =
           subpass == virtual_final_subpass_index()
               ? "after compute pass"
-              : absl::StrFormat("before subpass %d", subpass);
-      LOG_INFO << absl::StreamFormat("Inserted memory barrier for image '%s' ",
-                                     image_name)
+              : std::format("before subpass {}", subpass);
+      LOG_INFO << std::format("Inserted memory barrier for image '{}' ",
+                              image_name)
                << log_suffix;
 #endif /* !NDEBUG */
     }
@@ -116,10 +116,11 @@ void ComputePass::ValidateUsageHistory(
     ASSERT_TRUE(usage_type == ImageUsageType::kLinearAccess
                     || usage_type == ImageUsageType::kSample
                     || usage_type == ImageUsageType::kTransfer,
-                absl::StrFormat("Usage type (%d) is neither kLinearAccess, "
-                                "kSample nor kTransfer for image '%s' at "
-                                "subpass %d",
-                                usage_type, image_name, pair.first));
+                std::format("Usage type ({}) is neither kLinearAccess, "
+                            "kSample nor kTransfer for image '{}' at "
+                            "subpass {}",
+                            static_cast<int>(usage_type), image_name,
+                            pair.first));
   }
 }
 
