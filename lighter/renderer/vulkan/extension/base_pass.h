@@ -13,8 +13,8 @@
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/ir/image_usage.h"
-#include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/vulkan/vulkan.h"
+#include <absl/container/flat_hash_map.h>
+#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {

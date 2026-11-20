@@ -12,7 +12,7 @@
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/image_util.h"
-#include "third_party/absl/strings/str_format.h"
+#include <absl/strings/str_format.h>
 
 namespace lighter {
 namespace renderer {

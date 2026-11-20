@@ -23,9 +23,9 @@
 #include "lighter/renderer/vulkan/wrapper/image.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/types/span.h"
-#include "third_party/glm/glm.hpp"
+#include <absl/container/flat_hash_map.h>
+#include <absl/types/span.h>
+#include <glm/glm.hpp>
 
 namespace lighter {
 namespace renderer {

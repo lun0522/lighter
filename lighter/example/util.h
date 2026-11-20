@@ -31,10 +31,10 @@
 #include "lighter/renderer/ir/renderer.h"
 #include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/util.h"
-#include "third_party/absl/flags/parse.h"
-#include "third_party/absl/types/span.h"
-#include "third_party/glm/glm.hpp"
-#include "third_party/spirv_cross/spirv_cross.hpp"
+#include <absl/flags/parse.h>
+#include <absl/types/span.h>
+#include <glm/glm.hpp>
+#include <spirv_cross/spirv_cross.hpp>
 
 namespace lighter::example {
 

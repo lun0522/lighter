@@ -16,8 +16,8 @@
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/property_checker.h"
 #include "lighter/renderer/vk/type_mapping.h"
-#include "third_party/absl/container/flat_hash_set.h"
-#include "third_party/absl/strings/str_format.h"
+#include <absl/container/flat_hash_set.h>
+#include <absl/strings/str_format.h>
 
 namespace lighter::renderer::vk {
 namespace {

@@ -10,8 +10,8 @@
 #include <optional>
 
 #include "lighter/renderer/vk/image.h"
-#include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/types/span.h"
+#include <absl/strings/str_format.h>
+#include <absl/types/span.h>
 
 namespace lighter::renderer::vk {
 namespace {

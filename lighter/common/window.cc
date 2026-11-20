@@ -8,8 +8,8 @@
 #include "lighter/common/window.h"
 
 #include "lighter/common/util.h"
-#include "third_party/absl/strings/str_format.h"
-#include "third_party/GLFW/glfw3.h"
+#include <absl/strings/str_format.h>
+#include <GLFW/glfw3.h>
 
 namespace lighter::common {
 namespace {

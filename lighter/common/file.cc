@@ -12,10 +12,10 @@
 
 #include "lighter/common/util.h"
 #include "lighter/shader_compiler/util.h"
-#include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/strings/str_replace.h"
-#include "third_party/absl/strings/str_split.h"
+#include <absl/container/flat_hash_map.h>
+#include <absl/strings/str_format.h>
+#include <absl/strings/str_replace.h>
+#include <absl/strings/str_split.h>
 #include "tools/cpp/runfiles/runfiles.h"
 
 namespace lighter::common {

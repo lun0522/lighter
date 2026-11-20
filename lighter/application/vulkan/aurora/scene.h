@@ -8,7 +8,7 @@
 #ifndef LIGHTER_APPLICATION_VULKAN_AURORA_SCENE_H
 #define LIGHTER_APPLICATION_VULKAN_AURORA_SCENE_H
 
-#include "third_party/vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace application {

@@ -14,7 +14,7 @@
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/util.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
-#include "third_party/glm/gtc/matrix_transform.hpp"
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace lighter {
 namespace application {

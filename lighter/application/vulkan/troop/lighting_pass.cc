@@ -17,8 +17,8 @@
 #include "lighter/renderer/vulkan/extension/graphics_pass.h"
 #include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
-#include "third_party/glm/glm.hpp"
-#include "third_party/glm/gtc/matrix_transform.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace lighter {
 namespace application {

@@ -12,9 +12,9 @@
 #include "lighter/common/image.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/vk/image_util.h"
-#include "third_party/absl/container/flat_hash_set.h"
-#include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/types/span.h"
+#include <absl/container/flat_hash_set.h>
+#include <absl/strings/str_format.h>
+#include <absl/types/span.h>
 
 namespace lighter::renderer::vk {
 namespace {

@@ -14,9 +14,9 @@
 
 #include "lighter/common/util.h"
 #include "lighter/shader_compiler/util.h"
-#include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/types/span.h"
-#include "third_party/shaderc/shaderc.h"
+#include <absl/container/flat_hash_map.h>
+#include <absl/types/span.h>
+#include <shaderc/shaderc.h>
 
 namespace lighter::shader_compiler {
 

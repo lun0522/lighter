@@ -20,8 +20,8 @@
 #ifndef NDEBUG
 #include "lighter/renderer/vulkan/wrapper/validation.h"
 #endif /* !NDEBUG */
-#include "third_party/glm/glm.hpp"
-#include "third_party/vulkan/vulkan.h"
+#include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {

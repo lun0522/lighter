@@ -11,7 +11,7 @@
 #include <cstring>
 
 #include "lighter/renderer/vk/buffer_util.h"
-#include "third_party/absl/container/flat_hash_set.h"
+#include <absl/container/flat_hash_set.h>
 
 namespace lighter::renderer::vk {
 namespace {

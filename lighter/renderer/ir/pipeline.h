@@ -16,8 +16,8 @@
 #include "lighter/common/util.h"
 #include "lighter/renderer/ir/buffer.h"
 #include "lighter/renderer/ir/type.h"
-#include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/glm/glm.hpp"
+#include <absl/container/flat_hash_map.h>
+#include <glm/glm.hpp>
 
 namespace lighter::renderer::ir {
 

@@ -12,9 +12,9 @@
 #include <string_view>
 #include <vector>
 
-#include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/glm/glm.hpp"
-#include "third_party/vulkan/vulkan.h"
+#include <absl/container/flat_hash_map.h>
+#include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 // import GLFW after Vulkan
 
 // Forward declarations.

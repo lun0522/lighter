@@ -24,9 +24,9 @@
 #include "lighter/renderer/vk/pipeline.h"
 #include "lighter/renderer/vk/render_pass.h"
 #include "lighter/renderer/vk/swapchain.h"
-#include "third_party/absl/types/span.h"
-#include "third_party/glm/glm.hpp"
-#include "third_party/vulkan/vulkan.h"
+#include <absl/types/span.h>
+#include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
 namespace lighter::renderer::vk {
 

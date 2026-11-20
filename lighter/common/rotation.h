@@ -13,7 +13,7 @@
 
 #include "lighter/common/camera.h"
 #include "lighter/common/timer.h"
-#include "third_party/glm/glm.hpp"
+#include <glm/glm.hpp>
 
 namespace lighter::common {
 

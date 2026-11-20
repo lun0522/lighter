@@ -10,7 +10,7 @@
 
 #include "lighter/common/file.h"
 #include "lighter/common/image.h"
-#include "third_party/glm/glm.hpp"
+#include <glm/glm.hpp>
 
 namespace lighter {
 namespace application {

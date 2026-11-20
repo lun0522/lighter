@@ -15,12 +15,12 @@
 #include <vector>
 
 #include "lighter/common/util.h"
-#include "third_party/absl/container/flat_hash_set.h"
-#include "third_party/absl/strings/str_cat.h"
-#include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/types/span.h"
-#include "third_party/glm/glm.hpp"
-#include "third_party/vulkan/vulkan.h"
+#include <absl/container/flat_hash_set.h>
+#include <absl/strings/str_cat.h>
+#include <absl/strings/str_format.h>
+#include <absl/types/span.h>
+#include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
 #define ASSERT_SUCCESS(event, error)                          \
   ASSERT_TRUE(event == VK_SUCCESS,                            \

@@ -21,9 +21,9 @@
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/image.h"
-#include "third_party/absl/types/span.h"
-#include "third_party/glm/glm.hpp"
-#include "third_party/vulkan/vulkan.h"
+#include <absl/types/span.h>
+#include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace application {

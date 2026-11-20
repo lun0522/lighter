@@ -13,7 +13,7 @@
 #include "lighter/renderer/vulkan/extension/naive_render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include "third_party/glm/glm.hpp"
+#include <glm/glm.hpp>
 
 namespace lighter {
 namespace application {

@@ -12,8 +12,8 @@
 #include "lighter/common/data.h"
 #include "lighter/common/file.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/strings/str_join.h"
+#include <absl/strings/str_format.h>
+#include <absl/strings/str_join.h>
 
 namespace lighter {
 namespace renderer {

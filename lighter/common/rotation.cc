@@ -11,8 +11,8 @@
 
 #include "lighter/common/util.h"
 #define GLM_ENABLE_EXPERIMENTAL
-#include "third_party/glm/gtx/intersect.hpp"
-#include "third_party/glm/gtx/vector_angle.hpp"
+#include <glm/gtx/intersect.hpp>
+#include <glm/gtx/vector_angle.hpp>
 
 namespace lighter::common {
 namespace {

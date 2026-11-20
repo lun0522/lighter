@@ -14,8 +14,8 @@
 #include <vector>
 
 #include "lighter/common/data.h"
-#include "third_party/absl/types/span.h"
-#include "third_party/glm/glm.hpp"
+#include <absl/types/span.h>
+#include <glm/glm.hpp>
 
 namespace lighter::common {
 namespace image {

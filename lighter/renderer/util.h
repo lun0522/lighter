@@ -16,8 +16,8 @@
 #include "lighter/renderer/ir/renderer.h"
 #include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/vk/renderer.h"
-#include "third_party/absl/flags/declare.h"
-#include "third_party/absl/flags/flag.h"
+#include <absl/flags/declare.h>
+#include <absl/flags/flag.h>
 
 // We use the uniform block layout std140 in all shaders. The following
 // alignment requirements must be enforced on the host code:

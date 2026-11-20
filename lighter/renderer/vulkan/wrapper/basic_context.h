@@ -20,9 +20,9 @@
 #ifndef NDEBUG
 #include "lighter/renderer/vulkan/wrapper/validation.h"
 #endif /* !NDEBUG */
-#include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/types/span.h"
-#include "third_party/vulkan/vulkan.h"
+#include <absl/strings/str_format.h>
+#include <absl/types/span.h>
+#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {

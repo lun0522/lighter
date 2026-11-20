@@ -11,10 +11,10 @@
 #include <memory>
 #include <optional>
 
-#include "third_party/absl/functional/function_ref.h"
-#include "third_party/absl/memory/memory.h"
+#include <absl/functional/function_ref.h>
+#include <absl/memory/memory.h>
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "third_party/glm/glm.hpp"
+#include <glm/glm.hpp>
 
 namespace lighter::common {
 

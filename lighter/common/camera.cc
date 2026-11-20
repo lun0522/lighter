@@ -10,7 +10,7 @@
 #include <type_traits>
 
 #include "lighter/common/util.h"
-#include "third_party/glm/gtc/matrix_transform.hpp"
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace lighter::common {
 

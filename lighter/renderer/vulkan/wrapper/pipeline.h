@@ -16,8 +16,8 @@
 #include "lighter/common/ref_count.h"
 #include "lighter/common/util.h"
 #include "lighter/renderer/vulkan/wrapper/basic_context.h"
-#include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/vulkan/vulkan.h"
+#include <absl/container/flat_hash_map.h>
+#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {

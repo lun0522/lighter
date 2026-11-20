@@ -18,8 +18,8 @@
 #include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/util.h"
-#include "third_party/absl/types/span.h"
-#include "third_party/glm/glm.hpp"
+#include <absl/types/span.h>
+#include <glm/glm.hpp>
 
 namespace lighter::renderer::vk {
 

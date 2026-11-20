@@ -13,7 +13,7 @@
 #include <utility>
 
 #include "lighter/common/util.h"
-#include "third_party/absl/container/flat_hash_map.h"
+#include <absl/container/flat_hash_map.h>
 
 namespace lighter::common {
 

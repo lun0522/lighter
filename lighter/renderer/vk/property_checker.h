@@ -12,8 +12,8 @@
 #include <vector>
 
 #include "lighter/renderer/vk/util.h"
-#include "third_party/absl/container/flat_hash_set.h"
-#include "third_party/absl/types/span.h"
+#include <absl/container/flat_hash_set.h>
+#include <absl/types/span.h>
 
 namespace lighter::renderer::vk {
 

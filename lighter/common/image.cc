@@ -11,9 +11,9 @@
 
 #include "lighter/common/file.h"
 #include "lighter/common/util.h"
-#include "third_party/absl/strings/str_cat.h"
+#include <absl/strings/str_cat.h>
 #define STB_IMAGE_IMPLEMENTATION
-#include "third_party/stb/stb_image.h"
+#include <stb_image.h>
 
 namespace lighter::common {
 namespace {

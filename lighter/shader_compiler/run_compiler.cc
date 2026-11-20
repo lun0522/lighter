@@ -20,9 +20,9 @@
 #include "lighter/common/util.h"
 #include "lighter/shader_compiler/compilation_record.h"
 #include "lighter/shader_compiler/compiler.h"
-#include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/types/span.h"
-#include "third_party/picosha2/picosha2.h"
+#include <absl/strings/str_format.h>
+#include <absl/types/span.h>
+#include <picosha2.h>
 
 namespace lighter::shader_compiler::compiler {
 namespace {

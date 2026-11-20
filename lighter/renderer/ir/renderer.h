@@ -23,9 +23,9 @@
 #include "lighter/renderer/ir/pass.h"
 #include "lighter/renderer/ir/pipeline.h"
 #include "lighter/renderer/ir/type.h"
-#include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/types/span.h"
-#include "third_party/glm/glm.hpp"
+#include <absl/strings/str_format.h>
+#include <absl/types/span.h>
+#include <glm/glm.hpp>
 
 namespace lighter::renderer::ir {
 

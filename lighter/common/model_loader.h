@@ -12,9 +12,9 @@
 #include <vector>
 
 #include "lighter/common/file.h"
-#include "third_party/assimp/material.h"
-#include "third_party/assimp/mesh.h"
-#include "third_party/assimp/scene.h"
+#include <assimp/material.h>
+#include <assimp/mesh.h>
+#include <assimp/scene.h>
 
 namespace lighter::common {
 

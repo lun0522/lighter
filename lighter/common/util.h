@@ -19,11 +19,11 @@
 #include <type_traits>
 #include <vector>
 
-#include "third_party/absl/base/optimization.h"
-#include "third_party/absl/container/flat_hash_set.h"
-#include "third_party/absl/functional/function_ref.h"
-#include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/types/span.h"
+#include <absl/base/optimization.h>
+#include <absl/container/flat_hash_set.h>
+#include <absl/functional/function_ref.h>
+#include <absl/strings/str_format.h>
+#include <absl/types/span.h>
 
 #ifdef NDEBUG
 #define LOG(stream)                         \

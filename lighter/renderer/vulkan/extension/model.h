@@ -25,8 +25,8 @@
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
-#include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/vulkan/vulkan.h"
+#include <absl/container/flat_hash_map.h>
+#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {

@@ -15,7 +15,7 @@
 #ifdef ASSERT_FALSE
 #undef ASSERT_FALSE
 #endif
-#include "third_party/gtest/gtest.h"
+#include <gtest/gtest.h>
 
 // Tests are written according to:
 // https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples

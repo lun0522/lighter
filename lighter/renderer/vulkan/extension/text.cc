@@ -13,8 +13,8 @@
 #include "lighter/renderer/util.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include "third_party/absl/strings/str_format.h"
-#include "third_party/glm/glm.hpp"
+#include <absl/strings/str_format.h>
+#include <glm/glm.hpp>
 
 namespace lighter {
 namespace renderer {

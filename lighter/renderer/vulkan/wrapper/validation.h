@@ -10,7 +10,7 @@
 
 #include <vector>
 
-#include "third_party/vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {

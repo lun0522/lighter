@@ -9,7 +9,7 @@
 
 #include "lighter/common/file.h"
 #include "lighter/renderer/ir/image_usage.h"
-#include "third_party/absl/strings/str_format.h"
+#include <absl/strings/str_format.h>
 
 namespace lighter {
 namespace renderer {

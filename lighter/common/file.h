@@ -14,7 +14,7 @@
 #include <vector>
 
 #include "lighter/common/data.h"
-#include "third_party/glm/glm.hpp"
+#include <glm/glm.hpp>
 
 namespace lighter::common {
 namespace file {

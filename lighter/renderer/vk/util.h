@@ -13,13 +13,13 @@
 
 #include "lighter/common/image.h"
 #include "lighter/common/util.h"
-#include "third_party/absl/strings/str_format.h"
-#include "third_party/glm/glm.hpp"
+#include <absl/strings/str_format.h>
+#include <glm/glm.hpp>
 
 // All members of Vulkan-Hpp are placed in the intl namespace.
 #define VULKAN_HPP_NAMESPACE lighter::renderer::vk::intl
 #define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
-#include "third_party/vulkan/vulkan.hpp"
+#include <vulkan/vulkan.hpp>
 
 #define CAST_TO_UINT(number) static_cast<uint32_t>(number)
 

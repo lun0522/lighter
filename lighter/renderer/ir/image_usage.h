@@ -14,9 +14,9 @@
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/ir/type.h"
-#include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/types/span.h"
+#include <absl/container/flat_hash_map.h>
+#include <absl/strings/str_format.h>
+#include <absl/types/span.h>
 
 namespace lighter::renderer::ir {
 

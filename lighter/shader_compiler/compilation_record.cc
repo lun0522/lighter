@@ -12,8 +12,8 @@
 #include <optional>
 #include <vector>
 
-#include "third_party/absl/strings/str_format.h"
-#include "third_party/absl/strings/str_split.h"
+#include <absl/strings/str_format.h>
+#include <absl/strings/str_split.h>
 
 namespace lighter::shader_compiler {
 namespace {

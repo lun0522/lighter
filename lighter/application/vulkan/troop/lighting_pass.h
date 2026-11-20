@@ -19,7 +19,7 @@
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/window_context.h"
-#include "third_party/vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace application {

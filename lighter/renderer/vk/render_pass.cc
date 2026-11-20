@@ -10,8 +10,8 @@
 #include "lighter/renderer/ir/image.h"
 #include "lighter/renderer/vk/image.h"
 #include "lighter/renderer/vk/type_mapping.h"
-#include "third_party/absl/container/flat_hash_map.h"
-#include "third_party/absl/strings/str_format.h"
+#include <absl/container/flat_hash_map.h>
+#include <absl/strings/str_format.h>
 
 namespace lighter::renderer::vk {
 namespace {

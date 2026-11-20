@@ -18,7 +18,7 @@
 #include "lighter/common/window.h"
 #include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/vk/basic.h"
-#include "third_party/absl/types/span.h"
+#include <absl/types/span.h>
 
 namespace lighter::renderer::vk {
 

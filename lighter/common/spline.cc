@@ -10,8 +10,8 @@
 #include <algorithm>
 
 #include "lighter/common/util.h"
-#include "third_party/absl/strings/str_format.h"
-#include "third_party/glm/gtx/vector_angle.hpp"
+#include <absl/strings/str_format.h>
+#include <glm/gtx/vector_angle.hpp>
 
 namespace lighter::common {
 

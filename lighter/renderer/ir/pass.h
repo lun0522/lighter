@@ -15,7 +15,7 @@
 #include "lighter/renderer/ir/image.h"
 #include "lighter/renderer/ir/pipeline.h"
 #include "lighter/renderer/ir/type.h"
-#include "third_party/absl/container/flat_hash_map.h"
+#include <absl/container/flat_hash_map.h>
 
 namespace lighter::renderer::ir {
 

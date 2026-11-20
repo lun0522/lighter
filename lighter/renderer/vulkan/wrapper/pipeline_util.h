@@ -14,8 +14,8 @@
 #include "lighter/renderer/vulkan/wrapper/buffer.h"
 #include "lighter/renderer/vulkan/wrapper/pipeline.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include "third_party/absl/types/span.h"
-#include "third_party/vulkan/vulkan.h"
+#include <absl/types/span.h>
+#include <vulkan/vulkan.h>
 
 namespace lighter {
 namespace renderer {

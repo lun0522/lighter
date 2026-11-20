@@ -14,7 +14,7 @@
 #ifndef NDEBUG
 #include "lighter/renderer/vulkan/wrapper/validation.h"
 #endif /* !NDEBUG */
-#include "third_party/absl/strings/str_cat.h"
+#include <absl/strings/str_cat.h>
 
 namespace lighter {
 namespace renderer {

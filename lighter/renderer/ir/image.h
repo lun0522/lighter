@@ -15,7 +15,7 @@
 #include "lighter/common/image.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/ir/type.h"
-#include "third_party/glm/glm.hpp"
+#include <glm/glm.hpp>
 
 namespace lighter::renderer::ir {
 

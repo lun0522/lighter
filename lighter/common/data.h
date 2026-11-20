@@ -14,8 +14,8 @@
 #include <vector>
 
 #include "lighter/common/util.h"
-#include "third_party/absl/strings/str_format.h"
-#include "third_party/glm/glm.hpp"
+#include <absl/strings/str_format.h>
+#include <glm/glm.hpp>
 
 namespace lighter::common {
 

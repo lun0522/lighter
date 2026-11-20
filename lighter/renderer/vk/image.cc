@@ -13,9 +13,9 @@
 #include "lighter/renderer/vk/buffer_util.h"
 #include "lighter/renderer/vk/image_util.h"
 #include "lighter/renderer/vk/type_mapping.h"
-#include "third_party/absl/container/flat_hash_set.h"
-#include "third_party/absl/memory/memory.h"
-#include "third_party/absl/strings/str_format.h"
+#include <absl/container/flat_hash_set.h>
+#include <absl/memory/memory.h>
+#include <absl/strings/str_format.h>
 
 namespace lighter::renderer::vk {
 namespace {

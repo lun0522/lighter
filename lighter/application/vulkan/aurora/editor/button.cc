@@ -16,7 +16,7 @@
 #include "lighter/renderer/vulkan/wrapper/pipeline_util.h"
 #include "lighter/renderer/vulkan/wrapper/render_pass.h"
 #include "lighter/renderer/vulkan/wrapper/util.h"
-#include "third_party/absl/strings/str_format.h"
+#include <absl/strings/str_format.h>
 
 namespace lighter {
 namespace application {

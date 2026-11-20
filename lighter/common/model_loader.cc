@@ -8,9 +8,9 @@
 #include "lighter/common/model_loader.h"
 
 #include "lighter/common/util.h"
-#include "third_party/absl/strings/str_format.h"
-#include "third_party/assimp/Importer.hpp"
-#include "third_party/assimp/postprocess.h"
+#include <absl/strings/str_format.h>
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
 
 namespace lighter::common {
 namespace {

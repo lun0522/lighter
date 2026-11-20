@@ -10,7 +10,7 @@
 
 #include "lighter/renderer/ir/pipeline.h"
 #include "lighter/renderer/ir/type.h"
-#include "third_party/glm/glm.hpp"
+#include <glm/glm.hpp>
 
 namespace lighter::renderer::ir::pipeline {
 

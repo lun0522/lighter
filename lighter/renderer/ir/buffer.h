@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "lighter/renderer/ir/type.h"
-#include "third_party/absl/types/span.h"
+#include <absl/types/span.h>
 
 namespace lighter::renderer::ir {
 
