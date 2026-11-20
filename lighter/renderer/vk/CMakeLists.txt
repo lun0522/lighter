@@ -1,6 +1,10 @@
 add_library(lighter_renderer_vk_util INTERFACE
   util.h
 )
+target_compile_definitions(lighter_renderer_vk_util
+  INTERFACE
+    VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
+)
 target_link_libraries(lighter_renderer_vk_util
   INTERFACE
     lighter_project_options

@@ -23,7 +23,6 @@ class PropertyChecker {
  public:
   static PropertyChecker ForInstanceLayers();
   static PropertyChecker ForInstanceExtensions();
-  static PropertyChecker ForDeviceLayers(intl::PhysicalDevice physical_device);
   static PropertyChecker ForDeviceExtensions(
       intl::PhysicalDevice physical_device);
 

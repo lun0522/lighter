@@ -12,6 +12,7 @@
 #include <span>
 #include <unordered_map>
 #include <vector>
+#include <vulkan/vulkan_raii.hpp>
 
 #include "lighter/common/window.h"
 #include "lighter/renderer/ir/type.h"
@@ -53,18 +54,20 @@ class Instance {
   Instance(const Instance&) = delete;
   Instance& operator=(const Instance&) = delete;
 
-  ~Instance();
+  ~Instance() = default;
 
   // Overloads.
-  intl::Instance operator*() const { return instance_; }
-  const intl::Instance* operator->() const { return &instance_; }
+  intl::Instance operator*() const { return *instance_; }
+  const intl::Instance* operator->() const { return &(*instance_); }
+
+  // Accessors.
+  const intl::raii::Instance& handle() const { return instance_; }
 
  private:
-  // Context that holds basic wrapper objects.
-  const Context& context_;
-
-  // Opaque instance object.
-  intl::Instance instance_;
+  // Loader context and instance must remain in this declaration order so the
+  // instance is destroyed before the dynamic loader context.
+  intl::raii::Context loader_context_;
+  intl::raii::Instance instance_{nullptr};
 };
 
 // Wraps VkDebugUtilsMessengerEXT, which relays debug messages from the graphics
@@ -78,14 +81,11 @@ class DebugMessenger {
   DebugMessenger(const DebugMessenger&) = delete;
   DebugMessenger& operator=(const DebugMessenger&) = delete;
 
-  ~DebugMessenger();
+  ~DebugMessenger() = default;
 
  private:
-  // Context that holds basic wrapper objects.
-  const Context& context_;
-
   // Opaque debug messenger object.
-  intl::DebugUtilsMessengerEXT messenger_;
+  intl::raii::DebugUtilsMessengerEXT messenger_{nullptr};
 };
 
 // Wraps VkSurfaceKHR, which interfaces with platform-specific window systems.
@@ -97,10 +97,10 @@ class Surface {
   Surface(const Surface&) = delete;
   Surface& operator=(const Surface&) = delete;
 
-  ~Surface();
+  ~Surface() = default;
 
   // Overloads.
-  intl::SurfaceKHR operator*() const { return surface_; }
+  intl::SurfaceKHR operator*() const { return *surface_; }
 
   // Modifiers.
   void SetCapabilities(intl::SurfaceCapabilitiesKHR&& capabilities) {
@@ -113,18 +113,15 @@ class Surface {
   }
 
  private:
-  // Context that holds basic wrapper objects.
-  const Context& context_;
-
   // Opaque surface object.
-  intl::SurfaceKHR surface_;
+  intl::raii::SurfaceKHR surface_{nullptr};
 
   // Capabilities of this surface.
   std::optional<intl::SurfaceCapabilitiesKHR> capabilities_;
 };
 
 // Wraps VkPhysicalDevice, which is the handle to physical graphics card.
-struct PhysicalDevice {
+class PhysicalDevice {
  public:
   // Holds queue family indices for the queues we need.
   // All queues in one family share the same property.
@@ -144,10 +141,13 @@ struct PhysicalDevice {
   ~PhysicalDevice() = default;
 
   // Overloads.
-  intl::PhysicalDevice operator*() const { return physical_device_; }
-  const intl::PhysicalDevice* operator->() const { return &physical_device_; }
+  intl::PhysicalDevice operator*() const { return *physical_device_; }
+  const intl::PhysicalDevice* operator->() const {
+    return &(*physical_device_);
+  }
 
   // Accessors.
+  const intl::raii::PhysicalDevice& handle() const { return physical_device_; }
   const QueueFamilyIndices& queue_family_indices() const {
     return queue_family_indices_;
   }
@@ -157,11 +157,8 @@ struct PhysicalDevice {
   }
 
  private:
-  // Context that holds basic wrapper objects.
-  const Context& context_;
-
   // Opaque physical device object.
-  intl::PhysicalDevice physical_device_;
+  intl::raii::PhysicalDevice physical_device_{nullptr};
 
   // Family indices for the queues we need.
   QueueFamilyIndices queue_family_indices_;
@@ -175,29 +172,29 @@ struct PhysicalDevice {
 };
 
 // Wraps VkDevice, which interfaces with the physical device.
-struct Device {
+class Device {
  public:
-  Device(const Context* context, bool enable_validation, bool enable_swapchain);
+  Device(const Context* context, bool enable_swapchain);
 
   // This class is neither copyable nor movable.
   Device(const Device&) = delete;
   Device& operator=(const Device&) = delete;
 
-  ~Device();
+  ~Device() = default;
 
-  // Blocks host until 'device_' becomes idle.
+  // Blocks host until the device becomes idle.
   void WaitIdle() const { device_.waitIdle(); }
 
   // Overloads.
-  intl::Device operator*() const { return device_; }
-  const intl::Device* operator->() const { return &device_; }
+  intl::Device operator*() const { return *device_; }
+  const intl::Device* operator->() const { return &(*device_); }
+
+  // Accessors.
+  const intl::raii::Device& handle() const { return device_; }
 
  private:
-  // Context that holds basic wrapper objects.
-  const Context& context_;
-
   // Opaque device object.
-  intl::Device device_;
+  intl::raii::Device device_{nullptr};
 };
 
 // Wraps VkQueue, which is the queue associated with the logical device.

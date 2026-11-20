@@ -24,11 +24,11 @@ Context::Context(
 
   // Load instance-independent function pointers.
   VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
+  host_allocator_ = std::make_unique<HostMemoryAllocator>();
   instance_ = std::make_unique<Instance>(this, enable_validation,
                                          application_name, windows);
   // Load instance-dependent function pointers.
   VULKAN_HPP_DEFAULT_DISPATCHER.init(**instance_);
-  host_allocator_ = std::make_unique<HostMemoryAllocator>();
   if (enable_validation) {
     debug_messenger_ =
         std::make_unique<DebugMessenger>(this, debug_message_config.value());
@@ -43,7 +43,7 @@ Context::Context(
   }
 
   physical_device_ = std::make_unique<PhysicalDevice>(this, surface_ptrs);
-  device_ = std::make_unique<Device>(this, enable_validation, enable_swapchain);
+  device_ = std::make_unique<Device>(this, enable_swapchain);
   // Load device-specific function pointers.
   VULKAN_HPP_DEFAULT_DISPATCHER.init(**device_);
   queues_ = std::make_unique<Queues>(*this);

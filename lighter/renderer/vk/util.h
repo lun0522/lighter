@@ -18,7 +18,8 @@
 
 // Keep Vulkan-Hpp in its default ::vk namespace (SDK 1.4.350 references
 // vk::Result directly) and alias it as lighter::renderer::vk::intl.
-#define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
+// VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1 is defined by CMake on vk targets so
+// header include order never triggers DispatchLoaderStatic mismatch.
 #include <vulkan/vulkan.hpp>
 
 namespace lighter::renderer::vk {

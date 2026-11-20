@@ -70,12 +70,6 @@ PropertyChecker PropertyChecker::ForInstanceExtensions() {
       intl::enumerateInstanceExtensionProperties())};
 }
 
-PropertyChecker PropertyChecker::ForDeviceLayers(
-    intl::PhysicalDevice physical_device) {
-  return PropertyChecker{GetPropertyNamesSet<intl::LayerProperties>(
-      physical_device.enumerateDeviceLayerProperties())};
-}
-
 PropertyChecker PropertyChecker::ForDeviceExtensions(
     intl::PhysicalDevice physical_device) {
   return PropertyChecker{GetPropertyNamesSet<intl::ExtensionProperties>(

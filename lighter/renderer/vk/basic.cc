@@ -20,6 +20,10 @@
 #include "lighter/renderer/vk/property_checker.h"
 #include "lighter/renderer/vk/type_mapping.h"
 
+#ifndef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+#define VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME "VK_KHR_portability_subset"
+#endif  // VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+
 namespace lighter::renderer::vk {
 namespace {
 
@@ -116,10 +120,39 @@ std::optional<PhysicalDevice::QueueFamilyIndices> FindDeviceQueues(
     }
   }
 
-  // Request support for anisotropy filtering.
-  const auto features = physical_device.getFeatures();
+  // Request required Vulkan 1.0, 1.2, and 1.3 device features.
+  const auto feature_chain =
+      physical_device.getFeatures2<intl::PhysicalDeviceFeatures2,
+                                   intl::PhysicalDeviceVulkan12Features,
+                                   intl::PhysicalDeviceVulkan13Features>();
+  const auto& features =
+      feature_chain.get<intl::PhysicalDeviceFeatures2>().features;
   if (!features.samplerAnisotropy) {
     LOG_INFO << "Anisotropy filtering not supported";
+    return std::nullopt;
+  }
+  const auto& features12 =
+      feature_chain.get<intl::PhysicalDeviceVulkan12Features>();
+  if (!features12.timelineSemaphore) {
+    LOG_INFO << "Vulkan 1.2 timelineSemaphore not supported";
+    return std::nullopt;
+  }
+  if (!features12.descriptorIndexing ||
+      !features12.shaderSampledImageArrayNonUniformIndexing ||
+      !features12.descriptorBindingPartiallyBound ||
+      !features12.descriptorBindingVariableDescriptorCount ||
+      !features12.runtimeDescriptorArray) {
+    LOG_INFO << "Vulkan 1.2 descriptor indexing features not supported";
+    return std::nullopt;
+  }
+  const auto& features13 =
+      feature_chain.get<intl::PhysicalDeviceVulkan13Features>();
+  if (!features13.dynamicRendering) {
+    LOG_INFO << "Vulkan 1.3 dynamicRendering not supported";
+    return std::nullopt;
+  }
+  if (!features13.synchronization2) {
+    LOG_INFO << "Vulkan 1.3 synchronization2 not supported";
     return std::nullopt;
   }
 
@@ -203,15 +236,11 @@ intl::SampleCountFlagBits ChooseSampleCount(
 }
 
 // Returns a callback that prints the debug message.
-VKAPI_ATTR VkBool32 VKAPI_CALL
-UserCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
-             VkDebugUtilsMessageTypeFlagsEXT message_types,
-             const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+VKAPI_ATTR intl::Bool32 VKAPI_CALL
+UserCallback(intl::DebugUtilsMessageSeverityFlagBitsEXT severity,
+             intl::DebugUtilsMessageTypeFlagsEXT types,
+             const intl::DebugUtilsMessengerCallbackDataEXT* callback_data,
              void* user_data) {
-  const auto severity =
-      static_cast<intl::DebugUtilsMessageSeverityFlagBitsEXT>(message_severity);
-  const auto types =
-      static_cast<intl::DebugUtilsMessageTypeFlagsEXT>(message_types);
   const bool is_error =
       severity == intl::DebugUtilsMessageSeverityFlagBitsEXT::eError;
 
@@ -219,15 +248,15 @@ UserCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
       "[DebugCallback] severity {}, types {}, message:",
       intl::to_string(severity), intl::to_string(types));
   LOG_SWITCH(is_error) << callback_data->pMessage;
-  return VK_FALSE;
+  return intl::False;
 }
 
 }  // namespace
 
 Instance::Instance(const Context* context, bool enable_validation,
                    const char* application_name,
-                   std::span<const common::Window* const> windows)
-    : context_{*FATAL_IF_NULL(context)} {
+                   std::span<const common::Window* const> windows) {
+  FATAL_IF_NULL(context);
   // Check required instance layers.
   std::vector<const char*> required_layers;
   // Request support for validation if needed.
@@ -239,16 +268,23 @@ Instance::Instance(const Context* context, bool enable_validation,
       std::vector<std::string>{required_layers.begin(), required_layers.end()});
 
   // Check required instance extensions.
+  const auto instance_extensions_checker =
+      PropertyChecker::ForInstanceExtensions();
   std::vector<const char*> required_extensions = GetWindowExtensions(windows);
-  // Request support for pushing descriptors.
-  required_extensions.push_back(
-      VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
   // Request support for validation if needed.
   if (enable_validation) {
     required_extensions.push_back(kValidationExtension);
   }
-  CheckPropertiesSupport("instance extensions",
-                         PropertyChecker::ForInstanceExtensions(),
+  intl::InstanceCreateFlags instance_flags{};
+#ifdef VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
+  if (instance_extensions_checker.IsSupported(
+          VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)) {
+    required_extensions.push_back(
+        VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+    instance_flags |= intl::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
+  }
+#endif  // VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
+  CheckPropertiesSupport("instance extensions", instance_extensions_checker,
                          std::vector<std::string>{required_extensions.begin(),
                                                   required_extensions.end()});
 
@@ -259,21 +295,20 @@ Instance::Instance(const Context* context, bool enable_validation,
           .setApplicationVersion(VK_MAKE_VERSION(1, 0, 0))
           .setPEngineName("Lighter")
           .setEngineVersion(VK_MAKE_VERSION(1, 0, 0))
-          .setApiVersion(VK_API_VERSION_1_2);
+          .setApiVersion(VK_API_VERSION_1_3);
   const auto instance_create_info =
       intl::InstanceCreateInfo{}
+          .setFlags(instance_flags)
           .setPApplicationInfo(&application_info)
           .setPEnabledLayerNames(required_layers)
           .setPEnabledExtensionNames(required_extensions);
-  instance_ =
-      intl::createInstance(instance_create_info, *context_.host_allocator());
+  instance_ = intl::raii::Instance{loader_context_, instance_create_info,
+                                   *context->host_allocator()};
 }
 
-Instance::~Instance() { instance_.destroy(*context_.host_allocator()); }
-
 DebugMessenger::DebugMessenger(const Context* context,
-                               const ir::debug_message::Config& config)
-    : context_{*FATAL_IF_NULL(context)} {
+                               const ir::debug_message::Config& config) {
+  FATAL_IF_NULL(context);
   // We may pass data to 'pUserData' which can be retrieved from the callback.
   const auto messenger_create_info =
       intl::DebugUtilsMessengerCreateInfoEXT{}
@@ -281,45 +316,43 @@ DebugMessenger::DebugMessenger(const Context* context,
               type::ConvertDebugMessageSeverities(config.message_severities))
           .setMessageType(type::ConvertDebugMessageTypes(config.message_types))
           .setPfnUserCallback(UserCallback);
-  messenger_ = context_.instance()->createDebugUtilsMessengerEXT(
-      messenger_create_info, *context_.host_allocator());
+  messenger_ = intl::raii::DebugUtilsMessengerEXT{context->instance().handle(),
+                                                  messenger_create_info,
+                                                  *context->host_allocator()};
 }
 
-DebugMessenger::~DebugMessenger() { context_.InstanceDestroy(messenger_); }
-
-Surface::Surface(const Context* context, const common::Window& window)
-    : context_{*FATAL_IF_NULL(context)} {
+Surface::Surface(const Context* context, const common::Window& window) {
+  FATAL_IF_NULL(context);
   const auto create_surface_func = window.GetCreateSurfaceFunc();
   VkSurfaceKHR surface;
   ASSERT_SUCCESS(
       intl::Result{create_surface_func(
-          *context_.instance(), context_.host_allocator().c_type(), &surface)},
+          *context->instance(), context->host_allocator().c_type(), &surface)},
       "Failed to create window surface");
-  surface_ = surface;
+  surface_ = intl::raii::SurfaceKHR{context->instance().handle(), surface,
+                                    *context->host_allocator()};
 }
 
-Surface::~Surface() { context_.InstanceDestroy(surface_); }
-
 PhysicalDevice::PhysicalDevice(const Context* context,
-                               std::span<Surface* const> surfaces)
-    : context_{*FATAL_IF_NULL(context)} {
+                               std::span<Surface* const> surfaces) {
+  FATAL_IF_NULL(context);
   LOG_INFO << "Selecting physical device";
 
   static const auto is_discrete_gpu = [](const auto& properties) {
     return properties.deviceType == intl::PhysicalDeviceType::eDiscreteGpu;
   };
   std::optional<intl::PhysicalDeviceProperties> properties;
-  for (intl::PhysicalDevice candidate :
-       context_.instance()->enumeratePhysicalDevices()) {
-    const auto indices = FindDeviceQueues(candidate, surfaces);
+  for (intl::raii::PhysicalDevice& candidate :
+       context->instance().handle().enumeratePhysicalDevices()) {
+    const auto indices = FindDeviceQueues(*candidate, surfaces);
     if (!indices.has_value()) {
       LOG_INFO << "Found unsupported features, keep searching";
       continue;
     }
 
-    physical_device_ = candidate;
+    physical_device_ = std::move(candidate);
     queue_family_indices_ = indices.value();
-    properties = candidate.getProperties();
+    properties = physical_device_.getProperties();
     limits_ = properties->limits;
 
     // Prefer discrete GPUs.
@@ -356,11 +389,10 @@ PhysicalDevice::PhysicalDevice(const Context* context,
   }
 }
 
-Device::Device(const Context* context, bool enable_validation,
-               bool enable_swapchain)
-    : context_{*FATAL_IF_NULL(context)} {
+Device::Device(const Context* context, bool enable_swapchain) {
+  FATAL_IF_NULL(context);
   // Specify which queues do we want to use.
-  const PhysicalDevice& physical_device = context_.physical_device();
+  const PhysicalDevice& physical_device = context->physical_device();
   const auto& queue_family_indices = physical_device.queue_family_indices();
   const std::unordered_set<uint32_t> queue_family_indices_set{
       queue_family_indices.graphics,
@@ -376,18 +408,7 @@ Device::Device(const Context* context, bool enable_validation,
                                      .setQueuePriorities(queue_priorities));
   }
 
-  std::vector<const char*> required_layers;
-  // Request support for validation if needed.
-  if (enable_validation) {
-    required_layers.push_back(kValidationLayer);
-  }
-  CheckPropertiesSupport(
-      "device layers", PropertyChecker::ForDeviceLayers(*physical_device),
-      std::vector<std::string>{required_layers.begin(), required_layers.end()});
-
   std::vector<const char*> required_extensions{
-      // Request support for negative-height viewport.
-      VK_KHR_MAINTENANCE1_EXTENSION_NAME,
       // Request support for pushing descriptors.
       VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
   };
@@ -401,36 +422,43 @@ Device::Device(const Context* context, bool enable_validation,
                          std::vector<std::string>{required_extensions.begin(),
                                                   required_extensions.end()});
 
-// According to the spec, VK_KHR_portability_subset must be included if it is
-// included in vkEnumerateDeviceExtensionProperties:
-// https://vulkan.lunarg.com/doc/view/1.2.176.1/mac/1.2-extensions/vkspec.html#VUID-VkDeviceCreateInfo-pProperties-04451
-// TODO: Remove #define once this extension gets out of beta.
-#ifndef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
-#define VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME "VK_KHR_portability_subset"
-  for (const char* extension : {VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME}) {
-    if (device_extensions_checker.IsSupported(extension)) {
-      required_extensions.push_back(extension);
-      LOG_INFO << std::format("Also including {} as required by spec",
-                              extension);
-    }
+  // According to the spec, VK_KHR_portability_subset must be included if it is
+  // supported by the physical device:
+  // https://registry.khronos.org/vulkan/specs/1.3-extensions/html/vkspec.html#VUID-VkDeviceCreateInfo-pProperties-04451
+  if (device_extensions_checker.IsSupported(
+          VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME)) {
+    required_extensions.push_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
+    LOG_INFO << std::format("Also including {} as required by spec",
+                            VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
   }
-#endif  // VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
 
-  // Request support for anisotropy filtering. This should be safe as we have
-  // checked that during physical device creation.
-  const auto required_features =
-      intl::PhysicalDeviceFeatures{}.setSamplerAnisotropy(true);
-  const auto device_create_info =
-      intl::DeviceCreateInfo{}
-          .setQueueCreateInfos(queue_create_infos)
-          .setPEnabledLayerNames(required_layers)
-          .setPEnabledExtensionNames(required_extensions)
-          .setPEnabledFeatures(&required_features);
-  device_ = physical_device->createDevice(device_create_info,
-                                          *context_.host_allocator());
+  // Request required Vulkan 1.0, 1.2, and 1.3 device features. These were
+  // already verified during physical device selection.
+  intl::StructureChain<intl::DeviceCreateInfo, intl::PhysicalDeviceFeatures2,
+                       intl::PhysicalDeviceVulkan12Features,
+                       intl::PhysicalDeviceVulkan13Features>
+      device_create_chain{
+          intl::DeviceCreateInfo{}
+              .setQueueCreateInfos(queue_create_infos)
+              .setPEnabledExtensionNames(required_extensions),
+          intl::PhysicalDeviceFeatures2{}.setFeatures(
+              intl::PhysicalDeviceFeatures{}.setSamplerAnisotropy(true)),
+          intl::PhysicalDeviceVulkan12Features{}
+              .setDescriptorIndexing(true)
+              .setShaderSampledImageArrayNonUniformIndexing(true)
+              .setDescriptorBindingPartiallyBound(true)
+              .setDescriptorBindingVariableDescriptorCount(true)
+              .setRuntimeDescriptorArray(true)
+              .setTimelineSemaphore(true),
+          intl::PhysicalDeviceVulkan13Features{}
+              .setSynchronization2(true)
+              .setDynamicRendering(true),
+  };
+  device_ =
+      intl::raii::Device{physical_device.handle(),
+                         device_create_chain.get<intl::DeviceCreateInfo>(),
+                         *context->host_allocator()};
 }
-
-Device::~Device() { device_.destroy(*context_.host_allocator()); }
 
 Queues::Queues(const Context& context) {
   // We simply use the first queue in the family with 'family_index'.
