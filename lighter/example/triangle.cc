@@ -89,8 +89,6 @@ class TriangleExample {
   TriangleExample& operator=(const TriangleExample&) = delete;
 
   void MainLoop() {
-    const bool use_multisampling =
-        multisampling_mode_ != MultisamplingMode::kNone;
     RenderGraph graph;
 
     while (!window_.ShouldQuit()) {
@@ -102,20 +100,8 @@ class TriangleExample {
       graph.AddGraphicsPass(
           "Triangle",
           [&](PassBuilder& builder) {
-            if (use_multisampling) {
-              ImageHandle msaa = builder.CreateImage(TransientImageDesc{
-                  .name = "color_multisample",
-                  .format = TransientImageFormat::kMatchExternalImage,
-                  .multisampling_mode = multisampling_mode_,
-                  .match_image = backbuffer,
-              });
-              msaa = builder.ColorAttachment(msaa, /*location=*/0,
-                                             AttachmentLoadOp::kClear,
-                                             AttachmentStoreOp::kDontCare);
-              builder.ResolveAttachment(msaa, backbuffer);
-            } else {
-              builder.ColorAttachment(backbuffer, /*location=*/0);
-            }
+            SetupMainPassAttachments(builder, backbuffer, multisampling_mode_,
+                                     /*use_depth=*/false);
           },
           [&](PassContext& ctx) {
             ctx.BindGraphicsPipeline(pipeline_descriptor_);
