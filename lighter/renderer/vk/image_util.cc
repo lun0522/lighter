@@ -18,14 +18,14 @@ using ir::AccessType;
 using ir::ImageUsage;
 using UsageType = ImageUsage::UsageType;
 
-// Converts 'access_type' to VkAccessFlags, depending on whether it contains
+// Converts 'access_type' to VkAccessFlags2, depending on whether it contains
 // read and/or write.
-intl::AccessFlags GetReadWriteFlags(AccessType access_type,
-                                    intl::AccessFlagBits read_flag,
-                                    intl::AccessFlagBits write_flag) {
+intl::AccessFlags2 GetReadWriteFlags(AccessType access_type,
+                                     intl::AccessFlagBits2 read_flag,
+                                     intl::AccessFlagBits2 write_flag) {
   ASSERT_FALSE(access_type == AccessType::kDontCare,
                "Access type not specified");
-  intl::AccessFlags access_flags;
+  intl::AccessFlags2 access_flags;
   if (access_type == AccessType::kReadOnly ||
       access_type == AccessType::kReadWrite) {
     access_flags |= read_flag;
@@ -35,6 +35,22 @@ intl::AccessFlags GetReadWriteFlags(AccessType access_type,
     access_flags |= write_flag;
   }
   return access_flags;
+}
+
+// Masks out read-only bits so srcAccessMask only flushes prior writes.
+intl::AccessFlags2 GetWriteOnlyAccessFlags(const ImageUsage& usage) {
+  const AccessType access_type = usage.access_type();
+  if (access_type != AccessType::kWriteOnly &&
+      access_type != AccessType::kReadWrite) {
+    return {};
+  }
+  constexpr intl::AccessFlags2 kWriteAccessMask =
+      intl::AccessFlagBits2::eShaderWrite |
+      intl::AccessFlagBits2::eColorAttachmentWrite |
+      intl::AccessFlagBits2::eDepthStencilAttachmentWrite |
+      intl::AccessFlagBits2::eTransferWrite |
+      intl::AccessFlagBits2::eHostWrite | intl::AccessFlagBits2::eMemoryWrite;
+  return GetAccessFlags(usage) & kWriteAccessMask;
 }
 
 // Returns VkImageUsageFlagBits for 'usage'. Note that this must not be called
@@ -81,8 +97,8 @@ intl::ImageUsageFlagBits GetImageUsageFlagBits(const ImageUsage& usage) {
 
 }  // namespace
 
-intl::AccessFlags GetAccessFlags(const ImageUsage& usage) {
-  using AccessFlag = intl::AccessFlagBits;
+intl::AccessFlags2 GetAccessFlags(const ImageUsage& usage) {
+  using AccessFlag = intl::AccessFlagBits2;
   const AccessType access_type = usage.access_type();
   switch (usage.usage_type()) {
     case UsageType::kDontCare:
@@ -116,15 +132,15 @@ intl::AccessFlags GetAccessFlags(const ImageUsage& usage) {
   }
 }
 
-intl::PipelineStageFlags GetPipelineStageFlags(const ImageUsage& usage) {
-  using StageFlag = intl::PipelineStageFlagBits;
+intl::PipelineStageFlags2 GetPipelineStageFlags(const ImageUsage& usage) {
+  using StageFlag = intl::PipelineStageFlagBits2;
   switch (usage.usage_type()) {
     case UsageType::kDontCare:
-      return StageFlag::eTopOfPipe;
+    case UsageType::kPresentation:
+      return StageFlag::eNone;
 
     case UsageType::kRenderTarget:
     case UsageType::kMultisampleResolve:
-    case UsageType::kPresentation:
       return StageFlag::eColorAttachmentOutput;
 
     case UsageType::kDepthStencil:
@@ -135,14 +151,16 @@ intl::PipelineStageFlags GetPipelineStageFlags(const ImageUsage& usage) {
     case UsageType::kSample:
       switch (usage.access_location()) {
         case AccessLocation::kDontCare:
-        case AccessLocation::kVertexShader:
         case AccessLocation::kOther:
           FATAL(
-              "Access location must not be kDontCare, kVertexShader or "
-              "kOther for usage type kLinearAccess and kSample");
+              "Access location must not be kDontCare or kOther for usage "
+              "type kLinearAccess and kSample");
 
         case AccessLocation::kHost:
           return StageFlag::eHost;
+
+        case AccessLocation::kVertexShader:
+          return StageFlag::eVertexShader;
 
         case AccessLocation::kFragmentShader:
           return StageFlag::eFragmentShader;
@@ -167,7 +185,9 @@ intl::ImageLayout GetImageLayout(const ImageUsage& usage) {
       return ImageLayout::eColorAttachmentOptimal;
 
     case UsageType::kDepthStencil:
-      return ImageLayout::eDepthStencilAttachmentOptimal;
+      return usage.access_type() == AccessType::kReadOnly
+                 ? ImageLayout::eDepthStencilReadOnlyOptimal
+                 : ImageLayout::eDepthStencilAttachmentOptimal;
 
     case UsageType::kPresentation:
       return ImageLayout::ePresentSrcKHR;
@@ -216,15 +236,15 @@ std::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
     case UsageType::kSample:
       switch (usage.access_location()) {
         case AccessLocation::kDontCare:
-        case AccessLocation::kVertexShader:
         case AccessLocation::kOther:
           FATAL(
-              "Access location must not be kDontCare, kVertexShader or "
-              "kOther for usage type kLinearAccess and kSample");
+              "Access location must not be kDontCare or kOther for usage "
+              "type kLinearAccess and kSample");
 
         case AccessLocation::kHost:
           return std::nullopt;
 
+        case AccessLocation::kVertexShader:
         case AccessLocation::kFragmentShader:
           return queue_family_indices.graphics;
 
@@ -246,12 +266,41 @@ intl::ImageUsageFlags GetImageUsageFlags(std::span<const ImageUsage> usages) {
 
 bool NeedsSynchronization(const ImageUsage& prev_usage,
                           const ImageUsage& curr_usage) {
-  // RAR.
-  if (curr_usage == prev_usage &&
+  if (curr_usage.usage_type() == UsageType::kDontCare) {
+    return false;
+  }
+  const intl::ImageLayout prev_layout = GetImageLayout(prev_usage);
+  const intl::ImageLayout curr_layout = GetImageLayout(curr_usage);
+  // Consecutive reads in the same non-undefined/non-present layout need no
+  // barrier.
+  if (prev_layout == curr_layout &&
+      prev_usage.usage_type() != UsageType::kDontCare &&
+      prev_usage.usage_type() != UsageType::kPresentation &&
+      prev_usage.access_type() == AccessType::kReadOnly &&
       curr_usage.access_type() == AccessType::kReadOnly) {
     return false;
   }
   return true;
+}
+
+std::optional<intl::ImageMemoryBarrier2> CreateImageMemoryBarrier(
+    intl::Image image, const intl::ImageSubresourceRange& subresource_range,
+    const ir::ImageUsage& prev_usage, const ir::ImageUsage& curr_usage,
+    uint32_t src_queue_family_index, uint32_t dst_queue_family_index) {
+  if (!NeedsSynchronization(prev_usage, curr_usage)) {
+    return std::nullopt;
+  }
+  return intl::ImageMemoryBarrier2{}
+      .setSrcStageMask(GetPipelineStageFlags(prev_usage))
+      .setSrcAccessMask(GetWriteOnlyAccessFlags(prev_usage))
+      .setDstStageMask(GetPipelineStageFlags(curr_usage))
+      .setDstAccessMask(GetAccessFlags(curr_usage))
+      .setOldLayout(GetImageLayout(prev_usage))
+      .setNewLayout(GetImageLayout(curr_usage))
+      .setSrcQueueFamilyIndex(src_queue_family_index)
+      .setDstQueueFamilyIndex(dst_queue_family_index)
+      .setImage(image)
+      .setSubresourceRange(subresource_range);
 }
 
 void TransitionImageLayout(intl::CommandBuffer cmd, intl::Image image,

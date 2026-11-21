@@ -150,6 +150,115 @@ void DestroyBuffer(const Context& context, const AllocatedBuffer& buffer) {
   }
 }
 
+intl::AccessFlags2 GetAccessFlags(const BufferUsage& usage) {
+  using AccessFlag = intl::AccessFlagBits2;
+  switch (usage.usage_type()) {
+    case UsageType::kDontCare:
+      return {};
+
+    case UsageType::kIndexOnly:
+      return AccessFlag::eIndexRead;
+
+    case UsageType::kVertexOnly:
+      return AccessFlag::eVertexAttributeRead;
+
+    case UsageType::kIndexAndVertex:
+      return AccessFlag::eIndexRead | AccessFlag::eVertexAttributeRead;
+
+    case UsageType::kUniform:
+      return AccessFlag::eUniformRead;
+
+    case UsageType::kTransfer:
+      switch (usage.access_type()) {
+        case AccessType::kDontCare:
+        case AccessType::kReadWrite:
+          FATAL(
+              "Access type must not be kDontCare or kReadWrite for usage "
+              "type kTransfer");
+
+        case AccessType::kReadOnly:
+          return AccessFlag::eTransferRead;
+
+        case AccessType::kWriteOnly:
+          return AccessFlag::eTransferWrite;
+      }
+  }
+}
+
+intl::PipelineStageFlags2 GetPipelineStageFlags(const BufferUsage& usage) {
+  using StageFlag = intl::PipelineStageFlagBits2;
+  switch (usage.usage_type()) {
+    case UsageType::kDontCare:
+      return StageFlag::eNone;
+
+    case UsageType::kIndexOnly:
+    case UsageType::kVertexOnly:
+    case UsageType::kIndexAndVertex:
+      return StageFlag::eVertexInput;
+
+    case UsageType::kUniform:
+      switch (usage.access_location()) {
+        case AccessLocation::kDontCare:
+        case AccessLocation::kHost:
+        case AccessLocation::kOther:
+          FATAL(
+              "Access location must not be kDontCare, kHost or kOther for "
+              "usage type kUniform");
+
+        case AccessLocation::kVertexShader:
+          return StageFlag::eVertexShader;
+
+        case AccessLocation::kFragmentShader:
+          return StageFlag::eFragmentShader;
+
+        case AccessLocation::kComputeShader:
+          return StageFlag::eComputeShader;
+      }
+
+    case UsageType::kTransfer:
+      return StageFlag::eTransfer;
+  }
+}
+
+bool NeedsSynchronization(const BufferUsage& prev_usage,
+                          const BufferUsage& curr_usage) {
+  if (curr_usage.usage_type() == UsageType::kDontCare) {
+    return false;
+  }
+  if (prev_usage.usage_type() == UsageType::kDontCare) {
+    return false;
+  }
+  if (prev_usage.access_type() == AccessType::kReadOnly &&
+      curr_usage.access_type() == AccessType::kReadOnly) {
+    return false;
+  }
+  return true;
+}
+
+std::optional<intl::BufferMemoryBarrier2> CreateBufferMemoryBarrier(
+    intl::Buffer buffer, intl::DeviceSize offset, intl::DeviceSize size,
+    const BufferUsage& prev_usage, const BufferUsage& curr_usage,
+    uint32_t src_queue_family_index, uint32_t dst_queue_family_index) {
+  if (!NeedsSynchronization(prev_usage, curr_usage)) {
+    return std::nullopt;
+  }
+  intl::AccessFlags2 src_access;
+  if (prev_usage.access_type() == AccessType::kWriteOnly ||
+      prev_usage.access_type() == AccessType::kReadWrite) {
+    src_access = GetAccessFlags(prev_usage);
+  }
+  return intl::BufferMemoryBarrier2{}
+      .setSrcStageMask(GetPipelineStageFlags(prev_usage))
+      .setSrcAccessMask(src_access)
+      .setDstStageMask(GetPipelineStageFlags(curr_usage))
+      .setDstAccessMask(GetAccessFlags(curr_usage))
+      .setSrcQueueFamilyIndex(src_queue_family_index)
+      .setDstQueueFamilyIndex(dst_queue_family_index)
+      .setBuffer(buffer)
+      .setOffset(offset)
+      .setSize(size);
+}
+
 void CopyHostDataToAllocation(
     const Context& context, VmaAllocation allocation,
     std::span<const ir::Buffer::CopyInfo> copy_infos) {

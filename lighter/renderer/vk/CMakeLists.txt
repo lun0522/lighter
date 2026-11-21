@@ -187,6 +187,18 @@ target_link_libraries(vk_image_util_test
 )
 add_test(NAME vk_image_util_test COMMAND vk_image_util_test)
 
+add_executable(vk_buffer_util_test
+  buffer_util_test.cc
+)
+target_link_libraries(vk_buffer_util_test
+  PRIVATE
+    lighter_project_options
+    lighter_renderer_ir_type
+    lighter_renderer_vk_buffer
+    GTest::gtest_main
+)
+add_test(NAME vk_buffer_util_test COMMAND vk_buffer_util_test)
+
 add_executable(vk_pipeline_test
   pipeline_test.cc
 )

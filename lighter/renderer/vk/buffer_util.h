@@ -52,6 +52,26 @@ AllocatedBuffer CreateStagingBuffer(const Context& context,
 // Destroys 'buffer' and frees its VMA allocation.
 void DestroyBuffer(const Context& context, const AllocatedBuffer& buffer);
 
+// Returns VkAccessFlags2 used for inserting buffer memory barriers.
+intl::AccessFlags2 GetAccessFlags(const ir::BufferUsage& usage);
+
+// Returns VkPipelineStageFlags2 used for inserting buffer memory barriers.
+intl::PipelineStageFlags2 GetPipelineStageFlags(const ir::BufferUsage& usage);
+
+// Returns whether an explicit barrier is needed when transitioning a buffer
+// from 'prev_usage' to 'curr_usage'.
+bool NeedsSynchronization(const ir::BufferUsage& prev_usage,
+                          const ir::BufferUsage& curr_usage);
+
+// Synthesizes a Synchronization2 BufferMemoryBarrier2 transitioning 'buffer'
+// over [offset, offset + size) from 'prev_usage' to 'curr_usage'. Returns
+// std::nullopt if no synchronization is needed.
+std::optional<intl::BufferMemoryBarrier2> CreateBufferMemoryBarrier(
+    intl::Buffer buffer, intl::DeviceSize offset, intl::DeviceSize size,
+    const ir::BufferUsage& prev_usage, const ir::BufferUsage& curr_usage,
+    uint32_t src_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
+    uint32_t dst_queue_family_index = VK_QUEUE_FAMILY_IGNORED);
+
 // Copies host memory regions specified by 'copy_infos' into a host-visible
 // VMA allocation and flushes caches.
 void CopyHostDataToAllocation(const Context& context, VmaAllocation allocation,

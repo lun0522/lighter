@@ -190,15 +190,15 @@ void UploadImageData(const Context& context, const SingleImage& target,
     if (usage_layout != intl::ImageLayout::eUndefined) {
       target_layout = usage_layout;
     }
-    const auto stage_bits = static_cast<VkPipelineStageFlags>(
-        image::GetPipelineStageFlags(usages.front()));
-    const auto access_bits =
-        static_cast<VkAccessFlags>(image::GetAccessFlags(usages.front()));
-    if (stage_bits != 0) {
-      dst_stage = static_cast<intl::PipelineStageFlags2>(stage_bits);
+    const intl::PipelineStageFlags2 usage_stage =
+        image::GetPipelineStageFlags(usages.front());
+    if (usage_stage != intl::PipelineStageFlagBits2::eNone) {
+      dst_stage = usage_stage;
     }
-    if (access_bits != 0) {
-      dst_access = static_cast<intl::AccessFlags2>(access_bits);
+    const intl::AccessFlags2 usage_access =
+        image::GetAccessFlags(usages.front());
+    if (usage_access != intl::AccessFlags2{}) {
+      dst_access = usage_access;
     }
   }
 

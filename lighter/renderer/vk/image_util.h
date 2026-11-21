@@ -17,11 +17,11 @@
 
 namespace lighter::renderer::vk::image {
 
-// Returns VkAccessFlags used for inserting image memory barriers.
-intl::AccessFlags GetAccessFlags(const ir::ImageUsage& usage);
+// Returns VkAccessFlags2 used for inserting image memory barriers.
+intl::AccessFlags2 GetAccessFlags(const ir::ImageUsage& usage);
 
-// Returns VkPipelineStageFlags used for inserting image memory barriers.
-intl::PipelineStageFlags GetPipelineStageFlags(const ir::ImageUsage& usage);
+// Returns VkPipelineStageFlags2 used for inserting image memory barriers.
+intl::PipelineStageFlags2 GetPipelineStageFlags(const ir::ImageUsage& usage);
 
 // Returns which VkImageLayout should be used for 'usage'.
 intl::ImageLayout GetImageLayout(const ir::ImageUsage& usage);
@@ -40,11 +40,19 @@ intl::ImageUsageFlags GetImageUsageFlags(
 std::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
                                             const ir::ImageUsage& usage);
 
-// Returns whether we need to explicitly synchronize image memory access when
-// the image usage changes, which means to insert memory barriers in compute
-// pass, or add subpass dependencies in graphics pass.
+// Returns whether an explicit barrier is needed when transitioning from
+// 'prev_usage' to 'curr_usage'.
 bool NeedsSynchronization(const ir::ImageUsage& prev_usage,
                           const ir::ImageUsage& curr_usage);
+
+// Synthesizes a Synchronization2 ImageMemoryBarrier2 transitioning 'image'
+// across 'subresource_range' from 'prev_usage' to 'curr_usage'. Returns
+// std::nullopt if no synchronization or layout transition is needed.
+std::optional<intl::ImageMemoryBarrier2> CreateImageMemoryBarrier(
+    intl::Image image, const intl::ImageSubresourceRange& subresource_range,
+    const ir::ImageUsage& prev_usage, const ir::ImageUsage& curr_usage,
+    uint32_t src_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
+    uint32_t dst_queue_family_index = VK_QUEUE_FAMILY_IGNORED);
 
 // Records an ImageMemoryBarrier2 via pipelineBarrier2 on 'cmd'.
 void TransitionImageLayout(intl::CommandBuffer cmd, intl::Image image,
