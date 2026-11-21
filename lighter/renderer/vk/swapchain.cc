@@ -145,7 +145,7 @@ Swapchain::Swapchain(const SharedContext& context, int window_index,
 
   // Fetch swapchain images.
   image_ = std::make_unique<MultiImage>(
-      std::format("swapchain{}", window_index),
+      context_, std::format("swapchain{}", window_index),
       vk_device().getSwapchainImagesKHR(swapchain_), util::ToVec(image_extent),
       surface_format.format);
 }

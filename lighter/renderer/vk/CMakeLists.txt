@@ -113,29 +113,11 @@ target_link_libraries(lighter_renderer_vk_pipeline
     lighter_common_util
     lighter_renderer_ir_image
     lighter_renderer_ir_image_usage
-    lighter_renderer_ir_pass
     lighter_renderer_ir_pipeline
     lighter_renderer_vk_context
     lighter_renderer_vk_type_mapping
     lighter_renderer_vk_util
     lighter_shader_compiler_util
-)
-
-add_library(lighter_renderer_vk_render_pass STATIC
-  framebuffer.cc
-  framebuffer.h
-  render_pass.cc
-  render_pass.h
-)
-target_link_libraries(lighter_renderer_vk_render_pass
-  PUBLIC
-    lighter_project_options
-    lighter_renderer_ir_image
-    lighter_renderer_ir_pass
-    lighter_renderer_vk_context
-    lighter_renderer_vk_image
-    lighter_renderer_vk_type_mapping
-    lighter_renderer_vk_util
 )
 
 add_library(lighter_renderer_vk_swapchain STATIC
@@ -171,7 +153,6 @@ target_link_libraries(lighter_renderer_vk_renderer
     lighter_renderer_vk_context
     lighter_renderer_vk_image
     lighter_renderer_vk_pipeline
-    lighter_renderer_vk_render_pass
     lighter_renderer_vk_swapchain
     glm::glm
 )

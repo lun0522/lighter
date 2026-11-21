@@ -43,6 +43,8 @@ class Image : public ir::Image {
 
   intl::ImageAspectFlags GetAspectFlags() const;
 
+  virtual intl::ImageView image_view(int index = 0) const = 0;
+
   // Accessors.
   intl::Extent2D extent() const {
     return util::CreateExtent(width(), height());
@@ -95,6 +97,12 @@ class SingleImage : public WithSharedContext, public Image {
     return static_cast<const SingleImage&>(image);
   }
 
+  // Accessors.
+  intl::ImageView image_view(int index = 0) const override {
+    ASSERT_TRUE(index == 0, "SingleImage only has one image view");
+    return image_view_;
+  }
+
   // Overloads.
   intl::Image operator*() const { return image_; }
 
@@ -106,8 +114,9 @@ class SingleImage : public WithSharedContext, public Image {
               intl::ImageUsageFlags extra_usage_flags = {},
               bool include_graphics_queue = false);
 
-  // Opaque image object.
+  // Opaque image objects.
   intl::Image image_;
+  intl::ImageView image_view_;
 
   // VMA allocation handle.
   VmaAllocation allocation_ = VK_NULL_HANDLE;
@@ -117,17 +126,17 @@ class SingleImage : public WithSharedContext, public Image {
 // Swapchain images are good examples of this type of image. We may need this
 // when doing offscreen rendering and writing to the disk.
 // TODO: Consider the case where we do own the image.
-class MultiImage : public Image {
+class MultiImage : public WithSharedContext, public Image {
  public:
-  MultiImage(std::string_view name, std::vector<intl::Image>&& images,
-             const glm::ivec2& extent, intl::Format format)
-      : Image{Type::kMultiple,  name,   LayerType::kSingle,           extent,
-              /*mip_levels=*/1, format, intl::SampleCountFlagBits::e1},
-        images_{std::move(images)} {}
+  MultiImage(const SharedContext& context, std::string_view name,
+             std::vector<intl::Image>&& images, const glm::ivec2& extent,
+             intl::Format format);
 
   // This class is neither copyable nor movable.
   MultiImage(const MultiImage&) = delete;
   MultiImage& operator=(const MultiImage&) = delete;
+
+  ~MultiImage() override;
 
   static const MultiImage& Cast(const ir::Image& image) {
     return static_cast<const MultiImage&>(image);
@@ -136,10 +145,14 @@ class MultiImage : public Image {
   // Accessors.
   int num_images() const { return images_.size(); }
   intl::Image image(int index) const { return images_.at(index); }
+  intl::ImageView image_view(int index = 0) const override {
+    return image_views_.at(index);
+  }
 
  private:
   // Opaque image objects.
   std::vector<intl::Image> images_;
+  std::vector<intl::ImageView> image_views_;
 };
 
 }  // namespace lighter::renderer::vk

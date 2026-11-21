@@ -8,6 +8,7 @@
 #include "lighter/renderer/vk/pipeline.h"
 
 #include <algorithm>
+#include <array>
 #include <format>
 #include <vector>
 
@@ -142,35 +143,10 @@ intl::PipelineInputAssemblyStateCreateInfo GetInputAssemblyStateCreateInfo(
       type::ConvertPrimitiveTopology(descriptor.primitive_topology));
 }
 
-intl::Viewport CreateViewport(const GraphicsPipelineDescriptor& descriptor) {
-  const auto& viewport_info = descriptor.viewport_config.viewport;
-  auto viewport = intl::Viewport{}
-                      .setX(viewport_info.origin.x)
-                      .setY(viewport_info.origin.y)
-                      .setWidth(viewport_info.extent.x)
-                      .setHeight(viewport_info.extent.y)
-                      .setMinDepth(0.0f)
-                      .setMaxDepth(1.0f);
-  if (descriptor.viewport_config.flip_y) {
-    viewport.y += viewport.height;
-    viewport.height *= -1;
-  }
-  return viewport;
-}
-
-intl::Rect2D CreateScissor(const GraphicsPipelineDescriptor& descriptor) {
-  const auto& scissor_info = descriptor.viewport_config.scissor;
-  return intl::Rect2D{}
-      .setOffset(util::ToOffset(scissor_info.origin))
-      .setExtent(util::ToExtent(scissor_info.extent));
-}
-
-intl::PipelineViewportStateCreateInfo GetViewportStateCreateInfo(
-    const std::vector<intl::Viewport>* viewports,
-    const std::vector<intl::Rect2D>* scissors) {
+intl::PipelineViewportStateCreateInfo GetViewportStateCreateInfo() {
   return intl::PipelineViewportStateCreateInfo{}
-      .setViewports(*viewports)
-      .setScissors(*scissors);
+      .setViewportCount(1)
+      .setScissorCount(1);
 }
 
 intl::PipelineRasterizationStateCreateInfo GetRasterizationStateCreateInfo(
@@ -220,15 +196,19 @@ intl::PipelineDepthStencilStateCreateInfo GetDepthStencilStateCreateInfo(
 }
 
 std::vector<intl::PipelineColorBlendAttachmentState>
-CreateColorBlendAttachmentStates(const GraphicsPipelineDescriptor& descriptor) {
-  int max_location = -1;
-  for (const auto& [location, _] : descriptor.color_attachment_map) {
-    max_location = std::max(max_location, location);
-  }
+CreateColorBlendAttachmentStates(const GraphicsPipelineDescriptor& descriptor,
+                                 size_t color_attachment_count) {
   std::vector<intl::PipelineColorBlendAttachmentState> color_blend_states(
-      max_location + 1);
+      color_attachment_count,
+      intl::PipelineColorBlendAttachmentState{}.setColorWriteMask(
+          intl::ColorComponentFlags{
+              intl::FlagTraits<intl::ColorComponentFlagBits>::allFlags}));
   for (const auto& [location, optional_color_blend] :
        descriptor.color_attachment_map) {
+    ASSERT_TRUE(
+        location >= 0 && static_cast<size_t>(location) < color_attachment_count,
+        std::format("Color attachment location {} out of range ({})", location,
+                    color_attachment_count));
     if (!optional_color_blend.has_value()) {
       continue;
     }
@@ -273,7 +253,7 @@ ShaderModule::ShaderModule(const SharedContext& context,
 Pipeline::Pipeline(const SharedContext& context,
                    const GraphicsPipelineDescriptor& descriptor,
                    intl::SampleCountFlagBits sample_count,
-                   intl::RenderPass render_pass, int subpass_index)
+                   const RenderingInfo& rendering_info)
     : Pipeline{context, descriptor.pipeline_name,
                intl::PipelineBindPoint::eGraphics,
                descriptor.uniform_descriptor} {
@@ -289,13 +269,10 @@ Pipeline::Pipeline(const SharedContext& context,
   const auto vertex_input_state_create_info = GetVertexInputStateCreateInfo(
       &vertex_input_binding_descs, &vertex_input_attribute_descs);
 
-  const std::vector<intl::Viewport> viewports{CreateViewport(descriptor)};
-  const std::vector<intl::Rect2D> scissors{CreateScissor(descriptor)};
-  const auto viewport_state_create_info =
-      GetViewportStateCreateInfo(&viewports, &scissors);
+  const auto viewport_state_create_info = GetViewportStateCreateInfo();
 
-  const auto color_blend_attachment_states =
-      CreateColorBlendAttachmentStates(descriptor);
+  const auto color_blend_attachment_states = CreateColorBlendAttachmentStates(
+      descriptor, rendering_info.color_attachment_formats.size());
   const auto color_blend_state_create_info =
       GetColorBlendStateCreateInfo(&color_blend_attachment_states);
 
@@ -308,8 +285,22 @@ Pipeline::Pipeline(const SharedContext& context,
   const auto depth_stencil_state_create_info =
       GetDepthStencilStateCreateInfo(descriptor);
 
+  constexpr std::array kDynamicStates{
+      intl::DynamicState::eViewport,
+      intl::DynamicState::eScissor,
+  };
+  const auto dynamic_state_create_info =
+      intl::PipelineDynamicStateCreateInfo{}.setDynamicStates(kDynamicStates);
+
+  const auto rendering_create_info =
+      intl::PipelineRenderingCreateInfo{}
+          .setColorAttachmentFormats(rendering_info.color_attachment_formats)
+          .setDepthAttachmentFormat(rendering_info.depth_attachment_format)
+          .setStencilAttachmentFormat(rendering_info.stencil_attachment_format);
+
   const auto pipeline_create_info =
       intl::GraphicsPipelineCreateInfo{}
+          .setPNext(&rendering_create_info)
           .setStages(shader_stage_create_infos)
           .setPVertexInputState(&vertex_input_state_create_info)
           .setPInputAssemblyState(&input_assembly_state_create_info)
@@ -318,9 +309,8 @@ Pipeline::Pipeline(const SharedContext& context,
           .setPMultisampleState(&multisample_state_create_info)
           .setPDepthStencilState(&depth_stencil_state_create_info)
           .setPColorBlendState(&color_blend_state_create_info)
-          .setLayout(pipeline_layout_)
-          .setRenderPass(render_pass)
-          .setSubpass(CAST_TO_UINT(subpass_index));
+          .setPDynamicState(&dynamic_state_create_info)
+          .setLayout(pipeline_layout_);
   const auto result = vk_device().createGraphicsPipeline(
       intl::PipelineCache{}, pipeline_create_info, vk_host_allocator());
   ASSERT_SUCCESS(result.result, "Failed to create graphics pipeline");

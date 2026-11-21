@@ -302,6 +302,22 @@ void UploadImageData(const Context& context, const SingleImage& target,
   buffer::DestroyBuffer(context, staging);
 }
 
+intl::ImageView CreateImageView(const Context& context, intl::Image vk_image,
+                                const Image& image) {
+  const auto subresource_range =
+      intl::ImageSubresourceRange{}
+          .setAspectMask(image.GetAspectFlags())
+          .setLevelCount(CAST_TO_UINT(image.mip_levels()))
+          .setLayerCount(CAST_TO_UINT(image.GetNumLayers()));
+  const auto create_info = intl::ImageViewCreateInfo{}
+                               .setImage(vk_image)
+                               .setViewType(image.GetViewType())
+                               .setFormat(image.format())
+                               .setSubresourceRange(subresource_range);
+  return context.device()->createImageView(create_info,
+                                           *context.host_allocator());
+}
+
 }  // namespace
 
 intl::ImageViewType Image::GetViewType() const {
@@ -412,18 +428,51 @@ SingleImage::SingleImage(const SharedContext& context, std::string_view name,
                   unique_queue_family_indices);
   image_ = allocated.handle;
   allocation_ = allocated.allocation;
+  image_view_ = CreateImageView(*context_, image_, *this);
 }
 
 SingleImage::~SingleImage() {
-  if (allocation_ == VK_NULL_HANDLE) {
+  if (image_view_ == intl::ImageView{} && allocation_ == VK_NULL_HANDLE) {
     return;
   }
+  const intl::ImageView image_view = image_view_;
   const intl::Image image = image_;
   const VmaAllocation allocation = allocation_;
+  context_->AddReleaseExpiredResourceOp([image_view, image,
+                                         allocation](const Context& context) {
+    if (image_view != intl::ImageView{}) {
+      context.device()->destroyImageView(image_view, *context.host_allocator());
+    }
+    if (allocation != VK_NULL_HANDLE) {
+      vmaDestroyImage(context.vma_allocator(), static_cast<VkImage>(image),
+                      allocation);
+    }
+  });
+}
+
+MultiImage::MultiImage(const SharedContext& context, std::string_view name,
+                       std::vector<intl::Image>&& images,
+                       const glm::ivec2& extent, intl::Format format)
+    : WithSharedContext{context},
+      Image{Type::kMultiple,  name,   LayerType::kSingle,           extent,
+            /*mip_levels=*/1, format, intl::SampleCountFlagBits::e1},
+      images_{std::move(images)} {
+  image_views_.reserve(images_.size());
+  for (intl::Image image : images_) {
+    image_views_.push_back(CreateImageView(*context_, image, *this));
+  }
+}
+
+MultiImage::~MultiImage() {
+  if (image_views_.empty()) {
+    return;
+  }
+  std::vector<intl::ImageView> expired_views = std::move(image_views_);
   context_->AddReleaseExpiredResourceOp(
-      [image, allocation](const Context& context) {
-        vmaDestroyImage(context.vma_allocator(), static_cast<VkImage>(image),
-                        allocation);
+      [views = std::move(expired_views)](const Context& context) {
+        for (intl::ImageView view : views) {
+          context.device()->destroyImageView(view, *context.host_allocator());
+        }
       });
 }
 

@@ -26,7 +26,6 @@
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/image.h"
 #include "lighter/renderer/vk/pipeline.h"
-#include "lighter/renderer/vk/render_pass.h"
 #include "lighter/renderer/vk/swapchain.h"
 
 namespace lighter::renderer::vk {
@@ -92,9 +91,7 @@ class Renderer : public WithSharedContext, public ir::Renderer {
   // Pass
 
   std::unique_ptr<ir::RenderPass> CreateRenderPass(
-      ir::RenderPassDescriptor&& descriptor) const override {
-    return std::make_unique<RenderPass>(context_, std::move(descriptor));
-  }
+      ir::RenderPassDescriptor&& descriptor) const override;
 
   std::unique_ptr<ir::ComputePass> CreateComputePass(
       ir::ComputePassDescriptor&& descriptor) const override {

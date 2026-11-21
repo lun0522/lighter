@@ -28,4 +28,10 @@ void Renderer::RecreateSwapchain(int window_index) {
       std::make_unique<Swapchain>(context_, window_index, window);
 }
 
+std::unique_ptr<ir::RenderPass> Renderer::CreateRenderPass(
+    ir::RenderPassDescriptor&& /*descriptor*/) const {
+  class DynamicRenderPass : public ir::RenderPass {};
+  return std::make_unique<DynamicRenderPass>();
+}
+
 }  // namespace lighter::renderer::vk

@@ -12,10 +12,10 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "lighter/common/ref_count.h"
 #include "lighter/common/util.h"
-#include "lighter/renderer/ir/pass.h"
 #include "lighter/renderer/ir/pipeline.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/util.h"
@@ -53,11 +53,19 @@ class ShaderModule : public WithSharedContext {
 
 class Pipeline : public WithSharedContext {
  public:
-  // Constructs a graphics pipeline.
+  // Attachment formats used for Dynamic Rendering when building a graphics
+  // pipeline without a VkRenderPass.
+  struct RenderingInfo {
+    std::vector<intl::Format> color_attachment_formats;
+    intl::Format depth_attachment_format = intl::Format::eUndefined;
+    intl::Format stencil_attachment_format = intl::Format::eUndefined;
+  };
+
+  // Constructs a graphics pipeline for Dynamic Rendering.
   Pipeline(const SharedContext& context,
            const ir::GraphicsPipelineDescriptor& descriptor,
-           intl::SampleCountFlagBits sample_count, intl::RenderPass render_pass,
-           int subpass_index);
+           intl::SampleCountFlagBits sample_count,
+           const RenderingInfo& rendering_info);
 
   // Constructs a compute pipeline.
   Pipeline(const SharedContext& context,
