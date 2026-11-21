@@ -73,9 +73,27 @@ target_link_libraries(lighter_renderer_ir_pass
   INTERFACE
     lighter_project_options
     lighter_common_util
+    lighter_renderer_ir_buffer
     lighter_renderer_ir_image
     lighter_renderer_ir_pipeline
     lighter_renderer_ir_type
+)
+
+add_library(lighter_renderer_ir_render_graph STATIC
+  render_graph.cc
+  render_graph.h
+)
+target_link_libraries(lighter_renderer_ir_render_graph
+  PUBLIC
+    lighter_project_options
+    lighter_common_util
+    lighter_renderer_ir_buffer
+    lighter_renderer_ir_buffer_usage
+    lighter_renderer_ir_image
+    lighter_renderer_ir_image_usage
+    lighter_renderer_ir_pipeline
+    lighter_renderer_ir_type
+    glm::glm
 )
 
 add_library(lighter_renderer_ir_renderer INTERFACE
@@ -94,6 +112,18 @@ target_link_libraries(lighter_renderer_ir_renderer
     lighter_renderer_ir_image_usage
     lighter_renderer_ir_pass
     lighter_renderer_ir_pipeline
+    lighter_renderer_ir_render_graph
     lighter_renderer_ir_type
     glm::glm
 )
+
+add_executable(ir_render_graph_test
+  render_graph_test.cc
+)
+target_link_libraries(ir_render_graph_test
+  PRIVATE
+    lighter_project_options
+    lighter_renderer_ir_render_graph
+    GTest::gtest_main
+)
+add_test(NAME ir_render_graph_test COMMAND ir_render_graph_test)

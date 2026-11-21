@@ -100,7 +100,7 @@ class AttachmentInfo {
 
   // Makes 'image_usage_tracker' track the usage of this image. The initial
   // usage of 'sample_image' is used as the current usage.
-  void AddToTracker(renderer::ir::ImageUsageTracker& image_usage_tracker,
+  void AddToTracker(renderer::vulkan::ImageUsageTracker& image_usage_tracker,
                     const renderer::vulkan::Image& sample_image) {
     image_usage_tracker.TrackImage(image_name_, sample_image.GetInitialUsage());
   }

@@ -10,9 +10,13 @@
 
 #include <vulkan/vulkan.h>
 
+#include <format>
+#include <map>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
+#include <vector>
 
 #include "lighter/common/util.h"
 #include "lighter/renderer/ir/image_usage.h"
@@ -22,8 +26,130 @@ namespace renderer {
 namespace vulkan {
 
 using ir::ImageUsage;
-using ir::ImageUsageHistory;
-using ir::ImageUsageTracker;
+
+// Holds usages of an image across subpasses of a legacy Gen 1 pass.
+class ImageUsageHistory {
+ public:
+  using MultisampleResolveSourceMap = std::unordered_map<int, std::string>;
+
+  explicit ImageUsageHistory(const ImageUsage& initial_usage)
+      : initial_usage_{initial_usage} {}
+  explicit ImageUsageHistory() = default;
+
+  ImageUsageHistory(ImageUsageHistory&&) noexcept = default;
+  ImageUsageHistory& operator=(ImageUsageHistory&&) noexcept = default;
+
+  ImageUsageHistory& AddUsage(int subpass, const ImageUsage& usage) {
+    const auto did_insert =
+        usage_at_subpass_map_.insert({subpass, usage}).second;
+    ASSERT_TRUE(did_insert,
+                std::format("Already specified usage for subpass {}", subpass));
+    return *this;
+  }
+
+  ImageUsageHistory& AddUsage(int subpass_start, int subpass_end,
+                              const ImageUsage& usage) {
+    ASSERT_TRUE(
+        subpass_start <= subpass_end,
+        std::format("Invalid range [{}, {}]", subpass_start, subpass_end));
+    for (int subpass = subpass_start; subpass <= subpass_end; ++subpass) {
+      AddUsage(subpass, usage);
+    }
+    return *this;
+  }
+
+  ImageUsageHistory& AddMultisampleResolveSource(
+      int subpass, std::string_view source_image_name) {
+    const auto iter =
+        resolve_source_map_.insert({subpass, std::string{source_image_name}});
+    ASSERT_TRUE(
+        iter.second,
+        std::format("Already specified source for subpass {}", subpass));
+    return AddUsage(subpass, ImageUsage::GetMultisampleResolveTargetUsage());
+  }
+
+  ImageUsageHistory& SetFinalUsage(const ImageUsage& usage) {
+    ASSERT_NO_VALUE(final_usage_, "Already specified final usage");
+    final_usage_ = usage;
+    return *this;
+  }
+
+  std::vector<ImageUsage> GetAllUsages() const {
+    const int num_usages = 1 + static_cast<int>(usage_at_subpass_map_.size()) +
+                           (final_usage_.has_value() ? 1 : 0);
+    std::vector<ImageUsage> usages;
+    usages.reserve(num_usages);
+    usages.push_back(initial_usage_);
+    for (const auto& pair : usage_at_subpass_map_) {
+      usages.push_back(pair.second);
+    }
+    if (final_usage_.has_value()) {
+      usages.push_back(final_usage_.value());
+    }
+    return usages;
+  }
+
+  const std::map<int, ImageUsage>& usage_at_subpass_map() const {
+    return usage_at_subpass_map_;
+  }
+  const ImageUsage& initial_usage() const { return initial_usage_; }
+  const std::optional<ImageUsage>& final_usage() const { return final_usage_; }
+  const MultisampleResolveSourceMap& multisample_resolve_source_map() const {
+    return resolve_source_map_;
+  }
+
+ private:
+  std::map<int, ImageUsage> usage_at_subpass_map_;
+  ImageUsage initial_usage_;
+  std::optional<ImageUsage> final_usage_;
+  MultisampleResolveSourceMap resolve_source_map_;
+};
+
+// Tracks legacy Gen 1 usages across multiple named images.
+class ImageUsageTracker {
+ public:
+  ImageUsageTracker() = default;
+
+  ImageUsageTracker(const ImageUsageTracker&) = delete;
+  ImageUsageTracker& operator=(const ImageUsageTracker&) = delete;
+
+  ImageUsageTracker& TrackImage(std::string&& image_name,
+                                const ImageUsage& current_usage) {
+    ASSERT_FALSE(
+        image_usage_map_.contains(image_name),
+        std::format("Already tracking image with name '{}'", image_name));
+    image_usage_map_.insert({std::move(image_name), current_usage});
+    return *this;
+  }
+
+  ImageUsageTracker& TrackImage(const std::string& image_name,
+                                const ImageUsage& current_usage) {
+    return TrackImage(std::string{image_name}, current_usage);
+  }
+
+  bool IsImageTracked(const std::string& image_name) const {
+    return image_usage_map_.contains(image_name);
+  }
+
+  const ImageUsage& GetUsage(const std::string& image_name) const {
+    const auto iter = image_usage_map_.find(image_name);
+    ASSERT_FALSE(iter == image_usage_map_.end(),
+                 std::format("Unrecognized image '{}'", image_name));
+    return iter->second;
+  }
+
+  ImageUsageTracker& UpdateUsage(const std::string& image_name,
+                                 const ImageUsage& usage) {
+    auto iter = image_usage_map_.find(image_name);
+    ASSERT_FALSE(iter == image_usage_map_.end(),
+                 std::format("Unrecognized image '{}'", image_name));
+    iter->second = usage;
+    return *this;
+  }
+
+ private:
+  std::unordered_map<std::string, ImageUsage> image_usage_map_;
+};
 
 // The base class of compute pass and graphics pass.
 class BasePass {

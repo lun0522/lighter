@@ -14,8 +14,8 @@ namespace application {
 namespace vulkan {
 
 using renderer::ir::ImageUsage;
-using renderer::ir::ImageUsageTracker;
 using renderer::vulkan::Image;
+using renderer::vulkan::ImageUsageTracker;
 using renderer::vulkan::MultisampleImage;
 using renderer::vulkan::NaiveRenderPass;
 using renderer::vulkan::RenderPassBuilder;

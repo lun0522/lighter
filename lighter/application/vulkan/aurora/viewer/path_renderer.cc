@@ -22,7 +22,6 @@ namespace application {
 namespace vulkan {
 namespace aurora {
 
-using renderer::ir::ImageUsageTracker;
 using renderer::vulkan::ComputePipelineBuilder;
 using renderer::vulkan::Descriptor;
 using renderer::vulkan::DynamicDescriptor;
@@ -31,6 +30,7 @@ using renderer::vulkan::Image;
 using renderer::vulkan::ImageSampler;
 using renderer::vulkan::ImageUsage;
 using renderer::vulkan::ImageUsageHistory;
+using renderer::vulkan::ImageUsageTracker;
 using renderer::vulkan::MultisampleImage;
 using renderer::vulkan::NaiveRenderPass;
 using renderer::vulkan::OffscreenImage;

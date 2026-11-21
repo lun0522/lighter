@@ -26,13 +26,13 @@ namespace application {
 namespace vulkan {
 namespace troop {
 
-using renderer::ir::ImageUsageTracker;
 using renderer::vulkan::Descriptor;
 using renderer::vulkan::GraphicsPass;
 using renderer::vulkan::GraphicsPipelineBuilder;
 using renderer::vulkan::Image;
 using renderer::vulkan::ImageUsage;
 using renderer::vulkan::ImageUsageHistory;
+using renderer::vulkan::ImageUsageTracker;
 using renderer::vulkan::NaiveRenderPass;
 using renderer::vulkan::OffscreenImage;
 using renderer::vulkan::PerVertexBuffer;

@@ -78,30 +78,28 @@ class DynamicRenderPass : public ir::RenderPass {
                              ir::RenderPassDescriptor&& descriptor)
       : descriptor_{std::move(descriptor)} {
     const ShaderModule::AutoReleaseShaderPool shader_pool;
-    for (const auto& subpass : descriptor_.subpass_descriptors) {
-      Pipeline::RenderingInfo rendering_info;
-      rendering_info.color_attachment_formats.reserve(
-          subpass.color_attachments.size());
-      intl::SampleCountFlagBits sample_count = intl::SampleCountFlagBits::e1;
-      for (const ir::Image* attachment : subpass.color_attachments) {
-        const auto& vk_image = Image::Cast(*attachment);
-        rendering_info.color_attachment_formats.push_back(vk_image.format());
-        sample_count = vk_image.sample_count();
+    Pipeline::RenderingInfo rendering_info;
+    rendering_info.color_attachment_formats.reserve(
+        descriptor_.color_attachments.size());
+    intl::SampleCountFlagBits sample_count = intl::SampleCountFlagBits::e1;
+    for (const ir::Image* attachment : descriptor_.color_attachments) {
+      const auto& vk_image = Image::Cast(*attachment);
+      rendering_info.color_attachment_formats.push_back(vk_image.format());
+      sample_count = vk_image.sample_count();
+    }
+    if (descriptor_.depth_stencil_attachment != nullptr) {
+      const auto& vk_ds = Image::Cast(*descriptor_.depth_stencil_attachment);
+      rendering_info.depth_attachment_format = vk_ds.format();
+      if (vk_ds.GetAspectFlags() & intl::ImageAspectFlagBits::eStencil) {
+        rendering_info.stencil_attachment_format = vk_ds.format();
       }
-      if (subpass.depth_stencil_attachment != nullptr) {
-        const auto& vk_ds = Image::Cast(*subpass.depth_stencil_attachment);
-        rendering_info.depth_attachment_format = vk_ds.format();
-        if (vk_ds.GetAspectFlags() & intl::ImageAspectFlagBits::eStencil) {
-          rendering_info.stencil_attachment_format = vk_ds.format();
-        }
-        if (subpass.color_attachments.empty()) {
-          sample_count = vk_ds.sample_count();
-        }
+      if (descriptor_.color_attachments.empty()) {
+        sample_count = vk_ds.sample_count();
       }
-      for (const auto& pipeline_desc : subpass.pipeline_descriptors) {
-        pipelines_.push_back(std::make_unique<Pipeline>(
-            context, pipeline_desc, sample_count, rendering_info));
-      }
+    }
+    for (const auto& pipeline_desc : descriptor_.pipeline_descriptors) {
+      pipelines_.push_back(std::make_unique<Pipeline>(
+          context, pipeline_desc, sample_count, rendering_info));
     }
   }
 
@@ -112,18 +110,14 @@ class DynamicRenderPass : public ir::RenderPass {
     const intl::Extent2D render_extent = swapchain.image().extent();
     const intl::Rect2D render_area{{0, 0}, render_extent};
 
-    ASSERT_TRUE(descriptor_.subpass_descriptors.size() == 1,
-                "DynamicRenderPass currently supports single-subpass passes");
-    const ir::SubpassDescriptor& subpass = descriptor_.subpass_descriptors[0];
-
     std::unordered_map<const ir::Image*, const ir::Image*> resolve_targets;
-    for (const auto& resolve : subpass.multisample_resolves) {
+    for (const auto& resolve : descriptor_.multisample_resolves) {
       resolve_targets[resolve.source_image] = resolve.target_image;
     }
 
     std::vector<intl::RenderingAttachmentInfo> color_attachments;
-    color_attachments.reserve(subpass.color_attachments.size());
-    for (const ir::Image* attachment_ptr : subpass.color_attachments) {
+    color_attachments.reserve(descriptor_.color_attachments.size());
+    for (const ir::Image* attachment_ptr : descriptor_.color_attachments) {
       const auto& vk_color = Image::Cast(*attachment_ptr);
       image::TransitionImageLayout(
           cmd, GetVkImage(vk_color, swapchain_image_index),
@@ -175,8 +169,8 @@ class DynamicRenderPass : public ir::RenderPass {
     intl::RenderingAttachmentInfo stencil_info;
     bool has_depth = false;
     bool has_stencil = false;
-    if (subpass.depth_stencil_attachment != nullptr) {
-      const auto& vk_ds = Image::Cast(*subpass.depth_stencil_attachment);
+    if (descriptor_.depth_stencil_attachment != nullptr) {
+      const auto& vk_ds = Image::Cast(*descriptor_.depth_stencil_attachment);
       image::TransitionImageLayout(
           cmd, GetVkImage(vk_ds, swapchain_image_index), vk_ds.GetAspectFlags(),
           /*base_mip_level=*/0, CAST_TO_UINT(vk_ds.mip_levels()),
@@ -190,7 +184,7 @@ class DynamicRenderPass : public ir::RenderPass {
           intl::AccessFlagBits2::eDepthStencilAttachmentWrite |
               intl::AccessFlagBits2::eDepthStencilAttachmentRead);
       const auto ds_ops_iter = descriptor_.depth_stencil_ops_map.find(
-          subpass.depth_stencil_attachment);
+          descriptor_.depth_stencil_attachment);
       ASSERT_TRUE(ds_ops_iter != descriptor_.depth_stencil_ops_map.end(),
                   "Missing depth/stencil load/store ops");
       const auto& ds_ops = ds_ops_iter->second;

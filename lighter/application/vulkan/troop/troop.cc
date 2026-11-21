@@ -17,11 +17,11 @@ namespace application {
 namespace vulkan {
 namespace {
 
-using renderer::ir::ImageUsageHistory;
 using renderer::vulkan::DepthStencilImage;
 using renderer::vulkan::Image;
 using renderer::vulkan::ImageSampler;
 using renderer::vulkan::ImageUsage;
+using renderer::vulkan::ImageUsageHistory;
 using renderer::vulkan::NaiveRenderPass;
 using renderer::vulkan::OffscreenImage;
 using renderer::vulkan::PerFrameCommand;

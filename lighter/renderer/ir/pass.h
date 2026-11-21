@@ -21,40 +21,6 @@
 
 namespace lighter::renderer::ir {
 
-struct SubpassDescriptor {
-  struct MultisampleResolve {
-    MultisampleResolve(const Image* source_image, const Image* target_image)
-        : source_image{FATAL_IF_NULL(source_image)},
-          target_image{FATAL_IF_NULL(target_image)} {}
-
-    const Image* source_image;
-    const Image* target_image;
-  };
-
-  SubpassDescriptor& AddPipeline(GraphicsPipelineDescriptor&& descriptor) {
-    pipeline_descriptors.push_back(std::move(descriptor));
-    return *this;
-  }
-  SubpassDescriptor& AddColorAttachment(const Image* attachment) {
-    color_attachments.push_back(attachment);
-    return *this;
-  }
-  SubpassDescriptor& AddMultisampleResolve(const Image* source_image,
-                                           const Image* target_image) {
-    multisample_resolves.push_back({source_image, target_image});
-    return *this;
-  }
-  SubpassDescriptor& SetDepthStencilAttachment(const Image* attachment) {
-    depth_stencil_attachment = attachment;
-    return *this;
-  }
-
-  std::vector<GraphicsPipelineDescriptor> pipeline_descriptors;
-  std::vector<const Image*> color_attachments;
-  std::vector<MultisampleResolve> multisample_resolves;
-  const Image* depth_stencil_attachment = nullptr;
-};
-
 struct RenderPassDescriptor {
   struct LoadStoreOps {
     AttachmentLoadOp load_op = AttachmentLoadOp::kDontCare;
@@ -68,10 +34,13 @@ struct RenderPassDescriptor {
     LoadStoreOps stencil_ops;
   };
 
-  struct SubpassDependency {
-    int from;
-    int to;
-    std::vector<const Image*> attachments;
+  struct MultisampleResolve {
+    MultisampleResolve(const Image* source_image, const Image* target_image)
+        : source_image{FATAL_IF_NULL(source_image)},
+          target_image{FATAL_IF_NULL(target_image)} {}
+
+    const Image* source_image;
+    const Image* target_image;
   };
 
   RenderPassDescriptor& AddAttachment(const Image* attachment,
@@ -84,20 +53,31 @@ struct RenderPassDescriptor {
     depth_stencil_ops_map.insert({attachment, ops});
     return *this;
   }
-  RenderPassDescriptor& AddSubpass(SubpassDescriptor&& descriptor) {
-    subpass_descriptors.push_back(std::move(descriptor));
+  RenderPassDescriptor& AddPipeline(GraphicsPipelineDescriptor&& descriptor) {
+    pipeline_descriptors.push_back(std::move(descriptor));
     return *this;
   }
-  RenderPassDescriptor& AddSubpassDependency(SubpassDependency&& dependency) {
-    subpass_dependencies.push_back(std::move(dependency));
+  RenderPassDescriptor& AddColorAttachment(const Image* attachment) {
+    color_attachments.push_back(attachment);
+    return *this;
+  }
+  RenderPassDescriptor& AddMultisampleResolve(const Image* source_image,
+                                              const Image* target_image) {
+    multisample_resolves.push_back({source_image, target_image});
+    return *this;
+  }
+  RenderPassDescriptor& SetDepthStencilAttachment(const Image* attachment) {
+    depth_stencil_attachment = attachment;
     return *this;
   }
 
   std::unordered_map<const Image*, ColorLoadStoreOps> color_ops_map;
   std::unordered_map<const Image*, DepthStencilLoadStoreOps>
       depth_stencil_ops_map;
-  std::vector<SubpassDescriptor> subpass_descriptors;
-  std::vector<SubpassDependency> subpass_dependencies;
+  std::vector<GraphicsPipelineDescriptor> pipeline_descriptors;
+  std::vector<const Image*> color_attachments;
+  std::vector<MultisampleResolve> multisample_resolves;
+  const Image* depth_stencil_attachment = nullptr;
 };
 
 struct ComputePassDescriptor {

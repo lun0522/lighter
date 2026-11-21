@@ -22,7 +22,6 @@ using renderer::ir::MultisamplingMode;
 using renderer::ir::Renderer;
 using renderer::ir::RenderPass;
 using renderer::ir::RenderPassDescriptor;
-using renderer::ir::SubpassDescriptor;
 using renderer::ir::VertexInputRate;
 
 constexpr int kWindowIndex = 0;
@@ -117,19 +116,17 @@ class TriangleExample {
                  renderer::ir::buffer::CreateAttributesForVertex3DWithColor(
                      /*loc_pos=*/0, /*loc_color=*/1)});
 
-    auto subpass_descriptor =
-        SubpassDescriptor{}.AddPipeline(std::move(pipeline_descriptor));
-    auto render_pass_descriptor = RenderPassDescriptor{};
+    auto render_pass_descriptor =
+        RenderPassDescriptor{}.AddPipeline(std::move(pipeline_descriptor));
 
     if (use_multisampling) {
       multisample_attachment_ = renderer_->CreateColorImage(
           "color_multisample", swapchain_image, multisampling_mode_,
           std::array{ImageUsage::GetRenderTargetUsage(
               /*attachment_location=*/0)});
-      subpass_descriptor.AddColorAttachment(multisample_attachment_.get())
+      render_pass_descriptor.AddColorAttachment(multisample_attachment_.get())
           .AddMultisampleResolve(multisample_attachment_.get(),
-                                 &swapchain_image);
-      render_pass_descriptor
+                                 &swapchain_image)
           .AddAttachment(multisample_attachment_.get(),
                          renderer::ir::pass::GetRenderTargetLoadStoreOps(
                              /*is_multisampled=*/true))
@@ -137,13 +134,12 @@ class TriangleExample {
                          renderer::ir::pass::GetResolveTargetLoadStoreOps());
     } else {
       multisample_attachment_.reset();
-      subpass_descriptor.AddColorAttachment(&swapchain_image);
-      render_pass_descriptor.AddAttachment(
-          &swapchain_image, renderer::ir::pass::GetRenderTargetLoadStoreOps(
-                                /*is_multisampled=*/false));
+      render_pass_descriptor.AddColorAttachment(&swapchain_image)
+          .AddAttachment(&swapchain_image,
+                         renderer::ir::pass::GetRenderTargetLoadStoreOps(
+                             /*is_multisampled=*/false));
     }
 
-    render_pass_descriptor.AddSubpass(std::move(subpass_descriptor));
     render_pass_ =
         renderer_->CreateRenderPass(std::move(render_pass_descriptor));
   }
