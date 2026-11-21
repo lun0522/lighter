@@ -9,14 +9,12 @@
 #define LIGHTER_RENDERER_IR_RENDERER_H
 
 #include <format>
-#include <functional>
 #include <glm/glm.hpp>
 #include <memory>
 #include <span>
 #include <string_view>
 #include <vector>
 
-#include "lighter/common/file.h"
 #include "lighter/common/image.h"
 #include "lighter/common/util.h"
 #include "lighter/common/window.h"
@@ -24,8 +22,6 @@
 #include "lighter/renderer/ir/buffer_usage.h"
 #include "lighter/renderer/ir/image.h"
 #include "lighter/renderer/ir/image_usage.h"
-#include "lighter/renderer/ir/pass.h"
-#include "lighter/renderer/ir/pipeline.h"
 #include "lighter/renderer/ir/render_graph.h"
 #include "lighter/renderer/ir/type.h"
 
@@ -54,8 +50,6 @@ class Renderer {
 
   // Device image
 
-  virtual const Image& GetSwapchainImage(int window_index) const = 0;
-
   virtual std::unique_ptr<Image> CreateColorImage(
       std::string_view name, const common::Image::Dimension& dimension,
       MultisamplingMode multisampling_mode, bool high_precision,
@@ -75,20 +69,7 @@ class Renderer {
       MultisamplingMode multisampling_mode,
       std::span<const ImageUsage> usages) const = 0;
 
-  // Pass
-
-  virtual std::unique_ptr<RenderPass> CreateRenderPass(
-      RenderPassDescriptor&& descriptor) const = 0;
-
-  virtual std::unique_ptr<ComputePass> CreateComputePass(
-      ComputePassDescriptor&& descriptor) const = 0;
-
-  // Renders one frame to 'window_index' using 'pass' and returns false if the
-  // swapchain was recreated (e.g. window resize) and dependent attachments or
-  // passes should be rebuilt.
-  virtual bool RenderFrame(
-      int window_index, RenderPass& pass,
-      const std::function<void(CommandRecorder&)>& record_draw) = 0;
+  // Frame Graph execution
 
   // Compiles and executes 'graph' for one frame to 'window_index', returning
   // false if the swapchain was recreated during this call.

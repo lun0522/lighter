@@ -10,11 +10,11 @@
 
 #include <vulkan/vulkan.h>
 
-#include <functional>
 #include <glm/glm.hpp>
 #include <memory>
 #include <optional>
 #include <span>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -28,7 +28,6 @@
 #include "lighter/renderer/vk/command.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/image.h"
-#include "lighter/renderer/vk/pipeline.h"
 #include "lighter/renderer/vk/render_graph.h"
 #include "lighter/renderer/vk/swapchain.h"
 
@@ -62,10 +61,6 @@ class Renderer : public WithSharedContext, public ir::Renderer {
 
   // Image
 
-  const Image& GetSwapchainImage(int window_index) const override {
-    return swapchains_.at(window_index)->frame_image(0);
-  }
-
   std::unique_ptr<ir::Image> CreateColorImage(
       std::string_view name, const common::Image::Dimension& dimension,
       ir::MultisamplingMode multisampling_mode, bool high_precision,
@@ -97,19 +92,7 @@ class Renderer : public WithSharedContext, public ir::Renderer {
                                                multisampling_mode, usages);
   }
 
-  // Pass
-
-  std::unique_ptr<ir::RenderPass> CreateRenderPass(
-      ir::RenderPassDescriptor&& descriptor) const override;
-
-  std::unique_ptr<ir::ComputePass> CreateComputePass(
-      ir::ComputePassDescriptor&& descriptor) const override {
-    FATAL("Not implemented yet");
-  }
-
-  bool RenderFrame(
-      int window_index, ir::RenderPass& pass,
-      const std::function<void(ir::CommandRecorder&)>& record_draw) override;
+  // Frame Graph execution
 
   bool RenderFrame(int window_index, ir::RenderGraph& graph) override;
 
@@ -120,11 +103,6 @@ class Renderer : public WithSharedContext, public ir::Renderer {
   void WaitIdle() override { context_->WaitIdle(); }
 
  private:
-  bool RunWindowCommandBuffer(
-      int window_index,
-      const std::function<void(intl::CommandBuffer, int frame_index,
-                               uint32_t image_index)>& record_commands);
-
   void RecreateSwapchain(int window_index);
 
   std::vector<std::unique_ptr<Swapchain>> swapchains_;

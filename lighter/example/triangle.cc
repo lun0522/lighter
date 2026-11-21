@@ -12,16 +12,19 @@
 namespace lighter::example {
 namespace {
 
+using renderer::ir::AttachmentLoadOp;
+using renderer::ir::AttachmentStoreOp;
 using renderer::ir::Buffer;
 using renderer::ir::BufferUsage;
-using renderer::ir::CommandRecorder;
 using renderer::ir::GraphicsPipelineDescriptor;
-using renderer::ir::Image;
-using renderer::ir::ImageUsage;
+using renderer::ir::ImageHandle;
 using renderer::ir::MultisamplingMode;
+using renderer::ir::PassBuilder;
+using renderer::ir::PassContext;
 using renderer::ir::Renderer;
-using renderer::ir::RenderPass;
-using renderer::ir::RenderPassDescriptor;
+using renderer::ir::RenderGraph;
+using renderer::ir::TransientImageDesc;
+using renderer::ir::TransientImageFormat;
 using renderer::ir::VertexInputRate;
 
 constexpr int kWindowIndex = 0;
@@ -64,43 +67,7 @@ class TriangleExample {
         std::array{Buffer::CopyInfo{vertex_data.data(), vertex_data_size,
                                     /*offset=*/0}});
 
-    CreateRenderPass();
-  }
-
-  // This class is neither copyable nor movable.
-  TriangleExample(const TriangleExample&) = delete;
-  TriangleExample& operator=(const TriangleExample&) = delete;
-
-  void MainLoop() {
-    while (!window_.ShouldQuit()) {
-      window_.ProcessUserInputs();
-
-      const Alpha alpha{glm::abs(glm::sin(timer_.GetElapsedTimeSinceLaunch()))};
-      const bool rendered = renderer_->RenderFrame(
-          kWindowIndex, *render_pass_, [&](CommandRecorder& cmd) {
-            cmd.BindPipeline(/*pipeline_index=*/0);
-            cmd.PushConstants(renderer::ir::shader_stage::FRAGMENT,
-                              /*offset=*/0, sizeof(Alpha), &alpha);
-            cmd.BindVertexBuffer(/*binding_point=*/0, *vertex_buffer_);
-            cmd.Draw(/*vertex_count=*/3);
-          });
-      if (!rendered) {
-        CreateRenderPass();
-      }
-      timer_.Tick();
-    }
-    renderer_->WaitIdle();
-  }
-
- private:
-  void CreateRenderPass() {
-    using common::Vertex3DWithColor;
-
-    const bool use_multisampling =
-        multisampling_mode_ != MultisamplingMode::kNone;
-    const Image& swapchain_image = renderer_->GetSwapchainImage(kWindowIndex);
-
-    auto pipeline_descriptor =
+    pipeline_descriptor_ =
         GraphicsPipelineDescriptor{}
             .SetName("Triangle")
             .SetShader(renderer::ir::shader_stage::VERTEX,
@@ -115,42 +82,61 @@ class TriangleExample {
                  /*stride=*/sizeof(Vertex3DWithColor),
                  renderer::ir::buffer::CreateAttributesForVertex3DWithColor(
                      /*loc_pos=*/0, /*loc_color=*/1)});
-
-    auto render_pass_descriptor =
-        RenderPassDescriptor{}.AddPipeline(std::move(pipeline_descriptor));
-
-    if (use_multisampling) {
-      multisample_attachment_ = renderer_->CreateColorImage(
-          "color_multisample", swapchain_image, multisampling_mode_,
-          std::array{ImageUsage::GetRenderTargetUsage(
-              /*attachment_location=*/0)});
-      render_pass_descriptor.AddColorAttachment(multisample_attachment_.get())
-          .AddMultisampleResolve(multisample_attachment_.get(),
-                                 &swapchain_image)
-          .AddAttachment(multisample_attachment_.get(),
-                         renderer::ir::pass::GetRenderTargetLoadStoreOps(
-                             /*is_multisampled=*/true))
-          .AddAttachment(&swapchain_image,
-                         renderer::ir::pass::GetResolveTargetLoadStoreOps());
-    } else {
-      multisample_attachment_.reset();
-      render_pass_descriptor.AddColorAttachment(&swapchain_image)
-          .AddAttachment(&swapchain_image,
-                         renderer::ir::pass::GetRenderTargetLoadStoreOps(
-                             /*is_multisampled=*/false));
-    }
-
-    render_pass_ =
-        renderer_->CreateRenderPass(std::move(render_pass_descriptor));
   }
 
+  // This class is neither copyable nor movable.
+  TriangleExample(const TriangleExample&) = delete;
+  TriangleExample& operator=(const TriangleExample&) = delete;
+
+  void MainLoop() {
+    const bool use_multisampling =
+        multisampling_mode_ != MultisamplingMode::kNone;
+    RenderGraph graph;
+
+    while (!window_.ShouldQuit()) {
+      window_.ProcessUserInputs();
+
+      const Alpha alpha{glm::abs(glm::sin(timer_.GetElapsedTimeSinceLaunch()))};
+      graph.Reset();
+      const ImageHandle backbuffer = graph.ImportSwapchainImage(kWindowIndex);
+      graph.AddGraphicsPass(
+          "Triangle",
+          [&](PassBuilder& builder) {
+            if (use_multisampling) {
+              ImageHandle msaa = builder.CreateImage(TransientImageDesc{
+                  .name = "color_multisample",
+                  .format = TransientImageFormat::kMatchExternalImage,
+                  .multisampling_mode = multisampling_mode_,
+                  .match_image = backbuffer,
+              });
+              msaa = builder.ColorAttachment(msaa, /*location=*/0,
+                                             AttachmentLoadOp::kClear,
+                                             AttachmentStoreOp::kDontCare);
+              builder.ResolveAttachment(msaa, backbuffer);
+            } else {
+              builder.ColorAttachment(backbuffer, /*location=*/0);
+            }
+          },
+          [&](PassContext& ctx) {
+            ctx.BindGraphicsPipeline(pipeline_descriptor_);
+            ctx.PushConstants(renderer::ir::shader_stage::FRAGMENT,
+                              /*offset=*/0, sizeof(Alpha), &alpha);
+            ctx.BindVertexBuffer(/*binding_point=*/0, *vertex_buffer_);
+            ctx.Draw(/*vertex_count=*/3);
+          });
+      renderer_->RenderFrame(kWindowIndex, graph);
+      timer_.Tick();
+    }
+    renderer_->WaitIdle();
+  }
+
+ private:
   const MultisamplingMode multisampling_mode_;
   common::FrameTimer timer_;
   common::Window window_;
   std::unique_ptr<Renderer> renderer_;
   std::unique_ptr<Buffer> vertex_buffer_;
-  std::unique_ptr<Image> multisample_attachment_;
-  std::unique_ptr<RenderPass> render_pass_;
+  GraphicsPipelineDescriptor pipeline_descriptor_;
 };
 
 }  // namespace lighter::example

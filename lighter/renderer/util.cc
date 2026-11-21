@@ -9,6 +9,7 @@
 
 #include <cstdlib>
 
+#include "lighter/common/file.h"
 #include "lighter/common/util.h"
 
 LIGHTER_FLAG(bool, ignore_vsync, false,
