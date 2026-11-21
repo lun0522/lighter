@@ -26,6 +26,8 @@ namespace window_callback {
 // Since GLFW requires C-style function callbacks, we use these functions to
 // wrap the real callbacks stored in the Window instance.
 void GlfwWindowFocusCallback(GLFWwindow* window, int focused);
+void GlfwKeyCallback(GLFWwindow* window, int key, int scancode, int action,
+                     int mods);
 void GlfwResizeWindowCallback(GLFWwindow* window, int width, int height);
 void GlfwMoveCursorCallback(GLFWwindow* window, double x_pos, double y_pos);
 void GlfwScrollCallback(GLFWwindow* window, double x_pos, double y_pos);
@@ -45,9 +47,9 @@ class Window {
   using MouseButtonCallback = std::function<void(bool is_left, bool is_press)>;
 
   // Keys that may be handled by the window. Callbacks of keys should be
-  // registered with 'RegisterPressKeyCallback', otherwise, the window will not
-  // respond to the press.
-  enum class KeyMap { kEscape, kUp, kDown, kLeft, kRight };
+  // registered with 'RegisterPressKeyCallback' or 'RegisterKeyTapCallback',
+  // otherwise, the window will not respond to the press.
+  enum class KeyMap { kEscape, kBackquote, kUp, kDown, kLeft, kRight };
 
   Window(std::string_view name, const glm::ivec2& screen_size);
 
@@ -69,11 +71,15 @@ class Window {
   // Sets whether the cursor should be hidden.
   Window& SetCursorHidden(bool hidden);
 
-  // Registers 'callback' that will be invoked when 'key' is pressed.
+  // Registers 'callback' that will be invoked continuously while 'key' is held.
   // If 'callback' is nullptr, this will unregister the previous callback.
   // Note that if 'callback' is not nullptr, the previous callback, if exists,
   // must have been unregistered.
   Window& RegisterPressKeyCallback(KeyMap key, PressKeyCallback&& callback);
+
+  // Registers 'callback' invoked once per initial key press (edge-triggered,
+  // ignoring repeats). Pass nullptr to unregister.
+  Window& RegisterKeyTapCallback(KeyMap key, PressKeyCallback&& callback);
 
   // Registers 'callback' that will be invoked when the cursor is moved.
   // If 'callback' is nullptr, this will unregister the previous callback.
@@ -133,6 +139,7 @@ class Window {
 
  private:
   friend void window_callback::GlfwWindowFocusCallback(GLFWwindow*, int);
+  friend void window_callback::GlfwKeyCallback(GLFWwindow*, int, int, int, int);
   friend void window_callback::GlfwResizeWindowCallback(GLFWwindow*, int, int);
   friend void window_callback::GlfwMoveCursorCallback(GLFWwindow*, double,
                                                       double);
@@ -146,6 +153,7 @@ class Window {
 
   // These functions handles window events and invoke callbacks if necessary.
   void DidFocusChange(bool focused);
+  void DidTapKey(int glfw_key);
   void DidResizeWindow();
   void DidMoveCursor(double x_pos, double y_pos);
   void DidScroll(double x_pos, double y_pos);
@@ -184,8 +192,9 @@ class Window {
   // Invoked wen the mouse button is pressed or released.
   MouseButtonCallback mouse_button_callback_;
 
-  // Maps GLFW keys to their callbacks.
+  // Maps GLFW keys to continuous held callbacks and single-press tap callbacks.
   std::unordered_map<int, std::function<void()>> press_key_callbacks_;
+  std::unordered_map<int, std::function<void()>> tap_key_callbacks_;
 };
 
 }  // namespace lighter::base

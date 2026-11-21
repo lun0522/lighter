@@ -25,9 +25,9 @@ namespace lighter::renderer::ir {
 struct PipelineDescriptor {
   // Shader-visible push constant range covering one or more stages.
   struct PushConstantRange {
-    shader_stage::ShaderStage shader_stages;
-    int offset;
-    int size;
+    shader_stage::ShaderStage shader_stages{};
+    int offset = 0;
+    int size = 0;
   };
 
   // Shader uniform and push constant layout referenced by the pipeline.
@@ -56,31 +56,31 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
 
   // Color and alpha blending equations for a single color attachment.
   struct ColorBlend {
-    BlendFactor src_color_blend_factor;
-    BlendFactor dst_color_blend_factor;
-    BlendOp color_blend_op;
-    BlendFactor src_alpha_blend_factor;
-    BlendFactor dst_alpha_blend_factor;
-    BlendOp alpha_blend_op;
+    BlendFactor src_color_blend_factor = BlendFactor::kZero;
+    BlendFactor dst_color_blend_factor = BlendFactor::kZero;
+    BlendOp color_blend_op = BlendOp::kAdd;
+    BlendFactor src_alpha_blend_factor = BlendFactor::kZero;
+    BlendFactor dst_alpha_blend_factor = BlendFactor::kZero;
+    BlendOp alpha_blend_op = BlendOp::kAdd;
   };
 
   // Depth comparison and depth-write settings for rasterization.
   struct DepthTest {
-    bool enable_test;
-    bool enable_write;
-    CompareOp compare_op;
+    bool enable_test = false;
+    bool enable_write = false;
+    CompareOp compare_op = CompareOp::kLess;
   };
 
   // Stencil test operations and masks configured for either front or back
   // faces.
   struct StencilTestOneFace {
-    StencilOp stencil_fail_op;
-    StencilOp stencil_and_depth_pass_op;
-    StencilOp stencil_pass_depth_fail_op;
-    CompareOp compare_op;
-    unsigned int compare_mask;
-    unsigned int write_mask;
-    unsigned int reference;
+    StencilOp stencil_fail_op = StencilOp::kKeep;
+    StencilOp stencil_and_depth_pass_op = StencilOp::kKeep;
+    StencilOp stencil_pass_depth_fail_op = StencilOp::kKeep;
+    CompareOp compare_op = CompareOp::kAlwaysPass;
+    unsigned int compare_mask = 0;
+    unsigned int write_mask = 0;
+    unsigned int reference = 0;
   };
 
   // Dual-sided stencil test configuration for front and back polygon faces.
@@ -91,27 +91,27 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
       kNumFaces,
     };
 
-    bool enable_test;
-    StencilTestOneFace tests[kNumFaces];
+    bool enable_test = false;
+    StencilTestOneFace tests[kNumFaces]{};
   };
 
   // Normalized or pixel-space viewport rectangle.
   struct Viewport {
-    glm::vec2 origin;
-    glm::vec2 extent;
+    glm::vec2 origin{0.0f};
+    glm::vec2 extent{0.0f};
   };
 
   // Pixel-space scissor clipping rectangle.
   struct Scissor {
-    glm::ivec2 origin;
-    glm::ivec2 extent;
+    glm::ivec2 origin{0};
+    glm::ivec2 extent{0};
   };
 
   // Combined viewport/scissor state with optional Y-axis inversion for
   // Vulkan/OpenGL parity.
   struct ViewportConfig {
-    Viewport viewport;
-    Scissor scissor;
+    Viewport viewport{};
+    Scissor scissor{};
     bool flip_y = true;
   };
 

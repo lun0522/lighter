@@ -19,6 +19,9 @@ layout(location = 0) out vec4 frag_color;
 layout(std140, binding = 0) uniform RenderInfo {
   vec4 camera_pos;
   mat4 aurora_proj_view;
+  // Converts normalized [0, 1] distance field values to safe world step sizes
+  // (tan(dump_fov_y / 2), i.e., half the tangent-plane span).
+  float dist_step_scale;
 } render_info;
 
 // Y coordinate corresponds to the height from 0km (ground) to 300km (greatest
@@ -42,7 +45,7 @@ const float min_dt = 2.0 * km;
 // Scaling factor for sampled aurora color.
 const float aurora_scale = min_dt / (40.0 * km);
 // Maximum per-channel brightness before tone compression preserves hue.
-const float max_aurora_brightness = 0.85;
+const float max_aurora_brightness = 0.9;
 // t value for a miss ray.
 const float miss_t = 100.0;
 const vec3 air_color = 0.002 * vec3(0.4, 0.5, 0.7);
@@ -86,10 +89,12 @@ vec2 ProjectToPlane(vec3 point) {
   return (projected.xy / projected.w + 1.0) / 2.0;
 }
 
-// Returns the color of aurora at 'sample_point'.
-vec3 SampleAurora(vec3 sample_point) {
-  const float paths_intensity = texture(aurora_paths_sampler,
-                                        ProjectToPlane(sample_point)).r;
+// Returns the color of aurora at 'sample_point' mapped to 'uv'.
+vec3 SampleAurora(vec3 sample_point, vec2 uv) {
+  if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) {
+    return vec3(0.0);
+  }
+  const float paths_intensity = texture(aurora_paths_sampler, uv).r;
   // Subtract off radius of planet since deposition texture starts from ground.
   const float height = length(sample_point) - 1.0;
   const vec3 deposition = texture(aurora_deposition_sampler,
@@ -105,9 +110,10 @@ vec3 SampleAurora(Ray ray, SpanT span) {
   vec3 sum = vec3(0.0);
   while (t < span.high) {
     const vec3 sample_point = ray.start + ray.direction * t;
-    sum += SampleAurora(sample_point);
-    const float dist = 0.5 * texture(distance_field_sampler,
-                                     ProjectToPlane(sample_point)).r;
+    const vec2 uv = ProjectToPlane(sample_point);
+    sum += SampleAurora(sample_point, uv);
+    const float dist = render_info.dist_step_scale *
+                       texture(distance_field_sampler, uv).r;
     t += max(dist, min_dt);
   }
   // Softly compress accumulated intensity using the peak channel so grazing

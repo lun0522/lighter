@@ -22,6 +22,8 @@ int WindowKeyToGlfwKey(Window::KeyMap key) {
   switch (key) {
     case KeyMap::kEscape:
       return GLFW_KEY_ESCAPE;
+    case KeyMap::kBackquote:
+      return GLFW_KEY_GRAVE_ACCENT;
     case KeyMap::kUp:
       return GLFW_KEY_UP;
     case KeyMap::kDown:
@@ -30,6 +32,20 @@ int WindowKeyToGlfwKey(Window::KeyMap key) {
       return GLFW_KEY_LEFT;
     case KeyMap::kRight:
       return GLFW_KEY_RIGHT;
+  }
+}
+
+void RegisterKeyCallback(
+    int glfw_key, Window::KeyMap key, Window::PressKeyCallback&& callback,
+    std::unordered_map<int, Window::PressKeyCallback>& callbacks) {
+  if (callback == nullptr) {
+    callbacks.erase(glfw_key);
+  } else {
+    ASSERT_FALSE(callbacks.contains(glfw_key),
+                 std::format("Must unregister key callback for {} "
+                             "before registering a new one",
+                             static_cast<int>(key)));
+    callbacks[glfw_key] = std::move(callback);
   }
 }
 
@@ -50,6 +66,12 @@ Window& GetWindow(GLFWwindow* window) {
 }
 void GlfwWindowFocusCallback(GLFWwindow* window, int focused) {
   GetWindow(window).DidFocusChange(focused == GLFW_TRUE);
+}
+void GlfwKeyCallback(GLFWwindow* window, int key, int /*scancode*/, int action,
+                     int /*mods*/) {
+  if (action == GLFW_PRESS) {
+    GetWindow(window).DidTapKey(key);
+  }
 }
 void GlfwResizeWindowCallback(GLFWwindow* window, int width, int height) {
   GetWindow(window).DidResizeWindow();
@@ -86,6 +108,7 @@ Window::Window(std::string_view name, const glm::ivec2& screen_size)
 
   glfwSetWindowUserPointer(window_, this);
   glfwSetWindowFocusCallback(window_, window_callback::GlfwWindowFocusCallback);
+  glfwSetKeyCallback(window_, window_callback::GlfwKeyCallback);
   glfwSetFramebufferSizeCallback(window_,
                                  window_callback::GlfwResizeWindowCallback);
   glfwSetCursorPosCallback(window_, window_callback::GlfwMoveCursorCallback);
@@ -116,16 +139,15 @@ Window& Window::SetCursorHidden(bool hidden) {
 
 Window& Window::RegisterPressKeyCallback(KeyMap key,
                                          PressKeyCallback&& callback) {
-  const auto glfw_key = WindowKeyToGlfwKey(key);
-  if (callback == nullptr) {
-    press_key_callbacks_.erase(glfw_key);
-  } else {
-    ASSERT_FALSE(press_key_callbacks_.contains(glfw_key),
-                 std::format("Must unregister press key callback for {} "
-                             "before registering a new one",
-                             static_cast<int>(key)));
-    press_key_callbacks_[glfw_key] = std::move(callback);
-  }
+  RegisterKeyCallback(WindowKeyToGlfwKey(key), key, std::move(callback),
+                      press_key_callbacks_);
+  return *this;
+}
+
+Window& Window::RegisterKeyTapCallback(KeyMap key,
+                                       PressKeyCallback&& callback) {
+  RegisterKeyCallback(WindowKeyToGlfwKey(key), key, std::move(callback),
+                      tap_key_callbacks_);
   return *this;
 }
 
@@ -235,6 +257,13 @@ void Window::DidFocusChange(bool focused) {
     // Release cursor capture when unfocused so subsequent clicks on the title
     // bar to drag or resize the window do not immediately re-lock the pointer.
     CaptureCursor(false);
+  }
+}
+
+void Window::DidTapKey(int glfw_key) {
+  if (const auto iter = tap_key_callbacks_.find(glfw_key);
+      iter != tap_key_callbacks_.end()) {
+    iter->second();
   }
 }
 

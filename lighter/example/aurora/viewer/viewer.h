@@ -49,15 +49,19 @@ class Viewer : public scene::Scene {
   bool ShouldTransitionScene() const override { return should_quit_; }
 
  private:
+  void BuildDumpedPathFrame(renderer::ir::RenderGraph& graph) const;
+
   base::Window& window_;
   renderer::ir::Renderer& renderer_;
   const int window_index_;
   const renderer::ir::MultisamplingMode multisampling_mode_;
   bool should_quit_ = false;
+  bool show_dumped_path_ = false;
 
   PathDumper path_dumper_;
 
   std::unique_ptr<renderer::ir::Buffer> quad_vertex_buffer_;
+  std::unique_ptr<renderer::ir::Buffer> dumped_path_vertex_buffer_;
   std::vector<std::unique_ptr<renderer::ir::Buffer>> render_info_uniforms_;
   std::unique_ptr<renderer::ir::Image> aurora_deposition_image_;
   std::unique_ptr<renderer::ir::Image> air_transmit_table_image_;
@@ -65,6 +69,7 @@ class Viewer : public scene::Scene {
   renderer::ir::SamplerDescriptor clamp_sampler_{};
   renderer::ir::SamplerDescriptor repeat_sampler_{};
   renderer::ir::GraphicsPipelineDescriptor base_pipeline_descriptor_;
+  renderer::ir::GraphicsPipelineDescriptor dumped_path_pipeline_descriptor_;
 
   glm::mat4 aurora_proj_view_{1.0f};
   std::unique_ptr<scene::PerspectiveCamera> dump_paths_camera_;

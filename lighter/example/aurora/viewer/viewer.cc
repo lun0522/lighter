@@ -52,6 +52,7 @@ enum UniformBindingPoint {
 constexpr uint32_t kVertexBufferBindingPoint = 0;
 constexpr float kAirTransmitSampleStep = 0.01f;
 constexpr int kPathsImageDimension = 1024;
+constexpr float kDumpPathsFovY = 24.0f;
 
 // Consistent with uniform blocks defined in shaders.
 struct CameraParameter {
@@ -63,6 +64,7 @@ struct CameraParameter {
 struct RenderInfo {
   ALIGN_VEC4 glm::vec4 camera_pos;
   ALIGN_MAT4 glm::mat4 aurora_proj_view;
+  ALIGN_SCALAR(float) float dist_step_scale;
 };
 
 const glm::vec3& GetEarthModelAxis() {
@@ -132,6 +134,17 @@ Viewer::Viewer(base::Window& window, Renderer& renderer, int window_index,
   quad_vertex_buffer_->CopyToDevice(std::array{
       Buffer::CopyInfo{quad_vertices.data(), quad_bytes, /*offset=*/0}});
 
+  const std::array<base::Vertex2D, 6> dumped_path_vertices =
+      base::Vertex2D::GetFullScreenSquadVertices(/*flip_y=*/false);
+  const size_t dumped_path_bytes = base::util::GetTotalDataSize(
+      std::span<const base::Vertex2D>{dumped_path_vertices});
+  dumped_path_vertex_buffer_ =
+      renderer_.CreateBuffer(Buffer::UpdateRate::kLow, dumped_path_bytes,
+                             std::array{BufferUsage::GetVertexBufferUsage(
+                                 BufferUsage::UsageType::kVertexOnly)});
+  dumped_path_vertex_buffer_->CopyToDevice(std::array{Buffer::CopyInfo{
+      dumped_path_vertices.data(), dumped_path_bytes, /*offset=*/0}});
+
   base_pipeline_descriptor_.SetName("ViewAurora")
       .SetShader(renderer::ir::shader_stage::VERTEX,
                  base::file::GetShaderBinaryPath("aurora/aurora.vert"))
@@ -145,6 +158,22 @@ Viewer::Viewer(base::Window& window, Renderer& renderer, int window_index,
           renderer::ir::buffer::CreateAttributesForVertex2DPosOnly(0),
       });
 
+  dumped_path_pipeline_descriptor_.SetName("ViewDumpedPath")
+      .SetShader(renderer::ir::shader_stage::VERTEX,
+                 base::file::GetShaderBinaryPath(
+                     "shared/image_viewer/view_image.vert"))
+      .SetShader(renderer::ir::shader_stage::FRAGMENT,
+                 base::file::GetShaderBinaryPath(
+                     "shared/image_viewer/view_bw_image.frag"))
+      .UseColorAttachment(/*location=*/0, std::nullopt)
+      .AddVertexInput({
+          VertexInputRate::kVertex,
+          kVertexBufferBindingPoint,
+          sizeof(base::Vertex2D),
+          renderer::ir::buffer::CreateAttributesForVertex2D(
+              /*loc_pos=*/0, /*loc_tex_coord=*/1),
+      });
+
   scene::Camera::Config camera_config;
   camera_config.far = 2.0f;
   camera_config.up = GetEarthModelAxis();
@@ -152,7 +181,7 @@ Viewer::Viewer(base::Window& window, Renderer& renderer, int window_index,
   camera_config.look_at = glm::vec3{1.0f};
   dump_paths_camera_ = std::make_unique<scene::PerspectiveCamera>(
       camera_config, scene::PerspectiveCamera::FrustumConfig{
-                         /*field_of_view_y=*/40.0f,
+                         /*field_of_view_y=*/kDumpPathsFovY,
                          /*aspect_ratio=*/1.0f,
                      });
 
@@ -183,6 +212,7 @@ void Viewer::UpdateAuroraPaths(const glm::vec3& viewpoint_position,
 
 void Viewer::OnEnter() {
   should_quit_ = false;
+  show_dumped_path_ = false;
   window_.SetCursorHidden(true)
       .RegisterMoveCursorCallback([this](double x_pos, double y_pos) {
         view_aurora_camera_->DidMoveCursor(x_pos, y_pos);
@@ -191,7 +221,10 @@ void Viewer::OnEnter() {
         view_aurora_camera_->DidScroll(y_pos, 15.0f, 45.0f);
       })
       .RegisterPressKeyCallback(base::Window::KeyMap::kEscape,
-                                [this]() { should_quit_ = true; });
+                                [this]() { should_quit_ = true; })
+      .RegisterKeyTapCallback(base::Window::KeyMap::kBackquote, [this]() {
+        show_dumped_path_ = !show_dumped_path_;
+      });
   OnSurfaceRecreated();
 }
 
@@ -199,7 +232,8 @@ void Viewer::OnExit() {
   window_.SetCursorHidden(false)
       .RegisterMoveCursorCallback(nullptr)
       .RegisterScrollCallback(nullptr)
-      .RegisterPressKeyCallback(base::Window::KeyMap::kEscape, nullptr);
+      .RegisterPressKeyCallback(base::Window::KeyMap::kEscape, nullptr)
+      .RegisterKeyTapCallback(base::Window::KeyMap::kBackquote, nullptr);
 }
 
 void Viewer::OnSurfaceRecreated() {
@@ -207,10 +241,16 @@ void Viewer::OnSurfaceRecreated() {
 }
 
 void Viewer::BuildFrame(RenderGraph& graph, int frame_slot) {
+  if (show_dumped_path_) {
+    BuildDumpedPathFrame(graph);
+    return;
+  }
+
   const scene::PerspectiveCamera& cam = view_aurora_camera_->camera();
   const RenderInfo render_info{
       .camera_pos = glm::vec4{cam.position(), 0.0f},
       .aurora_proj_view = aurora_proj_view_,
+      .dist_step_scale = glm::tan(glm::radians(kDumpPathsFovY * 0.5f)),
   };
   const auto ray_tracing = cam.GetRayTracingParams();
   const CameraParameter camera_param{
@@ -259,6 +299,33 @@ void Viewer::BuildFrame(RenderGraph& graph, int frame_slot) {
         ctx.PushConstants(renderer::ir::shader_stage::VERTEX, /*offset=*/0,
                           sizeof(CameraParameter), &camera_param);
         ctx.BindVertexBuffer(kVertexBufferBindingPoint, *quad_vertex_buffer_);
+        ctx.Draw(/*vertex_count=*/6);
+      });
+}
+
+void Viewer::BuildDumpedPathFrame(RenderGraph& graph) const {
+  const ImageHandle backbuffer = graph.ImportSwapchainImage(window_index_);
+  graph.AddGraphicsPass(
+      "ViewDumpedPath",
+      [&](PassBuilder& builder) {
+        scene::SetupMainPassAttachments(builder, backbuffer,
+                                        multisampling_mode_,
+                                        /*use_depth=*/false);
+      },
+      [this, backbuffer](PassContext& ctx) {
+        const glm::ivec2 frame_size = ctx.GetImageExtent(backbuffer);
+        GraphicsPipelineDescriptor desc = dumped_path_pipeline_descriptor_;
+        desc.SetViewport(
+            renderer::ir::pipeline::GetViewport(frame_size,
+                                                /*aspect_ratio=*/1.0f),
+            renderer::ir::pipeline::GetFullFrameScissor(frame_size),
+            /*flip_y=*/true);
+
+        ctx.BindGraphicsPipeline(desc);
+        ctx.BindExternalImage(/*binding=*/0, path_dumper_.aurora_paths_image(),
+                              &clamp_sampler_);
+        ctx.BindVertexBuffer(kVertexBufferBindingPoint,
+                             *dumped_path_vertex_buffer_);
         ctx.Draw(/*vertex_count=*/6);
       });
 }

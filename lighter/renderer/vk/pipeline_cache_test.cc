@@ -9,6 +9,8 @@
 
 #include <gtest/gtest.h>
 
+#include <cstring>
+#include <new>
 #include <optional>
 #include <string>
 
@@ -68,6 +70,27 @@ TEST(PipelineCacheKeyTest, ComputeAndSamplerKeysDistinguishInputs) {
             MakeSamplerCacheKey(nearest_clamp, /*mip_levels=*/1));
   EXPECT_NE(MakeSamplerCacheKey(linear_clamp, /*mip_levels=*/1),
             MakeSamplerCacheKey(linear_clamp, /*mip_levels=*/4));
+}
+
+TEST(PipelineCacheKeyTest, DefaultConstructedDescriptorHasDeterministicState) {
+  alignas(ir::GraphicsPipelineDescriptor) unsigned char
+      dirty_storage[sizeof(ir::GraphicsPipelineDescriptor)];
+  std::memset(dirty_storage, 0xA5, sizeof(dirty_storage));
+  auto* dirty_default = new (dirty_storage) ir::GraphicsPipelineDescriptor;
+
+  EXPECT_FALSE(dirty_default->depth_test.enable_test);
+  EXPECT_FALSE(dirty_default->depth_test.enable_write);
+  EXPECT_FALSE(dirty_default->stencil_test.enable_test);
+
+  const ir::GraphicsPipelineDescriptor value_init{};
+  const Pipeline::RenderingInfo info{
+      .color_attachment_formats = {intl::Format::eB8G8R8A8Unorm},
+  };
+  EXPECT_EQ(MakeGraphicsPipelineCacheKey(*dirty_default,
+                                         intl::SampleCountFlagBits::e1, info),
+            MakeGraphicsPipelineCacheKey(value_init,
+                                         intl::SampleCountFlagBits::e1, info));
+  dirty_default->~GraphicsPipelineDescriptor();
 }
 
 }  // namespace
