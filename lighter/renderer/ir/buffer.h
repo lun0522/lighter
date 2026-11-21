@@ -15,6 +15,7 @@
 
 namespace lighter::renderer::ir {
 
+// Abstract GPU buffer interface for uploading host data to device memory.
 class Buffer {
  public:
   // Specifies whether the data is updated frequently.
@@ -45,6 +46,7 @@ class Buffer {
   Buffer() = default;
 };
 
+// Describes the layout and per-attribute bindings of a vertex input buffer.
 struct VertexBufferView {
   // Vertex input attribute.
   struct Attribute {

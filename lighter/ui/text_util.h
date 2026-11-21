@@ -79,6 +79,7 @@ class CharLoader {
 // static labels can be rendered with a single textured quad.
 class TextLoader {
  public:
+  // Pre-rendered text bitmap image and vertical layout metrics for one string.
   struct TextTextureInfo {
     float aspect_ratio;
     float base_y;

@@ -24,6 +24,7 @@ namespace lighter::example::aurora {
 // intermediate texture and thicken them in compute.
 class PathRenderer2D {
  public:
+  // Frame Graph image handles produced after rasterizing and thickening paths.
   struct PassOutputs {
     renderer::ir::ImageHandle intermediate;
     renderer::ir::ImageHandle output;

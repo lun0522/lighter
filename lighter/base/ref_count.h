@@ -115,6 +115,7 @@ class RefCountedObject {
   // 'ref_count_map' is the identifier, and the value is the actual object and
   // its reference count.
   struct ObjectPool {
+    // Reference-counted instance paired with the number of live handles.
     struct ObjectWithCounter {
       std::unique_ptr<ObjectType> object;
       int ref_count;

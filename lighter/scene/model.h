@@ -133,11 +133,13 @@ class ModelBuilder {
   std::unique_ptr<Model> Build();
 
  private:
+  // Associates a semantic TextureType with a host image or texture file path.
   struct TextureEntry {
     TextureType type;
     TextureSource source;
   };
 
+  // CPU-side geometry and texture list collected per mesh before GPU upload.
   struct MeshBuildData {
     std::vector<base::Vertex3DWithTex> vertices;
     std::vector<uint32_t> indices;
@@ -189,6 +191,7 @@ class Model {
  private:
   friend std::unique_ptr<Model> ModelBuilder::Build();
 
+  // Resolved shader binding target and sampler metadata for one mesh texture.
   struct TextureBinding {
     uint32_t binding = 0;
     uint32_t array_element = 0;
@@ -196,6 +199,7 @@ class Model {
     std::variant<const renderer::ir::Image*, renderer::ir::ImageHandle> target;
   };
 
+  // Buffer byte offsets, index count, and texture bindings for one draw call.
   struct MeshDrawInfo {
     size_t vertex_offset = 0;
     size_t index_offset = 0;

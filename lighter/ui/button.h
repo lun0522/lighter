@@ -32,6 +32,7 @@ enum State { kSelectedState = 0, kUnselectedState, kNumStates };
 // Consistent with uniform blocks defined in shaders.
 constexpr int kNumVerticesPerButton = 6;
 
+// Quad corner positions and UV coordinates uploaded to button vertex shaders.
 struct VerticesInfo {
   ALIGN_VEC4 glm::vec4 pos_tex_coords[kNumVerticesPerButton];
 };
@@ -84,7 +85,10 @@ class ButtonRenderer {
 // Manages a row of UI buttons (atlas baking, rendering, and click hit-testing).
 class Button {
  public:
+  // Configuration for creating and styling a row of interactive buttons.
   struct ButtonsInfo {
+    // Label, per-state background colors, and normalized screen center of one
+    // button.
     struct Info {
       std::string text;
       std::array<glm::vec3, button::kNumStates> colors;
@@ -121,6 +125,8 @@ class Button {
   using DrawButtonRenderInfos =
       std::vector<std::array<draw_button::RenderInfo, button::kNumStates>>;
 
+  // Vertical baseline offset and height used to lay out label text inside a
+  // button.
   struct TextPos {
     float base_y;
     float height;

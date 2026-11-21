@@ -95,6 +95,8 @@ class ShaderModule : public WithSharedContext {
   intl::ShaderModule shader_module_;
 };
 
+// Wraps a Vulkan graphics or compute pipeline, descriptor set layouts, and
+// pipeline layout built via SPIR-V reflection.
 class Pipeline : public WithSharedContext {
  public:
   // Attachment formats used for Dynamic Rendering when building a graphics

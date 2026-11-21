@@ -70,6 +70,8 @@ class Editor : public scene::Scene {
     kNumBottomRowButtons = kNumButtons - kNumTopRowButtons,
   };
 
+  // Tracks editor UI button states, active path selection, and mode
+  // transitions.
   class StateManager {
    public:
     StateManager();

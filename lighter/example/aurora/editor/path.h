@@ -72,12 +72,14 @@ class PathRenderer3D {
   std::vector<SplinePathView> GetSplinePathViews();
 
  private:
+  // Host-side copy of one path's control/spline vertices and revision number.
   struct PathHostData {
     std::vector<glm::vec3> control_points;
     std::vector<glm::vec3> spline_points;
     uint64_t version = 1;
   };
 
+  // Per-frame-in-flight GPU buffers and synced revision for one aurora path.
   struct PathSlotBuffers {
     std::unique_ptr<renderer::ir::Buffer> control_points_buffer;
     size_t control_capacity = 0;
@@ -110,6 +112,8 @@ class AuroraPath {
   using GenerateControlPoints =
       std::function<std::vector<glm::vec3>(int path_index)>;
 
+  // Initialization parameters, colors, and spline tessellation limits for
+  // paths.
   struct Info {
     int max_num_control_points;
     float control_point_radius;
@@ -122,6 +126,7 @@ class AuroraPath {
     GenerateControlPoints generate_control_points;
   };
 
+  // Normalized object-space click event routed to path/viewpoint editing.
   struct ClickInfo {
     std::optional<int> path_index;
     bool is_left_click;

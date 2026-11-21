@@ -92,3 +92,25 @@ target_link_libraries(lighter_base_window
     glm::glm
     Vulkan::Vulkan
 )
+
+add_executable(base_flag_test
+  flag_test.cc
+)
+target_link_libraries(base_flag_test
+  PRIVATE
+    lighter_project_options
+    lighter_base_flag
+    GTest::gtest_main
+)
+add_test(NAME base_flag_test COMMAND base_flag_test)
+
+add_executable(base_ref_count_test
+  ref_count_test.cc
+)
+target_link_libraries(base_ref_count_test
+  PRIVATE
+    lighter_project_options
+    lighter_base_ref_count
+    GTest::gtest_main
+)
+add_test(NAME base_ref_count_test COMMAND base_ref_count_test)

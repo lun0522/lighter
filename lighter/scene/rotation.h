@@ -75,11 +75,14 @@ class RotationManager {
  private:
   // The object must be in either stop, rotation or inertial rotation state.
   struct StopState {};
+  // Active drag-driven rotation tracking the initial click and latest delta.
   struct RotationState {
     float last_click_time;
     glm::vec3 first_click_pos;
     rotation::Rotation rotation;
   };
+  // Decaying spin continuing after pointer release for
+  // 'inertial_rotation_duration_'.
   struct InertialRotationState {
     float start_time;
     rotation::Rotation rotation;

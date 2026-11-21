@@ -37,6 +37,8 @@ namespace lighter::renderer::vk {
 // called once before creating any windows or Vulkan instances.
 void InitVulkan();
 
+// Vulkan implementation of ir::Renderer managing swapchains, per-frame command
+// submission, and compiled RenderGraph execution.
 class Renderer : public WithSharedContext, public ir::Renderer {
  public:
   Renderer(const char* application_name,

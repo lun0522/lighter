@@ -18,6 +18,8 @@
 
 namespace lighter::renderer::ir {
 
+// Abstract GPU image interface holding format-independent dimensions and mip
+// metadata.
 class Image {
  public:
   using LayerType = base::image::Type;
@@ -52,6 +54,7 @@ class Image {
   const int mip_levels_;
 };
 
+// Configures texture filtering and coordinate wrapping for image sampling.
 struct SamplerDescriptor {
   FilterType filter_type;
   SamplerAddressMode address_mode;

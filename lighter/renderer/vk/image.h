@@ -25,6 +25,8 @@
 
 namespace lighter::renderer::vk {
 
+// Vulkan extension of ir::Image exposing VkFormat, sample count, and
+// VkImageView.
 class Image : public ir::Image {
  public:
   // This class is neither copyable nor movable.

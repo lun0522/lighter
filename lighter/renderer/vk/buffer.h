@@ -21,6 +21,7 @@
 
 namespace lighter::renderer::vk {
 
+// Vulkan implementation of ir::Buffer backed by VMA device/host memory.
 class Buffer : public WithSharedContext, public ir::Buffer {
  public:
   static std::unique_ptr<Buffer> CreateTransient(
@@ -47,6 +48,7 @@ class Buffer : public WithSharedContext, public ir::Buffer {
   size_t size() const { return buffer_size_; }
 
  private:
+  // Resolved memory visibility, Vulkan usage flags, and sharing queue families.
   struct AllocationInfo {
     AllocationInfo(const Context& context, UpdateRate update_rate,
                    std::span<const ir::BufferUsage> usages);

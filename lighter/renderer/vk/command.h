@@ -44,6 +44,8 @@ class PerFrameCommand : public WithSharedContext {
   }
 
  private:
+  // Synchronization primitives and primary command buffer for one frame in
+  // flight.
   struct FrameSync {
     intl::CommandBuffer command_buffer;
     intl::Semaphore image_available_semaphore;

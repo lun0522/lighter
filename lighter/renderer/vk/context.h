@@ -30,6 +30,8 @@ class Context;
 
 using SharedContext = std::shared_ptr<Context>;
 
+// Owns core Vulkan handles (instance, surfaces, physical/logical device,
+// queues, VMA allocator) and manages timeline-based deferred resource cleanup.
 class Context : public std::enable_shared_from_this<Context> {
  public:
   // Specifies how to release an expired resource.
@@ -98,6 +100,8 @@ class Context : public std::enable_shared_from_this<Context> {
   VmaAllocator vma_allocator() const { return vma_allocator_; }
 
  private:
+  // Deferred cleanup callback paired with the timeline value after which it may
+  // run.
   struct PendingResourceRelease {
     uint64_t retire_value = 0;
     ReleaseExpiredResourceOp op;
@@ -139,6 +143,8 @@ class Context : public std::enable_shared_from_this<Context> {
   std::vector<PendingResourceRelease> release_expired_rsrc_ops_;
 };
 
+// Base mixin providing Vulkan objects shared ownership of Context and
+// accessors.
 class WithSharedContext {
  public:
   explicit WithSharedContext(const SharedContext& context)

@@ -286,6 +286,7 @@ class UserControlledCamera {
   float yaw_;
 };
 
+// User-controlled PerspectiveCamera supporting keyboard/mouse navigation.
 class UserControlledPerspectiveCamera
     : public UserControlledCamera<PerspectiveCamera> {
  public:
@@ -304,6 +305,7 @@ class UserControlledPerspectiveCamera
   using UserControlledCamera<PerspectiveCamera>::UserControlledCamera;
 };
 
+// User-controlled OrthographicCamera supporting keyboard/mouse navigation.
 class UserControlledOrthographicCamera
     : public UserControlledCamera<OrthographicCamera> {
  public:

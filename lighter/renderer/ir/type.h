@@ -135,6 +135,7 @@ enum Type {
 
 }  // namespace type
 
+// Bitmask filter controlling which validation debug messages are reported.
 struct Config {
   unsigned int message_severities;
   unsigned int message_types;

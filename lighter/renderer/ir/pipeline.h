@@ -21,13 +21,16 @@
 
 namespace lighter::renderer::ir {
 
+// Base descriptor shared by graphics and compute pipelines.
 struct PipelineDescriptor {
+  // Shader-visible push constant range covering one or more stages.
   struct PushConstantRange {
     shader_stage::ShaderStage shader_stages;
     int offset;
     int size;
   };
 
+  // Shader uniform and push constant layout referenced by the pipeline.
   struct UniformDescriptor {
     std::vector<PushConstantRange> push_constant_ranges;
   };
@@ -44,12 +47,14 @@ struct PipelineDescriptor {
   UniformDescriptor uniform_descriptor;
 };
 
+// Declarative state and shader configuration for a graphics pipeline.
 struct GraphicsPipelineDescriptor : public PipelineDescriptor {
  public:
   // Paths to shaders used at each stage.
   using ShaderPathMap =
       std::unordered_map<shader_stage::ShaderStage, std::string>;
 
+  // Color and alpha blending equations for a single color attachment.
   struct ColorBlend {
     BlendFactor src_color_blend_factor;
     BlendFactor dst_color_blend_factor;
@@ -59,12 +64,15 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
     BlendOp alpha_blend_op;
   };
 
+  // Depth comparison and depth-write settings for rasterization.
   struct DepthTest {
     bool enable_test;
     bool enable_write;
     CompareOp compare_op;
   };
 
+  // Stencil test operations and masks configured for either front or back
+  // faces.
   struct StencilTestOneFace {
     StencilOp stencil_fail_op;
     StencilOp stencil_and_depth_pass_op;
@@ -75,6 +83,7 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
     unsigned int reference;
   };
 
+  // Dual-sided stencil test configuration for front and back polygon faces.
   struct StencilTest {
     enum FaceIndex {
       kFrontFaceIndex = 0,
@@ -86,16 +95,20 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
     StencilTestOneFace tests[kNumFaces];
   };
 
+  // Normalized or pixel-space viewport rectangle.
   struct Viewport {
     glm::vec2 origin;
     glm::vec2 extent;
   };
 
+  // Pixel-space scissor clipping rectangle.
   struct Scissor {
     glm::ivec2 origin;
     glm::ivec2 extent;
   };
 
+  // Combined viewport/scissor state with optional Y-axis inversion for
+  // Vulkan/OpenGL parity.
   struct ViewportConfig {
     Viewport viewport;
     Scissor scissor;
@@ -166,6 +179,7 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
   PrimitiveTopology primitive_topology = PrimitiveTopology::kTriangleList;
 };
 
+// Declarative configuration for a compute shader pipeline.
 class ComputePipelineDescriptor : public PipelineDescriptor {
  public:
   // Modifiers.

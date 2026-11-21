@@ -27,6 +27,8 @@
 
 namespace lighter::renderer::ir {
 
+// Abstract graphics backend interface for allocating GPU resources and
+// executing render graphs.
 class Renderer {
  public:
   // This class is neither copyable nor movable.

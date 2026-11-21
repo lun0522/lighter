@@ -142,3 +142,25 @@ target_link_libraries(scene_spline_test
     GTest::gtest_main
 )
 add_test(NAME scene_spline_test COMMAND scene_spline_test)
+
+add_executable(scene_camera_test
+  camera_test.cc
+)
+target_link_libraries(scene_camera_test
+  PRIVATE
+    lighter_project_options
+    lighter_scene_camera
+    GTest::gtest_main
+)
+add_test(NAME scene_camera_test COMMAND scene_camera_test)
+
+add_executable(scene_rotation_test
+  rotation_test.cc
+)
+target_link_libraries(scene_rotation_test
+  PRIVATE
+    lighter_project_options
+    lighter_scene_rotation
+    GTest::gtest_main
+)
+add_test(NAME scene_rotation_test COMMAND scene_rotation_test)

@@ -25,6 +25,7 @@
 
 namespace lighter::renderer::vk {
 
+// Lookup key identifying compatible pooled transient images for aliasing.
 struct TransientImageKey {
   intl::Extent2D extent;
   intl::Format format = intl::Format::eUndefined;
@@ -34,6 +35,7 @@ struct TransientImageKey {
   bool operator==(const TransientImageKey&) const = default;
 };
 
+// Lookup key identifying compatible pooled transient buffers for aliasing.
 struct TransientBufferKey {
   intl::DeviceSize size = 0;
   intl::BufferUsageFlags usage_flags;
@@ -41,6 +43,7 @@ struct TransientBufferKey {
   bool operator==(const TransientBufferKey&) const = default;
 };
 
+// Tracks intra-frame pass lifetime and last-used frame index for a pooled slot.
 struct PoolSlotState {
   // Last sorted execution step using this slot in the current frame (-1 if
   // unused so far in the current frame).
@@ -71,11 +74,13 @@ class TransientResourcePool : public WithSharedContext {
  public:
   static constexpr uint64_t kDefaultMaxIdleFrames = 4;
 
+  // Handle and aliasing status returned when acquiring a transient image.
   struct AcquiredImage {
     OwnedImage* image = nullptr;
     bool aliased_in_same_frame = false;
   };
 
+  // Handle and aliasing status returned when acquiring a transient buffer.
   struct AcquiredBuffer {
     Buffer* buffer = nullptr;
     bool aliased_in_same_frame = false;
@@ -105,18 +110,21 @@ class TransientResourcePool : public WithSharedContext {
                                const ir::ResourceLifetime& lifetime);
 
  private:
+  // Cached transient image slot paired with its key and aliasing state.
   struct ImageEntry {
     TransientImageKey key;
     PoolSlotState state;
     std::unique_ptr<OwnedImage> image;
   };
 
+  // Cached transient buffer slot paired with its key and aliasing state.
   struct BufferEntry {
     TransientBufferKey key;
     PoolSlotState state;
     std::unique_ptr<Buffer> buffer;
   };
 
+  // Per-frame-in-flight collection of pooled transient images and buffers.
   struct FramePool {
     std::vector<ImageEntry> images;
     std::vector<BufferEntry> buffers;

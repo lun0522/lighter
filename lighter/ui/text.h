@@ -69,6 +69,7 @@ class Text {
   std::vector<base::Vertex2D>* mutable_vertices() { return &vertices_to_draw_; }
 
  private:
+  // Per-frame-in-flight GPU buffers holding text uniform state and glyph quads.
   struct FrameBuffers {
     std::unique_ptr<renderer::ir::Buffer> uniform_buffer;
     std::unique_ptr<renderer::ir::Buffer> quad_buffer;
