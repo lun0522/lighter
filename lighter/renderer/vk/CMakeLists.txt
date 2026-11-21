@@ -114,10 +114,14 @@ target_link_libraries(lighter_renderer_vk_pipeline
     lighter_renderer_ir_image
     lighter_renderer_ir_image_usage
     lighter_renderer_ir_pipeline
+    lighter_renderer_vk_buffer
     lighter_renderer_vk_context
+    lighter_renderer_vk_image
     lighter_renderer_vk_type_mapping
     lighter_renderer_vk_util
     lighter_shader_compiler_util
+  PRIVATE
+    lighter_spirv_cross
 )
 
 add_library(lighter_renderer_vk_swapchain STATIC
@@ -168,3 +172,16 @@ target_link_libraries(vk_image_util_test
     GTest::gtest_main
 )
 add_test(NAME vk_image_util_test COMMAND vk_image_util_test)
+
+add_executable(vk_pipeline_test
+  pipeline_test.cc
+)
+target_link_libraries(vk_pipeline_test
+  PRIVATE
+    lighter_project_options
+    lighter_common_data
+    lighter_common_file
+    lighter_renderer_vk_pipeline
+    GTest::gtest_main
+)
+add_test(NAME vk_pipeline_test COMMAND vk_pipeline_test)

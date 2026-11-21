@@ -476,4 +476,36 @@ MultiImage::~MultiImage() {
       });
 }
 
+Sampler::Sampler(const SharedContext& context,
+                 const ir::SamplerDescriptor& config, int mip_levels)
+    : WithSharedContext{context} {
+  const intl::Filter filter = type::ConvertFilterType(config.filter_type);
+  const intl::SamplerAddressMode address_mode =
+      type::ConvertSamplerAddressMode(config.address_mode);
+  const intl::SamplerMipmapMode mipmap_mode =
+      config.filter_type == ir::FilterType::kNearest
+          ? intl::SamplerMipmapMode::eNearest
+          : intl::SamplerMipmapMode::eLinear;
+  const float max_anisotropy =
+      context_->physical_device()->getProperties().limits.maxSamplerAnisotropy;
+  const auto create_info =
+      intl::SamplerCreateInfo{}
+          .setMagFilter(filter)
+          .setMinFilter(filter)
+          .setMipmapMode(mipmap_mode)
+          .setAddressModeU(address_mode)
+          .setAddressModeV(address_mode)
+          .setAddressModeW(address_mode)
+          .setAnisotropyEnable(intl::True)
+          .setMaxAnisotropy(max_anisotropy)
+          .setCompareOp(intl::CompareOp::eAlways)
+          .setMinLod(0.0f)
+          .setMaxLod(static_cast<float>(std::max(mip_levels, 1)))
+          .setBorderColor(intl::BorderColor::eIntOpaqueBlack)
+          .setUnnormalizedCoordinates(intl::False);
+  sampler_ = vk_device().createSampler(create_info, vk_host_allocator());
+}
+
+Sampler::~Sampler() { context_->DeviceDestroy(sampler_); }
+
 }  // namespace lighter::renderer::vk

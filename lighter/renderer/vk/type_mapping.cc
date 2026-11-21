@@ -58,6 +58,33 @@ intl::AttachmentStoreOp ConvertAttachmentStoreOp(ir::AttachmentStoreOp op) {
 #undef CONVERT
 }
 
+intl::Filter ConvertFilterType(ir::FilterType filter) {
+#define CONVERT(filter)           \
+  case ir::FilterType::k##filter: \
+    return intl::Filter::e##filter
+  switch (filter) {
+    CONVERT(Nearest);
+    CONVERT(Linear);
+  }
+#undef CONVERT
+}
+
+intl::SamplerAddressMode ConvertSamplerAddressMode(
+    ir::SamplerAddressMode mode) {
+#define CONVERT(mode)                   \
+  case ir::SamplerAddressMode::k##mode: \
+    return intl::SamplerAddressMode::e##mode
+  switch (mode) {
+    CONVERT(Repeat);
+    CONVERT(MirroredRepeat);
+    CONVERT(ClampToEdge);
+    CONVERT(ClampToBorder);
+    case ir::SamplerAddressMode::kMirrorClamToEdge:
+      return intl::SamplerAddressMode::eMirrorClampToEdge;
+  }
+#undef CONVERT
+}
+
 intl::BlendFactor ConvertBlendFactor(ir::BlendFactor factor) {
 #define CONVERT(factor)            \
   case ir::BlendFactor::k##factor: \

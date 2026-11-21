@@ -39,6 +39,7 @@ class Buffer : public WithSharedContext, public ir::Buffer {
 
   // Accessors.
   intl::Buffer vk_buffer() const { return buffer_; }
+  size_t size() const { return buffer_size_; }
 
  private:
   struct AllocationInfo {

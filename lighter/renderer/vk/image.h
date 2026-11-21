@@ -155,6 +155,25 @@ class MultiImage : public WithSharedContext, public Image {
   std::vector<intl::ImageView> image_views_;
 };
 
+// Wraps VkSampler configured from ir::SamplerDescriptor.
+class Sampler : public WithSharedContext {
+ public:
+  explicit Sampler(const SharedContext& context,
+                   const ir::SamplerDescriptor& config, int mip_levels = 1);
+
+  // This class is neither copyable nor movable.
+  Sampler(const Sampler&) = delete;
+  Sampler& operator=(const Sampler&) = delete;
+
+  ~Sampler();
+
+  // Overloads.
+  intl::Sampler operator*() const { return sampler_; }
+
+ private:
+  intl::Sampler sampler_;
+};
+
 }  // namespace lighter::renderer::vk
 
 #endif  // LIGHTER_RENDERER_VK_IMAGE_H

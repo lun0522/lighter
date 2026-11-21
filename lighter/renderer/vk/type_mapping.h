@@ -21,6 +21,10 @@ intl::AttachmentLoadOp ConvertAttachmentLoadOp(ir::AttachmentLoadOp op);
 
 intl::AttachmentStoreOp ConvertAttachmentStoreOp(ir::AttachmentStoreOp op);
 
+intl::Filter ConvertFilterType(ir::FilterType filter);
+
+intl::SamplerAddressMode ConvertSamplerAddressMode(ir::SamplerAddressMode mode);
+
 intl::BlendFactor ConvertBlendFactor(ir::BlendFactor factor);
 
 intl::BlendOp ConvertBlendOp(ir::BlendOp op);

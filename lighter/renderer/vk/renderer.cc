@@ -29,9 +29,43 @@ void Renderer::RecreateSwapchain(int window_index) {
 }
 
 std::unique_ptr<ir::RenderPass> Renderer::CreateRenderPass(
-    ir::RenderPassDescriptor&& /*descriptor*/) const {
-  class DynamicRenderPass : public ir::RenderPass {};
-  return std::make_unique<DynamicRenderPass>();
+    ir::RenderPassDescriptor&& descriptor) const {
+  class DynamicRenderPass : public ir::RenderPass {
+   public:
+    explicit DynamicRenderPass(const SharedContext& context,
+                               const ir::RenderPassDescriptor& descriptor) {
+      const ShaderModule::AutoReleaseShaderPool shader_pool;
+      for (const auto& subpass : descriptor.subpass_descriptors) {
+        Pipeline::RenderingInfo rendering_info;
+        rendering_info.color_attachment_formats.reserve(
+            subpass.color_attachments.size());
+        intl::SampleCountFlagBits sample_count = intl::SampleCountFlagBits::e1;
+        for (const ir::Image* attachment : subpass.color_attachments) {
+          const auto& vk_image = Image::Cast(*attachment);
+          rendering_info.color_attachment_formats.push_back(vk_image.format());
+          sample_count = vk_image.sample_count();
+        }
+        if (subpass.depth_stencil_attachment != nullptr) {
+          const auto& vk_ds = Image::Cast(*subpass.depth_stencil_attachment);
+          rendering_info.depth_attachment_format = vk_ds.format();
+          if (vk_ds.GetAspectFlags() & intl::ImageAspectFlagBits::eStencil) {
+            rendering_info.stencil_attachment_format = vk_ds.format();
+          }
+          if (subpass.color_attachments.empty()) {
+            sample_count = vk_ds.sample_count();
+          }
+        }
+        for (const auto& pipeline_desc : subpass.pipeline_descriptors) {
+          pipelines_.push_back(std::make_unique<Pipeline>(
+              context, pipeline_desc, sample_count, rendering_info));
+        }
+      }
+    }
+
+   private:
+    std::vector<std::unique_ptr<Pipeline>> pipelines_;
+  };
+  return std::make_unique<DynamicRenderPass>(context_, descriptor);
 }
 
 }  // namespace lighter::renderer::vk
