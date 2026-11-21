@@ -38,8 +38,7 @@
 namespace lighter::example {
 
 inline std::unique_ptr<renderer::ir::Renderer> CreateRenderer(
-    const char* application_name,
-    std::vector<const common::Window*>&& window_ptrs) {
+    const char* application_name, std::vector<common::Window*>&& window_ptrs) {
   std::optional<renderer::ir::debug_message::Config> debug_message_config;
 #ifndef NDEBUG
   namespace sev = renderer::ir::debug_message::severity;

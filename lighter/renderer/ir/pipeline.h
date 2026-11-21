@@ -99,7 +99,7 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
   struct ViewportConfig {
     Viewport viewport;
     Scissor scissor;
-    bool flip_y;
+    bool flip_y = true;
   };
 
   // Modifiers.

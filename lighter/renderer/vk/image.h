@@ -79,6 +79,11 @@ class SingleImage : public WithSharedContext, public Image {
 
   static std::unique_ptr<SingleImage> CreateColorImage(
       const SharedContext& context, std::string_view name,
+      const Image& match_target, ir::MultisamplingMode multisampling_mode,
+      std::span<const ir::ImageUsage> usages);
+
+  static std::unique_ptr<SingleImage> CreateColorImage(
+      const SharedContext& context, std::string_view name,
       const common::Image& image, bool generate_mipmaps,
       std::span<const ir::ImageUsage> usages);
 

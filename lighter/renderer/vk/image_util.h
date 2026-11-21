@@ -46,6 +46,17 @@ std::optional<uint32_t> GetQueueFamilyIndex(const Context& context,
 bool NeedsSynchronization(const ir::ImageUsage& prev_usage,
                           const ir::ImageUsage& curr_usage);
 
+// Records an ImageMemoryBarrier2 via pipelineBarrier2 on 'cmd'.
+void TransitionImageLayout(intl::CommandBuffer cmd, intl::Image image,
+                           intl::ImageAspectFlags aspect_mask,
+                           uint32_t base_mip_level, uint32_t level_count,
+                           uint32_t layer_count, intl::ImageLayout old_layout,
+                           intl::ImageLayout new_layout,
+                           intl::PipelineStageFlags2 src_stage_mask,
+                           intl::AccessFlags2 src_access_mask,
+                           intl::PipelineStageFlags2 dst_stage_mask,
+                           intl::AccessFlags2 dst_access_mask);
+
 }  // namespace lighter::renderer::vk::image
 
 #endif  // LIGHTER_RENDERER_VK_IMAGE_UTIL_H

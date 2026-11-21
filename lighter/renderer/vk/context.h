@@ -88,6 +88,9 @@ class Context : public std::enable_shared_from_this<Context> {
   const Surface& surface(int window_index) const {
     return *surfaces_.at(window_index);
   }
+  Surface& mutable_surface(int window_index) {
+    return *surfaces_.at(window_index);
+  }
   const PhysicalDevice& physical_device() const { return *physical_device_; }
   const Device& device() const { return *device_; }
   const Queues& queues() const { return *queues_; }

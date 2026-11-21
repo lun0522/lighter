@@ -8,11 +8,13 @@
 #ifndef LIGHTER_RENDERER_IR_PASS_H
 #define LIGHTER_RENDERER_IR_PASS_H
 
+#include <cstdint>
 #include <optional>
 #include <unordered_map>
 #include <vector>
 
 #include "lighter/common/util.h"
+#include "lighter/renderer/ir/buffer.h"
 #include "lighter/renderer/ir/image.h"
 #include "lighter/renderer/ir/pipeline.h"
 #include "lighter/renderer/ir/type.h"
@@ -115,6 +117,26 @@ class RenderPass {
 
  protected:
   explicit RenderPass() = default;
+};
+
+// Records draw commands inside an active graphics pass.
+class CommandRecorder {
+ public:
+  CommandRecorder(const CommandRecorder&) = delete;
+  CommandRecorder& operator=(const CommandRecorder&) = delete;
+
+  virtual ~CommandRecorder() = default;
+
+  virtual void BindPipeline(int pipeline_index) = 0;
+  virtual void BindVertexBuffer(uint32_t binding_point, const Buffer& buffer,
+                                size_t offset = 0) = 0;
+  virtual void PushConstants(shader_stage::ShaderStage stage, uint32_t offset,
+                             uint32_t size, const void* data) = 0;
+  virtual void Draw(uint32_t vertex_count, uint32_t instance_count = 1,
+                    uint32_t first_vertex = 0, uint32_t first_instance = 0) = 0;
+
+ protected:
+  CommandRecorder() = default;
 };
 
 class ComputePass {

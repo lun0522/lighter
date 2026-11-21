@@ -7,7 +7,9 @@
 
 #include "lighter/renderer/vk/swapchain.h"
 
+#include <algorithm>
 #include <format>
+#include <limits>
 #include <span>
 #include <unordered_set>
 #include <vector>
@@ -94,10 +96,11 @@ uint32_t ChooseMinImageCount(const Surface& surface) {
 
 Swapchain::Swapchain(const SharedContext& context, int window_index,
                      const common::Window& window)
-    : WithSharedContext{context} {
-  // Choose image extent.
+    : WithSharedContext{context}, window_index_{window_index} {
+  // Refresh surface capabilities so resize sees current extents.
   const PhysicalDevice& physical_device = context_->physical_device();
-  const Surface& surface = context_->surface(window_index);
+  Surface& surface = context_->mutable_surface(window_index);
+  surface.SetCapabilities(physical_device->getSurfaceCapabilitiesKHR(*surface));
   const intl::Extent2D image_extent = ChooseImageExtent(window, surface);
 
   // Choose surface format and present mode.
@@ -148,13 +151,42 @@ Swapchain::Swapchain(const SharedContext& context, int window_index,
       context_, std::format("swapchain{}", window_index),
       vk_device().getSwapchainImagesKHR(swapchain_), util::ToVec(image_extent),
       surface_format.format);
+
+  render_finished_semaphores_.resize(image_->num_images());
+  for (intl::Semaphore& semaphore : render_finished_semaphores_) {
+    semaphore = vk_device().createSemaphore(intl::SemaphoreCreateInfo{},
+                                            vk_host_allocator());
+  }
 }
 
 Swapchain::~Swapchain() {
+  for (intl::Semaphore semaphore : render_finished_semaphores_) {
+    context_->DeviceDestroy(semaphore);
+  }
+  // Destroy image views before destroying the backing swapchain.
+  image_.reset();
   context_->DeviceDestroy(swapchain_);
 #ifndef NDEBUG
   LOG_INFO << "Swapchain destructed";
 #endif  // DEBUG
+}
+
+intl::Result Swapchain::AcquireNextImage(intl::Semaphore signal_semaphore,
+                                         uint32_t* out_image_index) const {
+  return vk_device().acquireNextImageKHR(
+      swapchain_, std::numeric_limits<uint64_t>::max(), signal_semaphore,
+      intl::Fence{}, out_image_index);
+}
+
+intl::Result Swapchain::Present(uint32_t image_index,
+                                intl::Semaphore wait_semaphore) const {
+  const auto present_info = intl::PresentInfoKHR{}
+                                .setWaitSemaphores(wait_semaphore)
+                                .setSwapchains(swapchain_)
+                                .setImageIndices(image_index);
+  return context_->queues()
+      .present_queue(window_index_)
+      .presentKHR(&present_info);
 }
 
 }  // namespace lighter::renderer::vk

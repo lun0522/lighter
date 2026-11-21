@@ -254,4 +254,29 @@ bool NeedsSynchronization(const ImageUsage& prev_usage,
   return true;
 }
 
+void TransitionImageLayout(intl::CommandBuffer cmd, intl::Image image,
+                           intl::ImageAspectFlags aspect_mask,
+                           uint32_t base_mip_level, uint32_t level_count,
+                           uint32_t layer_count, intl::ImageLayout old_layout,
+                           intl::ImageLayout new_layout,
+                           intl::PipelineStageFlags2 src_stage_mask,
+                           intl::AccessFlags2 src_access_mask,
+                           intl::PipelineStageFlags2 dst_stage_mask,
+                           intl::AccessFlags2 dst_access_mask) {
+  const auto barrier =
+      intl::ImageMemoryBarrier2{}
+          .setSrcStageMask(src_stage_mask)
+          .setSrcAccessMask(src_access_mask)
+          .setDstStageMask(dst_stage_mask)
+          .setDstAccessMask(dst_access_mask)
+          .setOldLayout(old_layout)
+          .setNewLayout(new_layout)
+          .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+          .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+          .setImage(image)
+          .setSubresourceRange({aspect_mask, base_mip_level, level_count,
+                                /*baseArrayLayer=*/0, layer_count});
+  cmd.pipelineBarrier2(intl::DependencyInfo{}.setImageMemoryBarriers(barrier));
+}
+
 }  // namespace lighter::renderer::vk::image

@@ -10,6 +10,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include <functional>
 #include <glm/glm.hpp>
 #include <memory>
 #include <optional>
@@ -23,6 +24,7 @@
 #include "lighter/renderer/ir/renderer.h"
 #include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/vk/buffer.h"
+#include "lighter/renderer/vk/command.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/image.h"
 #include "lighter/renderer/vk/pipeline.h"
@@ -34,21 +36,18 @@ class Renderer : public WithSharedContext, public ir::Renderer {
  public:
   Renderer(const char* application_name,
            const std::optional<ir::debug_message::Config>& debug_message_config,
-           std::vector<const common::Window*>&& window_ptrs);
+           std::vector<common::Window*>&& window_ptrs);
 
   Renderer(const char* application_name,
            const std::optional<ir::debug_message::Config>& debug_message_config,
-           std::span<const common::Window* const> windows)
+           std::span<common::Window* const> windows)
       : Renderer{application_name, debug_message_config,
-                 std::vector<const common::Window*>{windows.begin(),
-                                                    windows.end()}} {}
+                 std::vector<common::Window*>{windows.begin(), windows.end()}} {
+  }
 
   // This class is neither copyable nor movable.
   Renderer(const Renderer&) = delete;
   Renderer& operator=(const Renderer&) = delete;
-
-  // TODO: Should handle this internally.
-  void RecreateSwapchain(int window_index);
 
   // Buffer
 
@@ -71,6 +70,14 @@ class Renderer : public WithSharedContext, public ir::Renderer {
       std::span<const ir::ImageUsage> usages) const override {
     return SingleImage::CreateColorImage(
         context_, name, dimension, multisampling_mode, high_precision, usages);
+  }
+
+  std::unique_ptr<ir::Image> CreateColorImage(
+      std::string_view name, const ir::Image& match_target,
+      ir::MultisamplingMode multisampling_mode,
+      std::span<const ir::ImageUsage> usages) const override {
+    return SingleImage::CreateColorImage(
+        context_, name, Image::Cast(match_target), multisampling_mode, usages);
   }
 
   std::unique_ptr<ir::Image> CreateColorImage(
@@ -98,8 +105,18 @@ class Renderer : public WithSharedContext, public ir::Renderer {
     FATAL("Not implemented yet");
   }
 
+  bool RenderFrame(
+      int window_index, ir::RenderPass& pass,
+      const std::function<void(ir::CommandRecorder&)>& record_draw) override;
+
+  void WaitIdle() override { context_->WaitIdle(); }
+
  private:
+  void RecreateSwapchain(int window_index);
+
   std::vector<std::unique_ptr<Swapchain>> swapchains_;
+  std::vector<std::unique_ptr<PerFrameCommand>> per_frame_commands_;
+  std::vector<int> current_frames_;
 };
 
 }  // namespace lighter::renderer::vk

@@ -9,6 +9,7 @@
 #define LIGHTER_RENDERER_IR_RENDERER_H
 
 #include <format>
+#include <functional>
 #include <glm/glm.hpp>
 #include <memory>
 #include <span>
@@ -60,6 +61,11 @@ class Renderer {
       std::span<const ImageUsage> usages) const = 0;
 
   virtual std::unique_ptr<Image> CreateColorImage(
+      std::string_view name, const Image& match_target,
+      MultisamplingMode multisampling_mode,
+      std::span<const ImageUsage> usages) const = 0;
+
+  virtual std::unique_ptr<Image> CreateColorImage(
       std::string_view name, const common::Image& image, bool generate_mipmaps,
       std::span<const ImageUsage> usages) const = 0;
 
@@ -76,19 +82,30 @@ class Renderer {
   virtual std::unique_ptr<ComputePass> CreateComputePass(
       ComputePassDescriptor&& descriptor) const = 0;
 
+  // Renders one frame to 'window_index' using 'pass' and returns false if the
+  // swapchain was recreated (e.g. window resize) and dependent attachments or
+  // passes should be rebuilt.
+  virtual bool RenderFrame(
+      int window_index, RenderPass& pass,
+      const std::function<void(CommandRecorder&)>& record_draw) = 0;
+
+  // Blocks until all queued GPU work completes.
+  virtual void WaitIdle() = 0;
+
  protected:
-  explicit Renderer(std::vector<const common::Window*>&& windows)
+  explicit Renderer(std::vector<common::Window*>&& windows)
       : windows_{std::move(windows)} {
     for (int i = 0; i < num_windows(); ++i) {
       ASSERT_NON_NULL(windows_[i], std::format("Window {} is nullptr", i));
     }
   }
 
-  const std::vector<const common::Window*>& windows() const { return windows_; }
+  common::Window& mutable_window(int index) { return *windows_.at(index); }
+  const std::vector<common::Window*>& windows() const { return windows_; }
   int num_windows() const { return windows_.size(); }
 
  private:
-  std::vector<const common::Window*> windows_;
+  std::vector<common::Window*> windows_;
 };
 
 }  // namespace lighter::renderer::ir

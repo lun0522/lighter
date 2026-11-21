@@ -140,6 +140,19 @@ target_link_libraries(lighter_renderer_vk_swapchain
     lighter_renderer_vk_util
 )
 
+add_library(lighter_renderer_vk_command STATIC
+  command.cc
+  command.h
+)
+target_link_libraries(lighter_renderer_vk_command
+  PUBLIC
+    lighter_project_options
+    lighter_common_util
+    lighter_renderer_vk_context
+    lighter_renderer_vk_swapchain
+    lighter_renderer_vk_util
+)
+
 add_library(lighter_renderer_vk_renderer STATIC
   renderer.cc
   renderer.h
@@ -154,6 +167,7 @@ target_link_libraries(lighter_renderer_vk_renderer
     lighter_renderer_ir_renderer
     lighter_renderer_ir_type
     lighter_renderer_vk_buffer
+    lighter_renderer_vk_command
     lighter_renderer_vk_context
     lighter_renderer_vk_image
     lighter_renderer_vk_pipeline

@@ -144,31 +144,6 @@ int ComputeMipLevels(const glm::ivec2& extent, bool generate_mipmaps) {
   return static_cast<int>(std::floor(std::log2(max_dim))) + 1;
 }
 
-void TransitionImageLayout(intl::CommandBuffer cmd, intl::Image image,
-                           intl::ImageAspectFlags aspect_mask,
-                           uint32_t base_mip_level, uint32_t level_count,
-                           uint32_t layer_count, intl::ImageLayout old_layout,
-                           intl::ImageLayout new_layout,
-                           intl::PipelineStageFlags2 src_stage_mask,
-                           intl::AccessFlags2 src_access_mask,
-                           intl::PipelineStageFlags2 dst_stage_mask,
-                           intl::AccessFlags2 dst_access_mask) {
-  const auto barrier =
-      intl::ImageMemoryBarrier2{}
-          .setSrcStageMask(src_stage_mask)
-          .setSrcAccessMask(src_access_mask)
-          .setDstStageMask(dst_stage_mask)
-          .setDstAccessMask(dst_access_mask)
-          .setOldLayout(old_layout)
-          .setNewLayout(new_layout)
-          .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-          .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-          .setImage(image)
-          .setSubresourceRange({aspect_mask, base_mip_level, level_count,
-                                /*baseArrayLayer=*/0, layer_count});
-  cmd.pipelineBarrier2(intl::DependencyInfo{}.setImageMemoryBarriers(barrier));
-}
-
 // Uploads 'host_image' pixel data into 'target' via a staging buffer and
 // generates mipmaps if target.mip_levels() > 1.
 void UploadImageData(const Context& context, const SingleImage& target,
@@ -229,13 +204,13 @@ void UploadImageData(const Context& context, const SingleImage& target,
 
   const intl::ImageAspectFlags aspect_mask = target.GetAspectFlags();
   context.RunOneTimeGraphicsCommand([&](intl::CommandBuffer cmd) {
-    TransitionImageLayout(cmd, *target, aspect_mask, /*base_mip_level=*/0,
-                          mip_levels, layer_count,
-                          intl::ImageLayout::eUndefined,
-                          intl::ImageLayout::eTransferDstOptimal,
-                          intl::PipelineStageFlagBits2::eTopOfPipe, {},
-                          intl::PipelineStageFlagBits2::eTransfer,
-                          intl::AccessFlagBits2::eTransferWrite);
+    image::TransitionImageLayout(cmd, *target, aspect_mask,
+                                 /*base_mip_level=*/0, mip_levels, layer_count,
+                                 intl::ImageLayout::eUndefined,
+                                 intl::ImageLayout::eTransferDstOptimal,
+                                 intl::PipelineStageFlagBits2::eTopOfPipe, {},
+                                 intl::PipelineStageFlagBits2::eTransfer,
+                                 intl::AccessFlagBits2::eTransferWrite);
 
     const auto copy_region =
         intl::BufferImageCopy{}
@@ -254,15 +229,15 @@ void UploadImageData(const Context& context, const SingleImage& target,
       int mip_width = extent.x;
       int mip_height = extent.y;
       for (uint32_t level = 1; level < mip_levels; ++level) {
-        TransitionImageLayout(cmd, *target, aspect_mask,
-                              /*base_mip_level=*/level - 1,
-                              /*level_count=*/1, layer_count,
-                              intl::ImageLayout::eTransferDstOptimal,
-                              intl::ImageLayout::eTransferSrcOptimal,
-                              intl::PipelineStageFlagBits2::eTransfer,
-                              intl::AccessFlagBits2::eTransferWrite,
-                              intl::PipelineStageFlagBits2::eTransfer,
-                              intl::AccessFlagBits2::eTransferRead);
+        image::TransitionImageLayout(cmd, *target, aspect_mask,
+                                     /*base_mip_level=*/level - 1,
+                                     /*level_count=*/1, layer_count,
+                                     intl::ImageLayout::eTransferDstOptimal,
+                                     intl::ImageLayout::eTransferSrcOptimal,
+                                     intl::PipelineStageFlagBits2::eTransfer,
+                                     intl::AccessFlagBits2::eTransferWrite,
+                                     intl::PipelineStageFlagBits2::eTransfer,
+                                     intl::AccessFlagBits2::eTransferRead);
 
         const int next_width = std::max(mip_width / 2, 1);
         const int next_height = std::max(mip_height / 2, 1);
@@ -280,7 +255,7 @@ void UploadImageData(const Context& context, const SingleImage& target,
                       intl::ImageLayout::eTransferDstOptimal, blit,
                       intl::Filter::eLinear);
 
-        TransitionImageLayout(
+        image::TransitionImageLayout(
             cmd, *target, aspect_mask, /*base_mip_level=*/level - 1,
             /*level_count=*/1, layer_count,
             intl::ImageLayout::eTransferSrcOptimal, target_layout,
@@ -292,7 +267,7 @@ void UploadImageData(const Context& context, const SingleImage& target,
       }
     }
 
-    TransitionImageLayout(
+    image::TransitionImageLayout(
         cmd, *target, aspect_mask, /*base_mip_level=*/mip_levels - 1,
         /*level_count=*/1, layer_count, intl::ImageLayout::eTransferDstOptimal,
         target_layout, intl::PipelineStageFlagBits2::eTransfer,
@@ -350,6 +325,16 @@ std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
   return std::unique_ptr<SingleImage>(
       new SingleImage(context, name, LayerType::kSingle, dimension.extent(),
                       kSingleMipLevel, format, multisampling_mode, usages));
+}
+
+std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
+    const SharedContext& context, std::string_view name,
+    const Image& match_target, MultisamplingMode multisampling_mode,
+    std::span<const ImageUsage> usages) {
+  return std::unique_ptr<SingleImage>(new SingleImage(
+      context, name, LayerType::kSingle,
+      {match_target.width(), match_target.height()}, kSingleMipLevel,
+      match_target.format(), multisampling_mode, usages));
 }
 
 std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
