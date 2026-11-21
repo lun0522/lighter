@@ -44,3 +44,9 @@ target_link_libraries(example_post_effect
   PRIVATE
     lighter_common_image
 )
+
+lighter_add_example(example_troop troop.cc)
+target_link_libraries(example_troop
+  PRIVATE
+    lighter_renderer_extension_model
+)
