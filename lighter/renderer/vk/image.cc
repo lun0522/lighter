@@ -293,6 +293,25 @@ intl::ImageView CreateImageView(const Context& context, intl::Image vk_image,
                                            *context.host_allocator());
 }
 
+std::vector<uint32_t> CollectUniqueQueueFamilyIndices(
+    const Context& context, std::span<const ImageUsage> usages,
+    bool include_graphics_queue) {
+  std::unordered_set<uint32_t> queue_family_indices_set;
+  for (const ImageUsage& usage : usages) {
+    const auto queue_family_index = image::GetQueueFamilyIndex(context, usage);
+    if (queue_family_index.has_value()) {
+      queue_family_indices_set.insert(queue_family_index.value());
+    }
+  }
+  if (include_graphics_queue) {
+    queue_family_indices_set.insert(
+        context.physical_device().queue_family_indices().graphics);
+  }
+  ASSERT_NON_EMPTY(queue_family_indices_set,
+                   "Cannot find any queue used for this image");
+  return {queue_family_indices_set.begin(), queue_family_indices_set.end()};
+}
+
 }  // namespace
 
 intl::ImageViewType Image::GetViewType() const {
@@ -367,13 +386,25 @@ std::unique_ptr<SingleImage> SingleImage::CreateDepthStencilImage(
                       kSingleMipLevel, format, multisampling_mode, usages));
 }
 
-SingleImage::SingleImage(const SharedContext& context, std::string_view name,
-                         LayerType layer_type, const glm::ivec2& extent,
-                         int mip_levels, intl::Format format,
-                         ir::MultisamplingMode multisampling_mode,
-                         std::span<const ir::ImageUsage> usages,
-                         intl::ImageUsageFlags extra_usage_flags,
-                         bool include_graphics_queue)
+std::unique_ptr<SingleImage> SingleImage::CreateTransient(
+    const SharedContext& context, std::string_view name,
+    const glm::ivec2& extent, intl::Format format,
+    MultisamplingMode multisampling_mode, intl::ImageUsageFlags usage_flags) {
+  const auto& queue_families =
+      context->physical_device().queue_family_indices();
+  const std::unordered_set<uint32_t> queue_set{queue_families.graphics,
+                                               queue_families.compute};
+  const std::vector<uint32_t> unique_queues{queue_set.begin(), queue_set.end()};
+  return std::unique_ptr<SingleImage>(new SingleImage(
+      context, name, LayerType::kSingle, extent, kSingleMipLevel, format,
+      multisampling_mode, usage_flags, unique_queues));
+}
+
+SingleImage::SingleImage(
+    const SharedContext& context, std::string_view name, LayerType layer_type,
+    const glm::ivec2& extent, int mip_levels, intl::Format format,
+    ir::MultisamplingMode multisampling_mode, intl::ImageUsageFlags usage_flags,
+    const std::vector<uint32_t>& unique_queue_family_indices)
     : WithSharedContext{context},
       Image{Type::kSingle,
             name,
@@ -387,34 +418,32 @@ SingleImage::SingleImage(const SharedContext& context, std::string_view name,
     create_flags |= intl::ImageCreateFlagBits::eCubeCompatible;
   }
 
-  std::unordered_set<uint32_t> queue_family_indices_set;
-  for (const ImageUsage& usage : usages) {
-    const auto queue_family_index =
-        image::GetQueueFamilyIndex(*context_, usage);
-    if (queue_family_index.has_value()) {
-      queue_family_indices_set.insert(queue_family_index.value());
-    }
-  }
-  if (include_graphics_queue) {
-    queue_family_indices_set.insert(
-        context_->physical_device().queue_family_indices().graphics);
-  }
-  ASSERT_NON_EMPTY(queue_family_indices_set,
-                   "Cannot find any queue used for this image");
-  const std::vector<uint32_t> unique_queue_family_indices{
-      queue_family_indices_set.begin(),
-      queue_family_indices_set.end(),
-  };
-
   const AllocatedImage allocated =
       CreateImage(*context_, create_flags, format, util::ToExtent(extent),
                   mip_levels, CAST_TO_UINT(GetNumLayers()), sample_count(),
-                  image::GetImageUsageFlags(usages) | extra_usage_flags,
-                  unique_queue_family_indices);
+                  usage_flags, unique_queue_family_indices);
   image_ = allocated.handle;
   allocation_ = allocated.allocation;
   image_view_ = CreateImageView(*context_, image_, *this);
 }
+
+SingleImage::SingleImage(const SharedContext& context, std::string_view name,
+                         LayerType layer_type, const glm::ivec2& extent,
+                         int mip_levels, intl::Format format,
+                         ir::MultisamplingMode multisampling_mode,
+                         std::span<const ir::ImageUsage> usages,
+                         intl::ImageUsageFlags extra_usage_flags,
+                         bool include_graphics_queue)
+    : SingleImage{context,
+                  name,
+                  layer_type,
+                  extent,
+                  mip_levels,
+                  format,
+                  multisampling_mode,
+                  image::GetImageUsageFlags(usages) | extra_usage_flags,
+                  CollectUniqueQueueFamilyIndices(*context, usages,
+                                                  include_graphics_queue)} {}
 
 SingleImage::~SingleImage() {
   if (image_view_ == intl::ImageView{} && allocation_ == VK_NULL_HANDLE) {

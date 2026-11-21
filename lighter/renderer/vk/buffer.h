@@ -10,6 +10,7 @@
 
 #include <vk_mem_alloc.h>
 
+#include <memory>
 #include <span>
 
 #include "lighter/common/util.h"
@@ -22,6 +23,10 @@ namespace lighter::renderer::vk {
 
 class Buffer : public WithSharedContext, public ir::Buffer {
  public:
+  static std::unique_ptr<Buffer> CreateTransient(
+      const SharedContext& context, size_t size,
+      intl::BufferUsageFlags usage_flags);
+
   Buffer(const SharedContext& context, UpdateRate update_rate,
          size_t initial_size, std::span<const ir::BufferUsage> usages)
       : WithSharedContext{context},
@@ -45,11 +50,20 @@ class Buffer : public WithSharedContext, public ir::Buffer {
   struct AllocationInfo {
     AllocationInfo(const Context& context, UpdateRate update_rate,
                    std::span<const ir::BufferUsage> usages);
+    AllocationInfo(const Context& context, intl::BufferUsageFlags usage_flags,
+                   bool host_visible);
 
     bool host_visible = false;
     intl::BufferUsageFlags usage_flags;
     std::vector<uint32_t> unique_queue_family_indices;
   };
+
+  Buffer(const SharedContext& context, size_t initial_size,
+         intl::BufferUsageFlags usage_flags)
+      : WithSharedContext{context},
+        allocation_info_{*context_, usage_flags, /*host_visible=*/false} {
+    AllocateBufferAndMemory(initial_size);
+  }
 
   void AllocateBufferAndMemory(size_t size);
 

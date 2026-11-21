@@ -66,6 +66,23 @@ Buffer::AllocationInfo::AllocationInfo(const Context& context,
                                  queue_family_indices_set.end()};
 }
 
+Buffer::AllocationInfo::AllocationInfo(const Context& context,
+                                       intl::BufferUsageFlags flags,
+                                       bool is_host_visible)
+    : host_visible{is_host_visible}, usage_flags{flags} {
+  const auto& queue_family_indices =
+      context.physical_device().queue_family_indices();
+  const std::unordered_set<uint32_t> queue_set{queue_family_indices.graphics,
+                                               queue_family_indices.compute};
+  unique_queue_family_indices = {queue_set.begin(), queue_set.end()};
+}
+
+std::unique_ptr<Buffer> Buffer::CreateTransient(
+    const SharedContext& context, size_t size,
+    intl::BufferUsageFlags usage_flags) {
+  return std::unique_ptr<Buffer>(new Buffer(context, size, usage_flags));
+}
+
 void Buffer::AllocateBufferAndMemory(size_t size) {
   // Allocate only if the old buffer is not big enough.
   if (size <= buffer_size_) {

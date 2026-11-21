@@ -92,6 +92,12 @@ class SingleImage : public WithSharedContext, public Image {
       const glm::ivec2& extent, ir::MultisamplingMode multisampling_mode,
       std::span<const ir::ImageUsage> usages);
 
+  static std::unique_ptr<SingleImage> CreateTransient(
+      const SharedContext& context, std::string_view name,
+      const glm::ivec2& extent, intl::Format format,
+      ir::MultisamplingMode multisampling_mode,
+      intl::ImageUsageFlags usage_flags);
+
   // This class is neither copyable nor movable.
   SingleImage(const SingleImage&) = delete;
   SingleImage& operator=(const SingleImage&) = delete;
@@ -112,6 +118,12 @@ class SingleImage : public WithSharedContext, public Image {
   intl::Image operator*() const { return image_; }
 
  private:
+  SingleImage(const SharedContext& context, std::string_view name,
+              LayerType layer_type, const glm::ivec2& extent, int mip_levels,
+              intl::Format format, ir::MultisamplingMode multisampling_mode,
+              intl::ImageUsageFlags usage_flags,
+              const std::vector<uint32_t>& unique_queue_family_indices);
+
   SingleImage(const SharedContext& context, std::string_view name,
               LayerType layer_type, const glm::ivec2& extent, int mip_levels,
               intl::Format format, ir::MultisamplingMode multisampling_mode,
