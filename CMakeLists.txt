@@ -12,8 +12,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-option(LIGHTER_BUILD_LEGACY_APPS
-       "Build Gen 1 legacy Vulkan demos (lighter/application/vulkan/)" ON)
 option(LIGHTER_FETCH_RESOURCE
        "Fetch the lighter resource repository if LIGHTER_RESOURCE_DIR is unset"
        ON)
@@ -49,7 +47,3 @@ add_subdirectory(lighter/shader_compiler)
 add_subdirectory(lighter/shader)
 add_subdirectory(lighter/renderer)
 add_subdirectory(lighter/example)
-
-if(LIGHTER_BUILD_LEGACY_APPS)
-  add_subdirectory(lighter/application/vulkan)
-endif()
