@@ -82,6 +82,8 @@ target_link_libraries(lighter_renderer_ir_pass
 add_library(lighter_renderer_ir_render_graph STATIC
   render_graph.cc
   render_graph.h
+  render_graph_util.cc
+  render_graph_util.h
 )
 target_link_libraries(lighter_renderer_ir_render_graph
   PUBLIC
@@ -127,3 +129,14 @@ target_link_libraries(ir_render_graph_test
     GTest::gtest_main
 )
 add_test(NAME ir_render_graph_test COMMAND ir_render_graph_test)
+
+add_executable(ir_render_graph_util_test
+  render_graph_util_test.cc
+)
+target_link_libraries(ir_render_graph_util_test
+  PRIVATE
+    lighter_project_options
+    lighter_renderer_ir_render_graph
+    GTest::gtest_main
+)
+add_test(NAME ir_render_graph_util_test COMMAND ir_render_graph_util_test)

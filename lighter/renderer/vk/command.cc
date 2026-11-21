@@ -7,6 +7,7 @@
 
 #include "lighter/renderer/vk/command.h"
 
+#include <array>
 #include <limits>
 
 #include "lighter/common/util.h"
@@ -65,6 +66,7 @@ bool PerFrameCommand::Run(
       vk_device().waitForFences({frame.in_flight_fence}, intl::True,
                                 std::numeric_limits<uint64_t>::max()),
       "Failed to wait for in-flight frame fence");
+  context_->ReleaseCompletedResources();
 
   uint32_t image_index = 0;
   const intl::Result acquire_result =
@@ -89,19 +91,25 @@ bool PerFrameCommand::Run(
 
   const intl::Semaphore render_finished_semaphore =
       swapchain.render_finished_semaphore(image_index);
+  const uint64_t timeline_value = context_->NextTimelineValue();
   const auto wait_info =
       intl::SemaphoreSubmitInfo{}
           .setSemaphore(frame.image_available_semaphore)
           .setStageMask(intl::PipelineStageFlagBits2::eColorAttachmentOutput);
   const auto cmd_info = intl::CommandBufferSubmitInfo{}.setCommandBuffer(cmd);
-  const auto signal_info =
+  const std::array signal_infos{
       intl::SemaphoreSubmitInfo{}
           .setSemaphore(render_finished_semaphore)
-          .setStageMask(intl::PipelineStageFlagBits2::eAllGraphics);
+          .setStageMask(intl::PipelineStageFlagBits2::eAllGraphics),
+      intl::SemaphoreSubmitInfo{}
+          .setSemaphore(context_->timeline_semaphore())
+          .setValue(timeline_value)
+          .setStageMask(intl::PipelineStageFlagBits2::eAllCommands),
+  };
   const auto submit_info = intl::SubmitInfo2{}
                                .setWaitSemaphoreInfos(wait_info)
                                .setCommandBufferInfos(cmd_info)
-                               .setSignalSemaphoreInfos(signal_info);
+                               .setSignalSemaphoreInfos(signal_infos);
   context_->queues().graphics_queue().submit2(submit_info,
                                               frame.in_flight_fence);
 

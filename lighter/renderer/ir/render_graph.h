@@ -269,6 +269,23 @@ struct PassNode {
   ExecuteCallback execute;
 };
 
+// Lifetime range [first_pass, last_pass] measured in execution_order indices
+// (-1 if the resource is never touched by any live pass).
+struct ResourceLifetime {
+  int first_pass = -1;
+  int last_pass = -1;
+
+  bool IsUsed() const { return first_pass >= 0; }
+};
+
+// Output of RenderGraph::Compile(), consumed by the backend executor.
+struct CompiledRenderGraph {
+  std::vector<uint32_t> execution_order;
+  std::vector<bool> pass_culled;
+  std::vector<ResourceLifetime> image_lifetimes;
+  std::vector<ResourceLifetime> buffer_lifetimes;
+};
+
 // Declarative Frame Graph IR holding virtual resources and pass nodes.
 class RenderGraph {
  public:
@@ -308,6 +325,11 @@ class RenderGraph {
 
   // Clears all passes and virtual resources for rebuilding the next frame.
   void Reset();
+
+  // Compiles the graph: identifies live passes reachable from external writes
+  // or side-effect passes, culls dead passes, topologically sorts live passes,
+  // and computes resource lifetime intervals in execution order.
+  CompiledRenderGraph Compile() const;
 
   // Accessors.
   const std::vector<PassNode>& passes() const { return passes_; }

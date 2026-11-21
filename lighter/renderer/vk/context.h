@@ -10,6 +10,7 @@
 
 #include <vk_mem_alloc.h>
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -63,24 +64,23 @@ class Context : public std::enable_shared_from_this<Context> {
   void RunOneTimeGraphicsCommand(
       const std::function<void(intl::CommandBuffer)>& record_commands) const;
 
-  // Records an operation that releases an expired resource, so that it can be
-  // executed once the device becomes idle. This is used for resources that can
-  // be released only when the device is no longer using it.
+  // Records an operation that releases an expired resource once the GPU passes
+  // all previously submitted timeline values (or when WaitIdle() runs).
   void AddReleaseExpiredResourceOp(ReleaseExpiredResourceOp&& op) {
-    release_expired_rsrc_ops_.push_back(std::move(op));
+    release_expired_rsrc_ops_.push_back(
+        {submitted_timeline_value_, std::move(op)});
   }
 
-  // TODO: Avoid this.
-  // Waits for the device idle, and releases expired resources.
-  // This should be called in the middle of the program when we want to destroy
-  // and recreate some resources, such as the swapchain and data buffers.
-  void WaitIdle() {
-    device_->WaitIdle();
-    for (const auto& op : release_expired_rsrc_ops_) {
-      op(*this);
-    }
-    release_expired_rsrc_ops_.clear();
-  }
+  // Advances and returns the next monotonically increasing timeline value for
+  // an upcoming queue submission.
+  uint64_t NextTimelineValue() { return ++submitted_timeline_value_; }
+
+  // Releases expired resources whose timeline value has completed on the GPU.
+  void ReleaseCompletedResources();
+
+  // Blocks until the device is idle and releases all remaining expired
+  // resources (used on swapchain recreation and shutdown).
+  void WaitIdle();
 
   // Accessors.
   const HostMemoryAllocator& host_allocator() const { return *host_allocator_; }
@@ -94,9 +94,15 @@ class Context : public std::enable_shared_from_this<Context> {
   const PhysicalDevice& physical_device() const { return *physical_device_; }
   const Device& device() const { return *device_; }
   const Queues& queues() const { return *queues_; }
+  intl::Semaphore timeline_semaphore() const { return timeline_semaphore_; }
   VmaAllocator vma_allocator() const { return vma_allocator_; }
 
  private:
+  struct PendingResourceRelease {
+    uint64_t retire_value = 0;
+    ReleaseExpiredResourceOp op;
+  };
+
   Context(const char* application_name,
           const std::optional<ir::debug_message::Config>& debug_message_config,
           std::span<const common::Window* const> windows);
@@ -122,11 +128,15 @@ class Context : public std::enable_shared_from_this<Context> {
   // Wrapper of VkQueue.
   std::unique_ptr<Queues> queues_;
 
+  // Timeline semaphore tracking GPU completion for deferred resource cleanup.
+  intl::Semaphore timeline_semaphore_;
+  uint64_t submitted_timeline_value_ = 0;
+
   // VMA GPU memory allocator.
   VmaAllocator vma_allocator_ = VK_NULL_HANDLE;
 
-  // Ops that are delayed to be executed until the device becomes idle.
-  std::vector<ReleaseExpiredResourceOp> release_expired_rsrc_ops_;
+  // Ops delayed until their associated timeline value completes (or WaitIdle).
+  std::vector<PendingResourceRelease> release_expired_rsrc_ops_;
 };
 
 class WithSharedContext {

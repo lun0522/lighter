@@ -69,17 +69,57 @@ Context::Context(
                      vmaCreateAllocator(&allocator_info, &vma_allocator_)),
                  "Failed to create VMA allocator");
 
+  const auto timeline_type_info =
+      intl::SemaphoreTypeCreateInfo{}
+          .setSemaphoreType(intl::SemaphoreType::eTimeline)
+          .setInitialValue(0);
+  const auto timeline_create_info =
+      intl::SemaphoreCreateInfo{}.setPNext(&timeline_type_info);
+  timeline_semaphore_ =
+      (*device_)->createSemaphore(timeline_create_info, **host_allocator_);
+
   LOG_INFO << "Finished Vulkan initialization";
 }
 
 Context::~Context() {
   if (device_) {
     WaitIdle();
+    if (timeline_semaphore_ != intl::Semaphore{}) {
+      DeviceDestroy(timeline_semaphore_);
+      timeline_semaphore_ = intl::Semaphore{};
+    }
   }
   if (vma_allocator_ != VK_NULL_HANDLE) {
     vmaDestroyAllocator(vma_allocator_);
     vma_allocator_ = VK_NULL_HANDLE;
   }
+}
+
+void Context::ReleaseCompletedResources() {
+  if (release_expired_rsrc_ops_.empty() ||
+      timeline_semaphore_ == intl::Semaphore{}) {
+    return;
+  }
+  const uint64_t completed_value =
+      (*device_)->getSemaphoreCounterValue(timeline_semaphore_);
+  std::vector<PendingResourceRelease> remaining;
+  remaining.reserve(release_expired_rsrc_ops_.size());
+  for (auto& entry : release_expired_rsrc_ops_) {
+    if (entry.retire_value <= completed_value) {
+      entry.op(*this);
+    } else {
+      remaining.push_back(std::move(entry));
+    }
+  }
+  release_expired_rsrc_ops_ = std::move(remaining);
+}
+
+void Context::WaitIdle() {
+  device_->WaitIdle();
+  for (const auto& entry : release_expired_rsrc_ops_) {
+    entry.op(*this);
+  }
+  release_expired_rsrc_ops_.clear();
 }
 
 void Context::RunOneTimeGraphicsCommand(

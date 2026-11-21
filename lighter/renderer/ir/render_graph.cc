@@ -11,6 +11,8 @@
 #include <format>
 #include <utility>
 
+#include "lighter/renderer/ir/render_graph_util.h"
+
 namespace lighter::renderer::ir {
 namespace {
 
@@ -234,6 +236,26 @@ void RenderGraph::Reset() {
   passes_.clear();
   images_.clear();
   buffers_.clear();
+}
+
+CompiledRenderGraph RenderGraph::Compile() const {
+  CompiledRenderGraph compiled;
+  compiled.image_lifetimes.resize(images_.size());
+  compiled.buffer_lifetimes.resize(buffers_.size());
+  if (passes_.empty()) {
+    return compiled;
+  }
+
+  const render_graph::PassDependencyGraph dep_graph =
+      render_graph::BuildPassDependencyGraph(passes_, images_, buffers_);
+  compiled.pass_culled = render_graph::CullDeadPasses(dep_graph.producer_deps,
+                                                      dep_graph.is_live_root);
+  compiled.execution_order = render_graph::TopologicalSortLivePasses(
+      dep_graph.adjacency, compiled.pass_culled);
+  render_graph::ComputeResourceLifetimes(passes_, compiled.execution_order,
+                                         &compiled.image_lifetimes,
+                                         &compiled.buffer_lifetimes);
+  return compiled;
 }
 
 const ImageResourceNode& RenderGraph::GetImageResource(
