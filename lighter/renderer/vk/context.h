@@ -1,10 +1,3 @@
-//
-//  context.h
-//
-//  Created by Pujun Lun on 10/21/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_RENDERER_VK_CONTEXT_H
 #define LIGHTER_RENDERER_VK_CONTEXT_H
 

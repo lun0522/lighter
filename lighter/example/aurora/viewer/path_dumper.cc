@@ -1,10 +1,3 @@
-//
-//  path_dumper.cc
-//
-//  Created by Pujun Lun on 3/28/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/example/aurora/viewer/path_dumper.h"
 
 #include <array>

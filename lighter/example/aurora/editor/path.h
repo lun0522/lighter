@@ -1,10 +1,3 @@
-//
-//  path.h
-//
-//  Created by Pujun Lun on 12/6/19.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_EXAMPLE_AURORA_EDITOR_PATH_H
 #define LIGHTER_EXAMPLE_AURORA_EDITOR_PATH_H
 

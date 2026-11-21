@@ -1,10 +1,3 @@
-//
-//  spline.h
-//
-//  Created by Pujun Lun on 11/30/19.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_SCENE_SPLINE_H
 #define LIGHTER_SCENE_SPLINE_H
 

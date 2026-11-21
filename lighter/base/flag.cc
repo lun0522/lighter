@@ -1,10 +1,3 @@
-//
-//  flag.cc
-//
-//  Created by Pujun Lun on 11/20/26.
-//  Copyright © 2026 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/base/flag.h"
 
 #include <cstdlib>

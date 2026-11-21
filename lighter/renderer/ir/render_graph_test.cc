@@ -1,10 +1,3 @@
-//
-//  render_graph_test.cc
-//
-//  Created by Pujun Lun on 11/20/26.
-//  Copyright © 2026 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/renderer/ir/render_graph.h"
 
 #include <gtest/gtest.h>

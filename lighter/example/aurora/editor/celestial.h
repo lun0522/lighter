@@ -1,10 +1,3 @@
-//
-//  celestial.h
-//
-//  Created by Pujun Lun on 12/3/19.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_EXAMPLE_AURORA_EDITOR_CELESTIAL_H
 #define LIGHTER_EXAMPLE_AURORA_EDITOR_CELESTIAL_H
 

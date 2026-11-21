@@ -1,10 +1,3 @@
-//
-//  distance_field.h
-//
-//  Created by Pujun Lun on 4/18/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_SCENE_DISTANCE_FIELD_H
 #define LIGHTER_SCENE_DISTANCE_FIELD_H
 

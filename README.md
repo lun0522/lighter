@@ -17,20 +17,15 @@ A lightweight C++20 Vulkan rendering engine built around a declarative **Frame G
 | [`lighter/shader/`](lighter/shader) | GLSL shader sources, compiled `.spv` binaries (`shared/` utilities + per-demo folders), and [`compiler/`](lighter/shader/compiler) (`compile_shaders` incremental build-time `shaderc` compiler tracked via SHA-256 `.compilation_record`). |
 | [`lighter/example/`](lighter/example) | Seven runnable demos composing `base`, `renderer`, `scene`, and `ui`. |
 
----
-
 ### `ir/` vs. `vk/` Division
 
 - **`lighter/renderer/ir/` (Backend-agnostic interface & graph compiler)**
   - Defines pure C++ interfaces and value descriptors with **zero Vulkan headers**: `ir::Renderer`, `ir::Buffer`, `ir::Image`, `ir::BufferUsage`, `ir::ImageUsage`, `ir::GraphicsPipelineDescriptor`, `ir::ComputePipelineDescriptor`, and `ir::RenderGraph`.
   - Implements graph analysis in `render_graph.cc` and `render_graph_util.cc` (dependency edges, dead-pass culling, topological sort, resource lifetime calculation, and Graphviz DOT export), making the Frame Graph logic directly unit-testable without a GPU.
-
 - **`lighter/renderer/vk/` (Vulkan 1.3 execution backend)**
   - Implements `ir::Renderer` (`vk::Renderer`) on top of `vk::Context` + Vulkan Memory Allocator (VMA), `vk::Swapchain`, `vk::PerFrameCommand`, `vk::TransientResourcePool`, and `vk::PipelineCache`.
   - Uses **SPIRV-Cross** inside `vk::pipeline` to reflect descriptor bindings and push-constant ranges directly from `.spv` shaders, eliminating manual descriptor set layout boilerplate.
   - Executes `ir::RenderGraph` via `vk::RenderGraphExecutor` using **Dynamic Rendering** (`vkCmdBeginRendering`) and **Synchronization2** (`vkCmdPipelineBarrier2`).
-
----
 
 ### Frame Graph Lifecycle
 
@@ -77,6 +72,7 @@ flowchart LR
 ## Building & Testing
 
 ### Prerequisites
+
 - CMake `>= 3.24` and a C++20 compiler
 - **Vulkan SDK** (`VULKAN_SDK` set in environment; requires `shaderc_combined` and Vulkan 1.3 headers/loader)
 - Git (CMake `FetchContent` fetches `glfw`, `glm`, `freetype`, `assimp`, `VulkanMemoryAllocator`, `spirv_cross`, `googletest`, `stb`, `picosha2`, and runtime assets from `lun0522/resource` if not present locally)
@@ -105,6 +101,7 @@ All examples run **uncapped** by default (`Mailbox -> Immediate -> FIFO` fallbac
 - `--shader_dir=<path>`: override compiled shader directory
 
 ### 1. Triangle
+
 Animated alpha-blended RGB triangle showcasing basic Frame Graph setup, MSAA resolve, and push constants.
 
 ```zsh
@@ -114,6 +111,7 @@ Animated alpha-blended RGB triangle showcasing basic Frame Graph setup, MSAA res
 ![Triangle Example](assets/example_triangle.png)
 
 ### 2. Cube
+
 Rotating textured cube using `scene::ModelBuilder`, `ui::StaticText`, and `ui::DynamicText` to render a live FPS counter.
 
 ```zsh
@@ -123,6 +121,7 @@ Rotating textured cube using `scene::ModelBuilder`, `ui::StaticText`, and `ui::D
 ![Cube Example](assets/example_cube.png)
 
 ### 3. Post Effect
+
 Multi-pass pipeline (`Graphics -> Compute -> Graphics`) applying a `sine_wave.comp` image-processing filter to a texture via Frame Graph transient images.
 
 ```zsh
@@ -132,6 +131,7 @@ Multi-pass pipeline (`Graphics -> Compute -> Graphics`) applying a `sine_wave.co
 ![Post Effect Example](assets/example_post_effect.png)
 
 ### 4. Nanosuit
+
 Multi-mesh Assimp `.obj` model with diffuse, specular, reflection, and cubemap environment reflections rendered alongside `scene::Skybox`.
 
 ```zsh
@@ -154,6 +154,7 @@ Multi-mesh Assimp `.obj` model with diffuse, specular, reflection, and cubemap e
 ![Planet Example](assets/example_planet.png)
 
 ### 6. Troop
+
 Deferred shading across 50 instanced nanosuit models lit by 32 moving point-light cubes: Geometry Pass writes 3 G-buffer attachments + depth/stencil (`kStore`), and Lighting Pass uses stencil masking + sampled G-buffers.
 
 ```zsh
@@ -165,7 +166,8 @@ Deferred shading across 50 instanced nanosuit models lit by 32 moving point-ligh
 ![Troop Example](assets/example_troop.png)
 
 ### 7. Aurora Sketcher
-Interactive two-scene application (`Editor` and volumetric ray-traced `Viewer`):
+
+Interactive two-scene application (`Editor` and volumetric ray-traced `Viewer`), inspired by [*Interactive Volume Rendering Aurora on the GPU*](http://wscg.zcu.cz/WSCG2011/!_2011_J_WSCG_1-3.pdf) (Lawlor & Genetti, *Journal of WSCG*, Vol. 19, 2011). Whereas the original paper rendered pre-authored paths from off-planet, Aurora Sketcher lets you sculpt aurora paths interactively on Earth and inspect them from any surface viewpoint.
 
 ```zsh
 # Start in the interactive Earth & spline Editor
@@ -181,4 +183,10 @@ Interactive two-scene application (`Editor` and volumetric ray-traced `Viewer`):
 
 ![Aurora Viewer](assets/example_aurora_viewer.png)
 
-*Viewer controls:* mouse to look around the starry sky & airglow reflection, scroll wheel to zoom FOV, `Esc` to return to the Editor.
+*Viewer controls:* mouse to look around the starry sky & airglow reflection, scroll wheel to zoom FOV, `` ` `` (backquote) to toggle between the 3D aurora view and the dumped 2D path image, `Esc` to return to the Editor.
+
+#### Implementation & Algorithms
+
+- **On-Sphere Spline Editing (`editor/`):** Earth rotation uses arcball sphere dragging with momentum/damping (`scene::rotation`). Aurora curtains are represented as closed **centripetal Catmull-Rom splines** (`scene::CatmullRomSpline`), adaptively subdivided onto the unit sphere (`aurora_layer_`) within a geometric roughness threshold so users can insert, drag, and remove control points directly in 3D.
+- **2D Path Dumping & Jump Flooding Distance Field (`viewer/path_dumper.*`):** When switching to the Viewer, an offscreen `RenderGraph` rasterizes the 3D splines within a 24° FOV tangent-plane projection (`aurora_proj_view`) at 1024×1024 with MSAA, widens the line strips in a compute pass, and runs multi-pass **Jump Flooding Algorithm (JFA)** compute shaders (`scene::DistanceFieldGenerator`) to generate a 2D Euclidean distance field (`DistanceField`).
+- **Distance-Field-Accelerated Volumetric Ray Marching (`aurora.frag`):** For each view ray (and mirrored ground reflection), the fragment shader computes ray–sphere shell intersections for the `85 km`–`300 km` aurora layer, projects 3D sample points into the dumped 2D path plane, and marches with adaptive steps (`max(dist * dist_step_scale, min_dt)`) using the JFA distance field to leap across empty space. Following Lawlor & Genetti's factored emission model, each sample multiplies the 2D path intensity by a 1D altitude energy deposition profile (`aurora_deposition`), applies soft peak-channel brightness compression, and blends atmospheric airglow and attenuation from a precomputed lookup table (`air_transmit_table`).

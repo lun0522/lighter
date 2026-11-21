@@ -1,10 +1,3 @@
-//
-//  window.cc
-//
-//  Created by Pujun Lun on 3/27/19.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/base/window.h"
 
 #include <GLFW/glfw3.h>

@@ -1,10 +1,3 @@
-//
-//  timer.h
-//
-//  Created by Pujun Lun on 5/11/19.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_BASE_TIMER_H
 #define LIGHTER_BASE_TIMER_H
 

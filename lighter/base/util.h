@@ -1,10 +1,3 @@
-//
-//  util.h
-//
-//  Created by Pujun Lun on 2/2/19.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_BASE_UTIL_H
 #define LIGHTER_BASE_UTIL_H
 

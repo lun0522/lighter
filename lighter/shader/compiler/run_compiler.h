@@ -1,10 +1,3 @@
-//
-//  run_compiler.h
-//
-//  Created by Pujun Lun on 5/17/21.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_SHADER_COMPILER_RUN_COMPILER_H
 #define LIGHTER_SHADER_COMPILER_RUN_COMPILER_H
 

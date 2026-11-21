@@ -1,10 +1,3 @@
-//
-//  data.cc
-//
-//  Created by Pujun Lun on 10/2/21.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/base/data.h"
 
 namespace lighter::base {

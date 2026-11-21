@@ -1,10 +1,3 @@
-//
-//  model_loader.cc
-//
-//  Created by Pujun Lun on 4/13/19.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/scene/model_loader.h"
 
 #include <assimp/postprocess.h>

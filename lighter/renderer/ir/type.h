@@ -1,10 +1,3 @@
-//
-//  type.h
-//
-//  Created by Pujun Lun on 10/13/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_RENDERER_IR_TYPE_H
 #define LIGHTER_RENDERER_IR_TYPE_H
 

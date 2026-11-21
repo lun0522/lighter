@@ -1,10 +1,3 @@
-//
-//  editor.h
-//
-//  Created by Pujun Lun on 11/3/19.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_EXAMPLE_AURORA_EDITOR_EDITOR_H
 #define LIGHTER_EXAMPLE_AURORA_EDITOR_EDITOR_H
 

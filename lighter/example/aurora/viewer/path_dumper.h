@@ -1,10 +1,3 @@
-//
-//  path_dumper.h
-//
-//  Created by Pujun Lun on 3/28/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_EXAMPLE_AURORA_VIEWER_PATH_DUMPER_H
 #define LIGHTER_EXAMPLE_AURORA_VIEWER_PATH_DUMPER_H
 

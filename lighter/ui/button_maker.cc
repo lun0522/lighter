@@ -1,10 +1,3 @@
-//
-//  button_maker.cc
-//
-//  Created by Pujun Lun on 1/24/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/ui/button_maker.h"
 
 #include <array>

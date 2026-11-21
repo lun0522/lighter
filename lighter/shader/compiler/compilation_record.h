@@ -1,10 +1,3 @@
-//
-//  compilation_record.h
-//
-//  Created by Pujun Lun on 5/13/21.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_SHADER_COMPILER_COMPILATION_RECORD_H
 #define LIGHTER_SHADER_COMPILER_COMPILATION_RECORD_H
 

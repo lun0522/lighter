@@ -1,10 +1,3 @@
-//
-//  buffer_util.h
-//
-//  Created by Pujun Lun on 12/1/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_RENDERER_IR_BUFFER_UTIL_H
 #define LIGHTER_RENDERER_IR_BUFFER_UTIL_H
 

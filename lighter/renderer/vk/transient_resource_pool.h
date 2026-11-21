@@ -1,10 +1,3 @@
-//
-//  transient_resource_pool.h
-//
-//  Created by Pujun Lun on 11/20/26.
-//  Copyright © 2026 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_RENDERER_VK_TRANSIENT_RESOURCE_POOL_H
 #define LIGHTER_RENDERER_VK_TRANSIENT_RESOURCE_POOL_H
 

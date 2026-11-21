@@ -1,10 +1,3 @@
-//
-//  compiler.cc
-//
-//  Created by Pujun Lun on 5/25/21.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/shader/compiler/compiler.h"
 
 #include <format>

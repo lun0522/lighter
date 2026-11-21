@@ -1,10 +1,3 @@
-//
-//  transient_resource_pool_test.cc
-//
-//  Created by Pujun Lun on 11/20/26.
-//  Copyright © 2026 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/renderer/vk/transient_resource_pool.h"
 
 #include <gtest/gtest.h>

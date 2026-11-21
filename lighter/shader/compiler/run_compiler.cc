@@ -1,10 +1,3 @@
-//
-//  run_compiler.cc
-//
-//  Created by Pujun Lun on 5/17/21.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/shader/compiler/run_compiler.h"
 
 #include <picosha2.h>

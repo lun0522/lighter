@@ -1,10 +1,3 @@
-//
-//  scene.h
-//
-//  Created by Pujun Lun on 3/15/19.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_SCENE_SCENE_H
 #define LIGHTER_SCENE_SCENE_H
 

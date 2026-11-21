@@ -1,10 +1,3 @@
-//
-//  spline.cc
-//
-//  Created by Pujun Lun on 11/30/19.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/scene/spline.h"
 
 #include <algorithm>

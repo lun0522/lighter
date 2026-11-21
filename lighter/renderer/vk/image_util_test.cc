@@ -1,10 +1,3 @@
-//
-//  image_util_test.cc
-//
-//  Created by Pujun Lun on 10/24/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/renderer/vk/image_util.h"
 
 #include "lighter/renderer/ir/type.h"

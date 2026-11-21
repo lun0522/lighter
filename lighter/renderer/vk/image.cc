@@ -1,10 +1,3 @@
-//
-//  image.cc
-//
-//  Created by Pujun Lun on 10/21/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/renderer/vk/image.h"
 
 #include <algorithm>

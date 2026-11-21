@@ -1,10 +1,3 @@
-//
-//  button.cc
-//
-//  Created by Pujun Lun on 11/9/19.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/ui/button.h"
 
 #include <algorithm>

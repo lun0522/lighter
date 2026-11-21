@@ -1,10 +1,3 @@
-//
-//  triangle.cc
-//
-//  Created by Pujun Lun on 10/17/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include <array>
 
 #include "lighter/scene/util.h"

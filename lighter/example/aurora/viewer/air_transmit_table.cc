@@ -1,10 +1,3 @@
-//
-//  air_transmit_table.cc
-//
-//  Created by Pujun Lun on 4/21/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/example/aurora/viewer/air_transmit_table.h"
 
 #include <glm/glm.hpp>

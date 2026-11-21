@@ -1,10 +1,3 @@
-//
-//  camera.cc
-//
-//  Created by Pujun Lun on 3/13/18.
-//  Copyright © 2018 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/scene/camera.h"
 
 #include <glm/gtc/matrix_transform.hpp>

@@ -1,10 +1,3 @@
-//
-//  distance_field.cc
-//
-//  Created by Pujun Lun on 4/18/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/scene/distance_field.h"
 
 #include <algorithm>

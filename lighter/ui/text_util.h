@@ -1,10 +1,3 @@
-//
-//  text_util.h
-//
-//  Created by Pujun Lun on 6/20/19.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_UI_TEXT_UTIL_H
 #define LIGHTER_UI_TEXT_UTIL_H
 

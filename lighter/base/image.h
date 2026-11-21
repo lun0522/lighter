@@ -1,10 +1,3 @@
-//
-//  image.h
-//
-//  Created by Pujun Lun on 10/20/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_BASE_IMAGE_H
 #define LIGHTER_BASE_IMAGE_H
 

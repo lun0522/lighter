@@ -1,10 +1,3 @@
-//
-//  buffer.h
-//
-//  Created by Pujun Lun on 10/25/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_RENDERER_VK_BUFFER_H
 #define LIGHTER_RENDERER_VK_BUFFER_H
 

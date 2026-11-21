@@ -1,10 +1,3 @@
-//
-//  ref_count.h
-//
-//  Created by Pujun Lun on 5/11/19.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_BASE_REF_COUNT_H
 #define LIGHTER_BASE_REF_COUNT_H
 

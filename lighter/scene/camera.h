@@ -1,10 +1,3 @@
-//
-//  camera.h
-//
-//  Created by Pujun Lun on 3/13/18.
-//  Copyright © 2018 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_SCENE_CAMERA_H
 #define LIGHTER_SCENE_CAMERA_H
 

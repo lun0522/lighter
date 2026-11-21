@@ -1,10 +1,3 @@
-//
-//  char_lib.h
-//
-//  Created by Pujun Lun on 5/12/19.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_UI_CHAR_LIB_H
 #define LIGHTER_UI_CHAR_LIB_H
 

@@ -1,10 +1,3 @@
-//
-//  pipeline_util.cc
-//
-//  Created by Pujun Lun on 12/2/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/renderer/ir/pipeline_util.h"
 
 #include <algorithm>

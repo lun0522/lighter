@@ -1,10 +1,3 @@
-//
-//  type_mapping.cc
-//
-//  Created by Pujun Lun on 12/6/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/renderer/vk/type_mapping.h"
 
 #include "lighter/base/util.h"

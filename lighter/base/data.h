@@ -1,10 +1,3 @@
-//
-//  data.h
-//
-//  Created by Pujun Lun on 10/2/21.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_BASE_DATA_H
 #define LIGHTER_BASE_DATA_H
 

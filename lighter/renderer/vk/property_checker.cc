@@ -1,10 +1,3 @@
-//
-//  property_checker.cc
-//
-//  Created by Pujun Lun on 6/11/21.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/renderer/vk/property_checker.h"
 
 #include <string_view>

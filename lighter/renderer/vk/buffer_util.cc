@@ -1,10 +1,3 @@
-//
-//  buffer_util.cc
-//
-//  Created by Pujun Lun on 11/3/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/renderer/vk/buffer_util.h"
 
 #include <cstring>

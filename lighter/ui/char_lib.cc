@@ -1,10 +1,3 @@
-//
-//  char_lib.cc
-//
-//  Created by Pujun Lun on 5/12/19.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/ui/char_lib.h"
 
 #include "lighter/base/util.h"

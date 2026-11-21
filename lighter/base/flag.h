@@ -1,10 +1,3 @@
-//
-//  flag.h
-//
-//  Created by Pujun Lun on 11/20/26.
-//  Copyright © 2026 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_BASE_FLAG_H
 #define LIGHTER_BASE_FLAG_H
 

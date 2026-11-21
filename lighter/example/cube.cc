@@ -1,10 +1,3 @@
-//
-//  cube.cc
-//
-//  Created by Pujun Lun on 3/2/19.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include <array>
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>

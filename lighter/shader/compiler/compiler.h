@@ -1,10 +1,3 @@
-//
-//  compiler.h
-//
-//  Created by Pujun Lun on 5/25/21.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_SHADER_COMPILER_COMPILER_H
 #define LIGHTER_SHADER_COMPILER_COMPILER_H
 

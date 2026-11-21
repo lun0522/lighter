@@ -1,10 +1,3 @@
-//
-//  render_graph_util.h
-//
-//  Created by Pujun Lun on 11/20/26.
-//  Copyright © 2026 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_RENDERER_IR_RENDER_GRAPH_UTIL_H
 #define LIGHTER_RENDERER_IR_RENDER_GRAPH_UTIL_H
 

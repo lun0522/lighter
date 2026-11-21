@@ -1,10 +1,3 @@
-//
-//  compile_shaders.cc
-//
-//  Created by Pujun Lun on 5/14/21.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include <exception>
 #include <filesystem>
 #include <optional>

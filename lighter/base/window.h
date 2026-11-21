@@ -1,10 +1,3 @@
-//
-//  window.h
-//
-//  Created by Pujun Lun on 3/27/19.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_BASE_WINDOW_H
 #define LIGHTER_BASE_WINDOW_H
 

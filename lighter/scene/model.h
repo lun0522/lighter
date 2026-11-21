@@ -1,10 +1,3 @@
-//
-//  model.h
-//
-//  Created by Pujun Lun on 3/22/19.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_SCENE_MODEL_H
 #define LIGHTER_SCENE_MODEL_H
 

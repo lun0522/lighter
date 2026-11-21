@@ -1,10 +1,3 @@
-//
-//  air_transmit_table.h
-//
-//  Created by Pujun Lun on 4/21/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #ifndef LIGHTER_EXAMPLE_AURORA_VIEWER_AIR_TRANSMIT_TABLE_H
 #define LIGHTER_EXAMPLE_AURORA_VIEWER_AIR_TRANSMIT_TABLE_H
 

@@ -1,10 +1,3 @@
-//
-//  pipeline.cc
-//
-//  Created by Pujun Lun on 12/5/20.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/renderer/vk/pipeline.h"
 
 #include <algorithm>

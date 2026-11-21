@@ -1,10 +1,3 @@
-//
-//  compilation_record.cc
-//
-//  Created by Pujun Lun on 5/13/21.
-//  Copyright © 2019 Pujun Lun. All rights reserved.
-//
-
 #include "lighter/shader/compiler/compilation_record.h"
 
 #include <algorithm>
