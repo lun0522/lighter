@@ -8,8 +8,13 @@
 #include "lighter/renderer/ir/render_graph_util.h"
 
 #include <algorithm>
+#include <format>
 #include <functional>
+#include <map>
 #include <queue>
+#include <sstream>
+#include <string_view>
+#include <tuple>
 
 #include "lighter/common/util.h"
 
@@ -219,6 +224,233 @@ void ComputeResourceLifetimes(std::span<const PassNode> passes,
     RecordAccessLifetimes(pass, step, &PassNode::buffer_accesses,
                           buffer_lifetimes);
   }
+}
+
+namespace {
+
+std::string EscapeDotLabel(std::string_view text) {
+  std::string out;
+  out.reserve(text.size());
+  for (char c : text) {
+    switch (c) {
+      case '"':
+        out += "\\\"";
+        break;
+      case '\\':
+        out += "\\\\";
+        break;
+      case '\n':
+        out += "\\n";
+        break;
+      default:
+        out.push_back(c);
+        break;
+    }
+  }
+  return out;
+}
+
+using BarrierNoteKey = std::tuple<bool, uint32_t, uint32_t, uint32_t>;
+
+BarrierNoteKey MakeBarrierNoteKey(bool is_image, uint32_t resource_id,
+                                  uint32_t version, uint32_t consumer_pass) {
+  return std::make_tuple(is_image, resource_id, version, consumer_pass);
+}
+
+}  // namespace
+
+std::string ExportGraphviz(const RenderGraph& graph,
+                           const CompiledRenderGraph& compiled,
+                           std::span<const GraphvizBarrierNote> barrier_notes) {
+  std::map<BarrierNoteKey, std::string> note_map;
+  for (const GraphvizBarrierNote& note : barrier_notes) {
+    const BarrierNoteKey key = MakeBarrierNoteKey(
+        note.is_image, note.resource_id, note.version, note.consumer_pass);
+    auto& entry = note_map[key];
+    if (!entry.empty()) {
+      entry += "\n";
+    }
+    entry += note.label;
+  }
+
+  std::vector<int> pass_step(graph.passes().size(), -1);
+  for (size_t step = 0; step < compiled.execution_order.size(); ++step) {
+    pass_step[compiled.execution_order[step]] = static_cast<int>(step);
+  }
+
+  std::ostringstream out;
+  out << "digraph RenderGraph {\n";
+  out << "  rankdir=LR;\n";
+  out << "  node [fontname=\"Helvetica\", fontsize=11];\n";
+  out << "  edge [fontname=\"Helvetica\", fontsize=9];\n\n";
+
+  // Emit pass nodes.
+  for (const PassNode& pass : graph.passes()) {
+    const bool culled = pass.index < compiled.pass_culled.size() &&
+                        compiled.pass_culled[pass.index];
+    const char* pass_type =
+        pass.type == PassType::kGraphics ? "Graphics" : "Compute";
+    const char* fill =
+        culled ? "#eeeeee"
+               : (pass.type == PassType::kGraphics ? "#cfe8ff" : "#d1f2eb");
+    const char* style = culled ? "dashed,filled" : "filled";
+    const char* fontcolor = culled ? "#888888" : "#111111";
+
+    std::string label =
+        std::format("{}\\n({}", EscapeDotLabel(pass.name), pass_type);
+    if (culled) {
+      label += ", CULLED";
+    } else if (pass_step[pass.index] >= 0) {
+      label += std::format(", step {}", pass_step[pass.index]);
+    }
+    if (pass.has_side_effect) {
+      label += ", side-effect";
+    }
+    label += ")";
+
+    out << std::format(
+        "  pass_{} [shape=box, style=\"{}\", fillcolor=\"{}\", "
+        "fontcolor=\"{}\", label=\"{}\"];\n",
+        pass.index, style, fill, fontcolor, label);
+  }
+  out << "\n";
+
+  std::vector<std::vector<bool>> image_version_read(graph.images().size());
+  for (size_t i = 0; i < graph.images().size(); ++i) {
+    image_version_read[i].assign(graph.images()[i].version_writers.size(),
+                                 false);
+  }
+  std::vector<std::vector<bool>> buffer_version_read(graph.buffers().size());
+  for (size_t i = 0; i < graph.buffers().size(); ++i) {
+    buffer_version_read[i].assign(graph.buffers()[i].version_writers.size(),
+                                  false);
+  }
+  for (const PassNode& pass : graph.passes()) {
+    for (const ImageAccess& access : pass.image_accesses) {
+      if (!access.is_write) {
+        image_version_read[access.handle.id][access.handle.version] = true;
+      }
+    }
+    for (const BufferAccess& access : pass.buffer_accesses) {
+      if (!access.is_write) {
+        buffer_version_read[access.handle.id][access.handle.version] = true;
+      }
+    }
+  }
+
+  const auto emit_resources = [&](bool is_image, const auto& resources,
+                                  const auto& lifetimes,
+                                  const auto& version_read) {
+    const char* prefix = is_image ? "img" : "buf";
+    const char* shape = is_image ? "ellipse" : "diamond";
+    for (size_t r_id = 0; r_id < resources.size(); ++r_id) {
+      const auto& node = resources[r_id];
+      const ResourceLifetime lifetime =
+          r_id < lifetimes.size() ? lifetimes[r_id] : ResourceLifetime{};
+      const bool used = lifetime.IsUsed();
+      const bool has_final =
+          node.is_external &&
+          node.final_usage.usage_type() !=
+              decltype(node.final_usage)::UsageType::kDontCare;
+      const char* fill =
+          !used ? "#f2f2f2" : (node.is_external ? "#fdebd0" : "#d5f5e3");
+      const char* style = used ? "filled" : "dashed,filled";
+      const char* fontcolor = used ? "#111111" : "#888888";
+
+      std::string lifetime_str =
+          used
+              ? std::format("[{}, {}]", lifetime.first_pass, lifetime.last_pass)
+              : "unused";
+
+      for (uint32_t v = 0; v < node.version_writers.size(); ++v) {
+        const int writer = node.version_writers[v];
+        const bool needed_for_final = has_final && v == node.current_version;
+        if (writer < 0 && !version_read[r_id][v] && !needed_for_final) {
+          continue;
+        }
+        std::string res_label = std::format(
+            "{} v{}\\n({}, {})", EscapeDotLabel(node.name), v,
+            node.is_external ? "external" : "transient", lifetime_str);
+        out << std::format(
+            "  {}_{}_v{} [shape={}, style=\"{}\", fillcolor=\"{}\", "
+            "fontcolor=\"{}\", label=\"{}\"];\n",
+            prefix, r_id, v, shape, style, fill, fontcolor, res_label);
+
+        if (writer >= 0) {
+          const bool writer_culled =
+              writer < static_cast<int>(compiled.pass_culled.size()) &&
+              compiled.pass_culled[writer];
+          out << std::format("  pass_{} -> {}_{}_v{} [style={}", writer, prefix,
+                             r_id, v, writer_culled ? "dashed" : "solid");
+          const BarrierNoteKey key =
+              MakeBarrierNoteKey(is_image, static_cast<uint32_t>(r_id), v,
+                                 static_cast<uint32_t>(writer));
+          const auto note_iter = note_map.find(key);
+          if (note_iter != note_map.end()) {
+            out << std::format(", label=\"{}\"",
+                               EscapeDotLabel(note_iter->second));
+          }
+          out << "];\n";
+        }
+      }
+
+      if (has_final) {
+        const BarrierNoteKey final_key =
+            MakeBarrierNoteKey(is_image, static_cast<uint32_t>(r_id),
+                               node.current_version, kInvalidResourceId);
+        const auto note_iter = note_map.find(final_key);
+        const std::string final_node = std::format("{}_{}_final", prefix, r_id);
+        out << std::format(
+            "  {} [shape=plaintext, fontcolor=\"#555555\", label=\"{} "
+            "final\"];\n",
+            final_node, EscapeDotLabel(node.name));
+        out << std::format("  {}_{}_v{} -> {}", prefix, r_id,
+                           node.current_version, final_node);
+        if (note_iter != note_map.end()) {
+          out << std::format(" [label=\"{}\"]",
+                             EscapeDotLabel(note_iter->second));
+        }
+        out << ";\n";
+      }
+    }
+  };
+
+  emit_resources(/*is_image=*/true, graph.images(), compiled.image_lifetimes,
+                 image_version_read);
+  emit_resources(/*is_image=*/false, graph.buffers(), compiled.buffer_lifetimes,
+                 buffer_version_read);
+  out << "\n";
+
+  // Emit read/consume edges from resource versions to passes.
+  const auto emit_access_edges = [&](const PassNode& pass, bool is_image,
+                                     const auto& accesses) {
+    const char* prefix = is_image ? "img" : "buf";
+    const bool culled = pass.index < compiled.pass_culled.size() &&
+                        compiled.pass_culled[pass.index];
+    for (const auto& access : accesses) {
+      if (access.is_write) {
+        continue;
+      }
+      const BarrierNoteKey key = MakeBarrierNoteKey(
+          is_image, access.handle.id, access.handle.version, pass.index);
+      const auto note_iter = note_map.find(key);
+      out << std::format("  {}_{}_v{} -> pass_{} [style={}", prefix,
+                         access.handle.id, access.handle.version, pass.index,
+                         culled ? "dashed, color=\"#aaaaaa\"" : "solid");
+      if (note_iter != note_map.end()) {
+        out << std::format(", label=\"{}\"", EscapeDotLabel(note_iter->second));
+      }
+      out << "];\n";
+    }
+  };
+
+  for (const PassNode& pass : graph.passes()) {
+    emit_access_edges(pass, /*is_image=*/true, pass.image_accesses);
+    emit_access_edges(pass, /*is_image=*/false, pass.buffer_accesses);
+  }
+
+  out << "}\n";
+  return out.str();
 }
 
 }  // namespace lighter::renderer::ir::render_graph

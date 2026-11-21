@@ -10,6 +10,7 @@
 
 #include <cstdint>
 #include <span>
+#include <string>
 #include <vector>
 
 #include "lighter/renderer/ir/render_graph.h"
@@ -56,6 +57,23 @@ void ComputeResourceLifetimes(std::span<const PassNode> passes,
                               std::span<const uint32_t> execution_order,
                               std::vector<ResourceLifetime>* image_lifetimes,
                               std::vector<ResourceLifetime>* buffer_lifetimes);
+
+// Optional backend synchronization note attached to a resource-version -> pass
+// edge (or resource -> external finalization when consumer_pass is
+// kInvalidResourceId) in ExportGraphviz().
+struct GraphvizBarrierNote {
+  bool is_image = true;
+  uint32_t resource_id = 0;
+  uint32_t version = 0;
+  uint32_t consumer_pass = kInvalidResourceId;
+  std::string label;
+};
+
+// Exports a compiled RenderGraph as a Graphviz DOT bipartite DAG showing live
+// and culled passes, resource versions, lifetimes, and optional barrier notes.
+std::string ExportGraphviz(
+    const RenderGraph& graph, const CompiledRenderGraph& compiled,
+    std::span<const GraphvizBarrierNote> barrier_notes = {});
 
 }  // namespace lighter::renderer::ir::render_graph
 

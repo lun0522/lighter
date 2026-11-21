@@ -72,5 +72,53 @@ TEST(RenderGraphUtilTest,
                std::runtime_error);
 }
 
+TEST(RenderGraphUtilTest, ExportGraphvizIncludesLiveCulledAndAnnotations) {
+  RenderGraph graph;
+  const ImageHandle backbuffer = graph.ImportSwapchainImage(/*window_index=*/0);
+  ImageHandle temp;
+  graph.AddGraphicsPass(
+      "Producer",
+      [&](PassBuilder& builder) {
+        temp = builder.CreateImage(TransientImageDesc{
+            .name = "temp",
+            .extent = {64, 64},
+            .format = TransientImageFormat::kColorUnorm8,
+        });
+        temp = builder.ColorAttachment(temp, /*location=*/0);
+      },
+      [](PassContext&) {});
+  graph.AddComputePass(
+      "DeadPass",
+      [&](PassBuilder& builder) {
+        builder.Read(temp, ImageUsage::GetLinearAccessInComputeShaderUsage(
+                               AccessType::kReadOnly));
+      },
+      [](PassContext&) {});
+  graph.AddGraphicsPass(
+      "Present",
+      [&](PassBuilder& builder) {
+        builder.Read(temp, ImageUsage::GetSampledInFragmentShaderUsage());
+        builder.ColorAttachment(backbuffer, /*location=*/0);
+      },
+      [](PassContext&) {});
+
+  const CompiledRenderGraph compiled = graph.Compile();
+  const GraphvizBarrierNote note{
+      .is_image = true,
+      .resource_id = temp.id,
+      .version = temp.version,
+      .consumer_pass = 2,
+      .label = "ColorAttachment -> ShaderReadOnly",
+  };
+  const std::string dot = ExportGraphviz(graph, compiled, std::span{&note, 1});
+
+  EXPECT_NE(dot.find("digraph RenderGraph"), std::string::npos);
+  EXPECT_NE(dot.find("Producer\\n(Graphics, step 0)"), std::string::npos);
+  EXPECT_NE(dot.find("DeadPass\\n(Compute, CULLED)"), std::string::npos);
+  EXPECT_NE(dot.find("Present\\n(Graphics, step 1)"), std::string::npos);
+  EXPECT_NE(dot.find("ColorAttachment -> ShaderReadOnly"), std::string::npos);
+  EXPECT_NE(dot.find("swapchain_0 final"), std::string::npos);
+}
+
 }  // namespace
 }  // namespace lighter::renderer::ir::render_graph
