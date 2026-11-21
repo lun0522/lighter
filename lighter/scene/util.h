@@ -135,7 +135,6 @@ inline void RegisterCameraControls(base::Window& window,
 template <typename AppType, typename... AppArgs>
 int RunApplication(int argc, char* argv[], AppArgs&&... app_args) {
   base::flag::ParseCommandLine(argc, argv);
-  // TODO: Move to ctor of Application.
   renderer::vk::InitVulkan();
 
   // We don't catch exceptions in the debug mode, so that if there is anything

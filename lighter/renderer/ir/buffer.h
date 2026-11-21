@@ -59,18 +59,6 @@ struct VertexBufferView {
   std::vector<Attribute> attributes;
 };
 
-class UniformBufferView {
- public:
-  // This class provides copy constructor and move constructor.
-  UniformBufferView(UniformBufferView&&) noexcept = default;
-  UniformBufferView(const UniformBufferView&) = default;
-
-  virtual ~UniformBufferView() = default;
-
- protected:
-  UniformBufferView() = default;
-};
-
 }  // namespace lighter::renderer::ir
 
 #endif  // LIGHTER_RENDERER_IR_BUFFER_H

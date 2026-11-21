@@ -11,8 +11,8 @@
 
 #include "lighter/base/flag.h"
 #include "lighter/base/util.h"
+#include "lighter/shader/compiler/compiler.h"
 #include "lighter/shader/compiler/run_compiler.h"
-#include "lighter/shader/compiler/util.h"
 
 LIGHTER_DECLARE_FLAG(std::string, shader_dir);
 LIGHTER_FLAG(std::string, opt_level, "perf",
@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
                 "Please specify a valid shader directory with --shader_dir");
 
     const std::optional<sc::OptimizationLevel> opt_level =
-        sc::util::OptLevelFromText(FLAGS_opt_level.Get());
+        sc::OptLevelFromText(FLAGS_opt_level.Get());
     ASSERT_HAS_VALUE(opt_level,
                      "--opt_level must either be 'none', 'size' or 'perf'");
 

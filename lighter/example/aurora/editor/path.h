@@ -23,7 +23,7 @@
 #include "lighter/renderer/ir/renderer.h"
 #include "lighter/scene/camera.h"
 #include "lighter/scene/spline.h"
-#include "lighter/ui/button_util.h"
+#include "lighter/ui/button.h"
 
 namespace lighter::example::aurora {
 

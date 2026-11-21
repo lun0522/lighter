@@ -64,7 +64,7 @@ void CompilationRecordReader::ParseRecordFile(std::ifstream& record_file,
     for (; std::getline(record_file, line); ++line_num) {
       if (line_num == 1) {
         const std::optional<OptimizationLevel> opt_level_in_record =
-            util::OptLevelFromText(line);
+            OptLevelFromText(line);
         ASSERT_HAS_VALUE(opt_level_in_record,
                          "Unrecognized optimization level");
         if (opt_level_in_record.value() != opt_level) {
@@ -124,7 +124,7 @@ void CompilationRecordWriter::WriteAll() const {
               std::format("Failed to open '{}'", record_file_path_.string()));
 
   // Write header.
-  record_file << std::format("{}\n", util::OptLevelToText(opt_level_));
+  record_file << std::format("{}\n", OptLevelToText(opt_level_));
 
   // Write body.
   for (const auto& [source_file_path, file_hash] : file_hash_map_) {

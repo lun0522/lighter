@@ -12,6 +12,11 @@
 namespace lighter::shader::compiler {
 namespace {
 
+constexpr const char kShaderEntryPoint[] = "main";
+constexpr const char kOptLevelNoneText[] = "none";
+constexpr const char kOptLevelSizeText[] = "size";
+constexpr const char kOptLevelPerfText[] = "perf";
+
 // Converts optimization level enums.
 shaderc_optimization_level GetOptimizationLevelFlag(OptimizationLevel level) {
   switch (level) {
@@ -25,6 +30,28 @@ shaderc_optimization_level GetOptimizationLevelFlag(OptimizationLevel level) {
 }
 
 }  // namespace
+
+const char* OptLevelToText(OptimizationLevel level) {
+  switch (level) {
+    case OptimizationLevel::kNone:
+      return kOptLevelNoneText;
+    case OptimizationLevel::kSize:
+      return kOptLevelSizeText;
+    case OptimizationLevel::kPerformance:
+      return kOptLevelPerfText;
+  }
+}
+
+std::optional<OptimizationLevel> OptLevelFromText(std::string_view text) {
+  if (text == kOptLevelNoneText) {
+    return OptimizationLevel::kNone;
+  } else if (text == kOptLevelSizeText) {
+    return OptimizationLevel::kSize;
+  } else if (text == kOptLevelPerfText) {
+    return OptimizationLevel::kPerformance;
+  }
+  return std::nullopt;
+}
 
 const Compiler::ShaderKindMap Compiler::shader_kind_map_ = {
     {".vert", shaderc_vertex_shader},

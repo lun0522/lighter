@@ -5,6 +5,7 @@
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
+#define VMA_IMPLEMENTATION
 #include "lighter/renderer/vk/context.h"
 
 #include <cstdint>

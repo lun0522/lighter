@@ -14,9 +14,14 @@
 #include <unordered_set>
 #include <vector>
 
+#include "lighter/base/flag.h"
 #include "lighter/base/image.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/vk/image_util.h"
+
+LIGHTER_FLAG(
+    bool, vsync, false,
+    "Cap presentation rate to the display refresh rate via FIFO VSync");
 
 namespace lighter::renderer::vk {
 namespace {
@@ -67,6 +72,9 @@ intl::SurfaceFormatKHR ChooseSurfaceFormat(
 // Returns the present mode to use.
 intl::PresentModeKHR ChoosePresentMode(
     std::span<const intl::PresentModeKHR> modes) {
+  if (FLAGS_vsync.Get()) {
+    return intl::PresentModeKHR::eFifo;
+  }
   // Prefer MAILBOX (low-latency triple-buffered) over IMMEDIATE (uncapped),
   // falling back to FIFO (VSync) which is always guaranteed by the spec.
   if (base::util::Contains(modes, intl::PresentModeKHR::eMailbox)) {

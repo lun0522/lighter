@@ -50,9 +50,6 @@ inline glm::ivec2 ToVec(const intl::Extent2D& extent) {
   return {static_cast<int>(extent.width), static_cast<int>(extent.height)};
 }
 
-// Conversion between glm::ivec2 and VkOffset2D.
-inline intl::Offset2D ToOffset(const glm::ivec2& vec) { return {vec.x, vec.y}; }
-
 }  // namespace lighter::renderer::vk::util
 
 #endif  // LIGHTER_RENDERER_VK_UTIL_H

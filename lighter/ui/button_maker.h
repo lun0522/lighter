@@ -17,7 +17,7 @@
 #include "lighter/renderer/ir/buffer.h"
 #include "lighter/renderer/ir/image.h"
 #include "lighter/renderer/ir/renderer.h"
-#include "lighter/ui/button_util.h"
+#include "lighter/ui/button.h"
 #include "lighter/ui/text.h"
 
 namespace lighter::ui {

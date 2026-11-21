@@ -138,15 +138,6 @@ Image Image::LoadCubemapFromFiles(std::string_view directory,
   return LoadCubemapFromFiles(GetFullPaths(directory, relative_paths), flip_y);
 }
 
-Image Image::LoadCubemapFromMemory(const Dimension& dimension,
-                                   std::span<const void* const> raw_data_ptrs,
-                                   bool flip_y) {
-  ASSERT_TRUE(raw_data_ptrs.size() == image::kCubemapImageLayer,
-              std::format("Length of 'raw_data_ptrs' ({}) is not 6",
-                          raw_data_ptrs.size()));
-  return LoadImagesFromMemory(dimension, raw_data_ptrs, flip_y);
-}
-
 Image Image::LoadImagesFromMemory(const Dimension& dimension,
                                   std::span<const void* const> raw_data_ptrs,
                                   bool flip_y) {

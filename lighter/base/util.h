@@ -122,38 +122,11 @@ struct TransparentStringHash {
 std::vector<std::string> StrSplit(std::string_view text, char delimiter,
                                   bool skip_empty = false);
 
-// Joins 'values' into a string separated by 'separator'.
-template <typename ValueType>
-std::string StrJoin(std::span<const ValueType> values,
-                    std::string_view separator) {
-  std::string result;
-  for (std::size_t i = 0; i < values.size(); ++i) {
-    if (i > 0) {
-      result.append(separator);
-    }
-    if constexpr (std::is_convertible_v<ValueType, std::string_view>) {
-      result.append(values[i]);
-    } else {
-      result.append(std::to_string(values[i]));
-    }
-  }
-  return result;
-}
-
 // Returns true if 'container' contains 'target'.
 template <typename ValueType, typename TargetType>
 bool Contains(std::span<const ValueType> container, const TargetType& target) {
   const auto iter = std::find(container.begin(), container.end(), target);
   return iter != container.end();
-}
-
-// Returns the index of the first element that is equal to 'target'.
-// If there is no such element, returns std::nullopt.
-template <typename ValueType, typename TargetType>
-std::optional<int> FindIndexOfFirst(std::span<const ValueType> container,
-                                    const TargetType& target) {
-  const auto iter = std::find(container.begin(), container.end(), target);
-  return internal::GetIndexIfExists(container, iter);
 }
 
 // Returns the index of the first element that satisfies 'predicate'.
@@ -166,40 +139,10 @@ std::optional<int> FindIndexOfFirstIf(
   return internal::GetIndexIfExists(container, iter);
 }
 
-// Moves 'element' to the specified 'index' of 'container'. 'container' will be
-// resized if necessary.
-template <typename ValueType>
-void SetElementWithResizing(ValueType&& element, int index,
-                            std::vector<ValueType>& container) {
-  if (index >= container.size()) {
-    container.resize(index + 1);
-  }
-  container[index] = std::forward<ValueType>(element);
-}
-
-// Removes duplicated elements from 'container' in-place, hence the size of
-// 'container' may change if there exists any duplicate.
-template <typename ValueType>
-void RemoveDuplicate(std::vector<ValueType>& container) {
-  if (container.size() > 1) {
-    std::sort(container.begin(), container.end());
-    const auto new_end = std::unique(container.begin(), container.end());
-    container.resize(std::distance(container.begin(), new_end));
-  }
-}
-
 // Returns the total data size of `container`.
 template <typename ValueType>
 size_t GetTotalDataSize(std::span<const ValueType> container) {
   return sizeof(ValueType) * container.size();
-}
-
-// Moves all elements of 'src' to the end of 'dst'.
-template <typename ValueType>
-void VectorAppend(std::vector<ValueType>& dst, std::vector<ValueType>& src) {
-  dst.reserve(src.size() + dst.size());
-  std::move(src.begin(), src.end(), std::back_inserter(dst));
-  src.clear();
 }
 
 // Erases elements in 'container' that satisfies the 'predicate'.
@@ -213,19 +156,6 @@ void EraseIf(const PredicateType& predicate, ContainerType& container) {
       ++iter;
     }
   }
-}
-
-// Applies 'transform' to elements in 'container' and returns a vector of
-// resulting objects.
-template <typename SrcType, typename DstType>
-std::vector<DstType> TransformToVector(
-    std::span<const SrcType> container,
-    const std::function<DstType(const SrcType&)>& transform) {
-  std::vector<DstType> transformed;
-  transformed.reserve(container.size());
-  std::transform(container.begin(), container.end(),
-                 std::back_inserter(transformed), transform);
-  return transformed;
 }
 
 // Applies 'transform' to elements in 'container' and returns a hash set of
@@ -249,20 +179,6 @@ std::vector<ValueType> CopyToVectorIf(
   std::copy_if(container.begin(), container.end(), std::back_inserter(copied),
                predicate);
   return copied;
-}
-
-// Returns the largest extent that does not exceed 'original_extent', and has
-// the specified 'aspect_ratio'.
-template <typename ExtentType>
-ExtentType FindLargestExtent(const ExtentType& original_extent,
-                             float aspect_ratio) {
-  ExtentType effective_extent = original_extent;
-  if (original_extent.x > original_extent.y * aspect_ratio) {
-    effective_extent.x = original_extent.y * aspect_ratio;
-  } else {
-    effective_extent.y = original_extent.x / aspect_ratio;
-  }
-  return effective_extent;
 }
 
 // Reduces all elements in 'container' to one value of AccumulatorType.
@@ -302,34 +218,6 @@ struct PathHash {
     return std::filesystem::hash_value(path);
   }
 };
-
-namespace internal {
-
-// Returns 'pointer', assuming 'ExpectedType' and 'ActualType' are the same.
-template <typename ExpectedType, typename ActualType>
-inline const ExpectedType* GetPointerIfTypeExpectedImpl(
-    const ActualType* pointer, std::true_type) {
-  return pointer;
-}
-
-// Returns nullptr, assuming 'ExpectedType' and 'ActualType' are different.
-template <typename ExpectedType, typename ActualType>
-inline const ExpectedType* GetPointerIfTypeExpectedImpl(
-    const ActualType* pointer, std::false_type) {
-  return nullptr;
-}
-
-}  // namespace internal
-
-// Returns a pointer of 'ExpectedType'. If elements of 'container' are of
-// 'ExpectedType', the returned pointer will point to its underlying data.
-// Otherwise, returns nullptr.
-template <typename ExpectedType, typename ValueType>
-const ExpectedType* GetPointerIfTypeExpected(
-    const std::vector<ValueType>& container) {
-  return internal::GetPointerIfTypeExpectedImpl<ExpectedType, ValueType>(
-      container.data(), std::is_same<ExpectedType, ValueType>());
-}
 
 // Includes 'to_include' in 'value' using operator |= if 'condition' is true.
 template <typename ValueType, typename IncludeType>

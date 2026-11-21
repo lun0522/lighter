@@ -1,10 +1,12 @@
-add_library(lighter_shader_compiler_util STATIC
-  util.cc
-  util.h
+add_library(lighter_shader_compiler_compiler STATIC
+  compiler.cc
+  compiler.h
 )
-target_link_libraries(lighter_shader_compiler_util
+target_link_libraries(lighter_shader_compiler_compiler
   PUBLIC
     lighter_project_options
+    lighter_base_util
+    Vulkan::shaderc_combined
 )
 
 add_library(lighter_shader_compiler_compilation_record STATIC
@@ -15,19 +17,7 @@ target_link_libraries(lighter_shader_compiler_compilation_record
   PUBLIC
     lighter_project_options
     lighter_base_util
-    lighter_shader_compiler_util
-)
-
-add_library(lighter_shader_compiler_compiler STATIC
-  compiler.cc
-  compiler.h
-)
-target_link_libraries(lighter_shader_compiler_compiler
-  PUBLIC
-    lighter_project_options
-    lighter_base_util
-    lighter_shader_compiler_util
-    Vulkan::shaderc_combined
+    lighter_shader_compiler_compiler
 )
 
 add_library(lighter_shader_compiler_run STATIC
@@ -43,7 +33,6 @@ target_link_libraries(lighter_shader_compiler_run
     lighter_base_util
     lighter_shader_compiler_compilation_record
     lighter_shader_compiler_compiler
-    lighter_shader_compiler_util
     picosha2::picosha2
 )
 
@@ -55,6 +44,6 @@ target_link_libraries(compile_shaders
     lighter_project_options
     lighter_base_flag
     lighter_base_util
+    lighter_shader_compiler_compiler
     lighter_shader_compiler_run
-    lighter_shader_compiler_util
 )

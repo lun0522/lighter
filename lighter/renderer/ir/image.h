@@ -8,7 +8,6 @@
 #ifndef LIGHTER_RENDERER_IR_IMAGE_H
 #define LIGHTER_RENDERER_IR_IMAGE_H
 
-#include <algorithm>
 #include <glm/glm.hpp>
 #include <string>
 #include <string_view>
@@ -30,11 +29,6 @@ class Image {
   virtual ~Image() = default;
 
   int GetNumLayers() const { return base::image::GetNumLayers(layer_type_); }
-
-  int CalculateMipLevels() const {
-    const int largest_dim = std::max(width(), height());
-    return std::floor(static_cast<float>(std::log2(largest_dim)));
-  }
 
   // Accessors.
   const std::string& name() const { return name_; }

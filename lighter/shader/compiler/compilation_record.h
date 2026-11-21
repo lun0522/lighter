@@ -15,7 +15,7 @@
 #include <utility>
 
 #include "lighter/base/util.h"
-#include "lighter/shader/compiler/util.h"
+#include "lighter/shader/compiler/compiler.h"
 
 namespace lighter::shader::compiler {
 

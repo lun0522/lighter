@@ -33,10 +33,6 @@ class BufferUsage {
   };
 
   // Convenience function to return usage for buffers involved in data transfer.
-  static BufferUsage GetTransferSourceUsage() {
-    return BufferUsage{UsageType::kTransfer, AccessType::kReadOnly,
-                       AccessLocation::kOther};
-  }
   static BufferUsage GetTransferDestinationUsage() {
     return BufferUsage{UsageType::kTransfer, AccessType::kWriteOnly,
                        AccessLocation::kOther};

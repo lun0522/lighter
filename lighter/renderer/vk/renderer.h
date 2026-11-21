@@ -18,7 +18,6 @@
 #include <string_view>
 #include <vector>
 
-#include "lighter/base/flag.h"
 #include "lighter/base/image.h"
 #include "lighter/renderer/ir/buffer_usage.h"
 #include "lighter/renderer/ir/image_usage.h"
@@ -31,8 +30,6 @@
 #include "lighter/renderer/vk/image.h"
 #include "lighter/renderer/vk/render_graph.h"
 #include "lighter/renderer/vk/swapchain.h"
-
-LIGHTER_DECLARE_FLAG(bool, ignore_vsync);
 
 namespace lighter::renderer::vk {
 

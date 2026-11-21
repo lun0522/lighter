@@ -14,7 +14,6 @@ function(lighter_add_example target)
       lighter_scene_camera
       lighter_scene_util
       glm::glm
-      lighter_spirv_cross
   )
 endfunction()
 

@@ -38,5 +38,4 @@ target_link_libraries(example_aurora
     lighter_ui_button
     lighter_ui_text
     glm::glm
-    lighter_spirv_cross
 )

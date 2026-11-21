@@ -30,6 +30,14 @@ namespace {
 
 namespace stdfs = std::filesystem;
 
+constexpr const char kSpirvBinaryFileExtension[] = ".spv";
+
+stdfs::path GetShaderBinaryPath(const stdfs::path& relative_path) {
+  stdfs::path res = relative_path;
+  res += kSpirvBinaryFileExtension;
+  return res;
+}
+
 using FileHash = CompilationRecordHandler::FileHash;
 
 // Returns the SHA256 of the file at 'path'.
@@ -115,7 +123,7 @@ void CompilerRunner::Run() {
 
 std::optional<std::string> CompilerRunner::NeedsCompilation(
     const stdfs::path& source_path) const {
-  const stdfs::path compiled_path = util::GetShaderBinaryPath(source_path);
+  const stdfs::path compiled_path = GetShaderBinaryPath(source_path);
   if (!stdfs::exists(compiled_path)) {
     return "compiled file does not exist";
   }
@@ -154,7 +162,7 @@ FileHash CompilerRunner::CompileIfNeeded(
   const auto result_data_span = result->GetDataSpan();
 
   // Write shader binary to disk.
-  const stdfs::path compiled_path = util::GetShaderBinaryPath(source_path);
+  const stdfs::path compiled_path = GetShaderBinaryPath(source_path);
   stdfs::create_directories(compiled_path.parent_path());
   std::ofstream file{compiled_path,
                      std::ios::out | std::ios::binary | std::ios::trunc};

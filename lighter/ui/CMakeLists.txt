@@ -42,8 +42,6 @@ add_library(lighter_ui_button STATIC
   button.h
   button_maker.cc
   button_maker.h
-  button_util.cc
-  button_util.h
 )
 target_link_libraries(lighter_ui_button
   PUBLIC

@@ -16,16 +16,32 @@
 #include <string>
 #include <vector>
 
+#include "lighter/base/data.h"
 #include "lighter/renderer/ir/buffer.h"
 #include "lighter/renderer/ir/image.h"
 #include "lighter/renderer/ir/pipeline.h"
 #include "lighter/renderer/ir/render_graph.h"
 #include "lighter/renderer/ir/renderer.h"
-#include "lighter/ui/button_maker.h"
-#include "lighter/ui/button_util.h"
 #include "lighter/ui/text.h"
 
 namespace lighter::ui {
+namespace button {
+
+enum State { kSelectedState = 0, kUnselectedState, kNumStates };
+
+// Consistent with uniform blocks defined in shaders.
+constexpr int kNumVerticesPerButton = 6;
+
+struct VerticesInfo {
+  ALIGN_VEC4 glm::vec4 pos_tex_coords[kNumVerticesPerButton];
+};
+
+}  // namespace button
+
+namespace make_button {
+struct RenderInfo;
+}  // namespace make_button
+
 namespace draw_button {
 
 // Consistent with vertex input attributes defined in shaders.

@@ -42,7 +42,6 @@ add_library(lighter_renderer_vk_context STATIC
   basic.h
   context.cc
   context.h
-  vma_impl.cc
 )
 target_compile_definitions(lighter_renderer_vk_context
   PUBLIC
@@ -130,6 +129,7 @@ add_library(lighter_renderer_vk_swapchain STATIC
 target_link_libraries(lighter_renderer_vk_swapchain
   PUBLIC
     lighter_project_options
+    lighter_base_flag
     lighter_base_image
     lighter_base_util
     lighter_renderer_ir_image_usage
@@ -214,7 +214,6 @@ target_link_libraries(lighter_renderer_vk_renderer
   PUBLIC
     lighter_project_options
     lighter_base_file
-    lighter_base_flag
     lighter_base_image
     lighter_base_util
     lighter_base_window

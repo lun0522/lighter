@@ -114,39 +114,8 @@ class RawChunkedData : public ChunkedData {
   size_t chunk_size_;
 };
 
-// Holds contiguous stored data chunks where each chunk stores an instance of T.
-template <typename T>
-class TypedChunkedData : public ChunkedData {
- public:
-  explicit TypedChunkedData(int num_chunks)
-      : ChunkedData{nullptr, sizeof(T), num_chunks} {}
-
-  T* GetMutData(int chunk_index) {
-    ValidateChunkIndex(chunk_index);
-    return &mut_data<T>()[chunk_index];
-  }
-
-  const T* GetData(int chunk_index) const {
-    ValidateChunkIndex(chunk_index);
-    return &data<T>()[chunk_index];
-  }
-};
-
-// TODO: Remove this struct and related methods.
-// Describes a vertex input attribute.
-struct VertexAttribute {
-  enum class DataType { kFloat };
-
-  int offset;
-  DataType data_type;
-  int length;
-};
-
 // 2D vertex data, including only position.
 struct Vertex2DPosOnly {
-  // Returns vertex input attributes.
-  static std::vector<VertexAttribute> GetVertexAttributes();
-
   // Returns vertices in normalized device coordinate for rendering a
   // full-screen squad.
   static std::array<Vertex2DPosOnly, 6> GetFullScreenSquadVertices();
@@ -157,9 +126,6 @@ struct Vertex2DPosOnly {
 
 // 2D vertex data, consisting of position and texture coordinates.
 struct Vertex2D {
-  // Returns vertex input attributes.
-  static std::vector<VertexAttribute> GetVertexAttributes();
-
   // Returns vertices in normalized device coordinate for rendering a
   // full-screen squad.
   static std::array<Vertex2D, 6> GetFullScreenSquadVertices(bool flip_y);
@@ -171,18 +137,12 @@ struct Vertex2D {
 
 // 3D vertex data, including only position.
 struct Vertex3DPosOnly {
-  // Returns vertex input attributes.
-  static std::vector<VertexAttribute> GetVertexAttributes();
-
   // Vertex data.
   glm::vec3 pos;
 };
 
 // 3D vertex data, consisting of position and color.
 struct Vertex3DWithColor {
-  // Returns vertex input attributes.
-  static std::vector<VertexAttribute> GetVertexAttributes();
-
   // Vertex data.
   glm::vec3 pos;
   glm::vec3 color;
@@ -190,41 +150,12 @@ struct Vertex3DWithColor {
 
 // 3D vertex data, consisting of position, normal and texture coordinates.
 struct Vertex3DWithTex {
-  // Returns vertex input attributes.
-  static std::vector<VertexAttribute> GetVertexAttributes();
-
   // Vertex data.
   glm::vec3 pos;
   glm::vec3 norm;
   glm::vec2 tex_coord;
 };
 
-namespace data {
-
-// Appends vertex input attributes of DataType to `attributes`. This is used for
-// vector types with floating point values, such as glm::vec3 and glm::vec4.
-template <typename DataType>
-void AppendVertexAttributes(std::vector<VertexAttribute>& attributes,
-                            int offset_bytes) {
-  attributes.push_back(
-      {offset_bytes, VertexAttribute::DataType::kFloat, DataType::length()});
-}
-
-// Appends vertex input attributes of glm::mat4 to `attributes`.
-template <>
-void AppendVertexAttributes<glm::mat4>(std::vector<VertexAttribute>& attributes,
-                                       int offset_bytes);
-
-// Convenience function to return vertex input attributes for the data that has
-// only one attribute of DataType.
-template <typename DataType>
-std::vector<VertexAttribute> CreateVertexAttributes() {
-  std::vector<VertexAttribute> attributes;
-  AppendVertexAttributes<DataType>(attributes, /*offset_bytes=*/0);
-  return attributes;
-}
-
-}  // namespace data
 }  // namespace lighter::base
 
 #endif  // LIGHTER_BASE_DATA_H

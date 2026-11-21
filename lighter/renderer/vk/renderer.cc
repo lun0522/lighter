@@ -13,10 +13,6 @@
 #include "lighter/base/util.h"
 #include "lighter/renderer/vk/util.h"
 
-LIGHTER_FLAG(bool, ignore_vsync, false,
-             "Ignore VSync and present images to the screen as fast as "
-             "possible");
-
 namespace lighter::renderer::vk {
 namespace {
 
@@ -32,16 +28,7 @@ std::vector<const base::Window*> ToConstWindowPtrs(
 void InitVulkan() {
   using base::file::GetVulkanSdkPath;
 
-  // TODO: Limit framerate on Windows. Present mode need to be changed as well.
 #ifdef __APPLE__
-  // TODO: Revisit this.
-  if (FLAGS_ignore_vsync.Get()) {
-    // To avoid the frame rate being clamped on MacOS when using MoltenVK:
-    // https://github.com/KhronosGroup/MoltenVK/issues/581#issuecomment-487293665
-    setenv("MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS", "0", /*overwrite=*/1);
-    setenv("MVK_CONFIG_PRESENT_WITH_COMMAND_BUFFER", "0", /*overwrite=*/1);
-  }
-
   if (std::getenv("VULKAN_SDK") != nullptr) {
     // export DYLD_LIBRARY_PATH=$VULKAN_SDK/lib:$DYLD_LIBRARY_PATH
     const std::string dyld_lib_path =

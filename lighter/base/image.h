@@ -77,10 +77,6 @@ class Image {
     return LoadImagesFromMemory(
         dimension, std::span<const void* const>{&raw_data, 1}, flip_y);
   }
-  // The length of 'raw_data_ptrs' must be 6.
-  static Image LoadCubemapFromMemory(const Dimension& dimension,
-                                     std::span<const void* const> raw_data_ptrs,
-                                     bool flip_y);
 
   // This class is only movable.
   Image(Image&& rhs) noexcept = default;

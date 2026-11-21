@@ -154,11 +154,6 @@ class OrthographicCamera : public Camera {
     float aspect_ratio;
   };
 
-  // Returns a OrthoConfig for rendering a fullscreen squad.
-  static OrthoConfig GetFullscreenConfig() {
-    return {.view_width = 2.0f, .aspect_ratio = 1.0f};
-  }
-
   OrthographicCamera(const Camera::Config& config,
                      const OrthoConfig& ortho_config)
       : Camera{config},

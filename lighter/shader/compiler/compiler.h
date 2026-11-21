@@ -19,9 +19,18 @@
 #include <unordered_map>
 
 #include "lighter/base/util.h"
-#include "lighter/shader/compiler/util.h"
 
 namespace lighter::shader::compiler {
+
+// Corresponds to text 'none', 'size' and 'perf'.
+enum class OptimizationLevel { kNone, kSize, kPerformance };
+
+// Converts the optimization level to text.
+const char* OptLevelToText(OptimizationLevel level);
+
+// Returns the optimization level if the text can be recognized, or std::nullopt
+// otherwise.
+std::optional<OptimizationLevel> OptLevelFromText(std::string_view text);
 
 // Forward declarations.
 class CompilationResult;
