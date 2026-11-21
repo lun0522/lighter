@@ -49,9 +49,8 @@ class Spline {
 // http://www.cs.cornell.edu/courses/cs4620/2017sp/slides/16spline-curves.pdf
 class BezierSpline : public Spline {
  public:
-  // Returns the middle point of the 2 given control points.
-  using GetMiddlePoint =
-      std::function<glm::vec3(const glm::vec3& p0, const glm::vec3& p1)>;
+  // Projects a control or emitted spline point (for example onto a sphere).
+  using ProjectPoint = std::function<glm::vec3(const glm::vec3& p)>;
 
   // Returns whether the spline segment can be considered smooth given 4 control
   // points. This is used for determining whether the recursion should stop.
@@ -61,8 +60,8 @@ class BezierSpline : public Spline {
 
   // If the depth of recursion reaches 'max_recursion_depth', or if 'is_smooth'
   // returns true, the recursion will stop.
-  BezierSpline(int max_recursion_depth, GetMiddlePoint&& get_middle_point,
-               IsSmooth&& is_smooth);
+  BezierSpline(int max_recursion_depth, IsSmooth&& is_smooth,
+               ProjectPoint&& project_point = {});
 
   // This class is neither copyable nor movable.
   BezierSpline(const BezierSpline&) = delete;
@@ -70,7 +69,8 @@ class BezierSpline : public Spline {
 
  protected:
   // This function is recursively called to interpolate spline points. When
-  // recursion stop conditions are met, 'p0' will be added to 'spline_points_'.
+  // recursion stop conditions are met, 'p0' (projected if 'project_point_' is
+  // set) will be added to 'spline_points_'.
   void Tessellate(const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2,
                   const glm::vec3& p3, int recursion_depth);
 
@@ -78,21 +78,21 @@ class BezierSpline : public Spline {
   // Maximum recursion depth of calling Tessellate().
   const int max_recursion_depth_;
 
-  // Returns the middle point. This is used to interpolate spline points.
-  const GetMiddlePoint get_middle_point_;
-
   // Returns whether the spline segment can be considered smooth.
   const IsSmooth is_smooth_;
+
+  // Optional projection applied to emitted spline points.
+  const ProjectPoint project_point_;
 };
 
-// This class is used to build Catmull-Rom splines, so that we can guarantee the
-// spline will pass control points.
+// This class is used to build centripetal Catmull-Rom splines, so that we can
+// guarantee the spline passes control points without cusps or self-loops.
 class CatmullRomSpline : public BezierSpline {
  public:
   // We cannot build the spline with less than 3 control points.
   static const int kMinNumControlPoints;
 
-  // Returns a Catmull-Rom spline on sphere.
+  // Returns a centripetal Catmull-Rom spline projected onto the unit sphere.
   static std::unique_ptr<Spline> GetOnSphereSpline(int max_recursion_depth,
                                                    float roughness);
 

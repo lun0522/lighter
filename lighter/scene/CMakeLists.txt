@@ -131,3 +131,14 @@ target_link_libraries(lighter_scene_util
     lighter_scene_camera
     glm::glm
 )
+
+add_executable(scene_spline_test
+  spline_test.cc
+)
+target_link_libraries(scene_spline_test
+  PRIVATE
+    lighter_project_options
+    lighter_scene_spline
+    GTest::gtest_main
+)
+add_test(NAME scene_spline_test COMMAND scene_spline_test)
