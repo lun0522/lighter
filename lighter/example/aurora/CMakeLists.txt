@@ -1,0 +1,47 @@
+add_executable(example_aurora
+  aurora.cc
+  scene.h
+  editor/button.cc
+  editor/button.h
+  editor/button_maker.cc
+  editor/button_maker.h
+  editor/button_util.cc
+  editor/button_util.h
+  editor/celestial.cc
+  editor/celestial.h
+  editor/editor.cc
+  editor/editor.h
+  editor/path.cc
+  editor/path.h
+  viewer/air_transmit_table.cc
+  viewer/air_transmit_table.h
+  viewer/distance_field.cc
+  viewer/distance_field.h
+  viewer/path_dumper.cc
+  viewer/path_dumper.h
+  viewer/path_renderer.cc
+  viewer/path_renderer.h
+  viewer/viewer.cc
+  viewer/viewer.h
+)
+add_dependencies(example_aurora lighter_shaders)
+target_link_libraries(example_aurora
+  PRIVATE
+    lighter_project_options
+    lighter_common_camera
+    lighter_common_data
+    lighter_common_file
+    lighter_common_flag
+    lighter_common_image
+    lighter_common_rotation
+    lighter_common_spline
+    lighter_common_timer
+    lighter_common_util
+    lighter_common_window
+    lighter_renderer_extension_model
+    lighter_renderer_extension_text
+    lighter_renderer_util
+    lighter_renderer_vk_renderer
+    glm::glm
+    lighter_spirv_cross
+)

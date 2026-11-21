@@ -90,7 +90,7 @@ std::unique_ptr<Buffer> CreateQuadBuffer(const ir::Renderer& renderer,
 GraphicsPipelineDescriptor BuildCharBakePipelineDescriptor(
     const glm::ivec2& target_extent, bool enable_blend) {
   return GraphicsPipelineDescriptor{}
-      .SetName(enable_blend ? "Text loader" : "Char loader")
+      .SetName(enable_blend ? "TextLoader" : "CharLoader")
       .SetShader(ir::shader_stage::VERTEX,
                  common::file::GetShaderBinaryPath("text/char.vert"))
       .SetShader(ir::shader_stage::FRAGMENT,

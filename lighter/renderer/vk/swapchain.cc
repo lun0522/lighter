@@ -67,15 +67,15 @@ intl::SurfaceFormatKHR ChooseSurfaceFormat(
 // Returns the present mode to use.
 intl::PresentModeKHR ChoosePresentMode(
     std::span<const intl::PresentModeKHR> modes) {
-  // In FIFO mode, which is supported by all drivers, rendered images will wait
-  // in a queue to be presented, while in MAILBOX mode, there will be only one
-  // image waiting to be presented. If that image has not been presented yet and
-  // GPU has finished rendering a new image, it will be replaced by the new one,
-  // so that we always get the most recently generated frame.
-  // TODO: Use FIFO for mobile to save power.
-  constexpr auto kBestMode = intl::PresentModeKHR::eMailbox;
-  const bool supports_best_mode = common::util::Contains(modes, kBestMode);
-  return supports_best_mode ? kBestMode : intl::PresentModeKHR::eFifo;
+  // Prefer MAILBOX (low-latency triple-buffered) over IMMEDIATE (uncapped),
+  // falling back to FIFO (VSync) which is always guaranteed by the spec.
+  if (common::util::Contains(modes, intl::PresentModeKHR::eMailbox)) {
+    return intl::PresentModeKHR::eMailbox;
+  }
+  if (common::util::Contains(modes, intl::PresentModeKHR::eImmediate)) {
+    return intl::PresentModeKHR::eImmediate;
+  }
+  return intl::PresentModeKHR::eFifo;
 }
 
 // Returns the minimum number of images we want to have in the swapchain.

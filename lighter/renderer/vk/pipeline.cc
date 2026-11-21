@@ -330,7 +330,7 @@ CreateColorBlendAttachmentStates(const GraphicsPipelineDescriptor& descriptor,
             .setColorBlendOp(type::ConvertBlendOp(color_blend.color_blend_op))
             .setSrcAlphaBlendFactor(
                 type::ConvertBlendFactor(color_blend.src_alpha_blend_factor))
-            .setDstColorBlendFactor(
+            .setDstAlphaBlendFactor(
                 type::ConvertBlendFactor(color_blend.dst_alpha_blend_factor))
             .setAlphaBlendOp(type::ConvertBlendOp(color_blend.alpha_blend_op))
             .setColorWriteMask(intl::ColorComponentFlags{

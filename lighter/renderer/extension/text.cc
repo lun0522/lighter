@@ -166,8 +166,7 @@ Text::PreparedFrameBuffers Text::PrepareFrameBuffers(const glm::vec3& color,
 StaticText::StaticText(ir::Renderer& renderer, float viewport_aspect_ratio,
                        std::span<const std::string> texts, Font font,
                        int font_height, int num_frames_in_flight)
-    : Text{renderer, "Static text", viewport_aspect_ratio,
-           num_frames_in_flight},
+    : Text{renderer, "StaticText", viewport_aspect_ratio, num_frames_in_flight},
       text_loader_{renderer, texts, font, font_height} {}
 
 glm::vec2 StaticText::AddText(int text_index, float height, float base_x,
@@ -219,7 +218,7 @@ void StaticText::Draw(ir::PassContext& ctx, const glm::ivec2& frame_size,
 DynamicText::DynamicText(ir::Renderer& renderer, float viewport_aspect_ratio,
                          std::span<const std::string> texts, Font font,
                          int font_height, int num_frames_in_flight)
-    : Text{renderer, "Dynamic text", viewport_aspect_ratio,
+    : Text{renderer, "DynamicText", viewport_aspect_ratio,
            num_frames_in_flight},
       char_loader_{renderer, texts, font, font_height} {}
 

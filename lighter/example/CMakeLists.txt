@@ -50,3 +50,5 @@ target_link_libraries(example_troop
   PRIVATE
     lighter_renderer_extension_model
 )
+
+add_subdirectory(aurora)
