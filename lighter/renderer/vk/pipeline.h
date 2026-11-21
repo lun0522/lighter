@@ -118,7 +118,6 @@ class Pipeline : public WithSharedContext {
   struct ImageBinding {
     uint32_t binding = 0;
     const Image* image = nullptr;
-    int image_index = 0;
     const Sampler* sampler = nullptr;
     intl::ImageLayout layout = intl::ImageLayout::eShaderReadOnlyOptimal;
     uint32_t array_element = 0;

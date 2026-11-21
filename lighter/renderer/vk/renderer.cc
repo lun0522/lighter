@@ -19,17 +19,13 @@ namespace {
 
 constexpr int kNumFramesInFlight = 2;
 
-intl::Image GetVkImage(const Image& image, uint32_t swapchain_image_index) {
-  return image.IsSingleImage()
-             ? *SingleImage::Cast(image)
-             : MultiImage::Cast(image).image(swapchain_image_index);
-}
-
-intl::ImageView GetVkImageView(const Image& image,
-                               uint32_t swapchain_image_index) {
-  return image.IsSingleImage()
-             ? SingleImage::Cast(image).image_view()
-             : MultiImage::Cast(image).image_view(swapchain_image_index);
+const Image& ResolveLegacyImage(const ir::Image* image_ptr,
+                                const Swapchain& swapchain,
+                                uint32_t swapchain_image_index) {
+  if (image_ptr == &swapchain.frame_image(0)) {
+    return swapchain.frame_image(swapchain_image_index);
+  }
+  return Image::Cast(*image_ptr);
 }
 
 class VkCommandRecorder : public ir::CommandRecorder {
@@ -107,7 +103,7 @@ class DynamicRenderPass : public ir::RenderPass {
       intl::CommandBuffer cmd, const Swapchain& swapchain,
       uint32_t swapchain_image_index,
       const std::function<void(ir::CommandRecorder&)>& record_draw) const {
-    const intl::Extent2D render_extent = swapchain.image().extent();
+    const intl::Extent2D render_extent = swapchain.extent();
     const intl::Rect2D render_area{{0, 0}, render_extent};
 
     std::unordered_map<const ir::Image*, const ir::Image*> resolve_targets;
@@ -118,11 +114,11 @@ class DynamicRenderPass : public ir::RenderPass {
     std::vector<intl::RenderingAttachmentInfo> color_attachments;
     color_attachments.reserve(descriptor_.color_attachments.size());
     for (const ir::Image* attachment_ptr : descriptor_.color_attachments) {
-      const auto& vk_color = Image::Cast(*attachment_ptr);
+      const auto& vk_color =
+          ResolveLegacyImage(attachment_ptr, swapchain, swapchain_image_index);
       image::TransitionImageLayout(
-          cmd, GetVkImage(vk_color, swapchain_image_index),
-          vk_color.GetAspectFlags(), /*base_mip_level=*/0,
-          CAST_TO_UINT(vk_color.mip_levels()),
+          cmd, vk_color.vk_image(), vk_color.GetAspectFlags(),
+          /*base_mip_level=*/0, CAST_TO_UINT(vk_color.mip_levels()),
           CAST_TO_UINT(vk_color.GetNumLayers()), intl::ImageLayout::eUndefined,
           intl::ImageLayout::eColorAttachmentOptimal,
           intl::PipelineStageFlagBits2::eColorAttachmentOutput, {},
@@ -137,7 +133,7 @@ class DynamicRenderPass : public ir::RenderPass {
 
       auto color_info =
           intl::RenderingAttachmentInfo{}
-              .setImageView(GetVkImageView(vk_color, swapchain_image_index))
+              .setImageView(vk_color.image_view())
               .setImageLayout(intl::ImageLayout::eColorAttachmentOptimal)
               .setLoadOp(type::ConvertAttachmentLoadOp(ops.load_op))
               .setStoreOp(type::ConvertAttachmentStoreOp(ops.store_op))
@@ -146,11 +142,11 @@ class DynamicRenderPass : public ir::RenderPass {
 
       const auto resolve_iter = resolve_targets.find(attachment_ptr);
       if (resolve_iter != resolve_targets.end()) {
-        const auto& vk_resolve = Image::Cast(*resolve_iter->second);
+        const auto& vk_resolve = ResolveLegacyImage(
+            resolve_iter->second, swapchain, swapchain_image_index);
         image::TransitionImageLayout(
-            cmd, GetVkImage(vk_resolve, swapchain_image_index),
-            vk_resolve.GetAspectFlags(), /*base_mip_level=*/0,
-            CAST_TO_UINT(vk_resolve.mip_levels()),
+            cmd, vk_resolve.vk_image(), vk_resolve.GetAspectFlags(),
+            /*base_mip_level=*/0, CAST_TO_UINT(vk_resolve.mip_levels()),
             CAST_TO_UINT(vk_resolve.GetNumLayers()),
             intl::ImageLayout::eUndefined,
             intl::ImageLayout::eColorAttachmentOptimal,
@@ -158,8 +154,7 @@ class DynamicRenderPass : public ir::RenderPass {
             intl::PipelineStageFlagBits2::eColorAttachmentOutput,
             intl::AccessFlagBits2::eColorAttachmentWrite);
         color_info.setResolveMode(intl::ResolveModeFlagBits::eAverage)
-            .setResolveImageView(
-                GetVkImageView(vk_resolve, swapchain_image_index))
+            .setResolveImageView(vk_resolve.image_view())
             .setResolveImageLayout(intl::ImageLayout::eColorAttachmentOptimal);
       }
       color_attachments.push_back(color_info);
@@ -170,9 +165,11 @@ class DynamicRenderPass : public ir::RenderPass {
     bool has_depth = false;
     bool has_stencil = false;
     if (descriptor_.depth_stencil_attachment != nullptr) {
-      const auto& vk_ds = Image::Cast(*descriptor_.depth_stencil_attachment);
+      const auto& vk_ds =
+          ResolveLegacyImage(descriptor_.depth_stencil_attachment, swapchain,
+                             swapchain_image_index);
       image::TransitionImageLayout(
-          cmd, GetVkImage(vk_ds, swapchain_image_index), vk_ds.GetAspectFlags(),
+          cmd, vk_ds.vk_image(), vk_ds.GetAspectFlags(),
           /*base_mip_level=*/0, CAST_TO_UINT(vk_ds.mip_levels()),
           CAST_TO_UINT(vk_ds.GetNumLayers()), intl::ImageLayout::eUndefined,
           intl::ImageLayout::eDepthStencilAttachmentOptimal,
@@ -195,7 +192,7 @@ class DynamicRenderPass : public ir::RenderPass {
       if (has_depth) {
         depth_info =
             intl::RenderingAttachmentInfo{}
-                .setImageView(GetVkImageView(vk_ds, swapchain_image_index))
+                .setImageView(vk_ds.image_view())
                 .setImageLayout(
                     intl::ImageLayout::eDepthStencilAttachmentOptimal)
                 .setLoadOp(
@@ -207,7 +204,7 @@ class DynamicRenderPass : public ir::RenderPass {
       if (has_stencil) {
         stencil_info =
             intl::RenderingAttachmentInfo{}
-                .setImageView(GetVkImageView(vk_ds, swapchain_image_index))
+                .setImageView(vk_ds.image_view())
                 .setImageLayout(
                     intl::ImageLayout::eDepthStencilAttachmentOptimal)
                 .setLoadOp(
@@ -245,7 +242,7 @@ class DynamicRenderPass : public ir::RenderPass {
     cmd.endRendering();
 
     image::TransitionImageLayout(
-        cmd, swapchain.image().image(swapchain_image_index),
+        cmd, swapchain.vk_image(swapchain_image_index),
         intl::ImageAspectFlagBits::eColor, /*base_mip_level=*/0,
         /*level_count=*/1, /*layer_count=*/1,
         intl::ImageLayout::eColorAttachmentOptimal,
@@ -304,7 +301,7 @@ bool Renderer::RenderFrame(
   const common::Window& window = *windows().at(window_index);
   const Swapchain& swapchain = *swapchains_.at(window_index);
   if (window.is_resized() ||
-      window.GetFrameSize() != util::ToVec(swapchain.image().extent())) {
+      window.GetFrameSize() != util::ToVec(swapchain.extent())) {
     RecreateSwapchain(window_index);
     return false;
   }

@@ -303,6 +303,25 @@ std::optional<intl::ImageMemoryBarrier2> CreateImageMemoryBarrier(
       .setSubresourceRange(subresource_range);
 }
 
+intl::ImageView CreateImageView(const Context& context, intl::Image vk_image,
+                                intl::ImageViewType view_type,
+                                intl::Format format,
+                                intl::ImageAspectFlags aspect_mask,
+                                uint32_t mip_levels, uint32_t layer_count) {
+  const auto subresource_range =
+      intl::ImageSubresourceRange{}
+          .setAspectMask(aspect_mask)
+          .setLevelCount(mip_levels)
+          .setLayerCount(layer_count);
+  const auto create_info = intl::ImageViewCreateInfo{}
+                               .setImage(vk_image)
+                               .setViewType(view_type)
+                               .setFormat(format)
+                               .setSubresourceRange(subresource_range);
+  return context.device()->createImageView(create_info,
+                                           *context.host_allocator());
+}
+
 void TransitionImageLayout(intl::CommandBuffer cmd, intl::Image image,
                            intl::ImageAspectFlags aspect_mask,
                            uint32_t base_mip_level, uint32_t level_count,

@@ -54,6 +54,13 @@ std::optional<intl::ImageMemoryBarrier2> CreateImageMemoryBarrier(
     uint32_t src_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
     uint32_t dst_queue_family_index = VK_QUEUE_FAMILY_IGNORED);
 
+// Creates a VkImageView for 'vk_image'.
+intl::ImageView CreateImageView(const Context& context, intl::Image vk_image,
+                                intl::ImageViewType view_type,
+                                intl::Format format,
+                                intl::ImageAspectFlags aspect_mask,
+                                uint32_t mip_levels, uint32_t layer_count);
+
 // Records an ImageMemoryBarrier2 via pipelineBarrier2 on 'cmd'.
 void TransitionImageLayout(intl::CommandBuffer cmd, intl::Image image,
                            intl::ImageAspectFlags aspect_mask,

@@ -663,12 +663,12 @@ void Pipeline::PushDescriptors(intl::CommandBuffer command_buffer,
                       "non-null sampler",
                       set, entry.binding));
     }
-    image_infos.push_back(
-        intl::DescriptorImageInfo{}
-            .setSampler(entry.sampler != nullptr ? **entry.sampler
-                                                 : intl::Sampler{})
-            .setImageView(entry.image->image_view(entry.image_index))
-            .setImageLayout(entry.layout));
+    image_infos.push_back(intl::DescriptorImageInfo{}
+                              .setSampler(entry.sampler != nullptr
+                                              ? **entry.sampler
+                                              : intl::Sampler{})
+                              .setImageView(entry.image->image_view())
+                              .setImageLayout(entry.layout));
     writes.push_back(intl::WriteDescriptorSet{}
                          .setDstBinding(entry.binding)
                          .setDstArrayElement(entry.array_element)

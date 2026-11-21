@@ -146,7 +146,7 @@ int ComputeMipLevels(const glm::ivec2& extent, bool generate_mipmaps) {
 
 // Uploads 'host_image' pixel data into 'target' via a staging buffer and
 // generates mipmaps if target.mip_levels() > 1.
-void UploadImageData(const Context& context, const SingleImage& target,
+void UploadImageData(const Context& context, const OwnedImage& target,
                      const common::Image& host_image,
                      std::span<const ImageUsage> usages) {
   const std::vector<const void*> data_ptrs = host_image.GetDataPtrs();
@@ -277,20 +277,13 @@ void UploadImageData(const Context& context, const SingleImage& target,
   buffer::DestroyBuffer(context, staging);
 }
 
-intl::ImageView CreateImageView(const Context& context, intl::Image vk_image,
-                                const Image& image) {
-  const auto subresource_range =
-      intl::ImageSubresourceRange{}
-          .setAspectMask(image.GetAspectFlags())
-          .setLevelCount(CAST_TO_UINT(image.mip_levels()))
-          .setLayerCount(CAST_TO_UINT(image.GetNumLayers()));
-  const auto create_info = intl::ImageViewCreateInfo{}
-                               .setImage(vk_image)
-                               .setViewType(image.GetViewType())
-                               .setFormat(image.format())
-                               .setSubresourceRange(subresource_range);
-  return context.device()->createImageView(create_info,
-                                           *context.host_allocator());
+intl::ImageView CreateImageViewForImage(const Context& context,
+                                        intl::Image vk_image,
+                                        const Image& image) {
+  return image::CreateImageView(context, vk_image, image.GetViewType(),
+                                image.format(), image.GetAspectFlags(),
+                                CAST_TO_UINT(image.mip_levels()),
+                                CAST_TO_UINT(image.GetNumLayers()));
 }
 
 std::vector<uint32_t> CollectUniqueQueueFamilyIndices(
@@ -334,29 +327,29 @@ intl::ImageAspectFlags Image::GetAspectFlags() const {
   }
 }
 
-std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
+std::unique_ptr<OwnedImage> OwnedImage::CreateColorImage(
     const SharedContext& context, std::string_view name,
     const common::Image::Dimension& dimension,
     MultisamplingMode multisampling_mode, bool high_precision,
     std::span<const ImageUsage> usages) {
   const intl::Format format = ChooseColorImageFormat(
       *context, dimension.channel, high_precision, usages);
-  return std::unique_ptr<SingleImage>(
-      new SingleImage(context, name, LayerType::kSingle, dimension.extent(),
-                      kSingleMipLevel, format, multisampling_mode, usages));
+  return std::unique_ptr<OwnedImage>(
+      new OwnedImage(context, name, LayerType::kSingle, dimension.extent(),
+                     kSingleMipLevel, format, multisampling_mode, usages));
 }
 
-std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
+std::unique_ptr<OwnedImage> OwnedImage::CreateColorImage(
     const SharedContext& context, std::string_view name,
     const Image& match_target, MultisamplingMode multisampling_mode,
     std::span<const ImageUsage> usages) {
-  return std::unique_ptr<SingleImage>(new SingleImage(
+  return std::unique_ptr<OwnedImage>(new OwnedImage(
       context, name, LayerType::kSingle,
       {match_target.width(), match_target.height()}, kSingleMipLevel,
       match_target.format(), multisampling_mode, usages));
 }
 
-std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
+std::unique_ptr<OwnedImage> OwnedImage::CreateColorImage(
     const SharedContext& context, std::string_view name,
     const common::Image& image, bool generate_mipmaps,
     std::span<const ImageUsage> usages) {
@@ -368,7 +361,7 @@ std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
   if (mip_levels > 1) {
     extra_usage_flags |= intl::ImageUsageFlagBits::eTransferSrc;
   }
-  auto result = std::unique_ptr<SingleImage>(new SingleImage(
+  auto result = std::unique_ptr<OwnedImage>(new OwnedImage(
       context, name, image.type(), image.extent(), mip_levels, format,
       MultisamplingMode::kNone, usages, extra_usage_flags,
       /*include_graphics_queue=*/true));
@@ -376,17 +369,17 @@ std::unique_ptr<SingleImage> SingleImage::CreateColorImage(
   return result;
 }
 
-std::unique_ptr<SingleImage> SingleImage::CreateDepthStencilImage(
+std::unique_ptr<OwnedImage> OwnedImage::CreateDepthStencilImage(
     const SharedContext& context, std::string_view name,
     const glm::ivec2& extent, MultisamplingMode multisampling_mode,
     std::span<const ImageUsage> usages) {
   const intl::Format format = ChooseDepthStencilImageFormat(*context);
-  return std::unique_ptr<SingleImage>(
-      new SingleImage(context, name, LayerType::kSingle, extent,
-                      kSingleMipLevel, format, multisampling_mode, usages));
+  return std::unique_ptr<OwnedImage>(
+      new OwnedImage(context, name, LayerType::kSingle, extent, kSingleMipLevel,
+                     format, multisampling_mode, usages));
 }
 
-std::unique_ptr<SingleImage> SingleImage::CreateTransient(
+std::unique_ptr<OwnedImage> OwnedImage::CreateTransient(
     const SharedContext& context, std::string_view name,
     const glm::ivec2& extent, intl::Format format,
     MultisamplingMode multisampling_mode, intl::ImageUsageFlags usage_flags) {
@@ -395,19 +388,19 @@ std::unique_ptr<SingleImage> SingleImage::CreateTransient(
   const std::unordered_set<uint32_t> queue_set{queue_families.graphics,
                                                queue_families.compute};
   const std::vector<uint32_t> unique_queues{queue_set.begin(), queue_set.end()};
-  return std::unique_ptr<SingleImage>(new SingleImage(
-      context, name, LayerType::kSingle, extent, kSingleMipLevel, format,
-      multisampling_mode, usage_flags, unique_queues));
+  return std::unique_ptr<OwnedImage>(
+      new OwnedImage(context, name, LayerType::kSingle, extent, kSingleMipLevel,
+                     format, multisampling_mode, usage_flags, unique_queues));
 }
 
-SingleImage::SingleImage(
-    const SharedContext& context, std::string_view name, LayerType layer_type,
-    const glm::ivec2& extent, int mip_levels, intl::Format format,
-    ir::MultisamplingMode multisampling_mode, intl::ImageUsageFlags usage_flags,
-    const std::vector<uint32_t>& unique_queue_family_indices)
+OwnedImage::OwnedImage(const SharedContext& context, std::string_view name,
+                       LayerType layer_type, const glm::ivec2& extent,
+                       int mip_levels, intl::Format format,
+                       ir::MultisamplingMode multisampling_mode,
+                       intl::ImageUsageFlags usage_flags,
+                       const std::vector<uint32_t>& unique_queue_family_indices)
     : WithSharedContext{context},
-      Image{Type::kSingle,
-            name,
+      Image{name,
             layer_type,
             extent,
             mip_levels,
@@ -424,28 +417,28 @@ SingleImage::SingleImage(
                   usage_flags, unique_queue_family_indices);
   image_ = allocated.handle;
   allocation_ = allocated.allocation;
-  image_view_ = CreateImageView(*context_, image_, *this);
+  image_view_ = CreateImageViewForImage(*context_, image_, *this);
 }
 
-SingleImage::SingleImage(const SharedContext& context, std::string_view name,
-                         LayerType layer_type, const glm::ivec2& extent,
-                         int mip_levels, intl::Format format,
-                         ir::MultisamplingMode multisampling_mode,
-                         std::span<const ir::ImageUsage> usages,
-                         intl::ImageUsageFlags extra_usage_flags,
-                         bool include_graphics_queue)
-    : SingleImage{context,
-                  name,
-                  layer_type,
-                  extent,
-                  mip_levels,
-                  format,
-                  multisampling_mode,
-                  image::GetImageUsageFlags(usages) | extra_usage_flags,
-                  CollectUniqueQueueFamilyIndices(*context, usages,
-                                                  include_graphics_queue)} {}
+OwnedImage::OwnedImage(const SharedContext& context, std::string_view name,
+                       LayerType layer_type, const glm::ivec2& extent,
+                       int mip_levels, intl::Format format,
+                       ir::MultisamplingMode multisampling_mode,
+                       std::span<const ir::ImageUsage> usages,
+                       intl::ImageUsageFlags extra_usage_flags,
+                       bool include_graphics_queue)
+    : OwnedImage{context,
+                 name,
+                 layer_type,
+                 extent,
+                 mip_levels,
+                 format,
+                 multisampling_mode,
+                 image::GetImageUsageFlags(usages) | extra_usage_flags,
+                 CollectUniqueQueueFamilyIndices(*context, usages,
+                                                 include_graphics_queue)} {}
 
-SingleImage::~SingleImage() {
+OwnedImage::~OwnedImage() {
   if (image_view_ == intl::ImageView{} && allocation_ == VK_NULL_HANDLE) {
     return;
   }
@@ -462,32 +455,6 @@ SingleImage::~SingleImage() {
                       allocation);
     }
   });
-}
-
-MultiImage::MultiImage(const SharedContext& context, std::string_view name,
-                       std::vector<intl::Image>&& images,
-                       const glm::ivec2& extent, intl::Format format)
-    : WithSharedContext{context},
-      Image{Type::kMultiple,  name,   LayerType::kSingle,           extent,
-            /*mip_levels=*/1, format, intl::SampleCountFlagBits::e1},
-      images_{std::move(images)} {
-  image_views_.reserve(images_.size());
-  for (intl::Image image : images_) {
-    image_views_.push_back(CreateImageView(*context_, image, *this));
-  }
-}
-
-MultiImage::~MultiImage() {
-  if (image_views_.empty()) {
-    return;
-  }
-  std::vector<intl::ImageView> expired_views = std::move(image_views_);
-  context_->AddReleaseExpiredResourceOp(
-      [views = std::move(expired_views)](const Context& context) {
-        for (intl::ImageView view : views) {
-          context.device()->destroyImageView(view, *context.host_allocator());
-        }
-      });
 }
 
 Sampler::Sampler(const SharedContext& context,

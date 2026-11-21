@@ -92,6 +92,25 @@ uint32_t ChooseMinImageCount(const Surface& surface) {
   return min_count;
 }
 
+// Non-owning vk::Image wrapper representing a single acquired swapchain image.
+class SwapchainFrameImage : public Image {
+ public:
+  SwapchainFrameImage(std::string_view name, const glm::ivec2& extent,
+                      intl::Format format, intl::Image image,
+                      intl::ImageView image_view)
+      : Image{name,   LayerType::kSingle,           extent, /*mip_levels=*/1,
+              format, intl::SampleCountFlagBits::e1},
+        image_{image},
+        image_view_{image_view} {}
+
+  intl::ImageView image_view() const override { return image_view_; }
+  intl::Image vk_image() const override { return image_; }
+
+ private:
+  intl::Image image_;
+  intl::ImageView image_view_;
+};
+
 }  // namespace
 
 Swapchain::Swapchain(const SharedContext& context, int window_index,
@@ -146,13 +165,23 @@ Swapchain::Swapchain(const SharedContext& context, int window_index,
   swapchain_ = vk_device().createSwapchainKHR(swapchain_create_info,
                                               vk_host_allocator());
 
-  // Fetch swapchain images.
-  image_ = std::make_unique<MultiImage>(
-      context_, std::format("swapchain{}", window_index),
-      vk_device().getSwapchainImagesKHR(swapchain_), util::ToVec(image_extent),
-      surface_format.format);
+  format_ = surface_format.format;
+  extent_ = image_extent;
+  images_ = vk_device().getSwapchainImagesKHR(swapchain_);
+  image_views_.reserve(images_.size());
+  frame_images_.reserve(images_.size());
+  for (size_t i = 0; i < images_.size(); ++i) {
+    const intl::ImageView view = image::CreateImageView(
+        *context_, images_[i], intl::ImageViewType::e2D, format_,
+        intl::ImageAspectFlagBits::eColor, /*mip_levels=*/1,
+        /*layer_count=*/1);
+    image_views_.push_back(view);
+    frame_images_.push_back(std::make_unique<SwapchainFrameImage>(
+        std::format("swapchain{}_image{}", window_index, i),
+        util::ToVec(extent_), format_, images_[i], view));
+  }
 
-  render_finished_semaphores_.resize(image_->num_images());
+  render_finished_semaphores_.resize(images_.size());
   for (intl::Semaphore& semaphore : render_finished_semaphores_) {
     semaphore = vk_device().createSemaphore(intl::SemaphoreCreateInfo{},
                                             vk_host_allocator());
@@ -163,8 +192,17 @@ Swapchain::~Swapchain() {
   for (intl::Semaphore semaphore : render_finished_semaphores_) {
     context_->DeviceDestroy(semaphore);
   }
-  // Destroy image views before destroying the backing swapchain.
-  image_.reset();
+  frame_images_.clear();
+  if (!image_views_.empty()) {
+    // Destroy image views before destroying the backing swapchain.
+    std::vector<intl::ImageView> expired_views = std::move(image_views_);
+    context_->AddReleaseExpiredResourceOp(
+        [views = std::move(expired_views)](const Context& context) {
+          for (intl::ImageView view : views) {
+            context.device()->destroyImageView(view, *context.host_allocator());
+          }
+        });
+  }
   context_->DeviceDestroy(swapchain_);
 #ifndef NDEBUG
   LOG_INFO << "Swapchain destructed";

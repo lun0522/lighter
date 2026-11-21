@@ -72,7 +72,7 @@ class TransientResourcePool : public WithSharedContext {
   static constexpr uint64_t kDefaultMaxIdleFrames = 4;
 
   struct AcquiredImage {
-    SingleImage* image = nullptr;
+    OwnedImage* image = nullptr;
     bool aliased_in_same_frame = false;
   };
 
@@ -108,7 +108,7 @@ class TransientResourcePool : public WithSharedContext {
   struct ImageEntry {
     TransientImageKey key;
     PoolSlotState state;
-    std::unique_ptr<SingleImage> image;
+    std::unique_ptr<OwnedImage> image;
   };
 
   struct BufferEntry {

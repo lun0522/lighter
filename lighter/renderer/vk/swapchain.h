@@ -42,19 +42,34 @@ class Swapchain : public WithSharedContext {
                        intl::Semaphore wait_semaphore) const;
 
   // Accessors.
-  const MultiImage& image() const { return *image_; }
+  intl::Extent2D extent() const { return extent_; }
+  intl::Format format() const { return format_; }
+  uint32_t num_images() const { return CAST_TO_UINT(images_.size()); }
+  const Image& frame_image(uint32_t image_index) const {
+    return *frame_images_.at(image_index);
+  }
+  intl::Image vk_image(uint32_t image_index) const {
+    return images_.at(image_index);
+  }
+  intl::ImageView image_view(uint32_t image_index) const {
+    return image_views_.at(image_index);
+  }
   intl::Semaphore render_finished_semaphore(uint32_t image_index) const {
     return render_finished_semaphores_.at(image_index);
   }
 
  private:
   const int window_index_;
+  intl::Format format_ = intl::Format::eUndefined;
+  intl::Extent2D extent_;
 
   // Opaque swapchain object.
   intl::SwapchainKHR swapchain_;
 
-  // Wraps images retrieved from the swapchain.
-  std::unique_ptr<MultiImage> image_;
+  // Swapchain-owned images, image views, and per-index vk::Image wrappers.
+  std::vector<intl::Image> images_;
+  std::vector<intl::ImageView> image_views_;
+  std::vector<std::unique_ptr<Image>> frame_images_;
 
   // Signaled when rendering completes for each swapchain image.
   std::vector<intl::Semaphore> render_finished_semaphores_;

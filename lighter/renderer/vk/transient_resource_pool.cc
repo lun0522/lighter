@@ -61,10 +61,10 @@ TransientResourcePool::AcquiredImage TransientResourcePool::AcquireImage(
     return {.image = entry.image.get(), .aliased_in_same_frame = aliased};
   }
 
-  auto created = SingleImage::CreateTransient(
+  auto created = OwnedImage::CreateTransient(
       context_, debug_name, util::ToVec(key.extent), key.format,
       multisampling_mode, key.usage_flags);
-  SingleImage* ptr = created.get();
+  OwnedImage* ptr = created.get();
   pool.images.push_back(ImageEntry{
       .key = key,
       .state = {.in_frame_last_pass = lifetime.last_pass,

@@ -61,14 +61,14 @@ class Renderer : public WithSharedContext, public ir::Renderer {
   // Image
 
   const Image& GetSwapchainImage(int window_index) const override {
-    return swapchains_.at(window_index)->image();
+    return swapchains_.at(window_index)->frame_image(0);
   }
 
   std::unique_ptr<ir::Image> CreateColorImage(
       std::string_view name, const common::Image::Dimension& dimension,
       ir::MultisamplingMode multisampling_mode, bool high_precision,
       std::span<const ir::ImageUsage> usages) const override {
-    return SingleImage::CreateColorImage(
+    return OwnedImage::CreateColorImage(
         context_, name, dimension, multisampling_mode, high_precision, usages);
   }
 
@@ -76,23 +76,23 @@ class Renderer : public WithSharedContext, public ir::Renderer {
       std::string_view name, const ir::Image& match_target,
       ir::MultisamplingMode multisampling_mode,
       std::span<const ir::ImageUsage> usages) const override {
-    return SingleImage::CreateColorImage(
+    return OwnedImage::CreateColorImage(
         context_, name, Image::Cast(match_target), multisampling_mode, usages);
   }
 
   std::unique_ptr<ir::Image> CreateColorImage(
       std::string_view name, const common::Image& image, bool generate_mipmaps,
       std::span<const ir::ImageUsage> usages) const override {
-    return SingleImage::CreateColorImage(context_, name, image,
-                                         generate_mipmaps, usages);
+    return OwnedImage::CreateColorImage(context_, name, image, generate_mipmaps,
+                                        usages);
   }
 
   std::unique_ptr<ir::Image> CreateDepthStencilImage(
       std::string_view name, const glm::ivec2& extent,
       ir::MultisamplingMode multisampling_mode,
       std::span<const ir::ImageUsage> usages) const override {
-    return SingleImage::CreateDepthStencilImage(context_, name, extent,
-                                                multisampling_mode, usages);
+    return OwnedImage::CreateDepthStencilImage(context_, name, extent,
+                                               multisampling_mode, usages);
   }
 
   // Pass
