@@ -373,10 +373,13 @@ std::unique_ptr<OwnedImage> OwnedImage::CreateDepthStencilImage(
     const SharedContext& context, std::string_view name,
     const glm::ivec2& extent, MultisamplingMode multisampling_mode,
     std::span<const ImageUsage> usages) {
-  const intl::Format format = ChooseDepthStencilImageFormat(*context);
-  return std::unique_ptr<OwnedImage>(
-      new OwnedImage(context, name, LayerType::kSingle, extent, kSingleMipLevel,
-                     format, multisampling_mode, usages));
+  return std::unique_ptr<OwnedImage>(new OwnedImage(
+      context, name, LayerType::kSingle, extent, kSingleMipLevel,
+      GetDepthStencilFormat(*context), multisampling_mode, usages));
+}
+
+intl::Format OwnedImage::GetDepthStencilFormat(const Context& context) {
+  return ChooseDepthStencilImageFormat(context);
 }
 
 std::unique_ptr<OwnedImage> OwnedImage::CreateTransient(

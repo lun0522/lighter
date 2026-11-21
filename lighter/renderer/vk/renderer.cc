@@ -275,6 +275,8 @@ Renderer::Renderer(
   swapchains_.resize(num_windows());
   per_frame_commands_.resize(num_windows());
   current_frames_.resize(num_windows(), 0);
+  render_graph_executor_ =
+      std::make_unique<RenderGraphExecutor>(context_, kNumFramesInFlight);
   for (int i = 0; i < num_windows(); ++i) {
     swapchains_[i] = std::make_unique<Swapchain>(context_, i, *windows().at(i));
     per_frame_commands_[i] =
@@ -295,9 +297,10 @@ std::unique_ptr<ir::RenderPass> Renderer::CreateRenderPass(
   return std::make_unique<DynamicRenderPass>(context_, std::move(descriptor));
 }
 
-bool Renderer::RenderFrame(
-    int window_index, ir::RenderPass& pass,
-    const std::function<void(ir::CommandRecorder&)>& record_draw) {
+bool Renderer::RunWindowCommandBuffer(
+    int window_index,
+    const std::function<void(intl::CommandBuffer, int frame_index,
+                             uint32_t image_index)>& record_commands) {
   const common::Window& window = *windows().at(window_index);
   const Swapchain& swapchain = *swapchains_.at(window_index);
   if (window.is_resized() ||
@@ -306,12 +309,11 @@ bool Renderer::RenderFrame(
     return false;
   }
 
-  auto& dynamic_pass = static_cast<DynamicRenderPass&>(pass);
   const int frame_index = current_frames_[window_index];
   const bool presented = per_frame_commands_[window_index]->Run(
       frame_index, swapchain,
       [&](intl::CommandBuffer cmd, uint32_t image_index) {
-        dynamic_pass.RecordFrame(cmd, swapchain, image_index, record_draw);
+        record_commands(cmd, frame_index, image_index);
       });
   current_frames_[window_index] = (frame_index + 1) % kNumFramesInFlight;
 
@@ -320,6 +322,34 @@ bool Renderer::RenderFrame(
     return false;
   }
   return true;
+}
+
+bool Renderer::RenderFrame(
+    int window_index, ir::RenderPass& pass,
+    const std::function<void(ir::CommandRecorder&)>& record_draw) {
+  const Swapchain& swapchain = *swapchains_.at(window_index);
+  auto& dynamic_pass = static_cast<DynamicRenderPass&>(pass);
+  return RunWindowCommandBuffer(
+      window_index,
+      [&](intl::CommandBuffer cmd, int /*frame_index*/, uint32_t image_index) {
+        dynamic_pass.RecordFrame(cmd, swapchain, image_index, record_draw);
+      });
+}
+
+bool Renderer::RenderFrame(int window_index, ir::RenderGraph& graph) {
+  std::vector<const Swapchain*> swapchain_ptrs(swapchains_.size(), nullptr);
+  for (size_t i = 0; i < swapchains_.size(); ++i) {
+    swapchain_ptrs[i] = swapchains_[i].get();
+  }
+  std::vector<uint32_t> acquired_indices(swapchains_.size(), 0);
+
+  return RunWindowCommandBuffer(
+      window_index,
+      [&](intl::CommandBuffer cmd, int frame_index, uint32_t image_index) {
+        acquired_indices[window_index] = image_index;
+        render_graph_executor_->Execute(cmd, frame_index, graph, swapchain_ptrs,
+                                        acquired_indices);
+      });
 }
 
 }  // namespace lighter::renderer::vk

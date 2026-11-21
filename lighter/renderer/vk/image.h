@@ -88,6 +88,8 @@ class OwnedImage : public WithSharedContext, public Image {
       const glm::ivec2& extent, ir::MultisamplingMode multisampling_mode,
       std::span<const ir::ImageUsage> usages);
 
+  static intl::Format GetDepthStencilFormat(const Context& context);
+
   static std::unique_ptr<OwnedImage> CreateTransient(
       const SharedContext& context, std::string_view name,
       const glm::ivec2& extent, intl::Format format,

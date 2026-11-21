@@ -26,6 +26,7 @@
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/ir/pass.h"
 #include "lighter/renderer/ir/pipeline.h"
+#include "lighter/renderer/ir/render_graph.h"
 #include "lighter/renderer/ir/type.h"
 
 namespace lighter::renderer::ir {
@@ -88,6 +89,10 @@ class Renderer {
   virtual bool RenderFrame(
       int window_index, RenderPass& pass,
       const std::function<void(CommandRecorder&)>& record_draw) = 0;
+
+  // Compiles and executes 'graph' for one frame to 'window_index', returning
+  // false if the swapchain was recreated during this call.
+  virtual bool RenderFrame(int window_index, RenderGraph& graph) = 0;
 
   // Blocks until all queued GPU work completes.
   virtual void WaitIdle() = 0;

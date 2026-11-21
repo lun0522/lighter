@@ -21,6 +21,7 @@
 #include "lighter/common/image.h"
 #include "lighter/renderer/ir/buffer_usage.h"
 #include "lighter/renderer/ir/image_usage.h"
+#include "lighter/renderer/ir/render_graph.h"
 #include "lighter/renderer/ir/renderer.h"
 #include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/vk/buffer.h"
@@ -28,6 +29,7 @@
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/image.h"
 #include "lighter/renderer/vk/pipeline.h"
+#include "lighter/renderer/vk/render_graph.h"
 #include "lighter/renderer/vk/swapchain.h"
 
 namespace lighter::renderer::vk {
@@ -109,13 +111,25 @@ class Renderer : public WithSharedContext, public ir::Renderer {
       int window_index, ir::RenderPass& pass,
       const std::function<void(ir::CommandRecorder&)>& record_draw) override;
 
+  bool RenderFrame(int window_index, ir::RenderGraph& graph) override;
+
+  const std::string& last_render_graph_graphviz() const {
+    return render_graph_executor_->last_graphviz();
+  }
+
   void WaitIdle() override { context_->WaitIdle(); }
 
  private:
+  bool RunWindowCommandBuffer(
+      int window_index,
+      const std::function<void(intl::CommandBuffer, int frame_index,
+                               uint32_t image_index)>& record_commands);
+
   void RecreateSwapchain(int window_index);
 
   std::vector<std::unique_ptr<Swapchain>> swapchains_;
   std::vector<std::unique_ptr<PerFrameCommand>> per_frame_commands_;
+  std::unique_ptr<RenderGraphExecutor> render_graph_executor_;
   std::vector<int> current_frames_;
 };
 

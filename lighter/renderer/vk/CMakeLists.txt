@@ -184,6 +184,29 @@ target_link_libraries(lighter_renderer_vk_pipeline_cache
     lighter_renderer_vk_util
 )
 
+add_library(lighter_renderer_vk_render_graph STATIC
+  render_graph.cc
+  render_graph.h
+)
+target_link_libraries(lighter_renderer_vk_render_graph
+  PUBLIC
+    lighter_project_options
+    lighter_common_util
+    lighter_renderer_ir_image
+    lighter_renderer_ir_pipeline
+    lighter_renderer_ir_render_graph
+    lighter_renderer_ir_type
+    lighter_renderer_vk_buffer
+    lighter_renderer_vk_context
+    lighter_renderer_vk_image
+    lighter_renderer_vk_pipeline
+    lighter_renderer_vk_pipeline_cache
+    lighter_renderer_vk_swapchain
+    lighter_renderer_vk_transient_resource_pool
+    lighter_renderer_vk_type_mapping
+    lighter_renderer_vk_util
+)
+
 add_library(lighter_renderer_vk_renderer STATIC
   renderer.cc
   renderer.h
@@ -195,6 +218,7 @@ target_link_libraries(lighter_renderer_vk_renderer
     lighter_common_window
     lighter_renderer_ir_buffer_usage
     lighter_renderer_ir_image_usage
+    lighter_renderer_ir_render_graph
     lighter_renderer_ir_renderer
     lighter_renderer_ir_type
     lighter_renderer_vk_buffer
@@ -202,6 +226,7 @@ target_link_libraries(lighter_renderer_vk_renderer
     lighter_renderer_vk_context
     lighter_renderer_vk_image
     lighter_renderer_vk_pipeline
+    lighter_renderer_vk_render_graph
     lighter_renderer_vk_swapchain
     glm::glm
 )
