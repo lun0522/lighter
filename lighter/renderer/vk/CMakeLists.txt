@@ -38,10 +38,10 @@ target_link_libraries(lighter_renderer_vk_property_checker
 )
 
 add_library(lighter_renderer_vk_context STATIC
-  basic.cc
-  basic.h
   context.cc
   context.h
+  core.cc
+  core.h
 )
 target_compile_definitions(lighter_renderer_vk_context
   PUBLIC

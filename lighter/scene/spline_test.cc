@@ -152,5 +152,41 @@ TEST(SplineEditorTest, EnforcesBoundsAndRebuildsSpline) {
   EXPECT_EQ(editor.control_points().size(), 3u);
 }
 
+TEST(SplineEditorTest, FindClosestInsertionIndexSplitsIntendedSegment) {
+  // P0 (0.0) and P1 (0.15) are close together while P2 (1.6) is much farther.
+  // Clicking at 0.25 lies between P1 and P2 even though it is closer to P0
+  // than to P2; insertion must still split P1 -> P2 (index 2).
+  std::vector<glm::vec3> controls{
+      PointOnEquator(0.0f),
+      PointOnEquator(0.15f),
+      PointOnEquator(1.6f),
+      PointOnEquator(3.2f),
+  };
+
+  SplineEditor editor{
+      /*min_num_control_points=*/3,
+      /*max_num_control_points=*/8,
+      std::move(controls),
+      CatmullRomSpline::GetOnSphereSpline(
+          /*max_recursion_depth=*/20, /*roughness=*/1E-2f),
+  };
+
+  const glm::vec3 click_between_1_and_2 = PointOnEquator(0.25f);
+  EXPECT_EQ(editor.FindClosestInsertionIndex(click_between_1_and_2), 2);
+
+  // Clicking near the closing wraparound segment P3 -> P0 inserts at index 0
+  // (splitting P3 -> P0).
+  const glm::vec3 click_between_3_and_0 = PointOnEquator(4.5f);
+  EXPECT_EQ(editor.FindClosestInsertionIndex(click_between_3_and_0), 0);
+
+  // When a visibility filter hides the P1 -> P2 region, only visible segments
+  // are considered.
+  const auto front_only = [](const glm::vec3& p) { return p.z < 0.0f; };
+  const std::optional<int> visible_index =
+      editor.FindClosestInsertionIndex(click_between_1_and_2, front_only);
+  ASSERT_TRUE(visible_index.has_value());
+  EXPECT_NE(*visible_index, 2);
+}
+
 }  // namespace
 }  // namespace lighter::scene

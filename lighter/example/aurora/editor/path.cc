@@ -508,47 +508,16 @@ bool AuroraPath::InsertControlPoint(int path_index,
     return false;
   }
 
-  const auto& control_points = editor.control_points();
-  const int count = static_cast<int>(control_points.size());
   const float model_center_depth =
       TransformPoint(proj_view_model, model_center).z;
-  const glm::vec2 click_pos_ndc =
-      TransformPoint(proj_view_model, click_object_space);
-
-  struct ClosestPoint {
-    int index;
-    glm::vec2 pos_ndc;
+  const auto is_point_visible = [&proj_view_model,
+                                 model_center_depth](const glm::vec3& p) {
+    return TransformPoint(proj_view_model, p).z < model_center_depth;
   };
-  std::optional<ClosestPoint> closest_control_point;
-  for (int i = 0; i < count; ++i) {
-    const glm::vec3 control_point_ndc =
-        TransformPoint(proj_view_model, control_points[static_cast<size_t>(i)]);
-    if (control_point_ndc.z >= model_center_depth) {
-      continue;
-    }
-    if (!closest_control_point.has_value() ||
-        glm::distance(click_pos_ndc, glm::vec2{control_point_ndc}) <
-            glm::distance(click_pos_ndc, closest_control_point->pos_ndc)) {
-      closest_control_point = ClosestPoint{i, glm::vec2{control_point_ndc}};
-    }
-  }
-
-  if (closest_control_point.has_value()) {
-    const int prev_point_index =
-        (closest_control_point->index + count - 1) % count;
-    const int next_point_index = (closest_control_point->index + 1) % count;
-    const float prev_point_distance =
-        glm::distance(control_points[static_cast<size_t>(prev_point_index)],
-                      click_object_space);
-    const float next_point_distance =
-        glm::distance(control_points[static_cast<size_t>(next_point_index)],
-                      click_object_space);
-    const int insert_at_index = prev_point_distance < next_point_distance
-                                    ? closest_control_point->index
-                                    : next_point_index;
-    return editor.InsertControlPoint(insert_at_index, click_object_space);
-  }
-  return false;
+  const std::optional<int> insert_at_index =
+      editor.FindClosestInsertionIndex(click_object_space, is_point_visible);
+  return insert_at_index.has_value() &&
+         editor.InsertControlPoint(*insert_at_index, click_object_space);
 }
 
 }  // namespace lighter::example::aurora

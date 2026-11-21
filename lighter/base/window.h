@@ -25,6 +25,7 @@ namespace window_callback {
 
 // Since GLFW requires C-style function callbacks, we use these functions to
 // wrap the real callbacks stored in the Window instance.
+void GlfwWindowFocusCallback(GLFWwindow* window, int focused);
 void GlfwResizeWindowCallback(GLFWwindow* window, int width, int height);
 void GlfwMoveCursorCallback(GLFWwindow* window, double x_pos, double y_pos);
 void GlfwScrollCallback(GLFWwindow* window, double x_pos, double y_pos);
@@ -131,6 +132,7 @@ class Window {
   float original_aspect_ratio() const { return original_aspect_ratio_; }
 
  private:
+  friend void window_callback::GlfwWindowFocusCallback(GLFWwindow*, int);
   friend void window_callback::GlfwResizeWindowCallback(GLFWwindow*, int, int);
   friend void window_callback::GlfwMoveCursorCallback(GLFWwindow*, double,
                                                       double);
@@ -139,7 +141,11 @@ class Window {
                                                        int button, int action,
                                                        int mods);
 
+  // Updates actual GLFW cursor capture state when 'cursor_hidden_' is enabled.
+  void CaptureCursor(bool capture);
+
   // These functions handles window events and invoke callbacks if necessary.
+  void DidFocusChange(bool focused);
   void DidResizeWindow();
   void DidMoveCursor(double x_pos, double y_pos);
   void DidScroll(double x_pos, double y_pos);
@@ -150,6 +156,21 @@ class Window {
 
   // Whether the window has been resized.
   bool is_resized_ = false;
+
+  // Whether callers want cursor capture/hiding when interacting with the view.
+  bool cursor_hidden_ = false;
+
+  // Whether GLFW_CURSOR_DISABLED is currently active on 'window_'. Released on
+  // focus loss and re-armed only on client-area clicks so title-bar drags work.
+  bool cursor_captured_ = false;
+
+  // Absorbs the first cursor event after capturing to avoid camera jumps.
+  bool reset_cursor_delta_ = false;
+
+  // Raw GLFW cursor position and accumulated virtual position emitted while
+  // 'cursor_hidden_' is active.
+  glm::dvec2 last_glfw_cursor_pos_{0.0};
+  glm::dvec2 emitted_cursor_pos_{0.0};
 
   // Pointer to the backing GLFWwindow.
   GLFWwindow* window_ = nullptr;

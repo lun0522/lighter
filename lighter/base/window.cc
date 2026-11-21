@@ -48,6 +48,9 @@ void GlfwErrorCallback(int error, const char* description) {
 Window& GetWindow(GLFWwindow* window) {
   return *static_cast<Window*>(glfwGetWindowUserPointer(window));
 }
+void GlfwWindowFocusCallback(GLFWwindow* window, int focused) {
+  GetWindow(window).DidFocusChange(focused == GLFW_TRUE);
+}
 void GlfwResizeWindowCallback(GLFWwindow* window, int width, int height) {
   GetWindow(window).DidResizeWindow();
 }
@@ -82,6 +85,7 @@ Window::Window(std::string_view name, const glm::ivec2& screen_size)
   }
 
   glfwSetWindowUserPointer(window_, this);
+  glfwSetWindowFocusCallback(window_, window_callback::GlfwWindowFocusCallback);
   glfwSetFramebufferSizeCallback(window_,
                                  window_callback::GlfwResizeWindowCallback);
   glfwSetCursorPosCallback(window_, window_callback::GlfwMoveCursorCallback);
@@ -97,8 +101,16 @@ Window::CreateSurfaceFunc Window::GetCreateSurfaceFunc() const {
 }
 
 Window& Window::SetCursorHidden(bool hidden) {
-  glfwSetInputMode(window_, GLFW_CURSOR,
-                   hidden ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+  cursor_hidden_ = hidden;
+  if (!hidden) {
+    CaptureCursor(false);
+    return *this;
+  }
+
+  glfwGetCursorPos(window_, &emitted_cursor_pos_.x, &emitted_cursor_pos_.y);
+  const bool is_focused =
+      glfwGetWindowAttrib(window_, GLFW_FOCUSED) == GLFW_TRUE;
+  CaptureCursor(is_focused);
   return *this;
 }
 
@@ -187,6 +199,9 @@ glm::ivec2 Window::GetFrameSize() const {
 }
 
 glm::dvec2 Window::GetCursorPos() const {
+  if (cursor_hidden_) {
+    return emitted_cursor_pos_;
+  }
   glm::dvec2 pos;
   glfwGetCursorPos(window_, &pos.x, &pos.y);
   return pos;
@@ -202,9 +217,48 @@ glm::dvec2 Window::GetNormalizedCursorPos() const {
   return normalized_cursor_pos;
 }
 
+void Window::CaptureCursor(bool capture) {
+  if (cursor_captured_ == capture) {
+    return;
+  }
+  cursor_captured_ = capture;
+  if (capture) {
+    reset_cursor_delta_ = true;
+    glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  } else {
+    glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+  }
+}
+
+void Window::DidFocusChange(bool focused) {
+  if (!focused) {
+    // Release cursor capture when unfocused so subsequent clicks on the title
+    // bar to drag or resize the window do not immediately re-lock the pointer.
+    CaptureCursor(false);
+  }
+}
+
 void Window::DidResizeWindow() { is_resized_ = true; }
 
 void Window::DidMoveCursor(double x_pos, double y_pos) {
+  if (cursor_hidden_) {
+    if (!cursor_captured_) {
+      return;
+    }
+    const glm::dvec2 current{x_pos, y_pos};
+    if (reset_cursor_delta_) {
+      last_glfw_cursor_pos_ = current;
+      reset_cursor_delta_ = false;
+      return;
+    }
+    emitted_cursor_pos_ += current - last_glfw_cursor_pos_;
+    last_glfw_cursor_pos_ = current;
+    if (move_cursor_callback_ != nullptr) {
+      move_cursor_callback_(emitted_cursor_pos_.x, emitted_cursor_pos_.y);
+    }
+    return;
+  }
+
   if (move_cursor_callback_ != nullptr) {
     move_cursor_callback_(x_pos, y_pos);
   }
@@ -217,6 +271,17 @@ void Window::DidScroll(double x_pos, double y_pos) {
 }
 
 void Window::DidClickMouse(bool is_left, bool is_press) {
+  if (cursor_hidden_ && !cursor_captured_ && is_press &&
+      glfwGetWindowAttrib(window_, GLFW_FOCUSED) == GLFW_TRUE) {
+    glm::dvec2 raw_pos;
+    glfwGetCursorPos(window_, &raw_pos.x, &raw_pos.y);
+    const glm::ivec2 window_size = GetWindowSize();
+    if (raw_pos.x >= 0.0 && raw_pos.x < window_size.x && raw_pos.y >= 0.0 &&
+        raw_pos.y < window_size.y) {
+      CaptureCursor(true);
+      return;
+    }
+  }
   if (mouse_button_callback_) {
     mouse_button_callback_(is_left, is_press);
   }

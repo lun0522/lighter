@@ -11,6 +11,7 @@
 #include <cmath>
 #include <format>
 #include <glm/gtx/vector_angle.hpp>
+#include <limits>
 
 #include "lighter/base/util.h"
 
@@ -144,11 +145,21 @@ void CatmullRomSpline::BuildSpline(std::span<const glm::vec3> control_points) {
                   kMinNumControlPoints, num_control_points));
 
   mutable_splines()->clear();
+  mutable_segment_ranges()->clear();
   for (int i = 0; i < num_control_points; ++i) {
+    const int start_control_point = (i + 1) % num_control_points;
+    const int end_control_point = (i + 2) % num_control_points;
+    const size_t start_spline_index = spline_points().size();
     Tessellate(control_points[(i + 0) % num_control_points],
-               control_points[(i + 1) % num_control_points],
-               control_points[(i + 2) % num_control_points],
+               control_points[static_cast<size_t>(start_control_point)],
+               control_points[static_cast<size_t>(end_control_point)],
                control_points[(i + 3) % num_control_points]);
+    mutable_segment_ranges()->push_back(SegmentRange{
+        .start_control_point = start_control_point,
+        .end_control_point = end_control_point,
+        .start_spline_index = start_spline_index,
+        .end_spline_index = spline_points().size(),
+    });
   }
   // Close the spline.
   mutable_splines()->push_back(spline_points()[0]);
@@ -167,6 +178,76 @@ SplineEditor::SplineEditor(int min_num_control_points,
 
 bool SplineEditor::CanInsertControlPoint() const {
   return control_points_.size() != max_num_control_points_;
+}
+
+std::optional<int> SplineEditor::FindClosestInsertionIndex(
+    const glm::vec3& position,
+    const std::function<bool(const glm::vec3&)>& is_point_visible) const {
+  const auto& pts = spline_->spline_points();
+  const auto& ranges = spline_->segment_ranges();
+  if (pts.size() < 2 || ranges.empty()) {
+    return std::nullopt;
+  }
+
+  constexpr float kDistTieTolerance = 1E-4f;
+  std::optional<int> best_insert_index;
+  float best_dist = std::numeric_limits<float>::max();
+  // Higher when the click lies in the half-space leaving the closest endpoint
+  // along that segment; breaks ties cleanly at shared corner vertices.
+  float best_alignment = -std::numeric_limits<float>::max();
+
+  for (const Spline::SegmentRange& range : ranges) {
+    float seg_best_dist = std::numeric_limits<float>::max();
+    float seg_best_alignment = -std::numeric_limits<float>::max();
+
+    for (size_t k = range.start_spline_index;
+         k < range.end_spline_index && k + 1 < pts.size(); ++k) {
+      const glm::vec3& a = pts[k];
+      const glm::vec3& b = pts[k + 1];
+      if (is_point_visible && !is_point_visible(a) && !is_point_visible(b)) {
+        continue;
+      }
+
+      const glm::vec3 ab = b - a;
+      const float ab_len_sq = glm::dot(ab, ab);
+      const float t =
+          ab_len_sq > kEpsilon * kEpsilon
+              ? std::clamp(glm::dot(position - a, ab) / ab_len_sq, 0.0f, 1.0f)
+              : 0.0f;
+      const glm::vec3 closest = a + t * ab;
+      const float dist = glm::distance(position, closest);
+
+      float alignment = 0.0f;
+      const glm::vec3 to_pos = position - closest;
+      const float to_pos_len_sq = glm::dot(to_pos, to_pos);
+      if (to_pos_len_sq > kEpsilon * kEpsilon &&
+          ab_len_sq > kEpsilon * kEpsilon) {
+        const glm::vec3 to_pos_dir = to_pos / std::sqrt(to_pos_len_sq);
+        const glm::vec3 ab_dir = ab / std::sqrt(ab_len_sq);
+        if (t <= kEpsilon) {
+          alignment = glm::dot(to_pos_dir, ab_dir);
+        } else if (t >= 1.0f - kEpsilon) {
+          alignment = glm::dot(to_pos_dir, -ab_dir);
+        }
+      }
+
+      if (dist + kDistTieTolerance < seg_best_dist ||
+          (std::abs(dist - seg_best_dist) <= kDistTieTolerance &&
+           alignment > seg_best_alignment)) {
+        seg_best_dist = dist;
+        seg_best_alignment = alignment;
+      }
+    }
+
+    if (seg_best_dist + kDistTieTolerance < best_dist ||
+        (std::abs(seg_best_dist - best_dist) <= kDistTieTolerance &&
+         seg_best_alignment > best_alignment)) {
+      best_dist = seg_best_dist;
+      best_alignment = seg_best_alignment;
+      best_insert_index = range.end_control_point;
+    }
+  }
+  return best_insert_index;
 }
 
 bool SplineEditor::InsertControlPoint(int index, const glm::vec3& position) {

@@ -14,8 +14,8 @@
 
 #include "lighter/base/util.h"
 #include "lighter/renderer/ir/type.h"
-#include "lighter/renderer/vk/basic.h"
 #include "lighter/renderer/vk/context.h"
+#include "lighter/renderer/vk/core.h"
 #include "lighter/renderer/vk/image.h"
 #include "lighter/renderer/vk/util.h"
 

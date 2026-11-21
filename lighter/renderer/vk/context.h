@@ -21,7 +21,7 @@
 #include "lighter/base/util.h"
 #include "lighter/base/window.h"
 #include "lighter/renderer/ir/type.h"
-#include "lighter/renderer/vk/basic.h"
+#include "lighter/renderer/vk/core.h"
 
 namespace lighter::renderer::vk {
 

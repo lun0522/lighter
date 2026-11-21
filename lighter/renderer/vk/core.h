@@ -1,12 +1,12 @@
 //
-//  basic.h
+//  core.h
 //
 //  Created by Pujun Lun on 10/22/20.
 //  Copyright © 2019 Pujun Lun. All rights reserved.
 //
 
-#ifndef LIGHTER_RENDERER_VK_BASIC_H
-#define LIGHTER_RENDERER_VK_BASIC_H
+#ifndef LIGHTER_RENDERER_VK_CORE_H
+#define LIGHTER_RENDERER_VK_CORE_H
 
 #include <optional>
 #include <span>
@@ -229,4 +229,4 @@ class Queues {
 
 }  // namespace lighter::renderer::vk
 
-#endif  // LIGHTER_RENDERER_VK_BASIC_H
+#endif  // LIGHTER_RENDERER_VK_CORE_H

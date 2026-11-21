@@ -8,9 +8,11 @@
 #ifndef LIGHTER_SCENE_SPLINE_H
 #define LIGHTER_SCENE_SPLINE_H
 
+#include <cstddef>
 #include <functional>
 #include <glm/glm.hpp>
 #include <memory>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -21,6 +23,15 @@ namespace lighter::scene {
 // splines using control points, but do not own control points.
 class Spline {
  public:
+  // Index span [start_spline_index, end_spline_index) in 'spline_points()'
+  // connecting 'start_control_point' to 'end_control_point'.
+  struct SegmentRange {
+    int start_control_point = 0;
+    int end_control_point = 0;
+    size_t start_spline_index = 0;
+    size_t end_spline_index = 0;
+  };
+
   // This class is neither copyable nor movable.
   Spline(const Spline&) = delete;
   Spline& operator=(const Spline&) = delete;
@@ -33,16 +44,25 @@ class Spline {
 
   // Accessors.
   const std::vector<glm::vec3>& spline_points() const { return spline_points_; }
+  const std::vector<SegmentRange>& segment_ranges() const {
+    return segment_ranges_;
+  }
 
  protected:
   Spline() = default;
 
   // Accessors.
   std::vector<glm::vec3>* mutable_splines() { return &spline_points_; }
+  std::vector<SegmentRange>* mutable_segment_ranges() {
+    return &segment_ranges_;
+  }
 
  private:
   // Positions of spline points.
   std::vector<glm::vec3> spline_points_;
+
+  // Control-point index mapping for each tessellated segment.
+  std::vector<SegmentRange> segment_ranges_;
 };
 
 // This class provides functions to build a bezier spline recursively:
@@ -128,6 +148,13 @@ class SplineEditor {
 
   // Returns whether we can insert any more control points.
   bool CanInsertControlPoint() const;
+
+  // Returns the insertion index that splits the spline segment closest to
+  // 'position', optionally filtering to segments visible per
+  // 'is_point_visible'. Returns std::nullopt if no eligible segment is found.
+  std::optional<int> FindClosestInsertionIndex(
+      const glm::vec3& position,
+      const std::function<bool(const glm::vec3&)>& is_point_visible = {}) const;
 
   // Inserts a new control point at 'index'.
   bool InsertControlPoint(int index, const glm::vec3& position);

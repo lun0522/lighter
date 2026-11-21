@@ -41,6 +41,8 @@ const float aurora_max_height = 300.0 * km;
 const float min_dt = 2.0 * km;
 // Scaling factor for sampled aurora color.
 const float aurora_scale = min_dt / (40.0 * km);
+// Maximum per-channel brightness before tone compression preserves hue.
+const float max_aurora_brightness = 0.85;
 // t value for a miss ray.
 const float miss_t = 100.0;
 const vec3 air_color = 0.002 * vec3(0.4, 0.5, 0.7);
@@ -108,7 +110,16 @@ vec3 SampleAurora(Ray ray, SpanT span) {
                                      ProjectToPlane(sample_point)).r;
     t += max(dist, min_dt);
   }
-  return sum * aurora_scale;
+  // Softly compress accumulated intensity using the peak channel so grazing
+  // rays and overlapping curtains stay vibrant instead of clipping to white.
+  const vec3 raw_color = sum * aurora_scale;
+  const float peak = max(raw_color.r, max(raw_color.g, raw_color.b));
+  if (peak <= 1e-5) {
+    return vec3(0.0);
+  }
+  const float compressed_peak =
+      max_aurora_brightness * (1.0 - exp(-peak / max_aurora_brightness));
+  return raw_color * (compressed_peak / peak);
 }
 
 void main() {
@@ -138,7 +149,8 @@ void main() {
                           (1.0 - air_transmit) * air_color;
   const vec3 background = texture(universe_skybox_sampler, normalized_dir).rgb;
   // No need to convert to sRGB since hardware will perform it automatically.
-  frag_color = vec4(foreground + (1.0 - length(foreground)) * background, 1.0);
+  const float background_weight = max(1.0 - length(foreground), 0.0);
+  frag_color = vec4(foreground + background_weight * background, 1.0);
 
   // Assume reflectance is 0.3.
   if (cos_angle < 0.0) {

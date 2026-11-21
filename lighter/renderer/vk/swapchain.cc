@@ -175,6 +175,8 @@ Swapchain::Swapchain(const SharedContext& context, int window_index,
 
   format_ = surface_format.format;
   extent_ = image_extent;
+  LOG_INFO << std::format("Swapchain {} extent: {}x{}", window_index,
+                          extent_.width, extent_.height);
   images_ = vk_device().getSwapchainImagesKHR(swapchain_);
   image_views_.reserve(images_.size());
   frame_images_.reserve(images_.size());
