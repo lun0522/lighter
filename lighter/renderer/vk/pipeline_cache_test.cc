@@ -78,9 +78,8 @@ TEST(PipelineCacheKeyTest, DefaultConstructedDescriptorHasDeterministicState) {
   std::memset(dirty_storage, 0xA5, sizeof(dirty_storage));
   auto* dirty_default = new (dirty_storage) ir::GraphicsPipelineDescriptor;
 
-  EXPECT_FALSE(dirty_default->depth_test.enable_test);
-  EXPECT_FALSE(dirty_default->depth_test.enable_write);
-  EXPECT_FALSE(dirty_default->stencil_test.enable_test);
+  EXPECT_FALSE(dirty_default->depth_test.has_value());
+  EXPECT_FALSE(dirty_default->stencil_test.has_value());
 
   const ir::GraphicsPipelineDescriptor value_init{};
   const Pipeline::RenderingInfo info{
@@ -91,6 +90,19 @@ TEST(PipelineCacheKeyTest, DefaultConstructedDescriptorHasDeterministicState) {
             MakeGraphicsPipelineCacheKey(value_init,
                                          intl::SampleCountFlagBits::e1, info));
   dirty_default->~GraphicsPipelineDescriptor();
+
+  auto with_depth = value_init;
+  with_depth.EnableDepthTestOnly();
+  auto with_stencil = value_init;
+  with_stencil.EnableStencilTest({}, {});
+  EXPECT_NE(MakeGraphicsPipelineCacheKey(value_init,
+                                         intl::SampleCountFlagBits::e1, info),
+            MakeGraphicsPipelineCacheKey(with_depth,
+                                         intl::SampleCountFlagBits::e1, info));
+  EXPECT_NE(MakeGraphicsPipelineCacheKey(value_init,
+                                         intl::SampleCountFlagBits::e1, info),
+            MakeGraphicsPipelineCacheKey(with_stencil,
+                                         intl::SampleCountFlagBits::e1, info));
 }
 
 }  // namespace

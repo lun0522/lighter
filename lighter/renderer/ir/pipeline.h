@@ -66,7 +66,6 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
 
   // Depth comparison and depth-write settings for rasterization.
   struct DepthTest {
-    bool enable_test = false;
     bool enable_write = false;
     CompareOp compare_op = CompareOp::kLess;
   };
@@ -91,7 +90,6 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
       kNumFaces,
     };
 
-    bool enable_test = false;
     StencilTestOneFace tests[kNumFaces]{};
   };
 
@@ -143,20 +141,18 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
   }
   GraphicsPipelineDescriptor& EnableDepthTestOnly(
       CompareOp compare_op = CompareOp::kLessEqual) {
-    depth_test = {/*enable_test=*/true, /*enable_write=*/false, compare_op};
+    depth_test = DepthTest{/*enable_write=*/false, compare_op};
     return *this;
   }
   GraphicsPipelineDescriptor& EnableDepthTestAndWrite(
       CompareOp compare_op = CompareOp::kLessEqual) {
-    depth_test = {/*enable_test=*/true, /*enable_write=*/true, compare_op};
+    depth_test = DepthTest{/*enable_write=*/true, compare_op};
     return *this;
   }
   GraphicsPipelineDescriptor& EnableStencilTest(
       const StencilTestOneFace& front_face_test,
       const StencilTestOneFace& back_face_test) {
-    stencil_test.enable_test = true;
-    stencil_test.tests[StencilTest::kFrontFaceIndex] = front_face_test;
-    stencil_test.tests[StencilTest::kBackFaceIndex] = back_face_test;
+    stencil_test = StencilTest{{front_face_test, back_face_test}};
     return *this;
   }
   GraphicsPipelineDescriptor& SetViewport(const Viewport& viewport,
@@ -173,8 +169,8 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
   std::unordered_map<shader_stage::ShaderStage, std::string> shader_path_map;
   std::unordered_map<int, std::optional<ColorBlend>> color_attachment_map;
   std::vector<VertexBufferView> vertex_buffer_views;
-  DepthTest depth_test;
-  StencilTest stencil_test;
+  std::optional<DepthTest> depth_test;
+  std::optional<StencilTest> stencil_test;
   ViewportConfig viewport_config;
   PrimitiveTopology primitive_topology = PrimitiveTopology::kTriangleList;
 };

@@ -75,6 +75,11 @@ std::string ExportGraphviz(
     const RenderGraph& graph, const CompiledRenderGraph& compiled,
     std::span<const GraphvizBarrierNote> barrier_notes = {});
 
+// Validates that 'descriptor' is compatible with the attachments and
+// depth/stencil operations declared on graphics pass 'pass'.
+void ValidateGraphicsPipelineForPass(
+    const PassNode& pass, const GraphicsPipelineDescriptor& descriptor);
+
 }  // namespace lighter::renderer::ir::render_graph
 
 #endif  // LIGHTER_RENDERER_IR_RENDER_GRAPH_UTIL_H

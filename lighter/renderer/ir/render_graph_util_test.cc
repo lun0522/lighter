@@ -120,5 +120,75 @@ TEST(RenderGraphUtilTest, ExportGraphvizIncludesLiveCulledAndAnnotations) {
   EXPECT_NE(dot.find("swapchain_0 final"), std::string::npos);
 }
 
+TEST(RenderGraphUtilTest,
+     ValidateGraphicsPipelineForPassRejectsMismatchedAttachments) {
+  PassNode pass;
+  pass.name = "MainPass";
+  pass.type = PassType::kGraphics;
+  pass.color_attachments.push_back(ColorAttachmentDesc{.location = 0});
+
+  const auto valid_color =
+      GraphicsPipelineDescriptor{}.SetName("Color").UseColorAttachment(
+          0, std::nullopt);
+  EXPECT_NO_THROW(ValidateGraphicsPipelineForPass(pass, valid_color));
+
+  const auto wrong_color_loc = GraphicsPipelineDescriptor{}
+                                   .SetName("BadColor")
+                                   .UseColorAttachment(1, std::nullopt);
+  EXPECT_THROW(ValidateGraphicsPipelineForPass(pass, wrong_color_loc),
+               std::runtime_error);
+
+  const auto depth_pipeline =
+      GraphicsPipelineDescriptor{}.SetName("Depth").EnableDepthTestAndWrite();
+  EXPECT_THROW(ValidateGraphicsPipelineForPass(pass, depth_pipeline),
+               std::runtime_error);
+
+  // Depth-only attachment (stencil ops left as kDontCare): depth passes,
+  // stencil must be rejected.
+  pass.depth_stencil_attachment = DepthStencilAttachmentDesc{
+      .depth_load_op = AttachmentLoadOp::kClear,
+      .depth_store_op = AttachmentStoreOp::kDontCare,
+      .stencil_load_op = AttachmentLoadOp::kDontCare,
+      .stencil_store_op = AttachmentStoreOp::kDontCare,
+  };
+  EXPECT_NO_THROW(ValidateGraphicsPipelineForPass(pass, depth_pipeline));
+
+  const auto stencil_read_pipeline =
+      GraphicsPipelineDescriptor{}
+          .SetName("StencilRead")
+          .EnableStencilTest({.compare_op = CompareOp::kNotEqual,
+                              .compare_mask = 0xFF,
+                              .write_mask = 0x00,
+                              .reference = 1},
+                             {});
+  EXPECT_THROW(ValidateGraphicsPipelineForPass(pass, stencil_read_pipeline),
+               std::runtime_error);
+
+  // Enabling stencil load/store ops on the pass allows stencil testing.
+  pass.depth_stencil_attachment->stencil_load_op = AttachmentLoadOp::kClear;
+  EXPECT_NO_THROW(ValidateGraphicsPipelineForPass(pass, stencil_read_pipeline));
+
+  const auto stencil_write_pipeline =
+      GraphicsPipelineDescriptor{}
+          .SetName("StencilWrite")
+          .EnableStencilTest({.stencil_and_depth_pass_op = StencilOp::kReplace,
+                              .write_mask = 0xFF,
+                              .reference = 1},
+                             {});
+  EXPECT_NO_THROW(
+      ValidateGraphicsPipelineForPass(pass, stencil_write_pipeline));
+
+  // Read-only attachment still permits depth/stencil reads, rejects writes.
+  pass.depth_stencil_attachment->read_only = true;
+  const auto depth_read_pipeline =
+      GraphicsPipelineDescriptor{}.SetName("DepthRead").EnableDepthTestOnly();
+  EXPECT_NO_THROW(ValidateGraphicsPipelineForPass(pass, depth_read_pipeline));
+  EXPECT_NO_THROW(ValidateGraphicsPipelineForPass(pass, stencil_read_pipeline));
+  EXPECT_THROW(ValidateGraphicsPipelineForPass(pass, depth_pipeline),
+               std::runtime_error);
+  EXPECT_THROW(ValidateGraphicsPipelineForPass(pass, stencil_write_pipeline),
+               std::runtime_error);
+}
+
 }  // namespace
 }  // namespace lighter::renderer::ir::render_graph

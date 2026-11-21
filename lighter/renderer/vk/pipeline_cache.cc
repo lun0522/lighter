@@ -91,16 +91,23 @@ std::string MakeGraphicsPipelineCacheKey(
     out << ';';
   }
 
-  out << descriptor.depth_test.enable_test << ','
-      << descriptor.depth_test.enable_write << ','
-      << static_cast<int>(descriptor.depth_test.compare_op) << ';';
-  out << descriptor.stencil_test.enable_test << ';';
-  for (const auto& face : descriptor.stencil_test.tests) {
-    out << static_cast<int>(face.stencil_fail_op) << ','
-        << static_cast<int>(face.stencil_and_depth_pass_op) << ','
-        << static_cast<int>(face.stencil_pass_depth_fail_op) << ','
-        << static_cast<int>(face.compare_op) << ',' << face.compare_mask << ','
-        << face.write_mask << ',' << face.reference << ';';
+  if (descriptor.depth_test.has_value()) {
+    out << "1," << descriptor.depth_test->enable_write << ','
+        << static_cast<int>(descriptor.depth_test->compare_op) << ';';
+  } else {
+    out << "0;";
+  }
+  if (descriptor.stencil_test.has_value()) {
+    out << "1;";
+    for (const auto& face : descriptor.stencil_test->tests) {
+      out << static_cast<int>(face.stencil_fail_op) << ','
+          << static_cast<int>(face.stencil_and_depth_pass_op) << ','
+          << static_cast<int>(face.stencil_pass_depth_fail_op) << ','
+          << static_cast<int>(face.compare_op) << ',' << face.compare_mask
+          << ',' << face.write_mask << ',' << face.reference << ';';
+    }
+  } else {
+    out << "0;";
   }
   out << descriptor.viewport_config.flip_y << ','
       << static_cast<int>(descriptor.primitive_topology) << ';';

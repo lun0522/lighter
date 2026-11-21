@@ -374,8 +374,23 @@ class VkPassContext : public ir::PassContext {
 
   void BindGraphicsPipeline(
       const ir::GraphicsPipelineDescriptor& descriptor) override {
-    ASSERT_TRUE(pass_.type == ir::PassType::kGraphics,
-                "BindGraphicsPipeline is only valid inside graphics passes");
+    ir::render_graph::ValidateGraphicsPipelineForPass(pass_, descriptor);
+    if (descriptor.depth_test.has_value()) {
+      ASSERT_TRUE(
+          rendering_info_.depth_attachment_format != intl::Format::eUndefined,
+          std::format("Pipeline '{}' enables depth test in pass '{}' "
+                      "whose depth/stencil attachment has no depth "
+                      "aspect",
+                      descriptor.pipeline_name, pass_.name));
+    }
+    if (descriptor.stencil_test.has_value()) {
+      ASSERT_TRUE(
+          rendering_info_.stencil_attachment_format != intl::Format::eUndefined,
+          std::format("Pipeline '{}' enables stencil test in pass '{}' "
+                      "whose depth/stencil attachment has no stencil "
+                      "aspect",
+                      descriptor.pipeline_name, pass_.name));
+    }
     bound_pipeline_ = &pipeline_cache_.GetOrCreateGraphicsPipeline(
         descriptor, sample_count_, rendering_info_);
     bound_pipeline_->Bind(cmd_);

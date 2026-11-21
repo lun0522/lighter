@@ -453,4 +453,70 @@ std::string ExportGraphviz(const RenderGraph& graph,
   return out.str();
 }
 
+void ValidateGraphicsPipelineForPass(
+    const PassNode& pass, const GraphicsPipelineDescriptor& descriptor) {
+  ASSERT_TRUE(pass.type == PassType::kGraphics,
+              std::format("Graphics pipeline '{}' bound in non-graphics pass "
+                          "'{}'",
+                          descriptor.pipeline_name, pass.name));
+
+  for (const auto& [location, _] : descriptor.color_attachment_map) {
+    const bool has_attachment = std::any_of(
+        pass.color_attachments.begin(), pass.color_attachments.end(),
+        [location](const ColorAttachmentDesc& attachment) {
+          return attachment.location == location;
+        });
+    ASSERT_TRUE(has_attachment,
+                std::format("Pipeline '{}' uses color attachment location {} "
+                            "which is not declared on pass '{}'",
+                            descriptor.pipeline_name, location, pass.name));
+  }
+
+  if (descriptor.depth_test.has_value()) {
+    ASSERT_HAS_VALUE(
+        pass.depth_stencil_attachment,
+        std::format("Pipeline '{}' enables depth test in pass '{}' which has "
+                    "no depth/stencil attachment",
+                    descriptor.pipeline_name, pass.name));
+    if (descriptor.depth_test->enable_write) {
+      ASSERT_FALSE(pass.depth_stencil_attachment->read_only,
+                   std::format("Pipeline '{}' writes depth in pass '{}' whose "
+                               "depth/stencil attachment is read-only",
+                               descriptor.pipeline_name, pass.name));
+    }
+  }
+
+  if (descriptor.stencil_test.has_value()) {
+    ASSERT_HAS_VALUE(
+        pass.depth_stencil_attachment,
+        std::format("Pipeline '{}' enables stencil test in pass '{}' which has "
+                    "no depth/stencil attachment",
+                    descriptor.pipeline_name, pass.name));
+    const DepthStencilAttachmentDesc& ds = *pass.depth_stencil_attachment;
+    ASSERT_TRUE(ds.stencil_load_op != AttachmentLoadOp::kDontCare ||
+                    ds.stencil_store_op != AttachmentStoreOp::kDontCare,
+                std::format("Pipeline '{}' enables stencil test in pass '{}' "
+                            "whose DepthAttachment leaves stencil load/store "
+                            "ops as kDontCare",
+                            descriptor.pipeline_name, pass.name));
+    const auto face_writes_stencil =
+        [](const GraphicsPipelineDescriptor::StencilTestOneFace& face) {
+          return face.write_mask != 0 &&
+                 (face.stencil_fail_op != StencilOp::kKeep ||
+                  face.stencil_and_depth_pass_op != StencilOp::kKeep ||
+                  face.stencil_pass_depth_fail_op != StencilOp::kKeep);
+        };
+    const auto& tests = descriptor.stencil_test->tests;
+    if (face_writes_stencil(
+            tests[GraphicsPipelineDescriptor::StencilTest::kFrontFaceIndex]) ||
+        face_writes_stencil(
+            tests[GraphicsPipelineDescriptor::StencilTest::kBackFaceIndex])) {
+      ASSERT_FALSE(ds.read_only,
+                   std::format("Pipeline '{}' writes stencil in pass '{}' "
+                               "whose depth/stencil attachment is read-only",
+                               descriptor.pipeline_name, pass.name));
+    }
+  }
+}
+
 }  // namespace lighter::renderer::ir::render_graph

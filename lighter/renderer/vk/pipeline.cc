@@ -287,17 +287,27 @@ intl::StencilOpState CreateStencilOpState(
 intl::PipelineDepthStencilStateCreateInfo GetDepthStencilStateCreateInfo(
     const GraphicsPipelineDescriptor& descriptor) {
   using StencilTest = GraphicsPipelineDescriptor::StencilTest;
+  using StencilTestOneFace = GraphicsPipelineDescriptor::StencilTestOneFace;
   const auto& depth_test = descriptor.depth_test;
   const auto& stencil_test = descriptor.stencil_test;
+  const StencilTestOneFace kDefaultStencilFace{};
+  const StencilTestOneFace& front_face =
+      stencil_test.has_value()
+          ? stencil_test->tests[StencilTest::kFrontFaceIndex]
+          : kDefaultStencilFace;
+  const StencilTestOneFace& back_face =
+      stencil_test.has_value()
+          ? stencil_test->tests[StencilTest::kBackFaceIndex]
+          : kDefaultStencilFace;
   return intl::PipelineDepthStencilStateCreateInfo{}
-      .setDepthTestEnable(depth_test.enable_test)
-      .setDepthWriteEnable(depth_test.enable_write)
-      .setDepthCompareOp(type::ConvertCompareOp(depth_test.compare_op))
-      .setStencilTestEnable(stencil_test.enable_test)
-      .setFront(CreateStencilOpState(
-          stencil_test.tests[StencilTest::kFrontFaceIndex]))
-      .setBack(
-          CreateStencilOpState(stencil_test.tests[StencilTest::kBackFaceIndex]))
+      .setDepthTestEnable(depth_test.has_value())
+      .setDepthWriteEnable(depth_test.has_value() && depth_test->enable_write)
+      .setDepthCompareOp(type::ConvertCompareOp(depth_test.has_value()
+                                                    ? depth_test->compare_op
+                                                    : ir::CompareOp::kLess))
+      .setStencilTestEnable(stencil_test.has_value())
+      .setFront(CreateStencilOpState(front_face))
+      .setBack(CreateStencilOpState(back_face))
       .setMinDepthBounds(0.0f)
       .setMaxDepthBounds(1.0f);
 }
