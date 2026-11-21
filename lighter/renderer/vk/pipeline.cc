@@ -322,6 +322,7 @@ CreateColorBlendAttachmentStates(const GraphicsPipelineDescriptor& descriptor,
     const auto& color_blend = optional_color_blend.value();
     color_blend_states[location] =
         intl::PipelineColorBlendAttachmentState{}
+            .setBlendEnable(intl::True)
             .setSrcColorBlendFactor(
                 type::ConvertBlendFactor(color_blend.src_color_blend_factor))
             .setDstColorBlendFactor(

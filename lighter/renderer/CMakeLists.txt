@@ -1,5 +1,6 @@
 add_subdirectory(ir)
 add_subdirectory(vk)
+add_subdirectory(extension)
 
 if(LIGHTER_BUILD_LEGACY_APPS)
   add_subdirectory(vulkan)

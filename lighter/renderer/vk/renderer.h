@@ -96,6 +96,8 @@ class Renderer : public WithSharedContext, public ir::Renderer {
 
   bool RenderFrame(int window_index, ir::RenderGraph& graph) override;
 
+  void ExecuteRenderGraph(ir::RenderGraph& graph) override;
+
   const std::string& last_render_graph_graphviz() const {
     return render_graph_executor_->last_graphviz();
   }

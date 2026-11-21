@@ -379,6 +379,27 @@ class VkPassContext : public ir::PassContext {
     bound_pipeline_ = &pipeline_cache_.GetOrCreateGraphicsPipeline(
         descriptor, sample_count_, rendering_info_);
     bound_pipeline_->Bind(cmd_);
+    if (descriptor.viewport_config.viewport.extent.x > 0.0f &&
+        descriptor.viewport_config.viewport.extent.y > 0.0f) {
+      const auto& vp = descriptor.viewport_config.viewport;
+      const bool flip_y = descriptor.viewport_config.flip_y;
+      const auto viewport =
+          intl::Viewport{}
+              .setX(vp.origin.x)
+              .setY(flip_y ? vp.origin.y + vp.extent.y : vp.origin.y)
+              .setWidth(vp.extent.x)
+              .setHeight(flip_y ? -vp.extent.y : vp.extent.y)
+              .setMinDepth(0.0f)
+              .setMaxDepth(1.0f);
+      cmd_.setViewport(0, viewport);
+    }
+    if (descriptor.viewport_config.scissor.extent.x > 0 &&
+        descriptor.viewport_config.scissor.extent.y > 0) {
+      const auto& sc = descriptor.viewport_config.scissor;
+      cmd_.setScissor(0, intl::Rect2D{{sc.origin.x, sc.origin.y},
+                                      {CAST_TO_UINT(sc.extent.x),
+                                       CAST_TO_UINT(sc.extent.y)}});
+    }
     ClearPendingDescriptors();
   }
 

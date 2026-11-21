@@ -81,4 +81,12 @@ bool Renderer::RenderFrame(int window_index, ir::RenderGraph& graph) {
   return true;
 }
 
+void Renderer::ExecuteRenderGraph(ir::RenderGraph& graph) {
+  context_->RunOneTimeGraphicsCommand([&](intl::CommandBuffer cmd) {
+    render_graph_executor_->Execute(cmd, /*frame_index=*/0, graph,
+                                    /*swapchains=*/{},
+                                    /*acquired_swapchain_image_indices=*/{});
+  });
+}
+
 }  // namespace lighter::renderer::vk

@@ -75,6 +75,10 @@ class Renderer {
   // false if the swapchain was recreated during this call.
   virtual bool RenderFrame(int window_index, RenderGraph& graph) = 0;
 
+  // Compiles and executes an offscreen 'graph' synchronously via a one-time
+  // graphics submission (used for initialization-time baking).
+  virtual void ExecuteRenderGraph(RenderGraph& graph) = 0;
+
   // Blocks until all queued GPU work completes.
   virtual void WaitIdle() = 0;
 
