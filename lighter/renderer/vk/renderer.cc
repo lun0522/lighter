@@ -7,24 +7,80 @@
 
 #include "lighter/renderer/vk/renderer.h"
 
+#include <cstdlib>
+
+#include "lighter/base/file.h"
+#include "lighter/base/util.h"
 #include "lighter/renderer/vk/util.h"
+
+LIGHTER_FLAG(bool, ignore_vsync, false,
+             "Ignore VSync and present images to the screen as fast as "
+             "possible");
 
 namespace lighter::renderer::vk {
 namespace {
 
 constexpr int kNumFramesInFlight = 2;
 
-std::vector<const common::Window*> ToConstWindowPtrs(
-    std::span<common::Window* const> windows) {
+std::vector<const base::Window*> ToConstWindowPtrs(
+    std::span<base::Window* const> windows) {
   return {windows.begin(), windows.end()};
 }
 
 }  // namespace
 
+void InitVulkan() {
+  using base::file::GetVulkanSdkPath;
+
+  // TODO: Limit framerate on Windows. Present mode need to be changed as well.
+#ifdef __APPLE__
+  // TODO: Revisit this.
+  if (FLAGS_ignore_vsync.Get()) {
+    // To avoid the frame rate being clamped on MacOS when using MoltenVK:
+    // https://github.com/KhronosGroup/MoltenVK/issues/581#issuecomment-487293665
+    setenv("MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS", "0", /*overwrite=*/1);
+    setenv("MVK_CONFIG_PRESENT_WITH_COMMAND_BUFFER", "0", /*overwrite=*/1);
+  }
+
+  if (std::getenv("VULKAN_SDK") != nullptr) {
+    // export DYLD_LIBRARY_PATH=$VULKAN_SDK/lib:$DYLD_LIBRARY_PATH
+    const std::string dyld_lib_path =
+        GetVulkanSdkPath("lib") + ":$DYLD_LIBRARY_PATH";
+    setenv("DYLD_LIBRARY_PATH", dyld_lib_path.c_str(), /*overwrite=*/1);
+
+    // export VK_ICD_FILENAMES=$VULKAN_SDK/share/vulkan/icd.d/MoltenVK_icd.json
+    setenv("VK_ICD_FILENAMES",
+           GetVulkanSdkPath("share/vulkan/icd.d/MoltenVK_icd.json").c_str(),
+           /*overwrite=*/1);
+
+    // export VK_LAYER_PATH=$VULKAN_SDK/share/vulkan/explicit_layer.d
+    setenv("VK_LAYER_PATH",
+           GetVulkanSdkPath("share/vulkan/explicit_layer.d").c_str(),
+           /*overwrite=*/1);
+  }
+#endif  // __APPLE__
+
+#ifdef __linux__
+  if (std::getenv("VULKAN_SDK") != nullptr) {
+    // export PATH=$VULKAN_SDK/bin:$PATH
+    const std::string path = GetVulkanSdkPath("bin") + ":$PATH";
+    setenv("PATH", path.c_str(), /*overwrite=*/1);
+
+    // export LD_LIBRARY_PATH=$VULKAN_SDK/lib
+    setenv("LD_LIBRARY_PATH", GetVulkanSdkPath("lib").c_str(), /*overwrite=*/1);
+
+    // export VK_LAYER_PATH=$VULKAN_SDK/etc/vulkan/explicit_layer.d
+    setenv("VK_LAYER_PATH",
+           GetVulkanSdkPath("etc/vulkan/explicit_layer.d").c_str(),
+           /*overwrite=*/1);
+  }
+#endif  // __linux__
+}
+
 Renderer::Renderer(
     const char* application_name,
     const std::optional<ir::debug_message::Config>& debug_message_config,
-    std::vector<common::Window*>&& window_ptrs)
+    std::vector<base::Window*>&& window_ptrs)
     : WithSharedContext{Context::CreateContext(application_name,
                                                debug_message_config,
                                                ToConstWindowPtrs(window_ptrs))},
@@ -43,14 +99,14 @@ Renderer::Renderer(
 
 void Renderer::RecreateSwapchain(int window_index) {
   context_->WaitIdle();
-  common::Window& window = mutable_window(window_index);
+  base::Window& window = mutable_window(window_index);
   window.Recreate();
   swapchains_[window_index] =
       std::make_unique<Swapchain>(context_, window_index, window);
 }
 
 bool Renderer::RenderFrame(int window_index, ir::RenderGraph& graph) {
-  const common::Window& window = *windows().at(window_index);
+  const base::Window& window = *windows().at(window_index);
   const Swapchain& swapchain = *swapchains_.at(window_index);
   if (window.is_resized() ||
       window.GetFrameSize() != util::ToVec(swapchain.extent())) {

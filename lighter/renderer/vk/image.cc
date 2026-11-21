@@ -25,7 +25,7 @@ namespace {
 using ir::ImageUsage;
 using ir::MultisamplingMode;
 
-const int kSingleMipLevel = common::image::kSingleMipLevel;
+const int kSingleMipLevel = base::image::kSingleMipLevel;
 
 // Returns the first image format among 'candidates' that has the specified
 // 'features'. If not found, returns std::nullopt.
@@ -46,7 +46,7 @@ intl::Format ChooseColorImageFormat(const Context& context, int channel,
                                     bool high_precision,
                                     std::span<const ImageUsage> usages) {
   switch (channel) {
-    case common::image::kBwImageChannel: {
+    case base::image::kBwImageChannel: {
       const intl::Format best_format =
           high_precision ? intl::Format::eR16Sfloat : intl::Format::eR8Unorm;
       if (!ImageUsage::IsLinearAccessed(usages)) {
@@ -70,7 +70,7 @@ intl::Format ChooseColorImageFormat(const Context& context, int channel,
       }
     }
 
-    case common::image::kRgbaImageChannel:
+    case base::image::kRgbaImageChannel:
       return high_precision ? intl::Format::eR16G16B16A16Sfloat
                             : intl::Format::eR8G8B8A8Unorm;
 
@@ -147,7 +147,7 @@ int ComputeMipLevels(const glm::ivec2& extent, bool generate_mipmaps) {
 // Uploads 'host_image' pixel data into 'target' via a staging buffer and
 // generates mipmaps if target.mip_levels() > 1.
 void UploadImageData(const Context& context, const OwnedImage& target,
-                     const common::Image& host_image,
+                     const base::Image& host_image,
                      std::span<const ImageUsage> usages) {
   const std::vector<const void*> data_ptrs = host_image.GetDataPtrs();
   const glm::ivec2 extent = host_image.extent();
@@ -319,7 +319,7 @@ intl::ImageViewType Image::GetViewType() const {
 intl::ImageAspectFlags Image::GetAspectFlags() const {
   const std::span<const intl::Format> formats_span{
       GetSupportedDepthStencilFormats()};
-  if (common::util::Contains(formats_span, format())) {
+  if (base::util::Contains(formats_span, format())) {
     return intl::ImageAspectFlagBits::eDepth |
            intl::ImageAspectFlagBits::eStencil;
   } else {
@@ -329,7 +329,7 @@ intl::ImageAspectFlags Image::GetAspectFlags() const {
 
 std::unique_ptr<OwnedImage> OwnedImage::CreateColorImage(
     const SharedContext& context, std::string_view name,
-    const common::Image::Dimension& dimension,
+    const base::Image::Dimension& dimension,
     MultisamplingMode multisampling_mode, bool high_precision,
     std::span<const ImageUsage> usages) {
   const intl::Format format = ChooseColorImageFormat(
@@ -351,7 +351,7 @@ std::unique_ptr<OwnedImage> OwnedImage::CreateColorImage(
 
 std::unique_ptr<OwnedImage> OwnedImage::CreateColorImage(
     const SharedContext& context, std::string_view name,
-    const common::Image& image, bool generate_mipmaps,
+    const base::Image& image, bool generate_mipmaps,
     std::span<const ImageUsage> usages) {
   const intl::Format format = ChooseColorImageFormat(
       *context, image.channel(), /*high_precision=*/false, usages);

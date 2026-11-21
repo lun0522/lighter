@@ -1,3 +1,5 @@
+add_subdirectory(compiler)
+
 file(GLOB_RECURSE LIGHTER_SHADER_SOURCES CONFIGURE_DEPENDS
   "${LIGHTER_SHADER_DIR}/*.vert"
   "${LIGHTER_SHADER_DIR}/*.frag"

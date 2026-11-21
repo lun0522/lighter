@@ -7,7 +7,7 @@
 
 #include <array>
 
-#include "lighter/example/util.h"
+#include "lighter/scene/util.h"
 
 namespace lighter::example {
 namespace {
@@ -45,9 +45,9 @@ class TriangleExample {
                   MultisamplingMode multisampling_mode)
       : window_{"Triangle", screen_size},
         multisampling_mode_{multisampling_mode} {
-    using common::Vertex3DWithColor;
+    using base::Vertex3DWithColor;
 
-    renderer_ = CreateRenderer("Triangle Example", {&window_});
+    renderer_ = scene::CreateRenderer("Triangle Example", {&window_});
 
     const std::array<Vertex3DWithColor, 3> vertex_data{
         Vertex3DWithColor{/*pos=*/{0.5f, -0.5f, 0.0f},
@@ -57,7 +57,7 @@ class TriangleExample {
         Vertex3DWithColor{/*pos=*/{-0.5f, -0.5f, 0.0f},
                           /*color=*/{0.0f, 1.0f, 0.0f}},
     };
-    const size_t vertex_data_size = common::util::GetTotalDataSize(
+    const size_t vertex_data_size = base::util::GetTotalDataSize(
         std::span<const Vertex3DWithColor>{vertex_data});
     vertex_buffer_ =
         renderer_->CreateBuffer(Buffer::UpdateRate::kLow, vertex_data_size,
@@ -70,10 +70,12 @@ class TriangleExample {
     pipeline_descriptor_ =
         GraphicsPipelineDescriptor{}
             .SetName("Triangle")
-            .SetShader(renderer::ir::shader_stage::VERTEX,
-                       GetShaderBinaryPath("triangle/triangle.vert"))
-            .SetShader(renderer::ir::shader_stage::FRAGMENT,
-                       GetShaderBinaryPath("triangle/triangle.frag"))
+            .SetShader(
+                renderer::ir::shader_stage::VERTEX,
+                base::file::GetShaderBinaryPath("triangle/triangle.vert"))
+            .SetShader(
+                renderer::ir::shader_stage::FRAGMENT,
+                base::file::GetShaderBinaryPath("triangle/triangle.frag"))
             .UseColorAttachment(/*location=*/0,
                                 renderer::ir::pipeline::GetColorAlphaBlend())
             .AddVertexInput(
@@ -100,8 +102,9 @@ class TriangleExample {
       graph.AddGraphicsPass(
           "Triangle",
           [&](PassBuilder& builder) {
-            SetupMainPassAttachments(builder, backbuffer, multisampling_mode_,
-                                     /*use_depth=*/false);
+            scene::SetupMainPassAttachments(builder, backbuffer,
+                                            multisampling_mode_,
+                                            /*use_depth=*/false);
           },
           [&](PassContext& ctx) {
             ctx.BindGraphicsPipeline(pipeline_descriptor_);
@@ -118,8 +121,8 @@ class TriangleExample {
 
  private:
   const MultisamplingMode multisampling_mode_;
-  common::FrameTimer timer_;
-  common::Window window_;
+  base::FrameTimer timer_;
+  base::Window window_;
   std::unique_ptr<Renderer> renderer_;
   std::unique_ptr<Buffer> vertex_buffer_;
   GraphicsPipelineDescriptor pipeline_descriptor_;
@@ -128,7 +131,7 @@ class TriangleExample {
 }  // namespace lighter::example
 
 int main(int argc, char* argv[]) {
-  return lighter::example::ExampleMain<lighter::example::TriangleExample>(
+  return lighter::scene::RunApplication<lighter::example::TriangleExample>(
       argc, argv, glm::ivec2{800, 600},
       lighter::renderer::ir::MultisamplingMode::kDecent);
 }

@@ -12,10 +12,11 @@
 #include <memory>
 #include <vector>
 
-#include "lighter/renderer/extension/model.h"
 #include "lighter/renderer/ir/buffer.h"
 #include "lighter/renderer/ir/render_graph.h"
 #include "lighter/renderer/ir/renderer.h"
+#include "lighter/scene/model.h"
+#include "lighter/scene/skybox.h"
 
 namespace lighter::example::aurora {
 
@@ -42,8 +43,8 @@ class Celestial {
 
  private:
   std::vector<std::unique_ptr<renderer::ir::Buffer>> earth_uniforms_;
-  std::unique_ptr<renderer::extension::Model> earth_model_;
-  std::unique_ptr<renderer::extension::Model> skybox_model_;
+  std::unique_ptr<scene::Model> earth_model_;
+  std::unique_ptr<scene::Skybox> skybox_;
 };
 
 }  // namespace lighter::example::aurora

@@ -14,7 +14,7 @@
 #include <string_view>
 #include <unordered_set>
 
-#include "lighter/common/util.h"
+#include "lighter/base/util.h"
 #include "lighter/renderer/ir/pipeline_util.h"
 #include "lighter/renderer/vk/context.h"
 #include "lighter/renderer/vk/property_checker.h"
@@ -45,9 +45,9 @@ void CheckPropertiesSupport(std::string_view property_type,
 
 // Returns instance extensions required by 'windows'.
 std::vector<const char*> GetWindowExtensions(
-    std::span<const common::Window* const> windows) {
+    std::span<const base::Window* const> windows) {
   std::unordered_set<const char*> window_extensions;
-  for (const common::Window* window : windows) {
+  for (const base::Window* window : windows) {
     const auto required_extensions = window->GetRequiredExtensions();
     window_extensions.insert(required_extensions.begin(),
                              required_extensions.end());
@@ -99,7 +99,7 @@ bool FamilyHasQueue(const intl::QueueFamilyProperties& properties) {
 template <intl::QueueFlagBits flag>
 std::optional<int> GetQueueFamilyIndex(
     std::span<const intl::QueueFamilyProperties> properties_span) {
-  return common::util::FindIndexOfFirstIf<intl::QueueFamilyProperties>(
+  return base::util::FindIndexOfFirstIf<intl::QueueFamilyProperties>(
       properties_span, FamilyHasQueue<flag>);
 }
 
@@ -255,7 +255,7 @@ UserCallback(intl::DebugUtilsMessageSeverityFlagBitsEXT severity,
 
 Instance::Instance(const Context* context, bool enable_validation,
                    const char* application_name,
-                   std::span<const common::Window* const> windows) {
+                   std::span<const base::Window* const> windows) {
   FATAL_IF_NULL(context);
   // Check required instance layers.
   std::vector<const char*> required_layers;
@@ -321,7 +321,7 @@ DebugMessenger::DebugMessenger(const Context* context,
                                                   *context->host_allocator()};
 }
 
-Surface::Surface(const Context* context, const common::Window& window) {
+Surface::Surface(const Context* context, const base::Window& window) {
   FATAL_IF_NULL(context);
   const auto create_surface_func = window.GetCreateSurfaceFunc();
   VkSurfaceKHR surface;

@@ -15,8 +15,8 @@
 #include <string_view>
 #include <vector>
 
-#include "lighter/common/ref_count.h"
-#include "lighter/common/util.h"
+#include "lighter/base/ref_count.h"
+#include "lighter/base/util.h"
 #include "lighter/renderer/ir/pipeline.h"
 #include "lighter/renderer/vk/buffer.h"
 #include "lighter/renderer/vk/context.h"
@@ -65,7 +65,7 @@ PipelineReflection MergeReflections(
 class ShaderModule : public WithSharedContext {
  public:
   // Reference counted shader modules.
-  using RefCountedShaderModule = common::RefCountedObject<ShaderModule>;
+  using RefCountedShaderModule = base::RefCountedObject<ShaderModule>;
 
   // An instance of this will preserve all shader modules created within its
   // surrounding scope, and release them once all AutoReleaseShaderPool objects

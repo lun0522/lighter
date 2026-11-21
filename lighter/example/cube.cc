@@ -10,24 +10,24 @@
 #include <memory>
 #include <string>
 
-#include "lighter/example/util.h"
-#include "lighter/renderer/extension/model.h"
-#include "lighter/renderer/extension/text.h"
+#include "lighter/scene/model.h"
+#include "lighter/scene/util.h"
+#include "lighter/ui/text.h"
 
 namespace lighter::example {
 namespace {
 
-using renderer::extension::DynamicText;
-using renderer::extension::Model;
-using renderer::extension::ModelBuilder;
-using renderer::extension::StaticText;
-using renderer::extension::Text;
 using renderer::ir::ImageHandle;
 using renderer::ir::MultisamplingMode;
 using renderer::ir::PassBuilder;
 using renderer::ir::PassContext;
 using renderer::ir::Renderer;
 using renderer::ir::RenderGraph;
+using scene::Model;
+using scene::ModelBuilder;
+using ui::DynamicText;
+using ui::StaticText;
+using ui::Text;
 
 constexpr int kWindowIndex = 0;
 constexpr int kObjFileIndexBase = 1;
@@ -42,27 +42,27 @@ class CubeExample {
   CubeExample(const glm::ivec2& screen_size,
               MultisamplingMode multisampling_mode)
       : multisampling_mode_{multisampling_mode}, window_{"Cube", screen_size} {
-    renderer_ = CreateRenderer("Cube Example", {&window_});
+    renderer_ = scene::CreateRenderer("Cube Example", {&window_});
 
     const float aspect_ratio = window_.original_aspect_ratio();
     cube_model_ =
         ModelBuilder{
             *renderer_, "Cube", aspect_ratio,
             ModelBuilder::SingleMeshResource{
-                common::file::GetResourcePath("model/cube.obj"),
+                base::file::GetResourcePath("model/cube.obj"),
                 kObjFileIndexBase,
                 /*tex_source_map=*/
                 {{
                     ModelBuilder::TextureType::kDiffuse,
-                    {common::file::GetResourcePath("texture/statue.jpg")},
+                    {base::file::GetResourcePath("texture/statue.jpg")},
                 }},
             }}
             .AddTextureBindingPoint(ModelBuilder::TextureType::kDiffuse,
                                     /*binding=*/1)
             .SetShader(renderer::ir::shader_stage::VERTEX,
-                       GetShaderBinaryPath("cube/cube.vert"))
+                       base::file::GetShaderBinaryPath("cube/cube.vert"))
             .SetShader(renderer::ir::shader_stage::FRAGMENT,
-                       GetShaderBinaryPath("cube/cube.frag"))
+                       base::file::GetShaderBinaryPath("cube/cube.frag"))
             .Build();
 
     constexpr auto kFont = Text::Font::kGeorgia;
@@ -112,8 +112,9 @@ class CubeExample {
       graph.AddGraphicsPass(
           "CubeAndText",
           [&](PassBuilder& builder) {
-            SetupMainPassAttachments(builder, backbuffer, multisampling_mode_,
-                                     /*use_depth=*/true);
+            scene::SetupMainPassAttachments(builder, backbuffer,
+                                            multisampling_mode_,
+                                            /*use_depth=*/true);
           },
           [&](PassContext& ctx) {
             const glm::ivec2 frame_size = ctx.GetImageExtent(backbuffer);
@@ -132,8 +133,8 @@ class CubeExample {
 
  private:
   const MultisamplingMode multisampling_mode_;
-  common::FrameTimer timer_;
-  common::Window window_;
+  base::FrameTimer timer_;
+  base::Window window_;
   std::unique_ptr<Renderer> renderer_;
   std::unique_ptr<Model> cube_model_;
   std::unique_ptr<StaticText> static_text_;
@@ -144,7 +145,7 @@ class CubeExample {
 }  // namespace lighter::example
 
 int main(int argc, char* argv[]) {
-  return lighter::example::ExampleMain<lighter::example::CubeExample>(
+  return lighter::scene::RunApplication<lighter::example::CubeExample>(
       argc, argv, glm::ivec2{800, 600},
       lighter::renderer::ir::MultisamplingMode::kDecent);
 }

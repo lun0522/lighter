@@ -10,25 +10,21 @@
 #include <array>
 #include <cstdint>
 
-#include "lighter/common/file.h"
-#include "lighter/example/util.h"
+#include "lighter/base/file.h"
 #include "lighter/renderer/ir/buffer_usage.h"
 #include "lighter/renderer/ir/type.h"
+#include "lighter/scene/util.h"
 
 namespace lighter::example::aurora {
 namespace {
 
-using renderer::extension::ModelBuilder;
 using renderer::ir::AccessLocation;
 using renderer::ir::Buffer;
 using renderer::ir::BufferUsage;
+using scene::ModelBuilder;
 
 // Consistent with uniform blocks defined in shaders.
 struct EarthTrans {
-  ALIGN_MAT4 glm::mat4 proj_view_model;
-};
-
-struct SkyboxTrans {
   ALIGN_MAT4 glm::mat4 proj_view_model;
 };
 
@@ -40,7 +36,7 @@ struct TextureIndex {
 
 Celestial::Celestial(const renderer::ir::Renderer& renderer,
                      float viewport_aspect_ratio, int num_frames_in_flight) {
-  using common::file::GetResourcePath;
+  using base::file::GetResourcePath;
   using TextureType = ModelBuilder::TextureType;
   constexpr int kObjFileIndexBase = 1;
 
@@ -68,9 +64,9 @@ Celestial::Celestial(const renderer::ir::Renderer& renderer,
                    }}
           .AddTextureBindingPoint(TextureType::kDiffuse, /*binding=*/2)
           .SetShader(renderer::ir::shader_stage::VERTEX,
-                     GetShaderBinaryPath("aurora/earth.vert"))
+                     base::file::GetShaderBinaryPath("aurora/earth.vert"))
           .SetShader(renderer::ir::shader_stage::FRAGMENT,
-                     GetShaderBinaryPath("aurora/earth.frag"))
+                     base::file::GetShaderBinaryPath("aurora/earth.frag"))
           .Build();
 
   const ModelBuilder::CubemapPath skybox_path{
@@ -80,19 +76,8 @@ Celestial::Celestial(const renderer::ir::Renderer& renderer,
                 "NegativeY.jpg", "PositiveZ.jpg", "NegativeZ.jpg"},
   };
 
-  skybox_model_ =
-      ModelBuilder{renderer, "Skybox", viewport_aspect_ratio,
-                   ModelBuilder::SingleMeshResource{
-                       GetResourcePath("model/skybox.obj"),
-                       kObjFileIndexBase,
-                       {{TextureType::kCubemap, {skybox_path}}},
-                   }}
-          .AddTextureBindingPoint(TextureType::kCubemap, /*binding=*/1)
-          .SetShader(renderer::ir::shader_stage::VERTEX,
-                     GetShaderBinaryPath("shared/skybox.vert"))
-          .SetShader(renderer::ir::shader_stage::FRAGMENT,
-                     GetShaderBinaryPath("shared/skybox.frag"))
-          .Build();
+  skybox_ = std::make_unique<scene::Skybox>(renderer, viewport_aspect_ratio,
+                                            skybox_path);
 }
 
 void Celestial::Draw(renderer::ir::PassContext& ctx,
@@ -112,11 +97,7 @@ void Celestial::Draw(renderer::ir::PassContext& ctx,
                     sizeof(TextureIndex), &tex_index);
   earth_model_->Draw(ctx);
 
-  const SkyboxTrans skybox_trans{skybox_proj_view_model};
-  skybox_model_->BindPipeline(ctx, frame_size);
-  ctx.PushConstants(renderer::ir::shader_stage::VERTEX, /*offset=*/0,
-                    sizeof(SkyboxTrans), &skybox_trans);
-  skybox_model_->Draw(ctx);
+  skybox_->Draw(ctx, frame_size, skybox_proj_view_model);
 }
 
 }  // namespace lighter::example::aurora

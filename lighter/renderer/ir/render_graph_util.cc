@@ -16,7 +16,7 @@
 #include <string_view>
 #include <tuple>
 
-#include "lighter/common/util.h"
+#include "lighter/base/util.h"
 
 namespace lighter::renderer::ir::render_graph {
 namespace {

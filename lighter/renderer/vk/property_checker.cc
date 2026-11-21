@@ -9,7 +9,7 @@
 
 #include <string_view>
 
-#include "lighter/common/util.h"
+#include "lighter/base/util.h"
 
 namespace lighter::renderer::vk {
 namespace {
@@ -34,7 +34,7 @@ std::string GetPropertyName<intl::ExtensionProperties>(
 template <typename PropType>
 std::unordered_set<std::string> GetPropertyNamesSet(
     std::span<const PropType> properties) {
-  return common::util::TransformToSet<PropType, std::string>(
+  return base::util::TransformToSet<PropType, std::string>(
       properties, GetPropertyName<PropType>);
 }
 
@@ -88,7 +88,7 @@ std::vector<std::string> PropertyChecker::FindUnsupported(
                 supported_properties_.end());
   PrintElements("Required:", required_properties);
 
-  auto unsupported_properties = common::util::CopyToVectorIf<std::string>(
+  auto unsupported_properties = base::util::CopyToVectorIf<std::string>(
       required_properties, [this](const std::string& property) {
         return !supported_properties_.contains(property);
       });

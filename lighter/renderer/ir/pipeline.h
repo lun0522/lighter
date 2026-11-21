@@ -15,7 +15,7 @@
 #include <string_view>
 #include <unordered_map>
 
-#include "lighter/common/util.h"
+#include "lighter/base/util.h"
 #include "lighter/renderer/ir/buffer.h"
 #include "lighter/renderer/ir/type.h"
 
@@ -109,7 +109,7 @@ struct GraphicsPipelineDescriptor : public PipelineDescriptor {
   }
   GraphicsPipelineDescriptor& SetShader(shader_stage::ShaderStage stage,
                                         std::string_view shader_path) {
-    ASSERT_TRUE(common::util::IsPowerOf2(stage),
+    ASSERT_TRUE(base::util::IsPowerOf2(stage),
                 "Exactly one shader stage is allowed");
     shader_path_map.insert({stage, std::string{shader_path}});
     return *this;

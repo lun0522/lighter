@@ -8,7 +8,7 @@
 #ifndef LIGHTER_RENDERER_IR_BUFFER_USAGE_H
 #define LIGHTER_RENDERER_IR_BUFFER_USAGE_H
 
-#include "lighter/common/util.h"
+#include "lighter/base/util.h"
 #include "lighter/renderer/ir/type.h"
 
 namespace lighter::renderer::ir {

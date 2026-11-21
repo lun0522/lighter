@@ -1,12 +1,5 @@
 add_executable(example_aurora
   aurora.cc
-  scene.h
-  editor/button.cc
-  editor/button.h
-  editor/button_maker.cc
-  editor/button_maker.h
-  editor/button_util.cc
-  editor/button_util.h
   editor/celestial.cc
   editor/celestial.h
   editor/editor.cc
@@ -15,8 +8,6 @@ add_executable(example_aurora
   editor/path.h
   viewer/air_transmit_table.cc
   viewer/air_transmit_table.h
-  viewer/distance_field.cc
-  viewer/distance_field.h
   viewer/path_dumper.cc
   viewer/path_dumper.h
   viewer/path_renderer.cc
@@ -28,20 +19,24 @@ add_dependencies(example_aurora lighter_shaders)
 target_link_libraries(example_aurora
   PRIVATE
     lighter_project_options
-    lighter_common_camera
-    lighter_common_data
-    lighter_common_file
-    lighter_common_flag
-    lighter_common_image
-    lighter_common_rotation
-    lighter_common_spline
-    lighter_common_timer
-    lighter_common_util
-    lighter_common_window
-    lighter_renderer_extension_model
-    lighter_renderer_extension_text
-    lighter_renderer_util
+    lighter_base_data
+    lighter_base_file
+    lighter_base_flag
+    lighter_base_image
+    lighter_base_timer
+    lighter_base_util
+    lighter_base_window
     lighter_renderer_vk_renderer
+    lighter_scene_camera
+    lighter_scene_distance_field
+    lighter_scene_model
+    lighter_scene_rotation
+    lighter_scene_scene
+    lighter_scene_skybox
+    lighter_scene_spline
+    lighter_scene_util
+    lighter_ui_button
+    lighter_ui_text
     glm::glm
     lighter_spirv_cross
 )

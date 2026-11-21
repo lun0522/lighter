@@ -15,23 +15,23 @@
 #include <span>
 #include <vector>
 
-#include "lighter/common/camera.h"
-#include "lighter/common/rotation.h"
-#include "lighter/common/window.h"
-#include "lighter/example/aurora/editor/button.h"
+#include "lighter/base/window.h"
 #include "lighter/example/aurora/editor/celestial.h"
 #include "lighter/example/aurora/editor/path.h"
-#include "lighter/example/aurora/scene.h"
 #include "lighter/renderer/ir/render_graph.h"
 #include "lighter/renderer/ir/renderer.h"
 #include "lighter/renderer/ir/type.h"
+#include "lighter/scene/camera.h"
+#include "lighter/scene/rotation.h"
+#include "lighter/scene/scene.h"
+#include "lighter/ui/button.h"
 
 namespace lighter::example::aurora {
 
 // Interactive aurora path & viewpoint editor scene.
-class Editor : public Scene {
+class Editor : public scene::Scene {
  public:
-  Editor(common::Window& window, renderer::ir::Renderer& renderer,
+  Editor(base::Window& window, renderer::ir::Renderer& renderer,
          int window_index, renderer::ir::MultisamplingMode multisampling_mode,
          int num_frames_in_flight);
 
@@ -81,10 +81,10 @@ class Editor : public Scene {
     std::optional<int> GetSelectedPathIndex() const;
 
     bool IsSelected(ButtonIndex index) const {
-      return button_states_[index] == Button::State::kSelected;
+      return button_states_[index] == ui::Button::State::kSelected;
     }
     bool IsUnselected(ButtonIndex index) const {
-      return button_states_[index] == Button::State::kUnselected;
+      return button_states_[index] == ui::Button::State::kUnselected;
     }
     bool IsEditing() const {
       return IsSelected(ButtonIndex::kEditingButtonIndex);
@@ -95,46 +95,46 @@ class Editor : public Scene {
 
     void ResetDisplayAuroraButton() {
       button_states_[ButtonIndex::kAuroraButtonIndex] =
-          Button::State::kUnselected;
+          ui::Button::State::kUnselected;
     }
 
-    std::span<const Button::State> top_row_buttons_states() const {
+    std::span<const ui::Button::State> top_row_buttons_states() const {
       return {button_states_.data(), kNumTopRowButtons};
     }
-    std::span<const Button::State> bottom_row_buttons_states() const {
+    std::span<const ui::Button::State> bottom_row_buttons_states() const {
       return {button_states_.data() + kNumTopRowButtons, kNumBottomRowButtons};
     }
 
    private:
-    void SetTopRowButtonsStates(Button::State state);
-    void SetBottomRowButtonsStates(Button::State state);
+    void SetTopRowButtonsStates(ui::Button::State state);
+    void SetBottomRowButtonsStates(ui::Button::State state);
     void FlipButtonState(ButtonIndex index);
 
-    std::array<Button::State, kNumButtons> button_states_{};
+    std::array<ui::Button::State, kNumButtons> button_states_{};
     std::optional<ButtonIndex> last_clicked_button_;
     ButtonIndex last_edited_path_ = kPath1ButtonIndex;
   };
 
-  void RotateCelestials(const common::rotation::Rotation& rotation);
+  void RotateCelestials(const scene::rotation::Rotation& rotation);
 
-  common::Window& window_;
+  base::Window& window_;
   const int window_index_;
   const renderer::ir::MultisamplingMode multisampling_mode_;
 
   bool did_press_left_ = false;
   bool did_release_right_ = false;
 
-  common::OrthographicCameraViewedSphere earth_;
-  common::OrthographicCameraViewedSphere aurora_layer_;
+  scene::OrthographicCameraViewedSphere earth_;
+  scene::OrthographicCameraViewedSphere aurora_layer_;
   StateManager state_manager_;
 
   std::unique_ptr<Celestial> celestial_;
   std::unique_ptr<AuroraPath> aurora_path_;
-  std::unique_ptr<Button> top_row_buttons_;
-  std::unique_ptr<Button> bottom_row_buttons_;
+  std::unique_ptr<ui::Button> top_row_buttons_;
+  std::unique_ptr<ui::Button> bottom_row_buttons_;
 
-  std::unique_ptr<common::UserControlledPerspectiveCamera> skybox_camera_;
-  std::unique_ptr<common::UserControlledOrthographicCamera> general_camera_;
+  std::unique_ptr<scene::UserControlledPerspectiveCamera> skybox_camera_;
+  std::unique_ptr<scene::UserControlledOrthographicCamera> general_camera_;
 };
 
 }  // namespace lighter::example::aurora

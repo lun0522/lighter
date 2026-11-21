@@ -19,7 +19,7 @@ namespace lighter::renderer::vk {
 Context::Context(
     const char* application_name,
     const std::optional<ir::debug_message::Config>& debug_message_config,
-    std::span<const common::Window* const> windows) {
+    std::span<const base::Window* const> windows) {
   LOG_INFO << "Starting Vulkan initialization";
 
   const bool enable_validation = debug_message_config.has_value();
@@ -40,7 +40,7 @@ Context::Context(
   std::vector<Surface*> surface_ptrs;
   surfaces_.reserve(windows.size());
   surface_ptrs.reserve(windows.size());
-  for (const common::Window* window : windows) {
+  for (const base::Window* window : windows) {
     surfaces_.push_back(std::make_unique<Surface>(this, *window));
     surface_ptrs.push_back(surfaces_.back().get());
   }

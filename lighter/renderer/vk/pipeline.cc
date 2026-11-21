@@ -15,14 +15,15 @@
 #include <utility>
 #include <vector>
 
-#include "lighter/common/data.h"
-#include "lighter/common/file.h"
+#include "lighter/base/data.h"
+#include "lighter/base/file.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/vk/type_mapping.h"
-#include "lighter/shader_compiler/util.h"
 
 namespace lighter::renderer::vk {
 namespace {
+
+constexpr const char kShaderEntryPoint[] = "main";
 
 using ir::GraphicsPipelineDescriptor;
 using ir::PipelineDescriptor;
@@ -187,11 +188,10 @@ std::vector<intl::PipelineShaderStageCreateInfo> GetShaderStageCreateInfos(
   std::vector<intl::PipelineShaderStageCreateInfo> shader_stage_infos;
   shader_stage_infos.reserve(shader_stages->size());
   for (const auto& stage : *shader_stages) {
-    shader_stage_infos.push_back(
-        intl::PipelineShaderStageCreateInfo{}
-            .setStage(stage.stage)
-            .setModule(**stage.module)
-            .setPName(shader_compiler::kShaderEntryPoint));
+    shader_stage_infos.push_back(intl::PipelineShaderStageCreateInfo{}
+                                     .setStage(stage.stage)
+                                     .setModule(**stage.module)
+                                     .setPName(kShaderEntryPoint));
   }
   return shader_stage_infos;
 }
@@ -214,7 +214,7 @@ CreateVertexInputBindingDescriptions(
 std::vector<intl::VertexInputAttributeDescription>
 CreateVertexInputAttributeDescriptions(
     const GraphicsPipelineDescriptor& descriptor) {
-  const auto num_attributes = common::util::Reduce<int>(
+  const auto num_attributes = base::util::Reduce<int>(
       descriptor.vertex_buffer_views,
       [](const ir::VertexBufferView& view) { return view.attributes.size(); });
 
@@ -458,7 +458,7 @@ PipelineReflection MergeReflections(
 ShaderModule::ShaderModule(const SharedContext& context,
                            std::string_view file_path)
     : WithSharedContext{context} {
-  const common::Data file_data = common::file::LoadDataFromFile(file_path);
+  const base::Data file_data = base::file::LoadDataFromFile(file_path);
   ASSERT_TRUE(file_data.size() % sizeof(uint32_t) == 0,
               std::format("Invalid SPIR-V byte size in '{}'", file_path));
   const std::span<const uint32_t> spirv_words{

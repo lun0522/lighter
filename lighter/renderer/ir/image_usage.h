@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <span>
 
-#include "lighter/common/util.h"
+#include "lighter/base/util.h"
 #include "lighter/renderer/ir/type.h"
 
 namespace lighter::renderer::ir {

@@ -13,7 +13,7 @@
 #include <memory>
 #include <span>
 
-#include "lighter/common/util.h"
+#include "lighter/base/util.h"
 #include "lighter/renderer/ir/buffer.h"
 #include "lighter/renderer/ir/buffer_usage.h"
 #include "lighter/renderer/vk/context.h"

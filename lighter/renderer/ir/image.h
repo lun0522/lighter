@@ -13,7 +13,7 @@
 #include <string>
 #include <string_view>
 
-#include "lighter/common/image.h"
+#include "lighter/base/image.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/ir/type.h"
 
@@ -21,7 +21,7 @@ namespace lighter::renderer::ir {
 
 class Image {
  public:
-  using LayerType = common::image::Type;
+  using LayerType = base::image::Type;
 
   // This class is neither copyable nor movable.
   Image(const Image&) = delete;
@@ -29,7 +29,7 @@ class Image {
 
   virtual ~Image() = default;
 
-  int GetNumLayers() const { return common::image::GetNumLayers(layer_type_); }
+  int GetNumLayers() const { return base::image::GetNumLayers(layer_type_); }
 
   int CalculateMipLevels() const {
     const int largest_dim = std::max(width(), height());

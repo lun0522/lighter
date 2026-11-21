@@ -15,16 +15,14 @@
 #include <span>
 #include <vector>
 
-#include "lighter/example/util.h"
-#include "lighter/renderer/extension/model.h"
+#include "lighter/scene/model.h"
+#include "lighter/scene/util.h"
 
 namespace lighter::example {
 namespace {
 
-using common::Vertex2D;
-using common::Vertex3DPosOnly;
-using renderer::extension::Model;
-using renderer::extension::ModelBuilder;
+using base::Vertex2D;
+using base::Vertex3DPosOnly;
 using renderer::ir::AccessLocation;
 using renderer::ir::AttachmentLoadOp;
 using renderer::ir::AttachmentStoreOp;
@@ -45,6 +43,8 @@ using renderer::ir::SamplerDescriptor;
 using renderer::ir::TransientImageDesc;
 using renderer::ir::TransientImageFormat;
 using renderer::ir::VertexInputRate;
+using scene::Model;
+using scene::ModelBuilder;
 
 constexpr int kWindowIndex = 0;
 constexpr int kNumFramesInFlight = 2;
@@ -126,19 +126,19 @@ class TroopExample {
         original_light_centers_{
             GenerateOriginalLightCenters(light_center_config_)},
         window_{"Troop", screen_size} {
-    using common::file::GetResourcePath;
+    using base::file::GetResourcePath;
     using TextureType = ModelBuilder::TextureType;
 
-    renderer_ = CreateRenderer("Troop Example", {&window_});
+    renderer_ = scene::CreateRenderer("Troop Example", {&window_});
 
     const float aspect_ratio = window_.original_aspect_ratio();
-    common::Camera::Config camera_config;
+    scene::Camera::Config camera_config;
     camera_config.position = glm::vec3{8.5f, 5.5f, 5.0f};
     camera_config.look_at = glm::vec3{8.0f, 5.0f, 4.22f};
-    camera_ = common::UserControlledPerspectiveCamera::Create(
+    camera_ = scene::UserControlledPerspectiveCamera::Create(
         /*control_config=*/{}, camera_config,
         {/*field_of_view_y=*/45.0f, aspect_ratio});
-    RegisterCameraControls(window_, timer_, *camera_, &should_quit_);
+    scene::RegisterCameraControls(window_, timer_, *camera_, &should_quit_);
 
     // Soldier formation instances.
     constexpr glm::ivec2 kNumSoldiersGrid{5, 10};
@@ -156,7 +156,7 @@ class TroopExample {
       }
     }
     const size_t centers_bytes =
-        common::util::GetTotalDataSize(std::span<const glm::vec3>{centers});
+        base::util::GetTotalDataSize(std::span<const glm::vec3>{centers});
     soldier_centers_buffer_ =
         renderer_->CreateBuffer(Buffer::UpdateRate::kLow, centers_bytes,
                                 std::array{BufferUsage::GetVertexBufferUsage(
@@ -208,19 +208,21 @@ class TroopExample {
             .AddPerInstanceBuffer(
                 renderer::ir::buffer::CreateAttributesForVertex3DPosOnly(0),
                 sizeof(glm::vec3), soldier_centers_buffer_.get())
-            .SetShader(renderer::ir::shader_stage::VERTEX,
-                       GetShaderBinaryPath("troop/geometry_pass.vert"))
-            .SetShader(renderer::ir::shader_stage::FRAGMENT,
-                       GetShaderBinaryPath("troop/geometry_pass.frag"))
+            .SetShader(
+                renderer::ir::shader_stage::VERTEX,
+                base::file::GetShaderBinaryPath("troop/geometry_pass.vert"))
+            .SetShader(
+                renderer::ir::shader_stage::FRAGMENT,
+                base::file::GetShaderBinaryPath("troop/geometry_pass.frag"))
             .Build();
 
     // Cube geometry for point light indicators.
-    const common::ObjFilePosOnly cube_file{GetResourcePath("model/cube.obj"),
-                                           kObjFileIndexBase};
+    const base::ObjFilePosOnly cube_file{GetResourcePath("model/cube.obj"),
+                                         kObjFileIndexBase};
     cube_index_count_ = static_cast<uint32_t>(cube_file.indices.size());
-    const size_t cube_vertex_bytes = common::util::GetTotalDataSize(
+    const size_t cube_vertex_bytes = base::util::GetTotalDataSize(
         std::span<const Vertex3DPosOnly>{cube_file.vertices});
-    const size_t cube_index_bytes = common::util::GetTotalDataSize(
+    const size_t cube_index_bytes = base::util::GetTotalDataSize(
         std::span<const uint32_t>{cube_file.indices});
     cube_index_offset_ = cube_vertex_bytes;
     cube_buffer_ = renderer_->CreateBuffer(
@@ -237,8 +239,8 @@ class TroopExample {
     // Full-screen quad for deferred lighting pass.
     const std::array<Vertex2D, 6> quad_vertices =
         Vertex2D::GetFullScreenSquadVertices(/*flip_y=*/true);
-    const size_t quad_bytes = common::util::GetTotalDataSize(
-        std::span<const Vertex2D>{quad_vertices});
+    const size_t quad_bytes =
+        base::util::GetTotalDataSize(std::span<const Vertex2D>{quad_vertices});
     quad_buffer_ =
         renderer_->CreateBuffer(Buffer::UpdateRate::kLow, quad_bytes,
                                 std::array{BufferUsage::GetVertexBufferUsage(
@@ -250,9 +252,9 @@ class TroopExample {
         GraphicsPipelineDescriptor{}
             .SetName("Lights")
             .SetShader(renderer::ir::shader_stage::VERTEX,
-                       GetShaderBinaryPath("troop/light_cube.vert"))
+                       base::file::GetShaderBinaryPath("troop/light_cube.vert"))
             .SetShader(renderer::ir::shader_stage::FRAGMENT,
-                       GetShaderBinaryPath("troop/light_cube.frag"))
+                       base::file::GetShaderBinaryPath("troop/light_cube.frag"))
             .UseColorAttachment(/*location=*/0, std::nullopt)
             .EnableDepthTestAndWrite()
             .EnableStencilTest(
@@ -268,10 +270,12 @@ class TroopExample {
     base_soldiers_pipeline_ =
         GraphicsPipelineDescriptor{}
             .SetName("Soldiers")
-            .SetShader(renderer::ir::shader_stage::VERTEX,
-                       GetShaderBinaryPath("troop/lighting_pass.vert"))
-            .SetShader(renderer::ir::shader_stage::FRAGMENT,
-                       GetShaderBinaryPath("troop/lighting_pass.frag"))
+            .SetShader(
+                renderer::ir::shader_stage::VERTEX,
+                base::file::GetShaderBinaryPath("troop/lighting_pass.vert"))
+            .SetShader(
+                renderer::ir::shader_stage::FRAGMENT,
+                base::file::GetShaderBinaryPath("troop/lighting_pass.frag"))
             .UseColorAttachment(/*location=*/0, std::nullopt)
             .EnableStencilTest(renderer::ir::pipeline::GetStencilRead(
                                    CompareOp::kNotEqual, kStencilReference),
@@ -310,7 +314,7 @@ class TroopExample {
       window_.ProcessUserInputs();
       timer_.Tick();
 
-      const common::Camera& cam = camera_->camera();
+      const scene::Camera& cam = camera_->camera();
       const glm::mat4 proj_view =
           cam.GetProjectionMatrix() * cam.GetViewMatrix();
       const GeometryTrans geom_trans{soldier_model, soldier_model_inv_trs,
@@ -467,9 +471,9 @@ class TroopExample {
   uint32_t cube_index_count_ = 0;
   size_t cube_index_offset_ = 0;
 
-  common::FrameTimer timer_;
-  common::Window window_;
-  std::unique_ptr<common::UserControlledPerspectiveCamera> camera_;
+  base::FrameTimer timer_;
+  base::Window window_;
+  std::unique_ptr<scene::UserControlledPerspectiveCamera> camera_;
   std::unique_ptr<Renderer> renderer_;
 
   std::unique_ptr<Buffer> soldier_centers_buffer_;
@@ -488,6 +492,6 @@ class TroopExample {
 }  // namespace lighter::example
 
 int main(int argc, char* argv[]) {
-  return lighter::example::ExampleMain<lighter::example::TroopExample>(
+  return lighter::scene::RunApplication<lighter::example::TroopExample>(
       argc, argv, glm::ivec2{800, 600});
 }

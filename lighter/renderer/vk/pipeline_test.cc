@@ -13,15 +13,15 @@
 #include <cstdint>
 #include <span>
 
-#include "lighter/common/data.h"
-#include "lighter/common/file.h"
+#include "lighter/base/data.h"
+#include "lighter/base/file.h"
 
 namespace lighter::renderer::vk {
 namespace {
 
 PipelineReflection ReflectShaderFile(std::string_view relative_path) {
-  const std::string spv_path = common::file::GetShaderBinaryPath(relative_path);
-  const common::Data data = common::file::LoadDataFromFile(spv_path);
+  const std::string spv_path = base::file::GetShaderBinaryPath(relative_path);
+  const base::Data data = base::file::LoadDataFromFile(spv_path);
   EXPECT_EQ(data.size() % sizeof(uint32_t), 0u);
   return ReflectSpirv(std::span<const uint32_t>{
       data.data<uint32_t>(), data.size() / sizeof(uint32_t)});
@@ -94,7 +94,7 @@ TEST(PipelineReflectionTest, ReflectDescriptorArray) {
 
 TEST(PipelineReflectionTest, ReflectComputeStorageImages) {
   const PipelineReflection comp =
-      ReflectShaderFile("aurora/jump_flooding.comp");
+      ReflectShaderFile("shared/distance_field/jump_flooding.comp");
   ASSERT_EQ(comp.bindings.size(), 2u);
   EXPECT_EQ(comp.bindings[0].binding, 0u);
   EXPECT_EQ(comp.bindings[0].descriptor_type,

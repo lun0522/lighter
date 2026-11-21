@@ -17,13 +17,13 @@
 #include <span>
 #include <vector>
 
-#include "lighter/common/camera.h"
-#include "lighter/common/spline.h"
-#include "lighter/example/aurora/editor/button_util.h"
 #include "lighter/renderer/ir/buffer.h"
 #include "lighter/renderer/ir/pipeline.h"
 #include "lighter/renderer/ir/render_graph.h"
 #include "lighter/renderer/ir/renderer.h"
+#include "lighter/scene/camera.h"
+#include "lighter/scene/spline.h"
+#include "lighter/ui/button_util.h"
 
 namespace lighter::example::aurora {
 
@@ -116,9 +116,9 @@ class AuroraPath {
     int max_recursion_depth;
     float spline_roughness;
     glm::vec3 viewpoint_initial_pos;
-    std::array<glm::vec3, button::kNumStates> viewpoint_colors;
-    std::span<const std::array<glm::vec3, button::kNumStates>> path_colors;
-    std::array<float, button::kNumStates> path_alphas;
+    std::array<glm::vec3, ui::button::kNumStates> viewpoint_colors;
+    std::span<const std::array<glm::vec3, ui::button::kNumStates>> path_colors;
+    std::array<float, ui::button::kNumStates> path_alphas;
     GenerateControlPoints generate_control_points;
   };
 
@@ -139,7 +139,7 @@ class AuroraPath {
   // points, and the user viewpoint into 'ctx'.
   void UpdateAndDraw(renderer::ir::PassContext& ctx,
                      const glm::ivec2& frame_size, int frame_slot,
-                     const common::OrthographicCamera& camera,
+                     const scene::OrthographicCamera& camera,
                      const glm::mat4& model, float model_radius,
                      std::optional<int> selected_path_index,
                      const std::optional<ClickInfo>& click_info);
@@ -169,16 +169,16 @@ class AuroraPath {
   const float viewport_aspect_ratio_;
   const float control_point_radius_;
   const int num_paths_;
-  const std::array<glm::vec4, button::kNumStates> viewpoint_color_alphas_;
+  const std::array<glm::vec4, ui::button::kNumStates> viewpoint_color_alphas_;
 
   std::optional<int> selected_control_point_;
   glm::vec3 viewpoint_pos_;
   bool did_click_viewpoint_ = false;
-  std::vector<std::array<glm::vec4, button::kNumStates>> path_color_alphas_;
+  std::vector<std::array<glm::vec4, ui::button::kNumStates>> path_color_alphas_;
   std::vector<glm::vec4> color_alphas_to_render_;
 
   PathRenderer3D path_renderer_;
-  std::vector<std::unique_ptr<common::SplineEditor>> spline_editors_;
+  std::vector<std::unique_ptr<scene::SplineEditor>> spline_editors_;
 };
 
 }  // namespace lighter::example::aurora

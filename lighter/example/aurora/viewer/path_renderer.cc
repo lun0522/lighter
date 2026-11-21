@@ -10,10 +10,10 @@
 #include <optional>
 #include <vector>
 
-#include "lighter/example/util.h"
 #include "lighter/renderer/ir/buffer_util.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/ir/pipeline_util.h"
+#include "lighter/scene/util.h"
 
 namespace lighter::example::aurora {
 namespace {
@@ -57,9 +57,9 @@ PathRenderer2D::PathRenderer2D(const glm::ivec2& image_extent,
       group_count_y_{GetWorkGroupCount(image_extent.y, kWorkGroupSizeY)} {
   render_paths_pipeline_.SetName("DumpPath")
       .SetShader(renderer::ir::shader_stage::VERTEX,
-                 GetShaderBinaryPath("aurora/dump_path.vert"))
+                 base::file::GetShaderBinaryPath("aurora/dump_path.vert"))
       .SetShader(renderer::ir::shader_stage::FRAGMENT,
-                 GetShaderBinaryPath("aurora/dump_path.frag"))
+                 base::file::GetShaderBinaryPath("aurora/dump_path.frag"))
       .SetPrimitiveTopology(PrimitiveTopology::kLineStrip)
       .UseColorAttachment(/*location=*/0, std::nullopt)
       .SetViewport(renderer::ir::pipeline::GetFullFrameViewport(image_extent_),
@@ -73,12 +73,12 @@ PathRenderer2D::PathRenderer2D(const glm::ivec2& image_extent,
       });
 
   bold_paths_pipeline_.SetName("BoldPaths")
-      .SetShader(GetShaderBinaryPath("aurora/bold_path.comp"));
+      .SetShader(base::file::GetShaderBinaryPath("aurora/bold_path.comp"));
 }
 
 PathRenderer2D::PassOutputs PathRenderer2D::AddPasses(
     RenderGraph& graph, ImageHandle intermediate_image,
-    ImageHandle output_image, const common::Camera& camera,
+    ImageHandle output_image, const scene::Camera& camera,
     std::span<const SplinePathView> spline_paths) const {
   const Transformation trans{camera.GetProjectionMatrix() *
                              camera.GetViewMatrix()};

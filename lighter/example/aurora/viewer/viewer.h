@@ -13,10 +13,8 @@
 #include <span>
 #include <vector>
 
-#include "lighter/common/camera.h"
-#include "lighter/common/window.h"
+#include "lighter/base/window.h"
 #include "lighter/example/aurora/editor/path.h"
-#include "lighter/example/aurora/scene.h"
 #include "lighter/example/aurora/viewer/path_dumper.h"
 #include "lighter/renderer/ir/buffer.h"
 #include "lighter/renderer/ir/image.h"
@@ -24,13 +22,15 @@
 #include "lighter/renderer/ir/render_graph.h"
 #include "lighter/renderer/ir/renderer.h"
 #include "lighter/renderer/ir/type.h"
+#include "lighter/scene/camera.h"
+#include "lighter/scene/scene.h"
 
 namespace lighter::example::aurora {
 
 // Volumetric aurora ray-tracing viewer scene.
-class Viewer : public Scene {
+class Viewer : public scene::Scene {
  public:
-  Viewer(common::Window& window, renderer::ir::Renderer& renderer,
+  Viewer(base::Window& window, renderer::ir::Renderer& renderer,
          int window_index, renderer::ir::MultisamplingMode multisampling_mode,
          int num_frames_in_flight);
 
@@ -49,7 +49,7 @@ class Viewer : public Scene {
   bool ShouldTransitionScene() const override { return should_quit_; }
 
  private:
-  common::Window& window_;
+  base::Window& window_;
   renderer::ir::Renderer& renderer_;
   const int window_index_;
   const renderer::ir::MultisamplingMode multisampling_mode_;
@@ -67,8 +67,8 @@ class Viewer : public Scene {
   renderer::ir::GraphicsPipelineDescriptor base_pipeline_descriptor_;
 
   glm::mat4 aurora_proj_view_{1.0f};
-  std::unique_ptr<common::PerspectiveCamera> dump_paths_camera_;
-  std::unique_ptr<common::UserControlledPerspectiveCamera> view_aurora_camera_;
+  std::unique_ptr<scene::PerspectiveCamera> dump_paths_camera_;
+  std::unique_ptr<scene::UserControlledPerspectiveCamera> view_aurora_camera_;
 };
 
 }  // namespace lighter::example::aurora

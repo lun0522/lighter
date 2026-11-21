@@ -12,7 +12,7 @@
 #include <memory>
 #include <vector>
 
-#include "lighter/common/util.h"
+#include "lighter/base/util.h"
 #include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/vk/basic.h"
 #include "lighter/renderer/vk/context.h"
@@ -25,7 +25,7 @@ namespace lighter::renderer::vk {
 class Swapchain : public WithSharedContext {
  public:
   Swapchain(const SharedContext& context, int window_index,
-            const common::Window& window);
+            const base::Window& window);
 
   // This class is neither copyable nor movable.
   Swapchain(const Swapchain&) = delete;

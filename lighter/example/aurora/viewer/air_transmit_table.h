@@ -8,12 +8,12 @@
 #ifndef LIGHTER_EXAMPLE_AURORA_VIEWER_AIR_TRANSMIT_TABLE_H
 #define LIGHTER_EXAMPLE_AURORA_VIEWER_AIR_TRANSMIT_TABLE_H
 
-#include "lighter/common/image.h"
+#include "lighter/base/image.h"
 
 namespace lighter::example::aurora {
 
 // Generates a 1xN air transmittance lookup texture for atmospheric attenuation.
-common::Image GenerateAirTransmitTable(float sample_step);
+base::Image GenerateAirTransmitTable(float sample_step);
 
 }  // namespace lighter::example::aurora
 

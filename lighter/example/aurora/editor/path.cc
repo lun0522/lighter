@@ -12,19 +12,19 @@
 #include <format>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "lighter/common/data.h"
-#include "lighter/common/file.h"
-#include "lighter/common/util.h"
-#include "lighter/example/util.h"
+#include "lighter/base/data.h"
+#include "lighter/base/file.h"
+#include "lighter/base/util.h"
 #include "lighter/renderer/ir/buffer_usage.h"
 #include "lighter/renderer/ir/buffer_util.h"
 #include "lighter/renderer/ir/pipeline_util.h"
 #include "lighter/renderer/ir/type.h"
+#include "lighter/scene/util.h"
 
 namespace lighter::example::aurora {
 namespace {
 
-using common::Vertex3DPosOnly;
+using base::Vertex3DPosOnly;
 using renderer::ir::Buffer;
 using renderer::ir::BufferUsage;
 using renderer::ir::DataFormat;
@@ -78,13 +78,13 @@ PathRenderer3D::PathRenderer3D(const Renderer& renderer,
     : renderer_{renderer},
       num_paths_{num_paths},
       path_host_datas_(static_cast<size_t>(num_paths)) {
-  const common::ObjFilePosOnly sphere_file{
-      common::file::GetResourcePath("model/small_sphere.obj"),
+  const base::ObjFilePosOnly sphere_file{
+      base::file::GetResourcePath("model/small_sphere.obj"),
       /*index_base=*/1};
   sphere_index_count_ = static_cast<uint32_t>(sphere_file.indices.size());
-  const size_t sphere_vertex_bytes = common::util::GetTotalDataSize(
+  const size_t sphere_vertex_bytes = base::util::GetTotalDataSize(
       std::span<const Vertex3DPosOnly>{sphere_file.vertices});
-  const size_t sphere_index_bytes = common::util::GetTotalDataSize(
+  const size_t sphere_index_bytes = base::util::GetTotalDataSize(
       std::span<const uint32_t>{sphere_file.indices});
   sphere_index_offset_ = sphere_vertex_bytes;
 
@@ -115,10 +115,11 @@ PathRenderer3D::PathRenderer3D(const Renderer& renderer,
   const auto alpha_blend = renderer::ir::pipeline::GetColorAlphaBlend();
 
   base_control_pipeline_.SetName("AuroraPathControl")
-      .SetShader(renderer::ir::shader_stage::VERTEX,
-                 GetShaderBinaryPath("aurora/draw_path_control.vert"))
+      .SetShader(
+          renderer::ir::shader_stage::VERTEX,
+          base::file::GetShaderBinaryPath("aurora/draw_path_control.vert"))
       .SetShader(renderer::ir::shader_stage::FRAGMENT,
-                 GetShaderBinaryPath("aurora/draw_path.frag"))
+                 base::file::GetShaderBinaryPath("aurora/draw_path.frag"))
       .EnableDepthTestOnly()
       .UseColorAttachment(/*location=*/0, alpha_blend)
       .AddVertexInput({
@@ -135,10 +136,11 @@ PathRenderer3D::PathRenderer3D(const Renderer& renderer,
       });
 
   base_spline_pipeline_.SetName("AuroraPathSpline")
-      .SetShader(renderer::ir::shader_stage::VERTEX,
-                 GetShaderBinaryPath("aurora/draw_path_spline.vert"))
+      .SetShader(
+          renderer::ir::shader_stage::VERTEX,
+          base::file::GetShaderBinaryPath("aurora/draw_path_spline.vert"))
       .SetShader(renderer::ir::shader_stage::FRAGMENT,
-                 GetShaderBinaryPath("aurora/draw_path.frag"))
+                 base::file::GetShaderBinaryPath("aurora/draw_path.frag"))
       .EnableDepthTestOnly()
       .SetPrimitiveTopology(PrimitiveTopology::kLineStrip)
       .UseColorAttachment(/*location=*/0, alpha_blend)
@@ -157,9 +159,9 @@ PathRenderer3D::PathRenderer3D(const Renderer& renderer,
 
   base_viewpoint_pipeline_.SetName("UserViewpoint")
       .SetShader(renderer::ir::shader_stage::VERTEX,
-                 GetShaderBinaryPath("aurora/viewpoint.vert"))
+                 base::file::GetShaderBinaryPath("aurora/viewpoint.vert"))
       .SetShader(renderer::ir::shader_stage::FRAGMENT,
-                 GetShaderBinaryPath("aurora/draw_path.frag"))
+                 base::file::GetShaderBinaryPath("aurora/draw_path.frag"))
       .EnableDepthTestOnly()
       .UseColorAttachment(/*location=*/0, alpha_blend)
       .AddVertexInput({
@@ -200,7 +202,7 @@ void PathRenderer3D::EnsureSlotSynced(int frame_slot, int path_index) {
   if (!data.control_points.empty()) {
     slot.control_points_buffer->CopyToDevice(std::array{Buffer::CopyInfo{
         data.control_points.data(),
-        common::util::GetTotalDataSize(
+        base::util::GetTotalDataSize(
             std::span<const glm::vec3>{data.control_points}),
         /*offset=*/0,
     }});
@@ -216,7 +218,7 @@ void PathRenderer3D::EnsureSlotSynced(int frame_slot, int path_index) {
   if (!data.spline_points.empty()) {
     slot.spline_points_buffer->CopyToDevice(std::array{Buffer::CopyInfo{
         data.spline_points.data(),
-        common::util::GetTotalDataSize(
+        base::util::GetTotalDataSize(
             std::span<const glm::vec3>{data.spline_points}),
         /*offset=*/0,
     }});
@@ -268,7 +270,7 @@ void PathRenderer3D::DrawSplines(PassContext& ctx, const glm::ivec2& frame_size,
   const Buffer& color_buffer =
       *color_alpha_buffers_[static_cast<size_t>(frame_slot)];
   color_buffer.CopyToDevice(std::array{Buffer::CopyInfo{
-      color_alphas.data(), common::util::GetTotalDataSize(color_alphas), 0}});
+      color_alphas.data(), base::util::GetTotalDataSize(color_alphas), 0}});
 
   const SplineTrans trans{proj_view_model};
   ctx.BindGraphicsPipeline(
@@ -336,36 +338,36 @@ AuroraPath::AuroraPath(const Renderer& renderer, int num_frames_in_flight,
       control_point_radius_{info.control_point_radius},
       num_paths_{static_cast<int>(info.path_colors.size())},
       viewpoint_color_alphas_{
-          glm::vec4{info.viewpoint_colors[button::kSelectedState],
-                    info.path_alphas[button::kSelectedState]},
-          glm::vec4{info.viewpoint_colors[button::kUnselectedState],
-                    info.path_alphas[button::kUnselectedState]}},
+          glm::vec4{info.viewpoint_colors[ui::button::kSelectedState],
+                    info.path_alphas[ui::button::kSelectedState]},
+          glm::vec4{info.viewpoint_colors[ui::button::kUnselectedState],
+                    info.path_alphas[ui::button::kUnselectedState]}},
       viewpoint_pos_{info.viewpoint_initial_pos},
       color_alphas_to_render_(static_cast<size_t>(num_paths_)),
       path_renderer_{renderer, num_frames_in_flight, num_paths_} {
   path_color_alphas_.reserve(static_cast<size_t>(num_paths_));
   spline_editors_.reserve(static_cast<size_t>(num_paths_));
   for (int path = 0; path < num_paths_; ++path) {
-    path_color_alphas_.push_back(std::array<glm::vec4, button::kNumStates>{
-        glm::vec4{
-            info.path_colors[static_cast<size_t>(path)][button::kSelectedState],
-            info.path_alphas[button::kSelectedState]},
+    path_color_alphas_.push_back(std::array<glm::vec4, ui::button::kNumStates>{
         glm::vec4{info.path_colors[static_cast<size_t>(path)]
-                                  [button::kUnselectedState],
-                  info.path_alphas[button::kUnselectedState]},
+                                  [ui::button::kSelectedState],
+                  info.path_alphas[ui::button::kSelectedState]},
+        glm::vec4{info.path_colors[static_cast<size_t>(path)]
+                                  [ui::button::kUnselectedState],
+                  info.path_alphas[ui::button::kUnselectedState]},
     });
-    spline_editors_.push_back(std::make_unique<common::SplineEditor>(
-        common::CatmullRomSpline::kMinNumControlPoints,
+    spline_editors_.push_back(std::make_unique<scene::SplineEditor>(
+        scene::CatmullRomSpline::kMinNumControlPoints,
         info.max_num_control_points, info.generate_control_points(path),
-        common::CatmullRomSpline::GetOnSphereSpline(info.max_recursion_depth,
-                                                    info.spline_roughness)));
+        scene::CatmullRomSpline::GetOnSphereSpline(info.max_recursion_depth,
+                                                   info.spline_roughness)));
     UpdatePath(path);
   }
 }
 
 void AuroraPath::UpdateAndDraw(PassContext& ctx, const glm::ivec2& frame_size,
                                int frame_slot,
-                               const common::OrthographicCamera& camera,
+                               const scene::OrthographicCamera& camera,
                                const glm::mat4& model, float model_radius,
                                std::optional<int> selected_path_index,
                                const std::optional<ClickInfo>& click_info) {
@@ -386,15 +388,16 @@ void AuroraPath::UpdateAndDraw(PassContext& ctx, const glm::ivec2& frame_size,
     for (int path = 0; path < num_paths_; ++path) {
       color_alphas_to_render_[static_cast<size_t>(path)] =
           path_color_alphas_[static_cast<size_t>(path)]
-                            [button::kUnselectedState];
+                            [ui::button::kUnselectedState];
     }
     const size_t idx = static_cast<size_t>(selected_path_index.value());
     color_alphas_to_render_[idx] =
-        path_color_alphas_[idx][button::kSelectedState];
+        path_color_alphas_[idx][ui::button::kSelectedState];
   } else {
     for (int path = 0; path < num_paths_; ++path) {
       color_alphas_to_render_[static_cast<size_t>(path)] =
-          path_color_alphas_[static_cast<size_t>(path)][button::kSelectedState];
+          path_color_alphas_[static_cast<size_t>(path)]
+                            [ui::button::kSelectedState];
     }
   }
 
@@ -411,8 +414,9 @@ void AuroraPath::UpdateAndDraw(PassContext& ctx, const glm::ivec2& frame_size,
   }
 
   const bool is_viewpoint_selected = !selected_path_index.has_value();
-  const auto viewpoint_state =
-      is_viewpoint_selected ? button::kSelectedState : button::kUnselectedState;
+  const auto viewpoint_state = is_viewpoint_selected
+                                   ? ui::button::kSelectedState
+                                   : ui::button::kUnselectedState;
   path_renderer_.DrawViewpoint(ctx, frame_size, viewport_aspect_ratio_,
                                control_point_scale, proj_view_model,
                                viewpoint_pos_,

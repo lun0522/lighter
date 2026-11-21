@@ -8,8 +8,8 @@ target_compile_definitions(lighter_renderer_vk_util
 target_link_libraries(lighter_renderer_vk_util
   INTERFACE
     lighter_project_options
-    lighter_common_image
-    lighter_common_util
+    lighter_base_image
+    lighter_base_util
     glm::glm
     Vulkan::Vulkan
 )
@@ -21,7 +21,7 @@ add_library(lighter_renderer_vk_type_mapping STATIC
 target_link_libraries(lighter_renderer_vk_type_mapping
   PUBLIC
     lighter_project_options
-    lighter_common_util
+    lighter_base_util
     lighter_renderer_ir_type
     lighter_renderer_vk_util
 )
@@ -33,7 +33,7 @@ add_library(lighter_renderer_vk_property_checker STATIC
 target_link_libraries(lighter_renderer_vk_property_checker
   PUBLIC
     lighter_project_options
-    lighter_common_util
+    lighter_base_util
     lighter_renderer_vk_util
 )
 
@@ -52,8 +52,8 @@ target_compile_definitions(lighter_renderer_vk_context
 target_link_libraries(lighter_renderer_vk_context
   PUBLIC
     lighter_project_options
-    lighter_common_util
-    lighter_common_window
+    lighter_base_util
+    lighter_base_window
     lighter_renderer_ir_pipeline
     lighter_renderer_ir_type
     lighter_renderer_vk_property_checker
@@ -71,7 +71,7 @@ add_library(lighter_renderer_vk_buffer STATIC
 target_link_libraries(lighter_renderer_vk_buffer
   PUBLIC
     lighter_project_options
-    lighter_common_util
+    lighter_base_util
     lighter_renderer_ir_buffer
     lighter_renderer_ir_buffer_usage
     lighter_renderer_ir_type
@@ -88,8 +88,8 @@ add_library(lighter_renderer_vk_image STATIC
 target_link_libraries(lighter_renderer_vk_image
   PUBLIC
     lighter_project_options
-    lighter_common_image
-    lighter_common_util
+    lighter_base_image
+    lighter_base_util
     lighter_renderer_ir_image
     lighter_renderer_ir_image_usage
     lighter_renderer_ir_type
@@ -107,10 +107,10 @@ add_library(lighter_renderer_vk_pipeline STATIC
 target_link_libraries(lighter_renderer_vk_pipeline
   PUBLIC
     lighter_project_options
-    lighter_common_data
-    lighter_common_file
-    lighter_common_ref_count
-    lighter_common_util
+    lighter_base_data
+    lighter_base_file
+    lighter_base_ref_count
+    lighter_base_util
     lighter_renderer_ir_image
     lighter_renderer_ir_image_usage
     lighter_renderer_ir_pipeline
@@ -119,7 +119,6 @@ target_link_libraries(lighter_renderer_vk_pipeline
     lighter_renderer_vk_image
     lighter_renderer_vk_type_mapping
     lighter_renderer_vk_util
-    lighter_shader_compiler_util
   PRIVATE
     lighter_spirv_cross
 )
@@ -131,8 +130,8 @@ add_library(lighter_renderer_vk_swapchain STATIC
 target_link_libraries(lighter_renderer_vk_swapchain
   PUBLIC
     lighter_project_options
-    lighter_common_image
-    lighter_common_util
+    lighter_base_image
+    lighter_base_util
     lighter_renderer_ir_image_usage
     lighter_renderer_ir_type
     lighter_renderer_vk_context
@@ -147,7 +146,7 @@ add_library(lighter_renderer_vk_command STATIC
 target_link_libraries(lighter_renderer_vk_command
   PUBLIC
     lighter_project_options
-    lighter_common_util
+    lighter_base_util
     lighter_renderer_vk_context
     lighter_renderer_vk_swapchain
     lighter_renderer_vk_util
@@ -160,7 +159,7 @@ add_library(lighter_renderer_vk_transient_resource_pool STATIC
 target_link_libraries(lighter_renderer_vk_transient_resource_pool
   PUBLIC
     lighter_project_options
-    lighter_common_util
+    lighter_base_util
     lighter_renderer_ir_render_graph
     lighter_renderer_ir_type
     lighter_renderer_vk_buffer
@@ -191,7 +190,7 @@ add_library(lighter_renderer_vk_render_graph STATIC
 target_link_libraries(lighter_renderer_vk_render_graph
   PUBLIC
     lighter_project_options
-    lighter_common_util
+    lighter_base_util
     lighter_renderer_ir_image
     lighter_renderer_ir_pipeline
     lighter_renderer_ir_render_graph
@@ -214,8 +213,11 @@ add_library(lighter_renderer_vk_renderer STATIC
 target_link_libraries(lighter_renderer_vk_renderer
   PUBLIC
     lighter_project_options
-    lighter_common_image
-    lighter_common_window
+    lighter_base_file
+    lighter_base_flag
+    lighter_base_image
+    lighter_base_util
+    lighter_base_window
     lighter_renderer_ir_buffer_usage
     lighter_renderer_ir_image_usage
     lighter_renderer_ir_render_graph
@@ -261,8 +263,8 @@ add_executable(vk_pipeline_test
 target_link_libraries(vk_pipeline_test
   PRIVATE
     lighter_project_options
-    lighter_common_data
-    lighter_common_file
+    lighter_base_data
+    lighter_base_file
     lighter_renderer_vk_pipeline
     GTest::gtest_main
 )

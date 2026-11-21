@@ -10,9 +10,9 @@
 #include <array>
 #include <format>
 
-#include "lighter/common/image.h"
-#include "lighter/common/timer.h"
-#include "lighter/common/util.h"
+#include "lighter/base/image.h"
+#include "lighter/base/timer.h"
+#include "lighter/base/util.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/ir/render_graph.h"
 #include "lighter/renderer/ir/type.h"
@@ -32,14 +32,14 @@ PathDumper::PathDumper(const Renderer& renderer, int paths_image_dimension)
     : path_renderer_{glm::ivec2{paths_image_dimension},
                      MultisamplingMode::kBest},
       distance_field_generator_{glm::ivec2{paths_image_dimension}} {
-  ASSERT_TRUE(common::util::IsPowerOf2(paths_image_dimension),
+  ASSERT_TRUE(base::util::IsPowerOf2(paths_image_dimension),
               std::format("'paths_image_dimension' is expected to be power "
                           "of 2, while {} provided",
                           paths_image_dimension));
 
-  const common::Image::Dimension bw_dim{paths_image_dimension,
-                                        paths_image_dimension,
-                                        common::image::kBwImageChannel};
+  const base::Image::Dimension bw_dim{paths_image_dimension,
+                                      paths_image_dimension,
+                                      base::image::kBwImageChannel};
   paths_image_ = renderer.CreateColorImage(
       "AuroraPaths", bw_dim, MultisamplingMode::kNone,
       /*high_precision=*/false,
@@ -51,9 +51,9 @@ PathDumper::PathDumper(const Renderer& renderer, int paths_image_dimension)
           ImageUsage::GetSampledInFragmentShaderUsage(),
       });
 
-  const common::Image::Dimension rgba_dim{paths_image_dimension,
-                                          paths_image_dimension,
-                                          common::image::kRgbaImageChannel};
+  const base::Image::Dimension rgba_dim{paths_image_dimension,
+                                        paths_image_dimension,
+                                        base::image::kRgbaImageChannel};
   distance_field_image_ = renderer.CreateColorImage(
       "DistanceField", rgba_dim, MultisamplingMode::kNone,
       /*high_precision=*/true,
@@ -69,10 +69,10 @@ PathDumper::PathDumper(const Renderer& renderer, int paths_image_dimension)
 }
 
 void PathDumper::DumpAuroraPaths(Renderer& renderer,
-                                 const common::Camera& camera,
+                                 const scene::Camera& camera,
                                  std::span<const SplinePathView> spline_paths) {
 #ifndef NDEBUG
-  const common::BasicTimer timer;
+  const base::BasicTimer timer;
 #endif
 
   RenderGraph graph;

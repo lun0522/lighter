@@ -42,8 +42,9 @@ target_compile_definitions(lighter_project_options INTERFACE
   GLM_FORCE_DEPTH_ZERO_TO_ONE
 )
 
-add_subdirectory(lighter/common)
-add_subdirectory(lighter/shader_compiler)
+add_subdirectory(lighter/base)
 add_subdirectory(lighter/shader)
 add_subdirectory(lighter/renderer)
+add_subdirectory(lighter/scene)
+add_subdirectory(lighter/ui)
 add_subdirectory(lighter/example)

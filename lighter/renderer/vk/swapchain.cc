@@ -14,7 +14,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "lighter/common/image.h"
+#include "lighter/base/image.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/vk/image_util.h"
 
@@ -24,7 +24,7 @@ namespace {
 using ir::ImageUsage;
 
 // Returns the image extent to use.
-intl::Extent2D ChooseImageExtent(const common::Window& window,
+intl::Extent2D ChooseImageExtent(const base::Window& window,
                                  const Surface& surface) {
   // 'currentExtent' is the suggested resolution.
   // If it is UINT32_MAX, that means it is up to the swapchain to choose extent.
@@ -69,10 +69,10 @@ intl::PresentModeKHR ChoosePresentMode(
     std::span<const intl::PresentModeKHR> modes) {
   // Prefer MAILBOX (low-latency triple-buffered) over IMMEDIATE (uncapped),
   // falling back to FIFO (VSync) which is always guaranteed by the spec.
-  if (common::util::Contains(modes, intl::PresentModeKHR::eMailbox)) {
+  if (base::util::Contains(modes, intl::PresentModeKHR::eMailbox)) {
     return intl::PresentModeKHR::eMailbox;
   }
-  if (common::util::Contains(modes, intl::PresentModeKHR::eImmediate)) {
+  if (base::util::Contains(modes, intl::PresentModeKHR::eImmediate)) {
     return intl::PresentModeKHR::eImmediate;
   }
   return intl::PresentModeKHR::eFifo;
@@ -114,7 +114,7 @@ class SwapchainFrameImage : public Image {
 }  // namespace
 
 Swapchain::Swapchain(const SharedContext& context, int window_index,
-                     const common::Window& window)
+                     const base::Window& window)
     : WithSharedContext{context}, window_index_{window_index} {
   // Refresh surface capabilities so resize sees current extents.
   const PhysicalDevice& physical_device = context_->physical_device();
@@ -154,7 +154,7 @@ Swapchain::Swapchain(const SharedContext& context, int window_index,
           .setImageFormat(surface_format.format)
           .setImageColorSpace(surface_format.colorSpace)
           .setImageExtent(image_extent)
-          .setImageArrayLayers(CAST_TO_UINT(common::image::kSingleImageLayer))
+          .setImageArrayLayers(CAST_TO_UINT(base::image::kSingleImageLayer))
           .setImageUsage(image::GetImageUsageFlags(swapchain_image_usages))
           .setImageSharingMode(intl::SharingMode::eExclusive)
           .setQueueFamilyIndices(unique_queue_family_indices)

@@ -15,7 +15,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "lighter/common/util.h"
+#include "lighter/base/util.h"
 #include "lighter/renderer/ir/render_graph_util.h"
 #include "lighter/renderer/vk/buffer.h"
 #include "lighter/renderer/vk/buffer_util.h"

@@ -14,8 +14,8 @@ add_library(lighter_renderer_ir_buffer STATIC
 target_link_libraries(lighter_renderer_ir_buffer
   PUBLIC
     lighter_project_options
-    lighter_common_data
-    lighter_common_file
+    lighter_base_data
+    lighter_base_file
     lighter_renderer_ir_type
 )
 
@@ -25,7 +25,7 @@ add_library(lighter_renderer_ir_buffer_usage INTERFACE
 target_link_libraries(lighter_renderer_ir_buffer_usage
   INTERFACE
     lighter_project_options
-    lighter_common_util
+    lighter_base_util
     lighter_renderer_ir_type
 )
 
@@ -35,7 +35,7 @@ add_library(lighter_renderer_ir_image_usage INTERFACE
 target_link_libraries(lighter_renderer_ir_image_usage
   INTERFACE
     lighter_project_options
-    lighter_common_util
+    lighter_base_util
     lighter_renderer_ir_type
 )
 
@@ -45,7 +45,7 @@ add_library(lighter_renderer_ir_image INTERFACE
 target_link_libraries(lighter_renderer_ir_image
   INTERFACE
     lighter_project_options
-    lighter_common_image
+    lighter_base_image
     lighter_renderer_ir_image_usage
     lighter_renderer_ir_type
     glm::glm
@@ -59,7 +59,7 @@ add_library(lighter_renderer_ir_pipeline STATIC
 target_link_libraries(lighter_renderer_ir_pipeline
   PUBLIC
     lighter_project_options
-    lighter_common_util
+    lighter_base_util
     lighter_renderer_ir_buffer
     lighter_renderer_ir_type
     glm::glm
@@ -74,7 +74,7 @@ add_library(lighter_renderer_ir_render_graph STATIC
 target_link_libraries(lighter_renderer_ir_render_graph
   PUBLIC
     lighter_project_options
-    lighter_common_util
+    lighter_base_util
     lighter_renderer_ir_buffer
     lighter_renderer_ir_buffer_usage
     lighter_renderer_ir_image
@@ -90,10 +90,10 @@ add_library(lighter_renderer_ir_renderer INTERFACE
 target_link_libraries(lighter_renderer_ir_renderer
   INTERFACE
     lighter_project_options
-    lighter_common_file
-    lighter_common_image
-    lighter_common_util
-    lighter_common_window
+    lighter_base_file
+    lighter_base_image
+    lighter_base_util
+    lighter_base_window
     lighter_renderer_ir_buffer
     lighter_renderer_ir_buffer_usage
     lighter_renderer_ir_image

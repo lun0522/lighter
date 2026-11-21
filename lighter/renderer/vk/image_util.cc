@@ -7,7 +7,7 @@
 
 #include "lighter/renderer/vk/image_util.h"
 
-#include "lighter/common/util.h"
+#include "lighter/base/util.h"
 #include "lighter/renderer/ir/type.h"
 
 namespace lighter::renderer::vk::image {
@@ -308,11 +308,10 @@ intl::ImageView CreateImageView(const Context& context, intl::Image vk_image,
                                 intl::Format format,
                                 intl::ImageAspectFlags aspect_mask,
                                 uint32_t mip_levels, uint32_t layer_count) {
-  const auto subresource_range =
-      intl::ImageSubresourceRange{}
-          .setAspectMask(aspect_mask)
-          .setLevelCount(mip_levels)
-          .setLayerCount(layer_count);
+  const auto subresource_range = intl::ImageSubresourceRange{}
+                                     .setAspectMask(aspect_mask)
+                                     .setLevelCount(mip_levels)
+                                     .setLayerCount(layer_count);
   const auto create_info = intl::ImageViewCreateInfo{}
                                .setImage(vk_image)
                                .setViewType(view_type)

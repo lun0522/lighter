@@ -15,8 +15,8 @@
 #include <span>
 #include <string_view>
 
-#include "lighter/common/image.h"
-#include "lighter/common/util.h"
+#include "lighter/base/image.h"
+#include "lighter/base/util.h"
 #include "lighter/renderer/ir/image.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/ir/type.h"
@@ -69,7 +69,7 @@ class OwnedImage : public WithSharedContext, public Image {
  public:
   static std::unique_ptr<OwnedImage> CreateColorImage(
       const SharedContext& context, std::string_view name,
-      const common::Image::Dimension& dimension,
+      const base::Image::Dimension& dimension,
       ir::MultisamplingMode multisampling_mode, bool high_precision,
       std::span<const ir::ImageUsage> usages);
 
@@ -80,7 +80,7 @@ class OwnedImage : public WithSharedContext, public Image {
 
   static std::unique_ptr<OwnedImage> CreateColorImage(
       const SharedContext& context, std::string_view name,
-      const common::Image& image, bool generate_mipmaps,
+      const base::Image& image, bool generate_mipmaps,
       std::span<const ir::ImageUsage> usages);
 
   static std::unique_ptr<OwnedImage> CreateDepthStencilImage(

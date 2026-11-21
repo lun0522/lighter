@@ -13,8 +13,8 @@
 #include <string_view>
 #include <vector>
 
-#include "lighter/common/image.h"
-#include "lighter/common/util.h"
+#include "lighter/base/image.h"
+#include "lighter/base/util.h"
 
 // Keep Vulkan-Hpp in its default ::vk namespace (SDK 1.4.350 references
 // vk::Result directly) and alias it as lighter::renderer::vk::intl.

@@ -7,7 +7,7 @@
 
 #include "lighter/renderer/vk/type_mapping.h"
 
-#include "lighter/common/util.h"
+#include "lighter/base/util.h"
 
 namespace lighter::renderer::vk::type {
 
@@ -169,7 +169,7 @@ intl::PrimitiveTopology ConvertPrimitiveTopology(
 
 intl::ShaderStageFlagBits ConvertShaderStage(
     ir::shader_stage::ShaderStage stage) {
-  ASSERT_TRUE(common::util::IsPowerOf2(stage),
+  ASSERT_TRUE(base::util::IsPowerOf2(stage),
               "'stage' must only contain one shader stage");
 #define CONVERT_ALIAS(stage, stage_intl)     \
   case ir::shader_stage::ShaderStage::stage: \
@@ -185,10 +185,10 @@ intl::ShaderStageFlagBits ConvertShaderStage(
 intl::ShaderStageFlags ConvertShaderStages(
     ir::shader_stage::ShaderStage stages) {
   intl::ShaderStageFlags stages_intl;
-#define INCLUDE_STAGE(stage, stage_intl)                                    \
-  common::util::IncludeIfTrue(stages& ir::shader_stage::ShaderStage::stage, \
-                              stages_intl,                                  \
-                              intl::ShaderStageFlagBits::e##stage_intl)
+#define INCLUDE_STAGE(stage, stage_intl)                                  \
+  base::util::IncludeIfTrue(stages& ir::shader_stage::ShaderStage::stage, \
+                            stages_intl,                                  \
+                            intl::ShaderStageFlagBits::e##stage_intl)
   INCLUDE_STAGE(VERTEX, Vertex);
   INCLUDE_STAGE(FRAGMENT, Fragment);
   INCLUDE_STAGE(COMPUTE, Compute);
@@ -200,7 +200,7 @@ intl::DebugUtilsMessageSeverityFlagsEXT ConvertDebugMessageSeverities(
     uint32_t severities) {
   intl::DebugUtilsMessageSeverityFlagsEXT severities_intl;
 #define INCLUDE_SEVERITY(severity_enum, severity_intl)                         \
-  common::util::IncludeIfTrue(                                                 \
+  base::util::IncludeIfTrue(                                                   \
       severities& ir::debug_message::severity::severity_enum, severities_intl, \
       intl::DebugUtilsMessageSeverityFlagBitsEXT::e##severity_intl)
   INCLUDE_SEVERITY(VERBOSE, Verbose);
@@ -214,7 +214,7 @@ intl::DebugUtilsMessageSeverityFlagsEXT ConvertDebugMessageSeverities(
 intl::DebugUtilsMessageTypeFlagsEXT ConvertDebugMessageTypes(uint32_t types) {
   intl::DebugUtilsMessageTypeFlagsEXT types_intl;
 #define INCLUDE_TYPE(type_enum, type_intl)                   \
-  common::util::IncludeIfTrue(                               \
+  base::util::IncludeIfTrue(                                 \
       types& ir::debug_message::type::type_enum, types_intl, \
       intl::DebugUtilsMessageTypeFlagBitsEXT::e##type_intl)
   INCLUDE_TYPE(GENERAL, General);

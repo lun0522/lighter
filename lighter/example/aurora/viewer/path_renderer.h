@@ -12,11 +12,11 @@
 #include <glm/glm.hpp>
 #include <span>
 
-#include "lighter/common/camera.h"
 #include "lighter/example/aurora/editor/path.h"
 #include "lighter/renderer/ir/pipeline.h"
 #include "lighter/renderer/ir/render_graph.h"
 #include "lighter/renderer/ir/type.h"
+#include "lighter/scene/camera.h"
 
 namespace lighter::example::aurora {
 
@@ -41,7 +41,7 @@ class PathRenderer2D {
   PassOutputs AddPasses(renderer::ir::RenderGraph& graph,
                         renderer::ir::ImageHandle intermediate_image,
                         renderer::ir::ImageHandle output_image,
-                        const common::Camera& camera,
+                        const scene::Camera& camera,
                         std::span<const SplinePathView> spline_paths) const;
 
  private:

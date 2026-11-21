@@ -18,7 +18,7 @@
 #include <string_view>
 #include <vector>
 
-#include "lighter/common/util.h"
+#include "lighter/base/util.h"
 #include "lighter/renderer/ir/buffer.h"
 #include "lighter/renderer/ir/buffer_usage.h"
 #include "lighter/renderer/ir/image.h"

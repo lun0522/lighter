@@ -15,9 +15,9 @@
 #include <string_view>
 #include <vector>
 
-#include "lighter/common/image.h"
-#include "lighter/common/util.h"
-#include "lighter/common/window.h"
+#include "lighter/base/image.h"
+#include "lighter/base/util.h"
+#include "lighter/base/window.h"
 #include "lighter/renderer/ir/buffer.h"
 #include "lighter/renderer/ir/buffer_usage.h"
 #include "lighter/renderer/ir/image.h"
@@ -51,7 +51,7 @@ class Renderer {
   // Device image
 
   virtual std::unique_ptr<Image> CreateColorImage(
-      std::string_view name, const common::Image::Dimension& dimension,
+      std::string_view name, const base::Image::Dimension& dimension,
       MultisamplingMode multisampling_mode, bool high_precision,
       std::span<const ImageUsage> usages) const = 0;
 
@@ -61,7 +61,7 @@ class Renderer {
       std::span<const ImageUsage> usages) const = 0;
 
   virtual std::unique_ptr<Image> CreateColorImage(
-      std::string_view name, const common::Image& image, bool generate_mipmaps,
+      std::string_view name, const base::Image& image, bool generate_mipmaps,
       std::span<const ImageUsage> usages) const = 0;
 
   virtual std::unique_ptr<Image> CreateDepthStencilImage(
@@ -83,19 +83,19 @@ class Renderer {
   virtual void WaitIdle() = 0;
 
  protected:
-  explicit Renderer(std::vector<common::Window*>&& windows)
+  explicit Renderer(std::vector<base::Window*>&& windows)
       : windows_{std::move(windows)} {
     for (int i = 0; i < num_windows(); ++i) {
       ASSERT_NON_NULL(windows_[i], std::format("Window {} is nullptr", i));
     }
   }
 
-  common::Window& mutable_window(int index) { return *windows_.at(index); }
-  const std::vector<common::Window*>& windows() const { return windows_; }
+  base::Window& mutable_window(int index) { return *windows_.at(index); }
+  const std::vector<base::Window*>& windows() const { return windows_; }
   int num_windows() const { return windows_.size(); }
 
  private:
-  std::vector<common::Window*> windows_;
+  std::vector<base::Window*> windows_;
 };
 
 }  // namespace lighter::renderer::ir

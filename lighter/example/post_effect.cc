@@ -9,13 +9,13 @@
 #include <cstdint>
 #include <memory>
 
-#include "lighter/common/image.h"
-#include "lighter/example/util.h"
+#include "lighter/base/image.h"
+#include "lighter/scene/util.h"
 
 namespace lighter::example {
 namespace {
 
-using common::Vertex2D;
+using base::Vertex2D;
 using renderer::ir::AccessType;
 using renderer::ir::Buffer;
 using renderer::ir::BufferUsage;
@@ -53,12 +53,11 @@ class PostEffectExample {
                     MultisamplingMode multisampling_mode)
       : multisampling_mode_{multisampling_mode},
         window_{"Post effect", screen_size} {
-    renderer_ = CreateRenderer("Post Effect Example", {&window_});
+    renderer_ = scene::CreateRenderer("Post Effect Example", {&window_});
 
-    const common::Image image_from_file =
-        common::Image::LoadSingleImageFromFile(
-            common::file::GetResourcePath("texture/statue.jpg"),
-            /*flip_y=*/false);
+    const base::Image image_from_file = base::Image::LoadSingleImageFromFile(
+        base::file::GetResourcePath("texture/statue.jpg"),
+        /*flip_y=*/false);
     image_extent_ =
         glm::ivec2{image_from_file.width(), image_from_file.height()};
     original_image_ = renderer_->CreateColorImage(
@@ -67,8 +66,8 @@ class PostEffectExample {
 
     const std::array<Vertex2D, 6> quad_vertices =
         Vertex2D::GetFullScreenSquadVertices(/*flip_y=*/true);
-    const size_t quad_bytes = common::util::GetTotalDataSize(
-        std::span<const Vertex2D>{quad_vertices});
+    const size_t quad_bytes =
+        base::util::GetTotalDataSize(std::span<const Vertex2D>{quad_vertices});
     quad_vertex_buffer_ =
         renderer_->CreateBuffer(Buffer::UpdateRate::kLow, quad_bytes,
                                 std::array{BufferUsage::GetVertexBufferUsage(
@@ -82,16 +81,17 @@ class PostEffectExample {
     };
 
     const char* frag_shader =
-        image_from_file.channel() == common::image::kBwImageChannel
-            ? "image_viewer/view_bw_image.frag"
-            : "image_viewer/view_color_image.frag";
+        image_from_file.channel() == base::image::kBwImageChannel
+            ? "shared/image_viewer/view_bw_image.frag"
+            : "shared/image_viewer/view_color_image.frag";
     base_quad_pipeline_ =
         GraphicsPipelineDescriptor{}
             .SetName("ViewImage")
             .SetShader(renderer::ir::shader_stage::VERTEX,
-                       GetShaderBinaryPath("image_viewer/view_image.vert"))
+                       base::file::GetShaderBinaryPath(
+                           "shared/image_viewer/view_image.vert"))
             .SetShader(renderer::ir::shader_stage::FRAGMENT,
-                       GetShaderBinaryPath(frag_shader))
+                       base::file::GetShaderBinaryPath(frag_shader))
             .UseColorAttachment(/*location=*/0, std::nullopt)
             .AddVertexInput({
                 VertexInputRate::kVertex,
@@ -101,10 +101,10 @@ class PostEffectExample {
                     /*loc_pos=*/0, /*loc_tex_coord=*/1),
             });
 
-    compute_pipeline_ =
-        ComputePipelineDescriptor{}
-            .SetName("SineWave")
-            .SetShader(GetShaderBinaryPath("post_effect/sine_wave.comp"));
+    compute_pipeline_ = ComputePipelineDescriptor{}
+                            .SetName("SineWave")
+                            .SetShader(base::file::GetShaderBinaryPath(
+                                "post_effect/sine_wave.comp"));
   }
 
   // This class is neither copyable nor movable.
@@ -175,8 +175,9 @@ class PostEffectExample {
           [&](PassBuilder& builder) {
             processed_color = builder.Read(
                 processed_color, ImageUsage::GetSampledInFragmentShaderUsage());
-            SetupMainPassAttachments(builder, backbuffer, multisampling_mode_,
-                                     /*use_depth=*/false);
+            scene::SetupMainPassAttachments(builder, backbuffer,
+                                            multisampling_mode_,
+                                            /*use_depth=*/false);
           },
           [&](PassContext& ctx) {
             const glm::ivec2 frame_size = ctx.GetImageExtent(backbuffer);
@@ -202,7 +203,7 @@ class PostEffectExample {
 
   const MultisamplingMode multisampling_mode_;
   glm::ivec2 image_extent_{0, 0};
-  common::Window window_;
+  base::Window window_;
   std::unique_ptr<Renderer> renderer_;
   std::unique_ptr<Image> original_image_;
   std::unique_ptr<Buffer> quad_vertex_buffer_;
@@ -215,7 +216,7 @@ class PostEffectExample {
 }  // namespace lighter::example
 
 int main(int argc, char* argv[]) {
-  return lighter::example::ExampleMain<lighter::example::PostEffectExample>(
+  return lighter::scene::RunApplication<lighter::example::PostEffectExample>(
       argc, argv, glm::ivec2{800, 600},
       lighter::renderer::ir::MultisamplingMode::kNone);
 }

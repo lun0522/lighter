@@ -9,14 +9,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>
 
-#include "lighter/example/util.h"
-#include "lighter/renderer/extension/model.h"
+#include "lighter/scene/model.h"
+#include "lighter/scene/skybox.h"
+#include "lighter/scene/util.h"
 
 namespace lighter::example {
 namespace {
 
-using renderer::extension::Model;
-using renderer::extension::ModelBuilder;
 using renderer::ir::AccessLocation;
 using renderer::ir::Buffer;
 using renderer::ir::BufferUsage;
@@ -26,6 +25,8 @@ using renderer::ir::PassBuilder;
 using renderer::ir::PassContext;
 using renderer::ir::Renderer;
 using renderer::ir::RenderGraph;
+using scene::Model;
+using scene::ModelBuilder;
 
 constexpr int kWindowIndex = 0;
 constexpr int kNumFramesInFlight = 2;
@@ -42,34 +43,30 @@ struct NanosuitFragTrans {
   ALIGN_MAT4 glm::mat4 view_inv;
 };
 
-struct SkyboxTrans {
-  ALIGN_MAT4 glm::mat4 proj_view_model;
-};
-
 class NanosuitExample {
  public:
   NanosuitExample(const glm::ivec2& screen_size,
                   MultisamplingMode multisampling_mode)
       : multisampling_mode_{multisampling_mode},
         window_{"Nanosuit", screen_size} {
-    using common::file::GetResourcePath;
+    using base::file::GetResourcePath;
     using TextureType = ModelBuilder::TextureType;
 
-    renderer_ = CreateRenderer("Nanosuit Example", {&window_});
+    renderer_ = scene::CreateRenderer("Nanosuit Example", {&window_});
 
     const float aspect_ratio = window_.original_aspect_ratio();
-    common::Camera::Config camera_config;
+    scene::Camera::Config camera_config;
     camera_config.position = glm::vec3{0.0f, 4.0f, -12.0f};
     camera_config.look_at = glm::vec3{0.0f, 4.0f, 0.0f};
 
-    common::camera_control::Config control_config;
+    scene::camera_control::Config control_config;
     control_config.move_speed = 1.0f;
     control_config.lock_center = camera_config.look_at;
 
-    camera_ = common::UserControlledPerspectiveCamera::Create(
+    camera_ = scene::UserControlledPerspectiveCamera::Create(
         control_config, camera_config,
         {/*field_of_view_y=*/45.0f, aspect_ratio});
-    RegisterCameraControls(window_, timer_, *camera_, &should_quit_);
+    scene::RegisterCameraControls(window_, timer_, *camera_, &should_quit_);
 
     const std::array uniform_usages{
         BufferUsage::GetUniformBufferUsage(AccessLocation::kVertexShader)};
@@ -99,26 +96,16 @@ class NanosuitExample {
             .AddTextureBindingPoint(TextureType::kSpecular, /*binding=*/2)
             .AddTextureBindingPoint(TextureType::kReflection, /*binding=*/3)
             .AddTextureBindingPoint(TextureType::kCubemap, /*binding=*/4)
-            .SetShader(renderer::ir::shader_stage::VERTEX,
-                       GetShaderBinaryPath("nanosuit/nanosuit.vert"))
-            .SetShader(renderer::ir::shader_stage::FRAGMENT,
-                       GetShaderBinaryPath("nanosuit/nanosuit.frag"))
+            .SetShader(
+                renderer::ir::shader_stage::VERTEX,
+                base::file::GetShaderBinaryPath("nanosuit/nanosuit.vert"))
+            .SetShader(
+                renderer::ir::shader_stage::FRAGMENT,
+                base::file::GetShaderBinaryPath("nanosuit/nanosuit.frag"))
             .Build();
 
-    skybox_model_ =
-        ModelBuilder{
-            *renderer_, "Skybox", aspect_ratio,
-            ModelBuilder::SingleMeshResource{
-                GetResourcePath("model/skybox.obj"),
-                kObjFileIndexBase,
-                /*tex_source_map=*/{{TextureType::kCubemap, {skybox_path}}},
-            }}
-            .AddTextureBindingPoint(TextureType::kCubemap, /*binding=*/1)
-            .SetShader(renderer::ir::shader_stage::VERTEX,
-                       GetShaderBinaryPath("shared/skybox.vert"))
-            .SetShader(renderer::ir::shader_stage::FRAGMENT,
-                       GetShaderBinaryPath("shared/skybox.frag"))
-            .Build();
+    skybox_ =
+        std::make_unique<scene::Skybox>(*renderer_, aspect_ratio, skybox_path);
   }
 
   // This class is neither copyable nor movable.
@@ -139,7 +126,7 @@ class NanosuitExample {
                           glm::vec3{0.0f, 1.0f, 0.0f});
       model = glm::scale(model, glm::vec3{0.5f});
 
-      const common::Camera& cam = camera_->camera();
+      const scene::Camera& cam = camera_->camera();
       const glm::mat4 view = cam.GetViewMatrix();
       const glm::mat4 proj = cam.GetProjectionMatrix();
       const glm::mat4 view_model = view * model;
@@ -150,15 +137,16 @@ class NanosuitExample {
           glm::transpose(glm::inverse(view_model)),
       };
       const NanosuitFragTrans frag_trans{glm::inverse(view)};
-      const SkyboxTrans skybox_trans{proj * cam.GetSkyboxViewMatrix()};
+      const glm::mat4 skybox_proj_view_model = proj * cam.GetSkyboxViewMatrix();
 
       graph.Reset();
       const ImageHandle backbuffer = graph.ImportSwapchainImage(kWindowIndex);
       graph.AddGraphicsPass(
           "NanosuitAndSkybox",
           [&](PassBuilder& builder) {
-            SetupMainPassAttachments(builder, backbuffer, multisampling_mode_,
-                                     /*use_depth=*/true);
+            scene::SetupMainPassAttachments(builder, backbuffer,
+                                            multisampling_mode_,
+                                            /*use_depth=*/true);
           },
           [&](PassContext& ctx) {
             const glm::ivec2 frame_size = ctx.GetImageExtent(backbuffer);
@@ -173,10 +161,7 @@ class NanosuitExample {
                               &frag_trans);
             nanosuit_model_->Draw(ctx);
 
-            skybox_model_->BindPipeline(ctx, frame_size);
-            ctx.PushConstants(renderer::ir::shader_stage::VERTEX, /*offset=*/0,
-                              sizeof(SkyboxTrans), &skybox_trans);
-            skybox_model_->Draw(ctx);
+            skybox_->Draw(ctx, frame_size, skybox_proj_view_model);
           });
 
       if (!renderer_->RenderFrame(kWindowIndex, graph)) {
@@ -193,21 +178,21 @@ class NanosuitExample {
   const MultisamplingMode multisampling_mode_;
   bool should_quit_ = false;
   int frame_slot_ = 0;
-  common::FrameTimer timer_;
-  common::Window window_;
-  std::unique_ptr<common::UserControlledPerspectiveCamera> camera_;
+  base::FrameTimer timer_;
+  base::Window window_;
+  std::unique_ptr<scene::UserControlledPerspectiveCamera> camera_;
   std::unique_ptr<Renderer> renderer_;
   std::array<std::unique_ptr<Buffer>, kNumFramesInFlight>
       nanosuit_vert_uniforms_;
   std::unique_ptr<Model> nanosuit_model_;
-  std::unique_ptr<Model> skybox_model_;
+  std::unique_ptr<scene::Skybox> skybox_;
 };
 
 }  // namespace
 }  // namespace lighter::example
 
 int main(int argc, char* argv[]) {
-  return lighter::example::ExampleMain<lighter::example::NanosuitExample>(
+  return lighter::scene::RunApplication<lighter::example::NanosuitExample>(
       argc, argv, glm::ivec2{800, 600},
       lighter::renderer::ir::MultisamplingMode::kDecent);
 }

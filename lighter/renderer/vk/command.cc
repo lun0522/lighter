@@ -10,7 +10,7 @@
 #include <array>
 #include <limits>
 
-#include "lighter/common/util.h"
+#include "lighter/base/util.h"
 
 namespace lighter::renderer::vk {
 

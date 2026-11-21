@@ -18,7 +18,8 @@
 #include <string_view>
 #include <vector>
 
-#include "lighter/common/image.h"
+#include "lighter/base/flag.h"
+#include "lighter/base/image.h"
 #include "lighter/renderer/ir/buffer_usage.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/ir/render_graph.h"
@@ -31,20 +32,25 @@
 #include "lighter/renderer/vk/render_graph.h"
 #include "lighter/renderer/vk/swapchain.h"
 
+LIGHTER_DECLARE_FLAG(bool, ignore_vsync);
+
 namespace lighter::renderer::vk {
+
+// Configures process environment variables for Vulkan/MoltenVK. This should be
+// called once before creating any windows or Vulkan instances.
+void InitVulkan();
 
 class Renderer : public WithSharedContext, public ir::Renderer {
  public:
   Renderer(const char* application_name,
            const std::optional<ir::debug_message::Config>& debug_message_config,
-           std::vector<common::Window*>&& window_ptrs);
+           std::vector<base::Window*>&& window_ptrs);
 
   Renderer(const char* application_name,
            const std::optional<ir::debug_message::Config>& debug_message_config,
-           std::span<common::Window* const> windows)
+           std::span<base::Window* const> windows)
       : Renderer{application_name, debug_message_config,
-                 std::vector<common::Window*>{windows.begin(), windows.end()}} {
-  }
+                 std::vector<base::Window*>{windows.begin(), windows.end()}} {}
 
   // This class is neither copyable nor movable.
   Renderer(const Renderer&) = delete;
@@ -62,7 +68,7 @@ class Renderer : public WithSharedContext, public ir::Renderer {
   // Image
 
   std::unique_ptr<ir::Image> CreateColorImage(
-      std::string_view name, const common::Image::Dimension& dimension,
+      std::string_view name, const base::Image::Dimension& dimension,
       ir::MultisamplingMode multisampling_mode, bool high_precision,
       std::span<const ir::ImageUsage> usages) const override {
     return OwnedImage::CreateColorImage(
@@ -78,7 +84,7 @@ class Renderer : public WithSharedContext, public ir::Renderer {
   }
 
   std::unique_ptr<ir::Image> CreateColorImage(
-      std::string_view name, const common::Image& image, bool generate_mipmaps,
+      std::string_view name, const base::Image& image, bool generate_mipmaps,
       std::span<const ir::ImageUsage> usages) const override {
     return OwnedImage::CreateColorImage(context_, name, image, generate_mipmaps,
                                         usages);

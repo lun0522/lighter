@@ -11,20 +11,20 @@
 #include <format>
 #include <vector>
 
-#include "lighter/common/util.h"
-#include "lighter/example/aurora/editor/button_util.h"
-#include "lighter/example/util.h"
+#include "lighter/base/util.h"
+#include "lighter/scene/util.h"
+#include "lighter/ui/button_util.h"
 
 namespace lighter::example::aurora {
 namespace {
 
-using renderer::extension::Text;
 using renderer::ir::ImageHandle;
 using renderer::ir::MultisamplingMode;
 using renderer::ir::PassBuilder;
 using renderer::ir::PassContext;
 using renderer::ir::Renderer;
 using renderer::ir::RenderGraph;
+using ui::Text;
 
 constexpr float kInertialRotationDuration = 1.5f;
 
@@ -74,7 +74,7 @@ std::vector<float> GetButtonCenters(int num_buttons) {
 
 }  // namespace
 
-Editor::Editor(common::Window& window, Renderer& renderer, int window_index,
+Editor::Editor(base::Window& window, Renderer& renderer, int window_index,
                MultisamplingMode multisampling_mode, int num_frames_in_flight)
     : window_{window},
       window_index_{window_index},
@@ -85,7 +85,7 @@ Editor::Editor(common::Window& window, Renderer& renderer, int window_index,
                     kInertialRotationDuration} {
   const float original_aspect_ratio = window_.original_aspect_ratio();
 
-  using ButtonColors = std::array<glm::vec3, button::kNumStates>;
+  using ButtonColors = std::array<glm::vec3, ui::button::kNumStates>;
   const std::array<ButtonColors, kNumButtons> button_and_path_colors{
       ButtonColors{MakeColor(241, 196, 15), MakeColor(243, 156, 18)},
       ButtonColors{MakeColor(230, 126, 34), MakeColor(211, 84, 0)},
@@ -95,8 +95,8 @@ Editor::Editor(common::Window& window, Renderer& renderer, int window_index,
       ButtonColors{MakeColor(155, 89, 182), MakeColor(142, 68, 173)},
       ButtonColors{MakeColor(46, 204, 113), MakeColor(39, 174, 96)},
   };
-  constexpr std::array<float, button::kNumStates> kButtonAndPathAlphas{1.0f,
-                                                                       0.5f};
+  constexpr std::array<float, ui::button::kNumStates> kButtonAndPathAlphas{
+      1.0f, 0.5f};
 
   celestial_ = std::make_unique<Celestial>(renderer, original_aspect_ratio,
                                            num_frames_in_flight);
@@ -130,7 +130,7 @@ Editor::Editor(common::Window& window, Renderer& renderer, int window_index,
       });
 
   {
-    using ButtonInfo = Button::ButtonsInfo::Info;
+    using ButtonInfo = ui::Button::ButtonsInfo::Info;
     constexpr auto kFont = Text::Font::kOstrich;
     constexpr int kFontHeight = 100;
     constexpr float kBaseY = 0.25f;
@@ -156,10 +156,11 @@ Editor::Editor(common::Window& window, Renderer& renderer, int window_index,
             {button_centers_x[static_cast<size_t>(i)], button_center_y},
         };
       }
-      top_row_buttons_ = std::make_unique<Button>(
+      top_row_buttons_ = std::make_unique<ui::Button>(
           renderer, original_aspect_ratio, num_frames_in_flight,
-          Button::ButtonsInfo{kFont, kFontHeight, kBaseY, kTopY, text_color,
-                              kButtonAndPathAlphas, button_size, button_infos});
+          ui::Button::ButtonsInfo{kFont, kFontHeight, kBaseY, kTopY, text_color,
+                                  kButtonAndPathAlphas, button_size,
+                                  button_infos});
     }
 
     {
@@ -176,23 +177,24 @@ Editor::Editor(common::Window& window, Renderer& renderer, int window_index,
             {button_centers_x[static_cast<size_t>(i)], button_center_y},
         };
       }
-      bottom_row_buttons_ = std::make_unique<Button>(
+      bottom_row_buttons_ = std::make_unique<ui::Button>(
           renderer, original_aspect_ratio, num_frames_in_flight,
-          Button::ButtonsInfo{kFont, kFontHeight, kBaseY, kTopY, text_color,
-                              kButtonAndPathAlphas, button_size, button_infos});
+          ui::Button::ButtonsInfo{kFont, kFontHeight, kBaseY, kTopY, text_color,
+                                  kButtonAndPathAlphas, button_size,
+                                  button_infos});
     }
   }
 
-  const common::camera_control::Config control_config;
-  common::Camera::Config camera_config;
+  const scene::camera_control::Config control_config;
+  scene::Camera::Config camera_config;
   camera_config.position = glm::vec3{0.0f, 0.0f, 3.0f};
 
-  skybox_camera_ = common::UserControlledPerspectiveCamera::Create(
+  skybox_camera_ = scene::UserControlledPerspectiveCamera::Create(
       control_config, camera_config,
       {/*field_of_view_y=*/45.0f, original_aspect_ratio});
   skybox_camera_->SetActivity(true);
 
-  general_camera_ = common::UserControlledOrthographicCamera::Create(
+  general_camera_ = scene::UserControlledOrthographicCamera::Create(
       control_config, camera_config,
       {/*view_width=*/3.0f, original_aspect_ratio});
   general_camera_->SetActivity(true);
@@ -258,7 +260,7 @@ void Editor::BuildFrame(RenderGraph& graph, int frame_slot) {
   }
   state_manager_.Update(clicked_button);
 
-  const common::OrthographicCamera& general_camera = general_camera_->camera();
+  const scene::OrthographicCamera& general_camera = general_camera_->camera();
   std::optional<glm::vec2> click_earth_ndc;
   std::optional<AuroraPath::ClickInfo> click_celestial;
   if (!clicked_button.has_value()) {
@@ -307,8 +309,9 @@ void Editor::BuildFrame(RenderGraph& graph, int frame_slot) {
   graph.AddGraphicsPass(
       "AuroraEditor",
       [&](PassBuilder& builder) {
-        SetupMainPassAttachments(builder, backbuffer, multisampling_mode_,
-                                 /*use_depth=*/true);
+        scene::SetupMainPassAttachments(builder, backbuffer,
+                                        multisampling_mode_,
+                                        /*use_depth=*/true);
       },
       [this, backbuffer, frame_slot, earth_texture_index,
        earth_transform_matrix, skybox_transform_matrix, selected_path,
@@ -327,14 +330,14 @@ void Editor::BuildFrame(RenderGraph& graph, int frame_slot) {
       });
 }
 
-void Editor::RotateCelestials(const common::rotation::Rotation& rotation) {
+void Editor::RotateCelestials(const scene::rotation::Rotation& rotation) {
   earth_.Rotate(rotation);
   aurora_layer_.Rotate(rotation);
 }
 
 Editor::StateManager::StateManager() {
-  SetTopRowButtonsStates(Button::State::kHidden);
-  SetBottomRowButtonsStates(Button::State::kUnselected);
+  SetTopRowButtonsStates(ui::Button::State::kHidden);
+  SetBottomRowButtonsStates(ui::Button::State::kUnselected);
 }
 
 void Editor::StateManager::Update(std::optional<ButtonIndex> clicked_button) {
@@ -354,10 +357,10 @@ void Editor::StateManager::Update(std::optional<ButtonIndex> clicked_button) {
     FlipButtonState(button_index);
     if (button_index == kEditingButtonIndex) {
       if (IsEditing()) {
-        SetTopRowButtonsStates(Button::State::kUnselected);
+        SetTopRowButtonsStates(ui::Button::State::kUnselected);
         FlipButtonState(last_edited_path_);
       } else {
-        SetTopRowButtonsStates(Button::State::kHidden);
+        SetTopRowButtonsStates(ui::Button::State::kHidden);
       }
     }
   }
@@ -375,13 +378,13 @@ std::optional<int> Editor::StateManager::GetSelectedPathIndex() const {
   return std::nullopt;
 }
 
-void Editor::StateManager::SetTopRowButtonsStates(Button::State state) {
+void Editor::StateManager::SetTopRowButtonsStates(ui::Button::State state) {
   for (int i = 0; i < kNumTopRowButtons; ++i) {
     button_states_[static_cast<size_t>(i)] = state;
   }
 }
 
-void Editor::StateManager::SetBottomRowButtonsStates(Button::State state) {
+void Editor::StateManager::SetBottomRowButtonsStates(ui::Button::State state) {
   for (int i = kNumTopRowButtons; i < kNumButtons; ++i) {
     button_states_[static_cast<size_t>(i)] = state;
   }
@@ -389,13 +392,13 @@ void Editor::StateManager::SetBottomRowButtonsStates(Button::State state) {
 
 void Editor::StateManager::FlipButtonState(ButtonIndex index) {
   switch (button_states_[index]) {
-    case Button::State::kHidden:
+    case ui::Button::State::kHidden:
       FATAL("Should not call on a hidden button");
-    case Button::State::kSelected:
-      button_states_[index] = Button::State::kUnselected;
+    case ui::Button::State::kSelected:
+      button_states_[index] = ui::Button::State::kUnselected;
       break;
-    case Button::State::kUnselected:
-      button_states_[index] = Button::State::kSelected;
+    case ui::Button::State::kUnselected:
+      button_states_[index] = ui::Button::State::kSelected;
       break;
   }
 }

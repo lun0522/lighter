@@ -18,8 +18,8 @@
 #include <string>
 #include <vector>
 
-#include "lighter/common/util.h"
-#include "lighter/common/window.h"
+#include "lighter/base/util.h"
+#include "lighter/base/window.h"
 #include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/vk/basic.h"
 
@@ -38,7 +38,7 @@ class Context : public std::enable_shared_from_this<Context> {
   static SharedContext CreateContext(
       const char* application_name,
       const std::optional<ir::debug_message::Config>& debug_message_config,
-      std::span<const common::Window* const> windows) {
+      std::span<const base::Window* const> windows) {
     return std::shared_ptr<Context>(
         new Context{application_name, debug_message_config, windows});
   }
@@ -105,7 +105,7 @@ class Context : public std::enable_shared_from_this<Context> {
 
   Context(const char* application_name,
           const std::optional<ir::debug_message::Config>& debug_message_config,
-          std::span<const common::Window* const> windows);
+          std::span<const base::Window* const> windows);
 
   // Wrapper of VkAllocationCallbacks.
   std::unique_ptr<HostMemoryAllocator> host_allocator_;

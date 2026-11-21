@@ -14,7 +14,7 @@
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
-#include "lighter/common/window.h"
+#include "lighter/base/window.h"
 #include "lighter/renderer/ir/type.h"
 #include "lighter/renderer/vk/util.h"
 
@@ -48,7 +48,7 @@ class Instance {
  public:
   Instance(const Context* context, bool enable_validation,
            const char* application_name,
-           std::span<const common::Window* const> windows);
+           std::span<const base::Window* const> windows);
 
   // This class is neither copyable nor movable.
   Instance(const Instance&) = delete;
@@ -91,7 +91,7 @@ class DebugMessenger {
 // Wraps VkSurfaceKHR, which interfaces with platform-specific window systems.
 class Surface {
  public:
-  Surface(const Context* context, const common::Window& window);
+  Surface(const Context* context, const base::Window& window);
 
   // This class is neither copyable nor movable.
   Surface(const Surface&) = delete;

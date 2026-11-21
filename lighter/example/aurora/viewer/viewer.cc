@@ -10,21 +10,21 @@
 #include <array>
 #include <cstddef>
 
-#include "lighter/common/data.h"
-#include "lighter/common/file.h"
-#include "lighter/common/image.h"
-#include "lighter/common/util.h"
+#include "lighter/base/data.h"
+#include "lighter/base/file.h"
+#include "lighter/base/image.h"
+#include "lighter/base/util.h"
 #include "lighter/example/aurora/viewer/air_transmit_table.h"
-#include "lighter/example/util.h"
 #include "lighter/renderer/ir/buffer_usage.h"
 #include "lighter/renderer/ir/buffer_util.h"
 #include "lighter/renderer/ir/image_usage.h"
 #include "lighter/renderer/ir/pipeline_util.h"
+#include "lighter/scene/util.h"
 
 namespace lighter::example::aurora {
 namespace {
 
-using common::Vertex2DPosOnly;
+using base::Vertex2DPosOnly;
 using renderer::ir::AccessLocation;
 using renderer::ir::Buffer;
 using renderer::ir::BufferUsage;
@@ -72,14 +72,14 @@ const glm::vec3& GetEarthModelAxis() {
 
 }  // namespace
 
-Viewer::Viewer(common::Window& window, Renderer& renderer, int window_index,
+Viewer::Viewer(base::Window& window, Renderer& renderer, int window_index,
                MultisamplingMode multisampling_mode, int num_frames_in_flight)
     : window_{window},
       renderer_{renderer},
       window_index_{window_index},
       multisampling_mode_{multisampling_mode},
       path_dumper_{renderer_, kPathsImageDimension} {
-  using common::file::GetResourcePath;
+  using base::file::GetResourcePath;
 
   const std::array uniform_usages{
       BufferUsage::GetUniformBufferUsage(AccessLocation::kFragmentShader)};
@@ -101,7 +101,7 @@ Viewer::Viewer(common::Window& window, Renderer& renderer, int window_index,
 
   aurora_deposition_image_ = renderer_.CreateColorImage(
       "AuroraDeposition",
-      common::Image::LoadSingleImageFromFile(
+      base::Image::LoadSingleImageFromFile(
           GetResourcePath("texture/aurora_deposition.jpg"), /*flip_y=*/false),
       /*generate_mipmaps=*/true, sampled_usage);
 
@@ -115,7 +115,7 @@ Viewer::Viewer(common::Window& window, Renderer& renderer, int window_index,
   };
   universe_skybox_image_ = renderer_.CreateColorImage(
       "UniverseSkybox",
-      common::Image::LoadCubemapFromFiles(
+      base::Image::LoadCubemapFromFiles(
           GetResourcePath("texture/universe/PositiveX.jpg",
                           /*want_directory_path=*/true),
           skybox_files, /*flip_y=*/false),
@@ -123,7 +123,7 @@ Viewer::Viewer(common::Window& window, Renderer& renderer, int window_index,
 
   const std::array<Vertex2DPosOnly, 6> quad_vertices =
       Vertex2DPosOnly::GetFullScreenSquadVertices();
-  const size_t quad_bytes = common::util::GetTotalDataSize(
+  const size_t quad_bytes = base::util::GetTotalDataSize(
       std::span<const Vertex2DPosOnly>{quad_vertices});
   quad_vertex_buffer_ =
       renderer_.CreateBuffer(Buffer::UpdateRate::kLow, quad_bytes,
@@ -134,9 +134,9 @@ Viewer::Viewer(common::Window& window, Renderer& renderer, int window_index,
 
   base_pipeline_descriptor_.SetName("ViewAurora")
       .SetShader(renderer::ir::shader_stage::VERTEX,
-                 GetShaderBinaryPath("aurora/aurora.vert"))
+                 base::file::GetShaderBinaryPath("aurora/aurora.vert"))
       .SetShader(renderer::ir::shader_stage::FRAGMENT,
-                 GetShaderBinaryPath("aurora/aurora.frag"))
+                 base::file::GetShaderBinaryPath("aurora/aurora.frag"))
       .UseColorAttachment(/*location=*/0, std::nullopt)
       .AddVertexInput({
           VertexInputRate::kVertex,
@@ -145,20 +145,20 @@ Viewer::Viewer(common::Window& window, Renderer& renderer, int window_index,
           renderer::ir::buffer::CreateAttributesForVertex2DPosOnly(0),
       });
 
-  common::Camera::Config camera_config;
+  scene::Camera::Config camera_config;
   camera_config.far = 2.0f;
   camera_config.up = GetEarthModelAxis();
   camera_config.position = glm::vec3{0.0f};
   camera_config.look_at = glm::vec3{1.0f};
-  dump_paths_camera_ = std::make_unique<common::PerspectiveCamera>(
-      camera_config, common::PerspectiveCamera::FrustumConfig{
+  dump_paths_camera_ = std::make_unique<scene::PerspectiveCamera>(
+      camera_config, scene::PerspectiveCamera::FrustumConfig{
                          /*field_of_view_y=*/40.0f,
                          /*aspect_ratio=*/1.0f,
                      });
 
-  view_aurora_camera_ = common::UserControlledPerspectiveCamera::Create(
+  view_aurora_camera_ = scene::UserControlledPerspectiveCamera::Create(
       /*control_config=*/{}, camera_config,
-      common::PerspectiveCamera::FrustumConfig{
+      scene::PerspectiveCamera::FrustumConfig{
           /*field_of_view_y=*/45.0f,
           window_.original_aspect_ratio(),
       });
@@ -173,7 +173,7 @@ void Viewer::UpdateAuroraPaths(const glm::vec3& viewpoint_position,
                       dump_paths_camera_->GetViewMatrix();
 
   view_aurora_camera_->SetInternalStates(
-      [&viewpoint_position](common::PerspectiveCamera* camera) {
+      [&viewpoint_position](scene::PerspectiveCamera* camera) {
         camera->SetPosition(viewpoint_position);
         camera->SetUp(viewpoint_position);
         const glm::vec3 right = glm::cross(GetEarthModelAxis(), camera->up());
@@ -190,7 +190,7 @@ void Viewer::OnEnter() {
       .RegisterScrollCallback([this](double /*x_pos*/, double y_pos) {
         view_aurora_camera_->DidScroll(y_pos, 15.0f, 45.0f);
       })
-      .RegisterPressKeyCallback(common::Window::KeyMap::kEscape,
+      .RegisterPressKeyCallback(base::Window::KeyMap::kEscape,
                                 [this]() { should_quit_ = true; });
   OnSurfaceRecreated();
 }
@@ -199,7 +199,7 @@ void Viewer::OnExit() {
   window_.SetCursorHidden(false)
       .RegisterMoveCursorCallback(nullptr)
       .RegisterScrollCallback(nullptr)
-      .RegisterPressKeyCallback(common::Window::KeyMap::kEscape, nullptr);
+      .RegisterPressKeyCallback(base::Window::KeyMap::kEscape, nullptr);
 }
 
 void Viewer::OnSurfaceRecreated() {
@@ -207,7 +207,7 @@ void Viewer::OnSurfaceRecreated() {
 }
 
 void Viewer::BuildFrame(RenderGraph& graph, int frame_slot) {
-  const common::PerspectiveCamera& cam = view_aurora_camera_->camera();
+  const scene::PerspectiveCamera& cam = view_aurora_camera_->camera();
   const RenderInfo render_info{
       .camera_pos = glm::vec4{cam.position(), 0.0f},
       .aurora_proj_view = aurora_proj_view_,
@@ -223,8 +223,9 @@ void Viewer::BuildFrame(RenderGraph& graph, int frame_slot) {
   graph.AddGraphicsPass(
       "AuroraViewer",
       [&](PassBuilder& builder) {
-        SetupMainPassAttachments(builder, backbuffer, multisampling_mode_,
-                                 /*use_depth=*/false);
+        scene::SetupMainPassAttachments(builder, backbuffer,
+                                        multisampling_mode_,
+                                        /*use_depth=*/false);
       },
       [this, backbuffer, frame_slot, render_info,
        camera_param](PassContext& ctx) {

@@ -8,9 +8,9 @@
 #include <memory>
 
 #include "lighter/example/aurora/editor/editor.h"
-#include "lighter/example/aurora/scene.h"
 #include "lighter/example/aurora/viewer/viewer.h"
-#include "lighter/example/util.h"
+#include "lighter/scene/scene.h"
+#include "lighter/scene/util.h"
 
 namespace lighter::example {
 namespace {
@@ -32,7 +32,7 @@ class AuroraExample {
   AuroraExample(const glm::ivec2& screen_size,
                 MultisamplingMode multisampling_mode)
       : window_{"Aurora Sketcher", screen_size} {
-    renderer_ = CreateRenderer("Aurora Sketcher", {&window_});
+    renderer_ = scene::CreateRenderer("Aurora Sketcher", {&window_});
     editor_ = std::make_unique<aurora::Editor>(window_, *renderer_,
                                                kWindowIndex, multisampling_mode,
                                                kNumFramesInFlight);
@@ -60,7 +60,7 @@ class AuroraExample {
         LOG_INFO << "Frame rate: " << frame_rate_;
       }
 
-      aurora::Scene& scene = GetCurrentScene();
+      scene::Scene& scene = GetCurrentScene();
       if (HasTransitionedScene()) {
         scene.OnEnter();
       }
@@ -79,7 +79,7 @@ class AuroraExample {
   }
 
  private:
-  aurora::Scene& GetCurrentScene() {
+  scene::Scene& GetCurrentScene() {
     switch (current_scene_) {
       case SceneKind::kNone:
         FATAL("Unreachable");
@@ -117,8 +117,8 @@ class AuroraExample {
   int frame_rate_ = 0;
   SceneKind last_scene_ = SceneKind::kNone;
   SceneKind current_scene_ = SceneKind::kEditor;
-  common::FrameTimer timer_;
-  common::Window window_;
+  base::FrameTimer timer_;
+  base::Window window_;
   std::unique_ptr<Renderer> renderer_;
   std::unique_ptr<aurora::Editor> editor_;
   std::unique_ptr<aurora::Viewer> viewer_;
@@ -128,7 +128,7 @@ class AuroraExample {
 }  // namespace lighter::example
 
 int main(int argc, char* argv[]) {
-  return lighter::example::ExampleMain<lighter::example::AuroraExample>(
+  return lighter::scene::RunApplication<lighter::example::AuroraExample>(
       argc, argv, glm::ivec2{800, 600},
       lighter::renderer::ir::MultisamplingMode::kDecent);
 }

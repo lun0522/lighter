@@ -11,7 +11,7 @@
 #include <limits>
 #include <vector>
 
-#include "lighter/common/util.h"
+#include "lighter/base/util.h"
 
 namespace lighter::example::aurora {
 namespace {
@@ -131,7 +131,7 @@ float GetAtmosphereThickness(const Ray& ray, const SpanT& span) {
 
 }  // namespace
 
-common::Image GenerateAirTransmitTable(float sample_step) {
+base::Image GenerateAirTransmitTable(float sample_step) {
   constexpr int kImageWidth = 1;
   const int image_height = static_cast<int>(glm::floor(1.0f / sample_step));
   std::vector<unsigned char> image_data(static_cast<size_t>(image_height));
@@ -151,10 +151,10 @@ common::Image GenerateAirTransmitTable(float sample_step) {
         static_cast<unsigned char>(glm::round(air_transmit));
   }
 
-  const common::Image::Dimension dimension{kImageWidth, image_height,
-                                           common::image::kBwImageChannel};
-  return common::Image::LoadSingleImageFromMemory(dimension, image_data.data(),
-                                                  /*flip_y=*/false);
+  const base::Image::Dimension dimension{kImageWidth, image_height,
+                                         base::image::kBwImageChannel};
+  return base::Image::LoadSingleImageFromMemory(dimension, image_data.data(),
+                                                /*flip_y=*/false);
 }
 
 }  // namespace lighter::example::aurora
