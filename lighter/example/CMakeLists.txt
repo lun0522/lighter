@@ -38,3 +38,9 @@ target_link_libraries(example_planet
   PRIVATE
     lighter_renderer_extension_model
 )
+
+lighter_add_example(example_post_effect post_effect.cc)
+target_link_libraries(example_post_effect
+  PRIVATE
+    lighter_common_image
+)
