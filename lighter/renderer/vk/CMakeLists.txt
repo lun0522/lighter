@@ -169,6 +169,21 @@ target_link_libraries(lighter_renderer_vk_transient_resource_pool
     lighter_renderer_vk_util
 )
 
+add_library(lighter_renderer_vk_pipeline_cache STATIC
+  pipeline_cache.cc
+  pipeline_cache.h
+)
+target_link_libraries(lighter_renderer_vk_pipeline_cache
+  PUBLIC
+    lighter_project_options
+    lighter_renderer_ir_image
+    lighter_renderer_ir_pipeline
+    lighter_renderer_vk_context
+    lighter_renderer_vk_image
+    lighter_renderer_vk_pipeline
+    lighter_renderer_vk_util
+)
+
 add_library(lighter_renderer_vk_renderer STATIC
   renderer.cc
   renderer.h
@@ -239,3 +254,14 @@ target_link_libraries(vk_transient_resource_pool_test
 )
 add_test(NAME vk_transient_resource_pool_test
          COMMAND vk_transient_resource_pool_test)
+
+add_executable(vk_pipeline_cache_test
+  pipeline_cache_test.cc
+)
+target_link_libraries(vk_pipeline_cache_test
+  PRIVATE
+    lighter_project_options
+    lighter_renderer_vk_pipeline_cache
+    GTest::gtest_main
+)
+add_test(NAME vk_pipeline_cache_test COMMAND vk_pipeline_cache_test)
